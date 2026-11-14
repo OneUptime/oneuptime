@@ -342,7 +342,7 @@ function navbarValue(group: string, key: string): string {
   return navbar[group]?.[key] || "";
 }
 
-describe("Service Catalog (telemetry/services)", () => {
+describe("Services (telemetry/services)", () => {
   const page: string = english(SERVICES);
   const ingest: string = readCommonSource(
     "Server/Services/OpenTelemetryIngestService.ts",

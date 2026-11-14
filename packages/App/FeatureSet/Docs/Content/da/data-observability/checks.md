@@ -8,14 +8,14 @@ Tilføj et tjek på en tabels fane **Tjek**:
 
 | Tjek | Hvad det læser |
 | --- | --- |
-| **Null Percent** | Procentdel af rækker, hvis kolonne er tom |
-| **Duplicate Percent** | Procentdel af værdier, der gentager en anden rækkes værdi |
-| **Distinct Count** | Hvor mange forskellige værdier kolonnen indeholder |
+| **Andel NULL** | Procentdel af rækker, hvis kolonne er tom |
+| **Andel dubletter** | Procentdel af værdier, der gentager en anden rækkes værdi |
+| **Antal unikke værdier** | Hvor mange forskellige værdier kolonnen indeholder |
 | **Minimum**, **Maksimum**, **Gennemsnit**, **Sum** | Af en numerisk kolonne (en Sum af ingen rækker er 0) |
-| **Invalid Percent** | Procentdel af værdier uden for en liste, du angiver |
-| **Format Mismatch Percent** | Procentdel af værdier, der ikke har et format, du vælger, f.eks. Email, UUID eller Country Code, eller som ikke matcher et regulært udtryk af din egen (alle motorer undtagen SQL Server og Dataverse) |
-| **Orphan Count** | Rækker, hvis værdi ikke har noget match i en anden tabels kolonne |
-| **Row Count** | Rækker i tabellen, mest nyttigt med **Opdel efter** |
+| **Andel ugyldige værdier** | Procentdel af værdier uden for en liste, du angiver |
+| **Andel formatfejl** | Procentdel af værdier, der ikke har et format, du vælger, f.eks. Email, UUID eller Country Code, eller som ikke matcher et regulært udtryk af din egen (alle motorer undtagen SQL Server og Dataverse) |
+| **Antal forældreløse rækker** | Rækker, hvis værdi ikke har noget match i en anden tabels kolonne |
+| **Antal rækker** | Rækker i tabellen, mest nyttigt med **Opdel efter** |
 | **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` (i MongoDB en aggregeringspipelines) |
 | **Fejlende rækker** | Hvor mange rækker én skrivebeskyttet SELECT af din egen returnerer: de rækker, der ikke burde findes. 0 er sundt (i MongoDB de dokumenter, en pipeline ender i) |
 
@@ -31,7 +31,7 @@ Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som é
 
 ## Segmenter
 
-**Opdel efter** kører et tjek én gang pr. værdi i en kolonne, f.eks. en tenant eller en region: én serie og én advarsel for hver, for de 100 største segmenter. En segmenteret Row Count advarer, når én tenant holder op med at sende data, mens de andre fortsætter.
+**Opdel efter** kører et tjek én gang pr. værdi i en kolonne, f.eks. en tenant eller en region: én serie og én advarsel for hver, for de 100 største segmenter. Et segmenteret antal rækker advarer, når én tenant holder op med at sende data, mens de andre fortsætter.
 
 ## Advarsler på et tjek
 
@@ -48,13 +48,13 @@ Et tjeks **Status**, under **Tjek** og på fanen **Tjek** for dets tabel, siger,
 
 Et tjek konkurrerer med din applikation om databasen, og på et datavarehus, der afregner efter det, en forespørgsel læser, koster det penge. Tre ting holder det under kontrol:
 
-- **Stikprøveprocent** læser en andel af rækkerne i stedet for alle, til et tjek, der læser en rate: Null Percent, Average, Invalid Percent og Format Mismatch Percent. De fleste motorer springer hele sider af tabellen over; MySQL, Redshift, ClickHouse og MongoDB læser stadig hver række og slipper for arbejdet på resten. Dataverse tager ingen stikprøve: et tjek dér læser hver række. En visning kan afvise det, og tjekket siger det.
+- **Stikprøveprocent** læser en andel af rækkerne i stedet for alle, til et tjek, der læser en rate: Andel NULL, Gennemsnit, Andel ugyldige værdier og Andel formatfejl. De fleste motorer springer hele sider af tabellen over; MySQL, Redshift, ClickHouse og MongoDB læser stadig hver række og slipper for arbejdet på resten. Dataverse tager ingen stikprøve: et tjek dér læser hver række. En visning kan afvise det, og tjekket siger det.
 - **Mest en kontrol må læse (GB)** under **Indstillinger** stopper et tjek på BigQuery eller Athena, før det læser mere end så mange gigabyte. Den er 10, indtil du ændrer den.
 - **Vent, når en database er optaget** under **Indstillinger** lader forfaldne tjek vente til næste indsamling, når en PostgreSQL-, MySQL- eller SQL Server-database ser optaget ud. Den er slået til, indtil du slår den fra, og databasen siger, hvornår tjek ventede.
 
 ## Fejlende rækker
 
-Et tal siger, at noget er galt; nogle få rækker siger hvad. **Gem fejlende rækker** under **Indstillinger** gemmer op til 20 af de rækker, som et Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-tjek fandt, og **Fejlende rækker** på tjekket viser dem. Indstillingen er slået fra, indtil du slår den til. Følsomme kolonner maskeres, hvor rækken læses, efter hvad Datasikkerhed fandt i dem eller efter deres navne, så det, der forlader databasen eller en sonde, allerede er maskeret. En følsom kolonne, som ingen scanning har fundet, og hvis navn ikke afslører den, gemmes, som den er.
+Et tal siger, at noget er galt; nogle få rækker siger hvad. **Gem fejlende rækker** under **Indstillinger** gemmer op til 20 af de rækker, som et tjek af typen Fejlende rækker, Andel ugyldige værdier, Andel formatfejl eller Antal forældreløse rækker fandt, og **Fejlende rækker** på tjekket viser dem. Indstillingen er slået fra, indtil du slår den til. Følsomme kolonner maskeres, hvor rækken læses, efter hvad Datasikkerhed fandt i dem eller efter deres navne, så det, der forlader databasen eller en sonde, allerede er maskeret. En følsom kolonne, som ingen scanning har fundet, og hvis navn ikke afslører den, gemmes, som den er.
 
 Rækkerne gemmes i OneUptime: på OneUptimes servere med OneUptime Cloud og på dine egne med en selvhostet installation. Alle, der kan læse projektets tjek, kan se dem. Et tjek gemmer kun rækkerne fra sin seneste kørsel, og når du slår **Gem fejlende rækker** fra, slettes det, som hvert tjek har gemt.
 
@@ -104,9 +104,9 @@ Nøglerne er `name`, `table`, `database`, `type`, `column`, `segment`, `accepted
 
 Kopier glider fra hinanden: datavarehuset har færre ordrer end applikationens database, eller en migrering mistede rækker. En afstemning sammenligner én måling af to tabeller, i én database eller to, under **Afstemninger**:
 
-- **Row Count**
+- **Antal rækker**
 - **Sum** af en kolonne
-- **Distinct Count** af en kolonne
+- **Antal unikke værdier** af en kolonne
 - **Brugerdefineret SQL**: en skrivebeskyttet forespørgsel, der returnerer ét tal, med navnet `value`
 
 Den har en tolerance: **Absolut**, et fast beløb, eller **Procent**, en procentdel af kildens værdi. Hver side læses af sit eget tjek, som afstemningen opretter og vedligeholder, med dens databases indsamling, så en afstemning kan sammenligne en PostgreSQL-tabel i dit netværk med dens kopi i Snowflake. De to værdier sammenlignes, når begge er læst inden for 15 minutter af hinanden. En afstemning skriver:

@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-Gatewayen træder i stedet for serverens egen Twilio-konto for alt, der ellers ville gå gennem den: vagttilkald, notifikationer, bekræftelseskoder og SMS til abonnenter på statussider. Projekter, der tilføjer deres egen Twilio-konfiguration på kortet **Twilio-konfiguration** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, sender stadig gennem den konfiguration. Hvert projekts kontakter for SMS og opkald, og dets saldo, hvor fakturering er slået til, kontrolleres på samme måde som for Twilio.
+Gatewayen træder i stedet for serverens egen Twilio-konto for alt, der ellers ville gå gennem den: vagttilkald, notifikationer, bekræftelseskoder og SMS til abonnenter på statussider. Projekter, der tilføjer deres egen Twilio-konfiguration på kortet **Twilio-konfiguration** under **Projektindstillinger > Notifikationer > Notifikationskanaler**, sender stadig gennem den konfiguration. Hvert projekts kontakter for SMS og opkald, og dets saldo, hvor fakturering er slået til, kontrolleres på samme måde som for Twilio.
 
 ## Sæt gatewayen op
 

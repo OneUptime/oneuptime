@@ -48,7 +48,7 @@ flowchart TB
 
 ### 在哪裡執行代理程式
 
-代理程式會透過網路查詢 Proxmox VE API，因此它不必在叢集節點上執行，也不應該這樣做：請在能夠撐過節點故障的機器上執行它（獨立硬體上的小型監控虛擬機器、管理主機），或讓 `PVE_HOST` 指向虛擬 IP 或循環配置 DNS 名稱，而不是某一個節點的位址。如果代理程式的 API 目標正是剛剛停止運作的節點，你的監控也會隨之失效。`PVE_NODES` 則不同：它依每個節點自己的位址列出所有節點，絕不使用虛擬 IP（請參閱 [代理程式收集的內容](#代理程式收集的內容)）。唯一的例外是選用的 journald 日誌管道，它必須在 Proxmox VE 節點上執行（請參閱 [傳送 Proxmox 服務日誌](#選用傳送-proxmox-服務日誌)）。
+代理程式會透過網路查詢 Proxmox VE API，因此它不必在叢集節點上執行，也不應該這樣做：請在能夠撐過節點故障的機器上執行它（獨立硬體上的小型監控虛擬機器、管理主機，或由 Proxmox HA 在另一個節點上重新啟動的虛擬機器）。它會從 `PVE_HOST` 讀取叢集，在該節點停止運作時則從 `PVE_NODES` 中的下一個節點讀取，因此不需要虛擬 IP（請參閱 [節點停止運作時](#節點停止運作時)）。`PVE_NODES` 依每個節點自己的位址列出所有節點，絕不使用虛擬 IP（請參閱 [代理程式收集的內容](#代理程式收集的內容)）。唯一的例外是選用的 journald 日誌管道，它必須在 Proxmox VE 節點上執行（請參閱 [傳送 Proxmox 服務日誌](#選用傳送-proxmox-服務日誌)）。
 
 ## 安裝代理程式
 
@@ -134,7 +134,7 @@ docker compose ps
 docker logs -f oneuptime-proxmox-agent
 ```
 
-`docker compose ps` 會列出 Collector（`oneuptime-proxmox-agent`）、內建匯出器（`oneuptime-pve-exporter`，除非你使用自己的匯出器）和 AI 代理程式（`oneuptime-proxmox-ai-agent`）。Collector 啟動後，其日誌中應出現這一行：
+`docker compose ps` 會列出 Collector（`oneuptime-proxmox-agent`）、節點容錯移轉（`oneuptime-pve-api-failover`）、內建匯出器（`oneuptime-pve-exporter`，除非你使用自己的匯出器）和 AI 代理程式（`oneuptime-proxmox-ai-agent`）。Collector 啟動後，其日誌中應出現這一行：
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,8 +154,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
 | `PROXMOX_CLUSTER_NAME` | 是 | 叢集在 OneUptime 中的名稱，會作為 `proxmox.cluster.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個叢集。預設為 `proxmox-cluster`。 |
-| `PVE_HOST` | 是 | 匯出器從中讀取叢集、AI 代理程式查詢的 Proxmox VE API 主機：任一節點，或在節點之間切換的虛擬 IP，例如 `192.168.1.10`。 |
-| `PVE_NODES` | 叢集中需要 | 每個節點自己的 API 位址，以逗號分隔並放在方括號中，例如 `[192.168.1.10,192.168.1.11,192.168.1.12]`。匯出器只讀取它所詢問的那個節點的開機自動啟動、複寫和訂閱資訊，因此會依序詢問每個節點。預設只有 `PVE_HOST`，對單一節點來說已經足夠。 |
+| `PVE_HOST` | 是 | 匯出器從其 Proxmox VE API 讀取叢集、AI 代理程式所查詢的節點，例如 `192.168.1.10`。當它的 API 沒有回應時，兩者都會使用 `PVE_NODES` 中下一個有回應的節點。 |
+| `PVE_NODES` | 叢集中需要 | 每個節點自己的 API 位址，以逗號分隔並放在方括號中，例如 `[192.168.1.10,192.168.1.11,192.168.1.12]`。匯出器只讀取它所詢問的那個節點的開機自動啟動、複寫和訂閱資訊，因此會依序詢問每個節點；當 `PVE_HOST` 停止運作時，代理程式會從其中的下一個節點讀取叢集。預設只有 `PVE_HOST`，對單一節點來說已經足夠。 |
 | `PVE_EXPORTER_URL` | 否 | prometheus-pve-exporter 的位址（`host:port`，不帶通訊協定）。預設為內建匯出器 `pve-exporter:9221`。 |
 | `PVE_API_TOKEN_ID` | 內建匯出器或 AI 代理程式 | 完整的 Proxmox API 權杖 ID，例如 `monitoring@pam!oneuptime`。除非 AI 代理程式有自己的權杖（`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`），否則它會用這個權杖讀取 API。 |
 | `PVE_API_TOKEN_SECRET` | 內建匯出器或 AI 代理程式 | Proxmox API 權杖密鑰。 |
@@ -164,7 +164,7 @@ Everything is ready. Begin running and processing data.
 
 ## 代理程式收集的內容
 
-Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST` 上抓取一次，其節點收集器對 `PVE_NODES` 中的每個節點各抓取一次。任一節點都會為整個叢集回應叢集收集器，其中包括預設開啟的 `backup-info`。節點收集器（用於開機自動啟動的 `config` 和 `replication`）只讀取匯出器所詢問的節點，因此 `PVE_NODES` 中缺少的節點既不會傳送其客體的開機自動啟動旗標（**Guest Down** 需要它），也不會傳送其複寫工作。每個序列都帶有一個識別資源的 `id` 標籤：`node/<name>`、`qemu/<vmid>`、`lxc/<vmid>` 或 `storage/<node>/<storage>`。
+Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST`（或在 `PVE_HOST` 停止運作期間它讀取叢集所用的節點）上抓取一次，其節點收集器對 `PVE_NODES` 中的每個節點各抓取一次。任一節點都會為整個叢集回應叢集收集器，其中包括預設開啟的 `backup-info`。節點收集器（用於開機自動啟動的 `config` 和 `replication`）只讀取匯出器所詢問的節點，因此 `PVE_NODES` 中缺少的節點既不會傳送其客體的開機自動啟動旗標（**Guest Down** 需要它），也不會傳送其複寫工作。每個序列都帶有一個識別資源的 `id` 標籤：`node/<name>`、`qemu/<vmid>`、`lxc/<vmid>` 或 `storage/<node>/<storage>`。
 
 | 類別 | 指標 |
 | --- | --- |
@@ -186,6 +186,12 @@ Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST` 
 | `pve.id` | `id` 中第一個 `/` 之後的所有內容（`pve1`、`100`、`pve1/local`） | `100` |
 
 原始的 `id` 標籤會保持不變。
+
+## 節點停止運作時
+
+代理程式透過一個節點的 API 讀取整個叢集：只要 `PVE_HOST` 有回應，用的就是它的 API。它的 `oneuptime-pve-api-failover` 容器每 15 秒檢查一次該節點；當該節點的 API 停止回應時，Collector 會從 `PVE_NODES` 中下一個有回應的節點讀取叢集，直到 `PVE_HOST` 再次回應。如果 `.env` 中有 API 權杖，它還會略過雖有回應、卻與叢集中具備仲裁的部分斷開的節點，因為從這樣的節點來看，其他所有節點都會被回報為停止運作。[AI 代理程式](#ai-代理程式) 的每次呼叫也會這樣做。因此，當某個節點發生故障時，會為它觸發 **Node Offline**，而叢集的其餘部分會繼續回報，無須設定任何虛擬 IP。`docker logs oneuptime-pve-api-failover` 會說明叢集是從哪個節點讀取的，以及原因。
+
+它無法涵蓋的是執行代理程式的那台機器：如果那台機器停止運作，整個叢集都會沉默，並觸發 **Cluster Stopped Reporting**。請在叢集之外執行代理程式，或在由 Proxmox HA 在另一個節點上重新啟動的虛擬機器中執行它（`ha-manager add vm:<vmid>`，放在共用儲存空間上），並且每個叢集只執行一個代理程式：每個代理程式都會讀取整個叢集，因此第二個代理程式會將每個資源回報兩次。
 
 ## 傳送 Proxmox VE 的通知
 
@@ -402,6 +408,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-p
 
 :::details 匯出器傳回 401 或 595 錯誤
 API 權杖錯誤或缺少權限。請檢查權杖 ID 的格式（`user@realm!tokenname`）、密鑰，以及權杖及其使用者在路徑 `/` 上是否都具有 **PVEAuditor** 角色。匯出器自己的日誌會顯示 API 的回應：`docker logs oneuptime-pve-exporter`。
+:::
+
+:::details 叢集顯示「無法讀取 API」
+代理程式正在執行，但已有 15 分鐘以上未從 Proxmox VE API 讀取叢集，因此叢集顯示 **無法讀取 API** 而非 **已連線**：它讀取的節點已當機且 `PVE_NODES` 中沒有其他節點回應、API 權杖已被撤銷或失去 **PVEAuditor** 角色，或代理程式所在的機器無法連到任何節點的連接埠 `8006`。它的頁面會保留最後一次讀取的內容。上方的診斷指令碼會逐一檢查這些原因，`docker logs oneuptime-pve-api-failover` 則會說明代理程式從哪個節點讀取，以及為什麼略過其他節點。
 :::
 
 :::details 只有節點指標，沒有客體指標

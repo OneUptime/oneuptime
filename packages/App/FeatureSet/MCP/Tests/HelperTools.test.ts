@@ -12,10 +12,15 @@ import {
   generateHelperTools,
   handleHelperTool,
   isHelperTool,
+  RESOURCE_DESCRIPTIONS,
 } from "../Tools/HelperTools";
 import { McpToolInfo } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
+import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 function makeTool(
   operation: OneUptimeOperation,
@@ -150,5 +155,36 @@ describe("HelperTools", () => {
         count: "count_incidents",
       });
     });
+  });
+});
+
+describe("what oneuptime_list_resources says a resource is", () => {
+  /*
+   * A description is looked up by its model's singularName, so a key no
+   * model has is never shown: "Scheduled Maintenance" waited unused until
+   * #6817 named the model "Maintenance Event".
+   */
+  it("is keyed by the singular name of a model the tools are made from", () => {
+    const names: Set<string> = new Set<string>([
+      ...DatabaseModels.map(
+        (modelType: { new (): DatabaseBaseModel }): string => {
+          return new modelType().singularName || "";
+        },
+      ),
+      ...AnalyticsModels.map(
+        (modelType: { new (): AnalyticsBaseModel }): string => {
+          return new modelType().singularName || "";
+        },
+      ),
+    ]);
+
+    expect(
+      Object.keys(RESOURCE_DESCRIPTIONS).filter((key: string): boolean => {
+        return !names.has(key);
+      }),
+    ).toEqual([]);
+    expect(RESOURCE_DESCRIPTIONS["Maintenance Event"]).toContain(
+      "Planned downtime",
+    );
   });
 });

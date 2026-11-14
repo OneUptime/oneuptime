@@ -15,7 +15,7 @@ Verstuur de e-mail van OneUptime via de HTTPS-API van een e-mailprovider in plaa
 
 :::tabs
 @tab Project
-Open via **Projectinstellingen > Meldingen > Meldingsinstellingen** het onderdeel **Meer instellingen** en klik op **SMTP-configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**. Vul in de stap **Provider** een **Naam** in en kies de provider. De volgende stap vraagt om de instellingen van die provider, en de stap **Afzender** om de **E-mail van** en de **Van naam**. Zodra de configuratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt.
+Open via **Projectinstellingen > Meldingen > Meldingskanalen** het onderdeel **Meer instellingen** en klik op **SMTP-configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**. Vul in de stap **Provider** een **Naam** in en kies de provider. De volgende stap vraagt om de instellingen van die provider, en de stap **Afzender** om de **E-mail van** en de **Van naam**. Zodra de configuratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt.
 @tab Zelf gehoste instantie
 Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails**. Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en kies de provider als **Type e-mailserver**. Daaronder verschijnt de kaart van de provider, zoals **Amazon SES-instellingen**: klik op de bewerkknop ervan, zoals **Amazon SES bewerken**, en vul de instellingen van de provider en de stap **Afzender** in. Zolang er iets ontbreekt, zegt de kaart wat er ontbreekt, en wordt elke e-mail geweigerd met de instelling die nog moet worden ingevuld.
 :::

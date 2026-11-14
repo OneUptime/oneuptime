@@ -138,7 +138,7 @@ Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venst
 | --- | --- | --- |
 | **Opsætningstjekliste** | Fører dig gennem alt nedenfor og viser, hvad der mangler. | |
 | **Notifikationsmetoder** | De e-mails, telefonnumre, apps og webhooks, OneUptime kan kontakte dig på. Din login-e-mail tilføjes for dig. | |
-| **Vagtregler** | Hvilken metode der bruges, og efter hvor lang tid, når en vagtpolitik tilkalder dig. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
+| **Sådan når man mig** | Hvilken metode der bruges, og efter hvor lang tid, når en vagtpolitik tilkalder dig. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
 | **Notifikationsindstillinger** | Hvilke opdateringer om hændelser, advarsler, monitorer og meget mere du får, og på hvilken kanal. | |
 | **E-mailindstillinger** | Hvor mange e-mails du får: én ad gangen eller samlet. | [Notifikationsoversigt](/docs/emails/notification-rollup) |
 | **Vagtlogs** | Hvert tilkald, der er sendt til dig, og hvad der skete med det. | |

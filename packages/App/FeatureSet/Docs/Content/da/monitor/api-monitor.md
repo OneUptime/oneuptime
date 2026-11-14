@@ -2,6 +2,9 @@
 
 En API-monitor kalder et HTTP-endpoint efter en tidsplan, med den metode, de headere og den brødtekst, du vælger, og tjekker, hvad der kommer tilbage: statuskoden, svartiden, headerne og brødteksten. Brug den til REST-, JSON- og GraphQL-endpoints, sundhedstjek og ethvert kald, dine brugere er afhængige af.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Få besked, når dit websted eller API går ned](/docs/guides/website-down).
+
 :::cards
 - [Opret monitoren](#opret-en-api-monitor): Seks trin i dashboardet.
 - [Konfigurationsmuligheder](#konfigurationsmuligheder): Metode, headere, brødtekst, omdirigeringer, certifikater, timeouts og genforsøg.
@@ -56,7 +59,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **K
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når API'et ikke svarer eller svarer med en fejl, online ved enhver status `2xx` eller `3xx`. For også at tjekke, hvad API'et returnerer, tilføjer du et filter og klikker så på **Næste**.
+**Kriterier** starter med [standardkriterierne](#standardkriterier): offline, når API'et ikke svarer eller svarer med en fejl, online ved enhver status `2xx` eller `3xx`. For også at tjekke, hvad API'et returnerer, tilføjer du et filter og klikker så på **Næste**.
 
 ### Vælg sonder, og opret
 

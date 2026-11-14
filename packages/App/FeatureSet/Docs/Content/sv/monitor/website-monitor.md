@@ -2,6 +2,9 @@
 
 En webbplatsmonitor kontrollerar att en webbsida svarar. Vid varje kontroll begär en sond sidans URL, och monitorn går offline och deklarerar en incident när sidan inte svarar eller svarar med ett fel. För att anropa en slutpunkt med en metod, huvuden eller en kropp använder du i stället en [API-monitor](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Ny här? Följ guiden först: [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
+
 :::cards
 - [Skapa monitorn](#skapa-en-webbplatsmonitor): Sex steg i instrumentpanelen.
 - [Konfigurationsalternativ](#konfigurationsalternativ): URL-platshållare, omdirigeringar, certifikat, tidsgränser och återförsök.
@@ -57,7 +60,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när webbplatsen inte svarar eller svarar med ett fel, online vid varje status `2xx` eller `3xx`. Ändra dem vid behov och klicka sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när webbplatsen inte svarar eller svarar med ett fel, online vid varje status `2xx` eller `3xx`. Ändra dem vid behov och klicka sedan på **Nästa**.
 
 ### Välj sonder och skapa
 

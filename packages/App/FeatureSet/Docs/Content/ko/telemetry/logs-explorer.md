@@ -37,7 +37,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 로그.** [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd), [Syslog](/docs/telemetry/syslog) 중 하나로 보냅니다. **설정 가이드** 탭에 사용하는 언어나 수집기에 맞는 구성이 표시됩니다.
-- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Telemetry Service Log 권한이 있는 사용자 지정 역할입니다. 역할의 범위에 따라 누구의 로그를 볼 수 있는지가 정해집니다. [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
+- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Logs 권한이 있는 사용자 지정 역할입니다. 역할의 범위에 따라 누구의 로그를 볼 수 있는지가 정해집니다. [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
 
 ## 로그 줄 찾기
 
@@ -141,7 +141,7 @@ OneUptime은 세 가지 발견 사항을 기록합니다.
 
 | 발견 사항 | OneUptime이 기록하는 경우 | 풀 리퀘스트 |
 | --- | --- | --- |
-| **오류 로그** | 서비스가 같은 메시지를 그 한 시간 동안 Error 또는 Fatal로 20번 이상 기록했고, 그 메시지에 고유한 단어가 있으며 예외가 없는 경우. 예외와 함께 또는 스택 트레이스를 담아 기록된 메시지는 대신 [예외 추적](/docs/telemetry/exceptions)에서 추적됩니다. | 오류가 기록되는 원인을 수정하거나, 알맞은 수준으로 기록합니다. |
+| **오류 로그** | 서비스가 같은 메시지를 그 한 시간 동안 Error 또는 Fatal로 20번 이상 기록했고, 그 메시지에 고유한 단어가 있으며 예외가 없는 경우. 예외와 함께 또는 스택 트레이스를 담아 기록된 메시지는 대신 [예외](/docs/telemetry/exceptions)에서 추적됩니다. | 오류가 기록되는 원인을 수정하거나, 알맞은 수준으로 기록합니다. |
 | **부족한 로깅** | 한 작업의 스팬이 그 한 시간 동안 20개 이상 실패했고 그 비율이 5% 이상이며, 서비스 로그 중 100개 이상이 트레이스 ID를 가지고 있는데도, 그 작업의 가장 최근 실패한 요청 20개 중 어느 것도 로그 줄을 쓰지 않은 경우. 또는 서비스가 그 한 시간 동안 500개 이상의 로그와 100개 이상의 스팬을 보냈고, 트레이스 ID를 가진 로그가 1% 미만인 경우. | 실패가 일어나는 곳에서 이를 로그로 기록하거나, 서비스의 로그가 트레이스 ID를 갖도록 합니다. |
 | **노이즈가 많은 로그** | Error보다 낮은 수준으로 기록되는 어떤 메시지가 그 한 시간 동안 서비스 줄의 25% 이상, 약 10,000줄 이상을 차지하는 경우. | 그 줄을 덜 기록합니다. Debug로 기록하거나, 배치마다 한 번만 기록하거나, 아예 기록하지 않습니다. |
 

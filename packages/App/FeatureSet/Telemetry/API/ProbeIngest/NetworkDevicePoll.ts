@@ -96,8 +96,10 @@ const NETWORK_DEVICE_PING_CAPABILITY: string =
  * such a probe those devices are dropped from the batch (with one warning
  * per batch) and stay Pending until the probe is upgraded.
  *
- * Claiming is atomic (FOR UPDATE SKIP LOCKED) and advances nextPollAt by
- * the device's own polling interval.
+ * Claiming is one self-committing statement (FOR NO KEY UPDATE SKIP
+ * LOCKED, see NetworkDeviceService.claimDevicesForPolling) that advances
+ * nextPollAt by the device's own polling interval, so no device stays
+ * locked past it and the writes of its last poll's results never wait.
  *
  * This is how devices get polled — monitors play no part in it. Network
  * Device monitors are evaluated server-side when the poll results come

@@ -2,6 +2,9 @@
 
 Un monitor di sito web controlla che una pagina web risponda. A ogni controllo una sonda richiede l'URL della pagina, e il monitor va offline e dichiara un incidente quando la pagina non risponde o risponde con un errore. Per chiamare un endpoint con un metodo, intestazioni o un corpo, usate invece un [monitor API](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
+
 :::cards
 - [Creare il monitor](#creare-un-monitor-di-sito-web): Sei passaggi nella dashboard.
 - [Opzioni di configurazione](#opzioni-di-configurazione): Segnaposto nell'URL, reindirizzamenti, certificati, timeout e nuovi tentativi.
@@ -57,7 +60,7 @@ Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e 
 
 ### Rivedere i criteri
 
-**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il sito non risponde o risponde con un errore, online con qualsiasi stato `2xx` o `3xx`. Modificateli se serve, poi fate clic su **Avanti**.
+**Criteri** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il sito non risponde o risponde con un errore, online con qualsiasi stato `2xx` o `3xx`. Modificateli se serve, poi fate clic su **Avanti**.
 
 ### Scegliere le sonde e creare
 

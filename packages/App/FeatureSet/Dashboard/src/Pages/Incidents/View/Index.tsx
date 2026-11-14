@@ -164,6 +164,7 @@ import {
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -1131,10 +1132,10 @@ const IncidentView: FunctionComponent<
           className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0 break-words">
-            {translator.translateTemplate(
-              "Could not refresh this incident. {{error}}",
-              { error: refreshError },
-            )}
+            <ErrorSentence
+              template="Could not refresh this incident. {{error}}"
+              error={refreshError}
+            />
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -1674,7 +1675,7 @@ const IncidentView: FunctionComponent<
                       _id: true,
                     },
                   },
-                  title: "On-Call Duty Policies",
+                  title: "On-Call Policies",
                   fieldType: FieldType.Element,
                   getElement: (item: Incident): ReactElement => {
                     return (
@@ -1777,10 +1778,10 @@ const IncidentView: FunctionComponent<
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {translator.translateTemplate(
-                              "Could not resend notifications: {{error}}",
-                              { error: resendNotificationError },
-                            )}
+                            <ErrorSentence
+                              template="Could not resend notifications: {{error}}"
+                              error={resendNotificationError}
+                            />
                           </p>
                         ) : (
                           <></>

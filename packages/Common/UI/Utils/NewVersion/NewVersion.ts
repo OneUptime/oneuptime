@@ -84,6 +84,8 @@ export const NEW_VERSION_MINIMUM_CHECK_GAP_IN_MS: number = 30 * 1000;
 export const NEW_VERSION_PLACE_MAX_AGE_IN_MS: number = 2 * 60 * 1000;
 // How long a reloaded page keeps trying to scroll back while it fills in.
 export const NEW_VERSION_PLACE_RESTORE_TIMEOUT_IN_MS: number = 10 * 1000;
+// How often it looks again whether the page is at the place.
+export const NEW_VERSION_PLACE_RESTORE_STEP_IN_MS: number = 100;
 /*
  * Still on the old page this long after asking for a reload: it did not
  * happen. Longer than the chunk reload cooldown, so a slow reload is never
@@ -572,6 +574,14 @@ export default class NewVersion {
    * After a reload this tab asked for: scrolls back to where the reader was.
    * The page fills in as its data arrives, so it keeps trying until it gets
    * there, the reader scrolls by themselves, or ten seconds pass.
+   *
+   * Getting there is not the end of it while the page still changes. A web
+   * font that lands after the scroll-back redraws the text above the place,
+   * and the browser's scroll anchoring moves the reader along with it: on a
+   * phone, Inter landing made the text above the place 20 px shorter, and
+   * the reader came back 20 px short. So it holds the place, scrolling back
+   * each time the page moves it, until a look finds the page there, the
+   * same size as at the look before, and no font still on its way.
    */
   public static restorePlace(): void {
     if (typeof window === "undefined") {
@@ -634,6 +644,24 @@ export default class NewVersion {
       window.addEventListener(eventName, stop, true);
     }
 
+    // How big the page is: what its text and its data take.
+    const pageSize: () => string = (): string => {
+      const root: HTMLElement | null = document.documentElement;
+
+      return root ? `${root.scrollWidth}x${root.scrollHeight}` : "";
+    };
+
+    // A font the page asked for is still on its way.
+    const isFontLoading: () => boolean = (): boolean => {
+      const fonts: FontFaceSet | undefined = document.fonts as
+        | FontFaceSet
+        | undefined;
+
+      return Boolean(fonts && fonts.status === "loading");
+    };
+
+    let sizeAtLastLook: string | null = null;
+
     const step: () => void = (): void => {
       if (isStopped) {
         return;
@@ -649,13 +677,18 @@ export default class NewVersion {
       const isThere: boolean =
         Math.abs((window.scrollY || 0) - target.scrollY) <= 1 &&
         Math.abs((window.scrollX || 0) - target.scrollX) <= 1;
+      const size: string = pageSize();
+      const hasSettled: boolean =
+        isThere && size === sizeAtLastLook && !isFontLoading();
 
-      if (isThere || Date.now() >= deadline) {
+      sizeAtLastLook = size;
+
+      if (hasSettled || Date.now() >= deadline) {
         stop();
         return;
       }
 
-      timer = setTimeout(step, 100);
+      timer = setTimeout(step, NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
     };
 
     step();

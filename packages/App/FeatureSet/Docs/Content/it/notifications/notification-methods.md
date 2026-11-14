@@ -173,7 +173,7 @@ Un webhook non richiede verifica, quindi aggiungerlo aggiunge subito le sue rego
 
 **SMS**, **Chiamate telefoniche**, **WhatsApp** e **Telegram** partono disattivati in ogni nuovo progetto, perché ogni messaggio costa: su OneUptime Cloud si paga con il saldo del progetto, mentre SMS e chiamate passano dall'account Twilio del progetto quando quello predefinito li invia. E-mail, push, Slack, Microsoft Teams, Mattermost e webhook sono sempre attivi.
 
-Finché un canale è disattivato, nessuno nel progetto può aggiungervi un metodo: il suo riquadro non ha un pulsante per aggiungere, e dice chi può attivarlo. Lo attiva un proprietario del progetto, un **Amministratore della fatturazione** o qualcuno con **Manage Billing**, nel riquadro **Canali di notifica** di **Impostazioni del progetto → Notifiche → Impostazioni notifiche**. Un amministratore del progetto non può. Su un OneUptime self-hosted, SMS e chiamate richiedono inoltre un account Twilio o un gateway proprio, e Telegram un bot collegato dall'amministratore del server; vedete [Integrazione Twilio](/docs/self-hosted/twilio-integration) e [Gateway per SMS e chiamate](/docs/self-hosted/sms-and-call-gateway).
+Finché un canale è disattivato, nessuno nel progetto può aggiungervi un metodo: il suo riquadro non ha un pulsante per aggiungere, e dice chi può attivarlo. Lo attiva un proprietario del progetto, un **Amministratore della fatturazione** o qualcuno con **Manage Billing**, nel riquadro **Canali di notifica** di **Impostazioni del progetto → Notifiche → Canali di notifica**. Un amministratore del progetto non può. Su un OneUptime self-hosted, SMS e chiamate richiedono inoltre un account Twilio o un gateway proprio, e Telegram un bot collegato dall'amministratore del server; vedete [Integrazione Twilio](/docs/self-hosted/twilio-integration) e [Gateway per SMS e chiamate](/docs/self-hosted/sms-and-call-gateway).
 
 ## Eliminare un metodo
 
@@ -200,7 +200,7 @@ Controllate che il telefono compaia in **Dispositivi per notifiche push**, e inv
 ## Passi successivi
 
 :::cards
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Decidete quale metodo prova ogni chiamata, e quando.
+- [Come contattarmi](/docs/notifications/on-call-rules): Decidete quale metodo prova ogni chiamata, e quando.
 - [Impostazioni notifiche](/docs/notifications/notification-settings): Scegliete gli aggiornamenti di cui venite a sapere, e su quali canali.
 - [Panoramica delle app](/docs/mobile-desktop-apps/index): Ricevete le chiamate sul telefono o sul computer.
 - [Come OneUptime vi raggiunge](/docs/notifications/index): Come si combinano metodi, regole e impostazioni.

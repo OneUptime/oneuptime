@@ -30,7 +30,7 @@ flowchart TB
 ## پیش از شروع
 
 - **متریک‌های ابر را جمع‌آوری کنید** با عامل OpenStack، یا [یک probe](/docs/telemetry/openstack-agentless). **مستندات**، در **محصولات** > **زیرساخت** > **OpenStack**، نصب عامل را مرحله به مرحله توضیح می‌دهد.
-- **بررسی کنید ابر ثبت شده باشد.** پس از نخستین جمع‌آوری، ابر در **محصولات → زیرساخت → OpenStack** و با نامِ `OPENSTACK_CLOUD_NAME` عامل ظاهر می‌شود.
+- **بررسی کنید ابر ثبت شده باشد.** پس از نخستین جمع‌آوری، ابر در **محصولات ← زیرساخت ← OpenStack** و با نامِ `OPENSTACK_CLOUD_NAME` عامل ظاهر می‌شود.
 
 ## ساخت مانیتور OpenStack
 
@@ -57,7 +57,7 @@ flowchart TB
 
 ### معیارها را بررسی کنید
 
-هر معیار را زیر **معیارهای مانیتور** باز کنید و **متریک**، **تجمیع**، **شرط** و **آستانه** آن را بررسی کنید. قالب این‌ها را پر می‌کند. با **متریک سفارشی** یا **پیشرفته** مانیتور با معیارهای پیش‌فرض شروع می‌شود که فقط متوجه نرسیدن داده می‌شوند، پس آستانه خودتان را تعیین کنید.
+هر معیار را زیر **معیارها** باز کنید و **متریک**، **تجمیع**، **شرط** و **آستانه** آن را بررسی کنید. قالب این‌ها را پر می‌کند. با **متریک سفارشی** یا **پیشرفته** مانیتور با معیارهای پیش‌فرض شروع می‌شود که فقط متوجه نرسیدن داده می‌شوند، پس آستانه خودتان را تعیین کنید.
 
 ### مانیتور را بسازید
 
@@ -65,7 +65,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> برای راه‌اندازی چند قالب با هم، ابر را از **محصولات → زیرساخت → OpenStack** باز کنید و به **توصیه‌ها** بروید. قالب‌های موردنظر را انتخاب کنید، مشخص کنید چه کسی مطلع شود، و OneUptime برای هر قالب یک مانیتور می‌سازد.
+> برای راه‌اندازی چند قالب با هم، ابر را از **محصولات ← زیرساخت ← OpenStack** باز کنید و به **توصیه‌ها** بروید. قالب‌های موردنظر را انتخاب کنید، مشخص کنید چه کسی مطلع شود، و OneUptime برای هر قالب یک مانیتور می‌سازد.
 
 ## تنظیمات مانیتور
 
@@ -73,10 +73,10 @@ flowchart TB
 | --- | --- | --- |
 | **ابر OpenStack** | همه | الزامی. هر کوئری را به `resource.openstack.cloud.name` محدود می‌کند. |
 | **منطقه** | متریک سفارشی، پیشرفته | اختیاری. یک منطقه: `openstack.region.name`. روی هر سری وجود دارد. |
-| **Availability Zone** | متریک سفارشی، پیشرفته | اختیاری. یک zone: `availability_zone` روی هایپروایزرها، instanceها، volumeها و agentهای Neutron، و `zone` روی workerهای Nova و Cinder. |
+| **زُن دسترس‌پذیری** | متریک سفارشی، پیشرفته | اختیاری. یک زُن: `availability_zone` روی هایپروایزرها، instanceها، volumeها و agentهای Neutron، و `zone` روی workerهای Nova و Cinder. |
 | **هایپروایزر** | متریک سفارشی، پیشرفته | اختیاری. یک میزبان: `hostname` روی workerها، هایپروایزرها و Placement، و `hypervisor_hostname` روی instanceها. workerهای Nova نام کوتاه میزبان را می‌گویند، و هایپروایزرها، Placement و instanceها نام کامل آن را، پس همانی را به کار ببرید که سری می‌گوید. |
 | **سرویس** | متریک سفارشی، پیشرفته | اختیاری. باینری یک worker، مانند `nova-compute`: `service`. |
-| **شناسه پروژه** | متریک سفارشی، پیشرفته | اختیاری. یک پروژه: `tenant_id` روی سری‌های Nova و Cinder و روی شبکه‌ها و subnetها، و `project_id` روی floating IPها، routerها و address availability. |
+| **شناسه پروژه** | متریک سفارشی، پیشرفته | اختیاری. یک پروژه: `tenant_id` روی سری‌های Nova و Cinder و روی شبکه‌ها و subnetها، و `project_id` روی IPهای شناور، routerها و address availability. |
 | **متریک OpenStack** | متریک سفارشی | یک متریک از [فهرست](#متریکهای-جمعآوریشده). |
 | **تجمیع** | متریک سفارشی | نحوه ترکیب نمونه‌ها: **میانگین**، **بیشینه**، **کمینه**، **جمع** یا **تعداد**. با تجمیع معمول همان متریک شروع می‌شود. |
 | **بازه زمانی** | همه | پنجره غلتانی که کوئری می‌خواند، از **Past 1 Minute** تا **Past 365 Days**. مانیتور جدید روی **۱۵ دقیقه گذشته** شروع می‌شود؛ قالب‌ها بازه خودشان را تعیین می‌کنند. |
@@ -120,7 +120,7 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Image API Down | دسترس‌پذیری | بحرانی | `openstack_glance_up` و `up` برای `image`، Min در هر منطقه، **۱۵ دقیقه گذشته** | همه فراخوانی‌ها شکست خورده‌اند، یا exporter پاسخ نداده | هر دو ۱ هستند |
 | Placement API Down | دسترس‌پذیری | بحرانی | `openstack_placement_up` و `up` برای `placement`، Min در هر منطقه، **۱۰ دقیقه گذشته** | همه فراخوانی‌ها شکست خورده‌اند، یا exporter پاسخ نداده | هر دو ۱ هستند |
 | Compute Service Down | صفحه کنترل | بحرانی | `openstack_nova_agent_state` فیلترشده به `service = nova-compute` و `adminState = enabled`، Min در هر میزبان، **۱۰ دقیقه گذشته** | کمتر از ۱: یک nova-compute فعال از کار افتاده است. موردی که کسی غیرفعالش کرده هرگز فعال نمی‌شود | بالا آمده، یا غیرفعال شده |
-| Compute Service Disabled | صفحه کنترل | هشدار | `openstack_nova_agent_state` فیلترشده به `service = nova-compute` و `adminState = disabled`، یک Count در هر میزبان، **۱۰ دقیقه گذشته** | بیشتر از ۰: یک `nova-compute` غیرفعال شده و هیچ رویداد نگهداری در جریانی میزبان، availability zone یا ابر آن را پوشش نمی‌دهد. موردی که خودش به‌خاطر از دست رفتن libvirt غیرفعال شده (دلیلش با `AUTO:` شروع می‌شود) تا وقتی libvirt Service Down باز است ساکت می‌ماند. پروژه‌ها از آن مطلع نمی‌شوند | دوباره فعال شده، یا یک رویداد آن را پوشش می‌دهد |
+| Compute Service Disabled | صفحه کنترل | هشدار | `openstack_nova_agent_state` فیلترشده به `service = nova-compute` و `adminState = disabled`، یک Count در هر میزبان، **۱۰ دقیقه گذشته** | بیشتر از ۰: یک `nova-compute` غیرفعال شده و هیچ رویداد نگهداری در جریانی میزبان، زُن دسترس‌پذیری یا ابر آن را پوشش نمی‌دهد. موردی که خودش به‌خاطر از دست رفتن libvirt غیرفعال شده (دلیلش با `AUTO:` شروع می‌شود) تا وقتی libvirt Service Down باز است ساکت می‌ماند. پروژه‌ها از آن مطلع نمی‌شوند | دوباره فعال شده، یا یک رویداد آن را پوشش می‌دهد |
 | Scheduler or Conductor Down | صفحه کنترل | هشدار | `openstack_nova_agent_state` فیلترشده به `nova-scheduler` یا `nova-conductor` و `adminState = enabled`، Min در هر میزبان و باینری، **۱۰ دقیقه گذشته** | کمتر از ۱. تا وقتی یکی باقی است بقیه کار را ادامه می‌دهند | بالا آمده، یا غیرفعال شده |
 | Every Scheduler or Conductor Down | صفحه کنترل | بحرانی | همان، Max در هر منطقه و باینری، **۱۰ دقیقه گذشته** | کمتر از ۱: هیچ‌کدام زنده نیست، پس چیز جدیدی نمی‌تواند بالا بیاید | یکی بالا است |
 | Network Agent Down | صفحه کنترل | بحرانی | `openstack_neutron_agent_state` فیلترشده به `adminState = up`، Min در هر میزبان و باینری، **۱۰ دقیقه گذشته** | کمتر از ۱: یک agent برپاشده زنده نیست. موردی که کسی down کرده هرگز فعال نمی‌شود | زنده است، یا down شده |
@@ -158,18 +158,18 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Kubernetes Cluster Stuck | ارکستراسیون | هشدار | `openstack_container_infra_cluster_status` با هر وضعیت `*_IN_PROGRESS`، برای هر cluster، **۲ ساعت گذشته** | یک cluster در کل پنجره وضعیت در-حال-انجام دارد. فقط conductor مربوط به Magnum آن را جلو می‌برد | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
 | Shared File Systems API Down | دسترس‌پذیری | بحرانی | `openstack_sharev2_up` و `up` برای `sharev2`، Min در هر منطقه، **۱۵ دقیقه گذشته** | همه فراخوانی‌ها شکست خورده‌اند، یا exporter پاسخ نداده. هر credential که بتواند وارد شود ۱ می‌خواند، پس این نمی‌تواند رد شدن credential باشد | هر دو ۱ هستند |
 | Manila Service Down | صفحه کنترل | هشدار | `openstack_sharev2_agent_state` با `adminState=enabled`، Min در هر میزبان و سرویس، **۱۵ دقیقه گذشته**. فقط probe این را می‌فرستد | Manila یک سرویس فعال را متوقف یا down فهرست می‌کند. API آن به پاسخ دادن ادامه می‌دهد، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا کسی آن را غیرفعال می‌کند |
-| Share in Error | ذخیره‌سازی | هشدار | `openstack_sharev2_share_gb` با هر وضعیت خطا، برای هر share، **۱۵ دقیقه گذشته** | یک share در کل پنجره وضعیت خطا دارد | رفع یا حذف می‌شود |
-| Share Stuck | ذخیره‌سازی | هشدار | `openstack_sharev2_share_gb` با هر وضعیت گذرا، برای هر share، **۱ ساعت گذشته** | یک share در کل پنجره وضعیت گذرا دارد. Manila برای backend کند timeout مخصوص خودش را ندارد. shareی که در حال migrate یا backup است پایش نمی‌شود | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
-| Load Balancers API Down | Load Balancers | بحرانی | `openstack_loadbalancer_up`، Min در هر منطقه، **۱۵ دقیقه گذشته** | کمتر از ۱. API متوقف Octavia به exporter عامل به‌جای ۰ یک پاسخ خالی می‌دهد، مثل ابری که Octavia ندارد، پس در ابر عامل ساکت می‌ماند و صفحه‌های ابر می‌گویند آخرین بار کِی از Octavia خبری رسیده | ۱ می‌خواند، یا رفته است |
-| Load Balancer in Error | Load Balancers | بحرانی | `openstack_loadbalancer_loadbalancer_status` با `provisioning_status=ERROR`، Count در هر load balancer، **۱۵ دقیقه گذشته** | یک load balancer در کل پنجره provisioning ERROR دارد. Octavia هیچ‌کدام از این‌ها را دوباره تلاش نمی‌کند | به ACTIVE برگشته، یا حذف شده |
-| Load Balancer Stuck Pending | Load Balancers | هشدار | `openstack_loadbalancer_loadbalancer_status` با هر وضعیت provisioning از نوع `PENDING_*`، Count در هر load balancer، **۱ ساعت گذشته** | یک load balancer در کل پنجره وضعیت PENDING دارد: worker مربوط به Octavia متوقف است، یا درخواست را گم کرده | به ACTIVE یا ERROR می‌رسد، یا حذف می‌شود |
-| Load Balancer With Two Masters | Load Balancers | بحرانی | `openstack_loadbalancer_amphora_status` با `role=MASTER` و `status=ALLOCATED`، Count در هر load balancer، **۱۵ دقیقه گذشته**. به credentialی نیاز دارد که اجازه فهرست کردن amphoraها را داشته باشد | بیش از یک amphora تخصیص‌یافته برای یک load balancer MASTER می‌گوید | فقط یکی می‌گوید |
-| Amphora in Error | Load Balancers | بحرانی | `openstack_loadbalancer_amphora_status` با `status=ERROR`، Count در هر amphora، **۱۵ دقیقه گذشته**. به credentialی نیاز دارد که اجازه فهرست کردن amphoraها را داشته باشد | یک amphora در کل پنجره ERROR دارد: health manager نتوانسته آن را جایگزین کند | جایگزین می‌شود |
-| Pool Has No Healthy Members | Load Balancers | بحرانی | `openstack_loadbalancer_pool_status` با `operating_status=ERROR`، Count در هر pool، **۱۵ دقیقه گذشته** | همه اعضای یک pool در health check شکست می‌خورند، در حالی که pool و load balancer آن هنوز ACTIVE provision می‌شوند | یک عضو دوباره سالم است |
+| Share in Error | ذخیره‌سازی | هشدار | `openstack_sharev2_share_gb` با هر وضعیت خطا، برای هر اشتراک فایل، **۱۵ دقیقه گذشته** | یک اشتراک فایل در کل پنجره وضعیت خطا دارد | رفع یا حذف می‌شود |
+| Share Stuck | ذخیره‌سازی | هشدار | `openstack_sharev2_share_gb` با هر وضعیت گذرا، برای هر اشتراک فایل، **۱ ساعت گذشته** | یک اشتراک فایل در کل پنجره وضعیت گذرا دارد. Manila برای backend کند timeout مخصوص خودش را ندارد. اشتراک فایلی که در حال migrate یا backup است پایش نمی‌شود | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
+| Load Balancers API Down | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_up`، Min در هر منطقه، **۱۵ دقیقه گذشته** | کمتر از ۱. API متوقف Octavia به exporter عامل به‌جای ۰ یک پاسخ خالی می‌دهد، مثل ابری که Octavia ندارد، پس در ابر عامل ساکت می‌ماند و صفحه‌های ابر می‌گویند آخرین بار کِی از Octavia خبری رسیده | ۱ می‌خواند، یا رفته است |
+| Load Balancer in Error | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_loadbalancer_status` با `provisioning_status=ERROR`، Count در هر متعادل‌کننده بار، **۱۵ دقیقه گذشته** | یک متعادل‌کننده بار در کل پنجره provisioning ERROR دارد. Octavia هیچ‌کدام از این‌ها را دوباره تلاش نمی‌کند | به ACTIVE برگشته، یا حذف شده |
+| Load Balancer Stuck Pending | متعادل‌کننده‌های بار | هشدار | `openstack_loadbalancer_loadbalancer_status` با هر وضعیت provisioning از نوع `PENDING_*`، Count در هر متعادل‌کننده بار، **۱ ساعت گذشته** | یک متعادل‌کننده بار در کل پنجره وضعیت PENDING دارد: worker مربوط به Octavia متوقف است، یا درخواست را گم کرده | به ACTIVE یا ERROR می‌رسد، یا حذف می‌شود |
+| Load Balancer With Two Masters | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_amphora_status` با `role=MASTER` و `status=ALLOCATED`، Count در هر متعادل‌کننده بار، **۱۵ دقیقه گذشته**. به credentialی نیاز دارد که اجازه فهرست کردن amphoraها را داشته باشد | بیش از یک amphora تخصیص‌یافته برای یک متعادل‌کننده بار MASTER می‌گوید | فقط یکی می‌گوید |
+| Amphora in Error | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_amphora_status` با `status=ERROR`، Count در هر amphora، **۱۵ دقیقه گذشته**. به credentialی نیاز دارد که اجازه فهرست کردن amphoraها را داشته باشد | یک amphora در کل پنجره ERROR دارد: health manager نتوانسته آن را جایگزین کند | جایگزین می‌شود |
+| Pool Has No Healthy Members | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_pool_status` با `operating_status=ERROR`، Count در هر استخر، **۱۵ دقیقه گذشته** | همه اعضای یک استخر در health check شکست می‌خورند، در حالی که استخر و متعادل‌کننده بار آن هنوز ACTIVE provision می‌شوند | یک عضو دوباره سالم است |
 | DNS API Down | دسترس‌پذیری | بحرانی | `openstack_designate_up`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط probe این را عرضه می‌کند | کمتر از ۱. Designate متوقف به exporter عامل یک پاسخ خالی می‌دهد، مثل ابری که Designate ندارد، پس ابری که عامل از آن جمع می‌کند فقط می‌تواند بگوید ساکت شده | ۱ می‌خواند |
-| DNS Zone in Error | شبکه | هشدار | شمارش `openstack_designate_zone_status` با `status=ERROR`، برای هر zone، **۱۵ دقیقه گذشته** | یک zone در کل پنجره `ERROR` می‌خواند: worker آن از نوشتنش روی سرور DNS دست کشیده | چیز دیگری می‌خواند |
-| DNS Zone Stuck Pending | شبکه | هشدار | شمارش `openstack_designate_zone_status` با `status=PENDING`، برای هر zone، **۳۰ دقیقه گذشته** | یک zone در کل پنجره `PENDING` می‌خواند. worker آن در چند دقیقه دست می‌کشد، پس هیچ چیزی روی آن کار نمی‌کند | چیز دیگری می‌خواند |
-| DNS Recordset in Error | شبکه | هشدار | شمارش `openstack_designate_recordsets_status` با `status=ERROR` و هر نوعی که کسی بخواهد، برای هر zone، **۱۵ دقیقه گذشته** | یک recordset غیر از SOA و NS خودِ zone، `ERROR` می‌خواند. آن دو با zone خود `ERROR` می‌خوانند، پس DNS Zone in Error آن را می‌گوید | چیز دیگری می‌خواند |
+| DNS Zone in Error | شبکه | هشدار | شمارش `openstack_designate_zone_status` با `status=ERROR`، برای هر زُن، **۱۵ دقیقه گذشته** | یک زُن در کل پنجره `ERROR` می‌خواند: worker آن از نوشتنش روی سرور DNS دست کشیده | چیز دیگری می‌خواند |
+| DNS Zone Stuck Pending | شبکه | هشدار | شمارش `openstack_designate_zone_status` با `status=PENDING`، برای هر زُن، **۳۰ دقیقه گذشته** | یک زُن در کل پنجره `PENDING` می‌خواند. worker آن در چند دقیقه دست می‌کشد، پس هیچ چیزی روی آن کار نمی‌کند | چیز دیگری می‌خواند |
+| DNS Recordset in Error | شبکه | هشدار | شمارش `openstack_designate_recordsets_status` با `status=ERROR` و هر نوعی که کسی بخواهد، برای هر زُن، **۱۵ دقیقه گذشته** | یک مجموعه‌رکورد غیر از SOA و NS خودِ زُن، `ERROR` می‌خواند. آن دو با زُن خود `ERROR` می‌خوانند، پس DNS Zone in Error آن را می‌گوید | چیز دیگری می‌خواند |
 | Metrics API Down | دسترس‌پذیری | بحرانی | `openstack_gnocchi_up` و `up` برای `gnocchi`، Min در هر منطقه، **۱۵ دقیقه گذشته** | خواندن exporter از Gnocchi شکست خورده، یا exporter پاسخ نداده. credentialی که Gnocchi رد کند همین‌طور خوانده می‌شود، پس ابری که credential آن هرگز Gnocchi را نخوانده این قالب را پیشنهاد نمی‌گیرد | هر دو ۱ هستند |
 | Gnocchi No Processors | متریک‌ها | بحرانی | `openstack_gnocchi_status_metricd_processors`، Max در هر منطقه، **۱۵ دقیقه گذشته** | وضعیت Gnocchi هیچ processor را نام نمی‌برد. API آن به پاسخ دادن و پذیرفتن measure ادامه می‌دهد، پس **Metrics API Down** چیزی از این نمی‌گوید | یکی را نام می‌برد |
 | Gnocchi Backlog Growing | متریک‌ها | هشدار | `openstack_gnocchi_status_measures_to_process`، یک خط برازش‌شده روی **۲ ساعت گذشته** | خط در ساعت بعد از ۱۰٬۰۰۰ measure می‌گذرد. صف عقب‌افتاده‌ای که از آن گذشته و کم می‌شود فعال نمی‌شود | خط دیگر به ۹٬۰۰۰ نمی‌رسد |
@@ -197,10 +197,10 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Instance Boot Failing | محاسبه | بحرانی | `openstack_check_lifecycle_phase_success` فیلترشده به `phase = boot`، Min در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بررسی lifecycle نیاز دارد | کمتر از ۱: آخرین اجرا نتوانست یک instance را بالا بیاورد | یک اجرا آن را بالا می‌آورد |
 | Instance Boot Slow | محاسبه | هشدار | `openstack_check_lifecycle_step_duration_seconds` فیلترشده به `step = server_active`، Max در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بررسی lifecycle نیاز دارد | بالای ۳۰۰ ثانیه، یعنی `build_timeout` خود Tempest | در ۲۷۰ ثانیه یا کمتر، یا اجرایی که بالا نیامد، که Instance Boot Failing جای آن حرف می‌زند |
 | Volume Attach Failing | ذخیره‌سازی | بحرانی | `openstack_check_lifecycle_phase_success` فیلترشده به `phase = volume`، Min در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بخش volume در این بررسی نیاز دارد | کمتر از ۱: آخرین اجرا نتوانست یک volume بسازد یا attach کند | یک اجرا آن را attach می‌کند |
-| Floating IP Unreachable | شبکه | بحرانی | `openstack_check_lifecycle_phase_success` فیلترشده به `phase = floating_ip`، Min در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بخش floating IP در این بررسی نیاز دارد | کمتر از ۱: آخرین اجرا نتوانست از طریق floating IP به سرور خود برسد | یک اجرا به آن می‌رسد |
+| Floating IP Unreachable | شبکه | بحرانی | `openstack_check_lifecycle_phase_success` فیلترشده به `phase = floating_ip`، Min در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بخش IP شناور در این بررسی نیاز دارد | کمتر از ۱: آخرین اجرا نتوانست از طریق IP شناور به سرور خود برسد | یک اجرا به آن می‌رسد |
 | Flavor Can No Longer Be Placed | ظرفیت | هشدار | `openstack_capacity_flavor_fits`، **برای هر flavor در هر منطقه** | هیچ میزبانی جای یکی دیگر ندارد، به مدت ۱۰ دقیقه. فقط flavorهایی که کسی می‌تواند بخواهد، و هرگز flavorی که برای همه میزبان‌ها بزرگ است یا تنها جایش روی میزبانی است که کسی غیرفعالش کرده | یک میزبان جا دارد، یا flavor دیگر پایش نمی‌شود |
-| Capacity Forecast Under 14 Days | ظرفیت | هشدار | `openstack_capacity_days_until_full`، **برای هر zone و resource class، شبکه بیرونی یا استخر ذخیره‌سازی** | کمتر از ۱۴ روز تا پر شدن با رشد هفته گذشته‌اش، به مدت ۱۰ دقیقه. با کمتر از یک روز تاریخچه، یا وقتی رشد نمی‌کند ساکت است | بیش از ۱۵٫۴ روز، یا دیگر پیش‌بینی‌ای نیست |
-| Reserved Headroom Gone | ظرفیت | هشدار | `openstack_capacity_can_lose_a_host`، **برای هر zone** | نمی‌توانست بزرگ‌ترین میزبانش را از دست بدهد و باز هم آنچه روی آن اجرا می‌شود جا شود، به مدت ۱۰ دقیقه. روی zone با یک میزبان، یا با میزبانی که کسی غیرفعالش کرده ساکت است | می‌توانست، یا zone دیگر ارزیابی نمی‌شود |
+| Capacity Forecast Under 14 Days | ظرفیت | هشدار | `openstack_capacity_days_until_full`، **برای هر زُن و resource class، شبکه بیرونی یا استخر ذخیره‌سازی** | کمتر از ۱۴ روز تا پر شدن با رشد هفته گذشته‌اش، به مدت ۱۰ دقیقه. با کمتر از یک روز تاریخچه، یا وقتی رشد نمی‌کند ساکت است | بیش از ۱۵٫۴ روز، یا دیگر پیش‌بینی‌ای نیست |
+| Reserved Headroom Gone | ظرفیت | هشدار | `openstack_capacity_can_lose_a_host`، **برای هر زُن** | نمی‌توانست بزرگ‌ترین میزبانش را از دست بدهد و باز هم آنچه روی آن اجرا می‌شود جا شود، به مدت ۱۰ دقیقه. روی زُن با یک میزبان، یا با میزبانی که کسی غیرفعالش کرده ساکت است | می‌توانست، یا زُن دیگر ارزیابی نمی‌شود |
 
 **شدت** همان برچسبی است که انتخاب‌گر نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد با شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن را در معیارها تغییر دهید.
 
@@ -260,7 +260,7 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Memcached No Connections | هشدار | `memcached_current_connections` و دستورها، **۱۵ دقیقه گذشته** | زیر ۱۰ اتصال و کسی درخواستی ندارد. هرگز ۰ نمی‌خواند: listenerهای خودش و exporter چند تا نگه می‌دارند | منطقه |
 | Memcached Evictions High | هشدار | `memcached_items_evicted_increase`، **۱۰ دقیقه گذشته** | بیش از ۱۰۰ در دقیقه | ماشین |
 | HAProxy Down | بحرانی | `up`، **۵ دقیقه گذشته** | هیچ‌کدام پاسخ نمی‌دهد | منطقه |
-| HAProxy Backend Down | بحرانی | `haproxy_backend_status` برای `DOWN`، **۵ دقیقه گذشته** | روی هر load balancerی که پاسخ می‌دهد down است | Backend |
+| HAProxy Backend Down | بحرانی | `haproxy_backend_status` برای `DOWN`، **۵ دقیقه گذشته** | روی هر متعادل‌کننده باری که پاسخ می‌دهد down است | Backend |
 | HAProxy Server Down | هشدار | `haproxy_server_status` برای `DOWN`، **۱۰ دقیقه گذشته** | یک سرور down است و backend آن سرورهای دیگری دارد | Backend |
 | API 5xx Rate High | بحرانی | `haproxy_backend_http_responses_increase`، **۵ دقیقه گذشته** | بیش از ۵٪، در حالی که سرورهایی برای پاسخ دادن مانده‌اند | Backend |
 | API 4xx Rate High | هشدار | همان، **۵ دقیقه گذشته** | بیش از ۲۵٪. HAProxy بر اساس کلاس می‌شمارد، پس موج ناگهانی ۴۰۱ها اینجا دیده می‌شود | Backend |
@@ -290,7 +290,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 
 ### روشن کردن سری‌های limits
 
-سه قالب **ظرفیت** سری‌هایی را می‌خوانند که خود OneUptime از فهرست دارایی‌های ابر می‌نویسد، هر دو دقیقه تا وقتی ابر گزارش می‌دهد. هیچ سری exporter شمارش zone یا flavor را ندارد. برای معنای آن‌ها [Capacity](/docs/telemetry/openstack#ظرفیت) را ببینید. هر سه درباره تخصیص‌اند، یعنی آنچه وعده داده شده، و هیچ‌کدام درباره بار نیستند.
+سه قالب **ظرفیت** سری‌هایی را می‌خوانند که خود OneUptime از فهرست دارایی‌های ابر می‌نویسد، هر دو دقیقه تا وقتی ابر گزارش می‌دهد. هیچ سری exporter شمارش زُن یا flavor را ندارد. برای معنای آن‌ها [Capacity](/docs/telemetry/openstack#ظرفیت) را ببینید. هر سه درباره تخصیص‌اند، یعنی آنچه وعده داده شده، و هیچ‌کدام درباره بار نیستند.
 
 **Project Quota Nearly Reached** سری‌های `openstack_nova_limits_*` و `openstack_cinder_limits_*` را می‌خواند که به‌طور پیش‌فرض خاموش‌اند، چون برای هر پروژه هزینه فراخوانی API دارند. قالب تا وقتی آن‌ها را روشن نکنید ساکت می‌ماند: `install.sh` عامل را دوباره با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید. سپس یک exporter دوم آن‌ها را ساعتی یک بار می‌خواند، و قالب منتظر سه خواندن از این‌ها می‌ماند. در ابری که یک probe می‌خواند، **محدودیت‌های پروژه** را زیر **جمع‌آوری داده** در صفحه **تنظیمات** آن روشن کنید.
 
@@ -411,7 +411,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | `openstack_placement_resource_usage` | - | Max | Placement چقدر از یک منبع را روی یک هایپروایزر به instanceها وعده داده است. این تخصیص است، نه بار: instance بی‌کار همه‌اش را نگه می‌دارد. |
 | `openstack_placement_resource_generation` | `count` | Max | موجودی یک هایپروایزر چند بار تغییر کرده، آن‌طور که Placement می‌شمارد. با هر تغییر بالا می‌رود، پس می‌گوید چیزی تغییر کرده، نه چه چیزی. |
 | `openstack_placement_resource_provider_allocations` | - | Max | یک مصرف‌کننده، یعنی uuid آن، چقدر از یک منبع را روی یک هایپروایزر نگه دارد. |
-| `openstack_placement_flavor_fits` | `count` | Max | Placement می‌گوید چند تای دیگر از یک flavor جا می‌شود، میزبان به میزبان شمرده، از `GET /allocation_candidates`: یک سری برای منطقه و یک سری برای هر zone و aggregate. نوبتی خوانده می‌شود، چند flavor در هر جمع‌آوری، و در میان آن‌ها به‌صورت آخرین مقدار خوانده‌شده فرستاده می‌شود. فقط probe این را می‌پرسد. |
+| `openstack_placement_flavor_fits` | `count` | Max | Placement می‌گوید چند تای دیگر از یک flavor جا می‌شود، میزبان به میزبان شمرده، از `GET /allocation_candidates`: یک سری برای منطقه و یک سری برای هر زُن و aggregate. نوبتی خوانده می‌شود، چند flavor در هر جمع‌آوری، و در میان آن‌ها به‌صورت آخرین مقدار خوانده‌شده فرستاده می‌شود. فقط probe این را می‌پرسد. |
 | `openstack_nova_vcpus_available` | `count` | Max | vCPUهایی که یک هایپروایزر دارد، هر چه نامش بگوید، پیش از هر allocation ratio. Nova از microversion 2.88 گزارش این را متوقف کرد، پس سری‌های Placement آن‌هایی هستند که باید به آن‌ها اعتماد کرد. |
 | `openstack_nova_vcpus_used` | `count` | Max | vCPUهایی که Nova روی یک هایپروایزر به instanceها وعده داده است. تخصیص، نه بار. |
 | `openstack_nova_memory_available_bytes` | `bytes` | Max | حافظه‌ای که یک هایپروایزر دارد، هر چه نامش بگوید، پیش از هر allocation ratio. |
@@ -428,7 +428,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | `openstack_nova_instances_by_project` | `count` | Max | هر پروژه چند instance نگه دارد، یک سری برای هر پروژه در هر منطقه. ابری که از اندازه خلاصه گذشته باشد این را به‌جای یک سری برای هر instance نگه می‌دارد. ابرهای دیگر آن را نمی‌فرستند. |
 | `openstack_nova_flavors` | `count` | Max | منطقه چند flavor دارد. |
 | `openstack_nova_flavor` | `count` | Max | یک سری برای هر flavor، همیشه ۱، با اندازه‌اش در labelهای vcpus، ram (به MiB) و disk (به GiB). |
-| `openstack_nova_availability_zones` | `count` | Max | Nova در منطقه چند availability zone دارد. |
+| `openstack_nova_availability_zones` | `count` | Max | Nova در منطقه چند زُن دسترس‌پذیری دارد. |
 | `openstack_nova_security_groups` | `count` | Max | Nova در منطقه چند security group گزارش می‌کند. عامل آن را با `--disable-metric=nova-security_groups` کنار می‌گذارد، چون Nova دیگر این route را ندارد. |
 | `openstack.instance.cpu.usage` | `{cpu}` | Max | این instance از چند thread پردازنده هایپروایزرش استفاده می‌کند، از روی زمان CPU تجمعی‌اش محاسبه شده. فقط جایی گزارش می‌شود که exporter مربوط به libvirt یا Ceilometer خوانده شود. |
 | `openstack.instance.cpu.utilization` | `%` | Max | آن CPU به‌صورت سهمی از vCPUهای خود instance. ۱۰۰ یعنی همه vCPUها مشغول‌اند، و می‌تواند بیش از ۱۰۰ بخواند وقتی threadهای خود QEMU برایش کار می‌کنند. فقط جایی گزارش می‌شود که exporter مربوط به libvirt یا Ceilometer خوانده شود. |
@@ -454,7 +454,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
 | `openstack_neutron_routers_not_active` | `count` | Max | چند router در منطقه وضعیتی غیر از ACTIVE دارند. وقتی همه‌چیز خوب است ۰ می‌خواند. |
-| `openstack_neutron_floating_ips_associated_not_active` | `count` | Max | چند floating IP در منطقه به چیزی وصل است و ACTIVE نیست. مورد یدک قرار است down باشد، پس اینجا شمرده نمی‌شود. وقتی همه‌چیز خوب است ۰ می‌خواند. |
+| `openstack_neutron_floating_ips_associated_not_active` | `count` | Max | چند IP شناور در منطقه به چیزی وصل است و ACTIVE نیست. مورد یدک قرار است down باشد، پس اینجا شمرده نمی‌شود. وقتی همه‌چیز خوب است ۰ می‌خواند. |
 | `openstack_neutron_l3_agent_of_router` | - | Max | یک سری برای هر router و agent مربوط به L3 که آن را نگه می‌دارد: ۱ تا وقتی agent زنده است، ۰ وقتی نیست، با labelهای ha_state (active یا standby) و agent_admin_up. تا وقتی هر agentی زنده باشد router سالم است، پس آن را با Max بر اساس router بخوانید. ابری که روی OVN است چنین agentهایی ندارد، پس چنین سری‌ای هم ندارد. |
 | `openstack_neutron_network_ip_availabilities_total` | `count` | Max | یک subnet چند آدرس دارد، یک سری برای هر subnet از هر شبکه. |
 | `openstack_neutron_network_ip_availabilities_used` | `count` | Max | چند آدرس از آدرس‌های یک subnet گرفته شده است، یک سری برای هر subnet از هر شبکه. |
@@ -462,18 +462,18 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | `openstack_neutron_networks` | `count` | Max | منطقه چند شبکه دارد. |
 | `openstack_neutron_subnet` | `count` | Max | یک سری برای هر subnet، همیشه ۱، با جزئیاتش در labelها. |
 | `openstack_neutron_subnets` | `count` | Max | منطقه چند subnet دارد. |
-| `openstack_neutron_subnets_total` | `count` | Max | یک subnet pool در مجموع چند subnet با یک طول prefix را می‌تواند نگه دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-subnets_total` را از exporter حذف کنید. |
-| `openstack_neutron_subnets_used` | `count` | Max | یک subnet pool چند subnet با یک طول prefix را داده است. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-subnets_total` را از exporter حذف کنید. |
-| `openstack_neutron_subnets_free` | `count` | Min | یک subnet pool چند subnet با یک طول prefix برای دادن مانده دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-subnets_total` را از exporter حذف کنید. |
+| `openstack_neutron_subnets_total` | `count` | Max | یک استخر ساب‌نت در مجموع چند subnet با یک طول prefix را می‌تواند نگه دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-subnets_total` را از exporter حذف کنید. |
+| `openstack_neutron_subnets_used` | `count` | Max | یک استخر ساب‌نت چند subnet با یک طول prefix را داده است. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-subnets_total` را از exporter حذف کنید. |
+| `openstack_neutron_subnets_free` | `count` | Min | یک استخر ساب‌نت چند subnet با یک طول prefix برای دادن مانده دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-subnets_total` را از exporter حذف کنید. |
 | `openstack_neutron_router` | `count` | Max | یک سری برای هر router، همیشه ۱، با labelهای status و admin_state_up. |
 | `openstack_neutron_routers` | `count` | Max | منطقه چند router دارد. |
-| `openstack_neutron_floating_ip` | `count` | Max | یک سری برای هر floating IP، همیشه ۱، با status و routerی که از آن می‌گذرد در labelها. مورد یدک DOWN می‌خواند و router_id ندارد. |
-| `openstack_neutron_floating_ips` | `count` | Max | منطقه چند floating IP دارد. |
+| `openstack_neutron_floating_ip` | `count` | Max | یک سری برای هر IP شناور، همیشه ۱، با status و routerی که از آن می‌گذرد در labelها. مورد یدک DOWN می‌خواند و router_id ندارد. |
+| `openstack_neutron_floating_ips` | `count` | Max | منطقه چند IP شناور دارد. |
 | `openstack_neutron_security_groups` | `count` | Max | Neutron در منطقه چند security group دارد. |
 | `openstack_neutron_port` | `count` | Max | یک سری برای هر port، همیشه ۱، با labelهای status و binding_vif_type. عامل آن را خاموش نگه می‌دارد، چون فهرست کردن همه portها با credential ادمین می‌تواند Neutron را در ابر بزرگ اشباع کند. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-port` را از exporter حذف کنید. |
 | `openstack_neutron_ports` | `count` | Max | منطقه چند port دارد. عامل آن را خاموش نگه می‌دارد، چون فهرست کردن همه portها با credential ادمین می‌تواند Neutron را در ابر بزرگ اشباع کند. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-ports` را از exporter حذف کنید. |
 | `openstack_neutron_ports_no_ips` | `count` | Max | چند port در حالت ACTIVE آدرس ندارند. عامل آن را همراه سری‌های دیگر port خاموش نگه می‌دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-ports_no_ips` را از exporter حذف کنید. |
-| `openstack_neutron_ports_lb_not_active` | `count` | Max | چند port مربوط به load balancer ACTIVE نیستند. عامل آن را همراه سری‌های دیگر port خاموش نگه می‌دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-ports_lb_not_active` را از exporter حذف کنید. |
+| `openstack_neutron_ports_lb_not_active` | `count` | Max | چند port مربوط به متعادل‌کننده بار ACTIVE نیستند. عامل آن را همراه سری‌های دیگر port خاموش نگه می‌دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=neutron-ports_lb_not_active` را از exporter حذف کنید. |
 | `openstack_neutron_vpn_endpoint_groups` | `count` | Max | منطقه چند گروه endpoint در VPN دارد. |
 | `openstack_neutron_vpn_ike_policies` | `count` | Max | منطقه چند سیاست IKE در VPN دارد. |
 | `openstack_neutron_vpn_ipsec_policies` | `count` | Max | منطقه چند سیاست IPsec در VPN دارد. |
@@ -502,11 +502,11 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 | متریک | واحد | خواندن‌ها | چه چیزی را نگه می‌دارد |
 | --- | --- | --- | --- |
-| `openstack_capacity_allocated` | - | Max | چه مقدار از چیزی که پر می‌شود تخصیص یافته: resource class یک zone، آدرس‌های IPv4 یک شبکه بیرونی، یا بایت‌های یک استخر ذخیره‌سازی. `capacity_scope`، `capacity_name` و `resourcetype` می‌گویند کدام. آنچه میزبان‌های ازدست‌رفته و غیرفعال نگه می‌دارند را هم می‌شمارد، چون آن instanceها وجود دارند. |
-| `openstack_capacity_total` | - | Max | چه مقدار از آن را می‌شود تخصیص داد، از میزبان‌هایی که می‌توانند بدهند: (total - reserved) x allocation ratio، برای یک zone. |
+| `openstack_capacity_allocated` | - | Max | چه مقدار از چیزی که پر می‌شود تخصیص یافته: resource class یک زُن، آدرس‌های IPv4 یک شبکه بیرونی، یا بایت‌های یک استخر ذخیره‌سازی. `capacity_scope`، `capacity_name` و `resourcetype` می‌گویند کدام. آنچه میزبان‌های ازدست‌رفته و غیرفعال نگه می‌دارند را هم می‌شمارد، چون آن instanceها وجود دارند. |
+| `openstack_capacity_total` | - | Max | چه مقدار از آن را می‌شود تخصیص داد، از میزبان‌هایی که می‌توانند بدهند: (total - reserved) x allocation ratio، برای یک زُن. |
 | `openstack_capacity_days_until_full` | `d` | Max | با رشد هفته گذشته‌اش چند روز تا پر شدن مانده، و وقتی پر است ۰. با کمتر از یک روز تاریخچه، یا وقتی رشد نمی‌کند، سری‌ای نیست. |
 | `openstack_capacity_flavor_fits` | `count` | Max | چند تای دیگر از یک flavor جا می‌شود، میزبان به میزبان شمرده، در هر منطقه. `source` می‌گوید Placement پاسخ داده یا موجودی‌ها جمع زده شده‌اند. فقط flavorهایی که کسی می‌تواند بخواهد، و هیچ‌کدام که برای همه میزبان‌ها بزرگ باشد. |
-| `openstack_capacity_can_lose_a_host` | - | Min | ۱ وقتی یک zone می‌توانست بزرگ‌ترین میزبانش را از دست بدهد و باز هم آنچه روی آن اجرا می‌شود جا شود، و ۰ وقتی نمی‌توانست، برای هر resource class. برای zone با یک میزبان، یا با میزبانی که کسی غیرفعالش کرده، سری‌ای نیست. |
+| `openstack_capacity_can_lose_a_host` | - | Min | ۱ وقتی یک زُن می‌توانست بزرگ‌ترین میزبانش را از دست بدهد و باز هم آنچه روی آن اجرا می‌شود جا شود، و ۰ وقتی نمی‌توانست، برای هر resource class. برای زُن با یک میزبان، یا با میزبانی که کسی غیرفعالش کرده، سری‌ای نیست. |
 
 ### ایمیج‌ها
 
@@ -554,10 +554,10 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
 | `openstack_sharev2_up` | | Min | اینکه API مربوط به Manila پاسخ داد. API متوقف ۰ می‌خواند، و هر credential که بتواند وارد شود ۱ می‌خواند. `manila-share` متوقف این را روی ۱ می‌گذارد. |
-| `openstack_sharev2_share_gb` | `GiB` | Max | یک سری برای هر share، با `id`، `name`، `project_id`، `availability_zone`، `share_proto`، `share_type` و `status`. مقدارش هرگز ۰ نیست، پس می‌گوید یک share مدتی یک وضعیت را نگه داشته است. |
-| `openstack_sharev2_share_status` | | Max | یک سری برای هر share. مقدارش یک کد است، و کد `creating` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
-| `openstack_sharev2_share_status_counter` | `count` | Max | چند share هر وضعیت را دارند، در هر منطقه. |
-| `openstack_sharev2_shares_counter` | `count` | Max | Manila برای این credential چند share فهرست کرد، در هر منطقه. |
+| `openstack_sharev2_share_gb` | `GiB` | Max | یک سری برای هر اشتراک فایل، با `id`، `name`، `project_id`، `availability_zone`، `share_proto`، `share_type` و `status`. مقدارش هرگز ۰ نیست، پس می‌گوید یک اشتراک فایل مدتی یک وضعیت را نگه داشته است. |
+| `openstack_sharev2_share_status` | | Max | یک سری برای هر اشتراک فایل. مقدارش یک کد است، و کد `creating` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
+| `openstack_sharev2_share_status_counter` | `count` | Max | چند اشتراک فایل هر وضعیت را دارند، در هر منطقه. |
+| `openstack_sharev2_shares_counter` | `count` | Max | Manila برای این credential چند اشتراک فایل فهرست کرد، در هر منطقه. |
 | `openstack_sharev2_agent_state` | | Min | اینکه Manila هر سرویس را up فهرست می‌کند، با `state` که برای سرویسی که تمیز بسته شده `stopped` و برای سرویسی که مرده `down` می‌گوید. فقط probe این را می‌فرستد. |
 
 ### Load Balancers
@@ -567,23 +567,23 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
 | `openstack_loadbalancer_up` | | Min | اینکه خواندن Octavia آن‌قدر پیش رفت که بتواند بگوید. API متوقف ۰ نمی‌دهد، فقط پاسخ خالی. |
-| `openstack_loadbalancer_loadbalancer_status` | | Max | یک سری برای هر load balancer، با `provisioning_status`، `operating_status`، `provider`، `vip_address` و `project_id`. مقدارش کدی برای operating status است: واژه‌ها را بخوانید. |
-| `openstack_loadbalancer_pool_status` | | Max | یک سری برای هر pool، با `provisioning_status`، `operating_status`، `protocol` و `lb_algorithm`. poolی که همه اعضایش down هستند هنوز ۰ می‌خواند: `operating_status` را بخوانید. |
+| `openstack_loadbalancer_loadbalancer_status` | | Max | یک سری برای هر متعادل‌کننده بار، با `provisioning_status`، `operating_status`، `provider`، `vip_address` و `project_id`. مقدارش کدی برای operating status است: واژه‌ها را بخوانید. |
+| `openstack_loadbalancer_pool_status` | | Max | یک سری برای هر استخر، با `provisioning_status`، `operating_status`، `protocol` و `lb_algorithm`. استخری که همه اعضایش down هستند هنوز ۰ می‌خواند: `operating_status` را بخوانید. |
 | `openstack_loadbalancer_amphora_status` | | Max | یک سری برای هر amphora، با `status`، `role`، `compute_id`، `loadbalancer_id` و `cert_expiration`، که متن است و نه عدد. فقط ادمین می‌تواند amphoraها را فهرست کند. |
 | `openstack_loadbalancer_listener_status` | | Max | یک سری برای هر listener، همیشه ۱، با `provisioning_status`، `operating_status`، `protocol`، `protocol_port` و `loadbalancer_id`. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_member_status` | | Max | یک سری برای هر عضو pool، همیشه ۱، با `operating_status` بالاتر از همه، `pool_id`، `address`، `protocol_port` و `weight`. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | اتصال‌های باز در لحظه خواندن، در هر load balancer. فقط probe این را می‌فرستد: API مربوط به Octavia را می‌خواند. |
-| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | اتصال‌هایی که هر ثانیه باز شده‌اند، در هر load balancer، میان دو خواندن. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه رسیده‌اند، در هر load balancer. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه فرستاده شده‌اند، در هر load balancer. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | درخواست‌هایی که هر ثانیه شکست خورده‌اند، در هر load balancer. فقط probe این را می‌فرستد. |
+| `openstack_loadbalancer_member_status` | | Max | یک سری برای هر عضو استخر، همیشه ۱، با `operating_status` بالاتر از همه، `pool_id`، `address`، `protocol_port` و `weight`. فقط probe این را می‌فرستد. |
+| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | اتصال‌های باز در لحظه خواندن، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد: API مربوط به Octavia را می‌خواند. |
+| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | اتصال‌هایی که هر ثانیه باز شده‌اند، در هر متعادل‌کننده بار، میان دو خواندن. فقط probe این را می‌فرستد. |
+| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه رسیده‌اند، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد. |
+| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه فرستاده شده‌اند، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد. |
+| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | درخواست‌هایی که هر ثانیه شکست خورده‌اند، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد. |
 | `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
 | `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
 | `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
 | `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
 | `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_total_loadbalancers` | `count` | Max | Octavia برای این credential چند load balancer فهرست کرد، در هر منطقه. |
-| `openstack_loadbalancer_total_pools` | `count` | Max | Octavia برای این credential چند pool فهرست کرد، در هر منطقه. |
+| `openstack_loadbalancer_total_loadbalancers` | `count` | Max | Octavia برای این credential چند متعادل‌کننده بار فهرست کرد، در هر منطقه. |
+| `openstack_loadbalancer_total_pools` | `count` | Max | Octavia برای این credential چند استخر فهرست کرد، در هر منطقه. |
 | `openstack_loadbalancer_total_amphorae` | `count` | Max | Octavia برای این credential چند amphora فهرست کرد، در هر منطقه. |
 
 ### DNS
@@ -592,11 +592,11 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
-| `openstack_designate_up` | | Min | ۱ وقتی exporter zoneهای Designate را خوانده باشد. API متوقف اصلاً چیزی نمی‌گوید، پس این به‌جای خواندن ۰ ساکت می‌شود. پس ۰ یعنی Designate پاسخ داد و zoneها را رد کرد، که سرنوشت هر credential پایین‌تر از ادمین است. |
-| `openstack_designate_zones` | `count` | Max | Designate چند zone فهرست کرد، در هر منطقه. |
-| `openstack_designate_zone_status` | | Max | یک سری برای هر zone، با `id`، `name`، `tenant_id`، `type` و `status`. مقدارش یک کد است، و کد `PENDING` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
-| `openstack_designate_recordsets` | `count` | Max | هر zone چند recordset نگه دارد. exporter برای گفتن این در هر scrape برای هر zone یک فراخوانی می‌کند. |
-| `openstack_designate_recordsets_status` | | Max | یک سری برای هر recordset، با `id`، `name`، `type`، `zone_id`، `zone_name` و `status`. مقدارش یک کد است، و کد `PENDING` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
+| `openstack_designate_up` | | Min | ۱ وقتی exporter زُن‌های Designate را خوانده باشد. API متوقف اصلاً چیزی نمی‌گوید، پس این به‌جای خواندن ۰ ساکت می‌شود. پس ۰ یعنی Designate پاسخ داد و زُن‌ها را رد کرد، که سرنوشت هر credential پایین‌تر از ادمین است. |
+| `openstack_designate_zones` | `count` | Max | Designate چند زُن فهرست کرد، در هر منطقه. |
+| `openstack_designate_zone_status` | | Max | یک سری برای هر زُن، با `id`، `name`، `tenant_id`، `type` و `status`. مقدارش یک کد است، و کد `PENDING` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
+| `openstack_designate_recordsets` | `count` | Max | هر زُن چند مجموعه‌رکورد نگه دارد. exporter برای گفتن این در هر scrape برای هر زُن یک فراخوانی می‌کند. |
+| `openstack_designate_recordsets_status` | | Max | یک سری برای هر مجموعه‌رکورد، با `id`، `name`، `type`، `zone_id`، `zone_name` و `status`. مقدارش یک کد است، و کد `PENDING` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
 | `openstack_designate_agent_state` | | Min | اینکه Designate هر یک از سرویس‌هایش را up فهرست می‌کند. فقط probe این را می‌فرستد. |
 
 ### متریک‌ها
@@ -687,7 +687,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_nova_quota_server_groups` | `count` | Max | سهمیه server group یک پروژه. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
 | `openstack_nova_quota_server_group_members` | `count` | Max | سهمیه اعضا برای هر server group در یک پروژه. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
 | `openstack_nova_quota_fixed_ips` | `count` | Max | سهمیه fixed IP یک پروژه در Nova، که ابرهای امروزی آن را به Neutron می‌سپارند. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
-| `openstack_nova_quota_floating_ips` | `count` | Max | سهمیه floating IP یک پروژه در Nova، که ابرهای امروزی آن را به Neutron می‌سپارند. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
+| `openstack_nova_quota_floating_ips` | `count` | Max | سهمیه IP شناور یک پروژه در Nova، که ابرهای امروزی آن را به Neutron می‌سپارند. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
 | `openstack_nova_quota_security_groups` | `count` | Max | سهمیه security group یک پروژه در Nova، که ابرهای امروزی آن را به Neutron می‌سپارند. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
 | `openstack_nova_quota_security_group_rules` | `count` | Max | سهمیه قانون security group یک پروژه در Nova، که ابرهای امروزی آن را به Neutron می‌سپارند. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
 | `openstack_nova_quota_injected_files` | `count` | Max | سهمیه فایل‌های injectشده برای هر instance در یک پروژه. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
@@ -695,10 +695,10 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_nova_quota_injected_file_path_bytes` | `bytes` | Max | سهمیه طول مسیر یک فایل injectشده در یک پروژه. label مربوط به type می‌گوید این کدام عدد است: in_use، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-quota_cores` را از exporter حذف کنید. |
 | `openstack_neutron_quota_network` | `count` | Max | سهمیه شبکه یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
 | `openstack_neutron_quota_subnet` | `count` | Max | سهمیه subnet یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
-| `openstack_neutron_quota_subnetpool` | `count` | Max | سهمیه subnet pool یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
+| `openstack_neutron_quota_subnetpool` | `count` | Max | سهمیه استخر ساب‌نت یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
 | `openstack_neutron_quota_port` | `count` | Max | سهمیه port یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
 | `openstack_neutron_quota_router` | `count` | Max | سهمیه router یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
-| `openstack_neutron_quota_floatingip` | `count` | Max | سهمیه floating IP یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
+| `openstack_neutron_quota_floatingip` | `count` | Max | سهمیه IP شناور یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
 | `openstack_neutron_quota_security_group` | `count` | Max | سهمیه security group یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
 | `openstack_neutron_quota_security_group_rule` | `count` | Max | سهمیه قانون security group یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
 | `openstack_neutron_quota_rbac_policy` | `count` | Max | سهمیه سیاست RBAC یک پروژه. label مربوط به type می‌گوید این کدام عدد است: used، reserved یا limit. _به‌طور پیش‌فرض خاموش:_ `install.sh` عامل را با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید تا ساعتی یک بار خوانده شود. |
@@ -729,7 +729,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 هر سرویس می‌تواند سالم گزارش کند در حالی که هیچ‌کس نمی‌تواند یک instance بالا بیاورد. `/healthcheck` در `oslo.middleware` فقط نشان می‌دهد سرویس در دسترس است، پس درست‌ترین آزمون انجام دادن کاری است که کاربران می‌کنند. probe آن را از بیرون ابر انجام می‌دهد، چون بررسی از درون ابر خراب چیزی نمی‌گوید. آن‌ها را از صفحه **بررسی‌ها**ی ابر روشن کنید. [راهنما](/docs/telemetry/openstack#بررسی-ابر-از-بیرون) می‌گوید چگونه، و بررسی lifecycle دقیقاً چه چیزی می‌سازد و به چه چیزی ممکن است دست بزند.
 
 - **بررسی‌های API** به‌طور پیش‌فرض هر دقیقه اجرا می‌شوند و فقط می‌خوانند. Keystone یک توکن صادر می‌کند، هر سرویس در کاتالوگ به یک خواندن تک‌ردیفی احرازهویت‌شده پاسخ می‌دهد، و گواهی هر endpoint برای زمان انقضا خوانده می‌شود. فهرستی برای نگه داشتن نیست: سرویسی که کسی به کاتالوگ اضافه کند از همان لحظه بررسی می‌شود.
-- **بررسی lifecycle** به‌طور پیش‌فرض هر ۳۰ دقیقه اجرا می‌شود، و فقط اگر انتخابش کنید. در پروژه‌ای که خودش دارد: یک server می‌سازد، منتظر `ACTIVE` می‌ماند، اختیاراً یک floating IP وصل می‌کند و ping می‌زند، اختیاراً یک volume می‌سازد و وصل می‌کند، سپس همه‌چیز را حذف می‌کند. مدت هر گام یک سری است.
+- **بررسی lifecycle** به‌طور پیش‌فرض هر ۳۰ دقیقه اجرا می‌شود، و فقط اگر انتخابش کنید. در پروژه‌ای که خودش دارد: یک server می‌سازد، منتظر `ACTIVE` می‌ماند، اختیاراً یک IP شناور وصل می‌کند و ping می‌زند، اختیاراً یک volume می‌سازد و وصل می‌کند، سپس همه‌چیز را حذف می‌کند. مدت هر گام یک سری است.
 
 ### یک حادثه برای هر منطقه، از اجرای ناموفق تا اجرای خوب
 
@@ -763,7 +763,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 چند معیار برای شروع:
 
-- **nova-compute یک zone down است:** `openstack_nova_agent_state` فیلترشده به `service = nova-compute`، `adminState = enabled` و `zone = nova`، کمینه، گروه‌بندی بر اساس `hostname`، **کوچک‌تر از** `1`، در ۱۰ دقیقه گذشته.
+- **nova-compute یک زُن down است:** `openstack_nova_agent_state` فیلترشده به `service = nova-compute`، `adminState = enabled` و `zone = nova`، کمینه، گروه‌بندی بر اساس `hostname`، **کوچک‌تر از** `1`، در ۱۰ دقیقه گذشته.
 - **یک میزبان instance زیادی دارد:** `openstack_nova_running_vms`، بیشینه، گروه‌بندی بر اساس `hostname`، **بزرگ‌تر از** تعدادی که یک میزبان باید داشته باشد.
 - **یک استخر ذخیره‌سازی فضای کمی مانده دارد:** `openstack_cinder_pool_capacity_free_gb`، کمینه، گروه‌بندی بر اساس `name`، **کوچک‌تر از** `100`.
 - **instanceهای زیادی هم‌زمان در حال build هستند:** `openstack_nova_server_status` فیلترشده به `status = BUILD`، Count، گروه‌بندی بر اساس `openstack.region.name`، **بزرگ‌تر از** `20`.

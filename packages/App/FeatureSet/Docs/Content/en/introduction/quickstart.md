@@ -34,6 +34,8 @@ Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick 
 
 ### Create it
 
+![Home asks "What do you want to do first?", with the three goals of this guide ticked](screen:home-goals-three)
+
 Click **Create Project**. Your project's Home page opens, with the **Welcome to OneUptime 👋** checklist at the top. It first asks **What do you want to do first?**: tick **Know when my website or API is down**, **Page the right person when something breaks** and **Tell my customers with a status page**, and click **Continue**.
 :::
 
@@ -59,6 +61,8 @@ Keep the selected **Probes** and the **Monitoring Interval** of **Every 5 Minute
 
 To try the check before you save, click **Test Monitor** on the second step. Every other monitor type is described in [Creating a Monitor](/docs/monitor/create-monitor).
 
+To check an API as well, choose who is told and send a test page that proves the message reaches you, follow [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 ## Get paged when it goes down
 
 As it is, an incident with no owners is emailed to the project's owners, and that includes you. To be paged until someone responds, create an on-call policy: the first one in a project pages for every new incident and alert.
@@ -66,7 +70,7 @@ As it is, an incident with no owners is emailed to the project's owners, and tha
 :::steps
 ### Create an on-call policy
 
-In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page this policy for every new incident and alert** on, and click **Create On-Call Policy**.
+In the checklist, click **Set up an on-call policy**, or open **On-Call** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page this policy for every new incident and alert** on, and click **Create On-Call Policy**.
 
 ### See the rule that pages it
 
@@ -78,7 +82,7 @@ Your sign-in email is already a way to reach you. To be texted or called too, op
 :::
 
 > [!NOTE]
-> SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Settings**.
+> SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
 
 For more levels, rotations and how long each level waits, see [Escalation Rules](/docs/on-call/escalation-rules) and [On-Call Schedules](/docs/on-call/schedules).
 
@@ -119,9 +123,13 @@ Open **Incidents** and click **Declare Incident**. Enter a **Title**, such as `T
 
 ### Watch it happen
 
+![A resolved incident's "Incident Feed": who was paged, then each state change, newest first](screen:incident-feed)
+
 Within a minute or two, your on-call policy pages you, and the incident shows on your status page.
 
 ### Resolve it
+
+![An incident whose state is "Acknowledged", with "Resolve" ringed](screen:incident-resolve)
 
 On the incident's page, click **Resolve**. The paging stops, and the incident leaves your status page.
 :::

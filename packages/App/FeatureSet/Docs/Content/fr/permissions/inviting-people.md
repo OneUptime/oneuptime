@@ -86,7 +86,7 @@ Filtrez la liste par **Utilisateur**, **Statut** ou **Équipe**. Cliquez sur une
 | --- | --- |
 | **Profil** | Son nom, son adresse e-mail, sa photo et son ID utilisateur. |
 | **Équipes** | Les équipes dont elle fait partie. Ajoutez ou retirez une équipe ici. |
-| **Disponibilité**, **Méthodes de notification**, **Règles d'astreinte** | Si elle peut être appelée, et comment. Visible par les Project Owners, les Project Admins, la personne elle-même et toute personne qui peut lire les règles de notification des autres. Voir [Disponibilité et rapports](/docs/on-call/readiness). |
+| **Disponibilité**, **Méthodes de notification**, **Comment me joindre** | Si elle peut être appelée, et comment. Visible par les Project Owners, les Project Admins, la personne elle-même et toute personne qui peut lire les règles de notification des autres. Voir [Disponibilité et rapports](/docs/on-call/readiness). |
 | **Champs personnalisés** | Les champs personnalisés du projet pour les personnes, s'il en a. |
 | **Retirer du projet** | La retirer du projet. |
 

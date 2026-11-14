@@ -101,10 +101,14 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyExecutionLog",
-  singularName: "On-Call Duty Execution Log",
-  pluralName: "On-Call Duty Execution Log",
+  singularName: "On-Call Policy Execution Log",
+  pluralName: "On-Call Policy Execution Logs",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "On-Call Duty Execution Log",
+  apiPluralName: "On-Call Duty Execution Log",
   icon: IconProp.Call,
-  tableDescription: "Logs for on-call duty policy execution.",
+  tableDescription:
+    "Each time an on-call policy runs: what started it, how far it got, and who it paged.",
 })
 export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @ColumnAccessControl({
@@ -300,8 +304,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Incident,
     title: "Triggered By Incident",
-    description:
-      "Relation to Incident which triggered this on-call duty policy.",
+    description: "Relation to Incident which triggered this on-call policy.",
     example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @ManyToOne(
@@ -386,7 +389,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Alert,
     title: "Triggered By Alert",
-    description: "Relation to Alert which triggered this on-call duty policy.",
+    description: "Relation to Alert which triggered this on-call policy.",
     example: "a7b8c9d0-e1f2-3456-0123-567890123456",
   })
   @ManyToOne(
@@ -708,7 +711,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(UserNotificationEventType),
     title: "Notification Event Type",
-    description: "Type of event that triggered this on-call duty policy.",
+    description: "Type of event that triggered this on-call policy.",
     canReadOnRelationQuery: false,
     example: "Incident Created",
   })

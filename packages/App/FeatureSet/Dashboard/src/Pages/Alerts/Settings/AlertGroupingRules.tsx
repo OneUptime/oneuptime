@@ -131,6 +131,7 @@ flowchart LR
 | **Group By Alert Title** | Alerts with different titles → separate episodes | Alerts with any title can be grouped together |
 | **Group By Alert Labels** | Alerts with different sets of labels → separate episodes (exact set match) | Alert labels are ignored for grouping |
 | **Group By Monitor Labels** | Alerts whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
+| **Group By Connected Services** | Alerts on services that call each other on the Service Map → the same episode; on unconnected services → separate episodes. Alerts on no service are grouped by monitor | The Service Map is ignored for grouping |
 
 #### Default Behavior
 
@@ -183,6 +184,14 @@ flowchart TD
 - More fields: **Wait for more alerts**, 3
 
 **Result:** A lone alert stays on its own. Once 3 matching alerts are ongoing - arriving within the time window of each other while it is on - one episode opens with all 3, and the alerts after them join it.
+
+#### Example 5: One episode for a failure that spreads
+
+**Configuration:**
+- Match Criteria: (none - matches all alerts)
+- Group By: **Connected Services**
+
+**Result:** The orders service slows down and raises an alert. Checkout and payments, which call orders on the Service Map, start failing too and raise one each. All three share one episode instead of paging three times. Alerts on a service that calls nothing and is called by nothing on the map get an episode of their own. An alert joins an episode when one of its services - its own, or its monitor's - is, calls or is called by a service already in it.
 `;
 
 const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
@@ -425,7 +434,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               onCallDutyPolicies: true,
             },
-            title: "On-Call Duty Policies",
+            title: "On-Call Policies",
             stepId: "grouping",
             collapsibleSection: MORE_FIELDS,
             sectionTitle: "On-Call & Ownership",
@@ -603,6 +612,17 @@ const AlertGroupingRulesPage: FunctionComponent<
             required: false,
             description:
               "Alerts whose monitors have different sets of labels go into separate episodes.",
+          },
+          {
+            field: {
+              groupByConnectedServices: true,
+            },
+            title: "Group By Connected Services",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Alerts on services that call each other on the Service Map go into the same episode.",
           },
           // Which alerts - drawn as one conditions builder
           {

@@ -304,6 +304,23 @@ export interface ExecuteFallbackNotificationOptions
 }
 
 /*
+ * All the fallback needs to pick what to page a person by: whom, in which
+ * project, for which kind of page - whether it then sends to what it picks
+ * (executeFallbackNotification) or only says what it would (getFallbackRules,
+ * for a test page's preview).
+ */
+export type FallbackRecipient = Pick<
+  ExecuteFallbackNotificationOptions,
+  "projectId" | "userId" | "ruleType"
+>;
+
+// One method the fallback picked: its channel's name, and an unsaved rule naming it.
+export interface FallbackRule {
+  channelName: string;
+  rule: Model;
+}
+
+/*
  * Why the fallback returns an outcome and not just a boolean.
  *
  * Its caller (UserOnCallLogService.onCreateSuccess) has to pick a
@@ -4290,7 +4307,7 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    const fallbackRules: Array<{ channelName: string; rule: Model }> =
+    const fallbackRules: Array<FallbackRule> =
       await this.chooseFallbackChannels(options);
 
     if (fallbackRules.length === 0) {
@@ -4379,6 +4396,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * WHAT THE FALLBACK WOULD PAGE A PERSON BY, without paging them: what
+   * chooseFallbackChannels picks, read and not sent, with no claim on any
+   * log. A test page's preview (OnCallTestPageService.getPersonPreview)
+   * lists and prices these for a person with no rule for its severity, so
+   * what the dialog says a test sends - and what it costs - is what the
+   * fallback then sends (#7262). Like chooseFallbackChannels, it asks
+   * nothing of the person's membership or of the project's fallback switch:
+   * its caller does, as executeFallbackNotification's caller does.
+   */
+  @CaptureSpan()
+  public async getFallbackRules(
+    recipient: FallbackRecipient,
+  ): Promise<Array<FallbackRule>> {
+    return await this.chooseFallbackChannels(recipient);
+  }
+
+  /*
    * Pick what to page the user on, and build an unsaved rule for each choice.
    *
    * Zero-cost channels win: push, email, Slack, Microsoft Teams and Mattermost
@@ -4393,9 +4427,9 @@ export class Service extends ProjectReferencesService<Model> {
    * switched WhatsApp off would still be billed by a fallback that did not look.
    */
   private async chooseFallbackChannels(
-    options: ExecuteFallbackNotificationOptions,
-  ): Promise<Array<{ channelName: string; rule: Model }>> {
-    const chosen: Array<{ channelName: string; rule: Model }> = [];
+    options: FallbackRecipient,
+  ): Promise<Array<FallbackRule>> {
+    const chosen: Array<FallbackRule> = [];
 
     /*
      * No push while the server has push turned off (PushNotificationsTurnedOff):
@@ -4425,6 +4459,8 @@ export class Service extends ProjectReferencesService<Model> {
             deviceToken: true,
             deviceType: true,
             isVerified: true,
+            // What a test page's preview calls it, for the person themselves.
+            deviceName: true,
           },
           props: {
             isRoot: true,
@@ -4724,9 +4760,7 @@ export class Service extends ProjectReferencesService<Model> {
    * deliverNotificationForRule reads the relation (userEmail.email,
    * userEmail.isVerified) and never dereferences the id.
    */
-  private buildUnsavedFallbackRule(
-    options: ExecuteFallbackNotificationOptions,
-  ): Model {
+  private buildUnsavedFallbackRule(options: FallbackRecipient): Model {
     const rule: Model = new Model();
     rule.projectId = options.projectId;
     rule.userId = options.userId;
@@ -9634,7 +9668,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       warnings.push(
-        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call Duty > Readiness to confirm this user can still be paged.`,
+        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call > Readiness to confirm this user can still be paged.`,
       );
     }
 

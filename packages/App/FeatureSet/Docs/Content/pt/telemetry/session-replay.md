@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ O gravador publica `window.OneUptimeReplay`. Como ele carrega de forma assíncro
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` e `addTag` são aplicados antes de o gravador iniciar, então uma decisão de consentimento na fila decide se algo é enviado, e uma identidade na fila já viaja no primeiro fragmento. `track`, `metric`, `captureSession` e `onSessionChange` rodam logo depois de ele iniciar.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` e `addTag` são aplicados antes de o gravador iniciar, então uma decisão de consentimento na fila decide se algo é enviado, e uma identidade na fila já viaja no primeiro fragmento. `track`, `metric`, `captureSession` e `onSessionChange` rodam logo depois de ele iniciar.
 
 | Método | O que faz |
 | --- | --- |
@@ -268,6 +270,8 @@ O gravador publica `window.OneUptimeReplay`. Como ele carrega de forma assíncro
 | `getSessionId()` | O id da sessão atual, ou `null` quando nada está sendo gravado. Prefira `onSessionChange()`, que também acompanha as trocas de sessão. |
 | `getVisitorId()` | O [id de visitante anônimo](#visitantes-anônimos) — 32 caracteres hexadecimais, um por perfil de navegador, o mesmo em todas as trocas de sessão — ou `""` antes de o gravador iniciar, depois de `stop()` e enquanto o consentimento está retirado. Aleatório e não uma identidade; não depende de **Capturar a identidade do usuário final**. |
 | `stop()` | Envia o último fragmento, sela a sessão e para pelo resto da vida da página. |
+| `pause()` | Suspende a captura do que está no ecrã até `resume()`: o chunk aberto sai com um marcador _paused_ e entretanto nada é gravado (nem a página, nem entradas, pedidos, consola ou cliques). A sessão continua aberta e a atividade do visitante não a retoma. Para uma página que grava só algumas das suas partes; colocado na fila antes de o gravador carregar, este começa em pausa. |
+| `resume()` | Continua a gravar depois de `pause()`, na mesma sessão, com um novo instantâneo da página tal como está. O leitor salta o troço em pausa. |
 | `setDebug(enabled)` | Imprime as decisões do gravador no console daqui em diante. |
 | `getDiagnostics()` | Tudo o que o gravador decidiu, com o diagnóstico ativado ou não. Consulte abaixo. |
 
@@ -370,7 +374,12 @@ Os valores mascarados não preservam o comprimento. Um campo mascarado é um mar
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Em _Mask all text_, o texto dentro de um elemento com a classe `oneuptime-unmask` é gravado tal como está: use-a para as palavras da interface da sua página, como botões, títulos e menus. Um elemento `oneuptime-mask` ou um dos seus seletores de ocultação adicionais dentro dele volta a ocultar o texto, os campos de formulário continuam ocultos e a classe não faz nada nos outros modos de ocultação. Uma página também pode pedir mais ocultação do que a sua política dá, no objeto global de arranque: `maskAllText: true` grava em _Mask all text_ diga a política o que disser, e `blockSelectors` junta-se aos seletores de bloqueio da política. Nenhum dos dois pode fazer uma gravação mostrar mais.
 
 Você também pode adicionar **Seletores de mascaramento adicionais** e **Seletores de bloqueio** na página **Política de reprodução** da sua aplicação, sem mudar o seu markup. Com o modo de mascaramento padrão, eles são a principal ferramenta para proteger conteúdo que o seu markup não declara como sensível.
 

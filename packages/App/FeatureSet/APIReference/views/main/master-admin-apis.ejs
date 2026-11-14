@@ -87,7 +87,8 @@
                      <span class="inline-flex items-center rounded-md bg-surface-soft px-2 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line"><%= t('pages.masterAdminApis.allEditions') %></span>
                      <% } %>
                   </dd>
-                  <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%= t('pages.masterAdminApis.' + endpoint.key + 'Desc') %></dd>
+                  <%# Drawn raw, like the page's other strings with markup: every description comes from the locale files, and some hold <code>. -%>
+                  <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%- t('pages.masterAdminApis.' + endpoint.key + 'Desc') %></dd>
                </dl>
             </li>
             <% }) %>

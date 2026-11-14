@@ -20,7 +20,7 @@
 | **ラベルルール**   | 一致したイベントにラベルを追加します。                              |
 | **リマインダールール** | イベントが完了するまで、一定の間隔で所有者にリマインドします。  |
 
-**設定** セクションには、 [メンテナンスの状態](/docs/scheduled-maintenance/states) で説明する **イベントの状態**、 [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates) で説明する **イベントテンプレート**、そして **メモテンプレート**、 **公開メモの承認**、 **カスタムフィールド**、 **測定値**、 **カレンダー設定**、 **採番** があります。 **カレンダー設定** は [メンテナンスカレンダー](/docs/scheduled-maintenance/calendar#外部カレンダー) で、残りは以下で説明します。
+**設定** セクションには、 [メンテナンスの状態](/docs/scheduled-maintenance/states) で説明する **メンテナンスの状態**、 [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates) で説明する **メンテナンスのテンプレート**、そして **メモテンプレート**、 **公開メモの承認**、 **カスタムフィールド**、 **測定値**、 **カレンダー設定**、 **採番** があります。 **カレンダー設定** は [メンテナンスカレンダー](/docs/scheduled-maintenance/calendar#外部カレンダー) で、残りは以下で説明します。
 
 **ワークスペース** セクションには、イベントをチャンネルに投稿する Slack と Microsoft Teams のルールがあります。 [Slack](/docs/workspace-connections/slack#通知ルール) と [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知ルール) を参照してください。
 
@@ -69,7 +69,7 @@ flowchart TB
 :::steps
 ### リマインドするイベントを選ぶ
 
-**定期メンテナンスのリマインダールールを作成** をクリックします。**一致** で **すべての定期メンテナンスイベント** を選んだままにすると、すべてのイベントについてリマインドします。 **条件に一致する定期メンテナンスイベントのみ** を選ぶと、対象とする **ラベル** を選べます。
+**定期メンテナンスのリマインダールールを作成** をクリックします。**一致** で **すべてのメンテナンスイベント** を選んだままにすると、すべてのイベントについてリマインドします。 **条件に一致するメンテナンスイベントのみ** を選ぶと、対象とする **ラベル** を選べます。
 
 ### 間隔を設定する
 
@@ -92,7 +92,7 @@ API と Terraform は、イベントの開始を待ち、開始と同時に停�
 
 ### メモテンプレート
 
-**定期メンテナンス → 設定 → メモテンプレート** には、メンテナンスの更新情報用の定型文があります。 **定期メンテナンスイベント用の公開メモテンプレートまたは非公開メモテンプレート** カードに一覧があり、 **定期メンテナンスのメモテンプレートを作成** で **テンプレート名**、 **テンプレートの説明**、 **メモ** を入力します。テンプレートは、誰かがイベントに公開メモや非公開メモを書くときと、状態を変更するときに提示され、テキストは投稿前に編集できます。インシデントのメモテンプレートと違って、メンテナンスのメモテンプレートは変数を埋めません。
+**定期メンテナンス → 設定 → メモテンプレート** には、メンテナンスの更新情報用の定型文があります。 **メンテナンスイベント向けの公開メモ・非公開メモのテンプレート** カードに一覧があり、 **定期メンテナンスのメモテンプレートを作成** で **テンプレート名**、 **テンプレートの説明**、 **メモ** を入力します。テンプレートは、誰かがイベントに公開メモや非公開メモを書くときと、状態を変更するときに提示され、テキストは投稿前に編集できます。インシデントのメモテンプレートと違って、メンテナンスのメモテンプレートは変数を埋めません。
 
 ### 公開メモの承認
 
@@ -117,7 +117,7 @@ API と Terraform は、イベントの開始を待ち、開始と同時に停�
 
 ## ワークフロー
 
-メンテナンスの各モデルには、その名前を冠したワークフローのトリガーとアクションがあります。 **On Create Scheduled Maintenance Event**、 **On Update Scheduled Maintenance Event**、 **On Create or Update Scheduled Maintenance Event**、 **On Delete Scheduled Maintenance Event**、同様に **Scheduled Maintenance State Timeline** などのもの、そして **Create One Scheduled Maintenance Event** や **Update One Scheduled Maintenance Event** などのアクションです。例外はカスタムフィールドの定義と測定値の値で、ワークフローのステップはありません。 [ワークフロー 概要](/docs/workflows/index) を参照してください。
+メンテナンスの各モデルには、その名前を冠したワークフローのトリガーとアクションがあります。 **On Create Maintenance Event**、 **On Update Maintenance Event**、 **On Create or Update Maintenance Event**、 **On Delete Maintenance Event**、同様に **Scheduled Maintenance State Timeline** などのもの、そして **Create One Maintenance Event** や **Update One Maintenance Event** などのアクションです。例外はカスタムフィールドの定義と測定値の値で、ワークフローのステップはありません。 [ワークフロー 概要](/docs/workflows/index) を参照してください。
 
 ## 変更できる人
 
@@ -142,8 +142,8 @@ API と Terraform は、イベントの開始を待ち、開始と同時に停�
 ## 次のステップ
 
 :::cards
-- [メンテナンスの状態](/docs/scheduled-maintenance/states): イベントの状態ページと、各状態の働き。
-- [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates): イベントテンプレートページの詳細。
+- [メンテナンスの状態](/docs/scheduled-maintenance/states): メンテナンスの状態ページと、各状態の働き。
+- [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates): メンテナンスのテンプレートページの詳細。
 - [ラベルルールと所有者ルール](/docs/configuration/label-and-owner-rules): ルールのフォームを順に。
 - [通知設定](/docs/notifications/notification-settings): 各所有者が受け取る内容を選ぶ方法。
 :::

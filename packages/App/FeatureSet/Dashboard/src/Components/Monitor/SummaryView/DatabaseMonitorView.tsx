@@ -28,6 +28,7 @@ import {
 } from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -274,7 +275,11 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
         />
         <SummaryFact
           title="Response Time"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+          value={
+            responseTimeInMs
+              ? formatMilliseconds(translator, responseTimeInMs)
+              : "-"
+          }
         />
         <SummaryFact
           title="Monitored At"

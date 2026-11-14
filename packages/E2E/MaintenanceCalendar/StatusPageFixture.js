@@ -26,7 +26,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 
 /*
- * The status page's Scheduled Events list and an event's page, the real
+ * The status page's Scheduled Maintenance list and an event's page, the real
  * ones, with the status page API answered from an in-page store
  * (window.__statusPageCalendarFixture) the specs read: every request, every
  * copy to the clipboard.

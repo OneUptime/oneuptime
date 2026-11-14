@@ -57,7 +57,11 @@ function toApiPath(path: string): string {
  * Tests/ApiParity in packages/CLI fails on that second case.
  */
 function uniqueName(
-  model: { tableName: string; singularName: string },
+  model: {
+    tableName: string;
+    singularName: string;
+    apiSingularName?: string | null | undefined;
+  },
   taken: Set<string>,
 ): string {
   const name: string = getCliResourceName(model);
@@ -84,7 +88,11 @@ function databaseResource(
   const singularName: string = model.singularName || tableName;
 
   return {
-    name: uniqueName({ tableName, singularName }, taken),
+    // The command keeps the name the API keeps; its help says the new one.
+    name: uniqueName(
+      { tableName, singularName, apiSingularName: model.apiSingularName },
+      taken,
+    ),
     singularName,
     pluralName: model.pluralName || `${singularName}s`,
     tableName,

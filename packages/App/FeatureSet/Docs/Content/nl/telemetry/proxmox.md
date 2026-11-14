@@ -48,7 +48,7 @@ De sjablonen **HA Resource in Error State**, **Guest Down**, **Guest Not Backed 
 
 ### Waar je de agent draait
 
-De agent bevraagt de Proxmox VE-API via het netwerk, dus hij hoeft niet op een clusternode te staan, en dat moet hij ook niet: draai hem op een machine die een node-uitval overleeft (een kleine monitoring-VM op aparte hardware, een beheerhost), of wijs `PVE_HOST` naar een virtueel IP of een round-robin-DNS-naam in plaats van het adres van één node. Als het API-doel van de agent de node is die net is uitgevallen, valt je monitoring mee uit. `PVE_NODES` werkt anders: daarin staat elke node op zijn eigen adres, nooit een virtueel IP (zie [Wat de agent verzamelt](#wat-de-agent-verzamelt)). De enige uitzondering is de optionele journald-logpipeline, die op een Proxmox VE-node moet draaien (zie [Proxmox-servicelogs versturen](#optioneel-proxmox-servicelogs-versturen)).
+De agent bevraagt de Proxmox VE-API via het netwerk, dus hij hoeft niet op een clusternode te staan, en dat moet hij ook niet: draai hem op een machine die een node-uitval overleeft (een kleine monitoring-VM op aparte hardware, een beheerhost of een VM die Proxmox HA op een andere node herstart). Hij leest het cluster uit `PVE_HOST` en, als die node uitvalt, uit de volgende node in `PVE_NODES`, dus hij heeft geen virtueel IP nodig (zie [Als een node uitvalt](#als-een-node-uitvalt)). In `PVE_NODES` staat elke node op zijn eigen adres, nooit een virtueel IP (zie [Wat de agent verzamelt](#wat-de-agent-verzamelt)). De enige uitzondering is de optionele journald-logpipeline, die op een Proxmox VE-node moet draaien (zie [Proxmox-servicelogs versturen](#optioneel-proxmox-servicelogs-versturen)).
 
 ## De agent installeren
 
@@ -134,7 +134,7 @@ docker compose ps
 docker logs -f oneuptime-proxmox-agent
 ```
 
-`docker compose ps` toont de collector (`oneuptime-proxmox-agent`), de meegeleverde exporter (`oneuptime-pve-exporter`, tenzij je je eigen gebruikt) en de AI-agent (`oneuptime-proxmox-ai-agent`). De logs van de collector horen deze regel te tonen zodra hij is gestart:
+`docker compose ps` toont de collector (`oneuptime-proxmox-agent`), de node-failover (`oneuptime-pve-api-failover`), de meegeleverde exporter (`oneuptime-pve-exporter`, tenzij je je eigen gebruikt) en de AI-agent (`oneuptime-proxmox-ai-agent`). De logs van de collector horen deze regel te tonen zodra hij is gestart:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,8 +154,8 @@ Het installatiescript schrijft deze naar `/opt/oneuptime-proxmox-agent/.env`; ee
 | `ONEUPTIME_URL` | Ja | Je OneUptime-URL, zoals `https://oneuptime.com` of je zelf-gehoste instantie. Gebruik `http://` en de poort als de instantie alleen HTTP spreekt. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De ingestiesleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
 | `PROXMOX_CLUSTER_NAME` | Ja | De naam van het cluster in OneUptime, op elke metric gestempeld als het resource-attribuut `proxmox.cluster.name`. Houd hem stabiel: een latere wijziging registreert een tweede cluster. Standaard `proxmox-cluster`. |
-| `PVE_HOST` | Ja | De Proxmox VE-API-host waaruit de exporter het cluster leest en die de AI-agent bevraagt: een willekeurige node, of een virtueel IP dat tussen de nodes overschakelt, zoals `192.168.1.10`. |
-| `PVE_NODES` | Op een cluster | Het eigen API-adres van elke node, kommagescheiden tussen vierkante haken, zoals `[192.168.1.10,192.168.1.11,192.168.1.12]`. De exporter leest starten bij opstarten, replicatie en het abonnement alleen voor de node die hij bevraagt, dus elke node wordt om de beurt bevraagd. Standaard alleen `PVE_HOST`, wat genoeg is voor één node. |
+| `PVE_HOST` | Ja | De node met de Proxmox VE-API waaruit de exporter het cluster leest en die de AI-agent bevraagt, zoals `192.168.1.10`. Zolang die API niet antwoordt, gebruiken beide de volgende node in `PVE_NODES` die wel antwoordt. |
+| `PVE_NODES` | Op een cluster | Het eigen API-adres van elke node, kommagescheiden tussen vierkante haken, zoals `[192.168.1.10,192.168.1.11,192.168.1.12]`. De exporter leest starten bij opstarten, replicatie en het abonnement alleen voor de node die hij bevraagt, dus elke node wordt om de beurt bevraagd, en de agent leest het cluster uit de volgende daarvan als `PVE_HOST` uitvalt. Standaard alleen `PVE_HOST`, wat genoeg is voor één node. |
 | `PVE_EXPORTER_URL` | Nee | Het adres (`host:port`, geen schema) van prometheus-pve-exporter. Standaard de meegeleverde exporter, `pve-exporter:9221`. |
 | `PVE_API_TOKEN_ID` | Meegeleverde exporter of AI-agent | De volledige ID van het Proxmox-API-token, zoals `monitoring@pam!oneuptime`. De AI-agent leest de API daarmee, tenzij hij een eigen token heeft (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`). |
 | `PVE_API_TOKEN_SECRET` | Meegeleverde exporter of AI-agent | Het secret van het Proxmox-API-token. |
@@ -164,7 +164,7 @@ Het installatiescript schrijft deze naar `/opt/oneuptime-proxmox-agent/.env`; ee
 
 ## Wat de agent verzamelt
 
-De collector scrapet de exporter elke 30 seconden: zijn clustercollectors één keer, op `PVE_HOST`, en zijn nodecollectors één keer voor elke node in `PVE_NODES`. Elke node beantwoordt de clustercollectors, waaronder het standaard ingeschakelde `backup-info`, voor het hele cluster. De nodecollectors (`config`, voor starten bij opstarten, en `replication`) lezen alleen de node die de exporter bevraagt, dus een node die in `PVE_NODES` ontbreekt, stuurt noch de vlaggen voor starten bij opstarten van zijn gasten, die **Guest Down** nodig heeft, noch zijn replicatiejobs. Elke serie draagt een label `id` dat de resource benoemt: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` of `storage/<node>/<storage>`.
+De collector scrapet de exporter elke 30 seconden: zijn clustercollectors één keer, op `PVE_HOST` (of op de node waaruit hij het cluster leest zolang `PVE_HOST` uitgevallen is), en zijn nodecollectors één keer voor elke node in `PVE_NODES`. Elke node beantwoordt de clustercollectors, waaronder het standaard ingeschakelde `backup-info`, voor het hele cluster. De nodecollectors (`config`, voor starten bij opstarten, en `replication`) lezen alleen de node die de exporter bevraagt, dus een node die in `PVE_NODES` ontbreekt, stuurt noch de vlaggen voor starten bij opstarten van zijn gasten, die **Guest Down** nodig heeft, noch zijn replicatiejobs. Elke serie draagt een label `id` dat de resource benoemt: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` of `storage/<node>/<storage>`.
 
 | Categorie | Metrics |
 | --- | --- |
@@ -186,6 +186,12 @@ Monitorcriteria en attribuutfilters matchen op gelijkheid, niet op een voorvoegs
 | `pve.id` | Alles na de eerste `/` van `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 Het oorspronkelijke label `id` blijft behouden zoals het is.
+
+## Als een node uitvalt
+
+De agent leest het hele cluster via de API van één node: die van `PVE_HOST`, zolang die antwoordt. Elke 15 seconden controleert zijn container `oneuptime-pve-api-failover` die node, en als de API ervan niet meer antwoordt, leest de collector het cluster uit de volgende node in `PVE_NODES` die antwoordt, totdat `PVE_HOST` weer antwoordt. Met het API-token in `.env` slaat hij ook een node over die wel antwoordt, maar afgesneden is van het deel van het cluster met quorum: vanuit die node gezien zou elke andere node uitgevallen zijn. De [AI-agent](#ai-agent) doet hetzelfde voor elk van zijn aanroepen. Valt een node uit, dan gaat **Node Offline** voor hem af en blijft de rest van het cluster rapporteren, zonder virtueel IP om in te stellen. `docker logs oneuptime-pve-api-failover` vertelt uit welke node het cluster wordt gelezen, en waarom.
+
+Wat dit niet kan dekken, is de machine waarop de agent draait: valt die uit, dan valt het hele cluster stil en gaat **Cluster Stopped Reporting** af. Draai de agent buiten het cluster, of in een VM die Proxmox HA op een andere node herstart (`ha-manager add vm:<vmid>`, op gedeelde opslag), en draai één agent per cluster: elke agent leest het hele cluster, dus een tweede meldt elke resource twee keer.
 
 ## De meldingen van Proxmox VE versturen
 
@@ -402,6 +408,10 @@ Het eindigt met een oordeel dat de meest waarschijnlijke oorzaak noemt.
 
 :::details De exporter geeft 401- of 595-fouten
 Het API-token is onjuist of heeft niet de juiste rechten. Controleer de vorm van de token-ID (`user@realm!tokenname`), het secret, en of de rol **PVEAuditor** op pad `/` staat voor het token en voor de gebruiker ervan. De eigen logs van de exporter tonen het antwoord van de API: `docker logs oneuptime-pve-exporter`.
+:::
+
+:::details Het cluster toont "API niet leesbaar"
+De agent draait, maar heeft het cluster al 15 minuten of langer niet uit de Proxmox VE API gelezen, dus het cluster toont **API niet leesbaar** in plaats van **Verbonden**: het knooppunt waarvan hij leest ligt eruit en geen ander knooppunt in `PVE_NODES` antwoordt, het API-token is ingetrokken of heeft de rol **PVEAuditor** verloren, of de machine van de agent bereikt poort `8006` op geen enkel knooppunt. Zijn pagina's houden wat hij het laatst las. Het diagnosescript hierboven controleert elk van deze oorzaken, en `docker logs oneuptime-pve-api-failover` zegt via welk knooppunt de agent leest en waarom hij de andere heeft overgeslagen.
 :::
 
 :::details Alleen nodemetrics, geen gastmetrics

@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Regole di escalation](/docs/on-call/escalation-rules): Fai avvisare questa pianificazione da un livello di una policy di reperibilità.
 - [Cronologia delle reperibilità](/docs/on-call/schedule-timeline): Guarda tutte le pianificazioni affiancate, con i buchi di copertura.
 - [Feed calendario](/docs/on-call/calendar-feeds): Porta i turni in Google Calendar, Outlook o Calendario di Apple.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Decidete come vi raggiunge un avviso mentre siete reperibili.
+- [Come contattarmi](/docs/notifications/on-call-rules): Decidete come vi raggiunge un avviso mentre siete reperibili.
 :::

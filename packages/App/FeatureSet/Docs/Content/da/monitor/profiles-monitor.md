@@ -26,7 +26,7 @@ Hvert minut læser OneUptime de profiler, der matcher monitorens filtre og start
 
 ## Før du starter
 
-- Dine tjenester sender kontinuerlige profileringsdata til OneUptime via Grafana Alloy (eBPF), et Pyroscope-SDK eller OneUptime-Kubernetes-agenten. Se [Kontinuerlig profilering](/docs/telemetry/profiles).
+- Dine tjenester sender kontinuerlige profileringsdata til OneUptime via Grafana Alloy (eBPF), et Pyroscope-SDK eller OneUptime-Kubernetes-agenten. Se [Profiler](/docs/telemetry/profiles).
 - For at holde øje med en funktion kender du dens navn eller en del af dens fil- eller pakkesti, sådan som Profileren viser den.
 
 ## Opret en profil-monitor
@@ -34,7 +34,7 @@ Hvert minut læser OneUptime de profiler, der matcher monitorens filtre og start
 :::steps
 ### Start fra Profileren eller fra Opret monitor
 
-Det hurtigste er at starte fra selve funktionen: Åbn funktionen i **Ydeevneprofiler**, og klik på linket, der tilbyder en advarsel om dens andel. **Opret monitor** åbner med monitoren udfyldt for den funktion og dens tjeneste, med en tærskel over det, den tager i dag, som beskrevet i [Gennemgået eksempel: en funktion bliver tungere](#gennemgået-eksempel-en-funktion-bliver-tungere). Ellers går du til **Monitorer** og klikker på **Opret monitor**.
+Det hurtigste er at starte fra selve funktionen: Åbn funktionen i **Profiler**, og klik på linket, der tilbyder en advarsel om dens andel. **Opret monitor** åbner med monitoren udfyldt for den funktion og dens tjeneste, med en tærskel over det, den tager i dag, som beskrevet i [Gennemgået eksempel: en funktion bliver tungere](#gennemgået-eksempel-en-funktion-bliver-tungere). Ellers går du til **Monitorer** og klikker på **Opret monitor**.
 
 ### Vælg Profiles
 
@@ -84,7 +84,7 @@ Sæt tjenestens ID i `telemetryServiceIds`, eller lad listen være tom for at l�
 | `attributes` | Profiler, hvis attributter har disse værdier. | Tom: ingen betingelse |
 | `lastXSecondsOfProfiles` | Profiler, der startede inden for dette antal sekunder før evalueringen. | Ingen: angiv den altid, ellers tælles hver gemt profil, og antallet falder aldrig til 0 |
 
-Alle de filtre, du angiver, skal matche, for at en profil bliver læst. I formularen sætter **Funktion** `functionName`, **Hvad der skal analyseres** sætter `profileTypes` (**Alle slags profiler** lader den være tom), **Overvåg profiler for (tid)** sætter `lastXSecondsOfProfiles`, og **Filtrér efter telemetritjeneste** og **Filtrér efter infrastrukturenhed** sætter `telemetryServiceIds` og `entityKeys`.
+Alle de filtre, du angiver, skal matche, for at en profil bliver læst. I formularen sætter **Funktion** `functionName`, **Hvad der skal analyseres** sætter `profileTypes` (**Alle slags profiler** lader den være tom), **Overvåg profiler for (tid)** sætter `lastXSecondsOfProfiles`, og **Filtrer efter tjeneste** og **Filtrér efter infrastrukturenhed** sætter `telemetryServiceIds` og `entityKeys`.
 
 ## Sådan evalueres den
 
@@ -127,7 +127,7 @@ Antal profiler har ingen anomalibetingelser: der er ingen baseline at sammenlign
 
 I checkout-tjenesten tager `parseOrder` 18 % af dens CPU-tid. En udrulning, der parser en større payload, skal ikke gå ubemærket hen:
 
-1. Vælg checkout-tjenesten i **Ydeevneprofiler**, og åbn `parseOrder`.
+1. Vælg checkout-tjenesten i **Profiler**, og åbn `parseOrder`.
 2. Klik på linket, der tilbyder en advarsel om dens andel. Profileren foreslår 30 %: halvdelen over dagens andel, mindst 10 point mere, rundet op til et multiplum af 5.
 3. **Opret monitor** åbner med en profil-monitor for checkout-tjenesten, der læser **CPU-tid** over de **Seneste 5 minutter**, med to kriterier: **Funktionsandel (i %)** **Større end** `30` udløser en advarsel, der løser sig selv, og markerer monitoren som forringet; **Mindre end eller lig med** `30` markerer den som i drift. Hændelsen er udfyldt, men slået fra: Slå den til for at tilkalde nogen.
 4. Klik på **Opret monitor**.
@@ -157,7 +157,7 @@ Ingen frame i vinduet indeholder funktionsteksten. Åbn funktionen i Profileren,
 ## Næste skridt
 
 :::cards
-- [Kontinuerlig profilering](/docs/telemetry/profiles): Send profiler, og læs dem i Profileren.
+- [Profiler](/docs/telemetry/profiles): Send profiler, og læs dem i Profileren.
 - [Monitortrin](/docs/terraform/monitor-steps): Send trinnets konfiguration fra Terraform.
 - [Trace-monitor](/docs/monitor/traces-monitor): Få advarsler om mislykkede spans.
 - [Metrik-monitor](/docs/monitor/metrics-monitor): Få advarsler om CPU, hukommelse og andre metrikker.

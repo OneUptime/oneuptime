@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Het formulier openen
 
-Ga naar **Geplande onderhoud → Alle gebeurtenissen** en klik op **Geplande onderhoudsgebeurtenis aanmaken**. Het formulier opent op de eerste stap, **Gebeurtenis**.
+Ga naar **Geplande onderhoud → Alle onderhoudsgebeurtenissen** en klik op **Onderhoudsgebeurtenis aanmaken**. Het formulier opent op de eerste stap, **Onderhoudsgegevens**.
 
 ### Zeggen wat er gebeurt en wanneer
 
@@ -47,7 +47,7 @@ Kies de statuspagina's onder **Gebeurtenis weergeven op deze statuspagina's**. *
 
 ### Haar maken
 
-Klik op **Volgende** om de controle te zien, loop die na en klik dan op **Geplande onderhoudsgebeurtenis aanmaken**. De pagina van de gebeurtenis gaat open.
+Klik op **Volgende** om de controle te zien, loop die na en klik dan op **Onderhoudsgebeurtenis aanmaken**. De pagina van de gebeurtenis gaat open.
 :::
 
 Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op geen enkele statuspagina staat, informeert geen enkele abonnee.
@@ -56,12 +56,12 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 
 | Veld                                 | Stap               | Begint als                      | Wat het doet                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Gebeurtenis**    | Leeg, en verplicht              | Geeft de gebeurtenis overal een naam, ook op je statuspagina's.                  |
-| **Beschrijving**                     | **Gebeurtenis**    | Leeg                            | Legt het werk uit aan je klanten, in Markdown.                                   |
-| **Begint op**                        | **Gebeurtenis**    | Het volgende hele uur           | Wanneer de gebeurtenis vanzelf begint.                                           |
-| **Eindigt op**                       | **Gebeurtenis**    | Een uur na **Begint op**        | Wanneer de gebeurtenis vanzelf eindigt. Moet na **Begint op** liggen.            |
-| **Eigenaren**                        | **Gebeurtenis**    | Niemand                         | Personen en teams van wie de gebeurtenis is en die erover bericht krijgen.       |
-| **Labels**                           | **Gebeurtenis**    | Geen                            | Labels waarop regels en filters kunnen letten.                                   |
+| **Titel**                            | **Onderhoudsgegevens**    | Leeg, en verplicht              | Geeft de gebeurtenis overal een naam, ook op je statuspagina's.                  |
+| **Beschrijving**                     | **Onderhoudsgegevens**    | Leeg                            | Legt het werk uit aan je klanten, in Markdown.                                   |
+| **Begint op**                        | **Onderhoudsgegevens**    | Het volgende hele uur           | Wanneer de gebeurtenis vanzelf begint.                                           |
+| **Eindigt op**                       | **Onderhoudsgegevens**    | Een uur na **Begint op**        | Wanneer de gebeurtenis vanzelf eindigt. Moet na **Begint op** liggen.            |
+| **Eigenaren**                        | **Onderhoudsgegevens**    | Niemand                         | Personen en teams van wie de gebeurtenis is en die erover bericht krijgen.       |
+| **Labels**                           | **Onderhoudsgegevens**    | Geen                            | Labels waarop regels en filters kunnen letten.                                   |
 | **Monitoren**                        | **Getroffen middelen** | Geen                        | De monitoren die niet worden gecontroleerd zolang de gebeurtenis loopt.          |
 | **Monitorstatus wijzigen naar**      | **Getroffen middelen** | Geen wijziging              | De status die deze monitoren tijdens de gebeurtenis tonen. Wordt gevraagd zodra er een monitor is gekozen. |
 | **Andere getroffen resources**       | **Getroffen middelen** | Geen                        | Hosts, clusters, databases, netwerklocaties, services en meer.                   |
@@ -75,13 +75,13 @@ Twee dingen vullen het formulier onderweg voor je in:
 
 ## Beginnen vanaf een resource of een sjabloon
 
-Op het tabblad **Geplande onderhoud** van een host, een Kubernetes-, Proxmox-, Ceph- of Docker Swarm-cluster, een Docker- of Podman-host, een vCenter, een OpenStack-cloud, een opslagarray, een IoT-vloot, een database, een cloudresource, een service of een netwerklocatie opent **Geplande onderhoudsgebeurtenis aanmaken** hetzelfde formulier met die resource al gekozen onder **Andere getroffen resources**, en het tabblad toont de gebeurtenissen die haar raken. Het tabblad van een inventarisitem kiest de host, de service of het Kubernetes-cluster waarnaar het item verwijst.
+Op het tabblad **Geplande onderhoud** van een host, een Kubernetes-, Proxmox-, Ceph- of Docker Swarm-cluster, een Docker- of Podman-host, een vCenter, een OpenStack-cloud, een opslagarray, een IoT-vloot, een database, een cloudresource, een service of een netwerklocatie opent **Onderhoudsgebeurtenis aanmaken** hetzelfde formulier met die resource al gekozen onder **Andere getroffen resources**, en het tabblad toont de gebeurtenissen die haar raken. Het tabblad van een inventarisitem kiest de host, de service of het Kubernetes-cluster waarnaar het item verwijst.
 
 **Maken op basis van sjabloon**, naast de knop om te maken, vraagt je **Selecteer sjabloon voor geplande onderhoud** en opent dan het formulier, ingevuld vanuit het sjabloon. Zie [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates).
 
 ## Wat er gebeurt als je haar maakt
 
-Op het moment dat je op **Geplande onderhoudsgebeurtenis aanmaken** klikt, werkt OneUptime deze stappen af, in deze volgorde:
+Op het moment dat je op **Onderhoudsgebeurtenis aanmaken** klikt, werkt OneUptime deze stappen af, in deze volgorde:
 
 1. **Ze krijgt een nummer en een status.** Het nummer komt uit een teller per project en wordt met je voorvoegsel getoond (`SM-42`). De gebeurtenis begint in je geplande status, welke status een verzoek ook noemt.
 2. **Je chattools horen ervan.** De Slack- en Microsoft Teams-regels onder **Werkruimte** plaatsen haar in hun kanalen, en een regel kan een kanaal voor de gebeurtenis aanmaken. Haar feed legt vast dat ze is aangemaakt.
@@ -90,7 +90,7 @@ Op het moment dat je op **Geplande onderhoudsgebeurtenis aanmaken** klikt, werkt
 5. **Runbook-regels starten** de runbooks die bij de gebeurtenis passen.
 6. **Herinneringen worden ingepland**, wanneer een herinneringsregel past, voor haar eigenaren.
 
-Binnen een minuut na haar publicatie, die meteen is tenzij je een **Publiceren op** hebt gekozen, krijgen de abonnees van haar statuspagina's bericht dat ze gepland is, tenzij je **Wanneer de gebeurtenis wordt gepland** hebt uitgezet. De workflowtrigger **On Create Scheduled Maintenance Event** start elke workflow die erop is gebouwd, en haar eigenaren horen ervan als ze die melding hebben aangezet: zie [Meldingsinstellingen](/docs/notifications/notification-settings).
+Binnen een minuut na haar publicatie, die meteen is tenzij je een **Publiceren op** hebt gekozen, krijgen de abonnees van haar statuspagina's bericht dat ze gepland is, tenzij je **Wanneer de gebeurtenis wordt gepland** hebt uitgezet. De workflowtrigger **On Create Maintenance Event** start elke workflow die erop is gebouwd, en haar eigenaren horen ervan als ze die melding hebben aangezet: zie [Meldingsinstellingen](/docs/notifications/notification-settings).
 
 ## Later publiceren
 
@@ -113,7 +113,7 @@ Alles uit het formulier kun je op de pagina's van de gebeurtenis wijzigen, behal
 
 | Om te wijzigen                              | Ga naar                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| De titel, het venster of de labels          | **Bewerken** op de kaart **Onderhoudsgegevens** van haar **Overzicht**, stap **Gebeurtenis** |
+| De titel, het venster of de labels          | **Bewerken** op de kaart **Onderhoudsgegevens** van haar **Overzicht**, stap **Onderhoudsgegevens** |
 | De statuspagina's, wanneer ze wordt gepubliceerd, of de herinneringen | Hetzelfde **Bewerken**, stap **Statuspagina's**             |
 | De monitoren, hun status of andere resources | **Bewerken** op de kaart **Getroffen resources**                              |
 | De beschrijving                             | **Beschrijving** in haar zijmenu                                               |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | De schakelaar **Wanneer de gebeurtenis wordt gepland**. De andere twee momenten hebben eigen velden. |
 | `publishOnStatusPageAt`                               | Wanneer de gebeurtenis op haar statuspagina's wordt gepubliceerd en haar abonnees bericht krijgen dat ze gepland is. Weggelaten: meteen. |
 
-Dezelfde gebeurtenis als code is de Terraform-resource `oneuptime_scheduled_maintenance_event`: zie [Voorbeelden](/docs/terraform/examples#gepland-onderhoud). Een workflow maakt er een met zijn stap **Create One Scheduled Maintenance Event**, en `/oneuptime maintenance` opent het formulier in Slack: zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
+Dezelfde gebeurtenis als code is de Terraform-resource `oneuptime_scheduled_maintenance_event`: zie [Voorbeelden](/docs/terraform/examples#gepland-onderhoud). Een workflow maakt er een met zijn stap **Create One Maintenance Event**, en `/oneuptime maintenance` opent het formulier in Slack: zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
 
 ## Probleemoplossing
 

@@ -5,7 +5,7 @@ An SSL Certificate monitor checks the TLS certificates your sites and services p
 :::cards
 - [Create the monitor](#create-an-ssl-certificate-monitor): Six steps in the dashboard.
 - [Default criteria](#default-criteria): An expiry warning 14 days ahead, with no setup.
-- [Monitoring criteria](#monitoring-criteria): Validity, expiry, revocation and self-signed certificates.
+- [Criteria](#criteria): Validity, expiry, revocation and self-signed certificates.
 - [Troubleshooting](#troubleshooting): Self-signed and internal certificates, and revocation checks.
 :::
 
@@ -54,7 +54,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the certificate is not valid, an alert when it expires in 14 days or less. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the certificate is not valid, an alert when it expires in 14 days or less. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -71,7 +71,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 **Retries on Failure** counts retries _after_ the first attempt, so `0` runs the check once and `2` runs it up to three times. Left blank, it uses the probe's default: 3, unless the probe's `PROBE_MONITOR_RETRY_LIMIT` says otherwise. Connection failures, certificate validation failures and timeouts are all retried, with a one-second pause between attempts.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the certificate counts as fine, degraded or broken, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 
@@ -106,7 +106,7 @@ To be warned earlier, change the value of the **Expires In Days** filter in the 
 :::details Add the warning to a monitor created before it existed
 Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it:
 
-1. On the monitor, open **Configuration → Criteria** and click **Edit Monitoring Criteria**.
+1. On the monitor, open **Configuration → Criteria** and click **Edit Criteria**.
 2. Click **Add Criteria**. Set its filter to **Is Valid Certificate** / **True**, click **Add Filter**, and set the second one to **Expires In Days** / **Less Than Or Equal To** / `14`. Leave **Match Condition** on **All** (it appears under the filters once there are two).
 3. Under **Actions**, turn on **When filters match, create an alert.** and leave **When filters match, change monitor status.** off, so it creates an alert and does not change the monitor status.
 4. Drag the new criteria above the criteria that marks the monitor as online, then save.

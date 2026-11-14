@@ -291,7 +291,13 @@ describe("the Replay Policy page's health card in the reader's language", () => 
     expect(unmarkedText(card)).toEqual([]);
   });
 
-  it("loading, and a failure with no status: the reader's words, the server's as written", () => {
+  /*
+   * The server's words are looked up as any error put in a sentence is
+   * (ErrorSentence, #7307): a message the Dashboard has words for reads in
+   * the reader's language, any other as written. Every lookup is marked
+   * here, so they are marked inside the sentence's own marks.
+   */
+  it("loading, and a failure with no status: the reader's words, the server's looked up inside them", () => {
     renderCard(makeSnapshot(null, { isLoading: true, fetchedAtUnixMs: null }));
 
     expect(screen.getByTestId("health-card-loading")).toHaveTextContent(
@@ -311,9 +317,14 @@ describe("the Replay Policy page's health card in the reader's language", () => 
       marked("You cannot see recording health"),
     );
     expect(screen.getByTestId("health-card-error")).toHaveTextContent(
-      marked("Server said: Forbidden"),
+      marked(`Server said: ${marked("Forbidden")}`),
     );
-    expect(unmarkedText(card)).toEqual([]);
+    /*
+     * The sentence is drawn around its error (ErrorSentence): its two
+     * halves are text of their own, one marked sentence with the error
+     * between them (above). Nothing else is left unmarked.
+     */
+    expect(unmarkedText(card)).toEqual(["⟦Server said: ", "⟧"]);
   });
 
   it("a failed refresh: why, and how old the status is, as one sentence", () => {

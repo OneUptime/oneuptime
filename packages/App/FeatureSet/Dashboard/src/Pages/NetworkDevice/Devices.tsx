@@ -182,6 +182,7 @@ import {
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -1244,7 +1245,7 @@ const NetworkDevices: FunctionComponent<
                 "{{deviceName}} was created and its probe polls it as usual, but its Ping monitor was not created: {{error}} Nothing raises an incident for this device yet — open it and use Create Ping Monitor to try again.",
                 {
                   deviceName: deviceName,
-                  error: API.getFriendlyMessage(err),
+                  error: errorInSentence(API.getFriendlyMessage(err)),
                 },
               ),
             });

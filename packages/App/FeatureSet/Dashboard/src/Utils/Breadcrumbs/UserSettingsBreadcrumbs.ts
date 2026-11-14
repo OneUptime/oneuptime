@@ -23,7 +23,7 @@ export function getUserSettingsBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ON_CALL_RULES, [
       "Project",
       "User Settings",
-      "On-Call Rules",
+      "How to Reach Me",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_SLACK_INTEGRATION, [
       "Project",

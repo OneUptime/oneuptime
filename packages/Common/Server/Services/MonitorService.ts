@@ -41,6 +41,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -2247,6 +2248,19 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
+    }
+
+    /*
+     * A sample project's monitors (issue #6808) are never checked - no
+     * probe takes them, no job sweeps them - so a monitor made there would
+     * sit waiting for a first check for ever. Refused, with where to make
+     * it instead. OneUptime makes the sample's own, as root.
+     */
+    if (
+      !createBy.props.isRoot &&
+      (await ProjectService.isSampleProject(createBy.props.tenantId))
+    ) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.monitor);
     }
 
     // A Synthetic step with no browser or no screen size would run nothing.

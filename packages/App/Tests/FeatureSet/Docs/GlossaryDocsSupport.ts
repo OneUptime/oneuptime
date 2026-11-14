@@ -1,6 +1,7 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { readPage } from "./DocsContentSupport";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import { RETIRED_NAMES } from "Common/Types/Docs/RetiredNames";
 import fs from "fs";
 import path from "path";
 
@@ -271,8 +272,9 @@ const DASHBOARD_LOCALE: string = path.join(
   "App/FeatureSet/Dashboard/src/Locales/en.json",
 );
 
+// A model's names, the ones it kept in the API after a rename (#6817) too.
 const MODEL_NAME: RegExp =
-  /\b(singularName|pluralName|formerSingularName|formerPluralName|tableName):\s*"([^"]+)"/g;
+  /\b(singularName|pluralName|formerSingularName|formerPluralName|apiSingularName|apiPluralName|tableName):\s*"([^"]+)"/g;
 const CRUD_ROUTE: RegExp = /@CrudApiEndpoint\(new Route\("([^"]+)"\)\)/g;
 const MODEL_CLASS: RegExp = /export default class (\w+)/g;
 
@@ -282,7 +284,8 @@ let codeNames: Set<string> | null = null;
 /*
  * Every name the product shows a person: the Dashboard's English words (its
  * locale's keys and values), each model's names (singular, plural and the
- * names it had before), and the docs' own nav titles.
+ * names it had before), the docs' own nav titles, and the names #6817
+ * retired (Common/Types/Docs/RetiredNames), which people learned there.
  */
 export function namesTheProductUses(): Set<string> {
   if (productNames) {
@@ -332,6 +335,10 @@ export function namesTheProductUses(): Set<string> {
     for (const link of group.links as Array<NavLink>) {
       names.add(link.title);
     }
+  }
+
+  for (const retired of RETIRED_NAMES) {
+    names.add(retired.name);
   }
 
   productNames = names;

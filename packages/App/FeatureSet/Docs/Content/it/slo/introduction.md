@@ -199,13 +199,13 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 | **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
 | **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
 | **Valutazione** | L'interruttore **Valuta questo SLO**, che salva appena lo sposti. | Disattivarlo chiede conferma, perché risolve anche gli avvisi e gli incidenti di tasso di consumo aperti dello SLO. |
-| **Archive SLO** | **Archivia** o **Annulla archiviazione**. | Vedi [Archiviare uno SLO](#archiviare-uno-slo). |
+| **Archivia: SLO** | **Archivia** o **Annulla archiviazione**. | Vedi [Archiviare uno SLO](#archiviare-uno-slo). |
 
 Dopo una modifica all'obiettivo, al periodo o al calcolo dell'inattività, OneUptime rivaluta lo SLO all'esecuzione successiva.
 
 ## Archiviare uno SLO
 
-Archivia uno SLO che non misuri più ma vuoi conservare, come un servizio dismesso o l'obiettivo dell'anno scorso. Archivialo da **Impostazioni** → **Archive SLO**, oppure seleziona degli SLO nell'elenco e scegli **Archivia**.
+Archivia uno SLO che non misuri più ma vuoi conservare, come un servizio dismesso o l'obiettivo dell'anno scorso. Archivialo da **Impostazioni** → **Archivia: SLO**, oppure seleziona degli SLO nell'elenco e scegli **Archivia**.
 
 Uno SLO archiviato:
 

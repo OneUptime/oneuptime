@@ -4,6 +4,7 @@ import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * A public note posted with a state change is the one message subscribers
@@ -252,7 +253,8 @@ describe("the Persian guides say the same", () => {
       "`IncidentNoteCreated`",
       "`incidentState`",
       `**${permissionTitle(Permission.CreateIncidentPublicNote)}**`,
-      "**Add a public note**",
+      // The dialog's checkbox, as the Persian Dashboard draws it.
+      `**${drawnDashboardLabel("fa", "Add a public note")}**`,
     ]) {
       expect({ quoted, found: states.includes(quoted) }).toEqual({
         quoted,

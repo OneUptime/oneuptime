@@ -316,7 +316,6 @@ const SecurityRiskScoringPage: FunctionComponent<
             field: { description: true },
             title: "Description",
             type: FieldType.LongText,
-            noValueMessage: "-",
             hideOnMobile: true,
           },
         ]}

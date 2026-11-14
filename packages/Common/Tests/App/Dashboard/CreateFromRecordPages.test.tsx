@@ -32,7 +32,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Creating from a record's own tab keeps that record picked: Declare
- * Incident, Create Alert and Create Scheduled Maintenance Event, drawn for
+ * Incident, Create Alert and Create Maintenance Event, drawn for
  * real - the pages' own fields in the real ModelForm and BasicForm, inside
  * their real layouts for the breadcrumbs - with only the network, the
  * permissions and the address stubbed.
@@ -762,7 +762,7 @@ describe("Create Alert", () => {
   });
 });
 
-describe("Create Scheduled Maintenance Event", () => {
+describe("Create Maintenance Event", () => {
   async function writeEvent(): Promise<void> {
     fireEvent.change(await screen.findByRole("textbox", { name: /^Title/ }), {
       target: { value: "Rack migration" },
@@ -781,7 +781,7 @@ describe("Create Scheduled Maintenance Event", () => {
       screen.getByRole("button", { name: "Remove web-01" }),
     ).toBeInTheDocument();
 
-    await submit("Create Scheduled Maintenance Event");
+    await submit("Create Maintenance Event");
 
     expect(idsOf(sentModel<ScheduledMaintenance>().hosts)).toEqual([HOST_ID]);
   });
@@ -791,7 +791,7 @@ describe("Create Scheduled Maintenance Event", () => {
 
     await renderPage(ScheduledMaintenanceCreate);
     await writeEvent();
-    await submit("Create Scheduled Maintenance Event");
+    await submit("Create Maintenance Event");
 
     expect(idsOf(sentModel<ScheduledMaintenance>().networkSites)).toEqual([
       NETWORK_SITE_ID,
@@ -814,7 +814,7 @@ describe("Create Scheduled Maintenance Event", () => {
     await renderPage(ScheduledMaintenanceCreate);
     await screen.findByDisplayValue("Weekly patching");
 
-    await submit("Create Scheduled Maintenance Event");
+    await submit("Create Maintenance Event");
 
     expect(idsOf(sentModel<ScheduledMaintenance>().hosts)).toEqual([
       HOST_ID,
@@ -827,7 +827,7 @@ describe("Create Scheduled Maintenance Event", () => {
 
     await renderPage(ScheduledMaintenanceCreate);
     await writeEvent();
-    await submit("Create Scheduled Maintenance Event");
+    await submit("Create Maintenance Event");
 
     expect(lookupsOf(Monitor)).toHaveLength(0);
     expect(idsOf(sentModel<ScheduledMaintenance>().monitors)).toEqual([]);
@@ -998,7 +998,7 @@ describe("the breadcrumbs go back through the record's tab", () => {
     );
   });
 
-  test("Create Scheduled Maintenance Event from a network site: Project > Network > View Site > Scheduled Maintenance", async () => {
+  test("Create Maintenance Event from a network site: Project > Network > View Site > Scheduled Maintenance", async () => {
     queryInUrl = { networkSiteId: NETWORK_SITE_ID };
 
     await renderInLayout({
@@ -1013,7 +1013,7 @@ describe("the breadcrumbs go back through the record's tab", () => {
         "Network",
         "View Site",
         "Scheduled Maintenance",
-        "New Scheduled Maintenance Event",
+        "New Maintenance Event",
       ]);
     });
     expect(breadcrumbs()[2]!.href).toBe(

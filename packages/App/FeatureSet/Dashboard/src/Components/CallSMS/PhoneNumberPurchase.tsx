@@ -497,7 +497,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 </div>
                 <div className="ml-auto shrink-0">
                   <Button
-                    title="Release"
+                    title="Release Number"
                     buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                     icon={IconProp.Trash}
                     disabled={releaseLock.isLocked}

@@ -31,7 +31,7 @@ Fluentd posts batches of records as JSON, with your ingestion key in the `x-oneu
 
 Go to **Products → Project Settings**, open **Telemetry & APM** in the side menu and select **Ingestion Keys**.
 
-![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
 
 ### Create a key
 

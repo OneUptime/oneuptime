@@ -1,4 +1,12 @@
-import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
+import {
+  Dialog,
+  expect,
+  Locator,
+  Page,
+  Route,
+  test,
+  TestInfo,
+} from "@playwright/test";
 import {
   DrawnBox,
   DrawnBoxes,
@@ -26,6 +34,8 @@ import {
  *     setting, or a click on a header in its Live Preview, and Save Changes.
  *   - On a public dashboard the visitor's sort travels as widgetSort, and
  *     the server orders the list itself.
+ *   - A board being edited is left at once while nothing changed; with a
+ *     change unsaved, the side menu, Back and a reload ask first (#7173).
  *
  * Screenshots of the sorted widgets (light, dark, German, the settings and
  * a phone) are saved for review under output/playwright/dashboard-widget-sort-ui.
@@ -76,6 +86,17 @@ const SCREENSHOTS: string = "../../output/playwright/dashboard-widget-sort-ui";
 
 const APP_PATH: string = `/dashboard/${PROJECT_ID}/dashboards/${DASHBOARD_ID}`;
 const PUBLIC_PATH: string = `/public-dashboard/${DASHBOARD_ID}`;
+// The dashboard's Overview, a stand-in in the fixture (Fixture/AppFixture.js).
+const OVERVIEW_PATH: string = `${APP_PATH}/overview`;
+
+// What the board asks before it is left with unsaved changes (#7173).
+const LEAVE_TITLE: string = "Leave without saving?";
+const LEAVE_DESCRIPTION: string =
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.";
+// And what the toolbar's Cancel asks then, in the same voice.
+const CANCEL_TITLE: string = "Discard unsaved changes?";
+const CANCEL_DESCRIPTION: string =
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.";
 
 /*
  * The fixture's rows, in the orders the database answers them. legacy-api's
@@ -1058,6 +1079,8 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(tooltip(page)).toContainText("legacy-api");
     await expect(tooltip(page)).toContainText("Disabled");
     await expect(tooltip(page)).toContainText("Click to open");
+    // The keyboard's words are for a tile reached with Tab (#7347).
+    await expect(tooltip(page)).not.toContainText("Press Enter to open");
 
     const place: TooltipPlace = await placeOf(page);
     expect(place.parent).toBe("body");
@@ -1173,6 +1196,9 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(tooltip(page)).toHaveCount(1);
     await expect(tooltip(page)).toContainText("legacy-api");
     await expect(tooltip(page)).toContainText("Disabled");
+    // Reached with the keyboard, it says how the keyboard opens it (#7347).
+    await expect(tooltip(page)).toContainText("Press Enter to open");
+    await expect(tooltip(page)).not.toContainText("Click to open");
     expectBesideItsTile(await placeOf(page), await boxOf(gray));
 
     // A button named for its monitor, which its open tooltip describes.
@@ -1226,6 +1252,7 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(tiles(page).nth(from)).toBeFocused();
     await expect(tooltip(page)).toHaveCount(1);
     await expect(tooltip(page)).not.toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Press Enter to open");
     await expect(ring).toHaveCount(1);
   });
 
@@ -1542,6 +1569,229 @@ test.describe("the order everyone sees", () => {
 
     // The preview is the widget as everyone will see it: no viewer pick.
     expect(await kept(page, pickKey(PODS_WIDGET))).toBeNull();
+  });
+});
+
+// ---- leaving a board being edited (#7173) ----------------------------------
+
+// An entry of the dashboard's side menu, by its name.
+const sideMenuLink: (page: Page, name: string) => Locator = (
+  page: Page,
+  name: string,
+): Locator => {
+  return page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name, exact: true });
+};
+
+// The fixture's stand-in for every page but the board: it says its address.
+const elsewhere: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByTestId("fixture-elsewhere");
+};
+
+const leaveDialog: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByRole("dialog", { name: LEAVE_TITLE });
+};
+
+// The board's own text widget, as Add Widget adds it.
+const addedTextWidget: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByText("Hello, World!", { exact: true });
+};
+
+// Add Widget, Text, then Done on the new widget's settings.
+const addTextWidget: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await press(page.getByTitle("Add Widget").first());
+  await press(page.getByTestId("widget-card-Text"));
+
+  const settings: Locator = page.getByTestId("modal");
+
+  await press(settings.getByRole("button", { name: "Done" }));
+  await expect(settings).toHaveCount(0);
+  await expect(addedTextWidget(page)).toBeVisible();
+};
+
+/*
+ * The browser's own questions before the page unloads, as a reload or a
+ * closed tab asks them: the kind of each one the page raises, answered as
+ * `answer.now` says - Stay keeps the page, Leave lets it go.
+ */
+interface BrowserAnswer {
+  now: "stay" | "leave";
+}
+
+const recordBrowserQuestions: (
+  page: Page,
+  answer: BrowserAnswer,
+) => Array<string> = (page: Page, answer: BrowserAnswer): Array<string> => {
+  const raised: Array<string> = [];
+
+  page.on("dialog", async (dialog: Dialog): Promise<void> => {
+    raised.push(dialog.type());
+
+    if (answer.now === "stay") {
+      await dialog.dismiss();
+      return;
+    }
+
+    await dialog.accept();
+  });
+
+  return raised;
+};
+
+// A reload the page starts, after the call returns: it never waits on one.
+const startReload: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.evaluate((): void => {
+    window.setTimeout((): void => {
+      window.location.reload();
+    }, 0);
+  });
+};
+
+test.describe("leaving a dashboard being edited (#7173)", () => {
+  test("a board opened for editing and not changed is left at once; with a new widget, leaving asks first, by the side menu and by Back", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    // Opened from its Overview, so Back has a page of the app to go to.
+    await page.goto(OVERVIEW_PATH);
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH, {
+      timeout: 60000,
+    });
+    await press(sideMenuLink(page, "Dashboard"));
+    await expect(monitorsTable(page)).toBeVisible({ timeout: 60000 });
+    await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible();
+
+    // Nothing changed: the toolbar's Cancel stops editing without a question.
+    await enterEditMode(page);
+    await press(page.getByTitle("Cancel", { exact: true }));
+    await expect(page.getByTitle("Save Changes")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // Nothing changed: the side menu leaves at once.
+    await enterEditMode(page);
+    await press(sideMenuLink(page, "Overview"));
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await press(sideMenuLink(page, "Dashboard"));
+    await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible();
+    await enterEditMode(page);
+    await addTextWidget(page);
+
+    // A new widget, unsaved: the side menu asks, in the toolbar's Cancel words.
+    await press(sideMenuLink(page, "Overview"));
+
+    const dialog: Locator = leaveDialog(page);
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(LEAVE_DESCRIPTION);
+    await expect(
+      dialog.getByRole("button", { name: "Keep Editing" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Discard Changes" }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(APP_PATH);
+    await expect(elsewhere(page)).toHaveCount(0);
+    await shoot(page, testInfo, "leave-unsaved-dialog", dialog);
+
+    // Keep Editing: the board as it was, still being edited.
+    await press(dialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
+    await expect(page).toHaveURL(APP_PATH);
+
+    // The toolbar's Cancel asks in the same voice; Keep Editing stays.
+    await press(page.getByTitle("Cancel", { exact: true }));
+
+    const cancelDialog: Locator = page.getByRole("dialog", {
+      name: CANCEL_TITLE,
+    });
+
+    await expect(cancelDialog).toBeVisible();
+    await expect(cancelDialog).toContainText(CANCEL_DESCRIPTION);
+    await shoot(page, testInfo, "cancel-unsaved-dialog", cancelDialog);
+    await press(cancelDialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(cancelDialog).toHaveCount(0);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
+
+    // The browser's Back asks too, and the board stays where it is.
+    await page.evaluate((): void => {
+      window.history.back();
+    });
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(APP_PATH);
+    await expect(elsewhere(page)).toHaveCount(0);
+    await press(dialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(APP_PATH);
+    await expect(addedTextWidget(page)).toBeVisible();
+
+    // Back again, and Discard Changes: the page before, nothing saved.
+    await page.evaluate((): void => {
+      window.history.back();
+    });
+    await press(dialog.getByRole("button", { name: "Discard Changes" }));
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page).toHaveURL(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect((await record(page)).saves || []).toEqual([]);
+  });
+
+  test("a reload asks the browser's question while a change is unsaved, and after Save Changes nothing asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openApp(page);
+    await enterEditMode(page);
+    await addTextWidget(page);
+
+    const answer: BrowserAnswer = { now: "stay" };
+    const raised: Array<string> = recordBrowserQuestions(page, answer);
+
+    // The browser asks; staying keeps the board as it was being edited.
+    await startReload(page);
+    await expect
+      .poll((): Array<string> => {
+        return raised;
+      })
+      .toEqual(["beforeunload"]);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
+
+    await press(page.getByRole("button", { name: "Save Changes" }));
+    await expect
+      .poll(async (): Promise<number> => {
+        return ((await record(page)).saves || []).length;
+      })
+      .toBe(1);
+    await expect(page.getByTitle("Save Changes")).toHaveCount(0);
+
+    /*
+     * Saved: a reload asks nothing, and opens the board as saved. Were it to
+     * ask, Leave lets the reload go on, and the question is counted.
+     */
+    answer.now = "leave";
+    await page.reload();
+    await expect(monitorsTable(page)).toBeVisible({ timeout: 60000 });
+    await expect(addedTextWidget(page)).toBeVisible();
+    expect(raised).toEqual(["beforeunload"]);
+
+    // And the side menu leaves at once.
+    await press(sideMenuLink(page, "Overview"));
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
 

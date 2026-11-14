@@ -27,6 +27,8 @@ Uw server moet e-mail, sms-berichten en oproepen kunnen versturen. De hoofdbehee
 :::steps
 ### De begeleide installatie openen
 
+![Start vraagt "Wat wil je eerst doen?", met "De juiste persoon oproepen als er iets kapotgaat" aangevinkt](screen:home-goal-paging)
+
 Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Stel een bereikbaarheidsbeleid in**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **De juiste persoon oproepen als er iets kapotgaat** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**.
 
 ### De app op uw telefoon installeren
@@ -35,21 +37,31 @@ Installeer OneUptime On-Call uit de App Store of Google Play en meld u aan: de a
 
 ### Sms en oproepen aanzetten
 
+![De stap "Hoe moeten we je bereiken?", met "Sms en oproepen aanzetten" omcirkeld](screen:paging-reach-you)
+
 In nieuwe projecten staan sms en telefoonoproepen uit. Bent u eigenaar van het project, klik dan op **Sms en oproepen aanzetten**; ieder ander ziet wie dat kan. Is het saldo bij OneUptime Cloud 1.00 USD of minder, klik dan op **Tegoed toevoegen**, voer onder **Bedrag (USD)** 20 tot 1.000 USD in en klik op **Bijvullen**.
 
 ### Uw telefoonnummer toevoegen
+
+![Het veld "Je telefoonnummer", met "Stuur me een code per sms" omcirkeld](screen:paging-phone)
 
 Typ uw mobiele nummer met landcode bij **Je telefoonnummer**, bijvoorbeeld `+15551234567`, en klik op **Stuur me een code per sms**. Voer de code uit de sms in en klik op **Verifiëren**: hetzelfde nummer wordt bij oproepen ook gebeld. Klik op **Doorgaan**. Wilt u alleen via de app en per e-mail worden opgeroepen, laat het nummer dan weg en klik meteen op **Doorgaan**.
 
 ### Kiezen wie er nog meer wordt opgeroepen
 
+![De stap "Wie is er nog meer bereikbaar?", met "Opslaan en doorgaan" omcirkeld](screen:paging-who-else)
+
 Onder **Wie is er nog meer bereikbaar?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om naast u nog anderen op te roepen, en klik daarna op **Opslaan en doorgaan**. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het beleid `Default on-call policy` aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
 
 ### Bepalen wat er gebeurt als niemand antwoordt
 
+![De stap "Wat als niemand antwoordt?", met "Opslaan en doorgaan" omcirkeld](screen:paging-no-answer)
+
 Laat onder **Wat als niemand antwoordt?** de optie **Iemand anders oproepen** geselecteerd, kies onder **Daarna opgeroepen** wie dat is, en houd **Minuten wachten** op `30` of wijzig de waarde. Klik op **Opslaan en doorgaan**. Op het Free-abonnement biedt de stap in plaats daarvan **Dezelfde mensen opnieuw oproepen** aan, met **Aantal keer opnieuw oproepen** op `2`.
 
 ### Een testoproep sturen
+
+![De stap "Een testoproep sturen", met "Dit beleid testen" omcirkeld](screen:paging-test)
 
 Klik onder **Een testoproep sturen** op **Dit beleid testen**. Kies een **Ernst** en klik op **Testoproep sturen**. De eerste escalatieregel van het beleid wordt opgeroepen zoals een echt incident dat zou doen, en in elk bericht staat TEST. Er wordt geen incident aangemaakt, en geen statuspagina of abonnee krijgt bericht.
 
@@ -59,6 +71,8 @@ Open de link in de sms of de e-mail en bevestig de oproep daar, of druk tijdens 
 :::
 
 ## Controleren of het gelukt is
+
+![De samenvatting "Oproepen zijn ingericht": "Wie wordt opgeroepen", "Als niemand antwoordt" en "Getest"](screen:paging-summary)
 
 - De teststap laat zien wie de oproep heeft bevestigd, hoe en hoe snel.
 - De begeleide installatie eindigt op **Oproepen zijn ingericht**, gelezen uit de opgeslagen gegevens: **Wie wordt opgeroepen**, **Als niemand antwoordt** en **Getest**. Een probleem met het beleid zelf, zoals iemand die het niet kan bereiken, staat onder **Vraagt aandacht**.
@@ -89,6 +103,6 @@ Controleer eerst de landcode van het nummer. Sluit na een testoproep het dialoog
 :::cards
 - [Bereikbaarheidsschema's](/docs/on-call/schedules): Om beurten dienst hebben, zodat elke oproep naar degene gaat die dienst heeft. Bij OneUptime Cloud vanaf het Growth-abonnement.
 - [Escalatieregels](/docs/on-call/escalation-rules): Niveaus, teams en schema's aan het beleid toevoegen.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Kiezen welke methode u als eerste bereikt, en wanneer.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Kiezen welke methode u als eerste bereikt, en wanneer.
 - [Een statuspagina publiceren](/docs/guides/status-page): Uw klanten op uw eigen domein laten zien wat er gebeurt.
 :::

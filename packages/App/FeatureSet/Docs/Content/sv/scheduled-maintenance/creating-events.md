@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Öppna formuläret
 
-Gå till **Schemalagt underhåll → Alla händelser** och klicka på **Skapa schemalagt underhållsevenemang**. Formuläret öppnas på sitt första steg, **Händelse**.
+Gå till **Schemalagt underhåll → Alla underhållshändelser** och klicka på **Skapa underhållshändelse**. Formuläret öppnas på sitt första steg, **Underhållsdetaljer**.
 
 ### Säg vad som händer och när
 
@@ -47,7 +47,7 @@ Välj statussidorna under **Visa händelse på dessa statussidor**. **Aviseringa
 
 ### Skapa den
 
-Klicka på **Nästa** för att se granskningen, kontrollera den och klicka sedan på **Skapa schemalagt underhållsevenemang**. Händelsens egen sida öppnas.
+Klicka på **Nästa** för att se granskningen, kontrollera den och klicka sedan på **Skapa underhållshändelse**. Händelsens egen sida öppnas.
 :::
 
 Ingenting skickas förrän du väljer en statussida: en händelse som inte visas på någon statussida meddelar ingen prenumerant.
@@ -56,12 +56,12 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 
 | Fält                                 | Steg               | Börjar som                      | Vad det gör                                                                      |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Händelse**       | Tom, och obligatorisk           | Namnger händelsen överallt, även på dina statussidor.                            |
-| **Beskrivning**                      | **Händelse**       | Tom                             | Förklarar arbetet för dina kunder, i Markdown.                                   |
-| **Börjar den**                       | **Händelse**       | Nästa hela timme                | När händelsen börjar av sig själv.                                               |
-| **Slutar den**                       | **Händelse**       | En timme efter **Börjar den**   | När händelsen slutar av sig själv. Den måste komma efter **Börjar den**.         |
-| **Ägare**                            | **Händelse**       | Ingen                           | Personer och team som äger händelsen och får veta om den.                        |
-| **Etiketter**                        | **Händelse**       | Inga                            | Etiketter som regler och filter kan matcha på.                                   |
+| **Titel**                            | **Underhållsdetaljer**       | Tom, och obligatorisk           | Namnger händelsen överallt, även på dina statussidor.                            |
+| **Beskrivning**                      | **Underhållsdetaljer**       | Tom                             | Förklarar arbetet för dina kunder, i Markdown.                                   |
+| **Börjar den**                       | **Underhållsdetaljer**       | Nästa hela timme                | När händelsen börjar av sig själv.                                               |
+| **Slutar den**                       | **Underhållsdetaljer**       | En timme efter **Börjar den**   | När händelsen slutar av sig själv. Den måste komma efter **Börjar den**.         |
+| **Ägare**                            | **Underhållsdetaljer**       | Ingen                           | Personer och team som äger händelsen och får veta om den.                        |
+| **Etiketter**                        | **Underhållsdetaljer**       | Inga                            | Etiketter som regler och filter kan matcha på.                                   |
 | **Monitorer**                        | **Berörda resurser** | Inga                          | De monitorer som inte kontrolleras medan händelsen pågår.                        |
 | **Ändra övervakningsstatus till**    | **Berörda resurser** | Ingen ändring                 | Den status monitorerna visar under händelsen. Efterfrågas så snart en monitor är vald. |
 | **Andra påverkade resurser**         | **Berörda resurser** | Inga                          | Värdar, kluster, databaser, nätverksplatser, tjänster och mer.                   |
@@ -75,13 +75,13 @@ Två saker fyller i formuläret åt dig medan du arbetar:
 
 ## Börja från en resurs eller en mall
 
-På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en molnresurs, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
+På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en molnresurs, en tjänst eller en nätverksplats öppnar **Skapa underhållshändelse** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
 
 **Skapa från mall**, bredvid knappen för att skapa, ber dig att **Välj mall för schemalagt underhåll** och öppnar sedan formuläret ifyllt från mallen. Se [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates).
 
 ## Vad som händer när du skapar den
 
-I samma stund som du klickar på **Skapa schemalagt underhållsevenemang** går OneUptime igenom de här stegen, i den här ordningen:
+I samma stund som du klickar på **Skapa underhållshändelse** går OneUptime igenom de här stegen, i den här ordningen:
 
 1. **Den får ett nummer och ett tillstånd.** Numret kommer från en räknare per projekt och visas med ditt prefix (`SM-42`). Händelsen börjar i ditt schemalagda tillstånd, oavsett vilket tillstånd en begäran nämner.
 2. **Dina chattverktyg får höra om den.** Slack- och Microsoft Teams-reglerna under **Arbetsyta** publicerar den i sina kanaler, och en regel kan skapa en kanal för händelsen. Dess flöde registrerar att den skapades.
@@ -90,7 +90,7 @@ I samma stund som du klickar på **Skapa schemalagt underhållsevenemang** går 
 5. **Runbook-regler startar** de runbooks som matchar händelsen.
 6. **Påminnelser schemaläggs**, när en påminnelseregel matchar, för dess ägare.
 
-Inom en minut efter att den publiceras, vilket sker direkt om du inte har valt ett **Publicera den**, får prenumeranterna på dess statussidor veta att den är schemalagd, om du inte har stängt av **När händelsen schemaläggs**. Arbetsflödesutlösaren **On Create Scheduled Maintenance Event** startar alla arbetsflöden som bygger på den, och dess ägare får höra om den om de har slagit på den aviseringen: se [Aviseringsinställningar](/docs/notifications/notification-settings).
+Inom en minut efter att den publiceras, vilket sker direkt om du inte har valt ett **Publicera den**, får prenumeranterna på dess statussidor veta att den är schemalagd, om du inte har stängt av **När händelsen schemaläggs**. Arbetsflödesutlösaren **On Create Maintenance Event** startar alla arbetsflöden som bygger på den, och dess ägare får höra om den om de har slagit på den aviseringen: se [Aviseringsinställningar](/docs/notifications/notification-settings).
 
 ## Publicera den senare
 
@@ -113,7 +113,7 @@ Allt i formuläret kan ändras på händelsens egna sidor, utom de tre prenumera
 
 | För att ändra                               | Gå till                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Underhållsdetaljer** i dess **Översikt**, steget **Händelse** |
+| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Underhållsdetaljer** i dess **Översikt**, steget **Underhållsdetaljer** |
 | Statussidorna, när den publiceras, eller påminnelserna | Samma **Redigera**, steget **Statussidor**                           |
 | Monitorerna, deras status eller andra resurser | **Redigera** på kortet **Berörda resurser**                                 |
 | Beskrivningen                               | **Beskrivning** i dess sidomeny                                                |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Reglaget **När händelsen schemaläggs**. De två andra tillfällena har egna fält.           |
 | `publishOnStatusPageAt`                               | När händelsen publiceras på sina statussidor och dess prenumeranter får veta att den är schemalagd. Utelämnad: direkt. |
 
-Samma händelse som kod är Terraform-resursen `oneuptime_scheduled_maintenance_event`: se [Exempel](/docs/terraform/examples#schemalagt-underhåll). Ett arbetsflöde skapar en med sitt steg **Create One Scheduled Maintenance Event**, och `/oneuptime maintenance` öppnar formuläret i Slack: se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
+Samma händelse som kod är Terraform-resursen `oneuptime_scheduled_maintenance_event`: se [Exempel](/docs/terraform/examples#schemalagt-underhåll). Ett arbetsflöde skapar en med sitt steg **Create One Maintenance Event**, och `/oneuptime maintenance` öppnar formuläret i Slack: se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
 
 ## Felsökning
 

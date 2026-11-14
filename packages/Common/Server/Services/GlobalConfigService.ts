@@ -201,6 +201,18 @@ export const ROOT_ONLY_SERVER_SETUP_COLUMNS: ReadonlyArray<keyof Model> = [
   "serverSetupChoices",
 ];
 
+/*
+ * The products switched off for every project (Types/Product/
+ * ServerProducts), written only through Admin Dashboard > Settings >
+ * Products' own route (ServerProducts), which keeps the list to products a
+ * server may switch off and records who changed it. Through the CRUD API a
+ * master admin could switch off Project Settings, or change it in someone
+ * else's name.
+ */
+export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverProducts",
+];
+
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
 const TELEGRAM_WEBHOOK_SECRET_GENERATION_KEY: string =
@@ -844,6 +856,52 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the server's products by anyone but OneUptime itself
+   * (ROOT_ONLY_SERVER_PRODUCTS_COLUMNS): they are switched on Admin
+   * Dashboard > Settings > Products, which says who switched them.
+   */
+  public assertServerProductsWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SERVER_PRODUCTS_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "The products switched off on this server are changed on Admin Dashboard > Settings > Products, and cannot be written here.",
+    );
+  }
+
+  /*
+   * Writes the products switched off for every project: one statement, no
+   * hooks. The caller (ServerProducts) forgets its copy afterwards.
+   */
+  public async writeServerProducts(settings: JSONObject): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["serverProducts"] = settings;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+    });
+  }
+
+  /*
    * Writes what admins chose on the setup checklist: one statement, no
    * hooks, updatedAt kept - a choice on a checklist, not a change of the
    * server's settings.
@@ -1225,6 +1283,7 @@ export class Service extends DatabaseService<Model> {
       createBy.data,
       createBy.props,
     );
+    this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -1258,6 +1317,7 @@ export class Service extends DatabaseService<Model> {
       updateBy.data,
       updateBy.props,
     );
+    this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);

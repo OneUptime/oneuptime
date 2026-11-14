@@ -49,8 +49,8 @@
  *   ?role=      read: a custom role holding only the OpenStack read permissions; none: one
  *               holding none of them. Every read and write is then held to the model's own lists
  *               of who may, which are what the server's permission checks read
- *   ?lang=      de or fa reads the German or Persian locale file (Persian lays the page
- *               out right to left)
+ *   ?lang=      de, fa or ar reads the German, Persian or Arabic locale file (Persian and
+ *               Arabic lay the page out right to left)
  *   ?theme=     dark adds html.dark (server.js)
  *   ?region=    is the product's own: which region the pages read
  *
@@ -75,6 +75,7 @@ import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import ar from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
 import CloudAiInsights from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Insights";
@@ -316,7 +317,7 @@ const FAILS = new Set((params.get("fail") || "").split(",").filter(Boolean));
 const TRACES = hasTraceRecording(params.get("traces"))
   ? params.get("traces")
   : "";
-const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
+const LANGUAGE = ["de", "fa", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -2180,7 +2181,11 @@ function answerProjectNotice(pathname, body) {
   }
   if (pathname.includes("/turn-on/")) {
     if (body.previewToken !== "the-token-its-preview-gave") {
-      return new HTTPErrorResponse(400, { message: "See who this tells first" }, {});
+      return new HTTPErrorResponse(
+        400,
+        { message: "See who this tells first" },
+        {},
+      );
     }
     Object.assign(noticeOf(), { isEnabled: true });
     return ok({});
@@ -2216,7 +2221,12 @@ function answerProjectNotice(pathname, body) {
     return ok({
       events:
         params.get("maintenance") === "on"
-          ? [{ id: "73000000-0000-4000-8000-000000000001", title: "Kernel upgrade" }]
+          ? [
+              {
+                id: "73000000-0000-4000-8000-000000000001",
+                title: "Kernel upgrade",
+              },
+            ]
           : [],
     });
   }
@@ -2583,6 +2593,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: en },
     de: { translation: de },
     fa: { translation: fa },
+    ar: { translation: ar },
   },
   interpolation: { escapeValue: false },
 });

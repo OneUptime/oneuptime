@@ -116,16 +116,46 @@ export const SUMMARY_TABLE_VALUE_CLASS_NAME: string =
 export const SUMMARY_TABLE_TEXT_CLASS_NAME: string = "break-words";
 
 /*
- * A row of a phase breakdown (Request Phase Breakdown, Connection Phase
- * Breakdown): the phase, its bar, its time. The name and the time gave the
- * bar what was left of a phone's width after 240px of their own - a bar a
- * few pixels long. They take less while the view is narrow.
+ * A phase breakdown (Request Phase Breakdown, Connection Phase Breakdown):
+ * a row a phase - its name, its bar, its time. The rows are one grid, each
+ * row a subgrid of it, so every bar starts and ends where the others do.
+ *
+ * The names and the times sat in fixed columns, the times 80px wide (96px
+ * from 32rem) in a monospace font. A time in the reader's language did not
+ * fit: a Persian "۱٬۲۳۴٫۵ میلی‌ثانیه" broke onto two lines, and the
+ * monospace font drew its Persian and Arabic letters apart, unjoined. A
+ * German "TCP-Verbindungsaufbau" broke mid-word in its 96px, and on a
+ * phone the name and the time left the bar a few pixels. Now:
+ *
+ *   - from 22rem (where the summary's facts go two to a row), a row reads
+ *     name, bar, time: the names in a column as wide as the longest name,
+ *     at most two fifths of the row unless one word is longer, the times in
+ *     one as wide as the longest time, and the bars in what is left;
+ *   - below 22rem (a phone), the name and the time share a line and the
+ *     bar runs the whole row under them;
+ *   - a name breaks between words (after a hyphen too), never inside one;
+ *   - a time stays on one line, in the page's own font, its digits of one
+ *     width (tabular-nums) so they line up.
  */
-export const TIMING_LABEL_CLASS_NAME: string =
-  "w-24 shrink-0 text-gray-700 [overflow-wrap:anywhere] [@container(min-width:32rem)]:w-36";
+export const TIMING_ROWS_CLASS_NAME: string =
+  "grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-3 text-sm [@container(min-width:22rem)]:grid-cols-[fit-content(40%)_minmax(0,1fr)_auto] [@container(min-width:22rem)]:gap-y-2";
 
+export const TIMING_ROW_CLASS_NAME: string =
+  "col-span-full grid grid-cols-subgrid items-center gap-y-1.5";
+
+export const TIMING_ROW_TEST_ID: string = "monitor-summary-timing-phase";
+
+// A phase's name: the row's first column, on its first line.
+export const TIMING_LABEL_CLASS_NAME: string =
+  "col-start-1 row-start-1 break-words text-gray-700";
+
+// A phase's bar: under the name and the time on a phone, between them wider.
+export const TIMING_BAR_TRACK_CLASS_NAME: string =
+  "col-span-full row-start-2 min-w-0 [@container(min-width:22rem)]:col-span-1 [@container(min-width:22rem)]:col-start-2 [@container(min-width:22rem)]:row-start-1";
+
+// A phase's time, on one line, at the end of its row.
 export const TIMING_VALUE_CLASS_NAME: string =
-  "w-20 shrink-0 text-right text-gray-700 font-mono [@container(min-width:32rem)]:w-24";
+  "col-start-2 row-start-1 whitespace-nowrap text-right tabular-nums text-gray-700 [@container(min-width:22rem)]:col-start-3";
 
 export const SUMMARY_VIEW_TEST_ID: string = "monitor-summary-view";
 export const SUMMARY_FACTS_TEST_ID: string = "monitor-summary-facts";

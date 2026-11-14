@@ -97,6 +97,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { Theme, useTheme } from "Common/UI/Utils/Theme";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export type ComponentProps = PageComponentProps;
 
@@ -304,7 +305,7 @@ const Settings: FunctionComponent<ComponentProps> = (
   ): string => {
     return translator.translateTemplate(
       'Your payment method was saved, but automatic payments could not be switched to it. You can try again with "Set as Default" in the payment methods table. Reason: {{reason}}',
-      { reason: BaseAPI.getFriendlyMessage(err) },
+      { reason: errorInSentence(BaseAPI.getFriendlyMessage(err)) },
     );
   };
 

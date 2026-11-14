@@ -1,4 +1,4 @@
-# 예외 추적
+# 예외
 
 예외 추적은 코드가 던지는 오류를 모으고, 같은 오류의 모든 발생을 하나의 예외로 묶습니다. 예외에는 스택 추적, 추세, 오류가 일어난 요청이 함께 붙습니다. 할 일 목록처럼 분류하세요. 고치고, 해결 처리하고, 잡음은 보관하고, AI가 고칠 수 있는 것은 AI가 pull request를 열게 하세요.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 스팬이나 로그.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 서비스를 계측합니다. **설정 가이드** 탭에 사용하는 언어에 맞는 코드가 표시됩니다.
-- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Telemetry Service Exception 권한이 있는 사용자 지정 역할입니다. 해결하고 보관하려면 Project Owner나 Project Admin, 또는 Edit Telemetry Service Exception 권한이 필요합니다.
+- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Exceptions 권한이 있는 사용자 지정 역할입니다. 해결하고 보관하려면 Project Owner나 Project Admin, 또는 Edit Exceptions 권한이 필요합니다.
 
 ## 목록 분류하기
 

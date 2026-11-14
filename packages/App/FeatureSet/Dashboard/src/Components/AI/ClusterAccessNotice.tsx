@@ -13,11 +13,15 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  ComposedValue,
+  composedValue,
   getGlobalTranslator,
+  TemplateValues,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinClauses } from "Common/UI/Utils/ListSeparator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -243,98 +247,109 @@ export function describeFinishedRunKubectlUsage(
 
   /*
    * The commands that did not end in kubectl's own answer, one whole clause
-   * each, listed in brackets after the sentence about the ones that ran.
+   * each, listed in brackets after the sentence about the ones that ran -
+   * with the semicolon of the language they are written in (joinClauses):
+   * "；" between Chinese clauses, "؛ " between Persian ones, " ; " between
+   * French ones. Built with the translator the sentence is filled with (a
+   * composed value), so a language that words the notes but not yet the
+   * sentence reads the whole line in English, never its notes inside an
+   * English sentence.
    */
-  const notes: Array<string> = [];
+  const hasNotes: boolean =
+    (failed > 0 && succeeded > 0) || notRun > 0 || unknown > 0;
 
-  if (failed > 0 && succeeded > 0) {
-    notes.push(
-      translator.translatePlural(
-        {
-          one: "{{count}} returned an error",
-          other: "{{count}} returned an error",
-        },
-        failed,
-      ),
-    );
-  }
+  const notes: ComposedValue = composedValue((sentence: Translator): string => {
+    const clauses: Array<string> = [];
 
-  if (notRun > 0) {
-    notes.push(
-      translator.translatePlural(
-        {
-          one: "{{count}} more could not run",
-          other: "{{count}} more could not run",
-        },
-        notRun,
-      ),
-    );
-  }
+    if (failed > 0 && succeeded > 0) {
+      clauses.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} returned an error",
+            other: "{{count}} returned an error",
+          },
+          failed,
+        ),
+      );
+    }
 
-  if (unknown > 0) {
-    notes.push(
-      translator.translatePlural(
-        {
-          one: "{{count}} more returned no result, so whether it ran is unknown",
-          other:
-            "{{count}} more returned no result, so whether they ran is unknown",
-        },
-        unknown,
-      ),
-    );
-  }
+    if (notRun > 0) {
+      clauses.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} more could not run",
+            other: "{{count}} more could not run",
+          },
+          notRun,
+        ),
+      );
+    }
+
+    if (unknown > 0) {
+      clauses.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} more returned no result, so whether it ran is unknown",
+            other:
+              "{{count}} more returned no result, so whether they ran is unknown",
+          },
+          unknown,
+        ),
+      );
+    }
+
+    return joinClauses(clauses, sentence.language);
+  });
 
   if (succeeded === 0) {
     // Counted by the commands that ran; the total is a value.
-    const values: { total: string; notes: string } = {
+    const values: TemplateValues = {
       total: translator.formatNumber(executed + notRun + unknown),
-      notes: notes.join("; "),
+      notes: notes,
     };
 
     return {
-      text:
-        notes.length > 0
-          ? translator.translatePlural(
-              {
-                one: "OneUptime AI tried {{total}} read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran ({{notes}}). See Investigation activity for each result.",
-                other:
-                  "OneUptime AI tried {{total}} read-only kubectl commands, but none succeeded — kubectl returned an error for all {{count}} that ran ({{notes}}). See Investigation activity for each result.",
-              },
-              executed,
-              values,
-            )
-          : translator.translatePlural(
-              {
-                one: "OneUptime AI tried {{count}} read-only kubectl command, but none succeeded — kubectl returned an error for the one that ran. See Investigation activity for each result.",
-                other:
-                  "OneUptime AI tried {{count}} read-only kubectl commands, but none succeeded — kubectl returned an error for all {{count}} that ran. See Investigation activity for each result.",
-              },
-              executed,
-            ),
+      text: hasNotes
+        ? translator.translatePlural(
+            {
+              one: "OneUptime AI tried {{total}} read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran ({{notes}}). See Investigation activity for each result.",
+              other:
+                "OneUptime AI tried {{total}} read-only kubectl commands, but none succeeded — kubectl returned an error for all {{count}} that ran ({{notes}}). See Investigation activity for each result.",
+            },
+            executed,
+            values,
+          )
+        : translator.translatePlural(
+            {
+              one: "OneUptime AI tried {{count}} read-only kubectl command, but none succeeded — kubectl returned an error for the one that ran. See Investigation activity for each result.",
+              other:
+                "OneUptime AI tried {{count}} read-only kubectl commands, but none succeeded — kubectl returned an error for all {{count}} that ran. See Investigation activity for each result.",
+            },
+            executed,
+          ),
       tone: "failed",
     };
   }
 
   return {
-    text:
-      notes.length > 0
-        ? translator.translatePlural(
-            {
-              one: "OneUptime AI ran {{count}} read-only kubectl command during this investigation ({{notes}} — see Investigation activity).",
-              other:
-                "OneUptime AI ran {{count}} read-only kubectl commands during this investigation ({{notes}} — see Investigation activity).",
-            },
-            executed,
-            { notes: notes.join("; ") },
-          )
-        : translator.translatePlural(
-            {
-              one: "OneUptime AI ran {{count}} read-only kubectl command during this investigation.",
-              other:
-                "OneUptime AI ran {{count}} read-only kubectl commands during this investigation.",
-            },
-            executed,
-          ),
+    text: hasNotes
+      ? translator.translatePlural(
+          {
+            one: "OneUptime AI ran {{count}} read-only kubectl command during this investigation ({{notes}} — see Investigation activity).",
+            other:
+              "OneUptime AI ran {{count}} read-only kubectl commands during this investigation ({{notes}} — see Investigation activity).",
+          },
+          executed,
+          { notes: notes },
+        )
+      : translator.translatePlural(
+          {
+            one: "OneUptime AI ran {{count}} read-only kubectl command during this investigation.",
+            other:
+              "OneUptime AI ran {{count}} read-only kubectl commands during this investigation.",
+          },
+          executed,
+        ),
     tone: "ran",
   };
 }

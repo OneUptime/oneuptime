@@ -72,7 +72,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Unntakstyper** | Unntak av en av disse typene, atskilt med komma, som `TypeError, NullReferenceException`. Typenavnet må samsvare nøyaktig. | Tom: alle typer |
 | **Miljøer** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Tidsvindu** (i **Når det skal varsles**) | Unntak fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
-| **Filtrer etter telemetritjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
+| **Filtrer etter tjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Inkluder løste unntak** (under **Flere felt**) | Tell også unntak som er merket som løst. | Av |
 | **Inkluder arkiverte unntak** (under **Flere felt**) | Tell også arkiverte unntak. | Av |
@@ -193,7 +193,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 ## Feilsøking
 
 :::details Unntak vises i utforskeren, men monitoren teller 0
-Sammenlign verdien i **Miljøer** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger overvåkingskriterier**: **Samsvarende unntak** viser hva filtrene samsvarer med.
+Sammenlign verdien i **Miljøer** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger kriterier**: **Samsvarende unntak** viser hva filtrene samsvarer med.
 :::
 
 :::details Hendelsen ble løst da jeg løste unntaket

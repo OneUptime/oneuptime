@@ -202,7 +202,7 @@ Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Si
 | **Vorfall**                       | Reagieren, wenn ein Vorfall gemeldet, geändert (bestätigt, behoben) oder gelöscht wird.  |
 | **Warnung**                       | Dieselben drei Ereignisse, für Warnungen.                                                |
 | **Überwachung**                   | Reagieren, wenn ein Monitor hinzugefügt, bearbeitet oder entfernt wird.                  |
-| **Geplantes Wartungsereignis**    | Ein Wartungsfenster automatisch ankündigen, wenn es eingeplant wird.                     |
+| **Wartungsereignis**    | Ein Wartungsfenster automatisch ankündigen, wenn es eingeplant wird.                     |
 | **Statusseite Abonnent**          | Jemanden begrüßen, der eine Statusseite abonniert.                                       |
 | **Bereitschaftsrichtlinie**       | Änderungen an Richtlinien mit einem anderen Dienstplansystem abgleichen.                 |
 

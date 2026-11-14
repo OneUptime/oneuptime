@@ -1,5 +1,7 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDeviceService, {
+  NetworkDeviceInterfaceCounts,
+} from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
 import NetworkDeviceMacLearningUtil from "./NetworkDeviceMacLearningUtil";
 import NetworkInterfaceService, {
@@ -40,6 +42,7 @@ import { pickDeviceOwnMac } from "../../../Utils/NetworkDevice/DeviceOwnMacUtil"
 import { isFirstPollSinceRefresh } from "../../../Utils/NetworkDevice/NetworkDeviceRefresh";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import { mirrorInventoryRow } from "../Telemetry/InventoryEntityRegistry";
+import { isPostgresLockContentionError } from "../Database/PostgresLockContention";
 import logger from "../Logger";
 
 /*
@@ -107,6 +110,13 @@ export default class NetworkInventoryUtil {
      */
     probeId?: ObjectID | undefined;
     dnsResolution?: NetworkDeviceDnsResolution | undefined;
+    /*
+     * When OneUptime's ingest API received the poll, before the queue it
+     * waited in (NetworkDeviceWalkUtil passes the same receipt time its
+     * rates use). Undefined, or not a time: the poll is timed when it is
+     * processed, as a job queued before the stamp existed is.
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -215,7 +225,26 @@ export default class NetworkInventoryUtil {
     const arpEntries: Array<ArpEntry> | undefined = walk?.arpEntries;
     const fdbEntries: Array<FdbEntry> | undefined = walk?.fdbEntries;
 
-    const now: Date = OneUptimeDate.getCurrentDate();
+    /*
+     * Two times, for two questions (OneUptime issue #7389).
+     *
+     * `receivedAt` is when OneUptime's ingest API received the poll, which
+     * is when the device answered (or did not) to within the probe's own
+     * round trip. Everything the poll SAW is stamped with it: when the
+     * device and its interfaces and endpoints were last seen, the readAt of
+     * its own MAC and of its resolved address, and its last reboot. During a
+     * queue backlog a poll can wait many minutes for a worker. Stamped with
+     * the time it was processed instead, a device that stopped answering
+     * read as seen moments ago for as long as its older polls kept draining.
+     *
+     * `processedAt` is when this worker took the poll in. Only lastPolledAt
+     * keeps it (see NetworkDeviceService.writePollVerdict for why).
+     */
+    const processedAt: Date = OneUptimeDate.getCurrentDate();
+    const receivedAt: Date =
+      data.receivedAt && !isNaN(data.receivedAt.getTime())
+        ? data.receivedAt
+        : processedAt;
 
     /*
      * A poll where the probe could not reach the device (no ping answer AND
@@ -225,25 +254,22 @@ export default class NetworkInventoryUtil {
     const isDeviceReachable: boolean = data.isOnline !== false;
 
     try {
-      // --- Device enrichment + cached counts ---
-      const deviceUpdate: Record<string, unknown> = {};
-
       /*
-       * Three columns, three different questions, and the difference
-       * between them is the whole reason a reachable device used to show as
-       * down:
+       * --- The poll's verdict ---
+       * Five columns, and the difference between them is the whole reason
+       * a reachable device used to show as down:
        *
-       *   lastPolledAt - when we last ASKED. Always stamped, success or
-       *                  failure. Without it there is no way to tell a
-       *                  device that did not answer from one nothing got
-       *                  round to polling, which is what made a fleet
-       *                  bigger than one probe's claim rate read as a
-       *                  fleet-wide outage.
+       *   lastPolledAt - when OneUptime last took in a poll of the device.
+       *                  Always stamped, success or failure. Without it
+       *                  there is no way to tell a device that did not
+       *                  answer from one nothing got round to polling,
+       *                  which is what made a fleet bigger than one probe's
+       *                  claim rate read as a fleet-wide outage.
        *   isReachable  - what the answer WAS. This is what the device list,
        *                  the topology graph and the site rollup read.
-       *   lastSeenAt   - when the device last ANSWERED. Only moves on a
-       *                  successful walk, so it stays honest as "last
-       *                  contact" and never paints a dead device green.
+       *   lastSeenAt   - when the device last ANSWERED. Only moves when it
+       *                  answers, so it stays honest as "last contact" and
+       *                  never paints a dead device green.
        *
        * Under ping-first polling the three answer for the DEVICE - "did it
        * answer ping or SNMP" - which is what the status pill shows. The
@@ -261,23 +287,86 @@ export default class NetworkInventoryUtil {
        * stamps its walk verdict as the device verdict, so both columns
        * carry the same value for it - never NULL for a credentialed device.
        *
-       * None of the five is written for a monitor-backed device - see the
-       * guard above the try.
+       * The cached interface counts are health columns too (the device list
+       * and the site overview read interfacesDown). On a ping-only poll they
+       * go NULL rather than staying put: a device whose credentials were
+       * removed would otherwise keep showing the interface counts of its
+       * last walk indefinitely, and the list would read "3 interfaces down"
+       * on a device nothing is walking any more.
+       * A failed walk in snmp mode, by contrast, leaves them alone - the last
+       * good counts are the best estimate until the next good walk, exactly
+       * as the lastWalkLog baseline is kept across failed polls.
+       *
+       * Written first, on their own, by one statement that writes them only
+       * when the device holds no verdict from a poll received after this one
+       * (writePollVerdict). An older poll processed later - a retried job,
+       * or one that waited longer in the queue than the poll after it - used
+       * to put its answer back over the newer one's.
+       *
+       * None of it is written for a monitor-backed device - see the guard
+       * above the try. Its bound monitor owns its health.
        */
-      if (!isMonitorBacked) {
-        deviceUpdate["lastPolledAt"] = now;
-        deviceUpdate["isReachable"] = isDeviceReachable;
+      let isNewestPoll: boolean = true;
 
-        if (isDeviceReachable) {
-          deviceUpdate["lastSeenAt"] = now;
+      if (!isMonitorBacked) {
+        let interfaceCounts: NetworkDeviceInterfaceCounts | null | undefined =
+          undefined;
+
+        if (pollMode === "ping") {
+          interfaceCounts = null;
+        } else if (walkedInterfaces.length > 0) {
+          interfaceCounts = {
+            total: walkedInterfaces.length,
+            up: walkedInterfaces.filter((walked: SnmpInterface) => {
+              return walked.isAdministrativelyUp && walked.isOperationallyUp;
+            }).length,
+            down: walkedInterfaces.filter((walked: SnmpInterface) => {
+              return walked.isAdministrativelyUp && !walked.isOperationallyUp;
+            }).length,
+          };
         }
 
-        deviceUpdate["isSnmpReachable"] = walkRan ? walkSucceeded : null;
+        try {
+          isNewestPoll = await NetworkDeviceService.writePollVerdict({
+            projectId: data.projectId,
+            deviceId: deviceId,
+            receivedAt: receivedAt,
+            processedAt: processedAt,
+            verdict: {
+              isReachable: isDeviceReachable,
+              isSnmpReachable: walkRan ? walkSucceeded : null,
+              interfaceCounts: interfaceCounts,
+            },
+          });
+        } catch (err) {
+          if (!isPostgresLockContentionError(err)) {
+            throw err;
+          }
 
-        if (walkSucceeded) {
-          deviceUpdate["lastSnmpSeenAt"] = now;
+          /*
+           * Another writer held the device past lock_timeout, or a
+           * deadlock. Whether this poll is the newest is then unknown, so
+           * its device details wait for the next poll too. Its interfaces
+           * and endpoints, below, are other tables, and are written as
+           * usual.
+           */
+          logger.warn(
+            `Network device ${deviceId.toString()}: the result of its poll received at ${OneUptimeDate.toString(receivedAt)} was left for its next poll, because another writer held the device past the lock timeout, or a deadlock (${
+              err instanceof Error ? err.message : String(err)
+            }).`,
+          );
+          isNewestPoll = false;
+        }
+
+        if (!isNewestPoll) {
+          logger.debug(
+            `Network device ${deviceId.toString()}: its poll received at ${OneUptimeDate.toString(receivedAt)} did not write the device's reachability or details. The device holds the result of a poll received later, was deleted meanwhile, or was held by another writer. Its interfaces and endpoints are still written where they are newer.`,
+          );
         }
       }
+
+      // --- Device enrichment ---
+      const deviceUpdate: Record<string, unknown> = {};
 
       if (systemInfo?.sysDescr) {
         deviceUpdate["sysDescr"] = systemInfo.sysDescr.substring(0, 500);
@@ -294,9 +383,14 @@ export default class NetworkInventoryUtil {
       if (systemInfo?.sysContact) {
         deviceUpdate["sysContact"] = systemInfo.sysContact.substring(0, 100);
       }
+      /*
+       * The uptime was read when the poll was, so it is counted back from
+       * the receipt time: timed from a late worker, every backlog moved the
+       * last reboot forward by the time the poll waited.
+       */
       if (systemInfo?.sysUpTimeSeconds !== undefined) {
         deviceUpdate["lastRebootedAt"] = new Date(
-          now.getTime() - systemInfo.sysUpTimeSeconds * 1000,
+          receivedAt.getTime() - systemInfo.sysUpTimeSeconds * 1000,
         );
       }
 
@@ -434,46 +528,17 @@ export default class NetworkInventoryUtil {
       }
 
       /*
-       * The cached interface counts are health columns too (the device list
-       * and the site overview read interfacesDown), so a monitor-backed
-       * device keeps them out for the same reason as the poll columns.
+       * What the walk read about the device, through the hooked write: its
+       * hooks re-run the site-assignment rules on sysName and seed the
+       * vendor template's OIDs and tables. Empty on a ping-only poll and on
+       * a failed walk, which then cost no write at all.
        *
-       * On a ping-only poll they go NULL rather than staying put: a device
-       * whose credentials were removed would otherwise keep showing the
-       * interface counts of its last walk indefinitely, and the list would
-       * read "3 interfaces down" on a device nothing is walking any more.
-       * A failed walk in snmp mode, by contrast, leaves them alone - the
-       * last good counts are the best estimate until the next good walk,
-       * exactly as the lastWalkLog baseline is kept across failed polls.
+       * Only from the newest poll. An older one - see isNewestPoll above -
+       * read the device before the poll whose result it already holds, so
+       * its system group, neighbours and snapshots are older than what is
+       * stored, and would put the topology back to what it was.
        */
-      if (!isMonitorBacked) {
-        if (pollMode === "ping") {
-          deviceUpdate["interfacesTotal"] = null;
-          deviceUpdate["interfacesUp"] = null;
-          deviceUpdate["interfacesDown"] = null;
-        } else if (walkedInterfaces.length > 0) {
-          deviceUpdate["interfacesTotal"] = walkedInterfaces.length;
-          deviceUpdate["interfacesUp"] = walkedInterfaces.filter(
-            (walked: SnmpInterface) => {
-              return walked.isAdministrativelyUp && walked.isOperationallyUp;
-            },
-          ).length;
-          deviceUpdate["interfacesDown"] = walkedInterfaces.filter(
-            (walked: SnmpInterface) => {
-              return walked.isAdministrativelyUp && !walked.isOperationallyUp;
-            },
-          ).length;
-        }
-      }
-
-      /*
-       * Always non-empty for a probe-polled device: even a poll that
-       * reached nothing has to record that we tried, or the staleness
-       * backstop cannot tell a failing device from an unpolled one. Only
-       * the monitor-backed case above can leave it empty, and then there
-       * is genuinely nothing to write.
-       */
-      if (Object.keys(deviceUpdate).length > 0) {
+      if (isNewestPoll && Object.keys(deviceUpdate).length > 0) {
         await NetworkDeviceService.updateOneById({
           id: deviceId,
           data: deviceUpdate as any,
@@ -487,10 +552,12 @@ export default class NetworkInventoryUtil {
        * The first poll since someone asked to read the device again
        * (Refresh): its Inventory item is copied now rather than at the
        * mirror's next pass, so the item says what this poll read. Never
-       * fatal: the pass copies it within fifteen minutes regardless.
+       * fatal: the pass copies it within fifteen minutes regardless. Not
+       * an older poll: the newer one has answered the refresh already.
        */
       if (
         !isMonitorBacked &&
+        isNewestPoll &&
         isFirstPollSinceRefresh({
           refreshRequestedAt: ownedDevice.refreshRequestedAt,
           previousLastPolledAt: ownedDevice.lastPolledAt,
@@ -527,7 +594,7 @@ export default class NetworkInventoryUtil {
             projectId: data.projectId,
             deviceId: deviceId,
             walkedInterfaces: walkedInterfaces,
-            now: now,
+            now: receivedAt,
           });
 
         const unmonitoredIndexes: Set<number> = new Set(
@@ -584,18 +651,31 @@ export default class NetworkInventoryUtil {
             }),
           });
 
+        /*
+         * Its own try/catch, so that a failure here does not also stop the
+         * ARP table's MAC learning below (OneUptime issue #7388). Another
+         * writer's row lock is no failure: the service leaves those rows
+         * for the next walk and writes the rest.
+         */
         if (
           endpointResult.attachments.length > 0 ||
           endpointResult.ipBindings.length > 0
         ) {
-          await NetworkEndpointService.upsertDiscoveredEndpoints({
-            projectId: data.projectId,
-            deviceId: deviceId,
-            deviceSiteId: ownedDevice.siteId,
-            attachments: endpointResult.attachments,
-            ipBindings: endpointResult.ipBindings,
-            now: now,
-          });
+          try {
+            await NetworkEndpointService.upsertDiscoveredEndpoints({
+              projectId: data.projectId,
+              deviceId: deviceId,
+              deviceSiteId: ownedDevice.siteId,
+              attachments: endpointResult.attachments,
+              ipBindings: endpointResult.ipBindings,
+              now: receivedAt,
+            });
+          } catch (err) {
+            logger.error(
+              `Failed to update the endpoint inventory from the walk of network device ${deviceId.toString()}:`,
+            );
+            logger.error(err);
+          }
         }
 
         /*
@@ -605,8 +685,8 @@ export default class NetworkInventoryUtil {
          * that the switches' forwarding tables can put on a port, but only
          * once something has said which MAC is theirs. Stamped on the
          * device, once, while its MAC column is empty. Its own try/catch:
-         * the endpoint inventory above is already written, and a failure
-         * here must not read as one there.
+         * a failure here must not read as one of the endpoint inventory
+         * above, which has its own.
          */
         if (endpointResult.ipBindings.length > 0) {
           try {
@@ -616,6 +696,8 @@ export default class NetworkInventoryUtil {
               observingDeviceName: ownedDevice.name,
               observingSiteId: ownedDevice.siteId,
               ipBindings: endpointResult.ipBindings,
+              // The table was read when the poll was received.
+              now: receivedAt,
             });
           } catch (err) {
             logger.error(
@@ -639,7 +721,7 @@ export default class NetworkInventoryUtil {
         device: ownedDevice,
         probeId: data.probeId,
         dnsResolution: data.dnsResolution,
-        now: now,
+        now: receivedAt,
       });
     } catch (err) {
       logger.error(
@@ -654,7 +736,7 @@ export default class NetworkInventoryUtil {
         device: ownedDevice,
         probeId: data.probeId,
         interfaces: walkedInterfaces,
-        now: now,
+        now: receivedAt,
       });
     } catch (err) {
       logger.error(
@@ -700,6 +782,16 @@ export default class NetworkInventoryUtil {
       ];
 
     if (recorded?.value === macAddress) {
+      return false;
+    }
+
+    /*
+     * A reading taken after this poll's stands: an older poll processed
+     * later (OneUptime issue #7389) does not put its MAC back over it.
+     */
+    const recordedAt: number | undefined = getDiscoveredTime(recorded);
+
+    if (recordedAt !== undefined && recordedAt > data.now.getTime()) {
       return false;
     }
 
@@ -788,6 +880,14 @@ export default class NetworkInventoryUtil {
         NetworkDeviceDiscoveredField.IpAddress
       ];
     const recordedAt: number | undefined = getDiscoveredTime(recorded);
+
+    /*
+     * A reading taken after this poll's stands: an older poll processed
+     * later (OneUptime issue #7389) does not put its address back over it.
+     */
+    if (recordedAt !== undefined && recordedAt > data.now.getTime()) {
+      return false;
+    }
 
     if (
       recorded &&

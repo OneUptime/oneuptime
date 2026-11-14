@@ -76,7 +76,7 @@ export class Service extends ProjectReferencesService<Model> {
     const scheduleId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
       createBy.data as unknown as Record<string, unknown>,
       ["onCallDutyPolicyScheduleId", "onCallDutyPolicySchedule"],
-      "On-Call Policy Schedule",
+      "On-Call Schedule",
     );
 
     if (!scheduleId) {

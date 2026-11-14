@@ -59,7 +59,9 @@ flowchart TB
 Vos modifications ne concernent que vous tant que vous ne les enregistrez pas. Rien n'est enregistré pendant la modification, donc les autres continuent de voir le tableau de bord tel qu'il était.
 
 - **Enregistrer les modifications** enregistre les widgets, leurs places et leurs tailles, les variables, ainsi que la période et l'actualisation automatique par défaut, tout à la fois, et revient en lecture. Si l'enregistrement est refusé, par exemple parce que vous avez perdu l'autorisation entre-temps, vous restez en modification avec vos changements, et la raison s'affiche au-dessus de la grille.
-- **Annuler** demande d'abord, car cela jette vos modifications : **Annuler les modifications** revient au tableau de bord tel qu'il a été enregistré, et **Continuer la modification** vous ramène à votre travail.
+- **Annuler** revient en mode lecture. Si vous avez changé quelque chose, il demande d'abord, car cela jette vos modifications : **Annuler les modifications** revient au tableau de bord tel qu'il a été enregistré, et **Continuer la modification** vous ramène à votre travail.
+
+Quitter le tableau de bord avec des modifications non enregistrées demande aussi d'abord. Un lien du menu latéral, du fil d'Ariane ou de la barre supérieure, ou les boutons Précédent et Suivant de votre navigateur, ouvrent **Quitter sans enregistrer ?** avec les deux mêmes choix : **Continuer la modification** reste sur le tableau de bord avec vos modifications, et **Annuler les modifications** poursuit vers la page que vous ouvriez. Fermer ou recharger l'onglet demande confirmation dans la boîte de dialogue de votre navigateur. Un tableau de bord ouvert en modification et laissé tel quel ne demande rien, pas plus qu'un tableau de bord que vous venez d'enregistrer.
 
 Pendant la modification, l'actualisation automatique est en pause, et une plage temporelle zoomée revient à la plage que vous aviez choisie.
 

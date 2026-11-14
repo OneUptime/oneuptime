@@ -13,6 +13,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduleSubscribeCard from "../../../Components/OnCallPolicy/CalendarFeed/ScheduleSubscribeCard";
 import ScheduleUserGroupsCard from "../../../Components/OnCallPolicy/UserGroups/ScheduleUserGroupsCard";
 import { SCHEDULE_EDIT_BUTTON_TEXT } from "../../../Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 
 /*
  * A schedule's Overview: its details, then who is on call now and next, with
@@ -142,6 +144,16 @@ const OnCallDutyScheduleView: FunctionComponent<
         onLayersLoaded={(count: number): void => {
           setLayerCount(count);
         }}
+      />
+
+      {/*
+       * "Used by" (#6813): the on-call policies that page this schedule,
+       * and their escalation rules that do - or, when none does, that
+       * nobody on it is paged yet and where to add it.
+       */}
+      <UsedByCard
+        recordKind={UsedByRecordKind.OnCallSchedule}
+        recordId={modelId}
       />
 
       {hasLayers ? (

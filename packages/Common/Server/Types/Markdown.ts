@@ -32,6 +32,7 @@ import {
 } from "../../Utils/Markdown/Base64Data";
 import {
   LinkReferenceDefinition,
+  NestedLinkReferenceDefinition,
   forEachBracketedLabel,
   getLinkReferenceDefinitions,
 } from "../../Utils/Markdown/LinkReferenceDefinitions";
@@ -186,7 +187,11 @@ export const MAX_EMAIL_COPIED_HTML_IN_REFERENCES: number =
  * emphasis, code spans, links or escapes would make it look ahead through
  * them for too long, and blocks nested too deep, are written as text.
  * marked reads lines, lists and tables in linear time, so their number is
- * not limited.
+ * not limited. A block is counted as marked reads it (countAsMarked,
+ * #7228): a link or a reference whose label closes costs it a copy of the
+ * block, and a link's address and title, or a definition's, are read once -
+ * so a paragraph of a thousand references, or a link to an address with a
+ * long query, reaches marked and renders as links.
  */
 export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
@@ -199,6 +204,7 @@ export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   holdBackCodeBlockContent: false,
   countUrlLiterals: false,
   countWordUnderscores: false,
+  countAsMarked: true,
 };
 
 /*
@@ -263,6 +269,20 @@ interface EmailMarkdownToCut {
   markdown: string;
   runs: Array<Base64Run>;
   definitions: Array<LinkReferenceDefinition>;
+}
+
+/*
+ * A link reference definition as a field cut to fit writes it on a line of
+ * its own (cutEmailMarkdown): whole, without its title, or empty - and what
+ * the first two weigh (getEmailMarkdownWeight), the line break after them
+ * left out.
+ */
+interface CutDefinitionLines {
+  whole: string;
+  wholeWeight: number;
+  withoutTitle: string;
+  withoutTitleWeight: number;
+  empty: string;
 }
 
 /*
@@ -1651,7 +1671,10 @@ export default class Markdown {
    * first. They go before the kept part, a blank line between: there each
    * is a definition whatever the cut ends inside - a code block, a list, an
    * HTML comment - and a definition renders nothing, so the email reads as
-   * it would with them anywhere.
+   * it would with them anywhere. One written in a block quote or a list
+   * item goes as marked reads it there, without the quote's markers and the
+   * item's indentation (getCutDefinitionLines, #7230): before the kept part
+   * it is no quote or list, but a definition all the same.
    *
    * They count toward `weight`, and a screenshot's data in one weighs
    * nothing. The kept part is cut shorter to make room for them - to half
@@ -1703,15 +1726,14 @@ export default class Markdown {
     }
 
     // Each definition on a line of its own, and a blank line after them.
-    const lineWeight: (start: number, end: number) => number = (
-      start: number,
-      end: number,
-    ): number => {
-      return Markdown.getEmailWeightBetween(runs, start, end) + 1;
-    };
     const neededWeight: number = needed.reduce(
       (sum: number, definition: LinkReferenceDefinition): number => {
-        return sum + lineWeight(definition.start, definition.end);
+        return (
+          sum +
+          Markdown.getCutDefinitionLines(markdown, runs, definition)
+            .wholeWeight +
+          1
+        );
       },
       1,
     );
@@ -1736,25 +1758,26 @@ export default class Markdown {
      * are then their text - and then as much of each as fits: the lightest
      * first both times. Written in the order of the text.
      */
-    const wholeWeights: Array<number> = needed.map(
-      (definition: LinkReferenceDefinition): number => {
-        return lineWeight(definition.start, definition.end);
+    const forms: Array<CutDefinitionLines> = needed.map(
+      (definition: LinkReferenceDefinition): CutDefinitionLines => {
+        return Markdown.getCutDefinitionLines(markdown, runs, definition);
       },
     );
-    const lightestFirst: Array<number> = wholeWeights
-      .map((_weight: number, index: number): number => {
+    const lightestFirst: Array<number> = forms
+      .map((_form: CutDefinitionLines, index: number): number => {
         return index;
       })
       .sort((one: number, other: number): number => {
-        return wholeWeights[one]! - wholeWeights[other]! || one - other;
+        return (
+          forms[one]!.wholeWeight - forms[other]!.wholeWeight || one - other
+        );
       });
     const lines: Array<string | null> = needed.map((): null => {
       return null;
     });
 
     for (const index of lightestFirst) {
-      const definition: LinkReferenceDefinition = needed[index]!;
-      const empty: string = `[${markdown.slice(definition.labelStart, definition.labelEnd)}]: <>`;
+      const empty: string = forms[index]!.empty;
 
       if (empty.length + 1 <= room) {
         lines[index] = empty;
@@ -1769,20 +1792,15 @@ export default class Markdown {
         continue;
       }
 
-      const definition: LinkReferenceDefinition = needed[index]!;
-      const whole: number = wholeWeights[index]! - (empty.length + 1);
-      const withoutTitle: number =
-        lineWeight(definition.start, definition.destinationEnd) -
-        (empty.length + 1);
+      const form: CutDefinitionLines = forms[index]!;
+      const whole: number = form.wholeWeight - empty.length;
+      const withoutTitle: number = form.withoutTitleWeight - empty.length;
 
       if (whole <= room) {
-        lines[index] = markdown.slice(definition.start, definition.end);
+        lines[index] = form.whole;
         room -= whole;
       } else if (withoutTitle <= room) {
-        lines[index] = markdown.slice(
-          definition.start,
-          definition.destinationEnd,
-        );
+        lines[index] = form.withoutTitle;
         room -= withoutTitle;
       }
     }
@@ -1796,6 +1814,66 @@ export default class Markdown {
     }
 
     return written ? `${written}\n${kept}` : kept;
+  }
+
+  /*
+   * How a field cut to fit writes `definition` on a line of its own, before
+   * its kept part (cutEmailMarkdown): as it is written - or, when it is in
+   * a block quote or a list item, as marked reads it there (`nested`),
+   * without the quote's markers and the item's indentation, which would
+   * make a quote or a list of it there (#7230), and from its "[": a line
+   * indented past its item's indentation is no less a definition. Its
+   * address is the text's own either way, so a screenshot's data in it
+   * weighs nothing; the rest of a nested one weighs all it is long, never
+   * less than the cut text does.
+   */
+  private static getCutDefinitionLines(
+    markdown: string,
+    runs: Array<Base64Run>,
+    definition: LinkReferenceDefinition,
+  ): CutDefinitionLines {
+    const nested: NestedLinkReferenceDefinition | undefined = definition.nested;
+
+    if (!nested) {
+      return {
+        whole: markdown.slice(definition.start, definition.end),
+        wholeWeight: Markdown.getEmailWeightBetween(
+          runs,
+          definition.start,
+          definition.end,
+        ),
+        withoutTitle: markdown.slice(
+          definition.start,
+          definition.destinationEnd,
+        ),
+        withoutTitleWeight: Markdown.getEmailWeightBetween(
+          runs,
+          definition.start,
+          definition.destinationEnd,
+        ),
+        empty: `[${markdown.slice(definition.labelStart, definition.labelEnd)}]: <>`,
+      };
+    }
+
+    // The base64 its address holds, which weighs nothing.
+    const addressData: number =
+      definition.destinationEnd -
+      definition.destinationStart -
+      Markdown.getEmailWeightBetween(
+        runs,
+        definition.destinationStart,
+        definition.destinationEnd,
+      );
+    // Its "[", after the up to three spaces a definition may be indented.
+    const from: number = nested.labelStart - 1;
+
+    return {
+      whole: nested.text.slice(from),
+      wholeWeight: nested.text.length - from - addressData,
+      withoutTitle: nested.text.slice(from, nested.destinationEnd),
+      withoutTitleWeight: nested.destinationEnd - from - addressData,
+      empty: `[${nested.text.slice(nested.labelStart, nested.labelEnd)}]: <>`,
+    };
   }
 
   /*
@@ -2261,6 +2339,13 @@ export default class Markdown {
         continue;
       }
 
+      /*
+       * Its label as marked reads it: in a block quote or a list item,
+       * without the markers and indentation of the lines it runs over.
+       */
+      const nested: NestedLinkReferenceDefinition | undefined =
+        definition.nested;
+
       writeImage(
         definition.start,
         definition.end,
@@ -2268,7 +2353,9 @@ export default class Markdown {
           addressStart,
           definition.destinationEnd - (bracketed ? 1 : 0),
         ),
-        text.slice(definition.labelStart, definition.labelEnd),
+        nested
+          ? nested.text.slice(nested.labelStart, nested.labelEnd)
+          : text.slice(definition.labelStart, definition.labelEnd),
       );
     }
 

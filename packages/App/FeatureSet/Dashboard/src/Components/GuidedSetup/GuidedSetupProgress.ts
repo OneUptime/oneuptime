@@ -165,7 +165,11 @@ export const readGuidedSetupRun: (value: JSONValue | null) => GuidedSetupRun = (
  *
  * A run the browser lost is never a reason to make a record twice: each
  * setup looks for what this person already made before it makes something
- * (the website-down setup's monitor for the same address).
+ * (the website-down setup's monitor for the same address #7059, the status
+ * page setup's page with the same name #7252), and a step that makes the
+ * project's first on-call policy reads the project's policies again just
+ * before, so another tab or device that made one meanwhile is not doubled
+ * (the website-down and on-call setups).
  */
 export default class GuidedSetupRunStore {
   private readonly key: string;

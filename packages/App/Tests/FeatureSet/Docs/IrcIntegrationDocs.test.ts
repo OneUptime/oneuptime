@@ -18,6 +18,7 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
+import { pathSteps } from "./DocsPageShape";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import SendMessageToChannel from "Common/Server/Types/Workflow/Components/IRC/SendMessageToChannel";
@@ -137,11 +138,7 @@ const TRANSLATIONS: Array<string> = LANGUAGES.filter(
   },
 );
 
-// The Persian pages name the Dashboard's labels in English.
-const ENGLISH_UI_LANGUAGES: ReadonlySet<string> = new Set<string>(["en", "fa"]);
-
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
-const MENU_PATH_SEPARATOR: string = " → ";
 const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
 const DETAILS_TITLE: RegExp = /^:::details[ \t]+"([^"]+)"[ \t]*$/;
 const TABLE_ROW: RegExp = /^\|.*\|[ \t]*$/;
@@ -268,7 +265,8 @@ type TermsFunction = (text: string) => Set<string>;
 
 /*
  * What a page names in bold. A menu path, "**Workflows → Global Variables**",
- * names each screen on it as well.
+ * names each screen on it as well, whichever way its arrows point (a
+ * Persian page points "←" from a step in Persian words, #7611).
  */
 const boldTermsOf: TermsFunction = (text: string): Set<string> => {
   const terms: Set<string> = new Set<string>();
@@ -276,8 +274,8 @@ const boldTermsOf: TermsFunction = (text: string): Set<string> => {
   for (const term of matchesOf(text, BOLD)) {
     terms.add(term);
 
-    for (const part of term.split(MENU_PATH_SEPARATOR)) {
-      terms.add(part.trim());
+    for (const part of pathSteps(term)) {
+      terms.add(part);
     }
   }
 
@@ -420,12 +418,15 @@ const docsLocaleOf: StringsFunction = (
 
 type DashboardWordFunction = (language: string, english: string) => string;
 
-// A label as the Dashboard draws it in a language: its translation, or English.
+/*
+ * A label as the Dashboard draws it in a language: its translation, or
+ * English. Every language's page names it so, Persian included.
+ */
 const dashboardWord: DashboardWordFunction = (
   language: string,
   english: string,
 ): string => {
-  if (ENGLISH_UI_LANGUAGES.has(language)) {
+  if (language === "en") {
     return english;
   }
 
@@ -447,7 +448,7 @@ const createButtonWord: DashboardWordFunction = (
 ): string => {
   const english: string = `Create ${noun}`;
 
-  if (ENGLISH_UI_LANGUAGES.has(language)) {
+  if (language === "en") {
     return english;
   }
 

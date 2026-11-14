@@ -61,19 +61,23 @@ function device(discoveredDetails?: JSONObject): NetworkDevice {
   return row;
 }
 
-function recorded(value: string): JSONObject {
+function recorded(
+  value: string,
+  readAt: string = "2026-10-01T00:00:00.000Z",
+): JSONObject {
   return {
     ownMacAddress: {
       value: value,
       method: "snmp",
       readBy: { type: "probe", id: PROBE_ID.toString() },
-      readAt: "2026-10-01T00:00:00.000Z",
+      readAt: readAt,
     },
   };
 }
 
 let mergeSpy: SpyInstance<typeof NetworkDeviceService.mergeDiscoveredDetails>;
 let updateSpy: SpyInstance<typeof NetworkDeviceService.updateOneById>;
+let pollVerdictSpy: SpyInstance<typeof NetworkDeviceService.writePollVerdict>;
 
 function mockMerge(): void {
   mergeSpy = jest
@@ -87,6 +91,9 @@ function mockPollServices(owned: NetworkDevice): void {
   updateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1 as never);
+  pollVerdictSpy = jest
+    .spyOn(NetworkDeviceService, "writePollVerdict")
+    .mockResolvedValue(true);
   jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([]);
   jest
     .spyOn(NetworkInterfaceService, "upsertWalkedInterfaces")
@@ -190,6 +197,35 @@ describe("NetworkInventoryUtil.recordOwnMacAddress", () => {
     expect(mergedEntry()["value"]).toBe(WAN_MAC);
   });
 
+  /*
+   * A poll processed after a newer one - a retried job, or one that waited
+   * longer in the queue (issue #7389) - read the port before the reading on
+   * record was taken. It does not put its MAC back over that reading.
+   */
+  test("a reading taken after this poll's stands: an older poll does not put its MAC back", async () => {
+    mockMerge();
+
+    expect(
+      await record(
+        device(recorded("00:18:0a:00:00:01", "2026-10-23T10:05:00.000Z")),
+        PROBE_ID,
+      ),
+    ).toBe(false);
+    expect(mergeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a reading taken at this very poll's time is replaced only if it differs, as any older one is", async () => {
+    mockMerge();
+
+    expect(
+      await record(
+        device(recorded("00:18:0a:00:00:01", NOW.toISOString())),
+        PROBE_ID,
+      ),
+    ).toBe(true);
+    expect(mergedEntry()["value"]).toBe(WAN_MAC);
+  });
+
   test("another writer's keys are left to them: it sets only its own", async () => {
     mockMerge();
 
@@ -285,11 +321,18 @@ describe("the poll pipeline records it", () => {
 
     await poll(walk());
 
-    const update: { data: Record<string, unknown> } = updateSpy.mock
-      .calls[0]![0] as never;
+    // The poll's own writes to the device: its verdict, and any enrichment.
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+    expect(pollVerdictSpy.mock.calls[0]![0].verdict).not.toHaveProperty(
+      "macAddress",
+    );
 
-    expect(update.data).not.toHaveProperty("macAddress");
-    expect(update.data).not.toHaveProperty("isMacAddressLearned");
+    for (const call of updateSpy.mock.calls) {
+      const update: { data: Record<string, unknown> } = call[0] as never;
+
+      expect(update.data).not.toHaveProperty("macAddress");
+      expect(update.data).not.toHaveProperty("isMacAddressLearned");
+    }
   });
 
   test("a walk whose response was pruned to monitored ports still reads the port it read first", async () => {
@@ -365,7 +408,26 @@ describe("the poll pipeline records it", () => {
       pollMode: "snmp",
     });
 
-    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
     expect(mergeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a poll is credited with its receipt time, not the time a worker got to it", async () => {
+    mockPollServices(device());
+
+    // Received ten minutes before NOW, and processed weeks after it.
+    const receivedAt: Date = new Date(NOW.getTime() - 10 * 60 * 1000);
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: walk(),
+      isOnline: true,
+      pollMode: "snmp",
+      probeId: PROBE_ID,
+      receivedAt: receivedAt,
+    });
+
+    expect(mergedEntry()["readAt"]).toBe(receivedAt.toISOString());
   });
 });

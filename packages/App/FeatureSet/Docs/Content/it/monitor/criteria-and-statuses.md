@@ -1,4 +1,4 @@
-# Criteri e stati dei monitor
+# Criteri e stati
 
 I criteri di un monitor decidono cosa significa ogni controllo: se il monitor è attivo o fuori servizio, e se OneUptime dichiara un incidente o crea un avviso. Gli stati sono l'elenco del vostro progetto di ciò che un monitor può essere, da **Operativo** a **Offline**. Questa pagina spiega entrambi per ogni tipo di monitor; la pagina di ciascun tipo elenca i filtri che offre.
 
@@ -111,7 +111,7 @@ Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: 
 :::steps
 ### Aprire la pagina dei criteri
 
-Andate in **Monitor** e aprite il monitor. Espandete **Configurazione** nel suo menu laterale e fate clic su **Criteri**. La scheda **Criteri di monitoraggio** mostra ogni criterio, cosa controlla e cosa fa.
+Andate in **Monitor** e aprite il monitor. Espandete **Configurazione** nel suo menu laterale e fate clic su **Criteri**. La scheda **Criteri** mostra ogni criterio, cosa controlla e cosa fa.
 
 ### Fare clic su Modifica criteri di monitoraggio
 

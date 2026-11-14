@@ -30,6 +30,7 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { otherChangesItems } from "./UpgradingDocsNotes";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import { APPROVAL_AFTER_LAST_STEP_TITLE } from "Common/Types/Runbook/RunbookStepApproval";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
@@ -98,7 +99,7 @@ const ROLES_AND_PERMISSIONS: Array<string> = [
   "Edit Incident",
   "Edit Alert",
   "Create Alert State Timeline",
-  "Execute On-Call Duty Policy",
+  "Execute On-Call Policies",
   "Create Runbook Execution",
   // The AI rules' permissions, which were the auto remediation rules'.
   "Create AI Rule",
@@ -711,15 +712,21 @@ function drawnSegments(language: string, english: string): Array<string> {
 
 /*
  * A path drawn in a translation: its segments in order, in one bold span or
- * one span a segment, joined by "→" or ">".
+ * one span a segment, joined by "→" or ">", and in a language read from the
+ * right by "←" as well, which a Persian page writes beside a Persian
+ * segment (#7611).
  */
-function pathPattern(segments: Array<string>): RegExp {
+function pathPattern(language: string, segments: Array<string>): RegExp {
+  const arrow: string = isRightToLeftLanguage(language)
+    ? "(?:→|←|>)"
+    : "(?:→|>)";
+
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
         return escapeRegExp(segment);
       })
-      .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
+      .join(`(?:\\*\\* | )${arrow}(?: \\*\\*| )`)}\\*\\*`,
   );
 }
 
@@ -1519,7 +1526,7 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
         return drawnSegments(language, path_);
       })
       .filter((segments: Array<string>): boolean => {
-        return !pathPattern(segments).test(translated);
+        return !pathPattern(language, segments).test(translated);
       })
       .map((segments: Array<string>): string => {
         return segments.join(" > ");
@@ -1611,11 +1618,20 @@ describe("the helpers, on this page's shapes", () => {
   });
 
   it("draw a path in one span or a span a segment, joined by → or >", () => {
-    const pattern: RegExp = pathPattern(["Runbooks", "Runbook-Agents"]);
+    const pattern: RegExp = pathPattern("de", ["Runbooks", "Runbook-Agents"]);
 
     expect(pattern.test("**Runbooks → Runbook-Agents**")).toBe(true);
     expect(pattern.test("**Runbooks** > **Runbook-Agents**")).toBe(true);
     expect(pattern.test("**Runbook-Agents → Runbooks**")).toBe(false);
+    // A page read from the left writes no "←" (#7611).
+    expect(pattern.test("**Runbooks ← Runbook-Agents**")).toBe(false);
+
+    // A Persian page writes "←" beside a Persian segment, or ">".
+    const persian: RegExp = pathPattern("fa", ["تنظیمات", "هوش مصنوعی"]);
+
+    expect(persian.test("**تنظیمات ← هوش مصنوعی**")).toBe(true);
+    expect(persian.test("**تنظیمات** > **هوش مصنوعی**")).toBe(true);
+    expect(persian.test("**هوش مصنوعی ← تنظیمات**")).toBe(false);
   });
 
   it("fill a Mark as button from the language's template and state", () => {

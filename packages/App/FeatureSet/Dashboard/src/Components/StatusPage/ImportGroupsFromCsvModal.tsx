@@ -43,6 +43,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Bulk CSV import for Status Page Groups, reached from the ⋯ menu on the
@@ -480,9 +481,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                             "Line {{line}}: {{message}}",
                             {
                               line: translator.formatNumber(error.line),
-                              message: translator.translateText(
-                                error.message,
-                              ) as string,
+                              message: errorInSentence(error.message),
                             },
                           )
                         : translator.translateText(error.message)}

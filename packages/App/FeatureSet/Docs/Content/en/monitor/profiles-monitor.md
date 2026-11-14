@@ -3,7 +3,7 @@
 A Profiles monitor reads the continuous profiles your services send to OneUptime and alerts on two things: a function taking a bigger share of the time than it should, such as a parser that got heavier after a deploy, and profiles that stop arriving from a service. Every minute it measures how much of its time window ran through the function you name, counts the profiles that match its filters, and changes the monitor's status, creates an alert or declares an incident when your criteria are met.
 
 :::cards
-- [Create the monitor](#create-a-profiles-monitor): From a function in the Profiler, or from Create Monitor.
+- [Create the monitor](#create-a-profiles-monitor): From a function in Profiles, or from Create Monitor.
 - [What it queries](#what-it-queries): The function, the kind of profile, the services and the window.
 - [Criteria](#criteria): A function's share of the window, or the profile count.
 - [A function gets heavier](#worked-example-a-function-gets-heavier): Alert when one function's share jumps.
@@ -26,15 +26,15 @@ Every minute, OneUptime reads the profiles that match the monitor's filters and 
 
 ## Before you begin
 
-- Your services send continuous profiling data to OneUptime, through Grafana Alloy (eBPF), a Pyroscope SDK or the OneUptime Kubernetes agent. See [Continuous Profiling](/docs/telemetry/profiles).
-- To watch one function, you know its name, or a part of its file or package path, as the Profiler shows it.
+- Your services send continuous profiling data to OneUptime, through Grafana Alloy (eBPF), a Pyroscope SDK or the OneUptime Kubernetes agent. See [Profiles](/docs/telemetry/profiles).
+- To watch one function, you know its name, or a part of its file or package path, as shown in Profiles.
 
 ## Create a profiles monitor
 
 :::steps
-### Start from the Profiler, or from Create Monitor
+### Start from Profiles, or from Create Monitor
 
-The quickest way is from the function itself: in **Performance Profiles**, open the function and click the link that offers an alert on its share. **Create Monitor** opens with the monitor filled in for that function and its service, with a threshold above what it takes today, as described in [Worked example: a function gets heavier](#worked-example-a-function-gets-heavier). Otherwise, go to **Monitors** and click **Create Monitor**.
+The quickest way is from the function itself: in **Profiles**, open the function and click the link that offers an alert on its share. **Create Monitor** opens with the monitor filled in for that function and its service, with a threshold above what it takes today, as described in [Worked example: a function gets heavier](#worked-example-a-function-gets-heavier). Otherwise, go to **Monitors** and click **Create Monitor**.
 
 ### Choose Profiles
 
@@ -84,7 +84,7 @@ Put the service's ID in `telemetryServiceIds`, or leave the list empty to read p
 | `attributes` | Profiles whose attributes have these values. | Empty: no condition |
 | `lastXSecondsOfProfiles` | Profiles that started within this many seconds before the evaluation. | None: always set it, or every stored profile is counted and the count never falls to 0 |
 
-All the filters you set must match for a profile to be read. In the form, **Function** sets `functionName`, **What to analyze** sets `profileTypes` (**Every kind of profile** leaves it empty), **Monitor profiles for (time)** sets `lastXSecondsOfProfiles`, and **Filter by Telemetry Service** and **Filter by Infrastructure Entity** set `telemetryServiceIds` and `entityKeys`.
+All the filters you set must match for a profile to be read. In the form, **Function** sets `functionName`, **What to analyze** sets `profileTypes` (**Every kind of profile** leaves it empty), **Monitor profiles for (time)** sets `lastXSecondsOfProfiles`, and **Filter by Service** and **Filter by Infrastructure Entity** set `telemetryServiceIds` and `entityKeys`.
 
 ## How it is evaluated
 
@@ -127,8 +127,8 @@ Profile counts have no anomaly conditions: there is no baseline to compare them 
 
 The checkout service's `parseOrder` takes 18% of its CPU time. A deploy that parses a bigger payload should not go unnoticed:
 
-1. In **Performance Profiles**, pick the checkout service and open `parseOrder`.
-2. Click the link that offers an alert on its share. The Profiler suggests 30%: half again above today's share, at least 10 points more, rounded up to a multiple of 5.
+1. In **Profiles**, pick the checkout service and open `parseOrder`.
+2. Click the link that offers an alert on its share. Profiles suggests 30%: half again above today's share, at least 10 points more, rounded up to a multiple of 5.
 3. **Create Monitor** opens on a Profiles monitor of the checkout service that reads **CPU time** over the **Last 5 minutes**, with two criteria: **Function Share (in %)** **Greater Than** `30` raises an alert, which resolves itself, and marks the monitor degraded; **Less Than Or Equal To** `30` marks it operational. The incident is filled in but switched off: turn it on to page someone.
 4. Click **Create Monitor**.
 
@@ -151,13 +151,13 @@ Check the filters against the profiles you see: `profileTypes` must match the ty
 :::
 
 :::details The function's share stays at 0%
-No frame in the window contains the function text. Open the function in the Profiler and copy its name as shown there; part of the name works, and case does not matter. Then check that the service sends the kind of profile **What to analyze** reads.
+No frame in the window contains the function text. Open the function in Profiles and copy its name as shown there; part of the name works, and case does not matter. Then check that the service sends the kind of profile **What to analyze** reads.
 :::
 
 ## Next steps
 
 :::cards
-- [Continuous Profiling](/docs/telemetry/profiles): Send profiles, and read them in the Profiler.
+- [Profiles](/docs/telemetry/profiles): Send profiles, and read them in Profiles.
 - [Terraform Monitor Steps](/docs/terraform/monitor-steps): Pass the step configuration from Terraform.
 - [Traces Monitor](/docs/monitor/traces-monitor): Alert on failing spans.
 - [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on CPU, memory and other metrics.

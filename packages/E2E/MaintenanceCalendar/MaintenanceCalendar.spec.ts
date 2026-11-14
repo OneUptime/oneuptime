@@ -13,7 +13,7 @@ import { boxesInOneFrame } from "../SuiteHelpers/Frames";
  * page in side menu with its own side menu section called Calendar", with
  * calendars from outside the project overlaid on it (issue #5084) and set up
  * on a Calendar Settings page. What only a browser shows is pinned here: the
- * calendar's own page in the side menu's Calendar section, All Events the
+ * calendar's own page in the side menu's Calendar section, All Maintenance Events the
  * list alone, a reader whose browser had left the old List | Calendar switch
  * on Calendar taken there once; the external calendars drawn beside the
  * events - lighter, dashed, opening nothing - with a toggle each, a hidden one
@@ -334,7 +334,7 @@ test.describe("the calendar's own page", () => {
     await shot(page, "calendar-page");
   });
 
-  test("All Events is the list alone: no switch, and no Subscribe to calendar in its menu", async ({
+  test("All Maintenance Events is the list alone: no switch, and no Subscribe to calendar in its menu", async ({
     page,
   }: {
     page: Page;
@@ -360,7 +360,7 @@ test.describe("the calendar's own page", () => {
    * pages it will show on, and under them from when: it is on none of them
    * yet. Every other event's cell is as it was.
    */
-  test("All Events says, under an event's status pages, from when it shows on them (?publish=later)", async ({
+  test("All Maintenance Events says, under an event's status pages, from when it shows on them (?publish=later)", async ({
     page,
   }: {
     page: Page;
@@ -392,7 +392,9 @@ test.describe("the calendar's own page", () => {
     await calendarSettled(page);
     expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
 
-    await sideMenu(page).getByRole("link", { name: "All Events" }).click();
+    await sideMenu(page)
+      .getByRole("link", { name: "All Maintenance Events" })
+      .click();
     await expect(calendar(page)).toHaveCount(0);
     expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
   });
@@ -412,8 +414,10 @@ test.describe("the calendar's own page", () => {
       }, PREVIOUS_VIEW_KEY),
     ).toBeNull();
 
-    // Once: All Events is the list from then on.
-    await sideMenu(page).getByRole("link", { name: "All Events" }).click();
+    // Once: All Maintenance Events is the list from then on.
+    await sideMenu(page)
+      .getByRole("link", { name: "All Maintenance Events" })
+      .click();
     await expect(page.getByText("Database upgrade").first()).toBeVisible();
     await expect(calendar(page)).toHaveCount(0);
     expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
@@ -436,13 +440,13 @@ test.describe("the calendar's own page", () => {
     ).toBeNull();
   });
 
-  test("its header reads as All Events' does: the title whole beside the buttons, the description under both", async ({
+  test("its header reads as All Maintenance Events' does: the title whole beside the buttons, the description under both", async ({
     page,
   }: {
     page: Page;
   }) => {
     /*
-     * Beside "Create Scheduled Maintenance Event" the card's default header
+     * Beside "Create Maintenance Event" the card's default header
      * broke the title into a column a word wide at tablet widths, and the
      * description over two lines on a laptop.
      */
@@ -1760,7 +1764,7 @@ test.describe("on a phone", () => {
     await shot(page, "phone-month");
   });
 
-  test("the header keeps Create and the ⋯ on one line, as All Events does", async ({
+  test("the header keeps Create and the ⋯ on one line, as All Maintenance Events does", async ({
     page,
   }: {
     page: Page;

@@ -1,6 +1,6 @@
-# Dienstkatalog
+# Dienste
 
-Der Dienstkatalog listet die Anwendungen und Microservices, die Sie betreiben. OneUptime legt einen Dienst an, sobald seine Telemetrie zum ersten Mal eintrifft, und führt dann seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer auf einer Seite zusammen, sodass jeder sieht, was ein Dienst tut, wem er gehört und wie es ihm geht. Um zwischen einem Dienst, einer Monitor-Gruppe und einer Beschriftung zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#monitor-gruppe-dienst-oder-beschriftung).
+Unter Dienste finden Sie die Anwendungen und Microservices, die Sie betreiben. OneUptime legt einen Dienst an, sobald seine Telemetrie zum ersten Mal eintrifft, und führt dann seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer auf einer Seite zusammen, sodass jeder sieht, was ein Dienst tut, wem er gehört und wie es ihm geht. Um zwischen einem Dienst, einer Monitor-Gruppe und einer Beschriftung zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#monitor-gruppe-dienst-oder-beschriftung).
 
 :::cards
 - [Wie ein Dienst in den Katalog kommt](#wie-ein-dienst-in-den-katalog-kommt): Sein `service.name`, bei seiner ersten Telemetrie.
@@ -62,7 +62,7 @@ Das Seitenmenü eines Dienstes hat fünf Abschnitte:
 | Abschnitt | Seiten |
 | --- | --- |
 | **Grundlegend** | **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus seinen Spans, Diagramme und seine Details. **Empfehlungen**: fertige Monitore für den Dienst, passend zu seiner Sprache. **Eigentümer**: die Personen und Teams, die für ihn verantwortlich sind. **Feed**: alles, was ihm passiert ist, von seiner Entstehung bis zu jeder Änderung seitdem. |
-| **Telemetrie** | Seine **Protokolle**, **Traces**, **Metriken**, **Leistungsprofile**, **Ausnahmen** und **Source Maps**, bereits auf diesen Dienst gefiltert. |
+| **Telemetrie** | Seine **Protokolle**, **Traces**, **Metriken**, **Profile**, **Ausnahmen** und **Source Maps**, bereits auf diesen Dienst gefiltert. |
 | **Aktivität** | Die **Vorfälle**, **Warnungen** und Ereignisse der **Geplante Wartung**, die ihn betreffen. |
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: der Dienst, aus Code verwaltet. Der Abschnitt ist zunächst eingeklappt. |
 | **Erweitert** | **Einstellungen**, **Audit-Protokolle** und **Dienst löschen**. **Erweitert** ist anfangs eingeklappt: Klappen Sie es zuerst auf. |
@@ -123,6 +123,6 @@ In den letzten 30 Minuten ist nichts von ihm eingetroffen. Bei einem Dienst, der
 :::cards
 - [Protokoll-Explorer](/docs/telemetry/logs-explorer): Die Protokolle eines Dienstes durchsuchen.
 - [Trace-Explorer](/docs/telemetry/traces-explorer): Seinen Anfragen folgen.
-- [Ausnahmenverfolgung](/docs/telemetry/exceptions): Die Fehler sichten, die er wirft.
+- [Ausnahmen](/docs/telemetry/exceptions): Die Fehler sichten, die er wirft.
 - [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules): Neuen Diensten Beschriftungen und Eigentümer geben.
 :::

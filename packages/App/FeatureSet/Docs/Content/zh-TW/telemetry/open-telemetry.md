@@ -36,7 +36,7 @@ flowchart TB
 
 ## 開始之前
 
-- 一個你可以在其中建立擷取金鑰的 OneUptime 專案：專案擁有者與管理員可以建立，擁有 **Create Telemetry Ingestion Key** 權限的任何人也可以。
+- 一個你可以在其中建立擷取金鑰的 OneUptime 專案：專案擁有者與管理員可以建立，擁有 Create Ingestion Key 權限的任何人也可以。
 - 一個可以加入 OpenTelemetry SDK 的應用程式，或一個 OpenTelemetry Collector。
 - 從應用程式或 Collector 到 `oneuptime.com`（或你自己的 OneUptime 主機）的對外 HTTPS（連接埠 443）。
 
@@ -365,7 +365,7 @@ Collector 會在連接埠 `4317`（gRPC）與 `4318`（HTTP）上接收 OTLP，�
 | 日誌 | `https://oneuptime.com/otlp/v1/logs` |
 | 效能剖析 | `https://oneuptime.com/otlp/v1/profiles` |
 
-若要持續剖析效能，大多數剖析器會改為傳送到相容 Pyroscope 的端點，請參閱[持續效能剖析](/docs/telemetry/profiles)。匯出 OTLP 剖析資料的 Collector 必須將匯出器的 `profiles_endpoint` 設為 `https://oneuptime.com/otlp/v1/profiles`，因為預設情況下它會把剖析資料傳送到 OneUptime 未提供的開發路徑。
+若要持續剖析效能，大多數剖析器會改為傳送到相容 Pyroscope 的端點，請參閱[效能剖析](/docs/telemetry/profiles)。匯出 OTLP 剖析資料的 Collector 必須將匯出器的 `profiles_endpoint` 設為 `https://oneuptime.com/otlp/v1/profiles`，因為預設情況下它會把剖析資料傳送到 OneUptime 未提供的開發路徑。
 
 ### 透過 gRPC 的 OTLP
 

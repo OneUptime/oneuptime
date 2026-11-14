@@ -66,7 +66,7 @@ const ON_CALL_MENU_ENTRIES: Array<OnCallMenuEntry> = [
   },
   {
     pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
-    title: "On-Call Rules",
+    title: "How to Reach Me",
     icon: IconProp.BellRinging,
   },
 ];

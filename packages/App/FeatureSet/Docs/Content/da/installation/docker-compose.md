@@ -444,6 +444,37 @@ For at gendanne PostgreSQL angiver du værdierne `DATABASE_RESTORE_*` i `config.
 > [!CAUTION]
 > `restore.sh` sletter hvert objekt fra backuppen i måldatabasen, før det genoprettes. Det spørger, før det går i gang; kontrollér det databasenavn, det viser.
 
+## Kør kun det, du har brug for
+
+Mange servere kører OneUptime til én opgave, f.eks. at overvåge websteder og udgive en statusside. En masteradministrator kan slå de produkter fra, som ingen bruger, for alle projekter på serveren på én gang, under **Indstillinger > Produkter** i Admin Dashboard.
+
+- **Forudindstillinger** sætter alle kontakter med ét klik: **Overvågning og statussider** beholder Monitorer, Hændelser, Vagt, Statussider og Planlagt vedligeholdelse; **Hændelseshåndtering** tilføjer Advarsler, SLOs, Arbejdsgange og Runbooks; **Alt** beholder alle produkter. **Vælg produkter ét ad gangen** slår et enkelt produkt om. Brugere, Teams og Projektindstillinger er altid slået til.
+- Et produkt, der er slået fra, forsvinder fra hvert projekts menu **Produkter**, fra Hjem og fra Søg, og **Projektindstillinger > Produkter** viser det som slået fra. Et link til en af dets sider siger, at produktet er slået fra på denne server, og hvem der kan slå det til.
+- API'et afviser at oprette, ændre eller slette produktets poster, og Spørg AI udelader det. Læsning virker stadig, fordi produkter, der forbliver slået til, viser andres poster: en hændelse nævner sine monitorer.
+- Intet slettes, og det, der allerede kører, bliver ved med at køre: monitorer bliver ved med at tjekke, udgivne statussider forbliver oppe, og telemetri bliver ved med at komme, medmindre du også stopper indtaget. Et produkt, der slås til igen, kommer tilbage, som det var.
+
+For at angive produkterne som kode skal du sætte `SERVER_PRODUCTS` i `config.env` (Helm: `products.onThisServer`) til `everything`, `monitoring-and-status-pages`, `incident-response` eller de produkter, der skal forblive slået til, efter deres nøgle, f.eks. `monitors,incidents,on-call,status-pages`. Det er en startværdi: Så snart en administrator gemmer **Indstillinger > Produkter**, gælder det, vedkommende gemte.
+
+### Profilen Overvågning og statussider
+
+For en server, der kun overvåger websteder og API'er og udgiver statussider, skal du angive disse i `config.env` og derefter køre `npm start`:
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| Indstilling | Hvad den gør |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Alle projekter tilbyder Monitorer, Hændelser, Vagt, Statussider og Planlagt vedligeholdelse. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime gemmer ingen af de logs, metrikker, traces eller profiler, det får tilsendt. Protokoller, Metrikker, Spor, Ydeevneprofiler og Undtagelser vises som slået fra. |
+| `GLOBAL_RUNNER_REPLICAS=0` | Tjenesten `global-runner` starter ikke. Kun runbooks og OneUptime AI's koderettelser bruger den. |
+| `MQTT_INGEST_ENABLED=false` | De MQTT-lyttere, som IoT-enheder sender til, er slået fra. |
+
+Seks tjenester kører stadig: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` og `valkey`. ClickHouse bliver, fordi monitorer gemmer deres resultater og logs i den. På Kubernetes skal du sætte `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` og `globalRunner.enabled: false` i Helm-values. Dimensionér serveren efter [kravene](#krav).
+
 ## Opdatér OneUptime
 
 Tag backup først, og kør derefter:

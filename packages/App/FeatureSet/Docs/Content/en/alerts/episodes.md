@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **The rule's conditions** decide which alerts it applies to. A rule with none applies to every new alert.
-- **The grouping key** decides which alerts share an episode: those with the same monitor, the same severity, the same title, or whatever mix the rule groups by. A rule that groups by nothing puts every alert it matches into one episode.
+- **The grouping key** decides which alerts share an episode: those with the same monitor, the same severity, the same title, those on services that call each other on the Service Map, or whatever mix the rule groups by. A rule that groups by nothing puts every alert it matches into one episode.
 - **The time window** decides how long an episode keeps taking alerts. With it on, an alert joins only if it arrives within the window of the episode's last alert. With it off, matching alerts keep joining until the episode is resolved.
 - **Wait for more alerts** decides when a new episode opens. Off, as a new rule starts, the first matching alert opens one. On, an alert waits on its own until the number of matching alerts of its group you set are ongoing, and then one episode opens with all of them. See [Open an episode only for several alerts](#open-an-episode-only-for-several-alerts).
 
@@ -41,12 +41,13 @@ Go to **Alerts → Rules → Grouping Rules**. The **Rules** section of the side
 
 ### Start from a template
 
-A project with no grouping rules sees four ready-made rules instead of an empty list; once you have rules, **Create from Template** on the card opens them. **Add Rule** saves one in a single click, enabled, at the end of the list, and applying to every new alert. Edit it afterwards like any other rule.
+A project with no grouping rules sees five ready-made rules instead of an empty list; once you have rules, **Create from Template** on the card opens them. **Add Rule** saves one in a single click, enabled, at the end of the list, and applying to every new alert. Edit it afterwards like any other rule.
 
 | Template                               | Groups                                                    | Time window |
 | -------------------------------------- | --------------------------------------------------------- | ----------- |
 | **Group alerts from the same monitor** | One episode per monitor                                   | 30 minutes  |
 | **Group alerts that happen together**  | One shared episode, whatever the monitor                  | 10 minutes  |
+| **Group alerts on connected services** | One episode for services that call each other on the Service Map | 30 minutes  |
 | **Group alerts by severity**           | One episode per severity                                  | 30 minutes  |
 | **Group repeats of the same alert**    | One episode per alert title, numbers and case ignored     | 1 hour      |
 
@@ -55,7 +56,7 @@ A project with no grouping rules sees four ready-made rules instead of an empty 
 :::steps
 #### Answer how to group
 
-Click **Create Custom Rule** under the templates, or **Create Alert Grouping Rule** on the card once you have rules. On the **Grouping** step, **Group alerts by** asks one question: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. The **Name** follows your answer until you type your own.
+Click **Create Custom Rule** under the templates, or **Create Alert Grouping Rule** on the card once you have rules. On the **Grouping** step, **Group alerts by** asks one question: **Monitor**, **Everything Together**, **Connected Services**, **Severity**, **Title** or **Custom**. The **Name** follows your answer until you type your own.
 
 #### Set the time window
 
@@ -63,7 +64,7 @@ Click **Create Custom Rule** under the templates, or **Create Alert Grouping Rul
 
 #### Combine fields, for Custom
 
-**Custom** adds a **Group By** step with five switches: **Group By Monitor**, **Group By Alert Severity**, **Group By Alert Title**, **Group By Alert Labels** and **Group By Monitor Labels**. Labels group by their exact set.
+**Custom** adds a **Group By** step with six switches: **Group By Monitor**, **Group By Alert Severity**, **Group By Alert Title**, **Group By Alert Labels**, **Group By Monitor Labels** and **Group By Connected Services**. Labels group by their exact set.
 
 #### Narrow it down
 
@@ -74,7 +75,7 @@ Everything else a rule can do is folded under **More fields** at the end of the 
 
 | Group                     | Settings                                                                                                   |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **On-Call & Ownership**   | **On-Call Duty Policies** to run when the rule opens an episode, and **Episode Owners**.                   |
+| **On-Call & Ownership**   | **On-Call Policies** to run when the rule opens an episode, and **Episode Owners**.                   |
 | **Episode Lifecycle**     | **Wait for more alerts**, a switch with a count, then **Reopen recently resolved episodes**, **Wait before resolving an episode** and **Resolve quiet episodes**, each a switch with its minutes. |
 | **Details**               | The rule's **Description**, the **Episode Title Template**, the **Episode Description Template** and **Episode Labels**. |
 
@@ -90,6 +91,17 @@ Rules are checked from the top of the list down, and the first match wins: drag 
 - **It counts per group.** With **Everything Together**, any matching alerts count, so an episode opens only for an outage that trips several monitors at once. With **Monitor**, a monitor's episode opens once that monitor has several alerts ongoing.
 
 The list's **Grouping** column says "Opens an episode once 3 matching alerts are ongoing". Through the API and Terraform it is `enableMinimumAlertCount` and `minimumAlertCount`.
+
+### Group alerts on connected services
+
+When one service fails, the services that call it start failing too, and each raises an alert on its own monitor. **Connected Services** puts those alerts into one episode, using the [Service Map](/docs/telemetry/topology) that OneUptime draws from your traces.
+
+- An alert's services are the ones linked to it under **Affected Resources**, and the ones linked to its monitor.
+- An alert joins an open episode of the rule when one of its services is, calls or is called by a service of an alert already in it, so a failure that spreads keeps one episode.
+- Connected means one call apart: two services that only call the same database or outside API are not connected, or a dependency half your services call would put every alert into one episode.
+- An alert on no service is grouped by its monitor, as **Monitor** groups it.
+
+A call not seen for 30 days drops off the Service Map, and with it the connection. The list's **Grouping** column says "Alerts on connected services share one episode". Through the API and Terraform it is `groupByConnectedServices`.
 
 ## Episode titles
 
@@ -129,7 +141,7 @@ flowchart TB
     grouped -->|"Joins an episode"| none["Nothing more runs"]
 ```
 
-- **A new episode** runs the rule's **On-Call Duty Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.
+- **A new episode** runs the rule's **On-Call Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.
 - **An alert joining an open episode** runs only its own policies. The episode's do not run again.
 - **An alert waiting for more alerts** runs only its own policies too. When **Wait for more alerts** is on and the rule's policies are the only ones that page, a lone alert pages nobody until enough of them are ongoing.
 - **Answering an episode's page** acknowledges the episode, and with it every alert in it.

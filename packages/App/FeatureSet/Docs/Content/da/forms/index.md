@@ -1,6 +1,6 @@
 # Formularer – overblik
 
-En formular er en side, som alle med dens link kan udfylde, uden en OneUptime-konto. Hver indsendelse opretter noget i dit projekt: en **hændelse**, til fejlrapporter, eller en **planlagt vedligeholdelsesbegivenhed**, til ændrings- og vedligeholdelsesanmodninger. Du bygger formularens spørgsmål i en træk-og-slip-editor, bestemmer, hvordan svarene bliver til posten, og deler linket med dem, der skal bruge den.
+En formular er en side, som alle med dens link kan udfylde, uden en OneUptime-konto. Hver indsendelse opretter noget i dit projekt: en **hændelse**, til fejlrapporter, eller en **vedligeholdelsesbegivenhed**, til ændrings- og vedligeholdelsesanmodninger. Du bygger formularens spørgsmål i en træk-og-slip-editor, bestemmer, hvordan svarene bliver til posten, og deler linket med dem, der skal bruge den.
 
 Brug en formular, når de mennesker, der opdager et problem eller har brug for en ændring, ikke er dem, der håndterer dine hændelser og din vedligeholdelse: supportmedarbejdere, kolleger i en anden afdeling, en butikschef, en kundes driftsteam. De åbner linket, besvarer dine spørgsmål og trykker på **Indsend**. Dit team får en almindelig hændelse eller begivenhed med svarene i dens felter og en privat note, der registrerer, hvem der sendte den.
 
@@ -257,7 +257,7 @@ Et filspørgsmåls svar er filerne, som de blev gemt, hver med sin `fileId`, `na
 
 ### Workflows
 
-Formularer har de genererede workflow-komponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Scheduled Maintenance Event** for at reagere på det, en formular har oprettet.
+Formularer har de genererede workflow-komponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Maintenance Event** for at reagere på det, en formular har oprettet.
 
 ### Den offentlige sides egne endepunkter
 

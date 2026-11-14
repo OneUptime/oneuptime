@@ -256,10 +256,17 @@ describe("private status page access requires a live session", () => {
       { sessionLengthInHours: 12 },
     );
 
-    // The page is read with the limit, in the read that decides access.
-    expect(pageRead).toHaveBeenLastCalledWith(
+    /*
+     * The page is read with the limit, in the read that decides access: the
+     * one that reads whether the page is public and requires SSO. It is not
+     * the last read: the page's project is read after it, to tell a sample
+     * project's page (issue #6808), and kept per process.
+     */
+    expect(pageRead).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
+          isPublicStatusPage: true,
+          requireSsoForLogin: true,
           privateUserSessionLengthInHours: true,
         }),
       }),

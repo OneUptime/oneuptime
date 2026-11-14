@@ -15,7 +15,7 @@ Envía el correo de OneUptime a través de la API HTTPS de un proveedor de corre
 
 :::tabs
 @tab Proyecto
-En **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, abre **Más ajustes** y haz clic en **Crear Configuración SMTP** en la tarjeta **Configuraciones de SMTP personalizado**. En el paso **Proveedor**, introduce un **Nombre** y elige el proveedor. El paso siguiente pide los ajustes de ese proveedor, y el paso **Remitente**, el **Correo del remitente** y el **Nombre de origen**. Una vez guardada la configuración, **Enviar correo de prueba** en su fila comprueba que funciona.
+En **Ajustes del proyecto > Notificaciones > Canales de notificación**, abre **Más ajustes** y haz clic en **Crear Configuración SMTP** en la tarjeta **Configuraciones de SMTP personalizado**. En el paso **Proveedor**, introduce un **Nombre** y elige el proveedor. El paso siguiente pide los ajustes de ese proveedor, y el paso **Remitente**, el **Correo del remitente** y el **Nombre de origen**. Una vez guardada la configuración, **Enviar correo de prueba** en su fila comprueba que funciona.
 @tab Instancia autoalojada
 En el Admin Dashboard, abre **Ajustes** y luego **Notificaciones > Correos**. En la tarjeta **Ajustes del servidor de correo**, haz clic en **Editar servidor** y elige el proveedor como **Tipo de servidor de correo electrónico**. Debajo aparece la tarjeta del proveedor, como **Ajustes de Amazon SES**: haz clic en su botón de edición, como **Editar Amazon SES**, y rellena los ajustes del proveedor y el paso **Remitente**. Mientras le falte algo, la tarjeta dice qué falta, y cada correo se rechaza indicando el ajuste que hay que rellenar.
 :::

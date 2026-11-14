@@ -68,7 +68,7 @@ Appen viser ét projekt ad gangen: tryk på projektets navn øverst på en skær
 Klik på **Testnotifikation** i enhedens række. En notifikation kommer frem på enheden; tryk på den for at åbne appen.
 :::
 
-Dine vagtregler bestemmer, hvilke alarmer der går til enheden, og hvor hurtigt: se **Brugerindstillinger → Vagtregler**. En ny enhed får de samme standardregler som enhver anden metode, du tilføjer.
+Dine vagtregler bestemmer, hvilke alarmer der går til enheden, og hvor hurtigt: se **Brugerindstillinger → Sådan når man mig**. En ny enhed får de samme standardregler som enhver anden metode, du tilføjer.
 
 ## Ring igennem lydløs
 
@@ -132,7 +132,7 @@ Appen kunne ikke nå `https://<your-oneuptime>/api/status`. Tjek adressen, inklu
 - Tjek, at **Tillad notifikationer** er slået til under **Indstillinger → Notifikationer → OneUptime On-Call**, og at intet Fokus holder alarmer tilbage.
 - Tjek, at enheden står under **Push-notifikationer** i **Brugerindstillinger → Notifikationsmetoder**, og send den en **Testnotifikation**.
 - Er enheden markeret som **Modtager ikke notifikationer**, så åbn appen, mens du er logget ind. Den registrerer enheden igen; se [Når en telefon skal registreres igen](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-skal-registreres-igen).
-- Tjek dine vagtregler under **Brugerindstillinger → Vagtregler**.
+- Tjek dine vagtregler under **Brugerindstillinger → Sådan når man mig**.
 - På et selv-hostet OneUptime skal du tjekke, at din server kan nå sit push-relæ: se [Push-notifikationer](/docs/self-hosted/push-notifications#netværksadgang).
 :::
 

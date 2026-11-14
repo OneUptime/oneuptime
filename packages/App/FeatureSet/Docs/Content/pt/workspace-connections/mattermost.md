@@ -100,7 +100,7 @@ Para ser acionado por mensagem direta quando estiver de plantão, adicione o Mat
 3. Clique em **Send Test Message** na linha dele. A mensagem chega como mensagem direta do bot do projeto.
 :::
 
-Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Mattermost. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Regras de Plantão**. Cada acionamento traz um link para confirmá-lo e outro para escaloná-lo. Desconectar a sua conta do Mattermost remove este método e as regras de plantão que o usam.
+Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Mattermost. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Como me contatar**. Cada acionamento traz um link para confirmá-lo e outro para escaloná-lo. Desconectar a sua conta do Mattermost remove este método e as regras de plantão que o usam.
 
 ## Regras de notificação
 

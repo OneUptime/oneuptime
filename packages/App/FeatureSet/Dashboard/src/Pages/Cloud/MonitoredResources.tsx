@@ -22,6 +22,7 @@ import CloudResourceStatusCell, {
   CLOUD_STATUS_COLUMN_CLASS_NAME,
 } from "../../Components/Cloud/CloudResourceStatusCell";
 import { CLOUD_HEALTH_FILTER_OPTIONS } from "../../Components/Cloud/CloudResourceAttention";
+import { getCloudResourceTypeOptions } from "../../Components/Cloud/CloudResourceTypeOptions";
 import OneUptimeDate from "Common/Types/Date";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -41,7 +42,6 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
-  CLOUD_RESOURCE_TYPES,
   CLOUD_SERVICE_MODEL_LABELS,
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
@@ -74,19 +74,10 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
 
 /*
  * The Type filter: every catalogued type, by its label and provider
- * ("Virtual Machine (Azure)"). A type the catalog does not list is still
- * found through the Name search.
+ * ("Virtual Machine (Azure)"), drawn as the rows name it.
  */
-const TYPE_DROPDOWN_OPTIONS: Array<DropdownOption> = CLOUD_RESOURCE_TYPES.map(
-  (descriptor: CloudResourceTypeDescriptor): DropdownOption => {
-    return {
-      label: `${descriptor.label} (${CLOUD_PROVIDER_LABELS[descriptor.provider]})`,
-      value: descriptor.type,
-    };
-  },
-).sort((a: DropdownOption, b: DropdownOption): number => {
-  return a.label.localeCompare(b.label);
-});
+const TYPE_DROPDOWN_OPTIONS: Array<DropdownOption> =
+  getCloudResourceTypeOptions(null);
 
 const CloudMonitoredResources: FunctionComponent<
   PageComponentProps

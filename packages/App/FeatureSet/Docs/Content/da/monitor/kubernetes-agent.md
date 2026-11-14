@@ -334,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## Løbende CPU-profilering
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) kan også køre på hver node, som imaget `otel/opentelemetry-collector-ebpf-profiler`. Den tager prøver af, hvad hver proces kører, 19 gange i sekundet, i Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ og Rust, og sender profilerne til OneUptime. De vises under **Produkter → Ydeevneprofiler** og som en flamegraf på hvert span i et spor.
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) kan også køre på hver node, som imaget `otel/opentelemetry-collector-ebpf-profiler`. Den tager prøver af, hvad hver proces kører, 19 gange i sekundet, i Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ og Rust, og sender profilerne til OneUptime. De vises under **Produkter → Profiler** og som en flamegraf på hvert span i et spor.
 
 **Profilering er slået fra som standard:** det koster mere CPU og hukommelse pr. node end eBPF-instrumenteringen. Slå det til med `--set profiling.enabled=true`.
 

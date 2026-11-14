@@ -182,6 +182,37 @@ const ABSOLUTE_HTTP_URL_PATTERN: RegExp = /^https?:\/\//i;
 /* rrweb-snapshot NodeType.Element. */
 const SERIALIZED_ELEMENT_NODE: number = 2;
 
+/*
+ * The one way to let text through MaskAllText: an element carrying this
+ * class, and the text inside it, unless something closer asks for masking.
+ *
+ * MaskAllText masks every text node on the page, which is right for a page
+ * that shows other people's data and leaves a recording nobody can follow:
+ * every button, heading and menu is a row of placeholders too. A page that
+ * knows which words are its own interface - OneUptime's Dashboard marks its
+ * buttons, headings, menus and labels (issue #6834) - puts this class on
+ * them, and only those words are recorded as written. Everything else,
+ * names and emails and whatever was typed among them, stays masked.
+ *
+ * Deliberately narrow:
+ *
+ *   - only under MaskAllText; in the other modes text is masked only where
+ *     a mask selector asks, and a mask selector always wins;
+ *   - never inside a form control: an input's value is maskInput's to
+ *     decide, and an option's or a textarea's text is somebody's data;
+ *   - `.oneuptime-mask` (or a policy mask selector) on the element or on
+ *     any element between it and the revealed one masks again, so a heading
+ *     can reveal "Edit" and mask the monitor's name inside it;
+ *   - text only: attributes (alt, title, aria-label, placeholder) keep
+ *     their MaskAllText masking, and a click keeps no label.
+ */
+export const UNMASK_CLASS_NAME: string = "oneuptime-unmask";
+
+const MASK_CLASS_NAME: string = "oneuptime-mask";
+
+const FORM_CONTROL_SELECTOR: string =
+  'input, textarea, select, option, [contenteditable]:not([contenteditable="false"])';
+
 export default class Masking {
   private readonly maskingMode: SessionReplayMaskingMode;
   private readonly maskSelectors: Array<string>;
@@ -319,10 +350,79 @@ export default class Masking {
   public maskText = (text: string, element: HTMLElement | null): string => {
     if (element) {
       this.markIfSensitive(element);
+
+      if (this.isRevealed(element)) {
+        return text;
+      }
     }
 
     return CommonMasking.maskText(text);
   };
+
+  /*
+   * Whether text directly inside this element is the page's own interface,
+   * marked with UNMASK_CLASS_NAME, and so recorded as written under
+   * MaskAllText. See UNMASK_CLASS_NAME for the rules; every lookup is
+   * guarded, because this runs inside rrweb's serializer on the host page.
+   */
+  public isRevealed(element: Element): boolean {
+    if (!this.isMaskAllText()) {
+      return false;
+    }
+
+    try {
+      const revealed: Element | null = element.closest(`.${UNMASK_CLASS_NAME}`);
+
+      if (!revealed || element.closest(FORM_CONTROL_SELECTOR)) {
+        return false;
+      }
+
+      /*
+       * From the text's element up to the revealed one, inclusive: a mask
+       * on any of them is closer to the text than the reveal, so it wins.
+       */
+      let current: Element | null = element;
+
+      while (current) {
+        if (this.isMaskedElement(current)) {
+          return false;
+        }
+
+        if (current === revealed) {
+          return true;
+        }
+
+        current = current.parentElement;
+      }
+    } catch {
+      /* Masked, as everything is when in doubt. */
+    }
+
+    return false;
+  }
+
+  private isMaskedElement(element: Element): boolean {
+    if (element.classList && element.classList.contains(MASK_CLASS_NAME)) {
+      return true;
+    }
+
+    for (const selector of this.maskSelectors) {
+      if (!selector) {
+        continue;
+      }
+
+      try {
+        if (element.matches(selector)) {
+          return true;
+        }
+      } catch {
+        /* A customer's selector that will not parse; see matchesMaskSelector. */
+        continue;
+      }
+    }
+
+    return false;
+  }
 
   /*
    * Remember a node as sensitive if it looks sensitive right now. Safe to

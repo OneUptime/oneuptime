@@ -444,6 +444,37 @@ Para restaurar PostgreSQL, define los valores `DATABASE_RESTORE_*` en `config.en
 > [!CAUTION]
 > `restore.sh` elimina de la base de datos de destino cada objeto de la copia de seguridad antes de volver a crearlo. Pregunta antes de empezar; comprueba el nombre de la base de datos que muestra.
 
+## Ejecuta solo lo que necesitas
+
+Muchos servidores ejecutan OneUptime para una sola tarea, como vigilar sitios web y publicar una página de estado. Un administrador maestro puede desactivar los productos que nadie usa, para todos los proyectos del servidor a la vez, en **Ajustes > Productos** del Admin Dashboard.
+
+- Los **preajustes** fijan todos los interruptores con un clic: **Monitorización y páginas de estado** conserva Monitores, Incidentes, Guardia, Páginas de estado y Mantenimiento programado; **Respuesta a incidentes** añade Alertas, SLO, Flujos de trabajo y Runbooks; **Todo** conserva todos los productos. **Elegir productos uno a uno** cambia un solo producto. Usuarios, Equipos y Ajustes del proyecto están siempre activados.
+- Un producto desactivado desaparece del menú **Productos** de cada proyecto, de Inicio y de la búsqueda, y **Ajustes del proyecto > Productos** lo muestra como desactivado. Un enlace a una de sus páginas dice que el producto está desactivado en este servidor y quién puede activarlo.
+- La API se niega a crear, cambiar o eliminar los registros del producto, y Preguntar a la IA lo deja fuera. La lectura sigue funcionando, porque los productos que siguen activados muestran registros de otros: un incidente nombra sus monitores.
+- No se elimina nada, y lo que ya se ejecuta sigue ejecutándose: los monitores siguen comprobando, las páginas de estado publicadas siguen en línea y la telemetría sigue llegando, a menos que también detengas la ingesta. Un producto que se vuelve a activar regresa tal como estaba.
+
+Para fijar los productos como código, establece `SERVER_PRODUCTS` en `config.env` (Helm: `products.onThisServer`) en `everything`, `monitoring-and-status-pages`, `incident-response` o los productos que deben seguir activados, por su clave, como `monitors,incidents,on-call,status-pages`. Es un valor inicial: en cuanto un administrador guarda **Ajustes > Productos**, se aplica lo que guardó.
+
+### El perfil Monitorización y páginas de estado
+
+Para un servidor que solo vigila sitios web y API y publica páginas de estado, establece estos valores en `config.env` y después ejecuta `npm start`:
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| Ajuste | Qué hace |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Cada proyecto ofrece Monitores, Incidentes, Guardia, Páginas de estado y Mantenimiento programado. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime no guarda ninguno de los logs, métricas, trazas o perfiles que recibe. Registros, Métricas, Trazas, Perfiles de rendimiento y Excepciones aparecen como desactivados. |
+| `GLOBAL_RUNNER_REPLICAS=0` | El servicio `global-runner` no arranca. Solo lo usan los runbooks y las correcciones de código de OneUptime AI. |
+| `MQTT_INGEST_ENABLED=false` | Los receptores MQTT a los que envían datos los dispositivos IoT quedan desactivados. |
+
+Siguen ejecutándose seis servicios: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` y `valkey`. ClickHouse se queda, porque los monitores guardan en él sus resultados y sus logs. En Kubernetes, establece `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` y `globalRunner.enabled: false` en tus valores de Helm. Dimensiona el servidor según los [requisitos](#requisitos).
+
 ## Actualizar OneUptime
 
 Haz primero una copia de seguridad y después ejecuta:

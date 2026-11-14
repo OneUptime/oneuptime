@@ -24,7 +24,7 @@ import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 
 // A Persian step of the guide: more English letters than Persian ones.
 const PERSIAN_STEP: string = [
-  "1. **AWS Console → Amazon Elastic Container Service → Task definitions** → خانواده را انتخاب کنید → **Create new revision**.",
+  "1. **AWS Console → Amazon Elastic Container Service → Task definitions** ← خانواده را انتخاب کنید ← **Create new revision**.",
   "2. زیر کانتینر برنامهٔ خود، **Environment variables** را باز کنید.",
 ].join("\n");
 

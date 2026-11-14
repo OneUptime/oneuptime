@@ -161,8 +161,8 @@ describe("the section on turning push off", () => {
     expect(notice?.[1]).toBe(PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE);
   });
 
-  test("says on-call rules offer no push devices, as the rules table does", () => {
-    expect(SECTION).toContain("on-call rules offer no push devices");
+  test("says How to Reach Me offers no push devices, as the rules table does", () => {
+    expect(SECTION).toContain("How to Reach Me offers no push devices");
 
     const rulesTable: string = readDashboardSource(
       "Components/NotificationRule/OnCallRulesTable.tsx",

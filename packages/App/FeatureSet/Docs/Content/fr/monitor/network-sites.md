@@ -186,7 +186,7 @@ Une moyenne sur les enfants pèse un magasin de deux équipements autant qu'un c
 
 ## Maintenance planifiée pour les sites réseau
 
-Rattachez des sites à un événement de maintenance planifiée sous **Autres ressources affectées**, à l'étape **Ressources affectées** de l'événement, comme vous le feriez pour un hôte. La page **Maintenance planifiée** d'un site liste les événements qui lui sont rattachés, et son bouton **Créer un événement de maintenance planifiée** ouvre le formulaire avec le site déjà choisi.
+Rattachez des sites à un événement de maintenance planifiée sous **Autres ressources affectées**, à l'étape **Ressources affectées** de l'événement, comme vous le feriez pour un hôte. La page **Maintenance planifiée** d'un site liste les événements qui lui sont rattachés, et son bouton **Créer un événement de maintenance** ouvre le formulaire avec le site déjà choisi.
 
 Une fenêtre sur un parent couvre tout ce qui est en dessous : une fenêtre sur une région couvre chaque marché et chaque unité qu'elle contient, y compris les sites créés après la planification de la fenêtre, si bien qu'une bascule d'opérateur régionale n'a pas à énumérer quatre cents magasins.
 

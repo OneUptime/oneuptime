@@ -975,7 +975,7 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
     "Infrastructure resource",
   ),
   [AIChatCitationTargetType.ServiceView]: translationKey("Service"),
-  [AIChatCitationTargetType.Profiles]: translationKey("Profiler"),
+  [AIChatCitationTargetType.Profiles]: translationKey("Profiles"),
   [AIChatCitationTargetType.Exceptions]: translationKey("Exceptions"),
   [AIChatCitationTargetType.Incidents]: translationKey("Incidents"),
   [AIChatCitationTargetType.IncidentView]: translationKey("Incident"),

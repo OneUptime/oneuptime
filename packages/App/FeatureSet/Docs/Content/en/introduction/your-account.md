@@ -138,7 +138,7 @@ You can belong to any number of projects. The project picker at the top left of 
 | --- | --- | --- |
 | **Setup Checklist** | Walks you through everything below, and shows what is left to do. | |
 | **Notification Methods** | The emails, phone numbers, apps and webhooks OneUptime can reach you on. Your sign-in email is added for you. | |
-| **On-Call Rules** | Which method to use, and after how long, when an on-call policy pages you. | [Escalation Rules](/docs/on-call/escalation-rules) |
+| **How to Reach Me** | Which method to use, and after how long, when an on-call policy pages you. | [Escalation Rules](/docs/on-call/escalation-rules) |
 | **Notification Settings** | Which updates you get about incidents, alerts, monitors and more, on which channel. | |
 | **Email Preferences** | How many emails you get: one at a time, or rolled up. | [Notification Rollup](/docs/emails/notification-rollup) |
 | **On-Call Logs** | Every page sent to you, and what happened to it. | |

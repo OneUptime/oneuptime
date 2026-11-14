@@ -9,6 +9,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
+  drawnArchiveCardTitle,
   drawnBudgetFigure,
   drawnCreateButton,
   drawnDashboardLabel,
@@ -53,7 +54,9 @@ import { describe, expect, it } from "@jest/globals";
  * label on the English page that is a Dashboard label is, on the translated
  * page, its value in that language's Dashboard locale, or English where the
  * locale has no wording of its own (drawnDashboardLabel). A table's create
- * button is drawn from the name the table gives its rows (drawnCreateButton).
+ * button is drawn from the name the table gives its rows (drawnCreateButton),
+ * and the Settings page's Archive card's title as the card draws it
+ * (ARCHIVE_CARD_TITLES, drawnArchiveCardTitle, #7195).
  *
  * Some bold names stay in English on purpose, by list:
  *
@@ -191,10 +194,32 @@ const PERMISSIONS_THAT_ARE_BUTTONS: Array<string> = [
   "Create SLO Error Budget Policy Tier",
 ];
 
+/*
+ * The Settings page's Archive card, which titles itself "Archive
+ * {{itemName}}" with the name the page hands it (#7195): no locale has the
+ * title as a key, and each page names it as its language's card draws it
+ * (drawnArchiveCardTitle).
+ */
+interface ArchiveCardTitle {
+  label: string;
+  singularName: string;
+}
+
+const ARCHIVE_CARD_TITLES: Record<string, Array<ArchiveCardTitle>> = {
+  [INTRODUCTION]: [{ label: "Archive SLO", singularName: "SLO" }],
+};
+
+function archiveCardTitles(page: string): Array<string> {
+  return (ARCHIVE_CARD_TITLES[page] || []).map(
+    (entry: ArchiveCardTitle): string => {
+      return entry.label;
+    },
+  );
+}
+
 // Names the SLO pages draw in English in every language: the Dashboard has no wording for them.
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [INTRODUCTION]: [
-    "Archive SLO",
     "Waiting for SLO evaluation",
     "Measurement is paused",
     "The target is out of range",
@@ -463,9 +488,31 @@ function isPermissionOrPlan(name: string): boolean {
 
 // How this language's Dashboard draws a bold label of a page.
 function drawnLabel(language: string, page: string, label: string): string {
+  const archiveCard: ArchiveCardTitle | undefined = (
+    ARCHIVE_CARD_TITLES[page] || []
+  ).find((entry: ArchiveCardTitle): boolean => {
+    return entry.label === label;
+  });
+
+  if (archiveCard) {
+    return drawnArchiveCardTitle(language, archiveCard.singularName);
+  }
+
   return listed(TABLE_CREATE_BUTTONS, page).includes(label)
     ? drawnCreateButton(language, label)
     : drawnDashboardLabel(language, label);
+}
+
+/*
+ * Whether a bold word of a page is one the Dashboard draws: a label of its
+ * locales, a table's create button, or the Archive card's title.
+ */
+function isDrawnLabel(page: string, label: string): boolean {
+  return (
+    isDashboardLabel(label) ||
+    listed(TABLE_CREATE_BUTTONS, page).includes(label) ||
+    archiveCardTitles(page).includes(label)
+  );
 }
 
 /*
@@ -770,6 +817,32 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  it("draw the Archive card's title as the English page writes it, and worded anew in every language (#7195)", () => {
+    for (const page of Object.keys(ARCHIVE_CARD_TITLES)) {
+      expect(PAGE_NAMES).toContain(page);
+
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const entry of ARCHIVE_CARD_TITLES[
+        page
+      ] as Array<ArchiveCardTitle>) {
+        expect(labels).toContain(entry.label);
+        expect(drawnArchiveCardTitle("en", entry.singularName)).toBe(
+          entry.label,
+        );
+        // No locale has the title itself: it is drawn, not looked up.
+        expect(isDashboardLabel(entry.label)).toBe(false);
+
+        for (const language of LANGUAGES) {
+          expect({
+            language,
+            drawn: drawnArchiveCardTitle(language, entry.singularName),
+          }).not.toEqual({ language, drawn: entry.label });
+        }
+      }
+    }
+  });
+
   it("draw a table's create button from the model's name", () => {
     for (const page of Object.keys(TABLE_CREATE_BUTTONS)) {
       for (const button of TABLE_CREATE_BUTTONS[page] as Array<string>) {
@@ -789,7 +862,7 @@ describe("the lists this test keeps", () => {
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
-          return !isDashboardLabel(span) && !known.includes(span);
+          return !isDrawnLabel(page, span) && !known.includes(span);
         },
       );
 
@@ -1063,8 +1136,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       const missing: Array<string> = boldLabels(english)
         .filter((label: string): boolean => {
           return (
-            (isDashboardLabel(label) ||
-              listed(TABLE_CREATE_BUTTONS, entry.page).includes(label)) &&
+            isDrawnLabel(entry.page, label) &&
             !exceptions.includes(label) &&
             !listed(KEPT_IN_ENGLISH, entry.page).includes(label)
           );
@@ -1093,8 +1165,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       const tooFew: Array<string> = boldLabels(english)
         .filter((label: string): boolean => {
           return (
-            (isDashboardLabel(label) ||
-              listed(TABLE_CREATE_BUTTONS, entry.page).includes(label)) &&
+            isDrawnLabel(entry.page, label) &&
             !exceptions.includes(label) &&
             !listed(KEPT_IN_ENGLISH, entry.page).includes(label)
           );

@@ -68,7 +68,7 @@ Dans le tableau de bord, ouvrez **Paramètres utilisateur → Méthodes de notif
 Cliquez sur **Notification de test** sur la ligne de l'appareil. Une notification arrive sur l'appareil ; touchez-la pour ouvrir l'application.
 :::
 
-Vos règles d'astreinte décident quelles alertes vont à l'appareil, et en combien de temps : voir **Paramètres utilisateur → Règles d'astreinte**. Un nouvel appareil reçoit les mêmes règles par défaut que toute autre méthode que vous ajoutez.
+Vos règles d'astreinte décident quelles alertes vont à l'appareil, et en combien de temps : voir **Paramètres utilisateur → Comment me joindre**. Un nouvel appareil reçoit les mêmes règles par défaut que toute autre méthode que vous ajoutez.
 
 ## Sonner malgré le mode silencieux
 
@@ -132,7 +132,7 @@ L'application n'a pas pu joindre `https://<your-oneuptime>/api/status`. Vérifie
 - Vérifiez que **Autoriser les notifications** est activé sous **Réglages → Notifications → OneUptime On-Call**, et qu'aucun mode de concentration ne retient les alertes.
 - Vérifiez que l'appareil figure sous **Notifications push** dans **Paramètres utilisateur → Méthodes de notification**, et envoyez-lui une **Notification de test**.
 - Si l'appareil est marqué **Ne reçoit pas de notifications**, ouvrez l'application en étant connecté. Elle enregistre à nouveau l'appareil ; voir [Quand un téléphone doit se réenregistrer](/docs/mobile-desktop-apps/faq-troubleshooting#quand-un-téléphone-doit-se-réenregistrer).
-- Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Règles d'astreinte**.
+- Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Comment me joindre**.
 - Sur un OneUptime auto-hébergé, vérifiez que votre serveur joint son relais push : voir [Notifications push](/docs/self-hosted/push-notifications#accès-réseau).
 :::
 

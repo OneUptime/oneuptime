@@ -705,6 +705,708 @@ describe("the titles every resource repeats, worded alike", () => {
   });
 });
 
+/*
+ * A TIMEOUT IS مهلت (#7607): a time limit, and the moment one runs out is
+ * پایان مهلت. Persian named the same setting two ways - Request Timeout on
+ * an HTTP monitor's form read "وقفه درخواست", the same field's row on the
+ * Template sync settings card "مهلت درخواست" - and وقفه is a pause, not a
+ * time limit. Every text whose English says timeout now says مهلت, and وقفه
+ * is left only where its English means a pause, for the reason listed.
+ */
+describe("a timeout is مهلت, never وقفه", () => {
+  const DEADLINE: string = "مهلت";
+  const PAUSE: string = "وقفه";
+  // Timeout, timeouts, time out, timed out, timing out.
+  const SAYS_TIMEOUT: RegExp = /\btim(?:e|ed|ing)[\s-]?outs?\b/i;
+  // The noun: a setting, a label, the timeouts a probe counts.
+  const SAYS_A_TIMEOUT: RegExp = /\btime-?outs?\b/i;
+
+  // Where Persian keeps وقفه, because the English means a pause.
+  const PAUSES: ReadonlyArray<{ english: RegExp; why: string }> = [
+    {
+      english: /\bcool-?down\b/i,
+      why: "the AI re-investigation cooldown is a wait before an alert or incident on the same monitor is investigated again: a pause",
+    },
+  ];
+
+  // The texts Persian words whose English, outside its placeholders, says `pattern`.
+  const saying: (pattern: RegExp) => Array<[string, string, string]> = (
+    pattern: RegExp,
+  ): Array<[string, string, string]> => {
+    return WORDED.filter(([, english]: [string, string, string]): boolean => {
+      return pattern.test(english.replace(PLACEHOLDER, " "));
+    });
+  };
+
+  const listed: (rows: Array<[string, string, string]>) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows.map(([, english, persian]: [string, string, string]) => {
+      return `${english} => ${persian}`;
+    });
+  };
+
+  // The timeouts among `rows` worded as a pause.
+  const wordedAsAPause: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (rows: Array<[string, string, string]>) => {
+    return listed(
+      rows.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PAUSE);
+      }),
+    );
+  };
+
+  test("no text whose English says timeout calls it وقفه", () => {
+    const timeouts: Array<[string, string, string]> = saying(SAYS_TIMEOUT);
+
+    // Many: a scan that finds none would pass.
+    expect(timeouts.length).toBeGreaterThan(60);
+    expect(wordedAsAPause(timeouts)).toEqual([]);
+  });
+
+  test("every timeout Persian words says مهلت", () => {
+    const timeouts: Array<[string, string, string]> = saying(SAYS_A_TIMEOUT);
+
+    expect(timeouts.length).toBeGreaterThan(60);
+    expect(
+      listed(
+        timeouts.filter(([, , persian]: [string, string, string]): boolean => {
+          return !persian.includes(DEADLINE);
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("وقفه is left only where the English means a pause", () => {
+    const pauses: Array<[string, string, string]> = WORDED.filter(
+      ([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PAUSE);
+      },
+    );
+    const unexplained: Array<[string, string, string]> = pauses.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return !PAUSES.some((pause: { english: RegExp }): boolean => {
+          return pause.english.test(english);
+        });
+      },
+    );
+
+    expect(pauses.length).toBeGreaterThan(10);
+    expect(listed(unexplained)).toEqual([]);
+
+    // Each pause listed is still one the file says.
+    for (const pause of PAUSES) {
+      expect({
+        why: pause.why,
+        said: pauses.some(([, english]: [string, string, string]): boolean => {
+          return pause.english.test(english);
+        }),
+      }).toEqual({ why: pause.why, said: true });
+    }
+  });
+
+  test("the check finds a timeout worded as a pause (control)", () => {
+    expect(
+      wordedAsAPause([
+        ["Request Timeout", "Request Timeout", "وقفه درخواست"],
+        ["Request timeout", "Request timeout", "مهلت درخواست"],
+      ]),
+    ).toEqual(["Request Timeout => وقفه درخواست"]);
+  });
+
+  test.each([
+    ["Request Timeout", "Request timeout"],
+    ["Connection Timeout", "Connection timeout"],
+    ["Statement Timeout", "Statement timeout"],
+    ["Lookup Timeout", "Lookup timeout"],
+  ])(
+    "a monitor form's %s and the Template sync settings card's %s name one field alike",
+    (formLabel: string, syncCardLabel: string) => {
+      expect(PERSIAN.get(formLabel)).toBe(PERSIAN.get(syncCardLabel));
+      expect(PERSIAN.get(formLabel)?.startsWith(`${DEADLINE} `)).toBe(true);
+    },
+  );
+});
+
+/*
+ * A CLOUD'S ZONES AND RECORDSETS, IN PERSIAN WORDS (#7629, #7679).
+ *
+ * Persian kept OpenStack's zones and recordsets in Latin letters - "DNS
+ * zone", "DNS recordset", "Availability Zone", "این Zone" - in 69 texts,
+ * though it says a DNS zone زُن on the DNS monitor ("Zone" -> "زُن") and
+ * Arabic and the other languages word them. A zone is زُن now, a DNS zone
+ * زُن DNS, an availability zone زُن دسترس‌پذیری and a recordset
+ * مجموعه‌رکورد, in every text at once, so no page names one thing two ways.
+ * Time zones are not these: a time zone is منطقه زمانی.
+ *
+ * Persian still said a zone two more ways (#7679): ناحیه, an area, in the
+ * DNS monitor's "Zone queried." and its DNSSEC fields, in "OpenStack Hosts
+ * and Zones" and "Its cloud zone"; منطقه, a region, in "Private DNS Zone".
+ * Those say زُن too, and the Persian docs, which wrote "zone" and
+ * "recordset" in Latin letters 74 times, say them as the Dashboard does.
+ */
+describe("a cloud's zones and recordsets, in Persian words", () => {
+  const ZONE: string = "زُن";
+  const RECORDSET: string = `مجموعه${ZERO_WIDTH_NON_JOINER}رکورد`;
+  // A zone or a recordset left in Latin letters, outside a placeholder or code.
+  const LATIN_ZONE_OR_RECORDSET: RegExp = /zone|recordset/i;
+  /*
+   * English about a time zone: its zone is another word. A placeholder named
+   * for a zone ("Times are in {{zone}}.") is not read: the checks read a
+   * text without its placeholders, so "In zone {{zone}} of region ..." is.
+   */
+  const SAYS_TIME_ZONE: RegExp = /time ?zone/i;
+  const SAYS_ZONE: RegExp = /zone/i;
+  // An area of a page, and a region: never a zone of these.
+  const AREA: string = "ناحیه";
+  const REGION: string = "منطقه";
+  const SAYS_REGION: RegExp = /\bregions?\b/i;
+
+  // Where the English says zone and means neither a DNS zone nor a cloud's.
+  const OTHER_ZONES: ReadonlyArray<{ english: RegExp; why: string }> = [
+    {
+      english: /\bdanger zone\b/i,
+      why: "a settings page's Danger Zone is an area of the page: منطقه خطر",
+    },
+    {
+      english: /\btimes without a zone\b/i,
+      why: "a time's zone is its time zone: منطقه زمانی",
+    },
+  ];
+
+  // The zones among `rows` worded otherwise: without زُن, as an area, or as a region the English does not name.
+  const wordedOtherwise: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows
+      .filter(([, english, persian]: [string, string, string]): boolean => {
+        return (
+          !persian.includes(ZONE) ||
+          persian.includes(AREA) ||
+          (persian.includes(REGION) && !SAYS_REGION.test(english))
+        );
+      })
+      .map(([key, , persian]: [string, string, string]): string => {
+        return `${key} => ${persian}`;
+      });
+  };
+
+  // The texts among `rows` that keep a zone or a recordset in Latin letters.
+  const keptInLatin: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows
+      .filter(([, english, persian]: [string, string, string]): boolean => {
+        return (
+          !SAYS_TIME_ZONE.test(english) &&
+          LATIN_ZONE_OR_RECORDSET.test(
+            persian.replace(PLACEHOLDER, " ").replace(CODE_SPAN, " "),
+          )
+        );
+      })
+      .map(([key, , persian]: [string, string, string]): string => {
+        return `${key} => ${persian}`;
+      });
+  };
+
+  test.each([
+    ["DNS zone", `${ZONE} DNS`],
+    ["DNS recordset", `${RECORDSET} DNS`],
+    ["Availability zone", `${ZONE} دسترس${ZERO_WIDTH_NON_JOINER}پذیری`],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+    expect(PERSIAN_KEPT).not.toContain(english);
+  });
+
+  test("no text Persian words keeps a zone or a recordset in Latin letters", () => {
+    const zones: Array<[string, string, string]> = WORDED.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return (
+          LATIN_ZONE_OR_RECORDSET.test(english.replace(PLACEHOLDER, " ")) &&
+          !SAYS_TIME_ZONE.test(english)
+        );
+      },
+    );
+
+    // Many: a scan that finds none would pass.
+    expect(zones.length).toBeGreaterThan(60);
+    expect(keptInLatin(zones)).toEqual([]);
+  });
+
+  test("the page titles say what their rows say", () => {
+    expect(PERSIAN.get("DNS Zones")).toBe(
+      `${ZONE}${ZERO_WIDTH_NON_JOINER}های DNS`,
+    );
+    expect(PERSIAN.get("DNS zones")).toBe(PERSIAN.get("DNS Zones"));
+    expect(PERSIAN.get("Availability Zone")).toBe(
+      PERSIAN.get("Availability zone"),
+    );
+    expect(PERSIAN.get("DNS Recordset")).toBe(PERSIAN.get("DNS recordset"));
+    expect(PERSIAN.get("{{count}} DNS zones")).toBe(`{{count}} ${ZONE} DNS`);
+  });
+
+  test("the check finds a zone or a recordset kept in Latin letters, and leaves a time zone and a placeholder alone (control)", () => {
+    expect(
+      keptInLatin([
+        ["DNS Zones", "DNS Zones", "DNS Zoneها"],
+        ["recordsets", "recordsets", "recordsetها"],
+        ["Zone ID", "Zone ID", `شناسه ${ZONE}`],
+        [
+          "Times are in {{zone}}.",
+          "Times are in {{zone}}.",
+          "زمان به وقت {{zone}} است.",
+        ],
+        [
+          "Times in {{timezone}}.",
+          "Times in {{timezone}}.",
+          "زمان به وقت {{timezone}}.",
+        ],
+        // A zone beside a placeholder named for one is read (#7679).
+        [
+          "In zone {{zone}} of region {{region}}",
+          "In zone {{zone}} of region {{region}}",
+          "در Zone {{zone}} از منطقه {{region}}",
+        ],
+      ]),
+    ).toEqual([
+      "DNS Zones => DNS Zoneها",
+      "recordsets => recordsetها",
+      "In zone {{zone}} of region {{region}} => در Zone {{zone}} از منطقه {{region}}",
+    ]);
+  });
+
+  test("every zone Persian words is زُن: never ناحیه, and منطقه only for a region", () => {
+    const zones: Array<[string, string, string]> = WORDED.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return (
+          SAYS_ZONE.test(english.replace(PLACEHOLDER, " ")) &&
+          !SAYS_TIME_ZONE.test(english) &&
+          !OTHER_ZONES.some((other: { english: RegExp }): boolean => {
+            return other.english.test(english);
+          })
+        );
+      },
+    );
+
+    // Many: a scan that finds none would pass.
+    expect(zones.length).toBeGreaterThan(60);
+    expect(wordedOtherwise(zones)).toEqual([]);
+
+    // Each other zone listed is still one the file says.
+    for (const other of OTHER_ZONES) {
+      expect({
+        why: other.why,
+        said: WORDED.some(([, english]: [string, string, string]): boolean => {
+          return other.english.test(english);
+        }),
+      }).toEqual({ why: other.why, said: true });
+    }
+  });
+
+  test.each([
+    // The DNS monitor's zone, which said ناحیه.
+    ["Zone queried.", `${ZONE}ی که پرس${ZERO_WIDTH_NON_JOINER}وجو شد.`],
+    [
+      "True if DS records exist at the parent zone.",
+      `اگر رکوردهای DS در ${ZONE} والد وجود داشته باشند، true است.`,
+    ],
+    // A private DNS zone, which said منطقهٔ DNS.
+    ["Private DNS Zone", `${ZONE} DNS خصوصی`],
+    // The hosts and zones a maintenance event is on, which said ناحیه.
+    [
+      "OpenStack Hosts and Zones",
+      `میزبان${ZERO_WIDTH_NON_JOINER}ها و ${ZONE}${ZERO_WIDTH_NON_JOINER}های OpenStack`,
+    ],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+  });
+
+  test("the check finds a zone worded as an area or a region, and leaves a region's منطقه alone (control)", () => {
+    const queriedAsAnArea: string = `${AREA}${ZERO_WIDTH_NON_JOINER}ای که پرس${ZERO_WIDTH_NON_JOINER}وجو شد.`;
+    const privateAsARegion: string = `${REGION}${ch(0x654)} DNS خصوصی`;
+
+    expect(
+      wordedOtherwise([
+        ["Zone queried.", "Zone queried.", queriedAsAnArea],
+        ["Private DNS Zone", "Private DNS Zone", privateAsARegion],
+        [
+          "Zone of region {{region}}",
+          "Zone of region {{region}}",
+          `${ZONE} از منطقه {{region}}`,
+        ],
+        ["Its cloud zone", "Its cloud zone", `${ZONE} ابری آن`],
+      ]),
+    ).toEqual([
+      `Zone queried. => ${queriedAsAnArea}`,
+      `Private DNS Zone => ${privateAsARegion}`,
+    ]);
+  });
+
+  /*
+   * The Persian docs say a zone and a recordset in the same words, outside
+   * code: what a reader copies, and the names a page draws in English.
+   */
+  const DOCS: string = path.resolve(
+    __dirname,
+    "../../FeatureSet/Docs/Content/fa",
+  );
+  const FENCE: RegExp = /^\s*```/;
+  const LINK_TARGET: RegExp = /\]\([^)]*\)/g;
+  const ADDRESS: RegExp = /https?:\/\/\S+/g;
+  // A label, a field, a path or a host: availability_zone, zone_id, Microsoft.Network/dnszones.
+  const IDENTIFIER: RegExp = /[A-Za-z0-9]+(?:[_./-][A-Za-z0-9]+)+/g;
+  const TIME_ZONE: RegExp = /time ?zones?/gi;
+
+  // Names the docs quote as their page draws them, in English.
+  const DRAWN_IN_ENGLISH: ReadonlyArray<{ name: string; why: string }> = [
+    {
+      name: "DNS Zone in Error",
+      why: "an OpenStack alert template's name, which the template picker draws in English",
+    },
+    {
+      name: "DNS Zone Stuck Pending",
+      why: "an OpenStack alert template's name, which the template picker draws in English",
+    },
+    {
+      name: "DNS Recordset in Error",
+      why: "an OpenStack alert template's name, which the template picker draws in English",
+    },
+    {
+      name: "Data Zone Standard",
+      why: "an Azure OpenAI deployment type, as Azure names it",
+    },
+    {
+      name: "Data Zone Provisioned",
+      why: "an Azure OpenAI deployment type, as Azure names it",
+    },
+    {
+      name: "`Microsoft.Network/dnszones` | DNS Zone |",
+      why: "Azure's name for the resource type, in a table of Azure's names",
+    },
+  ];
+
+  function markdownFilesIn(folder: string): Array<string> {
+    return fs
+      .readdirSync(folder, { withFileTypes: true })
+      .flatMap((entry: fs.Dirent): Array<string> => {
+        const at: string = path.join(folder, entry.name);
+
+        if (entry.isDirectory()) {
+          return markdownFilesIn(at);
+        }
+
+        return at.endsWith(".md") ? [at] : [];
+      });
+  }
+
+  // Each line of a page outside its fenced code, with its number.
+  function proseLinesOf(markdown: string): Array<[number, string]> {
+    const lines: Array<[number, string]> = [];
+    let isFenced: boolean = false;
+
+    markdown.split("\n").forEach((line: string, index: number): void => {
+      if (FENCE.test(line)) {
+        isFenced = !isFenced;
+      } else if (!isFenced) {
+        lines.push([index + 1, line]);
+      }
+    });
+
+    return lines;
+  }
+
+  // What a docs line says in Latin letters about a zone or a recordset, once code, links, names and time zones are out.
+  function latinZonesIn(line: string): Array<string> {
+    let prose: string = line;
+
+    for (const drawn of DRAWN_IN_ENGLISH) {
+      prose = prose.split(drawn.name).join(" ");
+    }
+
+    prose = prose
+      .replace(CODE_SPAN, " ")
+      .replace(LINK_TARGET, " ")
+      .replace(ADDRESS, " ")
+      .replace(IDENTIFIER, " ")
+      .replace(TIME_ZONE, " ");
+
+    return prose.match(/\S*(?:zone|recordset)\S*/gi) || [];
+  }
+
+  const PAGES: Array<[string, string]> = markdownFilesIn(DOCS).map(
+    (file: string): [string, string] => {
+      return [path.relative(DOCS, file), fs.readFileSync(file, "utf8")];
+    },
+  );
+
+  test("the Persian docs say a zone and a recordset in Persian words, outside code", () => {
+    const found: Array<string> = [];
+
+    for (const [page, markdown] of PAGES) {
+      for (const [line, text] of proseLinesOf(markdown)) {
+        const latin: Array<string> = latinZonesIn(text);
+
+        if (latin.length > 0) {
+          found.push(`${page}:${line}: ${latin.join(" ")}`);
+        }
+      }
+    }
+
+    // Every Persian page: a scan that reads none would pass.
+    expect(PAGES.length).toBeGreaterThan(300);
+    expect(found).toEqual([]);
+
+    // The pages #7679 named say them in Persian words, many times.
+    for (const page of [
+      "telemetry/openstack.md",
+      "monitor/openstack-monitor.md",
+    ]) {
+      const markdown: string = (
+        PAGES.find(([name]: [string, string]): boolean => {
+          return name === page;
+        }) as [string, string]
+      )[1];
+
+      expect(markdown.split(ZONE).length - 1).toBeGreaterThan(20);
+      expect(markdown).toContain(RECORDSET);
+    }
+
+    // Each name kept is still one a page quotes.
+    for (const drawn of DRAWN_IN_ENGLISH) {
+      expect({
+        why: drawn.why,
+        quoted: PAGES.some(([, markdown]: [string, string]): boolean => {
+          return markdown.includes(drawn.name);
+        }),
+      }).toEqual({ why: drawn.why, quoted: true });
+    }
+  });
+
+  test("the docs check finds a zone or a recordset in Latin letters, and leaves code, links and names drawn in English alone (control)", () => {
+    expect(latinZonesIn("هر zone چند recordset دارد.")).toEqual([
+      "zone",
+      "recordset",
+    ]);
+    expect(latinZonesIn("**آیا یک zone می‌تواند**")).toEqual(["zone"]);
+    expect(
+      latinZonesIn(
+        "| DNS Zone in Error | `openstack zone list` و `zone_id`، zone_name و [زُن](/docs/telemetry/openstack#zone) در Time zone |",
+      ),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * OPENSTACK'S LOAD BALANCERS, FLOATING IPS, POOLS AND SHARES, IN PERSIAN
+ * WORDS (#7679).
+ *
+ * After #7629 worded a cloud's zones, Persian still kept four of
+ * OpenStack's nouns in Latin letters: the keys Load balancer, Floating IP,
+ * Pool and share were their English, and about 300 texts said
+ * "Load Balancerها", "floating IP", "poolی که", "shareهای". It named a pool
+ * two more ways, مخزن (a repository) for a vSphere resource pool and پول
+ * (money) for "pool" and InnoDB's buffer pool, and a load balancer once as
+ * توزیع‌کننده بار. Each is one Persian word in every text now: a load
+ * balancer is متعادل‌کننده بار (no ٔ), a floating IP IP شناور, a pool استخر
+ * and a share اشتراک فایل. Amphora, Octavia's name for the machine a load
+ * balancer runs in, stays as written, as Arabic keeps it.
+ */
+describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian words", () => {
+  const LOAD_BALANCER: string = `متعادل${ZERO_WIDTH_NON_JOINER}کننده بار`;
+  const LOAD_BALANCERS: string = `متعادل${ZERO_WIDTH_NON_JOINER}کننده${ZERO_WIDTH_NON_JOINER}های بار`;
+  const FLOATING_IP: string = "IP شناور";
+  const POOL: string = "استخر";
+  const SHARE: string = "اشتراک فایل";
+  // A load balancer's ezafe written with a hamza: the spelling Persian does not use.
+  const LOAD_BALANCER_WITH_HAMZA: string = `متعادل${ZERO_WIDTH_NON_JOINER}کننده${ch(0x654)} بار`;
+  // A repository, and money: neither is a pool.
+  const NOT_A_POOL: ReadonlyArray<string> = ["مخزن", "پول"];
+
+  // English that says one of the four, outside its placeholders.
+  const SAYS_ONE: RegExp =
+    /\b(?:load[ -]balancers?|floating IPs?|pools?|shares?)\b/i;
+  const SAYS_LOAD_BALANCER: RegExp = /\bload[ -]balancers?\b/i;
+  const SAYS_POOL: RegExp = /\bpools?\b/i;
+  // One left in Latin letters: not a piece of a longer word or an identifier.
+  const LATIN_NOUN: RegExp =
+    /(?<![A-Za-z0-9_./-])(?:load balancers?|floating IPs?|pools?|shares?)(?![A-Za-z0-9_-])/gi;
+  // A command a reader types, and an identifier: kept as written.
+  const COMMAND: RegExp = /\bopenstack(?: [a-z][a-z0-9_-]*)+/g;
+  const IDENTIFIER: RegExp = /[A-Za-z0-9]+(?:[_-][A-Za-z0-9]+)+/g;
+
+  // Names a text quotes as their page draws them, in English.
+  const DRAWN_IN_ENGLISH: ReadonlyArray<{ name: string; why: string }> = [
+    {
+      name: "Pool Near Full",
+      why: "a Ceph alert template's name, which the template picker draws in English",
+    },
+    {
+      name: "Storage Pool Warning",
+      why: "an OpenStack alert template's name, which the template picker draws in English",
+    },
+    {
+      name: "Storage Pool Critical",
+      why: "an OpenStack alert template's name, which the template picker draws in English",
+    },
+    {
+      name: "Share snapshot",
+      why: "the RDS console's action, as the console names it",
+    },
+    {
+      name: "Safari روی Share",
+      why: "Safari's Share button, named as Safari draws it, beside its Add to Home Screen",
+    },
+  ];
+
+  // The four a text keeps in Latin letters, once code, placeholders, commands, identifiers and the names above are out.
+  const latinNounsIn: (persian: string) => Array<string> = (
+    persian: string,
+  ): Array<string> => {
+    let prose: string = persian;
+
+    for (const drawn of DRAWN_IN_ENGLISH) {
+      prose = prose.split(drawn.name).join(" ");
+    }
+
+    prose = prose
+      .replace(PLACEHOLDER, " ")
+      .replace(CODE_SPAN, " ")
+      .replace(COMMAND, " ")
+      .replace(IDENTIFIER, " ");
+
+    return prose.match(LATIN_NOUN) || [];
+  };
+
+  const keptInLatin: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows
+      .filter(([, , persian]: [string, string, string]): boolean => {
+        return latinNounsIn(persian).length > 0;
+      })
+      .map(([key, , persian]: [string, string, string]): string => {
+        return `${key} => ${persian}`;
+      });
+  };
+
+  // The texts Persian words whose English, outside its placeholders, says `pattern`.
+  const saying: (pattern: RegExp) => Array<[string, string, string]> = (
+    pattern: RegExp,
+  ): Array<[string, string, string]> => {
+    return WORDED.filter(([, english]: [string, string, string]): boolean => {
+      return pattern.test(english.replace(PLACEHOLDER, " "));
+    });
+  };
+
+  test.each([
+    ["Load balancer", LOAD_BALANCER],
+    ["Load Balancers", LOAD_BALANCERS],
+    ["Floating IP", FLOATING_IP],
+    ["Floating IPs", "IPهای شناور"],
+    ["Pool", POOL],
+    ["pool", POOL],
+    ["Pools", `${POOL}ها`],
+    ["Resource Pool", `${POOL} منابع`],
+    ["share", SHARE],
+    ["Shares", `اشتراک${ZERO_WIDTH_NON_JOINER}های فایل`],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+    expect(PERSIAN_KEPT).not.toContain(english);
+  });
+
+  test("Amphora stays as written, on Persian's same-as-English list: Octavia's name for the machine a load balancer runs in", () => {
+    for (const name of ["Amphora", "amphora"]) {
+      expect(PERSIAN.get(name)).toBe(name);
+      expect(PERSIAN_KEPT).toContain(name);
+    }
+  });
+
+  test("no text Persian words keeps a load balancer, a floating IP, a pool or a share in Latin letters", () => {
+    // Many say one: a scan that finds none would pass.
+    expect(saying(SAYS_ONE).length).toBeGreaterThan(400);
+    expect(keptInLatin(WORDED)).toEqual([]);
+
+    // Each name kept is still one a text quotes.
+    for (const drawn of DRAWN_IN_ENGLISH) {
+      expect({
+        why: drawn.why,
+        quoted: WORDED.some(([, , persian]: [string, string, string]) => {
+          return persian.includes(drawn.name);
+        }),
+      }).toEqual({ why: drawn.why, quoted: true });
+    }
+  });
+
+  test("a load balancer is متعادل‌کننده بار in every text, spelt one way", () => {
+    const loadBalancers: Array<[string, string, string]> =
+      saying(SAYS_LOAD_BALANCER);
+
+    expect(loadBalancers.length).toBeGreaterThan(40);
+    expect(
+      loadBalancers
+        .filter(([, , persian]: [string, string, string]): boolean => {
+          return !persian.includes(`متعادل${ZERO_WIDTH_NON_JOINER}کننده`);
+        })
+        .map(([key]: [string, string, string]): string => {
+          return key;
+        }),
+    ).toEqual([]);
+    expect(
+      WORDED.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(LOAD_BALANCER_WITH_HAMZA);
+      }).map(([key]: [string, string, string]): string => {
+        return key;
+      }),
+    ).toEqual([]);
+  });
+
+  test("a pool is استخر in every text: never مخزن, a repository, or پول, money", () => {
+    const pools: Array<[string, string, string]> = saying(SAYS_POOL);
+
+    expect(pools.length).toBeGreaterThan(150);
+    expect(
+      pools
+        .filter(([, , persian]: [string, string, string]): boolean => {
+          return (
+            !persian.includes(POOL) ||
+            NOT_A_POOL.some((word: string): boolean => {
+              return persian.includes(word);
+            })
+          );
+        })
+        .map(([key, , persian]: [string, string, string]): string => {
+          return `${key} => ${persian}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("the check finds one kept in Latin letters, and leaves code, a command, an identifier and a name drawn in English alone (control)", () => {
+    expect(
+      keptInLatin([
+        ["Load Balancers", "Load Balancers", "Load Balancerها"],
+        ["A pool that fails", "A pool that fails", "poolی که شکست می‌خورد"],
+        ["Floating IP", "Floating IP", "floating IP"],
+        [
+          "Kept",
+          "Kept",
+          "`openstack share list`، openstack share message list، pool_id و هشدار Pool Near Full",
+        ],
+      ]),
+    ).toEqual([
+      "Load Balancers => Load Balancerها",
+      "A pool that fails => poolی که شکست می‌خورد",
+      "Floating IP => floating IP",
+    ]);
+  });
+});
+
 describe("pages #7089 met in English, in Persian", () => {
   const PAGES: ReadonlyArray<[string, string]> = [
     ["Team Audit Logs", "گزارش‌های ممیزی تیم"],
@@ -715,7 +1417,8 @@ describe("pages #7089 met in English, in Persian", () => {
     ["Re-sync Autopay", "همگام‌سازی دوباره پرداخت خودکار"],
     ["Data Residency", "محل نگهداری داده‌ها"],
     ["Never expires", "هرگز منقضی نمی‌شود"],
-    ["Connection Timeout", "وقفه اتصال"],
+    // A timeout is مهلت, a time limit (#7607): وقفه is a pause.
+    ["Connection Timeout", "مهلت اتصال"],
     ["Exception spike", "جهش استثنا"],
     ["Metric drift: {{metricName}}", "رانش متریک: {{metricName}}"],
     ["Investigate in Logs", "بررسی در لاگ‌ها"],

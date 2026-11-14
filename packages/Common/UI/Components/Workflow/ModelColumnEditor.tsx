@@ -54,6 +54,7 @@ import useCustomFields, {
 } from "./CustomFields/UseCustomFields";
 import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
+import ErrorSentence from "../ErrorMessage/ErrorSentence";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -705,16 +706,18 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500"
           />
           <p className="text-sm text-red-700">
-            {translator.translateTemplate(
-              isViewOnly
-                ? isQuery
-                  ? "Couldn't load this model's columns ({{error}}). The query is shown as JSON."
-                  : "Couldn't load this model's columns ({{error}}). These fields are shown as JSON."
-                : isQuery
-                  ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
-                  : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON.",
-              { error: schema.error },
-            )}
+            <ErrorSentence
+              template={
+                isViewOnly
+                  ? isQuery
+                    ? "Couldn't load this model's columns. {{error}} The query is shown as JSON."
+                    : "Couldn't load this model's columns. {{error}} These fields are shown as JSON."
+                  : isQuery
+                    ? "Couldn't load this model's columns. {{error}} You can still write the query as JSON."
+                    : "Couldn't load this model's columns. {{error}} You can still write these fields as JSON."
+              }
+              error={schema.error}
+            />
           </p>
         </div>
       )}

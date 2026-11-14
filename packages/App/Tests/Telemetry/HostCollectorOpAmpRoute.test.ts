@@ -16,7 +16,10 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import { HOST_COLLECTOR_OPAMP_PATH } from "Common/Types/HostCollector/HostCollector";
+import {
+  HOST_COLLECTOR_OPAMP_PATH,
+  HOST_COLLECTOR_OPAMP_ROUTE,
+} from "Common/Types/HostCollector/HostCollector";
 import {
   createServer,
   request as httpRequest,
@@ -26,9 +29,11 @@ import {
 import { AddressInfo } from "net";
 
 /*
- * POST /opamp/v1, over HTTP: where the supervisor on every host OneUptime
- * manages asks for the host's config, every 30 seconds, with the project's
- * ingestion key. The key is checked as on every ingest route - a missing,
+ * POST /telemetry/opamp/v1, over HTTP: where the supervisor on every host
+ * OneUptime manages asks for the host's config, every 30 seconds, with the
+ * project's ingestion key - and POST /opamp/v1, where every host installed
+ * before the installers moved under /telemetry still asks, and gets the same
+ * answer. The key is checked as on every ingest route - a missing,
  * wrong or expired key is 401, a disabled or browser key 422 - and a key
  * pinned to one service is refused too: a host's collector sends the
  * host's telemetry. Only an OpAMP message (protobuf) of a bounded size
@@ -197,12 +202,17 @@ function messageOf(answer: Answer): string {
     .message;
 }
 
-describe("POST /opamp/v1", () => {
-  test("is the path the installers point the supervisor at", () => {
-    expect(HOST_COLLECTOR_OPAMP_PATH).toBe("/opamp/v1");
+describe("POST /telemetry/opamp/v1 and /opamp/v1", () => {
+  test("the installers point the supervisor at the route under /telemetry", () => {
+    expect(HOST_COLLECTOR_OPAMP_ROUTE).toBe("/opamp/v1");
+    expect(HOST_COLLECTOR_OPAMP_PATH).toBe("/telemetry/opamp/v1");
+    // The request below goes there unless a test names another path.
+    expect(HOST_COLLECTOR_OPAMP_PATH).toBe(
+      `/telemetry${HOST_COLLECTOR_OPAMP_ROUTE}`,
+    );
   });
 
-  test.each([["/opamp/v1"], ["/telemetry/opamp/v1"]])(
+  test.each([[HOST_COLLECTOR_OPAMP_PATH], [HOST_COLLECTOR_OPAMP_ROUTE]])(
     "%s hands an OpAMP message to HostCollectorAgent with the key's project, and answers with protobuf",
     async (path: string) => {
       const body: Buffer = Buffer.from([0x0a, 0x10, 0x05, 0x06]);
@@ -330,5 +340,55 @@ describe("POST /opamp/v1", () => {
     });
 
     expect(answer.status).toBe(200);
+  });
+
+  /*
+   * A host installed before asks at the bare route: it is held to the same
+   * key checks and limits as a new one, statuses its installer read too.
+   */
+  test.each([[HOST_COLLECTOR_OPAMP_PATH], [HOST_COLLECTOR_OPAMP_ROUTE]])(
+    "%s refuses a wrong key, a pinned key, anything but protobuf and an oversized message alike",
+    async (path: string) => {
+      expect((await post({ path, token: null })).status).toBe(401);
+      expect((await post({ path, token: "not-a-key" })).status).toBe(401);
+
+      getPolicyMock.mockResolvedValue(
+        policy({ pinnedServiceName: "checkout" }) as never,
+      );
+      expect((await post({ path })).status).toBe(422);
+      getPolicyMock.mockResolvedValue(policy() as never);
+
+      expect(
+        (
+          await post({
+            path,
+            contentType: "application/json",
+            body: Buffer.from("{}"),
+          })
+        ).status,
+      ).toBe(415);
+      expect(
+        (
+          await post({
+            path,
+            body: Buffer.alloc(MAX_OPAMP_MESSAGE_BYTES + 1, 0x0a),
+          })
+        ).status,
+      ).toBe(413);
+
+      expect(handleMessageMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test("no other address answers as the OpAMP route", async () => {
+    for (const path of [
+      "/opamp",
+      "/opamp/v2",
+      "/api/opamp/v1",
+      "/telemetry/opamp",
+    ]) {
+      expect((await post({ path })).status).toBe(404);
+    }
+    expect(handleMessageMock).not.toHaveBeenCalled();
   });
 });

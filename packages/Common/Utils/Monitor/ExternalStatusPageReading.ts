@@ -89,6 +89,35 @@ const ONEUPTIME_SENTENCE_NOTES: ReadonlyArray<string> = [
 ];
 
 /*
+ * WHY A ONEUPTIME PAGE COULD NOT BE READ.
+ *
+ * With the OneUptime Status Page provider chosen, a page that answers but
+ * will not let the probe in fails the check, and the probe writes why as
+ * the check's failure cause (ExternalStatusPageMonitor's
+ * tryOneUptimeStatusPage): a private page (sign-in or password), or one
+ * whose IP allowlist leaves the probe out. Each is a translation key, as
+ * the notes above are, so the monitor's summary draws its Error in the
+ * reader's language (readOneUptimeFailureCause) while the probe stores the
+ * English: monitor criteria and logs compare that English, so it never
+ * changes.
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE: string =
+  translationKey(
+    "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.",
+  );
+
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE: string =
+  translationKey(
+    "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.",
+  );
+
+// The failure causes the probe writes in OneUptime's words, each a whole sentence.
+const ONEUPTIME_FAILURE_CAUSES: ReadonlyArray<string> = [
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+];
+
+/*
  * One of OneUptime's notes, read back from a component's description: the
  * note's English (a translation key) and the page's words that fill it.
  */
@@ -650,5 +679,23 @@ export default class ExternalStatusPageReading {
     }
 
     return null;
+  }
+
+  /*
+   * One of OneUptime's failure causes, read back from a check's failure
+   * cause: its English, a translation key, when the cause is exactly one of
+   * them (a private page, a page whose IP allowlist leaves the probe out);
+   * null for any other cause - the network's, a provider's, an older
+   * probe's - which stays as written.
+   *
+   * Only a check of a OneUptime page is read this way (the caller asks for
+   * that provider).
+   */
+  public static readOneUptimeFailureCause(
+    failureCause: string | undefined,
+  ): string | null {
+    const text: string = (failureCause || "").trim();
+
+    return ONEUPTIME_FAILURE_CAUSES.includes(text) ? text : null;
   }
 }

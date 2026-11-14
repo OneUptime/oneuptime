@@ -201,8 +201,8 @@ const EVENT_TYPES: Record<WorkspaceEventType, EventTypeDefinition> = {
     moveRecord: StateMoveRecord.AlertEpisode,
   },
   [WorkspaceEventType.ScheduledMaintenance]: {
-    noun: "scheduled maintenance event",
-    subject: "Scheduled maintenance event",
+    noun: "maintenance event",
+    subject: "Maintenance event",
     stateList: null,
     moveRecord: StateMoveRecord.ScheduledMaintenance,
   },
@@ -726,7 +726,7 @@ export default class WorkspaceMemberActions {
   }): Promise<void> {
     if (data.event.type !== WorkspaceEventType.ScheduledMaintenance) {
       throw new BadDataException(
-        `Only a scheduled maintenance event can be marked as ongoing, not this ${this.getNoun(data.event.type)}.`,
+        `Only a maintenance event can be marked as ongoing, not this ${this.getNoun(data.event.type)}.`,
       );
     }
 
@@ -749,8 +749,8 @@ export default class WorkspaceMemberActions {
       // Started already: say whether it is over, too.
       throw new BadDataException(
         standing.isComplete
-          ? "Scheduled maintenance event is already complete."
-          : "Scheduled maintenance event is already ongoing.",
+          ? "Maintenance event is already complete."
+          : "Maintenance event is already ongoing.",
       );
     }
 
@@ -895,7 +895,7 @@ export default class WorkspaceMemberActions {
         break;
       case WorkspaceEventType.ScheduledMaintenance:
         throw new BadDataException(
-          "On-call policies are executed for incidents, alerts and episodes, not for scheduled maintenance events.",
+          "On-call policies are executed for incidents, alerts and episodes, not for maintenance events.",
         );
     }
 

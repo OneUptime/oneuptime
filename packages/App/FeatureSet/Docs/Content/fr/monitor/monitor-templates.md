@@ -47,10 +47,10 @@ Dans **Valeurs par défaut du moniteur**, choisissez le **Type de moniteur**, av
 
 ### Définir les critères et l'intervalle
 
-Dans **Critères**, renseignez ce qu'il faut vérifier et les critères, comme dans [Créer un moniteur](/docs/monitor/create-monitor#critères). La carte **Template sync settings** en haut vous permet de protéger des champs des synchronisations (voir [Garder des valeurs propres à chaque moniteur](#garder-des-valeurs-propres-à-chaque-moniteur)). Pour un type de moniteur que des sondes vérifient, la dernière étape, **Intervalle**, demande l'**Intervalle de surveillance**. Cliquez sur **Créer : Modèle de moniteur** à la dernière étape.
+Dans **Critères**, renseignez ce qu'il faut vérifier et les critères, comme dans [Créer un moniteur](/docs/monitor/create-monitor#critères). La carte **Paramètres de synchronisation du modèle** en haut vous permet de protéger des champs des synchronisations (voir [Garder des valeurs propres à chaque moniteur](#garder-des-valeurs-propres-à-chaque-moniteur)). Pour un type de moniteur que des sondes vérifient, la dernière étape, **Intervalle**, demande l'**Intervalle de surveillance**. Cliquez sur **Créer : Modèle de moniteur** à la dernière étape.
 :::
 
-Le modèle est ajouté à la liste. Ouvrez-le pour voir sa page, avec une carte pour chaque partie : **Informations du modèle**, **Valeurs par défaut du moniteur**, **Critères de surveillance**, **Intervalle de surveillance** (avec **Accord minimum des sondes**), **Étiquettes**, **Valeurs par défaut des champs personnalisés** (quand le projet a des champs personnalisés de moniteur) et **Moniteurs liés**. Vous modifiez chaque partie sur sa propre carte, par exemple avec **Modifier les critères** ou **Modifier l'intervalle**.
+Le modèle est ajouté à la liste. Ouvrez-le pour voir sa page, avec une carte pour chaque partie : **Informations du modèle**, **Valeurs par défaut du moniteur**, **Critères**, **Intervalle de surveillance** (avec **Accord minimum des sondes**), **Étiquettes**, **Valeurs par défaut des champs personnalisés** (quand le projet a des champs personnalisés de moniteur) et **Moniteurs liés**. Vous modifiez chaque partie sur sa propre carte, par exemple avec **Modifier les critères** ou **Modifier l'intervalle**.
 
 ## Créer des moniteurs à partir d'un modèle
 
@@ -61,7 +61,7 @@ Les valeurs définies sous **Valeurs par défaut des champs personnalisés** son
 
 ## Synchroniser les modifications vers les moniteurs liés
 
-Modifier un modèle ne change que le modèle. Pour copier une modification sur les moniteurs liés, utilisez le bouton de synchronisation de la carte que vous avez modifiée. Chaque bouton indique combien de moniteurs il atteint, comme **Sync Criteria to 3 Linked Monitors**, et il est grisé tant que rien n'est lié. Une synchronisation ne peut pas être annulée.
+Modifier un modèle ne change que le modèle. Pour copier une modification sur les moniteurs liés, utilisez le bouton de synchronisation de la carte que vous avez modifiée. Chaque bouton indique combien de moniteurs il atteint, comme **Synchroniser les critères vers 3 moniteurs liés**, et il est grisé tant que rien n'est lié. Une synchronisation ne peut pas être annulée.
 
 | Bouton | Copie sur chaque moniteur lié | Laisse intact |
 | --- | --- | --- |
@@ -85,22 +85,22 @@ Allez dans **Moniteurs → Paramètres → Modèles** et ouvrez le modèle.
 
 ### Modifier ses critères
 
-Sur la carte **Critères de surveillance**, cliquez sur **Modifier les critères**.
+Sur la carte **Critères**, cliquez sur **Modifier les critères**.
 
 ### Protéger les champs
 
-Dans **Template sync settings**, cochez **Ne pas synchroniser ce champ** à côté de chaque champ que vous voulez garder sur les moniteurs liés.
+Dans **Paramètres de synchronisation du modèle**, cochez **Ne pas synchroniser ce champ** à côté de chaque champ que vous voulez garder sur les moniteurs liés.
 
 ### Enregistrer
 
-Enregistrez vos modifications. La carte **Critères de surveillance**, et la confirmation des deux synchronisations ci-dessous, listent les champs protégés.
+Enregistrez vos modifications. La carte **Critères**, et la confirmation des deux synchronisations ci-dessous, listent les champs protégés.
 
 ### Synchroniser
 
 Utilisez **Synchroniser les critères vers les moniteurs liés**, ou **Synchroniser depuis le modèle** sur un moniteur lié en particulier.
 :::
 
-Par exemple, protégez **Monitor destination** et **En-têtes de la requête** sur un modèle d'API. Les moniteurs de production et de préproduction gardent leurs propres URL et en-têtes, tandis que tous deux reçoivent les critères mis à jour du modèle et ses autres réglages non protégés.
+Par exemple, protégez **Cible du moniteur** et **En-têtes de la requête** sur un modèle d'API. Les moniteurs de production et de préproduction gardent leurs propres URL et en-têtes, tandis que tous deux reçoivent les critères mis à jour du modèle et ses autres réglages non protégés.
 
 Les options disponibles dépendent du type de moniteur. Elles comprennent les destinations et les ports, les options de requête HTTP, les connexions aux bases de données, les réglages DNS, les sélecteurs d'infrastructure et les requêtes de télémétrie. Les identifiants liés, comme un certificat client et sa clé privée, sont gardés ensemble.
 
@@ -159,7 +159,7 @@ Omettez le tableau ou mettez-le à `[]` pour synchroniser chaque réglage d'éta
 | Journaux, Événements de sécurité, Traces, IA / LLM, Métriques, Exceptions, Profils | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (toute la configuration du moniteur) |
 | Statut de la sonde | `probeStatusMonitor.probeIds` |
 
-Les moniteurs d'infrastructure (Kubernetes, Docker Container, Hôte, Podman Container, Proxmox, Docker Swarm, Ceph, Baie de stockage, Appareil IoT) proposent leur sélecteur de ressources, leurs filtres (tous sauf Hôte), leurs requêtes de métriques et leur fenêtre de requête. Leurs noms sont listés dans **Template sync settings** sur un modèle de ce type.
+Les moniteurs d'infrastructure (Kubernetes, Docker Container, Hôte, Podman Container, Proxmox, Docker Swarm, Ceph, Baie de stockage, Appareil IoT) proposent leur sélecteur de ressources, leurs filtres (tous sauf Hôte), leurs requêtes de métriques et leur fenêtre de requête. Leurs noms sont listés dans **Paramètres de synchronisation du modèle** sur un modèle de ce type.
 :::
 
 ## Dépannage

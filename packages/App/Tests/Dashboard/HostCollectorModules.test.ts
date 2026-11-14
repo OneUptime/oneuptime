@@ -50,6 +50,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/CommandDisplay";
 import { SETUP_GUIDE_API_KEY_PLACEHOLDER } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import {
+  HOST_COLLECTOR_OPAMP_PATH,
   HostCollectorConfigStatus,
   HostCollectorOsType,
   getHostCollectorConfigRestoredNote,
@@ -723,6 +724,51 @@ describe("the Add Host guide", () => {
       expect(guide.keyStep?.hideValues).toBe(true);
       expect(guide.wrapLongLines).toBe(true);
       expect(DASHBOARD_EN[guide.keyStep!.description!]).toBeDefined();
+    }
+  });
+
+  test("explains each way the command can be turned away, as the installers word it", () => {
+    for (const option of [
+      "linux",
+      "windows",
+      "darwin",
+    ] as Array<HostAddOption>) {
+      const topics: Array<{ title: string; markdown: string }> =
+        getHostAddGuide({
+          oneuptimeUrl: `${URL}/`,
+          apiKey: KEY,
+          option,
+        }).troubleshooting || [];
+      const titles: Array<string> = topics.map(
+        (topic: { title: string }): string => {
+          return topic.title;
+        },
+      );
+
+      expect(titles.slice(0, 2)).toEqual([
+        "The command says OneUptime refused the key",
+        "The command says OneUptime was not found",
+      ]);
+
+      // Every title is shown in the reader's language.
+      for (const title of titles) {
+        expect(DASHBOARD_EN[title]).toBe(title);
+      }
+
+      const notFound: string = topics[1]!.markdown;
+
+      // The address the collector asks, as this OneUptime's command writes it.
+      expect(notFound).toContain(
+        `HTTP 404: the address the collector asks for its config, \`${URL}${HOST_COLLECTOR_OPAMP_PATH}\`, does not reach OneUptime.`,
+      );
+      expect(notFound).toContain(
+        `have it send \`${HOST_COLLECTOR_OPAMP_PATH}\` to OneUptime, as it sends \`/otlp\`.`,
+      );
+      expect(notFound).toContain(
+        "The collector keeps asking every 30 seconds, so the host connects as soon as the address works.",
+      );
+      // The URL's trailing slash is not doubled into the address.
+      expect(notFound).not.toContain(`${URL}//`);
     }
   });
 

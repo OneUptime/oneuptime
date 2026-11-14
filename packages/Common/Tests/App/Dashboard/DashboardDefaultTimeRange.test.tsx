@@ -575,8 +575,31 @@ describe("the defaults, set on purpose while editing", () => {
 
     await renderDashboard();
     await enterEditMode();
+    await pickDefault(
+      DEFAULT_TIME_RANGE_PICKER_TEST_ID,
+      TimeRange.PAST_ONE_WEEK,
+    );
     await discardChanges();
 
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(canvasRange()).toBe(TimeRange.PAST_TWO_HOURS);
+  });
+
+  test("an editor on a pick of their own keeps it when Cancel ends an edit that changed nothing", async () => {
+    seedServer(makeConfig({ timeRange: TimeRange.PAST_ONE_DAY }));
+    window.localStorage.setItem(TIME_RANGE_KEY, TimeRange.PAST_TWO_HOURS);
+
+    await renderDashboard();
+    await enterEditMode();
+
+    // Nothing to throw away: back to view mode at once (issue #7173).
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Cancel"));
+    });
+    expect(screen.queryByText("Discard Changes")).toBeNull();
+    await settle();
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
     expect(canvasRange()).toBe(TimeRange.PAST_TWO_HOURS);
   });
 });

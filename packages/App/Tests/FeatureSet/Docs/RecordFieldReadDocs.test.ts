@@ -90,9 +90,7 @@ describe("Users, Teams & Permissions: what reading a record reads", () => {
     );
     expect(paragraph).toContain("server agent key");
     expect(paragraph).toContain("a workflow's webhook and incoming email keys");
-    expect(paragraph).toContain(
-      "**Read Telemetry Service Metrics** reads metrics",
-    );
+    expect(paragraph).toContain("**Read Metrics** reads metrics");
   });
 
   /*
@@ -102,6 +100,6 @@ describe("Users, Teams & Permissions: what reading a record reads", () => {
   test("the metric permission reads metrics", () => {
     expect(
       PermissionHelper.getDescription(Permission.ReadTelemetryServiceMetrics),
-    ).toContain("read Telemetry Service Metrics");
+    ).toContain("read the metrics of this project");
   });
 });

@@ -7,6 +7,7 @@ import MattermostUtil from "../Utils/Workspace/Mattermost/Mattermost";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 import { WorkspaceDirectMessageLocation } from "../Utils/Workspace/WorkspaceBase";
 import logger from "../Utils/Logger";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 import { recordSendResult } from "../Utils/OnCall/OnCallNotificationStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NotificationDeliveryMetrics, {
@@ -134,6 +135,21 @@ export class WorkspaceUserNotificationService extends BaseService {
       : null;
 
     try {
+      /*
+       * A project a master admin blocked, and a sample project (issue
+       * #6808), send nobody a direct message (BlockedProjectNotifications):
+       * the send fails with the reason, which the on-call timeline shows.
+       */
+      const silencedReason: string | null =
+        await BlockedProjectNotifications.getSilencedReason({
+          channel: `${workspaceDisplayName} message`,
+          projectId: options.projectId,
+        });
+
+      if (silencedReason) {
+        throw new BadDataException(silencedReason);
+      }
+
       if (!options.workspaceUserId) {
         throw new BadDataException(
           `This account is not connected to ${workspaceDisplayName}. Please go to User Settings and connect the account.`,

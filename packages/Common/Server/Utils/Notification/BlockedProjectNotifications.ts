@@ -7,6 +7,7 @@ import NotificationDeliveryMetrics, {
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import ObjectID from "../../../Types/ObjectID";
+import { getSampleProjectNotSentReason } from "../../../Types/SampleProject/SampleProject";
 
 /*
  * NOTHING IS SENT FOR A BLOCKED PROJECT.
@@ -23,15 +24,49 @@ import ObjectID from "../../../Types/ObjectID";
  * failed send, and an on-call timeline entry that says why rather than
  * "Sending" for ever. Nothing reaches the Notification service.
  *
+ * NOTHING IS SENT FOR A SAMPLE PROJECT EITHER.
+ *
+ * A sample project (Project.isSampleProject, issue #6808) is made up for a
+ * person to look around in, and nobody is ever notified from it: every
+ * sender that names its project refuses it here, the same way, with a
+ * reason that says it is a sample (getRefusal, getSilencedReason). Its
+ * sample people have no address that can receive anything either
+ * (MailService refuses theirs), so a refusal here is the first of two.
+ *
  * IT FAILS OPEN
  *
- * The answer is cached per server (ProjectService.isProjectBlocked). A
- * lookup that fails sends the message as usual: a fault in a check that is
- * there for abuse must not stop every project's on-call pages with it.
+ * The answers are cached per server (ProjectService.isProjectBlocked,
+ * ProjectService.isSampleProject). A lookup that fails sends the message as
+ * usual: a fault in a check must not stop every project's on-call pages
+ * with it.
  */
 export default class BlockedProjectNotifications {
   public static getNotSentReason(channel: string): string {
     return `${channel} not sent: ${ExceptionMessages.ProjectBlocked}`;
+  }
+
+  /*
+   * Why nothing may be sent for the project on `channel`: blocked by a
+   * master admin, or a sample project; null when it may send, when none is
+   * named, or when it cannot be told.
+   */
+  public static async getSilencedReason(data: {
+    channel: string;
+    projectId?: ObjectID | null | undefined;
+  }): Promise<string | null> {
+    if (!data.projectId) {
+      return null;
+    }
+
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      return BlockedProjectNotifications.getNotSentReason(data.channel);
+    }
+
+    if (await BlockedProjectNotifications.isSample(data.projectId)) {
+      return getSampleProjectNotSentReason(data.channel);
+    }
+
+    return null;
   }
 
   /*
@@ -54,13 +89,15 @@ export default class BlockedProjectNotifications {
       return null;
     }
 
-    if (!(await BlockedProjectNotifications.isBlocked(data.projectId))) {
+    const reason: string | null =
+      await BlockedProjectNotifications.getSilencedReason({
+        channel: data.channel,
+        projectId: data.projectId,
+      });
+
+    if (!reason) {
       return null;
     }
-
-    const reason: string = BlockedProjectNotifications.getNotSentReason(
-      data.channel,
-    );
 
     logger.debug(reason, { projectId: data.projectId.toString() });
 
@@ -77,6 +114,22 @@ export default class BlockedProjectNotifications {
     });
 
     return new HTTPErrorResponse(403, { message: reason }, {});
+  }
+
+  /*
+   * Whether the project is a sample (issue #6808), which sends nothing;
+   * false when it cannot be told.
+   */
+  public static async isSample(projectId: ObjectID): Promise<boolean> {
+    try {
+      return await ProjectService.isSampleProject(projectId);
+    } catch (err) {
+      logger.error(
+        `Could not tell whether project ${projectId.toString()} is a sample project; its notifications are sent as usual.`,
+      );
+      logger.error(err);
+      return false;
+    }
   }
 
   // Whether nothing may be sent for the project; false when it cannot be told.

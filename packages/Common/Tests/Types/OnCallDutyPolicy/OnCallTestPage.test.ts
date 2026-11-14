@@ -373,8 +373,13 @@ describe("where a message that did not go out is fixed", () => {
       "Notification not sent because the SMS notification method on this rule belongs to a different user. Please review this notification rule.",
       OnCallTestPageFix.OnCallRules,
     ],
+    // As a log written before the page was called How to Reach Me says it (#6820).
     [
       "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.",
+      OnCallTestPageFix.OnCallRules,
+    ],
+    [
+      "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me.",
       OnCallTestPageFix.OnCallRules,
     ],
   ])("%s", (reason: string, fix: OnCallTestPageFix) => {
@@ -565,6 +570,11 @@ describe("what a test costs", () => {
       callCount: 1,
       whatsAppCount: 0,
       telegramCount: 0,
+      // Sent, and paid from no balance (#7263).
+      paidSmsCount: 0,
+      paidCallCount: 0,
+      paidWhatsAppCount: 0,
+      paidTelegramCount: 0,
     });
   });
 
@@ -593,6 +603,10 @@ describe("what a test costs", () => {
       callCount: 1,
       whatsAppCount: 0,
       telegramCount: 0,
+      paidSmsCount: 2,
+      paidCallCount: 1,
+      paidWhatsAppCount: 0,
+      paidTelegramCount: 0,
       estimatedCostInUSDCents: 45,
     });
   });
@@ -636,6 +650,10 @@ describe("what a test costs", () => {
       callCount: 0,
       whatsAppCount: 1,
       telegramCount: 1,
+      paidSmsCount: 0,
+      paidCallCount: 0,
+      paidWhatsAppCount: 1,
+      paidTelegramCount: 1,
       estimatedCostInUSDCents: 4,
     });
   });
@@ -655,6 +673,10 @@ describe("what a test costs", () => {
       callCount: 0,
       whatsAppCount: 0,
       telegramCount: 0,
+      paidSmsCount: 0,
+      paidCallCount: 0,
+      paidWhatsAppCount: 0,
+      paidTelegramCount: 0,
     });
   });
 
@@ -675,5 +697,201 @@ describe("what a test costs", () => {
 
     expect(cost.isPaid).toBe(true);
     expect(cost.estimatedCostInUSDCents).toBeUndefined();
+  });
+
+  /*
+   * WHAT THE BALANCE PAYS FOR, BESIDE WHAT IS SENT (#7263). The dialog's
+   * sentence says what it lists is "paid from this project's SMS and call
+   * balance", so it lists these: a text or a call the project's own Twilio
+   * account sends is sent, and counted, but not paid for.
+   */
+  describe("what the project's balance pays for (#7263)", () => {
+    const textAndCall: Array<{ methods: Array<OnCallTestPagePreviewMethod> }> =
+      [
+        {
+          methods: [
+            method(OnCallPageChannel.SMS),
+            method(OnCallPageChannel.Call),
+          ],
+        },
+      ];
+
+    test("own Twilio for SMS only: the text is sent but not paid; the call is, and is the whole amount", () => {
+      expect(
+        getOnCallTestPageCost({
+          people: textAndCall,
+          isBillingEnabled: true,
+          hasOwnTwilioForSms: true,
+          hasOwnTwilioForCalls: false,
+          prices: prices,
+        }),
+      ).toEqual({
+        isPaid: true,
+        smsCount: 1,
+        callCount: 1,
+        whatsAppCount: 0,
+        telegramCount: 0,
+        paidSmsCount: 0,
+        paidCallCount: 1,
+        paidWhatsAppCount: 0,
+        paidTelegramCount: 0,
+        estimatedCostInUSDCents: prices.callPerMinuteInCents,
+      });
+    });
+
+    test("own Twilio for calls only: the call is sent but not paid; the text is, and is the whole amount", () => {
+      expect(
+        getOnCallTestPageCost({
+          people: textAndCall,
+          isBillingEnabled: true,
+          hasOwnTwilioForSms: false,
+          hasOwnTwilioForCalls: true,
+          prices: prices,
+        }),
+      ).toEqual({
+        isPaid: true,
+        smsCount: 1,
+        callCount: 1,
+        whatsAppCount: 0,
+        telegramCount: 0,
+        paidSmsCount: 1,
+        paidCallCount: 0,
+        paidWhatsAppCount: 0,
+        paidTelegramCount: 0,
+        estimatedCostInUSDCents: prices.smsInCents,
+      });
+    });
+
+    test("own Twilio for both: everything is sent, nothing is paid, and there is no amount", () => {
+      const cost: ReturnType<typeof getOnCallTestPageCost> =
+        getOnCallTestPageCost({
+          people: textAndCall,
+          isBillingEnabled: true,
+          hasOwnTwilioForSms: true,
+          hasOwnTwilioForCalls: true,
+          prices: prices,
+        });
+
+      expect(cost.isPaid).toBe(false);
+      expect([cost.smsCount, cost.callCount]).toEqual([1, 1]);
+      expect([cost.paidSmsCount, cost.paidCallCount]).toEqual([0, 0]);
+      expect(cost.estimatedCostInUSDCents).toBeUndefined();
+    });
+
+    test("WhatsApp and Telegram are paid wherever billing is on, whoever sends the texts and calls", () => {
+      const cost: ReturnType<typeof getOnCallTestPageCost> =
+        getOnCallTestPageCost({
+          people: [
+            {
+              methods: [
+                method(OnCallPageChannel.SMS),
+                method(OnCallPageChannel.WhatsApp),
+                method(OnCallPageChannel.Telegram),
+              ],
+            },
+          ],
+          isBillingEnabled: true,
+          hasOwnTwilioForSms: true,
+          hasOwnTwilioForCalls: true,
+          prices: prices,
+        });
+
+      expect(cost.paidSmsCount).toBe(0);
+      expect(cost.paidWhatsAppCount).toBe(1);
+      expect(cost.paidTelegramCount).toBe(1);
+      expect(cost.estimatedCostInUSDCents).toBe(
+        prices.whatsAppInCents + prices.telegramInCents,
+      );
+    });
+
+    test("paid never exceeds sent, channel by channel, for every mix of own accounts and billing", () => {
+      const people: Array<{ methods: Array<OnCallTestPagePreviewMethod> }> = [
+        {
+          methods: [
+            method(OnCallPageChannel.SMS),
+            method(OnCallPageChannel.Call),
+            method(OnCallPageChannel.WhatsApp),
+            method(OnCallPageChannel.Telegram),
+            method(OnCallPageChannel.SMS, false),
+          ],
+        },
+        {
+          methods: [
+            method(OnCallPageChannel.SMS),
+            method(OnCallPageChannel.Email),
+          ],
+        },
+      ];
+
+      for (const isBillingEnabled of [true, false]) {
+        for (const hasOwnTwilioForSms of [true, false]) {
+          for (const hasOwnTwilioForCalls of [true, false]) {
+            const cost: ReturnType<typeof getOnCallTestPageCost> =
+              getOnCallTestPageCost({
+                people: people,
+                isBillingEnabled: isBillingEnabled,
+                hasOwnTwilioForSms: hasOwnTwilioForSms,
+                hasOwnTwilioForCalls: hasOwnTwilioForCalls,
+                prices: prices,
+              });
+
+            // What is sent never depends on who pays for it.
+            expect([
+              cost.smsCount,
+              cost.callCount,
+              cost.whatsAppCount,
+              cost.telegramCount,
+            ]).toEqual([2, 1, 1, 1]);
+            expect(cost.paidSmsCount).toBe(
+              isBillingEnabled && !hasOwnTwilioForSms ? 2 : 0,
+            );
+            expect(cost.paidCallCount).toBe(
+              isBillingEnabled && !hasOwnTwilioForCalls ? 1 : 0,
+            );
+            expect(cost.paidWhatsAppCount).toBe(isBillingEnabled ? 1 : 0);
+            expect(cost.paidTelegramCount).toBe(isBillingEnabled ? 1 : 0);
+            // The amount is what is paid for, at its prices.
+            expect(cost.estimatedCostInUSDCents || 0).toBe(
+              cost.paidSmsCount! * prices.smsInCents +
+                cost.paidCallCount! * prices.callPerMinuteInCents +
+                cost.paidWhatsAppCount! * prices.whatsAppInCents +
+                cost.paidTelegramCount! * prices.telegramInCents,
+            );
+            expect(cost.isPaid).toBe(isBillingEnabled);
+          }
+        }
+      }
+    });
+  });
+
+  /*
+   * A PERSON WITH NO RULE (#7262): the preview lists the methods the
+   * project's fallback picks for them, each marked isFallback, and a test
+   * sends to them as a real page would - so they are counted, and paid
+   * for, like any method a rule names.
+   */
+  test("a method the fallback picks is counted and paid for like any other", () => {
+    const fallback: OnCallTestPagePreviewMethod = {
+      ...method(OnCallPageChannel.SMS),
+      isFallback: true,
+    };
+
+    const cost: ReturnType<typeof getOnCallTestPageCost> =
+      getOnCallTestPageCost({
+        people: [
+          { methods: [method(OnCallPageChannel.Call)] },
+          { methods: [fallback] },
+        ],
+        isBillingEnabled: true,
+        hasOwnTwilioForSms: false,
+        hasOwnTwilioForCalls: false,
+        prices: prices,
+      });
+
+    expect([cost.smsCount, cost.callCount]).toEqual([1, 1]);
+    expect([cost.paidSmsCount, cost.paidCallCount]).toEqual([1, 1]);
+    expect(cost.estimatedCostInUSDCents).toBe(
+      prices.smsInCents + prices.callPerMinuteInCents,
+    );
   });
 });

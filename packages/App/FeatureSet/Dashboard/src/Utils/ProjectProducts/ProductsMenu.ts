@@ -5,6 +5,7 @@ import {
   getProductPlacement,
 } from "Common/Types/Product/ProjectProducts";
 import { ProjectProductsAnswer } from "Common/Types/Product/ProjectProductsAnswer";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
 import { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import {
   MenuCategory,
@@ -26,8 +27,10 @@ import {
  *     More products at the foot of the menu;
  *   - pinned: this person's pins, in the order they were pinned.
  *
- * A product switched off on the server (#6815, offOnServer) is in none of
- * them. Pure: the NavBar, Home, Search and their tests read it.
+ * A product switched off on the server (#6815) is in none of them: the
+ * answer says which (answer.offOnServer), and an explicit offOnServer list
+ * stands in for it where a caller passes one. Pure: the NavBar, Home,
+ * Search and their tests read it.
  */
 
 export interface ProductsMenu {
@@ -105,6 +108,20 @@ export const orderProductsByUse: (data: {
   );
 };
 
+/*
+ * The products switched off on the server: the caller's list when it passes
+ * one, else the answer's.
+ */
+export const getOffOnServer: (data: {
+  answer: ProjectProductsAnswer;
+  offOnServer?: ReadonlyArray<ProductKey> | undefined;
+}) => ReadonlyArray<ProductKey> = (data: {
+  answer: ProjectProductsAnswer;
+  offOnServer?: ReadonlyArray<ProductKey> | undefined;
+}): ReadonlyArray<ProductKey> => {
+  return data.offOnServer || getOffProducts(data.answer.offOnServer || {});
+};
+
 // Where an item is drawn for this project: listed, hidden, or not at all.
 export const getItemPlacement: (data: {
   item: MoreMenuItem;
@@ -124,7 +141,7 @@ export const getItemPlacement: (data: {
   return getProductPlacement({
     product: product,
     hidden: data.answer.hidden,
-    offOnServer: data.offOnServer,
+    offOnServer: getOffOnServer(data),
   });
 };
 

@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitorgrupper](/docs/monitor/monitor-groups): Saml flere monitorer i én status.
-- [Tjenestekatalog](/docs/telemetry/services): Hver applikation, du kører, med sin egen side.
+- [Tjenester](/docs/telemetry/services): Hver applikation, du kører, med sin egen side.
 - [Inventar – Oversigt](/docs/inventory/overview): Alt, hvad OneUptime ved om dit miljø.
 :::
 
@@ -132,7 +132,7 @@ En **statusside** viser dine kunder, om dine tjenester virker. Du vælger, hvilk
 
 ## Telemetri
 
-**Telemetri** er det, dine systemer sender til OneUptime: logs, metrikker, traces, undtagelser og profiler. Applikationer sender den med OpenTelemetry, og OneUptimes agenter sender den fra værter, Kubernetes-klynger, Docker-værter og øvrig infrastruktur. Hver afsender bruger en **indtagelsesnøgle**, oprettet under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. Du søger i telemetrien, viser den på dashboards og holder øje med den med telemetrimonitorer, der åbner hændelser og advarsler som enhver anden monitor. I menuen åbner **Protokoller**, **Metrikker**, **Spor**, **Ydeevneprofiler** og **Undtagelser** hver sin slags; **AI / LLM** følger din AI's samtaler, **Dataobservabilitet** holder øje med tabellerne i dine databaser, og **Topologi** kortlægger, hvordan det hele hænger sammen.
+**Telemetri** er det, dine systemer sender til OneUptime: logs, metrikker, traces, undtagelser og profiler. Applikationer sender den med OpenTelemetry, og OneUptimes agenter sender den fra værter, Kubernetes-klynger, Docker-værter og øvrig infrastruktur. Hver afsender bruger en **indtagelsesnøgle**, oprettet under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. Du søger i telemetrien, viser den på dashboards og holder øje med den med telemetrimonitorer, der åbner hændelser og advarsler som enhver anden monitor. I menuen åbner **Protokoller**, **Metrikker**, **Spor**, **Profiler** og **Undtagelser** hver sin slags; **AI / LLM** følger din AI's samtaler, **Dataobservabilitet** holder øje med tabellerne i dine databaser, og **Topologi** kortlægger, hvordan det hele hænger sammen.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrikker og traces fra dine applikationer.
@@ -198,7 +198,7 @@ En monitors egne regler er dens kriterier. Vagtreglerne under **Brugerindstillin
 
 :::cards
 - [Hændelsesindstillinger og automatisering](/docs/incidents/settings#regler-der-kører-når-en-hændelse-oprettes): De regler, der kører, når en hændelse oprettes, i rækkefølge.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Hvordan et tilkald når frem til dig.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Hvordan et tilkald når frem til dig.
 :::
 
 ## Næste trin

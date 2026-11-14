@@ -29,6 +29,7 @@ import {
   RESOURCE_VIEW_PAGES,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/CloudResourceViewPages";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import { getApiSingularName } from "../../../Utils/ModelApiName";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -357,7 +358,8 @@ const ROOT_TYPES: ReadonlySet<string> = new Set<string>(
       return AUDIT_LOG_ROOT_RESOURCE_TABLES.has(model.tableName as string);
     })
     .map((model: BaseModel): string => {
-      return model.singularName as string;
+      // The type entries are stored under: a renamed model's kept API name.
+      return getApiSingularName(model);
     }),
 );
 

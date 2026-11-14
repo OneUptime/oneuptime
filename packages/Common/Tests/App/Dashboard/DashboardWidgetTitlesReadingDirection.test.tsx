@@ -721,11 +721,18 @@ describe("a Gauge's title, centred over the gauge", () => {
   /*
    * The arc fills from the left in every language, as a chart's time runs,
    * so its bounds under it are laid out left to right too: mirrored on an
-   * Arabic board, "100" sat under the end the fill starts from.
+   * Arabic board, "100" sat under the end the fill starts from. The bounds
+   * are written in the board's digits: Persian's own on a Persian board
+   * (#7094).
    */
-  test.each(["ar", "fa", "de", "en"])(
+  test.each([
+    ["ar", ["0", "100"]],
+    ["fa", ["۰", "۱۰۰"]],
+    ["de", ["0", "100"]],
+    ["en", ["0", "100"]],
+  ])(
     "on a %s board the minimum sits under the arc's left end and the maximum under its right",
-    async (language: string) => {
+    async (language: string, expectedBounds: Array<string>) => {
       await inLanguage(language);
       render(<GaugeWidgetView {...GAUGE_PROPS} />);
 
@@ -736,7 +743,7 @@ describe("a Gauge's title, centred over the gauge", () => {
         Array.from(bounds.children).map((bound: Element): string => {
           return bound.textContent || "";
         }),
-      ).toEqual(["0", "100"]);
+      ).toEqual(expectedBounds);
     },
   );
 
@@ -922,6 +929,22 @@ describe("a Network Map widget's title", () => {
       expectDrawnAsItWas(screen.getByTestId("network-map-widget-summary"));
     },
   );
+
+  /*
+   * As plain as the title beside it, as a list's count is: gray-300 all but
+   * vanished on a light board and outshone the title on a dark one.
+   */
+  test("the sites' count is drawn in its title's gray", async () => {
+    await drawMap(ENGLISH_TITLE);
+
+    const summary: HTMLElement = screen.getByTestId(
+      "network-map-widget-summary",
+    );
+
+    expect(lineOf(ENGLISH_TITLE)).toHaveClass("text-gray-400");
+    expect(summary).toHaveClass("text-gray-400");
+    expect(summary).not.toHaveClass("text-gray-300");
+  });
 
   test("on an Arabic board the widget's own name, in Arabic, is drawn as it was", async () => {
     await inLanguage("ar");

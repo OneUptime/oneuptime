@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import fs from "fs";
 import path from "path";
 import {
@@ -376,8 +377,11 @@ const STORAGE_ARRAY_TEMPLATE_TABLES: ReadonlyArray<string> = [
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const INLINE_CODE: RegExp = /`[^`\n]*`/g;
 const FENCE: RegExp = /^\s*(?:```|~~~)/;
-// A menu path's separators: "Network → Devices", Persian "شبکه > دستگاه‌ها".
-const PATH_SEPARATOR: RegExp = / → | > /;
+/*
+ * A menu path's separators: "Network → Devices", Persian "شبکه > دستگاه‌ها",
+ * or Persian "شبکه ← دستگاه‌ها" in one span (#7611).
+ */
+const PATH_SEPARATOR: RegExp = / → | ← | > /;
 const COLONS: ReadonlyArray<string> = [":", "："];
 
 function valueOf(language: string, key: string): string {
@@ -691,9 +695,15 @@ describe("the Dashboard's own sentences that name a label", () => {
       return;
     }
 
+    /*
+     * And ends with the arrow that leads on in its language: "←" in one read
+     * from the right, where "→" points back (#7610).
+     */
     expect({ language, link: worded }).toEqual({
       language,
-      link: entry.isTheHeading ? `${words} →` : expect.stringContaining(words),
+      link: entry.isTheHeading
+        ? `${words} ${isRightToLeftLanguage(language) ? "←" : "→"}`
+        : expect.stringContaining(words),
     });
   });
 });
@@ -889,6 +899,12 @@ describe("the checks above", () => {
     expect(
       boldWords("Go to **Network → Devices** and click **Add Device**."),
     ).toEqual(["Network", "Devices", "Add Device"]);
+    // A Persian path in one span, its arrows "←" beside Persian steps (#7611).
+    expect(boldWords("به **حوادث ← تنظیمات ← Slack** بروید.")).toEqual([
+      "حوادث",
+      "تنظیمات",
+      "Slack",
+    ]);
     expect(boldWords("- **Stale:** the **Instances** tab")).toEqual([
       "Stale",
       "Instances",

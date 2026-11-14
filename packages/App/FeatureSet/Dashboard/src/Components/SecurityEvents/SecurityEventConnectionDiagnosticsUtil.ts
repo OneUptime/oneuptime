@@ -31,6 +31,7 @@ import {
 } from "./SecurityEventsFacets";
 import { getSecurityEventsTimeRangeLinkParams } from "./SecurityEventsTimeRange";
 import {
+  getLocaleClockHourOption,
   getReaderDateLocale,
   getReaderNumberLocale,
 } from "Common/Types/DateLanguage";
@@ -233,11 +234,12 @@ export function formatConnectionLocalDate(
     return "";
   }
 
+  // On the language's own clock, a 12-hour hour without its zero (#7279).
   return date.toLocaleString(getReaderDateLocale(), {
     year: "numeric",
     month: "short",
     day: "2-digit",
-    hour: "2-digit",
+    hour: getLocaleClockHourOption(getReaderDateLocale()),
     minute: "2-digit",
     second: "2-digit",
     timeZoneName: "short",

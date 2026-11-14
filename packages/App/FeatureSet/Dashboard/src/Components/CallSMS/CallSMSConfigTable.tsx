@@ -658,6 +658,12 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             description: TwilioConfigUseCopy.smsOnlyPhoneNumbersDescription,
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            /*
+             * A list of numbers reads left to right in every language, its
+             * example with it: on a Persian or Arabic page the example's
+             * "+" went after its digits (#7180).
+             */
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {
@@ -743,6 +749,12 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             description: TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            /*
+             * A list of numbers reads left to right in every language, its
+             * example with it: on a Persian or Arabic page the example's
+             * "+" went after its digits (#7180).
+             */
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {
@@ -763,6 +775,8 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             description:
               TwilioConfigNumbersCopy.secondaryPhoneNumbersDescription,
             placeholder: "+441234567890, +461234567890",
+            // A list of numbers reads left to right, as the ones above.
+            readsLeftToRight: true,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {

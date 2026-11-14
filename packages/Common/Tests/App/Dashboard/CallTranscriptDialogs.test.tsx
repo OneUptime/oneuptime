@@ -49,7 +49,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import AddCallTranscriptModal, {
-  formatFileSize,
   getTranscriptSourceHint,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/AddCallTranscriptModal";
 import CallTranscriptModal, {
@@ -58,6 +57,7 @@ import CallTranscriptModal, {
   getRowsShownFirst,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptModal";
 import { MAX_TRANSCRIPT_FILE_BYTES } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptState";
+import { formatFileSize } from "../../../Types/File/FileSize";
 import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -341,7 +341,7 @@ describe("Add transcript", () => {
     );
   });
 
-  test("file sizes read as a person writes them", () => {
+  test("file sizes read as a person writes them, as every list of files writes them (Types/File/FileSize)", () => {
     expect(formatFileSize(512)).toBe("512 B");
     expect(formatFileSize(2048)).toBe("2 KB");
     expect(formatFileSize(MAX_TRANSCRIPT_FILE_BYTES)).toBe("5 MB");

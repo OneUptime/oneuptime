@@ -1,4 +1,7 @@
 import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
+import EscalationRuleNotifyNote, {
+  PreviousEscalationLevel,
+} from "./EscalationRuleNotifyNote";
 import { getTestPolicyGate } from "../../OnCallTestPage/OnCallTestPageAccess";
 import {
   ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
@@ -6,6 +9,7 @@ import {
 } from "../OnCallLabelClasses";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import DefinitionsDrawnAfter from "Common/UI/Components/Glossary/DefinitionsDrawnAfter";
 import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import EscalationSummary, {
   EscalationLevelSummary,
@@ -1854,18 +1858,39 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       return Boolean(editRuleId) && rule.id?.toString() === editRuleId;
     }) + 1 || 1;
 
+  /*
+   * The level a new rule comes after, and its wait: when the new level is
+   * paged, said under its Notify field (#7373).
+   */
+  const lastRule: OnCallDutyEscalationRule | undefined =
+    rules[rules.length - 1];
+  const previousLevel: PreviousEscalationLevel | undefined = lastRule
+    ? {
+        name: resolveEscalationRuleName(lastRule.name, rules.length),
+        escalateAfterInMinutes: Number(lastRule.escalateAfterInMinutes) || 0,
+      }
+    : undefined;
+
   const createFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
       return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
         level: rules.length + 1,
+        notifyFooterElement: (
+          <EscalationRuleNotifyNote previousLevel={previousLevel} />
+        ),
       });
-    }, [rules.length]);
+    }, [
+      rules.length,
+      previousLevel?.name,
+      previousLevel?.escalateAfterInMinutes,
+    ]);
 
   const editFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
       return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
         level: editRuleLevel,
         isEditing: true,
+        notifyFooterElement: <EscalationRuleNotifyNote />,
       });
     }, [editRuleLevel]);
 
@@ -2063,11 +2088,17 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              <DefinedTerm term={GlossaryTerm.EscalationRule}>
-                {translator.translateText("Escalation Rules")}
-              </DefinedTerm>
-            </h2>
+            {/*
+             * Its definition right after the heading, not in it: the
+             * heading stays named "Escalation Rules" while it shows.
+             */}
+            <DefinitionsDrawnAfter>
+              <h2 className="text-lg font-semibold text-gray-900">
+                <DefinedTerm term={GlossaryTerm.EscalationRule}>
+                  {translator.translateText("Escalation Rules")}
+                </DefinedTerm>
+              </h2>
+            </DefinitionsDrawnAfter>
             {/*
              * A div, not a p: the link's icon is drawn in a block of its own.
              */}

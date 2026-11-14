@@ -37,11 +37,12 @@ import OpenStackCollectionSettings, {
  * The database half of probe collection: which clouds a probe collects now, and what
  * it found. It is VMware's store (VMwareProbeCollectionStore) for what a cloud is.
  *
- * Claiming is atomic (FOR UPDATE SKIP LOCKED) and moves each claimed cloud's
- * nextCollectionAt an interval on, so two work requests - the same probe's overlapping
- * ticks, or two server replicas - never hand one cloud out twice. The clouds a probe
- * says it is still collecting are left out, so a collection slower than its interval
- * is skipped, not stacked.
+ * Claiming is one statement (FOR NO KEY UPDATE SKIP LOCKED) that moves each claimed
+ * cloud's nextCollectionAt an interval on, so two work requests - the same probe's
+ * overlapping ticks, or two server replicas - never hand one cloud out twice, and no
+ * claim holds a cloud longer than that statement runs. The clouds a probe says it is
+ * still collecting are left out, so a collection slower than its interval is skipped,
+ * not stacked.
  *
  * Only a probe that may collect a cloud is ever handed one: the cloud names it, and it
  * is the project's own probe - or, on a self-hosted install, one of the instance's own
@@ -87,9 +88,12 @@ export interface OpenStackSqlManager {
 
 // What the store needs of the service that owns the table.
 export interface OpenStackCollectionCloudService {
-  executeTransaction: <T>(
-    run: (manager: OpenStackSqlManager) => Promise<T>,
-  ) => Promise<T>;
+  /*
+   * Its connection, for the claim's one self-committing statement. There is
+   * no transaction to open here: a claim's row locks must never outlive its
+   * statement (OneUptime issue #7194).
+   */
+  getRepository: () => { manager: OpenStackSqlManager };
   findBy: (options: {
     query: Record<string, unknown>;
     select: Record<string, unknown>;
@@ -149,14 +153,21 @@ export default class OpenStackProbeCollectionStore {
       },
     );
 
-    const claimedIds: Array<string> = await service.executeTransaction(
-      async (manager: OpenStackSqlManager): Promise<Array<string>> => {
-        const selectedRows: Array<{
-          _id: string;
-          collectionIntervalInMinutes: number | null;
-        }> = (await manager.query(
-          `
-        SELECT c."_id", c."collectionIntervalInMinutes"
+    /*
+     * One self-committing statement (OneUptime issue #7194), as VMware's
+     * claim explains (VMwareProbeCollectionStore.claimDueVCenters): the due
+     * clouds are locked FOR NO KEY UPDATE SKIP LOCKED and moved an interval
+     * on by the same statement, so the locks last only as long as it runs,
+     * and the foreign-key check of a row that names a cloud never waits for
+     * them. The interval is held to getSafeInterval's bounds in SQL (the
+     * last three parameters; the column is a NOT NULL integer, so it is the
+     * same rule). The ids come back in claim order, the longest overdue
+     * first.
+     */
+    const claimedRows: unknown = await service.getRepository().manager.query(
+      `
+      WITH "due" AS (
+        SELECT c."_id", c."nextCollectionAt" AS "dueAt"
         FROM "OpenStackCloud" c
         INNER JOIN "Project" p ON c."projectId" = p."_id"
         INNER JOIN "Probe" pr ON c."collectionProbeId" = pr."_id"
@@ -178,78 +189,55 @@ export default class OpenStackProbeCollectionStore {
           AND p."deletedAt" IS NULL
           -- A project a master admin blocked is not collected until it is unblocked.
           AND p."isBlocked" = false
+          AND p."isSampleProject" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
         ORDER BY c."nextCollectionAt" ASC NULLS FIRST
         LIMIT $3
-        FOR UPDATE OF c SKIP LOCKED
-      `,
-          [
-            data.probeId.toString(),
-            currentDate,
-            data.limit,
-            SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
-            OpenStackCollectionMethod.Probe,
-            runningIds,
-            IsBillingEnabled,
-          ],
-        )) as Array<{
-          _id: string;
-          collectionIntervalInMinutes: number | null;
-        }>;
-
-        if (selectedRows.length === 0) {
-          return [];
-        }
-
-        const caseFragments: Array<string> = [];
-        const parameters: Array<string | Date> = [];
-        let parameterIndex: number = 1;
-
-        for (const row of selectedRows) {
-          const nextCollectionAt: Date = OneUptimeDate.addRemoveMinutes(
-            currentDate,
-            OpenStackProbeCollectionStore.getSafeInterval(
-              row.collectionIntervalInMinutes,
-            ),
-          );
-
-          /*
-           * ::timestamptz - see NetworkDeviceService.claimDevicesForPolling for why a
-           * ::timestamp cast skews the schedule.
-           */
-          caseFragments.push(
-            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
-          );
-          parameters.push(row._id, nextCollectionAt);
-          parameterIndex += 2;
-        }
-
-        const ids: Array<string> = selectedRows.map(
-          (row: { _id: string }): string => {
-            return row._id;
-          },
-        );
-
-        const idPlaceholders: Array<string> = ids.map(
-          (_id: string, index: number): string => {
-            return `$${parameterIndex + index}`;
-          },
-        );
-        parameters.push(...ids);
-
-        await manager.query(
-          `UPDATE "OpenStackCloud" SET "nextCollectionAt" = CASE "_id" ${caseFragments.join(
-            " ",
-          )} END WHERE "_id" IN (${idPlaceholders.join(", ")})`,
-          parameters,
-        );
-
-        return ids;
-      },
+        FOR NO KEY UPDATE OF c SKIP LOCKED
+      ),
+      "claimed" AS (
+        -- ::timestamptz - see NetworkDeviceService.claimDevicesForPolling
+        -- for why a ::timestamp cast skews the schedule.
+        UPDATE "OpenStackCloud" AS c
+        SET "nextCollectionAt" = $2::timestamptz + (
+            CASE
+              WHEN c."collectionIntervalInMinutes" IS NULL
+                OR c."collectionIntervalInMinutes" <= 0
+                THEN $8::int
+              ELSE LEAST(GREATEST(c."collectionIntervalInMinutes", $9::int), $10::int)
+            END
+          ) * INTERVAL '1 minute'
+        FROM "due"
+        WHERE c."_id" = "due"."_id"
+        RETURNING c."_id"
+      )
+      SELECT "due"."_id"
+      FROM "due"
+      INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
+      ORDER BY "due"."dueAt" ASC NULLS FIRST
+    `,
+      [
+        data.probeId.toString(),
+        currentDate,
+        data.limit,
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        OpenStackCollectionMethod.Probe,
+        runningIds,
+        IsBillingEnabled,
+        DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+        MIN_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+        MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+      ],
     );
+
+    const claimedIds: Array<string> = Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }): string => {
+          return row._id;
+        })
+      : [];
 
     if (claimedIds.length === 0) {
       return [];

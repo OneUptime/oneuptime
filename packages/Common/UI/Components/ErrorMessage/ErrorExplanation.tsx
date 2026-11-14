@@ -8,9 +8,12 @@ import { Translator } from "../../Utils/TranslateTemplate";
 import User from "../../Utils/User";
 import useTranslator from "../../Utils/UseTranslator";
 import URL from "../../../Types/API/URL";
+import { joinSentences } from "../../Utils/SentenceSeparator";
 import {
+  getExplanationWords,
   readUnexplainedError,
   UnexplainedError,
+  UnexplainedErrorExplanation,
   UnexplainedErrorKind,
   UnexplainedErrorWords,
 } from "../../../Types/Exception/UnexplainedError";
@@ -45,6 +48,12 @@ export interface ComponentProps {
    * ("Page Did Not Load").
    */
   hideWhatFailed?: boolean | undefined;
+  /*
+   * Drawn among centred lines - a failure in the middle of a feed, under a
+   * centred heading and over a centred Try again: the reference's row is
+   * centred under them too, not left at their start.
+   */
+  isCentered?: boolean | undefined;
 }
 
 // Whether the message is one this draws, rather than words of their own.
@@ -54,75 +63,12 @@ export const isUnexplainedErrorMessage: (message: unknown) => boolean = (
   return typeof message === "string" && readUnexplainedError(message) !== null;
 };
 
-interface Explanation {
-  why: string;
-  next: string;
-  whereToLook: string | null;
-}
-
 /*
- * The words for each kind, for the reader the page has. A visitor of a
- * status page or a public dashboard never chose OneUptime: they are told
- * to try again, and nothing about the server's logs or its support.
+ * The words for each kind, for the reader the page has (in
+ * Common/Types/Exception/UnexplainedError, where ErrorSentence reads them
+ * too).
  */
-export const getExplanationWords: (data: {
-  error: UnexplainedError;
-  isCloud: boolean;
-  isMasterAdmin: boolean;
-  isVisitor?: boolean | undefined;
-}) => Explanation = (data: {
-  error: UnexplainedError;
-  isCloud: boolean;
-  isMasterAdmin: boolean;
-  isVisitor?: boolean | undefined;
-}): Explanation => {
-  const isSelfHostedAdmin: boolean =
-    !data.isCloud && data.isMasterAdmin && !data.isVisitor;
-
-  switch (data.error.kind) {
-    case UnexplainedErrorKind.ServerWithReference:
-      return {
-        why: UnexplainedErrorWords.serverWhy,
-        next: data.isVisitor
-          ? UnexplainedErrorWords.serverNext
-          : data.isCloud
-            ? UnexplainedErrorWords.serverNextWithReferenceCloud
-            : UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
-        whereToLook: isSelfHostedAdmin
-          ? UnexplainedErrorWords.adminWhereToLookWithReference
-          : null,
-      };
-    case UnexplainedErrorKind.Server:
-      return {
-        why: UnexplainedErrorWords.serverWhy,
-        next: UnexplainedErrorWords.serverNext,
-        whereToLook: isSelfHostedAdmin
-          ? UnexplainedErrorWords.adminWhereToLook
-          : null,
-      };
-    case UnexplainedErrorKind.ServerDown:
-      return {
-        why: UnexplainedErrorWords.serverDownWhy,
-        next: UnexplainedErrorWords.serverDownNext,
-        whereToLook:
-          data.isCloud || data.isVisitor
-            ? null
-            : UnexplainedErrorWords.serverDownWhereToLook,
-      };
-    case UnexplainedErrorKind.Unreachable:
-      return {
-        why: UnexplainedErrorWords.unreachableWhy,
-        next: UnexplainedErrorWords.unreachableNext,
-        whereToLook: null,
-      };
-    default:
-      return {
-        why: UnexplainedErrorWords.pageWhy,
-        next: UnexplainedErrorWords.pageNext,
-        whereToLook: null,
-      };
-  }
-};
+export { getExplanationWords };
 
 const ErrorExplanation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -146,7 +92,7 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
   const isVisitor: boolean =
     NewVersion.getAudience() === NewVersionAudience.Visitors;
 
-  const words: Explanation = getExplanationWords({
+  const words: UnexplainedErrorExplanation = getExplanationWords({
     error: error,
     isCloud: BILLING_ENABLED,
     isMasterAdmin: isMasterAdmin,
@@ -172,11 +118,17 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
         </span>
       )}
       <span className="block" data-testid="error-why-and-next">
-        {`${say(words.why)} ${say(words.next)}`}
+        {/*
+         * Run together as the reader's script writes two sentences: no
+         * space after Japanese's or Chinese's full stop.
+         */}
+        {joinSentences([say(words.why), say(words.next)])}
       </span>
       {error.reference && (
         <span
-          className="mt-2 flex flex-wrap items-center gap-2"
+          className={`mt-2 flex flex-wrap items-center gap-2${
+            props.isCentered ? " justify-center" : ""
+          }`}
           data-testid="error-reference"
         >
           <code

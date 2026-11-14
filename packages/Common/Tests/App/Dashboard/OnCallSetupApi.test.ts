@@ -563,7 +563,7 @@ describe("the phone", () => {
     ).toEqual(["enableSmsNotifications", "enableCallNotifications"]);
   });
 
-  test("the balance is added through Notification Settings' recharge, for this project", async () => {
+  test("the balance is added through Notification Channels' recharge, for this project", async () => {
     mayAddBalance(true);
     const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
     postSpy.mockResolvedValue({
@@ -610,7 +610,7 @@ describe("the phone", () => {
       const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
 
       await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow(
-        "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Settings.",
+        "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
       );
       expect(postSpy).not.toHaveBeenCalled();
     },

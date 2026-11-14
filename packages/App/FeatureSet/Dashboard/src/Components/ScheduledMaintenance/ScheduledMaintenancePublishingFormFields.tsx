@@ -13,7 +13,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  * Publish At, asked after its question - Publish on Status Pages, Right away
  * or At a date and time - which the forms ask with
  * getColumnChoiceField(PUBLISH_CHOICE) (ScheduledMaintenancePublishing).
- * Create Scheduled Maintenance Event holds the two first in its folded
+ * Create Maintenance Event holds the two first in its folded
  * Subscriber Notifications section; the event's own Edit draws them open on
  * its Status Pages step.
  *

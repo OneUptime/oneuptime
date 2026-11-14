@@ -574,6 +574,10 @@ describe("agents/ProxmoxAgent/install.sh", () => {
     expect(run.output).toContain(
       "node's own address there, e.g. PVE_NODES=[<node1>,<node2>,...], then:",
     );
+    // The list is also where the agent reads the cluster from when PVE_HOST is down.
+    expect(run.output).toContain(
+      "The agent then also reads the cluster from another node when",
+    );
   });
 
   test("an exported variable still overrides the .env on a re-run, and is written back", () => {
@@ -723,8 +727,15 @@ describe("agents/ProxmoxAgent/install.sh", () => {
       expect(run.output).toContain(
         "node it asks, so the agent asks every node at its own address (not a virtual IP).",
       );
+      expect(run.output).toContain(
+        "When the first node's API stops answering, the agent reads the cluster from the next.",
+      );
       expect(envLines(run.envFile).PVE_NODES).toBe(
         "'[10.0.0.11,10.0.0.12,10.0.0.13]'",
+      );
+      // Where to see which node it reads the cluster from.
+      expect(run.output).toContain(
+        "Node it reads:    docker logs oneuptime-pve-api-failover",
       );
     });
 
@@ -1498,8 +1509,18 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
       expect(Object.keys(config.services).sort()).toEqual([
         "oneuptime-proxmox-agent",
         "oneuptime-proxmox-ai-agent",
+        "pve-api-failover",
         "pve-exporter",
       ]);
+      // The nodes to read the cluster from, in order, and the token to ask
+      // each whether it is part of the quorate cluster.
+      expect(serviceEnvironment(config, "pve-api-failover")).toEqual({
+        PVE_HOST: "192.168.1.10",
+        PVE_NODES: "[192.168.1.10,192.168.1.11]",
+        PVE_API_TOKEN_ID: TOKEN_ID,
+        PVE_API_TOKEN_SECRET: TOKEN_SECRET,
+        PVE_VERIFY_SSL: "false",
+      });
       expect(
         serviceEnvironment(config, "oneuptime-proxmox-agent"),
       ).toMatchObject({
@@ -1522,6 +1543,8 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
         PVE_API_TOKEN_SECRET: TOKEN_SECRET,
         ONEUPTIME_AI_ALLOW_WRITES: "false",
         LOG_LEVEL: "info",
+        // Where it calls when PVE_HOST's API cannot be reached.
+        PVE_NODES: "[192.168.1.10,192.168.1.11]",
       });
     },
   );
@@ -1559,6 +1582,13 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
         PVE_HOST: "192.168.1.10",
         PVE_NODES: "[192.168.1.10]",
       });
+      // ...which is all the failover container has to try, too.
+      expect(
+        serviceEnvironment(config, "pve-api-failover"),
+      ).toMatchObject({
+        PVE_HOST: "192.168.1.10",
+        PVE_NODES: "[192.168.1.10]",
+      });
     },
   );
 
@@ -1584,6 +1614,8 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
     expect(
       serviceEnvironment(config, "oneuptime-proxmox-agent").PVE_EXPORTER_URL,
     ).toBe("10.0.0.5:9221");
+    // Your own exporter still has the cluster read at whichever node answers.
+    expect(Object.keys(config.services)).toContain("pve-api-failover");
   });
 
   maybe(

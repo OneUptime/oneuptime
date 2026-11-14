@@ -305,6 +305,74 @@ describe("OpenAPI specification", () => {
     });
   });
 
+  describe("relations", () => {
+    /*
+     * A relation's id column and a relation list name the model they point
+     * at (x-oneuptime-relation) by the tag of that model's endpoints, and a
+     * client finds the model by it: the Terraform provider says which of its
+     * resources an id belongs to, holds the id to one and refers to that
+     * resource in its examples, and the Crossplane provider resolves a
+     * reference to it. A tag no endpoint has names nothing.
+     *
+     * #6817 tagged a renamed model's endpoints by the name the API keeps
+     * (On-Call Policy Schedule) while its relations went on naming it by its
+     * new screen name (On-Call Schedule): the provider lost every relation to
+     * the model, and its docs example of an on-call user group gave the
+     * schedules as objects instead of ids, which Terraform refused.
+     */
+    it("names the model of every relation by the tag of that model's endpoints", () => {
+      const tagOfTable: Map<string, string> = new Map<string, string>();
+
+      for (const tag of (spec["tags"] || []) as Array<JSONObject>) {
+        tagOfTable.set(
+          tag["x-oneuptime-table"] as string,
+          tag["name"] as string,
+        );
+      }
+
+      const problems: Array<string> = [];
+      const checked: Set<string> = new Set<string>();
+
+      for (const schemaName of Object.keys(schemas)) {
+        const properties: JSONObject = ((schemas[schemaName] as JSONObject)[
+          "properties"
+        ] || {}) as JSONObject;
+
+        for (const propertyName of Object.keys(properties)) {
+          const relation: JSONObject | undefined = (
+            properties[propertyName] as JSONObject
+          )["x-oneuptime-relation"] as JSONObject | undefined;
+          const endpointsTag: string | undefined = relation
+            ? tagOfTable.get(relation["tableName"] as string)
+            : undefined;
+
+          // A model with no endpoints of its own has no tag to be found by.
+          if (!relation || endpointsTag === undefined) {
+            continue;
+          }
+
+          checked.add(relation["tableName"] as string);
+
+          if (relation["tag"] !== endpointsTag) {
+            problems.push(
+              `${schemaName}.${propertyName}: "${relation["tag"]}", its endpoints' tag is "${endpointsTag}"`,
+            );
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+
+      // The models #6817 renamed are among those checked.
+      expect(Array.from(checked)).toEqual(
+        expect.arrayContaining([
+          "OnCallDutyPolicySchedule",
+          "ScheduledMaintenance",
+        ]),
+      );
+    });
+  });
+
   describe("responses", () => {
     it("documents responses for every operation", () => {
       const missing: Array<string> = operations

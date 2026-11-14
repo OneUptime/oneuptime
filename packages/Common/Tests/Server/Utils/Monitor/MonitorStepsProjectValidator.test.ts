@@ -374,7 +374,7 @@ describe("MonitorStepsProjectValidator", () => {
           projectId: PROJECT_ID,
         }),
       ).rejects.toThrow(
-        `On-Call Duty Policy (criteria "Monitor is offline" incident on-call policy) "${UNKNOWN_ON_CALL_POLICY_ID}"`,
+        `On-Call Policy (criteria "Monitor is offline" incident on-call policy) "${UNKNOWN_ON_CALL_POLICY_ID}"`,
       );
     });
 

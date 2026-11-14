@@ -43,7 +43,7 @@ Tre ting får dette til å fungere:
 :::steps
 ### Gi administratorsamtykke
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**, og klikk på **Gi administratorsamtykke**. En Microsoft 365-administrator logger på og tillater OneUptime-appen for organisasjonen. Kortet sier deretter **Admin Consent Completed**. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**, og klikk på **Gi administratorsamtykke**. En Microsoft 365-administrator logger på og tillater OneUptime-appen for organisasjonen. Kortet sier deretter **Admin Consent Completed**. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakt **Koble til et arbeidsområde**, som også fører hit.
 
 ### Koble til kontoen din
 
@@ -88,7 +88,7 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 | **Varsler** | **Varsler**, **Varselsepisoder**, **Sammendrag** |
 | **Planlagt vedlikehold** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
-| **Vakttjeneste** | Én liste med regler |
+| **Vakt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
 Å opprette en regel går gjennom fire trinn:
@@ -138,7 +138,7 @@ Skjemaet for et sammendrag har fire trinn: **Grunnleggende informasjon** (navnet
 
 ## Varslingsregler under Growth-planen
 
-På OneUptime Cloud hører varslingsregler og sammendrag til **Growth**-planen og høyere. Et prosjekt under den beholder reglene og sammendragene det allerede har, og de fortsetter å publisere i Microsoft Teams. Derfor viser hvert produkts **Microsoft Teams**-side (Hendelser, Varsler, Planlagt vedlikehold, Vakttjeneste, Monitorer) planmerknaden med dem under (**Varslingsregler som fortsatt er satt opp**, **Sammendrag som fortsatt er satt opp**): slett en regel, eller slå av eller slett et sammendrag. Å legge til eller endre regler og sammendrag krever **Growth**.
+På OneUptime Cloud hører varslingsregler og sammendrag til **Growth**-planen og høyere. Et prosjekt under den beholder reglene og sammendragene det allerede har, og de fortsetter å publisere i Microsoft Teams. Derfor viser hvert produkts **Microsoft Teams**-side (Hendelser, Varsler, Planlagt vedlikehold, Vakt, Monitorer) planmerknaden med dem under (**Varslingsregler som fortsatt er satt opp**, **Sammendrag som fortsatt er satt opp**): slett en regel, eller slå av eller slett et sammendrag. Å legge til eller endre regler og sammendrag krever **Growth**.
 
 ## Bli tilkalt i Microsoft Teams
 
@@ -150,7 +150,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Microsoft 
 3. Klikk på **Send Test Message** i raden. Meldingen kommer i chattene dine i Microsoft Teams.
 :::
 
-Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Microsoft Teams fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**.
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Microsoft Teams fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**.
 
 ## Lagre meldinger som notater
 
@@ -208,7 +208,7 @@ Når appen legges til i et team, sier boten hei der: hvordan man stiller den et 
 - **I et varsels egen kanal.** Skrevet i kanalen OneUptime opprettet for et varsel, mens varselet er åpent, åpner `incident` et kort som sier at hendelsen opprettes fra det varselet, og som begynner med varselets tittel og de ressursene det er knyttet til som personen som ba om kortet kan se. Hendelsen knyttes til varselet, slik en hendelse som opprettes fra varselets side gjør, og hendelsen til et privat varsel er også privat. Når personen som sender inn kortet ikke kan knytte varsler til hendelser, opprettes hendelsen uten tilknytningen, og boten forteller personen hvorfor.
 - **Hva et skjema kan nevne.** I en kanal eller en gruppechat kan alle som er der sende inn skjemaet, og det sendes inn som den som gjør det, med vedkommendes egne tillatelser. Hendelsen eller begivenheten opprettes med de tillatelsene og krediteres den personen. En monitor, vaktpolicy, etikett, alvorlighetsgrad eller status personen ikke kan lese, eller en fra et annet prosjekt, avvises som en prosjektet ikke har, og ingenting opprettes: boten svarer "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-**Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Duty Policy** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene personen kan lese. Å se en monitor eller en vaktpolicy fra et kort leser den også som personen som trykket på knappen.
+**Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Policies** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene personen kan lese. Å se en monitor eller en vaktpolicy fra et kort leser den også som personen som trykket på knappen.
 
 ## Tilkall noen fra Microsoft Teams
 
@@ -219,7 +219,7 @@ I en kanal eller en gruppechat tilkaller `@OneUptime page @Nawaz Dhandala The ch
 - **Hvem som tilkalles med en gang.** Personene du nevner med @, og dem som har vakt i vaktplanene en tagg du nevner med @, følger (se [Vakt-tagger](#vakt-tagger)), når en melding følger etter dem, eller uten melding i en hendelses eller et varsels egen kanal. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Microsoft Teams-konto er koblet til, eller ellers på vedkommendes e-postadresse i Microsoft Teams. Ingen utenfor prosjektet tilkalles.
 - **Alt annet gir et kort.** Uten noen nevnt med @, som i en personlig chat med boten, uten melding der tilkallingen trenger en, med en tagg som ikke følger noen vaktplan du kan se, eller med en person OneUptime ikke kjenner igjen, svarer boten med kortet **Page someone**, med det du skrev ferdig utfylt, og sier hvem den ikke kunne velge. I en hendelses eller et varsels egen kanal åpnes kortet med den hendelsen eller det varselet. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Alle i samtalen kan sende inn kortet, som seg selv. Når det har tilkalt, fjernes kortet, så ingen tilkaller med det to ganger.
 - **Hvor det vises.** Samtalen viser tilkallingen som ett kort som holdes oppdatert: hvem som ble tilkalt og hvordan, hvert team med navnet og personene sine etter, meldingen din, og hvem som bekreftet. Der boten ikke kan poste det, sier svaret dens hvem som ble tilkalt, med en lenke til hendelsen eller varselet.
-- **Hvem som kan tilkalle.** I en hendelses eller et varsels egen kanal alle som kan kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Duty Policy** i en egendefinert rolle) og lese den hendelsen eller det varselet. Alle andre steder oppretter tilkallingen et varsel, så den krever også tillatelse til å opprette et: **Prosjekteier**, **Prosjektadministrator** og **Prosjektmedlem**, eller **Vaktmedlem** sammen med **Varselmedlem** (**Execute On-Call Duty Policy** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det i et svar, og ingen tilkalles. På OneUptime Cloud krever tilkalling Growth-planen: under den sier OneUptime hvilken plan som kreves, og ingen tilkalles.
+- **Hvem som kan tilkalle.** I en hendelses eller et varsels egen kanal alle som kan kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Policies** i en egendefinert rolle) og lese den hendelsen eller det varselet. Alle andre steder oppretter tilkallingen et varsel, så den krever også tillatelse til å opprette et: **Prosjekteier**, **Prosjektadministrator** og **Prosjektmedlem**, eller **Vaktmedlem** sammen med **Varselmedlem** (**Execute On-Call Policies** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det i et svar, og ingen tilkalles. På OneUptime Cloud krever tilkalling Growth-planen: under den sier OneUptime hvilken plan som kreves, og ingen tilkalles.
 
 For å holde personer orientert mens andre håndterer det, tilkaller du dem som observatører. I en hendelses eller et varsels egen kanal skriver du `as observers` etter hvem som skal tilkalles, som i `@OneUptime page @Oversight as observers Team Y is on it`, eller velger **Observers: keep them informed** under **Page them as** på kortet. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Hendelsen eller varselet blir ikke bekreftet, ingen andres tilkalling stopper, og der tilkallingen vises, står det at de tilkalles som observatører. En tilkalling om noe nytt trenger noen som håndterer det, så alle andre steder avvises `as observers`, og ingen tilkalles.
 
@@ -230,7 +230,7 @@ Hold en tagg i Microsoft Teams, for eksempel `@Payments on-call`, lik dem som ha
 :::steps
 ### Koble en tagg til en vaktplan
 
-Åpne vaktplanen under **Vakttjeneste** > **Vaktplaner**. Klikk **Koble til tagg** i kortet **Tagger i Microsoft Teams**, velg teamet, og gi taggen et navn: teamets tagg med det navnet, eller en ny som OneUptime oppretter. Medlemmene byttes straks ut med dem som har vakt.
+Åpne vaktplanen under **Vakt** > **Vaktplaner**. Klikk **Koble til tagg** i kortet **Tagger i Microsoft Teams**, velg teamet, og gi taggen et navn: teamets tagg med det navnet, eller en ny som OneUptime oppretter. Medlemmene byttes straks ut med dem som har vakt.
 
 ### Koble den også til den sekundære vaktplanen
 
@@ -241,7 +241,7 @@ For en tagg med både primær og sekundær vakt kobler du den samme taggen til p
 - **Ingen har vakt.** OneUptime tar alle ut av taggen til noen har vakt. En ny tagg trenger noen fra teamet som har vakt, siden Microsoft Teams ikke oppretter tagger uten medlemmer.
 - **Tilkall taggen.** `@OneUptime page @Payments on-call The checkout API is down` tilkaller dem som har vakt i vaktplanene taggen følger. Se [Tilkall noen fra Microsoft Teams](#tilkall-noen-fra-microsoft-teams).
 - **Hva Microsoft 365 krever.** Å endre tagger krever appens tillatelse `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administrator gir med **Gi administratorsamtykke** under **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**. Hvis organisasjonen din ga samtykke før OneUptime kunne holde tagger oppdatert, gir du det igjen én gang.
-- **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Edit On-Call Duty Policy Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
+- **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Edit On-Call Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
 - **Koble fra.** OneUptime slutter å endre taggen. Taggen og medlemmene blir værende i Microsoft Teams som de er.
 
 ## Håndter en hendelse fra Microsoft Teams

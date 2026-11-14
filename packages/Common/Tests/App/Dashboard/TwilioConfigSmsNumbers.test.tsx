@@ -1584,6 +1584,192 @@ describe("a config's numbers on a page read right to left", () => {
     },
   );
 
+  /*
+   * ISSUE #7180: A LIST'S EXAMPLE PUT EACH "+" AFTER ITS DIGITS.
+   *
+   * A list of numbers is typed as text - a phone's dial pad has no comma -
+   * so its field took the page's direction, and on a Persian or Arabic page
+   * the example "+14155550123, +447700900123" drew each "+" after the
+   * digits. The SMS numbers and the extra numbers read left to right now,
+   * as the primary number's Phone field does: the field, the box around it,
+   * and so the example in it. Their titles are the page's, in its way.
+   */
+  test.each(["fa", "ar"])(
+    "in %s the form's lists of numbers read left to right, each example with them",
+    async (language: string) => {
+      const words: Record<string, string> = readLocale(language);
+
+      render(
+        <I18nextProvider i18n={await instanceFor(language)}>
+          <MemoryRouter>
+            <CustomCallSMSTable />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+      await settle();
+
+      // The stand-in table's own button opens the real form.
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Open create form" }),
+        );
+      });
+
+      // The config's name, then on to the Twilio step.
+      await waitFor(() => {
+        expect(
+          within(dialog()).getByPlaceholderText(
+            words["Company Twilio Account"]!,
+          ),
+        ).toBeVisible();
+      });
+      await settle();
+      await act(async (): Promise<void> => {
+        fireEvent.change(
+          within(dialog()).getByPlaceholderText(
+            words["Company Twilio Account"]!,
+          ),
+          { target: { value: "Singapore" } },
+        );
+      });
+      await clickFooter();
+
+      await waitFor(() => {
+        expect(
+          within(dialog()).getByRole("switch", {
+            name: words["Set as Project Default"]!,
+          }),
+        ).toBeVisible();
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog()).getByRole("button", {
+            name: new RegExp(words["More fields"]!),
+          }),
+        );
+      });
+      await settle();
+
+      for (const [title, example] of [
+        [SMS_NUMBERS, PHONE_NUMBER_LIST_EXAMPLE],
+        [SECONDARY_NUMBERS, "+441234567890, +461234567890"],
+      ] as Array<[string, string]>) {
+        const field: HTMLElement = within(dialog()).getByLabelText(
+          words[title]!,
+          { exact: false },
+        );
+
+        expect(words[title]).not.toBe(title);
+        expect([title, field.getAttribute("dir")]).toEqual([title, "ltr"]);
+        expect([title, field.parentElement?.getAttribute("dir")]).toEqual([
+          title,
+          "ltr",
+        ]);
+        expect(field).toHaveAttribute("placeholder", example);
+        // Typed as text, commas between the numbers: no dial pad.
+        expect(field).toHaveAttribute("type", "text");
+        expect(field).not.toHaveAttribute("inputmode", "tel");
+        // Its title is a sentence of the page, with no direction of its own.
+        expect(
+          getByTextOutsideFoldedHeaders(dialog(), words[title]!).closest(
+            '[dir="ltr"]',
+          ),
+        ).toBeNull();
+      }
+
+      // As the primary number's field always has.
+      expect(
+        within(dialog()).getByLabelText(words["Twilio Primary Phone Number"]!, {
+          exact: false,
+        }),
+      ).toHaveAttribute("dir", "ltr");
+    },
+  );
+
+  /*
+   * An account used for SMS only asks for its SMS numbers open on the
+   * Twilio step - the one list it needs, and no number to make calls from.
+   * That list is a field of its own (one for each answer to what the
+   * account is for), and it reads left to right too, its example with it.
+   */
+  test.each(["fa", "ar"])(
+    "in %s an account used for SMS only asks for its numbers in a box that reads left to right",
+    async (language: string) => {
+      const words: Record<string, string> = readLocale(language);
+
+      render(
+        <I18nextProvider i18n={await instanceFor(language)}>
+          <MemoryRouter>
+            <CustomCallSMSTable />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+      await settle();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Open create form" }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(
+          within(dialog()).getByPlaceholderText(
+            words["Company Twilio Account"]!,
+          ),
+        ).toBeVisible();
+      });
+      await settle();
+      await act(async (): Promise<void> => {
+        fireEvent.change(
+          within(dialog()).getByPlaceholderText(
+            words["Company Twilio Account"]!,
+          ),
+          { target: { value: "Singapore SMS" } },
+        );
+      });
+
+      // What the account is for: SMS only, as the page words it.
+      expect(words["SMS only"]).toBeTruthy();
+      expect(words["SMS only"]).not.toBe("SMS only");
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog()).getByRole("radio", { name: words["SMS only"]! }),
+        );
+      });
+      await settle();
+      await clickFooter();
+
+      await waitFor(() => {
+        expect(
+          within(dialog()).getByLabelText(words[SMS_NUMBERS]!, {
+            exact: false,
+          }),
+        ).toBeVisible();
+      });
+
+      const field: HTMLElement = within(dialog()).getByLabelText(
+        words[SMS_NUMBERS]!,
+        { exact: false },
+      );
+
+      expect(field).toHaveAttribute("dir", "ltr");
+      expect(field.parentElement).toHaveAttribute("dir", "ltr");
+      expect(field).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
+      // Typed as text, commas between the numbers: no dial pad.
+      expect(field).toHaveAttribute("type", "text");
+      expect(field).not.toHaveAttribute("inputmode", "tel");
+      // No number to make calls from is asked for.
+      expect(
+        within(dialog()).queryByLabelText(
+          words["Twilio Primary Phone Number"]!,
+          { exact: false },
+        ),
+      ).toBeNull();
+    },
+  );
+
   test("in English the dialog says the number as it always did, with no mark", async () => {
     document.documentElement.removeAttribute("dir");
     jest

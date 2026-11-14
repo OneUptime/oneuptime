@@ -89,6 +89,7 @@ import CustomSignalDetector, { CustomSignalHit } from "./CustomSignalDetector";
 import Masking, { MaskInputOptionsShape } from "./Masking";
 import NetworkRecorder, { RecordedRequest } from "./NetworkRecorder";
 import OfflineStore from "./OfflineStore";
+import { applyPageMasking, readPageMaskingOptions } from "./PageMasking";
 import PerformanceRecorder, { PerformanceIssue } from "./PerformanceRecorder";
 import RollingBuffer, { BufferedEvent } from "./RollingBuffer";
 import RouteRecorder, { RecordedRoute } from "./RouteRecorder";
@@ -633,6 +634,20 @@ export default class Recorder {
    * through all of it (#4208).
    */
   private pausedForIdle: boolean = false;
+
+  /*
+   * The page paused recording (pause()) and has not resumed it (resume()).
+   * It is the idle pause above, held by the page instead of by the clock:
+   * capture stops the same way and resumes the same way, on a fresh
+   * snapshot in the same session - but nothing the visitor does resumes it,
+   * and neither does captureSession(). Only resume() does.
+   *
+   * For a page that must not be recorded in places: OneUptime's Dashboard
+   * records only its first-run pages, and pauses on every other one (issue
+   * #6834). While this is set pausedForIdle is set too, so everything that
+   * stands still during an idle pause stands still here.
+   */
+  private pausedByPage: boolean = false;
   private resumeFromIdlePauseScheduled: boolean = false;
   private idlePausedAtUnixMs: number = 0;
 
@@ -667,9 +682,19 @@ export default class Recorder {
   public constructor(options: RecorderRuntimeOptions) {
     this.earlyErrors = options.earlyErrors || [];
     this.initOptions = options.initOptions;
-    this.config = options.config;
     this.windowRef = options.windowRef || window;
     this.documentRef = options.documentRef || document;
+
+    /*
+     * The page may ask for more masking than the policy gives - MaskAllText,
+     * more blocked elements - never for less (PageMasking.ts). Applied to
+     * the config itself, so everything downstream reads the masking that is
+     * actually in force.
+     */
+    this.config = applyPageMasking(
+      options.config,
+      readPageMaskingOptions(this.windowRef),
+    );
     this.sessionChangeListener = options.onSessionChange || null;
 
     if (this.initOptions.userRef !== undefined) {
@@ -1025,7 +1050,11 @@ export default class Recorder {
        */
       blockSelectors: this.config.blockSelectors,
       onClick: (atUnixMs: number, _click: SessionReplayClickPayload): void => {
-        this.chunker.countSignal("clickCount");
+        // Not counted on a recording that holds none of the page it was on.
+        if (!this.pausedByPage) {
+          this.chunker.countSignal("clickCount");
+        }
+
         this.noteUserActivity(atUnixMs);
       },
     });
@@ -1321,7 +1350,19 @@ export default class Recorder {
     this.windowRef.addEventListener("online", this.onlineListener);
     this.windowRef.addEventListener("offline", this.offlineListener);
 
-    this.startRrweb();
+    /*
+     * The page paused recording before the recorder started (a pause()
+     * queued while the artifact loaded): everything above is armed, and
+     * nothing is observed - no snapshot of a page it asked not to have
+     * recorded - until resume() starts rrweb on what is on screen then.
+     */
+    if (this.pausedByPage) {
+      this.pausedForIdle = true;
+      this.idlePausedAtUnixMs = Date.now();
+      this.idlePauseMarkerSent = false;
+    } else {
+      this.startRrweb();
+    }
 
     this.flushTimer = setInterval((): void => {
       this.onFlushTimer();
@@ -1985,6 +2026,14 @@ export default class Recorder {
       }
     }
 
+    /*
+     * Paused by the page: the visitor is using it, on a part it does not
+     * record. Their input keeps the session alive (above) and wakes nothing.
+     */
+    if (this.pausedByPage) {
+      return;
+    }
+
     if (this.sealedForIdle) {
       this.scheduleWakeFromIdle();
     } else if (this.pausedForIdle) {
@@ -2040,6 +2089,29 @@ export default class Recorder {
     }
 
     const idleSinceUnixMs: number = this.lastUserActivityUnixMs;
+
+    this.pauseCapture(nowUnixMs, idleSinceUnixMs, false);
+
+    debugLog(
+      "recording-paused-idle",
+      "Nobody has touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch.",
+      {
+        sessionId: this.identity.sessionId,
+        idleForMs: Math.max(0, nowUnixMs - idleSinceUnixMs),
+      },
+    );
+  }
+
+  /*
+   * The steps of a pause, shared by the idle pause and the page's pause().
+   * The paused marker says which it was (`reason`), so the player can tell
+   * a page that paused itself from a visitor who walked away.
+   */
+  private pauseCapture(
+    nowUnixMs: number,
+    idleSinceUnixMs: number,
+    isPageAsking: boolean,
+  ): void {
     const canMark: boolean =
       this.uploading && !this.hasSentFinalChunk && !this.sealedForIdle;
 
@@ -2051,6 +2123,10 @@ export default class Recorder {
         pausedAtUnixMs: nowUnixMs,
       };
 
+      if (isPageAsking) {
+        paused.reason = "page";
+      }
+
       this.emitCustomEvent(SessionReplayCustomEventTag.IdlePaused, paused);
       this.chunker.close(false);
     }
@@ -2061,15 +2137,71 @@ export default class Recorder {
     this.buffer.clear();
     this.pendingCustomEvents = [];
     this.stopObservingPage();
+  }
 
-    debugLog(
-      "recording-paused-idle",
-      "Nobody has touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch.",
-      {
-        sessionId: this.identity.sessionId,
-        idleForMs: Math.max(0, nowUnixMs - idleSinceUnixMs),
-      },
-    );
+  /*
+   * The page asks for recording to pause: what is on screen from now on is
+   * not to be recorded. The open chunk goes out with a paused marker at its
+   * end, rrweb stops, and nothing - no DOM, input, request, console line,
+   * error, click or signal - is captured until resume(). The session stays
+   * open; the visitor's input keeps it alive and resumes nothing.
+   *
+   * Before start() it is remembered, and start() begins paused: everything
+   * is armed, nothing observed (see start()). A recorder already paused for
+   * idle simply becomes held by the page as well.
+   */
+  public pause(): void {
+    if (this.stopped || this.pausedByPage) {
+      return;
+    }
+
+    this.pausedByPage = true;
+
+    debugLog("recording-paused-page", "The page paused recording.", {
+      sessionId: this.identity.sessionId,
+    });
+
+    if (!this.started || this.pausedForIdle) {
+      return;
+    }
+
+    const nowUnixMs: number = Date.now();
+
+    this.pauseCapture(nowUnixMs, nowUnixMs, true);
+  }
+
+  /*
+   * The page lets recording go on: the same session, opening on a fresh
+   * snapshot of what is on screen now, with the resumed marker behind it -
+   * exactly as an idle pause ends. A session that ended while it was paused
+   * (the idle window ran out) starts the next one instead, as the visitor's
+   * return after an idle seal does.
+   */
+  public resume(): void {
+    if (!this.pausedByPage) {
+      return;
+    }
+
+    this.pausedByPage = false;
+
+    debugLog("recording-resumed-page", "The page resumed recording.", {
+      sessionId: this.identity.sessionId,
+    });
+
+    if (this.stopped || !this.started) {
+      return;
+    }
+
+    if (this.sealedForIdle) {
+      this.wakeFromIdle();
+      return;
+    }
+
+    this.resumeFromIdlePause();
+  }
+
+  public isPausedByPage(): boolean {
+    return this.pausedByPage;
   }
 
   /*
@@ -2146,7 +2278,13 @@ export default class Recorder {
    * a caller opening a new recording would otherwise ask for.
    */
   private resumeObservingPage(): boolean {
-    if (!this.pausedForIdle) {
+    /*
+     * Held by the page: a rotation, an adopted sibling session or a page
+     * back from the back/forward cache changes which session the footage
+     * belongs to, but still records none of it until resume(). rrweb is
+     * not running, so the snapshot a caller takes instead does nothing.
+     */
+    if (!this.pausedForIdle || this.pausedByPage) {
       return false;
     }
 
@@ -2237,6 +2375,14 @@ export default class Recorder {
   }
 
   private onFrustrationSignal(signal: FrustrationSignal): void {
+    /*
+     * A rage or dead click on a part of the page the page asked not to be
+     * recorded: not counted against a recording that holds none of it.
+     */
+    if (this.pausedByPage) {
+      return;
+    }
+
     if (signal.kind === "rage-click") {
       this.chunker.countSignal("rageClickCount");
     } else if (signal.kind === "dead-click") {
@@ -2310,7 +2456,18 @@ export default class Recorder {
      * that ended minutes before it - would. A person asking (Manual) still
      * counts; captureSession() resumes capture before it gets here.
      */
-    if (this.pausedForIdle && reason !== SessionReplayTriggerReason.Manual) {
+    /*
+     * The sample draw is not something that happened on the page: it is
+     * decided from the session id, when a session starts. A session that
+     * starts while the page holds recording paused - a recorder started
+     * after a queued pause(), a page back from the back/forward cache on a
+     * new session - is still a sampled one, and uploads once resumed.
+     */
+    if (
+      this.pausedForIdle &&
+      reason !== SessionReplayTriggerReason.Manual &&
+      reason !== SessionReplayTriggerReason.Sampled
+    ) {
       return;
     }
 
@@ -4298,6 +4455,14 @@ export default class Recorder {
    * moment it was asked for.
    */
   public captureSession(reason?: string): void {
+    /*
+     * The page paused recording: what is on screen now is what it asked
+     * not to be recorded, so there is nothing here to capture.
+     */
+    if (this.pausedByPage) {
+      return;
+    }
+
     /*
      * An explicit ask for a recording, on a tab whose session ended idle,
      * starts the next session first - so the marker below lands in it

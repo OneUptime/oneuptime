@@ -34,6 +34,8 @@ Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime 
 
 ### Het project aanmaken
 
+![Start vraagt "Wat wil je eerst doen?", met de drie doelen van deze gids aangevinkt](screen:home-goals-three)
+
 Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**. Eerst vraagt het **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt**, **De juiste persoon oproepen als er iets kapotgaat** en **Mijn klanten informeren met een statuspagina** aan, en klik op **Doorgaan**.
 :::
 
@@ -59,6 +61,8 @@ Laat de gekozen **Sondes** en het **Bewakingsinterval** **Elke 5 minuten** staan
 
 Om de controle te proberen voordat u opslaat, klikt u in de tweede stap op **Monitor testen**. Alle andere monitortypen staan beschreven in [Een monitor maken](/docs/monitor/create-monitor).
 
+Wilt u ook een API controleren, kiezen wie er wordt ingelicht en een testoproep sturen die bewijst dat het bericht u bereikt, volg dan de handleiding [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 ## Opgeroepen worden bij uitval
 
 Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan: het eerste van een project wordt bij elk nieuw incident en elke nieuwe waarschuwing geactiveerd.
@@ -66,7 +70,7 @@ Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenare
 :::steps
 ### Een bereikbaarheidsbeleid aanmaken
 
-Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheidsdienst** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
+Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheid** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
 
 ### De regel bekijken die het activeert
 
@@ -78,7 +82,7 @@ Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te
 :::
 
 > [!NOTE]
-> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingsinstellingen**.
+> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
 
 Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
@@ -119,9 +123,13 @@ Open **Incidenten** en klik op **Incident melden**. Voer een **Titel** in, bijvo
 
 ### Zien wat er gebeurt
 
+!["Incidentfeed" van een opgelost incident: wie werd opgeroepen en elke statuswijziging, nieuwste eerst](screen:incident-feed)
+
 Binnen een minuut of twee roept uw bereikbaarheidsbeleid u op, en verschijnt het incident op uw statuspagina.
 
 ### Het oplossen
+
+![Een incident in "Bevestigd", met "Oplossen" omcirkeld](screen:incident-resolve)
 
 Klik op de pagina van het incident op **Oplossen**. De oproepen stoppen, en het incident verdwijnt van uw statuspagina.
 :::

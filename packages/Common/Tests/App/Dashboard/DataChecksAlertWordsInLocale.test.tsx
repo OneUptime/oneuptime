@@ -105,7 +105,11 @@ import {
   DataCheckRunStatus,
   DataCheckType,
 } from "../../../Types/DataObservability/DataCheckType";
-import { DataCheckSuggestion } from "../../../Types/DataObservability/DataCheckSuggestions";
+import {
+  DATA_CHECK_SUGGESTION_SENTENCES,
+  DataCheckSuggestion,
+  DataCheckSuggestionWords,
+} from "../../../Types/DataObservability/DataCheckSuggestions";
 import ObjectID from "../../../Types/ObjectID";
 import Dropdown, {
   DropdownOption,
@@ -237,14 +241,34 @@ async function alertCell(
   return withoutIsolateMarks(container.textContent || "");
 }
 
+// An id's suggestion, worded as DataCheckSuggestions words it (#7221).
+const UNIQUE_ID_WORDS: {
+  nameWords: DataCheckSuggestionWords;
+  reasonWords: DataCheckSuggestionWords;
+} = {
+  nameWords: {
+    template: DATA_CHECK_SUGGESTION_SENTENCES.uniqueName,
+    values: { column: "id" },
+  },
+  reasonWords: {
+    template: DATA_CHECK_SUGGESTION_SENTENCES.uniqueReason,
+    values: { column: "id" },
+  },
+};
+
 function suggestion(
   alertCondition: DataCheckAlertCondition,
   alertThreshold?: number,
+  words: {
+    nameWords: DataCheckSuggestionWords;
+    reasonWords: DataCheckSuggestionWords;
+  } = UNIQUE_ID_WORDS,
 ): DataCheckSuggestion {
   return {
     id: `suggestion-${alertCondition}-${alertThreshold}`,
     name: "id is unique",
     reason: "An id that repeats breaks every join and lookup on it.",
+    ...words,
     checkType: DataCheckType.DuplicatePercent,
     columnName: "id",
     alertCondition: alertCondition,
@@ -272,7 +296,10 @@ async function suggestionLine(
     );
   });
 
-  const name: HTMLElement = await screen.findByText(offered.name);
+  // The name is the reader's words now (#7221): found by what it is.
+  const name: HTMLElement = await screen.findByTestId(
+    SUGGESTED_CHECK_NAME_TEST_ID,
+  );
   const line: HTMLElement = name.nextElementSibling as HTMLElement;
 
   return withoutIsolateMarks(line.textContent || "");
@@ -591,11 +618,51 @@ describe("a suggested check", () => {
 
 describe("a suggested check's own words", () => {
   test.each(["ar", "fa"])(
-    "in %s, its English name and reason each read left to right, the reason's full stop at its end",
+    "in %s, its name and reason are the page's words (#7221), read the page's way with no dir of their own",
     async (language: string) => {
       await suggestionLine(
         language,
         suggestion(DataCheckAlertCondition.Above, 0),
+      );
+
+      const words: Record<string, string> = readDashboardLocale(language);
+      const name: HTMLElement = screen.getByTestId(
+        SUGGESTED_CHECK_NAME_TEST_ID,
+      );
+      const reason: HTMLElement = screen.getByTestId(
+        SUGGESTED_CHECK_REASON_TEST_ID,
+      );
+
+      // The column's own name in the language's sentence, set apart.
+      expect(withoutIsolateMarks(name.textContent || "")).toBe(
+        words[DATA_CHECK_SUGGESTION_SENTENCES.uniqueName]!.replace(
+          "{{column}}",
+          "id",
+        ),
+      );
+      expect(reason.textContent).toBe(
+        words[DATA_CHECK_SUGGESTION_SENTENCES.uniqueReason],
+      );
+      expect(name).not.toHaveAttribute("dir");
+      expect(reason).not.toHaveAttribute("dir");
+    },
+  );
+
+  test.each(["ar", "fa"])(
+    "in %s, a line its language has no words for yet reads left to right, the reason's full stop at its end",
+    async (language: string) => {
+      await suggestionLine(
+        language,
+        suggestion(DataCheckAlertCondition.Above, 0, {
+          nameWords: {
+            template: "{{column}} keeps a promise no locale file words",
+            values: { column: "id" },
+          },
+          reasonWords: {
+            template: "A reason no locale file words.",
+            values: {},
+          },
+        }),
       );
 
       const name: HTMLElement = screen.getByTestId(
@@ -606,11 +673,11 @@ describe("a suggested check's own words", () => {
       );
 
       expect(name).toHaveAttribute("dir", "ltr");
-      expect(name).toHaveTextContent("id is unique");
-      expect(reason).toHaveAttribute("dir", "ltr");
-      expect(reason.textContent).toBe(
-        "An id that repeats breaks every join and lookup on it.",
+      expect(withoutIsolateMarks(name.textContent || "")).toBe(
+        "id keeps a promise no locale file words",
       );
+      expect(reason).toHaveAttribute("dir", "ltr");
+      expect(reason.textContent).toBe("A reason no locale file words.");
       // A paragraph that wraps: as wide as its words, at the page's start.
       expect(reason.className.split(" ")).toEqual(
         expect.arrayContaining(

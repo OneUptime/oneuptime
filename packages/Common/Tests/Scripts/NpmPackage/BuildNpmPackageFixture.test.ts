@@ -24,6 +24,8 @@ import {
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+// This checkout: the repository these tests run from.
+const REPOSITORY_ROOT: string = path.resolve(COMMON_ROOT, "..", "..");
 const SCRIPT: string = path.join(
   COMMON_ROOT,
   "Scripts",
@@ -244,6 +246,54 @@ function filesIn(directory: string): Array<string> {
 }
 
 /*
+ * Where `location` really is: the deepest part of it that exists, with its
+ * symlinks resolved, and the rest of it below that.
+ */
+function realLocation(location: string): string {
+  const below: Array<string> = [];
+  let existing: string = path.resolve(location);
+
+  while (!fs.existsSync(existing)) {
+    below.unshift(path.basename(existing));
+    existing = path.dirname(existing);
+  }
+
+  return path.join(fs.realpathSync(existing), ...below);
+}
+
+// Whether `location` is `directory` or inside it.
+function isIn(directory: string, location: string): boolean {
+  const relative: string = path.relative(directory, location);
+
+  return (
+    relative.length === 0 ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+/*
+ * Throws when `location` is in this checkout, or is a directory that holds
+ * it. The build deletes the directory it builds into first, and writing a
+ * stand-in or a checkout replaces the files there, so a test aimed at this
+ * checkout would lose its files whenever the guard let the build through:
+ * from a checkout under the temporary directory, a test that built into
+ * this checkout's Scripts deleted them (#7547). buildStandIn and checkoutAt
+ * check each place they build or write, before they write anything.
+ */
+function assertOutsideThisCheckout(location: string): void {
+  const repository: string = fs.realpathSync(REPOSITORY_ROOT);
+  const real: string = realLocation(location);
+
+  if (isIn(repository, real) || isIn(real, repository)) {
+    throw new Error(
+      `${location} is in this checkout, ${REPOSITORY_ROOT}, or holds it: a test here builds and writes only in its scratch directory`,
+    );
+  }
+}
+
+/*
  * A stand-in Common, with `extra` files on top, built in a Node.js process
  * of its own, as `npm run build-npm-package` builds the real one.
  */
@@ -255,9 +305,20 @@ function buildStandIn(
     pinnedLeftOut?: Record<string, string>;
     buildDirectory?: string;
     readExportsTimeoutMs?: number;
+    // The directory the stand-in goes in (default: the suite's scratch directory).
+    parent?: string;
+    // The build script that runs (default: this checkout's).
+    script?: string;
+    // Environment variables the build runs with, on top of the suite's.
+    env?: Record<string, string>;
   },
 ): { sourceRoot: string; run: BuildRun } {
-  const sourceRoot: string = path.join(scratch, name);
+  const sourceRoot: string = path.join(options.parent || scratch, name);
+  const buildDirectory: string =
+    options.buildDirectory || path.join(sourceRoot, "build", "npm");
+
+  assertOutsideThisCheckout(sourceRoot);
+  assertOutsideThisCheckout(buildDirectory);
   writeFiles(sourceRoot, { ...STAND_IN, ...extra });
 
   const settings: string = path.join(scratch, `${name}.options.json`);
@@ -268,8 +329,7 @@ function buildStandIn(
     settings,
     JSON.stringify({
       sourceRoot,
-      buildDirectory:
-        options.buildDirectory || path.join(sourceRoot, "build", "npm"),
+      buildDirectory,
       leftOut: LEFT_OUT,
       pinnedLeftOut: options.pinnedLeftOut || PINNED_LEFT_OUT,
       rootExports: options.rootExports || ROOT_EXPORTS,
@@ -284,7 +344,7 @@ function buildStandIn(
     runner,
     [
       'const fs = require("fs");',
-      `const Build = require(${JSON.stringify(SCRIPT)});`,
+      `const Build = require(${JSON.stringify(options.script || SCRIPT)});`,
       'const options = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));',
       "let result;",
       "try {",
@@ -306,6 +366,7 @@ function buildStandIn(
     [runner, settings, output],
     {
       cwd: sourceRoot,
+      env: { ...process.env, ...options.env },
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
       timeout: BUILD_TIMEOUT_MS,
@@ -343,6 +404,39 @@ function runScript(
   }
 
   return JSON.parse(result.stdout.trim()) as Record<string, unknown>;
+}
+
+// The files of the stand-in with `extra` on top, as filesIn lists them.
+function standInFiles(extra: Record<string, string>): Array<string> {
+  return Object.keys({ ...STAND_IN, ...extra }).sort();
+}
+
+/*
+ * A checkout at `root`, as CI scratch trees and containers unpack one under
+ * the temporary directory: this build script copied into its
+ * packages/Common, beside one of Common's own scripts, with Common's
+ * TypeScript linked in. The copy takes `root` for the repository it runs
+ * from.
+ */
+function checkoutAt(root: string): { common: string; script: string } {
+  const common: string = path.join(root, "packages", "Common");
+
+  assertOutsideThisCheckout(root);
+  writeFiles(common, {
+    "Scripts/build-mermaid-browser.js": "// One of Common's own scripts.\n",
+    "Scripts/NpmPackage/BuildNpmPackage.js": fs.readFileSync(SCRIPT, "utf8"),
+  });
+  fs.mkdirSync(path.join(common, "node_modules"));
+  fs.symlinkSync(
+    path.join(COMMON_ROOT, "node_modules", "typescript"),
+    path.join(common, "node_modules", "typescript"),
+    "dir",
+  );
+
+  return {
+    common,
+    script: path.join(common, "Scripts", "NpmPackage", "BuildNpmPackage.js"),
+  };
 }
 
 describe("a build of a stand-in Common", () => {
@@ -985,16 +1079,407 @@ describe("a build that cannot publish what it would write", () => {
   });
 
   test("refuses to build into a directory it does not own, since it deletes it first", () => {
-    const elsewhere: string = path.join(COMMON_ROOT, "Scripts");
+    // A checkout's own Scripts: a copied checkout's, never this one's (#7547).
+    const root: string = path.join(scratch, "elsewhere-checkout");
+    const { common, script }: { common: string; script: string } =
+      checkoutAt(root);
+    const elsewhere: string = path.join(common, "Scripts");
+    const before: Array<string> = filesIn(root);
     const { run }: { run: BuildRun } = buildStandIn(
       "elsewhere",
       {},
-      { buildDirectory: elsewhere },
+      { script, buildDirectory: elsewhere },
     );
 
     expect(run.report).toBeUndefined();
     expect(run.error).toContain(`Refusing to build into ${elsewhere}`);
     // Nothing was deleted.
-    expect(fs.existsSync(SCRIPT)).toBe(true);
+    expect(filesIn(root)).toEqual(before);
+  });
+});
+
+/*
+ * The build deletes the directory it builds into first, so it refuses one
+ * that is not its own (#7547). Whatever the temporary directory allows, it
+ * never deletes its source root, a directory that holds it, or one inside it
+ * outside build/; nor the repository it runs from, a directory that holds
+ * it, or one inside it outside Common's build/. Under the temporary
+ * directory, it builds into a directory that is not there yet, is empty, or
+ * holds the file a build leaves in each directory it builds into.
+ *
+ * The stand-ins are under the temporary directory, and so are the checkouts
+ * the build script is copied into: from a checkout there, a test that built
+ * into that checkout's own Scripts deleted them. Each test reads what is
+ * left, file by file.
+ */
+describe("a build deletes only a directory of its own", () => {
+  // The file a build leaves in each directory it builds into.
+  const MARKER: string = ".oneuptime-npm-build";
+
+  /*
+   * The stand-in's one module that loads a package, loading none: the build
+   * loads the modules it publishes from where it writes them, and from a
+   * directory outside the stand-in the stand-in's packages are not found.
+   */
+  const LOADS_NO_PACKAGE: Record<string, string> = {
+    "Types/API/URL.ts": [
+      "export default class URL {",
+      "  public constructor(public readonly href: string) {}",
+      "}",
+      "",
+    ].join("\n"),
+  };
+
+  test("refuses a directory inside its source root, even a new one, and leaves the source root as it was", () => {
+    const extra: Record<string, string> = {
+      "Scripts/release.js": "// One of the stand-in's own scripts.\n",
+    };
+    const sourceRoot: string = path.join(scratch, "inside-source");
+
+    for (const directory of [
+      path.join(sourceRoot, "Scripts", "out"),
+      // A name that starts with two dots is inside it too.
+      path.join(sourceRoot, "..out"),
+      path.join(sourceRoot, "Scripts"),
+    ]) {
+      const { run }: { run: BuildRun } = buildStandIn("inside-source", extra, {
+        buildDirectory: directory,
+      });
+
+      expect(run.error).toBe(
+        `Refusing to build into ${directory}: the build deletes it first, and it is inside the source root, ${sourceRoot}, where only ${path.join(sourceRoot, "build")} is the build's own`,
+      );
+      expect(filesIn(sourceRoot)).toEqual(standInFiles(extra));
+    }
+  });
+
+  test("refuses its source root, and deletes nothing", () => {
+    const { sourceRoot, run }: { sourceRoot: string; run: BuildRun } =
+      buildStandIn(
+        "source-itself",
+        {},
+        { buildDirectory: path.join(scratch, "source-itself") },
+      );
+
+    expect(run.error).toBe(
+      `Refusing to build into ${sourceRoot}: the build deletes it first, and that would delete the source root, ${sourceRoot}`,
+    );
+    expect(filesIn(sourceRoot)).toEqual(standInFiles({}));
+  });
+
+  test("refuses a directory that holds its source root, even one it built into before, and deletes nothing", () => {
+    // A directory a build made, which holds a source root now.
+    const holder: string = fs.mkdtempSync(path.join(scratch, "holder-"));
+
+    expect(
+      buildStandIn("built-into-holder", LOADS_NO_PACKAGE, {
+        buildDirectory: holder,
+      }).run.error,
+    ).toBeUndefined();
+
+    const held: { sourceRoot: string; run: BuildRun } = buildStandIn(
+      "held",
+      {},
+      { parent: holder, buildDirectory: holder },
+    );
+
+    expect(held.run.error).toBe(
+      `Refusing to build into ${holder}: the build deletes it first, and that would delete the source root, ${held.sourceRoot}`,
+    );
+    expect(filesIn(held.sourceRoot)).toEqual(standInFiles({}));
+    // And the build made before is still there.
+    expect(fs.existsSync(path.join(holder, MARKER))).toBe(true);
+    expect(fs.existsSync(path.join(holder, "package", "package.json"))).toBe(
+      true,
+    );
+  });
+
+  test("refuses, from a checkout under the temporary directory, a directory inside the repository, even a new one, and deletes nothing", () => {
+    const root: string = path.join(scratch, "checkout");
+    const { common, script }: { common: string; script: string } =
+      checkoutAt(root);
+    const repository: string = fs.realpathSync(root);
+    const before: Array<string> = filesIn(root);
+
+    for (const directory of [
+      path.join(common, "Scripts", "out"),
+      // Where the refusal test above builds: Common's Scripts.
+      path.join(common, "Scripts"),
+    ]) {
+      const { run }: { run: BuildRun } = buildStandIn(
+        "from-checkout",
+        {},
+        {
+          script,
+          buildDirectory: directory,
+        },
+      );
+
+      expect(run.error).toBe(
+        `Refusing to build into ${directory}: the build deletes it first, and it is inside the repository the build runs from, ${repository}, where only ${path.join(repository, "packages", "Common", "build")} is the build's own`,
+      );
+      expect(filesIn(root)).toEqual(before);
+    }
+  });
+
+  test("refuses, from a checkout under the temporary directory, the repository, and deletes nothing", () => {
+    const root: string = path.join(scratch, "repository-itself");
+    const { script }: { script: string } = checkoutAt(root);
+    const repository: string = fs.realpathSync(root);
+    const before: Array<string> = filesIn(root);
+    const { run }: { run: BuildRun } = buildStandIn(
+      "into-repository",
+      {},
+      {
+        script,
+        buildDirectory: root,
+      },
+    );
+
+    expect(run.error).toBe(
+      `Refusing to build into ${root}: the build deletes it first, and that would delete the repository the build runs from, ${repository}`,
+    );
+    expect(filesIn(root)).toEqual(before);
+  });
+
+  test("refuses, from a checkout under the temporary directory, a directory that holds the repository, even one it built into before, and deletes nothing", () => {
+    // A directory a build made, which a checkout was unpacked into since.
+    const holder: string = fs.mkdtempSync(
+      path.join(scratch, "checkout-holder-"),
+    );
+
+    expect(
+      buildStandIn("built-into-checkout-holder", LOADS_NO_PACKAGE, {
+        buildDirectory: holder,
+      }).run.error,
+    ).toBeUndefined();
+
+    const root: string = path.join(holder, "checkout");
+    const { script }: { script: string } = checkoutAt(root);
+    const repository: string = fs.realpathSync(root);
+    const before: Array<string> = filesIn(holder);
+    const { run }: { run: BuildRun } = buildStandIn(
+      "from-held-checkout",
+      {},
+      {
+        script,
+        buildDirectory: holder,
+      },
+    );
+
+    expect(run.error).toBe(
+      `Refusing to build into ${holder}: the build deletes it first, and that would delete the repository the build runs from, ${repository}`,
+    );
+    expect(filesIn(holder)).toEqual(before);
+  });
+
+  test("builds, from a checkout under the temporary directory, the checkout's Common into its build/npm, and again over that build", () => {
+    const root: string = path.join(scratch, "own-checkout");
+    const { common, script }: { common: string; script: string } =
+      checkoutAt(root);
+    const scripts: Array<string> = filesIn(path.join(common, "Scripts"));
+    // The stand-in is the checkout's Common, and builds where npm run build-npm-package does.
+    const asCommon: { parent: string; script: string } = {
+      parent: path.join(root, "packages"),
+      script,
+    };
+    const first: { sourceRoot: string; run: BuildRun } = buildStandIn(
+      "Common",
+      {},
+      asCommon,
+    );
+
+    expect(first.sourceRoot).toBe(common);
+    expect(first.run.error).toBeUndefined();
+    expect(first.run.report?.packageDirectory).toBe(
+      path.join(common, "build", "npm", "package"),
+    );
+
+    const again: { run: BuildRun } = buildStandIn("Common", {}, asCommon);
+
+    expect(again.run.error).toBeUndefined();
+    // Common's own scripts are as they were.
+    expect(filesIn(path.join(common, "Scripts"))).toEqual(scripts);
+  });
+
+  test("refuses a directory of the checkout that a symlink leads to, and leaves the checkout as it was", () => {
+    const root: string = path.join(scratch, "linked-checkout");
+    const { script }: { script: string } = checkoutAt(root);
+    const repository: string = fs.realpathSync(root);
+    const link: string = path.join(scratch, "link-to-checkout");
+
+    fs.symlinkSync(root, link, "dir");
+
+    const before: Array<string> = filesIn(root);
+
+    for (const directory of [
+      path.join(link, "packages", "Common", "Scripts", "out"),
+      path.join(link, "packages", "Common", "Scripts"),
+    ]) {
+      const { run }: { run: BuildRun } = buildStandIn(
+        "through-link",
+        {},
+        {
+          script,
+          buildDirectory: directory,
+        },
+      );
+
+      expect(run.error).toBe(
+        `Refusing to build into ${directory}: the build deletes it first, and it is inside the repository the build runs from, ${repository}, where only ${path.join(repository, "packages", "Common", "build")} is the build's own`,
+      );
+      expect(filesIn(root)).toEqual(before);
+    }
+  });
+
+  test("refuses a directory, or a file, under the temporary directory that a build did not write, and deletes nothing", () => {
+    const other: string = fs.mkdtempSync(path.join(scratch, "other-"));
+
+    writeFiles(other, {
+      "notes.txt": "Another tool's notes.\n",
+      "project/package.json": "{}\n",
+    });
+
+    const directory: { run: BuildRun } = buildStandIn(
+      "into-other",
+      {},
+      {
+        buildDirectory: other,
+      },
+    );
+
+    expect(directory.run.error).toBe(
+      `Refusing to build into ${other}: the build deletes it first, and it holds files a build did not write: a build leaves ${MARKER} in each directory it builds into`,
+    );
+
+    const file: string = path.join(other, "notes.txt");
+    const intoFile: { run: BuildRun } = buildStandIn(
+      "into-other",
+      {},
+      {
+        buildDirectory: file,
+      },
+    );
+
+    expect(intoFile.run.error).toBe(
+      `Refusing to build into ${file}: the build deletes it first, and it is not a directory a build made`,
+    );
+    expect(filesIn(other)).toEqual(["notes.txt", "project/package.json"]);
+  });
+
+  test("builds into a directory under the temporary directory that is not there yet, or is empty, and starts over in one it built into", () => {
+    const notThereYet: string = path.join(
+      fs.mkdtempSync(path.join(scratch, "new-")),
+      "npm",
+    );
+    const empty: string = fs.mkdtempSync(path.join(scratch, "empty-"));
+
+    for (const directory of [notThereYet, empty]) {
+      const { run }: { run: BuildRun } = buildStandIn(
+        "into-temporary",
+        LOADS_NO_PACKAGE,
+        { buildDirectory: directory },
+      );
+
+      expect(run.error).toBeUndefined();
+      expect(run.report?.packageDirectory).toBe(
+        path.join(directory, "package"),
+      );
+      // What it wrote: the file that makes the directory its own, and the build.
+      expect(fs.readdirSync(directory).sort()).toEqual([
+        MARKER,
+        "compiled",
+        "package",
+      ]);
+    }
+
+    const left: string = path.join(empty, "package", "Types", "Left.js");
+
+    fs.writeFileSync(left, "exports.left = true;\n");
+
+    const again: { run: BuildRun } = buildStandIn(
+      "into-temporary",
+      {
+        ...LOADS_NO_PACKAGE,
+        "Types/Added.ts": "export const added: number = 1;\n",
+      },
+      { buildDirectory: empty },
+    );
+
+    expect(again.run.error).toBeUndefined();
+    expect(again.run.report?.published).toContain("Types/Added");
+    expect(fs.existsSync(left)).toBe(false);
+  });
+
+  test("takes a temporary directory that a symlink leads to for the directory it leads to", () => {
+    // As macOS's is: its /var/folders/... leads to /private/var/folders/...
+    const real: string = fs.mkdtempSync(path.join(scratch, "real-temporary-"));
+    const link: string = path.join(scratch, "temporary-link");
+
+    fs.symlinkSync(real, link, "dir");
+
+    const directory: string = path.join(real, "npm");
+    const { run }: { run: BuildRun } = buildStandIn(
+      "temporary-through-link",
+      LOADS_NO_PACKAGE,
+      { buildDirectory: directory, env: { TMPDIR: link } },
+    );
+
+    expect(run.error).toBeUndefined();
+    expect(fs.existsSync(path.join(directory, MARKER))).toBe(true);
+  });
+
+  test("builds into its source root's build/ over what an earlier build left there without the file", () => {
+    const left: Record<string, string> = {
+      "build/npm/package/Types/Left.js": "exports.left = true;\n",
+    };
+    const { sourceRoot, run }: { sourceRoot: string; run: BuildRun } =
+      buildStandIn("rebuilt", left, {});
+
+    expect(run.error).toBeUndefined();
+    expect(
+      fs.existsSync(
+        path.join(sourceRoot, "build", "npm", "package", "Types", "Left.js"),
+      ),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(sourceRoot, "build", "npm", MARKER))).toBe(
+      true,
+    );
+  });
+
+  /*
+   * buildStandIn and checkoutAt check each place they build or write with
+   * assertOutsideThisCheckout first, so no test here can aim at this
+   * checkout. Checked on the paths alone: nothing is built or written in
+   * this checkout to show it.
+   */
+  test("no test here builds or writes in this checkout, or in a directory that holds it", () => {
+    const link: string = path.join(scratch, "link-to-this-checkout");
+
+    fs.symlinkSync(COMMON_ROOT, link, "dir");
+
+    for (const location of [
+      // Where the refusal test above built, before it took a copied checkout.
+      path.join(COMMON_ROOT, "Scripts"),
+      path.join(COMMON_ROOT, "Scripts", "not-there-yet"),
+      // Where npm run build-npm-package builds this checkout's Common.
+      path.join(COMMON_ROOT, "build", "npm"),
+      COMMON_ROOT,
+      REPOSITORY_ROOT,
+      path.dirname(REPOSITORY_ROOT),
+      // This checkout's Scripts, through a symlink in the scratch directory.
+      path.join(link, "Scripts"),
+    ]) {
+      expect(() => {
+        assertOutsideThisCheckout(location);
+      }).toThrow(
+        `${location} is in this checkout, ${REPOSITORY_ROOT}, or holds it`,
+      );
+    }
+
+    // Where the tests build and write: the scratch directory.
+    expect(() => {
+      assertOutsideThisCheckout(path.join(scratch, "stand-in", "build", "npm"));
+    }).not.toThrow();
   });
 });

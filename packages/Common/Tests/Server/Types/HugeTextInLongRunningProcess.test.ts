@@ -204,6 +204,60 @@ const INPUTS_SCRIPT: string = String.raw`
     },
   };
 
+  /*
+   * Shapes marked reads in time growing with their square, which the emails
+   * count as marked reads them (Utils/Markdown/SlowMarkdown, #7228), and how
+   * long marked alone took on each here. Some only reach seconds at 256 KB
+   * or a megabyte, the most an email gives marked.
+   */
+  const markedQuadraticInputs = {
+    // 26 s: marked looks for an "@" from every letter, and through the run.
+    "letters before an @": () => "x " + repeatTo("a", QUADRATIC_SIZE) + "@",
+    // 31 s.
+    "a dotted run before an @": () => "x " + repeatTo("a.", QUADRATIC_SIZE) + "@",
+    // 36 s on 256 KB: a copy of the paragraph for every escape.
+    "escaped symbols": () => repeatTo("\\€", 4 * QUADRATIC_SIZE),
+    // 18 s on 256 KB.
+    "lines of escaped guillemets": () =>
+      repeatTo("\\« ".repeat(20) + "\n", 4 * QUADRATIC_SIZE),
+    // 4.2 s on 256 KB: a copy of the paragraph for every "<...>".
+    "lines of angle pairs": () =>
+      repeatTo("< b > ".repeat(10) + "\n", 4 * QUADRATIC_SIZE),
+    // 14 s: a bare address's trailing dots, given back one at a time.
+    "an address ending in dots": () => "http://x.com" + repeatTo(".", QUADRATIC_SIZE),
+    // 16 s: after a paragraph's line, a definition is the paragraph's text.
+    "a definition read as a paragraph's text": () =>
+      "para\n[x]: " + repeatTo("a!", QUADRATIC_SIZE),
+    // 21 s: a link's text too long to close, a word of underscores.
+    "underscores in a link's text": () => "[" + repeatTo("a_", QUADRATIC_SIZE) + "](x)",
+    // 5.9 s.
+    "www. in a link's text": () => "[" + repeatTo("www.", QUADRATIC_SIZE) + "](x)",
+    // 4.6 s on 256 KB: a copy of the paragraph for every reference.
+    "shortcut references": () =>
+      repeatTo("[s] ", 4 * QUADRATIC_SIZE) + "\n\n[s]: /a",
+    // 32 s on 950 KB: 60,000 references, one on each line.
+    "a paragraph of references": () => {
+      const lines = [];
+      for (let index = 0; index < 60000; index++) {
+        lines.push(index % 2 === 0 ? "![Shot " + index + "][s]" : "[Run " + index + "][s]");
+      }
+      return lines.join("\n") + "\n\n[s]: https://example.com/a.png";
+    },
+    // 38 s on a megabyte.
+    "references whose labels hold emphasis": () =>
+      repeatTo("[*a*][s] ", MIB - 16) + "\n\n[s]: /a",
+    /*
+     * 21 s for each line, as "link openers" above. The count read each
+     * tail inside another that does not close again too, until it read a
+     * line's tails within MARKED_TAIL_READING_SHARE times the line: 40 s.
+     */
+    "lines of link openers": () =>
+      repeatTo(repeatTo("[a](", QUADRATIC_SIZE - 1) + "\n", MIB - 16),
+    // 3.8 s for each line: titles in "()" that never close. The count: 17 s.
+    "lines of titles in () left open": () =>
+      repeatTo(repeatTo("[a](x (", QUADRATIC_SIZE - 1) + "\n", MIB - 16),
+  };
+
   // A description template that places a monitor's response body.
   const templatedInputs = (MonitorTemplateUtil) => {
     return {
@@ -844,9 +898,13 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
    */
   const QUADRATIC_BUDGET_IN_MS: number = 2000;
 
-  // Runs each shape through `convert`, timed; the time is in the check's name.
-  const TIMED_SCRIPT: (convert: string) => string = (
+  /*
+   * Runs each shape of `inputs` (quadraticInputs unless said) through
+   * `convert`, timed; the time is in the check's name.
+   */
+  const TIMED_SCRIPT: (convert: string, inputs?: string) => string = (
     convert: string,
+    inputs: string = "quadraticInputs",
   ): string => {
     return (
       String.raw`
@@ -857,7 +915,9 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
         // Loaded and compiled once, as in a server.
         await convert("warm *up* [a](https://a.b) | a |");
 
-        for (const [name, markdownOf] of Object.entries(quadraticInputs)) {
+        for (const [name, markdownOf] of Object.entries(` +
+      inputs +
+      String.raw`)) {
           const markdown = markdownOf();
           const started = process.hrtime.bigint();
 
@@ -936,6 +996,239 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
     expectUnoptimizedProcess(report);
     expect(Object.keys(report.results).length).toBeGreaterThan(20);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  /*
+   * The emails count Markdown as marked reads it (#7228): what marked reads
+   * slowly is still held back - and 64 KB to a megabyte of each such shape,
+   * which took marked alone from 4 to 38 seconds here (some for each of
+   * their lines), renders in good time.
+   */
+  test("an email holds back every shape marked reads slowly, in good time (#7228)", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as Markdown, MarkdownContentType } from "./Server/Types/Markdown";',
+      ],
+      TIMED_SCRIPT(
+        String.raw`async (markdown) => {
+          await lib.Markdown.convertToHTML(markdown, lib.MarkdownContentType.Email);
+        }`,
+        "markedQuadraticInputs",
+      ),
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toHaveLength(14);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  /*
+   * And what the emails no longer hold back (#7228) - references, links
+   * and images, "<...>" pairs and escapes, each of which marked masks with a
+   * copy of its paragraph, screenshots each with a definition of its own,
+   * and a run before an "@" - at the largest size
+   * the count lets through, found by halving between a size it lets through
+   * and one it holds back: each reaches marked, renders as marked renders
+   * it, and in good time, the fastest of three attempts counting
+   * (Tests/Helpers/FastestRun). Emphasis that never closes, the slowest
+   * shape the count let through before, is timed the same way.
+   */
+  test("an email renders the largest of each shape it no longer holds back, in good time (#7228)", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as Markdown, MarkdownContentType, EMAIL_SLOW_MARKDOWN_LIMITS } from "./Server/Types/Markdown";',
+        'export { holdBackSlowMarkdown } from "./Utils/Markdown/SlowMarkdown";',
+        'export { fastestRunAsync } from "./Tests/Helpers/FastestRun";',
+      ],
+      String.raw`
+        const BUDGET_IN_MS = ` +
+        String(QUADRATIC_BUDGET_IN_MS) +
+        String.raw`;
+
+        const isHeldBack = (markdown) => {
+          let held = false;
+          const hold = () => {
+            held = true;
+            return "";
+          };
+
+          lib.holdBackSlowMarkdown(
+            markdown,
+            { holdLines: hold, holdCode: hold },
+            lib.EMAIL_SLOW_MARKDOWN_LIMITS,
+          );
+
+          return held;
+        };
+
+        const countOf = (text, part) => {
+          return text.split(part).length - 1;
+        };
+
+        // Images and links in turn, then their definition.
+        const references = (count, joiner, image, link) => {
+          const lines = [];
+
+          for (let index = 0; index < count; index++) {
+            lines.push(index % 2 === 0 ? "![" + image + " " + index + "][s]" : "[" + link + " " + index + "][s]");
+          }
+
+          return lines.join(joiner) + "\n\n[s]: https://example.com/a.png";
+        };
+
+        const showsReferences = (html, count) => {
+          return (
+            countOf(html, '<img src="https://example.com/a.png"') === Math.ceil(count / 2) &&
+            countOf(html, '<a href="https://example.com/a.png"') === Math.floor(count / 2)
+          );
+        };
+
+        // A screenshot of each run, one on each line, then each one's definition.
+        const runScreenshots = (count) => {
+          const shots = [];
+          const definitions = [];
+
+          for (let index = 0; index < count; index++) {
+            shots.push("![Run " + index + "][s" + index + "]");
+            definitions.push("[s" + index + "]: https://ci.example.com/runs/" + index + "/screenshot.png");
+          }
+
+          return shots.join("\n") + "\n\n" + definitions.join("\n");
+        };
+
+        const query = (length) => {
+          let address = "https://grafana.example.com/d/abc/checkout?";
+
+          for (let index = 0; address.length < length; index++) {
+            address += (index === 0 ? "" : "&") + "k" + index + "=v" + index;
+          }
+
+          return address;
+        };
+
+        // A shape: its Markdown for n, an n the count holds back, what the email shows.
+        const SHAPES = [
+          [
+            "references, one on each line",
+            (n) => references(n, "\n", "Shot", "Run"),
+            20000,
+            showsReferences,
+          ],
+          [
+            "references in another script, one on each line",
+            (n) => references(n, "\n", "Снимок", "Запуск"),
+            20000,
+            showsReferences,
+          ],
+          [
+            "references on one line",
+            (n) => references(n, " ", "Shot", "Run"),
+            20000,
+            showsReferences,
+          ],
+          [
+            "screenshots, each with a definition of its own",
+            runScreenshots,
+            20000,
+            (html, n) => countOf(html, '<img src="https://ci.example.com/runs/') === n,
+          ],
+          [
+            "links with titles",
+            (n) => '[a](https://example.com/x "Run") '.repeat(n),
+            20000,
+            (html, n) => countOf(html, '<a href="https://example.com/x" title="Run">a</a>') === n,
+          ],
+          [
+            "images, one on each line",
+            (n) => "![a](https://example.com/a.png)\n".repeat(n),
+            20000,
+            (html, n) => countOf(html, '<img src="https://example.com/a.png" alt="a"') === n,
+          ],
+          [
+            "links to an address with a query, one on each line",
+            (n) => ("[dashboard](" + query(512) + ")\n").repeat(n),
+            2000,
+            (html, n) => countOf(html, '<a href="https://grafana.example.com/') === n,
+          ],
+          [
+            "escapes",
+            (n) => "\\* ".repeat(n),
+            100000,
+            (html, n) => countOf(html, "*") === n && !html.includes("\\"),
+          ],
+          [
+            "pairs of angle brackets",
+            (n) => "<1> ".repeat(n),
+            100000,
+            (html, n) => countOf(html, "&lt;1&gt;") === n,
+          ],
+          [
+            "letters before an @",
+            (n) => "x " + "a".repeat(n) + "@",
+            100000,
+            (html) => html.includes("aaaa@"),
+          ],
+          [
+            "emphasis that never closes",
+            (n) => "*a ".repeat(n),
+            100000,
+            (html, n) => countOf(html, "*a") === n,
+          ],
+        ];
+
+        await lib.Markdown.convertToHTML("warm *up* [a](https://a.b) ![b][c]\n\n[c]: /d", lib.MarkdownContentType.Email);
+
+        for (const [name, markdownOf, heldAt, shows] of SHAPES) {
+          results[name] = await attempt(async () => {
+            let low = 1;
+            let high = heldAt;
+            const isBetween = !isHeldBack(markdownOf(low)) && isHeldBack(markdownOf(high));
+
+            while (high - low > 1) {
+              const middle = Math.floor((low + high) / 2);
+
+              if (isHeldBack(markdownOf(middle))) {
+                high = middle;
+              } else {
+                low = middle;
+              }
+            }
+
+            const markdown = markdownOf(low);
+            const rendered = await lib.fastestRunAsync({
+              run: () => {
+                return lib.Markdown.convertToHTML(markdown, lib.MarkdownContentType.Email);
+              },
+              limitInMs: BUDGET_IN_MS,
+            });
+            const ms = Math.round(rendered.inMs);
+
+            return {
+              ["lets " + low + " through to marked, and holds " + (low + 1) + " back"]:
+                isBetween && !isHeldBack(markdown) && isHeldBack(markdownOf(low + 1)),
+              "renders them as marked does, never as text": shows(rendered.result, low),
+              ["in under " + BUDGET_IN_MS + " ms (took " + ms + " ms)"]: ms < BUDGET_IN_MS,
+            };
+          });
+        }
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toEqual([
+      "references, one on each line",
+      "references in another script, one on each line",
+      "references on one line",
+      "screenshots, each with a definition of its own",
+      "links with titles",
+      "images, one on each line",
+      "links to an address with a query, one on each line",
+      "escapes",
+      "pairs of angle brackets",
+      "letters before an @",
+      "emphasis that never closes",
+    ]);
     expectEveryCheckPassed(report);
   }, 600000);
 

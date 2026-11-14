@@ -447,7 +447,18 @@ describe("what the hand-written SQL names", () => {
       "OpenStackProbeCollectionStore.ts",
     );
 
-    expect(statements.length).toBeGreaterThanOrEqual(2);
+    /*
+     * The claim is one statement (OneUptime issue #7390): it locks the due
+     * clouds and moves them on, so the SELECT and the UPDATE are one literal.
+     */
+    expect(
+      statements.filter((statement: string): boolean => {
+        return (
+          statement.includes('FROM "OpenStackCloud" c') &&
+          statement.includes('UPDATE "OpenStackCloud" AS c')
+        );
+      }),
+    ).toHaveLength(1);
 
     const named: Array<string> = statements.flatMap(
       (statement: string): Array<string> => {

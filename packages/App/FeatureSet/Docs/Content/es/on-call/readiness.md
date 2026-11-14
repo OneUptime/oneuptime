@@ -58,13 +58,13 @@ Solo la propia persona puede añadir y verificar sus métodos de notificación y
 3. Confirma. Cada persona recibe un correo que nombra lo que falta en su propia configuración, con un enlace a la página que lo arregla.
 :::
 
-Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fallaron, y por qué en cada uno que no se envió. A nadie se le recuerda más de una vez cada 24 horas, y un envío llega como máximo a 250 personas. Enviar recordatorios requiere **Propietario del proyecto**, **Administrador del proyecto** u **Administrador de guardias**, o **Edit On-Call Duty Policy** en un rol personalizado.
+Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fallaron, y por qué en cada uno que no se envió. A nadie se le recuerda más de una vez cada 24 horas, y un envío llega como máximo a 250 personas. Enviar recordatorios requiere **Propietario del proyecto**, **Administrador del proyecto** u **Administrador de guardias**, o **Edit On-Call Policy** en un rol personalizado.
 
 ## La preparación en otras páginas
 
 - En la **Vista general** de una política, **Preparación de los respondedores** enumera a cada persona a la que esa política puede avisar y que necesita atención, y **Volver a comprobar** lo lee de nuevo. Tu propia fila tiene un botón a la página que lo arregla; la de otra persona abre un correo para ella en tu propio programa de correo, con la solución dentro.
 - En las **Reglas de escalado** de una política, un nivel cuyos respondedores no se pueden avisar a todos lo indica en su tarjeta. Consulta [El resumen de escalado](/docs/on-call/escalation-rules#el-resumen-de-escalado).
-- En **Usuarios**, abre un miembro y luego **Preparación** en la sección **De guardia**: su estado, sus métodos y su cuadrícula de cobertura.
+- En **Usuarios**, abre un miembro y luego **Preparación** en la sección **Guardia**: su estado, sus métodos y su cuadrícula de cobertura.
 - Para tu propia configuración, **Ajustes de usuario → Lista de configuración** te guía. Consulta [La lista de configuración](/docs/notifications/index#la-lista-de-configuración).
 
 ## El correo semanal de preparación
@@ -108,5 +108,5 @@ Solo se envía en una semana en la que alguien está **Inaccesible** o **Necesit
 :::cards
 - [Cómo te contacta OneUptime](/docs/notifications/index): Los métodos, las reglas y la alternativa detrás de cada estado.
 - [Métodos de notificación](/docs/notifications/notification-methods): Añadir y verificar las formas en que OneUptime llega a alguien.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Cerrar los huecos, gravedad a gravedad.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Cerrar los huecos, gravedad a gravedad.
 :::

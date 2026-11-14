@@ -7,6 +7,7 @@ import NotificationRuleViewConditionElement from "../../../../App/FeatureSet/Das
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition, {
   ConditionType,
+  getCheckOnLabel,
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
@@ -258,9 +259,9 @@ const APPLIES_TO: Array<{
   },
   {
     eventType: NotificationRuleEventType.ScheduledMaintenance,
-    heading: "Which scheduled maintenance events",
-    all: "All scheduled maintenance events",
-    matching: "Only scheduled maintenance events that match conditions",
+    heading: "Which maintenance events",
+    all: "All maintenance events",
+    matching: "Only maintenance events that match conditions",
   },
   {
     eventType: NotificationRuleEventType.Monitor,
@@ -609,7 +610,7 @@ describe("The workspace notification rule Conditions editor", () => {
     });
   });
 
-  describe("the On-Call Duty Policy editor reported in #3459", () => {
+  describe("the On-Call Policy editor reported in #3459", () => {
     test("the Filter Type dropdown lists the on-call fields instead of 'No options'", async () => {
       renderConditions(NotificationRuleEventType.OnCallDutyPolicy);
 
@@ -617,19 +618,31 @@ describe("The workspace notification rule Conditions editor", () => {
       await openDropdown(0);
 
       expect(screen.queryByText(NO_OPTIONS)).toBeNull();
+      // Shown by its label: the value a rule stores is no name (#6817).
       expect(
-        screen.getAllByText(
+        screen.queryByText(
           NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+        ),
+      ).toBeNull();
+      expect(
+        screen.getAllByText(
+          getCheckOnLabel(
+            NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+          ),
         ).length,
       ).toBeGreaterThan(0);
       expect(
         screen.getAllByText(
-          NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+          getCheckOnLabel(
+            NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+          ),
         ).length,
       ).toBeGreaterThan(0);
       expect(
         screen.getAllByText(
-          NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+          getCheckOnLabel(
+            NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+          ),
         ).length,
       ).toBeGreaterThan(0);
     });
@@ -657,8 +670,9 @@ describe("The workspace notification rule Conditions editor", () => {
       await clickAddCondition();
       await pickFromDropdown({
         index: 0,
-        optionLabel:
+        optionLabel: getCheckOnLabel(
           NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+        ),
       });
       await openDropdown(1);
 
@@ -677,7 +691,9 @@ describe("The workspace notification rule Conditions editor", () => {
       await clickAddCondition();
       await pickFromDropdown({
         index: 0,
-        optionLabel: NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        optionLabel: getCheckOnLabel(
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        ),
       });
       await pickFromDropdown({
         index: 1,
@@ -698,7 +714,9 @@ describe("The workspace notification rule Conditions editor", () => {
       await clickAddCondition();
       await pickFromDropdown({
         index: 0,
-        optionLabel: NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        optionLabel: getCheckOnLabel(
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        ),
       });
       await pickFromDropdown({
         index: 1,
@@ -874,7 +892,10 @@ describe("The saved-rule condition view", () => {
         value: undefined,
       });
 
-      expect(screen.getAllByText(checkOn).length).toBeGreaterThan(0);
+      // Shown by its label, where it has one (CHECK_ON_LABELS).
+      expect(
+        screen.getAllByText(getCheckOnLabel(checkOn)).length,
+      ).toBeGreaterThan(0);
       expect(screen.queryByText("Payments")).toBeNull();
     },
   );
@@ -928,7 +949,9 @@ describe("A security case rule's conditions", () => {
       screen.queryByText(NotificationRuleConditionCheckOn.IncidentTitle),
     ).toBeNull();
     expect(
-      screen.queryByText(NotificationRuleConditionCheckOn.OnCallDutyPolicyName),
+      screen.queryByText(
+        getCheckOnLabel(NotificationRuleConditionCheckOn.OnCallDutyPolicyName),
+      ),
     ).toBeNull();
   });
 

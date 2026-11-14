@@ -33,7 +33,7 @@ flowchart TB
     SignIn["You sign in: password,<br/>passkey or SSO"]
     Allow["You allow notifications"]
     Register["The app registers<br/>the device in each<br/>of your projects"]
-    Rules["Each project lists<br/>the device, with<br/>default on-call rules"]
+    Rules["Each project adds<br/>the device to your<br/>How to Reach Me"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 
@@ -53,7 +53,7 @@ With two-factor authentication on, enter the six-digit code from your authentica
 ### Allow notifications
 When iOS asks whether OneUptime On-Call may send you notifications, tap **Allow**.
 
-The app then registers the iPhone or iPad in each of your projects. Every project lists it among your push devices with the default on-call rules, so your pages reach it from now on.
+The app then registers the iPhone or iPad in each of your projects. Every project lists it among your push devices and adds it to your How to Reach Me, so your pages reach it from now on.
 :::
 
 The app shows one project at a time: tap the project's name at the top of a screen to switch. A project that requires single sign-on says **SSO Required** under **Settings → Manage Projects** until you tap **Authenticate with SSO** there.
@@ -68,7 +68,7 @@ In the dashboard, open **User Settings → Notification Methods** and the **Push
 Click **Test Notification** on the device's row. A notification arrives on the device; tap it to open the app.
 :::
 
-Your on-call rules decide which pages go to the device, and how soon: see **User Settings → On-Call Rules**. A new device gets the same default rules as any other method you add.
+**User Settings → How to Reach Me** decides which pages go to the device, and how soon. A new device gets the same default rules as any other method you add.
 
 ## Ring through silent mode
 
@@ -99,7 +99,7 @@ When iOS asks whether OneUptime On-Call may send critical alerts, tap **Allow**.
 Tap **Alarm sound** under the switch. Besides the device's own critical alert sound, it offers Klaxon, Siren, Digital alarm, Smoke alarm and Rising alarm, which starts soft and gets louder. Press play beside a sound to hear it. Then pick the volume a page plays at: 25%, 50%, 75% or 100%, the default.
 :::
 
-Only on-call pages ring through, and only from on-call rules set to **Critical alert**, the default. A rule set to **Standard** follows the device's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the device on silent to hear what a page will do. The preview on the **Alarm sound** screen plays at the ringer volume, and not at all on silent; a real page rings through silent mode at the volume you chose.
+Only on-call pages ring through, and only from steps of How to Reach Me set to **Critical alert**, the default. A step set to **Standard** follows the device's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the device on silent to hear what a page will do. The preview on the **Alarm sound** screen plays at the ringer volume, and not at all on silent; a real page rings through silent mode at the volume you chose.
 
 > [!NOTE]
 > Critical alerts need OneUptime On-Call 1.5.0 or later from the App Store. Earlier versions were built without Apple's permission for critical alerts, so iOS never offered them the switch.
@@ -119,8 +119,8 @@ Turn on **Biometrics Login** under **Settings** in the app, and the app asks for
 ## Update, sign out or delete the app
 
 - **Update.** The App Store updates the app; you can also update it from your account in the App Store. The app's version is at the bottom of its **Settings** screen.
-- **Sign out.** **Settings → Log Out** signs you out and removes the device from your push devices in every project, together with its on-call rules. Signing in again adds it back with the default rules.
-- **Delete.** Touch and hold the app's icon, then tap **Remove App** and **Delete App**. If you were still signed in, the device stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Installing the app again and signing in usually brings that entry back, with its rules; if you are done with the device, delete the entry with **Delete**.
+- **Sign out.** **Settings → Log Out** signs you out and removes the device from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
+- **Delete.** Touch and hold the app's icon, then tap **Remove App** and **Delete App**. If you were still signed in, the device stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Installing the app again and signing in usually brings that entry back, with its steps; if you are done with the device, delete the entry with **Delete**.
 
 ## Troubleshooting
 
@@ -132,7 +132,7 @@ The app could not reach `https://<your-oneuptime>/api/status`. Check the address
 - Check that **Allow Notifications** is on under **Settings → Notifications → OneUptime On-Call**, and that no Focus is holding pages back.
 - Check that the device is listed under **Push Notifications** in **User Settings → Notification Methods**, and send it a **Test Notification**.
 - If the device is marked **Not receiving notifications**, open the app while signed in. It registers the device again; see [When a phone has to register again](/docs/mobile-desktop-apps/faq-troubleshooting#when-a-phone-has-to-register-again).
-- Check your on-call rules under **User Settings → On-Call Rules**.
+- Check **User Settings → How to Reach Me**.
 - On a self-hosted OneUptime, check that your server can reach its push relay: see [Push Notifications](/docs/self-hosted/push-notifications#network-access).
 :::
 

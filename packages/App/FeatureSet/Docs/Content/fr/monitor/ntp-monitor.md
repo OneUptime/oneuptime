@@ -57,7 +57,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Vérifier les critères
 
-**Critères du moniteur** commence par les [critères par défaut](#critères-par-défaut) : hors ligne quand le serveur ne fournit pas une heure fiable, en ligne quand il en fournit une. Modifiez-les si besoin, puis cliquez sur **Suivant**.
+**Critères** commence par les [critères par défaut](#critères-par-défaut) : hors ligne quand le serveur ne fournit pas une heure fiable, en ligne quand il en fournit une. Modifiez-les si besoin, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

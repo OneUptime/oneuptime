@@ -9,6 +9,7 @@ import {
   RenderResult,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import fs from "fs";
 import type { SpyInstance } from "jest-mock";
@@ -56,6 +57,29 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
+/*
+ * Read by a self-hosted server's member, whatever the environment says: a
+ * server failure's reference goes to whoever runs the server
+ * (serverNextWithReferenceSelfHosted). CI's config.env sets
+ * BILLING_ENABLED=true, which reads as OneUptime's cloud and sends the
+ * reader to support instead.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
 import WhoIsToldApi from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
 import {
@@ -73,9 +97,26 @@ import {
   WhoIsToldResult,
   WhoIsToldServerChannel,
 } from "../../../Types/Monitor/WhoIsTold";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPaged,
+  OnCallTestPageNotPagedCode,
+  OnCallTestPageReachedThroughCode,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
+import { joinSentences } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../../UI/Utils/LineDirection";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * "WHEN THIS GOES DOWN", DRAWN IN THE READER'S LANGUAGE (#7078).
@@ -93,10 +134,11 @@ import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCall
  *   own wording ("رسائل SMS");
  * - in German, the rows #7076 and #7077 added read in German.
  *
- * Two things are not the card's words and stay out of it: the time
- * ("5 minutes ago" is written by the dates of the page's language), and a
- * policy's notPaged and a person's reachedThrough lines, which the server
- * writes in English (OnCallTestPageService.readFirstLevel).
+ * One thing is not the card's words and stays out of it: the time ("5
+ * minutes ago", the date somebody is back) is written by the dates of the
+ * page's language. Why a person is paged and why a policy's target reaches
+ * nobody are the card's words since the server sends them as codes
+ * (#7261): only a server from before them has its English shown.
  */
 
 const MONITOR_ID: ObjectID = new ObjectID(
@@ -132,6 +174,9 @@ const NAMES: ReadonlyArray<string> = [
   "Slow",
   "Critical",
   "Minor",
+  "Lee Park",
+  "Night shift",
+  "Weekend",
 ];
 
 const LOCALES: string = path.join(
@@ -349,6 +394,101 @@ function result(
   };
 }
 
+/*
+ * Why each is paged, and who is not, as a server of this release sends
+ * them: a code with the names it names, beside its English (#7261).
+ */
+const AWAY_UNTIL: string = "2026-11-14T09:00:00.000Z";
+
+// The date somebody is back, as the page's dates write it - and the test page's dialog.
+function awayTime(): string {
+  return OneUptimeDate.getDateAsUserFriendlyFormattedString(
+    OneUptimeDate.fromString(AWAY_UNTIL),
+  );
+}
+
+const PAGED_THROUGH_A_TEAM: WhoIsToldPerson = person({
+  reachedThrough: "Team Platform",
+  reachedThroughCode: {
+    code: OnCallTestPageReachedThroughCode.Team,
+    name: "Platform",
+  },
+});
+
+const PAGED_AS_NEXT_IN_ROTATION: WhoIsToldPerson = person({
+  userId: BEN,
+  name: "Ben Ito",
+  reachedThrough: "Schedule Primary (next in rotation)",
+  reachedThroughCode: {
+    code: OnCallTestPageReachedThroughCode.ScheduleNextInRotation,
+    name: "Primary",
+  },
+});
+
+// Named by the level itself: no "why them".
+const PAGED_BY_NAME: WhoIsToldPerson = person({
+  userId: CHO,
+  name: "Cho Park",
+});
+
+const NOT_PAGED_ENGLISH: Array<string> = [
+  `Lee Park is away until ${awayTime()}, with nobody covering.`,
+  "Team Night shift has no members.",
+  "Nobody is on call in schedule Weekend now.",
+];
+
+const NOT_PAGED_CODES: Array<OnCallTestPageNotPaged> = [
+  {
+    code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+    userName: "Lee Park",
+    awayUntil: AWAY_UNTIL,
+    message: NOT_PAGED_ENGLISH[0]!,
+  },
+  {
+    code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+    teamName: "Night shift",
+    message: NOT_PAGED_ENGLISH[1]!,
+  },
+  {
+    code: OnCallTestPageNotPagedCode.NobodyOnCall,
+    scheduleName: "Weekend",
+    message: NOT_PAGED_ENGLISH[2]!,
+  },
+];
+
+const CODED_POLICY: WhoIsToldPolicy = policy({
+  people: [PAGED_THROUGH_A_TEAM, PAGED_AS_NEXT_IN_ROTATION, PAGED_BY_NAME],
+  notPaged: NOT_PAGED_ENGLISH,
+  notPagedCodes: NOT_PAGED_CODES,
+});
+
+// The same policy from a server from before the codes: its English only.
+function withoutCodes(coded: WhoIsToldPolicy): WhoIsToldPolicy {
+  const older: WhoIsToldPolicy = {
+    ...coded,
+    people: coded.people.map((item: WhoIsToldPerson): WhoIsToldPerson => {
+      const olderPerson: WhoIsToldPerson = { ...item };
+      delete olderPerson.reachedThroughCode;
+      return olderPerson;
+    }),
+  };
+
+  delete older.notPagedCodes;
+
+  return older;
+}
+
+function answerWith(paging: WhoIsToldPolicy): WhoIsToldResult {
+  return result([
+    {
+      id: "offline",
+      name: "Offline",
+      statusName: "Offline",
+      events: [event({ policies: [paging] })],
+    },
+  ]);
+}
+
 const MANY_PEOPLE: Array<WhoIsToldPerson> = [
   person(),
   person({ userId: BEN, name: "Ben Ito" }),
@@ -491,6 +631,10 @@ const ANSWERS: ReadonlyArray<Answer> = [
         ],
       },
     ]),
+  },
+  {
+    name: "why each is paged and who is not, as the server's codes",
+    result: answerWith(CODED_POLICY),
   },
   {
     name: "nobody paged",
@@ -733,7 +877,9 @@ describe("in a language written in another script, no English is left", () => {
       );
 
       for (const text of read) {
-        for (const word of latinWords(withoutWords(text, NAMES))) {
+        for (const word of latinWords(
+          withoutWords(text, [...NAMES, awayTime()]),
+        )) {
           if (!ownLatinWords.has(word)) {
             leftInEnglish.push(`${answer.name}: ${word}`);
           }
@@ -797,6 +943,119 @@ describe("a person's facts, set off as the reader's language does", () => {
   });
 });
 
+/*
+ * #7307: a read that failed with an error nobody explained - a gateway's
+ * 502 or 504, a server failure with its reference - read half in English
+ * on a German or a Persian card ("... wer benachrichtigt wird. Error
+ * connecting to server. Please try again in few minutes."). The card's
+ * sentence reads wholly in the reader's language now: its own words, then
+ * why it failed and what to do next, the reference in code with a copy
+ * button named in the language, and Try again.
+ */
+describe("a failed read, wholly in the reader's language", () => {
+  const TEMPLATE: string = "Couldn't work out who is told. {{error}}";
+
+  async function drawFailure(
+    language: string,
+    message: string,
+  ): Promise<{ words: Record<string, string>; error: HTMLElement }> {
+    const words: Record<string, string> = readWords(language) as Record<
+      string,
+      string
+    >;
+
+    readIn(language, words);
+    jest
+      .spyOn(WhoIsToldApi, "getForMonitor")
+      .mockRejectedValue(new Error(message));
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    return {
+      words: words,
+      error: await screen.findByTestId("who-is-told-error"),
+    };
+  }
+
+  test.each(["de", "fa"])(
+    "%s: a gateway's 502 or 504",
+    async (language: string): Promise<void> => {
+      const { words, error } = await drawFailure(language, SERVER_DOWN_MESSAGE);
+
+      expect(words[TEMPLATE]).toBeTruthy();
+      expect(words[TEMPLATE]).not.toBe(TEMPLATE);
+      expect(withoutIsolateMarks(error.textContent || "").trim()).toBe(
+        words[TEMPLATE]!.replace(
+          "{{error}}",
+          joinSentences([
+            words[UnexplainedErrorWords.serverDownWhy]!,
+            words[UnexplainedErrorWords.serverDownNext]!,
+          ]),
+        ).trim(),
+      );
+      expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+
+      // None of it in English.
+      for (const english of [
+        "Couldn't work out who is told.",
+        UnexplainedErrorWords.serverDownWhy,
+        UnexplainedErrorWords.serverDownNext,
+      ]) {
+        expect(error.textContent).not.toContain(english);
+      }
+
+      // Persian's own script: the only Latin letters are OneUptime's name.
+      if (language === "fa") {
+        expect(
+          (error.textContent || "")
+            .replace(/OneUptime/g, "")
+            .match(/[A-Za-z]+/g),
+        ).toBeNull();
+      }
+      expect(screen.getByTestId("who-is-told-try-again")).toHaveTextContent(
+        words["Try again"]!,
+      );
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "%s: a server failure with its reference, and its copy button",
+    async (language: string): Promise<void> => {
+      const { words, error } = await drawFailure(
+        language,
+        getUnexplainedServerErrorMessage("1f0c9a2b"),
+      );
+      const text: string = withoutIsolateMarks(error.textContent || "");
+
+      expect(text.startsWith(words[TEMPLATE]!.split("{{error}}")[0]!)).toBe(
+        true,
+      );
+      expect(text).toContain(
+        joinSentences([
+          words[UnexplainedErrorWords.serverWhy]!,
+          words[UnexplainedErrorWords.serverNextWithReferenceSelfHosted]!,
+        ]),
+      );
+      expect(text).not.toContain("The server ran into a problem");
+      expect(text).not.toContain("give this reference");
+
+      const reference: HTMLElement =
+        within(error).getByTestId("error-reference");
+      const code: HTMLElement = within(reference).getByText("1f0c9a2b");
+
+      expect(code.tagName).toBe("CODE");
+      expect(code).toHaveAttribute("dir", "ltr");
+      expect(
+        within(reference).getByRole("button", { name: words["Copy"]! }),
+      ).toBeInTheDocument();
+    },
+  );
+});
+
 describe("in German, the rows #7076 and #7077 added", () => {
   test("owner rules, status pages and the names a reader can't see", async () => {
     const german: Record<string, unknown> = readWords("de");
@@ -838,5 +1097,260 @@ describe("in German, the rows #7076 and #7077 added", () => {
     expect(card).not.toContain("Owner Rules");
     expect(card).not.toContain("you can't see");
     expect(card).not.toContain("Status pages");
+  });
+});
+
+/*
+ * WHY SOMEBODY IS PAGED, AND WHY NOBODY IS, IN THE READER'S WORDS (#7261).
+ *
+ * The server sends a person's "why them" and a policy's targets that reach
+ * nobody as codes with the names they name, beside its English; the card
+ * words them as the test page's dialog does (OnCallTestPageWords): each
+ * name set apart from words that read the other way, the date somebody is
+ * back written as the dialog writes it. A server that sends no codes, or a
+ * code this Dashboard does not know, has its English shown - each such
+ * line read left to right on a right-to-left page.
+ */
+const RIGHT_TO_LEFT_LANGUAGES: ReadonlyArray<string> = ["fa"];
+
+// A sentence of `words`, its values in as the card puts them in.
+function wordedIn(
+  language: string,
+  words: Record<string, unknown>,
+  key: string,
+  values: Record<string, string>,
+): string {
+  let sentence: string = words[key] as string;
+
+  expect(typeof sentence).toBe("string");
+  expect(sentence).toBeTruthy();
+
+  for (const [name, value] of Object.entries(values)) {
+    // A Latin name or a date in a sentence read from the right is set apart.
+    sentence = sentence.replace(
+      `{{${name}}}`,
+      RIGHT_TO_LEFT_LANGUAGES.includes(language) ? isolated(value) : value,
+    );
+  }
+
+  return sentence;
+}
+
+function textsOf(testId: string): Array<string> {
+  return screen.queryAllByTestId(testId).map((element: HTMLElement): string => {
+    return element.textContent || "";
+  });
+}
+
+describe("why somebody is paged, and why nobody is, in the reader's words (#7261)", () => {
+  test.each(["de", "fa"])(
+    "%s: a team, a schedule's next in rotation, somebody away, a team with nobody in it and a schedule with nobody on call",
+    async (language: string): Promise<void> => {
+      const words: Record<string, unknown> = readWords(language);
+      readIn(language, words);
+
+      await drawCard(answerWith(CODED_POLICY));
+
+      expect(textsOf("who-is-told-reached-through")).toEqual([
+        wordedIn(language, words, "Team {{name}}", { name: "Platform" }),
+        wordedIn(language, words, "Schedule {{name}} (next in rotation)", {
+          name: "Primary",
+        }),
+      ]);
+
+      const notPaged: Array<HTMLElement> = screen.getAllByTestId(
+        "who-is-told-not-paged",
+      );
+
+      expect(
+        notPaged.map((line: HTMLElement): string => {
+          return line.textContent || "";
+        }),
+      ).toEqual([
+        wordedIn(
+          language,
+          words,
+          "{{name}} is away until {{time}}, with nobody covering.",
+          { name: "Lee Park", time: awayTime() },
+        ),
+        wordedIn(language, words, "Team {{name}} has no members.", {
+          name: "Night shift",
+        }),
+        wordedIn(
+          language,
+          words,
+          "Nobody is on call in schedule {{name}} now.",
+          {
+            name: "Weekend",
+          },
+        ),
+      ]);
+
+      // Each reads the page's way: no direction of its own.
+      for (const line of notPaged) {
+        expect(line).not.toHaveAttribute("dir");
+      }
+
+      // None of the server's English is left on the card.
+      const card: string = withoutIsolateMarks(
+        screen.getByTestId("monitor-who-is-told-card").textContent || "",
+      );
+
+      for (const english of [
+        ...NOT_PAGED_ENGLISH,
+        "Schedule Primary (next in rotation)",
+        "next in rotation",
+        "is away until",
+        "with nobody covering",
+        "has no members",
+        "Nobody is on call",
+      ]) {
+        expect(card).not.toContain(english);
+      }
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "%s: a person's facts, the way they are paged in the reader's words between them",
+    async (language: string): Promise<void> => {
+      const words: Record<string, unknown> = readWords(language);
+      readIn(language, words);
+
+      await drawCard(answerWith(CODED_POLICY));
+
+      const mark: string = `${NO_BREAK_SPACE}${
+        language === "fa"
+          ? String.fromCharCode(0x2022)
+          : String.fromCharCode(0xb7)
+      } `;
+      const facts: Array<Array<string>> = screen
+        .getAllByTestId("who-is-told-person")
+        .map((line: HTMLElement): Array<string> => {
+          return (line.querySelector("p")!.textContent || "").split(mark);
+        });
+
+      expect(
+        facts.slice(0, 2).map((fact: Array<string>): Array<string> => {
+          // The name, how they are paged, and by what.
+          expect(fact).toHaveLength(3);
+          return fact.slice(0, 2);
+        }),
+      ).toEqual([
+        [
+          "Ana Lopez",
+          wordedIn(language, words, "Team {{name}}", { name: "Platform" }),
+        ],
+        [
+          "Ben Ito",
+          wordedIn(language, words, "Schedule {{name}} (next in rotation)", {
+            name: "Primary",
+          }),
+        ],
+      ]);
+
+      // Named by the level: its channels come straight after the name.
+      expect(facts[2]).toHaveLength(2);
+      expect(facts[2]![0]).toBe("Cho Park");
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "%s: a server that sends no codes has its English shown, as before, each line read left to right",
+    async (language: string): Promise<void> => {
+      readIn(language, readWords(language));
+
+      await drawCard(answerWith(withoutCodes(CODED_POLICY)));
+
+      expect(textsOf("who-is-told-reached-through")).toEqual([
+        "Team Platform",
+        "Schedule Primary (next in rotation)",
+      ]);
+
+      const notPaged: Array<HTMLElement> = screen.getAllByTestId(
+        "who-is-told-not-paged",
+      );
+
+      expect(
+        notPaged.map((line: HTMLElement): string => {
+          return line.textContent || "";
+        }),
+      ).toEqual(NOT_PAGED_ENGLISH);
+
+      for (const line of notPaged) {
+        if (RIGHT_TO_LEFT_LANGUAGES.includes(language)) {
+          expect(line).toHaveAttribute("dir", "ltr");
+          /*
+           * A sentence that may wrap: as wide as its words, at the page's
+           * start beside its warning, each of its lines from its own start
+           * - never each line lined up by its end, ragged where it starts.
+           */
+          expect(line).toHaveClass(
+            ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+          );
+          expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+        } else {
+          expect(line).not.toHaveAttribute("dir");
+        }
+      }
+    },
+  );
+
+  test("a code this Dashboard does not know reads the server's English; the ones it knows are worded", async () => {
+    const words: Record<string, unknown> = readWords("de");
+    readIn("de", words);
+
+    await drawCard(
+      answerWith(
+        policy({
+          people: [
+            person({
+              reachedThrough: "Rota Platform",
+              reachedThroughCode: {
+                code: "Rota" as OnCallTestPageReachedThroughCode,
+                name: "Platform",
+              },
+            }),
+            PAGED_AS_NEXT_IN_ROTATION,
+          ],
+          notPaged: ["Platform is on strike.", NOT_PAGED_ENGLISH[1]!],
+          notPagedCodes: [
+            {
+              code: "OnStrike" as OnCallTestPageNotPagedCode,
+              teamName: "Platform",
+              message: "Platform is on strike.",
+            },
+            NOT_PAGED_CODES[1]!,
+          ],
+        }),
+      ),
+    );
+
+    expect(textsOf("who-is-told-reached-through")).toEqual([
+      "Rota Platform",
+      wordedIn("de", words, "Schedule {{name}} (next in rotation)", {
+        name: "Primary",
+      }),
+    ]);
+    expect(textsOf("who-is-told-not-paged")).toEqual([
+      "Platform is on strike.",
+      wordedIn("de", words, "Team {{name}} has no members.", {
+        name: "Night shift",
+      }),
+    ]);
+  });
+
+  test("a policy the reader may not see says nothing of who it reaches or who it doesn't", async () => {
+    readIn("de", readWords("de"));
+
+    await drawCard(
+      answerWith({
+        ...HIDDEN_POLICY,
+        notPaged: [],
+        notPagedCodes: [],
+      }),
+    );
+
+    expect(textsOf("who-is-told-reached-through")).toEqual([]);
+    expect(textsOf("who-is-told-not-paged")).toEqual([]);
   });
 });

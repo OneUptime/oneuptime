@@ -33,7 +33,14 @@ import {
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
-const SENTENCE_TAG: string = "TranslatedSentence";
+/*
+ * The sentences drawn loose: TranslatedSentence, and ErrorSentence, which is
+ * one with an error in it (#7307).
+ */
+const SENTENCE_TAGS: ReadonlyArray<string> = [
+  "TranslatedSentence",
+  "ErrorSentence",
+];
 
 // The display classes that lay a box's children out as items.
 const ROW_DISPLAY_CLASSES: ReadonlySet<string> = new Set<string>([
@@ -55,6 +62,7 @@ const CHOOSING_OPERATORS: ReadonlySet<ts.SyntaxKind> = new Set<ts.SyntaxKind>([
 interface SentenceInRowFinding {
   file: string;
   line: number;
+  sentenceTag: string;
   parentTag: string;
   className: string;
 }
@@ -199,7 +207,11 @@ function findSentencesInRows(
   file: string,
   text: string,
 ): Array<SentenceInRowFinding> {
-  if (!text.includes(`<${SENTENCE_TAG}`)) {
+  if (
+    !SENTENCE_TAGS.some((tag: string): boolean => {
+      return text.includes(`<${tag}`);
+    })
+  ) {
     return [];
   }
 
@@ -215,7 +227,7 @@ function findSentencesInRows(
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) &&
-      tagName(node) === SENTENCE_TAG &&
+      SENTENCE_TAGS.includes(tagName(node)) &&
       !hasAttribute(node, "renderText")
     ) {
       const sentence: ts.Node = ts.isJsxOpeningElement(node)
@@ -232,6 +244,7 @@ function findSentencesInRows(
           line:
             source.getLineAndCharacterOfPosition(node.getStart(source)).line +
             1,
+          sentenceTag: tagName(node),
           parentTag: tagName(parent.openingElement),
           className: className,
         });
@@ -247,7 +260,7 @@ function findSentencesInRows(
 }
 
 function describeFinding(finding: SentenceInRowFinding): string {
-  return `${finding.file}:${finding.line} a ${SENTENCE_TAG} is loose in <${finding.parentTag} className="${finding.className}">: hold it in a <span>, or draw its pieces with renderText`;
+  return `${finding.file}:${finding.line} a ${finding.sentenceTag} is loose in <${finding.parentTag} className="${finding.className}">: hold it in a <span>, or draw its pieces with renderText`;
 }
 
 describe("the guard reads the shapes it is meant to", () => {
@@ -285,6 +298,32 @@ describe("the guard reads the shapes it is meant to", () => {
         },
       ),
     ).toEqual(["5:div", "10:span", "16:div", "22:p"]);
+  });
+
+  test("an ErrorSentence is a sentence too: loose in a row it is caught, in a span it passes", () => {
+    const code: string = `
+      const A = (props) => (
+        <div className="flex items-center gap-2">
+          <Icon icon={IconProp.Alert} />
+          <ErrorSentence template="Couldn't refresh. {{error}}" error={props.error} />
+        </div>
+      );
+      const B = (props) => (
+        <div className="flex items-center gap-2">
+          <span>
+            <ErrorSentence template="Couldn't refresh. {{error}}" error={props.error} />
+          </span>
+        </div>
+      );
+    `;
+
+    expect(
+      findSentencesInRows("Fixture.tsx", code).map(
+        (finding: SentenceInRowFinding): string => {
+          return `${finding.line}:${finding.sentenceTag}:${finding.parentTag}`;
+        },
+      ),
+    ).toEqual(["5:ErrorSentence:div"]);
   });
 
   test("a sentence in a span of its own, in a block, with renderText or handed on passes", () => {

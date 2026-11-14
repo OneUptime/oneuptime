@@ -211,14 +211,20 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
   test("walk the incident template wizard's four steps, with owners and labels under More fields", () => {
     const settings: string = read(language, "incidents/settings");
     const declaring: string = read(language, "incidents/declaring-incidents");
+    const labels: string = drawnDashboardLabel(language, "Labels");
+    const owners: string = drawnDashboardLabel(language, "Owners");
 
     expect(settings).toContain(TEMPLATE_WIZARD[language]!);
-    expect(settings).not.toMatch(/^- \*\*Labels\*\* — \*\*Labels\*\*/m);
-    expect(settings).toMatch(/^ {2}- \*\*Labels\*\* — /m);
+    expect(settings).not.toContain(`- **${labels}** — **${labels}**`);
+    expect(
+      settings.split("\n").some((line: string): boolean => {
+        return line.startsWith(`  - **${labels}** — `);
+      }),
+    ).toBe(true);
 
     expect(declaring).toContain(DECLARING_TEMPLATE_WIZARD[language]!);
-    expect(declaring).not.toContain("**Owners**، **Labels** —");
-    expect(declaring).not.toContain("**Owners**, **Labels** —");
+    expect(declaring).not.toContain(`**${owners}**، **${labels}** —`);
+    expect(declaring).not.toContain(`**${owners}**, **${labels}** —`);
   });
 
   test("say what labels do on Declare Incident in the words the form uses", () => {
@@ -230,7 +236,9 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
     const labels: string | undefined = byHand
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith("- **Labels** — ");
+        return line.startsWith(
+          `- **${drawnDashboardLabel(language, "Labels")}** — `,
+        );
       });
 
     expect(labels).toBeDefined();

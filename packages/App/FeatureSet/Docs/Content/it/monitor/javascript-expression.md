@@ -29,7 +29,7 @@ Poiché i segnaposto vengono sostituiti come testo, `{{responseBody.item}}` dive
 :::steps
 ### Aprire i criteri
 
-Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica criteri di monitoraggio**, oppure usate il passaggio **Criteri** di **Crea monitor**. Lavorate nel criterio che volete cambiare, oppure fate clic su **Aggiungi criteri** per uno nuovo.
+Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica criteri**, oppure usate il passaggio **Criteri** di **Crea monitor**. Lavorate nel criterio che volete cambiare, oppure fate clic su **Aggiungi criteri** per uno nuovo.
 
 ### Aggiungere un filtro
 

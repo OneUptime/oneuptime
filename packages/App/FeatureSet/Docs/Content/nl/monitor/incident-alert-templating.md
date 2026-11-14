@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### De criteria van de monitor openen
 
-Ga naar **Monitoren**, open de monitor en klik in het zijmenu op **Criteria**. Klik op **Bewakingscriteria bewerken**.
+Ga naar **Monitoren**, open de monitor en klik in het zijmenu op **Criteria**. Klik op **Criteria bewerken**.
 
 ### Het incident of de waarschuwing inschakelen
 

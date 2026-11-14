@@ -79,7 +79,7 @@ flowchart TB
 
 打开服务或资源的 **设置** 页面，再展开 **更多设置**。它的 **遥测数据保留** 卡片包含 **遥测数据保留时长（天）**，这是它发送的所有内容的一个天数；它的 **按遥测类型保留** 卡片拥有与项目相同的字段。将字段留空即可使用项目的设置。
 
-服务、主机、Kubernetes 集群、Docker 和 Podman 主机、Docker Swarm、Proxmox 和 Ceph 集群、存储阵列、vCenter、数据库、无服务器函数、云环境、RUM 应用和 IoT 设备群都有这些卡片。服务的 **设置** 页面请参阅 [服务目录](/docs/telemetry/services#更改服务)。
+服务、主机、Kubernetes 集群、Docker 和 Podman 主机、Docker Swarm、Proxmox 和 Ceph 集群、存储阵列、vCenter、数据库、无服务器函数、云环境、RUM 应用和 IoT 设备群都有这些卡片。服务的 **设置** 页面请参阅 [服务](/docs/telemetry/services#更改服务)。
 
 ### 当套餐或许可证不再包含覆盖时
 
@@ -121,6 +121,6 @@ flowchart TB
 :::cards
 - [摄取密钥](/docs/telemetry/ingestion-keys): 把遥测发送到你的项目。
 - [丢弃过滤器与清理规则](/docs/telemetry/drop-filters-and-scrub-rules): 只保留你需要的遥测。
-- [服务目录](/docs/telemetry/services): 设置服务自己的保留期。
+- [服务](/docs/telemetry/services): 设置服务自己的保留期。
 - [企业版](/docs/self-hosted/enterprise): 保留期覆盖包含在哪些版本中。
 :::

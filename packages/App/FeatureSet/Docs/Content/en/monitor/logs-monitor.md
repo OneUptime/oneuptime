@@ -72,7 +72,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Time window** (in **When to alert**) | Logs from the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
 | **Group by Attributes** | Not a filter: counts each combination of these attributes' values separately. | Empty: one count |
 | **Resolved by Attributes** | Not a filter: the log that resolves a group. Shows once **Group by Attributes** has an attribute; see [Resolved by a log](#resolved-by-a-log). | Empty: a group resolves when its logs stop |
-| **Filter by Telemetry Service** (under **More fields**) | Logs from any of the chosen services. | Empty: every service |
+| **Filter by Service** (under **More fields**) | Logs from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Logs from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Logs whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
 
@@ -140,7 +140,7 @@ You want an incident when the checkout service logs more than 50 errors in five 
 
 - **Log Severity**: **Error**
 - **Time window**: **Last 5 minutes**
-- **Filter by Telemetry Service**: `checkout`
+- **Filter by Service**: `checkout`
 - **When to alert**: **More than** `50`
 - **What happens**: **Declare an incident**
 
@@ -240,7 +240,7 @@ Every group-by attribute's value is a [template variable](/docs/monitor/incident
 ## Troubleshooting
 
 :::details The monitor is offline, but my service is logging
-The count was 0, so the filters match none of the logs the service sends. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Matching logs** shows what the filters match right now, and the chart in **When to alert** counts them in each window. The usual causes are a severity picked by the text the logger prints instead of its severity number (see [Log severity](#log-severity)), a service or attribute filter that does not match, and a time window shorter than the gap between the service's logs.
+The count was 0, so the filters match none of the logs the service sends. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Criteria**: **Matching logs** shows what the filters match right now, and the chart in **When to alert** counts them in each window. The usual causes are a severity picked by the text the logger prints instead of its severity number (see [Log severity](#log-severity)), a service or attribute filter that does not match, and a time window shorter than the gap between the service's logs.
 :::
 
 :::details A spike happened, but nothing alerted

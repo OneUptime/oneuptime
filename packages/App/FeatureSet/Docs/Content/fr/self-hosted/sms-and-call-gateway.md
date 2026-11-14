@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-La passerelle remplace le compte Twilio propre au serveur pour tout ce qui passerait par lui : alertes d'astreinte, notifications, codes de vérification et SMS aux abonnés des pages de statut. Les projets qui ajoutent leur propre configuration Twilio, sur la carte **Configuration Twilio** dans **Paramètres du projet > Notifications > Paramètres de notification**, continuent d'envoyer par cette configuration. Les interrupteurs SMS et appels de chaque projet, et son solde là où la facturation est activée, sont vérifiés comme pour Twilio.
+La passerelle remplace le compte Twilio propre au serveur pour tout ce qui passerait par lui : alertes d'astreinte, notifications, codes de vérification et SMS aux abonnés des pages de statut. Les projets qui ajoutent leur propre configuration Twilio, sur la carte **Configuration Twilio** dans **Paramètres du projet > Notifications > Canaux de notification**, continuent d'envoyer par cette configuration. Les interrupteurs SMS et appels de chaque projet, et son solde là où la facturation est activée, sont vérifiés comme pour Twilio.
 
 ## Configurer la passerelle
 

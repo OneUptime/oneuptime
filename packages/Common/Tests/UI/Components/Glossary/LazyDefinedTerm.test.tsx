@@ -181,8 +181,16 @@ describe("a word with its definition, as a title draws it", () => {
   );
 
   test("is DefinedTerm once the file arrives, with what the title gave it", async () => {
+    // A field's title gives its word a place for the definition (FieldLabel).
+    const place: React.RefObject<HTMLSpanElement> =
+      React.createRef<HTMLSpanElement>();
+
     render(
-      <LazyDefinedTerm term={GlossaryTerm.Probe} dataTestId="probes-word">
+      <LazyDefinedTerm
+        term={GlossaryTerm.Probe}
+        dataTestId="probes-word"
+        popoverPlace={place}
+      >
         Probes
       </LazyDefinedTerm>,
     );
@@ -203,6 +211,7 @@ describe("a word with its definition, as a title draws it", () => {
 
     expect(props["term"]).toBe(GlossaryTerm.Probe);
     expect(props["dataTestId"]).toBe("probes-word");
+    expect(props["popoverPlace"]).toBe(place);
   });
 
   test("once the file is there, a word drawn after is DefinedTerm from its first frame, asking for nothing", () => {

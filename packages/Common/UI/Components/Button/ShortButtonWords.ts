@@ -1,7 +1,7 @@
 /*
  * A button that says shorter words than its title - a table row's "View"
  * for "View Incident" (ActionButtonSchema's rowButtonTitle), a table
- * header's "Create" on a phone for "Create Scheduled Maintenance Event"
+ * header's "Create" on a phone for "Create Maintenance Event"
  * (CardButtonSchema's phoneTitle) - is named by that whole title. It shows
  * the short words only while the title holds them, as the language at
  * hand writes both: a speech control user says the word they see, and a

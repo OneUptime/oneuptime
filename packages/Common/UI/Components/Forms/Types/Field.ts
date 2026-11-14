@@ -46,6 +46,11 @@ export interface CustomElementProps {
   onChange?: ((value: any) => void) | undefined;
   onBlur?: () => void;
   initialValue?: any;
+  /*
+   * The field's placeholder as written, in English: looked up where it is
+   * drawn, once. Input, TextArea, Dropdown and the other controls do that
+   * for a placeholder they are given.
+   */
   placeholder?: string | undefined;
   /*
    * The id of the field's label, so a custom control can be named by it the
@@ -155,6 +160,13 @@ export default interface Field<TEntity> {
   title?: string;
   description?: string | ReactElement;
   field?: SelectFormFields<TEntity> | undefined;
+  /*
+   * In English. FormField hands it over as written, and the control that
+   * draws it looks it up in the reader's language, once (#7663). A sentence
+   * built around a value ("Select {{axis}}") is the page's to translate,
+   * with translateTemplate: the control finds no key for the translation
+   * and draws it as it is.
+   */
   placeholder?: string;
   showEvenIfPermissionDoesNotExist?: boolean; // show this field even if user does not have permissions to view.
   disabled?: boolean;
@@ -511,6 +523,30 @@ export default interface Field<TEntity> {
    * Default: false (spell check enabled). Set to true to disable spell check.
    */
   disableSpellCheck?: boolean | undefined;
+
+  /*
+   * For a Text or LongText field whose value reads left to right in every
+   * language - a list of phone numbers, an email address or a phone number:
+   * the box reads left to right on a page read right to left too, as a
+   * Phone or URL field does (Input), its example with it. A list's example
+   * "+14155550123, +447700900123", drawn the page's way, put each "+" after
+   * its digits on a Persian or Arabic page (#7180).
+   */
+  readsLeftToRight?: boolean | undefined;
+
+  /*
+   * The placeholder is an identifier a program reads, not words: an OIDC
+   * claim's name ("email", "name"), the scopes sign-in asks for ("openid
+   * email profile"), an OpenStack domain's name or ID ("Default",
+   * "default"). Drawn as given, never looked up, as a product's name
+   * is (isTitleProductName): the identity provider sends the claim under
+   * exactly that name, and a name that is interface text too would
+   * otherwise be shown as that text's translation - "email" read "E-Mail"
+   * in German, and an admin who typed what the placeholder showed broke
+   * sign-in (#7625). For a field Input draws (Text, URL, Email and the
+   * like).
+   */
+  isPlaceholderIdentifier?: boolean | undefined;
 
   /*
    * For a LongText field: start a few lines tall and grow with what is typed,

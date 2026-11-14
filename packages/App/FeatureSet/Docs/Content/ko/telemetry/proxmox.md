@@ -48,7 +48,7 @@ flowchart TB
 
 ### 에이전트를 실행할 위치
 
-에이전트는 네트워크를 통해 Proxmox VE API를 쿼리하므로 클러스터 노드에 있을 필요가 없으며, 있어서도 안 됩니다. 노드 장애에서 살아남는 머신(별도 하드웨어의 작은 모니터링 VM, 관리 호스트)에서 실행하거나, `PVE_HOST`가 노드 하나의 주소 대신 가상 IP나 라운드 로빈 DNS 이름을 가리키게 하세요. 에이전트의 API 대상이 방금 죽은 노드라면 모니터링도 함께 죽습니다. `PVE_NODES`는 다릅니다. 모든 노드를 각자의 주소로 나열하며, 가상 IP는 절대 쓰지 않습니다([에이전트가 수집하는 것](#에이전트가-수집하는-것) 참조). 유일한 예외는 선택 사항인 journald 로그 파이프라인으로, Proxmox VE 노드에서 실행해야 합니다([Proxmox 서비스 로그 전송](#선택-사항-proxmox-서비스-로그-전송) 참조).
+에이전트는 네트워크를 통해 Proxmox VE API를 쿼리하므로 클러스터 노드에 있을 필요가 없으며, 있어서도 안 됩니다. 노드 장애에서 살아남는 머신(별도 하드웨어의 작은 모니터링 VM, 관리 호스트, 또는 Proxmox HA가 다른 노드에서 다시 시작하는 VM)에서 실행하세요. 에이전트는 `PVE_HOST`에서 클러스터를 읽고, 그 노드가 다운되면 `PVE_NODES`의 다음 노드에서 읽으므로 가상 IP가 필요 없습니다([노드가 다운될 때](#노드가-다운될-때) 참조). `PVE_NODES`는 모든 노드를 각자의 주소로 나열하며, 가상 IP는 절대 쓰지 않습니다([에이전트가 수집하는 것](#에이전트가-수집하는-것) 참조). 유일한 예외는 선택 사항인 journald 로그 파이프라인으로, Proxmox VE 노드에서 실행해야 합니다([Proxmox 서비스 로그 전송](#선택-사항-proxmox-서비스-로그-전송) 참조).
 
 ## 에이전트 설치
 
@@ -134,7 +134,7 @@ docker compose ps
 docker logs -f oneuptime-proxmox-agent
 ```
 
-`docker compose ps`는 Collector(`oneuptime-proxmox-agent`), 번들 익스포터(자체 익스포터를 쓰지 않는 한 `oneuptime-pve-exporter`), AI 에이전트(`oneuptime-proxmox-ai-agent`)를 나열합니다. Collector가 시작되면 로그에 이 줄이 표시되어야 합니다:
+`docker compose ps`는 Collector(`oneuptime-proxmox-agent`), 노드 장애 조치(`oneuptime-pve-api-failover`), 번들 익스포터(자체 익스포터를 쓰지 않는 한 `oneuptime-pve-exporter`), AI 에이전트(`oneuptime-proxmox-ai-agent`)를 나열합니다. Collector가 시작되면 로그에 이 줄이 표시되어야 합니다:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,8 +154,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `PROXMOX_CLUSTER_NAME` | 예 | OneUptime에서의 클러스터 이름으로, 모든 메트릭에 `proxmox.cluster.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 클러스터가 등록됩니다. 기본값은 `proxmox-cluster`입니다. |
-| `PVE_HOST` | 예 | 익스포터가 클러스터를 읽고 AI 에이전트가 쿼리하는 Proxmox VE API 호스트로, 아무 노드나 노드 사이에서 전환되는 가상 IP가 됩니다. 예: `192.168.1.10`. |
-| `PVE_NODES` | 클러스터인 경우 | 각 노드 자체의 API 주소를 쉼표로 구분해 대괄호 안에 넣습니다. 예: `[192.168.1.10,192.168.1.11,192.168.1.12]`. 익스포터는 부팅 시 시작, 복제, 구독을 자신이 묻는 노드에 대해서만 읽으므로 각 노드에 차례로 묻습니다. 기본값은 `PVE_HOST` 하나뿐이며, 단일 노드라면 이것으로 충분합니다. |
+| `PVE_HOST` | 예 | 익스포터가 클러스터를 읽고 AI 에이전트가 쿼리하는 Proxmox VE API를 가진 노드입니다. 예: `192.168.1.10`. 그 API가 응답하지 않는 동안에는 둘 다 `PVE_NODES`에서 응답하는 다음 노드를 사용합니다. |
+| `PVE_NODES` | 클러스터인 경우 | 각 노드 자체의 API 주소를 쉼표로 구분해 대괄호 안에 넣습니다. 예: `[192.168.1.10,192.168.1.11,192.168.1.12]`. 익스포터는 부팅 시 시작, 복제, 구독을 자신이 묻는 노드에 대해서만 읽으므로 각 노드에 차례로 묻고, `PVE_HOST`가 다운되면 에이전트는 이 중 다음 노드에서 클러스터를 읽습니다. 기본값은 `PVE_HOST` 하나뿐이며, 단일 노드라면 이것으로 충분합니다. |
 | `PVE_EXPORTER_URL` | 아니요 | prometheus-pve-exporter의 주소(`host:port`, 스킴 없음). 기본값은 번들 익스포터인 `pve-exporter:9221`입니다. |
 | `PVE_API_TOKEN_ID` | 번들 익스포터 또는 AI 에이전트 | 전체 Proxmox API 토큰 ID(예: `monitoring@pam!oneuptime`). AI 에이전트는 자체 토큰(`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`)이 없으면 이것으로 API를 읽습니다. |
 | `PVE_API_TOKEN_SECRET` | 번들 익스포터 또는 AI 에이전트 | Proxmox API 토큰 시크릿. |
@@ -164,7 +164,7 @@ Everything is ready. Begin running and processing data.
 
 ## 에이전트가 수집하는 것
 
-Collector는 30초마다 익스포터를 스크레이프합니다. 클러스터 수집기는 `PVE_HOST`에서 한 번, 노드 수집기는 `PVE_NODES`의 각 노드마다 한 번입니다. 클러스터 수집기(기본으로 켜져 있는 `backup-info` 포함)는 어느 노드든 클러스터 전체에 대해 응답합니다. 노드 수집기(부팅 시 시작을 위한 `config`와 `replication`)는 익스포터가 묻는 노드만 읽으므로, `PVE_NODES`에 없는 노드는 **Guest Down**에 필요한 게스트의 부팅 시 시작 플래그도, 복제 작업도 보내지 않습니다. 모든 시계열에는 리소스를 가리키는 `id` 레이블이 있습니다: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, `storage/<node>/<storage>`.
+Collector는 30초마다 익스포터를 스크레이프합니다. 클러스터 수집기는 `PVE_HOST`(또는 `PVE_HOST`가 다운된 동안 클러스터를 읽는 노드)에서 한 번, 노드 수집기는 `PVE_NODES`의 각 노드마다 한 번입니다. 클러스터 수집기(기본으로 켜져 있는 `backup-info` 포함)는 어느 노드든 클러스터 전체에 대해 응답합니다. 노드 수집기(부팅 시 시작을 위한 `config`와 `replication`)는 익스포터가 묻는 노드만 읽으므로, `PVE_NODES`에 없는 노드는 **Guest Down**에 필요한 게스트의 부팅 시 시작 플래그도, 복제 작업도 보내지 않습니다. 모든 시계열에는 리소스를 가리키는 `id` 레이블이 있습니다: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, `storage/<node>/<storage>`.
 
 | 범주 | 메트릭 |
 | --- | --- |
@@ -186,6 +186,12 @@ Collector는 30초마다 익스포터를 스크레이프합니다. 클러스터 
 | `pve.id` | `id`의 첫 `/` 뒤의 모든 것(`pve1`, `100`, `pve1/local`) | `100` |
 
 원래 `id` 레이블은 그대로 유지됩니다.
+
+## 노드가 다운될 때
+
+에이전트는 노드 하나의 API를 통해 클러스터 전체를 읽습니다. `PVE_HOST`가 응답하는 동안에는 그 API입니다. 15초마다 `oneuptime-pve-api-failover` 컨테이너가 그 노드를 확인하고, 그 API가 응답하지 않게 되면 Collector는 `PVE_HOST`가 다시 응답할 때까지 `PVE_NODES`에서 응답하는 다음 노드에서 클러스터를 읽습니다. `.env`에 API 토큰이 있으면 응답은 하지만 클러스터의 쿼럼이 있는 쪽에서 끊긴 노드도 건너뜁니다. 그런 노드의 시각에서는 다른 모든 노드가 다운된 것으로 보고되기 때문입니다. [AI 에이전트](#ai-에이전트)도 호출할 때마다 같은 일을 합니다. 따라서 노드에 장애가 나면 그 노드에 대해 **Node Offline**이 발생하고 클러스터의 나머지는 계속 보고하며, 설정할 가상 IP도 없습니다. `docker logs oneuptime-pve-api-failover`는 클러스터를 어느 노드에서 읽고 있는지와 그 이유를 알려 줍니다.
+
+다룰 수 없는 것은 에이전트가 실행되는 머신입니다. 그 머신이 다운되면 클러스터 전체가 조용해지고 **Cluster Stopped Reporting**이 발생합니다. 에이전트를 클러스터 밖에서 실행하거나, Proxmox HA가 다른 노드에서 다시 시작하는 VM(`ha-manager add vm:<vmid>`, 공유 스토리지 사용)에서 실행하세요. 또한 클러스터마다 에이전트를 하나만 실행하세요. 각 에이전트가 클러스터 전체를 읽으므로, 두 번째 에이전트가 있으면 모든 리소스가 두 번 보고됩니다.
 
 ## Proxmox VE 통지 보내기
 
@@ -402,6 +408,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-p
 
 :::details 익스포터가 401 또는 595 오류를 반환함
 API 토큰이 잘못되었거나 권한이 부족합니다. 토큰 ID 형식(`user@realm!tokenname`), 시크릿, 그리고 토큰과 그 사용자에 대해 경로 `/`에 **PVEAuditor** 역할이 있는지 확인하세요. 익스포터 자체의 로그에 API의 응답이 나옵니다: `docker logs oneuptime-pve-exporter`.
+:::
+
+:::details 클러스터에 "API를 읽을 수 없음"이 표시됨
+에이전트는 실행 중이지만 15분 이상 Proxmox VE API에서 클러스터를 읽지 못해, 클러스터에 **연결됨** 대신 **API를 읽을 수 없음**이 표시됩니다. 원인은 읽어 오는 노드가 다운되고 `PVE_NODES`의 다른 노드도 응답하지 않거나, API 토큰이 취소되었거나 **PVEAuditor** 역할을 잃었거나, 에이전트의 머신이 어떤 노드의 포트 `8006`에도 연결할 수 없는 경우입니다. 각 페이지에는 마지막으로 읽은 내용이 남아 있습니다. 위의 진단 스크립트가 이 원인을 각각 확인하며, `docker logs oneuptime-pve-api-failover`는 에이전트가 어느 노드에서 읽는지와 다른 노드를 건너뛴 이유를 알려 줍니다.
 :::
 
 :::details 노드 메트릭만 있고 게스트 메트릭이 없음

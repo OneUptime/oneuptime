@@ -49,7 +49,7 @@ Each number counts something, says whether that needs you, and opens the list be
 | **Active incidents** | Incidents that are not resolved | **All clear** | **Incidents → Active Incidents** |
 | **Active alerts** | Alerts that are not resolved | **All clear** | **Alerts → Active Alerts** |
 | **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** | **Monitors → Not Operational** |
-| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Events** |
+| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Maintenance Events** |
 | **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** | **SLOs** |
 
 A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
@@ -74,7 +74,7 @@ The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, wh
 
 A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.
 
-Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call Duty** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
+Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
 
 ```mermaid title="When the welcome checklist shows"
 flowchart TB
@@ -109,7 +109,7 @@ When something in the project's setup would stop people from being told, **Needs
 
 ## Finding your way around
 
-Everything in OneUptime is under **Products** in the top bar. The menu lists its groups as the rows of one list, and always opens with the first of them, the essentials, open: Monitors, Incidents, Alerts, On-Call Duty, Status Pages, Scheduled Maintenance and SLOs. Every other group (Observability, Security, AI, Code, Resources, Infrastructure, Cloud, Dashboards & Automation and Settings) is folded into a row of the same list. Each row names the products the group holds and says how many. Click a row to open it or fold it, or move to it with the arrow keys and press **Enter**.
+Everything in OneUptime is under **Products** in the top bar. The menu lists its groups as the rows of one list, and always opens with the first of them, the essentials, open: Monitors, Incidents, Alerts, On-Call, Status Pages, Scheduled Maintenance and SLOs. Every other group (Observability, Security, AI, Code, Resources, Infrastructure, Cloud, Dashboards & Automation and Settings) is folded into a row of the same list. Each row names the products the group holds and says how many. Click a row to open it or fold it, or move to it with the arrow keys and press **Enter**.
 
 - **Search finds everything.** Type in the menu's search box to find any product by its name, by what it does, or by a familiar word such as `k8s` or `RUM`. Search looks inside the folded groups too.
 - **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
@@ -149,7 +149,7 @@ Over every page's title, a trail such as *Project › Docker › Settings › Ow
 Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search icon in the top bar, and start typing. Search finds:
 
 - **Every page in the menus**, by the name the menu gives it: API Keys, Danger Zone, On-Call Schedules, Incident Severity, your own Notification Methods. Each result says where it lives, such as *Project Settings › Advanced*, so pages that share a name (Custom Fields in Incidents, Alerts and Monitors) are easy to tell apart.
-- **The settings on a page**, by the name their card or switch shows: *Require SSO for Login* finds SSO, and *Notification Channels* finds Notification Settings. Type the name in English or in your language.
+- **The settings on a page**, by the name their card or switch shows: *Require SSO for Login* finds SSO, and *Custom SMTP Configs* finds Notification Channels. Type the name in English or in your language.
 - **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
 - **Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`. Each incident and alert result starts with its number, so two of one title are told apart.
 - **The docs**, in a *Documentation* group under everything else: the pages and sections whose words match what you typed, in your language, even with a typo. Each opens in a new tab, so you keep your place.
@@ -185,7 +185,7 @@ Press `g`, then a letter, to go straight to a product. Press the letter within 1
 | `g` then `m` | Monitors |
 | `g` then `i` | Incidents |
 | `g` then `a` | Alerts |
-| `g` then `o` | On-Call Duty |
+| `g` then `o` | On-Call |
 | `g` then `s` | Status Pages |
 | `g` then `e` | Scheduled Maintenance |
 | `g` then `d` | Dashboards |

@@ -125,7 +125,7 @@ La página pública es una aplicación propia, con un pequeño conjunto de rutas
 - `/rss`: el feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` y `/master-password`: solo relevantes en una página privada.
 
-La barra de navegación superior siempre muestra **Resumen**; el resto solo aparece cuando está activado. **Incidencias**, **Anuncios** y **Eventos programados** necesitan cada uno su interruptor; **Suscribirse** necesita tanto **Mostrar página de suscriptores** como al menos un canal de suscripción activado. Una página privada también tiene un elemento **Cerrar sesión**.
+La barra de navegación superior siempre muestra **Resumen**; el resto solo aparece cuando está activado. **Incidencias**, **Anuncios** y **Mantenimiento programado** necesitan cada uno su interruptor; **Suscribirse** necesita tanto **Mostrar página de suscriptores** como al menos un canal de suscripción activado. Una página privada también tiene un elemento **Cerrar sesión**.
 
 Un incidente, un episodio, un anuncio o un evento programado concreto solo se abre si la página lo listaría, sea cual sea su ventana de historial: un incidente o un episodio privado, uno oculto en las páginas de estado, un evento programado oculto en las páginas de estado o un anuncio programado para más adelante tampoco se encuentra por su enlace.
 
@@ -138,7 +138,7 @@ El resumen es la página que ve la mayoría de los visitantes. De arriba abajo m
 3. **Un porcentaje de tiempo de actividad general**, si lo activaste: al final del banner de estado general, mientras todos los recursos estén operativos. Desactivado por defecto.
 4. **Los grupos de recursos**, cada uno con sus recursos, su estado actual y sus barras de historial de tiempo de actividad.
 5. **Incidencias activas**, con los episodios activos.
-6. **Eventos de mantenimiento programado**.
+6. **Mantenimiento programado**.
 
 Una página recién creada sin contenido muestra un estado vacío que te indica que añadas recursos desde el panel, la señal para ir a la pantalla **Recursos**.
 
@@ -154,7 +154,7 @@ Lo que ven los visitantes se define en una sola tarjeta: **Lo que muestra tu pá
 - **Mostrar solo incidentes limitados a esta página** (`onlyShowScopedIncidents`): también en la fila de incidentes, desactivado por defecto. Actívalo y la página muestra, y notifica a sus suscriptores, solo los incidentes limitados a ella con **Limitar a estas páginas de estado**. Los incidentes que no están limitados a ninguna página, incluidos los que abre por sí solo un monitor, Slack, Microsoft Teams, la API o la IA, nunca llegan a ella hasta que alguien les añade la página. También decide qué incidentes traen sus episodios a la página, por eso se mantiene cuando **Mostrar incidentes** está desactivado. Para páginas que comparten monitores pero sirven a públicos distintos, consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
 - **Mostrar episodios** (`showEpisodesOnStatusPage`): activado por defecto, con **Mostrar … días de historial** (`showEpisodeHistoryInDays`, 14 por defecto) y **Mostrar etiquetas de episodios** (`showEpisodeLabelsOnStatusPage`, desactivado por defecto). Los episodios son un modelo propio con sus propios endpoints, no una vista de los incidentes.
 - **Mostrar anuncios** (`showAnnouncementsOnStatusPage`): activado por defecto, con **Mostrar … días de historial** (`showAnnouncementHistoryInDays`, 14 por defecto).
-- **Mostrar eventos de mantenimiento programado** (`showScheduledMaintenanceEventsOnStatusPage`): activado por defecto, con **Mostrar … días de historial** (`showScheduledEventHistoryInDays`, 14 por defecto) y **Mostrar etiquetas de eventos** (`showScheduledEventLabelsOnStatusPage`, desactivado por defecto).
+- **Mostrar eventos de mantenimiento** (`showScheduledMaintenanceEventsOnStatusPage`): activado por defecto, con **Mostrar … días de historial** (`showScheduledEventHistoryInDays`, 14 por defecto) y **Mostrar las etiquetas de los eventos de mantenimiento** (`showScheduledEventLabelsOnStatusPage`, desactivado por defecto).
 - **Historial de tiempo de actividad**: todo lo relativo al tiempo de actividad de la página, en una fila:
   - **Mostrar … días de historial** (`showUptimeHistoryInDays`) es la longitud de la barra de tiempo de actividad junto a cada recurso. Es 90 por defecto y debe estar entre 1 y 90. Todas las opciones **Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** de un recurso o grupo leen este número, igual que el porcentaje de tiempo de actividad general.
   - **Mostrar porcentaje de tiempo de actividad general** (`showOverallUptimePercentOnStatusPage`): desactivado por defecto. Actívalo y el banner de estado general termina con un porcentaje de tiempo de actividad para toda la página, la media de sus recursos y grupos, mientras todo esté operativo. Mientras está activado, **Precisión** (`overallUptimePercentPrecision`) elige cuántos decimales muestra: `99%`, `99.9%`, `99.99%` (el predeterminado) o `99.999%`. Cada recurso y cada grupo tiene su propia precisión.
@@ -168,7 +168,7 @@ Lo que ven los visitantes se define en una sola tarjeta: **Lo que muestra tu pá
 
 Si la página muestra un elemento **Suscribirse** (**Mostrar página de suscriptores**, `showSubscriberPageOnStatusPage`, activado por defecto) y por qué canales pueden suscribirse los visitantes no se define en esta pantalla: ambas cosas están en la tarjeta **Canales** de **Suscriptores → Ajustes de suscriptores** (consulta [Canales de suscripción](/docs/status-pages/subscribers#canales-de-suscripción)).
 
-Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que descarga los ajustes propios de la página de estado en un archivo que puedes volver a importar, y **Archive status page** (consulta [Archivar una página de estado](#archivar-una-página-de-estado)). El porcentaje de tiempo de actividad general y los estados de inactividad eran antes dos tarjetas propias aquí, cada una tras un botón **Editar**; ahora son filas de la tarjeta.
+Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que descarga los ajustes propios de la página de estado en un archivo que puedes volver a importar, y **Archivar página de estado** (consulta [Archivar una página de estado](#archivar-una-página-de-estado)). El porcentaje de tiempo de actividad general y los estados de inactividad eran antes dos tarjetas propias aquí, cada una tras un botón **Editar**; ahora son filas de la tarjeta.
 
 **Dónde están los colores.** Los colores de las barras de tiempo de actividad no están aquí: el **Color de barra predeterminado** y las reglas de color de las barras están en **Más ajustes** en **Páginas de estado → tu página → Marca → Marca**. El **Tema** de la página (claro, oscuro o según el dispositivo de cada visitante) es una tarjeta cerca del principio de esa misma página. No hay ningún ajuste de color de marca; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
 
@@ -228,7 +228,7 @@ Tres formas de mostrar el estado en otro sitio que no sea la propia página.
 
 **Feed RSS.** Cada página de estado sirve `/rss`: un feed titulado "{título de la página} Updates", con el **Título de la página** definido en **Marca**, o su nombre si no tiene, y cuyos elementos empiezan por `Incident: `, `Announcement: ` y `Scheduled Maintenance: `. Cada elemento lleva la fecha que le da la página: un incidente, cuándo se declaró; un anuncio, cuándo se publicó; y un evento de mantenimiento programado, cuándo empieza, con su descripción abierta por su ventana. Útil para quien prefiere llevar tus actualizaciones a un lector o a un chatbot en lugar de suscribirse por correo electrónico.
 
-**Calendario de mantenimiento.** Cada página de estado sirve también `/maintenance.ics`: el mantenimiento programado que muestra, como un calendario al que Google Calendar, el Calendario de Apple u Outlook pueden suscribirse. Los visitantes lo añaden con **Suscribirse al calendario** en la página **Eventos programados**, y un solo evento con **Añadir al calendario** en la propia página del evento. El calendario de una página privada está vacío, porque una aplicación de calendario no puede iniciar sesión. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#el-calendario-de-una-página-de-estado).
+**Calendario de mantenimiento.** Cada página de estado sirve también `/maintenance.ics`: el mantenimiento programado que muestra, como un calendario al que Google Calendar, el Calendario de Apple u Outlook pueden suscribirse. Los visitantes lo añaden con **Suscribirse al calendario** en la página **Mantenimiento programado**, y un solo evento con **Añadir al calendario** en la propia página del evento. El calendario de una página privada está vacío, porque una aplicación de calendario no puede iniciar sesión. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#el-calendario-de-una-página-de-estado).
 
 Si prefieres obtener los datos tú mismo, la página de estado se apoya en endpoints públicos de lectura para el resumen, los incidentes, los eventos de mantenimiento programado, los anuncios y los episodios: consulta [API pública](/docs/status-pages/public-api).
 
@@ -241,7 +241,7 @@ Archiva una página de estado para desconectarla sin eliminarla. Una página de 
 - **Sale de la lista de páginas de estado.** La encontrarás en **Páginas de estado → Avanzado → Archivado**.
 - **Lo conserva todo.** Sus recursos, grupos, marca, dominios, usuarios privados y suscriptores se conservan, así que desarchivarla vuelve a poner la página en línea exactamente como estaba.
 
-Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes avanzados → Archive status page**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
+Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes avanzados → Archivar página de estado**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
 
 ## Próximos pasos
 

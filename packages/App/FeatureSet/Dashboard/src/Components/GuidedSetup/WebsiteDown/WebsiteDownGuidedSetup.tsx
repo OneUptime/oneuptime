@@ -9,6 +9,7 @@ import {
   WEBSITE_DOWN_COPY,
   WEBSITE_DOWN_POLICY_NAME,
   WEBSITE_DOWN_SETUP,
+  WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   WebsiteAddress,
   WebsiteDownProgressFacts,
   WebsiteDownRunValue,
@@ -1061,6 +1062,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       }}
       summary={summary}
       isFinished={isWebsiteDownFinished(facts)}
+      guideDocsPath={WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH}
     />
   );
 };

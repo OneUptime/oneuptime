@@ -23,6 +23,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerSwarmNodeListComponent;
@@ -97,7 +98,7 @@ function getNodeRoute(r: DockerSwarmResource): Route | undefined {
 }
 
 function getNodeDisplayName(r: DockerSwarmResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function getNodeStatus(r: DockerSwarmResource): {
@@ -260,7 +261,10 @@ const DashboardDockerSwarmNodeListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="docker-swarm-resource"
       title={args.title}
-      pluralLabel="nodes"
+      countLabel={{
+        one: "{{count}} node",
+        other: "{{count}} nodes",
+      }}
       emptyMessage="No Docker Swarm nodes found"
       emptyIcon={IconProp.ServerStack}
       columns={COLUMNS}

@@ -216,6 +216,14 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * An AppLink's words are a string, and translateText answers string |
+   * undefined: each link here falls back to its English words (#7407), as
+   * the guided setups' titles do below, so no link is ever drawn empty.
+   */
+  const openSetupHealthWords: string =
+    translator.translateText("Open Setup Health") || "Open Setup Health";
+
   return (
     <section
       className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm"
@@ -306,7 +314,7 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
                 to={getSetupHealthRouteFromHome()}
                 className="font-medium text-indigo-600 hover:text-indigo-800"
               >
-                {translator.translateText("Open Setup Health") || ""}
+                {openSetupHealthWords}
               </AppLink>
             </p>
           ) : (
@@ -328,7 +336,7 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
                       )}
                       className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                     >
-                      {translator.translateText(setup.title) || ""}
+                      {translator.translateText(setup.title) || setup.title}
                     </AppLink>
                   </li>
                 );

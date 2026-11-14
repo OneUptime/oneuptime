@@ -1,5 +1,6 @@
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import API from "../../Utils/API/API";
+import FormRefusals, { FormRefusalKind } from "../../Utils/FormRefusals";
 import UiAnalytics from "../../Utils/Analytics";
 import DropdownUtil from "../../Utils/Dropdown";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -1091,6 +1092,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       if (Object.keys(validationErrors).length > 0) {
         // errors on form, do not submit.
+        FormRefusals.report(FormRefusalKind.Invalid);
         return;
       }
 
@@ -1176,6 +1178,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         submitValues();
         return;
       }
+
+      FormRefusals.report(FormRefusalKind.Invalid);
 
       // Show every failing field's error, on whichever step it is.
       const touchedFields: Dictionary<boolean> = {};

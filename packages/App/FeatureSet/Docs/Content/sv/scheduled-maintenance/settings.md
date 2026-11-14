@@ -20,7 +20,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 | **Etikettregler**  | Lägger till etiketter på matchande händelser.                       |
 | **Påminnelseregler** | Påminner ägarna med ett intervall tills en händelse är slutförd.    |
 
-Avsnittet **Inställningar** rymmer **Händelsestatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Händelsemallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
+Avsnittet **Inställningar** rymmer **Underhållsstatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Underhållsmallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
 
 Avsnittet **Arbetsyta** rymmer Slack- och Microsoft Teams-reglerna som publicerar händelser i kanaler. Se [Slack](/docs/workspace-connections/slack#aviseringsregler) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams#aviseringsregler).
 
@@ -69,7 +69,7 @@ En regel matchar bara när varje villkor du fyller i stämmer; ett villkor som l
 :::steps
 ### Välj vilka händelser det ska påminnas om
 
-Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Matcha** låter du **Alla schemalagda underhållshändelser** vara valt för att påminna om varje händelse, eller väljer **Endast schemalagda underhållshändelser som uppfyller villkoren** och sedan de **Etiketter** den gäller för.
+Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Matcha** låter du **Alla underhållshändelser** vara valt för att påminna om varje händelse, eller väljer **Endast underhållshändelser som uppfyller villkoren** och sedan de **Etiketter** den gäller för.
 
 ### Ställ in intervallet
 
@@ -92,7 +92,7 @@ De här påminnelserna är för ditt team. De påminnelser som dina statussidepr
 
 ### Anteckningsmallar
 
-**Schemalagt underhåll → Inställningar → Anteckningsmallar** rymmer färdigskriven text för uppdateringar om underhåll. Kortet **Mallar för offentliga eller privata anteckningar för schemalagda underhållshändelser** listar dem; **Skapa Anteckningsmall för schemalagt underhåll** frågar efter ett **Mallnamn**, en **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en offentlig eller privat anteckning på en händelse, och när de ändrar dess tillstånd, och dess text kan redigeras innan den publiceras. Till skillnad från anteckningsmallar för incidenter fyller anteckningsmallar för underhåll inte i några variabler.
+**Schemalagt underhåll → Inställningar → Anteckningsmallar** rymmer färdigskriven text för uppdateringar om underhåll. Kortet **Mallar för offentliga eller privata anteckningar för underhållshändelser** listar dem; **Skapa Anteckningsmall för schemalagt underhåll** frågar efter ett **Mallnamn**, en **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en offentlig eller privat anteckning på en händelse, och när de ändrar dess tillstånd, och dess text kan redigeras innan den publiceras. Till skillnad från anteckningsmallar för incidenter fyller anteckningsmallar för underhåll inte i några variabler.
 
 ### Godkännande av offentliga anteckningar
 
@@ -117,7 +117,7 @@ Kortet **Nästa nummer** under det anger numret som nästa händelse får, för 
 
 ## Arbetsflöden
 
-Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngivna efter den: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** och **On Delete Scheduled Maintenance Event**, samma sak för **Scheduled Maintenance State Timeline** och de andra, och åtgärder som **Create One Scheduled Maintenance Event** och **Update One Scheduled Maintenance Event**. Definitioner av anpassade fält och mätvärden är undantagen: de har inga arbetsflödessteg. Se [Översikt över arbetsflöden](/docs/workflows/index).
+Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngivna efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** och **On Delete Maintenance Event**, samma sak för **Scheduled Maintenance State Timeline** och de andra, och åtgärder som **Create One Maintenance Event** och **Update One Maintenance Event**. Definitioner av anpassade fält och mätvärden är undantagen: de har inga arbetsflödessteg. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Vem som kan ändra dem
 
@@ -142,8 +142,8 @@ Kontrollera att en påminnelseregel matchar händelsens etiketter, att händelse
 ## Nästa steg
 
 :::cards
-- [Underhållsstatusar](/docs/scheduled-maintenance/states): Sidan Händelsestatus, och vad varje tillstånd gör.
-- [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates): Sidan Händelsemallar, på djupet.
+- [Underhållsstatusar](/docs/scheduled-maintenance/states): Sidan Underhållsstatus, och vad varje tillstånd gör.
+- [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates): Sidan Underhållsmallar, på djupet.
 - [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules): Regelformuläret, steg för steg.
 - [Aviseringsinställningar](/docs/notifications/notification-settings): Hur varje ägare väljer vad som når fram till dem.
 :::

@@ -62,6 +62,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const WEBSITE_DOWN_SETUP: string = "website_down";
 
+// The docs' start-to-finish guide to this job (#6821), linked from the page.
+export const WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH: string =
+  "/docs/guides/website-down";
+
 export enum WebsiteDownStep {
   Check = "check",
   WhoIsTold = "who_is_told",
@@ -176,7 +180,7 @@ export const WEBSITE_DOWN_COPY: {
   ),
   whoTitle: translationKey("Who should be told?"),
   whoCreateHelp: translationKey(
-    "When it goes down, OneUptime opens an incident and pages these people through their own notification rules. It starts with you, by email.",
+    "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.",
   ),
   whoCreatePolicyNote: translationKey(
     'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.',

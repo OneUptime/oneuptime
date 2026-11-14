@@ -888,6 +888,51 @@ export default class AlertGroupingRule extends RuleBaseModel {
   })
   public groupByMonitorLabels?: boolean = undefined;
 
+  /*
+   * Topology-aware grouping (issue #6798): an alert joins an open episode of
+   * the rule when one of its services - its own or its monitor's - is, calls
+   * or is called by a service of an alert already in it, on the Service Map
+   * (Common/Server/Utils/Topology/ConnectedServices). An alert on no service
+   * is grouped by its monitor instead.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Group By Connected Services",
+    description:
+      "When enabled, alerts on services that call each other on the Service Map are grouped into the same episode, and alerts on unconnected services into separate ones. Alerts on no service are grouped by monitor.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public groupByConnectedServices?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1406,9 +1451,9 @@ export default class AlertGroupingRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
+    title: "On-Call Policies",
     description:
-      "List of on-call duty policies to execute for episodes created by this rule.",
+      "List of on-call policies to execute for episodes created by this rule.",
   })
   @ManyToMany(
     () => {

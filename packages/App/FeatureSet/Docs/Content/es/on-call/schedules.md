@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Reglas de escalado](/docs/on-call/escalation-rules): Haz que un nivel de una política de guardia avise a esta programación.
 - [Línea de tiempo de guardias](/docs/on-call/schedule-timeline): Ve todas las programaciones lado a lado, con sus huecos de cobertura.
 - [Feeds de calendario](/docs/on-call/calendar-feeds): Lleva los turnos a Google Calendar, Outlook o el Calendario de Apple.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide cómo te llega un aviso mientras estás de guardia.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Decide cómo te llega un aviso mientras estás de guardia.
 :::

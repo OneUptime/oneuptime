@@ -12,13 +12,7 @@ import {
   DocumentationGenerator,
   ProviderSchemaDump,
 } from "./Core/DocumentationGenerator";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync: (
-  command: string,
-  options?: { cwd?: string },
-) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
+import { runGoCommand } from "./Core/GoCommand";
 
 /*
  * Extract the most useful diagnostic text from a failed `exec` call. Compiler
@@ -181,8 +175,13 @@ async function main(): Promise<void> {
     // Step 12: Upgrade dependencies to the newest releases, then tidy.
     Logger.info("📦 Step 11: Running go get -u ./... && go mod tidy...");
 
+    /*
+     * Every Go command from here on runs through runGoCommand, with Go's
+     * memory limit: compiling the provider takes more memory than a 16 GB
+     * CI runner has without one (Core/GoCommand.ts).
+     */
     try {
-      await execAsync("go get -u ./...", { cwd: providerDir });
+      await runGoCommand("go get -u ./...", providerDir);
     } catch (error) {
       /*
        * Non-fatal: offline/network-restricted environments still build with
@@ -194,7 +193,7 @@ async function main(): Promise<void> {
     }
 
     try {
-      await execAsync("go mod tidy", { cwd: providerDir });
+      await runGoCommand("go mod tidy", providerDir);
       Logger.info("✅ go mod tidy completed successfully");
     } catch (error) {
       /*
@@ -216,9 +215,10 @@ async function main(): Promise<void> {
       "🔨 Step 12: Verifying provider compiles (current platform)...",
     );
     try {
-      await execAsync("go build -o terraform-provider-oneuptime", {
-        cwd: providerDir,
-      });
+      await runGoCommand(
+        "go build -o terraform-provider-oneuptime",
+        providerDir,
+      );
       Logger.info("✅ Provider compiled successfully");
     } catch (error) {
       /*
@@ -243,9 +243,9 @@ async function main(): Promise<void> {
       "provider-schema.json",
     );
     try {
-      await execAsync(
+      await runGoCommand(
         `ONEUPTIME_PROVIDER_SCHEMA_OUT="${schemaDumpPath}" go test ./internal/provider -run '^TestWriteProviderSchemaForDocs$' -count=1`,
-        { cwd: providerDir },
+        providerDir,
       );
     } catch (error) {
       throw new Error(

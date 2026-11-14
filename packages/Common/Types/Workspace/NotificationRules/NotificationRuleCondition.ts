@@ -81,6 +81,31 @@ export enum NotificationRuleConditionCheckOn {
   SloErrorBudgetPolicyChange = "Error Budget Policy Change",
 }
 
+/*
+ * The words a condition's field is shown with, where they differ from the
+ * value stored in the rule. The on-call fields were named when the product
+ * was "On Call Duty"; it is On-Call now (#6817), but a rule saved with
+ * "On Call Duty Policy Name" must keep matching, so the value stays and only
+ * what the Conditions step's dropdown and the rule's card say changes.
+ */
+export const CHECK_ON_LABELS: Readonly<
+  Partial<Record<NotificationRuleConditionCheckOn, string>>
+> = {
+  [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]:
+    "On-Call Policy Name",
+  [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+    "On-Call Policy Description",
+  [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]:
+    "On-Call Policy Labels",
+};
+
+// What a condition's field is called on screen, in English.
+export function getCheckOnLabel(
+  checkOn: NotificationRuleConditionCheckOn,
+): string {
+  return CHECK_ON_LABELS[checkOn] || checkOn;
+}
+
 export enum ConditionType {
   EqualTo = "Equal To",
   NotEqualTo = "Not Equal To",

@@ -146,12 +146,12 @@ function drawnLabel(language: string, page: string, label: string): string {
 /*
  * A menu path written as one bold span: "**A > B > C**". Each segment is the
  * language's Dashboard label. Persian is the one exception: its pages write
- * the Notification Settings path as its status page subscribers page does,
+ * the Notification Channels path as its status page subscribers page does,
  * in English (NotificationChannelsWhoCanDocs holds the two to each other).
  */
 const PATH_SEPARATOR: string = " > ";
 const PATHS_KEPT_IN_ENGLISH: Record<string, Array<string>> = {
-  fa: ["Project Settings > Notifications > Notification Settings"],
+  fa: ["Project Settings > Notifications > Notification Channels"],
 };
 
 function englishPage(page: string): string {
@@ -458,10 +458,10 @@ describe("the comparisons, on these pages' diagrams", () => {
 
   it("tell a menu path from a label", () => {
     const markdown: string =
-      "**Project Settings > Notifications > Notification Settings** and **Escalation Rules**";
+      "**Project Settings > Notifications > Notification Channels** and **Escalation Rules**";
 
     expect(menuPaths(markdown)).toEqual([
-      ["Project Settings", "Notifications", "Notification Settings"],
+      ["Project Settings", "Notifications", "Notification Channels"],
     ]);
     expect(boldLabels(markdown)).toEqual(["Escalation Rules"]);
   });

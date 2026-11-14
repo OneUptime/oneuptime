@@ -48,10 +48,13 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
 import DashboardMonitorListComponentUtil from "../../../Utils/Dashboard/Components/DashboardMonitorListComponent";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 /*
  * A HONEYCOMB TILE'S TOOLTIP, ON A DASHBOARD (issue #6966).
@@ -1085,6 +1088,326 @@ describe("a tile reached with the keyboard", () => {
       "stroke-width",
       String(HONEYCOMB_FOCUS_RING.width),
     );
+  });
+
+  /*
+   * #7347: the tooltip a tile's focus opened said "Click to open" to a
+   * reader who reached the tile with Tab, and opens it with Enter. Its
+   * last line says how to open the tile the way it was reached: Press
+   * Enter to open with the keyboard's focus; Click to open under the
+   * pointer, and for the focus a click gives a tile.
+   */
+  describe("its tooltip says how to open it, the way it was reached", () => {
+    const PRESS_ENTER: string = "Press Enter to open";
+    const CLICK: string = "Click to open";
+
+    test("the keyboard's focus: Press Enter to open, where Click to open was", async () => {
+      await drawBoard();
+
+      focusWithKeyboard(tiles()[0]!);
+
+      const tooltip: HTMLElement = openTooltip();
+      const hint: HTMLElement = within(tooltip).getByText(PRESS_ENTER);
+
+      expect(within(tooltip).queryByText(CLICK)).toBeNull();
+      // Its last line, under the details, drawn as Click to open is.
+      expect(hint.parentElement?.lastElementChild).toBe(hint);
+      expect(hint).toHaveClass(
+        "text-[10px]",
+        "text-gray-400",
+        "border-t",
+        "border-gray-100",
+      );
+    });
+
+    test("a screen reader hears it: the tile's description says Press Enter to open", async () => {
+      await drawBoard();
+
+      const gray: HTMLElement = tiles()[0]!;
+      focusWithKeyboard(gray);
+
+      expect(gray).toHaveAccessibleDescription(/Press Enter to open/);
+      expect(gray).not.toHaveAccessibleDescription(/Click to open/);
+      // And still what the tile is: its name and its status.
+      expect(gray).toHaveAccessibleDescription(/checkout/);
+      expect(gray).toHaveAccessibleDescription(/Disabled/);
+    });
+
+    test("the pointer: Click to open, as it always said", async () => {
+      await drawBoard();
+
+      fireEvent.mouseEnter(tiles()[0]!);
+
+      const tooltip: HTMLElement = openTooltip();
+      expect(within(tooltip).getByText(CLICK)).toBeInTheDocument();
+      expect(within(tooltip).queryByText(PRESS_ENTER)).toBeNull();
+    });
+
+    test("a focus a click gave: Click to open, the pointer's words", async () => {
+      await drawBoard();
+
+      focusWithClick(tiles()[0]!);
+
+      const tooltip: HTMLElement = openTooltip();
+      expect(within(tooltip).getByText(CLICK)).toBeInTheDocument();
+      expect(within(tooltip).queryByText(PRESS_ENTER)).toBeNull();
+    });
+
+    test("Tab on, and every tile says Press Enter; the pointer on another, and it says Click", async () => {
+      await drawBoard();
+
+      focusWithKeyboard(tiles()[0]!);
+      expect(within(openTooltip()).getByText(PRESS_ENTER)).toBeInTheDocument();
+
+      focusWithKeyboard(tiles()[1]!);
+      expect(within(openTooltip()).getByText("search")).toBeInTheDocument();
+      expect(within(openTooltip()).getByText(PRESS_ENTER)).toBeInTheDocument();
+
+      // The pointer's tooltip takes the place of the focus's.
+      fireEvent.mouseEnter(tiles()[2]!);
+      expect(within(openTooltip()).getByText("api")).toBeInTheDocument();
+      expect(within(openTooltip()).getByText(CLICK)).toBeInTheDocument();
+      expect(within(openTooltip()).queryByText(PRESS_ENTER)).toBeNull();
+    });
+
+    test("a tile put away with Escape and reached again with Tab says Press Enter again", async () => {
+      await drawBoard();
+
+      const gray: HTMLElement = tiles()[0]!;
+      focusWithKeyboard(gray);
+      fireEvent.keyDown(gray, { key: "Escape" });
+      expect(openTooltips()).toHaveLength(0);
+
+      blur(gray);
+      focusWithKeyboard(gray);
+
+      expect(within(openTooltip()).getByText(PRESS_ENTER)).toBeInTheDocument();
+    });
+
+    describe("in the reader's language", () => {
+      const instances: Record<string, i18n> = {};
+
+      beforeAll(async () => {
+        for (const language of DASHBOARD_LANGUAGES) {
+          const instance: i18n = createInstance();
+          await instance.init({
+            lng: language,
+            resources: {
+              [language]: { translation: readDashboardLocale(language) },
+            },
+            interpolation: { escapeValue: false },
+            keySeparator: false,
+            nsSeparator: false,
+          });
+          instances[language] = instance;
+        }
+      });
+
+      function inLanguage(
+        language: string,
+      ): (node: ReactElement) => ReactElement {
+        const wrapInLanguage: (node: ReactElement) => ReactElement = (
+          node: ReactElement,
+        ): ReactElement => {
+          return (
+            <I18nextProvider i18n={instances[language]!}>
+              {node}
+            </I18nextProvider>
+          );
+        };
+
+        return wrapInLanguage;
+      }
+
+      test("on a German board: Zum Öffnen Enter drücken with the keyboard, Zum Öffnen klicken with the pointer", async () => {
+        await drawBoard(inLanguage("de"));
+
+        focusWithKeyboard(tiles()[0]!);
+        expect(
+          within(openTooltip()).getByText("Zum Öffnen Enter drücken"),
+        ).toBeInTheDocument();
+        expect(openTooltip()).not.toHaveTextContent("Zum Öffnen klicken");
+        expect(openTooltip()).not.toHaveTextContent(PRESS_ENTER);
+
+        blur(tiles()[0]!);
+        fireEvent.mouseEnter(tiles()[1]!);
+        expect(
+          within(openTooltip()).getByText("Zum Öffnen klicken"),
+        ).toBeInTheDocument();
+        expect(openTooltip()).not.toHaveTextContent("Enter drücken");
+      });
+
+      test.each([...DASHBOARD_LANGUAGES])(
+        "in %s: the Dashboard's words for each, never the English",
+        async (language: string) => {
+          const words: Record<string, string> = readDashboardLocale(language);
+          const pressEnter: string = words[PRESS_ENTER]!;
+          const click: string = words[CLICK]!;
+
+          expect(isWordedInDashboardLocale(PRESS_ENTER, language)).toBe(true);
+          expect(pressEnter).not.toBe(PRESS_ENTER);
+          expect(pressEnter).not.toBe(click);
+
+          await drawBoard(inLanguage(language));
+
+          focusWithKeyboard(tiles()[0]!);
+          expect(
+            within(openTooltip()).getByText(pressEnter),
+          ).toBeInTheDocument();
+          expect(within(openTooltip()).queryByText(click)).toBeNull();
+          expect(tiles()[0]).toHaveAccessibleDescription(
+            new RegExp(escapeRegExp(pressEnter)),
+          );
+
+          blur(tiles()[0]!);
+          fireEvent.mouseEnter(tiles()[1]!);
+          expect(within(openTooltip()).getByText(click)).toBeInTheDocument();
+          expect(within(openTooltip()).queryByText(pressEnter)).toBeNull();
+        },
+      );
+    });
+  });
+});
+
+/*
+ * A TILE'S LABEL, IN THE MIDDLE OF ITS TILE (#7092).
+ *
+ * A honeycomb tile's label was a plain span: on an Arabic or Persian board
+ * an English name too long for its tile lost its start ("...api-7d9f8"),
+ * and tiles whose names share their end looked alike. It is drawn as a
+ * widget's line now (DashboardWidgetLine): an English label there reads
+ * left to right, cut at its own end, and stays in the middle of its tile
+ * (text-center: centred whichever way it reads, never moved to a side).
+ * Words that read the board's way are drawn as they were.
+ */
+describe("a tile's label, in the middle of its tile", () => {
+  const ENGLISH_LABEL: string = "checkout-api-7d9f8b6c4";
+  const ARABIC_LABEL: string = "خادم الدفع";
+
+  const instances: Record<string, i18n> = {};
+
+  beforeAll(async () => {
+    for (const language of ["ar", "de", "fa"]) {
+      const instance: i18n = createInstance();
+      await instance.init({
+        lng: language,
+        resources: {
+          [language]: { translation: readDashboardLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+      instances[language] = instance;
+    }
+  });
+
+  function drawLabelledTiles(language: string): void {
+    const honeycomb: ReactElement = (
+      <DashboardResourceHoneycomb
+        tiles={[
+          {
+            id: "english",
+            label: ENGLISH_LABEL,
+            status: "Running",
+            color: GREEN,
+            tooltip: { title: ENGLISH_LABEL },
+          },
+          {
+            id: "arabic",
+            label: ARABIC_LABEL,
+            status: "Running",
+            color: GREEN,
+            tooltip: { title: ARABIC_LABEL },
+          },
+        ]}
+      />
+    );
+
+    render(
+      language === "en" ? (
+        honeycomb
+      ) : (
+        <I18nextProvider i18n={instances[language]!}>
+          {honeycomb}
+        </I18nextProvider>
+      ),
+    );
+  }
+
+  // The label a tile draws: the one line in its middle.
+  function labelOf(index: number): HTMLElement {
+    const label: HTMLElement | null = tiles()[index]!.querySelector("span");
+
+    expect(label).not.toBeNull();
+
+    return label as HTMLElement;
+  }
+
+  test.each(["ar", "fa"])(
+    "on a %s board an English label reads left to right, cut at its own end, and stays in the middle of its tile",
+    (language: string) => {
+      drawLabelledTiles(language);
+
+      const english: HTMLElement = labelOf(0);
+
+      expect(english).toHaveTextContent(ENGLISH_LABEL);
+      expect(english).toHaveAttribute("dir", "ltr");
+      // Centred as it was: not moved to the tile's side.
+      expect(english.className).toBe("truncate text-center");
+      expect(english).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+      // As wide as the tile lets it be, and never in the pointer's way.
+      expect(english.style.maxWidth).toMatch(/px$/);
+      expect(english.style.pointerEvents).toBe("none");
+    },
+  );
+
+  test("on an Arabic board an Arabic label is drawn as it was", () => {
+    drawLabelledTiles("ar");
+
+    const arabic: HTMLElement = labelOf(1);
+
+    expect(arabic).toHaveTextContent(ARABIC_LABEL);
+    expect(arabic).not.toHaveAttribute("dir");
+    expect(arabic.className).toBe("truncate text-center");
+  });
+
+  test.each(["de", "en"])(
+    "on a %s board an English label is drawn as it always was; an Arabic one reads right to left, still in the middle",
+    (language: string) => {
+      drawLabelledTiles(language);
+
+      const english: HTMLElement = labelOf(0);
+      const arabic: HTMLElement = labelOf(1);
+
+      expect(english.tagName).toBe("SPAN");
+      expect(english).not.toHaveAttribute("dir");
+      expect(english.className).toBe("truncate text-center");
+      expect(english.style.pointerEvents).toBe("none");
+
+      expect(arabic).toHaveAttribute("dir", "rtl");
+      expect(arabic).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    },
+  );
+
+  test("a tile with no label draws an empty line, read the board's way", () => {
+    render(
+      <DashboardResourceHoneycomb
+        tiles={[
+          {
+            id: "unlabelled",
+            status: "Running",
+            color: GREEN,
+            tooltip: { title: "checkout-api" },
+          },
+        ]}
+      />,
+    );
+
+    const label: HTMLElement = labelOf(0);
+
+    expect(label).toBeEmptyDOMElement();
+    expect(label).not.toHaveAttribute("dir");
   });
 });
 

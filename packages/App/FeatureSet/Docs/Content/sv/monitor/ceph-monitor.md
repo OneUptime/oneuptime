@@ -69,7 +69,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Kriterier** och kontrollera **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 

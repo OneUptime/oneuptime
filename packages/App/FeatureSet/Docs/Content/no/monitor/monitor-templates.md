@@ -47,10 +47,10 @@ Under **Standardverdier for overvåking** velger du **Monitortype** med den samm
 
 ### Angi kriteriene og intervallet
 
-Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitormal** på det siste trinnet.
+Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Innstillinger for malsynkronisering** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitormal** på det siste trinnet.
 :::
 
-Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for overvåking**, **Overvåkingskriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Standardverdier for egendefinerte felt** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede overvåkere**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger kriterier** eller **Rediger intervall**.
+Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for overvåking**, **Kriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Standardverdier for egendefinerte felt** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede overvåkere**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger kriterier** eller **Rediger intervall**.
 
 ## Opprett monitorer fra en mal
 
@@ -61,7 +61,7 @@ Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives ti
 
 ## Synkroniser endringer til tilkoblede monitorer
 
-Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Sync Criteria to 3 Linked Monitors**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
+Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Synkroniser kriterier til 3 koblede overvåkere**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
 
 | Knapp | Kopierer til hver tilkoblede monitor | Lar være |
 | --- | --- | --- |
@@ -85,22 +85,22 @@ Gå til **Monitorer → Innstillinger → Maler**, og åpne malen.
 
 ### Rediger kriteriene
 
-Klikk på **Rediger kriterier** på kortet **Overvåkingskriterier**.
+Klikk på **Rediger kriterier** på kortet **Kriterier**.
 
 ### Beskytt feltene
 
-Under **Template sync settings** krysser du av for **Do not sync this field** ved hvert felt du vil beholde på de tilkoblede monitorene.
+Under **Innstillinger for malsynkronisering** krysser du av for **Ikke synkroniser dette feltet** ved hvert felt du vil beholde på de tilkoblede monitorene.
 
 ### Lagre
 
-Lagre endringene. Kortet **Overvåkingskriterier**, og bekreftelsen av begge synkroniseringene nedenfor, viser de beskyttede feltene.
+Lagre endringene. Kortet **Kriterier**, og bekreftelsen av begge synkroniseringene nedenfor, viser de beskyttede feltene.
 
 ### Synkroniser
 
 Bruk **Synkroniser kriterier til koblede overvåkere**, eller **Synkroniser fra mal** på én tilkoblet monitor.
 :::
 
-Beskytt for eksempel **Monitor destination** og **Forespørselshoder** på en API-mal. Produksjons- og staging-monitorer beholder sine egne URL-er og hoder, mens begge får malens oppdaterte kriterier og de andre ubeskyttede innstillingene.
+Beskytt for eksempel **Monitor-mål** og **Forespørselshoder** på en API-mal. Produksjons- og staging-monitorer beholder sine egne URL-er og hoder, mens begge får malens oppdaterte kriterier og de andre ubeskyttede innstillingene.
 
 Hvilke alternativer som finnes, avhenger av monitortypen. De omfatter mål og porter, alternativer for HTTP-forespørsler, databasetilkoblinger, DNS-innstillinger, infrastrukturvelgere og telemetrispørringer. Relaterte påloggingsdata, som et klientsertifikat og den private nøkkelen, holdes sammen.
 
@@ -159,7 +159,7 @@ Utelat matrisen, eller sett den til `[]`, for å synkronisere alle støttede tri
 | Logger, Security Events, Spor, AI / LLM, Målinger, Unntak, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (hele monitorens konfigurasjon) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastrukturmonitorer (Kubernetes, Docker Container, Vert, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre (alle unntatt Vert), metrikkspørringer og spørringens tidsvindu. Navnene deres står under **Template sync settings** på en mal av den typen.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Vert, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre (alle unntatt Vert), metrikkspørringer og spørringens tidsvindu. Navnene deres står under **Innstillinger for malsynkronisering** på en mal av den typen.
 :::
 
 ## Feilsøking

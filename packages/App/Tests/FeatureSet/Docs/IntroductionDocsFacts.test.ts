@@ -641,9 +641,9 @@ describe("Quickstart", () => {
     expect(
       menuSection(dashboard("Pages/Settings/SideMenu.tsx"), "Notifications")
         .items,
-    ).toContain("Notification Settings");
+    ).toContain("Notification Channels");
     expect(QUICKSTART).toContain(
-      "SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Settings**.",
+      "SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.",
     );
   });
 
@@ -1309,7 +1309,7 @@ const PLAIN_PAGE_NAMES: Record<string, string> = {
   LOGS: "Logs",
   STATUS_PAGES: "Status Pages",
   USERS: "Users",
-  ON_CALL_DUTY: "On-Call Duty",
+  ON_CALL_DUTY: "On-Call",
 };
 
 function plainPageName(page: string): string {
@@ -2255,7 +2255,7 @@ describe("Home Page & Shortcuts", () => {
       "**Incidents → Active Incidents**",
       "**Alerts → Active Alerts**",
       "**Monitors → Not Operational**",
-      "**Scheduled Maintenance → Ongoing Events**",
+      "**Scheduled Maintenance → Ongoing Maintenance Events**",
       "**SLOs**",
     ]);
   });

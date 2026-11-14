@@ -43,8 +43,8 @@ const NEW_STRINGS: Array<string> = [
   "Search schedules, teams or people...",
   "No on-call schedules, teams or people to pick from.",
   "Add at least one on-call schedule, team or person to notify.",
-  // The wait.
-  "If nobody acknowledges within this time, the next level is paged.",
+  // The wait: how long this level has (EscalationRuleForm's ESCALATE_AFTER_DESCRIPTION).
+  "If nobody acknowledges this level within this time, the level after it is paged.",
   // The name, under Advanced.
   "Leave it empty to name this rule after its level.",
   // The people picker's on-call schedule kind (Common).

@@ -53,7 +53,7 @@ describe("toSentenceNoun", () => {
   test.each([
     ["Monitors", "monitors"],
     ["Status Pages", "status pages"],
-    ["On-Call Duty Policies", "on-call duty policies"],
+    ["On-Call Policies", "on-call policies"],
     ["Scheduled Maintenance Events", "scheduled maintenance events"],
   ])(
     "lower-cases an ordinary plural: %s -> %s",
@@ -109,7 +109,7 @@ describe("getEmptyTableMessage in English (every lookup returns its key)", () =>
   test.each([
     ["SLOs", "No SLOs yet."],
     ["API Keys", "No API keys yet."],
-    ["On-Call Duty Policies", "No on-call duty policies yet."],
+    ["On-Call Policies", "No on-call policies yet."],
     ["On-Call Schedules", "No on-call schedules yet."],
   ])("builds a natural sentence from %s", (label: string, sentence: string) => {
     expect(
@@ -321,9 +321,9 @@ describe("the Dashboard locale files", () => {
     ["Incidents", "No incidents yet."],
     ["Alerts", "No alerts yet."],
     ["Status Pages", "No status pages yet."],
-    ["On-Call Duty Policies", "No on-call duty policies yet."],
+    ["On-Call Policies", "No on-call policies yet."],
     ["On-Call Schedules", "No on-call schedules yet."],
-    ["Scheduled Maintenance Events", "No scheduled maintenance events yet."],
+    ["Maintenance Events", "No maintenance events yet."],
     ["Workflows", "No workflows yet."],
     ["Dashboards", "No dashboards yet."],
     ["Teams", "No teams yet."],

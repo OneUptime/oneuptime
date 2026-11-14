@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ Inspelaren publicerar `window.OneUptimeReplay`. Eftersom den laddas asynkront m�
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` och `addTag` tillämpas innan inspelaren startar, så ett samtyckesbeslut i kön avgör om något laddas upp, och en identitet i kön färdas redan med den första chunken. `track`, `metric`, `captureSession` och `onSessionChange` körs direkt efter att den har startat.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` och `addTag` tillämpas innan inspelaren startar, så ett samtyckesbeslut i kön avgör om något laddas upp, och en identitet i kön färdas redan med den första chunken. `track`, `metric`, `captureSession` och `onSessionChange` körs direkt efter att den har startat.
 
 | Metod | Vad den gör |
 | --- | --- |
@@ -268,6 +270,8 @@ Inspelaren publicerar `window.OneUptimeReplay`. Eftersom den laddas asynkront m�
 | `getSessionId()` | Det aktuella sessions-ID:t, eller `null` när ingenting spelas in. Föredra `onSessionChange()`, som också följer sessionsbyten. |
 | `getVisitorId()` | Det [anonyma besöks-ID:t](#anonyma-besökare) — 32 hexadecimala tecken, ett per webbläsarprofil, detsamma över sessionsbyten — eller `""` innan inspelaren startar, efter `stop()` och medan samtycket är återkallat. Slumpmässigt och ingen identitet; beror inte på **Registrera slutanvändarens identitet**. |
 | `stop()` | Laddar upp den sista chunken, förseglar sessionen och stoppar under resten av sidans livstid. |
+| `pause()` | Stoppar inspelningen av det som syns på skärmen tills `resume()`: den öppna chunken skickas med en _paused_-markör, och under tiden spelas ingenting in (varken sidan, inmatning, förfrågningar, konsol eller klick). Sessionen förblir öppen, och besökarens inmatning återupptar den inte. För en sida som bara spelar in några av sina delar; köad innan inspelaren laddas startar den pausad. |
+| `resume()` | Fortsätter inspelningen efter `pause()` i samma session, med en ny ögonblicksbild av sidan som den ser ut nu. Spelaren hoppar över det pausade avsnittet. |
 | `setDebug(enabled)` | Skriver från och med nu ut inspelarens beslut i konsolen. |
 | `getDiagnostics()` | Allt som inspelaren beslutade, oavsett om diagnostik var påslagen. Se nedan. |
 
@@ -370,7 +374,12 @@ Maskerade värden bevarar inte längden. Ett maskerat fält är en platshållare
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Under _Mask all text_ spelas text i ett element med klassen `oneuptime-unmask` in som den står: använd den för sidans egna gränssnittsord, som knappar, rubriker och menyer. Ett `oneuptime-mask`-element eller någon av dina extra maskeringsselektorer inuti maskerar texten igen, formulärfält förblir maskerade, och i de andra maskeringslägena gör klassen ingenting. En sida kan också be om mer maskering än dess policy ger, på init-globalen: `maskAllText: true` spelar in under _Mask all text_ oavsett vad policyn säger, och `blockSelectors` läggs till policyns blockeringsselektorer. Ingen av dem kan få en inspelning att visa mer.
 
 Du kan också lägga till **Ytterligare maskeringsväljare** och **Blockeringsväljare** på din applikations sida **Uppspelningspolicy**, utan att ändra din markup. Med standardläget för maskering är de det främsta verktyget för att skydda innehåll som din markup inte deklarerar som känsligt.
 

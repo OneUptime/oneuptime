@@ -17,6 +17,7 @@ import {
   getDateDisplayLanguage,
   getDateLocale,
   getDateTimeFormat,
+  getHourOption,
   getNumberLocale,
   isEnglishDateLanguage,
   writeDigitsInLocale,
@@ -30,6 +31,10 @@ export const Moment: typeof moment = moment;
  * are written in the reader's language for, as Intl asks for them. A shape
  * with no words in it ("YYYY", "HH:mm:ss.SSS") reads the same in every
  * language; one that is not listed is written by moment, in English.
+ *
+ * English's "hh" keeps a 12-hour time's zero ("05:01 PM"), as moment writes
+ * it; no other language writes one there ("오후 5:01", "5:01 م"), so the
+ * reader's language takes the hour without it (getHourOption, issue #7279).
  */
 const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   Record<string, Intl.DateTimeFormatOptions>
@@ -43,7 +48,7 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   "MMMM YYYY": { month: "long", year: "numeric" },
   "MMMM D, YYYY": { month: "long", day: "numeric", year: "numeric" },
   "h:mm A": { hour: "numeric", minute: "2-digit", hour12: true },
-  "hh:mm A": { hour: "2-digit", minute: "2-digit", hour12: true },
+  "hh:mm A": { hour: getHourOption(true), minute: "2-digit", hour12: true },
   // A 24-hour time of day, in the reader's digits: "۲۲:۲۷" on a Persian page.
   "HH:mm": { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
 };
@@ -1749,10 +1754,31 @@ export default class OneUptimeDate {
 
   /**
    * Render an instant as the value of an `<input type="datetime-local">` — a
-   * bare wall-clock with no offset — read in the current timezone.
+   * bare wall-clock with no offset — read in the current timezone, to the
+   * second ("2026-11-13T11:15:52").
+   *
+   * A field people schedule with shows toDateTimeLocalMinuteString instead:
+   * a value with seconds makes the browser's picker show and ask for them
+   * too. Only a field that compares with event timestamps (a telemetry time
+   * range) keeps the seconds, by opting in (Input's showSecondsForDateTime).
    */
   public static toDateTimeLocalString(date: Date): string {
     return this.inCurrentTimezone(date).format("YYYY-MM-DDTHH:mm:ss");
+  }
+
+  /**
+   * The value an `<input type="datetime-local">` shows a person who picks a
+   * time to schedule or record something: the wall clock in the current
+   * timezone, to the minute ("2026-11-13T11:15"). Without seconds in its
+   * value, the browser's picker shows hours and minutes and no seconds
+   * column, and what is picked comes back to the minute.
+   *
+   * The seconds of an instant stored with them are not shown, and not lost:
+   * a field left as it was keeps the value it was given (Input changes its
+   * value only when the person changes the field).
+   */
+  public static toDateTimeLocalMinuteString(date: Date): string {
+    return this.inCurrentTimezone(date).format("YYYY-MM-DDTHH:mm");
   }
 
   /**
@@ -2202,6 +2228,26 @@ export default class OneUptimeDate {
       return moment.tz(date, timezone).endOf("day").toDate();
     }
     return moment(date).endOf("day").toDate();
+  }
+
+  /*
+   * The start of the minute `date` falls in: its seconds and milliseconds
+   * dropped, as a new Date (the one given is left as it was). The same
+   * instant in every timezone, since every zone's offset today is a whole
+   * number of minutes.
+   *
+   * What "now" is in a field people schedule with: an override, a rotation
+   * or an announcement that starts now starts at the minute the field shows
+   * (11:15, never 11:15:52), which has already begun - never a minute late.
+   */
+  public static getStartOfMinute(date: Date | string): Date {
+    const instant: Date = this.fromString(date);
+    const millisecondsInAMinute: number = 60 * 1000;
+
+    return new Date(
+      Math.floor(instant.getTime() / millisecondsInAMinute) *
+        millisecondsInAMinute,
+    );
   }
 
   /*

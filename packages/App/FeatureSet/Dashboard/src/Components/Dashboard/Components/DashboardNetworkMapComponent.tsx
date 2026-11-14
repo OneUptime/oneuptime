@@ -421,7 +421,10 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
     return (
       <DashboardResourceListBase
         title={args.title}
-        pluralLabel="sites"
+        countLabel={{
+          one: "{{count}} site",
+          other: "{{count}} sites",
+        }}
         columns={COLUMNS}
         count={sites.length}
         isLoading={isLoading}
@@ -481,7 +484,7 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
           className="text-xs font-medium text-gray-400 uppercase tracking-wider truncate"
         />
         <span
-          className="text-xs text-gray-300 tabular-nums flex-shrink-0"
+          className="text-xs text-gray-400 tabular-nums flex-shrink-0"
           data-testid="network-map-widget-summary"
         >
           {summary.down > 0

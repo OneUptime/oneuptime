@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [エスカレーションルール](/docs/on-call/escalation-rules): オンコールポリシーのレベルからこのスケジュールを呼び出します。
 - [スケジュールタイムライン](/docs/on-call/schedule-timeline): すべてのスケジュールをカバレッジの空白とともに並べて確認します。
 - [カレンダーフィード](/docs/on-call/calendar-feeds): シフトを Google カレンダー、Outlook、Apple カレンダーに表示します。
-- [個人のオンコールルール](/docs/notifications/on-call-rules): オンコール中に呼び出しがどのように届くかを決めます。
+- [私への連絡方法](/docs/notifications/on-call-rules): オンコール中に呼び出しがどのように届くかを決めます。
 :::

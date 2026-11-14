@@ -43,6 +43,7 @@ import {
   showsResponseContent,
 } from "./EventEvaluationDetailsCopy";
 import { wordEvaluationText } from "../../Utils/EvaluationText";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 
 /*
  * EVALUATION DETAILS: WHY THE MONITOR OPENED THIS INCIDENT OR ALERT.
@@ -301,7 +302,7 @@ const CheckFacts: FunctionComponent<{
       key: "response-time",
       label:
         translator.translateText(EVALUATION_FACT_LABELS.responseTime) || "",
-      value: `${translator.formatNumber(details.response.responseTimeInMs)} ms`,
+      value: formatMilliseconds(translator, details.response.responseTimeInMs),
     });
   }
 

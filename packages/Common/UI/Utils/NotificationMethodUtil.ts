@@ -14,6 +14,15 @@ import UserMattermost from "../../Models/DatabaseModels/UserMattermost";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import ObjectID from "../../Types/ObjectID";
+import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  ComposedValue,
+  composedValue,
+  TemplateValue,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "./TranslateTemplate";
 
 /*
  * The four on-call rule pages (alert, incident, alert episode, incident
@@ -55,11 +64,62 @@ export interface NotificationMethodModels {
 
 /* One rendered "Notification Method" line, e.g. `Email: jane@example.com`. */
 export interface NotificationMethodDisplayItem {
-  /* The method name shown before the colon, e.g. "Email". */
+  /*
+   * Which kind of method it is: what its line is drawn by, whatever the
+   * reader's language calls it (NOTIFICATION_METHOD_NAMES).
+   */
+  method: OnCallPageChannel;
+  /* The method's name in English, e.g. "Email": the readiness payload's method type too. */
   title: string;
   /* The identifier of the method itself, e.g. the address or device name. */
   value: string;
 }
+
+/*
+ * What each kind of method is called in a line of the Dashboard, in the
+ * reader's language (#7178): "SMS", "Phone call", "Push notification". A
+ * phrase of its own, not the shared word - "Call" is a function call in
+ * Chinese and "Push" a payment in Arabic. The test page's result names its
+ * messages' channels by the same words (OnCallTestPageWords).
+ */
+export const NOTIFICATION_METHOD_NAMES: Readonly<
+  Record<OnCallPageChannel, string>
+> = {
+  [OnCallPageChannel.Call]: translationKey("Phone call"),
+  [OnCallPageChannel.SMS]: translationKey("SMS"),
+  [OnCallPageChannel.WhatsApp]: translationKey("WhatsApp"),
+  [OnCallPageChannel.Telegram]: translationKey("Telegram"),
+  [OnCallPageChannel.Push]: translationKey("Push notification"),
+  [OnCallPageChannel.Email]: translationKey("Email"),
+  [OnCallPageChannel.Slack]: translationKey("Slack"),
+  [OnCallPageChannel.MicrosoftTeams]: translationKey("Microsoft Teams"),
+  [OnCallPageChannel.Mattermost]: translationKey("Mattermost"),
+  [OnCallPageChannel.Webhook]: translationKey("Webhook"),
+  [OnCallPageChannel.CustomChannel]: translationKey("Custom channel"),
+};
+
+/*
+ * A method's line, "SMS: +447700900123", as one sentence of the reader's
+ * language: French spaces its colon ("SMS : ..."), Chinese writes a
+ * full-width one.
+ */
+export const NOTIFICATION_METHOD_LINE: string = translationKey(
+  "{{label}}: {{identifier}}",
+);
+
+/*
+ * A push device registered without a name: the server stores it under
+ * this placeholder (UserPushAPI), and a line words it in the reader's
+ * language (getIdentifierText).
+ */
+const UNNAMED_DEVICE: string = translationKey("Unknown Device");
+
+// The kinds of method reached at a phone number.
+const PHONE_NUMBER_METHODS: ReadonlyArray<OnCallPageChannel> = [
+  OnCallPageChannel.Call,
+  OnCallPageChannel.SMS,
+  OnCallPageChannel.WhatsApp,
+];
 
 /*
  * A relation on UserNotificationRule / UserOnCallLogTimeline, and how to turn
@@ -68,6 +128,7 @@ export interface NotificationMethodDisplayItem {
  */
 interface NotificationMethodRelation {
   relationName: string;
+  method: OnCallPageChannel;
   title: string;
   columns: Array<string>;
 }
@@ -78,27 +139,51 @@ interface NotificationMethodRelation {
  * reads identically wherever it is rendered.
  */
 const NOTIFICATION_METHOD_RELATIONS: Array<NotificationMethodRelation> = [
-  { relationName: "userEmail", title: "Email", columns: ["email"] },
-  { relationName: "userCall", title: "Call", columns: ["phone"] },
-  { relationName: "userSms", title: "SMS", columns: ["phone"] },
-  { relationName: "userWhatsApp", title: "WhatsApp", columns: ["phone"] },
+  {
+    relationName: "userEmail",
+    method: OnCallPageChannel.Email,
+    title: "Email",
+    columns: ["email"],
+  },
+  {
+    relationName: "userCall",
+    method: OnCallPageChannel.Call,
+    title: "Call",
+    columns: ["phone"],
+  },
+  {
+    relationName: "userSms",
+    method: OnCallPageChannel.SMS,
+    title: "SMS",
+    columns: ["phone"],
+  },
+  {
+    relationName: "userWhatsApp",
+    method: OnCallPageChannel.WhatsApp,
+    title: "WhatsApp",
+    columns: ["phone"],
+  },
   {
     relationName: "userTelegram",
+    method: OnCallPageChannel.Telegram,
     title: "Telegram",
     columns: ["telegramUserHandle", "telegramChatId"],
   },
   {
     relationName: "userSlack",
+    method: OnCallPageChannel.Slack,
     title: "Slack",
     columns: ["slackUserName", "slackUserId"],
   },
   {
     relationName: "userMicrosoftTeams",
+    method: OnCallPageChannel.MicrosoftTeams,
     title: "Microsoft Teams",
     columns: ["microsoftTeamsUserName", "microsoftTeamsUserId"],
   },
   {
     relationName: "userMattermost",
+    method: OnCallPageChannel.Mattermost,
     title: "Mattermost",
     columns: ["mattermostUserName", "mattermostUserId"],
   },
@@ -107,17 +192,28 @@ const NOTIFICATION_METHOD_RELATIONS: Array<NotificationMethodRelation> = [
    * Slack/Discord/Teams style hooks, so it is deliberately never selected into
    * the browser or rendered. `name` is NOT NULL on UserWebhook.
    */
-  { relationName: "userWebhook", title: "Webhook", columns: ["name"] },
+  {
+    relationName: "userWebhook",
+    method: OnCallPageChannel.Webhook,
+    title: "Webhook",
+    columns: ["name"],
+  },
   /*
    * A custom channel's name: the one column of a channel a relation may
    * read. Its URL and secret never reach the browser.
    */
   {
     relationName: "customNotificationChannel",
+    method: OnCallPageChannel.CustomChannel,
     title: "Custom Channel",
     columns: ["name"],
   },
-  { relationName: "userPush", title: "Push", columns: ["deviceName"] },
+  {
+    relationName: "userPush",
+    method: OnCallPageChannel.Push,
+    title: "Push",
+    columns: ["deviceName"],
+  },
 ];
 
 export default class NotificationMethodUtil {
@@ -162,6 +258,148 @@ export default class NotificationMethodUtil {
     );
   }
 
+  // Whether a kind of method is reached at a phone number.
+  public static isPhoneNumberChannel(method: OnCallPageChannel): boolean {
+    return PHONE_NUMBER_METHODS.includes(method);
+  }
+
+  /*
+   * The kind of method an English method type names ("SMS", "Call",
+   * "Custom Channel" - a display line's title, the readiness payload's
+   * method type), or null for one this build does not know.
+   */
+  public static getMethodOfType(
+    methodType: string | null | undefined,
+  ): OnCallPageChannel | null {
+    return (
+      Object.values(OnCallPageChannel).find(
+        (method: OnCallPageChannel): boolean => {
+          return method === methodType;
+        },
+      ) || null
+    );
+  }
+
+  /*
+   * What a method type is called in the reader's language: "Phone call" for
+   * "Call". A type this build does not know is named as it came.
+   */
+  public static getMethodName(
+    translator: Translator,
+    methodType: OnCallPageChannel | string,
+  ): string {
+    const method: OnCallPageChannel | null =
+      NotificationMethodUtil.getMethodOfType(methodType);
+
+    if (!method) {
+      return methodType;
+    }
+
+    return (
+      translator.translateText(NOTIFICATION_METHOD_NAMES[method]) ||
+      NOTIFICATION_METHOD_NAMES[method]
+    );
+  }
+
+  /*
+   * A method's name as a value of a sentence (the Remove dialog's title,
+   * "Remove this phone call method?"): in the sentence's own language - the
+   * reader's where the sentence is translated, English where it is not
+   * yet - and cased as the middle of a sentence is: "phone call", "SMS",
+   * "WhatsApp". Named in the reader's language before the sentence was
+   * looked up, a German page read "Remove this Telefonanruf method?". A
+   * type this build does not know is named as it came.
+   */
+  public static getMethodNameInSentence(
+    methodType: OnCallPageChannel | string,
+  ): TemplateValue {
+    const method: OnCallPageChannel | null =
+      NotificationMethodUtil.getMethodOfType(methodType);
+
+    if (!method) {
+      return methodType;
+    }
+
+    return translatableTerm(NOTIFICATION_METHOD_NAMES[method], {
+      inSentence: true,
+    });
+  }
+
+  /*
+   * A method's line as a value of a sentence ("Deleting {{methodLabel}}
+   * removes 2 notification rules."): getMethodLabel's line in the
+   * sentence's own language, as getMethodNameInSentence's name is.
+   */
+  public static getMethodLabelInSentence(
+    methodType: OnCallPageChannel | string,
+    identifier: string | null | undefined,
+  ): ComposedValue {
+    return composedValue((translator: Translator): string => {
+      return NotificationMethodUtil.getMethodLabel(
+        translator,
+        methodType,
+        identifier,
+      );
+    });
+  }
+
+  /*
+   * A method's line as text, "SMS: +447700900123", in the reader's
+   * language: for a dropdown's option, which draws text only. The
+   * identifier is set apart from the words, so a number keeps its "+" in
+   * front on a page read from the right. Just the name with no identifier.
+   */
+  public static getMethodLabel(
+    translator: Translator,
+    methodType: OnCallPageChannel | string,
+    identifier: string | null | undefined,
+  ): string {
+    const name: string = NotificationMethodUtil.getMethodName(
+      translator,
+      methodType,
+    );
+
+    if (!identifier) {
+      return name;
+    }
+
+    return translator.translateTemplate(
+      NOTIFICATION_METHOD_LINE,
+      {
+        label: name,
+        identifier: NotificationMethodUtil.getIdentifierText(
+          translator,
+          methodType,
+          identifier,
+        ),
+      },
+      { setsValuesApart: true },
+    );
+  }
+
+  /*
+   * A method's identifier as a line shows it: as stored - a number, an
+   * address, a name someone gave it - except a push device registered
+   * without a name, which the server stores as "Unknown Device"
+   * (UserPushAPI): that is the product's word, in the reader's language
+   * like the rest of the line, never "اعلان پوش: Unknown Device".
+   */
+  public static getIdentifierText(
+    translator: Translator,
+    methodType: OnCallPageChannel | string,
+    identifier: string | null | undefined,
+  ): string {
+    if (
+      NotificationMethodUtil.getMethodOfType(methodType) ===
+        OnCallPageChannel.Push &&
+      (!identifier || identifier === UNNAMED_DEVICE)
+    ) {
+      return translator.translateText(UNNAMED_DEVICE) || UNNAMED_DEVICE;
+    }
+
+    return identifier || "";
+  }
+
   /*
    * Turns a rule (or an on-call log timeline entry) into the lines to render in
    * the "Notification Method" column. Returns an empty array when no method
@@ -185,7 +423,11 @@ export default class NotificationMethodUtil {
       );
 
       if (value) {
-        displayItems.push({ title: relation.title, value: value });
+        displayItems.push({
+          method: relation.method,
+          title: relation.title,
+          value: value,
+        });
       }
     }
 
@@ -199,78 +441,142 @@ export default class NotificationMethodUtil {
    */
   public static getDropdownOptions(
     models: NotificationMethodModels,
+    // Words the labels in the reader's language; English without one.
+    translator?: Translator | undefined,
   ): Array<DropdownOption> {
     return NotificationMethodUtil.toOrderedList(models).map(
-      (model: BaseModel) => {
+      (model: BaseModel): DropdownOption => {
+        if (!translator) {
+          return {
+            label: NotificationMethodUtil.getLabel(model),
+            value: model.id!.toString(),
+          };
+        }
+
         return {
-          label: NotificationMethodUtil.getLabel(model),
+          label: NotificationMethodUtil.getTranslatedLabel(translator, model),
           value: model.id!.toString(),
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
         };
       },
     );
   }
 
   /*
+   * How a dropdown draws a method's translated label: as it is, never
+   * looked up again, and the page's way, as the "Notification Method"
+   * column draws the same line. Left to the label's letters, a Persian menu
+   * read "پیامک: ..." from the right and "WhatsApp: ..." under it from the
+   * left (Dropdown's isInPageDirection).
+   */
+  public static readonly TRANSLATED_LABEL_OPTION: {
+    isUserContent: true;
+    isInPageDirection: true;
+  } = {
+    isUserContent: true,
+    isInPageDirection: true,
+  };
+
+  /*
+   * getLabel's line in the reader's language: the method's name is theirs,
+   * its identifier as stored (NOTIFICATION_METHOD_LINE) - a device with no
+   * name an unknown device in their words (getIdentifierText).
+   */
+  public static getTranslatedLabel(
+    translator: Translator,
+    model: BaseModel,
+  ): string {
+    const parts: { method: OnCallPageChannel; identifier: string } =
+      NotificationMethodUtil.getLabelParts(model);
+
+    return NotificationMethodUtil.getMethodLabel(
+      translator,
+      parts.method,
+      parts.identifier,
+    );
+  }
+
+  /*
    * The label for a single method, e.g. `SMS: +15550100`. Exported separately so
-   * the dropdown and any future surface stay in agreement.
+   * the dropdown and any future surface stay in agreement. The method's
+   * English name is its kind's own (OnCallPageChannel): "Call", "Custom
+   * Channel".
    */
   public static getLabel(model: BaseModel): string {
+    const parts: { method: OnCallPageChannel; identifier: string } =
+      NotificationMethodUtil.getLabelParts(model);
+
+    return `${parts.method}: ${parts.identifier}`;
+  }
+
+  // Which kind of method a row is, and what identifies it.
+  private static getLabelParts(model: BaseModel): {
+    method: OnCallPageChannel;
+    identifier: string;
+  } {
     if (model instanceof CustomNotificationChannel) {
-      return (
-        "Custom Channel: " +
-        (NotificationMethodUtil.readColumn(model, "name") || "Unknown Channel")
-      );
+      return {
+        method: OnCallPageChannel.CustomChannel,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "name") || "Unknown Channel",
+      };
     }
 
     if (model instanceof UserWebhook) {
-      return (
-        "Webhook: " +
-        (NotificationMethodUtil.readColumn(model, "name") || "Unknown Webhook")
-      );
+      return {
+        method: OnCallPageChannel.Webhook,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "name") || "Unknown Webhook",
+      };
     }
 
     if (model instanceof UserPush) {
-      return (
-        "Push: " +
-        (NotificationMethodUtil.readColumn(model, "deviceName") ||
-          "Unknown Device")
-      );
+      return {
+        method: OnCallPageChannel.Push,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "deviceName") ||
+          UNNAMED_DEVICE,
+      };
     }
 
     if (model instanceof UserTelegram) {
-      return (
-        "Telegram: " +
-        (NotificationMethodUtil.readColumn(model, "telegramUserHandle") ||
+      return {
+        method: OnCallPageChannel.Telegram,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "telegramUserHandle") ||
           NotificationMethodUtil.readColumn(model, "telegramChatId") ||
-          "Unknown Chat")
-      );
+          "Unknown Chat",
+      };
     }
 
     if (model instanceof UserSlack) {
-      return (
-        "Slack: " +
-        (NotificationMethodUtil.readColumn(model, "slackUserName") ||
+      return {
+        method: OnCallPageChannel.Slack,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "slackUserName") ||
           NotificationMethodUtil.readColumn(model, "slackUserId") ||
-          "Unknown Account")
-      );
+          "Unknown Account",
+      };
     }
 
     if (model instanceof UserMicrosoftTeams) {
-      return (
-        "Microsoft Teams: " +
-        (NotificationMethodUtil.readColumn(model, "microsoftTeamsUserName") ||
+      return {
+        method: OnCallPageChannel.MicrosoftTeams,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "microsoftTeamsUserName") ||
           NotificationMethodUtil.readColumn(model, "microsoftTeamsUserId") ||
-          "Unknown Account")
-      );
+          "Unknown Account",
+      };
     }
 
     if (model instanceof UserMattermost) {
-      return (
-        "Mattermost: " +
-        (NotificationMethodUtil.readColumn(model, "mattermostUserName") ||
+      return {
+        method: OnCallPageChannel.Mattermost,
+        identifier:
+          NotificationMethodUtil.readColumn(model, "mattermostUserName") ||
           NotificationMethodUtil.readColumn(model, "mattermostUserId") ||
-          "Unknown Account")
-      );
+          "Unknown Account",
+      };
     }
 
     const identifier: string =
@@ -279,18 +585,18 @@ export default class NotificationMethodUtil {
       "";
 
     if (model instanceof UserCall) {
-      return "Call: " + identifier;
+      return { method: OnCallPageChannel.Call, identifier: identifier };
     }
 
     if (model instanceof UserSMS) {
-      return "SMS: " + identifier;
+      return { method: OnCallPageChannel.SMS, identifier: identifier };
     }
 
     if (model instanceof UserWhatsApp) {
-      return "WhatsApp: " + identifier;
+      return { method: OnCallPageChannel.WhatsApp, identifier: identifier };
     }
 
-    return "Email: " + identifier;
+    return { method: OnCallPageChannel.Email, identifier: identifier };
   }
 
   /*

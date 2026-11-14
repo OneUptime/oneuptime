@@ -5,7 +5,7 @@ A Ping monitor checks that a host answers ping (ICMP echo requests), and measure
 :::cards
 - [Create the monitor](#create-a-ping-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): The host, the timeout and retries.
-- [Monitoring criteria](#monitoring-criteria): Reachability, latency, packet loss and jitter.
+- [Criteria](#criteria): Reachability, latency, packet loss and jitter.
 - [Troubleshooting](#troubleshooting): When the host is up but the monitor says offline.
 :::
 
@@ -56,7 +56,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the host does not answer, online when it does. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the host does not answer, online when it does. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -75,7 +75,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 To watch a fixed IP address and never a host name, you can use an [IP monitor](/docs/monitor/ip-monitor) instead. It runs the same check.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the host counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

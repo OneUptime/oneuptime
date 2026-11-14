@@ -64,7 +64,7 @@ describe("Inventory item side menu", () => {
       { title: "Logs", href: `${ITEM_PATH}/logs` },
       { title: "Traces", href: `${ITEM_PATH}/traces` },
       { title: "Metrics", href: `${ITEM_PATH}/metrics` },
-      { title: "Performance Profiles", href: `${ITEM_PATH}/profiles` },
+      { title: "Profiles", href: `${ITEM_PATH}/profiles` },
       { title: "Exceptions", href: `${ITEM_PATH}/exceptions` },
     ]);
   });

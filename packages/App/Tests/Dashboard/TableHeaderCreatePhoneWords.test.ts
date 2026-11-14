@@ -135,7 +135,7 @@ describe("a list's own create button on a phone", () => {
 
     expect(titles).toEqual(
       expect.arrayContaining([
-        "Create Scheduled Maintenance Event",
+        "Create Maintenance Event",
         "Create Monitor",
         "Create Alert",
         "Create Announcement",

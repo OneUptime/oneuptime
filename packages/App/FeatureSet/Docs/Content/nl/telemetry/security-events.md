@@ -591,7 +591,7 @@ level: high
 
 Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Beveiligingsgebeurtenissen** als type; daar staat hij tussen uw andere monitoren.
 
-Het formulier toont **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** en **Gebeurtenisklasse**. **Filteren op telemetrieservice**, **Filteren op attributen** en **Filteren op volglijsten** wachten onder **Meer velden**, waarvan de kop toont welke een monitor gebruikt. **Filteren op volglijsten** houdt de gebeurtenissen waarvan het veld wel of niet op een van je [volglijsten](#volglijsten) staat. De criteria controleren **Aantal beveiligingsgebeurtenissen**.
+Het formulier toont **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** en **Gebeurtenisklasse**. **Filteren op service**, **Filteren op attributen** en **Filteren op volglijsten** wachten onder **Meer velden**, waarvan de kop toont welke een monitor gebruikt. **Filteren op volglijsten** houdt de gebeurtenissen waarvan het veld wel of niet op een van je [volglijsten](#volglijsten) staat. De criteria controleren **Aantal beveiligingsgebeurtenissen**.
 
 | | Detectieregel | Monitor voor beveiligingsgebeurtenissen |
 | --- | --- | --- |

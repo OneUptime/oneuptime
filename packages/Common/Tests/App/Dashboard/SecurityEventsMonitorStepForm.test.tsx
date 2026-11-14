@@ -213,7 +213,7 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
-      "Filter by Telemetry Service",
+      "Filter by Service",
       "Filter by Attributes",
       "Filter by Watchlists",
     ]);
@@ -221,14 +221,14 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     expect(setChips(moreFields())).toEqual([]);
 
     // Mounted, so they keep their values, but out of sight until opened.
-    expect(fieldLabel("Filter by Telemetry Service")).not.toBeVisible();
+    expect(fieldLabel("Filter by Service")).not.toBeVisible();
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
     expect(fieldLabel("Filter by Watchlists")).not.toBeVisible();
 
     fireEvent.click(moreFields());
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "true");
-    expect(fieldLabel("Filter by Telemetry Service")).toBeVisible();
+    expect(fieldLabel("Filter by Service")).toBeVisible();
     expect(fieldLabel("Filter by Attributes")).toBeVisible();
     expect(fieldLabel("Filter by Watchlists")).toBeVisible();
   });
@@ -395,7 +395,7 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     await renderSettled({ telemetryServiceIds: [TELEMETRY_SERVICE_ID] });
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
-    expect(setChips(moreFields())).toEqual(["Filter by Telemetry Service: 1"]);
+    expect(setChips(moreFields())).toEqual(["Filter by Service: 1"]);
   });
 
   test("a detection rule's attribute filter stays folded as a chip, and opens to its row", async () => {

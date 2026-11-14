@@ -64,6 +64,8 @@ import {
 } from "./Utils/MetricResultsState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -691,7 +693,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
       setTelemetryAttributesError(
         translator.translateTemplate(
           "We couldn't load metric attributes. {{error}}",
-          { error: API.getFriendlyErrorMessage(err as Error) },
+          { error: errorInSentence(API.getFriendlyErrorMessage(err as Error)) },
         ),
       );
     } finally {
@@ -1561,10 +1563,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     className="h-4 w-4 shrink-0 text-red-500"
                   />
                   <span>
-                    {translator.translateTemplate(
-                      "Couldn't refresh — showing previously loaded data. {{error}}",
-                      { error: metricResultsError },
-                    )}
+                    <ErrorSentence
+                      template="Couldn't refresh — showing previously loaded data. {{error}}"
+                      error={metricResultsError}
+                    />
                   </span>
                 </div>
               )}

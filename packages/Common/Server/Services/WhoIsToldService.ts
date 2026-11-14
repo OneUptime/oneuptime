@@ -45,6 +45,7 @@ import OnCallTestPageService from "./OnCallTestPageService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import StatusPageService from "./StatusPageService";
+import TeamMemberService from "./TeamMemberService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
 import Alert from "../../Models/DatabaseModels/Alert";
@@ -61,11 +62,12 @@ import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -94,7 +96,9 @@ import {
 import ObjectID from "../../Types/ObjectID";
 import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  OnCallTestPageNotPaged,
   OnCallTestPagePreviewPerson,
+  OnCallTestPageReachedThrough,
   OnCallTestPageRecordKind,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
@@ -164,6 +168,13 @@ interface ProjectContext {
   // People's and teams' names, by id, read once.
   userNames: Map<string, string>;
   teamNames: Map<string, string>;
+  /*
+   * Who an owner's Created email reaches, by id, read once
+   * (readOwnersReached): whether a person is a member of the project, and
+   * whether a team of it has a member who is.
+   */
+  projectMembers: Map<string, boolean>;
+  teamsWithMembers: Map<string, boolean>;
   projectOwnerNames: Array<string> | null;
   channelsOff: Array<OnCallPageChannel>;
   isFallbackEnabled: boolean;
@@ -232,9 +243,19 @@ export const WHO_IS_TOLD_MONITOR_SELECT: {
   labels: { _id: true },
 };
 
+/*
+ * A policy's first level as a test reads it (OnCallTestPageService.
+ * readFirstLevel): who it pages and why, and who it can't reach - in
+ * English, and as codes the card words in the reader's language (#7261).
+ */
 interface FirstLevel {
-  targets: Array<{ userId: ObjectID; reachedThrough?: string | undefined }>;
+  targets: Array<{
+    userId: ObjectID;
+    reachedThrough?: string | undefined;
+    reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
+  }>;
   notPaged: Array<string>;
+  notPagedCodes: Array<OnCallTestPageNotPaged>;
   levelCount: number;
 }
 
@@ -315,13 +336,27 @@ function uniqueIds(
 
 /*
  * Who the project's owner rules add to what opens, and the rules that add
- * anyone (OwnerRulePlan): a rule that matches and adds nobody - it inherits
- * from a resource nobody owns - is not why anyone is emailed.
+ * anyone (OwnerRulePlan), each with whom it adds: a rule that matches and
+ * adds nobody - it inherits from a resource nobody owns - is not why anyone
+ * is emailed, nor is one that adds only people and teams the email does not
+ * reach (getEventOwners).
  */
+interface OwnerRuleAddition {
+  rule: WhoIsToldRule;
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
 interface OwnerRuleAdditions {
   userIds: Array<string>;
   teamIds: Array<string>;
-  rules: Array<WhoIsToldRule>;
+  rules: Array<OwnerRuleAddition>;
+}
+
+// Who what opens emails as its owners, and the owner rules that add any of them.
+interface EventOwners {
+  owners: WhoIsToldOwners;
+  ownerRules: Array<WhoIsToldRule>;
 }
 
 const NO_OWNER_RULE_ADDITIONS: OwnerRuleAdditions = {
@@ -347,10 +382,14 @@ export function getOwnerRuleAdditions<
       .filter((entry: OwnerRulePlanEntry<TRule>): boolean => {
         return entry.userIds.length > 0 || entry.teamIds.length > 0;
       })
-      .map((entry: OwnerRulePlanEntry<TRule>): WhoIsToldRule => {
+      .map((entry: OwnerRulePlanEntry<TRule>): OwnerRuleAddition => {
         return {
-          id: idText(entry.rule.id),
-          name: entry.rule.name?.toString() || "",
+          rule: {
+            id: idText(entry.rule.id),
+            name: entry.rule.name?.toString() || "",
+          },
+          userIds: uniqueIds(entry.userIds),
+          teamIds: uniqueIds(entry.teamIds),
         };
       }),
   };
@@ -829,6 +868,8 @@ export class WhoIsToldService {
       ),
       userNames: new Map<string, string>(),
       teamNames: new Map<string, string>(),
+      projectMembers: new Map<string, boolean>(),
+      teamsWithMembers: new Map<string, boolean>(),
       projectOwnerNames: null,
       channelsOff: getChannelsSwitchedOff(channels),
       isFallbackEnabled: !project?.disableOnCallNotificationFallback,
@@ -1273,19 +1314,28 @@ export class WhoIsToldService {
       );
     }
 
+    /*
+     * For breaks only (resolveProject) who is emailed as an owner is not
+     * read - nor whether they are in the project - and no owner rule is.
+     */
+    const owners: EventOwners = data.context.isForBreaksOnly
+      ? {
+          owners: this.getUnreadOwners({ template: data.template }),
+          ownerRules: [],
+        }
+      : await this.getEventOwners({
+          context: data.context,
+          template: data.template,
+          monitorStepId: data.monitorStepId,
+          ownerRuleAdditions: data.ownerRuleAdditions,
+        });
+
     return {
       kind: data.kind,
       title: data.title,
       severityName: data.severityName,
-      owners: data.context.isForBreaksOnly
-        ? this.getUnreadOwners({ template: data.template })
-        : await this.getEventOwners({
-            context: data.context,
-            template: data.template,
-            monitorStepId: data.monitorStepId,
-            ownerRuleAdditions: data.ownerRuleAdditions,
-          }),
-      ownerRules: data.ownerRuleAdditions.rules,
+      owners: owners.owners,
+      ownerRules: owners.ownerRules,
       rules: rules,
       policies: policies,
       statusPages: data.statusPages,
@@ -1354,6 +1404,7 @@ export class WhoIsToldService {
             context: data.context,
             userId: target.userId,
             reachedThrough: target.reachedThrough,
+            reachedThroughCode: target.reachedThroughCode,
             kind: data.kind,
             severityId: data.severityId,
           }),
@@ -1370,6 +1421,7 @@ export class WhoIsToldService {
       levelCount: level.levelCount,
       people: people,
       notPaged: level.levelCount > 0 ? level.notPaged : [],
+      notPagedCodes: level.levelCount > 0 ? level.notPagedCodes : [],
     };
   }
 
@@ -1427,6 +1479,7 @@ export class WhoIsToldService {
     context: ResolveContext;
     userId: ObjectID;
     reachedThrough?: string | undefined;
+    reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
     kind: OnCallTestPageRecordKind;
     severityId: ObjectID;
   }): Promise<WhoIsToldPerson> {
@@ -1463,6 +1516,9 @@ export class WhoIsToldService {
       userId: data.userId.toString(),
       name: preview.userName,
       ...(data.reachedThrough ? { reachedThrough: data.reachedThrough } : {}),
+      ...(data.reachedThroughCode
+        ? { reachedThroughCode: data.reachedThroughCode }
+        : {}),
       ...getWhoIsToldPersonReach({
         ruleMethods: preview.methods,
         hasNoRule: preview.hasNoRule,
@@ -1489,13 +1545,22 @@ export class WhoIsToldService {
    * the monitor watches (MonitorIncident and MonitorAlert add both), and
    * whom the owner rules add - or, when that is nobody, the project's owners
    * (the owners' "created" notification falls back to them).
+   *
+   * Only the owners that email reaches are named (#7211), as the incident's
+   * own findOwners reads them: a person who is a member of the project - an
+   * owner row is refused for one who left (OwnerRuleAssignment.createOwner)
+   * - and a team of the project with a member who is, as a team is emailed
+   * through its members. Named owners left: Named; only the owner rules'
+   * left: OwnerRules; nobody: the project's owners. An owner rule that adds
+   * only people and teams the email does not reach is not why anyone is
+   * emailed, and is not listed.
    */
   private static async getEventOwners(data: {
     context: ResolveContext;
     template: CriteriaIncident | CriteriaAlert;
     monitorStepId: string;
     ownerRuleAdditions: OwnerRuleAdditions;
-  }): Promise<WhoIsToldOwners> {
+  }): Promise<EventOwners> {
     const deviceOwners: NetworkDeviceOwners = await this.getDeviceOwners({
       context: data.context,
       monitorStepId: data.monitorStepId,
@@ -1510,29 +1575,61 @@ export class WhoIsToldService {
       ...deviceOwners.ownerTeamIds,
     ]);
 
+    await this.readOwnersReached({
+      context: data.context,
+      userIds: [...namedUserIds, ...data.ownerRuleAdditions.userIds],
+      teamIds: [...namedTeamIds, ...data.ownerRuleAdditions.teamIds],
+    });
+
+    const isUserReached: (id: string) => boolean = (id: string): boolean => {
+      return data.context.projectMembers.get(id.toLowerCase()) === true;
+    };
+    const isTeamReached: (id: string) => boolean = (id: string): boolean => {
+      return data.context.teamsWithMembers.get(id.toLowerCase()) === true;
+    };
+
+    const reachedNamedUserIds: Array<string> =
+      namedUserIds.filter(isUserReached);
+    const reachedNamedTeamIds: Array<string> =
+      namedTeamIds.filter(isTeamReached);
+
     const userIds: Array<string> = uniqueIds([
-      ...namedUserIds,
-      ...data.ownerRuleAdditions.userIds,
+      ...reachedNamedUserIds,
+      ...data.ownerRuleAdditions.userIds.filter(isUserReached),
     ]);
     const teamIds: Array<string> = uniqueIds([
-      ...namedTeamIds,
-      ...data.ownerRuleAdditions.teamIds,
+      ...reachedNamedTeamIds,
+      ...data.ownerRuleAdditions.teamIds.filter(isTeamReached),
     ]);
+
+    const ownerRules: Array<WhoIsToldRule> = data.ownerRuleAdditions.rules
+      .filter((addition: OwnerRuleAddition): boolean => {
+        return (
+          addition.userIds.some(isUserReached) ||
+          addition.teamIds.some(isTeamReached)
+        );
+      })
+      .map((addition: OwnerRuleAddition): WhoIsToldRule => {
+        return addition.rule;
+      });
 
     if (userIds.length > 0 || teamIds.length > 0) {
       return {
-        source:
-          namedUserIds.length > 0 || namedTeamIds.length > 0
-            ? WhoIsToldOwnersSource.Named
-            : WhoIsToldOwnersSource.OwnerRules,
-        userNames: await this.readUserNames({
-          context: data.context,
-          userIds: userIds,
-        }),
-        teamNames: await this.readTeamNames({
-          context: data.context,
-          teamIds: teamIds,
-        }),
+        owners: {
+          source:
+            reachedNamedUserIds.length > 0 || reachedNamedTeamIds.length > 0
+              ? WhoIsToldOwnersSource.Named
+              : WhoIsToldOwnersSource.OwnerRules,
+          userNames: await this.readUserNames({
+            context: data.context,
+            userIds: userIds,
+          }),
+          teamNames: await this.readTeamNames({
+            context: data.context,
+            teamIds: teamIds,
+          }),
+        },
+        ownerRules: ownerRules,
       };
     }
 
@@ -1543,10 +1640,109 @@ export class WhoIsToldService {
     }
 
     return {
-      source: WhoIsToldOwnersSource.ProjectOwners,
-      userNames: data.context.projectOwnerNames,
-      teamNames: [],
+      owners: {
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: data.context.projectOwnerNames,
+        teamNames: [],
+      },
+      ownerRules: ownerRules,
     };
+  }
+
+  /*
+   * Whether the Created email reaches each of these owners, read once per
+   * resolve into the context, as the incident's findOwners decides it: the
+   * project's teams' member rows (pending invitations too, as
+   * TeamMemberService.getUsersInTeams reads them), then, in one read for
+   * the owners and those members alike, who among them is a member of the
+   * project (TeamMemberService.getProjectMemberUserIds: an accepted
+   * invitation to any of its teams). A team of another project has no rows
+   * here, and reaches nobody.
+   */
+  private static async readOwnersReached(data: {
+    context: ResolveContext;
+    userIds: Array<string>;
+    teamIds: Array<string>;
+  }): Promise<void> {
+    const teamIds: Array<string> = uniqueIds(data.teamIds).filter(
+      (id: string): boolean => {
+        return !data.context.teamsWithMembers.has(id.toLowerCase());
+      },
+    );
+
+    const membersByTeam: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    if (teamIds.length > 0) {
+      const members: Array<TeamMember> = await TeamMemberService.findBy({
+        query: {
+          teamId: QueryHelper.any(
+            teamIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+          ),
+          projectId: data.context.projectId,
+        },
+        select: { teamId: true, userId: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+
+      for (const member of members) {
+        const teamId: string = idText(member.teamId).toLowerCase();
+        const userId: string = idText(member.userId);
+
+        if (teamId && userId) {
+          membersByTeam.set(teamId, [
+            ...(membersByTeam.get(teamId) || []),
+            userId,
+          ]);
+        }
+      }
+    }
+
+    const userIds: Array<string> = uniqueIds([
+      ...data.userIds,
+      ...Array.from(membersByTeam.values()).flat(),
+    ]).filter((id: string): boolean => {
+      return !data.context.projectMembers.has(id.toLowerCase());
+    });
+
+    if (userIds.length > 0) {
+      const memberIds: Set<string> = new Set<string>(
+        (
+          await TeamMemberService.getProjectMemberUserIds({
+            projectId: data.context.projectId,
+            userIds: userIds,
+          })
+        ).map((id: ObjectID): string => {
+          return id.toString().toLowerCase();
+        }),
+      );
+
+      for (const id of userIds) {
+        data.context.projectMembers.set(
+          id.toLowerCase(),
+          memberIds.has(id.toLowerCase()),
+        );
+      }
+    }
+
+    for (const id of teamIds) {
+      data.context.teamsWithMembers.set(
+        id.toLowerCase(),
+        (membersByTeam.get(id.toLowerCase()) || []).some(
+          (userId: string): boolean => {
+            return (
+              data.context.projectMembers.get(userId.toLowerCase()) === true
+            );
+          },
+        ),
+      );
+    }
   }
 
   // The owners of the network device a step watches (none for most monitors), read once.

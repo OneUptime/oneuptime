@@ -67,7 +67,7 @@ A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on*
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -168,7 +168,7 @@ Each series carries the container's identity as resource attributes: `resource.c
 
 A node's series carries `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id` and `resource.docker.swarm.node.role`; a service's carries `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode` and, in a stack, `resource.docker.swarm.stack.namespace`. Both carry `resource.docker.swarm.cluster.name`.
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. A Docker Swarm monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 

@@ -11,8 +11,20 @@ import useArchivableValues, {
   ArchivableValues,
 } from "../../Components/ArchivableValue/UseArchivableValues";
 import { ArchivableValueType } from "Common/Utils/ArchivableValues";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import UsedByDialog from "../../Components/UsedBy/UsedByDialog";
+import { USED_BY_ACTION } from "../../Components/UsedBy/UsedByWords";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
@@ -25,11 +37,36 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
   });
 
+  /*
+   * "Used by" (#6813): a label has no page of its own, so each row's ⋯ menu
+   * opens what carries it - how many monitors, status pages, incidents and
+   * the rest - with the records themselves a click further.
+   */
+  const [usedByLabelId, setUsedByLabelId] = useState<ObjectID | null>(null);
+
   return (
     <Fragment>
       <ModelTable<Label>
         modelType={Label}
-        actionButtons={archive.actionButtons}
+        actionButtons={[
+          {
+            title: USED_BY_ACTION,
+            icon: IconProp.Link,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            placement: ActionButtonPlacement.MoreMenu,
+            onClick: async (
+              item: Label,
+              onCompleteAction: VoidFunction,
+            ): Promise<void> => {
+              if (item._id) {
+                setUsedByLabelId(new ObjectID(item._id.toString()));
+              }
+
+              onCompleteAction();
+            },
+          },
+          ...archive.actionButtons,
+        ]}
         getDeleteConfirmation={archive.getDeleteConfirmation}
         bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
@@ -129,13 +166,23 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
           },
         ]}
       />
       {archive.element}
+      {usedByLabelId ? (
+        <UsedByDialog
+          recordKind={UsedByRecordKind.Label}
+          recordId={usedByLabelId}
+          onClose={() => {
+            setUsedByLabelId(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

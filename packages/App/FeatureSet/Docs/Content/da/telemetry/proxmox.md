@@ -48,7 +48,7 @@ Skabelonerne **HA Resource in Error State**, **Guest Down**, **Guest Not Backed 
 
 ### Hvor agenten skal køre
 
-Agenten forespørger Proxmox VE API'et over netværket, så den behøver ikke at bo på en klyngenode, og det bør den ikke: kør den på en maskine, der overlever et nodenedbrud (en lille overvågnings-VM på separat hardware, en administrationsvært), eller peg `PVE_HOST` på en virtuel IP eller et round-robin-DNS-navn i stedet for én nodes adresse. Hvis agentens API-mål er den node, der lige er gået ned, går din overvågning ned med den. `PVE_NODES` er anderledes: den angiver hver node med dens egen adresse, aldrig en virtuel IP (se [Hvad agenten indsamler](#hvad-agenten-indsamler)). Den ene undtagelse er den valgfrie journald-logpipeline, som skal køre på en Proxmox VE-node (se [Send Proxmox' tjenestelogs](#valgfrit-send-proxmox-tjenestelogs)).
+Agenten forespørger Proxmox VE API'et over netværket, så den behøver ikke at bo på en klyngenode, og det bør den ikke: kør den på en maskine, der overlever et nodenedbrud (en lille overvågnings-VM på separat hardware, en administrationsvært eller en VM, som Proxmox HA genstarter på en anden node). Den læser klyngen fra `PVE_HOST` og, når den node går ned, fra den næste node i `PVE_NODES`, så den behøver ingen virtuel IP (se [Når en node går ned](#når-en-node-går-ned)). `PVE_NODES` angiver hver node med dens egen adresse, aldrig en virtuel IP (se [Hvad agenten indsamler](#hvad-agenten-indsamler)). Den ene undtagelse er den valgfrie journald-logpipeline, som skal køre på en Proxmox VE-node (se [Send Proxmox' tjenestelogs](#valgfrit-send-proxmox-tjenestelogs)).
 
 ## Installer agenten
 
@@ -134,7 +134,7 @@ docker compose ps
 docker logs -f oneuptime-proxmox-agent
 ```
 
-`docker compose ps` viser collectoren (`oneuptime-proxmox-agent`), den medfølgende exporter (`oneuptime-pve-exporter`, medmindre du bruger din egen) og AI-agenten (`oneuptime-proxmox-ai-agent`). Collectorens logs bør vise denne linje, når den er startet:
+`docker compose ps` viser collectoren (`oneuptime-proxmox-agent`), node-failoveren (`oneuptime-pve-api-failover`), den medfølgende exporter (`oneuptime-pve-exporter`, medmindre du bruger din egen) og AI-agenten (`oneuptime-proxmox-ai-agent`). Collectorens logs bør vise denne linje, når den er startet:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,8 +154,8 @@ Installationsscriptet skriver disse til `/opt/oneuptime-proxmox-agent/.env`; en 
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, såsom `https://oneuptime.com` eller din selvhostede instans. Brug `http://` og dens port, hvis instansen kun bruger HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `PROXMOX_CLUSTER_NAME` | Ja | Klyngens navn i OneUptime, stemplet på hver metrik som ressourceattributten `proxmox.cluster.name`. Hold det stabilt: at ændre det senere registrerer en anden klynge. Standard er `proxmox-cluster`. |
-| `PVE_HOST` | Ja | Proxmox VE API-værten, som exporteren læser klyngen fra, og som AI-agenten forespørger: en hvilken som helst node eller en virtuel IP, der skifter mellem dem, såsom `192.168.1.10`. |
-| `PVE_NODES` | I en klynge | Hver nodes egen API-adresse, kommasepareret i firkantede parenteser, såsom `[192.168.1.10,192.168.1.11,192.168.1.12]`. Exporteren læser start ved opstart, replikering og abonnementet kun for den node, den spørger, så hver node spørges efter tur. Standard er `PVE_HOST` alene, hvilket er nok til en enkelt node. |
+| `PVE_HOST` | Ja | Den node, hvis Proxmox VE API exporteren læser klyngen fra og AI-agenten forespørger, såsom `192.168.1.10`. Mens dens API ikke svarer, bruger begge den næste node i `PVE_NODES`, der svarer. |
+| `PVE_NODES` | I en klynge | Hver nodes egen API-adresse, kommasepareret i firkantede parenteser, såsom `[192.168.1.10,192.168.1.11,192.168.1.12]`. Exporteren læser start ved opstart, replikering og abonnementet kun for den node, den spørger, så hver node spørges efter tur, og agenten læser klyngen fra den næste af dem, når `PVE_HOST` går ned. Standard er `PVE_HOST` alene, hvilket er nok til en enkelt node. |
 | `PVE_EXPORTER_URL` | Nej | Adressen (`host:port`, intet skema) på prometheus-pve-exporter. Standard er den medfølgende exporter, `pve-exporter:9221`. |
 | `PVE_API_TOKEN_ID` | Medfølgende exporter eller AI-agent | Det fulde id for Proxmox-API-tokenet, såsom `monitoring@pam!oneuptime`. AI-agenten læser API'et med det, medmindre den har sit eget token (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`). |
 | `PVE_API_TOKEN_SECRET` | Medfølgende exporter eller AI-agent | Proxmox-API-tokenets secret. |
@@ -164,7 +164,7 @@ Installationsscriptet skriver disse til `/opt/oneuptime-proxmox-agent/.env`; en 
 
 ## Hvad agenten indsamler
 
-Collectoren scraper exporteren hvert 30. sekund: dens klynge-collectors én gang, på `PVE_HOST`, og dens node-collectors én gang for hver node i `PVE_NODES`. Enhver node besvarer klynge-collectorerne, heriblandt `backup-info`, der er aktiv som standard, for hele klyngen. Node-collectorerne (`config`, for start ved opstart, og `replication`) læser kun den node, exporteren spørger, så en node, der mangler i `PVE_NODES`, sender hverken sine gæsters flag for start ved opstart, som **Guest Down** har brug for, eller sine replikeringsjob. Hver serie bærer en `id`-etiket, der navngiver ressourcen: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` eller `storage/<node>/<storage>`.
+Collectoren scraper exporteren hvert 30. sekund: dens klynge-collectors én gang, på `PVE_HOST` (eller den node, den læser klyngen fra, mens `PVE_HOST` er nede), og dens node-collectors én gang for hver node i `PVE_NODES`. Enhver node besvarer klynge-collectorerne, heriblandt `backup-info`, der er aktiv som standard, for hele klyngen. Node-collectorerne (`config`, for start ved opstart, og `replication`) læser kun den node, exporteren spørger, så en node, der mangler i `PVE_NODES`, sender hverken sine gæsters flag for start ved opstart, som **Guest Down** har brug for, eller sine replikeringsjob. Hver serie bærer en `id`-etiket, der navngiver ressourcen: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` eller `storage/<node>/<storage>`.
 
 | Kategori | Metrikker |
 | --- | --- |
@@ -186,6 +186,12 @@ Monitorkriterier og attributfiltre matcher på lighed, ikke på et præfiks, så
 | `pve.id` | Alt efter den første `/` i `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 Den oprindelige `id`-etiket bevares, som den er.
+
+## Når en node går ned
+
+Agenten læser hele klyngen gennem én nodes API: API'et på `PVE_HOST`, så længe den svarer. Hvert 15. sekund kontrollerer dens container `oneuptime-pve-api-failover` den node, og når dens API holder op med at svare, læser collectoren klyngen fra den næste node i `PVE_NODES`, der svarer, indtil `PVE_HOST` svarer igen. Med API-tokenet i `.env` springer den også en node over, der svarer, men er afskåret fra den del af klyngen, der har quorum, og hvis billede af klyngen ville vise alle andre noder som nede. [AI-agenten](#ai-agent) gør det samme for hvert af sine kald. Så når en node fejler, udløses **Node Offline** for den, og resten af klyngen bliver ved med at rapportere, uden nogen virtuel IP at sætte op. `docker logs oneuptime-pve-api-failover` viser, hvilken node klyngen læses fra, og hvorfor.
+
+Det, den ikke kan dække, er den maskine, agenten kører på: går den ned, bliver hele klyngen tavs, og **Cluster Stopped Reporting** udløses. Kør agenten uden for klyngen eller i en VM, som Proxmox HA genstarter på en anden node (`ha-manager add vm:<vmid>`, på delt lager), og kør én agent pr. klynge: hver agent læser hele klyngen, så en ekstra agent rapporterer hver ressource to gange.
 
 ## Send Proxmox VE's notifikationer
 
@@ -402,6 +408,10 @@ Det slutter med en konklusion, der navngiver den mest sandsynlige årsag.
 
 :::details Exporteren returnerer 401- eller 595-fejl
 API-tokenet er forkert eller mangler tilladelser. Kontrollér token-id'ets format (`user@realm!tokenname`), secretet, og at rollen **PVEAuditor** er på stien `/` for tokenet og for dets bruger. Exporterens egne logs viser API'ets svar: `docker logs oneuptime-pve-exporter`.
+:::
+
+:::details Klyngen viser "Kan ikke læse API"
+Agenten kører, men har ikke læst klyngen fra Proxmox VE API'et i 15 minutter eller mere, så klyngen viser **Kan ikke læse API** i stedet for **Forbundet**: noden, den læser fra, er nede, og ingen anden node i `PVE_NODES` svarer, API-tokenet er blevet tilbagekaldt eller har mistet rollen **PVEAuditor**, eller agentens maskine kan ikke nå port `8006` på nogen node. Dens sider beholder det, den sidst læste. Diagnosticeringsscriptet ovenfor tjekker hver af disse årsager, og `docker logs oneuptime-pve-api-failover` fortæller, hvilken node agenten læser fra, og hvorfor den sprang de andre over.
 :::
 
 :::details Kun nodemetrikker, ingen gæstemetrikker

@@ -144,14 +144,17 @@ describe("the Persian declare page on alerts and episodes", () => {
       "**هشدارها و اپیزودها هم در وضعیتی که برمی‌گزینید آغاز می‌شوند.**",
     );
 
-    for (const name of [
-      "**Create Alert**",
-      "**Create Episode**",
-      "**Initial State**",
-      "**More fields**",
-      "`currentAlertStateId`",
-      "`currentIncidentStateId`",
+    // The forms' names, as the Persian Dashboard draws them (#7100).
+    for (const label of [
+      "Create Alert",
+      "Create Episode",
+      "Initial State",
+      "More fields",
     ]) {
+      expect(declaring).toContain(`**${drawnActionLabel("fa", label)}**`);
+    }
+
+    for (const name of ["`currentAlertStateId`", "`currentIncidentStateId`"]) {
       expect(declaring).toContain(name);
     }
   });

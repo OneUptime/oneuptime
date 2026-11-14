@@ -21,15 +21,15 @@ flowchart TB
 
 ## Die Kalenderseite
 
-Öffnen Sie **Geplante Wartung → Wartungskalender** im Abschnitt **Kalender** des Seitenmenüs. **Alle Ereignisse** zeigt dieselben Ereignisse als Liste.
+Öffnen Sie **Geplante Wartung → Wartungskalender** im Abschnitt **Kalender** des Seitenmenüs. **Alle Wartungsereignisse** zeigt dieselben Ereignisse als Liste.
 
 - Der Kalender öffnet mit diesem Monat, der heutige Tag ist markiert. **Monat**, **Woche** und **Tag** ändern, wie viel er zeigt; blättern Sie mit den Pfeilen und kehren Sie mit **Heute** zurück. Die Zeiten stehen in Ihrer eigenen Zeitzone.
 - Jedes Ereignis ist ein Block in der Farbe seines Zustands, und die Farben der Zustände sind unter dem Kalender benannt. Klicken Sie auf ein Ereignis, um es zu öffnen.
 - Die Filter über dem Kalender wirken wie in der Liste: Wählen Sie einen Zustand, ein Label oder einen Eigentümer, um nur diese Ereignisse zu sehen.
-- Ein Tag, der noch bevorsteht, zeigt ein **+**, wenn Sie auf seine Woche zeigen. Es öffnet **Geplantes Wartungsereignis erstellen** mit **Beginnt am** an diesem Tag, zu der Stunde, die das Formular heute wählen würde. Sie sehen es nur, wenn Sie Ereignisse erstellen dürfen.
+- Ein Tag, der noch bevorsteht, zeigt ein **+**, wenn Sie auf seine Woche zeigen. Es öffnet **Wartungsereignis erstellen** mit **Beginnt am** an diesem Tag, zu der Stunde, die das Formular heute wählen würde. Sie sehen es nur, wenn Sie Ereignisse erstellen dürfen.
 - Eine Ansicht zeigt bis zu 500 Ereignisse. Ein vollerer Monat sagt es: Grenzen Sie ihn mit den Filtern ein oder sehen Sie sich eine Woche an.
 
-**Alle Ereignisse** wechselte früher zwischen einer Liste und einem Kalender. Hat Ihr Browser dort zuletzt den Kalender gezeigt, öffnet **Alle Ereignisse** einmal den **Wartungskalender** und ist danach die Liste.
+**Alle Wartungsereignisse** wechselte früher zwischen einer Liste und einem Kalender. Hat Ihr Browser dort zuletzt den Kalender gezeigt, öffnet **Alle Wartungsereignisse** einmal den **Wartungskalender** und ist danach die Liste.
 
 ## Externe Kalender
 

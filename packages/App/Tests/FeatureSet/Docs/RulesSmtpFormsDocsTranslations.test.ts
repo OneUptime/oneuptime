@@ -31,6 +31,7 @@ import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import { PermissionHelper } from "Common/Types/Permission";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import {
   DEFAULT_LANGUAGE,
   createTranslator,
@@ -72,7 +73,8 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *     one bold span ("Monitors → Settings → Label Rules") is drawn segment
  *     by segment, in one span or one span a segment, joined by the English
  *     arrow or by ">" (Persian writes ">", which right-to-left text mirrors;
- *     "→" it would not).
+ *     "→" it would not, so in one span Persian writes "←" beside a Persian
+ *     segment, #7611).
  *   - The Admin Dashboard, where a self-hosted installation sets its own
  *     mail server: its top bar, side menu and Email page cards use keys of
  *     their own, and its form fields are looked up whole in its locale
@@ -179,7 +181,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "On Create Form",
     "On Update Form",
     "On Create Incident",
-    "On Create Scheduled Maintenance Event",
+    "On Create Maintenance Event",
     // The questions an upgraded incident form got, stored with these labels.
     "Your Name",
     "Your Email",
@@ -216,7 +218,7 @@ const WORKFLOW_COMPONENTS: Array<string> = [
   "On Create Form",
   "On Update Form",
   "On Create Incident",
-  "On Create Scheduled Maintenance Event",
+  "On Create Maintenance Event",
 ];
 
 // Labels a form's default questions are stored with (FormField.ts).
@@ -369,7 +371,7 @@ const PROSE: Record<string, Array<string>> = {
   [FORMS]: [
     // What a submission creates, said in the lead's own sentence.
     "incident",
-    "scheduled maintenance event",
+    "maintenance event",
   ],
   [SMTP]: [
     // The authentication methods, said in the lead's list.
@@ -702,15 +704,21 @@ function drawnSegments(
 
 /*
  * A path drawn in a translation: its segments in order, in one bold span or
- * one span a segment, joined by "→" or ">".
+ * one span a segment, joined by "→" or ">", and in a language read from the
+ * right by "←" as well, which a Persian page writes beside a Persian
+ * segment (#7611).
  */
-function pathPattern(segments: Array<string>): RegExp {
+function pathPattern(language: string, segments: Array<string>): RegExp {
+  const arrow: string = isRightToLeftLanguage(language)
+    ? "(?:→|←|>)"
+    : "(?:→|>)";
+
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
         return escapeRegExp(segment);
       })
-      .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
+      .join(`(?:\\*\\* | )${arrow}(?: \\*\\*| )`)}\\*\\*`,
   );
 }
 
@@ -991,7 +999,7 @@ describe("the lists this test keeps", () => {
      * builder names them: after the model's singular name
      * (Common/Types/Workflow/Components/BaseModel.ts). The page named the
      * maintenance trigger "On Create Scheduled Maintenance", which the
-     * builder has never listed: it is "... Scheduled Maintenance Event".
+     * builder has never listed: it is "... Maintenance Event".
      */
     const builder: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "Common/Types/Workflow/Components/BaseModel.ts"),
@@ -1416,7 +1424,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
           return drawnSegments(language, entry.page, english);
         })
         .filter((segments: Array<string>): boolean => {
-          return !pathPattern(segments).test(translated);
+          return !pathPattern(language, segments).test(translated);
         })
         .map((segments: Array<string>): string => {
           return segments.join(" > ");
@@ -1532,13 +1540,22 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
  */
 describe("the helpers, on these pages' shapes", () => {
   it("draw a path in one span or a span a segment, joined by → or >", () => {
-    const pattern: RegExp = pathPattern(["Überwachung", "Einstellungen"]);
+    const pattern: RegExp = pathPattern("de", ["Überwachung", "Einstellungen"]);
 
     expect(pattern.test("**Überwachung → Einstellungen**")).toBe(true);
     expect(pattern.test("**Überwachung** > **Einstellungen**")).toBe(true);
     expect(pattern.test("**Überwachung** → **Einstellungen**")).toBe(true);
     expect(pattern.test("**Einstellungen → Überwachung**")).toBe(false);
     expect(pattern.test("**Überwachung**, **Einstellungen**")).toBe(false);
+    // A page read from the left writes no "←" (#7611).
+    expect(pattern.test("**Überwachung ← Einstellungen**")).toBe(false);
+
+    // A Persian page writes "←" beside a Persian segment, or ">".
+    const persian: RegExp = pathPattern("fa", ["مانیتورها", "تنظیمات"]);
+
+    expect(persian.test("**مانیتورها ← تنظیمات**")).toBe(true);
+    expect(persian.test("**مانیتورها** > **تنظیمات**")).toBe(true);
+    expect(persian.test("**تنظیمات ← مانیتورها**")).toBe(false);
   });
 
   it("draw a table's create button from the template where the phrase has no wording, and a plain button as its locale has it", () => {

@@ -59,7 +59,7 @@ Eine Synchronisation braucht einen API-Schlüssel, der das Inventar lesen darf. 
 
 ### Ihm nur geben, was er braucht
 
-Ein reiner Lese-Export braucht eine einzige Berechtigung, **Read Telemetry Service**: Das Inventar nutzt die Telemetrie-Berechtigungen mit, statt eigene zu haben. Klicken Sie auf der Seite des Schlüssels auf **Berechtigung hinzufügen** und wählen Sie sie aus. Um Werte zurückzuschreiben, fügen Sie auch **Edit Telemetry Service** hinzu.
+Ein reiner Lese-Export braucht eine einzige Berechtigung, **Read Inventory Item**: Das Inventar nutzt die Telemetrie-Berechtigungen mit, statt eigene zu haben. Klicken Sie auf der Seite des Schlüssels auf **Berechtigung hinzufügen** und wählen Sie sie aus. Um Werte zurückzuschreiben, fügen Sie auch **Edit Inventory Item** hinzu.
 
 ### Den Schlüssel kopieren
 
@@ -232,9 +232,9 @@ Ein Element, das zwischen zwei Läufen verschwindet, ist entweder abgelaufen (ei
 
 ## Zurückschreiben
 
-Dieselben Endpunkte nehmen Schreibzugriffe an, sodass eine Synchronisation Werte in `customFields` schreiben kann: etwa das Asset-Tag, das Ihre CMDB bereits führt, auf das passende OneUptime-Element geprägt. Der Schlüssel braucht dafür **Edit Telemetry Service**.
+Dieselben Endpunkte nehmen Schreibzugriffe an, sodass eine Synchronisation Werte in `customFields` schreiben kann: etwa das Asset-Tag, das Ihre CMDB bereits führt, auf das passende OneUptime-Element geprägt. Der Schlüssel braucht dafür **Edit Inventory Item**.
 
-Sie können auch Elemente für Dinge hinzufügen, die OneUptime nicht sehen kann, mit `POST /api/inventory-item`, einem `entityType` von `external.service`, `external.database` oder `appliance` und einem `displayName`. OneUptime ermittelt den Identitätsschlüssel für Sie, und diese Elemente laufen nie ab. Der Schlüssel braucht dafür **Create Telemetry Service**.
+Sie können auch Elemente für Dinge hinzufügen, die OneUptime nicht sehen kann, mit `POST /api/inventory-item`, einem `entityType` von `external.service`, `external.database` oder `appliance` und einem `displayName`. OneUptime ermittelt den Identitätsschlüssel für Sie, und diese Elemente laufen nie ab. Der Schlüssel braucht dafür **Create Inventory Item**.
 
 ## Fehlerbehebung
 
@@ -243,7 +243,7 @@ In OneUptime Cloud funktionieren API-Schlüssel nur, solange das Projekt im Tari
 :::
 
 :::details Jede Anfrage antwortet mit 422 You do not have permissions
-Der Schlüssel hat keine Berechtigung, die das Inventar liest. Ein mit **Berechtigungen später wählen** angelegter Schlüssel kann nichts, bis er eine bekommt: Fügen Sie auf seiner Seite **Read Telemetry Service** hinzu, wie unter [Bevor Sie beginnen](#bevor-sie-beginnen).
+Der Schlüssel hat keine Berechtigung, die das Inventar liest. Ein mit **Berechtigungen später wählen** angelegter Schlüssel kann nichts, bis er eine bekommt: Fügen Sie auf seiner Seite **Read Inventory Item** hinzu, wie unter [Bevor Sie beginnen](#bevor-sie-beginnen).
 :::
 
 :::details Die Liste kommt ohne die Spalten zurück, die ich brauche

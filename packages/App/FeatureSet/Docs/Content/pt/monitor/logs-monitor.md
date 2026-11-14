@@ -72,7 +72,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Janela de tempo** (em **Quando alertar**) | Logs dos últimos 5 segundos até as últimas 24 horas. | **Últimos 5 minutos** |
 | **Agrupar por atributos** | Não é um filtro: conta separadamente cada combinação de valores desses atributos. | Vazio: uma só contagem |
 | **Resolvido por atributos** | Não é um filtro: o log que resolve um grupo. Aparece assim que **Agrupar por atributos** tem um atributo; veja [Resolvido por um log](#resolvido-por-um-log). | Vazio: um grupo se resolve quando os logs dele param |
-| **Filtrar por serviço de telemetria** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
+| **Filtrar por serviço** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Logs de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Logs cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
 
@@ -140,7 +140,7 @@ Você quer um incidente quando o serviço de checkout registra mais de 50 erros 
 
 - **Severidade do Registro**: **Erro**
 - **Janela de tempo**: **Últimos 5 minutos**
-- **Filtrar por serviço de telemetria**: `checkout`
+- **Filtrar por serviço**: `checkout`
 - **Quando alertar**: **Mais de** `50`
 - **O que acontece**: **Declarar um incidente**
 
@@ -240,7 +240,7 @@ O valor de cada atributo de Group By é uma [variável de modelo](/docs/monitor/
 ## Solução de problemas
 
 :::details O monitor está offline, mas meu serviço está registrando logs
-A contagem foi 0, então os filtros não correspondem a nenhum dos logs que o serviço envia. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios de monitoramento**: **Logs correspondentes** mostra o que os filtros selecionam agora, e o gráfico em **Quando alertar** os conta em cada janela. As causas mais comuns são uma severidade escolhida pelo texto que o logger imprime em vez do seu número de severidade (veja [Severidade dos logs](#severidade-dos-logs)), um filtro de serviço ou de atributo que não corresponde, e uma janela de tempo mais curta que o intervalo entre os logs do serviço.
+A contagem foi 0, então os filtros não correspondem a nenhum dos logs que o serviço envia. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios**: **Logs correspondentes** mostra o que os filtros selecionam agora, e o gráfico em **Quando alertar** os conta em cada janela. As causas mais comuns são uma severidade escolhida pelo texto que o logger imprime em vez do seu número de severidade (veja [Severidade dos logs](#severidade-dos-logs)), um filtro de serviço ou de atributo que não corresponde, e uma janela de tempo mais curta que o intervalo entre os logs do serviço.
 :::
 
 :::details Houve um pico, mas nada alertou

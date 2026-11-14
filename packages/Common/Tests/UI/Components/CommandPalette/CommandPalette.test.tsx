@@ -1,4 +1,6 @@
 import CommandPalette, {
+  COMMAND_PALETTE_FOOTER_CLASS_NAME,
+  COMMAND_PALETTE_HINT_CLASS_NAME,
   ComponentProps,
   PALETTE_SEARCH_RESULT_LIMIT,
 } from "../../../../UI/Components/CommandPalette/CommandPalette";
@@ -859,6 +861,54 @@ describe("CommandPalette", () => {
       expect(
         screen.getByTestId("command-palette-result-count"),
       ).toHaveTextContent("2 results");
+    });
+  });
+
+  /*
+   * The key hints are worded in every Dashboard language, some at twice the
+   * English length (Hindi, German): on a phone the row has no room for all
+   * three, and each hint's words broke under their own key. The browser
+   * measures it (E2E NavigationSearch CommandPaletteSearch, German at 320px);
+   * this pins the rules it measures.
+   */
+  describe("the footer's key hints", () => {
+    function tokens(className: string): Array<string> {
+      return className.split(/\s+/).filter(Boolean);
+    }
+
+    test("the row wraps between hints, and each hint never breaks inside", () => {
+      renderPalette();
+
+      const footer: HTMLElement = screen.getByTestId("command-palette-footer");
+      expect(footer.className).toBe(COMMAND_PALETTE_FOOTER_CLASS_NAME);
+      expect(tokens(COMMAND_PALETTE_FOOTER_CLASS_NAME)).toEqual(
+        expect.arrayContaining(["flex", "flex-wrap", "gap-x-4", "gap-y-1"]),
+      );
+
+      const hints: Array<Element> = Array.from(footer.children);
+      expect(hints).toHaveLength(3);
+
+      for (const hint of hints) {
+        expect(hint.className).toBe(COMMAND_PALETTE_HINT_CLASS_NAME);
+      }
+
+      expect(tokens(COMMAND_PALETTE_HINT_CLASS_NAME)).toEqual(
+        expect.arrayContaining(["flex", "items-center", "whitespace-nowrap"]),
+      );
+    });
+
+    test("each hint is its key and its words, in that order", () => {
+      renderPalette();
+
+      const hints: Array<Element> = Array.from(
+        screen.getByTestId("command-palette-footer").children,
+      );
+
+      expect(
+        hints.map((hint: Element): string => {
+          return (hint.lastChild?.textContent || "").trim();
+        }),
+      ).toEqual(["to navigate", "to select", "to close"]);
     });
   });
 

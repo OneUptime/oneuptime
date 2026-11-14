@@ -1956,7 +1956,7 @@ describe("the Security Events page", () => {
       "Monitor Security Events for (time)",
       "Event Severity",
       "Event Class",
-      "Filter by Telemetry Service",
+      "Filter by Service",
       "Filter by Attributes",
     ]) {
       expect(form).toContain(`title: "${title}",`);
@@ -1984,7 +1984,7 @@ describe("the Security Events page", () => {
       rowNamed(rowsOf(page, "Security Events monitors"), "Window")[2],
     ).toBe("Rolling: the last 5 seconds to 24 hours");
     expect(page).toContain(
-      "**Filter by Telemetry Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists).",
+      "**Filter by Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists).",
     );
     expect(page).toContain("Its criteria check **Security Event Count**.");
   });

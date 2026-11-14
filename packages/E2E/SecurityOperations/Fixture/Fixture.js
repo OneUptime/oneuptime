@@ -73,7 +73,9 @@
  *            spans out.)
  *   ?casesetup= none or fail: a busy project that has no case fields
  *            and no note templates yet, or whose first read of either
- *            fails (a 500) and the next answers. (CaseSetupFixture.js lays
+ *            fails (a 500) and the next answers; notes-fail-with-reference:
+ *            whose first read of a case's notes fails; note-post-fail: whose
+ *            first note posted on a case fails. (CaseSetupFixture.js lays
  *            the fields, templates and numbering out.)
  *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
  *            rule that would not have fired, one that would have fired more
@@ -3762,9 +3764,13 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
-  // ?casesetup=fail: the first read of the case fields or templates fails.
-  if (caseSetup.failsRead(modelName)) {
-    throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+  /*
+   * ?casesetup=fail: the first read of the case fields or templates fails;
+   * notes-fail-with-reference: the first of a case's notes; notes-more-fail:
+   * the first of a later page of them.
+   */
+  if (caseSetup.failsRead(modelName, skip)) {
+    throw new HTTPErrorResponse(500, caseSetup.failedAnswer(), {});
   }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
@@ -3881,6 +3887,13 @@ ModelAPI.createOrUpdate = async (options) => {
 };
 
 ModelAPI.create = async (options) => {
+  /*
+   * ?casesetup=note-post-fail: the first note posted on a case fails, as a
+   * server answers a failure it could not explain; the next is saved.
+   */
+  if (caseSetup.failsNotePost(tableName(options.modelType))) {
+    throw new HTTPErrorResponse(500, caseSetup.failedAnswer(), {});
+  }
   /*
    * The partly scenario: the Rule Library's first Add of Password spraying
    * fails on OneUptime's side, as ModelAPI throws an API failure.

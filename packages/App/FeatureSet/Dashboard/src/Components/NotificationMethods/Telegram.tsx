@@ -295,7 +295,6 @@ const Telegram: () => JSX.Element = (): ReactElement => {
             },
             title: "Handle",
             type: FieldType.Text,
-            noValueMessage: "-",
           },
           {
             field: {

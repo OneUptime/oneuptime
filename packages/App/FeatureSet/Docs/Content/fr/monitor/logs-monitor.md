@@ -72,7 +72,7 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Fenêtre de temps** (dans **Quand alerter**) | Les journaux des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
 | **Regrouper par attributs** | Pas un filtre : compte séparément chaque combinaison de valeurs de ces attributs. | Vide : un seul décompte |
 | **Résolu par attributs** | Pas un filtre : le journal qui résout un groupe. Apparaît dès que **Regrouper par attributs** a un attribut ; voir [Résolu par un journal](#résolu-par-un-journal). | Vide : un groupe se résout quand ses journaux s'arrêtent |
-| **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les journaux de l'un des services choisis. | Vide : tous les services |
+| **Filtrer par service** (sous **Plus de champs**) | Les journaux de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les journaux de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les journaux dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
 
@@ -140,7 +140,7 @@ Vous voulez un incident quand le service checkout journalise plus de 50 erreurs 
 
 - **Gravité du journal** : **Erreur**
 - **Fenêtre de temps** : **Dernières 5 minutes**
-- **Filtrer par service de télémétrie** : `checkout`
+- **Filtrer par service** : `checkout`
 - **Quand alerter** : **Plus de** `50`
 - **Ce qui se passe** : **Déclarer un incident**
 
@@ -240,7 +240,7 @@ La valeur de chaque attribut de Group By est une [variable de modèle](/docs/mon
 ## Dépannage
 
 :::details Le moniteur est hors ligne, mais mon service écrit des journaux
-Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux que le service envoie. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Journaux correspondants** montre ce que les filtres sélectionnent en ce moment, et le graphique de **Quand alerter** les compte dans chaque fenêtre. Les causes habituelles sont une gravité choisie d'après le texte affiché par le logger plutôt que d'après son numéro de gravité (voir [Gravité des journaux](#gravité-des-journaux)), un filtre de service ou d'attribut qui ne correspond pas, et une fenêtre de temps plus courte que l'intervalle entre les journaux du service.
+Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux que le service envoie. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères** : **Journaux correspondants** montre ce que les filtres sélectionnent en ce moment, et le graphique de **Quand alerter** les compte dans chaque fenêtre. Les causes habituelles sont une gravité choisie d'après le texte affiché par le logger plutôt que d'après son numéro de gravité (voir [Gravité des journaux](#gravité-des-journaux)), un filtre de service ou d'attribut qui ne correspond pas, et une fenêtre de temps plus courte que l'intervalle entre les journaux du service.
 :::
 
 :::details Un pic s'est produit, mais rien n'a alerté

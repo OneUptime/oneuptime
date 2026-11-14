@@ -1,6 +1,6 @@
-# Service Catalog
+# Services
 
-The Service Catalog lists the applications and microservices you run. OneUptime adds a service the first time its telemetry arrives, then brings its logs, traces, metrics, exceptions, incidents and owners together on one page, so anyone can find what a service does, who owns it and how it is doing. To choose between a service, a monitor group and a label, see [Which One Do I Use?](/docs/introduction/which-one#monitor-group-service-or-label).
+Services lists the applications and microservices you run. OneUptime adds a service the first time its telemetry arrives, then brings its logs, traces, metrics, exceptions, incidents and owners together on one page, so anyone can find what a service does, who owns it and how it is doing. To choose between a service, a monitor group and a label, see [Which One Do I Use?](/docs/introduction/which-one#monitor-group-service-or-label).
 
 :::cards
 - [How a service gets into the catalog](#how-a-service-gets-into-the-catalog): Its `service.name`, on its first telemetry.
@@ -62,7 +62,7 @@ A service's side menu has five sections:
 | Section | Pages |
 | --- | --- |
 | **Basic** | **Overview**: requests, error rate and p95 latency from its spans, charts, and its details. **Recommendations**: ready-made monitors for the service, picked for its language. **Owners**: the people and teams responsible for it. **Feed**: everything that happened to it, from how it was created to every change since. |
-| **Telemetry** | Its **Logs**, **Traces**, **Metrics**, **Performance Profiles**, **Exceptions** and **Source Maps**, already filtered to this service. |
+| **Telemetry** | Its **Logs**, **Traces**, **Metrics**, **Profiles**, **Exceptions** and **Source Maps**, already filtered to this service. |
 | **Activity** | The **Incidents**, **Alerts** and **Scheduled Maintenance** events that affect it. |
 | **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |
 | **Advanced** | **Settings**, **Audit Logs** and **Delete Service**. **Advanced** starts collapsed: expand it first. |
@@ -123,6 +123,6 @@ Nothing has arrived for it in the last 30 minutes. That is expected for a servic
 :::cards
 - [Logs Explorer](/docs/telemetry/logs-explorer): Search a service's logs.
 - [Traces Explorer](/docs/telemetry/traces-explorer): Follow its requests.
-- [Exception Tracking](/docs/telemetry/exceptions): Triage the errors it throws.
+- [Exceptions](/docs/telemetry/exceptions): Triage the errors it throws.
 - [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Give new services labels and owners.
 :::

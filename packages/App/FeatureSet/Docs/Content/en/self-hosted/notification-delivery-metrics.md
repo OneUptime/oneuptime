@@ -142,7 +142,7 @@ Statuses arrive only where the provider can report them:
 
 ### Time to send
 
-`notification.time_to_send` runs from a page's trigger to its provider accepting the notification. It times only the notifications due as the page starts: the people of the first escalation rule, by their on-call rules that wait for nothing, and any level the page moves on to at once because it reached nobody. Waits the on-call configuration asks for are not the platform's delay, so they are left out: they are in [send lag](#send-lag). Only notifications their provider accepted are timed; a failure shows in `notification.send.count`.
+`notification.time_to_send` runs from a page's trigger to its provider accepting the notification. It times only the notifications due as the page starts: the people of the first escalation rule, by the steps of their How to Reach Me that wait for nothing, and any level the page moves on to at once because it reached nobody. Waits the on-call configuration asks for are not the platform's delay, so they are left out: they are in [send lag](#send-lag). Only notifications their provider accepted are timed; a failure shows in `notification.send.count`.
 
 | Attribute | Values |
 | --- | --- |

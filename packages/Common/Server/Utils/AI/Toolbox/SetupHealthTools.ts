@@ -51,9 +51,9 @@ export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> =
     [SetupHealthFix.AlertOnCallRules]: "Alerts > Rules > On-Call Rules",
     [SetupHealthFix.OnCallPolicy]: "the on-call policy's Escalation Rules page",
     [SetupHealthFix.OnCallSchedule]: "the on-call schedule's page",
-    [SetupHealthFix.OnCallReadiness]: "On-Call Duty > Readiness",
+    [SetupHealthFix.OnCallReadiness]: "On-Call > Readiness",
     [SetupHealthFix.ProjectNotificationSettings]:
-      "Project Settings > Notifications > Notification Settings",
+      "Project Settings > Notifications > Notification Channels",
     [SetupHealthFix.ProjectBilling]:
       "Project Settings > Billing and Invoices > Billing",
     [SetupHealthFix.ServerSettings]:

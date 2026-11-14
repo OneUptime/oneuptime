@@ -78,7 +78,7 @@ Appen visar ett projekt i taget: tryck på projektets namn högst upp på en sk�
 Klicka på **Testavisering** på telefonens rad. En avisering kommer fram på telefonen; tryck på den för att öppna appen.
 :::
 
-Dina jourregler avgör vilka larm som går till telefonen, och hur snabbt: se **Användarinställningar → Jourregler**. En ny telefon får samma standardregler som alla andra metoder du lägger till.
+Dina jourregler avgör vilka larm som går till telefonen, och hur snabbt: se **Användarinställningar → Så når man mig**. En ny telefon får samma standardregler som alla andra metoder du lägger till.
 
 ## Ring igenom tyst läge
 
@@ -139,7 +139,7 @@ Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, i
 - Kontrollera i Androids inställningar att aviseringar är på för appen, och att Stör ej är av eller kritiska larm på.
 - Kontrollera att telefonen står under **Push-aviseringar** i **Användarinställningar → Aviseringsmetoder**, och skicka en **Testavisering** till den.
 - Är telefonen markerad som **Tar inte emot aviseringar**, öppnar du appen medan du är inloggad. Den registrerar telefonen igen; se [När en telefon måste registreras igen](/docs/mobile-desktop-apps/faq-troubleshooting#när-en-telefon-måste-registreras-igen).
-- Kontrollera dina jourregler under **Användarinställningar → Jourregler**.
+- Kontrollera dina jourregler under **Användarinställningar → Så når man mig**.
 - På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).
 :::
 

@@ -285,3 +285,87 @@ export const readUnexplainedError: (
 
   return null;
 };
+
+/*
+ * Who reads an explanation: it decides what to do next and where to look.
+ * A visitor of a status page or a public dashboard never chose OneUptime:
+ * they are told to try again, and nothing about the server's logs or its
+ * support.
+ */
+export interface UnexplainedErrorReader {
+  // OneUptime Cloud (billing on), rather than a server somebody runs.
+  isCloud: boolean;
+  // A master admin, who on a self-hosted server can read its logs.
+  isMasterAdmin: boolean;
+  isVisitor?: boolean | undefined;
+}
+
+// Why it failed, what to do next and, for some readers, where to look.
+export interface UnexplainedErrorExplanation {
+  why: string;
+  next: string;
+  whereToLook: string | null;
+}
+
+/*
+ * The English words (translation keys) for each kind, for the reader the
+ * page has. ErrorExplanation draws them as a block of their own, and
+ * ErrorSentence inside a sentence a card writes around them
+ * (Common/UI/Utils/ErrorInSentence): one set of words for both.
+ */
+export const getExplanationWords: (
+  data: {
+    error: UnexplainedError;
+  } & UnexplainedErrorReader,
+) => UnexplainedErrorExplanation = (
+  data: {
+    error: UnexplainedError;
+  } & UnexplainedErrorReader,
+): UnexplainedErrorExplanation => {
+  const isSelfHostedAdmin: boolean =
+    !data.isCloud && data.isMasterAdmin && !data.isVisitor;
+
+  switch (data.error.kind) {
+    case UnexplainedErrorKind.ServerWithReference:
+      return {
+        why: UnexplainedErrorWords.serverWhy,
+        next: data.isVisitor
+          ? UnexplainedErrorWords.serverNext
+          : data.isCloud
+            ? UnexplainedErrorWords.serverNextWithReferenceCloud
+            : UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
+        whereToLook: isSelfHostedAdmin
+          ? UnexplainedErrorWords.adminWhereToLookWithReference
+          : null,
+      };
+    case UnexplainedErrorKind.Server:
+      return {
+        why: UnexplainedErrorWords.serverWhy,
+        next: UnexplainedErrorWords.serverNext,
+        whereToLook: isSelfHostedAdmin
+          ? UnexplainedErrorWords.adminWhereToLook
+          : null,
+      };
+    case UnexplainedErrorKind.ServerDown:
+      return {
+        why: UnexplainedErrorWords.serverDownWhy,
+        next: UnexplainedErrorWords.serverDownNext,
+        whereToLook:
+          data.isCloud || data.isVisitor
+            ? null
+            : UnexplainedErrorWords.serverDownWhereToLook,
+      };
+    case UnexplainedErrorKind.Unreachable:
+      return {
+        why: UnexplainedErrorWords.unreachableWhy,
+        next: UnexplainedErrorWords.unreachableNext,
+        whereToLook: null,
+      };
+    default:
+      return {
+        why: UnexplainedErrorWords.pageWhy,
+        next: UnexplainedErrorWords.pageNext,
+        whereToLook: null,
+      };
+  }
+};

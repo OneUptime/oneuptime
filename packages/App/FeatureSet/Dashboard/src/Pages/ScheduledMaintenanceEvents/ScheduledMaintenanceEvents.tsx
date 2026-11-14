@@ -20,8 +20,8 @@ import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 
 /*
- * Scheduled Maintenance > All Events: the project's events as a list. The
- * calendar is a page of its own, under the side menu's Calendar
+ * Scheduled Maintenance > All Maintenance Events: the project's events as a
+ * list. The calendar is a page of its own, under the side menu's Calendar
  * (Calendar.tsx); a reader who had left this list on its old Calendar
  * switch is taken there once (ScheduledMaintenanceView).
  */
@@ -33,7 +33,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
     useCreatePageFirstRun<ScheduledMaintenance>({
       modelType: ScheduledMaintenance,
       product: ProductKey.ScheduledMaintenance,
-      startTitle: "Create Scheduled Maintenance Event",
+      startTitle: "Create Maintenance Event",
       createPage: PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
     });
   const { projectId } = useParams();

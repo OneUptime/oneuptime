@@ -248,6 +248,27 @@ describe("NetworkInventoryUtil.recordResolvedAddress", () => {
     expect(mergedEntry()["value"]).toBe("10.0.0.2");
   });
 
+  /*
+   * A poll processed after a newer one - a retried job, or one that waited
+   * longer in the queue (issue #7389) - resolved the name before the
+   * reading on record was taken. It does not put its address back over it.
+   */
+  test("a reading taken after this poll's stands: an older poll does not put its address back", async () => {
+    mockServices();
+
+    expect(
+      await record(
+        deviceAt(
+          "core-fw-01.acme.example",
+          recordedAddress("10.0.0.2", new Date(NOW.getTime() + 5 * 60 * 1000)),
+        ),
+        { hostname: "core-fw-01.acme.example", address: "10.0.0.1" },
+      ),
+    ).toBe(false);
+    expect(mergeSpy).not.toHaveBeenCalled();
+    expect(probeSpy).not.toHaveBeenCalled();
+  });
+
   test("a probe whose name cannot be read is credited by its id alone", async () => {
     mockServices();
     probeSpy.mockRejectedValueOnce(new Error("connection reset"));

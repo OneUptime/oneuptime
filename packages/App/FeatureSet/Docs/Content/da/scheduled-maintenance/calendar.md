@@ -21,15 +21,15 @@ flowchart TB
 
 ## Kalendersiden
 
-Åbn **Planlagt vedligeholdelse → Vedligeholdelseskalender** i sektionen **Kalender** i sidemenuen. **Alle begivenheder** viser de samme begivenheder som en liste.
+Åbn **Planlagt vedligeholdelse → Vedligeholdelseskalender** i sektionen **Kalender** i sidemenuen. **Alle vedligeholdelseshændelser** viser de samme begivenheder som en liste.
 
 - Kalenderen åbner på denne måned, med dagen i dag markeret. **Måned**, **Uge** og **Dag** ændrer, hvor meget den viser; flyt med pilene, og vend tilbage med **I dag**. Tidspunkterne står i din egen tidszone.
 - Hver begivenhed er en blok i farven på dens tilstand, og tilstandenes farver er navngivet under kalenderen. Klik på en begivenhed for at åbne den.
 - Filtrene over kalenderen virker som på listen: vælg en tilstand, en etiket eller en ejer for kun at se de begivenheder.
-- En dag, der endnu ikke er kommet, viser et **+**, når du peger på dens uge. Det åbner **Opret planlagt vedligeholdelseshændelse** med **Begynder den** på den dag, i den time, formularen ville vælge i dag. Du ser det kun, hvis du må oprette begivenheder.
+- En dag, der endnu ikke er kommet, viser et **+**, når du peger på dens uge. Det åbner **Opret vedligeholdelseshændelse** med **Begynder den** på den dag, i den time, formularen ville vælge i dag. Du ser det kun, hvis du må oprette begivenheder.
 - En visning viser op til 500 begivenheder. En travlere måned siger det: indsnævr den med filtrene, eller se på en uge.
 
-**Alle begivenheder** skiftede tidligere mellem en liste og en kalender. Hvis din browser sidst lod den stå på kalenderen, åbner **Alle begivenheder** én gang **Vedligeholdelseskalender** og er derefter listen.
+**Alle vedligeholdelseshændelser** skiftede tidligere mellem en liste og en kalender. Hvis din browser sidst lod den stå på kalenderen, åbner **Alle vedligeholdelseshændelser** én gang **Vedligeholdelseskalender** og er derefter listen.
 
 ## Eksterne kalendere
 

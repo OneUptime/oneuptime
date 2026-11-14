@@ -14,16 +14,27 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, ReactElement, useEffect, useState } from "react";
 import {
   announceArchiveStateChange,
   subscribeToArchiveStateChanges,
 } from "../Archive/ArchiveStateEvents";
+import {
+  ArchiveCardWords,
+  getArchiveCardWords,
+} from "../Archive/ArchiveCardWords";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   modelId: ObjectID;
-  /** Singular label used in copy, e.g. "service". Defaults to model name. */
+  /*
+   * The resource's name as the card says it, in English: "service", "SLO".
+   * Said in the reader's language - a key of the Dashboard's locales, as a
+   * literal here is once npm run i18n:extract has run. Defaults to the
+   * model's name.
+   */
   singularName?: string | undefined;
   /** Where to send the user after archiving (usually the list page). */
   listRoute?: Route | undefined;
@@ -33,6 +44,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * archived - an archived SLO stops being evaluated and has its open
    * burn-rate alerts resolved - and a card promising "keeps collecting
    * telemetry" there would tell the user the opposite of what happens.
+   *
+   * Each is an English key (translationKey), said in the reader's language.
    */
   /** Card description while the resource is NOT archived. */
   archiveCardDescription?: string | undefined;
@@ -50,6 +63,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * to re-read it, or the page contradicts itself until a reload.
    */
   onArchiveChange?: ((isArchived: boolean) => void) | undefined;
+  /*
+   * Under the archive confirmation's message, while it asks to archive
+   * (never to unarchive): what still uses the record (UsedBy's
+   * UsedByImpactForRecord, #6813). Drawn only while the dialog is open, so
+   * what it reads is read only then.
+   */
+  archiveConfirmationContent?: ReactElement | undefined;
 }
 
 /**
@@ -69,6 +89,7 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const translator: Translator = useTranslator();
 
   const model: TBaseModel = new props.modelType();
   const singularName: string =
@@ -178,25 +199,23 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
     );
   }
 
-  const title: string = isArchived
-    ? `Unarchive ${singularName}`
-    : `Archive ${singularName}`;
-
   /*
-   * `||` rather than `??`: an empty override is a caller mistake, and a blank
-   * card or a confirmation with no body is worse than the generic copy.
+   * The title, description and confirmation in the reader's language, the
+   * resource's name among them (ArchiveCardWords). An empty override reads
+   * as the telemetry sentence, never as a blank card or dialog.
    */
-  const description: string = isArchived
-    ? props.unarchiveCardDescription ||
-      `This ${singularName} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.`
-    : props.archiveCardDescription ||
-      `Archive this ${singularName} to hide it from lists while it keeps collecting telemetry. You can unarchive it anytime.`;
-
-  const confirmMessage: string = isArchived
-    ? props.unarchiveConfirmMessage ||
-      `Are you sure you want to unarchive this ${singularName}? It will reappear in the main list.`
-    : props.archiveConfirmMessage ||
-      `Are you sure you want to archive this ${singularName}? It will be hidden from the list but will keep collecting telemetry.`;
+  const { title, description, confirmMessage }: ArchiveCardWords =
+    getArchiveCardWords({
+      singularName: singularName,
+      isArchived: isArchived,
+      copy: {
+        archiveCardDescription: props.archiveCardDescription,
+        unarchiveCardDescription: props.unarchiveCardDescription,
+        archiveConfirmMessage: props.archiveConfirmMessage,
+        unarchiveConfirmMessage: props.unarchiveConfirmMessage,
+      },
+      translator: translator,
+    });
 
   return (
     <Fragment>
@@ -235,7 +254,11 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
               setError(API.getFriendlyMessage(err));
             });
           }}
-        />
+        >
+          {!isArchived && props.archiveConfirmationContent
+            ? props.archiveConfirmationContent
+            : undefined}
+        </ConfirmModal>
       )}
     </Fragment>
   );

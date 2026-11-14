@@ -199,13 +199,13 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 | **Efterlevnadsperiod** | **Fönstertyp**, **Fönster (dagar)** och **Tidszon**, med **Redigera period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
 | **Beräkning av driftstopp** | **Läge för flera monitorer** och **Statusar för driftstoppsövervakare**, med **Redigera beräkning av driftstopp**. | Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |
 | **Utvärdering** | Reglaget **Utvärdera det här SLO:et**, som sparar så snart du slår om det. | Att stänga av det kräver bekräftelse, eftersom det också löser SLO:ets öppna larm och incidenter för förbrukningstakt. |
-| **Archive SLO** | **Arkivera** eller **Avarkivera**. | Se [Arkivera ett SLO](#arkivera-ett-slo). |
+| **Arkivera SLO** | **Arkivera** eller **Avarkivera**. | Se [Arkivera ett SLO](#arkivera-ett-slo). |
 
 Efter en ändring av målet, perioden eller beräkningen av driftstopp utvärderar OneUptime SLO:et igen vid nästa körning.
 
 ## Arkivera ett SLO
 
-Arkivera ett SLO som du inte längre mäter men vill behålla, som en avvecklad tjänst eller förra årets mål. Arkivera det från **Inställningar** → **Archive SLO**, eller markera SLO:er i listan och välj **Arkivera**.
+Arkivera ett SLO som du inte längre mäter men vill behålla, som en avvecklad tjänst eller förra årets mål. Arkivera det från **Inställningar** → **Arkivera SLO**, eller markera SLO:er i listan och välj **Arkivera**.
 
 Ett arkiverat SLO:
 

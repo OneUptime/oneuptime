@@ -67,7 +67,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal ad
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
+Åbn hvert kriterium under **Kriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 

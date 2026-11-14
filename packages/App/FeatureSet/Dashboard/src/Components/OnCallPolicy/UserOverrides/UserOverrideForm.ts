@@ -45,7 +45,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *     and they get all of the person's pages instead, saved as
  *     routeAlertsToUserId. Whoever is away is left out of its list, and
  *     picking the same person anyway is refused.
- *   - Starts - now, unless changed.
+ *   - Starts - now, to the minute, unless changed. Like every time a person
+ *     picks, it is shown and kept in hours and minutes, never seconds.
  *   - Ends - left empty on purpose: only the person booking knows when the
  *     cover stops, and a guessed end would quietly hand the pages back to
  *     someone still away. It has to come after the start.
@@ -238,9 +239,15 @@ export const getUserOverrideEndsError: (values: unknown) => string | null = (
   return translateValidationMessage(USER_OVERRIDE_ENDS_BEFORE_START_MESSAGE);
 };
 
-// When a new override starts: now.
+/*
+ * When a new override starts: now, to the minute Starts shows - 11:15, not
+ * 11:15:52 - so what is saved is what was read. That minute has already
+ * begun, so the override is in force at once, never a minute late.
+ */
 export const getDefaultUserOverrideStartsAt: () => string = (): string => {
-  return OneUptimeDate.toString(OneUptimeDate.getCurrentDate());
+  return OneUptimeDate.toString(
+    OneUptimeDate.getStartOfMinute(OneUptimeDate.getCurrentDate()),
+  );
 };
 
 export interface UserOverrideFormOptions {

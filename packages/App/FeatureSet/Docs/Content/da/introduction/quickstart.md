@@ -34,6 +34,8 @@ Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Clo
 
 ### Opret det
 
+![Hjem spørger »Hvad vil du gøre først?«, med denne vejlednings tre mål markeret](screen:home-goals-three)
+
 Klik på **Opret projekt**. Dit projekts startside åbner, med tjeklisten **Velkommen til OneUptime 👋** øverst. Først spørger den **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, **Tilkalde den rette person, når noget går ned** og **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**.
 :::
 
@@ -59,6 +61,8 @@ Behold de valgte **Sonder** og **Overvågningsinterval** **Hvert 5. minut**, og 
 
 Vil du prøve tjekket, før du gemmer, så klik på **Test monitor** i det andet trin. Alle andre monitortyper er beskrevet i [Opret en monitor](/docs/monitor/create-monitor).
 
+Vil du også tjekke et API, vælge, hvem der får besked, og sende et testkald, der beviser, at beskeden når frem til dig, så følg [Få besked, når dit websted eller API går ned](/docs/guides/website-down).
+
 ## Bliv tilkaldt, når det går ned
 
 Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, og det omfatter dig. For at blive tilkaldt, indtil nogen reagerer, opretter du en vagtpolitik: et projekts første udløses ved hver ny hændelse og hver ny advarsel.
@@ -66,7 +70,7 @@ Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, o
 :::steps
 ### Opret en vagtpolitik
 
-Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagtordning** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
+Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagt** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
 
 ### Se reglen, der udløser den
 
@@ -78,7 +82,7 @@ Din login-e-mail er allerede en måde at kontakte dig på. For også at få SMS 
 :::
 
 > [!NOTE]
-> SMS og telefonopkald er slået fra i et nyt projekt. En projektejer, en Billing Admin eller en person med Manage Billing slår dem til i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationsindstillinger**.
+> SMS og telefonopkald er slået fra i et nyt projekt. En projektejer, en Billing Admin eller en person med Manage Billing slår dem til i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationskanaler**.
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
 
@@ -119,9 +123,13 @@ Erklær en testhændelse for at se hele kæden virke.
 
 ### Se, hvad der sker
 
+![»Hændelsesfeed« for en løst hændelse: hvem der blev kaldt, og hver statusændring, nyeste først](screen:incident-feed)
+
 Inden for et minut eller to tilkalder din vagtpolitik dig, og hændelsen vises på din statusside.
 
 ### Løs den
+
+![En hændelse i »Bekræftet«, med »Løs« fremhævet](screen:incident-resolve)
 
 Klik på **Løs** på hændelsens side. Tilkaldene stopper, og hændelsen forsvinder fra din statusside.
 :::

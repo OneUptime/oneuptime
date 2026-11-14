@@ -125,7 +125,7 @@ API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM �
 
 | 餘額 | 位置 |
 | --- | --- |
-| 簡訊、電話、WhatsApp 和 Telegram | **專案設定 → 通知 → 通知設定** |
+| 簡訊、電話、WhatsApp 和 Telegram | **專案設定 → 通知 → 通知管道** |
 | OneUptime AI | **專案設定 → 人工智慧 → AI 點數** |
 
 :::steps

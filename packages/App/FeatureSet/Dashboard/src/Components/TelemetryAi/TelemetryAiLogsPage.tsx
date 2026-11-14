@@ -60,6 +60,7 @@ import {
   getTelemetryAiLogVerdictRunIds,
 } from "./TelemetryAiCopy";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A telemetry product's AI → Logs - the Profiler's first: everything
@@ -424,7 +425,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
     if (error && entries.length === 0) {
       return (
         <ErrorMessage
-          message={translator.translateTemplate(couldNotLoad, { error })}
+          message={<ErrorSentence template={couldNotLoad} error={error} />}
           onRefreshClick={() => {
             void read({ skip: 0, append: false });
           }}
@@ -534,9 +535,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
 
         {loadMoreError ? (
           <p className="text-center text-sm text-red-700" role="alert">
-            {translator.translateTemplate(couldNotLoad, {
-              error: loadMoreError,
-            })}
+            <ErrorSentence template={couldNotLoad} error={loadMoreError} />
           </p>
         ) : (
           <></>

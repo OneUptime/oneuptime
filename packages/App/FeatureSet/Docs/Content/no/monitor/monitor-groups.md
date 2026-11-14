@@ -155,7 +155,7 @@ Det er regelen: gruppen viser den verste monitoren sin. Åpne **Monitorer** i gr
 ## Neste trinn
 
 :::cards
-- [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
+- [Kriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
 - [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups): Legg opp radene på en statusside.
 - [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Fortell kundene om en gruppes hendelser.
 :::

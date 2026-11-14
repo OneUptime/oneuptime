@@ -1996,15 +1996,15 @@ describe("Scan Target is reachable as a column, not only as a filter", () => {
   });
 
   /*
-   * `cidr` is NOT NULL so this is close to hypothetical, but a bare text cell
-   * renders "" for a missing value and the mobile card drops the whole
-   * labelled block when the value is empty — so the "Scan Target" label itself
-   * would disappear, where every other cell on this table shows an em-dash.
+   * `cidr` is NOT NULL so this is close to hypothetical. An empty value is
+   * the quiet dash every empty cell is (TableEmptyValue) with no words set,
+   * and a dash written as the column's words is that dash too (#7264), so
+   * the column sets none.
    */
   test("an empty target reads like every other empty cell here", async () => {
     await renderPage();
 
-    expect(columnByTitle("Scan Target").noValueMessage).toBe("—");
+    expect(columnByTitle("Scan Target").noValueMessage).toBeUndefined();
   });
 
   /*

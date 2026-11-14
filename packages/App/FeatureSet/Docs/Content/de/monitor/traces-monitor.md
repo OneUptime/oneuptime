@@ -73,7 +73,7 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Span-Status** | Spans mit einem der gewählten Status: **Nicht festgelegt**, **OK** oder **Fehler**. | Leer: jeder Status |
 | **Span-Name enthält** | Spans, deren Name diesen Text enthält, ohne Beachtung der Groß-/Kleinschreibung. | Leer: jeder Span |
 | **Zeitfenster** (in **Wann alarmieren**) | Spans, die in den letzten 5 Sekunden bis zu den letzten 24 Stunden begonnen haben. | **Letzte 5 Minuten** |
-| **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Dienste. | Leer: jeder Dienst |
+| **Nach Dienst filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Spans, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
 
@@ -154,7 +154,7 @@ Bei 30 fehlgeschlagenen Anfragen trifft die Regel zu, und der Vorfall wird eröf
 ## Fehlerbehebung
 
 :::details Der Monitor zählt keine Spans für meinen Endpunkt
-**Span-Name enthält** wird mit dem Namen des Spans abgeglichen, und Instrumentierungen benennen Server-Spans oft nach der Route (`POST /api/checkout`) oder nur nach der Methode (`GET`). Suchen Sie den genauen Namen im Trace-Explorer. Öffnen Sie dann die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Spans** zeigt, worauf die Filter gerade passen.
+**Span-Name enthält** wird mit dem Namen des Spans abgeglichen, und Instrumentierungen benennen Server-Spans oft nach der Route (`POST /api/checkout`) oder nur nach der Methode (`GET`). Suchen Sie den genauen Namen im Trace-Explorer. Öffnen Sie dann die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Kriterien bearbeiten**: **Passende Spans** zeigt, worauf die Filter gerade passen.
 :::
 
 :::details Erfolgreiche Anfragen werden beim Filtern auf OK nicht gezählt

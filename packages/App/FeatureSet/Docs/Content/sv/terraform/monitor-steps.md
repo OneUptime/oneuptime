@@ -1,6 +1,6 @@
 # Monitorsteg
 
-`monitor_steps` är det attribut i `oneuptime_monitor` som säger vad en monitor kontrollerar och hur varje resultat bedöms: adressen som ska kontrolleras, begäran som ska skickas och de kriterier som gör ett resultat till en monitorstatus, en incident eller ett larm. Den här sidan förklarar varje del av det.
+`monitor_steps` är det attribut i `oneuptime_monitor` som säger vad en monitor kontrollerar och hur varje resultat bedöms: adressen som ska kontrolleras, begäran som ska skickas och de kriterier som gör ett resultat till en monitorstatus, en incident eller ett larm. Den här sidan förklarar varje del av det. Dashboarden visar ett stegs kriterier på monitorns sida **Kriterier**, som [Kriterier och statusar](/docs/monitor/criteria-and-statuses) beskriver.
 
 :::cards
 - [Så bedöms en kontroll](#så-bedöms-en-kontroll): Kriterierna i ordning, och det första som stämmer.

@@ -6,7 +6,7 @@ import TwilioConfigUses from "../../Types/CallAndSMS/TwilioConfigUse";
  *
  * SMS and calls to the people in a project - on-call alerts, notifications, and
  * the codes that verify their phone numbers - go through the project's default
- * Twilio config (Project Settings > Notifications > Notification Settings), and
+ * Twilio config (Project Settings > Notifications > Notification Channels), and
  * through the Twilio account of the OneUptime server itself when the project
  * has none (Admin Dashboard > Settings > Call and SMS). OneUptime Cloud always
  * has the second. A self-hosted server has neither until somebody sets one up,
@@ -69,7 +69,7 @@ const WHAT_NEEDS_IT: Readonly<Record<TwilioMessageKind, string>> = {
  * there is none: "The OneUptime server's administrator can add one in Admin
  * Dashboard > Settings > Call and SMS, or a project owner, a project admin or
  * someone with Create Call and SMS can add this project's own in Project
- * Settings > Notification Settings."
+ * Settings > Notification Channels."
  */
 export const WHO_CAN_ADD_A_TWILIO_ACCOUNT_SENTENCE: string = `The OneUptime server's administrator can add one in ${SERVER_TWILIO_SETTINGS_PAGE}, or ${WHO_MAY_ADD_A_PROJECT_TWILIO_ACCOUNT} can add this project's own in ${PROJECT_TWILIO_SETTINGS_PAGE}.`;
 

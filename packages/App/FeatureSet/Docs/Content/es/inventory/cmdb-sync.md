@@ -59,7 +59,7 @@ Abre **Ajustes del proyecto → Avanzado → Claves de API** y haz clic en **Cre
 
 ### Darle solo lo que necesita
 
-Una exportación de solo lectura necesita un único permiso, **Read Telemetry Service**: el inventario comparte los permisos de telemetría en lugar de tener los suyos. En la página de la clave, haz clic en **Añadir permiso** y elígelo. Para escribir valores de vuelta, añade también **Edit Telemetry Service**.
+Una exportación de solo lectura necesita un único permiso, **Read Inventory Item**: el inventario comparte los permisos de telemetría en lugar de tener los suyos. En la página de la clave, haz clic en **Añadir permiso** y elígelo. Para escribir valores de vuelta, añade también **Edit Inventory Item**.
 
 ### Copiar la clave
 
@@ -232,9 +232,9 @@ Un elemento que desaparece entre ejecuciones o bien caducó (un elemento descubi
 
 ## Escribir de vuelta
 
-Los mismos endpoints aceptan escrituras, así que una sincronización puede llevar valores a `customFields`: por ejemplo, la etiqueta de activo que ya gestiona tu CMDB, estampada en el elemento de OneUptime correspondiente. La clave necesita **Edit Telemetry Service** para ello.
+Los mismos endpoints aceptan escrituras, así que una sincronización puede llevar valores a `customFields`: por ejemplo, la etiqueta de activo que ya gestiona tu CMDB, estampada en el elemento de OneUptime correspondiente. La clave necesita **Edit Inventory Item** para ello.
 
-También puedes añadir elementos para cosas que OneUptime no puede ver, con `POST /api/inventory-item`, un `entityType` de `external.service`, `external.database` o `appliance`, y un `displayName`. OneUptime calcula la clave de identidad por ti, y esos elementos nunca caducan. La clave necesita **Create Telemetry Service** para eso.
+También puedes añadir elementos para cosas que OneUptime no puede ver, con `POST /api/inventory-item`, un `entityType` de `external.service`, `external.database` o `appliance`, y un `displayName`. OneUptime calcula la clave de identidad por ti, y esos elementos nunca caducan. La clave necesita **Create Inventory Item** para eso.
 
 ## Solución de problemas
 
@@ -243,7 +243,7 @@ En OneUptime Cloud, las claves de API solo funcionan mientras el proyecto está 
 :::
 
 :::details Cada solicitud responde 422 You do not have permissions
-La clave no tiene ningún permiso que lea el inventario. Una clave creada con **Elegir los permisos más tarde** no puede hacer nada hasta que recibe uno: añade **Read Telemetry Service** en su página, como en [Antes de empezar](#antes-de-empezar).
+La clave no tiene ningún permiso que lea el inventario. Una clave creada con **Elegir los permisos más tarde** no puede hacer nada hasta que recibe uno: añade **Read Inventory Item** en su página, como en [Antes de empezar](#antes-de-empezar).
 :::
 
 :::details La lista vuelve sin las columnas que necesito

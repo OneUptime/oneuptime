@@ -37,6 +37,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { KubernetesAiRemediationMode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * The words and looks "What AI may do" shares between a Kubernetes
@@ -353,6 +354,40 @@ describe("the every-mode protections", () => {
     expect(joinAiAccessProtections(["a", "b", "c", "d", "e", "f"])).toBe(
       "a; b; c; d; e; and f",
     );
+  });
+
+  /*
+   * The clauses said together are set off with the semicolon of their
+   * script, as the locale's own sentence sets off the rest (#7607): the
+   * Latin "; " stood between Chinese and Persian ones.
+   */
+  test("more than four in Chinese or Persian take that script's semicolon", () => {
+    expect(
+      joinAiAccessProtections(
+        ["甲", "乙", "丙", "丁", "戊", "己"],
+        dashboardTranslator("zh-CN"),
+      ),
+    ).toBe("甲；乙；丙；丁；戊；己");
+    expect(
+      joinAiAccessProtections(
+        ["الف", "ب", "پ", "ت", "ث", "ج"],
+        dashboardTranslator("fa"),
+      ),
+    ).toBe("الف؛ ب؛ پ؛ ت؛ ث؛ و ج");
+  });
+
+  /*
+   * French sets its semicolon apart with a space, as its own sentence for
+   * four does ("{{first}} ; {{second}} ; {{third}} ; et {{fourth}}"): the
+   * clauses said together take the same (#7629).
+   */
+  test("more than four in French put a space before every semicolon", () => {
+    expect(
+      joinAiAccessProtections(
+        ["a", "b", "c", "d", "e", "f"],
+        dashboardTranslator("fr"),
+      ),
+    ).toBe("a ; b ; c ; d ; e ; et f");
   });
 
   /*

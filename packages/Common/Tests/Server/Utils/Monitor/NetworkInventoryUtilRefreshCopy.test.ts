@@ -26,6 +26,7 @@ const MINUTE: number = 60 * 1000;
 
 let deviceFindSpy: jest.SpyInstance;
 let deviceUpdateSpy: jest.SpyInstance;
+let pollVerdictSpy: jest.SpyInstance;
 let mirrorSpy: jest.SpyInstance;
 
 function mockServices(deviceOverrides: Partial<NetworkDevice> = {}): void {
@@ -39,6 +40,10 @@ function mockServices(deviceOverrides: Partial<NetworkDevice> = {}): void {
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1);
+  // true: the device held no verdict from a poll received after this one.
+  pollVerdictSpy = jest
+    .spyOn(NetworkDeviceService, "writePollVerdict")
+    .mockResolvedValue(true);
   jest.spyOn(NetworkInterfaceService, "findBy").mockResolvedValue([]);
   jest
     .spyOn(NetworkInterfaceService, "upsertWalkedInterfaces")
@@ -94,9 +99,31 @@ describe("the first poll after a refresh copies the device's Inventory item", ()
       resourceId: new ObjectID(DEVICE_ID),
     });
     // What this poll read is on the device before the copy reads it.
+    expect(pollVerdictSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      mirrorSpy.mock.invocationCallOrder[0]!,
+    );
     expect(deviceUpdateSpy.mock.invocationCallOrder[0]).toBeLessThan(
       mirrorSpy.mock.invocationCallOrder[0]!,
     );
+  });
+
+  /*
+   * A poll received before one the device has already taken in - a retried
+   * job, or one that waited longer in the queue (issue #7389) - writes
+   * nothing to the device, so it cannot answer the refresh either: the
+   * newer poll did, with what it read.
+   */
+  test("an older poll processed after a newer one is not the refresh's answer", async () => {
+    mockServices({
+      refreshRequestedAt: new Date(NOW.getTime() - MINUTE),
+      lastPolledAt: new Date(NOW.getTime() - 5 * MINUTE),
+    });
+    pollVerdictSpy.mockResolvedValue(false);
+
+    await poll();
+
+    expect(mirrorSpy).not.toHaveBeenCalled();
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
   });
 
   test("a device never polled before, asked to refresh: copied", async () => {

@@ -125,7 +125,7 @@ Mensagens de SMS, chamadas, WhatsApp e Telegram são pagas com o saldo do projet
 
 | Saldo | Onde |
 | --- | --- |
-| SMS, chamadas, WhatsApp e Telegram | **Configurações do projeto → Notificações → Configurações de notificação** |
+| SMS, chamadas, WhatsApp e Telegram | **Configurações do projeto → Notificações → Canais de notificação** |
 | OneUptime AI | **Configurações do projeto → IA → Créditos de IA** |
 
 :::steps

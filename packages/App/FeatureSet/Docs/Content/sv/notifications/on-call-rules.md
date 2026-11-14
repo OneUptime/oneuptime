@@ -1,12 +1,13 @@
-# Personliga jourregler
+# Så når man mig
 
-Dina jourregler avgör hur ett larm når dig: vilka av dina aviseringsmetoder OneUptime försöker med, och hur lång tid efter att larmet startade. Varje typ av larm har egna regler, en uppsättning per allvarlighetsgrad, så att en kritisk incident kan ringa dig direkt medan ett lågt larm väntar på ett e-postmeddelande. Du ställer in dem under **Användarinställningar → Jourregler**.
+Dina jourregler avgör hur ett larm når dig: vilka av dina aviseringsmetoder OneUptime försöker med, och hur lång tid efter att larmet startade. Varje typ av larm har egna regler, en uppsättning per allvarlighetsgrad, så att en kritisk incident kan ringa dig direkt medan ett lågt larm väntar på ett e-postmeddelande. Du ställer in dem under **Användarinställningar → Så når man mig**.
 
 > [!NOTE]
 > De här reglerna är bara dina. **Jourregler** under **Incidenter → Regler** och **Larm → Regler** är något annat: de avgör vilka jourpolicyer en ny incident eller ett nytt larm kör.
 
 :::cards
 - [Så når ett larm dig](#så-når-ett-larm-dig): Dina regler för ett larm, steg för steg.
+- [En ordning för allt](#en-ordning-för-allt): Stegen varje larm provar, inställda en gång.
 - [Reglerna du börjar med](#reglerna-du-börjar-med): Vad varje verifierad metod lägger till, och hur du skalar ned det.
 - [Lägg till en regel](#lägg-till-en-regel): En metod och en väntetid för en allvarlighetsgrad.
 - [Push-regler](#push-regler): Ta dig igenom tyst läge, och upprepa tills någon bekräftar.
@@ -26,9 +27,33 @@ flowchart TB
 
 De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsApp, Telegram, Slack, Microsoft Teams och Mattermost har en bekräftelselänk, och ett samtal ber dig trycka 1. Kan du inte ta ett larm kan du eskalera det från samma meddelanden, och ett samtal ber dig trycka 2: policyn larmar nästa nivå direkt, och du larmas inte om det igen. Se [Eskalera ett larm](/docs/on-call/escalation-rules#eskalera-ett-larm). Varje larm du får finns under **Användarinställningar → Jourloggar**, där **Visa tidslinje** visar varje skickat meddelande och om det levererades.
 
+## En ordning för allt
+
+**Användarinställningar → Så når man mig** öppnas med din ordning: stegen varje larm provar, för incidenter, larm och episoder av alla allvarlighetsgrader. Varje steg är en av dina verifierade metoder och när den används, till exempel ett sms direkt och ett samtal efter 5 minuter. Steg med samma väntetid går ut tillsammans, så ordningen läses i den följd den larmar.
+
+:::steps
+### Lägg till ett sätt att nå dig
+
+Välj en av dina verifierade metoder i **Lägg till ett sätt att nå dig**. Ett nummer eller en adress som fortfarande väntar på sin kod står under **Inte verifierad än**, med **Verifiera**.
+
+### Välj när den används
+
+Välj vid varje steg en väntetid från **Omedelbart** till **1 timme**. Ett push-steg säger också hur det låter och om det upprepas: se [Push-regler](#push-regler).
+
+### Spara den
+
+Klicka på **Spara ordning**. Det skriver samma regler i varje kort på varje flik: de regler du skulle lägga till i varje kort för hand.
+:::
+
+**Testa dina larm**, längst ned på sidan, skickar ett testlarm till dig genom dem.
+
+När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader** flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**, och ordningen visar vad varje kort gör i stället. Avviker dina regler redan öppnas sidan på korten, med **Använd en ordning för allt**: när du sparar nämner den först de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
+
+En jourpolicy bestämmer vem som larmas och när dess nästa nivå kommer. Hur du nås är den här ordningen, för varje policy som larmar dig.
+
 ## De fyra flikarna
 
-**Användarinställningar → Jourregler** har en flik för varje typ av larm. Varje flik har ett kort per allvarlighetsgrad, med det namn och den färg som ditt projekt har gett den:
+**Användarinställningar → Så når man mig** har en flik för varje typ av larm. Varje flik har ett kort per allvarlighetsgrad, med det namn och den färg som ditt projekt har gett den:
 
 | Flik | Larm för | Kort för |
 | --- | --- | --- |
@@ -60,11 +85,11 @@ Dina egna regler har inga tysta timmar: håll låga allvarlighetsgrader på e-po
 :::steps
 ### Öppna kortet
 
-Gå till **Användarinställningar → Jourregler**, öppna fliken för typen av larm och hitta kortet för allvarlighetsgraden.
+Gå till **Användarinställningar → Så når man mig**, öppna fliken för typen av larm och hitta kortet för allvarlighetsgraden.
 
 ### Välj metoden
 
-Klicka på **Lägg till Aviseringsregel**. Välj under **Aviseringsmetod** en av dina verifierade metoder; en metod som du inte har verifierat erbjuds inte.
+Klicka på **Lägg till aviseringsregel**. Välj under **Aviseringsmetod** en av dina verifierade metoder; en metod som du inte har verifierat erbjuds inte.
 
 ### Välj hur en push låter
 
@@ -72,7 +97,7 @@ För en telefon väljer du under **Push-avisering** antingen **Kritiskt larm** e
 
 ### Ställ in väntetiden
 
-Välj **Avisera mig efter**: **Omedelbart**, **5 minuter**, **10 minuter**, **15 minuter**, **30 minuter** eller **1 timme**. Klicka sedan på **Lägg till Aviseringsregel** i dialogen.
+Välj **Avisera mig efter**: **Omedelbart**, **5 minuter**, **10 minuter**, **15 minuter**, **30 minuter** eller **1 timme**. Klicka sedan på **Lägg till aviseringsregel** i dialogen.
 :::
 
 Kortet listar sina regler i ordning efter väntetid, med **Aviseringsmetod** och **Avisera efter** för var och en.
@@ -105,12 +130,12 @@ API:et kan spara en avregistreringsregel, med `isOptOut` satt och utan metod: d�
 :::
 
 :::details Stäng av reservlösningen för ett helt projekt
-En projektägare, eller någon med **Manage Billing**, kan ställa in projektets `disableOnCallNotificationFallback` via API:et. Ett larm som inte hittar någon regel levereras då inte, och dess logg säger att användaren ska lägga till regler under **Användarinställningar → Jourregler**.
+En projektägare, eller någon med **Manage Billing**, kan ställa in projektets `disableOnCallNotificationFallback` via API:et. Ett larm som inte hittar någon regel levereras då inte, och dess logg säger att användaren ska lägga till regler under **Användarinställningar → Så når man mig**.
 :::
 
 ## En kollegas regler
 
-Projektägare och administratörer kan se och ändra samma sida för alla i projektet: under **Användare** öppnar de personen och sedan **Jourregler** i avsnittet **Jour**. **Beredskap**, bredvid, visar om varje allvarlighetsgrad når personen. När någon annan lägger till, ändrar eller tar bort dina regler får du ett e-postmeddelande om det, och varje ändring finns i projektets granskningslogg.
+Projektägare och administratörer kan se och ändra samma sida för alla i projektet: under **Användare** öppnar de personen och sedan **Så når man mig** i avsnittet **Jour**. **Beredskap**, bredvid, visar om varje allvarlighetsgrad når personen. När någon annan lägger till, ändrar eller tar bort dina regler får du ett e-postmeddelande om det, och varje ändring finns i projektets granskningslogg.
 
 ## Felsökning
 

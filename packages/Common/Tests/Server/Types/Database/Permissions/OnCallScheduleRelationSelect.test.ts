@@ -378,7 +378,7 @@ describe("On-call schedule relation select - what still refuses", () => {
         makeProps([Permission.ProjectOwner]),
       );
     }).toThrow(
-      "Column nextUserIdOnRoster on On-Call Policy Schedule does not support read on relation query.",
+      "Column nextUserIdOnRoster on On-Call Schedule does not support read on relation query.",
     );
   });
 

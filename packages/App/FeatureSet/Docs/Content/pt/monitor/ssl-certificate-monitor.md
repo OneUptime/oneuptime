@@ -54,7 +54,7 @@ Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique
 
 ### Revisar os critérios
 
-**Critérios do monitor** começa com os [critérios padrão](#critérios-padrão): offline quando o certificado não é válido, um alerta quando ele vence em 14 dias ou menos. Altere-os se precisar e clique em **Próximo**.
+**Critérios** começa com os [critérios padrão](#critérios-padrão): offline quando o certificado não é válido, um alerta quando ele vence em 14 dias ou menos. Altere-os se precisar e clique em **Próximo**.
 
 ### Escolher as sondas e criar
 
@@ -106,7 +106,7 @@ Para ser avisado antes, altere o valor do filtro **Dias até a expiração** no 
 :::details Adicionar o aviso a um monitor criado antes de ele existir
 Monitores criados antes de o OneUptime adicionar este aviso não têm um critério de "vence em breve". Para adicioná-lo:
 
-1. No monitor, abra **Configuração → Critérios** e clique em **Editar critérios de monitoramento**.
+1. No monitor, abra **Configuração → Critérios** e clique em **Editar critérios**.
 2. Clique em **Adicionar critérios**. Defina o filtro dele como **Certificado válido** / **Verdadeiro**, clique em **Adicionar filtro** e defina o segundo como **Dias até a expiração** / **Menor ou igual a** / `14`. Deixe **Condição de correspondência** em **Todos** (ela aparece abaixo dos filtros quando há dois).
 3. Em **Ações**, ative **Quando os filtros corresponderem, criar um alerta.** e deixe **Quando os filtros corresponderem, alterar o status do monitor.** desativado, para que ele crie um alerta e não mude o status do monitor.
 4. Arraste o novo critério para cima do critério que marca o monitor como no ar, e salve.

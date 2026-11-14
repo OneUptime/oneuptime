@@ -21,15 +21,15 @@ flowchart TB
 
 ## De agendapagina
 
-Open **Geplande onderhoud → Onderhoudsagenda**, in het onderdeel **Agenda** van het zijmenu. **Alle gebeurtenissen** toont dezelfde gebeurtenissen als lijst.
+Open **Geplande onderhoud → Onderhoudsagenda**, in het onderdeel **Agenda** van het zijmenu. **Alle onderhoudsgebeurtenissen** toont dezelfde gebeurtenissen als lijst.
 
 - De agenda opent op deze maand, met vandaag gemarkeerd. **Maand**, **Week** en **Dag** bepalen hoeveel hij toont; blader met de pijlen en ga terug met **Vandaag**. De tijden staan in je eigen tijdzone.
 - Elke gebeurtenis is een blok in de kleur van haar status, en de kleuren van de statussen staan onder de agenda. Klik op een gebeurtenis om haar te openen.
 - De filters boven de agenda werken zoals in de lijst: kies een status, een label of een eigenaar om alleen die gebeurtenissen te zien.
-- Een dag die nog moet komen toont een **+** als je naar zijn week wijst. Die opent **Geplande onderhoudsgebeurtenis aanmaken** met **Begint op** op die dag, op het uur dat het formulier vandaag zou kiezen. Je ziet hem alleen als je gebeurtenissen mag aanmaken.
+- Een dag die nog moet komen toont een **+** als je naar zijn week wijst. Die opent **Onderhoudsgebeurtenis aanmaken** met **Begint op** op die dag, op het uur dat het formulier vandaag zou kiezen. Je ziet hem alleen als je gebeurtenissen mag aanmaken.
 - Eén weergave toont tot 500 gebeurtenissen. Een drukkere maand meldt dat: beperk hem met de filters, of kijk naar een week.
 
-**Alle gebeurtenissen** wisselde vroeger tussen een lijst en een agenda. Liet je browser het daar het laatst op de agenda staan, dan opent **Alle gebeurtenissen** één keer de **Onderhoudsagenda** en is daarna de lijst.
+**Alle onderhoudsgebeurtenissen** wisselde vroeger tussen een lijst en een agenda. Liet je browser het daar het laatst op de agenda staan, dan opent **Alle onderhoudsgebeurtenissen** één keer de **Onderhoudsagenda** en is daarna de lijst.
 
 ## Externe agenda's
 

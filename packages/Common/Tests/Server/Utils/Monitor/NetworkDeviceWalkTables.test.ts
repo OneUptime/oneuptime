@@ -750,15 +750,27 @@ describe("NetworkInventoryUtil.updateFromWalk stores the table snapshot", () => 
     updateSpy = jest
       .spyOn(NetworkDeviceService, "updateOneById")
       .mockResolvedValue(1);
+    // The poll's verdict, first: a device with no newer one (issue #7389).
+    jest
+      .spyOn(NetworkDeviceService, "writePollVerdict")
+      .mockResolvedValue(true);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
+  // A poll with no details to write makes no enrichment write at all.
   function writtenColumns(): Record<string, unknown> {
-    return (updateSpy.mock.calls[0]![0] as { data: Record<string, unknown> })
-      .data;
+    expect(updateSpy.mock.calls.length).toBeLessThanOrEqual(1);
+
+    return (
+      (
+        updateSpy.mock.calls[0]?.[0] as
+          | { data: Record<string, unknown> }
+          | undefined
+      )?.data || {}
+    );
   }
 
   test("writes the snapshot it is given", async () => {

@@ -342,6 +342,76 @@ the Dashboard translates, unless its allowlist says why the page shows it in
 English. `ARABIC.md` has the Arabic details. Texts the server sends
 (`Common/Server/Locales`: emails, chat messages) are not set apart.
 
+### A path in a sentence read from the right (ar, fa)
+
+A browser draws `→` and `←` as they are written: neither turns round in a
+line read from the right, as `>` and `›` do. Written `→`, each arrow of a
+Persian path points back at the step before it. So between two steps:
+
+- `←` beside a step in the language: `تنظیمات پروژه ← پیشرفته ← کلیدهای API`,
+  `Services ← سرویس شما ← Configuration`.
+- `→` between two steps left in Latin letters, which the page draws from the
+  left as English does: `**AWS Console → App Runner → Services ← سرویس شما**`.
+
+An arrow at either end of a text leads a link on or back, as its English
+says: a link that leads on ends with `←` (`All metrics →` is
+`همهٔ متریک‌ها ←`), and one that leads back starts with `→` (`← Back` is
+`→ بازگشت`). A text whose English has no such arrow is not held to one.
+
+`PathArrowsInRightToLeftSentences.test.ts` in `packages/Common/Tests/App`
+lays out every Arabic and Persian text of every app's locale files (the
+frontends', the server's, the API Reference's and the docs') with the same
+copy of the bidi algorithm, and fails on an arrow between two steps that
+points back, and on a link's arrow that does not lead the way its English
+does.
+
+An arrow between two values (`{{start}} → {{end}}`) turns with what fills
+them, so the page sets each value apart (`translateTemplate`'s
+`setsValuesApart`) and the arrow is the sentence's own: `←` in Arabic and
+Persian. `OnCallOverrideArrowsInRightToLeft.test.ts` in
+`packages/Common/Tests/App/Dashboard` holds the on-call calendar's hover
+text to that, whatever names and dates fill it.
+
+### Persian glossary (fa)
+
+Persian words the English alone does not settle. Use them, so a new key
+reads like the rest: `packages/App/Tests/Dashboard/DashboardWordsInPersian.test.ts`
+fails on a key worded otherwise, and the Persian docs name a label in bold
+as `fa.json` draws it.
+
+- **Timeout** is `مهلت`, a time limit: `مهلت درخواست` for Request Timeout.
+  A timeout that happens is `پایان مهلت` ("including timeouts":
+  `از جمله پایان مهلت`), and "before timing out" is
+  `پیش از آنکه مهلت به پایان برسد`. Never `وقفه`, which is a pause.
+- **Cooldown**, a wait before something may run again, is `وقفه`:
+  `وقفه پیش از بررسی دوباره (دقیقه)` for Re-investigation Cooldown
+  (Minutes). It is the only `وقفه` in `fa.json`.
+- **Zone**, a DNS zone or a cloud's, is `زُن`: `زُن DNS` for DNS zone,
+  `زُن دسترس‌پذیری` for Availability zone. Never `ناحیه`, an area of a
+  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, and a settings
+  page's Danger Zone `منطقه خطر`. The Persian docs write it `زُن` too,
+  outside code.
+- **Recordset** is `مجموعه‌رکورد`: `مجموعه‌رکورد DNS` for DNS recordset,
+  in the docs too.
+- **Load balancer** is `متعادل‌کننده بار`, with no `ٔ`, and load balancers
+  `متعادل‌کننده‌های بار`.
+- **Floating IP** is `IP شناور`, and floating IPs `IPهای شناور`.
+- **Pool**, whatever it pools, is `استخر`: a Ceph or an Octavia pool,
+  `استخر ذخیره‌سازی` for a storage pool, `استخر ساب‌نت` for a subnet
+  pool, `استخر منابع` for a vSphere resource pool, `استخر نخ` for a
+  thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`, which
+  is a repository, or `پول`, which is money.
+- **Share**, a file share such as Manila's, is `اشتراک فایل`, and shares
+  `اشتراک‌های فایل`. `اشتراک` alone is a subscription, and the Share
+  button is `اشتراک‌گذاری`.
+- **Amphora** stays in Latin letters: it is the name Octavia gives the
+  virtual machine a load balancer runs in, as Arabic and most languages
+  keep it. It is on `i18n/Progress/fa.json`'s same-as-English list for
+  that reason, and so is `amphora`.
+- A name the page draws in English stays as written: an alert template's
+  (**Pool Near Full**), a console's menu item (**Share snapshot** in the
+  RDS console), a CLI command (`openstack share message list`).
+
 ## What "untranslated" means
 
 A locale must have every `en.json` key and no others. A key is

@@ -37,7 +37,7 @@ The explorer has five tabs:
 ## Before you begin
 
 - **Traces arriving.** Instrument your services with [OpenTelemetry](/docs/telemetry/open-telemetry). The **Setup Guide** tab shows the code for your language.
-- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Telemetry Service Traces permission. Its scope decides whose spans you see: see [Telemetry](/docs/permissions/index#telemetry).
+- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Traces permission. Its scope decides whose spans you see: see [Telemetry](/docs/permissions/index#telemetry).
 
 ## Find a request
 
@@ -183,6 +183,6 @@ Each row is a span, not a request: with **Entry spans**, the default, a request 
 :::cards
 - [Search Syntax](/docs/telemetry/search-syntax): Every filter the search box understands.
 - [Traces Monitor](/docs/monitor/traces-monitor): Get alerted on failed or slow requests.
-- [Exception Tracking](/docs/telemetry/exceptions): Triage the errors your spans record.
+- [Exceptions](/docs/telemetry/exceptions): Triage the errors your spans record.
 - [Logs Explorer](/docs/telemetry/logs-explorer): Read the log lines a request wrote.
 :::

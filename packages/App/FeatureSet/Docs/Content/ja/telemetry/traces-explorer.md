@@ -37,7 +37,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているトレース。** [OpenTelemetry](/docs/telemetry/open-telemetry) でサービスを計装します。**セットアップガイド** タブに、使っている言語向けのコードが表示されます。
-- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Telemetry Service Traces 権限を持つカスタムロール。ロールのスコープによって、誰のスパンが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
+- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Traces 権限を持つカスタムロール。ロールのスコープによって、誰のスパンが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## リクエストを探す
 
@@ -183,6 +183,6 @@ OneUptime AI が自動で開くプルリクエストは 1 日 (UTC) 最大 5 件
 :::cards
 - [検索構文](/docs/telemetry/search-syntax): 検索ボックスが理解するすべてのフィルター。
 - [トレース モニター](/docs/monitor/traces-monitor): 失敗したリクエストや遅いリクエストのアラートを受け取ります。
-- [例外トラッキング](/docs/telemetry/exceptions): スパンが記録したエラーをトリアージします。
+- [例外](/docs/telemetry/exceptions): スパンが記録したエラーをトリアージします。
 - [ログエクスプローラー](/docs/telemetry/logs-explorer): リクエストが書いたログの行を読みます。
 :::

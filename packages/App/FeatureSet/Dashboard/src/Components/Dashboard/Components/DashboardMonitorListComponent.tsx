@@ -46,6 +46,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardMonitorListComponent;
@@ -183,7 +184,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const honeycombTiles: Array<HoneycombTile> = monitors.map(
     (monitor: Monitor): HoneycombTile => {
       const monitorId: string = (monitor._id as string) || "";
-      const name: string = (monitor.name as string) || "Unnamed";
+      const name: string =
+        (monitor.name as string) || getUnnamedText(translator);
       // Disabled, in gray, when the monitor's monitoring is off.
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const monitorType: string = (monitor.monitorType as string) || "—";
@@ -225,8 +227,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       const statusColor: Color | null = status.color;
       const monitorType: string = (monitor.monitorType as string) || "—";
       const name: string =
-        (monitor.name as string) ||
-        (translator.translateText("Unnamed") as string);
+        (monitor.name as string) || getUnnamedText(translator);
 
       const detailRoute: Route = RouteUtil.populateRouteParams(
         RouteMap[PageMap.MONITOR_VIEW] as Route,
@@ -286,7 +287,10 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         props.component.arguments.title,
         props.variables,
       )}
-      pluralLabel="monitors"
+      countLabel={{
+        one: "{{count}} monitor",
+        other: "{{count}} monitors",
+      }}
       columns={COLUMNS}
       count={monitors.length}
       isLoading={isLoading}

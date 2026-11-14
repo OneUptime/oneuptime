@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.
-- [Tjenestekatalog](/docs/telemetry/services): Hver applikasjon du kjører, med en egen side.
+- [Tjenester](/docs/telemetry/services): Hver applikasjon du kjører, med en egen side.
 - [Inventar – Oversikt](/docs/inventory/overview): Alt OneUptime vet om miljøet ditt.
 :::
 
@@ -132,7 +132,7 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 ## Telemetri
 
-**Telemetri** er det systemene dine sender til OneUptime: logger, metrikker, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, Kubernetes-klynger, Docker-verter og resten av infrastrukturen. Hver avsender bruker en **inntaksnøkkel**, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Du søker i telemetrien, viser den på dashbord og følger med på den med telemetrimonitorer, som åpner hendelser og varsler som alle andre monitorer. I menyen åpner **Logger**, **Målinger**, **Spor**, **Ytelsesprofiler** og **Unntak** hver sin type; **AI / LLM** følger samtalene til AI-en din, **Dataobserverbarhet** følger med på tabellene i databasene dine, og **Topologi** kartlegger hvordan alt henger sammen.
+**Telemetri** er det systemene dine sender til OneUptime: logger, metrikker, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, Kubernetes-klynger, Docker-verter og resten av infrastrukturen. Hver avsender bruker en **inntaksnøkkel**, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Du søker i telemetrien, viser den på dashbord og følger med på den med telemetrimonitorer, som åpner hendelser og varsler som alle andre monitorer. I menyen åpner **Logger**, **Målinger**, **Spor**, **Profiler** og **Unntak** hver sin type; **AI / LLM** følger samtalene til AI-en din, **Dataobserverbarhet** følger med på tabellene i databasene dine, og **Topologi** kartlegger hvordan alt henger sammen.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, metrikker og spor fra appene dine.
@@ -198,7 +198,7 @@ En monitors egne regler er kriteriene dens. Vaktreglene under **Brukerinnstillin
 
 :::cards
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#regler-som-kjører-når-en-hendelse-opprettes): Reglene som kjører når en hendelse opprettes, i rekkefølge.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Hvordan en tilkalling når frem til deg.
+- [Slik når man meg](/docs/notifications/on-call-rules): Hvordan en tilkalling når frem til deg.
 :::
 
 ## Neste steg

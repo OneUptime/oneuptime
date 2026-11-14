@@ -64,14 +64,19 @@ import {
   getOnCallEmptyLevelTimelineMessage,
   isOnCallPageLineReached,
 } from "../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
+import {
+  NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE,
+  NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+  SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallPageLine";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
  * who is not a member of the project (they left, or never accepted their
- * invitation): nothing is sent to them.
+ * invitation): nothing is sent to them. Kept where it always was too
+ * (Types/OnCallDutyPolicy/OnCallPageLine), for whoever reads it from here.
  */
-export const NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE: string =
-  "Skipped because this user is not a member of the project.";
+export { NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE };
 
 /*
  * One person an escalation rule pages, or one schedule of the rule with
@@ -1164,7 +1169,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           } as LogAttributes,
         );
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-        log.statusMessage = "Sending notification to user.";
+        log.statusMessage = SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
         log.alertSentToUserId = alertSentToUserId;
 
@@ -1509,8 +1514,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         hadScheduleGap = true;
 
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-        log.statusMessage =
-          "Skipped because no active users are found in this schedule.";
+        log.statusMessage = NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.onCallDutyScheduleId = target.scheduleId;
 

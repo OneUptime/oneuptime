@@ -7,22 +7,22 @@ export function getProfilesBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES, [
       "Project",
-      "Profiler",
+      "Profiles",
       "Overview",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_INSIGHTS, [
       "Project",
-      "Profiler",
+      "Profiles",
       "All profiles",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILE_VIEW, [
       "Project",
-      "Profiler",
+      "Profiles",
       "Profile",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_DOCUMENTATION, [
       "Project",
-      "Profiler",
+      "Profiles",
       "Setup guide",
     ]),
     /*
@@ -31,26 +31,26 @@ export function getProfilesBreadcrumbs(path: string): Array<Link> | undefined {
      */
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_INSIGHTS, [
       "Project",
-      "Profiler",
+      "Profiles",
       "AI",
       "Insights",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_INSIGHT_VIEW, [
       "Project",
-      "Profiler",
+      "Profiles",
       "AI",
       "Insights",
       "Insight",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_LOGS, [
       "Project",
-      "Profiler",
+      "Profiles",
       "AI",
       "Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_SETTINGS, [
       "Project",
-      "Profiler",
+      "Profiles",
       "AI",
       "Settings",
     ]),

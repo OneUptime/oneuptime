@@ -34,6 +34,8 @@ Ange ett **Projektnamn**, till exempel ditt företags namn. På OneUptime Cloud 
 
 ### Skapa det
 
+![Hem frågar ”Vad vill du göra först?”, med guidens tre mål ikryssade](screen:home-goals-three)
+
 Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **Välkommen till OneUptime 👋** överst. Först frågar den **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere**, **Larma rätt person när något går sönder** och **Berätta för mina kunder med en statussida**, och klicka på **Fortsätt**.
 :::
 
@@ -59,6 +61,8 @@ Behåll de valda **Sonder** och **Övervakningsintervall** **Var 5:e minut**, oc
 
 Vill du prova kontrollen innan du sparar, klickar du på **Testa monitor** i det andra steget. Alla andra monitortyper beskrivs i [Skapa en monitor](/docs/monitor/create-monitor).
 
+För att också kontrollera ett API, välja vem som får veta och skicka ett testlarm som visar att meddelandet når fram till dig, följer du [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
+
 ## Bli larmad när den går ner
 
 Som det är nu skickas en incident utan ägare med e-post till projektets ägare, och det inkluderar dig. För att bli larmad tills någon svarar skapar du en jourpolicy: den första i ett projekt utlöses vid varje ny incident och varje nytt larm.
@@ -66,7 +70,7 @@ Som det är nu skickas en incident utan ägare med e-post till projektets ägare
 :::steps
 ### Skapa en jourpolicy
 
-Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jourtjänst** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget och klicka på **Skapa Jourpolicy**.
+Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jour** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget och klicka på **Skapa Jourpolicy**.
 
 ### Se regeln som utlöser den
 
@@ -78,7 +82,7 @@ E-postadressen du loggar in med är redan ett sätt att nå dig. För att också
 :::
 
 > [!NOTE]
-> SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Billing Admin eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringsinställningar**.
+> SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Billing Admin eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringskanaler**.
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
 
@@ -119,9 +123,13 @@ Deklarera en testincident för att se hela kedjan fungera.
 
 ### Se vad som händer
 
+![”Incidentflöde” för en löst incident: vem som larmades och varje statusändring, nyaste först](screen:incident-feed)
+
 Inom någon minut larmar din jourpolicy dig, och incidenten visas på din statussida.
 
 ### Lös den
+
+![En incident i ”Bekräftad”, med ”Lös” markerad](screen:incident-resolve)
 
 Klicka på **Lös** på incidentens sida. Larmen slutar, och incidenten försvinner från din statussida.
 :::

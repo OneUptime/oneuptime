@@ -37,23 +37,47 @@ export const RESOURCE_GRID_COLUMN_WIDTH_IN_REM: number = 13;
  */
 export const RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM: number = 6;
 
-type ColumnCountFunction<T> = (columnCount: number) => T;
+/*
+ * What a grid's matrix needs: room for its rows' values, and room for each
+ * column. The editor's are the two above. The public status page's grid
+ * (PublicResourceGridLayout) draws a status and an uptime in a cell rather
+ * than chips with names, so it names narrower columns of its own.
+ */
+export interface ResourceGridSizes {
+  rowHeadingWidthInRem: number;
+  columnWidthInRem: number;
+}
 
-// What a grid of this many columns needs to be drawn as a matrix.
+export const RESOURCE_GRID_SIZES: ResourceGridSizes = {
+  rowHeadingWidthInRem: RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM,
+  columnWidthInRem: RESOURCE_GRID_COLUMN_WIDTH_IN_REM,
+};
+
+type ColumnCountFunction<T> = (
+  columnCount: number,
+  sizes?: ResourceGridSizes,
+) => T;
+
+/*
+ * What a grid of this many columns needs to be drawn as a matrix: the
+ * editor's widths, unless a grid names its own.
+ */
 export const getResourceGridMatrixWidthInRem: ColumnCountFunction<number> = (
   columnCount: number,
+  sizes: ResourceGridSizes = RESOURCE_GRID_SIZES,
 ): number => {
   return (
-    RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM +
-    RESOURCE_GRID_COLUMN_WIDTH_IN_REM * Math.max(1, Math.floor(columnCount))
+    sizes.rowHeadingWidthInRem +
+    sizes.columnWidthInRem * Math.max(1, Math.floor(columnCount))
   );
 };
 
 // The stack: the grid's box is no wider than its matrix needs.
 export const getResourceGridStackVariant: ColumnCountFunction<string> = (
   columnCount: number,
+  sizes: ResourceGridSizes = RESOURCE_GRID_SIZES,
 ): string => {
-  return `[@container(max-width:${getResourceGridMatrixWidthInRem(columnCount)}rem)]:`;
+  return `[@container(max-width:${getResourceGridMatrixWidthInRem(columnCount, sizes)}rem)]:`;
 };
 
 /*
@@ -65,8 +89,9 @@ export const getResourceGridStackVariant: ColumnCountFunction<string> = (
  */
 export const getResourceGridMatrixVariant: ColumnCountFunction<string> = (
   columnCount: number,
+  sizes: ResourceGridSizes = RESOURCE_GRID_SIZES,
 ): string => {
-  return `[@container_not_(max-width:${getResourceGridMatrixWidthInRem(columnCount)}rem)]:`;
+  return `[@container_not_(max-width:${getResourceGridMatrixWidthInRem(columnCount, sizes)}rem)]:`;
 };
 
 /*
@@ -157,7 +182,11 @@ type PartClassNameFunction = (data: {
   matrixVariant: string;
 }) => string;
 
-const getPartClassName: PartClassNameFunction = (data: {
+/*
+ * A part's classes: its own, then what the stack adds under the stack's
+ * query, then what only the matrix adds under the negated one.
+ */
+export const getResourceGridPartClassName: PartClassNameFunction = (data: {
   part: ResourceGridPart;
   stackVariant: string;
   matrixVariant: string;
@@ -184,7 +213,7 @@ export const getResourceGridClassNames: ColumnCountFunction<
   const classNameOf: (part: ResourceGridPart) => string = (
     part: ResourceGridPart,
   ): string => {
-    return getPartClassName({
+    return getResourceGridPartClassName({
       part: part,
       stackVariant: stackVariant,
       matrixVariant: matrixVariant,

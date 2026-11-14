@@ -27,6 +27,8 @@ Tu servidor debe poder enviar correos, SMS y llamadas. Su administrador principa
 :::steps
 ### Abrir la configuración guiada
 
+![Inicio pregunta «¿Qué quieres hacer primero?», con «Avisar a la persona adecuada cuando algo falle» marcado](screen:home-goal-paging)
+
 En la página **Inicio** de tu proyecto, haz clic en **Configura una política de guardia**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Avisar a la persona adecuada cuando algo falle** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**.
 
 ### Instalar la app en el teléfono
@@ -35,21 +37,31 @@ Instala OneUptime On-Call desde el App Store o Google Play e inicia sesión: as�
 
 ### Activar los SMS y las llamadas
 
+![El paso «¿Cómo debemos localizarte?», con «Activar SMS y llamadas» resaltado](screen:paging-reach-you)
+
 Los proyectos nuevos empiezan con los SMS y las llamadas desactivados. Si eres el propietario del proyecto, haz clic en **Activar SMS y llamadas**; a cualquier otra persona se le indica quién puede hacerlo. En OneUptime Cloud, si el saldo es de 1.00 USD o menos, haz clic en **Añadir saldo**, introduce entre 20 y 1.000 USD en **Importe (USD)** y haz clic en **Recargar**.
 
 ### Añadir tu número de teléfono
+
+![El campo «Tu número de teléfono», con «Envíame un código por SMS» resaltado](screen:paging-phone)
 
 Escribe tu número de móvil con el prefijo de país en **Tu número de teléfono**, por ejemplo `+15551234567`, y haz clic en **Envíame un código por SMS**. Introduce el código del SMS y haz clic en **Verificar**: ese mismo número también recibe las llamadas de los avisos. Haz clic en **Continuar**. Para recibir avisos solo por la app y por correo, no añadas el número y haz clic en **Continuar** directamente.
 
 ### Elegir a quién más se avisa
 
+![El paso «¿Quién más está de guardia?», con «Guardar y continuar» resaltado](screen:paging-who-else)
+
 En **¿Quién más está de guardia?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas contigo y, después, en **Guardar y continuar**. En un proyecto que aún no tiene ninguna política de guardia, esto crea `Default on-call policy`, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
 
 ### Decidir qué pasa si nadie responde
 
+![El paso «¿Y si nadie responde?», con «Guardar y continuar» resaltado](screen:paging-no-answer)
+
 En **¿Y si nadie responde?**, mantén **Avisar a otra persona**, elige a quién en **Avisados después** y deja **Minutos de espera** en `30` o cámbialo. Haz clic en **Guardar y continuar**. En el plan Free, el paso ofrece en su lugar **Volver a avisar a las mismas personas**, con **Veces que se vuelve a avisar** en `2`.
 
 ### Enviar un aviso de prueba
+
+![El paso «Enviar un aviso de prueba», con «Probar esta política» resaltado](screen:paging-test)
 
 En **Enviar un aviso de prueba**, haz clic en **Probar esta política**. Elige una **Gravedad** y haz clic en **Enviar aviso de prueba**. Se avisa a quienes están en la primera regla de escalado de la política, igual que con un incidente real, y cada mensaje dice TEST. No se crea ningún incidente, y no se informa a ninguna página de estado ni a ningún suscriptor.
 
@@ -59,6 +71,8 @@ Abre el enlace del SMS o del correo y reconoce ahí el aviso, o pulsa 1 durante 
 :::
 
 ## Comprobar que ha funcionado
+
+![El resumen «Los avisos están configurados»: «A quién se avisa», «Si nadie responde» y «Probado»](screen:paging-summary)
 
 - El paso de prueba dice quién reconoció el aviso, cómo y en cuánto tiempo.
 - La configuración termina en **Los avisos están configurados**, con lo que se ha guardado: **A quién se avisa**, **Si nadie responde** y **Probado**. Un problema de la propia política, como alguien a quien no puede localizar, aparece en **Requiere atención**.
@@ -89,6 +103,6 @@ Comprueba primero el prefijo de país del número. Tras un aviso de prueba, cier
 :::cards
 - [Programaciones de guardia](/docs/on-call/schedules): Organiza turnos, para que cada aviso llegue a quien esté de guardia. En Cloud, desde el plan Growth.
 - [Reglas de escalado](/docs/on-call/escalation-rules): Añade niveles, equipos y programaciones a la política.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Elige qué método te avisa primero, y cuándo.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Elige qué método te avisa primero, y cuándo.
 - [Publicar una página de estado](/docs/guides/status-page): Cuenta a tus clientes lo que pasa, en tu propio dominio.
 :::

@@ -648,7 +648,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
       expect(view["callback_id"]).toBe("SubmitNewScheduledMaintenance");
       expect(view["title"]).toEqual({
         type: "plain_text",
-        text: "New Scheduled Event",
+        text: "New Maintenance Event",
       });
       expect(
         (inputOf(view, "scheduledMaintenanceTitle")?.["element"] as JSONObject)[

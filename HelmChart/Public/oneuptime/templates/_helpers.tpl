@@ -1417,6 +1417,13 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: DISABLE_TELEMETRY_INGESTION
   value: {{ default false $.Values.telemetry.disableIngestion | squote }}
 
+{{- /*
+  The products every project offers as the server starts (#6815): a starting
+  value for Admin Dashboard > Settings > Products, which wins once saved.
+*/}}
+- name: SERVER_PRODUCTS
+  value: {{ default "everything" (($.Values.products | default dict).onThisServer) | squote }}
+
 - name: DISABLE_UPDATE_CHECK
   value: {{ default false $.Values.updateCheck.disabled | squote }}
 

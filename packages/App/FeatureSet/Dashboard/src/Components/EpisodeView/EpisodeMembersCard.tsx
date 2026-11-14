@@ -43,6 +43,7 @@ import {
   TranslatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps<
   TMember extends BaseModel,
@@ -380,10 +381,11 @@ const EpisodeMembersCard: <
             role="alert"
             className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
           >
-            {translator.translateTemplate(
-              "Couldn't refresh {{itemsName}}: {{error}}",
-              { itemsName, error },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh {{itemsName}}: {{error}}"
+              error={error}
+              values={{ itemsName }}
+            />
           </div>
         )}
         <ul

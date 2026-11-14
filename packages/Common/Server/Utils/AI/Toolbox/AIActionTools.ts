@@ -206,13 +206,13 @@ const resolveExecutionLogCreatePermissions: () => Array<Permission> =
 export const PageOnCallPolicyTool: ObservabilityTool = {
   name: "page_on_call_policy",
   description:
-    "Page (trigger) an on-call duty policy so its responders are notified about an incident. Provide the on-call policy id and the incident id it relates to. Find the policy id with query_on_call_policies and the incident id with query_incidents first. This notifies real people — only do it when clearly asked.",
+    "Page (trigger) an on-call policy so its responders are notified about an incident. Provide the on-call policy id and the incident id it relates to. Find the policy id with query_on_call_policies and the incident id with query_incidents first. This notifies real people — only do it when clearly asked.",
   inputSchema: {
     type: "object",
     properties: {
       onCallDutyPolicyId: {
         type: "string",
-        description: "The on-call duty policy's ID to trigger (required).",
+        description: "The on-call policy's ID to trigger (required).",
       },
       incidentId: {
         type: "string",
@@ -267,7 +267,7 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
       });
     if (!policy) {
       throw new BadDataException(
-        "On-call duty policy not found (or you do not have access to it).",
+        "On-call policy not found (or you do not have access to it).",
       );
     }
     /*
@@ -277,7 +277,7 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
      */
     if (policy.isArchived) {
       throw new BadDataException(
-        `On-call duty policy "${policy.name}" is archived, so it pages no one. Unarchive it first, or page a different policy.`,
+        `On-call policy "${policy.name}" is archived, so it pages no one. Unarchive it first, or page a different policy.`,
       );
     }
 

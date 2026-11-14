@@ -4,18 +4,23 @@ import fs from "fs";
 import path from "path";
 
 /*
- * YOUR ON-CALL RULES ARE ONE PAGE WITH A TAB PER KIND, NOT FOUR PAGES.
+ * HOW TO REACH ME IS ONE PAGE: A LADDER, WITH A TAB PER KIND BEHIND IT.
  *
  * User Settings had two side-menu sections (Incident On-Call, Alert On-Call)
  * holding four pages that each drew the same rules table for one kind of rule,
  * and Users > (a member) > On-Call repeated them as four more menu entries.
  * They are one On-Call Rules page in each place now, with Incidents | Incident
  * Episodes | Alerts | Alert Episodes tabs, and the tab is in the address
- * (?type=alerts). This holds that shape, so a page written later cannot
- * quietly bring a per-kind page back, or draw the two places differently:
+ * (?type=alerts). Since #6820 the page opens on one paging ladder for
+ * every kind and severity (HowToReachMe), with those tabs one click behind
+ * it, and is called How to Reach Me: "On-Call Rules" is the project's rules
+ * under Incidents and Alerts (#6817). This holds that shape, so a page
+ * written later cannot quietly bring a per-kind page back, or draw the two
+ * places differently:
  *
- *   - one component draws the tabs (OnCallRulesTabs), both pages draw it,
- *     and nothing else draws the rules table itself;
+ *   - one component draws the page (HowToReachMe), both pages draw it, it
+ *     draws the tabs (OnCallRulesTabs), and nothing else draws the rules
+ *     table itself;
  *   - one menu entry per place, and no page, route or menu entry per kind;
  *   - the four old addresses are named in one place (Common's OnCallRuleKind,
  *     which both route groups forward from) and linked from nowhere: every
@@ -36,6 +41,7 @@ const DASHBOARD_SRC: string = path.join(
 );
 
 const TABS_FILE: string = "Components/NotificationRule/OnCallRulesTabs.tsx";
+const PAGE_FILE: string = "Components/NotificationRule/HowToReachMe.tsx";
 const TABLE_FILE: string = "Components/NotificationRule/OnCallRulesTable.tsx";
 const KINDS_FILE: string = "Components/NotificationRule/OnCallRuleKinds.ts";
 const OWN_PAGE: string = "Pages/UserSettings/OnCallRules.tsx";
@@ -69,6 +75,9 @@ const RETIRED_SECTION_TITLES: Array<string> = [
   "Incident On-Call",
   "Alert On-Call",
 ];
+
+// The page's name since #6820, in both menus and both trails.
+const PAGE_TITLE: string = "How to Reach Me";
 
 function readDashboard(relative: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8");
@@ -133,19 +142,50 @@ function relativeToRepo(file: string): string {
 }
 
 describe("one component draws the page, in both places", () => {
-  test("both pages draw OnCallRulesTabs", () => {
+  test("both pages draw HowToReachMe, and only it", () => {
     for (const page of [OWN_PAGE, MEMBER_PAGE]) {
       const source: string = stripComments(readDashboard(page));
 
       expect(source).toContain(
-        'import OnCallRulesTabs from "../../Components/NotificationRule/OnCallRulesTabs";'.replace(
+        'import HowToReachMe from "../../Components/NotificationRule/HowToReachMe";'.replace(
           "../../",
           page === OWN_PAGE ? "../../" : "../../../../",
         ),
       );
-      expect(source).toContain("<OnCallRulesTabs");
+      expect(source).toContain("<HowToReachMe");
+      expect(source).not.toContain("<OnCallRulesTabs");
       expect(source).not.toContain("<OnCallRulesTable");
     }
+  });
+
+  test("HowToReachMe draws the tabs behind its ladder, and nothing else does", () => {
+    const page: string = stripComments(readDashboard(PAGE_FILE));
+
+    expect(page).toContain(
+      'import OnCallRulesTabs, { OnCallRulesPerson } from "./OnCallRulesTabs";',
+    );
+    expect(page).toContain("<OnCallRulesTabs");
+    expect(page).toContain("<PagingLadderEditor");
+    expect(page).toContain("differingCellKeys={differingCellKeys}");
+
+    const drawers: Array<string> = productSources()
+      .filter((file: string): boolean => {
+        return stripComments(fs.readFileSync(file, "utf8")).includes(
+          "<OnCallRulesTabs",
+        );
+      })
+      .map(relativeToRepo);
+
+    expect(drawers).toEqual([
+      path.join(
+        "packages",
+        "App",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        ...PAGE_FILE.split("/"),
+      ),
+    ]);
   });
 
   test("nothing but the tabs draws the rules table itself", () => {
@@ -188,9 +228,12 @@ describe("one component draws the page, in both places", () => {
   });
 
   test("the rules table titles a card by its severity, not by a sentence around it", () => {
-    const table: string = stripComments(readDashboard(TABLE_FILE));
+    const table: string = stripComments(readDashboard(TABLE_FILE)).replace(
+      /\s+/g,
+      " ",
+    );
 
-    expect(table).toContain("title: <SeverityCardTitle severity={severity} />");
+    expect(table).toContain("title: ( <SeverityCardTitle severity={severity}");
     expect(table).not.toContain("getTitle");
     expect(table).not.toContain("When I am on call");
   });
@@ -198,11 +241,13 @@ describe("one component draws the page, in both places", () => {
 
 describe("one menu entry in each place, and no page per kind", () => {
   test.each([OWN_MENU, MEMBER_MENU])(
-    "%s has exactly one On-Call Rules entry and none of the old ones",
+    "%s has exactly one How to Reach Me entry and none of the old ones",
     (menuFile: string) => {
       const menu: string = stripComments(readDashboard(menuFile));
 
-      expect(menu.split('title: "On-Call Rules"').length - 1).toBe(1);
+      expect(menu.split(`title: "${PAGE_TITLE}"`).length - 1).toBe(1);
+      // "On-Call Rules" is the project's rules now (#6817).
+      expect(menu).not.toContain('title: "On-Call Rules"');
 
       for (const title of [...RETIRED_MENU_TITLES, ...RETIRED_SECTION_TITLES]) {
         expect(menu).not.toContain(`title: "${title}"`);
@@ -218,7 +263,7 @@ describe("one menu entry in each place, and no page per kind", () => {
 
     const section: number = menu.indexOf('title: "Alerts & Notifications"');
     const methods: number = menu.indexOf('title: "Notification Methods"');
-    const rules: number = menu.indexOf('title: "On-Call Rules"');
+    const rules: number = menu.indexOf(`title: "${PAGE_TITLE}"`);
     const settings: number = menu.indexOf('title: "Notification Settings"');
 
     expect(section).toBeGreaterThan(-1);
@@ -253,7 +298,8 @@ describe("one menu entry in each place, and no page per kind", () => {
     ]) {
       const source: string = readDashboard(breadcrumbs);
 
-      expect(source).toContain('"On-Call Rules"');
+      expect(source).toContain(`"${PAGE_TITLE}"`);
+      expect(source).not.toContain('"On-Call Rules"');
 
       for (const title of RETIRED_MENU_TITLES) {
         expect(source).not.toContain(`"${title}"`);

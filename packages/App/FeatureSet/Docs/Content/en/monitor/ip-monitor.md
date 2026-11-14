@@ -5,7 +5,7 @@ An IP monitor checks that an IPv4 or IPv6 address answers ping (ICMP echo reques
 :::cards
 - [Create the monitor](#create-an-ip-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): The address, the timeout and retries.
-- [Monitoring criteria](#monitoring-criteria): Reachability, latency, packet loss and jitter.
+- [Criteria](#criteria): Reachability, latency, packet loss and jitter.
 - [Troubleshooting](#troubleshooting): When the address is up but the monitor says offline.
 :::
 
@@ -63,7 +63,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the address does not answer, online when it does. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the address does not answer, online when it does. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -80,7 +80,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 **Retries on Failure** counts retries _after_ the first attempt, so `0` runs the check once and `2` runs it up to three times. Left blank, it uses the probe's default: 3, unless the probe's `PROBE_MONITOR_RETRY_LIMIT` says otherwise. Every failure is retried, timeouts included, with a one-second pause between attempts. A successful check whose replies took longer than 10 seconds is checked again too.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the address counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

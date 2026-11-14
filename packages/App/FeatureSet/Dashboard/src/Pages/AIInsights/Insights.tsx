@@ -64,6 +64,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 const INSIGHTS_PER_PAGE: number = 20;
 
@@ -688,10 +689,10 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
       <div className="space-y-3">
         {error ? (
           <p className="text-sm text-red-700">
-            {translator.translateTemplate(
-              "Could not refresh insights: {{error}}",
-              { error: error },
-            )}
+            <ErrorSentence
+              template="Could not refresh insights: {{error}}"
+              error={error}
+            />
           </p>
         ) : (
           <></>
@@ -767,10 +768,10 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
 
         {loadMoreError ? (
           <p className="text-center text-sm text-red-700">
-            {translator.translateTemplate(
-              "Could not load more insights: {{error}}",
-              { error: loadMoreError },
-            )}
+            <ErrorSentence
+              template="Could not load more insights: {{error}}"
+              error={loadMoreError}
+            />
           </p>
         ) : (
           <></>

@@ -158,7 +158,7 @@ En episode som et privat varsel åpner, er ikke privat, så den viser aldri vars
 
 ## Hvem som får vite om et varsel
 
-- **Vakten.** Varselets vaktpolicyer tilkaller personene sine, hver på den måten de har satt det opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**. Den som svarer på tilkallingen, bekrefter varselet, og tilkallingen stopper.
+- **Vakten.** Varselets vaktpolicyer tilkaller personene sine, hver på den måten de har satt det opp under **Brukerinnstillinger → Slik når man meg** på fanen **Varsler**. Den som svarer på tilkallingen, bekrefter varselet, og tilkallingen stopper.
 - **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varselinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Påminnelse om varsel** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet prosjektets eiere beskjed.
 - **Chatverktøyene dine.** **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

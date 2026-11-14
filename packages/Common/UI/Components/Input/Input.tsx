@@ -93,6 +93,26 @@ export interface ComponentProps {
   outerDivClassName?: string | undefined;
   autoFocus?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
+  /*
+   * A value that reads left to right in every language, typed as text: a
+   * list of phone numbers, which a phone's dial pad has no comma for. A
+   * phone number (inputMode "tel") and an address on the web read so
+   * already.
+   */
+  readsLeftToRight?: boolean | undefined;
+  /*
+   * The placeholder is an identifier (an OIDC claim's name), drawn as
+   * given and never looked up (a form Field's isPlaceholderIdentifier).
+   */
+  isPlaceholderIdentifier?: boolean | undefined;
+  /*
+   * A datetime-local field shows and keeps hours and minutes: a time people
+   * schedule or record something at is picked to the minute, and a value
+   * with seconds made the browser's picker show a seconds column too
+   * ("13/11/2026 11:15:52"). A field whose time is compared with event
+   * timestamps to the second - a telemetry time range - opts in to seconds
+   * here, with its reason beside it (MinutePickersGuard lists every one).
+   */
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
   // The most characters it takes, as the column it fills keeps them.
@@ -130,6 +150,7 @@ export interface ComponentProps {
 type GetDateDisplayValueFunction = (
   value: string | Date,
   type: InputType | undefined,
+  showSecondsForDateTime?: boolean | undefined,
 ) => string | undefined;
 
 /*
@@ -139,10 +160,16 @@ type GetDateDisplayValueFunction = (
  * So does anything that is neither a string nor a Date - an untyped caller's
  * number or JSON object - which the input has never tried to parse, and which
  * would now be parsed during render, where a throw takes the page down.
+ *
+ * A date and time is shown to the minute ("2026-11-13T11:15"), unless the
+ * field opts in to seconds (showSecondsForDateTime). Only what is shown
+ * drops the seconds: the value stays as it was given until the person
+ * changes the field, so a stored 11:15:52 left alone is saved as 11:15:52.
  */
-const getDateDisplayValue: GetDateDisplayValueFunction = (
+export const getDateDisplayValue: GetDateDisplayValueFunction = (
   value: string | Date,
   type: InputType | undefined,
+  showSecondsForDateTime?: boolean | undefined,
 ): string | undefined => {
   if (!value) {
     return "";
@@ -160,9 +187,13 @@ const getDateDisplayValue: GetDateDisplayValueFunction = (
     value instanceof Date ? value : OneUptimeDate.fromString(value);
 
   try {
-    return type === InputType.DATETIME_LOCAL
+    if (type !== InputType.DATETIME_LOCAL) {
+      return OneUptimeDate.asDateForDatabaseQuery(date);
+    }
+
+    return showSecondsForDateTime
       ? OneUptimeDate.toDateTimeLocalString(date)
-      : OneUptimeDate.asDateForDatabaseQuery(date);
+      : OneUptimeDate.toDateTimeLocalMinuteString(date);
   } catch (err: unknown) {
     Logger.error(err as Error);
     return "";
@@ -252,9 +283,12 @@ const Input: FunctionComponent<ComponentProps> = (
    * "https://hooks.slack.com/services/..." - and a number typed in with
    * spaces or brackets started at the far end from its placeholder. So such
    * a field reads left to right, its error icon (at the end of the box
-   * around it) on the right with it, whatever the page's language.
+   * around it) on the right with it, whatever the page's language. And a
+   * field that says it reads so: a list of phone numbers, whose example
+   * "+14155550123, +447700900123" put each "+" after its digits (#7180).
    */
   const readsLeftToRight: boolean =
+    props.readsLeftToRight === true ||
     props.inputMode === "tel" ||
     props.inputMode === "url" ||
     props.type === InputType.URL;
@@ -323,7 +357,13 @@ const Input: FunctionComponent<ComponentProps> = (
    */
   const [dateDisplayValue, setDateDisplayValue] = useState<string>(
     (): string => {
-      return isDateInput ? getDateDisplayValue(value, props.type) ?? "" : "";
+      return isDateInput
+        ? getDateDisplayValue(
+            value,
+            props.type,
+            props.showSecondsForDateTime,
+          ) ?? ""
+        : "";
     },
   );
   const ref: React.MutableRefObject<HTMLInputElement | null> =
@@ -337,12 +377,13 @@ const Input: FunctionComponent<ComponentProps> = (
     const nextDateDisplayValue: string | undefined = getDateDisplayValue(
       value,
       props.type,
+      props.showSecondsForDateTime,
     );
 
     if (nextDateDisplayValue !== undefined) {
       setDateDisplayValue(nextDateDisplayValue);
     }
-  }, [value]);
+  }, [value, props.showSecondsForDateTime]);
 
   /*
    * For text the display value IS the value, derived here rather than kept in
@@ -488,7 +529,11 @@ const Input: FunctionComponent<ComponentProps> = (
               ? "1"
               : undefined
           }
-          placeholder={translateString(props.placeholder)}
+          placeholder={
+            props.isPlaceholderIdentifier
+              ? props.placeholder
+              : translateString(props.placeholder)
+          }
           className={className}
           onBlur={() => {
             if (props.onBlur) {

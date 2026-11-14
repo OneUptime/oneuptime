@@ -275,8 +275,7 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.Alert]: "alert",
   [NotificationRuleEventType.IncidentEpisode]: "incident episode",
   [NotificationRuleEventType.AlertEpisode]: "alert episode",
-  [NotificationRuleEventType.ScheduledMaintenance]:
-    "scheduled maintenance event",
+  [NotificationRuleEventType.ScheduledMaintenance]: "maintenance event",
   [NotificationRuleEventType.Monitor]: "monitor",
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call policy",
   [NotificationRuleEventType.SecurityCase]: "security case",
@@ -5532,15 +5531,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!onCallDutyPolicy) {
-        logger.debug(
-          "On Call Duty Policy not found for ID:",
-          {} as LogAttributes,
-        );
+        logger.debug("On-call policy not found for ID:", {} as LogAttributes);
         logger.debug(
           data.notificationFor.onCallDutyPolicyId,
           {} as LogAttributes,
         );
-        throw new BadDataException("On Call Duty Policy ID not found");
+        throw new BadDataException(
+          "The on-call policy this notification is for was not found. It may have been deleted.",
+        );
       }
 
       const onCallDutyPolicyLabels: Array<Label> =

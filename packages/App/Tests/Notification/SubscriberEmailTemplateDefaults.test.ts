@@ -246,7 +246,7 @@ const EVENT_CASES: Array<EventCase> = [
     subject: "Scheduled Maintenance: Database engine upgrade - In Progress",
     fields: [
       ["Event Title", "Database engine upgrade"],
-      ["Event State", "In Progress"],
+      ["Maintenance State", "In Progress"],
       ["Resources Affected", "Checkout API, Search API"],
     ],
     action: "View Maintenance Details",

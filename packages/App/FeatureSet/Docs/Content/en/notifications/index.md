@@ -14,13 +14,13 @@ OneUptime reaches you in two ways. It pages you when an incident or alert fires 
 
 ```mermaid title="Two ways OneUptime reaches you, through one set of methods"
 flowchart TB
-    page["An incident or alert<br/>pages you on call"] --> rules["Your on-call rules"]
+    page["An incident or alert<br/>pages you on call"] --> rules["How to Reach Me"]
     owned["Something happens to<br/>a record you own"] --> settings["Your notification<br/>settings"]
     rules --> methods["Your verified methods:<br/>email, phone, push, chat"]
     settings --> methods
 ```
 
-- An on-call policy pages you when one of its escalation rules names you, a team you are in, or a schedule you are on call in. Your on-call rules then decide which of your methods OneUptime tries, and after how long.
+- An on-call policy pages you when one of its escalation rules names you, a team you are in, or a schedule you are on call in. How to Reach Me then decides which of your methods OneUptime tries, and after how long.
 - When something happens to a record you own, or to your shifts, your notification settings decide which channels the update goes to.
 - Either way, OneUptime only uses methods you have verified, in the project the page or update comes from.
 
@@ -29,7 +29,7 @@ flowchart TB
 | Page | What it holds | The question it answers |
 | --- | --- | --- |
 | **Notification Methods** | Your email addresses, phone numbers, WhatsApp numbers, Telegram, Slack, Microsoft Teams and Mattermost accounts, push devices and webhooks | Where can OneUptime reach me? |
-| **On-Call Rules** | For each kind of page and each severity, which method to try and after how long | How am I paged while I am on call? |
+| **How to Reach Me** | For each kind of page and each severity, which method to try and after how long | How am I paged while I am on call? |
 | **Notification Settings** | For each event about a record you own or about your shifts, which channels to use | What else do I hear about, and where? |
 
 They are separate on purpose. Switching every channel on in **Notification Settings** never pages you, and a method you have not verified is never used, whatever your rules say.
@@ -44,7 +44,7 @@ Open **User Settings**, on the right of the bar under the top bar. Its side menu
 | Section | Pages |
 | --- | --- |
 | **Get Started** | **Setup Checklist**: what is left to set up, in the order it matters |
-| **Alerts & Notifications** | **Notification Methods**, **On-Call Rules**, **Notification Settings** and **Email Preferences**, which sets how many emails your updates add up to |
+| **Alerts & Notifications** | **Notification Methods**, **How to Reach Me**, **Notification Settings** and **Email Preferences**, which sets how many emails your updates add up to |
 | **On-Call Logs** | **On-Call Logs**: every time you were paged in this project, and what was sent |
 | **Incoming Call Policy** | **Incoming Phone Numbers**: the number an incoming call policy rings you on |
 | **Calendar** | **Calendar Feed**: your shifts in your calendar app, and reminders before they start |
@@ -53,17 +53,17 @@ Open **User Settings**, on the right of the bar under the top bar. Its side menu
 
 **Get Started** and **Alerts & Notifications** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** shows only when the project has connected Slack, Microsoft Teams or Mattermost.
 
-Project owners and admins can look at your setup too: under **Users**, they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **On-Call Rules**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.
+Project owners and admins can look at your setup too: under **Users**, they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **How to Reach Me**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.
 
 ## What you start with
 
 When you join a project with a verified sign-in email, OneUptime sets you up so that a page can always reach you:
 
 1. Your sign-in email is added as a verified email method.
-2. For every severity, on each of the four tabs of **On-Call Rules**, a rule emails you as soon as you are paged.
+2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.
 3. A set of updates about what you own, and about your shifts, is switched on by email. See [Notification Settings](/docs/notifications/notification-settings#what-is-on-for-a-new-member).
 
-Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [Personal On-Call Rules](/docs/notifications/on-call-rules#the-rules-you-start-with).
+Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [How to Reach Me](/docs/notifications/on-call-rules#the-rules-you-start-with).
 
 ## The setup checklist
 
@@ -72,7 +72,7 @@ Every method you verify later gets the same rules: a rule for every severity, se
 | Section | What it checks |
 | --- | --- |
 | **So we can reach you** | You have a method, every method you added is verified, and at least one of them is on a channel the project has turned on |
-| **How you want to be paged** | Every severity has a rule, on each of the four tabs of **On-Call Rules** |
+| **How you want to be paged** | Every severity has a rule, on each of the four tabs of **How to Reach Me** |
 | **Staying informed** | You hear when a shift starts, and every channel you switched on in **Notification Settings** has a verified method behind it |
 | **Nice to have** | A number for incoming calls, your Slack and Microsoft Teams accounts, a calendar link and your profile fields |
 
@@ -95,7 +95,7 @@ A page can reach you for a kind and severity you have no rule for: a severity ad
 2. If you have none of those, one paid method, in this order: SMS, a phone call, WhatsApp, Telegram. It is the first one you have verified, on a channel the project has turned on.
 3. If you have none of those either, a webhook.
 
-You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [Personal On-Call Rules](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
+You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [How to Reach Me](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
 
 ## The language of your pages
 
@@ -131,7 +131,7 @@ A number joins your rules once it is verified. Click **Verify** on its row and e
 
 :::cards
 - [Notification Methods](/docs/notifications/notification-methods): Add and verify the addresses OneUptime may reach you at.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): Decide which method each page tries, and when.
+- [How to Reach Me](/docs/notifications/on-call-rules): Decide which method each page tries, and when.
 - [Notification Settings](/docs/notifications/notification-settings): Choose the updates you hear about, and on which channels.
 - [Escalation Rules](/docs/on-call/escalation-rules): How an on-call policy decides who is paged, level by level.
 :::

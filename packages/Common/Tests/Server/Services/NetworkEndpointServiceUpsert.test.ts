@@ -1,8 +1,15 @@
 import NetworkEndpointService, {
   EndpointControllerClient,
+  EndpointWriteCounts,
 } from "../../../Server/Services/NetworkEndpointService";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
+import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  expectPlaceholdersMatchParameters,
+  normalizeSql,
+} from "../TestingUtils/PastDueMonitoringClaimSql";
+import { FindOperator, QueryFailedError } from "typeorm";
 
 /*
  * Wiring tests for upsertDiscoveredEndpoints: the precedence DECISIONS live
@@ -17,6 +24,13 @@ import ObjectID from "../../../Types/ObjectID";
  * last poll must produce no write at all. The service builds raw
  * parameterized SQL against the TypeORM manager, so these tests mock the
  * query runner (no Postgres) and assert on the statements and parameters.
+ *
+ * Neither statement waits for, or overwrites, a row another writer has
+ * (OneUptime issue #7388): the update writes only the rows it could lock
+ * SKIP LOCKED, the insert is DO NOTHING, and each answers the MACs it
+ * wrote. The mock answers as Postgres does with no other writer about;
+ * the tests of other writers answer less. NetworkEndpointWriteLocksPostgres
+ * runs it all against Postgres.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -46,6 +60,79 @@ const UPDATE_PARAMS_PER_ROW: number = 11;
 
 type QueryCall = [string, Array<unknown>];
 
+type MacRow = { macAddress: string };
+
+// The MAC of each row of a statement's parameters, in order.
+function macsOfRows(
+  params: Array<unknown>,
+  firstMacAt: number,
+  paramsPerRow: number,
+): Array<string> {
+  const macs: Array<string> = [];
+
+  for (
+    let index: number = firstMacAt;
+    index < params.length;
+    index += paramsPerRow
+  ) {
+    macs.push(params[index] as string);
+  }
+
+  return macs;
+}
+
+// The MACs an INSERT was handed, and an UPDATE (after its shared $1).
+function insertedMacs(call: QueryCall): Array<string> {
+  return macsOfRows(call[1], 1, INSERT_PARAMS_PER_ROW);
+}
+
+function updatedMacs(call: QueryCall): Array<string> {
+  return macsOfRows(call[1], 1, UPDATE_PARAMS_PER_ROW);
+}
+
+/*
+ * What Postgres answers with no other writer about: every row an INSERT
+ * was handed is made, every row an UPDATE was handed is written - each
+ * answered by its MAC, as the statements' RETURNING says.
+ */
+async function answerAsPostgres(
+  sql: string,
+  params: Array<unknown>,
+): Promise<Array<MacRow>> {
+  const call: QueryCall = [sql, params];
+  const macs: Array<string> = sql.includes('INSERT INTO "NetworkEndpoint"')
+    ? insertedMacs(call)
+    : sql.includes('UPDATE "NetworkEndpoint"')
+      ? updatedMacs(call)
+      : [];
+
+  return macs.map((mac: string): MacRow => {
+    return { macAddress: mac };
+  });
+}
+
+// A MAC per index, all under one OUI the registry does not know.
+function macAt(index: number): string {
+  const hex: string = index.toString(16).padStart(4, "0");
+  return `aa:bb:cc:dd:${hex.substring(0, 2)}:${hex.substring(2, 4)}`;
+}
+
+// What the driver throws for a statement another writer's row lock stopped.
+function lockContention(code: "55P03" | "40P01"): QueryFailedError {
+  return new QueryFailedError(
+    "INSERT ...",
+    [],
+    Object.assign(
+      new Error(
+        code === "55P03"
+          ? "canceling statement due to lock timeout"
+          : "deadlock detected",
+      ),
+      { code },
+    ),
+  );
+}
+
 describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
   let findBySpy: jest.SpyInstance;
   let querySpy: jest.Mock;
@@ -54,7 +141,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     findBySpy = jest
       .spyOn(NetworkEndpointService, "findBy")
       .mockResolvedValue([]);
-    querySpy = jest.fn().mockResolvedValue([]);
+    querySpy = jest.fn().mockImplementation(answerAsPostgres);
     jest
       .spyOn(NetworkEndpointService, "getRepository")
       .mockReturnValue({ manager: { query: querySpy } } as any);
@@ -252,7 +339,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     expect(params[2]).toBe("10.0.0.31");
   });
 
-  it("infers the partial unique index so soft-deleted rows never collide", async () => {
+  it("infers the partial unique index so soft-deleted rows never collide, and overwrites nothing another writer made", async () => {
     await NetworkEndpointService.upsertDiscoveredEndpoints({
       projectId: PROJECT_ID,
       deviceId: SWITCH_ID,
@@ -263,12 +350,46 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       now: NOW,
     });
 
-    const sql: string = insertCalls()[0]![0];
-    expect(sql).toContain(
-      'ON CONFLICT ("projectId", "macAddress") WHERE "deletedAt" IS NULL',
-    );
-    // vendor is create-only (user-correctable) — never in the conflict branch.
-    expect(sql.split("DO UPDATE SET")[1]).not.toContain('"vendor"');
+    const call: QueryCall = insertCalls()[0]!;
+    const sql: string = normalizeSql(call[0]);
+
+    /*
+     * DO NOTHING, answering the MACs it made: a MAC another writer made
+     * first is decided again against that row, never written over (#7388).
+     */
+    expect(
+      sql.endsWith(
+        'ON CONFLICT ("projectId", "macAddress") WHERE "deletedAt" IS NULL DO NOTHING RETURNING "macAddress"',
+      ),
+    ).toBe(true);
+    expect(sql).not.toContain("DO UPDATE");
+    expectPlaceholdersMatchParameters({ sql: call[0], parameters: call[1] });
+  });
+
+  it("stamps the vendor on create only: a person may correct it, and no update writes it", async () => {
+    findBySpy.mockResolvedValue([
+      makeExistingRow({
+        macAddress: CISCO_MAC,
+        attachedNetworkDeviceId: OTHER_SWITCH_ID,
+        attachedInterfaceIndex: 2,
+        firstSeenAt: EARLIER,
+        lastSeenAt: ONE_MINUTE_AGO,
+      }),
+    ]);
+
+    await NetworkEndpointService.upsertDiscoveredEndpoints({
+      projectId: PROJECT_ID,
+      deviceId: SWITCH_ID,
+      attachments: [
+        { macAddress: CISCO_MAC, attachedInterfaceIndex: 7 },
+        { macAddress: "aa:bb:cc:dd:ee:01", attachedInterfaceIndex: 1 },
+      ],
+      ipBindings: [],
+      now: NOW,
+    });
+
+    expect(insertCalls()[0]![0]).toContain('"vendor"');
+    expect(updateCalls()[0]![0]).not.toContain('"vendor"');
   });
 
   it("updates an existing row when the FDB moves it to another port, keeping firstSeenAt", async () => {
@@ -324,6 +445,45 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     );
     // Soft-deleted rows are never resurrected by the bulk update.
     expect(sql).toContain('e."deletedAt" IS NULL');
+  });
+
+  /*
+   * OneUptime issue #7389: a walk's sighting is timed when OneUptime received
+   * the poll. An older poll processed after a newer one still writes what it
+   * says that is new - the rules of who owns the port are not about time -
+   * but it never takes the endpoint's last sighting back to its own. On the
+   * row as Postgres reads it, so a walk written at the same moment counts.
+   */
+  it("never moves an endpoint's lastSeenAt backwards, on the row as it stands", async () => {
+    findBySpy.mockResolvedValue([
+      makeExistingRow({
+        macAddress: CISCO_MAC,
+        attachedNetworkDeviceId: SWITCH_ID,
+        attachedInterfaceIndex: 2,
+        firstSeenAt: EARLIER,
+        lastSeenAt: NOW,
+      }),
+    ]);
+
+    await NetworkEndpointService.upsertDiscoveredEndpoints({
+      projectId: PROJECT_ID,
+      deviceId: SWITCH_ID,
+      attachments: [{ macAddress: CISCO_MAC, attachedInterfaceIndex: 7 }],
+      ipBindings: [],
+      now: TEN_MINUTES_AGO,
+    });
+
+    // The port it saw is new, so it is written...
+    expect(updateCalls()).toHaveLength(1);
+    expect(updateCalls()[0]![1][4]).toBe(7);
+
+    // ...with its own sighting, which the row keeps only if it is later.
+    expect(updateCalls()[0]![1][9]).toEqual(TEN_MINUTES_AGO);
+    const sql: string = updateCalls()[0]![0];
+    expect(sql).toContain(
+      '"lastSeenAt" = GREATEST(e."lastSeenAt", v."lastSeenAt")',
+    );
+    expect(sql).not.toMatch(/"lastSeenAt" = v\."lastSeenAt"/);
   });
 
   it("lets ARP refresh the IP but not steal an attachment owned elsewhere", async () => {
@@ -740,21 +900,22 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       return existing;
     };
 
-    const walk: () => Promise<void> = (): Promise<void> => {
-      return NetworkEndpointService.upsertDiscoveredEndpoints({
-        projectId: PROJECT_ID,
-        deviceId: SWITCH_ID,
-        attachments: [
-          {
-            macAddress: CISCO_MAC,
-            attachedInterfaceIndex: 49,
-            attachedPortName: "port49",
-          },
-        ],
-        ipBindings: [],
-        now: NOW,
-      });
-    };
+    const walk: () => Promise<EndpointWriteCounts> =
+      (): Promise<EndpointWriteCounts> => {
+        return NetworkEndpointService.upsertDiscoveredEndpoints({
+          projectId: PROJECT_ID,
+          deviceId: SWITCH_ID,
+          attachments: [
+            {
+              macAddress: CISCO_MAC,
+              attachedInterfaceIndex: 49,
+              attachedPortName: "port49",
+            },
+          ],
+          ipBindings: [],
+          now: NOW,
+        });
+      };
 
     it("writes nothing while the placement is current: an uplink is no access port", async () => {
       findBySpy.mockResolvedValue([placed(new Date("2026-07-22T09:00:00Z"))]);
@@ -916,6 +1077,346 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       expect(insertCalls()[0]![1]).toHaveLength(6 * INSERT_PARAMS_PER_ROW);
       // +1 for the shared projectId parameter.
       expect(updateCalls()[0]![1]).toHaveLength(4 * UPDATE_PARAMS_PER_ROW + 1);
+    });
+  });
+
+  /*
+   * One MAC is seen by many devices at the same moment, so the walks of a
+   * project write the same endpoints at once (OneUptime issue #7388). They
+   * used to wait for each other's row locks - deadlocks, lock timeouts, and
+   * the rest of the walk's inventory lost with the error.
+   */
+  describe("a walk that meets other writers", () => {
+    const MAC_A: string = "aa:bb:cc:dd:ee:01";
+    const MAC_B: string = "aa:bb:cc:dd:ee:02";
+
+    // A row of `mac` on port 1 of SWITCH_ID; a walk on another port moves it.
+    const known: (mac: string) => NetworkEndpoint = (
+      mac: string,
+    ): NetworkEndpoint => {
+      return makeExistingRow({
+        macAddress: mac,
+        attachedNetworkDeviceId: SWITCH_ID,
+        attachedInterfaceIndex: 1,
+        firstSeenAt: EARLIER,
+        lastSeenAt: ONE_MINUTE_AGO,
+      });
+    };
+
+    const walkOnPort9: (macs: Array<string>) => Promise<EndpointWriteCounts> = (
+      macs: Array<string>,
+    ): Promise<EndpointWriteCounts> => {
+      return NetworkEndpointService.upsertDiscoveredEndpoints({
+        projectId: PROJECT_ID,
+        deviceId: SWITCH_ID,
+        deviceSiteId: SITE_ID,
+        attachments: macs.map((mac: string) => {
+          return { macAddress: mac, attachedInterfaceIndex: 9 };
+        }),
+        ipBindings: [],
+        now: NOW,
+      });
+    };
+
+    // The MACs the n-th read of the walk asked for.
+    const macsReadBy: (call: number) => Array<string> = (
+      call: number,
+    ): Array<string> => {
+      const query: { macAddress: FindOperator<unknown> } = (
+        findBySpy.mock.calls[call]![0] as {
+          query: { macAddress: FindOperator<unknown> };
+        }
+      ).query;
+
+      return Object.values(
+        query.macAddress.objectLiteralParameters || {},
+      )[0] as Array<string>;
+    };
+
+    // What the service said it left, in its own words.
+    const serviceLines: (spy: jest.SpyInstance) => Array<string> = (
+      spy: jest.SpyInstance,
+    ): Array<string> => {
+      return spy.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .filter((line: string): boolean => {
+          return line.startsWith("NetworkEndpointService:");
+        });
+    };
+
+    const answerNothingOnce: () => void = (): void => {
+      querySpy.mockImplementationOnce(async (): Promise<Array<MacRow>> => {
+        return [];
+      });
+    };
+
+    it("writes only the rows nobody else holds: locked FOR NO KEY UPDATE SKIP LOCKED, never waited for", async () => {
+      findBySpy.mockResolvedValue([known(MAC_A), known(MAC_B)]);
+
+      expect(await walkOnPort9([MAC_A, MAC_B])).toEqual({
+        written: 2,
+        skipped: 0,
+      });
+
+      expect(updateCalls()).toHaveLength(1);
+      const call: QueryCall = updateCalls()[0]!;
+      const sql: string = normalizeSql(call[0]);
+
+      // The chunk's rows, typed, once - for the lock and for the write.
+      expect(
+        sql.startsWith(
+          'WITH "observed" ("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "vlanId", "siteId", "ipAddress", "lastSeenAt", "hostname", "attachmentSource") AS ( VALUES ($2::character varying, $3::boolean, $4::uuid,',
+        ),
+      ).toBe(true);
+      expect(sql).toContain(
+        '"locked" AS ( SELECT e."_id" FROM "NetworkEndpoint" AS e INNER JOIN "observed" AS o ON o."macAddress" = e."macAddress" WHERE e."projectId" = $1 AND e."deletedAt" IS NULL FOR NO KEY UPDATE OF e SKIP LOCKED )',
+      );
+      // FOR UPDATE would also stop every foreign key check of the row.
+      expect(sql).not.toMatch(/FOR UPDATE/);
+      expect(sql).toContain(
+        '"written" AS ( UPDATE "NetworkEndpoint" AS e SET ',
+      );
+      expect(sql).toContain(
+        'FROM "observed" AS v WHERE e."projectId" = $1 AND e."macAddress" = v."macAddress" AND e."deletedAt" IS NULL AND e."_id" IN (SELECT "_id" FROM "locked") RETURNING e."macAddress" )',
+      );
+      expect(sql.endsWith('SELECT "macAddress" FROM "written"')).toBe(true);
+      expectPlaceholdersMatchParameters({ sql: call[0], parameters: call[1] });
+    });
+
+    it("counts a row another writer held as skipped, and says in the debug log what it left for the next walk", async () => {
+      const debug: jest.SpyInstance = jest
+        .spyOn(logger, "debug")
+        .mockImplementation((() => {
+          return undefined;
+        }) as never);
+      findBySpy.mockResolvedValue([known(MAC_A), known(MAC_B)]);
+      // It locked and wrote MAC_A; another writer held MAC_B.
+      querySpy.mockImplementationOnce(async (): Promise<Array<MacRow>> => {
+        return [{ macAddress: MAC_A }];
+      });
+
+      expect(await walkOnPort9([MAC_A, MAC_B])).toEqual({
+        written: 1,
+        skipped: 1,
+      });
+
+      expect(serviceLines(debug)).toHaveLength(1);
+      expect(serviceLines(debug)[0]).toContain(SWITCH_ID.toString());
+      expect(serviceLines(debug)[0]).toContain(
+        "wrote 1 endpoints and left 1 for its next walk",
+      );
+    });
+
+    it("logs nothing about a walk that wrote everything it had to", async () => {
+      const debug: jest.SpyInstance = jest
+        .spyOn(logger, "debug")
+        .mockImplementation((() => {
+          return undefined;
+        }) as never);
+      findBySpy.mockResolvedValue([known(MAC_A)]);
+
+      expect(await walkOnPort9([MAC_A, MAC_B])).toEqual({
+        written: 2,
+        skipped: 0,
+      });
+      expect(serviceLines(debug)).toEqual([]);
+    });
+
+    it("inserts new MACs in MAC order, whatever order the switch listed them in: two walks never wait for each other in a circle", async () => {
+      const macs: Array<string> = [];
+      for (let index: number = 599; index >= 0; index--) {
+        macs.push(macAt(index));
+      }
+
+      await walkOnPort9(macs);
+
+      expect(insertCalls()).toHaveLength(2);
+      expect(insertCalls().flatMap(insertedMacs)).toEqual([...macs].sort());
+    });
+
+    it("inserts a controller's new clients in MAC order too", async () => {
+      const clients: Array<EndpointControllerClient> = [];
+      for (let index: number = 599; index >= 0; index--) {
+        clients.push({
+          macAddress: macAt(index),
+          seenAt: NOW,
+          deviceId: SWITCH_ID,
+        });
+      }
+
+      expect(
+        await NetworkEndpointService.upsertControllerClients({
+          projectId: PROJECT_ID,
+          source: "meraki",
+          now: NOW,
+          clients,
+        }),
+      ).toBe(600);
+
+      expect(insertCalls().flatMap(insertedMacs)).toEqual(
+        clients
+          .map((client: EndpointControllerClient): string => {
+            return client.macAddress;
+          })
+          .sort(),
+      );
+    });
+
+    it("decides a MAC another writer made first again, against the row it made: a router's ARP table does not take a switch's port", async () => {
+      // The read found no row; by the insert, a switch's walk had made one.
+      findBySpy.mockResolvedValueOnce([]).mockResolvedValueOnce([
+        makeExistingRow({
+          macAddress: MAC_A,
+          attachedNetworkDeviceId: OTHER_SWITCH_ID,
+          attachedInterfaceIndex: 7,
+          firstSeenAt: ONE_MINUTE_AGO,
+          lastSeenAt: ONE_MINUTE_AGO,
+        }),
+      ]);
+      answerNothingOnce();
+
+      const counts: EndpointWriteCounts =
+        await NetworkEndpointService.upsertDiscoveredEndpoints({
+          projectId: PROJECT_ID,
+          deviceId: SWITCH_ID,
+          attachments: [],
+          ipBindings: [
+            {
+              macAddress: MAC_A,
+              ipAddress: "10.0.0.31",
+              routerInterfaceIndex: 3,
+            },
+          ],
+          now: NOW,
+        });
+
+      expect(counts).toEqual({ written: 1, skipped: 0 });
+      // Read again: only the MAC it did not make.
+      expect(findBySpy).toHaveBeenCalledTimes(2);
+      expect(macsReadBy(1)).toEqual([MAC_A]);
+      expect(insertCalls()).toHaveLength(1);
+      expect(updateCalls()).toHaveLength(1);
+      expect(updateCalls()[0]![1]).toEqual([
+        PROJECT_ID.toString(),
+        MAC_A,
+        false, // the switch keeps its port
+        null,
+        null,
+        null,
+        null,
+        null,
+        "10.0.0.31", // and the router adds the address
+        NOW,
+        null,
+        null,
+      ]);
+    });
+
+    it("writes nothing to a MAC a controller placed first, while the placement stands", async () => {
+      const placed: NetworkEndpoint = makeExistingRow({
+        macAddress: CISCO_MAC,
+        attachedNetworkDeviceId: OTHER_SWITCH_ID,
+        attachedPortName: "Port 7",
+        firstSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: ONE_MINUTE_AGO,
+      });
+      placed.attachmentSource = "meraki";
+      findBySpy.mockResolvedValueOnce([]).mockResolvedValueOnce([placed]);
+      answerNothingOnce();
+
+      expect(await walkOnPort9([CISCO_MAC])).toEqual({
+        written: 0,
+        skipped: 0,
+      });
+      expect(insertCalls()).toHaveLength(1);
+      expect(updateCalls()).toHaveLength(0);
+    });
+
+    it("leaves a MAC made and deleted again before its second read for the next walk, and never inserts it twice", async () => {
+      answerNothingOnce();
+
+      expect(await walkOnPort9([MAC_A])).toEqual({ written: 0, skipped: 1 });
+      expect(findBySpy).toHaveBeenCalledTimes(2);
+      expect(insertCalls()).toHaveLength(1);
+      expect(updateCalls()).toHaveLength(0);
+    });
+
+    it("leaves the rows of a statement that waited out the lock timeout for the next walk, says so, and writes the rest", async () => {
+      const warn: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((() => {
+          return undefined;
+        }) as never);
+      const macs: Array<string> = [];
+      for (let index: number = 0; index < 600; index++) {
+        macs.push(macAt(index));
+      }
+      findBySpy.mockResolvedValue([known(macs[599]!)]);
+      // The first of the two inserts.
+      querySpy.mockImplementationOnce(async (): Promise<never> => {
+        throw lockContention("55P03");
+      });
+
+      expect(await walkOnPort9(macs)).toEqual({ written: 100, skipped: 500 });
+
+      // The next insert, and the update, still ran.
+      expect(insertCalls()).toHaveLength(2);
+      expect(updateCalls()).toHaveLength(1);
+      expect(serviceLines(warn)).toHaveLength(1);
+      expect(serviceLines(warn)[0]).toContain(
+        "500 endpoints were left for the next walk",
+      );
+      expect(serviceLines(warn)[0]).toContain("lock timeout");
+    });
+
+    it("leaves the rows of an update cancelled out of a deadlock the same way", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((() => {
+        return undefined;
+      }) as never);
+      findBySpy.mockResolvedValue([known(MAC_A), known(MAC_B)]);
+      querySpy.mockImplementationOnce(async (): Promise<never> => {
+        throw lockContention("40P01");
+      });
+
+      expect(await walkOnPort9([MAC_A, MAC_B])).toEqual({
+        written: 0,
+        skipped: 2,
+      });
+    });
+
+    it("still fails on an error that is not another writer's lock", async () => {
+      querySpy.mockImplementationOnce(async (): Promise<never> => {
+        throw new Error("value too long for type character varying(100)");
+      });
+
+      await expect(walkOnPort9([MAC_A])).rejects.toThrow("value too long");
+    });
+
+    it("counts a controller's clients it wrote, not the ones another writer held", async () => {
+      findBySpy.mockResolvedValue([known(MAC_A), known(MAC_B)]);
+      querySpy.mockImplementationOnce(async (): Promise<Array<MacRow>> => {
+        return [{ macAddress: MAC_B }];
+      });
+
+      expect(
+        await NetworkEndpointService.upsertControllerClients({
+          projectId: PROJECT_ID,
+          source: "meraki",
+          now: NOW,
+          clients: [MAC_A, MAC_B].map(
+            (mac: string): EndpointControllerClient => {
+              return {
+                macAddress: mac,
+                portName: "Port 3",
+                seenAt: NOW,
+                deviceId: OTHER_SWITCH_ID,
+              };
+            },
+          ),
+        }),
+      ).toBe(1);
     });
   });
 });

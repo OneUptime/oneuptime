@@ -209,6 +209,15 @@ describe("the pure view-model", () => {
   const TRANSLATE_TEMPLATE_SPECIFIER: string =
     "Common/UI/Utils/TranslateTemplate";
 
+  /*
+   * The words for an error nobody explained (#7307): a gateway's 502, a
+   * server failure with its reference, said in the reader's language inside
+   * the view-model's own sentence. React-free and window-free: who reads the
+   * page is told to it at runtime (ErrorReader), never imported, and the
+   * test below holds its imports to that.
+   */
+  const ERROR_IN_SENTENCE_SPECIFIER: string = "Common/UI/Utils/ErrorInSentence";
+
   test("imports nothing that reads window at load", () => {
     const specifiers: Array<string> = [];
     let match: RegExpExecArray | null = null;
@@ -225,10 +234,70 @@ describe("the pure view-model", () => {
         specifier,
         specifier.startsWith("Common/Types/") ||
           specifier === METRIC_DESCRIPTIONS_SPECIFIER ||
-          specifier === TRANSLATE_TEMPLATE_SPECIFIER,
+          specifier === TRANSLATE_TEMPLATE_SPECIFIER ||
+          specifier === ERROR_IN_SENTENCE_SPECIFIER,
       ]).toEqual([specifier, true]);
       expect(BROWSER_BOUND_MODULE_PATTERN.test(specifier)).toBe(false);
     }
+  });
+
+  test("the error words it reads import only types, the sentence joiner and the refusals that carry values, which import only the translation helpers", () => {
+    const importsOf: (raw: string) => Array<string> = (
+      raw: string,
+    ): Array<string> => {
+      // `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
+      return Array.from(
+        raw.matchAll(
+          /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
+        ),
+      )
+        .map((found: RegExpMatchArray): string => {
+          return found[1]!;
+        })
+        .sort();
+    };
+
+    /*
+     * A refusal that carries values (#7704: a monitor template's type
+     * mismatch) is said in the reader's words here too: its module and the
+     * type it is built on import only the translation helpers.
+     */
+    expect(
+      importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
+    ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Exception/UnexplainedError",
+      "../../Types/Translator",
+      "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+      "./SentenceSeparator",
+    ]);
+    expect(
+      importsOf(
+        readRaw(COMMON_ROOT, "Types", "Exception", "RefusalWithValues.ts"),
+      ),
+    ).toEqual(["../Translator"]);
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "Monitor",
+          "MonitorTemplateLinkRefusal.ts",
+        ),
+      ),
+    ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Translator",
+    ]);
+    /*
+     * The sentence joiner is a module of its own, which imports nothing
+     * (SentenceSeparator): joined through DeleteConsequences, the error
+     * words brought its table of sentences about deleting records into
+     * every page's first load (first-load-budgets.js).
+     */
+    expect(
+      importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "SentenceSeparator.ts")),
+    ).toEqual([]);
   });
 
   test("the metric descriptions it reads import only the translation-key marker", () => {

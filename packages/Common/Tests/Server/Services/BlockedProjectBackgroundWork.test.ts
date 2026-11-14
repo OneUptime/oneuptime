@@ -29,6 +29,15 @@ import McpOAuthGrantAccess, {
 } from "../../../Server/Utils/Mcp/McpOAuthGrantAccess";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import VMwareProbeCollectionStore from "../../../Server/Utils/VMware/VMwareProbeCollectionStore";
+import OpenStackProbeCollectionStore, {
+  OpenStackCollectionCloudService,
+} from "../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
+import OpenStackCheckStore, {
+  OpenStackCheckService,
+} from "../../../Server/Utils/OpenStack/OpenStackCheckStore";
+import DataStoreService from "../../../Server/Services/DataStoreService";
+import { claimDueDataStoresForProbe } from "../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
+import { claimDueTableHealthStoresForProbe } from "../../../Server/Utils/DataObservability/DataObservabilityProbeClaim";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import Query from "../../../Server/Types/Database/Query";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -45,7 +54,6 @@ import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryInges
 import {
   CapturedStatement,
   captureClaimQueries,
-  captureClaimStatements,
   normalizeSql,
 } from "../TestingUtils/PastDueMonitoringClaimSql";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -140,21 +148,81 @@ describe("monitoring", () => {
     expectClaimSkipsBlockedProjects(statements[0]!);
   });
 
-  test("the VMware collection claim hands out no vCenter of a blocked project", async () => {
-    const service: { executeTransaction: unknown } = {
+  /*
+   * A claim's own connection, for captureClaimQueries: it answers the claim
+   * statement there, and fails any claim that opens a transaction.
+   */
+  const claimingService: () => {
+    getRepository: () => unknown;
+    executeTransaction: () => Promise<unknown>;
+  } = (): {
+    getRepository: () => unknown;
+    executeTransaction: () => Promise<unknown>;
+  } => {
+    return {
+      getRepository: (): unknown => {
+        return undefined;
+      },
       executeTransaction: async (): Promise<unknown> => {
         return [];
       },
     };
-    const statements: Array<CapturedStatement> =
-      captureClaimStatements(service);
+  };
+
+  test("the VMware collection claim hands out no vCenter of a blocked project", async () => {
+    const service: ReturnType<typeof claimingService> = claimingService();
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     await VMwareProbeCollectionStore.claimDueVCenters(
       service as unknown as DatabaseService<VMwareVCenter>,
       { probeId: PROBE_ID, runningVMwareVCenterIds: [], limit: 10 },
     );
 
+    expect(statements).toHaveLength(1);
     expectClaimSkipsBlockedProjects(statements[0]!);
+  });
+
+  test("the OpenStack collection claim hands out no cloud of a blocked project", async () => {
+    const service: ReturnType<typeof claimingService> = claimingService();
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
+
+    await OpenStackProbeCollectionStore.claimDueClouds(
+      service as unknown as OpenStackCollectionCloudService,
+      { probeId: PROBE_ID, runningOpenStackCloudIds: [], limit: 10 },
+    );
+
+    expect(statements).toHaveLength(1);
+    expectClaimSkipsBlockedProjects(statements[0]!);
+  });
+
+  test("the OpenStack check claims hand out no check of a blocked project", async () => {
+    const service: ReturnType<typeof claimingService> = claimingService();
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
+
+    await OpenStackCheckStore.claimApiChecks(
+      service as unknown as OpenStackCheckService,
+      { probeId: PROBE_ID, runningIds: [], limit: 10 },
+    );
+    await OpenStackCheckStore.claimLifecycleChecks(
+      service as unknown as OpenStackCheckService,
+      { probeId: PROBE_ID, runningIds: [], limit: 10 },
+    );
+
+    expect(statements).toHaveLength(2);
+    expectClaimSkipsBlockedProjects(statements[0]!);
+    expectClaimSkipsBlockedProjects(statements[1]!);
+  });
+
+  test("the data store claims - content scans and table health - hand out no store of a blocked project", async () => {
+    const statements: Array<CapturedStatement> =
+      captureClaimQueries(DataStoreService);
+
+    await claimDueDataStoresForProbe({ probeId: PROBE_ID, limit: 10 });
+    await claimDueTableHealthStoresForProbe({ probeId: PROBE_ID, limit: 10 });
+
+    expect(statements).toHaveLength(2);
+    expectClaimSkipsBlockedProjects(statements[0]!);
+    expectClaimSkipsBlockedProjects(statements[1]!);
   });
 });
 

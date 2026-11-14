@@ -189,6 +189,9 @@ import AIService, { AILogResponse } from "./AIService";
 import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -2762,6 +2765,36 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * A create: its creator is made an owner of the incident as it returns
+   * (autoOwnerOnCreate), and the owners' "Incident Created" notification
+   * held by onBeforeCreate waits for that too (CreatedNotificationHold) -
+   * also when the create fails, which leaves nothing to wait for.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
+
+    try {
+      return await super.create(createBy);
+    } finally {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Create);
+    }
+  }
+
+  /*
+   * The next incident number of this project, with the project's prefix
+   * for it: the one way an incident is numbered. A create takes it in
+   * onBeforeCreate; the sample project, which writes its incidents without
+   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   */
+  @CaptureSpan()
+  public async takeNextIncidentNumber(
+    projectId: ObjectID,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await ProjectService.incrementAndGetIncidentCounter(projectId);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -2821,20 +2854,26 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Owners handed over to be notified are added by onCreateSuccess's
-     * chain, once the incident's Slack / Microsoft Teams channels exist -
-     * seconds after the incident is written, with a workspace connected. The
-     * owners' "Incident Created" notification is sent by a job that runs
-     * every minute and takes every incident not yet marked as notified: run
-     * in between, it would find no owners, tell the project's owners
-     * instead, and mark the incident done, and the owners the create named
-     * would hear nothing of it ("owner added" is off by default). So such an
-     * incident is written as notified already, and the chain marks it not
-     * notified once it has added them (releaseCreatedNotificationHeldForOwners):
-     * the job then tells them on its next run.
+     * An incident gets its owners after it is written: from
+     * onCreateSuccess's chain (the owners handed over with the create, once
+     * its Slack / Microsoft Teams channels exist, and the project's owner
+     * rules), from its create as it returns (its creator), and from the
+     * code that made it once the create returns (a monitor's criteria, the
+     * network device the monitor watches). The owners' "Incident Created"
+     * notification is sent by a job that runs every minute and takes every
+     * incident not yet marked as notified: run in between, it would find no
+     * owners, tell the project's owners instead, and mark the incident
+     * done, and its owners would hear nothing of it ("owner added" is off
+     * by default). So every incident is written as notified already, and is
+     * marked not notified once all of its owners are in
+     * (CreatedNotificationHold, releaseCreatedNotificationHeldForOwners):
+     * the job then tells them on its next run - or, should it have no owner
+     * at all, the project's owners, as before. A create that says it was
+     * notified already is written as it says.
      */
-    if (this.isCreatedNotificationHeldForOwners(createBy)) {
+    if (createBy.data.isOwnerNotifiedOfResourceCreation !== true) {
       createBy.data.isOwnerNotifiedOfResourceCreation = true;
+      CreatedNotificationHold.hold(createBy);
     }
 
     const projectId: ObjectID =
@@ -3413,7 +3452,7 @@ export class Service extends ProjectReferencesService<Model> {
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } = await ProjectService.incrementAndGetIncidentCounter(projectId);
+    } = await this.takeNextIncidentNumber(projectId);
 
     // The state it starts in, and no other name of it to be stored instead.
     RelationIdUtil.stamp(
@@ -3525,43 +3564,68 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    // Get incident data for feed creation
-    const incident: Model | null = await this.findOneById({
-      id: createdItem.id,
-      select: {
-        projectId: true,
-        incidentNumber: true,
-        incidentNumberWithPrefix: true,
-        title: true,
-        description: true,
-        incidentSeverity: {
-          name: true,
-        },
-        rootCause: true,
-        createdByUserId: true,
-        createdByUser: {
-          _id: true,
-          name: true,
-          email: true,
-        },
-        remediationNotes: true,
-        currentIncidentState: {
-          name: true,
-        },
-        labels: {
-          name: true,
-        },
-        /*
-         * The resources named under "Resources Affected" are read by the feed
-         * builder itself (LinkedAffectedResources), one relation at a time.
-         */
-        // The created feed item names the status pages a scoped incident is limited to.
-        isScopedToStatusPages: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    /*
+     * The owners' "Incident Created" notification onBeforeCreate held waits
+     * for the owners the chain below adds - the ones handed over with the
+     * create, and the owner rules' - as for everyone else's
+     * (CreatedNotificationHold): the chain says they are in right after the
+     * owner rules have run, or as soon as it stops short of them. Should the
+     * incident not be read back, the chain never starts, and adds nobody.
+     */
+    CreatedNotificationHold.chainAddsOwners(onCreate.createBy, async () => {
+      await this.releaseCreatedNotificationHeldForOwners(createdItem);
     });
+
+    let readBack: Model | null = null;
+
+    try {
+      // Get incident data for feed creation
+      readBack = await this.findOneById({
+        id: createdItem.id,
+        select: {
+          projectId: true,
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
+          title: true,
+          description: true,
+          incidentSeverity: {
+            name: true,
+          },
+          rootCause: true,
+          createdByUserId: true,
+          createdByUser: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+          remediationNotes: true,
+          currentIncidentState: {
+            name: true,
+          },
+          labels: {
+            name: true,
+          },
+          /*
+           * The resources named under "Resources Affected" are read by the feed
+           * builder itself (LinkedAffectedResources), one relation at a time.
+           */
+          // The created feed item names the status pages a scoped incident is limited to.
+          isScopedToStatusPages: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } finally {
+      if (!readBack) {
+        void CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
+        );
+      }
+    }
+
+    const incident: Model | null = readBack;
 
     if (!incident) {
       throw new BadDataException("Incident not found");
@@ -3841,15 +3905,6 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
-        } finally {
-          /*
-           * The owners the create handed over exist now - or could not be
-           * added, and this chain will not try again: either way the
-           * "Incident Created" notification held for them may go out.
-           */
-          if (this.isCreatedNotificationHeldForOwners(onCreate.createBy)) {
-            await this.releaseCreatedNotificationHeldForOwners(createdItem);
-          }
         }
       })
       .then(async () => {
@@ -3924,6 +3979,17 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
+
+        /*
+         * Every owner this chain adds is in - or could not be added, and it
+         * will not try again: the "Incident Created" notification may go
+         * out once the others' are. Not waited for: paging the on-call
+         * below never waits on it.
+         */
+        CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
+        );
       })
       .then(async () => {
         /*
@@ -4016,7 +4082,7 @@ export class Service extends ProjectReferencesService<Model> {
           );
         } catch (error) {
           logger.error(
-            `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+            `On-call policy execution failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),
@@ -4184,6 +4250,12 @@ export class Service extends ProjectReferencesService<Model> {
             incidentId: createdItem.id?.toString(),
             userId: createdItem.createdByUserId?.toString(),
           } as LogAttributes,
+        );
+
+        // Stopped short, maybe of its owner rules: it adds no more owners.
+        CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
         );
       });
 
@@ -4392,36 +4464,12 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Whether a create hands owners to its own onCreateSuccess chain to be
-   * notified, and so holds the incident's "Incident Created" notification
-   * until the chain has added them (see onBeforeCreate). Only an internal
-   * (root) caller can ask for owners to be notified - misc data is whatever
-   * a user's request body says - and today only an incident form does, for
-   * its template's owners. Every other create is written and notified as it
-   * always was. One predicate for the hold and the release alike, so the
-   * chain never releases an incident nobody held: the job may already have
-   * notified that one, and would do it again.
-   */
-  private isCreatedNotificationHeldForOwners(
-    createBy: CreateBy<Model>,
-  ): boolean {
-    const miscDataProps: JSONObject | undefined = createBy.miscDataProps;
-
-    return (
-      createBy.props.isRoot === true &&
-      miscDataProps?.["notifyOwners"] === true &&
-      Boolean(miscDataProps["ownerUsers"] || miscDataProps["ownerTeams"])
-    );
-  }
-
-  /*
    * Marks an incident whose create held its "Incident Created" notification
-   * as not notified, so the owners' job sends it on its next run - to the
-   * owners the chain has just added. Without the update hooks, as the other
-   * notification markers on an incident are written: nothing they react to
-   * changed. It never throws, so the chain's later steps (the owner rules,
-   * on-call) still run; a failure is logged, and leaves the notification
-   * unsent.
+   * as not notified, so the owners' job sends it on its next run - to every
+   * owner it has by then (CreatedNotificationHold says when that is).
+   * Without the update hooks, as the other notification markers on an
+   * incident are written: nothing they react to changed. It never throws;
+   * a failure is logged, and leaves the notification unsent.
    */
   private async releaseCreatedNotificationHeldForOwners(
     incident: Model,

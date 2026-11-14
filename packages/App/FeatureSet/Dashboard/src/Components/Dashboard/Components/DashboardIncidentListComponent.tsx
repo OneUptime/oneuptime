@@ -384,7 +384,10 @@ const DashboardIncidentListComponentElement: FunctionComponent<
   return (
     <DashboardResourceListBase
       title={props.component.arguments.title}
-      pluralLabel="incidents"
+      countLabel={{
+        one: "{{count}} incident",
+        other: "{{count}} incidents",
+      }}
       columns={COLUMNS}
       count={incidents.length}
       isLoading={isLoading}

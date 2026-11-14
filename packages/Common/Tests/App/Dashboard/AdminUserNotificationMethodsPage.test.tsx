@@ -1112,6 +1112,28 @@ describe("adding a method on somebody's behalf", () => {
     expect(call.data.methodType).toBe("SMS");
   });
 
+  /*
+   * ISSUE #7180: an email address and a phone number both read left to
+   * right in every language, so the box they are typed in does, its example
+   * with it - typed on a Persian or Arabic page, "+15551234567" took the
+   * page's way and put its "+" after its digits. Text still: an email
+   * address has letters a dial pad has not.
+   */
+  test("the box for the address or number reads left to right, its example with it", async () => {
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    const valueInput: HTMLElement = screen.getByPlaceholderText(
+      "you@company.com or +15551234567",
+    );
+
+    expect(valueInput).toHaveAttribute("dir", "ltr");
+    expect(valueInput.parentElement).toHaveAttribute("dir", "ltr");
+    expect(valueInput).toHaveAttribute("type", "text");
+    expect(valueInput).not.toHaveAttribute("inputmode", "tel");
+  });
+
   test("re-reads the list and the readiness summary after a successful add", async () => {
     await renderPage();
 
@@ -2332,6 +2354,17 @@ describe("each row's actions: one button and a ⋯ menu", () => {
 
     await renderPage();
 
+    /*
+     * Each row names its method by the method's own name (#7178): a call
+     * method is a "Phone call", never the shared "Call" - a function call
+     * in Chinese.
+     */
+    expect(
+      within(rowFor(MASKED_CALL_PHONE)).getByText("Phone call"),
+    ).toBeInTheDocument();
+    expect(within(rowFor(MASKED_CALL_PHONE)).queryByText("Call")).toBeNull();
+    expect(within(rowFor(MASKED_EMAIL)).getByText("Email")).toBeInTheDocument();
+
     // Both unverified rows are drawn alike: Resend code, and a ⋯ menu.
     expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Resend code"]);
     expect(rowButtonLabels(rowFor(MASKED_CALL_PHONE))).toEqual(["Resend code"]);
@@ -2343,10 +2376,18 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     // The menu closes on the choice rather than hanging over the dialog.
     expect(screen.queryByRole("menu")).toBeNull();
 
-    // The confirmation is about the Call row, by channel and by mask.
+    /*
+     * The confirmation is about the Call row, by channel and by mask - the
+     * channel by its method's own name, "Phone call", which each language
+     * words (#7178), cased as the middle of a sentence is.
+     */
     expect(
-      within(modal()).getByText("Remove this Call method?"),
+      within(modal()).getByText("Remove this phone call method?"),
     ).toBeInTheDocument();
+    // The sentence under it names the method so too.
+    expect((modal().textContent || "").replace(/[⁦-⁩]/g, "")).toContain(
+      "This removes the phone call method",
+    );
     expect(modal().textContent).toContain(MASKED_CALL_PHONE);
     expect(modal().textContent).not.toContain(MASKED_PHONE);
 
@@ -2440,7 +2481,7 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     await waitForSettled();
 
     expect(
-      within(modal()).getByText("Remove this Email method?"),
+      within(modal()).getByText("Remove this email method?"),
     ).toBeInTheDocument();
 
     const removeButton: HTMLElement = within(emailRow).getByRole("button", {
@@ -2459,7 +2500,7 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     await waitForSettled();
 
     expect(
-      within(modal()).getByText("Remove this Email method?"),
+      within(modal()).getByText("Remove this email method?"),
     ).toBeInTheDocument();
     expect(apiDeleteMock).not.toHaveBeenCalled();
   });
@@ -2576,11 +2617,11 @@ describe("a project with channels switched off", () => {
    * a channel on.
    */
   const WHY_MISSING: string =
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.";
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 
   // Said to someone who may turn them on, with the page as a link.
   const WHY_MISSING_WITH_LINK: string =
-    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Settings.";
+    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Channels.";
 
   type ChannelsOffNoteFunction = () => HTMLElement;
 
@@ -2684,7 +2725,7 @@ describe("a project with channels switched off", () => {
       expect(note.textContent).toBe(WHY_MISSING_WITH_LINK);
 
       const link: HTMLElement = within(note).getByRole("link", {
-        name: "Project Settings → Notifications → Notification Settings",
+        name: "Project Settings → Notifications → Notification Channels",
       });
 
       expect(link.getAttribute("href")).toBe(

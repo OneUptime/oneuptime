@@ -438,7 +438,8 @@ describe("Microsoft Teams scheduled maintenance", (): void => {
     });
     expect(turnContext.sendActivity).toHaveBeenCalledWith(
       expect.stringContaining(
-        "You do not have permission to mark this scheduled maintenance event as ongoing.",
+        // A maintenance event, as the model has named it since #6817.
+        "You do not have permission to mark this maintenance event as ongoing.",
       ),
     );
   });
@@ -466,9 +467,7 @@ describe("Microsoft Teams scheduled maintenance", (): void => {
 
     expect(addNoteSpy).not.toHaveBeenCalled();
     expect(turnContext.sendActivity).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "add a private note to this scheduled maintenance event",
-      ),
+      expect.stringContaining("add a private note to this maintenance event"),
     );
   });
 
@@ -497,7 +496,7 @@ describe("Microsoft Teams scheduled maintenance", (): void => {
     expect(createSpy).not.toHaveBeenCalled();
     expect(turnContext.sendActivity).toHaveBeenCalledWith(
       expect.stringContaining(
-        "You do not have permission to create a scheduled maintenance event.",
+        "You do not have permission to create a maintenance event.",
       ),
     );
   });

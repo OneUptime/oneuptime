@@ -99,7 +99,6 @@ const Users: FunctionComponent = (): ReactElement => {
                 },
                 title: "User ID",
                 fieldType: FieldType.ObjectID,
-                placeholder: "-",
               },
               {
                 field: {
@@ -114,7 +113,6 @@ const Users: FunctionComponent = (): ReactElement => {
                 },
                 title: "Email",
                 fieldType: FieldType.Email,
-                placeholder: "-",
               },
               {
                 field: {

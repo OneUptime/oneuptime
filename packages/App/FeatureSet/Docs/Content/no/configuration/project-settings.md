@@ -34,7 +34,7 @@ flowchart LR
 | **Grunnleggende** | **Prosjekt**, **Produkter**, **Etiketter** | [Prosjektets detaljer](#prosjektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtaler** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtaler](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Inntaksnøkler**, **Dataoppbevaring**, **Forbruk** | [Inntaksnøkler](/docs/telemetry/ingestion-keys), [Dataoppbevaring](/docs/telemetry/data-retention), [Telemetriforbruk](/docs/telemetry/usage) |
-| **Varsler** | **Varselinnstillinger**, **Varsellogger**, **Mobilapper** | [Varsler](#varsler) |
+| **Varsler** | **Varslingskanaler**, **Varsellogger**, **Mobilapper** | [Varsler](#varsler) |
 | **KI** | **AI-funksjoner**, **LLM-leverandører**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logger**, **MCP-server** | [LLM-leverandører](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avansert** | **Domener**, **API-nøkler**, **Funksjonsflagg**, **Importer fra et annet verktøy** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Funksjonsflagg](#funksjonsflagg), [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flytteveiledningene |
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -61,6 +61,8 @@ flowchart LR
 **Prosjektinnstillinger → Grunnleggende → Produkter** velger produktene dette prosjektet viser i Produkter-menyen, på Hjem og i Søks liste. Hvert produkt har en bryter som lagrer når du slår den om: på viser produktet. Brukere, Team og Prosjektinnstillinger vises alltid, og **Vis alle produkter** viser alle igjen.
 
 Et skjult produkt er ikke slått av. Det flyttes til **Flere produkter**, den siste raden i menyen **Produkter**: Søk finner det fortsatt, sidene og API-et virker fortsatt, og dataene fortsetter å komme. Den som har festet det, beholder festet.
+
+På en selv-hostet server kan en hovedadministrator også slå av et produkt for alle prosjekter, under **Innstillinger → Produkter** i Admin Dashboard (se [Kjør bare det du trenger](/docs/installation/docker-compose#kjør-bare-det-du-trenger)). Et slikt produkt har ingen bryter her: Det viser **Slått av på denne serveren**, sammen med hvem som kan slå det på.
 
 Et nytt prosjekt starter med det eieren sa på Hjem at det skal brukes til: det grunnleggende, innstillingene og det disse målene trenger, vises, og resten skjules. Et prosjekt som hoppet over spørsmålet, eller som ble opprettet før det, viser alle produkter. Så snart noen endrer listen her, endrer ikke målene den lenger.
 
@@ -94,7 +96,7 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 
 **Prosjektinnstillinger → Varsler** inneholder hvordan prosjektet sender varsler:
 
-- **Varselinnstillinger**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Project Owner, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
+- **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Project Owner, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
 - **Varsellogger**: hvert varsel prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**.
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 

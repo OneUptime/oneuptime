@@ -1,4 +1,4 @@
-# Rastreamento de exceções
+# Exceções
 
 O rastreamento de exceções reúne os erros que seu código lança e agrupa cada ocorrência do mesmo erro em uma única exceção, com o stack trace, a tendência e as requisições em que ela aconteceu. Trate-as como uma lista de tarefas: corrija, resolva ou arquive o ruído, e deixe a IA abrir um pull request para as que ela consegue corrigir.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## Antes de começar
 
 - **Spans ou registros chegando.** Instrumente seus serviços com [OpenTelemetry](/docs/telemetry/open-telemetry). A aba **Guia de configuração** mostra o código para a sua linguagem.
-- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Telemetry Service Exception. Resolver e arquivar exige Project Owner ou Project Admin, ou a permissão Edit Telemetry Service Exception.
+- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Exceptions. Resolver e arquivar exige Project Owner ou Project Admin, ou a permissão Edit Exceptions.
 
 ## Fazer a triagem da lista
 

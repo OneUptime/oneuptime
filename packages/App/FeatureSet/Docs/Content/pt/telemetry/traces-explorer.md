@@ -37,7 +37,7 @@ O explorador tem cinco abas:
 ## Antes de começar
 
 - **Traços chegando.** Instrumente seus serviços com [OpenTelemetry](/docs/telemetry/open-telemetry). A aba **Guia de configuração** mostra o código para a sua linguagem.
-- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Telemetry Service Traces. O escopo dela decide de quem são os spans que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
+- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Traces. O escopo dela decide de quem são os spans que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
 
 ## Encontrar uma requisição
 
@@ -183,6 +183,6 @@ Cada linha é um span, não uma requisição: com **Entry spans**, o padrão, um
 :::cards
 - [Sintaxe de pesquisa](/docs/telemetry/search-syntax): Todos os filtros que a caixa de pesquisa entende.
 - [Monitor de traces](/docs/monitor/traces-monitor): Receber alertas de requisições com falha ou lentas.
-- [Rastreamento de exceções](/docs/telemetry/exceptions): Fazer a triagem dos erros que seus spans gravam.
+- [Exceções](/docs/telemetry/exceptions): Fazer a triagem dos erros que seus spans gravam.
 - [Explorador de registros](/docs/telemetry/logs-explorer): Ler as linhas de registro que uma requisição escreveu.
 :::

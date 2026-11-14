@@ -202,7 +202,7 @@ Para testar um gatilho de evento sem esperar o evento, clique em **Executar flux
 | **Incidente**                             | Reagir quando um incidente é declarado, atualizado (reconhecido, resolvido) ou excluído.  |
 | **Alerta**                                | Os mesmos três eventos, para alertas.                                                     |
 | **Monitor**                               | Reagir quando um monitor é adicionado, editado ou removido.                               |
-| **Evento de manutenção programada**            | Anunciar automaticamente uma janela de manutenção quando ela é agendada.                  |
+| **Evento de manutenção**            | Anunciar automaticamente uma janela de manutenção quando ela é agendada.                  |
 | **Assinante da página de status**            | Dar as boas-vindas a quem assina uma página de status.                                    |
 | **Política de plantão**                   | Sincronizar as mudanças da política com outro sistema de escalas.                         |
 

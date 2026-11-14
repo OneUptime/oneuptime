@@ -1,6 +1,7 @@
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import DefinedTerm from "../../Glossary/LazyDefinedTerm";
 import readAsWritten from "../../IsolatedText/ReadAsWritten";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../Utils/ProductText";
 import useTranslator from "../../../Utils/UseTranslator";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import Link from "../../Link/Link";
@@ -11,7 +12,7 @@ import {
   TitleOptionalMark,
 } from "../Utils/OptionalMark";
 import useTranslateValue from "../../../Utils/Translation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useRef } from "react";
 
 export interface ComponentProps {
   title: string;
@@ -83,20 +84,33 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
   const showsOptionalMark: boolean =
     Boolean(titleMark.mark) || !(props.required || props.hideOptionalLabel);
 
-  const label: ReactElement = (
-    <label
-      id={props.id}
-      htmlFor={props.htmlFor}
-      className={
-        props.className ||
-        `block ${
-          props.isHeading ? "text-lg" : "text-sm"
-        }  font-medium text-gray-700 flex justify-between`
-      }
-    >
-      <span>
+  const className: string =
+    props.className ||
+    `block ${
+      props.isHeading ? "text-lg" : "text-sm"
+    }  font-medium text-gray-700 flex justify-between`;
+
+  /*
+   * Where a defined term's definition is drawn: right after the title, not
+   * in it. The title names the field - a dropdown or a picker through its
+   * id (aria-labelledby), a native input as its <label for> - and a field
+   * is named by every word inside its title: drawn in it, the open
+   * definition and its Read more were read out as the field's name ("Probes
+   * Probe A machine that runs checks. Read more") for as long as it showed.
+   * Right after the title, it is still the next place Tab goes from the
+   * word (after a side link, which a sign-in form's title has and no
+   * defined term's does), before the (i) and the field. It draws no box.
+   */
+  const definitionPlace: React.RefObject<HTMLSpanElement> =
+    useRef<HTMLSpanElement>(null);
+
+  const words: ReactElement = (
+    <>
+      <span className={PRODUCT_TEXT_CLASS_NAME}>
         {props.glossaryTerm ? (
-          <DefinedTerm term={props.glossaryTerm}>{drawnTitle}</DefinedTerm>
+          <DefinedTerm term={props.glossaryTerm} popoverPlace={definitionPlace}>
+            {drawnTitle}
+          </DefinedTerm>
         ) : (
           drawnTitle
         )}{" "}
@@ -117,7 +131,37 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
           </Link>
         </span>
       )}
-    </label>
+    </>
+  );
+
+  /*
+   * A title with no control to point at (no `for`: a dropdown's, a
+   * picker's) whose word is a defined term is not a <label>. A <label> with
+   * no `for` takes the first button inside it, the word's, for the control
+   * it labels, and the browser hands that control a click on any of the
+   * label's own words or space: a click on "(Optional)", or on the empty
+   * end of the row, opened the definition. The control is named by the
+   * title through its id (aria-labelledby) all the same, and the title
+   * keeps a label's arrow over its words.
+   */
+  const title: ReactElement =
+    props.glossaryTerm && !props.htmlFor ? (
+      <span id={props.id} className={`${className} cursor-default`}>
+        {words}
+      </span>
+    ) : (
+      <label id={props.id} htmlFor={props.htmlFor} className={className}>
+        {words}
+      </label>
+    );
+
+  const label: ReactElement = props.glossaryTerm ? (
+    <>
+      {title}
+      <span ref={definitionPlace} className="contents" />
+    </>
+  ) : (
+    title
   );
 
   return (

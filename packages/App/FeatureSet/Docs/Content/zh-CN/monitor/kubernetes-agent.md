@@ -334,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## 持续 CPU 性能分析
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每个节点上运行，使用 `otel/opentelemetry-collector-ebpf-profiler` 镜像。它以每秒 19 次的频率对每个进程正在运行的内容采样，支持 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，并把性能分析数据发送到 OneUptime。这些数据显示在 **产品 → 性能配置** 下，也会作为火焰图显示在每个跟踪 Span 上。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每个节点上运行，使用 `otel/opentelemetry-collector-ebpf-profiler` 镜像。它以每秒 19 次的频率对每个进程正在运行的内容采样，支持 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，并把性能分析数据发送到 OneUptime。这些数据显示在 **产品 → 性能剖析** 下，也会作为火焰图显示在每个跟踪 Span 上。
 
 **性能分析默认关闭：** 它每个节点消耗的 CPU 和内存比 eBPF 插桩更多。用 `--set profiling.enabled=true` 开启它。
 

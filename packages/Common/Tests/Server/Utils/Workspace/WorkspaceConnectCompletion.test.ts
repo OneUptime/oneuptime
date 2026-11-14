@@ -217,7 +217,8 @@ describe("a press OneUptime finishes", () => {
       kind: WorkspacePendingActionKind.MarkAsComplete,
       eventType: WorkspaceEventType.ScheduledMaintenance,
       modelType: ScheduledMaintenanceStateTimeline,
-      purpose: "mark this scheduled maintenance event as complete",
+      // A maintenance event, as the model has named it since #6817.
+      purpose: "mark this maintenance event as complete",
       done: "resolve" as const,
       logged: "mark_scheduled_maintenance_as_complete",
     },
@@ -225,7 +226,7 @@ describe("a press OneUptime finishes", () => {
       kind: WorkspacePendingActionKind.MarkAsOngoing,
       eventType: WorkspaceEventType.ScheduledMaintenance,
       modelType: ScheduledMaintenanceStateTimeline,
-      purpose: "mark this scheduled maintenance event as ongoing",
+      purpose: "mark this maintenance event as ongoing",
       done: "markAsOngoing" as const,
       logged: "mark_scheduled_maintenance_as_ongoing",
     },

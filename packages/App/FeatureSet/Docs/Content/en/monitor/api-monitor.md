@@ -2,10 +2,13 @@
 
 An API monitor calls an HTTP endpoint on a schedule, with the method, headers and body you choose, and checks what comes back: the status code, the response time, the headers and the body. Use it for REST, JSON and GraphQL endpoints, health checks, and any call your users depend on.
 
+> [!TIP]
+> New here? Follow the guide first: [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 :::cards
 - [Create the monitor](#create-an-api-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): Method, headers, body, redirects, certificates, timeouts and retries.
-- [Monitoring criteria](#monitoring-criteria): What counts as up or down, out of the box.
+- [Criteria](#criteria): What counts as up or down, out of the box.
 - [Troubleshooting](#troubleshooting): When a check fails that should pass.
 :::
 
@@ -56,7 +59,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the API does not answer or answers with an error, online on any `2xx` or `3xx` status. To check what the API returns as well, add a filter, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the API does not answer or answers with an error, online on any `2xx` or `3xx` status. To check what the API returns as well, add a filter, then click **Next**.
 
 ### Pick probes and create
 
@@ -150,7 +153,7 @@ The client certificate is only presented while the request stays on the URL's or
 
 These failures are retried: connection errors, timeouts, `4xx` and `5xx` responses, and responses slower than 10 seconds. These are not, because trying again cannot change them: an invalid or blocked URL, more than 10 redirects, and a response larger than 512 KiB.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the API counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

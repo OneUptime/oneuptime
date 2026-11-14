@@ -252,6 +252,8 @@ OneUptimeReplay.captureSession("installation test");
 | `session-ended-idle` | 页面上 30 分钟内没有发生任何事情，因此会话结束 — 结束时间记为最后一次活动的时间，而不是录制器察觉到的时间（ `idleForMs` 说明已过去多久）。在用户回来之前，不会再上传任何内容，发往你自己来源的请求也不携带会话 ID；没人看着的打开的选项卡不会每半小时就开始一个新会话。 |
 | `recording-paused-idle` | 5 分钟内没有人按键、点击、移动鼠标、滚动或触摸页面，因此录制已暂停（ `idleForMs` 说明已过去多久）。在下一次输入恢复同一个会话之前，不会捕获或上传任何内容，发往你自己来源的请求也不携带会话 ID — 参见 [空闲时间](/docs/telemetry/session-replay#空闲时间) 。对于任何无人操作的选项卡，这都是正常的。 |
 | `recording-resumed` | 录制暂停期间用户回来了，因此录制在同一个会话中基于新的快照恢复（ `pausedForMs` 说明暂停了多久）。播放器会跳过中间的那一段。 |
+| `recording-paused-page` | 页面通过 `OneUptimeReplay.pause()` 暂停了录制。在页面调用 `OneUptimeReplay.resume()` 之前，不会捕获任何内容；访客的操作会让会话保持打开，但不会恢复录制。如果这个页面应该被录制，请找到它调用 `OneUptimeReplay.pause()` 的位置。 |
+| `recording-resumed-page` | 页面通过 `OneUptimeReplay.resume()` 恢复了录制。录制在同一会话中以新快照继续；如果该会话在暂停期间已结束，则在新会话中继续。 |
 | `session-rotated` | 开始了一个新会话（用户在空闲 30 分钟后回来、会话达到 4 小时、 `identify()` 指定了与会话所属用户不同的用户 — `rotationReason: "identity-change"` — 或同一访客的另一个选项卡先开始了新会话 — `rotationReason: "adopted"` ）。录制以新的 ID 继续， `onSessionChange` 监听器会收到通知，此后发往你自己来源的请求会携带新的 ID。 |
 | `command-queue-not-an-array` | `window.OneUptimeReplayQueue` 不是数组，因此队列中的所有命令都被忽略。它必须是由 `[command, ...arguments]` 条目组成的数组。 |
 | `command-queue-unknown-command` | 无法识别队列中某个命令的名称 — 对照 [JavaScript API](/docs/telemetry/session-replay#javascript-api) 检查拼写。 |

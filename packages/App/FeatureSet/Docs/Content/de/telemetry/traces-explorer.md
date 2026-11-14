@@ -37,7 +37,7 @@ Der Explorer hat fünf Tabs:
 ## Bevor Sie beginnen
 
 - **Eintreffende Traces.** Instrumentieren Sie Ihre Dienste mit [OpenTelemetry](/docs/telemetry/open-telemetry). Der Tab **Einrichtungsanleitung** zeigt den Code für Ihre Sprache.
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Telemetry Service Traces. Ihr Bereich entscheidet, wessen Spans Sie sehen: siehe [Telemetrie](/docs/permissions/index#telemetrie).
+- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Traces. Ihr Bereich entscheidet, wessen Spans Sie sehen: siehe [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Eine Anfrage finden
 
@@ -183,6 +183,6 @@ Jede Zeile ist ein Span, keine Anfrage: Mit **Entry spans**, dem Standard, ersch
 :::cards
 - [Suchsyntax](/docs/telemetry/search-syntax): Jeder Filter, den das Suchfeld versteht.
 - [Traces-Überwachung](/docs/monitor/traces-monitor): Bei fehlgeschlagenen oder langsamen Anfragen benachrichtigt werden.
-- [Ausnahmenverfolgung](/docs/telemetry/exceptions): Die Fehler sichten, die Ihre Spans aufzeichnen.
+- [Ausnahmen](/docs/telemetry/exceptions): Die Fehler sichten, die Ihre Spans aufzeichnen.
 - [Protokoll-Explorer](/docs/telemetry/logs-explorer): Die Protokollzeilen lesen, die eine Anfrage geschrieben hat.
 :::

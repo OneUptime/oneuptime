@@ -14,8 +14,9 @@ import { useParams } from "react-router-dom";
  * Calendar Settings adds, drawn beside the events.
  *
  * Its own page under its own side menu section, as the maintainer asked:
- * it was the Calendar half of a List | Calendar switch on All Events. The
- * card, the filters and the buttons are the list's (ScheduledMaintenanceTable).
+ * it was the Calendar half of a List | Calendar switch on All Maintenance
+ * Events. The card, the filters and the buttons are the list's
+ * (ScheduledMaintenanceTable).
  */
 export const MAINTENANCE_CALENDAR_TITLE: string = translationKey(
   "Maintenance Calendar",

@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -9,6 +10,8 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { DEFINED_TERM_DEFINITION_TEST_ID } from "../../../UI/Components/Glossary/DefinedTerm";
+import { clearGlossaryReads } from "../../../UI/Utils/Glossary";
 
 /*
  * A LEVEL WITH NOBODY TO PAGE, ON THE POLICY'S ESCALATION RULES PAGE.
@@ -577,5 +580,80 @@ describe("the escalation summary on its own", () => {
     expect(
       screen.getByTestId("escalation-summary-level-skipped"),
     ).toHaveTextContent("Skipped at once");
+  });
+});
+
+/*
+ * THE PAGE'S HEADING, WITH ITS WORD'S DEFINITION OPEN (#7594).
+ *
+ * This file draws the whole Escalation Rules page, so its heading is held
+ * here too. "Escalation Rules" is a defined term, and its definition - a
+ * dialog named by its word - was drawn inside the heading: while it showed,
+ * the heading was named "Escalation Rules Escalation Rules". It is drawn
+ * right after the heading now (Glossary/DefinitionsDrawnAfter).
+ */
+describe("the Escalation Rules heading, with its word's definition open", () => {
+  const originalFetch: unknown = (globalThis as Record<string, unknown>)[
+    "fetch"
+  ];
+
+  afterEach(() => {
+    (globalThis as Record<string, unknown>)["fetch"] = originalFetch;
+    clearGlossaryReads();
+  });
+
+  test("holds its words alone: the definition is drawn right after it", async () => {
+    // The glossary answers its read; the rest of the network is stubbed above.
+    (globalThis as Record<string, unknown>)["fetch"] = (
+      url: unknown,
+    ): Promise<unknown> => {
+      if (!String(url).includes("/glossary/")) {
+        return Promise.reject(new Error(`Not read here: ${String(url)}`));
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: (): Promise<unknown> => {
+          return Promise.resolve({
+            lang: "en",
+            entries: [
+              {
+                id: "escalation-rule",
+                term: "Escalation rule",
+                definition: "Who is paged next, and when, if nobody answers.",
+              },
+            ],
+          });
+        },
+      });
+    };
+
+    await renderPage(THE_MAINTAINERS_POLICY);
+
+    const word: HTMLElement = screen.getByRole("button", {
+      name: "Escalation Rules",
+    });
+    const heading: HTMLElement = word.closest("h2") as HTMLElement;
+
+    fireEvent.click(word);
+
+    const open: HTMLElement = await waitFor((): HTMLElement => {
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Escalation Rules",
+      });
+
+      expect(
+        within(dialog).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+      ).toBeInTheDocument();
+
+      return dialog;
+    });
+
+    expect((heading.textContent || "").replace(/\s+/g, " ").trim()).toBe(
+      "Escalation Rules",
+    );
+    expect(heading).not.toContainElement(open);
+    expect(heading.nextElementSibling).toContainElement(open);
   });
 });

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 2303
+    "keys": 51296,
+    "untranslated": 2265
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -87,6 +87,7 @@
     "Basic Auth",
     "Bearer Token",
     "Bits",
+    "Blade",
     "Bolivia",
     "Bootstrap",
     "Breadcrumb",
@@ -619,6 +620,7 @@
     "{{count}} Kubernetes",
     "{{count}} MB",
     "{{count}} OID",
+    "{{count}} OSD",
     "{{count}} Podman",
     "{{count}} SLO",
     "{{count}} SMS",

@@ -92,11 +92,14 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicySchedule",
-  singularName: "On-Call Policy Schedule",
-  pluralName: "On-Call Duty Policy Schedules",
+  singularName: "On-Call Schedule",
+  pluralName: "On-Call Schedules",
+  // Was "On-Call Policy Schedule" (#6817): oneuptime_on_call_policy_schedule stays.
+  apiSingularName: "On-Call Policy Schedule",
+  apiPluralName: "On-Call Duty Policy Schedules",
   icon: IconProp.Calendar,
   tableDescription:
-    "Manage schedules and rotations for your on-call duty policy.",
+    "Who is on call at any moment: people take turns in layers, and each one hands over to the next.",
 })
 export default class OnCallDutyPolicySchedule extends BaseModel {
   @ColumnAccessControl({

@@ -59,7 +59,9 @@ flowchart TB
 Your changes are yours alone until you save them. Nothing is saved while you edit, so other people keep seeing the dashboard as it was.
 
 - **Save Changes** saves the widgets, their places and sizes, the variables, and the default time range and auto-refresh, all at once, and goes back to view mode. If the save is refused, for example because you lost the permission meanwhile, you stay in edit mode with your changes and the reason above the grid.
-- **Cancel** asks first, because it throws your changes away: **Discard Changes** goes back to the dashboard as it was saved, and **Keep Editing** returns to your work.
+- **Cancel** goes back to view mode. If you changed something, it asks first, because it throws your changes away: **Discard Changes** goes back to the dashboard as it was saved, and **Keep Editing** returns to your work.
+
+Leaving the dashboard with unsaved changes asks first too. A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with the same two choices: **Keep Editing** stays on the dashboard with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog. A dashboard you opened for editing and did not change asks nothing, and neither does one you just saved.
 
 While you edit, auto-refresh pauses, and a zoomed time range goes back to the range you picked.
 

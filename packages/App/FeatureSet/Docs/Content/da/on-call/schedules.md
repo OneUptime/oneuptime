@@ -17,7 +17,7 @@ En vagtplan bestemmer, hvem der har vagt på ethvert tidspunkt. Folk skiftes i d
 Når du opretter en vagtplan på siden **Vagtplaner**, beder formularen om dens **Navn** og **Hvem skiftes til at have vagt?**. De personer, du vælger, bliver vagtplanens første lag, **Layer 1**, med vagt døgnet rundt.
 
 :::steps
-1. Gå til **Vagtordning** > **Vagtplaner**, og klik på **Opret vagtplan**.
+1. Gå til **Vagt** > **Vagtplaner**, og klik på **Opret vagtplan**.
 2. Indtast et **Navn**.
 3. Klik under **Hvem skiftes til at have vagt?** på **Tilføj bruger**, og vælg personerne i den rækkefølge, de skiftes.
 4. Åbn eventuelt **Flere felter** for at ændre, hvor længe hver tørn varer, tidszonen, beskrivelsen eller etiketterne.
@@ -86,7 +86,7 @@ Mens de er fraværende:
 
 Vælg i stedet nogen under **Hvem dækker?**, så får den person alle deres tilkald fra alle vagtplaner og alle politikker, i stedet for at rotationen tager deres vagter.
 
-Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker, så det kræver tilladelsen til overrides over hele projektet. Er dit teams rolle begrænset til dets egne politikker eller til nogle etiketter, lægges det i stedet på de politikker i denne vagtplan, du må tilføje overrides på, med én override pr. politik, som står på hver politiks egen side **Brugertilsidesættelser**; er der flere, markerer du dem under **Vagtpolitikker**. **Spring over indtil…** er kun låst og siger hvorfor, hvor du ikke må på nogen af dem. Det står under **Vagtordning** > **Avanceret** > **Brugertilsidesættelser**, hvor du kan slette det for at få dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker, så det kræver tilladelsen til overrides over hele projektet. Er dit teams rolle begrænset til dets egne politikker eller til nogle etiketter, lægges det i stedet på de politikker i denne vagtplan, du må tilføje overrides på, med én override pr. politik, som står på hver politiks egen side **Brugertilsidesættelser**; er der flere, markerer du dem under **Vagtpolitikker**. **Spring over indtil…** er kun låst og siger hvorfor, hvor du ikke må på nogen af dem. Det står under **Vagt** > **Avanceret** > **Brugertilsidesættelser**, hvor du kan slette det for at få dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 
 Via API'et springer en brugeroverride (`/api/on-call-duty-policy-user-override`), der oprettes uden `routeAlertsToUserId`, personen i `overrideUserId` over fra `startsAt` til `endsAt`.
 
@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Lad et niveau i en vagtpolitik tilkalde denne vagtplan.
 - [Tidslinje for vagtplaner](/docs/on-call/schedule-timeline): Se alle vagtplaner side om side, med hullerne i dækningen.
 - [Kalenderfeeds](/docs/on-call/calendar-feeds): Få vagter ind i Google Kalender, Outlook eller Apple Kalender.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Bestem, hvordan et tilkald når dig, mens du har vagt.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Bestem, hvordan et tilkald når dig, mens du har vagt.
 :::

@@ -43,7 +43,7 @@ flowchart TB
     SignIn["You sign in: password,<br/>passkey or SSO"]
     Allow["You allow notifications"]
     Register["The app registers<br/>the phone in each<br/>of your projects"]
-    Rules["Each project lists<br/>the phone, with<br/>default on-call rules"]
+    Rules["Each project adds<br/>the phone to your<br/>How to Reach Me"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 
@@ -63,7 +63,7 @@ With two-factor authentication on, enter the six-digit code from your authentica
 ### Allow notifications
 When Android asks whether OneUptime On-Call may send notifications, tap **Allow**. Android 13 and later ask; earlier versions allow them unless you turn them off.
 
-The app then registers the phone in each of your projects. Every project lists it among your push devices with the default on-call rules, so your pages reach it from now on.
+The app then registers the phone in each of your projects. Every project lists it among your push devices and adds it to your How to Reach Me, so your pages reach it from now on.
 :::
 
 The app shows one project at a time: tap the project's name at the top of a screen to switch. A project that requires single sign-on says **SSO Required** under **Settings → Manage Projects** until you tap **Authenticate with SSO** there.
@@ -78,7 +78,7 @@ In the dashboard, open **User Settings → Notification Methods** and the **Push
 Click **Test Notification** on the phone's row. A notification arrives on the phone; tap it to open the app.
 :::
 
-Your on-call rules decide which pages go to the phone, and how soon: see **User Settings → On-Call Rules**. A new phone gets the same default rules as any other method you add.
+**User Settings → How to Reach Me** decides which pages go to the phone, and how soon. A new phone gets the same default rules as any other method you add.
 
 ## Ring through silent mode
 
@@ -109,7 +109,7 @@ Android opens its **Do Not Disturb access** list. Turn the access on for OneUpti
 Tap **Alarm sound** under the switch. Besides the phone's own sound, it offers Klaxon, Siren, Digital alarm, Smoke alarm and Rising alarm, which starts soft and gets louder. Press play beside a sound to hear it. A critical page plays at the phone's alarm volume, so keep that turned up.
 :::
 
-Only on-call pages ring through, and only from on-call rules set to **Critical alert**, the default. A rule set to **Standard** follows the phone's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the phone muted to hear what a page will do.
+Only on-call pages ring through, and only from steps of How to Reach Me set to **Critical alert**, the default. A step set to **Standard** follows the phone's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the phone muted to hear what a page will do.
 
 ## Keep pages from arriving late
 
@@ -126,8 +126,8 @@ Turn on **Biometrics Login** under **Settings** in the app, and the app asks for
 ## Update, sign out or uninstall
 
 - **Update.** Google Play updates the app. For the APK, install the newest one over it. The app's version is at the bottom of its **Settings** screen.
-- **Sign out.** **Settings → Log Out** signs you out and removes the phone from your push devices in every project, together with its on-call rules. Signing in again adds it back with the default rules.
-- **Uninstall.** Remove the app as you remove any other. If you were still signed in, the phone stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Delete that entry with **Delete**: installing the app again and signing in adds the phone as a new entry, with the default rules.
+- **Sign out.** **Settings → Log Out** signs you out and removes the phone from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
+- **Uninstall.** Remove the app as you remove any other. If you were still signed in, the phone stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Delete that entry with **Delete**: installing the app again and signing in adds the phone as a new entry, with the default steps.
 
 ## Troubleshooting
 
@@ -139,7 +139,7 @@ The app could not reach `https://<your-oneuptime>/api/status`. Check the address
 - Check that notifications are on for the app in Android's settings, and that Do Not Disturb is off or critical alerts are on.
 - Check that the phone is listed under **Push Notifications** in **User Settings → Notification Methods**, and send it a **Test Notification**.
 - If the phone is marked **Not receiving notifications**, open the app while signed in. It registers the phone again; see [When a phone has to register again](/docs/mobile-desktop-apps/faq-troubleshooting#when-a-phone-has-to-register-again).
-- Check your on-call rules under **User Settings → On-Call Rules**.
+- Check **User Settings → How to Reach Me**.
 - On a self-hosted OneUptime, check that your server can reach its push relay: see [Push Notifications](/docs/self-hosted/push-notifications#network-access).
 :::
 

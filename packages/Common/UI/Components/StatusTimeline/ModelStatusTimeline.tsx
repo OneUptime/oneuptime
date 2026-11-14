@@ -33,6 +33,7 @@ import {
   StatusTimelineWindowFollow,
 } from "./StatusTimelineLayout";
 import StatusTimelineWindowControls from "./StatusTimelineWindowControls";
+import ErrorSentence from "../ErrorMessage/ErrorSentence";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -1126,10 +1127,10 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
               className="mt-3 text-xs text-red-700"
               data-testid={`${props.id}-refresh-error`}
             >
-              {translator.translateTemplate(
-                "Couldn't load this period. {{error}}",
-                { error: error },
-              )}
+              <ErrorSentence
+                template="Couldn't load this period. {{error}}"
+                error={error}
+              />
             </p>
           )}
         </div>

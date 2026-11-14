@@ -51,7 +51,7 @@ Voeg de bot toe aan elk team waarin OneUptime moet plaatsen, zoals je een persoo
 
 ### Het project koppelen
 
-Ga in OneUptime naar **Projectinstellingen** > **Werkruimte** > **Mattermost** en klik op **Koppelen met Mattermost**. Vul het adres van je server in, zoals `https://chat.example.com`, en het toegangstoken van de bot. OneUptime controleert het token bij je server voordat het iets bewaart. Zit de bot in meer dan één team, dan vraagt OneUptime welk team het standaardteam is: het team waarin een meldingsregel die geen team noemt zijn kanalen aanmaakt. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
+Ga in OneUptime naar **Projectinstellingen** > **Werkruimte** > **Mattermost** en klik op **Koppelen met Mattermost**. Vul het adres van je server in, zoals `https://chat.example.com`, en het toegangstoken van de bot. OneUptime controleert het token bij je server voordat het iets bewaart. Zit de bot in meer dan één team, dan vraagt OneUptime welk team het standaardteam is: het team waarin een meldingsregel die geen team noemt zijn kanalen aanmaakt. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheid **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Een meldingsregel toevoegen
 
@@ -100,11 +100,11 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Matte
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan als direct bericht van de bot van het project.
 :::
 
-Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Mattermost. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**. Elke oproep bevat een link om hem te bevestigen en een om hem te escaleren. Als je je Mattermost-account ontkoppelt, verdwijnen deze methode en de bereikbaarheidsregels die hem gebruiken.
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Mattermost. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**. Elke oproep bevat een link om hem te bevestigen en een om hem te escaleren. Als je je Mattermost-account ontkoppelt, verdwijnen deze methode en de bereikbaarheidsregels die hem gebruiken.
 
 ## Meldingsregels
 
-Een meldingsregel bepaalt welke gebeurtenissen in Mattermost worden geplaatst, en waar. Elk product heeft zijn eigen regels, onder **Werkruimte** > **Mattermost** in zijn menu: **Incidenten** (met **Incidentepisodes** en een tabblad **Samenvatting**), **Waarschuwingen** (met **Waarschuwingsepisodes** en **Samenvatting**), **Geplande onderhoud**, **Monitoren**, **Bereikbaarheidsdienst**, **Beveiligingsgebeurtenissen** en **SLOs**. Ze werken zoals die van Slack: zie [Meldingsregels](/docs/workspace-connections/slack#meldingsregels) voor voorwaarden, bestemmingen en wie lid wordt van een kanaal.
+Een meldingsregel bepaalt welke gebeurtenissen in Mattermost worden geplaatst, en waar. Elk product heeft zijn eigen regels, onder **Werkruimte** > **Mattermost** in zijn menu: **Incidenten** (met **Incidentepisodes** en een tabblad **Samenvatting**), **Waarschuwingen** (met **Waarschuwingsepisodes** en **Samenvatting**), **Geplande onderhoud**, **Monitoren**, **Bereikbaarheid**, **Beveiligingsgebeurtenissen** en **SLOs**. Ze werken zoals die van Slack: zie [Meldingsregels](/docs/workspace-connections/slack#meldingsregels) voor voorwaarden, bestemmingen en wie lid wordt van een kanaal.
 
 Een kanaal dat een regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`. Mattermost neemt kleine letters, cijfers, `-` en `_`, tot 64 tekens, beginnend en eindigend met een letter of een cijfer, en het regelformulier toont de naam terwijl je typt. Bestaat er al een kanaal met die naam, zoals een gearchiveerd kanaal, dan voegt OneUptime `-2`, `-3` enzovoort toe. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal.
 

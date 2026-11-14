@@ -1,6 +1,6 @@
-# Tjenestekatalog
+# Tjenester
 
-Tjenestekataloget viser de applikationer og microservices, du kører. OneUptime tilføjer en tjeneste, første gang dens telemetri ankommer, og samler derefter dens protokoller, spor, metrikker, undtagelser, hændelser og ejere på én side, så alle kan se, hvad en tjeneste gør, hvem der ejer den, og hvordan den har det. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etiket) for at vælge mellem en tjeneste, en monitorgruppe og en etiket.
+Tjenester viser de applikationer og microservices, du kører. OneUptime tilføjer en tjeneste, første gang dens telemetri ankommer, og samler derefter dens protokoller, spor, metrikker, undtagelser, hændelser og ejere på én side, så alle kan se, hvad en tjeneste gør, hvem der ejer den, og hvordan den har det. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etiket) for at vælge mellem en tjeneste, en monitorgruppe og en etiket.
 
 :::cards
 - [Sådan kommer en tjeneste ind i kataloget](#sådan-kommer-en-tjeneste-ind-i-kataloget): Dens `service.name`, ved dens første telemetri.
@@ -62,7 +62,7 @@ En tjenestes sidemenu har fem sektioner:
 | Sektion | Sider |
 | --- | --- |
 | **Grundlæggende** | **Oversigt**: forespørgsler, fejlrate og p95-latens fra dens spans, diagrammer og dens detaljer. **Anbefalinger**: færdige monitorer til tjenesten, valgt efter dens sprog. **Ejere**: de personer og teams, der har ansvaret for den. **Feed**: alt, hvad der er sket med den, fra hvordan den blev oprettet, til hver ændring siden. |
-| **Telemetri** | Dens **Protokoller**, **Spor**, **Metrikker**, **Ydeevneprofiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
+| **Telemetri** | Dens **Protokoller**, **Spor**, **Metrikker**, **Profiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
 | **Aktivitet** | De **Hændelser**, **Advarsler** og begivenheder under **Planlagt vedligeholdelse**, der berører den. |
 | **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
 | **Avanceret** | **Indstillinger**, **Auditlogs** og **Slet tjeneste**. **Avanceret** er foldet sammen fra start: fold den ud først. |
@@ -123,6 +123,6 @@ Der er ikke kommet noget fra den inden for de sidste 30 minutter. Det er forvent
 :::cards
 - [Protokoludforsker](/docs/telemetry/logs-explorer): Søg i en tjenestes protokoller.
 - [Sporudforsker](/docs/telemetry/traces-explorer): Følg dens forespørgsler.
-- [Undtagelsessporing](/docs/telemetry/exceptions): Gennemgå de fejl, den kaster.
+- [Undtagelser](/docs/telemetry/exceptions): Gennemgå de fejl, den kaster.
 - [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules): Giv nye tjenester etiketter og ejere.
 :::

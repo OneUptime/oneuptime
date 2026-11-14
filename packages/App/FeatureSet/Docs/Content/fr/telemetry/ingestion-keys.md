@@ -45,7 +45,7 @@ Partout ailleurs, OneUptime refuse une clé de navigateur, par exemple sur gRPC 
 
 ## Avant de commencer
 
-- **Un rôle qui gère les clés d'ingestion.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission Create Telemetry Ingestion Key. Les rôles Telemetry n'incluent pas les clés d'ingestion.
+- **Un rôle qui gère les clés d'ingestion.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission Create Ingestion Key. Les rôles Telemetry n'incluent pas les clés d'ingestion.
 - **Sur OneUptime Cloud, un moyen de paiement.** La télémétrie est facturée à l'usage, donc un projet sur le plan Free a besoin d'un moyen de paiement avant de pouvoir créer une clé. La boîte de dialogue de création se termine alors par une étape **Facturation** qui affiche les tarifs.
 
 ## Créer une clé d'ingestion
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Verrouiller une clé de navigateur
 
-Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copier. Ces paramètres limitent ce qu'une copie peut faire. Modifiez-les sur la page de la clé avec **Modifier : Clé d'ingestion de télémétrie**.
+Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copier. Ces paramètres limitent ce qu'une copie peut faire. Modifiez-les sur la page de la clé avec **Modifier : Clé d'ingestion**.
 
 | Paramètre | Ce qu'il fait |
 | --- | --- |
@@ -104,7 +104,7 @@ Une origine se compose d'un schéma, d'un hôte et d'un port facultatif : `https
 ]
 ```
 
-Le [Catalogue de services](/docs/telemetry/services#comment-un-service-entre-dans-le-catalogue) montre comment un nom épinglé décide du service. Le Runner et l'agent IA de l'agent Kubernetes, ainsi que les agents IA d'infrastructure, ne s'enregistrent pas avec une clé épinglée : donnez-leur une clé de serveur non épinglée.
+[Services](/docs/telemetry/services#comment-un-service-entre-dans-le-catalogue) montre comment un nom épinglé décide du service. Le Runner et l'agent IA de l'agent Kubernetes, ainsi que les agents IA d'infrastructure, ne s'enregistrent pas avec une clé épinglée : donnez-leur une clé de serveur non épinglée.
 
 ## Renouveler, désactiver ou supprimer une clé
 
@@ -112,9 +112,9 @@ La page d'une clé affiche son **Statut**, sa **Clé secrète** derrière **Cliq
 
 | Pour | Faites ceci | Ce que voient les émetteurs |
 | --- | --- | --- |
-| Arrêter une clé tout de suite, et pouvoir revenir en arrière | Cliquez sur **Modifier : Clé d'ingestion de télémétrie**, ouvrez **Accès et limites** et désactivez **Activé**. Le statut indique **Désactivé — télémétrie refusée**. | `422` jusqu'à ce que vous la réactiviez |
+| Arrêter une clé tout de suite, et pouvoir revenir en arrière | Cliquez sur **Modifier : Clé d'ingestion**, ouvrez **Accès et limites** et désactivez **Activé**. Le statut indique **Désactivé — télémétrie refusée**. | `422` jusqu'à ce que vous la réactiviez |
 | Remplacer un secret qui a fuité | Cliquez sur **Réinitialiser la clé secrète** et confirmez. La clé garde ses paramètres et reçoit un nouveau secret. | `401` jusqu'à ce qu'ils envoient le nouveau secret |
-| Arrêter une clé définitivement | Cliquez sur **Supprimer : Clé d'ingestion de télémétrie** en bas de sa page. | `401` |
+| Arrêter une clé définitivement | Cliquez sur **Supprimer : Clé d'ingestion** en bas de sa page. | `401` |
 
 Pour changer de secret sans perdre de données, créez une deuxième clé, basculez vos émetteurs dessus, et supprimez l'ancienne clé quand sa **Dernière utilisation le** ne bouge plus. **Dernière utilisation le** est mise à jour toutes les quelques minutes, pas à chaque requête.
 
@@ -155,7 +155,7 @@ Rien n'a envoyé de données avec cette clé depuis que OneUptime enregistre son
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer des traces, des métriques et des journaux avec votre clé.
-- [Catalogue de services](/docs/telemetry/services): Voir les services sous lesquels votre télémétrie est rangée.
+- [Services](/docs/telemetry/services): Voir les services sous lesquels votre télémétrie est rangée.
 - [Rétention des données](/docs/telemetry/data-retention): Décider combien de temps les données sont conservées.
 - [Filtres de suppression et règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules): Supprimer ou masquer des données avant leur stockage.
 - [Budgets d'ingestion](/docs/telemetry/ingestion-budgets): Plafonner ce que chaque clé peut envoyer en une journée.

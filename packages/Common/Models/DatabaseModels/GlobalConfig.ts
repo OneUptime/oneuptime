@@ -2762,4 +2762,31 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: false,
   })
   public disableProductFeedback?: boolean = undefined;
+
+  /*
+   * The products switched off for every project on this server (issue
+   * #6815, Types/Product/ServerProducts): { off: [product keys], changedAt,
+   * changedByUserId }. Null until a master admin saves Admin Dashboard >
+   * Settings > Products; until then SERVER_PRODUCTS (config.env, Helm
+   * products.onThisServer) gives the starting value, and unset every product
+   * is on. Written by OneUptime only (isRoot), through the page's own route,
+   * which records who changed it: GlobalConfigService refuses a write
+   * through the CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Server Products",
+    description:
+      "The products switched off for every project on this server, and who switched them off and when. Empty until an admin saves Admin Dashboard > Settings > Products.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public serverProducts?: JSONObject = undefined;
 }

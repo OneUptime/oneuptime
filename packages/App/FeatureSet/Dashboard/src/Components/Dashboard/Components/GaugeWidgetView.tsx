@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import ValueFormatter from "Common/Utils/ValueFormatter";
+import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -11,7 +11,12 @@ import {
   computeGaugeValueFontPx,
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
-import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetLine, {
+  getWidgetPageLanguage,
+} from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import {
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
@@ -20,6 +25,8 @@ import {
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
+// The centre's number, with its unit in a span of its own.
+export const GAUGE_VALUE_TEST_ID: string = "gauge-value";
 
 /*
  * The radial gauge's PRESENTATION, with no opinion about where its number
@@ -29,29 +36,6 @@ export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
  * typography in one place is what makes the two indistinguishable on a
  * board while their configuration surfaces stay completely separate.
  */
-
-/*
- * Split a ValueFormatter output like "6.91 hours" / "25.00%" / "1.5 MB"
- * into a numeric portion and a unit portion so the gauge can render the
- * big number prominently with a smaller gray unit suffix — matching how
- * DashboardValueComponent renders its centre value.
- */
-export function splitFormattedDisplay(formatted: string): {
-  value: string;
-  unit: string;
-} {
-  if (formatted.endsWith("%")) {
-    return { value: formatted.slice(0, -1), unit: "%" };
-  }
-  const lastSpace: number = formatted.lastIndexOf(" ");
-  if (lastSpace > 0) {
-    return {
-      value: formatted.substring(0, lastSpace),
-      unit: formatted.substring(lastSpace + 1),
-    };
-  }
-  return { value: formatted, unit: "" };
-}
 
 const GaugeStateIcon: FunctionComponent<{
   tone: "gray" | "emerald";
@@ -269,10 +253,23 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     gaugeColor = "#f59e0b"; // yellow
   }
 
-  const formattedDisplay: string = ValueFormatter.formatValue(
+  /*
+   * Its numbers - the centre value, the thresholds' and the bounds - in the
+   * reader's language (#7094): "73,40 %" in German, "۷۳٫۴۰٪" in Persian,
+   * as the SLO tiles beside it write theirs. They were Latin digits and a
+   * point on every board.
+   */
+  const language: string = translator.language;
+
+  /*
+   * The number and its unit as two parts, so the gauge can render the big
+   * number prominently with a smaller gray unit suffix — matching how the
+   * Value widget renders its centre value.
+   */
+  const displayParts: FormattedValue = ValueFormatter.formatValueInParts(
     aggregatedValue,
     rawUnit,
-    { metricName },
+    { metricName, language },
   );
 
   /*
@@ -297,8 +294,21 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   });
   const { radius, centerX, centerY, backgroundPath, valuePath } = arc;
 
-  const { value: displayValue, unit: displayUnit } =
-    splitFormattedDisplay(formattedDisplay);
+  const displayValue: string = displayParts.value;
+  const displayUnit: string = displayParts.unit;
+  // "1.5 MB" and German's "73,40 %" leave a gap; "73.40%" and "۷۳٫۴۰٪" none.
+  const isUnitSetApart: boolean = ValueFormatter.isUnitSetApart(displayParts);
+
+  /*
+   * The centre reads the way its unit's letters do: on an Arabic or a
+   * Persian board a unit in Latin letters is drawn after its number,
+   * "۱٫۹۶ MB/s", with its gap between the two. Read from the right, the
+   * unit's gap (its inline start) fell on its far side: "1.96MB/s".
+   */
+  const centreDirection: ReadingDirection | undefined = getLineDirection(
+    displayUnit,
+    getWidgetPageLanguage(translator.language),
+  );
 
   /*
    * The centre value is rendered as a big number plus a smaller gray unit
@@ -310,8 +320,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    */
   const baseValueFontPx: number = computeGaugeValueFontPx(gaugeSize);
   const baseUnitFontPx: number = baseValueFontPx * 0.4;
-  const unitGapPx: number =
-    displayUnit && displayUnit !== "%" ? baseValueFontPx * 0.12 : 0;
+  const unitGapPx: number = isUnitSetApart ? baseValueFontPx * 0.12 : 0;
   const estimatedTextWidthPx: number =
     displayValue.length * baseValueFontPx * 0.55 +
     (displayUnit ? displayUnit.length * baseUnitFontPx * 0.55 : 0) +
@@ -368,7 +377,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       label: ValueFormatter.formatValue(
         isFractionScale ? warningThreshold / 100 : warningThreshold,
         rawUnit,
-        { metricName },
+        { metricName, language },
       ),
     });
   }
@@ -385,7 +394,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       label: ValueFormatter.formatValue(
         isFractionScale ? criticalThreshold / 100 : criticalThreshold,
         rawUnit,
-        { metricName },
+        { metricName, language },
       ),
     });
   }
@@ -399,12 +408,12 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   const formattedMin: string = ValueFormatter.formatValue(
     isFractionScale ? minValue / 100 : minValue,
     rawUnit,
-    { metricName },
+    { metricName, language },
   );
   const formattedMax: string = ValueFormatter.formatValue(
     isFractionScale ? maxValue / 100 : maxValue,
     rawUnit,
-    { metricName },
+    { metricName, language },
   );
 
   const gaugeViewboxHeight: number = gaugeSize / 2 + strokeWidth + 12;
@@ -501,7 +510,9 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
           }}
         >
           <div
-            className="font-bold text-gray-900 tabular-nums leading-none whitespace-nowrap"
+            dir={centreDirection}
+            data-testid={GAUGE_VALUE_TEST_ID}
+            className={`font-bold text-gray-900 ${getNumberSpacingClassName(displayValue)} leading-none whitespace-nowrap`}
             style={{
               fontSize: `${valueFontPx}px`,
               letterSpacing: "-0.025em",
@@ -513,7 +524,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
                 className="text-gray-400 font-normal tracking-normal"
                 style={{
                   fontSize: `${unitFontPx}px`,
-                  marginInlineStart: displayUnit === "%" ? "0" : "0.15em",
+                  marginInlineStart: isUnitSetApart ? "0.15em" : "0",
                 }}
               >
                 {displayUnit}
@@ -548,7 +559,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       <div
         dir="ltr"
         data-testid={GAUGE_BOUNDS_TEST_ID}
-        className="flex justify-between w-full text-[10px] text-gray-400 tabular-nums"
+        className={`flex justify-between w-full text-[10px] text-gray-400 ${getNumberSpacingClassName(formattedMin + formattedMax)}`}
         style={{ maxWidth: `${gaugeSize}px` }}
       >
         <span>{formattedMin}</span>

@@ -125,7 +125,7 @@ De openbare pagina is een eigen applicatie, met een kleine set routes:
 - `/rss`: de feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` en `/master-password`: alleen relevant op een privépagina.
 
-De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Geplande gebeurtenissen** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Uitloggen**.
+De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Geplande onderhoud** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Uitloggen**.
 
 Eén incident, episode, aankondiging of geplande gebeurtenis opent alleen als de pagina die zou tonen, ongeacht de geschiedenisperiode: een privé-incident of -episode, een die verborgen is op statuspagina's, een geplande gebeurtenis die verborgen is op statuspagina's of een aankondiging die voor later is gepland, wordt ook via de link niet gevonden.
 
@@ -138,7 +138,7 @@ Het overzicht is de pagina die de meeste bezoekers zien. Van boven naar beneden 
 3. **Een totaal uptimepercentage**, als u het hebt ingeschakeld: aan het einde van de banner met de algemene status, zolang alle resources operationeel zijn. Standaard uit.
 4. **Resourcegroepen**, elk met hun resources, hun huidige status en hun balken met uptimegeschiedenis.
 5. **Actieve incidenten**, met actieve episoden.
-6. **Geplande onderhoudsgebeurtenissen**.
+6. **Geplande onderhoud**.
 
 Een nieuw aangemaakte pagina zonder inhoud toont een lege staat die u vraagt resources toe te voegen vanuit het dashboard, het teken om naar het scherm **Middelen** te gaan.
 
@@ -154,7 +154,7 @@ Wat bezoekers zien, stelt u in op één kaart: **Wat uw statuspagina toont**, on
 - **Alleen incidenten tonen die tot deze pagina zijn beperkt** (`onlyShowScopedIncidents`): ook in de incidentenrij, standaard uit. Zet het aan en de pagina toont, en meldt aan haar abonnees, alleen de incidenten die met **Beperken tot deze statuspagina's** tot haar zijn beperkt. Incidenten die tot geen enkele pagina zijn beperkt, ook die welke een monitor, Slack, Microsoft Teams, de API of AI zelf opent, komen er nooit op totdat iemand de pagina eraan toevoegt. Het bepaalt ook welke incidenten hun episoden op de pagina brengen, daarom blijft het beschikbaar wanneer **Incidenten weergeven** uit staat. Voor pagina's die monitoren delen maar verschillende doelgroepen bedienen, zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
 - **Episoden weergeven** (`showEpisodesOnStatusPage`): standaard aan, met **De laatste … dagen weergeven** (`showEpisodeHistoryInDays`, standaard 14) en **Episodelabels weergeven** (`showEpisodeLabelsOnStatusPage`, standaard uit). Episoden zijn een eigen model met eigen endpoints, geen weergave van incidenten.
 - **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`): standaard aan, met **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14).
-- **Geplande onderhoudsgebeurtenissen weergeven** (`showScheduledMaintenanceEventsOnStatusPage`): standaard aan, met **De laatste … dagen weergeven** (`showScheduledEventHistoryInDays`, standaard 14) en **Gebeurtenislabels weergeven** (`showScheduledEventLabelsOnStatusPage`, standaard uit).
+- **Onderhoudsgebeurtenissen tonen** (`showScheduledMaintenanceEventsOnStatusPage`): standaard aan, met **De laatste … dagen weergeven** (`showScheduledEventHistoryInDays`, standaard 14) en **Labels van onderhoudsgebeurtenissen tonen** (`showScheduledEventLabelsOnStatusPage`, standaard uit).
 - **Uptimegeschiedenis**: alles over de uptime van de pagina, in één rij:
   - **De laatste … dagen weergeven** (`showUptimeHistoryInDays`) is de lengte van de uptimebalk naast elke resource. Het is standaard 90 en moet tussen 1 en 90 liggen. Elke optie **Uptime % weergeven** en **Statusgeschiedenisgrafiek weergeven** van een resource of groep leest dit getal, net als het totale uptimepercentage.
   - **Totaal uptimepercentage weergeven** (`showOverallUptimePercentOnStatusPage`): standaard uit. Zet het aan en de banner met de algemene status eindigt met een uptimepercentage voor de hele pagina, het gemiddelde van haar resources en groepen, zolang alles operationeel is. Zolang het aan staat, kiest **Precisie** (`overallUptimePercentPrecision`) hoeveel decimalen het toont: `99%`, `99.9%`, `99.99%` (de standaard) of `99.999%`. Elke resource en elke groep heeft een eigen precisie.
@@ -168,7 +168,7 @@ Wat bezoekers zien, stelt u in op één kaart: **Wat uw statuspagina toont**, on
 
 Of de pagina een item **Abonneren** toont (**Abonneepagina weergeven**, `showSubscriberPageOnStatusPage`, standaard aan) en via welke kanalen bezoekers zich kunnen abonneren, stelt u niet op dit scherm in: beide staan op de kaart **Kanalen** onder **Abonnees → Abonneeinstellingen** (zie [Abonnementskanalen](/docs/status-pages/subscribers#abonnementskanalen)).
 
-Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instellingen van de statuspagina downloadt naar een bestand dat u opnieuw kunt importeren, en **Archive status page** (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)). Het totale uptimepercentage en de downtimestatussen waren hier vroeger twee eigen kaarten, elk achter een knop **Bewerken**; nu zijn het rijen van de kaart.
+Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instellingen van de statuspagina downloadt naar een bestand dat u opnieuw kunt importeren, en **Statuspagina archiveren** (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)). Het totale uptimepercentage en de downtimestatussen waren hier vroeger twee eigen kaarten, elk achter een knop **Bewerken**; nu zijn het rijen van de kaart.
 
 **Waar de kleuren staan.** De kleuren van de uptimebalken staan hier niet: de **Standaard balkkleur** en de kleurregels voor de balken staan onder **Meer instellingen** in **Statuspagina's → uw pagina → Huisstijl → Huisstijl**. Het **Thema** van de pagina (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld) is een kaart bovenaan diezelfde pagina. Er bestaat geen instelling voor een merkkleur; alles wat verder gaat dan die bedieningselementen doet u met **Aangepaste CSS**.
 
@@ -228,7 +228,7 @@ Drie manieren om de status ergens anders te tonen dan op de pagina zelf.
 
 **RSS-feed.** Elke statuspagina serveert `/rss`: een feed met de titel "{paginatitel} Updates", met de **Paginatitel** die onder **Huisstijl** is ingesteld, of de naam van de pagina als ze er geen heeft, en waarvan de items beginnen met `Incident: `, `Announcement: ` en `Scheduled Maintenance: `. Elk item is gedateerd zoals de pagina het dateert: een incident op het moment dat het werd gemeld, een aankondiging op het moment dat ze verscheen, en een geplande onderhoudsgebeurtenis op het moment dat ze begint, met haar tijdvenster als begin van de omschrijving. Handig voor wie uw updates liever in een feedlezer of een chatbot binnenhaalt dan zich per e-mail te abonneren.
 
-**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Geplande gebeurtenissen**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
+**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Geplande onderhoud**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
 
 Als u de gegevens liever zelf ophaalt: de statuspagina steunt op openbare lees-endpoints voor het overzicht, de incidenten, de geplande onderhoudsgebeurtenissen, de aankondigingen en de episoden; zie [Publieke API](/docs/status-pages/public-api).
 
@@ -241,7 +241,7 @@ Archiveer een statuspagina om haar offline te halen zonder haar te verwijderen. 
 - **Verdwijnt uit de lijst met statuspagina's.** U vindt haar onder **Statuspagina's → Geavanceerd → Gearchiveerd**.
 - **Bewaart alles.** Haar resources, groepen, huisstijl, domeinen, privégebruikers en abonnees blijven bewaard, dus uit het archief halen zet de pagina precies zoals ze was weer online.
 
-Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Archive status page**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit archief halen**, of opent u haar en klikt u op **Uit archief halen** in de banner bovenaan haar pagina's.
+Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit archief halen**, of opent u haar en klikt u op **Uit archief halen** in de banner bovenaan haar pagina's.
 
 ## Volgende stappen
 

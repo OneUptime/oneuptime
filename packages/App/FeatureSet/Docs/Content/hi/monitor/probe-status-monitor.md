@@ -100,6 +100,6 @@ flowchart TB
 
 :::cards
 - [कस्टम प्रोब](/docs/probe/custom-probe): अपने नेटवर्क में प्रोब चलाएँ।
-- [मॉनिटर मानदंड और स्थितियाँ](/docs/monitor/criteria-and-statuses): मानदंड मॉनिटर की स्थिति कैसे तय करते हैं।
+- [मानदंड और स्थितियाँ](/docs/monitor/criteria-and-statuses): मानदंड मॉनिटर की स्थिति कैसे तय करते हैं।
 - [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating): मॉनिटर जो घटना घोषित करता है, उसकी भाषा तय करें।
 :::

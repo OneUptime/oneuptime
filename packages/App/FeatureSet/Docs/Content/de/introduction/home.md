@@ -49,7 +49,7 @@ Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet di
 | **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** | **Vorfälle → Aktive Vorfälle** |
 | **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** | **Warnungen → Aktive Warnungen** |
 | **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore und Monitore mit ausgeschalteter Überwachung zählen nicht mit. | **Alle betriebsbereit** | **Monitore → Nicht betriebsbereit** |
-| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** | **Geplante Wartung → Laufende Ereignisse** |
+| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** | **Geplante Wartung → Laufende Wartungsereignisse** |
 | **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** | **SLOs** |
 
 Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Solange ein SLO gefährdet ist, öffnet **Gefährdete SLOs** die Liste **SLOs**, gefiltert auf genau diese SLOs. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
@@ -74,7 +74,7 @@ Der Schritt, mit dem Sie beginnen, ist mit **Nächster Schritt** markiert. Im Fr
 
 Eine geführte Einrichtung erledigt die ganze Aufgabe auf einer Seite, Schritt für Schritt, und endet damit, was sie eingerichtet hat und was als Nächstes zu tun ist. Um eine später wieder zu öffnen, suchen Sie nach ihrem Namen.
 
-Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaftsdienst** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
+Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaft** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
 
 ```mermaid title="Wann die Willkommens-Checkliste erscheint"
 flowchart TB
@@ -109,7 +109,7 @@ Wenn etwas in der Einrichtung des Projekts verhindern würde, dass die richtigen
 
 ## Sich zurechtfinden
 
-Alles in OneUptime liegt unter **Produkte** in der oberen Leiste. Das Menü führt seine Gruppen als Zeilen einer einzigen Liste und öffnet sich immer mit der ersten davon, den Grundlagen, aufgeklappt: Monitore, Vorfälle, Warnungen, Bereitschaftsdienst, Status-Seiten, Geplante Wartung und SLOs. Jede andere Gruppe (Observability, Sicherheit, KI, Code, Ressourcen, Infrastruktur, Cloud, Dashboards & Automatisierung und Einstellungen) ist zu einer Zeile derselben Liste zugeklappt. Jede Zeile nennt die Produkte ihrer Gruppe und sagt, wie viele es sind. Klicken Sie auf eine Zeile, um sie auf- oder zuzuklappen, oder gehen Sie mit den Pfeiltasten zu ihr und drücken Sie **Enter**.
+Alles in OneUptime liegt unter **Produkte** in der oberen Leiste. Das Menü führt seine Gruppen als Zeilen einer einzigen Liste und öffnet sich immer mit der ersten davon, den Grundlagen, aufgeklappt: Monitore, Vorfälle, Warnungen, Bereitschaft, Status-Seiten, Geplante Wartung und SLOs. Jede andere Gruppe (Observability, Sicherheit, KI, Code, Ressourcen, Infrastruktur, Cloud, Dashboards & Automatisierung und Einstellungen) ist zu einer Zeile derselben Liste zugeklappt. Jede Zeile nennt die Produkte ihrer Gruppe und sagt, wie viele es sind. Klicken Sie auf eine Zeile, um sie auf- oder zuzuklappen, oder gehen Sie mit den Pfeiltasten zu ihr und drücken Sie **Enter**.
 
 - **Die Suche findet alles.** Tippen Sie in das Suchfeld des Menüs, um jedes Produkt nach seinem Namen, nach dem, was es tut, oder nach einem vertrauten Wort wie `k8s` oder `RUM` zu finden. Die Suche schaut auch in die zugeklappten Gruppen.
 - **Sie beginnen dort, wo Sie sind.** Die Gruppe der Seite, auf der Sie sind, klappt von selbst auf, und die Produkte, die Sie zuletzt geöffnet haben, stehen oben.
@@ -149,7 +149,7 @@ Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen
 Drücken Sie **Cmd+K** (Mac) oder **Ctrl+K** (Windows und Linux), oder klicken Sie auf das Suchsymbol in der oberen Leiste, und beginnen Sie zu tippen. Die Suche findet:
 
 - **Jede Seite in den Menüs**, unter dem Namen, den das Menü ihr gibt: API-Schlüssel, Gefahrenzone, Bereitschaftspläne, Vorfallsschweregrad, Ihre eigenen Benachrichtigungsmethoden. Jedes Ergebnis sagt, wo es liegt, etwa *Projekteinstellungen › Erweitert*, sodass sich Seiten mit demselben Namen (Benutzerdefinierte Felder in Vorfällen, Warnungen und Monitoren) leicht unterscheiden lassen.
-- **Die Einstellungen auf einer Seite**, unter dem Namen, den ihre Karte oder ihr Schalter zeigt: *SSO für die Anmeldung erzwingen* findet SSO, und *Benachrichtigungskanäle* findet Benachrichtigungseinstellungen. Tippen Sie den Namen auf Englisch oder in Ihrer Sprache.
+- **Die Einstellungen auf einer Seite**, unter dem Namen, den ihre Karte oder ihr Schalter zeigt: *SSO für die Anmeldung erzwingen* findet SSO, und *Benutzerdefinierte SMTP-Konfigurationen* findet Benachrichtigungskanäle. Tippen Sie den Namen auf Englisch oder in Ihrer Sprache.
 - **Aktionen**, nach dem, was Sie tun möchten: Vorfall melden, Monitor erstellen oder Projekt löschen, das die Gefahrenzone öffnet. Eine Aktion, die etwas ändert, wird nur Personen angeboten, die sie ausführen dürfen.
 - **Ihre Monitore, Vorfälle, Warnungen, Statusseiten und Bereitschaftsrichtlinien**, nach Namen, und Vorfälle und Warnungen auch nach Nummer, etwa `INC-42`. Jedes Ergebnis für einen Vorfall oder eine Warnung beginnt mit seiner Nummer, sodass sich zwei mit demselben Titel unterscheiden lassen.
 - **Die Dokumentation**, in einer Gruppe *Dokumentation* unter allem anderen: die Seiten und Abschnitte, deren Wörter zu Ihrer Eingabe passen, in Ihrer Sprache, auch mit Tippfehler. Jede öffnet sich in einem neuen Tab, damit Sie Ihren Platz behalten.
@@ -185,7 +185,7 @@ Drücken Sie `g` und dann einen Buchstaben, um direkt zu einem Produkt zu spring
 | `g` dann `m` | Monitore |
 | `g` dann `i` | Vorfälle |
 | `g` dann `a` | Warnungen |
-| `g` dann `o` | Bereitschaftsdienst |
+| `g` dann `o` | Bereitschaft |
 | `g` dann `s` | Status-Seiten |
 | `g` dann `e` | Geplante Wartung |
 | `g` dann `d` | Dashboards |

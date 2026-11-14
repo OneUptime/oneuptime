@@ -1,6 +1,6 @@
 # Panoramica dei moduli
 
-Un modulo è una pagina che chiunque abbia il suo link può compilare, senza un account OneUptime. Ogni invio crea qualcosa nel tuo progetto: un **incidente**, per le segnalazioni di problemi, oppure un **evento di manutenzione programmata**, per le richieste di modifica e di manutenzione. Costruisci le domande del modulo in un editor drag-and-drop, decidi come le risposte diventano il record e condividi il link con le persone che devono usarlo.
+Un modulo è una pagina che chiunque abbia il suo link può compilare, senza un account OneUptime. Ogni invio crea qualcosa nel tuo progetto: un **incidente**, per le segnalazioni di problemi, oppure un **evento di manutenzione**, per le richieste di modifica e di manutenzione. Costruisci le domande del modulo in un editor drag-and-drop, decidi come le risposte diventano il record e condividi il link con le persone che devono usarlo.
 
 Usa un modulo quando chi nota un problema, o ha bisogno di una modifica, non è chi gestisce i tuoi incidenti e le tue manutenzioni: addetti al supporto, colleghi di un altro reparto, il responsabile di un negozio, il team operativo di un cliente. Aprono il link, rispondono alle tue domande e premono **Invia**. Il tuo team riceve un normale incidente o evento, con le risposte nei suoi campi e una nota privata che registra chi l'ha inviato.
 
@@ -257,7 +257,7 @@ La risposta a una domanda di file sono i file così come sono stati salvati, cia
 
 ### Workflow
 
-I moduli hanno i componenti di workflow generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Scheduled Maintenance Event**.
+I moduli hanno i componenti di workflow generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Maintenance Event**.
 
 ### Gli endpoint propri della pagina pubblica
 

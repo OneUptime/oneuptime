@@ -86,7 +86,7 @@ Filtre la lista por **Usuario**, **Estado** o **Equipo**. Haga clic en una fila 
 | --- | --- |
 | **Perfil** | Su nombre, su dirección de correo, su foto y su ID de usuario. |
 | **Equipos** | Los equipos de los que forma parte. Añada o quite un equipo aquí. |
-| **Preparación**, **Métodos de notificación**, **Reglas de guardia** | Si se le puede avisar de una guardia, y cómo. Lo ven los Project Owners, los Project Admins, la propia persona y quien pueda leer las reglas de notificación de los demás. Consulte [Preparación e informes](/docs/on-call/readiness). |
+| **Preparación**, **Métodos de notificación**, **Cómo contactarme** | Si se le puede avisar de una guardia, y cómo. Lo ven los Project Owners, los Project Admins, la propia persona y quien pueda leer las reglas de notificación de los demás. Consulte [Preparación e informes](/docs/on-call/readiness). |
 | **Campos personalizados** | Los campos personalizados del proyecto para personas, si los tiene. |
 | **Eliminar del proyecto** | Sacarla del proyecto. |
 

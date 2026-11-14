@@ -1550,9 +1550,10 @@ describe("reachability after the deletion", () => {
     expect(warning).toHaveLength(1);
     expect(warning[0]).toContain("SMS, Call");
     expect(warning[0]).toContain(
-      "check On-Call Duty > Readiness to confirm this user can still be paged.",
+      "check On-Call > Readiness to confirm this user can still be paged.",
     );
-    expect(warning[0]).not.toContain("On-Call > Readiness");
+    // The bar's name since #6817; On-Call Duty is no menu now.
+    expect(warning[0]).not.toContain("On-Call Duty");
   });
 
   test("deleting an UNVERIFIED method changes nothing about reachability", async () => {

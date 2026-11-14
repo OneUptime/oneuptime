@@ -142,7 +142,7 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     routesFile: "DatabaseRoutes.tsx",
   },
   {
-    product: "Service Catalog",
+    product: "Services",
     pageMapKey: "SERVICE_VIEW_FEED",
     urlPrefix: "service",
     pagesDirectory: "Service",

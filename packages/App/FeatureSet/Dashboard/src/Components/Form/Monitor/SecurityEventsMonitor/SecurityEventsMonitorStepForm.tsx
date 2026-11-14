@@ -221,7 +221,7 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
                 };
               },
             ),
-            title: "Filter by Telemetry Service",
+            title: "Filter by Service",
             description: "Select the telemetry services you want to monitor.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_SECURITY_EVENT_FILTERS,

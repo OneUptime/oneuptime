@@ -24,6 +24,7 @@ import {
 } from "Common/Types/Workflow/WorkflowEnabled";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import ProjectService from "Common/Server/Services/ProjectService";
+import { SAMPLE_PROJECT_REFUSALS } from "Common/Types/SampleProject/SampleProject";
 import UserService from "Common/Server/Services/UserService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
@@ -273,6 +274,16 @@ export default class QueueWorkflow {
      */
     if (!scheduleAt && (await ProjectService.isProjectBlocked(projectId))) {
       throw new ProjectBlockedException();
+    }
+
+    /*
+     * A sample project (issue #6808) runs no workflow at all: a workflow
+     * can send email, post to a chat or call any address, and nothing ever
+     * leaves a sample. A run or a schedule asked for is refused, with why,
+     * and nothing is written for it.
+     */
+    if (await ProjectService.isSampleProject(projectId)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.workflow);
     }
 
     // Who started a test run, as its log names them.

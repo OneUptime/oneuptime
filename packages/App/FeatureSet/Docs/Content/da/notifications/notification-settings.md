@@ -106,14 +106,14 @@ Tjek, at du har en bekræftet metode på den kanal under **Brugerindstillinger �
 :::
 
 :::details Jeg får stadig e-mails, efter at jeg har slået alt fra
-Tilkald følger dine vagtregler, ikke disse kontakter, og e-mails om login, sikkerhed og fakturering er ikke nyheder om ting. Hvert projekt har sine egne indstillinger, så tjek det projekt, e-mailen kom fra. Se [Personlige vagtregler](/docs/notifications/on-call-rules).
+Tilkald følger dine vagtregler, ikke disse kontakter, og e-mails om login, sikkerhed og fakturering er ikke nyheder om ting. Hvert projekt har sine egne indstillinger, så tjek det projekt, e-mailen kom fra. Se [Sådan når man mig](/docs/notifications/on-call-rules).
 :::
 
 ## Næste skridt
 
 :::cards
 - [Notifikationsmetoder](/docs/notifications/notification-methods): Tilføj de metoder, dine indstillinger sender til.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Bestem, hvordan et tilkald når dig.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Bestem, hvordan et tilkald når dig.
 - [Notifikationsoversigt](/docs/emails/notification-rollup): Færre, fyldigere e-mails under en bølge.
 - [Sådan når OneUptime dig](/docs/notifications/index): Hvordan metoder, regler og indstillinger hænger sammen.
 :::

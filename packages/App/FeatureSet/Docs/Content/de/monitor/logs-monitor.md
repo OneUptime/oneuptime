@@ -72,7 +72,7 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Zeitfenster** (in **Wann alarmieren**) | Logs der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 5 Minuten** |
 | **Gruppieren nach Attributen** | Kein Filter: zählt jede Kombination der Werte dieser Attribute getrennt. | Leer: eine Anzahl |
 | **Behoben durch Attribute** | Kein Filter: das Log, das eine Gruppe behebt. Erscheint, sobald **Gruppieren nach Attributen** ein Attribut hat; siehe [Durch ein Log behoben](#durch-ein-log-behoben). | Leer: eine Gruppe wird behoben, wenn ihre Logs aufhören |
-| **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Dienste. | Leer: jeder Dienst |
+| **Nach Dienst filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Logs, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
 
@@ -140,7 +140,7 @@ Sie wollen einen Vorfall, wenn der Checkout-Dienst in fünf Minuten mehr als 50 
 
 - **Protokollschweregrad**: **Fehler**
 - **Zeitfenster**: **Letzte 5 Minuten**
-- **Nach Telemetrie-Dienst filtern**: `checkout`
+- **Nach Dienst filtern**: `checkout`
 - **Wann alarmieren**: **Mehr als** `50`
 - **Was passiert**: **Vorfall melden**
 
@@ -240,7 +240,7 @@ Der Wert jedes Group-By-Attributs ist eine [Vorlagenvariable](/docs/monitor/inci
 ## Fehlerbehebung
 
 :::details Der Monitor ist offline, aber mein Dienst schreibt Logs
-Die Anzahl war 0, die Filter passen also auf keines der Logs, die der Dienst sendet. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Logs** zeigt, worauf die Filter gerade passen, und das Diagramm in **Wann alarmieren** zählt sie in jedem Fenster. Die üblichen Ursachen sind ein Schweregrad, der nach dem vom Logger ausgegebenen Text statt nach seiner Schweregradnummer gewählt wurde (siehe [Log-Schweregrad](#log-schweregrad)), ein Dienst- oder Attributfilter, der nicht passt, und ein Zeitfenster, das kürzer ist als die Pause zwischen den Logs des Dienstes.
+Die Anzahl war 0, die Filter passen also auf keines der Logs, die der Dienst sendet. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Kriterien bearbeiten**: **Passende Logs** zeigt, worauf die Filter gerade passen, und das Diagramm in **Wann alarmieren** zählt sie in jedem Fenster. Die üblichen Ursachen sind ein Schweregrad, der nach dem vom Logger ausgegebenen Text statt nach seiner Schweregradnummer gewählt wurde (siehe [Log-Schweregrad](#log-schweregrad)), ein Dienst- oder Attributfilter, der nicht passt, und ein Zeitfenster, das kürzer ist als die Pause zwischen den Logs des Dienstes.
 :::
 
 :::details Es gab eine Spitze, aber nichts hat gewarnt

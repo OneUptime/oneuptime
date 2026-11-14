@@ -73,7 +73,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Span-status** | Spans met een van de gekozen statussen: **Niet ingesteld**, **Ok** of **Fout**. | Leeg: elke status |
 | **Spannaam bevat** | Spans waarvan de naam deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke span |
 | **Tijdvenster** (in **Wanneer waarschuwen**) | Spans die zijn begonnen in de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
-| **Filteren op telemetrieservice** (onder **Meer velden**) | Spans van een van de gekozen services. | Leeg: elke service |
+| **Filteren op service** (onder **Meer velden**) | Spans van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Spans van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Spans waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
 
@@ -154,7 +154,7 @@ Met 30 mislukte verzoeken komt de regel overeen en wordt het incident gemeld. Zo
 ## Problemen oplossen
 
 :::details De monitor telt geen spans voor mijn endpoint
-**Spannaam bevat** wordt vergeleken met de naam van de span, en instrumentatie noemt server-spans vaak naar de route (`POST /api/checkout`) of alleen naar de methode (`GET`). Zoek de exacte naam op in de traceverkenner. Open daarna de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Bewakingscriteria bewerken**: **Overeenkomende spans** toont waarmee de filters nu overeenkomen.
+**Spannaam bevat** wordt vergeleken met de naam van de span, en instrumentatie noemt server-spans vaak naar de route (`POST /api/checkout`) of alleen naar de methode (`GET`). Zoek de exacte naam op in de traceverkenner. Open daarna de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Criteria bewerken**: **Overeenkomende spans** toont waarmee de filters nu overeenkomen.
 :::
 
 :::details Geslaagde verzoeken worden niet geteld wanneer ik op Ok filter

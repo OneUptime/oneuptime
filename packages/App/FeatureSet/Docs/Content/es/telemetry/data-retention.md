@@ -79,7 +79,7 @@ Un campo vacío recurre al siguiente ajuste del orden de arriba, así que una gr
 
 Abra la página **Ajustes** del servicio o del recurso y luego **Más ajustes**. Su tarjeta **Retención de datos de telemetría** contiene **Conservar datos de telemetría durante (días)**, un solo número para todo lo que envía, y su tarjeta **Retención por tipo de telemetría** tiene los mismos campos que la del proyecto. Deje un campo vacío para usar los ajustes del proyecto.
 
-Los servicios, los hosts, los clústeres de Kubernetes, los hosts de Docker y Podman, los clústeres de Docker Swarm, Proxmox y Ceph, las cabinas de almacenamiento, los vCenter, las bases de datos, las funciones serverless, los entornos en la nube, las aplicaciones RUM y las flotas IoT tienen todos estas tarjetas. Consulte el [Catálogo de servicios](/docs/telemetry/services#cambiar-un-servicio) para la página **Ajustes** de un servicio.
+Los servicios, los hosts, los clústeres de Kubernetes, los hosts de Docker y Podman, los clústeres de Docker Swarm, Proxmox y Ceph, las cabinas de almacenamiento, los vCenter, las bases de datos, las funciones serverless, los entornos en la nube, las aplicaciones RUM y las flotas IoT tienen todos estas tarjetas. Consulte [Servicios](/docs/telemetry/services#cambiar-un-servicio) para la página **Ajustes** de un servicio.
 
 ### Cuando el plan o la licencia ya no incluye anulaciones
 
@@ -121,6 +121,6 @@ Las entradas caducadas dejan de aparecer en las búsquedas, los gráficos y las 
 :::cards
 - [Claves de ingesta](/docs/telemetry/ingestion-keys): Envíe telemetría a su proyecto.
 - [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules): Conserve solo la telemetría que necesita.
-- [Catálogo de servicios](/docs/telemetry/services): Fije la retención propia de un servicio.
+- [Servicios](/docs/telemetry/services): Fije la retención propia de un servicio.
 - [Edición Enterprise](/docs/self-hosted/enterprise): Lo que aportan las anulaciones de retención.
 :::

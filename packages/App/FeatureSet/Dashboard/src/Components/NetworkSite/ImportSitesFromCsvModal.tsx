@@ -43,6 +43,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Bulk CSV import for Network Sites, reached from the ⋯ menu on the Sites
@@ -510,7 +511,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                             "Line {{line}}: {{message}}",
                             {
                               line: translator.formatNumber(error.line),
-                              message: error.message,
+                              message: errorInSentence(error.message),
                             },
                           )
                         : error.message}

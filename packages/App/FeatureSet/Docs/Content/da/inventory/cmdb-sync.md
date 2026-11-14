@@ -59,7 +59,7 @@ En synkronisering skal bruge en API-nøgle, der må læse inventaret. I OneUptim
 
 ### Giv den kun det, den skal bruge
 
-En skrivebeskyttet eksport skal bruge én tilladelse, **Read Telemetry Service**: inventaret deler telemetritilladelserne i stedet for at have sine egne. Klik på **Tilføj tilladelse** på nøglens side, og vælg den. For at skrive værdier tilbage tilføjer du også **Edit Telemetry Service**.
+En skrivebeskyttet eksport skal bruge én tilladelse, **Read Inventory Item**: inventaret deler telemetritilladelserne i stedet for at have sine egne. Klik på **Tilføj tilladelse** på nøglens side, og vælg den. For at skrive værdier tilbage tilføjer du også **Edit Inventory Item**.
 
 ### Kopiér nøglen
 
@@ -232,9 +232,9 @@ Et element, der forsvinder mellem to kørsler, er enten udløbet (et fundet elem
 
 ## Skriv tilbage
 
-De samme endpoints tager imod skrivninger, så en synkronisering kan skubbe værdier ind i `customFields`: for eksempel det aktivmærke, din CMDB allerede ejer, stemplet på det tilsvarende OneUptime-element. Nøglen skal bruge **Edit Telemetry Service** til det.
+De samme endpoints tager imod skrivninger, så en synkronisering kan skubbe værdier ind i `customFields`: for eksempel det aktivmærke, din CMDB allerede ejer, stemplet på det tilsvarende OneUptime-element. Nøglen skal bruge **Edit Inventory Item** til det.
 
-Du kan også tilføje elementer for ting, OneUptime ikke kan se, med `POST /api/inventory-item`, en `entityType` af `external.service`, `external.database` eller `appliance` og et `displayName`. OneUptime udregner identitetsnøglen for dig, og de elementer udløber aldrig. Nøglen skal have **Create Telemetry Service** til det.
+Du kan også tilføje elementer for ting, OneUptime ikke kan se, med `POST /api/inventory-item`, en `entityType` af `external.service`, `external.database` eller `appliance` og et `displayName`. OneUptime udregner identitetsnøglen for dig, og de elementer udløber aldrig. Nøglen skal have **Create Inventory Item** til det.
 
 ## Fejlfinding
 
@@ -243,7 +243,7 @@ I OneUptime Cloud virker API-nøgler kun, mens projektet er på abonnementet **G
 :::
 
 :::details Hver forespørgsel svarer 422 You do not have permissions
-Nøglen har ingen tilladelse, der læser inventaret. En nøgle oprettet med **Vælg tilladelser senere** kan intet, før den får en: tilføj **Read Telemetry Service** på dens side, som i [Før du begynder](#før-du-begynder).
+Nøglen har ingen tilladelse, der læser inventaret. En nøgle oprettet med **Vælg tilladelser senere** kan intet, før den får en: tilføj **Read Inventory Item** på dens side, som i [Før du begynder](#før-du-begynder).
 :::
 
 :::details Listen kommer tilbage uden de kolonner, jeg skal bruge

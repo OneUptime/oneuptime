@@ -22,6 +22,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 /*
  * Both bare and `resource.*`-prefixed variants are mapped so widget
@@ -68,7 +69,7 @@ const POD_LEGEND: Array<HoneycombLegendItem> = [
 
 function buildPodTile(r: KubernetesResource): HoneycombTile {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const namespace: string = (r.namespaceKey as string) || "—";
   const phase: string = (r.phase as string) || "Unknown";
   const phaseStyle: { dot: string; text: string } =
@@ -101,7 +102,7 @@ function buildPodTile(r: KubernetesResource): HoneycombTile {
 
 function renderPodRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const namespace: string = (r.namespaceKey as string) || "—";
   const phase: string = (r.phase as string) || "Unknown";
   const phaseStyle: { dot: string; text: string } =
@@ -181,7 +182,10 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
       componentType={DashboardComponentType.KubernetesPodList}
       widgetProps={props}
       title={args.title}
-      pluralLabel="pods"
+      countLabel={{
+        one: "{{count}} pod",
+        other: "{{count}} pods",
+      }}
       emptyMessage="No pods found"
       emptyIcon={IconProp.Cube}
       columns={COLUMNS}

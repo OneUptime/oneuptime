@@ -79,6 +79,7 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
             <ResourceShowcaseCard
               showcase={onboarding.showcase}
               docsRoute={onboarding.docsRoute}
+              guideRoute={onboarding.guideRoute}
               isBare={true}
             />
           </div>

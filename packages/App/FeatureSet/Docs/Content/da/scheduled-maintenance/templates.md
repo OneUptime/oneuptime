@@ -15,7 +15,7 @@ En skabelon er et udgangspunkt. En begivenhed, der er oprettet ud fra den, er en
 
 ```mermaid title="To måder, en skabelon bliver til en begivenhed på"
 flowchart TB
-    template["En skabelon i<br/>Begivenhedsskabeloner"] --> byhand["Opret fra skabelon<br/>udfylder formularen"]
+    template["En skabelon i<br/>Vedligeholdelsesskabeloner"] --> byhand["Opret fra skabelon<br/>udfylder formularen"]
     template --> schedule["Tilbagevendende<br/>begivenhed slået til<br/>kontrolleres hvert minut"]
     byhand --> event["En ny begivenhed<br/>i Planlagt"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åbn skabelonerne
 
-Gå til **Planlagt vedligeholdelse → Indstillinger → Begivenhedsskabeloner**. **Indstillinger** starter foldet sammen i sidemenuen: fold den ud først. Klik på **Opret Skabelon for planlagt vedligeholdelse**.
+Gå til **Planlagt vedligeholdelse → Indstillinger → Vedligeholdelsesskabeloner**. **Indstillinger** starter foldet sammen i sidemenuen: fold den ud først. Klik på **Opret Skabelon for planlagt vedligeholdelse**.
 
 ### Navngiv skabelonen
 
@@ -39,7 +39,7 @@ Under **Skabeloninformation** giver du den et **Skabelonnavn** og en **Skabelonb
 
 ### Beskriv begivenheden
 
-Under **Begivenhed** udfylder du den **Titel** og den **Beskrivelse**, som hver begivenhed fra den starter med. **Ejere** og **Etiketter** venter under **Flere felter**.
+Under **Detaljer om vedligeholdelse** udfylder du den **Titel** og den **Beskrivelse**, som hver begivenhed fra den starter med. **Ejere** og **Etiketter** venter under **Flere felter**.
 
 ### Vælg, hvad den påvirker
 
@@ -68,7 +68,7 @@ En skabelon spørger om **Skift overvågningsstatus til**, selv når den ikke n�
 :::steps
 ### Vælg skabelonen
 
-På **Planlagt vedligeholdelse → Alle begivenheder** klikker du på **Opret fra skabelon** og vælger en skabelon under **Vælg skabelon for planlagt vedligeholdelse**.
+På **Planlagt vedligeholdelse → Alle vedligeholdelseshændelser** klikker du på **Opret fra skabelon** og vælger en skabelon under **Vælg skabelon for planlagt vedligeholdelse**.
 
 ### Kontrollér formularen
 
@@ -76,10 +76,10 @@ Klik på **Opret fra skabelon**. Formularen åbner med skabelonens svar allerede
 
 ### Opret begivenheden
 
-Gå gennem trinnene med **Næste**, og klik derefter på **Opret planlagt vedligeholdelseshændelse** i oversigten.
+Gå gennem trinnene med **Næste**, og klik derefter på **Opret vedligeholdelseshændelse** i oversigten.
 :::
 
-Når projektet endnu ikke har nogen skabelon, siger **Opret fra skabelon** det og linker til **Begivenhedsskabeloner**.
+Når projektet endnu ikke har nogen skabelon, siger **Opret fra skabelon** det og linker til **Vedligeholdelsesskabeloner**.
 
 ## Tilbagevendende begivenheder
 
@@ -108,7 +108,7 @@ Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons
 
 Åbn en skabelon fra listen for at se dens side:
 
-- **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Begivenhed**, **Statussider** og **Tilbagevendende**.
+- **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Detaljer om vedligeholdelse**, **Statussider** og **Tilbagevendende**.
 - **Berørte ressourcer** rummer dens **Monitorer**, deres **Skift overvågningsstatus til** og dens **Andre berørte ressourcer**, med sin egen **Rediger**.
 - **Ejere** viser de personer og teams, der ejer hver begivenhed, der planlægges ud fra den.
 

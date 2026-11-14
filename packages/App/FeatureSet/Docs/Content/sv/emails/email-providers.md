@@ -15,7 +15,7 @@ Skicka OneUptimes e-post via en e-postleverantörs HTTPS-API i stället för via
 
 :::tabs
 @tab Projekt
-Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**. I steget **Leverantör** anger du ett **Namn** och väljer leverantören. Nästa steg frågar efter den leverantörens inställningar, och steget **Avsändare** efter **E-post från** och **Från-namn**. När konfigurationen är sparad kontrollerar **Skicka test-e-post** på dess rad att den fungerar.
+Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringskanaler** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**. I steget **Leverantör** anger du ett **Namn** och väljer leverantören. Nästa steg frågar efter den leverantörens inställningar, och steget **Avsändare** efter **E-post från** och **Från-namn**. När konfigurationen är sparad kontrollerar **Skicka test-e-post** på dess rad att den fungerar.
 @tab Egenvärdad instans
 Öppna **Inställningar** i Admin Dashboard och sedan **Notifieringar > E-post**. Klicka i kortet **E-post-serverinställningar** på **Redigera server** och välj leverantören som **Typ av e-postserver**. Leverantörens kort visas nedanför, till exempel **Amazon SES-inställningar**: klicka på dess redigeringsknapp, till exempel **Redigera Amazon SES**, och fyll i leverantörens inställningar och steget **Avsändare**. Så länge något saknas visar kortet vad som fattas, och varje e-postmeddelande avvisas med besked om vilken inställning som ska fyllas i.
 :::

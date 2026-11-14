@@ -18,16 +18,30 @@ receivers:
           # to the Proxmox VE API host given in the `target` parameter.
           metrics_path: /pve
           params:
-            # Proxmox VE API host the exporter queries: any node of the
-            # cluster, or a virtual IP that fails over between them.
-            target: ["${env:PVE_HOST}"]
             cluster: ["1"]
             node: ["0"]
           # pve-exporter answers each scrape with a live Proxmox VE API
           # round-trip; 30s keeps the load on pveproxy negligible.
           scrape_interval: 30s
-          static_configs:
-            - targets: ["${env:PVE_EXPORTER_URL}"]
+          # The node to read the cluster from: PVE_HOST while its API
+          # answers, else the first node of PVE_NODES whose API does (with
+          # the API token, the first that is part of the quorate cluster).
+          # The pve-api-failover container in docker-compose.yml checks them
+          # every 15 seconds and writes its choice to this file, which the
+          # collector reads again as soon as it changes - so the cluster is
+          # still read when PVE_HOST's node goes down, without a virtual IP.
+          file_sd_configs:
+            - files: ["/etc/oneuptime/pve-api/target.json"]
+              refresh_interval: 30s
+          relabel_configs:
+            # The chosen node becomes the exporter's `target` parameter...
+            - source_labels: [__address__]
+              target_label: __param_target
+            # ...and the exporter is what is scraped. The scrape's instance
+            # stays the exporter's address, as it always was, so a change of
+            # node changes nothing about the series.
+            - target_label: __address__
+              replacement: "${env:PVE_EXPORTER_URL}"
         # The exporter's node collectors, once per node: start-on-boot
         # (pve_onboot_status, which Guest Down reads), storage replication
         # (pve_replication_*) and the subscription (pve_subscription_*).
@@ -136,7 +150,7 @@ processors:
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.1"
+        value: "0.161.2"
         action: upsert
       # The prometheus receiver synthesizes service.name (= the scrape job
       # name, "oneuptime-proxmox" or "oneuptime-proxmox-nodes") and

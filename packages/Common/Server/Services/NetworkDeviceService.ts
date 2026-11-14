@@ -365,6 +365,32 @@ export interface DiscoveredDetailsMerge {
  */
 export const DISCOVERED_DETAILS_MERGE_CHUNK_SIZE: number = 500;
 
+// A walk's cached interface counts, as the device list reads them.
+export interface NetworkDeviceInterfaceCounts {
+  total: number | null;
+  up: number | null;
+  down: number | null;
+}
+
+/*
+ * What one poll found about a device's health. See
+ * NetworkDeviceService.writePollVerdict.
+ */
+export interface NetworkDevicePollVerdict {
+  // Did the device answer the ping or the walk?
+  isReachable: boolean;
+  /*
+   * The walk's own verdict: true or false when one ran, null when none did
+   * (a ping-only poll).
+   */
+  isSnmpReachable: boolean | null;
+  /*
+   * Undefined leaves the stored counts as they are: a failed walk keeps the
+   * last good counts. Null clears them: a ping-only poll walks nothing.
+   */
+  interfaceCounts?: NetworkDeviceInterfaceCounts | null | undefined;
+}
+
 // One patch as mergeDiscoveredDetails sends it: re-read, and its id checked.
 interface DiscoveredDetailsMergeRow {
   id: string;
@@ -3276,6 +3302,7 @@ export class Service extends ProjectReferencesService<Model> {
           AND p."deletedAt" IS NULL
           -- A project a master admin blocked is not polled until it is unblocked.
           AND p."isBlocked" = false
+          AND p."isSampleProject" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
@@ -3378,6 +3405,135 @@ export class Service extends ProjectReferencesService<Model> {
         skipUpdateDateColumn: true,
       });
     }
+  }
+
+  /*
+   * Writes what one poll found about a device's health, unless the device
+   * already holds the verdict of a poll received after this one (OneUptime
+   * issue #7389).
+   *
+   * During a queue backlog a poll can wait many minutes before a worker
+   * takes it, and polls are not taken in the order they were received: a
+   * retried job goes back behind the backlog, and one job can simply wait
+   * longer than the poll after it. Before this, the poll processed last won,
+   * so an older poll could put its reachability back over a newer one's. The
+   * device's status, its site rollup and the topology all read that.
+   *
+   * So the verdict carries its receipt time (`lastPollReceivedAt`), and the
+   * write is one UPDATE whose own WHERE asks for an older one. The check and
+   * the write cannot drift apart. An UPDATE that waits for another writer's
+   * lock asks again on the row that writer left, so when two polls of a
+   * device are written at once, the newer one's verdict stands whichever
+   * commits first. Not SKIP LOCKED: the writer holding the row may be an
+   * older poll, and skipping would leave its verdict standing.
+   *
+   * What it writes:
+   *   - lastPollReceivedAt: the receipt time, the guard's own column.
+   *   - lastPolledAt: when this worker processed the poll. It stays
+   *     processing time on purpose. The stale-poll check
+   *     (NetworkDeviceStalePoll), the topology's "polling stopped" backstop
+   *     and the stale pill (DeviceReachabilityUtil) all read it to tell
+   *     whether polls are still arriving, and a backlog does not stop them.
+   *     Stamped with the receipt time, a backlog longer than three polling
+   *     intervals would page every Network Device monitor as unreachable.
+   *   - isReachable and isSnmpReachable: the verdict.
+   *   - lastSeenAt (reachable) and lastSnmpSeenAt (walk succeeded): when the
+   *     device answered, which is when the poll was received. Never moved
+   *     backwards (GREATEST): a time stamped before an upgrade was a
+   *     processing time, later than the receipt times of the polls still
+   *     queued behind it.
+   *   - The cached interface counts, when the poll has any to say. They are
+   *     health columns too: the device list and the site overview read
+   *     interfacesDown.
+   *
+   * Hook-free, like the walk baseline: no NetworkDeviceService update hook
+   * reads any of these columns (NetworkDeviceWalkLogWritePath pins the list).
+   * Scoped to the device's project, and never written to a deleted device.
+   * Moves `updatedAt`, as the hooked write that used to carry these did.
+   *
+   * Returns whether it wrote. False means the device holds a newer verdict,
+   * or is gone. A lock timeout or a deadlock is thrown, for the caller to
+   * leave to the next poll.
+   */
+  @CaptureSpan()
+  public async writePollVerdict(data: {
+    projectId: ObjectID;
+    deviceId: ObjectID;
+    // When OneUptime's ingest API received the poll.
+    receivedAt: Date;
+    // When this worker processed it: lastPolledAt (see above).
+    processedAt: Date;
+    verdict: NetworkDevicePollVerdict;
+  }): Promise<boolean> {
+    const params: Array<unknown> = [
+      data.deviceId.toString(),
+      data.projectId.toString(),
+      data.receivedAt,
+      data.processedAt,
+      data.verdict.isReachable,
+      data.verdict.isSnmpReachable,
+    ];
+
+    const setClauses: Array<string> = [
+      `"lastPollReceivedAt" = $3::timestamptz`,
+      `"lastPolledAt" = $4::timestamptz`,
+      `"isReachable" = $5::boolean`,
+      `"isSnmpReachable" = $6::boolean`,
+    ];
+
+    if (data.verdict.isReachable) {
+      setClauses.push(`"lastSeenAt" = GREATEST("lastSeenAt", $3::timestamptz)`);
+    }
+
+    if (data.verdict.isSnmpReachable === true) {
+      setClauses.push(
+        `"lastSnmpSeenAt" = GREATEST("lastSnmpSeenAt", $3::timestamptz)`,
+      );
+    }
+
+    if (data.verdict.interfaceCounts !== undefined) {
+      const counts: NetworkDeviceInterfaceCounts | null =
+        data.verdict.interfaceCounts;
+
+      params.push(
+        counts?.total ?? null,
+        counts?.up ?? null,
+        counts?.down ?? null,
+      );
+
+      setClauses.push(
+        `"interfacesTotal" = $${params.length - 2}::integer`,
+        `"interfacesUp" = $${params.length - 1}::integer`,
+        `"interfacesDown" = $${params.length}::integer`,
+      );
+    }
+
+    setClauses.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+
+    /*
+     * In a CTE so the statement is a SELECT of the rows it wrote: TypeORM
+     * answers a top-level UPDATE ... RETURNING with [rows, rowCount], which
+     * reads the same whether or not it wrote.
+     */
+    const sql: string = `
+      WITH "written" AS (
+        UPDATE "NetworkDevice"
+        SET ${setClauses.join(",\n          ")}
+        WHERE "_id" = $1
+          AND "projectId" = $2
+          AND "deletedAt" IS NULL
+          AND ("lastPollReceivedAt" IS NULL OR "lastPollReceivedAt" < $3::timestamptz)
+        RETURNING "_id"
+      )
+      SELECT "_id" FROM "written"
+    `;
+
+    const result: unknown = await this.getRepository().manager.query(
+      sql,
+      params,
+    );
+
+    return Array.isArray(result) && result.length > 0;
   }
 
   /*

@@ -260,7 +260,7 @@ describe.each(["fa", "ar"])("on a %s page", (language: string) => {
     await click(
       within(screen.getByTestId("incoming-call-policy-phone-number")).getByRole(
         "button",
-        { name: wordsFor(language, "Release") },
+        { name: wordsFor(language, "Release Number") },
       ),
     );
 
@@ -399,6 +399,54 @@ describe.each(["fa", "ar"])("on a %s page", (language: string) => {
   );
 });
 
+/*
+ * ISSUE #7177: THE CARD'S BUTTON WAS A SOFTWARE RELEASE IN ARABIC.
+ *
+ * The Phone Numbers card's button read the shared "Release", which Arabic
+ * translates as a version of software (الإصدار) - a button that read
+ * "Version" beside a phone number. It has a key of its own now, the one
+ * its dialog's button already had: "Release Number" (تحرير الرقم).
+ */
+describe.each(["en", "fa", "ar"])(
+  "the release button on a %s page",
+  (language: string) => {
+    test("reads Release Number in the reader's words, as the dialog's button does", async () => {
+      await renderCard(language, [attachedNumber(UK)]);
+
+      const card: HTMLElement = screen.getByTestId(
+        "incoming-call-policy-phone-number",
+      );
+      const button: HTMLElement = within(card).getByRole("button", {
+        name: wordsFor(language, "Release Number"),
+      });
+
+      expect(button).toBeVisible();
+      // No button on the card reads the shared word.
+      expect(
+        within(card).queryByRole("button", {
+          name: wordsFor(language, "Release"),
+        }),
+      ).toBeNull();
+
+      await click(button);
+
+      // The dialog asks with its own title and confirms with the same words.
+      expect(
+        screen.getByText(wordsFor(language, "Release Phone Number")),
+      ).toBeVisible();
+      expect(
+        screen.getByTestId("modal-footer-submit-button"),
+      ).toHaveTextContent(wordsFor(language, "Release Number"));
+    });
+  },
+);
+
+test("Arabic: the shared word is a software release, the button's own words are not", () => {
+  expect(wordsFor("ar", "Release")).toBe("الإصدار");
+  expect(wordsFor("ar", "Release Number")).not.toContain("الإصدار");
+  expect(wordsFor("fa", "Release Number")).not.toBe("Release Number");
+});
+
 describe("on an English page", () => {
   test("the number is in its isolate, and every sentence reads as it always did, with no mark", async () => {
     await renderCard("en", [attachedNumber(UK)]);
@@ -407,7 +455,7 @@ describe("on an English page", () => {
       screen.getByTestId("incoming-call-policy-phone-number-value"),
     ).toHaveAttribute("dir", "ltr");
 
-    await click(screen.getByRole("button", { name: "Release" }));
+    await click(screen.getByRole("button", { name: "Release Number" }));
 
     expect(confirmDescription()).toBe(
       `Are you sure you want to release ${UK}? This action will return the number to Twilio and it may not be available to reserve again.`,

@@ -1,6 +1,6 @@
 # Was eine Einreichung erstellt
 
-Jede Einreichung über ein Formular erstellt einen Datensatz in Ihrem Projekt: einen **Vorfall** oder ein **geplantes Wartungsereignis**. Die Seite **Beim Absenden** eines Formulars zeigt, welches, und wie jedes Feld des neuen Datensatzes gefüllt wird — aus einer Antwort, aus einem Standardwert, aus einer Einstellung, die immer gilt, oder aus der Vorfallsvorlage. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt.
+Jede Einreichung über ein Formular erstellt einen Datensatz in Ihrem Projekt: einen **Vorfall** oder ein **Wartungsereignis**. Die Seite **Beim Absenden** eines Formulars zeigt, welches, und wie jedes Feld des neuen Datensatzes gefüllt wird — aus einer Antwort, aus einem Standardwert, aus einer Einstellung, die immer gilt, oder aus der Vorfallsvorlage. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt.
 
 :::cards
 - [Wie aus einer Einreichung ein Vorfall wird](#wie-aus-einer-einreichung-ein-vorfall-wird): Jedes Feld des neuen Vorfalls und woher sein Wert kommt.

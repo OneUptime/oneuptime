@@ -5,7 +5,7 @@ An NTP monitor checks that a time server answers on UDP port 123 and serves good
 :::cards
 - [Create the monitor](#create-an-ntp-monitor): Six steps in the dashboard.
 - [What the check reads](#what-the-check-reads): Stratum, clock offset, leap indicator and the rest of the reply.
-- [Monitoring criteria](#monitoring-criteria): Reachability, synchronization, stratum and offset.
+- [Criteria](#criteria): Reachability, synchronization, stratum and offset.
 - [Troubleshooting](#troubleshooting): When the server is up but the monitor says otherwise.
 :::
 
@@ -57,7 +57,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the server does not serve good time, online when it does. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the server does not serve good time, online when it does. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -93,7 +93,7 @@ The monitor's page shows the latest check from each probe:
 
 A server that refuses to give the time sends a **kiss-o'-death** instead: a reply at stratum 0 with a four-letter code. The most common codes are `RATE` (the server rate-limits the probe), `DENY` and `RSTR` (its access rules refuse the probe) and `INIT` (it has not synchronized yet). The check shows the code and counts the server as answering but not synchronized.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the server counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

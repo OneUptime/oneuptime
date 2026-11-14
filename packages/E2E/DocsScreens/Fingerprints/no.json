@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "Hva vil du gjøre først?",
+      "Vite når nettstedet eller API-et mitt er nede",
+      "Varsle rett person når noe går ned",
+      "Fortelle kundene mine det med en statusside",
+      "Se loggene, målingene og sporene mine",
+      "Følge med på serverne mine, Kubernetes eller skyen",
+      "Jeg bytter fra et annet verktøy",
+      "Jeg ser meg bare rundt",
+      "Hopp over",
+      "Fortsett",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hopp over",
+      "button: Fortsett"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goal-paging": {
+    "text": [
+      "Hva vil du gjøre først?",
+      "Vite når nettstedet eller API-et mitt er nede",
+      "Varsle rett person når noe går ned",
+      "Fortelle kundene mine det med en statusside",
+      "Se loggene, målingene og sporene mine",
+      "Følge med på serverne mine, Kubernetes eller skyen",
+      "Jeg bytter fra et annet verktøy",
+      "Jeg ser meg bare rundt",
+      "Hopp over",
+      "Fortsett",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hopp over",
+      "button: Fortsett"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goal-status-page": {
+    "text": [
+      "Hva vil du gjøre først?",
+      "Vite når nettstedet eller API-et mitt er nede",
+      "Varsle rett person når noe går ned",
+      "Fortelle kundene mine det med en statusside",
+      "Se loggene, målingene og sporene mine",
+      "Følge med på serverne mine, Kubernetes eller skyen",
+      "Jeg bytter fra et annet verktøy",
+      "Jeg ser meg bare rundt",
+      "Hopp over",
+      "Fortsett",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hopp over",
+      "button: Fortsett"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goals-three": {
+    "text": [
+      "Hva vil du gjøre først?",
+      "Vite når nettstedet eller API-et mitt er nede",
+      "Varsle rett person når noe går ned",
+      "Fortelle kundene mine det med en statusside",
+      "Se loggene, målingene og sporene mine",
+      "Følge med på serverne mine, Kubernetes eller skyen",
+      "Jeg bytter fra et annet verktøy",
+      "Jeg ser meg bare rundt",
+      "Hopp over",
+      "Fortsett",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Hopp over",
+      "button: Fortsett"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "Hva skal vi sjekke?",
+      "OneUptime sjekker den hvert 5. minutt fra flere plasseringer. Hvis det ikke kommer svar, eller svaret er en feil, åpnes en hendelse.",
+      "Adresse til nettsted eller API",
+      "Dette er et API-endepunkt",
+      "Start sjekkingen",
+      "Flere monitortyper",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: Start sjekkingen",
+      "link: Flere monitortyper"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "Hvem skal få beskjed?",
+      "Når den går ned, åpner OneUptime en hendelse og tilkaller disse personene, hver slik deres «Slik når man meg» sier. Det starter med deg, via e-post.",
+      "Hvem som tilkalles",
+      "Legg til teammedlemmer",
+      "AL",
+      "Ada Lovelace",
+      "Dette oppretter vaktpolicyen «Default on-call policy», som tilkaller dem for hver nye hendelse og hvert nye varsel i dette prosjektet.",
+      "Lagre og fortsett"
+    ],
+    "outline": [
+      "button: Legg til teammedlemmer",
+      "button: Fjern Ada Lovelace",
+      "button: Lagre og fortsett"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "Send en test",
+      "Send deg selv et testoppkall nå. Det går ut slik et ekte oppkall ville gjort, og hver melding sier TEST. Bekreft det fra meldingen for å fullføre.",
+      "Send meg et testoppkall",
+      "Hopp over testen"
+    ],
+    "outline": [
+      "button: Send meg et testoppkall",
+      "button: Hopp over testen"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example er satt opp",
+      "Sjekket",
+      "Hvert 5. minutt, fra 2 plasseringer.",
+      "Når den går ned",
+      "Hvis det ikke kommer svar, eller svaret er en feil, åpner OneUptime en hendelse (Critical Incident).",
+      "Hvem som får beskjed",
+      "Vaktpolicyen «Default on-call policy» tilkaller Ada Lovelace for hver nye hendelse og hvert nye varsel. Du eier denne overvåkingen, så du får e-post når statusen endres.",
+      "Testet",
+      "Ada Lovelace bekreftet den via e-post etter 14 sekunder.",
+      "Neste steg",
+      "Vis den på en statusside",
+      "Få oppkall via SMS eller telefon",
+      "Åpne monitoren",
+      "Sjekk en annen adresse"
+    ],
+    "outline": [
+      "heading: acme-commerce.example er satt opp",
+      "heading: Neste steg",
+      "link: Vis den på en statusside",
+      "link: Få oppkall via SMS eller telefon",
+      "link: Åpne monitoren",
+      "button: Sjekk en annen adresse"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "Hvordan skal vi nå deg?",
+      "Et tilkall går til hver metode du har bekreftet. Legg til telefonen din for å få SMS og anrop.",
+      "E-post",
+      "E-post · •••mple",
+      "SMS og telefonsamtaler",
+      "Ikke noe telefonnummer ennå.",
+      "SMS er slått av i dette prosjektet, så tilkallinger som bruker det, sendes ikke.",
+      "Telefonanrop er slått av i dette prosjektet, så tilkallinger som bruker det, sendes ikke.",
+      "SMS og anrop betales fra prosjektets saldo, som er 0.00 USD. Når du legger til et nummer, sendes en SMS, så saldoen må være over 1.00 USD.",
+      "Legg til saldo",
+      "Slå på SMS og anrop",
+      "Mobilapp eller nettleser",
+      "Ikke satt opp.",
+      "Hent OneUptime-appen, eller slå på varsler i denne nettleseren, fra varslingsmetodene dine.",
+      "Sett opp appen eller denne nettleseren",
+      "Fortsett",
+      "Kontroller på nytt"
+    ],
+    "outline": [
+      "button: Legg til saldo",
+      "button: Slå på SMS og anrop",
+      "link: Sett opp appen eller denne nettleseren",
+      "button: Fortsett",
+      "button: Kontroller på nytt"
+    ],
+    "width": 768,
+    "height": 632
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "Hvordan skal vi nå deg?",
+      "Et tilkall går til hver metode du har bekreftet. Legg til telefonen din for å få SMS og anrop.",
+      "E-post",
+      "E-post · •••mple",
+      "SMS og telefonsamtaler",
+      "Ikke noe telefonnummer ennå.",
+      "SMS og anrop betales fra prosjektets saldo, som er 20.00 USD. Når du legger til et nummer, sendes en SMS, så saldoen må være over 1.00 USD.",
+      "Telefonnummeret ditt",
+      "Send meg en kode på SMS",
+      "Mobilapp eller nettleser",
+      "Ikke satt opp.",
+      "Hent OneUptime-appen, eller slå på varsler i denne nettleseren, fra varslingsmetodene dine.",
+      "Sett opp appen eller denne nettleseren",
+      "Fortsett",
+      "Kontroller på nytt",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: Send meg en kode på SMS",
+      "link: Sett opp appen eller denne nettleseren",
+      "button: Fortsett",
+      "button: Kontroller på nytt"
+    ],
+    "width": 768,
+    "height": 564
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Hvem andre har vakt?",
+      "Dette oppretter vaktpolicyen «Default on-call policy». Den tilkaller først disse personene, for hver nye hendelse og hvert nye varsel i dette prosjektet.",
+      "Tilkalles først",
+      "Legg til teammedlemmer",
+      "AL",
+      "Ada Lovelace",
+      "Lagre og fortsett"
+    ],
+    "outline": [
+      "button: Legg til teammedlemmer",
+      "button: Fjern Ada Lovelace",
+      "button: Lagre og fortsett"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "Hva om ingen svarer?",
+      "Et tilkall venter på at noen kvitterer for det. Hvis ingen gjør det i tide:",
+      "Tilkall noen andre",
+      "Tilkall de samme personene igjen",
+      "Ikke gjør mer",
+      "Minutter å vente",
+      "Tilkalles deretter",
+      "Legg til teammedlemmer",
+      "GH",
+      "Grace Hopper",
+      "Lagre og fortsett",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Legg til teammedlemmer",
+      "button: Fjern Grace Hopper",
+      "button: Lagre og fortsett"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Send et testoppkall",
+      "Test policyen nå: den tilkaller sin første eskaleringsregel slik en ekte hendelse ville gjort, og hver melding sier TEST. Kvitter fra meldingen for å fullføre.",
+      "Test denne policyen",
+      "Hopp over testen"
+    ],
+    "outline": [
+      "button: Test denne policyen",
+      "button: Hopp over testen"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Tilkalling er satt opp",
+      "Hvem som tilkalles",
+      "Hver nye hendelse og hvert nye varsel kjører «Default on-call policy», som tilkaller Ada Lovelace (E-post, SMS, Telefonanrop).",
+      "Hvis ingen svarer",
+      "Hvis ingen kvitterer innen 30 minutter, tilkalles Grace Hopper.",
+      "Testet",
+      "Ada Lovelace bekreftet den via e-post etter 14 sekunder.",
+      "Neste steg",
+      "Bytt på med en vaktplan",
+      "Koble til Slack eller Microsoft Teams",
+      "Tilkall bare i arbeidstiden for mindre hastende hendelser",
+      "Se hvem som kan tilkalles",
+      "Åpne vaktpolicyen",
+      "Sett opp en annen policy"
+    ],
+    "outline": [
+      "heading: Tilkalling er satt opp",
+      "heading: Neste steg",
+      "link: Bytt på med en vaktplan",
+      "link: Koble til Slack eller Microsoft Teams",
+      "link: Tilkall bare i arbeidstiden for mindre hastende hendelser",
+      "link: Se hvem som kan tilkalles",
+      "link: Åpne vaktpolicyen",
+      "button: Sett opp en annen policy"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "Gi den et navn og velg hva den viser",
+      "Navn på statussiden",
+      "Hva den viser",
+      "Hver monitor du velger, vises på siden med gjeldende status og oppetid.",
+      "Velg alle",
+      "Tøm",
+      "1 av 1 valgt",
+      "Acme website",
+      "Operational",
+      "Siden er offentlig så snart du oppretter den: alle med lenken ser statusen til monitorene du valgte.",
+      "Opprett statussiden",
+      "value: Status for Acme Commerce",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Status for Acme",
+      "button: Velg alle",
+      "button: Tøm",
+      "field checkbox: ",
+      "button: Opprett statussiden"
+    ],
+    "width": 768,
+    "height": 388
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "Dette ser kundene dine",
+      "Statussiden din er live på denne lenken. Her ser du hva den viser og hva som vises på den.",
+      "Status for Acme Commerce",
+      "DEN VISER",
+      "Acme website",
+      "Operational",
+      "Offentlig lenke",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "En hendelse på en av disse monitorene vises her av seg selv, og abonnentene får e-post.",
+      "Varsler vises aldri her. De er for teamet ditt.",
+      "Planlagt vedlikehold og kunngjøringer vises når du publiserer dem.",
+      "Ser bra ut"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: Ser bra ut"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "«Status for Acme Commerce» er live",
+      "Adresse",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Viser",
+      "Acme website",
+      "Vises av seg selv",
+      "En hendelse på en av disse monitorene vises her av seg selv, og abonnentene får e-post.",
+      "Varsler vises aldri her. De er for teamet ditt.",
+      "Planlagt vedlikehold og kunngjøringer vises når du publiserer dem.",
+      "Gjør den til din egen (valgfritt)",
+      "Ditt eget domene Vis siden på en adresse som status.example.com.",
+      "Logoen og fargene dine Få siden til å se ut som produktet ditt.",
+      "Hvem som kan abonnere Via e-post, SMS, Slack, Microsoft Teams eller webhook.",
+      "Privat i stedet for offentlig Bare folk du inviterer, eller som logger inn, ser siden.",
+      "Neste steg",
+      "Publiser en første kunngjøring",
+      "Planlegg et vedlikehold",
+      "Legg statusen til nettstedet ditt",
+      "Åpne innstillingene for denne statussiden",
+      "Konfigurer en annen statusside"
+    ],
+    "outline": [
+      "heading: «Status for Acme Commerce» er live",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: Gjør den til din egen (valgfritt)",
+      "link: Ditt eget domene",
+      "link: Logoen og fargene dine",
+      "link: Hvem som kan abonnere",
+      "link: Privat i stedet for offentlig",
+      "heading: Neste steg",
+      "link: Publiser en første kunngjøring",
+      "link: Planlegg et vedlikehold",
+      "link: Legg statusen til nettstedet ditt",
+      "link: Åpne innstillingene for denne statussiden",
+      "button: Konfigurer en annen statusside"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "Hendelsesfeed",
+      "Alt som har skjedd med denne hendelsen: statusendringer, notater, eiere og hver varsling som er sendt.",
+      "Handlinger",
+      "mandag 14. september 2026",
+      "I dag",
+      "BST",
+      "19:12",
+      "for 8 min siden",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "for 11 min siden",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "for 15 min siden",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "for 16 min siden",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "for 19 min siden",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Hendelsesfeed",
+      "button: Handlinger",
+      "button: Flere alternativer",
+      "heading: mandag 14. september 2026",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "Bekreftet",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "Løs",
+      "Opprettet",
+      "Bekreftet",
+      "Løst",
+      "PÅGÅTT I",
+      "19 minutter",
+      "HENDELSESLEDER",
+      "MC",
+      "Maya Chen",
+      "EIERE",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "Legg til",
+      "Legg til eiere",
+      "MONITORER",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: Løs",
+      "button: Legg til Legg til eiere",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 299
+  }
+}

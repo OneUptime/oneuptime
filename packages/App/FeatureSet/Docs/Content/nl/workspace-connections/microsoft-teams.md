@@ -43,7 +43,7 @@ Eén Microsoft 365-organisatie kan aan meer dan één project gekoppeld zijn, zo
 :::steps
 ### Beheerderstoestemming geven
 
-Ga naar **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** en klik op **Beheerderstoestemming verlenen**. Een Microsoft 365-beheerder meldt zich aan en staat de OneUptime-app toe voor de organisatie. De kaart zegt daarna **Admin Consent Completed**. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
+Ga naar **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** en klik op **Beheerderstoestemming verlenen**. Een Microsoft 365-beheerder meldt zich aan en staat de OneUptime-app toe voor de organisatie. De kaart zegt daarna **Admin Consent Completed**. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheid **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Je account koppelen
 
@@ -88,7 +88,7 @@ Een meldingsregel bepaalt welke gebeurtenissen in Microsoft Teams worden geplaat
 | **Waarschuwingen** | **Waarschuwingen**, **Waarschuwingsepisodes**, **Samenvatting** |
 | **Geplande onderhoud** | Eén lijst met regels |
 | **Monitoren** | Eén lijst met regels |
-| **Bereikbaarheidsdienst** | Eén lijst met regels |
+| **Bereikbaarheid** | Eén lijst met regels |
 | **SLOs** | Eén lijst met regels |
 
 Een regel aanmaken gaat in vier stappen:
@@ -138,7 +138,7 @@ Het formulier van een samenvatting heeft vier stappen: **Basisinformatie** (de n
 
 ## Meldingsregels onder het Growth-abonnement
 
-Op OneUptime Cloud horen meldingsregels en samenvattingen bij het **Growth**-abonnement en hoger. Een project daaronder houdt de regels en samenvattingen die het al heeft, en die blijven in Microsoft Teams plaatsen. Daarom toont de **Microsoft Teams**-pagina van elk product (Incidenten, Waarschuwingen, Gepland onderhoud, Bereikbaarheidsdienst, Monitoren) de abonnementsmelding met die regels eronder (**Nog ingestelde meldingsregels**, **Nog ingestelde samenvattingen**): verwijder een regel, of zet een samenvatting uit of verwijder hem. Regels en samenvattingen toevoegen of wijzigen vereist **Growth**.
+Op OneUptime Cloud horen meldingsregels en samenvattingen bij het **Growth**-abonnement en hoger. Een project daaronder houdt de regels en samenvattingen die het al heeft, en die blijven in Microsoft Teams plaatsen. Daarom toont de **Microsoft Teams**-pagina van elk product (Incidenten, Waarschuwingen, Gepland onderhoud, Bereikbaarheid, Monitoren) de abonnementsmelding met die regels eronder (**Nog ingestelde meldingsregels**, **Nog ingestelde samenvattingen**): verwijder een regel, of zet een samenvatting uit of verwijder hem. Regels en samenvattingen toevoegen of wijzigen vereist **Growth**.
 
 ## Opgeroepen worden in Microsoft Teams
 
@@ -150,7 +150,7 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Micro
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan in je chats in Microsoft Teams.
 :::
 
-Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Microsoft Teams. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**.
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Microsoft Teams. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**.
 
 ## Berichten als notities opslaan
 
@@ -208,7 +208,7 @@ Als de app aan een team wordt toegevoegd, zegt de bot daar hallo: hoe je hem een
 - **In het eigen kanaal van een waarschuwing.** Getypt in het kanaal dat OneUptime voor een waarschuwing aanmaakte, opent `incident` zolang de waarschuwing open is een kaart die zegt dat het incident vanuit die waarschuwing wordt gemeld, en die begint met de titel van de waarschuwing en de resources waaraan ze gekoppeld is die de persoon die erom vroeg mag zien. Het incident wordt aan de waarschuwing gekoppeld, net als een incident dat vanaf de pagina van de waarschuwing wordt gemeld, en het incident van een privéwaarschuwing is ook privé. Als de persoon die de kaart verstuurt geen waarschuwingen aan incidenten mag koppelen, wordt het incident zonder de koppeling gemeld, en vertelt de bot waarom.
 - **Wat een formulier mag noemen.** In een kanaal of een groepschat mag iedereen die daar is het formulier versturen, en het wordt verstuurd als wie dat doet, met diens eigen rechten. Het incident of de gebeurtenis wordt met die rechten aangemaakt en op naam van die persoon gezet. Een monitor, bereikbaarheidsbeleid, label, ernstniveau of status die hij niet mag lezen, of een uit een ander project, wordt geweigerd alsof het project die niet heeft, en er wordt niets aangemaakt: de bot antwoordt "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-**Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Duty Policy** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat de persoon mag lezen. Een monitor of bereikbaarheidsbeleid bekijken vanaf een kaart leest het ook als de persoon die op de knop drukte.
+**Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Policies** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat de persoon mag lezen. Een monitor of bereikbaarheidsbeleid bekijken vanaf een kaart leest het ook als de persoon die op de knop drukte.
 
 ## Iemand oproepen vanuit Microsoft Teams
 
@@ -219,7 +219,7 @@ In een kanaal of een groepschat roept `@OneUptime page @Nawaz Dhandala The check
 - **Wie meteen wordt opgeroepen.** De mensen die je met @ noemt, en wie er dienst heeft in de schema's die een tag volgt die je met @ noemt (zie [Tags voor bereikbaarheid](#tags-voor-bereikbaarheid)), als er een bericht op hen volgt, of zonder bericht in het eigen kanaal van een incident of een waarschuwing. OneUptime herkent iemand aan het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld, of anders aan diens e-mailadres in Microsoft Teams. Niemand buiten het project wordt opgeroepen.
 - **Al het andere krijgt een kaart.** Zonder iemand met @ genoemd, zoals in een persoonlijke chat met de bot, zonder bericht waar de oproep er een nodig heeft, met een tag die geen bereikbaarheidsschema volgt dat je kunt zien, of met iemand die OneUptime niet herkent, antwoordt de bot met de kaart **Page someone**, met wat je typte al ingevuld, en zegt hij wie hij niet kon kiezen. In het eigen kanaal van een incident of een waarschuwing opent de kaart met dat incident of die waarschuwing. Kies mensen, een team, een bereikbaarheidsschema, dat oproept wie er nu dienst in heeft, of een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels, en verstuur de kaart. Iedereen in het gesprek mag de kaart versturen, als zichzelf. Zodra er is opgeroepen, wordt de kaart verwijderd, zodat niemand er twee keer mee oproept.
 - **Waar het te zien is.** Het gesprek toont de oproep als één kaart die wordt bijgewerkt: wie werd opgeroepen en hoe, elk team bij zijn naam met zijn mensen erachter, je bericht, en wie bevestigde. Waar de bot die niet kan posten, zegt zijn antwoord wie werd opgeroepen, met een link naar het incident of de waarschuwing.
-- **Wie mag oproepen.** In het eigen kanaal van een incident of een waarschuwing iedereen die een bereikbaarheidsbeleid mag uitvoeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Duty Policy** in een aangepaste rol) en dat incident of die waarschuwing mag lezen. Overal elders maakt de oproep een waarschuwing aan, dus vereist hij ook het recht om er een aan te maken: **Projecteigenaar**, **Projectbeheerder** en **Projectlid**, of **Bereikbaarheidslid** samen met **Waarschuwingslid** (**Execute On-Call Duty Policy** en **Create Alert** in een aangepaste rol). Mensen, een team of een schema rechtstreeks oproepen, zonder bereikbaarheidsbeleid achter de oproep, vereist daarnaast toegang tot elk bereikbaarheidsbeleid van het project. Ieder ander krijgt dat te horen in een antwoord, en niemand wordt opgeroepen. Op OneUptime Cloud vereist oproepen het Growth-abonnement: daaronder zegt OneUptime welk abonnement nodig is, en wordt niemand opgeroepen.
+- **Wie mag oproepen.** In het eigen kanaal van een incident of een waarschuwing iedereen die een bereikbaarheidsbeleid mag uitvoeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Policies** in een aangepaste rol) en dat incident of die waarschuwing mag lezen. Overal elders maakt de oproep een waarschuwing aan, dus vereist hij ook het recht om er een aan te maken: **Projecteigenaar**, **Projectbeheerder** en **Projectlid**, of **Bereikbaarheidslid** samen met **Waarschuwingslid** (**Execute On-Call Policies** en **Create Alert** in een aangepaste rol). Mensen, een team of een schema rechtstreeks oproepen, zonder bereikbaarheidsbeleid achter de oproep, vereist daarnaast toegang tot elk bereikbaarheidsbeleid van het project. Ieder ander krijgt dat te horen in een antwoord, en niemand wordt opgeroepen. Op OneUptime Cloud vereist oproepen het Growth-abonnement: daaronder zegt OneUptime welk abonnement nodig is, en wordt niemand opgeroepen.
 
 Om mensen op de hoogte te houden terwijl anderen reageren, roep je ze op als waarnemers. Typ in het eigen kanaal van een incident of een waarschuwing `as observers` na wie je oproept, zoals in `@OneUptime page @Oversight as observers Team Y is on it`, of kies **Observers: keep them informed** onder **Page them as** op de kaart. Hun oproep zegt dat ze waarnemers zijn, en wie hem bevestigt, zegt daarmee alleen dat hij hem heeft gezien: het incident of de waarschuwing wordt niet bevestigd, geen andere oproep stopt, en waar de oproep te zien is, staat dat ze als waarnemers worden opgeroepen. Een oproep over iets nieuws heeft iemand nodig die reageert, dus overal anders wordt `as observers` geweigerd en wordt niemand opgeroepen.
 
@@ -230,7 +230,7 @@ Houd een Microsoft Teams-tag, zoals `@Payments on-call`, gelijk aan wie er diens
 :::steps
 ### Een tag aan een schema koppelen
 
-Open het schema onder **Bereikbaarheidsdienst** > **Bereikbaarheidsschema's**. Klik in de kaart **Microsoft Teams-tags** op **Tag koppelen**, kies het team en geef de tag een naam: de tag van het team met die naam, of een nieuwe die OneUptime maakt. De leden worden meteen vervangen door wie er dienst heeft.
+Open het schema onder **Bereikbaarheid** > **Bereikbaarheidsschema's**. Klik in de kaart **Microsoft Teams-tags** op **Tag koppelen**, kies het team en geef de tag een naam: de tag van het team met die naam, of een nieuwe die OneUptime maakt. De leden worden meteen vervangen door wie er dienst heeft.
 
 ### De tag ook aan het secundaire schema koppelen
 
@@ -241,7 +241,7 @@ Voor een tag met zowel de primaire als de secundaire dienst koppel je dezelfde t
 - **Niemand heeft dienst.** OneUptime haalt iedereen uit de tag tot iemand dienst heeft. Een nieuwe tag heeft iemand uit het team met dienst nodig, want Microsoft Teams maakt geen lege tag.
 - **De tag oproepen.** `@OneUptime page @Payments on-call The checkout API is down` roept op wie er dienst heeft in de schema's die de tag volgt. Zie [Iemand oproepen vanuit Microsoft Teams](#iemand-oproepen-vanuit-microsoft-teams).
 - **Wat Microsoft 365 nodig heeft.** Tags wijzigen vraagt de machtiging `TeamworkTag.ReadWrite.All` van de app, die een Microsoft 365-beheerder verleent met **Beheerderstoestemming verlenen** onder **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**. Gaf je organisatie toestemming voordat OneUptime tags kon bijhouden, geef die dan één keer opnieuw.
-- **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
+- **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Edit On-Call Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
 - **Ontkoppelen.** OneUptime past de tag niet meer aan. De tag en de leden blijven in Microsoft Teams zoals ze zijn.
 
 ## Een incident beheren vanuit Microsoft Teams

@@ -37,6 +37,8 @@ export enum HowOneUptimeWorksOpenedFrom {
   Home = "home",
   // Help in the phone's menu, where the header has no Help (#6816).
   PhoneMenu = "phone-menu",
+  // A sample project's bar, whose story it is (#6808).
+  SampleProject = "sample-project",
   // Search (Cmd/Ctrl+K): "how it works", "overview" (#6936).
   CommandPalette = "command-palette",
 }

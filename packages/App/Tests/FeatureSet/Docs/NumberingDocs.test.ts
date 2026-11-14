@@ -26,6 +26,7 @@ import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKi
 import ToolImportSource, {
   AllToolImportSources,
 } from "Common/Types/ToolImport/ToolImportSource";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import NextNumberUtil, {
   NUMBERED_RECORD_KINDS,
   NumberedRecordKind,
@@ -48,12 +49,12 @@ import path from "path";
  * rule the product does not have.
  *
  * Every language must send readers to Numbering - named the way that
- * language's dashboard names it (Persian keeps the English names, as its
- * incident pages do) - at its new address, never to More Settings or to a
- * Number Prefix page, whose old addresses are mentioned only as ones that
- * forward. The next numbers have a section of their own on the settings
- * page, which the declaring page, the alert settings page and the pages on
- * moving from another on-call tool point to, each in the reader's words.
+ * language's dashboard names it, Persian included (#7100) - at its new
+ * address, never to More Settings or to a Number Prefix page, whose old
+ * addresses are mentioned only as ones that forward. The next numbers have a
+ * section of their own on the settings page, which the declaring page, the
+ * alert settings page and the pages on moving from another on-call tool
+ * point to, each in the reader's words.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -84,13 +85,13 @@ const LANGUAGES: ReadonlyArray<string> = [
   "zh-TW",
 ];
 
-// The languages whose incident docs name the UI in English.
-const ENGLISH_UI_NAMES: ReadonlyArray<string> = ["en", "fa"];
+// The languages whose incident docs describe the Number prefixes card in full.
+const FULL_SECTION_LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 // What each language called More Settings, from the locale files before it went.
 const MORE_SETTINGS: Record<string, string> = {
   en: "More Settings",
-  fa: "More Settings",
+  fa: "تنظیمات بیشتر",
   da: "Flere indstillinger",
   de: "Weitere Einstellungen",
   es: "Más Ajustes",
@@ -152,9 +153,12 @@ function locale(language: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
-// The name the reader of an incident page sees for a piece of UI.
+/*
+ * The name the reader of an incident page sees for a piece of UI: its
+ * Dashboard's word, in every language but English (Persian included).
+ */
 function uiName(language: string, english: string): string {
-  if (ENGLISH_UI_NAMES.includes(language)) {
+  if (language === "en") {
     return english;
   }
 
@@ -171,6 +175,27 @@ function uiName(language: string, english: string): string {
 
 function count(text: string, part: string): number {
   return text.split(part).length - 1;
+}
+
+/*
+ * The arrow before a path's step whose step before it this suite does not
+ * know, as a page in `language` draws it: "→", or in a language read from
+ * the right either arrow, as those steps turn it (a Persian page points "←"
+ * beside a step in Persian words, #7611).
+ */
+function arrowsBeforeAStep(language: string): Array<string> {
+  return isRightToLeftLanguage(language) ? ["→", "←"] : ["→"];
+}
+
+// Whether a page in `language` has a bold menu path that ends at `step`.
+function hasPathEndingAt(
+  markdown: string,
+  step: string,
+  language: string,
+): boolean {
+  return arrowsBeforeAStep(language).some((arrow: string): boolean => {
+    return markdown.includes(`${arrow} ${step}**`);
+  });
 }
 
 // The page's level-two headings, in order.
@@ -308,10 +333,12 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
           page,
           oldAddress: markdown.includes(OLD_ADDRESS),
           oldPrefixAddress: markdown.includes(OLD_PREFIX_ADDRESS),
-          pathToMoreSettings: markdown.includes(
-            `→ ${MORE_SETTINGS[language]}**`,
+          pathToMoreSettings: hasPathEndingAt(
+            markdown,
+            MORE_SETTINGS[language] as string,
+            language,
           ),
-          pathToNumberPrefix: markdown.includes(`→ ${prefixName}**`),
+          pathToNumberPrefix: hasPathEndingAt(markdown, prefixName, language),
         }).toEqual({
           language,
           page,
@@ -394,7 +421,7 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
         expect({
           language,
           page,
-          path: readPage(page, language).includes(`→ ${pageName}**`),
+          path: hasPathEndingAt(readPage(page, language), pageName, language),
         }).toEqual({ language, page, path: true });
       }
 
@@ -488,8 +515,14 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
       const pageName: string = uiName(language, PAGE_NAME);
 
       // Every path that ends at a Numbering page.
+      const arrow: string = `(?:${arrowsBeforeAStep(language).join("|")})`;
       const paths: Array<string> = Array.from(
-        settings.matchAll(/\*\*([^*\n]+?) → ([^*\n]+?) → ([^*\n]+?)\*\*/g),
+        settings.matchAll(
+          new RegExp(
+            `\\*\\*([^*\\n]+?) ${arrow} ([^*\\n]+?) ${arrow} ([^*\\n]+?)\\*\\*`,
+            "g",
+          ),
+        ),
       )
         .filter((match: RegExpMatchArray): boolean => {
           return match[3] === pageName;
@@ -707,17 +740,23 @@ describe("the pages on moving from another on-call tool", () => {
 });
 
 describe("English and Persian describe the page in full", () => {
-  it.each(ENGLISH_UI_NAMES)(
+  it.each(FULL_SECTION_LANGUAGES)(
     "%s: the Number prefixes section covers the card, the preview, the rules and who can change it",
     (language: string) => {
       const settings: string = readPage(SETTINGS_PAGE, language);
 
       for (const part of [
-        "**Incidents**",
-        "**Incident Episodes**",
-        "**Example:**",
-        "**No prefix**",
-        "**Preview:**",
+        // The card's labels, as this language's Dashboard draws them.
+        ...[
+          "Incidents",
+          "Incident Episodes",
+          "Example:",
+          "No prefix",
+          "Preview:",
+        ].map((label: string): string => {
+          return `**${uiName(language, label)}**`;
+        }),
+        // A permission's name, as a custom role lists it in every language.
         "**Edit Project**",
         "`INC-`",
         "`IE-`",

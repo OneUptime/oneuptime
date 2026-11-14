@@ -45,7 +45,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **수집 키를 관리하는 역할.** Project Owner 또는 Project Admin, 아니면 Create Telemetry Ingestion Key 권한이 있는 사용자 지정 역할입니다. Telemetry 역할에는 수집 키가 포함되지 않습니다.
+- **수집 키를 관리하는 역할.** Project Owner 또는 Project Admin, 아니면 Create Ingestion Key 권한이 있는 사용자 지정 역할입니다. Telemetry 역할에는 수집 키가 포함되지 않습니다.
 - **OneUptime Cloud에서는 결제 수단.** 텔레메트리는 사용한 만큼 청구되므로, Free 플랜의 프로젝트는 키를 만들기 전에 결제 수단이 필요합니다. 이 경우 생성 대화 상자는 가격을 보여 주는 **결제** 단계로 끝납니다.
 
 ## 수집 키 만들기
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 브라우저 키 잠그기
 
-브라우저 키는 페이지 안에 있어서 누구나 복사할 수 있습니다. 다음 설정은 복사본이 할 수 있는 일을 제한합니다. 키의 페이지에서 **텔레메트리 수집 Key 편집**으로 바꿉니다.
+브라우저 키는 페이지 안에 있어서 누구나 복사할 수 있습니다. 다음 설정은 복사본이 할 수 있는 일을 제한합니다. 키의 페이지에서 **수집 키 편집**으로 바꿉니다.
 
 | 설정 | 하는 일 |
 | --- | --- |
@@ -104,7 +104,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 ]
 ```
 
-[서비스 카탈로그](/docs/telemetry/services#서비스가-카탈로그에-들어오는-방식)에서 고정된 이름이 서비스를 정하는 방식을 볼 수 있습니다. Kubernetes 에이전트의 Runner와 AI 에이전트, 그리고 인프라 AI 에이전트는 고정된 키로 등록되지 않습니다. 이름이 고정되지 않은 서버 키를 주세요.
+[서비스](/docs/telemetry/services#서비스가-카탈로그에-들어오는-방식)에서 고정된 이름이 서비스를 정하는 방식을 볼 수 있습니다. Kubernetes 에이전트의 Runner와 AI 에이전트, 그리고 인프라 AI 에이전트는 고정된 키로 등록되지 않습니다. 이름이 고정되지 않은 서버 키를 주세요.
 
 ## 키 교체, 끄기, 삭제
 
@@ -112,9 +112,9 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 | 목적 | 할 일 | 보내는 쪽에 보이는 것 |
 | --- | --- | --- |
-| 키를 즉시 멈추고, 나중에 되돌릴 수 있게 하기 | **텔레메트리 수집 Key 편집**을 클릭하고, **액세스 및 제한**을 열어 **활성화됨**을 끕니다. 상태에 **Disabled — telemetry refused** 문구가 표시됩니다. | 다시 켤 때까지 `422` |
+| 키를 즉시 멈추고, 나중에 되돌릴 수 있게 하기 | **수집 키 편집**을 클릭하고, **액세스 및 제한**을 열어 **활성화됨**을 끕니다. 상태에 **Disabled — telemetry refused** 문구가 표시됩니다. | 다시 켤 때까지 `422` |
 | 유출된 시크릿 바꾸기 | **비밀 키 재설정**을 클릭하고 확인합니다. 키는 설정을 유지한 채 새 시크릿을 받습니다. | 새 시크릿을 보낼 때까지 `401` |
-| 키를 영구히 멈추기 | 페이지 맨 아래의 **텔레메트리 수집 Key 삭제**를 클릭합니다. | `401` |
+| 키를 영구히 멈추기 | 페이지 맨 아래의 **수집 키 삭제**를 클릭합니다. | `401` |
 
 데이터를 잃지 않고 시크릿을 바꾸려면 두 번째 키를 만들고, 보내는 쪽을 그 키로 옮긴 다음, 이전 키의 **Last Used At** 값이 더 이상 바뀌지 않을 때 삭제합니다. **Last Used At** 값은 요청마다가 아니라 몇 분마다 갱신됩니다.
 
@@ -155,7 +155,7 @@ OneUptime이 이 키의 사용을 기록하기 시작한 뒤로 이 키로 데�
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 키로 트레이스, 메트릭, 로그를 보냅니다.
-- [서비스 카탈로그](/docs/telemetry/services): 텔레메트리가 기록되는 서비스를 확인합니다.
+- [서비스](/docs/telemetry/services): 텔레메트리가 기록되는 서비스를 확인합니다.
 - [데이터 보존](/docs/telemetry/data-retention): 데이터를 얼마나 오래 보관할지 정합니다.
 - [드롭 필터 및 스크럽 규칙](/docs/telemetry/drop-filters-and-scrub-rules): 저장되기 전에 데이터를 버리거나 가립니다.
 - [수집 예산](/docs/telemetry/ingestion-budgets): 각 키가 하루에 보낼 수 있는 양에 상한을 둡니다.

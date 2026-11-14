@@ -86,6 +86,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 import CheckFromSentence, {
   CHECK_FROM_SENTENCE_ALERT_TEST_ID,
   CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME,
+  CHECK_FROM_SENTENCE_ERROR_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/CheckFromSentence";
 import { CARD_HEADER_ACTION_CLASS_NAME } from "../../../UI/Components/Card/Card";
 import ObjectID from "../../../Types/ObjectID";
@@ -252,6 +253,8 @@ describe("Write the Check", () => {
       TABLE,
     );
     expect(suggestCheckMock.mock.calls[0]![1]).toBe(SENTENCE);
+    // An English page asks for English words.
+    expect(suggestCheckMock.mock.calls[0]![2]).toBe("en");
   });
 });
 
@@ -636,5 +639,142 @@ describe("the suggestion's name and explanation", () => {
     expect(name).not.toHaveAttribute("dir");
     expect(explanation).not.toHaveAttribute("dir");
     expect(name).not.toHaveClass("w-fit");
+  });
+});
+
+/*
+ * THE CHECK'S WORDS, ASKED FOR IN THE READER'S LANGUAGE (#7220).
+ *
+ * OneUptime AI wrote the check's name and explanation in English on every
+ * page. Write the Check now sends the language the page is read in with
+ * the rule, so the server asks for the name and explanation in it; the
+ * server keeps only a language the Dashboard is read in
+ * (DataCheckSuggestLanguage).
+ */
+describe("Write the Check, in the reader's language", () => {
+  test.each(["de", "ja", "ar", "fa"])(
+    "on a %s page, asks for the check's name and explanation in that language",
+    async (language: string) => {
+      await suggestionIn(language, DataCheckAlertCondition.Above, 0);
+
+      expect(suggestCheckMock).toHaveBeenCalledTimes(1);
+      expect((suggestCheckMock.mock.calls[0]![0] as ObjectID).toString()).toBe(
+        TABLE,
+      );
+      expect(suggestCheckMock.mock.calls[0]![1]).toBe(SENTENCE);
+      expect(suggestCheckMock.mock.calls[0]![2]).toBe(language);
+    },
+  );
+});
+
+/*
+ * WHY THE CHECK COULD NOT BE WRITTEN OR ADDED, ON A RIGHT-TO-LEFT PAGE
+ * (#7220's review).
+ *
+ * The card shows the server's message when OneUptime AI cannot make the
+ * rule a check, or the check is not added - English, whatever the page's
+ * language. Drawn as a paragraph of the page's, an Arabic or Persian page
+ * put its full stop at its start (".OneUptime AI could not ... refunded").
+ * It is now a line of its own (IsolatedLine), as the suggestion's name and
+ * explanation are: an English message reads left to right, as wide as its
+ * words at the page's start; a message in the page's language, and every
+ * message on an English page, is drawn as before.
+ */
+describe("the card's error", () => {
+  const WRITE_FAILED: string =
+    "OneUptime AI could not write a check OneUptime can run for that rule (the table has no column for when an order was refunded) Say it another way, or write the check yourself.";
+  const ADD_FAILED: string = "You do not have permission to create a check.";
+
+  // Writes the rule on a page in `language`.
+  async function writeIn(language: string): Promise<void> {
+    await inLanguage(language);
+    renderCard();
+
+    const words: Record<string, string> =
+      language === "en" ? {} : readDashboardLocale(language);
+    const said: (text: string) => string = (text: string): string => {
+      return words[text] || text;
+    };
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: said("The rule, in a sentence") }),
+      { target: { value: SENTENCE } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: said("Write the Check") }),
+    );
+  }
+
+  test("on an English page: the server's words in a paragraph with no direction of its own", async () => {
+    suggestCheckMock.mockRejectedValue(new Error(WRITE_FAILED));
+
+    await writeIn("en");
+
+    const error: HTMLElement = await screen.findByTestId(
+      CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+    );
+
+    expect(error.tagName).toBe("P");
+    expect(error).toHaveTextContent(WRITE_FAILED);
+    expect(error).not.toHaveAttribute("dir");
+    expect(error).toHaveClass("text-sm", "text-red-600");
+    expect(error).not.toHaveClass("w-fit");
+  });
+
+  test.each(["ar", "fa"])(
+    "on a %s page: the English message reads left to right, as wide as its words, its full stop at its end",
+    async (language: string) => {
+      suggestCheckMock.mockRejectedValue(new Error(WRITE_FAILED));
+
+      await writeIn(language);
+
+      const error: HTMLElement = await screen.findByTestId(
+        CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+      );
+
+      expect(error.tagName).toBe("P");
+      expect(error).toHaveAttribute("dir", "ltr");
+      expect(error).toHaveClass("break-words", "w-fit", "max-w-full");
+      // Never text-end beside wrapping lines: each lines up at its own start.
+      expect(error).not.toHaveClass("text-end");
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(WRITE_FAILED);
+    },
+  );
+
+  test("on a Persian page, a check that is not added says why the same way, and its suggestion stays", async () => {
+    createMock.mockRejectedValue(new Error(ADD_FAILED));
+
+    await writeIn("fa");
+
+    const words: Record<string, string> = readDashboardLocale("fa");
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: words["Add Check"]! }),
+    );
+
+    const error: HTMLElement = await screen.findByTestId(
+      CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+    );
+
+    expect(error).toHaveAttribute("dir", "ltr");
+    expect(withoutIsolateMarks(error.textContent || "")).toBe(ADD_FAILED);
+    expect(
+      screen.getByRole("button", { name: words["Add Check"]! }),
+    ).toBeInTheDocument();
+  });
+
+  test("on an Arabic page, a failure the server could not explain reads left to right too", async () => {
+    // A request that failed with no message: the card says the page's sentence for it, in English for now.
+    suggestCheckMock.mockRejectedValue(new Error(""));
+
+    await writeIn("ar");
+
+    const error: HTMLElement = await screen.findByTestId(
+      CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+    );
+
+    expect(error.textContent).not.toBe("");
+    expect(error).toHaveAttribute("dir", "ltr");
+    expect(error).toHaveClass("w-fit", "max-w-full");
   });
 });

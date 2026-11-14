@@ -25,6 +25,7 @@ import {
   getSloBudgetRunwayTextInLanguage,
 } from "../../../FeatureSet/Dashboard/src/Components/Slo/SloOverviewTextInLanguage";
 import { describeSloErrorBudget } from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
+import { getArchiveCardWords } from "../../../FeatureSet/Dashboard/src/Components/Archive/ArchiveCardWords";
 
 /*
  * How each docs language names a piece of the Dashboard.
@@ -39,10 +40,11 @@ import { describeSloErrorBudget } from "../../../FeatureSet/Dashboard/src/Pages/
  * name, so it is translated the same way, unless the locale has the whole
  * phrase (translateCreateAction looks the phrase up first, too).
  *
- * Persian: the incident pages have always kept the Dashboard's English names,
- * and dashboardLabel reads them that way. The on-call pages name the Dashboard
- * as the Persian Dashboard draws it, like every other language, and read it
- * with drawnDashboardLabel.
+ * Every docs language names the Dashboard this way, Persian included: the
+ * Persian incident pages kept the Dashboard's English names while the
+ * Persian Dashboard was mostly English, and name it as it draws it since it
+ * draws them in Persian (#7100). dashboardLabel and drawnDashboardLabel are
+ * one rule under two names.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -50,9 +52,6 @@ const LOCALES_DIR: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/Dashboard/src/Locales",
 );
-
-// The languages whose pages write the Dashboard's names in English.
-export const ENGLISH_UI_NAME_LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 const ITEM_NAME_PLACEHOLDER: string = "{{itemName}}";
 
@@ -124,7 +123,8 @@ type DashboardLabelFunction = (language: string, english: string) => string;
 
 /*
  * What the Dashboard draws for the label written in English, in this
- * language: Persian included.
+ * language: its value in the language's locale, or the English where the
+ * locale has none.
  */
 export const drawnDashboardLabel: DashboardLabelFunction = (
   language: string,
@@ -243,6 +243,29 @@ export const dashboardTranslator: (language: string) => Translator = (
 
     return typeof value === "string" ? value : undefined;
   }, language);
+};
+
+/*
+ * The title of a Settings page's Archive card, as the card draws it in this
+ * language (#7195): "Archive SLO", "SLO archivieren", "بایگانی صفحه وضعیت".
+ * It is built from "Archive {{itemName}}" and the name the page hands the
+ * card, so no locale has it as a key and a page cannot look it up.
+ */
+export const drawnArchiveCardTitle: (
+  language: string,
+  singularName: string,
+  isArchived?: boolean,
+) => string = (
+  language: string,
+  singularName: string,
+  isArchived?: boolean,
+): string => {
+  return getArchiveCardWords({
+    singularName: singularName,
+    isArchived: Boolean(isArchived),
+    copy: {},
+    translator: dashboardTranslator(language),
+  }).title;
 };
 
 // The seconds of each unit of an English compact duration: "4d 23m", "12m 30s".
@@ -509,17 +532,13 @@ export const drawnTextWithFigures: (
   return null;
 };
 
-// What a page in this language calls the Dashboard label written in English.
-export const dashboardLabel: DashboardLabelFunction = (
-  language: string,
-  english: string,
-): string => {
-  if (ENGLISH_UI_NAME_LANGUAGES.includes(language)) {
-    return english;
-  }
-
-  return drawnDashboardLabel(language, english);
-};
+/*
+ * What a page in this language calls the Dashboard label written in English:
+ * the label as that language's Dashboard draws it, in every docs language. No
+ * language keeps the Dashboard's English names (DocsDashboardLabelsEveryLanguage
+ * holds every docs suite to that).
+ */
+export const dashboardLabel: DashboardLabelFunction = drawnDashboardLabel;
 
 const CREATE_PREFIX: string = "Create ";
 

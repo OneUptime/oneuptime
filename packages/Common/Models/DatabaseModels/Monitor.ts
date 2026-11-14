@@ -1970,7 +1970,8 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.MonitorSteps,
     required: false,
     title: "Monitor Steps",
-    description: "What would you like to monitor and what is the criteria?",
+    description:
+      "What the monitor checks, and the criteria that judge each result. The Dashboard shows a step's criteria on the monitor's Criteria page.",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -2335,9 +2336,8 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
-    title: "Disable Monitoring because of Ongoing Scheduled Maintenance Event",
-    description:
-      "Disable Monitoring because of Ongoing Scheduled Maintenance Event",
+    title: "Disable Monitoring because of Ongoing Maintenance Event",
+    description: "Disable Monitoring because of Ongoing Maintenance Event",
     defaultValue: false,
   })
   @Column({

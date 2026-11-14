@@ -178,7 +178,7 @@ describe("the menu the paths are held to, read from its source", () => {
     ["Telemetry & APM", ["Ingestion Keys", "Data Retention", "Usage"]],
     [
       "Notifications",
-      ["Notification Settings", "Notification Logs", "Mobile Apps"],
+      ["Notification Channels", "Notification Logs", "Mobile Apps"],
     ],
     /*
      * External MCP Servers - the servers OneUptime AI uses - beside LLM
@@ -232,7 +232,7 @@ describe("the menu the paths are held to, read from its source", () => {
 
   test("a page's breadcrumb title is known too, so a path that names a page by it is caught", () => {
     expect(MENUS.projectSettingsBreadcrumbs).toEqual(
-      expect.arrayContaining(["Telemetry Ingestion Keys", "Domains", "SCIM"]),
+      expect.arrayContaining(["Telemetry Settings", "Domains", "SCIM"]),
     );
     // Not an entry of the menu: a path must not stop at it.
     expect(
@@ -241,7 +241,7 @@ describe("the menu the paths are held to, read from its source", () => {
           return menuSection.items;
         },
       ),
-    ).not.toContain("Telemetry Ingestion Keys");
+    ).not.toContain("Telemetry Settings");
   });
 });
 
@@ -299,10 +299,10 @@ describe("a written Project Settings path, as a reader follows it", () => {
       ["names no page of its AI section"],
     ],
     [
-      "Notification Settings without its folded section",
-      "Turn it on in Project Settings → Notification Settings.",
+      "Notification Channels without its folded section",
+      "Turn it on in Project Settings → Notification Channels.",
       [
-        'names "Notification Settings" without "Notifications", the folded section it is in: write Project Settings > Notifications > Notification Settings',
+        'names "Notification Channels" without "Notifications", the folded section it is in: write Project Settings > Notifications > Notification Channels',
       ],
     ],
     [
@@ -380,10 +380,8 @@ describe("a written Project Settings path, as a reader follows it", () => {
     ],
     [
       "a page by its breadcrumb, not its menu entry",
-      "Two allowlists compose (Project Settings > Telemetry Ingestion Keys).",
-      [
-        'names no section or page of Project Settings: "Telemetry Ingestion Keys',
-      ],
+      "Two allowlists compose (Project Settings > Telemetry Settings).",
+      ['names no section or page of Project Settings: "Telemetry Settings'],
     ],
     [
       "the AI agent email's old pointer, at a retired page",
@@ -432,10 +430,10 @@ describe("a written Project Settings path, as a reader follows it", () => {
     ],
     [
       "Project Settings called Settings, before a breadcrumb title",
-      "Add your web origins in Settings &gt; Telemetry Ingestion Keys before using this snippet.",
+      "Add your web origins in Settings &gt; Telemetry Settings before using this snippet.",
       [
         'calls Project Settings "Settings"',
-        'names no section or page of Project Settings: "Telemetry Ingestion Keys',
+        'names no section or page of Project Settings: "Telemetry Settings',
       ],
     ],
     [
@@ -458,8 +456,8 @@ describe("a written Project Settings path, as a reader follows it", () => {
 
   test.each([
     [
-      "Turn it on in Project Settings → Notifications → Notification Settings.",
-      ["Project Settings > Notifications > Notification Settings"],
+      "Turn it on in Project Settings → Notifications → Notification Channels.",
+      ["Project Settings > Notifications > Notification Channels"],
     ],
     [
       "Upgrade the project in Project Settings > Billing and Invoices > Billing and they work again.",
@@ -644,7 +642,7 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     ],
     [
       "Common/Utils/Project/NotificationChannels.ts",
-      ["Project Settings > Notifications > Notification Settings"],
+      ["Project Settings > Notifications > Notification Channels"],
     ],
     [
       "Common/Utils/Project/ProjectBalance.ts",
@@ -725,7 +723,7 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     ],
     [
       "App/FeatureSet/AdminDashboard/src/Pages/Settings/Telegram/TelegramSetupGuide.ts",
-      ["Project Settings > Notifications > Notification Settings"],
+      ["Project Settings > Notifications > Notification Channels"],
     ],
   ])(
     "%s names the real way there",
@@ -802,8 +800,8 @@ describe("every translation names the path as its language's Dashboard draws it"
     "No LLM providers configured yet. Add one in Project Settings → AI → LLM Providers.",
     "Only domains verified in Project Settings → Advanced → Domains are listed.",
     "Project Settings → Advanced → API Keys",
-    "Project Settings → Notifications → Notification Settings",
-    "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings.",
+    "Project Settings → Notifications → Notification Channels",
+    "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
     "If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
     "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
     "Project Settings > Telemetry & APM > Ingestion Keys",

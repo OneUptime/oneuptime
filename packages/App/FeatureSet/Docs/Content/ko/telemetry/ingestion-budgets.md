@@ -34,7 +34,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **인스턴스와 프로젝트의 예산에는 Admin Dashboard.** 자체 호스팅 설치에서는 인스턴스 관리자만 이 예산을 설정합니다. 프로젝트의 소유자와 관리자는 예산을 볼 수 있지만 바꿀 수는 없습니다.
-- **키의 자체 예산에는 수집 키를 편집하는 역할.** Project Owner 또는 Project Admin, 아니면 Edit Telemetry Ingestion Key 권한이 있는 사용자 지정 역할입니다.
+- **키의 자체 예산에는 수집 키를 편집하는 역할.** Project Owner 또는 Project Admin, 아니면 Edit Ingestion Key 권한이 있는 사용자 지정 역할입니다.
 - **예산을 보려면 프로젝트의 사용량을 보는 역할.** [텔레메트리 사용량](/docs/telemetry/usage) 페이지를 보는 역할은 그 페이지에서 예산도 봅니다.
 
 ## 모든 프로젝트의 기본 예산 설정

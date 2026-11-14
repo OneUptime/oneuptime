@@ -474,11 +474,14 @@ describe("the Proxmox agent page, against the agent", () => {
     for (const job of jobs) {
       expect(job["scrape_interval"]).toBe("30s");
     }
-    expect(at(jobs[0], "params")).toEqual({
-      target: ["${env:PVE_HOST}"],
-      cluster: ["1"],
-      node: ["0"],
-    });
+    // The cluster collectors' target is the node pve-api-failover picked.
+    expect(at(jobs[0], "params")).toEqual({ cluster: ["1"], node: ["0"] });
+    expect(jobs[0]!["file_sd_configs"]).toEqual([
+      {
+        files: ["/etc/oneuptime/pve-api/target.json"],
+        refresh_interval: "30s",
+      },
+    ]);
     expect(at(jobs[1], "params")).toEqual({ cluster: ["0"], node: ["1"] });
     expect(jobs[1]!["static_configs"]).toEqual([
       { targets: "${env:PVE_NODES}" },
@@ -489,7 +492,7 @@ describe("the Proxmox agent page, against the agent", () => {
 
     lineWith(
       PROXMOX_PAGE,
-      "scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`",
+      "scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST` (or the node it reads the cluster from while `PVE_HOST` is down), and its node collectors once for each node in `PVE_NODES`",
     );
     expect(rowOf(PROXMOX_PAGE, "`PVE_NODES`")[2]).toContain(
       "comma-separated in square brackets, such as `[192.168.1.10,192.168.1.11,192.168.1.12]`",
@@ -503,11 +506,47 @@ describe("the Proxmox agent page, against the agent", () => {
     lineWith(PROXMOX_PAGE, "`cluster=1`", '`cluster: ["1"]`');
   });
 
-  it("says a virtual IP serves PVE_HOST, never PVE_NODES", () => {
+  /*
+   * #6844: the agent reads the cluster from PVE_HOST and, when that node
+   * goes down, from the next node of PVE_NODES (pve-api-failover), so the
+   * page no longer sends anyone to set up a virtual IP for PVE_HOST - and
+   * PVE_NODES is still each node's own address, never a virtual IP.
+   */
+  it("says the agent reads the cluster from the next node with no virtual IP, and PVE_NODES lists every node's own address", () => {
     lineWith(
       PROXMOX_PAGE,
-      "point `PVE_HOST` at a virtual IP or round-robin DNS name",
-      "`PVE_NODES` is different: it lists every node at its own address, never a virtual IP",
+      "It reads the cluster from `PVE_HOST` and, when that node goes down, from the next node in `PVE_NODES`, so it needs no virtual IP",
+      "`PVE_NODES` lists every node at its own address, never a virtual IP",
+    );
+    expect(english(PROXMOX_PAGE)).not.toContain(
+      "point `PVE_HOST` at a virtual IP",
+    );
+  });
+
+  it("says when a node goes down: the failover container, its interval and logs, quorum, and the one machine it cannot cover", () => {
+    const section: string = english(PROXMOX_PAGE).slice(
+      english(PROXMOX_PAGE).indexOf("## When a node goes down"),
+      english(PROXMOX_PAGE).indexOf("## Send Proxmox VE's notifications"),
+    );
+    const failover: YamlNode = at(
+      yamlOf(compose),
+      "services.pve-api-failover",
+    ) as YamlNode;
+    const script: string = String((failover["command"] as Array<unknown>)[0]);
+
+    expect(failover["container_name"]).toBe("oneuptime-pve-api-failover");
+    expect(section).toContain(
+      "Every 15 seconds its `oneuptime-pve-api-failover` container checks that node",
+    );
+    expect(script).toContain("sleep 15 &");
+    expect(section).toContain("cut off from the quorate part of the cluster");
+    expect(script).toContain("/api2/json/cluster/status");
+    expect(section).toContain("`docker logs oneuptime-pve-api-failover`");
+    expect(section).toContain("**Cluster Stopped Reporting** fires");
+    expect(section).toContain("`ha-manager add vm:<vmid>`");
+    lineWith(
+      PROXMOX_PAGE,
+      "`docker compose ps` lists the collector (`oneuptime-proxmox-agent`), the node failover (`oneuptime-pve-api-failover`)",
     );
   });
 

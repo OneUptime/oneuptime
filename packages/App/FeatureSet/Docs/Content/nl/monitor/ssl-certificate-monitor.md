@@ -54,7 +54,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer het certificaat niet geldig is, een waarschuwing wanneer het binnen 14 dagen verloopt. Wijzig ze als dat nodig is en klik op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer het certificaat niet geldig is, een waarschuwing wanneer het binnen 14 dagen verloopt. Wijzig ze als dat nodig is en klik op **Volgende**.
 
 ### Sondes kiezen en maken
 
@@ -106,7 +106,7 @@ Om eerder gewaarschuwd te worden, wijzigt u de waarde van het filter **Dagen tot
 :::details De waarschuwing toevoegen aan een monitor die van vóór de waarschuwing is
 Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben geen criterium "verloopt binnenkort". Zo voegt u het toe:
 
-1. Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria bewerken**.
+1. Open bij de monitor **Configuratie → Criteria** en klik op **Criteria bewerken**.
 2. Klik op **Criteria toevoegen**. Zet het filter op **Certificaat is geldig** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Dagen tot verloop** / **Kleiner dan of gelijk aan** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
 3. Zet onder **Acties** **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en laat **Wanneer filters overeenkomen, wijzig de monitorstatus.** uit, zodat het een waarschuwing aanmaakt en de monitorstatus niet wijzigt.
 4. Sleep het nieuwe criterium boven het criterium dat de monitor als online markeert, en sla op.

@@ -109,6 +109,7 @@ import {
   getWalkLevelHeading,
   getWarningSentence,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageWords";
+import OneUptimeDate from "../../../Types/Date";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   OnCallTestPageCost,
@@ -140,6 +141,7 @@ const LOCALES: Record<string, Record<string, string>> = {
   ru: readLocale("ru"),
   fa: readLocale("fa"),
   ar: readLocale("ar"),
+  ja: readLocale("ja"),
 };
 
 // A translator over the Dashboard's own words in `language`.
@@ -411,6 +413,64 @@ describe("the preview, in the reader's words (#7015)", () => {
 
     expect(away).toMatch(/^Lee Park ist bis .+, ohne Vertretung\.$/);
     expect(away).not.toContain("away until");
+  });
+
+  /*
+   * Japanese, written in another script: a word in Latin letters left on
+   * the preview is English that never went through the Dashboard's words -
+   * unless it is a name the server sent, the date (written by the page's
+   * dates) or Japanese's own wording ("SMS"). The card on a monitor's
+   * Overview words the same codes with the same words (#7261).
+   */
+  test("in Japanese, no English is left on the preview but the names, the date and Japanese's own wording", async () => {
+    await readIn("ja");
+    const preview: HTMLElement = await openPolicyDialog();
+
+    const awayTime: string = OneUptimeDate.getDateAsUserFriendlyFormattedString(
+      OneUptimeDate.fromString("2026-11-14T09:00:00.000Z"),
+    );
+
+    expect(
+      textOf(screen.getByTestId("test-page-preview-reached-through")),
+    ).toContain(worded("ja", "Schedule {{name}}", { name: "Primary" }));
+    expect(textOf(screen.getByTestId("test-page-preview-warning"))).toBe(
+      worded(
+        "ja",
+        "This email method is not verified, so the test can't use it.",
+      ),
+    );
+    expect(textOf(screen.getByTestId("test-page-preview-not-paged"))).toBe(
+      worded("ja", "{{name}} is away until {{time}}, with nobody covering.", {
+        name: "Lee Park",
+        time: awayTime,
+      }),
+    );
+
+    let rest: string = textOf(preview);
+
+    for (const given of ["Ana Lopez", "Lee Park", "Primary", awayTime]) {
+      rest = rest.split(given).join(" ");
+    }
+
+    // Every word in Latin letters Japanese's own words have (a plural is an object of them).
+    const japanesesOwn: Set<string> = new Set<string>(
+      JSON.stringify(Object.values(LOCALES["ja"]!)).match(/[A-Za-z]+/g) || [],
+    );
+
+    expect(
+      (rest.match(/[A-Za-z]+/g) || []).filter((word: string): boolean => {
+        return !japanesesOwn.has(word);
+      }),
+    ).toEqual([]);
+
+    for (const english of [
+      "is away until",
+      "with nobody covering",
+      "is not verified",
+      "Schedule Primary",
+    ]) {
+      expect(rest).not.toContain(english);
+    }
   });
 
   test("in Persian and Arabic, read from the right, with the names as they are", async () => {

@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ Opptakeren publiserer `window.OneUptimeReplay`. Fordi den lastes inn asynkront, 
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` og `addTag` brukes før opptakeren starter, så en samtykkebeslutning i køen avgjør om noe lastes opp, og en identitet i køen reiser allerede på den første chunken. `track`, `metric`, `captureSession` og `onSessionChange` kjører rett etter at den starter.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` og `addTag` brukes før opptakeren starter, så en samtykkebeslutning i køen avgjør om noe lastes opp, og en identitet i køen reiser allerede på den første chunken. `track`, `metric`, `captureSession` og `onSessionChange` kjører rett etter at den starter.
 
 | Metode | Hva den gjør |
 | --- | --- |
@@ -268,6 +270,8 @@ Opptakeren publiserer `window.OneUptimeReplay`. Fordi den lastes inn asynkront, 
 | `getSessionId()` | Den gjeldende økt-ID-en, eller `null` når ingenting tas opp. Foretrekk `onSessionChange()`, som også følger øktbytter. |
 | `getVisitorId()` | Den [anonyme besøks-ID-en](#anonyme-besøkende) — 32 heksadesimale tegn, én per nettleserprofil, den samme på tvers av øktbytter — eller `""` før opptakeren starter, etter `stop()` og mens samtykket er trukket tilbake. Tilfeldig og ikke en identitet; avhenger ikke av **Registrer sluttbrukerens identitet**. |
 | `stop()` | Laster opp den siste chunken, forsegler økten og stopper resten av sidens levetid. |
+| `pause()` | Stopper opptaket av det som er på skjermen til `resume()`: den åpne chunken sendes med en _paused_-markør, og i mellomtiden tas ingenting opp (verken siden, inndata, forespørsler, konsoll eller klikk). Økten forblir åpen, og den besøkendes inndata gjenopptar den ikke. For en side som bare tar opp noen av delene sine; satt i kø før opptakeren lastes, starter den på pause. |
+| `resume()` | Fortsetter opptaket etter `pause()` i samme økt, med et nytt øyeblikksbilde av siden slik den er nå. Avspilleren hopper over det pausede stykket. |
 | `setDebug(enabled)` | Skriver fra nå av opptakerens beslutninger ut i konsollen. |
 | `getDiagnostics()` | Alt opptakeren bestemte, uansett om diagnostikk var slått på. Se nedenfor. |
 
@@ -370,7 +374,12 @@ Maskerte verdier beholder ikke lengden. Et maskert felt er en plassholder med fa
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Under _Mask all text_ tas tekst i et element med klassen `oneuptime-unmask` opp slik den står: bruk den til sidens egne grensesnittord, som knapper, overskrifter og menyer. Et `oneuptime-mask`-element eller en av dine ekstra maskeringsselektorer inni maskerer teksten igjen, skjemafelt forblir maskert, og i de andre maskeringsmodusene gjør klassen ingenting. En side kan også be om mer maskering enn policyen gir, på init-globalen: `maskAllText: true` tar opp under _Mask all text_ uansett hva policyen sier, og `blockSelectors` legges til policyens blokkeringsselektorer. Ingen av dem kan få et opptak til å vise mer.
 
 Du kan også legge til **Ekstra maskeringsselektorer** og **Blokkeringsselektorer** på applikasjonens side **Avspillingspolicy** uten å endre markupen din. Med standardmodusen for maskering er de det viktigste verktøyet for å beskytte innhold som markupen din ikke erklærer som følsomt.
 

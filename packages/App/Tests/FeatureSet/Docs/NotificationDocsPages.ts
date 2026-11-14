@@ -29,14 +29,14 @@ export const NOTIFICATION_SETTINGS: string =
 export const NOTIFICATION_PAGES: ReadonlyArray<NotificationDocsPageEntry> = [
   { page: REACHING_YOU, navTitle: "How OneUptime Reaches You" },
   { page: NOTIFICATION_METHODS, navTitle: "Notification Methods" },
-  { page: PERSONAL_ON_CALL_RULES, navTitle: "Personal On-Call Rules" },
+  { page: PERSONAL_ON_CALL_RULES, navTitle: "How to Reach Me" },
   { page: NOTIFICATION_SETTINGS, navTitle: "Notification Settings" },
 ];
 
 // The nav group's title, its section, and the group it follows there.
 export const NOTIFICATIONS_NAV_GROUP: string = "Notifications";
 export const NOTIFICATIONS_NAV_SECTION: string = "Incident Response";
-export const NOTIFICATIONS_NAV_GROUP_AFTER: string = "On Call";
+export const NOTIFICATIONS_NAV_GROUP_AFTER: string = "On-Call";
 
 /*
  * The group's title in each docs language is the Dashboard's own word for

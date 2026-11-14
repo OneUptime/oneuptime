@@ -193,8 +193,8 @@ describe("a text a session keeps", () => {
 
   /*
    * A megabyte on one line is read only as far as it is kept: the reader
-   * slices before it looks for line breaks (AGENTS.md, Megabyte-long
-   * values).
+   * slices before it looks for line breaks (Docs/notifications/README.md,
+   * "Megabyte-long values").
    */
   test("of megabytes is cut without reading it all", () => {
     const huge: string = "y".repeat(4 * 1024 * 1024);

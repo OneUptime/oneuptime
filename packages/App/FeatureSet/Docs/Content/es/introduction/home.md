@@ -49,7 +49,7 @@ Cada número cuenta algo, dice si eso te necesita y abre la lista que hay detrá
 | **Incidentes activos** | Incidentes que no están resueltos | **Todo en orden** | **Incidentes → Incidentes activos** |
 | **Alertas activas** | Alertas que no están resueltas | **Todo en orden** | **Alertas → Alertas activas** |
 | **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados, y los que tienen el monitoreo desactivado, no cuentan. | **Todos operativos** | **Monitores → No operativo** |
-| **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** | **Mantenimiento programado → Eventos en curso** |
+| **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** | **Mantenimiento programado → Eventos de mantenimiento en curso** |
 | **SLO en riesgo** | SLO activados que están en riesgo o han agotado su presupuesto de error | **Presupuestos en buen estado** | **SLO** |
 
 Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Presupuesto agotándose** para el mantenimiento y los SLO. Mientras algún SLO esté en riesgo, **SLO en riesgo** abre la lista **SLO** filtrada a esos SLO. Un proyecto sin monitores ve **Aún no hay monitores**, y uno sin SLO ve **Aún no hay SLO**: un proyecto vacío no es lo mismo que uno sano. Esos dos abren entonces las listas **Monitores** y **SLO**, donde creas uno.
@@ -149,7 +149,7 @@ Sobre el título de cada página, una ruta como *Proyecto › Docker › Ajustes
 Pulsa **Cmd+K** (Mac) o **Ctrl+K** (Windows y Linux), o haz clic en el icono de búsqueda de la barra superior, y empieza a escribir. La búsqueda encuentra:
 
 - **Cada página de los menús**, por el nombre que le da el menú: Claves de API, Zona de peligro, Programaciones de guardia, Gravedad del incidente, tus propios Métodos de notificación. Cada resultado dice dónde está, por ejemplo *Ajustes del proyecto › Avanzado*, de modo que las páginas con el mismo nombre (Campos personalizados en Incidentes, Alertas y Monitores) se distinguen fácilmente.
-- **Los ajustes de una página**, por el nombre que muestra su tarjeta o su interruptor: *Requerir SSO para iniciar sesión* encuentra SSO, y *Canales de notificación* encuentra Ajustes de notificaciones. Escribe el nombre en inglés o en tu idioma.
+- **Los ajustes de una página**, por el nombre que muestra su tarjeta o su interruptor: *Requerir SSO para iniciar sesión* encuentra SSO, y *Configuraciones de SMTP personalizado* encuentra Canales de notificación. Escribe el nombre en inglés o en tu idioma.
 - **Acciones**, por lo que quieres hacer: Declarar incidente, Crear monitor o Eliminar proyecto, que abre la Zona de peligro. Una acción que cambia algo solo se ofrece a quien tiene permiso para hacerla.
 - **Tus monitores, incidentes, alertas, páginas de estado y políticas de guardia**, por su nombre, y los incidentes y las alertas también por su número, como `INC-42`. Cada resultado de un incidente o una alerta empieza por su número, así que dos con el mismo título se distinguen.
 - **La documentación**, en un grupo *Documentación* debajo de todo lo demás: las páginas y secciones cuyas palabras coinciden con lo que escribes, en tu idioma, aunque haya una errata. Cada una se abre en una pestaña nueva, para que no pierdas tu sitio.

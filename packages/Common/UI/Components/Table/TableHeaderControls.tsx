@@ -111,7 +111,7 @@ export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
  * The main button and the ⋯, one item of that row
  * (renderTableHeaderMainAndMore): where the row wraps they move to the
  * next line together. A main button too long to share its line with the ⋯
- * - "Create Scheduled Maintenance Event" on a 390px phone - says its short
+ * - "Create Maintenance Event" on a 390px phone - says its short
  * words there (CardButtonSchema.phoneTitle, "Create"); one without them
  * breaks its words beside it. As two items of the row, the ⋯ wrapped onto
  * a line of its own under a main button that filled the line. Each as
@@ -254,7 +254,7 @@ export function splitTableHeaderButtons(
 /*
  * The main button, as the header draws it. On a phone it says its short
  * words when it has them (CardButtonSchema.phoneTitle): beside the ⋯
- * there, "Create Scheduled Maintenance Event" broke onto two lines and
+ * there, "Create Maintenance Event" broke onto two lines and
  * stood twice as tall as the ⋯. Named by its whole title, which holds the
  * short words (ShortButtonWords), so a voice command and a screen reader
  * still find it by what it does; from md up it says the whole title.

@@ -173,7 +173,7 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 **SMS**, **음성 전화**, **WhatsApp**, **Telegram**은 메시지마다 비용이 들기 때문에 모든 새 프로젝트에서 꺼진 상태로 시작합니다. OneUptime Cloud에서는 프로젝트 잔액에서 지불되며, 프로젝트의 기본 Twilio 계정이 SMS와 전화를 보내면 그 계정을 통해 나갑니다. 이메일, 푸시, Slack, Microsoft Teams, Mattermost, 웹훅은 항상 켜져 있습니다.
 
-채널이 꺼져 있는 동안에는 프로젝트의 누구도 그 채널에 알림 방법을 추가할 수 없습니다. 카드에 추가 버튼이 없고, 누가 켤 수 있는지 알려 줍니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 **프로젝트 설정 → 알림 → 알림 설정**의 **알림 채널** 카드에서 켭니다. 프로젝트 관리자는 할 수 없습니다. 자체 호스팅 OneUptime에서는 SMS와 전화에 Twilio 계정이나 직접 운영하는 게이트웨이도 필요하고, Telegram에는 서버 관리자가 연결하는 봇이 필요합니다. [Twilio 통합](/docs/self-hosted/twilio-integration)과 [SMS 및 통화 게이트웨이](/docs/self-hosted/sms-and-call-gateway)를 참고하세요.
+채널이 꺼져 있는 동안에는 프로젝트의 누구도 그 채널에 알림 방법을 추가할 수 없습니다. 카드에 추가 버튼이 없고, 누가 켤 수 있는지 알려 줍니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 **프로젝트 설정 → 알림 → 알림 채널**의 **알림 채널** 카드에서 켭니다. 프로젝트 관리자는 할 수 없습니다. 자체 호스팅 OneUptime에서는 SMS와 전화에 Twilio 계정이나 직접 운영하는 게이트웨이도 필요하고, Telegram에는 서버 관리자가 연결하는 봇이 필요합니다. [Twilio 통합](/docs/self-hosted/twilio-integration)과 [SMS 및 통화 게이트웨이](/docs/self-hosted/sms-and-call-gateway)를 참고하세요.
 
 ## 알림 방법 삭제
 
@@ -200,7 +200,7 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 ## 다음 단계
 
 :::cards
-- [개인 온콜 규칙](/docs/notifications/on-call-rules): 각 호출이 어떤 알림 방법을 언제 시도할지 정합니다.
+- [나에게 연락하는 방법](/docs/notifications/on-call-rules): 각 호출이 어떤 알림 방법을 언제 시도할지 정합니다.
 - [알림 설정](/docs/notifications/notification-settings): 받을 소식과 그 채널을 고릅니다.
 - [앱 개요](/docs/mobile-desktop-apps/index): 휴대폰이나 데스크톱에서 호출을 받습니다.
 - [OneUptime이 연락하는 방법](/docs/notifications/index): 알림 방법, 규칙, 설정이 맞물리는 방식.

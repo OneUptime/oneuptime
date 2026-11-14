@@ -81,8 +81,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.ProxmoxAgent,
     directory: "ProxmoxAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.1",
-    digest: "a39519614da2bc1e9da3d965fed377f97edec04bb97d507679ca0538cf915346",
+    version: "0.161.2",
+    digest: "ae5f75a57b031c0fabf3aa71d1aae6ca115fb64f61b3d32fa68ba686c2426a3f",
   },
   {
     kind: AgentKind.OpenStackAgent,
@@ -314,13 +314,15 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
 });
 
 /*
- * The Proxmox agent's config changed on its collector too (#5428): every
- * node's start-on-boot and replication are read from the node itself, not
- * from PVE_HOST alone, so a cluster still running the old files reads them
- * for one node and must show a sign (0.161.1).
+ * The Proxmox agent's config changed on its collector twice: every node's
+ * start-on-boot and replication read from the node itself, not from PVE_HOST
+ * alone (#5428, 0.161.1); then the cluster read from the next node of
+ * PVE_NODES whose API answers when PVE_HOST's goes down, picked by the
+ * pve-api-failover container (#6844, 0.161.2). A cluster still running older
+ * files goes blind when PVE_HOST's node does, so it must show a sign.
  */
-describe("the Proxmox agent after #5428 read every node", () => {
-  test("its files report 0.161.1 and still run collector 0.161.0", () => {
+describe("the Proxmox agent after #6844 reads the cluster from another node when PVE_HOST's goes down", () => {
+  test("its files report 0.161.2 and still run collector 0.161.0", () => {
     const compose: string = fs.readFileSync(
       path.join(REPO_ROOT, "agents", "ProxmoxAgent", "docker-compose.yml"),
       "utf8",
@@ -335,7 +337,7 @@ describe("the Proxmox agent after #5428 read every node", () => {
       "utf8",
     );
 
-    expect(PROXMOX_AGENT_VERSION).toBe("0.161.1");
+    expect(PROXMOX_AGENT_VERSION).toBe("0.161.2");
     expect(PROXMOX_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
     expect(compose).toContain(
       `image: otel/opentelemetry-collector-contrib:${PROXMOX_AGENT_COLLECTOR_VERSION}`,
@@ -346,17 +348,19 @@ describe("the Proxmox agent after #5428 read every node", () => {
     );
   });
 
-  test("a cluster on the older files - 0.161.0 - is told to upgrade", () => {
-    expect(
-      getAgentVersionState({
-        kind: AgentKind.ProxmoxAgent,
-        agentVersion: "0.161.0",
-        serverVersion: "14.0.99",
-      }),
-    ).toEqual({
-      status: AgentVersionStatus.Outdated,
-      latestVersion: "0.161.1",
-    });
+  test("a cluster on older files - 0.161.0 or 0.161.1 - is told to upgrade", () => {
+    for (const agentVersion of ["0.161.0", "0.161.1"]) {
+      expect(
+        getAgentVersionState({
+          kind: AgentKind.ProxmoxAgent,
+          agentVersion,
+          serverVersion: "14.0.99",
+        }),
+      ).toEqual({
+        status: AgentVersionStatus.Outdated,
+        latestVersion: "0.161.2",
+      });
+    }
   });
 
   test("a cluster on the new files is up to date, whatever version OneUptime runs", () => {
@@ -364,7 +368,7 @@ describe("the Proxmox agent after #5428 read every node", () => {
       expect(
         getAgentVersionState({
           kind: AgentKind.ProxmoxAgent,
-          agentVersion: "0.161.1",
+          agentVersion: "0.161.2",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);

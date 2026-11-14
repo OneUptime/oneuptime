@@ -1540,6 +1540,11 @@ jobs:
     if: github.ref == 'refs/heads/release'
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
+      # Go's soft memory limit, for every compile of the provider here: the
+      # generation, go vet and go test, and GoReleaser's 19 cross-compiles.
+      # Without it one compile alone took ~15 GB of the runner's 16
+      # (Scripts/TerraformProvider/Core/GoCommand.ts).
+      GOMEMLIMIT: 10GiB
       GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
       GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
       TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
@@ -1662,6 +1667,11 @@ jobs:
     if: github.ref == 'refs/heads/release'
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
+      # Go's soft memory limit: both generations, the test and both
+      # platforms' builds compile the Terraform provider, and without it one
+      # compile alone took ~15 GB of the runner's 16
+      # (Scripts/TerraformProvider/Core/GoCommand.ts).
+      GOMEMLIMIT: 10GiB
     permissions:
       contents: read
       packages: write  # For pushing the package to GHCR

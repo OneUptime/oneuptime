@@ -37,6 +37,11 @@ import LabelRuleImportExport, {
 import { afterEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routesAt,
+} from "../../Helpers/PageRoutes";
 
 /*
  * Docs overhaul task 14: what the Label and Owner Rules, Import and Export
@@ -941,7 +946,7 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     );
 
     expect(notifications.items).toEqual(
-      expect.arrayContaining(["Notification Settings", "Notification Logs"]),
+      expect.arrayContaining(["Notification Channels", "Notification Logs"]),
     );
     /*
      * Folded under the page's More settings: most projects never add a mail
@@ -958,10 +963,10 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(button).toBe("Create SMTP Config");
 
     expect(page).toContain(
-      `Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **${card}** card under **${MORE_SETTINGS_SECTION_TITLE}**.`,
+      `Add a project's mail server on **Project Settings > Notifications > Notification Channels**, in the **${card}** card under **${MORE_SETTINGS_SECTION_TITLE}**.`,
     );
     expect(page).toContain(
-      `On **Project Settings > Notifications > Notification Settings**, open **${MORE_SETTINGS_SECTION_TITLE}** and click **${button}** in the **${card}** card.`,
+      `On **Project Settings > Notifications > Notification Channels**, open **${MORE_SETTINGS_SECTION_TITLE}** and click **${button}** in the **${card}** card.`,
     );
   });
 
@@ -1285,12 +1290,26 @@ describe("Forms Overview, against the form's menus and routes", () => {
 
   it("gives the product's address and a form's link as the routes spell them", () => {
     const accounts: string = readSource("accountsApp");
+    // The Accounts app mounts react-router's <Route> by its own name.
+    const accountsRoutes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(REPO_DIR, SOURCES["accountsApp"]!),
+      "Route",
+    );
 
     expect(readSource("dashboardRouteMap")).toContain(
       "[PageMap.FORMS]: new Route(`/dashboard/${RouteParams.ProjectID}/forms`),",
     );
-    expect(accounts).toContain('path="/accounts/form/:shareKey"');
-    expect(accounts).toContain('path="/accounts/incident-form/:shareKey"');
+    expect(routesAt(accountsRoutes, '"/accounts/form/:shareKey"')).toEqual([
+      { path: '"/accounts/form/:shareKey"', element: "<FormPage />" },
+    ]);
+    expect(
+      routesAt(accountsRoutes, '"/accounts/incident-form/:shareKey"'),
+    ).toEqual([
+      {
+        path: '"/accounts/incident-form/:shareKey"',
+        element: "<LegacyIncidentFormRedirect />",
+      },
+    ]);
     expect(accounts).toContain(
       "to={`/accounts/form/${encodeURIComponent(shareKey)}`}",
     );

@@ -28,17 +28,25 @@ Votre serveur a besoin de son propre nom d'hôte, comme `oneuptime.example.com`,
 :::steps
 ### Ouvrir la configuration guidée
 
+![Accueil demande « Que voulez-vous faire en premier ? », avec « Informer mes clients avec une page de statut » coché](screen:home-goal-status-page)
+
 Sur la page **Accueil** de votre projet, cliquez sur **Publiez une page de statut** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Informer mes clients avec une page de statut** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `status page` et choisissez **Publiez une page de statut**.
 
 ### La nommer et choisir ce qu'elle affiche
+
+![L'étape « Nommez-la et choisissez ce qu'elle affiche », avec « Créer la page de statut » entouré](screen:status-page-pick)
 
 Sous **Nommez-la et choisissez ce qu'elle affiche**, gardez le **Nom de la page de statut** proposé ou saisissez le vôtre. Sous **Ce qu'elle affiche**, cochez les moniteurs que vos clients doivent voir, ou cliquez sur **Tout sélectionner**. Cliquez sur **Créer la page de statut**. Dès cet instant, la page est publique à son lien, et n'affiche que les moniteurs que vous avez cochés.
 
 ### Regarder ce que voient vos clients
 
+![L'étape « Voici ce que voient vos clients », avec « C'est bon » entouré](screen:status-page-review)
+
 Sous **Voici ce que voient vos clients**, ouvrez l'adresse affichée sous **Lien public** : vos moniteurs y sont listés avec leur statut. De retour dans la configuration, cliquez sur **C'est bon**.
 
 ### Ouvrir Domaines personnalisés
+
+![Le résumé, avec « Votre propre domaine » entouré sous « Personnalisez-la (facultatif) »](screen:status-page-summary)
 
 La configuration se termine sur un récapitulatif. Sous **Personnalisez-la (facultatif)**, cliquez sur **Votre propre domaine**. La page **Domaines personnalisés** de la page de statut s'ouvre.
 

@@ -4479,6 +4479,18 @@ html.dark .docs-theme-toggle .docs-icon-light {
   box-shadow: var(--docs-shadow-md);
 }
 
+/*
+ * A screenshot of the product (#6823): drawn at twice its size and shown at
+ * the width its width attribute gives, or the column's when that is
+ * narrower (.docs-image's max-width). Under a step's heading it sits closer
+ * to the step it shows.
+ */
+.docs-screen {
+  margin: 1rem 0 1.25rem;
+  border-radius: 0.5rem;
+  background: #ffffff;
+}
+
 .docs-quote {
   margin: 1.5rem 0;
   padding-block: 0.25rem;

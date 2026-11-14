@@ -23,7 +23,11 @@ import {
   redactWhoIsTold,
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPagedCode,
+  OnCallTestPageReachedThroughCode,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -838,15 +842,28 @@ function resultWith(criteriaList: Array<WhoIsToldCriteria>): WhoIsToldResult {
 }
 
 describe("the answer as one caller may see it", () => {
+  // Why each is paged and who is not, in English and as codes (#7261).
   const unreachable: WhoIsToldPolicy = policy({
     people: [
       person({
         isReachable: false,
         channels: [],
         problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+        reachedThrough: "Schedule Primary",
+        reachedThroughCode: {
+          code: OnCallTestPageReachedThroughCode.Schedule,
+          name: "Primary",
+        },
       }),
     ],
     notPaged: ["Team Platform has no members."],
+    notPagedCodes: [
+      {
+        code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+        teamName: "Platform",
+        message: "Team Platform has no members.",
+      },
+    ],
   });
 
   test("a policy they may read is told whole", () => {
@@ -879,7 +896,7 @@ describe("the answer as one caller may see it", () => {
     const hidden: WhoIsToldPolicy =
       redacted.criteria[0]!.events[0]!.policies[0]!;
 
-    expect(hidden).toEqual({
+    expect(hidden).toStrictEqual({
       id: POLICY_ID,
       name: "",
       isHidden: true,
@@ -888,10 +905,16 @@ describe("the answer as one caller may see it", () => {
       levelCount: 0,
       people: [],
       notPaged: [],
+      notPagedCodes: [],
     });
     expect(JSON.stringify(redacted)).not.toContain("Ana Lopez has");
     expect(JSON.stringify(redacted)).not.toContain("Primary");
     expect(JSON.stringify(redacted)).not.toContain("Team Platform");
+    // Nor the names its codes carry.
+    expect(JSON.stringify(redacted)).not.toContain("Platform");
+    expect(JSON.stringify(redacted)).not.toContain(
+      OnCallTestPageNotPagedCode.TeamHasNoMembers,
+    );
     expect(redacted.breaks).toEqual([]);
   });
 

@@ -223,6 +223,11 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
               id={startFieldId}
               dataTestId="custom-time-range-start"
               type={InputType.DATETIME_LOCAL}
+              /*
+               * To the second, unlike a time people schedule with: a custom
+               * range is read against telemetry's own timestamps, and a
+               * range around one error or one span is seconds wide.
+               */
               showSecondsForDateTime={true}
               placeholder="Start date & time"
               value={startDate || ""}
@@ -247,6 +252,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
               id={endFieldId}
               dataTestId="custom-time-range-end"
               type={InputType.DATETIME_LOCAL}
+              // To the second, as From above.
               showSecondsForDateTime={true}
               placeholder="End date & time"
               value={endDate || ""}

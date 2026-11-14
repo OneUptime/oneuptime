@@ -688,7 +688,7 @@ describe("Logs > Settings > Recording Rules", () => {
 
     await act(async (): Promise<void> => {
       fireEvent.keyDown(
-        within(dialog()).getByRole("combobox", { name: "Telemetry Services" }),
+        within(dialog()).getByRole("combobox", { name: "Services" }),
         { key: "ArrowDown", code: "ArrowDown" },
       );
     });

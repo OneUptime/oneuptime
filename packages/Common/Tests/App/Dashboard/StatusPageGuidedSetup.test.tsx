@@ -1,5 +1,7 @@
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -15,6 +17,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -31,6 +35,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const api: Record<string, MockFunction> = {
   loadMonitors: getJestMockFunction(),
+  findOwnStatusPage: getJestMockFunction(),
   createStatusPage: getJestMockFunction(),
   addMonitors: getJestMockFunction(),
   loadStatusPage: getJestMockFunction(),
@@ -45,6 +50,7 @@ jest.mock(
 
     for (const name of [
       "loadMonitors",
+      "findOwnStatusPage",
       "createStatusPage",
       "addMonitors",
       "loadStatusPage",
@@ -100,12 +106,17 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 
 import StatusPageGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageGuidedSetup";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
-import { STATUS_PAGE_SETUP_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
+import {
+  STATUS_PAGE_SETUP_COPY,
+  isSameStatusPageName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
 import Project from "../../../Models/DatabaseModels/Project";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006806";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -206,6 +217,7 @@ beforeEach(() => {
   jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(USER_ID));
 
   api["loadMonitors"]!.mockResolvedValue(MONITORS);
+  api["findOwnStatusPage"]!.mockResolvedValue(null);
   api["createStatusPage"]!.mockResolvedValue(PAGE_ID);
   api["addMonitors"]!.mockResolvedValue({
     succeeded: [],
@@ -333,6 +345,42 @@ describe("1. Name it, and pick what it shows", () => {
       monitors: [MONITORS[0], MONITORS[2]],
     });
     expect(storedRun()).toEqual({ statusPageId: PAGE_ID });
+    // A page made, not found: nothing says otherwise.
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("looks for this person's own page with the name before it makes one (#7252)", async () => {
+    await renderSetup();
+    fireEvent.change(nameField(), { target: { value: "Acme Public Status" } });
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-create-status-page");
+
+    expect(api["findOwnStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(api["findOwnStatusPage"]).toHaveBeenCalledWith({
+      name: "Acme Public Status",
+      userId: USER_ID,
+    });
+    expect(api["findOwnStatusPage"]!.mock.invocationCallOrder[0]!).toBeLessThan(
+      api["createStatusPage"]!.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a run whose page is known adds to it and looks for nothing", async () => {
+    keepRun({ statusPageId: PAGE_ID });
+    api["loadShownMonitors"]!.mockResolvedValue({ count: 0, names: [] });
+    await renderSetup();
+
+    api["loadShownMonitors"]!.mockResolvedValue({ count: 1, names: ["API"] });
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-create-status-page");
+
+    expect(api["findOwnStatusPage"]).not.toHaveBeenCalled();
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
   });
 
   test("once the page shows them, step 1 folds to its line and the review opens", async () => {
@@ -531,14 +579,37 @@ describe("the summary", () => {
     );
   });
 
-  test("Set up another status page starts a new run, with the project's name again", async () => {
+  test("Set up another status page starts a new run, with an empty name when the page just set up has the project's (#7252)", async () => {
     await reachSummary();
     await press("guided-setup-start-over");
 
     expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
     expect(stepState("pick")).toBe("open");
-    expect(nameField().value).toBe("Acme Status");
+    // "Acme Status" is taken by the page just set up: another needs its own.
+    expect(nameField().value).toBe("");
     expect(screen.getByTestId("guided-setup-monitor-m-api")).not.toBeChecked();
+
+    // A name is still asked for, and nothing is looked up or made without one.
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-create-status-page");
+
+    expect(
+      screen.getByText(STATUS_PAGE_SETUP_COPY.nameError),
+    ).toBeInTheDocument();
+    expect(api["findOwnStatusPage"]).not.toHaveBeenCalled();
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+  });
+
+  test("Set up another status page starts with the project's name when the page just set up has a name of its own", async () => {
+    api["loadStatusPage"]!.mockResolvedValue({
+      id: PAGE_ID,
+      name: "Acme Public Status",
+    });
+    await reachSummary();
+    await press("guided-setup-start-over");
+
+    expect(stepState("pick")).toBe("open");
+    expect(nameField().value).toBe("Acme Status");
   });
 });
 
@@ -606,5 +677,590 @@ describe("leaving and coming back", () => {
     );
     await press("guided-setup-pick-continue");
     expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+});
+
+/*
+ * A RUN THE BROWSER LOST, OR ANOTHER TAB (#7252): a private window that
+ * keeps nothing, another device, storage cleared, or a second tab that
+ * made the page while this one was open. What exists on the server
+ * decides: a fake server here keeps the status pages - who made each, its
+ * name, whether it is archived and the monitors it shows - read through
+ * the same name rule the real look-up uses, and step 1 looks there before
+ * it makes a page.
+ */
+describe("a run the browser lost, or another tab (#7252)", () => {
+  interface ServerPage {
+    id: string;
+    name: string;
+    createdByUserId: string;
+    isArchived: boolean;
+    monitorIds: Array<string>;
+  }
+
+  const TEAMMATE_ID: string = "40000000-0000-4000-8000-000000000002";
+
+  // The project's status pages as the server keeps them, the oldest first.
+  let serverPages: Array<ServerPage> = [];
+
+  const pageOnServer: (id: string) => ServerPage | undefined = (
+    id: string,
+  ): ServerPage | undefined => {
+    return serverPages.find((candidate: ServerPage): boolean => {
+      return candidate.id === id;
+    });
+  };
+
+  const madeOnServer: (data: {
+    name: string;
+    createdByUserId?: string;
+    isArchived?: boolean;
+    monitorIds?: Array<string>;
+  }) => ServerPage = (data: {
+    name: string;
+    createdByUserId?: string;
+    isArchived?: boolean;
+    monitorIds?: Array<string>;
+  }): ServerPage => {
+    const record: ServerPage = {
+      id: `70000000-0000-4000-8000-${String(serverPages.length + 1).padStart(12, "0")}`,
+      name: data.name,
+      createdByUserId: data.createdByUserId || USER_ID,
+      isArchived: Boolean(data.isArchived),
+      monitorIds: [...(data.monitorIds || [])],
+    };
+    serverPages.push(record);
+    return record;
+  };
+
+  const NOTE: (name: string) => string = (name: string): string => {
+    return `You already have a status page named "${name}", so no new one was made.`;
+  };
+
+  beforeEach(() => {
+    serverPages = [];
+
+    api["createStatusPage"]!.mockImplementation(
+      async (name: string): Promise<string> => {
+        return madeOnServer({ name: name.trim() }).id;
+      },
+    );
+    api["findOwnStatusPage"]!.mockImplementation(
+      async (data: {
+        name: string;
+        userId: string;
+      }): Promise<{ id: string; name: string } | null> => {
+        const found: ServerPage | undefined = [...serverPages]
+          .reverse()
+          .find((candidate: ServerPage): boolean => {
+            return (
+              candidate.createdByUserId === data.userId &&
+              !candidate.isArchived &&
+              isSameStatusPageName(candidate.name, data.name)
+            );
+          });
+
+        return found ? { id: found.id, name: found.name } : null;
+      },
+    );
+    // Add Multiple Monitors' rule: a monitor the page shows is not added twice.
+    api["addMonitors"]!.mockImplementation(
+      async (data: {
+        statusPageId: string;
+        monitors: Array<{ id: string }>;
+      }): Promise<unknown> => {
+        const record: ServerPage | undefined = pageOnServer(data.statusPageId);
+
+        if (!record) {
+          throw new Error("Status Page not found");
+        }
+
+        for (const monitor of data.monitors) {
+          if (!record.monitorIds.includes(monitor.id)) {
+            record.monitorIds.push(monitor.id);
+          }
+        }
+
+        return { succeeded: data.monitors, skipped: [], failed: [] };
+      },
+    );
+    api["loadStatusPage"]!.mockImplementation(
+      async (id: string): Promise<{ id: string; name: string } | null> => {
+        const record: ServerPage | undefined = pageOnServer(id);
+        return record ? { id: record.id, name: record.name } : null;
+      },
+    );
+    api["loadShownMonitors"]!.mockImplementation(
+      async (id: string): Promise<{ count: number; names: Array<string> }> => {
+        const names: Array<string> = (pageOnServer(id)?.monitorIds || []).map(
+          (monitorId: string): string => {
+            return (
+              MONITORS.find((monitor: Record<string, string>): boolean => {
+                return monitor["id"] === monitorId;
+              })?.["name"] || ""
+            );
+          },
+        );
+
+        return { count: names.length, names: names };
+      },
+    );
+  });
+
+  const createWith: (data: {
+    name: string;
+    monitorIds: Array<string>;
+  }) => Promise<void> = async (data: {
+    name: string;
+    monitorIds: Array<string>;
+  }): Promise<void> => {
+    fireEvent.change(nameField(), { target: { value: data.name } });
+
+    for (const monitorId of data.monitorIds) {
+      await press(`guided-setup-monitor-${monitorId}`);
+    }
+
+    await press("guided-setup-create-status-page");
+  };
+
+  // The browser forgets the run; the page stays on the server. Then the page opens again.
+  const loseTheRunAndOpenAgain: () => Promise<void> =
+    async (): Promise<void> => {
+      window.localStorage.clear();
+      cleanup();
+      await renderSetup();
+    };
+
+  test("the run lost, the same name typed again: no second page, the monitors go on the page made, and step 2 says so first", async () => {
+    await renderSetup();
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    const made: ServerPage = serverPages[0]!;
+    expect(storedRun()).toEqual({ statusPageId: made.id });
+    expect(stepState("review")).toBe("open");
+
+    await loseTheRunAndOpenAgain();
+
+    expect(stepState("pick")).toBe("open");
+    // Typed another way, the same name, and one more monitor picked.
+    await createWith({
+      name: "  acme STATUS ",
+      monitorIds: ["m-api", "m-db"],
+    });
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(serverPages).toHaveLength(1);
+    expect(api["addMonitors"]!.mock.calls[1]![0]).toEqual({
+      statusPageId: made.id,
+      monitors: [MONITORS[0], MONITORS[2]],
+    });
+    // The monitor it showed already is not on it twice.
+    expect(made.monitorIds).toEqual(["m-api", "m-db"]);
+    expect(storedRun()).toEqual({ statusPageId: made.id });
+
+    // Step 1 is done with the page found; step 2 opens, saying why first.
+    expect(stepState("pick")).toBe("done");
+    expect(
+      screen.getByTestId("guided-setup-step-pick-done-line"),
+    ).toHaveTextContent('"Acme Status" shows 2 monitors.');
+    expect(stepState("review")).toBe("open");
+    const note: HTMLElement = screen.getByTestId(
+      "guided-setup-existing-status-page",
+    );
+    expect(note).toHaveTextContent(NOTE("Acme Status"));
+    expect(
+      note.compareDocumentPosition(
+        screen.getByText(STATUS_PAGE_SETUP_COPY.reviewHelp),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(note).toHaveClass("break-words");
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    // What the page shows, and its link: the page found.
+    expect(screen.getByTestId("guided-setup-preview")).toHaveTextContent(
+      "Acme Status",
+    );
+    expect(screen.getByTestId("guided-setup-preview")).toHaveTextContent(
+      "Database",
+    );
+    expect(
+      screen.getByTestId("guided-setup-public-link").getAttribute("href"),
+    ).toMatch(new RegExp(`/status-page/${made.id}$`));
+
+    // And the run goes on with it to the summary.
+    await press("guided-setup-review-continue");
+    expect(screen.getByTestId("guided-setup-summary")).toHaveTextContent(
+      '"Acme Status" is live',
+    );
+    expect(storedRun()).toEqual({ statusPageId: made.id, reviewed: true });
+    expect(serverPages).toHaveLength(1);
+  });
+
+  test("a page another tab made while this one was open: found at the save, not made again", async () => {
+    await renderSetup();
+
+    // Another tab of this person made the page meanwhile.
+    const theirs: ServerPage = madeOnServer({
+      name: "Acme Status",
+      monitorIds: ["m-api"],
+    });
+
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(serverPages).toHaveLength(1);
+    expect(theirs.monitorIds).toEqual(["m-api"]);
+    expect(storedRun()).toEqual({ statusPageId: theirs.id });
+    expect(
+      screen.getByTestId("guided-setup-existing-status-page"),
+    ).toHaveTextContent(NOTE("Acme Status"));
+    expect(stepState("review")).toBe("open");
+  });
+
+  test("the note names the page as it is named, not as it was typed", async () => {
+    madeOnServer({ name: "ACME Status Page" });
+    await renderSetup();
+    await createWith({ name: "acme status page", monitorIds: ["m-web"] });
+
+    expect(
+      screen.getByTestId("guided-setup-existing-status-page"),
+    ).toHaveTextContent(NOTE("ACME Status Page"));
+    expect(screen.getByTestId("guided-setup-preview")).toHaveTextContent(
+      "ACME Status Page",
+    );
+  });
+
+  test("another name makes its own page, with no note", async () => {
+    madeOnServer({ name: "Acme Status", monitorIds: ["m-api"] });
+    await renderSetup();
+    await createWith({ name: "Acme Internal Status", monitorIds: ["m-web"] });
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(api["createStatusPage"]).toHaveBeenCalledWith(
+      "Acme Internal Status",
+    );
+    expect(serverPages).toHaveLength(2);
+    expect(serverPages[0]!.monitorIds).toEqual(["m-api"]);
+    expect(serverPages[1]!.monitorIds).toEqual(["m-web"]);
+    expect(storedRun()).toEqual({ statusPageId: serverPages[1]!.id });
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+    expect(stepState("review")).toBe("open");
+  });
+
+  test("a teammate's page with the name is never taken over: this person's own is made", async () => {
+    const teammates: ServerPage = madeOnServer({
+      name: "Acme Status",
+      createdByUserId: TEAMMATE_ID,
+      monitorIds: ["m-web"],
+    });
+    await renderSetup();
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(teammates.monitorIds).toEqual(["m-web"]);
+    expect(serverPages[1]!.monitorIds).toEqual(["m-api"]);
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an archived page of theirs with the name is offline: a new page is made", async () => {
+    const archived: ServerPage = madeOnServer({
+      name: "Acme Status",
+      isArchived: true,
+    });
+    await renderSetup();
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(archived.monitorIds).toEqual([]);
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a look-up that fails makes nothing and says why; trying again goes on", async () => {
+    madeOnServer({ name: "Acme Status", monitorIds: ["m-api"] });
+    await renderSetup();
+    api["findOwnStatusPage"]!.mockRejectedValueOnce(
+      new Error("The server could not be reached."),
+    );
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The server could not be reached.",
+    );
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(api["addMonitors"]).not.toHaveBeenCalled();
+    expect(serverPages).toHaveLength(1);
+    expect(storedRun()).toEqual({});
+    expect(stepState("pick")).toBe("open");
+    // The form is as it was: the name and the monitors picked, to save again.
+    expect(nameField().value).toBe("Acme Status");
+    expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeChecked();
+
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(serverPages).toHaveLength(1);
+    expect(
+      screen.getByTestId("guided-setup-existing-status-page"),
+    ).toHaveTextContent(NOTE("Acme Status"));
+    expect(stepState("review")).toBe("open");
+  });
+
+  test("monitors that could not be added to the page found leave the step as it was, and the next try finds it again", async () => {
+    const theirs: ServerPage = madeOnServer({ name: "Acme Status" });
+    await renderSetup();
+    api["addMonitors"]!.mockRejectedValueOnce(new Error("Plan limit reached"));
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+
+    expect(screen.getByText("Plan limit reached")).toBeInTheDocument();
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    // Nothing claims the page shows nothing, or that it was found.
+    expect(storedRun()).toEqual({});
+    expect(nameField().value).toBe("Acme Status");
+    expect(
+      screen.queryByTestId("guided-setup-empty-page"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+    expect(stepState("pick")).toBe("open");
+
+    await press("guided-setup-create-status-page");
+
+    expect(api["findOwnStatusPage"]).toHaveBeenCalledTimes(2);
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(theirs.monitorIds).toEqual(["m-api"]);
+    expect(storedRun()).toEqual({ statusPageId: theirs.id });
+    expect(stepState("review")).toBe("open");
+  });
+
+  test("the note is a moment, not a state: a reload, and Set up another status page, start without it", async () => {
+    madeOnServer({ name: "Acme Status", monitorIds: ["m-api"] });
+    await renderSetup();
+    await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
+    expect(
+      screen.getByTestId("guided-setup-existing-status-page"),
+    ).toBeInTheDocument();
+
+    // Opened again with the run kept: step 2, as it is, with no note.
+    cleanup();
+    await renderSetup();
+    expect(stepState("review")).toBe("open");
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+
+    // On to the summary, then another page with its own name.
+    await press("guided-setup-review-continue");
+    await press("guided-setup-start-over");
+    expect(nameField().value).toBe("");
+    await createWith({ name: "Acme Internal Status", monitorIds: ["m-db"] });
+
+    expect(serverPages).toHaveLength(2);
+    expect(stepState("review")).toBe("open");
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Set up another status page right after a page was found: the next page, a new one, comes without the note", async () => {
+    madeOnServer({ name: "Acme Status", monitorIds: ["m-api"] });
+    await renderSetup();
+    await createWith({ name: "acme status", monitorIds: ["m-api"] });
+    expect(
+      screen.getByTestId("guided-setup-existing-status-page"),
+    ).toBeInTheDocument();
+
+    // No reload: the summary, then another page with its own name.
+    await press("guided-setup-review-continue");
+    await press("guided-setup-start-over");
+    await createWith({ name: "Acme Internal Status", monitorIds: ["m-db"] });
+
+    expect(serverPages).toHaveLength(2);
+    expect(stepState("review")).toBe("open");
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a long name with no spaces wraps inside the step instead of running past it", async () => {
+    const longName: string = `Acme${"Storefront".repeat(12)}Status`;
+    madeOnServer({ name: longName });
+    await renderSetup();
+    await createWith({ name: longName.toUpperCase(), monitorIds: ["m-api"] });
+
+    const note: HTMLElement = screen.getByTestId(
+      "guided-setup-existing-status-page",
+    );
+    expect(note).toHaveTextContent(NOTE(longName));
+    expect(note).toHaveClass("break-words");
+  });
+});
+
+/*
+ * THE NOTE, READ IN ANOTHER LANGUAGE (#7252): the sentence step 2 says
+ * when the name typed is one of the reader's own pages is in their words,
+ * with the page's name as it is named - in German, and on the right-to-left
+ * pages, Arabic and Persian.
+ */
+describe("read in another language (#7252)", () => {
+  const LANGUAGES: Array<string> = ["de", "ar", "fa"];
+
+  const fill: (
+    language: string,
+    key: string,
+    values: Record<string, string>,
+  ) => string = (
+    language: string,
+    key: string,
+    values: Record<string, string>,
+  ): string => {
+    let text: string = readDashboardLocale(language)[key]!;
+
+    expect({ language, key, worded: Boolean(text) && text !== key }).toEqual({
+      language,
+      key,
+      worded: true,
+    });
+
+    for (const name of Object.keys(values)) {
+      text = text.split(`{{${name}}}`).join(values[name]!);
+    }
+
+    return text;
+  };
+
+  beforeAll(async () => {
+    const resources: Record<string, { translation: Record<string, string> }> =
+      {};
+
+    for (const language of LANGUAGES) {
+      resources[language] = { translation: readDashboardLocale(language) };
+    }
+
+    await i18next.use(initReactI18next).init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: resources,
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("en");
+    });
+  });
+
+  describe.each(LANGUAGES)("in %s", (language: string) => {
+    beforeEach(async () => {
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage(language);
+      });
+    });
+
+    test("the name is one of the reader's pages: step 2 says so in their words, naming the page", async () => {
+      api["findOwnStatusPage"]!.mockResolvedValue({
+        id: PAGE_ID,
+        name: "Acme Status",
+      });
+      await renderSetup();
+      fireEvent.change(nameField(), { target: { value: "acme status" } });
+      await press("guided-setup-monitor-m-api");
+      await press("guided-setup-create-status-page");
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("guided-setup-existing-status-page"),
+        ).toBeInTheDocument();
+      });
+
+      const note: string = withoutIsolateMarks(
+        screen.getByTestId("guided-setup-existing-status-page").textContent ||
+          "",
+      );
+
+      expect(note).toBe(
+        fill(language, STATUS_PAGE_SETUP_COPY.existingStatusPage, {
+          name: "Acme Status",
+        }),
+      );
+      expect(note).not.toContain("no new one was made");
+      expect(note).not.toContain("acme status");
+      expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A name in Latin letters that starts with a figure: in a sentence read
+     * from the right the bidi algorithm drew "24/7" after "Status" and the
+     * count beside the quotes unless the name is set apart. Each line that
+     * names the page - the note, step 1's line, the summary's title - sets it
+     * apart there, and adds nothing to a German one.
+     */
+    test("every line naming the page keeps the name whole in the reader's reading direction", async () => {
+      const name: string = "24/7 Status";
+      const isRightToLeft: boolean = language === "ar" || language === "fa";
+
+      api["findOwnStatusPage"]!.mockResolvedValue({ id: PAGE_ID, name });
+      api["loadShownMonitors"]!.mockResolvedValue({ count: 1, names: ["API"] });
+      await renderSetup();
+      fireEvent.change(nameField(), { target: { value: "24/7 status" } });
+      await press("guided-setup-monitor-m-api");
+      await press("guided-setup-create-status-page");
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("guided-setup-existing-status-page"),
+        ).toBeInTheDocument();
+      });
+
+      const lines: () => Record<string, boolean> = (): Record<
+        string,
+        boolean
+      > => {
+        const setApart: Record<string, boolean> = {};
+
+        for (const testId of [
+          "guided-setup-existing-status-page",
+          "guided-setup-step-pick-done-line",
+          "guided-setup-summary-title",
+        ]) {
+          const element: HTMLElement | null = screen.queryByTestId(testId);
+
+          if (element) {
+            setApart[testId] = (element.textContent || "").includes(
+              isolated(name),
+            );
+          }
+        }
+
+        return setApart;
+      };
+
+      expect(lines()).toEqual({
+        "guided-setup-existing-status-page": isRightToLeft,
+        "guided-setup-step-pick-done-line": isRightToLeft,
+      });
+
+      await press("guided-setup-review-continue");
+
+      expect(lines()).toEqual({
+        "guided-setup-step-pick-done-line": isRightToLeft,
+        "guided-setup-summary-title": isRightToLeft,
+      });
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("guided-setup-summary-title").textContent || "",
+        ),
+      ).toBe(fill(language, STATUS_PAGE_SETUP_COPY.summaryTitle, { name }));
+    });
   });
 });

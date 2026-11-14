@@ -448,7 +448,17 @@ describe("the card, drawn", () => {
     const change: HTMLElement = within(card).getByTestId(
       "cloud-right-sizing-change",
     );
-    expect(change.tagName).toBe("BDI");
+    /*
+     * Each of the cloud's size names set apart in its own direction (bdi),
+     * and the arrow between them the page's (DirectionArrow, #7666).
+     */
+    expect(
+      Array.from(change.querySelectorAll("bdi")).map(
+        (name: Element): string => {
+          return name.textContent || "";
+        },
+      ),
+    ).toEqual(["m5.2xlarge", "m5.xlarge"]);
     expect(change).toHaveTextContent("m5.2xlarge → m5.xlarge");
     expect(change.className).toContain("font-mono");
     const savingLine: HTMLElement = within(card).getByTestId(

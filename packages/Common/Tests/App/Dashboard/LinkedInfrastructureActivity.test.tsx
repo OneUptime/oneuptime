@@ -367,6 +367,36 @@ describe("describeLinkedInfrastructure", () => {
     ).not.toContain(", ");
   });
 
+  /*
+   * The name of what a monitor watches is a noun of these sentences, and
+   * five languages word it for the middle of one. A row or a chip that
+   * draws the same key starts it with a capital (toLabelTerm, #7607); the
+   * key itself, and so the sentence, keeps it lower-case.
+   */
+  test.each([
+    ["es", "en clúster de Kubernetes prod y host de Docker web-1"],
+    ["fr", "cluster Kubernetes prod et hôte Docker web-1"],
+    ["it", "cluster Kubernetes prod e host Docker web-1"],
+    ["pt", "cluster Kubernetes prod e host Docker web-1"],
+    ["ru", "кластер Kubernetes prod"],
+  ])(
+    "%s names a cluster and a host mid-sentence in lower case: %s",
+    (language: string, named: string) => {
+      expect(
+        describeLinkedInfrastructure(
+          activity({
+            alertCount: 0,
+            resources: [
+              { kind: "KubernetesCluster", name: "prod" },
+              { kind: "DockerHost", name: "web-1" },
+            ],
+          }),
+          translatorFor(language),
+        ),
+      ).toContain(named);
+    },
+  );
+
   test("a sentence a language has not worded yet is English through and through, names included", () => {
     const halfway: Translator = createTranslator(
       (text: string): string | undefined => {

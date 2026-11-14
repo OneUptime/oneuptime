@@ -62,7 +62,7 @@ Um monitor novo começa com **Device Offline**, em **Sobre o que alertar**. Para
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Select Metric Variable**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
+Abra cada critério em **Critérios** e confira **Select Metric Variable**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 

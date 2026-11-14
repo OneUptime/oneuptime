@@ -7,6 +7,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
+  dashboardTranslator,
   drawnActionLabel,
   drawnDashboardLabel,
   isActionLabel,
@@ -26,6 +27,9 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
+import { SYNC_TO_LINKED_MONITORS_TITLES } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
+import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -42,25 +46,32 @@ import { describe, expect, it } from "@jest/globals";
  *     language's Dashboard locale, Persian included, as on the on-call,
  *     runbook, workflow and introduction pages (drawnActionLabel). Menu
  *     paths ("A → B → C") are drawn segment by segment.
- *   - The If No Data options (Ignore, Treat As Zero), the HTTP methods, a
- *     template sync field name and the sync button have no Dashboard
- *     locale key at all: every language's Dashboard shows them in English,
- *     so every translation names them in English (SHOWN_IN_ENGLISH). When
- *     the Dashboard gains a key for one, a test below fails until the pages
- *     name it as drawn. The comparisons (Greater Than, Equal To, Not
- *     Contains) gained theirs in adc8421a1b, and the criteria filters (Is
- *     Online, Response Header, Packet Loss (in %)), their window aggregates
- *     and the rest of their conditions (Evaluates To True) theirs in
- *     31eadaee92e, worded in every language in f155e8e0998: they are labels
- *     now, drawn like any other (DocsCriteriaConditions holds every page to
- *     the conditions). The sync field Request headers gained its key with
- *     the Test LLM Provider dialog's request panel (#7355), which draws the
- *     same words, and is a label now too.
+ *   - The If No Data options (Ignore, Treat As Zero) and the HTTP methods
+ *     have no Dashboard locale key at all: every language's Dashboard shows
+ *     them in English, so every translation names them in English
+ *     (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a test
+ *     below fails until the pages name it as drawn. The comparisons
+ *     (Greater Than, Equal To, Not Contains) gained theirs in adc8421a1b,
+ *     and the criteria filters (Is Online, Response Header, Packet Loss
+ *     (in %)), their window aggregates and the rest of their conditions
+ *     (Evaluates To True) theirs in 31eadaee92e, worded in every language
+ *     in f155e8e0998: they are labels now, drawn like any other
+ *     (DocsCriteriaConditions holds every page to the conditions). The sync
+ *     field Request headers gained its key with the Test LLM Provider
+ *     dialog's request panel (#7355), which draws the same words, and is a
+ *     label now too. Every other sync field name, Monitor destination among
+ *     them, gained its key when the Template sync settings card came to say
+ *     them in the reader's language (#7546).
  *   - A button drawn from a template such as "Add {{itemName}}" around an
  *     item name that has no translation keeps that name in English
  *     (TEMPLATED_LABELS). The request headers' Add button was one until
  *     31eadaee92e keyed "Request Header": it is drawn like any other Add
  *     button now, the item name translated.
+ *   - A button that says a count is drawn from a plural template of the
+ *     Dashboard's with that count (COUNTED_BUTTONS): its words, its
+ *     number's form and its digits in that language. The sync button with
+ *     its count was built in English, and named in English on every page,
+ *     until #7678 gave it its keys.
  *
  * Bold words that are Dashboard labels only by coincidence - a list item's
  * lead, a keyboard key - are PROSE, with why.
@@ -124,15 +135,6 @@ const CRITERIA_NAMES_IN_ENGLISH: Array<string> = ["Ignore", "Treat As Zero"];
  * in English, so the reader finds it as the screen shows it.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [MONITOR_TEMPLATES]: [
-    /*
-     * The sync button with its count is built in English
-     * (MonitorTemplatesView), so no language translates it.
-     */
-    "Sync Criteria to 3 Linked Monitors",
-    // A template sync settings' field name (MonitorTemplateSyncField).
-    "Monitor destination",
-  ],
   [WEBSITE_MONITOR]: CRITERIA_NAMES_IN_ENGLISH,
   [API_MONITOR]: [
     ...CRITERIA_NAMES_IN_ENGLISH,
@@ -162,6 +164,32 @@ const TEMPLATED_LABELS: Record<
   string,
   Array<{ english: string; template: string; itemName: string }>
 > = {};
+
+/*
+ * Buttons that say a count, by page: the English page names one with the
+ * count it shows ("Sync Criteria to 3 Linked Monitors"), and a translation
+ * names it as its language's Dashboard draws it for that count
+ * (MonitorTemplatesView's sync buttons, #7678).
+ */
+const COUNTED_BUTTONS: Record<
+  string,
+  Array<{ template: PluralTemplate; count: number }>
+> = {
+  [MONITOR_TEMPLATES]: [
+    { template: SYNC_TO_LINKED_MONITORS_TITLES.criteria, count: 3 },
+  ],
+};
+
+// A counted button as this language's Dashboard draws it.
+function drawnCountedButton(
+  language: string,
+  button: { template: PluralTemplate; count: number },
+): string {
+  return dashboardTranslator(language).translatePlural(
+    button.template,
+    button.count,
+  );
+}
 
 // The Add button the API page names, and the item name it is drawn around.
 const REQUEST_HEADER_BUTTON: string = "Add Request Header";
@@ -283,7 +311,12 @@ function stepCount(markdown: string): number {
 
 describe("the lists this test keeps", () => {
   it("name only pages of this group", () => {
-    for (const lists of [SHOWN_IN_ENGLISH, TEMPLATED_LABELS, PROSE]) {
+    for (const lists of [
+      SHOWN_IN_ENGLISH,
+      TEMPLATED_LABELS,
+      PROSE,
+      COUNTED_BUTTONS,
+    ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
       }
@@ -363,6 +396,16 @@ describe("the lists this test keeps", () => {
         // The item has no translation: that is why it is drawn this way.
         expect(isActionLabel(entry.itemName)).toBe(false);
         expect(isActionLabel(entry.english)).toBe(false);
+      }
+    }
+  });
+
+  it("draw the counted buttons from the English page's bold text", () => {
+    for (const page of Object.keys(COUNTED_BUTTONS)) {
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const button of COUNTED_BUTTONS[page]!) {
+        expect(labels).toContain(drawnCountedButton("en", button));
       }
     }
   });
@@ -556,11 +599,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);
@@ -578,6 +622,20 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
 
       expect(missing).toEqual([]);
+    });
+
+    it("names the counted buttons as this language's Dashboard draws them, the count in its digits", () => {
+      const translated: string = readPage(language, entry.page);
+
+      for (const button of COUNTED_BUTTONS[entry.page] || []) {
+        const drawn: string = drawnCountedButton(language, button);
+
+        expect({ drawn: drawn, found: true }).toEqual({
+          drawn: drawn,
+          found: translated.includes(`**${drawn}**`),
+        });
+        expect(drawn).not.toBe(drawnCountedButton("en", button));
+      }
     });
 
     it("names the templated buttons as this language fills their template", () => {
@@ -682,13 +740,13 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("fill a template around an untranslated name, as German draws it", () => {
-    // A template sync field's name, which no locale words.
-    expect(isActionLabel("Monitor destination")).toBe(false);
-    expect(filled("en", "Add {{itemName}}", "Monitor destination")).toBe(
-      "Add Monitor destination",
+    // An If No Data option (NoDataPolicy), which no locale words.
+    expect(isActionLabel("Treat As Zero")).toBe(false);
+    expect(filled("en", "Add {{itemName}}", "Treat As Zero")).toBe(
+      "Add Treat As Zero",
     );
-    expect(filled("de", "Add {{itemName}}", "Monitor destination")).toBe(
-      "Monitor destination hinzufügen",
+    expect(filled("de", "Add {{itemName}}", "Treat As Zero")).toBe(
+      "Treat As Zero hinzufügen",
     );
   });
 

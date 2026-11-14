@@ -60,7 +60,7 @@ Un agent bloqué laisse une trace reconnaissable : le même span d'outil, encore
 
 :::steps
 1. Ouvrez **Moniteurs**, cliquez sur **Créer un moniteur** et choisissez **Traces** sous **Plus de types de moniteurs**. Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Autre chose**, et videz **Statut du span**.
-2. Sous **Plus de champs**, réglez **Filtrer par service de télémétrie** sur le service de l'agent, et **Filtrer par attributs** sur `gen_ai.tool.name` égal à l'outil sur lequel vous attendez une boucle, par exemple `search_web`. Si votre instrumentation nomme le span de chaque outil, mettez plutôt ce nom dans **Le nom du span contient**.
+2. Sous **Plus de champs**, réglez **Filtrer par service** sur le service de l'agent, et **Filtrer par attributs** sur `gen_ai.tool.name` égal à l'outil sur lequel vous attendez une boucle, par exemple `search_web`. Si votre instrumentation nomme le span de chaque outil, mettez plutôt ce nom dans **Le nom du span contient**.
 3. Réglez la **Fenêtre de temps** sur **Dernières 5 minutes**.
 4. Dans **Quand alerter**, réglez **Plus de** sur un nombre qu'aucune exécution saine n'atteint en cinq minutes, par exemple `50`, et intitulez l'alerte comme `Agent loop: support-bot`.
 :::

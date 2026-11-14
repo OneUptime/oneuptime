@@ -483,7 +483,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 인시던트 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | 알림 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | 상태 페이지 | Status Page, Status Page Announcement |
-| 예정된 유지 관리 | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| 예정된 유지 관리 | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | 팀과 온콜 | Team, On-Call Policy |
 | 레이블 | Label |
 | 보안 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

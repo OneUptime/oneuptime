@@ -162,6 +162,11 @@ beforeEach(() => {
 });
 
 describe("useBulkArchiveActions default copy", () => {
+  /*
+   * One selected row reads "It ... it" and several read "They ... them"
+   * (#7195): each is its own key, so a translation can word the one-row
+   * sentence as a sentence about one thing.
+   */
   test("stays word for word what every archivable table already shows", () => {
     const result: BulkArchiveActionsResult<PodmanHost> = renderActions();
     const archive: BulkActionButtonSchema<PodmanHost> = onlyAction(
@@ -172,13 +177,13 @@ describe("useBulkArchiveActions default copy", () => {
     );
 
     expect(archive.confirmMessage!(hosts(1))).toBe(
-      "Are you sure you want to archive the selected host? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.",
+      "Are you sure you want to archive the selected host? It will be hidden from the list but will keep collecting telemetry. You can unarchive it anytime from the Archived tab.",
     );
     expect(archive.confirmMessage!(hosts(2))).toBe(
       "Are you sure you want to archive the selected hosts? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.",
     );
     expect(unarchive.confirmMessage!(hosts(1))).toBe(
-      "Are you sure you want to unarchive the selected host? They will reappear in the main list.",
+      "Are you sure you want to unarchive the selected host? It will reappear in the main list.",
     );
     expect(unarchive.confirmMessage!(hosts(3))).toBe(
       "Are you sure you want to unarchive the selected hosts? They will reappear in the main list.",
@@ -196,7 +201,7 @@ describe("useBulkArchiveActions default copy", () => {
     ).toContain("will keep collecting telemetry");
     expect(
       onlyAction(result.unarchiveBulkActions).confirmMessage!(hosts(1)),
-    ).toContain("They will reappear in the main list.");
+    ).toContain("It will reappear in the main list.");
   });
 });
 
@@ -248,7 +253,7 @@ describe("useBulkArchiveActions copy overrides", () => {
     expect(
       onlyAction(result.unarchiveBulkActions).confirmMessage!(hosts(1)),
     ).toBe(
-      "Are you sure you want to unarchive the selected host? They will reappear in the main list.",
+      "Are you sure you want to unarchive the selected host? It will reappear in the main list.",
     );
   });
 

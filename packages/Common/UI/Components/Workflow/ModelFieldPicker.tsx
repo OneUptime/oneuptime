@@ -21,6 +21,7 @@ import FieldError from "../Forms/Fields/FieldError";
  */
 
 import CodeEditor from "../CodeEditor/CodeEditor";
+import ErrorSentence from "../ErrorMessage/ErrorSentence";
 import Icon from "../Icon/Icon";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import AddFieldsPanel from "./FieldPicker/AddFieldsPanel";
@@ -405,9 +406,10 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
             className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
             data-testid={`${testId}-load-error`}
           >
-            {translator.translateTemplate(ModelFieldPickerCopy.couldNotLoad, {
-              error: schema.error,
-            })}
+            <ErrorSentence
+              template={ModelFieldPickerCopy.couldNotLoad}
+              error={schema.error}
+            />
           </p>
         ) : null}
 

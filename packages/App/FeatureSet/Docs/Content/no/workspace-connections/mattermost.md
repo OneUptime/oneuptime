@@ -51,7 +51,7 @@ Legg til boten i hvert team OneUptime skal publisere i, slik du ville lagt til e
 
 ### Koble til prosjektet
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** i OneUptime, og klikk på **Koble til Mattermost**. Skriv inn adressen til serveren din, for eksempel `https://chat.example.com`, og tilgangstokenet til boten. OneUptime sjekker tokenet mot serveren din før den lagrer noe. Hvis boten er i mer enn ett team, spør OneUptime hvilket som er standardteamet: teamet der en varslingsregel som ikke nevner noe team, oppretter kanalene sine. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** i OneUptime, og klikk på **Koble til Mattermost**. Skriv inn adressen til serveren din, for eksempel `https://chat.example.com`, og tilgangstokenet til boten. OneUptime sjekker tokenet mot serveren din før den lagrer noe. Hvis boten er i mer enn ett team, spør OneUptime hvilket som er standardteamet: teamet der en varslingsregel som ikke nevner noe team, oppretter kanalene sine. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakt **Koble til et arbeidsområde**, som også fører hit.
 
 ### Legg til en varslingsregel
 
@@ -100,11 +100,11 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost
 3. Klikk på **Send Test Message** i raden. Meldingen kommer som en direktemelding fra prosjektets bot.
 :::
 
-Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Mattermost fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**. Hver tilkalling har en lenke for å bekrefte den og en for å eskalere den. Når du kobler fra Mattermost-kontoen din, fjernes denne metoden og vaktreglene som bruker den.
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Mattermost fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**. Hver tilkalling har en lenke for å bekrefte den og en for å eskalere den. Når du kobler fra Mattermost-kontoen din, fjernes denne metoden og vaktreglene som bruker den.
 
 ## Varslingsregler
 
-En varslingsregel sier hvilke hendelser som publiseres i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbeidsområde** > **Mattermost** i sin meny: **Hendelser** (med **Hendelsesepisoder** og en fane **Sammendrag**), **Varsler** (med **Varselsepisoder** og **Sammendrag**), **Planlagt vedlikehold**, **Monitorer**, **Vakttjeneste**, **Sikkerhetshendelser** og **SLOs**. De fungerer som Slacks: se [Varslingsregler](/docs/workspace-connections/slack#varslingsregler) for betingelser, mål og hvem som blir med i en kanal.
+En varslingsregel sier hvilke hendelser som publiseres i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbeidsområde** > **Mattermost** i sin meny: **Hendelser** (med **Hendelsesepisoder** og en fane **Sammendrag**), **Varsler** (med **Varselsepisoder** og **Sammendrag**), **Planlagt vedlikehold**, **Monitorer**, **Vakt**, **Sikkerhetshendelser** og **SLOs**. De fungerer som Slacks: se [Varslingsregler](/docs/workspace-connections/slack#varslingsregler) for betingelser, mål og hvem som blir med i en kanal.
 
 En kanal som en regel oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`. Mattermost tar små bokstaver, tall, `-` og `_`, opptil 64 tegn, med en bokstav eller et tall først og sist, og regelskjemaet viser navnet mens du skriver. Finnes det allerede en kanal med det navnet, for eksempel en arkivert, legger OneUptime til `-2`, `-3` og så videre. En privat hendelse, et privat varsel eller en privat episode får en privat kanal.
 

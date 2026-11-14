@@ -174,6 +174,116 @@ const dense: (text: string) => string = (text: string): string => {
   return text.replace(/\s+/g, "");
 };
 
+/*
+ * What dense code hands a prop: the expression inside `<prop>={...}`, read
+ * to its matching brace (brackets inside strings do not count). Null when
+ * the code gives no such prop.
+ */
+const propExpression: (code: string, prop: string) => string | null = (
+  code: string,
+  prop: string,
+): string | null => {
+  const opening: RegExpExecArray | null = new RegExp(
+    `(?<![\\w$])${prop}=\\{`,
+  ).exec(code);
+
+  if (!opening) {
+    return null;
+  }
+
+  const start: number = opening.index + opening[0].length;
+  let depth: number = 1;
+  let quote: string | null = null;
+
+  for (let index: number = start; index < code.length; index++) {
+    const character: string = code.charAt(index);
+
+    if (quote) {
+      if (character === "\\") {
+        index++;
+      } else if (character === quote) {
+        quote = null;
+      }
+    } else if (character === '"' || character === "'" || character === "`") {
+      quote = character;
+    } else if ("{[(".includes(character)) {
+      depth++;
+    } else if ("}])".includes(character)) {
+      depth--;
+
+      if (depth === 0) {
+        return code.slice(start, index);
+      }
+    }
+  }
+
+  return null;
+};
+
+/*
+ * The items of an array literal, split at its own commas (not those inside
+ * an item). Null when the expression is not an array literal.
+ */
+const arrayItems: (expression: string) => Array<string> | null = (
+  expression: string,
+): Array<string> | null => {
+  if (!expression.startsWith("[") || !expression.endsWith("]")) {
+    return null;
+  }
+
+  const items: Array<string> = [];
+  let depth: number = 0;
+  let quote: string | null = null;
+  let itemStart: number = 1;
+
+  for (let index: number = 1; index < expression.length - 1; index++) {
+    const character: string = expression.charAt(index);
+
+    if (quote) {
+      if (character === "\\") {
+        index++;
+      } else if (character === quote) {
+        quote = null;
+      }
+    } else if (character === '"' || character === "'" || character === "`") {
+      quote = character;
+    } else if ("{[(".includes(character)) {
+      depth++;
+    } else if ("}])".includes(character)) {
+      depth--;
+    } else if (character === "," && depth === 0) {
+      items.push(expression.slice(itemStart, index));
+      itemStart = index + 1;
+    }
+  }
+
+  items.push(expression.slice(itemStart, expression.length - 1));
+
+  return items.filter((item: string): boolean => {
+    return item.length > 0;
+  });
+};
+
+/*
+ * Whether a settings page hands its table the archive hook's row actions:
+ * the hook's list itself, or a list of the page's own with the hook's
+ * spread into it - Labels' rows open what uses a label, then Archive
+ * (#6813), as the hook's query is handed alone or with the page's own.
+ */
+const handsTableTheHookActions: (code: string) => boolean = (
+  code: string,
+): boolean => {
+  const given: string | null = propExpression(code, "actionButtons");
+
+  if (given === "archive.actionButtons") {
+    return true;
+  }
+
+  const items: Array<string> | null = given ? arrayItems(given) : null;
+
+  return Boolean(items && items.includes("...archive.actionButtons"));
+};
+
 describe("the Dashboard's own lists of values", () => {
   const reading: Array<{ file: string; text: string }> = SOURCES.filter(
     (source: { file: string; text: string }): boolean => {
@@ -249,8 +359,13 @@ describe("every value is archived where it is managed", () => {
           code.includes("...archive.query,"),
       }).toEqual({ file, query: true });
 
+      // Archive and Unarchive in each row: the hook's, alone or with the page's own.
+      expect({
+        file,
+        actionButtons: handsTableTheHookActions(code),
+      }).toEqual({ file, actionButtons: true });
+
       for (const prop of [
-        "actionButtons={archive.actionButtons}",
         "getDeleteConfirmation={archive.getDeleteConfirmation}",
         /*
          * Bulk Actions > Delete says first what deleting the selected values

@@ -43,7 +43,7 @@ To forbindelser får det til at virke:
 :::steps
 ### Installér OneUptime i dit Slack-workspace
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Forbind med Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Forbind med Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagt **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din egen Slack-konto
 
@@ -90,7 +90,7 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Slack, og hvor. 
 | **Advarsler** | **Advarsler**, **Advarselsepisoder**, **Oversigt** |
 | **Planlagt vedligeholdelse** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
-| **Vagtordning** | Én liste med regler |
+| **Vagt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
 At oprette en regel går gennem fire trin:
@@ -154,7 +154,7 @@ Formularen til en opsummering har fire trin: **Grundlæggende oplysninger** (nav
 
 ## Notifikationsregler under Growth-planen
 
-På OneUptime Cloud hører notifikationsregler og opsummeringer til **Growth**-planen og derover. Et projekt under den beholder de regler og opsummeringer, det allerede har, og de bliver ved med at slå op i Slack. Derfor viser hvert produkts **Slack**-side (Hændelser, Advarsler, Planlagt vedligeholdelse, Vagtordning, Monitorer) planbemærkningen med dem nedenunder (**Meddelelsesregler, der stadig er sat op**, **Opsummeringer, der stadig er sat op**): slet en regel, eller slå en opsummering fra eller slet den. At tilføje eller ændre regler og opsummeringer kræver **Growth**.
+På OneUptime Cloud hører notifikationsregler og opsummeringer til **Growth**-planen og derover. Et projekt under den beholder de regler og opsummeringer, det allerede har, og de bliver ved med at slå op i Slack. Derfor viser hvert produkts **Slack**-side (Hændelser, Advarsler, Planlagt vedligeholdelse, Vagt, Monitorer) planbemærkningen med dem nedenunder (**Meddelelsesregler, der stadig er sat op**, **Opsummeringer, der stadig er sat op**): slet en regel, eller slå en opsummering fra eller slet den. At tilføje eller ændre regler og opsummeringer kræver **Growth**.
 
 ## Bliv tilkaldt i Slack
 
@@ -166,7 +166,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Slack s
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer i dine direkte beskeder i Slack.
 :::
 
-At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Slack fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Vagtregler**.
+At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Slack fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Sådan når man mig**.
 
 ## Gem beskeder som noter
 
@@ -235,7 +235,7 @@ OneUptime svarer kun på det, der er rettet til den.
 - **I en advarsels egen kanal.** I den kanal, OneUptime oprettede til en advarsel, mens advarslen er åben, siger formularen, at hændelsen oprettes fra den advarsel, og starter med advarslens titel og de ressourcer, den er knyttet til, som du må se. Hændelsen knyttes til advarslen, ligesom en hændelse, der oprettes fra advarslens side, og en privat advarsels hændelse er også privat. Når du ikke må knytte advarsler til hændelser, oprettes hændelsen uden tilknytningen, og du får at vide hvorfor.
 - **Hvad en formular må nævne.** Hændelsen eller begivenheden oprettes med dine egne rettigheder og krediteres dig. En monitor, vagtpolitik, etiket, alvorlighed eller status, du ikke må læse, eller en fra et andet projekt, afvises som en, projektet ikke har, selv fra en formular, der blev åbnet, før din adgang ændrede sig, og intet oprettes. OneUptime fortæller dig hvorfor i kanalen, i en besked kun du kan se.
 
-**Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Duty Policy** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, du må læse.
+**Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Policies** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, du må læse.
 
 ## Tilkald nogen fra Slack
 
@@ -246,7 +246,7 @@ OneUptime svarer kun på det, der er rettet til den.
 - **Hvem der tilkaldes med det samme.** De personer, du nævner med @, og dem, der har vagt i de vagtplaner, som en brugergruppe, du nævner med @, følger (se [Vagt-brugergrupper](#vagt-brugergrupper)), når en besked følger efter dem, eller uden besked i en hændelses eller en advarsels egen kanal. OneUptime kender en person på den OneUptime-konto, personens Slack-konto er forbundet med, eller ellers på den e-mailadresse, Slack har for personen. Ingen uden for projektet tilkaldes.
 - **Alt andet åbner en formular.** Hvis ingen er nævnt med @, der ikke er nogen besked, hvor tilkaldet kræver en, du nævner `@here` eller en brugergruppe, der ikke følger nogen vagtplan, du kan se, eller OneUptime ikke kan se, hvem en person er, åbner formularen **Page someone** med det, du skrev, udfyldt, og den siger, hvem den ikke kunne vælge. I en hændelses eller en advarsels egen kanal åbner den med den hændelse eller advarsel. Vælg personer, et team, en vagtplan, som tilkalder den, der har vagt i den nu, eller en vagtpolitik, som tilkalder via sine eskaleringsregler, og indsend den. Et navn, du skriver først, som i `/oneuptime page Primary The disk is full`, vælger vagtplanen, teamet eller politikken med det navn.
 - **Hvor det vises.** Kanalen viser tilkaldet som én besked, der holdes opdateret: hvem der blev tilkaldt og hvordan, hvert team med sit navn og sine personer efter, din besked, og hvem der kvitterede. Hvor OneUptime ikke kan skrive, som i en privat kanal, den ikke er inviteret til, fortæller en besked, kun du kan se, hvem der blev tilkaldt, med et link til hændelsen eller advarslen.
-- **Hvem der må tilkalde.** I en hændelses eller en advarsels egen kanal alle, der må køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Duty Policy** i en brugerdefineret rolle) og læse den hændelse eller advarsel. Alle andre steder opretter tilkaldet en advarsel, så det kræver også rettighed til at oprette en: **Projektejer**, **Projektadministrator** og **Projektmedlem**, eller **Vagtmedlem** sammen med **Advarselsmedlem** (**Execute On-Call Duty Policy** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide der, hvor de kørte kommandoen, og ingen tilkaldes. På OneUptime Cloud kræver tilkald Growth-planen: under den siger OneUptime, hvilken plan der kræves, og ingen tilkaldes.
+- **Hvem der må tilkalde.** I en hændelses eller en advarsels egen kanal alle, der må køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Policies** i en brugerdefineret rolle) og læse den hændelse eller advarsel. Alle andre steder opretter tilkaldet en advarsel, så det kræver også rettighed til at oprette en: **Projektejer**, **Projektadministrator** og **Projektmedlem**, eller **Vagtmedlem** sammen med **Advarselsmedlem** (**Execute On-Call Policies** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide der, hvor de kørte kommandoen, og ingen tilkaldes. På OneUptime Cloud kræver tilkald Growth-planen: under den siger OneUptime, hvilken plan der kræves, og ingen tilkaldes.
 
 For at holde personer orienteret, mens andre håndterer det, kan du tilkalde dem som observatører. I en hændelses eller en advarsels egen kanal skriver du `as observers` efter, hvem der skal tilkaldes, som i `/oneuptime page @oversight as observers Team Y is on it`, eller vælger **Observers: keep them informed** under **Page them as** i formularen. Deres tilkald siger, at de er observatører, og kvitterer de for det, siger det kun, at de har set det: Der bliver ikke kvitteret for hændelsen eller advarslen, ingen andres tilkald stopper, og hvor tilkaldet vises, står der, at de tilkaldes som observatører. Et tilkald om noget nyt kræver, at nogen håndterer det, så alle andre steder afvises `as observers`, og ingen tilkaldes.
 
@@ -257,7 +257,7 @@ Hold en Slack-brugergruppe, f.eks. `@payments-oncall`, lig med dem, der har vagt
 :::steps
 ### Forbind en brugergruppe med en vagtplan
 
-Åbn vagtplanen under **Vagtordning** > **Vagtplaner**. Klik på **Forbind brugergruppe** i dens kort **Slack-brugergrupper**, og vælg en af dit arbejdsområdes brugergrupper, eller **Opret en ny brugergruppe** med et navn og et alias. Medlemmerne bliver straks erstattet af dem, der har vagt.
+Åbn vagtplanen under **Vagt** > **Vagtplaner**. Klik på **Forbind brugergruppe** i dens kort **Slack-brugergrupper**, og vælg en af dit arbejdsområdes brugergrupper, eller **Opret en ny brugergruppe** med et navn og et alias. Medlemmerne bliver straks erstattet af dem, der har vagt.
 
 ### Forbind den også med den sekundære vagtplan
 
@@ -268,7 +268,7 @@ Til en gruppe med både den primære og den sekundære vagt forbinder du den sam
 - **Ingen har vagt.** Slack kan ikke beholde en brugergruppe uden medlemmer, så OneUptime slår gruppen fra, indtil nogen har vagt, og slår den så til igen.
 - **Tilkald gruppen.** `/oneuptime page @payments-oncall The checkout API is down` tilkalder dem, der har vagt i de vagtplaner, gruppen følger. Se [Tilkald nogen fra Slack](#tilkald-nogen-fra-slack).
 - **Hvad Slack kræver.** Brugergrupper hører til Slacks betalte abonnementer, og et arbejdsområde kan nøjes med at lade sine ejere og administratorer ændre dem: kortet siger hvilket, og hvad du skal gøre. Hvis Slack blev forbundet, før OneUptime kunne holde brugergrupper opdateret, så forbind det igen én gang under **Projektindstillinger** > **Arbejdsområde** > **Slack**.
-- **Hvem der må forbinde en.** De roller, der må redigere vagtplaner: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde en.
+- **Hvem der må forbinde en.** De roller, der må redigere vagtplaner: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Edit On-Call Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde en.
 - **I en Slack Enterprise-organisation.** Når OneUptime er føjet til to eller flere af dens workspaces, spørger **Forbind brugergruppe** først, hvilket **Slack-arbejdsområde** gruppen er i, og viser derefter det workspaces brugergrupper. Kortet nævner hver gruppes workspace, og OneUptime holder gruppen opdateret dér.
 - **Afbryd forbindelsen.** OneUptime holder op med at ændre gruppen. Gruppen og dens medlemmer bliver i Slack, som de er.
 

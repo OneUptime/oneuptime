@@ -454,6 +454,66 @@ test.describe("the cluster's Overview", () => {
     await expect(page.getByTestId("proxmox-needs-attention")).toHaveCount(0);
   });
 
+  /*
+   * Issue #7439: the agent runs, but cannot read the Proxmox VE API. The
+   * cluster used to say Connected for as long as the agent ran; it now says
+   * the API cannot be read, and what to check - not that the agent stopped.
+   */
+  test("an agent that cannot read the API says so: not Connected, not stopped", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "collector=unreadable");
+
+    await expect(page.getByTestId("proxmox-hero-connection")).toHaveText(
+      "Can't read API",
+    );
+    // Its last read is no longer the truth either.
+    await expect(page.getByTestId("proxmox-hero-health")).toHaveText(
+      "Health Unknown",
+    );
+    await expect(page.getByTestId("proxmox-needs-attention")).toHaveCount(0);
+
+    const card: Locator = page.getByTestId("resource-connection-guide");
+    await expect(card).toHaveAttribute("data-variant", "unreadable");
+    await expect(
+      card.getByRole("heading", {
+        name: "The agent can't read the Proxmox VE API",
+      }),
+    ).toBeVisible();
+    await expect(card).toContainText(
+      "it last read the cluster from the Proxmox VE API 25 minutes ago",
+    );
+    await expect(
+      card.getByTestId("resource-connection-guide-step"),
+    ).toHaveCount(3);
+    await expect(card).toContainText(
+      "docker logs oneuptime-pve-api-failover --tail 20",
+    );
+    await screenshot(page, "overview-cannot-read-api");
+  });
+
+  test("before its first read the agent waits for data, with the checks for when it stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, CLUSTER_PATH, "collector=waiting");
+
+    await expect(page.getByTestId("proxmox-hero-connection")).toHaveText(
+      "Waiting for data",
+    );
+    const card: Locator = page.getByTestId("resource-connection-guide");
+    await expect(card).toHaveAttribute("data-variant", "waiting-for-read");
+    await expect(
+      card.getByRole("heading", {
+        name: "The agent has not read the cluster yet",
+      }),
+    ).toBeVisible();
+    await screenshot(page, "overview-waiting-for-first-read");
+  });
+
   test("twenty-four nodes: the first eight, and a way to all of them", async ({
     page,
   }: {
@@ -568,7 +628,7 @@ test.describe("the cluster's Details card says what the hero does not", () => {
       cells.map((cell: DetailCell): string => {
         return `${cell.label}: ${cell.value}`;
       }),
-    ).toEqual(["PVE Version: 9.0.10", "Agent Version: 0.161.1"]);
+    ).toEqual(["PVE Version: 9.0.10", "Agent Version: 0.161.2"]);
     // Side by side: one row, two columns.
     expect(cells[0]!.y).toBe(cells[1]!.y);
     expect(cells[1]!.x).toBeGreaterThan(cells[0]!.x);

@@ -1,5 +1,6 @@
 import {
   PVE_SNAPSHOT_METRIC_NAMES,
+  PVE_NODE_CONFIG_METRIC_NAME,
   CEPH_SNAPSHOT_METRIC_NAMES,
   ProxmoxResourceBufferEntry,
   ProxmoxClusterSnapshotBufferEntry,
@@ -456,6 +457,7 @@ describe("ProxmoxCephSnapshotScan - WI-24 backup coverage", () => {
       storageContent: null,
       isShared: null,
       subscriptionLevel: null,
+      reportsStatus: true,
       observedAt: new Date(BASE_MS),
     };
   }
@@ -1435,5 +1437,192 @@ describe("ProxmoxCephSnapshotScan - templates, tags, locks, storage and quorum",
         buffers.clusterBuffer.get(CLUSTER),
       );
     expect("isQuorate" in extras).toBe(false);
+  });
+});
+
+/*
+ * Issue #7439: an agent that cannot read the Proxmox VE API keeps sending
+ * the node collectors of the nodes still up, and pve_onboot_status - a
+ * guest's start-on-boot flag - is the one series of theirs the snapshot scan
+ * folds. A guest it alone reported is CONFIG-ONLY: the flush writes its flag
+ * but never its lastSeenAt, readings or counts, so a guest whose status
+ * nobody read does not look freshly reported.
+ */
+describe("ProxmoxCephSnapshotScan - what only a node's own scrape reported (issue #7439)", () => {
+  const ONBOOT_LABELS: LabelMap = {
+    id: "qemu/100",
+    node: "pve2",
+    type: "qemu",
+  };
+
+  test("the node collectors' series is pve_onboot_status, and the scan folds it", () => {
+    expect(PVE_NODE_CONFIG_METRIC_NAME).toBe("pve_onboot_status");
+    expect(PVE_SNAPSHOT_METRIC_NAMES.has(PVE_NODE_CONFIG_METRIC_NAME)).toBe(
+      true,
+    );
+  });
+
+  test("a guest only its start-on-boot flag reported is config-only, with the flag and its node", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_onboot_status",
+      datapoint({ value: 1, labels: ONBOOT_LABELS }),
+    );
+
+    const guest: ProxmoxResourceBufferEntry = proxmoxEntry(
+      buffers,
+      "Guest",
+      "qemu/100",
+    );
+    expect(guest.reportsStatus).toBe(false);
+    expect(guest.onboot).toBe(true);
+    expect(guest.parentNodeName).toBe("pve2");
+    expect(guest.isUp).toBeNull();
+  });
+
+  test.each([
+    ["pve_up", { id: "qemu/100" }],
+    [
+      "pve_guest_info",
+      { id: "qemu/100", name: "web", node: "pve2", type: "qemu" },
+    ],
+    ["pve_cpu_usage_ratio", { id: "qemu/100" }],
+    ["pve_memory_usage_bytes", { id: "qemu/100" }],
+    ["pve_uptime_seconds", { id: "qemu/100" }],
+    ["pve_ha_state", { id: "qemu/100", state: "started" }],
+    ["pve_lock_state", { id: "qemu/100", state: "backup" }],
+  ] as Array<[string, LabelMap]>)(
+    "%s reports the guest's status, so the entry is not config-only",
+    (metricName: string, labels: LabelMap) => {
+      const buffers: ProxmoxBuffers = proxmoxBuffers();
+      feedProxmox(buffers, metricName, datapoint({ value: 1, labels }));
+
+      expect(proxmoxEntry(buffers, "Guest", "qemu/100").reportsStatus).toBe(
+        true,
+      );
+    },
+  );
+
+  test("nodes and storage the cluster reported are never config-only", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({ value: 1, labels: { id: "node/pve1" } }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_storage_info",
+      datapoint({
+        value: 1,
+        labels: { id: "storage/pve1/local", storage: "local" },
+      }),
+    );
+
+    expect(proxmoxEntry(buffers, "Node", "node/pve1").reportsStatus).toBe(true);
+    expect(
+      proxmoxEntry(buffers, "Storage", "storage/pve1/local").reportsStatus,
+    ).toBe(true);
+  });
+
+  test("in the same batch as the read the flag folds into the guest's entry, whichever arrives first", () => {
+    for (const order of [
+      ["pve_onboot_status", "pve_up"],
+      ["pve_up", "pve_onboot_status"],
+    ]) {
+      const buffers: ProxmoxBuffers = proxmoxBuffers();
+      for (const metricName of order) {
+        feedProxmox(
+          buffers,
+          metricName!,
+          datapoint({
+            value: 1,
+            labels:
+              metricName === "pve_onboot_status"
+                ? ONBOOT_LABELS
+                : { id: "qemu/100" },
+          }),
+        );
+      }
+
+      const guest: ProxmoxResourceBufferEntry = proxmoxEntry(
+        buffers,
+        "Guest",
+        "qemu/100",
+      );
+      expect([order.join(" then "), guest.reportsStatus]).toEqual([
+        order.join(" then "),
+        true,
+      ]);
+      expect(guest.onboot).toBe(true);
+      expect(guest.isUp).toBe(true);
+    }
+  });
+
+  test("a later start-on-boot flag never makes a guest the batch read config-only again", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({ value: 1, atMs: BASE_MS, labels: { id: "qemu/100" } }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_onboot_status",
+      datapoint({ value: 0, atMs: BASE_MS + 15_000, labels: ONBOOT_LABELS }),
+    );
+
+    const guest: ProxmoxResourceBufferEntry = proxmoxEntry(
+      buffers,
+      "Guest",
+      "qemu/100",
+    );
+    expect(guest.reportsStatus).toBe(true);
+    expect(guest.onboot).toBe(false);
+  });
+
+  test("the node collectors' other series never reach the inventory at all", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    for (const metricName of [
+      "pve_replication_duration_seconds",
+      "pve_replication_last_sync_timestamp_seconds",
+      "pve_subscription_status",
+      "pve_subscription_info",
+    ]) {
+      expect(PVE_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(false);
+    }
+    expect(proxmoxEntries(buffers)).toHaveLength(0);
+  });
+
+  test("a batch with nothing but start-on-boot flags derives no cluster column, so it never turns the cluster Connected", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_onboot_status",
+      datapoint({ value: 1, labels: ONBOOT_LABELS }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_onboot_status",
+      datapoint({
+        value: 0,
+        labels: { id: "lxc/101", node: "pve2", type: "lxc" },
+      }),
+    );
+
+    // The flush derives from the entries that reported a status: none here.
+    const statusEntries: Array<ProxmoxResourceBufferEntry> = proxmoxEntries(
+      buffers,
+    ).filter((e: ProxmoxResourceBufferEntry): boolean => {
+      return e.reportsStatus;
+    });
+    expect(statusEntries).toHaveLength(0);
+    const extras: ProxmoxClusterSnapshotExtras =
+      deriveProxmoxClusterSnapshotExtras(
+        statusEntries,
+        buffers.clusterBuffer.get(CLUSTER),
+      );
+    expect(extras).toEqual({});
   });
 });

@@ -22,6 +22,8 @@ import {
 import { followUserLanguage } from "../../../Utils/DashboardLanguageSwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { isDashboardRecordingConfigured } from "../../../Utils/DashboardRecording/DashboardRecordingConfig";
+import { PERSON_RECORDING_COPY } from "../../../Components/DashboardRecording/DashboardRecordingCopy";
 
 /*
  * "Ask me how things went" (#6832): the person's own switch for the
@@ -224,6 +226,30 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }
           }}
           dataTestId="user-profile-feedback-questions"
+        />
+      ) : (
+        <></>
+      )}
+      {/*
+       * "Record how I use setup pages" (#6834), beside the feedback
+       * questions: the help-improve-OneUptime choices sit together. Only on
+       * a server that records at all - OneUptime Cloud, once it is on.
+       */}
+      {isDashboardRecordingConfigured() ? (
+        <ModelSwitchCard<User>
+          modelType={User}
+          modelId={UserUtil.getUserId()}
+          column="disableDashboardRecording"
+          isInverted={true}
+          cardTitle={PERSON_RECORDING_COPY.cardTitle}
+          cardDescription={PERSON_RECORDING_COPY.cardDescription}
+          title={PERSON_RECORDING_COPY.title}
+          getDescription={(isOn: boolean): string => {
+            return isOn
+              ? PERSON_RECORDING_COPY.onDescription
+              : PERSON_RECORDING_COPY.offDescription;
+          }}
+          dataTestId="user-profile-dashboard-recording"
         />
       ) : (
         <></>

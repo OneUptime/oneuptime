@@ -20,7 +20,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | **Regole etichette** | Aggiunge etichette agli eventi che corrispondono.                 |
 | **Regole dei promemoria** | Ricorda l'evento ai proprietari a intervalli finché non è completato. |
 
-La sezione **Impostazioni** contiene **Stato evento**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di eventi**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
+La sezione **Impostazioni** contiene **Stato della manutenzione**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di manutenzione**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
 
 La sezione **Area di lavoro** contiene le regole Slack e Microsoft Teams che pubblicano gli eventi nei canali. Vedere [Slack](/docs/workspace-connections/slack#regole-di-notifica) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regole-di-notifica).
 
@@ -69,7 +69,7 @@ Le **Regole di runbook** avviano un runbook quando un nuovo evento corrisponde, 
 :::steps
 ### Scegliere su quali eventi ricordare
 
-Fate clic su **Crea: Scheduled Maintenance Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli eventi di manutenzione programmata** per ricordare ogni evento, oppure scegliete **Solo gli eventi di manutenzione programmata che soddisfano le condizioni** e poi le **Etichette** a cui si applica.
+Fate clic su **Crea: Scheduled Maintenance Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli eventi di manutenzione** per ricordare ogni evento, oppure scegliete **Solo gli eventi di manutenzione che soddisfano le condizioni** e poi le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 
@@ -92,7 +92,7 @@ Questi promemoria sono per il vostro team. I promemoria che gli iscritti delle v
 
 ### Modelli di note
 
-**Manutenzione programmata → Impostazioni → Modelli di note** contiene testi pronti per gli aggiornamenti sulla manutenzione. La scheda **Modelli di nota pubblica o privata per gli eventi di manutenzione programmata** li elenca; **Crea: Modello di nota per la manutenzione programmata** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene offerto quando qualcuno scrive una nota pubblica o privata su un evento e quando ne cambia lo stato, e il suo testo si può modificare prima della pubblicazione. A differenza dei modelli di nota degli incidenti, i modelli di nota della manutenzione non compilano variabili.
+**Manutenzione programmata → Impostazioni → Modelli di note** contiene testi pronti per gli aggiornamenti sulla manutenzione. La scheda **Modelli di note pubbliche o private per gli eventi di manutenzione** li elenca; **Crea: Modello di nota per la manutenzione programmata** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene offerto quando qualcuno scrive una nota pubblica o privata su un evento e quando ne cambia lo stato, e il suo testo si può modificare prima della pubblicazione. A differenza dei modelli di nota degli incidenti, i modelli di nota della manutenzione non compilano variabili.
 
 ### Approvazione delle note pubbliche
 
@@ -117,7 +117,7 @@ La scheda **Numero successivo** sotto imposta il numero che riceve il prossimo e
 
 ## Workflow
 
-Ogni modello della manutenzione ha trigger e azioni di workflow, con il suo nome: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** e **On Delete Scheduled Maintenance Event**, lo stesso per **Scheduled Maintenance State Timeline** e gli altri, e azioni come **Create One Scheduled Maintenance Event** e **Update One Scheduled Maintenance Event**. Le definizioni dei campi personalizzati e i valori delle misurazioni sono le eccezioni: non hanno passi di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello della manutenzione ha trigger e azioni di workflow, con il suo nome: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** e **On Delete Maintenance Event**, lo stesso per **Scheduled Maintenance State Timeline** e gli altri, e azioni come **Create One Maintenance Event** e **Update One Maintenance Event**. Le definizioni dei campi personalizzati e i valori delle misurazioni sono le eccezioni: non hanno passi di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
 
 ## Chi può modificarle
 
@@ -142,8 +142,8 @@ Controllate che una regola di promemoria corrisponda alle etichette dell'evento,
 ## Passi successivi
 
 :::cards
-- [Stati della manutenzione](/docs/scheduled-maintenance/states): La pagina Stato evento, e cosa fa ogni stato.
-- [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates): La pagina Modelli di eventi, nel dettaglio.
+- [Stati della manutenzione](/docs/scheduled-maintenance/states): La pagina Stato della manutenzione, e cosa fa ogni stato.
+- [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates): La pagina Modelli di manutenzione, nel dettaglio.
 - [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules): Il modulo delle regole, passo per passo.
 - [Impostazioni notifiche](/docs/notifications/notification-settings): Come ogni proprietario sceglie cosa gli arriva.
 :::

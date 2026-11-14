@@ -8,6 +8,7 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import StatusPageSetupApi, {
+  OWN_STATUS_PAGES_READ_LIMIT,
   mayCreateStatusPage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -214,6 +215,135 @@ describe("the page", () => {
       .calls[0]![0] as unknown as Record<string, unknown>;
     expect(args["modelType"]).toBe(StatusPageResource);
     expect(args["sort"]).toEqual({ order: "ASC" });
+  });
+});
+
+/*
+ * THIS PERSON'S OWN PAGE WITH A NAME (#7252): what step 1 looks for before
+ * it makes a page, so a run the browser lost - or a second tab - typing
+ * the same name goes on with the page it made instead of making another.
+ */
+describe("this person's own status page with a name", () => {
+  const USER: ObjectID = id(7252);
+
+  const page: (
+    n: number,
+    name: string,
+    extra?: Record<string, unknown>,
+  ) => StatusPage = (
+    n: number,
+    name: string,
+    extra?: Record<string, unknown>,
+  ): StatusPage => {
+    return model(StatusPage, { _id: id(n).toString(), name, ...extra });
+  };
+
+  test("reads the newest pages this person made in the project, with their names and whether they are archived", async () => {
+    await StatusPageSetupApi.findOwnStatusPage({
+      name: "Acme Status",
+      userId: USER.toString(),
+    });
+
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+    const args: Record<string, unknown> = getListSpy.mock
+      .calls[0]![0] as unknown as Record<string, unknown>;
+    expect(args["modelType"]).toBe(StatusPage);
+    expect(args["query"]).toEqual({
+      projectId: PROJECT_ID,
+      createdByUserId: USER,
+    });
+    expect(args["select"]).toEqual({ _id: true, name: true, isArchived: true });
+    expect(args["sort"]).toEqual({ createdAt: "DESC" });
+    expect(args["limit"]).toBe(OWN_STATUS_PAGES_READ_LIMIT);
+    expect(OWN_STATUS_PAGES_READ_LIMIT).toBe(100);
+    expect(args["skip"]).toBe(0);
+  });
+
+  test("the newest page with the name typed, trimmed and in any case, is the one found, with the name it has", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        page(3, "Acme Internal Status"),
+        page(2, "ACME status"),
+        page(1, "Acme Status"),
+      ]) as never,
+    );
+
+    expect(
+      await StatusPageSetupApi.findOwnStatusPage({
+        name: "  acme   Status ",
+        userId: USER.toString(),
+      }),
+    ).toEqual({ id: id(2).toString(), name: "ACME status" });
+  });
+
+  test("an archived page is offline: it is passed by, and an older one with the name is found", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        page(2, "Acme Status", { isArchived: true }),
+        page(1, "Acme Status", { isArchived: false }),
+      ]) as never,
+    );
+
+    expect(
+      await StatusPageSetupApi.findOwnStatusPage({
+        name: "Acme Status",
+        userId: USER.toString(),
+      }),
+    ).toEqual({ id: id(1).toString(), name: "Acme Status" });
+
+    getListSpy.mockResolvedValue(
+      list([page(2, "Acme Status", { isArchived: true })]) as never,
+    );
+
+    expect(
+      await StatusPageSetupApi.findOwnStatusPage({
+        name: "Acme Status",
+        userId: USER.toString(),
+      }),
+    ).toBeNull();
+  });
+
+  test("no page with the name, or one with no id, is none", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        page(2, "Acme Status Page"),
+        model(StatusPage, { name: "Acme Status" }),
+      ]) as never,
+    );
+
+    expect(
+      await StatusPageSetupApi.findOwnStatusPage({
+        name: "Acme Status",
+        userId: USER.toString(),
+      }),
+    ).toBeNull();
+  });
+
+  test("with nobody signed in, or no name, nothing is read and none is found", async () => {
+    expect(
+      await StatusPageSetupApi.findOwnStatusPage({
+        name: "Acme Status",
+        userId: "",
+      }),
+    ).toBeNull();
+    expect(
+      await StatusPageSetupApi.findOwnStatusPage({
+        name: "   ",
+        userId: USER.toString(),
+      }),
+    ).toBeNull();
+    expect(getListSpy).not.toHaveBeenCalled();
+  });
+
+  test("a read that fails throws: nothing is made on a guess", async () => {
+    getListSpy.mockRejectedValue(new Error("Server unavailable") as never);
+
+    await expect(
+      StatusPageSetupApi.findOwnStatusPage({
+        name: "Acme Status",
+        userId: USER.toString(),
+      }),
+    ).rejects.toThrow("Server unavailable");
   });
 });
 

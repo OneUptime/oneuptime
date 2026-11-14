@@ -106,7 +106,13 @@ const OpenStackProjectTotalsCard: FunctionComponent<ComponentProps> = (
                       other: "{{count}} items, {{size}}",
                     },
                     row.count,
-                    { size: formatOpenStackBytes(row.sizeBytes) },
+                    {
+                      size: formatOpenStackBytes(row.sizeBytes, {
+                        language: translator.language,
+                      }),
+                    },
+                    // "۶٫۰ TiB" keeps its number first in a Persian sentence (issue #7191).
+                    { setsValuesApart: true },
                   )}
                 </span>
               </li>

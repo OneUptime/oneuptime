@@ -3,6 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { STATUS_PAGE_NAME_MIN_LENGTH as GUIDED_STATUS_PAGE_NAME_MIN_LENGTH } from "Common/Utils/GuidedSetup/StatusPageRecords";
 import {
+  SentenceOptions,
   Translator,
   formatList,
   translationKey,
@@ -19,7 +20,9 @@ import {
  *      page is public at its link from that moment: on Cloud a private page
  *      needs the Growth plan (StatusPage.isPublicStatusPage), so the setup
  *      cannot make it private first and publish it later. A project with
- *      no monitor yet is offered the website-down setup first.
+ *      no monitor yet is offered the website-down setup first. A name one
+ *      of this person's own pages has already makes no second page: the
+ *      monitors go on that page, and step 2 says so (#7252).
  *   2. This is what your customers see: the page as a list of what it
  *      shows, its link, and what appears on it by itself (incidents on
  *      these monitors, and subscribers are emailed), never (alerts), and
@@ -35,6 +38,13 @@ import {
  */
 
 export const STATUS_PAGE_SETUP: string = "status_page";
+
+/*
+ * The docs' start-to-finish guide to this job (#6821), linked from the page:
+ * it goes on to a domain of your own, which this setup leaves to the summary.
+ */
+export const STATUS_PAGE_SETUP_GUIDE_DOCS_PATH: string =
+  "/docs/guides/status-page";
 
 export enum StatusPageSetupStep {
   Pick = "pick",
@@ -75,6 +85,7 @@ export const STATUS_PAGE_SETUP_COPY: {
   addButton: string;
   continueButton: string;
   changeShown: string;
+  existingStatusPage: string;
   reviewTitle: string;
   reviewHelp: string;
   linkLabel: string;
@@ -129,6 +140,15 @@ export const STATUS_PAGE_SETUP_COPY: {
   addButton: translationKey("Add to the page"),
   continueButton: translationKey("Continue"),
   changeShown: translationKey("Change what it shows"),
+  /*
+   * Said first in step 2 when the name typed is one of this person's own
+   * status pages: the setup went on with it and made no second page with
+   * the same name (#7252), in the website-down setup's words for a monitor.
+   * The preview right below shows the monitors picked on it.
+   */
+  existingStatusPage: translationKey(
+    'You already have a status page named "{{name}}", so no new one was made.',
+  ),
   reviewTitle: translationKey("This is what your customers see"),
   reviewHelp: translationKey(
     "Your status page is live at this link. Here is what it shows and what appears on it.",
@@ -185,6 +205,59 @@ export const isStatusPageNameValid: (name: string) => boolean = (
   name: string,
 ): boolean => {
   return name.trim().length >= STATUS_PAGE_NAME_MIN_LENGTH;
+};
+
+// A run of spaces, tabs or line breaks between two words of a name.
+const SPACES_BETWEEN_WORDS: RegExp = /\s+/;
+
+/*
+ * A NAME, HOWEVER IT IS TYPED (#7252): "Acme Status", " acme status " and
+ * "ACME  Status" name one page, so a run the browser lost - or a second tab
+ * - that types the name again goes on with the page this person already
+ * made instead of making a second one. Spaces at either end, how many sit
+ * between two words, and capitals are not compared; the letters and their
+ * order are. Composed and decomposed accents are one letter (NFC).
+ */
+export const getStatusPageNameIdentity: (name: string) => string = (
+  name: string,
+): string => {
+  return name
+    .normalize("NFC")
+    .trim()
+    .split(SPACES_BETWEEN_WORDS)
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+};
+
+// Whether two names name one page; a name with no letters names none.
+export const isSameStatusPageName: (
+  first: string,
+  second: string,
+) => boolean = (first: string, second: string): boolean => {
+  const identity: string = getStatusPageNameIdentity(first);
+
+  return identity.length > 0 && identity === getStatusPageNameIdentity(second);
+};
+
+/*
+ * The name "Set up another status page" starts with: the project's, unless
+ * the page just set up has it - another page needs a name of its own, and
+ * keeping that one would put the monitors picked next on the page just set
+ * up (#7252). Then it starts empty.
+ */
+export const getStartOverStatusPageName: (data: {
+  defaultName: string;
+  finishedName: string | undefined;
+}) => string = (data: {
+  defaultName: string;
+  finishedName: string | undefined;
+}): string => {
+  if (isSameStatusPageName(data.defaultName, data.finishedName || "")) {
+    return "";
+  }
+
+  return data.defaultName;
 };
 
 /*
@@ -287,6 +360,18 @@ export const isStatusPageSetupFinished: (
   return isPickDone(facts) && facts.isReviewed;
 };
 
+/*
+ * Every sentence the setup draws with the page's name sets the name apart
+ * (the Translator's setsValuesApart): in an Arabic or Persian sentence a
+ * name in Latin letters - or one that starts with a figure, "24/7 Status" -
+ * keeps its place, and the count after it is not pulled into it ('"Acme
+ * Status" shows 1 monitor' was drawn with the 1 before the name). Each is
+ * drawn on the page and nothing else, so the isolate's marks go nowhere.
+ */
+export const STATUS_PAGE_NAME_SENTENCE: SentenceOptions = {
+  setsValuesApart: true,
+};
+
 // Step 1's line once it is done: '"Acme Status" shows 3 monitors.'
 export const getPickDoneLine: (data: {
   translator: Translator;
@@ -304,6 +389,7 @@ export const getPickDoneLine: (data: {
     },
     data.monitorCount,
     { name: data.name },
+    STATUS_PAGE_NAME_SENTENCE,
   );
 };
 

@@ -271,10 +271,14 @@ const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
   ],
   ["OnCallSchedule", ["Pages/OnCallDuty/OnCallDutySchedules.tsx"]],
   ["Layer", ["Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx"]],
+  /*
+   * The project's on-call rules. A person's own were "on-call rules" too,
+   * until #6817 named them How to Reach Me: its grid of rules
+   * (OnCallRulesTabs) defines the notification method it turns on instead.
+   */
   [
     "OnCallRules",
     [
-      "Components/NotificationRule/OnCallRulesTabs.tsx",
       "Pages/Incidents/Settings/IncidentOnCallRules.tsx",
       "Pages/Alerts/Settings/AlertOnCallRules.tsx",
     ],

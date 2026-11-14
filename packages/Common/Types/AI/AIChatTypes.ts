@@ -376,6 +376,11 @@ export enum AIToolRefusal {
    * not reach, a private record, or a request for another project.
    */
   NotAllowed = "NotAllowed",
+  /*
+   * Its product is switched off on this server (#6815): an admin switched
+   * it off, or telemetry ingestion is stopped.
+   */
+  ProductOff = "ProductOff",
 }
 
 export const AI_TOOL_REFUSALS: ReadonlyArray<string> =

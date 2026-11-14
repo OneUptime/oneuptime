@@ -1,3 +1,4 @@
+import LeaveGuard from "../../../Utils/LeaveGuard";
 import Navigation from "../../../Utils/Navigation";
 import Icon from "../../Icon/Icon";
 import Route from "../../../../Types/API/Route";
@@ -26,8 +27,17 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
       id="listbox-option-0"
       role="option"
       onClick={() => {
-        props.onProjectSelected(props.project);
-        Navigation.navigate(route);
+        /*
+         * Another project is another page, and the switch reloads the app in
+         * it: a page holding unsaved work asks first, before anything
+         * switches (LeaveGuard). Keep Editing leaves the open project as it
+         * was - a project switched with its page kept would save into the
+         * wrong one.
+         */
+        LeaveGuard.whenLeaving(route.toString(), () => {
+          props.onProjectSelected(props.project);
+          Navigation.navigate(route);
+        });
       }}
     >
       <div className="flex items-center gap-3">

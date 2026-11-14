@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9568
+    "keys": 51296,
+    "untranslated": 9529
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -32,6 +32,7 @@
     "Australia (+61)",
     "Auto",
     "Backend",
+    "Blade",
     "Brute force detected",
     "Bucket",
     "Buckets",
@@ -41,6 +42,7 @@
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",
+    "Chassis",
     "Chat",
     "ClickHouse",
     "CloudKitty",
@@ -370,6 +372,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",

@@ -53,6 +53,12 @@ await i18n.use(initReactI18next).init({
   },
   interpolation: { escapeValue: false },
 });
+/*
+ * Dates in the reader's language ("vor 2 Stunden"), as the Dashboard's
+ * Utils/i18n.ts sets them: the pages here are drawn in German and Arabic
+ * too, and a date beside their words is never English in the product.
+ */
+followLanguageForDates(i18n);
 
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18n);

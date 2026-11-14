@@ -30,6 +30,8 @@ import ProjectProducts from "../../../../App/FeatureSet/Dashboard/src/Utils/Proj
 import ProductKey from "../../../Types/Product/ProductKey";
 import { getEmptyProjectProductsAnswer } from "../../../Types/Product/ProjectProductsAnswer";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
+import LeaveGuard, { LeavePageFunction } from "../../../UI/Utils/LeaveGuard";
+import Project from "../../../Models/DatabaseModels/Project";
 import RememberedChoice from "../../../UI/Utils/RememberedChoice";
 import ThemeUtil from "../../../UI/Utils/Theme";
 import {
@@ -1142,6 +1144,83 @@ describe("DashboardCommandPalette listener cleanup", () => {
       addSpy.mockRestore();
       removeSpy.mockRestore();
     }
+  });
+});
+
+/*
+ * "Switch to Acme Staging" reloads the app in the other project. While the
+ * page shown holds unsaved work - a dashboard being edited (issue #7173) -
+ * the switch asks first, through the page, before anything switches: Keep
+ * Editing leaves the open project as it was.
+ */
+describe("DashboardCommandPalette project switch while a page holds unsaved work", () => {
+  const projectNamed: (id: string, name: string) => Project = (
+    id: string,
+    name: string,
+  ): Project => {
+    const project: Project = new Project();
+    project._id = id;
+    project.name = name;
+    return project;
+  };
+
+  const switchToStaging: (
+    onProjectSelected: (project: Project) => void,
+  ) => void = (onProjectSelected: (project: Project) => void): void => {
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+    render(
+      <DashboardCommandPalette
+        projects={[
+          projectNamed("project-a", "Acme Production"),
+          projectNamed("project-b", "Acme Staging"),
+        ]}
+        onProjectSelected={onProjectSelected}
+      />,
+    );
+    pressChord({ key: "k", metaKey: true });
+    fireEvent.change(screen.getByTestId("command-palette-input"), {
+      target: { value: "Acme Staging" },
+    });
+    fireEvent.click(
+      screen.getByTestId("command-palette-option-project-switch-project-b"),
+    );
+  };
+
+  afterEach(() => {
+    LeaveGuard.reset();
+  });
+
+  test("with nothing unsaved, switches at once", () => {
+    const selected: Array<string> = [];
+
+    switchToStaging((project: Project) => {
+      selected.push(project.name || "");
+    });
+
+    expect(selected).toEqual(["Acme Staging"]);
+    expect(palette()).toBeNull();
+  });
+
+  test("with unsaved work, asks first; Keep Editing switches nothing, Discard Changes switches", () => {
+    const selected: Array<string> = [];
+    const asked: Array<LeavePageFunction> = [];
+
+    LeaveGuard.hold((leave: LeavePageFunction) => {
+      asked.push(leave);
+    });
+
+    switchToStaging((project: Project) => {
+      selected.push(project.name || "");
+    });
+
+    expect(asked).toHaveLength(1);
+    expect(selected).toEqual([]);
+    // The palette makes way for the page's question.
+    expect(palette()).toBeNull();
+
+    asked[0]!();
+
+    expect(selected).toEqual(["Acme Staging"]);
   });
 });
 

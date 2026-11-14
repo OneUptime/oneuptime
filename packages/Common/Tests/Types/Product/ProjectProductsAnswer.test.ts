@@ -32,6 +32,7 @@ const ANSWER: ProjectProductsAnswer = {
   neededPlans: { [ProductKey.Workflows]: PlanType.Growth },
   canChooseProducts: true,
   hiddenWithData: [ProductKey.Logs],
+  offOnServer: {},
 };
 
 describe("the routes", () => {
@@ -54,6 +55,8 @@ describe("the answer", () => {
       neededPlans: {},
       canChooseProducts: false,
       hiddenWithData: [],
+      // Nothing switched off on the server (#6815).
+      offOnServer: {},
     });
   });
 
@@ -91,6 +94,7 @@ describe("the answer", () => {
       canChooseProducts: false,
       // Only a hidden product can be hidden with data.
       hiddenWithData: [ProductKey.Logs],
+      offOnServer: {},
     });
   });
 

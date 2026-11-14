@@ -20,7 +20,7 @@
 | **레이블 규칙**    | 일치하는 이벤트에 레이블을 추가합니다.                              |
 | **리마인더 규칙** | 이벤트가 완료될 때까지 일정 간격으로 소유자에게 리마인더를 보냅니다. |
 
-**설정** 섹션에는 [유지 관리 상태](/docs/scheduled-maintenance/states) 에서 다루는 **이벤트 상태**, [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates) 에서 다루는 **이벤트 템플릿**, 그리고 **노트 템플릿**, **공개 메모 승인**, **사용자 정의 필드**, **측정**, **캘린더 설정**, **번호 매기기** 가 있습니다. **캘린더 설정** 은 [유지 관리 캘린더](/docs/scheduled-maintenance/calendar#외부-캘린더) 에서, 나머지는 아래에서 다룹니다.
+**설정** 섹션에는 [유지 관리 상태](/docs/scheduled-maintenance/states) 에서 다루는 **유지 관리 상태**, [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates) 에서 다루는 **유지 관리 템플릿**, 그리고 **노트 템플릿**, **공개 메모 승인**, **사용자 정의 필드**, **측정**, **캘린더 설정**, **번호 매기기** 가 있습니다. **캘린더 설정** 은 [유지 관리 캘린더](/docs/scheduled-maintenance/calendar#외부-캘린더) 에서, 나머지는 아래에서 다룹니다.
 
 **워크스페이스** 섹션에는 이벤트를 채널에 게시하는 Slack 및 Microsoft Teams 규칙이 있습니다. [Slack](/docs/workspace-connections/slack#알림-규칙) 과 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#알림-규칙) 를 참조하세요.
 
@@ -69,7 +69,7 @@ flowchart TB
 :::steps
 ### 리마인더를 보낼 이벤트 선택하기
 
-**Scheduled Maintenance Reminder Rule 만들기** 를 클릭합니다. 모든 이벤트에 대해 리마인더를 보내려면 **일치** 에서 **모든 예정된 유지보수 이벤트** 를 선택된 그대로 둡니다. **조건과 일치하는 예정된 유지보수 이벤트만** 을 고르면 적용할 **레이블** 을 선택할 수 있습니다.
+**Scheduled Maintenance Reminder Rule 만들기** 를 클릭합니다. 모든 이벤트에 대해 리마인더를 보내려면 **일치** 에서 **모든 유지 관리 이벤트** 를 선택된 그대로 둡니다. **조건과 일치하는 유지 관리 이벤트만** 을 고르면 적용할 **레이블** 을 선택할 수 있습니다.
 
 ### 간격 설정하기
 
@@ -92,7 +92,7 @@ API와 Terraform은 이벤트 시작을 기다렸다가 시작되면 멈추는 �
 
 ### 노트 템플릿
 
-**예정된 유지 관리 → 설정 → 노트 템플릿** 에는 유지 관리 업데이트용으로 미리 작성한 텍스트가 있습니다. **예정된 유지 관리 이벤트용 공개 또는 비공개 메모 템플릿** 카드에 목록이 있으며, **예정된 유지보수 노트 템플릿 만들기** 는 **템플릿 이름**, **템플릿 설명**, **노트** 를 묻습니다. 템플릿은 누군가 이벤트에 공개 또는 비공개 노트를 작성할 때와 상태를 바꿀 때 제시되며, 게시하기 전에 텍스트를 편집할 수 있습니다. 인시던트 노트 템플릿과 달리 유지 관리 노트 템플릿은 변수를 채우지 않습니다.
+**예정된 유지 관리 → 설정 → 노트 템플릿** 에는 유지 관리 업데이트용으로 미리 작성한 텍스트가 있습니다. **유지 관리 이벤트용 공개 또는 비공개 노트 템플릿** 카드에 목록이 있으며, **예정된 유지보수 노트 템플릿 만들기** 는 **템플릿 이름**, **템플릿 설명**, **노트** 를 묻습니다. 템플릿은 누군가 이벤트에 공개 또는 비공개 노트를 작성할 때와 상태를 바꿀 때 제시되며, 게시하기 전에 텍스트를 편집할 수 있습니다. 인시던트 노트 템플릿과 달리 유지 관리 노트 템플릿은 변수를 채우지 않습니다.
 
 ### 공개 노트 승인
 
@@ -117,7 +117,7 @@ API와 Terraform은 이벤트 시작을 기다렸다가 시작되면 멈추는 �
 
 ## 워크플로우
 
-모든 유지 관리 모델에는 모델 이름을 딴 워크플로우 트리거와 작업이 있습니다. **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event**, **On Delete Scheduled Maintenance Event**, 그리고 **Scheduled Maintenance State Timeline** 과 나머지 모델의 같은 트리거, **Create One Scheduled Maintenance Event** 와 **Update One Scheduled Maintenance Event** 같은 작업입니다. 예외는 사용자 정의 필드 정의와 측정 값으로, 워크플로우 단계가 없습니다. [워크플로우 개요](/docs/workflows/index) 를 참조하세요.
+모든 유지 관리 모델에는 모델 이름을 딴 워크플로우 트리거와 작업이 있습니다. **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event**, **On Delete Maintenance Event**, 그리고 **Scheduled Maintenance State Timeline** 과 나머지 모델의 같은 트리거, **Create One Maintenance Event** 와 **Update One Maintenance Event** 같은 작업입니다. 예외는 사용자 정의 필드 정의와 측정 값으로, 워크플로우 단계가 없습니다. [워크플로우 개요](/docs/workflows/index) 를 참조하세요.
 
 ## 변경할 수 있는 사람
 
@@ -142,8 +142,8 @@ API와 Terraform은 이벤트 시작을 기다렸다가 시작되면 멈추는 �
 ## 다음 단계
 
 :::cards
-- [유지 관리 상태](/docs/scheduled-maintenance/states): 이벤트 상태 페이지와 각 상태가 하는 일.
-- [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates): 이벤트 템플릿 페이지를 자세히.
+- [유지 관리 상태](/docs/scheduled-maintenance/states): 유지 관리 상태 페이지와 각 상태가 하는 일.
+- [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates): 유지 관리 템플릿 페이지를 자세히.
 - [레이블 및 소유자 규칙](/docs/configuration/label-and-owner-rules): 규칙 양식을 단계별로.
 - [알림 설정](/docs/notifications/notification-settings): 각 소유자가 받을 내용을 고르는 방법.
 :::

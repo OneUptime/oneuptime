@@ -28,17 +28,25 @@ Your server needs a hostname of its own with an A record that points at it, such
 :::steps
 ### Open the guided setup
 
+![Home asks "What do you want to do first?", with "Tell my customers with a status page" ticked](screen:home-goal-status-page)
+
 On your project's **Home**, click **Publish a status page** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Tell my customers with a status page** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `status page` and choose **Publish a status page**.
 
 ### Name it and pick what it shows
+
+![The step "Name it, and pick what it shows", with "Create the status page" ringed](screen:status-page-pick)
 
 Under **Name it, and pick what it shows**, keep the **Status page name** it suggests or type your own. Under **What it shows**, tick the monitors your customers should see, or click **Select all**. Click **Create the status page**. The page is public at its link from this moment, showing only the monitors you ticked.
 
 ### Look at what your customers see
 
+![The step "This is what your customers see", with "Looks good" ringed](screen:status-page-review)
+
 Under **This is what your customers see**, open the address under **Public link**: your monitors are listed with their status. Back in the setup, click **Looks good**.
 
 ### Open Custom Domains
+
+![The summary, with "Your own domain" ringed under "Make it yours (optional)"](screen:status-page-summary)
 
 The setup ends on a summary. Under **Make it yours (optional)**, click **Your own domain**. The status page's **Custom Domains** opens.
 

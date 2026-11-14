@@ -28,7 +28,7 @@ Yes. The app registers the phone in every project you belong to, so each project
 :::
 
 :::details Can I sign in on more than one phone?
-Yes. Each phone or tablet is a push device of its own, with its own on-call rules and its own critical alerts setting.
+Yes. Each phone or tablet is a push device of its own, with its own steps in How to Reach Me and its own critical alerts setting.
 :::
 
 :::details What can I do in the app?
@@ -126,7 +126,7 @@ Passkeys need your OneUptime's address to start with `https://`, and a passkey y
 - Check that the phone allows notifications from OneUptime On-Call, and that Do Not Disturb or a Focus is not holding them back.
 - In **User Settings → Notification Methods**, on the **Push Notifications** tab, check that the phone is listed, and send it a **Test Notification**.
 - If it is marked **Not receiving notifications**, open the app while signed in: see [When a phone has to register again](#when-a-phone-has-to-register-again).
-- Check your on-call rules under **User Settings → On-Call Rules**: they decide which pages reach which method.
+- Check **User Settings → How to Reach Me**: it decides which pages reach which method.
 - On a self-hosted OneUptime, check that the server can reach its push relay: see [Push Notifications](/docs/self-hosted/push-notifications#network-access).
 :::
 
@@ -135,7 +135,7 @@ Set the app's battery use to **Unrestricted** in Android's settings for OneUptim
 :::
 
 :::details Critical alerts do not ring through silent mode
-Open the app's **Settings**: the line under **Critical On-Call Alerts** says what is missing on that phone. Then check that the on-call rule that sent the page is set to **Critical alert**, not **Standard**, under **User Settings → On-Call Rules**. Each phone has its own switch.
+Open the app's **Settings**: the line under **Critical On-Call Alerts** says what is missing on that phone. Then check that the on-call rule that sent the page is set to **Critical alert**, not **Standard**, under **User Settings → How to Reach Me**. Each phone has its own switch.
 :::
 
 ### Desktop app

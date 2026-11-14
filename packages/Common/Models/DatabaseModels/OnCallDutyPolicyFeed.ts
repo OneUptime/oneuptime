@@ -86,11 +86,14 @@ export enum OnCallDutyPolicyFeedEventType {
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyFeed",
-  singularName: "On Call Duty Policy Feed",
-  pluralName: "On Call Duty Policy Feeds",
+  singularName: "On-Call Policy Feed",
+  pluralName: "On-Call Policy Feeds",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "On Call Duty Policy Feed",
+  apiPluralName: "On Call Duty Policy Feeds",
   icon: IconProp.List,
   tableDescription:
-    "Log of the entire onCallDutyPolicy state change. This is a log of all the on call duty policy changes.",
+    "What happened to an on-call policy, in order: every change to it and every time it ran.",
 })
 export default class OnCallDutyPolicyFeed extends BaseModel {
   @ColumnAccessControl({
@@ -199,7 +202,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
-    description: "Relation to OnCallDutyPolicy in which this resource belongs",
+    description: "Relation to the on-call policy this resource belongs to",
     example: "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
   })
   @ManyToOne(
@@ -241,9 +244,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    title: "OnCallDutyPolicy ID",
-    description:
-      "Relation to OnCallDutyPolicy ID in which this resource belongs",
+    title: "On-Call Policy ID",
+    description: "ID of the on-call policy this resource belongs to",
     example: "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
   })
   @Column({
@@ -405,9 +407,9 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     type: TableColumnType.Markdown,
     required: true,
     title: "Log (in Markdown)",
-    description: "Log of the entire onCallDutyPolicy state change in Markdown",
+    description: "What happened to the on-call policy, in Markdown",
     example:
-      "## User Added to On-Call Duty Policy\n\nJohn Doe has been added to the on-call rotation for the weekend shift.",
+      "## User Added to On-Call Policy\n\nJohn Doe has been added to the on-call rotation for the weekend shift.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -477,8 +479,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(OnCallDutyPolicyFeedEventType),
     required: true,
-    title: "On Call Duty Policy Feed Event",
-    description: "On Call Duty Policy Feed Event",
+    title: "On-Call Policy Feed Event",
+    description: "On-Call Policy Feed Event",
     example: "UserAdded",
   })
   @Column({
@@ -514,7 +516,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     type: TableColumnType.Color,
     required: true,
     title: "Color",
-    description: "Display color for the onCallDutyPolicy log",
+    description: "Display color for the on-call policy's feed entry",
     example: "#2ecc71",
   })
   @Column({

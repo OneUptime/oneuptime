@@ -42,13 +42,13 @@ Se [Opret en monitor](/docs/monitor/create-monitor).
 
 En monitors regler: hvad hvert tjekresultat betyder. De tjekkes i rækkefølge, og det første, der passer, kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller alle tre.
 
-Også kaldet: **Overvågningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Monitorkriterier og statusser](/docs/monitor/criteria-and-statuses).
+Også kaldet: **Overvågningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Kriterier og statusser](/docs/monitor/criteria-and-statuses).
 
 ### Monitorstatus
 
 Det, en monitor er lige nu. Hvert nyt projekt har tre monitorstatusser, **I drift**, **Forringet** og **Offline**, og du kan tilføje dine egne.
 
-Se [Monitorkriterier og statusser](/docs/monitor/criteria-and-statuses).
+Se [Kriterier og statusser](/docs/monitor/criteria-and-statuses).
 
 ### Sonde
 
@@ -90,7 +90,7 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 Hvem der har vagt på et givet tidspunkt: personerne skiftes, og hver enkelt overdrager til den næste. En eskaleringsregel, der tilkalder en vagtplan, tilkalder den, der har vagt i den.
 
-Også kaldet: **Rotation**. Se [Vagtplaner](/docs/on-call/schedules).
+Også kaldet: **Rotation**, **Vagtplan for vagtpolitik**. Se [Vagtplaner](/docs/on-call/schedules).
 
 ### Lag
 
@@ -103,6 +103,12 @@ Se [Vagtplaner](/docs/on-call/schedules#lag).
 En adresse, OneUptime kan kontakte dig på i et projekt: en e-mailadresse, et telefonnummer til SMS eller opkald, din Slack- eller Microsoft Teams-konto eller OneUptime-appen på din telefon. Hver person tilføjer sine egne under **Brugerindstillinger**.
 
 Se [Notifikationsmetoder](/docs/notifications/notification-methods).
+
+### Sådan når man mig
+
+Dine egne regler for at blive tilkaldt: hvilke af dine notifikationsmetoder et tilkald prøver, og efter hvor lang tid. Én stige dækker hver hændelse, advarsel og episode, og en alvorsgrad kan have sine egne regler. Hver person indstiller sine egne under **Brugerindstillinger**.
+
+Også kaldet: **Personlige vagtregler**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ### Statusside
 
@@ -118,7 +124,7 @@ Se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
 
 ### Planlagt vedligeholdelse
 
-Planlagt arbejde, annonceret på forhånd. En begivenhed går gennem **Planlagt**, **Igangværende**, **Afsluttet** og **Fuldført**, og de statussider, den vises på, fortæller besøgende og abonnenter om den.
+Planlagt arbejde, annonceret på forhånd. Hver vedligeholdelseshændelse går gennem vedligeholdelsestilstandene **Planlagt**, **Igangværende**, **Afsluttet** og **Fuldført**, og de statussider, den vises på, fortæller besøgende og abonnenter om den.
 
 Også kaldet: **Planlagt vedligeholdelsesbegivenhed**, **Planlagt hændelse**, **Begivenhed**. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 En applikation eller microservice, du kører. OneUptime tilføjer den, første gang dens telemetri ankommer, navngivet efter dens `service.name`, og samler dens logs, traces, metrikker, undtagelser, hændelser og ejere på én side.
 
-Også kaldet: **Tjenestekatalog**, **Telemetritjeneste**. Se [Tjenestekatalog](/docs/telemetry/services).
+Også kaldet: **Tjenestekatalog**, **Telemetritjeneste**. Se [Tjenester](/docs/telemetry/services).
 
 ### Vært
 
@@ -256,7 +262,7 @@ Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
 
 En fejl, din kode kaster. OneUptime samler hver forekomst af den samme fejl i én undtagelse med dens stack trace, dens udvikling og de anmodninger, den opstod i.
 
-Også kaldet: **Undtagelsessporing**, `/telemetry-exception`. Se [Undtagelsessporing](/docs/telemetry/exceptions).
+Også kaldet: **Undtagelsessporing**, `/telemetry-exception`. Se [Undtagelser](/docs/telemetry/exceptions).
 
 ### AI-indsigter
 
@@ -300,7 +306,7 @@ Se [Sporudforsker](/docs/telemetry/traces-explorer).
 
 Hvordan din applikation bruger CPU-tid og hukommelse, funktion for funktion, indsamlet af en profiler, der sender til OneUptimes Pyroscope-kompatible API.
 
-Også kaldet: **Ydeevneprofiler**, **Kontinuerlig profilering**. Se [Kontinuerlig profilering](/docs/telemetry/profiles).
+Også kaldet: **Ydeevneprofiler**, **Kontinuerlig profilering**. Se [Profiler](/docs/telemetry/profiles).
 
 ### AI / LLM
 
@@ -472,13 +478,13 @@ Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#sonde-agent-collector-
 
 ### Vagtregler
 
-To forskellige ting. Under **Hændelser** og **Advarsler** vælger vagtregler de vagtpolitikker, en ny hændelse eller advarsel kører. Under **Brugerindstillinger** afgør dine egne vagtregler, hvilke af dine notifikationsmetoder et tilkald prøver, og efter hvor lang tid.
+Under **Hændelser** og **Advarsler** vælger vagtregler de vagtpolitikker, en ny hændelse eller advarsel kører. En persons egne regler for, hvordan et tilkald når frem, hed også vagtregler: De hedder nu **Sådan når man mig**, under **Brugerindstillinger**.
 
-Se [Hændelsesindstillinger og automatisering](/docs/incidents/settings#vagtregler-for-hændelser) og [Personlige vagtregler](/docs/notifications/on-call-rules).
+Se [Hændelsesindstillinger og automatisering](/docs/incidents/settings#vagtregler-for-hændelser) og [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ### Notifikationsindstillinger
 
-To forskellige sider. Under **Brugerindstillinger**: hvilke opdateringer du får om det, du ejer, og på hvilke kanaler. Under **Projektindstillinger**: projektets kontakter for SMS og opkald, dets beskedsaldo og dets egen SMTP og Twilio.
+Under **Brugerindstillinger**: hvilke opdateringer du får om det, du ejer, og på hvilke kanaler. Projektets kontakter for SMS og opkald, dets beskedsaldo og dets egen SMTP og Twilio hed også notifikationsindstillinger: De hedder nu **Notifikationskanaler**, under **Projektindstillinger**.
 
 Se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 

@@ -86,7 +86,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
         allowOwnerNotification: true,
       });
     } catch (error) {
-      logger.error(`Error applying on-call duty policy owner rules: ${error}`, {
+      logger.error(`Error applying on-call policy owner rules: ${error}`, {
         projectId: onCallDutyPolicy.projectId?.toString(),
         onCallDutyPolicyId: onCallDutyPolicy.id?.toString(),
       } as LogAttributes);
@@ -112,7 +112,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
         props: data.props,
       });
     } catch (error) {
-      logger.error(`Error running on-call duty policy owner rules: ${error}`, {
+      logger.error(`Error running on-call policy owner rules: ${error}`, {
         projectId: data.resource.projectId?.toString(),
         onCallDutyPolicyId: data.resource.id?.toString(),
       } as LogAttributes);
@@ -372,7 +372,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
       return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
-        `Invalid regex in on-call duty policy owner rule ${rule.id}: ${pattern}`,
+        `Invalid regex in on-call policy owner rule ${rule.id}: ${pattern}`,
       );
       return false;
     }

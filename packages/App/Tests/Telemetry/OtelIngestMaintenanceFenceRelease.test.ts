@@ -152,7 +152,7 @@ const FENCE_CASES: Array<FenceCase> = [
     method: "autoDiscoverProxmoxCluster",
     scope: "proxmox-cluster",
     attributes: [stringAttribute("proxmox.cluster.name", "pve-1")] as JSONArray,
-    gated: { service: ProxmoxClusterService, method: "updateLastSeen" },
+    gated: { service: ProxmoxClusterService, method: "updateAgentLastSeen" },
   },
   {
     name: "autoDiscoverOpenStackCloud",

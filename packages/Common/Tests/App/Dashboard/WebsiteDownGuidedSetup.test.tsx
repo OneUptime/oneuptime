@@ -227,8 +227,10 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 
 import WebsiteDownGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
+import { GUIDED_SETUP_GUIDE_LINK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
 import {
   WEBSITE_DOWN_COPY,
+  WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   buildWebsiteMonitor,
   isMonitorCheckingAddress,
   WebsiteAddress,
@@ -244,6 +246,7 @@ import {
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 
@@ -453,6 +456,19 @@ describe("a brand-new project", () => {
     // Nothing is made just by opening it.
     expect(api["createMonitor"]).not.toHaveBeenCalled();
     expect(api["createPolicy"]).not.toHaveBeenCalled();
+  });
+
+  // The docs walk the same job end to end (#6821), linked beside the progress.
+  test("links the docs' step-by-step guide to the same job", async () => {
+    await renderSetup();
+
+    expect(WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH).toBe(
+      "/docs/guides/website-down",
+    );
+    expect(screen.getByTestId(GUIDED_SETUP_GUIDE_LINK_TEST_ID)).toHaveAttribute(
+      "href",
+      getLearnMoreUrl(WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH, "en"),
+    );
   });
 
   test("a later step cannot be opened before the ones it builds on", async () => {

@@ -333,7 +333,7 @@ export const ARCHIVED_ON_CALL_POLICY_NOTE: string =
 export const QueryOnCallPoliciesTool: ObservabilityTool = {
   name: "query_on_call_policies",
   description:
-    "Query on-call duty policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Archived policies page no one and are left out of the list. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
+    "Query on-call policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Archived policies page no one and are left out of the list. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
   inputSchema: {
     type: "object",
     properties: {

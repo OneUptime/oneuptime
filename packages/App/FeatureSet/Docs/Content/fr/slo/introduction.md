@@ -199,13 +199,13 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 | **Période de conformité** | **Type de fenêtre**, **Fenêtre (jours)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
 | **Calcul de l'indisponibilité** | **Mode multi-moniteurs** et **Statuts de moniteur d'indisponibilité**, avec **Modifier le calcul de l'indisponibilité**. | Des statuts vides comptent tous les statuts non opérationnels, y compris ceux ajoutés plus tard. |
 | **Évaluation** | L'interrupteur **Évaluer ce SLO**, qui enregistre dès que vous le basculez. | Le désactiver demande d'abord confirmation, car cela résout aussi les alertes et incidents de taux de consommation ouverts du SLO. |
-| **Archive SLO** | **Archiver** ou **Désarchiver**. | Voir [Archiver un SLO](#archiver-un-slo). |
+| **Archiver : SLO** | **Archiver** ou **Désarchiver**. | Voir [Archiver un SLO](#archiver-un-slo). |
 
 Après une modification de l'objectif, de la période ou du calcul de l'indisponibilité, OneUptime réévalue le SLO à son exécution suivante.
 
 ## Archiver un SLO
 
-Archivez un SLO que vous ne mesurez plus mais que vous voulez garder, comme un service retiré ou l'objectif de l'an dernier. Archivez-le depuis **Paramètres** → **Archive SLO**, ou sélectionnez des SLO dans la liste et choisissez **Archiver**.
+Archivez un SLO que vous ne mesurez plus mais que vous voulez garder, comme un service retiré ou l'objectif de l'an dernier. Archivez-le depuis **Paramètres** → **Archiver : SLO**, ou sélectionnez des SLO dans la liste et choisissez **Archiver**.
 
 Un SLO archivé :
 

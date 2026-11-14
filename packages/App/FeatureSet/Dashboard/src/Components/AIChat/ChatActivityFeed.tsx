@@ -499,6 +499,9 @@ export const REFUSED_TOOL_CALL_DETAILS: { [key in AIToolRefusal]: string } = {
   [AIToolRefusal.NotAllowed]: translationKey(
     "not done — you are not allowed to do this",
   ),
+  [AIToolRefusal.ProductOff]: translationKey(
+    "not done — this product is switched off on this server",
+  ),
 };
 
 /*

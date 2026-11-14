@@ -59,7 +59,9 @@ function postmortemBullet(language: string): string {
   const bullet: string | undefined = readDoc(language, "incidents/index.md")
     .split("\n")
     .find((line: string): boolean => {
-      return line.startsWith("- **Postmortem** —");
+      return line.startsWith(
+        `- **${drawnActionLabel(language, "Postmortem")}** —`,
+      );
     });
 
   expect(bullet).toBeDefined();
@@ -442,7 +444,9 @@ describe("the declaring docs on publishing a hidden incident later", () => {
         });
 
       expect(paragraph).toBeDefined();
-      expect(paragraph).toContain("**Visible on Status Page**");
+      expect(paragraph).toContain(
+        `**${drawnActionLabel(language, "Visible on Status Page")}**`,
+      );
       expect(paragraph).toContain(link);
     },
   );
@@ -475,7 +479,9 @@ describe("the incident page's Postmortem item", () => {
   test("the Persian item says it too, and links to the Persian section", () => {
     const bullet: string = postmortemBullet("fa");
 
-    expect(bullet).toContain("**Publish on Status Page**");
+    expect(bullet).toContain(
+      `**${drawnActionLabel("fa", "Publish on Status Page")}**`,
+    );
     expect(bullet).toContain(
       `(/docs/status-pages/subscribers#${slugify(FA_HEADING.replace(/^#+ /, ""))})`,
     );

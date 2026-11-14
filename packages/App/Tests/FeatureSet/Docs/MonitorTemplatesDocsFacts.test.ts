@@ -2,7 +2,9 @@ import {
   SyncResultSummary,
   buildSyncResultSummary,
 } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
+import { SYNC_TO_LINKED_MONITORS_TITLES } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import { readPage } from "./DocsContentSupport";
+import { dashboardTranslator } from "./DocsDashboardLabels";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateSyncFieldUtil, {
   MonitorTemplateSyncField,
@@ -53,7 +55,7 @@ const MODEL_TABLE_FILE: string =
 const CARD_TITLES: Array<string> = [
   "Template Info",
   "Monitor Defaults",
-  "Monitoring Criteria",
+  "Criteria",
   "Monitoring Interval",
   "Labels",
   "Custom Field Defaults",
@@ -655,14 +657,15 @@ describe("what each sync copies", () => {
   );
 
   it("names how many monitors a button reaches as the button does", () => {
-    const count: number = 3;
-
-    expect(view).toContain(
-      '`Sync Criteria to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`',
-    );
-    expect(page).toContain(
-      `**Sync Criteria to ${count} Linked Monitor${count === 1 ? "" : "s"}**`,
-    );
+    // The button's title is its count put through the words' plural template.
+    expect(view).toContain("SYNC_TO_LINKED_MONITORS_TITLES.criteria,");
+    expect(
+      dashboardTranslator("en").translatePlural(
+        SYNC_TO_LINKED_MONITORS_TITLES.criteria,
+        3,
+      ),
+    ).toBe("Sync Criteria to 3 Linked Monitors");
+    expect(page).toContain("**Sync Criteria to 3 Linked Monitors**");
   });
 
   it("greys every sync button out while nothing is linked", () => {
@@ -788,7 +791,7 @@ describe("what each sync copies", () => {
       sourceBetween(view, 'title="Sync Monitor from Template"', "onClose="),
     ).toContain("protectedFields");
     expect(section(page, "### Save")).toContain(
-      "The **Monitoring Criteria** card, and the confirmation of both syncs below, list the protected fields.",
+      "The **Criteria** card, and the confirmation of both syncs below, list the protected fields.",
     );
     expect(section(page, "### Sync")).toContain(
       "Use **Sync Criteria to Linked Monitors**, or **Sync from Template** on an individual linked monitor.",

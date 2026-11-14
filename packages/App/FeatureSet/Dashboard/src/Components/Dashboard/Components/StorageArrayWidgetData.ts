@@ -6,6 +6,14 @@ import {
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
   STORAGE_ARRAY_WARNING_COMPONENT_STATUSES,
 } from "Common/Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -14,6 +22,9 @@ import {
  * .tsx files so the banding — the part an operator acts on — is unit-tested
  * in the node test environment.
  */
+
+// What a hardware helper writes in when no translator is given.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export interface StorageArrayWidgetState {
   // English; the honeycomb translates a tile's status where it draws it.
@@ -176,9 +187,15 @@ export function formatIops(value: unknown): string {
 
 /*
  * Bytes in binary units, up to PiB: array volumes and drives run to tens of
- * terabytes, past where the generic memory formatter stops at GB.
+ * terabytes, past where the generic memory formatter stops at GB. Given a
+ * translator, the number is in its reader's digits and decimal sign
+ * ("۳٫۵ TiB" in Persian, "3,5 TiB" in German), as a temperature beside it
+ * is; the unit is the same in every language.
  */
-export function formatStorageBytes(value: unknown): string {
+export function formatStorageBytes(
+  value: unknown,
+  translator?: Translator,
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
@@ -190,7 +207,14 @@ export function formatStorageBytes(value: unknown): string {
     scaled = scaled / 1024;
     unitIndex++;
   }
-  return `${scaled.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  const decimals: number = unitIndex === 0 ? 0 : 1;
+  const figure: string = translator
+    ? formatReaderFigure(scaled, {
+        decimals: decimals,
+        language: translator.language,
+      })
+    : scaled.toFixed(decimals);
+  return `${figure} ${units[unitIndex]}`;
 }
 
 /*
@@ -316,33 +340,123 @@ export function humanizeArrayValue(value: unknown): string {
 
 /*
  * The singular name of an inventory kind ("Hardware Component", "Drive",
- * "Controller"); a kind the widget does not list falls back to the raw value.
+ * "Controller"), in the reader's language; a kind the widget does not list
+ * falls back to the raw value.
  */
-export function getHardwareKindLabel(kind: unknown): string {
+export function getHardwareKindLabel(
+  kind: unknown,
+  translator: Translator = ENGLISH,
+): string {
   if (
     typeof kind === "string" &&
     STORAGE_ARRAY_HARDWARE_WIDGET_KINDS.includes(
       kind as StorageArrayResourceKind,
     )
   ) {
-    return StorageArrayResourceKindUtil.getSingularLabel(
-      kind as StorageArrayResourceKind,
-    );
+    return translator.translateText(
+      StorageArrayResourceKindUtil.getSingularLabel(
+        kind as StorageArrayResourceKind,
+      ),
+    ) as string;
   }
   return typeof kind === "string" && kind.length > 0 ? kind : "—";
 }
 
 /*
- * What a component is. A hardware component is named by its own type
- * ("Power supply", "Temp sensor"), which says more than "Hardware
- * Component"; a drive or controller keeps its kind in front of its type
- * ("Drive · SSD").
+ * THE TYPES PURE'S ARRAYS REPORT, IN WORDS (#7091).
+ *
+ * A FlashArray names a hardware component's type, a drive's and a
+ * controller's as identifiers ("power_supply", "temp_sensor",
+ * "array_controller"), a FlashBlade by a short code ("fb", "fm", "pwr").
+ * Each one known here is a word the reader's language has; a type not
+ * listed is the array's own word, drawn as reported (humanizeArrayValue) -
+ * as are "SSD" and "NVRAM", which every language writes so.
  */
-export function getHardwareTypeText(input: {
-  kind?: unknown;
-  componentType?: unknown;
-}): string {
-  const kindLabel: string = getHardwareKindLabel(input.kind);
+const HARDWARE_TYPE_NAMES: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>([
+  // FlashArray hardware components.
+  ["chassis", translationKey("Chassis")],
+  ["controller", translationKey("Controller")],
+  ["cooling", translationKey("Cooling")],
+  ["drive_bay", translationKey("Drive Bay")],
+  ["nvram_bay", translationKey("NVRAM Bay")],
+  ["power_supply", translationKey("Power Supply")],
+  ["temp_sensor", translationKey("Temperature Sensor")],
+  ["eth_port", translationKey("Ethernet Port")],
+  ["fc_port", translationKey("Fibre Channel Port")],
+  ["ib_port", translationKey("InfiniBand Port")],
+  ["sas_port", translationKey("SAS Port")],
+  ["mgmt_port", translationKey("Management Port")],
+  // FlashArray controllers and drives.
+  ["array_controller", translationKey("Array Controller")],
+  ["shelf_controller", translationKey("Shelf Controller")],
+  ["cache", translationKey("Cache")],
+  // FlashBlade hardware.
+  ["ch", translationKey("Chassis")],
+  ["fb", translationKey("Blade")],
+  ["fm", translationKey("Fabric Module")],
+  ["xfm", translationKey("External Fabric Module")],
+  ["pwr", translationKey("Power Supply")],
+  ["fan", translationKey("Fan")],
+  ["eth", translationKey("Ethernet Port")],
+]);
+
+// A controller's mode (statusDetail), in words.
+const CONTROLLER_MODE_NAMES: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>([
+  ["primary", translationKey("Primary")],
+  ["secondary", translationKey("Secondary")],
+]);
+
+// A value the array reports, as the tables above key it: "Power supply" too.
+const toArrayWordKey: (value: string) => string = (value: string): string => {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+};
+
+/*
+ * A component's, a drive's or a controller's type in the reader's words: a
+ * type known above in the reader's language, any other as the array
+ * reports it.
+ */
+export function getHardwareTypeName(
+  componentType: unknown,
+  translator: Translator = ENGLISH,
+): string {
+  if (typeof componentType === "string") {
+    const known: string | undefined = HARDWARE_TYPE_NAMES.get(
+      toArrayWordKey(componentType),
+    );
+
+    if (known) {
+      return translator.translateText(known) as string;
+    }
+  }
+
+  return humanizeArrayValue(componentType);
+}
+
+/*
+ * What a component is. A hardware component is named by its own type
+ * ("Power Supply", "Temperature Sensor"), which says more than "Hardware
+ * Component"; a drive or controller keeps its kind in front of its type
+ * ("Drive · SSD"). In the reader's language: its words, and what it sets
+ * two facts apart with (formatInline).
+ */
+export function getHardwareTypeText(
+  input: {
+    kind?: unknown;
+    componentType?: unknown;
+  },
+  translator: Translator = ENGLISH,
+): string {
+  const kindLabel: string = getHardwareKindLabel(input.kind, translator);
   const hasType: boolean =
     typeof input.componentType === "string" &&
     input.componentType.trim().length > 0;
@@ -351,13 +465,13 @@ export function getHardwareTypeText(input: {
     return kindLabel;
   }
 
-  const typeText: string = humanizeArrayValue(input.componentType);
+  const typeText: string = getHardwareTypeName(input.componentType, translator);
 
   if (input.kind === StorageArrayResourceKind.Hardware) {
     return typeText;
   }
 
-  return `${kindLabel} · ${typeText}`;
+  return formatInline([kindLabel, typeText], translator);
 }
 
 export interface HardwareDetailInput {
@@ -372,19 +486,30 @@ export interface HardwareDetailInput {
 /*
  * The one figure worth a column for each kind: a drive's size, a
  * controller's mode and model, a hardware component's temperature. Values
- * the array did not report are left out rather than shown as dashes.
+ * the array did not report are left out rather than shown as dashes. In
+ * the reader's language: a mode it knows in its words (any other as the
+ * array reports it), a drive's size and a temperature in its digits, and
+ * its separator.
  */
-export function getHardwareDetail(input: HardwareDetailInput): string {
+export function getHardwareDetail(
+  input: HardwareDetailInput,
+  translator: Translator = ENGLISH,
+): string {
   const parts: Array<string> = [];
 
   if (input.kind === StorageArrayResourceKind.Drive) {
     const capacity: number | undefined = toFiniteNumber(input.capacityBytes);
     if (capacity !== undefined) {
-      parts.push(formatStorageBytes(capacity));
+      parts.push(formatStorageBytes(capacity, translator));
     }
   } else if (input.kind === StorageArrayResourceKind.Controller) {
     if (typeof input.statusDetail === "string" && input.statusDetail) {
-      parts.push(input.statusDetail);
+      const mode: string | undefined = CONTROLLER_MODE_NAMES.get(
+        toArrayWordKey(input.statusDetail),
+      );
+      parts.push(
+        mode ? (translator.translateText(mode) as string) : input.statusDetail,
+      );
     }
     if (typeof input.model === "string" && input.model) {
       parts.push(input.model);
@@ -394,9 +519,9 @@ export function getHardwareDetail(input: HardwareDetailInput): string {
       input.temperatureCelsius,
     );
     if (temperature !== undefined) {
-      parts.push(`${Math.round(temperature)} °C`);
+      parts.push(`${translator.formatNumber(Math.round(temperature))} °C`);
     }
   }
 
-  return parts.length > 0 ? parts.join(" · ") : "—";
+  return parts.length > 0 ? formatInline(parts, translator) : "—";
 }

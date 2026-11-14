@@ -63,6 +63,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   hunt: SecurityHunt;
@@ -477,12 +478,10 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                 />
                 <p className="min-w-0">
                   <span className="text-red-700" role="alert">
-                    {translator.translateTemplate(LAST_RUN_FAILED, {
-                      error:
-                        translator.translateText(hunt.lastRunError || "") ||
-                        hunt.lastRunError ||
-                        "",
-                    })}
+                    <ErrorSentence
+                      template={LAST_RUN_FAILED}
+                      error={hunt.lastRunError}
+                    />
                   </span>
                   {runHistoryLink ? <> {runHistoryLink}</> : <></>}
                 </p>

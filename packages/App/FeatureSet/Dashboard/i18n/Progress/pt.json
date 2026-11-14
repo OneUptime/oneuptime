@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9543
+    "keys": 51296,
+    "untranslated": 9504
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -221,7 +221,6 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
-    "Profiler",
     "Prompt",
     "Pull Requests",
     "Pull request",
@@ -441,6 +440,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
+    "{{count}} OSDs",
     "{{count}} SLO",
     "{{count}} SLOs",
     "{{count}} SMS",

@@ -34,6 +34,8 @@ Digite um **Nome do projeto**, por exemplo o nome da sua empresa. No OneUptime C
 
 ### Criar o projeto
 
+![Início pergunta "O que você quer fazer primeiro?", com os três objetivos deste guia marcados](screen:home-goals-three)
+
 Clique em **Criar projeto**. A página inicial do seu projeto abre, com a lista **Boas-vindas ao OneUptime 👋** no topo. Primeiro ele pergunta **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair**, **Acionar a pessoa certa quando algo quebrar** e **Informar meus clientes com uma página de status**, e clique em **Continuar**.
 :::
 
@@ -59,6 +61,8 @@ Mantenha as **Sondas** selecionadas e o **Intervalo de monitoramento** de **A ca
 
 Para testar a verificação antes de salvar, clique em **Testar monitor** na segunda etapa. Todos os outros tipos de monitor estão descritos em [Criar um monitor](/docs/monitor/create-monitor).
 
+Para verificar também uma API, escolher quem é avisado e enviar um acionamento de teste que comprove que a mensagem chega até você, siga [Saber quando seu site ou sua API cai](/docs/guides/website-down).
+
 ## Ser acionado quando cair
 
 Do jeito que está, um incidente sem proprietários é enviado por e-mail aos proprietários do projeto, e isso inclui você. Para ser acionado até que alguém responda, crie uma política de plantão: a primeira de um projeto é disparada a cada novo incidente e a cada novo alerta.
@@ -78,7 +82,7 @@ Seu e-mail de login já é uma forma de contatar você. Para receber também SMS
 :::
 
 > [!NOTE]
-> SMS e chamadas telefônicas ficam desativados em um projeto novo. Um proprietário do projeto, um Billing Admin ou alguém com Manage Billing os ativa no cartão **Canais de notificação**, em **Configurações do projeto → Notificações → Configurações de notificação**.
+> SMS e chamadas telefônicas ficam desativados em um projeto novo. Um proprietário do projeto, um Billing Admin ou alguém com Manage Billing os ativa no cartão **Canais de notificação**, em **Configurações do projeto → Notificações → Canais de notificação**.
 
 Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de escalonamento](/docs/on-call/escalation-rules) e [Agendamentos de plantão](/docs/on-call/schedules).
 
@@ -119,9 +123,13 @@ Abra **Incidentes** e clique em **Declarar incidente**. Digite um **Título**, p
 
 ### Ver o que acontece
 
+!["Feed do incidente" de um incidente resolvido: quem foi acionado e cada mudança de estado, do mais recente ao mais antigo](screen:incident-feed)
+
 Em um ou dois minutos, sua política de plantão aciona você, e o incidente aparece na sua página de status.
 
 ### Resolver
+
+![Um incidente em "Confirmado", com "Resolver" destacado](screen:incident-resolve)
 
 Na página do incidente, clique em **Resolver**. Os acionamentos param, e o incidente sai da sua página de status.
 :::

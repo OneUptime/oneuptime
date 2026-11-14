@@ -7,6 +7,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -22,11 +23,16 @@ import {
   shortenDefinition,
 } from "../../Utils/Glossary";
 import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
+import { withProductText } from "../../Utils/ProductText";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
 import WasThisClear from "../Feedback/WasThisClear";
 import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
+import {
+  DefinitionPlace,
+  DefinitionPlaceContext,
+} from "./DefinitionsDrawnAfter";
 import {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_TEST_ID,
@@ -69,6 +75,16 @@ export interface ComponentProps {
   // The word as the page draws it, already in the reader's language.
   children: ReactNode;
   dataTestId?: string | undefined;
+  /*
+   * Where the definition is drawn, when not beside its word: for a word
+   * inside something its words name. A form field's title names its field
+   * (Forms/Fields/FieldLabel), and a field is named by every word inside
+   * its title, so a definition drawn there was read out as part of the
+   * field's name while it showed. The place comes right after the word in
+   * the page's order, so Tab still goes from the word to Read more. A word
+   * in a heading is given one by the heading (DefinitionsDrawnAfter).
+   */
+  popoverPlace?: React.RefObject<HTMLElement> | undefined;
 }
 
 // The word, as its place draws it too (DefinedTermWord).
@@ -143,13 +159,21 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
   return (
     <div
       data-testid={DEFINED_TERM_POPOVER_TEST_ID}
-      className={DEFINED_TERM_POPOVER_CLASS_NAME}
+      /*
+       * The product's own words, wherever the definition is drawn
+       * (Utils/ProductText): a recording of the first-run pages shows it as
+       * written after a heading or a field's title, outside their marked
+       * words, as much as beside its word.
+       */
+      className={withProductText(DEFINED_TERM_POPOVER_CLASS_NAME)}
       onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
         /*
          * The popover is drawn beside its word, which can be inside a
-         * field's <label> or a clickable card: a click on its words must
-         * not tick that label's box or open that card. A click on Read
-         * more still follows the link.
+         * <label> or a clickable card, and a click inside it reaches what
+         * its word is drawn in wherever it is placed (React hands it on
+         * through the portal): a click on its words must not tick that
+         * label's box or open that card. A click on Read more still
+         * follows the link.
          */
         event.stopPropagation();
 
@@ -234,6 +258,20 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   // The event that last asked the popover to show.
   const lastTriggerRef: React.MutableRefObject<string> = useRef<string>("");
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  /*
+   * The place right after the heading this word is in (a card's title,
+   * DefinitionsDrawnAfter), asked for now that the word can show its
+   * definition - unless the word was given a place of its own.
+   */
+  const headingPlace: DefinitionPlace | undefined = useContext(
+    DefinitionPlaceContext,
+  );
+
+  useEffect(() => {
+    if (!props.popoverPlace) {
+      headingPlace?.ask();
+    }
+  }, [headingPlace, props.popoverPlace]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -271,11 +309,20 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   /*
    * An interactive popover is placed in its word's parent, at its end: the
    * span of its own puts it right after the word, so Tab goes from the word
-   * to Read more, and not first through what follows the word.
+   * to Read more, and not first through what follows the word. A place
+   * given for it (popoverPlace) comes right after the word too, and so does
+   * a heading's, right after the heading.
    */
   return (
     <span className="inline">
       <Tippy
+        appendTo={(reference: Element): Element => {
+          return (
+            props.popoverPlace?.current ||
+            headingPlace?.element.current ||
+            (reference.parentNode as Element)
+          );
+        }}
         content={
           <DefinedTermPopover
             term={props.term}

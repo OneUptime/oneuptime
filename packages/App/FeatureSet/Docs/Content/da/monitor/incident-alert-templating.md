@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Åbn monitorens kriterier
 
-Gå til **Monitorer**, åbn monitoren, og klik på **Kriterier** i dens sidemenu. Klik på **Rediger overvågningskriterier**.
+Gå til **Monitorer**, åbn monitoren, og klik på **Kriterier** i dens sidemenu. Klik på **Rediger kriterier**.
 
 ### Slå hændelsen eller advarslen til
 

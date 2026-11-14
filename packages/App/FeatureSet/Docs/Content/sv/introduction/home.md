@@ -49,7 +49,7 @@ Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom
 | **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** | **Incidenter → Aktiva incidenter** |
 | **Aktiva larm** | Larm som inte är lösta | **Allt är i sin ordning** | **Larm → Aktiva larm** |
 | **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer, och monitorer med avstängd övervakning, räknas inte. | **Alla fungerar** | **Monitorer → Ej operativ** |
-| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående händelser** |
+| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående underhållshändelser** |
 | **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** | **SLOs** |
 
 En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** för underhåll och SLO:er. Så länge en SLO är i riskzonen öppnar **SLO:er i riskzonen** listan **SLOs**, filtrerad på just dem. Ett projekt utan monitorer ser **Inga monitorer ännu**, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två siffrorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
@@ -74,7 +74,7 @@ Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds F
 
 En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
 
-Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jourtjänst** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
+Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jour** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
 
 ```mermaid title="När välkomstchecklistan visas"
 flowchart TB
@@ -109,7 +109,7 @@ När något i projektets inställningar skulle hindra att folk får veta, slutar
 
 ## Hitta rätt
 
-Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupper som raderna i en enda lista och öppnas alltid med den första av dem, det grundläggande, utfälld: Övervakare, Incidenter, Larm, Jourtjänst, Statussidor, Schemalagt underhåll och SLOs. Varje annan grupp (Observerbarhet, Säkerhet, AI, Kod, Resurser, Infrastruktur, Moln, Instrumentpaneler och automatisering och Inställningar) är hopfälld till en rad i samma lista. Varje rad nämner gruppens produkter och säger hur många de är. Klicka på en rad för att fälla ut eller fälla ihop den, eller gå till den med piltangenterna och tryck på **Enter**.
+Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupper som raderna i en enda lista och öppnas alltid med den första av dem, det grundläggande, utfälld: Övervakare, Incidenter, Larm, Jour, Statussidor, Schemalagt underhåll och SLOs. Varje annan grupp (Observerbarhet, Säkerhet, AI, Kod, Resurser, Infrastruktur, Moln, Instrumentpaneler och automatisering och Inställningar) är hopfälld till en rad i samma lista. Varje rad nämner gruppens produkter och säger hur många de är. Klicka på en rad för att fälla ut eller fälla ihop den, eller gå till den med piltangenterna och tryck på **Enter**.
 
 - **Sökningen hittar allt.** Skriv i menyns sökruta för att hitta vilken produkt som helst efter namn, efter vad den gör eller efter ett välbekant ord som `k8s` eller `RUM`. Sökningen letar också i de hopfällda grupperna.
 - **Du börjar där du är.** Gruppen för sidan du är på fälls ut av sig själv, och produkterna du nyligen har öppnat står överst.
@@ -129,7 +129,7 @@ Två fält löper över toppen av varje sida.
 | Uppe till höger | **Sök** och **Fråga AI**, aviseringsklockan med det som behöver dig nu (aktiva incidenter och larm, jourpolicyerna du har jour i, väntande inbjudningar), **Hjälp**, och din bild, som öppnar menyn för ditt [konto](/docs/introduction/your-account). |
 | Under dem | **Hem** och **Produkter** till vänster, **Användarinställningar** till höger: hur OneUptime når dig i det här projektet. |
 
-**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Keyboard shortcuts** och support via e-post och på Slack. På en surfplatta eller i ett smalt fönster utelämnas **Fråga AI** för att spara plats: den finns bland åtgärderna i **Sök**. På en telefon flyttar **Sök** och **Hjälp** in i menyknappens lista, högst upp och längst ned; klockan och din bild finns kvar.
+**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Kortkommandon** och support via e-post och på Slack. På en surfplatta eller i ett smalt fönster utelämnas **Fråga AI** för att spara plats: den finns bland åtgärderna i **Sök**. På en telefon flyttar **Sök** och **Hjälp** in i menyknappens lista, högst upp och längst ned; klockan och din bild finns kvar.
 
 Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny monitor, berättar vad det betyder när du pekar på det, tabbar till det eller trycker på det. Dess **Läs mer** öppnar ordet i [Ordlista](/docs/introduction/glossary).
 
@@ -149,7 +149,7 @@ Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställ
 Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på sökikonen i toppfältet, och börja skriva. Sökningen hittar:
 
 - **Varje sida i menyerna**, under namnet som menyn ger den: API-nycklar, Farozon, Jourscheman, Incidentallvar, dina egna Aviseringsmetoder. Varje resultat säger var det finns, till exempel *Projektinställningar › Avancerad*, så att sidor med samma namn (Anpassade fält under Incidenter, Larm och Monitorer) är lätta att skilja åt.
-- **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Aviseringskanaler* hittar Aviseringsinställningar. Skriv namnet på engelska eller på ditt eget språk.
+- **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Anpassade SMTP-konfigurationer* hittar Aviseringskanaler. Skriv namnet på engelska eller på ditt eget språk.
 - **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. En åtgärd som ändrar något erbjuds bara den som får utföra den.
 - **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn, och incidenter och larm även efter nummer, som `INC-42`. Varje resultat för en incident eller ett larm börjar med dess nummer, så att två med samma titel går att skilja åt.
 - **Dokumentationen**, i en grupp *Dokumentation* under allt annat: de sidor och avsnitt vars ord stämmer med det du skriver, på ditt språk, även med ett stavfel. Var och en öppnas i en ny flik, så att du behåller din plats.
@@ -165,7 +165,7 @@ Med en tom sökruta visar sökningen sidorna du nyligen har öppnat, åtgärdern
 
 ## Kortkommandon
 
-Tryck på `?` var som helst i instrumentpanelen för att se alla kortkommandon, eller öppna **Hjälp** och välj **Keyboard shortcuts**. På en Mac är `Mod` Command-tangenten; på Windows och Linux är det Ctrl.
+Tryck på `?` var som helst i instrumentpanelen för att se alla kortkommandon, eller öppna **Hjälp** och välj **Kortkommandon**. På en Mac är `Mod` Command-tangenten; på Windows och Linux är det Ctrl.
 
 | Tangenter | Vad de gör |
 | --- | --- |
@@ -185,7 +185,7 @@ Tryck på `g` och sedan en bokstav för att gå direkt till en produkt. Tryck p�
 | `g` sedan `m` | Övervakare |
 | `g` sedan `i` | Incidenter |
 | `g` sedan `a` | Larm |
-| `g` sedan `o` | Jourtjänst |
+| `g` sedan `o` | Jour |
 | `g` sedan `s` | Statussidor |
 | `g` sedan `e` | Schemalagt underhåll |
 | `g` sedan `d` | Instrumentpaneler |

@@ -27,6 +27,8 @@ Din server måste kunna skicka e-post, sms och samtal. Serverns huvudadministrat
 :::steps
 ### Öppna den guidade konfigurationen
 
+![Hem frågar ”Vad vill du göra först?”, med ”Larma rätt person när något går sönder” ikryssat](screen:home-goal-paging)
+
 På projektets sida **Hem** klickar du på **Konfigurera en jourpolicy** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Larma rätt person när något går sönder** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer **Larma rätt person när något går sönder**.
 
 ### Installera appen på din telefon
@@ -35,21 +37,31 @@ Installera OneUptime On-Call från App Store eller Google Play och logga in: app
 
 ### Slå på sms och samtal
 
+![Steget ”Hur ska vi nå dig?”, med ”Slå på sms och samtal” markerad](screen:paging-reach-you)
+
 Nya projekt börjar med sms och telefonsamtal avstängda. Om du äger projektet klickar du på **Slå på sms och samtal**; alla andra får veta vem som kan. Om saldot på OneUptime Cloud är 1.00 USD eller mindre klickar du på **Fyll på saldo**, anger 20 till 1 000 USD under **Belopp (USD)** och klickar på **Fyll på**.
 
 ### Lägg till ditt telefonnummer
+
+![Fältet ”Ditt telefonnummer”, med ”Skicka en kod till mig via sms” markerad](screen:paging-phone)
 
 Skriv ditt mobilnummer med landsnummer i **Ditt telefonnummer**, till exempel `+15551234567`, och klicka på **Skicka en kod till mig via sms**. Ange koden från sms:et och klicka på **Verifiera**: samma nummer rings också upp vid larm. Klicka på **Fortsätt**. Vill du bara larmas via appen och e-post, hoppar du över numret och klickar direkt på **Fortsätt**.
 
 ### Välj vilka fler som larmas
 
+![Steget ”Vem mer har jour?”, med ”Spara och fortsätt” markerad](screen:paging-who-else)
+
 Under **Vem mer har jour?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra tillsammans med dig, och klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget `Default on-call policy`, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 
+![Steget ”Tänk om ingen svarar?”, med ”Spara och fortsätt” markerad](screen:paging-no-answer)
+
 Under **Tänk om ingen svarar?** behåller du **Larma någon annan**, väljer vem under **Larmas sedan** och låter **Minuter att vänta** stå kvar på `30` eller ändrar det. Klicka på **Spara och fortsätt**. På Free-planen erbjuder steget i stället **Larma samma personer igen**, med **Antal nya larm** på `2`.
 
 ### Skicka ett testlarm
+
+![Steget ”Skicka ett testlarm”, med ”Testa den här policyn” markerad](screen:paging-test)
 
 Under **Skicka ett testlarm** klickar du på **Testa den här policyn**. Välj en **Allvarlighetsgrad** och klicka på **Skicka testlarm**. Policyns första eskaleringsregel larmas på samma sätt som en riktig incident skulle larma den, och varje meddelande är märkt TEST. Ingen incident skapas, och ingen statussida eller prenumerant får veta något.
 
@@ -59,6 +71,8 @@ Under **Skicka ett testlarm** klickar du på **Testa den här policyn**. Välj e
 :::
 
 ## Kontrollera att det fungerade
+
+![Sammanfattningen ”Larmningen är konfigurerad”: ”Vem som larmas”, ”Om ingen svarar” och ”Testat”](screen:paging-summary)
 
 - Teststeget visar vem som bekräftade larmet, hur och hur snabbt.
 - Konfigurationen avslutas med sammanfattningen **Larmningen är konfigurerad**, som bygger på det som faktiskt har sparats: **Vem som larmas**, **Om ingen svarar** och **Testat**. Ett problem med själva policyn, till exempel någon som den inte kan nå, listas under **Kräver uppmärksamhet**.
@@ -89,6 +103,6 @@ Kontrollera först numrets landsnummer. Efter ett testlarm stänger du dialogrut
 :::cards
 - [Jourscheman](/docs/on-call/schedules): Turas om, så att varje larm går till den som har jour. På Cloud från Growth-planen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Lägg till nivåer, team och scheman i policyn.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Välj vilken metod som når dig först, och när.
+- [Så når man mig](/docs/notifications/on-call-rules): Välj vilken metod som når dig först, och när.
 - [Publicera en statussida](/docs/guides/status-page): Berätta för dina kunder vad som händer, på din egen domän.
 :::

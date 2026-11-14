@@ -26,7 +26,7 @@ flowchart TB
 
 - 一个可以修改代码并重新部署、通过 npm 安装依赖的 Web 应用。
 - 提供页面的来源，例如 `https://app.example.com` 。Browser 密钥只接受来自其列出来源的请求。
-- 一个可以创建摄取密钥的角色：项目所有者和管理员可以创建，拥有 **Create Telemetry Ingestion Key** 权限的任何人也可以。
+- 一个可以创建摄取密钥的角色：项目所有者和管理员可以创建，拥有 Create Ingestion Key 权限的任何人也可以。
 
 ## 设置步骤
 

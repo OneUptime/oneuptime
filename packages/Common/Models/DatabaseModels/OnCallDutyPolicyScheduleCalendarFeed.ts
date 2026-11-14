@@ -197,8 +197,8 @@ export default class OnCallDutyPolicyScheduleCalendarFeed extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On-Call Policy Schedule",
-    description: "Relation to the On-Call Policy Schedule this feed renders.",
+    title: "On-Call Schedule",
+    description: "Relation to the On-Call Schedule this feed renders.",
   })
   @ManyToOne(
     () => {
@@ -223,8 +223,8 @@ export default class OnCallDutyPolicyScheduleCalendarFeed extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "On-Call Policy Schedule ID",
-    description: "ID of the On-Call Policy Schedule this feed renders.",
+    title: "On-Call Schedule ID",
+    description: "ID of the On-Call Schedule this feed renders.",
     example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({

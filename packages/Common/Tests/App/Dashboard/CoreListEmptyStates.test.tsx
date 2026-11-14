@@ -237,7 +237,7 @@ const CORE_LISTS: Array<CoreList> = [
     render: (): ReactElement => {
       return <OnCallDutyPoliciesPage {...pageProps} />;
     },
-    emptySentence: "No on-call duty policies yet.",
+    emptySentence: "No on-call policies yet.",
     createLabel: "Create On-Call Policy",
     oldFoundSentence: "No on-call policy found.",
     product: "on-call",
@@ -503,6 +503,7 @@ describe("where a new project's first buttons lead", () => {
 
     const dialog: HTMLElement = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Create On-Call Schedule");
+    // Never the model's retired name, still its API name (#6817).
     expect(dialog).not.toHaveTextContent("On-Call Policy Schedule");
   });
 });

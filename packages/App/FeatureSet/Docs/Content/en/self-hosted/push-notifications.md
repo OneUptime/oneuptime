@@ -127,7 +127,7 @@ If nothing may leave your network through Expo, the push relay or a browser's pu
 While push is off:
 
 - Nothing is pushed to phones or browsers, in any project.
-- No device can be registered. Each person's **Push Notifications** tab under **User Settings > Notification Methods** says that push is off, and on-call rules offer no push devices.
+- No device can be registered. Each person's **Push Notifications** tab under **User Settings > Notification Methods** says that push is off, and How to Reach Me offers no push devices.
 - A page through a push rule is not sent. The person's on-call log says `Push notification not sent: Push notifications are turned off on this server.`
 - On-call readiness counts push devices as unusable, and the fallback skips them. Someone whose only verified method is a push device shows as not reachable.
 
@@ -159,7 +159,7 @@ flowchart TB
 Four things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
 
 1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions. Versions of the app newer than 1.6.0 report it again each time they are opened, as off while the phone's own settings do not allow critical alerts, so the device list shows what the phone will really do.
-2. **The on-call rule that sent the page asks for it.** Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings - so a responder can be woken for a critical incident and paged quietly for a minor one. Stored per rule in `UserNotificationRule.pushNotificationLevel`.
+2. **The on-call rule that sent the page asks for it.** Under **User Settings > How to Reach Me**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings - so a responder can be woken for a critical incident and paged quietly for a minor one. Stored per rule in `UserNotificationRule.pushNotificationLevel`.
 3. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets a critical notification channel for Android: `oncall_critical`, or the chosen alarm's own channel (see [Choosing the alarm sound](#choosing-the-alarm-sound)).
 4. **The operating system allows it**, which is where the two platforms differ.
 
@@ -204,7 +204,7 @@ A device keeps the system sound until it runs a version of the app that offers t
 
 ### Repeating a page until it is acknowledged
 
-A push rule can send its page again until somebody acknowledges it. Under **User Settings > On-Call Rules**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row: every minute, or every 2, 3, 5, 10, 15 or 30 minutes. The page is sent again at that interval, up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. It is stored per rule in `UserNotificationRule.repeatEveryMinutes`, where 0, the default, sends the page once.
+A push rule can send its page again until somebody acknowledges it. Under **User Settings > How to Reach Me**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row: every minute, or every 2, 3, 5, 10, 15 or 30 minutes. The page is sent again at that interval, up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. It is stored per rule in `UserNotificationRule.repeatEveryMinutes`, where 0, the default, sends the page once.
 
 ## Troubleshooting
 
@@ -225,7 +225,7 @@ A push rule can send its page again until somebody acknowledges it. Under **User
 ### Critical alerts do not override silent mode
 
 - Check the switch is on for **that** device - the setting is per device, and a reinstall or a new phone set up from scratch creates a new device registration (a phone set up from a backup of the old one takes over the old phone's registration once that no longer receives notifications, with the setting the app had)
-- Check the on-call rule for that severity under **User Settings > On-Call Rules**: a push rule set to Standard follows the phone's sound settings, whatever the device's switch says
+- Check the on-call rule for that severity under **User Settings > How to Reach Me**: a push rule set to Standard follows the phone's sound settings, whatever the device's switch says
 - **iOS**: confirm the build carries Apple's critical alerts entitlement (see above), and that Critical Alerts is allowed under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirm the app has Do Not Disturb access under Settings > Notifications > Do Not Disturb access
 - **Android**: if you chose an alarm sound, its own notification channel must be allowed to override Do Not Disturb too; the app's Alarm sound screen says when it is not

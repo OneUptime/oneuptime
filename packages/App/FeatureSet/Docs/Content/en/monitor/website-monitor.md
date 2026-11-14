@@ -2,10 +2,13 @@
 
 A Website monitor checks that a web page answers. On every check a probe requests the page's URL, and the monitor goes offline and declares an incident when the page does not answer or answers with an error. To call an endpoint with a method, headers or a body, use an [API monitor](/docs/monitor/api-monitor) instead.
 
+> [!TIP]
+> New here? Follow the guide first: [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 :::cards
 - [Create the monitor](#create-a-website-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): URL placeholders, redirects, certificates, timeouts and retries.
-- [Monitoring criteria](#monitoring-criteria): What counts as up or down, out of the box.
+- [Criteria](#criteria): What counts as up or down, out of the box.
 - [Troubleshooting](#troubleshooting): When the monitor and your browser disagree.
 :::
 
@@ -57,7 +60,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the site does not answer or answers with an error, online on any `2xx` or `3xx` status. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the site does not answer or answers with an error, online on any `2xx` or `3xx` status. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -138,7 +141,7 @@ The client certificate is only presented while the request stays on the monitor 
 
 These failures are retried: connection errors, timeouts, `4xx` and `5xx` responses, and responses slower than 10 seconds. These are not, because trying again cannot change them: an invalid or blocked URL, more than 10 redirects, and a response larger than 512 KiB.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the website counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

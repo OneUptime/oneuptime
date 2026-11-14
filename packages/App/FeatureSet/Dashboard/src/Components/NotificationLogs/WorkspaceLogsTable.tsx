@@ -50,7 +50,6 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { workspaceType: true },
       title: "Workspace",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: { actionType: true },
@@ -117,7 +116,6 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

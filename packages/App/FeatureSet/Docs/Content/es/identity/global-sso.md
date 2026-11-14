@@ -34,10 +34,10 @@ Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajuste
 :::tabs
 @tab SAML
 - Haz clic en **Añadir proveedor SAML**.
-- Introduce un **Nombre**, la **Sign On URL** y el **Issuer** de tu proveedor de identidad, y pega el **Public Certificate**. Todo lo demás ya está completado en **Más campos**: el **Signature Method** (`RSA-SHA256`), el **Digest Method** (`SHA256`) y una descripción (`Sign in with` y el nombre). Cámbialos solo si tu IdP lo requiere. Al guardar se abre la página del proveedor.
+- Introduce un **Nombre**, la **URL de inicio de sesión** y el **Emisor** de tu proveedor de identidad, y pega el **Certificado público**. Todo lo demás ya está completado en **Más campos**: el **Método de firma** (`RSA-SHA256`), el **Método de resumen** (`SHA256`) y una descripción (`Sign in with` y el nombre). Cámbialos solo si tu IdP lo requiere. Al guardar se abre la página del proveedor.
 @tab OpenID Connect
 - Haz clic en **Añadir proveedor OIDC**.
-- Introduce un **Nombre**, la **Issuer URL** y el **Client ID** y el **Client Secret** de la aplicación que registraste en tu IdP. También funciona pegar la URL de descubrimiento del IdP en **Issuer URL**. Todo lo demás ya está completado en **Más campos**: la **Discovery URL** (el emisor seguido de `/.well-known/openid-configuration`), los **Scopes** (`openid email profile`), los nombres de notificación `email` y `name`, y una descripción (`Sign in with` y el nombre). Cámbialos solo si tu IdP lo requiere. Al guardar se abre la página del proveedor.
+- Introduce un **Nombre**, la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente** de la aplicación que registraste en tu IdP. También funciona pegar la URL de descubrimiento del IdP en **URL del emisor**. Todo lo demás ya está completado en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de notificación `email` y `name`, y una descripción (`Sign in with` y el nombre). Cámbialos solo si tu IdP lo requiere. Al guardar se abre la página del proveedor.
 :::
 
 ### Copiar las URL de OneUptime en tu proveedor de identidad
@@ -150,7 +150,7 @@ La persona tiene cuenta, pero no pertenece a ningún proyecto, y el proveedor no
 :::
 
 :::details "Issuer URL does not match"
-En un proveedor SAML, el emisor de la respuesta de tu proveedor de identidad no es el **Issuer** guardado en el proveedor. Vuelve a copiarlo de tu proveedor de identidad; ambos deben coincidir exactamente.
+En un proveedor SAML, el emisor de la respuesta de tu proveedor de identidad no es el **Emisor** guardado en el proveedor. Vuelve a copiarlo de tu proveedor de identidad; ambos deben coincidir exactamente.
 :::
 
 :::details "SAML Audience does not match"

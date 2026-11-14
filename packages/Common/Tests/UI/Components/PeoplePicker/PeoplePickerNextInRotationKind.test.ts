@@ -272,7 +272,7 @@ describe("the next-in-rotation kind", () => {
       addButtonText: "Add next in rotation",
       searchPlaceholder: "Search on-call schedules by name",
       emptyText:
-        "This project has no on-call schedules yet. Create one under On-Call Duty.",
+        "This project has no on-call schedules yet. Create one under On-Call.",
     });
   });
 });

@@ -181,13 +181,13 @@ describe("the Incoming Call Policy page", () => {
     "App/FeatureSet/Notification/API/IncomingCall.ts",
   );
 
-  it("creates a policy from On-Call Duty, as the menu and the table name it", () => {
+  it("creates a policy from On-Call, as the menu and the table name it", () => {
     const menu: string = readDashboardFile("Pages/OnCallDuty/SideMenu.tsx");
 
     expect(menu).toContain('title: "Incoming Call Policies"');
     expect(new IncomingCallPolicy().singularName).toBe("Incoming Call Policy");
     expect(page).toContain(
-      "Go to **On-Call Duty** > **Incoming Call Policies** and click **Create Incoming Call Policy**.",
+      "Go to **On-Call** > **Incoming Call Policies** and click **Create Incoming Call Policy**.",
     );
   });
 
@@ -299,7 +299,11 @@ describe("the Incoming Call Policy page", () => {
       'title="Reserve"',
       'submitButtonText="Reserve"',
       'submitButtonText="Assign Number"',
-      'title="Release"',
+      /*
+       * The card's button has a key of its own (#7177): the shared
+       * "Release" is a software release in Arabic (الإصدار).
+       */
+      'title="Release Number"',
       'submitButtonText="Release Number"',
       '"Currently has a webhook configured"',
     ]) {
@@ -331,8 +335,11 @@ describe("the Incoming Call Policy page", () => {
     );
     expect(page).toContain('says "Currently has a webhook configured"');
     expect(page).toContain(
-      "click **Release** next to it and confirm with **Release Number**",
+      "click **Release Number** next to it and confirm with **Release Number**",
     );
+    // No page names the card's button by the shared word any more.
+    expect(purchase).not.toContain('title="Release"');
+    expect(page).not.toContain("**Release**");
   });
 
   it("gives the webhook Twilio calls, and the callback it reports each ring to", () => {

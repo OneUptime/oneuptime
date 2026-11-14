@@ -37,7 +37,7 @@ Der Explorer hat fünf Tabs:
 ## Bevor Sie beginnen
 
 - **Eintreffende Protokolle.** Senden Sie sie mit [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) oder [Syslog](/docs/telemetry/syslog). Der Tab **Einrichtungsanleitung** zeigt die Konfiguration für Ihre Sprache oder Ihren Collector.
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Telemetry Service Log. Ihr Bereich entscheidet, wessen Protokolle Sie sehen: siehe [Telemetrie](/docs/permissions/index#telemetrie).
+- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Logs. Ihr Bereich entscheidet, wessen Protokolle Sie sehen: siehe [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Eine Protokollzeile finden
 
@@ -141,7 +141,7 @@ OneUptime legt drei Arten von Befunden an:
 
 | Befund | Wann OneUptime ihn anlegt | Der Pull Request |
 | --- | --- | --- |
-| **Fehlerprotokoll** | Ein Dienst hat in der Stunde eine Meldung 20-mal oder öfter mit Error oder Fatal protokolliert, eine Meldung mit eigenen Wörtern und ohne Ausnahme. Eine Meldung, die mit einer Ausnahme oder mit einem Stacktrace darin protokolliert wird, wird stattdessen in der [Ausnahmenverfolgung](/docs/telemetry/exceptions) erfasst. | Behebt, warum der Fehler protokolliert wird, oder protokolliert ihn mit dem Schweregrad, den er verdient. |
+| **Fehlerprotokoll** | Ein Dienst hat in der Stunde eine Meldung 20-mal oder öfter mit Error oder Fatal protokolliert, eine Meldung mit eigenen Wörtern und ohne Ausnahme. Eine Meldung, die mit einer Ausnahme oder mit einem Stacktrace darin protokolliert wird, wird stattdessen in der [Ausnahmen](/docs/telemetry/exceptions) erfasst. | Behebt, warum der Fehler protokolliert wird, oder protokolliert ihn mit dem Schweregrad, den er verdient. |
 | **Fehlende Protokollierung** | Mindestens 20 Spans eines Vorgangs sind in der Stunde fehlgeschlagen, 5 % oder mehr davon, während mindestens 100 Protokolle des Dienstes eine Trace-ID tragen, und keine der 20 jüngsten fehlgeschlagenen Anfragen des Vorgangs hat eine Protokollzeile geschrieben. Oder ein Dienst hat in der Stunde 500 oder mehr Protokolle und 100 oder mehr Spans gesendet, und weniger als 1 % seiner Protokolle tragen eine Trace-ID. | Protokolliert den Fehlschlag dort, wo er passiert, oder sorgt dafür, dass die Protokolle des Dienstes die Trace-ID tragen. |
 | **Übermäßiges Protokoll** | Eine Meldung, die unterhalb von Error protokolliert wird, macht in der Stunde 25 % oder mehr der Zeilen eines Dienstes aus, etwa 10.000 Zeilen oder mehr. | Protokolliert die Zeile seltener: mit Debug, einmal pro Stapel oder gar nicht. |
 

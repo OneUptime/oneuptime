@@ -8,6 +8,8 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Service from "Common/Models/DatabaseModels/Service";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { UsedByImpactForRecord } from "../../../Components/UsedBy/UsedByImpact";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
@@ -112,6 +114,12 @@ const ServiceSettings: FunctionComponent<
         listRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.SERVICES] as Route,
         )}
+        archiveConfirmationContent={
+          <UsedByImpactForRecord
+            recordKind={UsedByRecordKind.Service}
+            recordId={modelId}
+          />
+        }
       />
     </Fragment>
   );

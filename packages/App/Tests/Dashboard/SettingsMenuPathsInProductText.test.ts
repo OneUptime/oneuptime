@@ -242,6 +242,11 @@ describe("a written path, as a reader follows it", () => {
       'names "Calendar Feed" without "Calendar"',
     ],
     [
+      "the same, with the arrow a path in Arabic or Persian points on with",
+      "Pick the times under User Settings ← Calendar Feed.",
+      'names "Calendar Feed" without "Calendar"',
+    ],
+    [
       "the channel note's old pointer",
       "ask them to connect Slack in OneUptime under **User Settings → Slack**.",
       'names "Slack" without "Workspace"',
@@ -292,12 +297,16 @@ describe("a written path, as a reader follows it", () => {
       [["User Settings", "Calendar", "Calendar Feed"]],
     ],
     [
+      "Pick the times on **User Settings ← Calendar ← Calendar Feed**.",
+      [["User Settings", "Calendar", "Calendar Feed"]],
+    ],
+    [
       "Every page you get is listed under User Settings → On-Call Logs.",
       [["User Settings", "On-Call Logs"]],
     ],
     [
-      "Ask them to add a rule in User Settings &gt; On-Call Rules, or remove them.",
-      [["User Settings", "On-Call Rules"]],
+      "Ask them to add a rule in User Settings &gt; How to Reach Me, or remove them.",
+      [["User Settings", "How to Reach Me"]],
     ],
     [
       "Open OneUptime → User Settings → Notification Methods → Telegram to grab your link.",
@@ -326,13 +335,13 @@ describe("a written path, as a reader follows it", () => {
     );
     expect(
       writtenPaths(
-        "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Settings.",
+        "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Channels.",
         MENUS,
       ),
     ).toEqual([
       expect.objectContaining({
         menu: PROJECT_SETTINGS,
-        steps: ["Notifications", "Notification Settings"],
+        steps: ["Notifications", "Notification Channels"],
         problems: [],
       }),
     ]);
@@ -355,7 +364,8 @@ describe("every path OneUptime writes is one a reader can follow", () => {
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams.tsx",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost.tsx",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Telegram.tsx",
-      "Common/Server/Services/UserOnCallLogService.ts",
+      // The page lines the server writes and the Dashboard words (#7260).
+      "Common/Types/OnCallDutyPolicy/OnCallPageLine.ts",
       "Common/Server/Services/UserSlackService.ts",
     ]) {
       expect({ file: expected, read: files.has(expected) }).toEqual({

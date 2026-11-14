@@ -93,7 +93,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Alert Severities",
   icon: IconProp.Alert,
   tableDescription:
-    "Manage alert severity for your project (Created, Acknowledged for example). Add / edit or remove severities.",
+    "How much an alert matters. A new project starts with High and Low: rename them, recolor them or add your own.",
 })
 @Entity({
   name: "AlertSeverity",
@@ -326,7 +326,10 @@ export default class AlertSeverity extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    modelType: User,
+    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -401,7 +404,10 @@ export default class AlertSeverity extends BaseModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    modelType: User,
+    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -647,7 +653,10 @@ export default class AlertSeverity extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "archivedByUserId",
     type: TableColumnType.Entity,
-    modelType: User,
+    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     title: "Archived by User",
     description:
       "Relation to User who archived this object (if this object was archived by a User)",

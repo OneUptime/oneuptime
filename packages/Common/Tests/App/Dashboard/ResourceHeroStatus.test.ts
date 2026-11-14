@@ -6,14 +6,17 @@ import {
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
 import {
+  RESOURCE_CANNOT_READ_API_LABEL,
   RESOURCE_CONNECTED_LABEL,
   RESOURCE_DISCONNECTED_LABEL,
   RESOURCE_HEALTH_UNKNOWN_LABEL,
   RESOURCE_STARTING_LABEL,
+  RESOURCE_WAITING_FOR_DATA_LABEL,
   ResourceHealth,
   getResourceConnectionLabel,
   getResourceHealthLabel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroStatus";
+import { ResourceConnectionState } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionState";
 
 /*
  * #5298's UI review: the words in a resource hero's pills. Nine heroes (a
@@ -324,5 +327,134 @@ describe("every Dashboard language words the pills", () => {
 
   test("English has the key the extractor found for Unhealthy", () => {
     expect(readLocale("en")["Unhealthy"]).toBe("Unhealthy");
+  });
+});
+
+/*
+ * Issue #7439: a Proxmox cluster whose agent runs but cannot read the
+ * Proxmox VE API read Connected for as long as the agent ran. Its pill now
+ * says so - "Can't read API" once a read stopped, "Waiting for data" before
+ * the first - in the reader's words, from the same helper as every pill.
+ */
+describe("the connection pill while an agent cannot read its resource (issue #7439)", () => {
+  test("says Can't read API once the read stopped", () => {
+    expect(
+      getResourceConnectionLabel({
+        translator: ENGLISH,
+        isConnected: false,
+        status: "disconnected",
+        connectionState: ResourceConnectionState.ReadingStopped,
+      }),
+    ).toBe(RESOURCE_CANNOT_READ_API_LABEL);
+    expect(RESOURCE_CANNOT_READ_API_LABEL).toBe("Can't read API");
+  });
+
+  test("says Waiting for data before the first read", () => {
+    expect(
+      getResourceConnectionLabel({
+        translator: ENGLISH,
+        isConnected: false,
+        status: "disconnected",
+        connectionState: ResourceConnectionState.NotReadYet,
+      }),
+    ).toBe(RESOURCE_WAITING_FOR_DATA_LABEL);
+    expect(RESOURCE_WAITING_FOR_DATA_LABEL).toBe("Waiting for data");
+  });
+
+  test("Connected wins over any read state", () => {
+    for (const connectionState of [
+      ResourceConnectionState.ReadingStopped,
+      ResourceConnectionState.NotReadYet,
+    ]) {
+      expect(
+        getResourceConnectionLabel({
+          translator: ENGLISH,
+          isConnected: true,
+          status: "connected",
+          connectionState,
+        }),
+      ).toBe(RESOURCE_CONNECTED_LABEL);
+    }
+  });
+
+  test("Disconnected and never connected read as they always did", () => {
+    for (const connectionState of [
+      ResourceConnectionState.Disconnected,
+      ResourceConnectionState.NeverConnected,
+      undefined,
+    ]) {
+      expect(
+        getResourceConnectionLabel({
+          translator: ENGLISH,
+          isConnected: false,
+          status: "disconnected",
+          connectionState,
+        }),
+      ).toBe(RESOURCE_DISCONNECTED_LABEL);
+    }
+  });
+
+  test("a read state wins over Starting: the agent is past starting once it reports", () => {
+    expect(
+      getResourceConnectionLabel({
+        translator: ENGLISH,
+        isConnected: false,
+        status: "disconnected",
+        isStarting: true,
+        connectionState: ResourceConnectionState.ReadingStopped,
+      }),
+    ).toBe(RESOURCE_CANNOT_READ_API_LABEL);
+  });
+
+  test("in German and Persian, the reader's own words", () => {
+    for (const [translator, words] of [
+      [GERMAN, GERMAN_WORDS],
+      [PERSIAN, PERSIAN_WORDS],
+    ] as Array<[Translator, Record<string, string>]>) {
+      const cannotRead: string = getResourceConnectionLabel({
+        translator,
+        isConnected: false,
+        status: "disconnected",
+        connectionState: ResourceConnectionState.ReadingStopped,
+      });
+      const waiting: string = getResourceConnectionLabel({
+        translator,
+        isConnected: false,
+        status: "disconnected",
+        connectionState: ResourceConnectionState.NotReadYet,
+      });
+
+      expect(cannotRead).toBe(words[RESOURCE_CANNOT_READ_API_LABEL]);
+      expect(cannotRead).not.toBe(RESOURCE_CANNOT_READ_API_LABEL);
+      expect(waiting).toBe(words[RESOURCE_WAITING_FOR_DATA_LABEL]);
+      expect(waiting).not.toBe(RESOURCE_WAITING_FOR_DATA_LABEL);
+    }
+  });
+
+  test("every locale words them, none leaves them in English", () => {
+    const codes: Array<string> = fs
+      .readdirSync(LOCALES_DIRECTORY)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+    expect(codes.length).toBeGreaterThanOrEqual(17);
+
+    for (const code of codes) {
+      const words: Record<string, string> = readLocale(code);
+      for (const label of [
+        RESOURCE_CANNOT_READ_API_LABEL,
+        RESOURCE_WAITING_FOR_DATA_LABEL,
+      ]) {
+        expect([code, label, Boolean(words[label])]).toEqual([
+          code,
+          label,
+          true,
+        ]);
+        expect([code, words[label] !== label]).toEqual([code, true]);
+      }
+    }
   });
 });

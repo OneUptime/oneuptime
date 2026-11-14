@@ -436,7 +436,7 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
 
   it("lists exactly the filters the criteria form offers", () => {
     const documented: Array<string> = tableRows(
-      section(page, "## Monitoring Criteria"),
+      section(page, "## Criteria"),
     ).map((row: Array<string>): string => {
       return boldItems(row[0]!)[0]!;
     });
@@ -453,7 +453,7 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
   });
 
   it("lists, for every filter, exactly the conditions the form offers", () => {
-    for (const row of tableRows(section(page, "## Monitoring Criteria"))) {
+    for (const row of tableRows(section(page, "## Criteria"))) {
       const label: string = boldItems(row[0]!)[0]!;
       const filter: DropdownOption | undefined = offeredFilter(
         probePage.monitorType,
@@ -1062,7 +1062,7 @@ describe("website and API checks", () => {
     (probePage: ProbePage) => {
       const criteria: string = readRepoFile(API_CRITERIA_FILE);
       const rows: Array<Array<string>> = tableRows(
-        section(englishPage(probePage), "## Monitoring Criteria"),
+        section(englishPage(probePage), "## Criteria"),
       );
 
       expect(criteria).toContain("return key.toLowerCase();");

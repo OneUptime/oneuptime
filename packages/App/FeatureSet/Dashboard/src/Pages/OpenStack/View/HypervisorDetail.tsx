@@ -29,7 +29,9 @@ import { OpenStackInstanceList } from "../../../Components/OpenStack/OpenStackLi
 import {
   formatOpenStackAmount,
   formatOpenStackBytes,
+  formatOpenStackChartBytes,
   formatOpenStackCount,
+  formatOpenStackPercent,
 } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
 import OpenStackPlannedWorkCard from "../../../Components/OpenStack/Part/OpenStackPlannedWorkCard";
@@ -193,26 +195,45 @@ const HypervisorOverview: FunctionComponent<{
         return candidate.key === key;
       },
     ) as OpenStackAllocationLine;
+    /*
+     * Drawn in the page's direction with each value set apart: a Persian
+     * tile reads "۴۸۰ GiB از ۱٫۰ TiB" from the right, each size with its
+     * number before its unit (issue #7191).
+     */
     const amount: string = formatOpenStackAmount({
       taken: line.taken,
       capacity: line.capacity,
       format: (value: number): string => {
         return formatLine(line, value);
       },
+      setsValuesApart: true,
     });
     const ratio: string = formatOpenStackAllocationRatio(line.ratio);
 
     return {
-      value: line.percent === null ? "—" : `${Math.round(line.percent)}%`,
+      value:
+        line.percent === null
+          ? "—"
+          : formatOpenStackPercent(line.percent, {
+              language: translator.language,
+            }),
       sublabel: !amount
         ? NOT_REPORTED
         : line.isLastKnown
-          ? translator.translateTemplate("{{amount}}, last known", { amount })
+          ? translator.translateTemplate(
+              "{{amount}}, last known",
+              { amount },
+              { setsValuesApart: true },
+            )
           : ratio
-            ? translator.translateTemplate("{{amount}}, ratio {{ratio}}", {
-                amount,
-                ratio,
-              })
+            ? translator.translateTemplate(
+                "{{amount}}, ratio {{ratio}}",
+                {
+                  amount,
+                  ratio,
+                },
+                { setsValuesApart: true },
+              )
             : amount,
       // A last known number is not a gauge of what is left: no bar.
       percent: line.isLastKnown ? null : line.percent,
@@ -606,7 +627,8 @@ const HypervisorMetrics: FunctionComponent<{
           transformValue: (value: number): number => {
             return value * 1024 * 1024;
           },
-          format: formatOpenStackBytes,
+          // A chart's axis and tooltip keep Latin digits, as every chart does.
+          format: formatOpenStackChartBytes,
         }),
         getOpenStackMetricQuery({
           part,
@@ -623,7 +645,7 @@ const HypervisorMetrics: FunctionComponent<{
           transformValue: (value: number): number => {
             return value * 1024 * 1024 * 1024;
           },
-          format: formatOpenStackBytes,
+          format: formatOpenStackChartBytes,
         }),
         getOpenStackMetricQuery({
           part,

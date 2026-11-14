@@ -829,7 +829,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     createdItem: OnCallDutyPolicy,
   ): Promise<OnCallDutyPolicy> {
     if (!createdItem.id) {
-      throw new BadDataException("On Call Policy id not found.");
+      throw new BadDataException("The new on-call policy has no ID.");
     }
 
     // Activation event for marketing funnels.
@@ -851,7 +851,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         );
       } catch (error) {
         logger.error(
-          `Error applying on-call duty policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
+          `Error applying on-call policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
           {
             projectId: createdItem.projectId?.toString(),
             onCallDutyPolicyId: createdItem.id?.toString(),
@@ -876,13 +876,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     });
 
     if (!onCallPolicy) {
-      throw new BadDataException("On Call Policy not found.");
+      throw new BadDataException(
+        "The new on-call policy was not found. It may have been deleted.",
+      );
     }
 
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = mdText`#### 📞 On Call Policy Created: 
+    let feedInfoInMarkdown: string = mdText`#### 📞 On-Call Policy Created: 
               
 **${onCallPolicy.name || "No name provided."}**:
     

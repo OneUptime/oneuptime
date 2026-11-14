@@ -84,12 +84,12 @@ import {
  * per signal, records per owner (LIMIT n BY), records per read, attributes
  * and events per record, and the length of every value - cut in the
  * database, so no megabyte-long value leaves it, and the engine reads at
- * most MAX_FIELD_VALUE_LENGTH of anything (AGENTS.md, "Megabyte-long
- * values"). A sample is two statements: which owners have data in the
- * window, and their newest records - the record keys picked from the light
- * columns first (a GLOBAL IN of the newest LIMIT n BY), so the wide columns
- * are read for the sampled records only. Every value in them is bound as a
- * parameter.
+ * most MAX_FIELD_VALUE_LENGTH of anything (Docs/notifications/README.md,
+ * "Megabyte-long values"). A sample is two statements: which owners have data
+ * in the window, and their newest records - the record keys picked from the
+ * light columns first (a GLOBAL IN of the newest LIMIT n BY), so the wide
+ * columns are read for the sampled records only. Every value in them is bound
+ * as a parameter.
  *
  * A company AI tool's conversations (LlmConversationPrivacy) are read by
  * owners and admins only, and a finding lands where everyone who reads

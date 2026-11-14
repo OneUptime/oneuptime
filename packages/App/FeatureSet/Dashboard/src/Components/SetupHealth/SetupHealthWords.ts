@@ -123,7 +123,7 @@ const FIX_WORDS: Readonly<Record<SetupHealthFix, string>> = {
   [SetupHealthFix.OnCallSchedule]: translationKey("Open On-Call Schedule"),
   [SetupHealthFix.OnCallReadiness]: translationKey("Open Readiness"),
   [SetupHealthFix.ProjectNotificationSettings]: translationKey(
-    "Open Notification Settings",
+    "Open Notification Channels",
   ),
   [SetupHealthFix.ProjectBilling]: translationKey("Open Billing"),
   [SetupHealthFix.ServerSettings]: translationKey("Open Server Setup"),

@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-De gateway neemt de plaats in van het eigen Twilio-account van de server, voor alles wat daarlangs zou gaan: dienstmeldingen, meldingen, verificatiecodes en sms-berichten aan abonnees van statuspagina's. Projecten die op de kaart **Twilio-configuratie** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** een eigen Twilio-configuratie toevoegen, versturen nog steeds via die configuratie. De sms- en belschakelaars van elk project, en het saldo waar facturering aan staat, worden net zo gecontroleerd als bij Twilio.
+De gateway neemt de plaats in van het eigen Twilio-account van de server, voor alles wat daarlangs zou gaan: dienstmeldingen, meldingen, verificatiecodes en sms-berichten aan abonnees van statuspagina's. Projecten die op de kaart **Twilio-configuratie** onder **Projectinstellingen > Meldingen > Meldingskanalen** een eigen Twilio-configuratie toevoegen, versturen nog steeds via die configuratie. De sms- en belschakelaars van elk project, en het saldo waar facturering aan staat, worden net zo gecontroleerd als bij Twilio.
 
 ## De gateway instellen
 

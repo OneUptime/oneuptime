@@ -333,7 +333,7 @@ describe("short words", () => {
 
     expect(
       screen.getByText(
-        "Its name, or part of its file or package path, as the Profiler shows it.",
+        "Its name, or part of its file or package path, as shown in Profiles.",
       ),
     ).toBeInTheDocument();
     expect(

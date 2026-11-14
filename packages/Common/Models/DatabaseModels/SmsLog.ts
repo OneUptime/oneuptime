@@ -776,8 +776,8 @@ export default class SmsLog extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policy",
-    description: "On-Call Duty Policy associated with this SMS (if any)",
+    title: "On-Call Policy",
+    description: "On-Call Policy associated with this SMS (if any)",
     example: "b8c9d0e1-cdef-67f1-89ab-89abcdef0123",
   })
   @ManyToOne(
@@ -810,8 +810,8 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "On-Call Duty Policy ID",
-    description: "ID of On-Call Duty Policy associated with this SMS (if any)",
+    title: "On-Call Policy ID",
+    description: "ID of On-Call Policy associated with this SMS (if any)",
     example: "b8c9d0e1-cdef-67f1-89ab-89abcdef0123",
   })
   @Column({
@@ -836,9 +836,9 @@ export default class SmsLog extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyEscalationRuleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicyEscalationRule,
-    title: "On-Call Duty Policy Escalation Rule",
+    title: "On-Call Policy Escalation Rule",
     description:
-      "On-Call Duty Policy Escalation Rule associated with this SMS (if any)",
+      "On-Call Policy Escalation Rule associated with this SMS (if any)",
     example: "c9d0e1f2-def0-78f2-9abc-9abcdef01234",
   })
   @ManyToOne(
@@ -872,9 +872,9 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "On-Call Duty Policy Escalation Rule ID",
+    title: "On-Call Policy Escalation Rule ID",
     description:
-      "ID of On-Call Duty Policy Escalation Rule associated with this SMS (if any)",
+      "ID of On-Call Policy Escalation Rule associated with this SMS (if any)",
     example: "c9d0e1f2-def0-78f2-9abc-9abcdef01234",
   })
   @Column({
@@ -899,9 +899,8 @@ export default class SmsLog extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On-Call Duty Policy Schedule",
-    description:
-      "On-Call Duty Policy Schedule associated with this SMS (if any)",
+    title: "On-Call Schedule",
+    description: "On-Call Schedule associated with this SMS (if any)",
     example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @ManyToOne(
@@ -934,9 +933,8 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "On-Call Duty Policy Schedule ID",
-    description:
-      "ID of On-Call Duty Policy Schedule associated with this SMS (if any)",
+    title: "On-Call Schedule ID",
+    description: "ID of On-Call Schedule associated with this SMS (if any)",
     example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @Column({

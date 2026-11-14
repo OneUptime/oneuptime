@@ -1056,15 +1056,19 @@ describe("the English introduction pages", () => {
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw the Dashboard's paths from its own keys, the product from the Products menu", () => {
-    expect(drawnPath("en", ["Scheduled Maintenance", "All Events"])).toBe(
-      "**Scheduled Maintenance → All Events**",
-    );
-    expect(drawnPath("de", ["Scheduled Maintenance", "All Events"])).toBe(
-      "**Geplante Wartung → Alle Ereignisse**",
-    );
+    expect(
+      drawnPath("en", ["Scheduled Maintenance", "All Maintenance Events"]),
+    ).toBe("**Scheduled Maintenance → All Maintenance Events**");
+    expect(
+      drawnPath("de", ["Scheduled Maintenance", "All Maintenance Events"]),
+    ).toBe("**Geplante Wartung → Alle Wartungsereignisse**");
     // Persian bolds each segment, joined by " > ".
     expect(
-      drawnPath("fa", ["Scheduled Maintenance", "Settings", "Event State"]),
+      drawnPath("fa", [
+        "Scheduled Maintenance",
+        "Settings",
+        "Maintenance State",
+      ]),
     ).toContain(" > ");
   });
 

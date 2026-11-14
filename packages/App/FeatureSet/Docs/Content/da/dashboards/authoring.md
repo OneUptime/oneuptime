@@ -59,7 +59,9 @@ flowchart TB
 Dine ændringer er kun dine, indtil du gemmer dem. Intet gemmes, mens du redigerer, så andre ser stadig dashboardet, som det var.
 
 - **Gem ændringer** gemmer widgets, deres placeringer og størrelser, variablerne samt standardtidsrummet og den automatiske standardopdatering på én gang og går tilbage til visningstilstand. Hvis gemningen afvises, for eksempel fordi du har mistet tilladelsen i mellemtiden, bliver du i redigeringstilstand med dine ændringer, og årsagen står over gitteret.
-- **Annuller** spørger først, fordi den smider dine ændringer væk: **Kassér ændringer** går tilbage til dashboardet, som det blev gemt, og **Fortsæt med at redigere** fører dig tilbage til dit arbejde.
+- **Annuller** går tilbage til visningstilstand. Hvis du har ændret noget, spørger den først, fordi den smider dine ændringer væk: **Kassér ændringer** går tilbage til dashboardet, som det blev gemt, og **Fortsæt med at redigere** fører dig tilbage til dit arbejde.
+
+At forlade dashboardet med ikke-gemte ændringer spørger også først. Et link i sidemenuen, brødkrummestien eller topbjælken, eller browserens Tilbage- og Frem-knapper, åbner **Forlad uden at gemme?** med de samme to valg: **Fortsæt med at redigere** bliver på dashboardet med dine ændringer, og **Kassér ændringer** fortsætter til den side, du var ved at åbne. Lukker eller genindlæser du fanen, spørger browseren med sin egen dialog. Et dashboard, du åbnede til redigering og ikke ændrede, spørger ikke om noget, og det gør et, du lige har gemt, heller ikke.
 
 Mens du redigerer, holder den automatiske opdatering pause, og et zoomet tidsinterval går tilbage til det interval, du valgte.
 

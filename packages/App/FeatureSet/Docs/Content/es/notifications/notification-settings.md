@@ -30,7 +30,7 @@ flowchart TB
 :::steps
 ### Abre tus ajustes
 
-Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **Incidentes**, **Alertas**, **Monitoreo**, **Páginas de estado**, **Mantenimiento programado**, **De guardia** y **Seguridad**.
+Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **Incidentes**, **Alertas**, **Monitoreo**, **Páginas de estado**, **Mantenimiento programado**, **Guardia** y **Seguridad**.
 
 ### Busca el evento
 
@@ -52,7 +52,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 | **Monitoreo** | **El estado de la sonda cambió para tu monitor**, **El monitor no tiene sondas activas**, **El estado del SLO cambió**, **Añadido como propietario del SLO**, **Excepción asignada a mí**, **Estado de la sonda cambiado**, **Añadido como propietario de la sonda** | **Monitor creado**, **Estado del monitor cambiado**, **Añadido como propietario del monitor**, **El estado del agente de IA ha cambiado**, **Añadido como propietario del agente de IA** |
 | **Páginas de estado** | **Mi nota pública aprobada o rechazada**, y también por push: **Nota pública pendiente de mi aprobación** | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
 | **Mantenimiento programado** | **Recordatorio de mantenimiento** | **Evento de mantenimiento creado**, **Estado de mantenimiento cambiado**, **Nota de mantenimiento publicada**, **Añadido como propietario del mantenimiento** |
-| **De guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
+| **Guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
 | **Seguridad** | También por push: **Nuevo caso de seguridad** (casos de prioridad Alta y Crítica), **Caso de seguridad asignado a mí**, **Paso de playbook esperando mi aprobación**, **Objetivo de respuesta de un caso de seguridad**, **Tarea de un caso de seguridad asignada a mí**, **Una cacería encontró eventos de seguridad** | Ninguno |
 
 > [!IMPORTANT]
@@ -60,7 +60,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 
 ## Tus turnos
 
-La pestaña **De guardia** trata de ti, no de los registros que son tuyos:
+La pestaña **Guardia** trata de ti, no de los registros que son tuyos:
 
 - **Entras en la guardia**, **Eres el siguiente en la guardia** y **Sales de la guardia** siguen tus turnos en los calendarios de guardia en los que estás.
 - **Añadido a la política de guardia** y **Eliminado de la política de guardia** te dicen cuándo una política de guardia empieza o deja de nombrarte.
@@ -106,14 +106,14 @@ Comprueba que tienes un método verificado en ese canal en **Ajustes de usuario 
 :::
 
 :::details Sigo recibiendo correos después de desactivarlo todo
-Los avisos siguen tus reglas de guardia, no estos interruptores, y los correos de inicio de sesión, seguridad y facturación no son novedades sobre registros. Cada proyecto tiene sus propios ajustes, así que revisa el proyecto del que vino el correo. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules).
+Los avisos siguen tus reglas de guardia, no estos interruptores, y los correos de inicio de sesión, seguridad y facturación no son novedades sobre registros. Cada proyecto tiene sus propios ajustes, así que revisa el proyecto del que vino el correo. Consulta [Cómo contactarme](/docs/notifications/on-call-rules).
 :::
 
 ## Próximos pasos
 
 :::cards
 - [Métodos de notificación](/docs/notifications/notification-methods): Añade los métodos a los que envían tus ajustes.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide cómo te llega un aviso.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Decide cómo te llega un aviso.
 - [Resumen de notificaciones](/docs/emails/notification-rollup): Menos correos, más completos, durante una ráfaga.
 - [Cómo te contacta OneUptime](/docs/notifications/index): Cómo encajan los métodos, las reglas y los ajustes.
 :::

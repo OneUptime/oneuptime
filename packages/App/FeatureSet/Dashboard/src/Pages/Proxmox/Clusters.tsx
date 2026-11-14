@@ -43,6 +43,10 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ProxmoxClusterConnection,
+  getProxmoxClusterConnection,
+} from "./Utils/ProxmoxClusterConnection";
 
 const ProxmoxClusters: FunctionComponent<
   PageComponentProps
@@ -166,6 +170,11 @@ const ProxmoxClusters: FunctionComponent<
         name="Proxmox Clusters"
         isViewable={true}
         searchableFields={["name", "description"]}
+        // The status reads the last read and the agent's own clock too.
+        selectMoreFields={{
+          lastSeenAt: true,
+          agentLastSeenAt: true,
+        }}
         filters={[]}
         cardProps={{
           title: "Proxmox Clusters",
@@ -214,24 +223,30 @@ const ProxmoxClusters: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * The hero's reading, word for word: "Can't read API" while the
+             * agent runs but cannot read the cluster, "Waiting for data"
+             * before its first read (issue #7439).
+             */
             getElement: (item: ProxmoxCluster): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
+              const connection: ProxmoxClusterConnection =
+                getProxmoxClusterConnection({
+                  cluster: item,
+                  translator: translator,
+                });
               return (
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2"
+                  data-testid="proxmox-cluster-status"
+                  data-state={connection.state}
+                >
                   <span
-                    className={`inline-block w-2 h-2 rounded-full ${
-                      isConnected ? "bg-emerald-500" : "bg-red-500"
-                    }`}
+                    className={`inline-block w-2 h-2 rounded-full ${connection.listDotClassName}`}
                   />
                   <span
-                    className={`text-sm font-medium ${
-                      isConnected ? "text-emerald-700" : "text-red-700"
-                    }`}
+                    className={`text-sm font-medium ${connection.listTextClassName}`}
                   >
-                    {isConnected
-                      ? translator.translateText("Connected")
-                      : translator.translateText("Disconnected")}
+                    {connection.label}
                   </span>
                 </div>
               );

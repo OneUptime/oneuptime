@@ -739,7 +739,8 @@ describe("the New Scheduled Maintenance form is filled in as the member", (): vo
     expect(showModalSpy).not.toHaveBeenCalled();
     expect(reads).toEqual([]);
     expect(channelAnswerTexts()[0]).toContain(
-      "You do not have permission to create a scheduled maintenance event.",
+      // A maintenance event, as the model has named it since #6817.
+      "You do not have permission to create a maintenance event.",
     );
   });
 
@@ -950,7 +951,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
             .messageBlocks[0] as WorkspacePayloadMarkdown
         ).text,
       ).toBe(
-        "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
+        "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.",
       );
     },
   );

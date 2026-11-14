@@ -24,7 +24,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Scheduling maintenance suggests the status pages that show the affected
  * monitors, one click to add.
  *
- * Create Scheduled Maintenance Event is drawn for real - ModelForm,
+ * Create Maintenance Event is drawn for real - ModelForm,
  * BasicForm, the status page picker and the suggestions under it - with
  * only the network, the clock and the signed-in user stubbed. An event
  * started from a template that names a monitor:
@@ -205,7 +205,7 @@ function currentStepTitle(): string {
 
 function createButton(): HTMLElement {
   return screen.getByRole("button", {
-    name: "Create Scheduled Maintenance Event",
+    name: "Create Maintenance Event",
   });
 }
 
@@ -216,7 +216,7 @@ function createButton(): HTMLElement {
 async function createFromTheReview(): Promise<void> {
   expect(
     screen.queryByRole("button", {
-      name: "Create Scheduled Maintenance Event",
+      name: "Create Maintenance Event",
     }),
   ).toBeNull();
 
@@ -351,7 +351,7 @@ afterEach(() => {
   OneUptimeDate.setUserTimezone(null);
 });
 
-describe("Create Scheduled Maintenance Event suggests the status pages that show the affected monitors", () => {
+describe("Create Maintenance Event suggests the status pages that show the affected monitors", () => {
   test("names the page that shows the template's monitor under the status page picker, and picks nothing", async () => {
     templateIdInUrl = TEMPLATE_ID;
 

@@ -42,13 +42,13 @@ Veja [Criar um monitor](/docs/monitor/create-monitor).
 
 As regras de um monitor: o que cada resultado de verificação significa. Elas são avaliadas em ordem, e a primeira que corresponde pode mudar o status do monitor, declarar um incidente, criar um alerta ou as três coisas.
 
-Também chamado: **Critérios de Monitoramento**, **Critérios do monitor**, **Monitor Steps**. Veja [Critérios e status de monitores](/docs/monitor/criteria-and-statuses).
+Também chamado: **Critérios de Monitoramento**, **Critérios do monitor**, **Monitor Steps**. Veja [Critérios e status](/docs/monitor/criteria-and-statuses).
 
 ### Status do monitor
 
 O que um monitor está neste momento. Todo projeto novo tem três status de monitor, **Operacional**, **Degradado** e **Offline**, e você pode adicionar os seus.
 
-Veja [Critérios e status de monitores](/docs/monitor/criteria-and-statuses).
+Veja [Critérios e status](/docs/monitor/criteria-and-statuses).
 
 ### Sonda
 
@@ -90,7 +90,7 @@ Veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
 Quem está de plantão a cada momento: as pessoas se revezam, e cada uma passa o turno para a seguinte. Uma regra de escalonamento que aciona um agendamento aciona quem está de plantão nele.
 
-Também chamado: **Rotation**. Veja [Agendamentos de plantão](/docs/on-call/schedules).
+Também chamado: **Rotation**, **Agendamento da política de plantão**. Veja [Agendamentos de plantão](/docs/on-call/schedules).
 
 ### Camada
 
@@ -103,6 +103,12 @@ Veja [Agendamentos de plantão](/docs/on-call/schedules#camadas).
 Um endereço pelo qual o OneUptime pode contatar você em um projeto: um endereço de e-mail, um número de telefone para SMS ou chamadas, sua conta do Slack ou do Microsoft Teams, ou o aplicativo do OneUptime no seu celular. Cada pessoa adiciona os seus em **Configurações do usuário**.
 
 Veja [Métodos de notificação](/docs/notifications/notification-methods).
+
+### Como me contatar
+
+As suas próprias regras para ser acionado: quais dos seus métodos de notificação um acionamento tenta, e depois de quanto tempo. Uma escada cobre todo incidente, alerta e episódio, e uma gravidade pode ter regras próprias. Cada pessoa define as suas em **Configurações do usuário**.
+
+Também chamado: **Regras de Plantão pessoais**. Veja [Como me contatar](/docs/notifications/on-call-rules).
 
 ### Página de status
 
@@ -118,7 +124,7 @@ Veja [Assinantes e comunicados](/docs/status-pages/subscribers).
 
 ### Manutenção programada
 
-Um trabalho planejado, anunciado com antecedência. Um evento passa por **Agendado**, **Em andamento**, **Encerrado** e **Concluído**, e as páginas de status em que ele aparece informam visitantes e assinantes sobre ele.
+Um trabalho planejado, anunciado com antecedência. Cada evento de manutenção passa pelos estados da manutenção **Agendado**, **Em andamento**, **Encerrado** e **Concluído**, e as páginas de status em que ele aparece informam visitantes e assinantes sobre ele.
 
 Também chamado: **Evento de manutenção programada**, **Evento agendado**, **Evento**. Veja [Visão geral da manutenção programada](/docs/scheduled-maintenance/index).
 
@@ -140,7 +146,7 @@ Veja [Grupos de monitores](/docs/monitor/monitor-groups).
 
 Um aplicativo ou microsserviço que você executa. O OneUptime o adiciona na primeira vez que a telemetria dele chega, com o nome do seu `service.name`, e reúne os logs, traces, métricas, exceções, incidentes e proprietários dele em uma única página.
 
-Também chamado: **Catálogo de serviços**, **Serviço de telemetria**. Veja [Catálogo de serviços](/docs/telemetry/services).
+Também chamado: **Catálogo de serviços**, **Serviço de telemetria**. Veja [Serviços](/docs/telemetry/services).
 
 ### Host
 
@@ -256,7 +262,7 @@ Veja [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-r
 
 Um erro que o seu código lança. O OneUptime agrupa todas as ocorrências do mesmo erro em uma única exceção, com o stack trace, a tendência e as requisições em que ela aconteceu.
 
-Também chamado: **Rastreamento de exceções**, `/telemetry-exception`. Veja [Rastreamento de exceções](/docs/telemetry/exceptions).
+Também chamado: **Rastreamento de exceções**, `/telemetry-exception`. Veja [Exceções](/docs/telemetry/exceptions).
 
 ### Insights de IA
 
@@ -300,7 +306,7 @@ Veja [Explorador de traços](/docs/telemetry/traces-explorer).
 
 Como o seu aplicativo gasta tempo de CPU e memória, função por função, enviados por um profiler que envia dados para a API compatível com Pyroscope do OneUptime.
 
-Também chamado: **Perfis de desempenho**, **Profiling contínuo**. Veja [Profiling contínuo](/docs/telemetry/profiles).
+Também chamado: **Perfis de desempenho**, **Profiling contínuo**. Veja [Perfis](/docs/telemetry/profiles).
 
 ### IA / LLM
 
@@ -472,13 +478,13 @@ Veja [Qual devo usar?](/docs/introduction/which-one#sonda-agente-coletor-ou-runn
 
 ### Regras de Plantão
 
-Duas coisas diferentes. Em **Incidentes** e **Alertas**, as regras de plantão escolhem as políticas de plantão que um novo incidente ou alerta executa. Em **Configurações do usuário**, as suas próprias regras de plantão decidem quais dos seus métodos de notificação um acionamento tenta, e depois de quanto tempo.
+Em **Incidentes** e **Alertas**, as regras de plantão escolhem as políticas de plantão que um novo incidente ou alerta executa. As regras próprias de cada pessoa sobre como um acionamento chega até ela também se chamavam regras de plantão: agora são **Como me contatar**, em **Configurações do usuário**.
 
-Veja [Configurações e automação de incidentes](/docs/incidents/settings#regras-de-plantão-de-incidente) e [Regras de Plantão pessoais](/docs/notifications/on-call-rules).
+Veja [Configurações e automação de incidentes](/docs/incidents/settings#regras-de-plantão-de-incidente) e [Como me contatar](/docs/notifications/on-call-rules).
 
 ### Configurações de notificação
 
-Duas páginas diferentes. Em **Configurações do usuário**, quais atualizações sobre o que é seu chegam até você, e por quais canais. Em **Configurações do projeto**, os interruptores do projeto para SMS e chamadas, o saldo de mensagens dele e o próprio SMTP e Twilio dele.
+Em **Configurações do usuário**, quais atualizações sobre o que é seu chegam até você, e por quais canais. Os interruptores do projeto para SMS e chamadas, o saldo de mensagens dele e o próprio SMTP e Twilio dele também se chamavam configurações de notificação: agora são **Canais de notificação**, em **Configurações do projeto**.
 
 Veja [Configurações de notificação](/docs/notifications/notification-settings).
 

@@ -313,7 +313,7 @@ describe("a list's count beside its title", () => {
     render(
       <DashboardResourceListBase
         title="European sites and offices (all regions, live)"
-        pluralLabel="sites"
+        countLabel={{ one: "{{count}} site", other: "{{count}} sites" }}
         columns={[{ label: "Site", widthPct: "100%" }]}
         count={3}
         isLoading={false}

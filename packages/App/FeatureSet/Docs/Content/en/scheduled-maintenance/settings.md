@@ -20,7 +20,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The **
 | **Label Rules**    | Adds labels to matching events.                                     |
 | **Reminder Rules** | Reminds owners at an interval until an event is completed.          |
 
-The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
+The **Settings** section holds **Maintenance State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Maintenance Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
 
 The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels. See [Slack](/docs/workspace-connections/slack#notification-rules) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notification-rules).
 
@@ -69,7 +69,7 @@ A rule matches only when every condition you fill in holds; a condition left emp
 :::steps
 ### Choose which events to remind about
 
-Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked to remind about every event, or pick **Only scheduled maintenance events that match conditions** and choose the **Labels** it applies to.
+Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All maintenance events** picked to remind about every event, or pick **Only maintenance events that match conditions** and choose the **Labels** it applies to.
 
 ### Set the interval
 
@@ -92,7 +92,7 @@ These reminders are for your team. The reminders your status page subscribers ge
 
 ### Note templates
 
-**Scheduled Maintenance → Settings → Note Templates** holds ready-made text for maintenance updates. The **Public or Private Note Templates for Scheduled Maintenance Events** card lists them; **Create Scheduled Maintenance Note Template** asks for a **Template Name**, a **Template Description** and the **Note**. A template is offered when someone writes a public or private note on an event, and when they change its state, and its text can be edited before it is posted. Unlike incident note templates, maintenance note templates fill in no variables.
+**Scheduled Maintenance → Settings → Note Templates** holds ready-made text for maintenance updates. The **Public or Private Note Templates for Maintenance Events** card lists them; **Create Scheduled Maintenance Note Template** asks for a **Template Name**, a **Template Description** and the **Note**. A template is offered when someone writes a public or private note on an event, and when they change its state, and its text can be edited before it is posted. Unlike incident note templates, maintenance note templates fill in no variables.
 
 ### Public note approval
 
@@ -117,7 +117,7 @@ The **Next Number** card under it sets the number the next event gets, to carry 
 
 ## Workflows
 
-Every maintenance model has workflow triggers and actions, named after it: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** and **On Delete Scheduled Maintenance Event**, the same for **Scheduled Maintenance State Timeline** and the others, and actions such as **Create One Scheduled Maintenance Event** and **Update One Scheduled Maintenance Event**. Custom field definitions and measurement values are the exceptions: they have no workflow steps. See [Workflows Overview](/docs/workflows/index).
+Every maintenance model has workflow triggers and actions, named after it: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** and **On Delete Maintenance Event**, the same for **Scheduled Maintenance State Timeline** and the others, and actions such as **Create One Maintenance Event** and **Update One Maintenance Event**. Custom field definitions and measurement values are the exceptions: they have no workflow steps. See [Workflows Overview](/docs/workflows/index).
 
 ## Who can change these
 
@@ -142,8 +142,8 @@ Check that a reminder rule matches the event's labels, that the event's **Send r
 ## Next steps
 
 :::cards
-- [Maintenance States](/docs/scheduled-maintenance/states): The Event State page, and what each state does.
-- [Templates & Recurring Events](/docs/scheduled-maintenance/templates): The Event Templates page, in depth.
+- [Maintenance States](/docs/scheduled-maintenance/states): The Maintenance State page, and what each state does.
+- [Templates & Recurring Events](/docs/scheduled-maintenance/templates): The Maintenance Templates page, in depth.
 - [Label and Owner Rules](/docs/configuration/label-and-owner-rules): The rule form, step by step.
 - [Notification Settings](/docs/notifications/notification-settings): How each owner chooses what reaches them.
 :::

@@ -37,11 +37,12 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsInDirection } from "Common/Types/DirectionArrow";
 import {
   getLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "Common/UI/Utils/LineDirection";
-import { ReadingDirection } from "Common/Types/ReadingDirection";
+import { LEFT_TO_RIGHT, ReadingDirection } from "Common/Types/ReadingDirection";
 
 /*
  * What the map says about the page or transition that was clicked, and the
@@ -315,8 +316,13 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         data-testid="user-flow-detail"
         data-kind="link"
       >
+        {/*
+         * The map is drawn from the left on every page, so a transition is
+         * named the map's way, its arrow pointing right: "/home → /cart" on
+         * an Arabic page too (joinWithArrowsInDirection).
+         */}
         {header(
-          `${sourceLabel} → ${targetLabel}`,
+          joinWithArrowsInDirection([sourceLabel, targetLabel], LEFT_TO_RIGHT),
           translator.translateText("Transition") || "Transition",
         )}
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">

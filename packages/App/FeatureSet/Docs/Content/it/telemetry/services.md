@@ -1,6 +1,6 @@
-# Catalogo servizi
+# Servizi
 
-Il catalogo servizi elenca le applicazioni e i microservizi che gestite. OneUptime aggiunge un servizio la prima volta che ne arriva la telemetria, poi riunisce su un'unica pagina i suoi log, le tracce, le metriche, le eccezioni, gli incidenti e i proprietari, così chiunque può scoprire che cosa fa un servizio, a chi appartiene e come sta andando. Per scegliere tra un servizio, un gruppo di monitor e un'etichetta, consultate [Quale usare?](/docs/introduction/which-one#gruppo-di-monitor-servizio-o-etichetta).
+Servizi elenca le applicazioni e i microservizi che gestite. OneUptime aggiunge un servizio la prima volta che ne arriva la telemetria, poi riunisce su un'unica pagina i suoi log, le tracce, le metriche, le eccezioni, gli incidenti e i proprietari, così chiunque può scoprire che cosa fa un servizio, a chi appartiene e come sta andando. Per scegliere tra un servizio, un gruppo di monitor e un'etichetta, consultate [Quale usare?](/docs/introduction/which-one#gruppo-di-monitor-servizio-o-etichetta).
 
 :::cards
 - [Come un servizio entra nel catalogo](#come-un-servizio-entra-nel-catalogo): Il suo `service.name`, alla prima telemetria.
@@ -62,7 +62,7 @@ Il menu laterale di un servizio ha cinque sezioni:
 | Sezione | Pagine |
 | --- | --- |
 | **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
-| **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili di prestazioni**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
+| **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
 | **Avanzato** | **Impostazioni**, **Registri di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
@@ -123,6 +123,6 @@ Negli ultimi 30 minuti non è arrivato nulla da questo servizio. È normale per 
 :::cards
 - [Esploratore log](/docs/telemetry/logs-explorer): Cercare nei log di un servizio.
 - [Esploratore tracce](/docs/telemetry/traces-explorer): Seguire le sue richieste.
-- [Tracciamento delle eccezioni](/docs/telemetry/exceptions): Smistare gli errori che solleva.
+- [Eccezioni](/docs/telemetry/exceptions): Smistare gli errori che solleva.
 - [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules): Dare etichette e proprietari ai nuovi servizi.
 :::

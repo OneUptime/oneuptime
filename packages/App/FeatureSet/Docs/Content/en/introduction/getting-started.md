@@ -5,7 +5,7 @@ OneUptime is an open-source observability platform. It checks that your websites
 ## What do you want to do?
 
 :::cards
-- [Know when your website or API is down](/docs/monitor/website-monitor): Check it from probes around the world, and get an email or a page when it fails.
+- [Know when your website or API is down](/docs/guides/website-down): Check it from probes around the world, and get an email or a page when it fails.
 - [Get paged by phone, SMS or push, and escalate](/docs/guides/paging): Page whoever is on call, and the next person if nobody answers.
 - [Publish a status page on your own domain](/docs/guides/status-page): Tell your customers what is happening, at an address of your own.
 - [Send logs, metrics and traces](/docs/telemetry/open-telemetry): Send your apps' telemetry with OpenTelemetry, search it, and get alerted on it.
@@ -97,7 +97,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 - [Incidents](/docs/incidents/index): Declare, coordinate and resolve incidents, with a full timeline.
 - [Alerts](/docs/alerts/index): Look into problems before your users notice, and group the noise into episodes.
 - [On-call](/docs/on-call/index): Policies, escalation rules, rotations and who gets paged when.
-- [Notifications](/docs/notifications/index): How OneUptime reaches you: your methods, on-call rules and notification settings.
+- [Notifications](/docs/notifications/index): How OneUptime reaches you: your methods, How to Reach Me and notification settings.
 - [Status pages](/docs/status-pages/index): Keep customers informed on public or private status pages.
 - [Scheduled maintenance](/docs/scheduled-maintenance/index): Announce planned work, and pause the monitors it touches.
 - [Workspace connections](/docs/workspace-connections/slack): Work on incidents from Slack and Microsoft Teams.

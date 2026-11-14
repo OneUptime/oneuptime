@@ -34,7 +34,7 @@ flowchart LR
 | **기본** | **프로젝트**, **제품**, **레이블** | [프로젝트 세부 정보](#프로젝트-세부-정보), [제품](#제품), [레이블](#레이블) |
 | **워크스페이스** | **Slack**, **Microsoft Teams**, **Mattermost**, **화상 통화** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [화상 통화](/docs/workspace-connections/video-calls) |
 | **텔레메트리 및 APM** | **수집 키**, **데이터 보존**, **사용량** | [수집 키](/docs/telemetry/ingestion-keys), [데이터 보존](/docs/telemetry/data-retention), [텔레메트리 사용량](/docs/telemetry/usage) |
-| **알림** | **알림 설정**, **알림 로그**, **모바일 앱** | [알림](#알림) |
+| **알림** | **알림 채널**, **알림 로그**, **모바일 앱** | [알림](#알림) |
 | **AI** | **AI 기능**, **LLM 공급자**, **외부 MCP 서버**, **AI 크레딧**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [외부 MCP 서버](/docs/ai/external-mcp-servers), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |
 | **고급** | **도메인**, **API 키**, **기능 플래그**, **다른 도구에서 가져오기** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [기능 플래그](#기능-플래그), [Opsgenie에서 이전](/docs/moving-to-oneuptime/opsgenie) 및 기타 이전 가이드 |
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -61,6 +61,8 @@ flowchart LR
 **프로젝트 설정 → 기본 → 제품**에서는 이 프로젝트가 **제품** 메뉴, 홈, 검색 목록에 표시할 제품을 고릅니다. 제품마다 스위치가 있으며, 바꾸는 즉시 저장됩니다. 켜면 제품이 표시됩니다. 사용자, 팀, 프로젝트 설정은 항상 표시되며, **모든 제품 표시**를 누르면 모두 다시 표시됩니다.
 
 숨긴 제품은 꺼지지 않습니다. **제품** 메뉴의 마지막 행인 **더 많은 제품**으로 옮겨지고, 검색에서 계속 찾을 수 있으며, 페이지와 API가 계속 작동하고, 데이터도 계속 들어옵니다. 그 제품을 고정한 사람의 고정은 그대로 남습니다.
+
+자체 호스팅 서버에서는 마스터 관리자가 Admin Dashboard의 **설정 → 제품**에서 제품을 모든 프로젝트에 대해 끌 수도 있습니다([필요한 것만 실행하기](/docs/installation/docker-compose#필요한-것만-실행하기) 참조). 그런 제품에는 여기에 스위치가 없으며, **이 서버에서 꺼짐**이 누가 켤 수 있는지와 함께 표시됩니다.
 
 새 프로젝트는 소유자가 홈에서 답한 프로젝트의 목적에서 시작합니다. 필수, 설정, 그 목적에 필요한 제품이 표시되고 나머지는 숨겨집니다. 질문을 건너뛰었거나 질문보다 먼저 만든 프로젝트에서는 모든 제품이 표시됩니다. 누군가 여기에서 목록을 바꾸면 그 뒤로는 목적이 목록을 바꾸지 않습니다.
 
@@ -94,7 +96,7 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 
 **프로젝트 설정 → 알림**에서는 프로젝트가 알림을 보내는 방식을 정합니다.
 
-- **알림 설정**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. Project Owner, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
+- **알림 채널**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. Project Owner, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
 - **알림 로그**: 프로젝트가 보낸 모든 알림. 채널마다 탭이 있습니다: **이메일**, **SMS**, **WhatsApp**, **Telegram**, **웹훅**, **호출**, **푸시**, **워크스페이스**.
 - **모바일 앱**: iOS 및 Android 앱을 받는 곳. [앱 개요](/docs/mobile-desktop-apps/index)를 참조하세요.
 

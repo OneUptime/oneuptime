@@ -35,6 +35,7 @@ import {
   ConnectCallbackError,
   ConnectProvider,
 } from "Common/Types/Workspace/ConnectCallback";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -57,7 +58,8 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *     wording of its own (drawnDashboardLabel). A menu path written in one
  *     bold span ("Project Settings > Workspace > Slack") is drawn segment by
  *     segment, in one span or one span a segment, joined by ">" or "→"
- *     (Persian writes ">", which right-to-left text mirrors).
+ *     (Persian writes ">", which right-to-left text mirrors, or "←" beside
+ *     a Persian segment, #7611).
  *   - The Admin Dashboard, where a self-hosted installation turns sign-up
  *     off, sets its mail server and its Twilio account and sees its probes:
  *     its top bar, side menu, switch and status words are keys of its own
@@ -300,6 +302,11 @@ const ADMIN_KEYS: Record<string, string> = {
   Disconnected: "common.disconnected",
   // The Health page, which says when several people sign in from one address.
   "OneUptime Health": "OneUptime Health",
+  // Settings > Products: the products every project on the server offers (#6815).
+  Products: "sideMenu.settingsProducts",
+  "Monitoring and status pages": "Monitoring and status pages",
+  "Incident response": "Incident response",
+  "Choose products one by one": "Choose products one by one",
 };
 
 // The bold words of a page that name the Admin Dashboard, paths included.
@@ -311,6 +318,10 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Settings > Notifications > Emails",
     "Settings > Monitoring > Global Probes",
     "OneUptime Health",
+    "Settings > Products",
+    "Monitoring and status pages",
+    "Incident response",
+    "Choose products one by one",
   ],
   [TWILIO]: ["Admin Dashboard > Settings > Call and SMS"],
 };
@@ -435,6 +446,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Visitor addresses",
     "Updates",
     "High availability",
+    // Run only what you need (#6815): the Admin Dashboard's one-click presets.
+    "Presets",
   ],
   [SIZING]: [
     "Valkey",
@@ -788,15 +801,21 @@ function drawnSegments(
 
 /*
  * A path drawn in a translation: its segments in order, in one bold span or
- * one span a segment, joined by "→" or ">".
+ * one span a segment, joined by "→" or ">", and in a language read from the
+ * right by "←" as well, which a Persian page writes beside a Persian
+ * segment (#7611).
  */
-function pathPattern(segments: Array<string>): RegExp {
+function pathPattern(language: string, segments: Array<string>): RegExp {
+  const arrow: string = isRightToLeftLanguage(language)
+    ? "(?:→|←|>)"
+    : "(?:→|>)";
+
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
         return escapeRegExp(segment);
       })
-      .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
+      .join(`(?:\\*\\* | )${arrow}(?: \\*\\*| )`)}\\*\\*`,
   );
 }
 
@@ -1480,7 +1499,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
           return drawnSegments(language, entry.page, english);
         })
         .filter((segments: Array<string>): boolean => {
-          return !pathPattern(segments).test(translated);
+          return !pathPattern(language, segments).test(translated);
         })
         .map((segments: Array<string>): string => {
           return segments.join(" > ");
@@ -1607,7 +1626,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
  */
 describe("the helpers, on these pages' shapes", () => {
   it("draw a path in one span or a span a segment, joined by → or >", () => {
-    const pattern: RegExp = pathPattern([
+    const pattern: RegExp = pathPattern("de", [
       "Projekteinstellungen",
       "Arbeitsbereich",
       "Slack",
@@ -1622,6 +1641,23 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       pattern.test("**Arbeitsbereich > Projekteinstellungen > Slack**"),
     ).toBe(false);
+    // A page read from the left writes no "←" (#7611).
+    expect(
+      pattern.test("**Projekteinstellungen ← Arbeitsbereich ← Slack**"),
+    ).toBe(false);
+
+    // A Persian page writes "←" beside a Persian segment, or ">".
+    const persian: RegExp = pathPattern("fa", [
+      "تنظیمات پروژه",
+      "فضای کاری",
+      "Slack",
+    ]);
+
+    expect(persian.test("**تنظیمات پروژه ← فضای کاری ← Slack**")).toBe(true);
+    expect(persian.test("**تنظیمات پروژه** > **فضای کاری** > **Slack**")).toBe(
+      true,
+    );
+    expect(persian.test("**فضای کاری ← تنظیمات پروژه ← Slack**")).toBe(false);
   });
 
   it("draw the Admin Dashboard's paths from its own locale, and the Dashboard's from the Dashboard's", () => {

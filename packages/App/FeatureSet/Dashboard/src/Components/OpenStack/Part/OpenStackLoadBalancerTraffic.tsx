@@ -3,7 +3,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import ResourceMetricsTab from "../../Infrastructure/ResourceMetricsTab";
-import { formatOpenStackBytes } from "../OpenStackResourceList";
+import { formatOpenStackChartBytes } from "../OpenStackResourceList";
 import { getOpenStackMetricQuery } from "./OpenStackMetricQueries";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import { OpenStackPart } from "./UseOpenStackPart";
@@ -25,8 +25,9 @@ const OVN_ZEROES: string = translationKey(
   "The OVN provider reports 0 for every counter, so its charts are flat. That is no fault.",
 );
 
+// A chart's axis and tooltip keep Latin digits, as every chart does.
 function formatBytesPerSecond(value: number): string {
-  return `${formatOpenStackBytes(value)}/s`;
+  return `${formatOpenStackChartBytes(value)}/s`;
 }
 
 function formatPerSecond(value: number): string {

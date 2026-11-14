@@ -31,7 +31,7 @@ A sonda envia apenas:
 
 | Valor | O que é |
 |---|---|
-| **Row Count** | O número de linhas que a consulta retornou (limitado pelo Max Rows). |
+| **Número de linhas** | O número de linhas que a consulta retornou (limitado pelo Max Rows). |
 | **Valor escalar** | A primeira coluna da primeira linha. É o valor natural de uma consulta no estilo `SELECT COUNT(*)`. |
 | **First Row** | A primeira linha como pares de coluna/valor, mostrada no resumo da verificação para dar contexto. |
 | **Execution Time** | Quanto tempo a verificação levou, em milissegundos, incluindo a conexão, não só a consulta. |
@@ -204,7 +204,7 @@ WHERE status = 'CANCELLED'
 :::
 
 > [!TIP]
-> Em uma consulta no estilo `COUNT(*)`, a contagem está disponível tanto como **Row Count** (que é `1`, já que uma linha é retornada) quanto como **Valor escalar** (a própria contagem, da primeira coluna). Para alertar sobre "quantos", compare com o **Valor escalar**.
+> Em uma consulta no estilo `COUNT(*)`, a contagem está disponível tanto como **Número de linhas** (que é `1`, já que uma linha é retornada) quanto como **Valor escalar** (a própria contagem, da primeira coluna). Para alertar sobre "quantos", compare com o **Valor escalar**.
 
 ## Usar um segredo do monitor para a senha
 

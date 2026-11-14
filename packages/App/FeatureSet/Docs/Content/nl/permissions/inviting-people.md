@@ -86,7 +86,7 @@ Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de 
 | --- | --- |
 | **Profiel** | Naam, e-mailadres, foto en gebruikers-ID. |
 | **Teams** | De teams waarin die persoon zit. Voeg hier een team toe of verwijder er een. |
-| **Gereedheid**, **Meldingsmethoden**, **Bereikbaarheidsregels** | Of die persoon kan worden opgeroepen, en hoe. Zichtbaar voor Project Owners, Project Admins, de persoon zelf en iedereen die de meldingsregels van anderen mag lezen. Zie [Gereedheid en rapporten](/docs/on-call/readiness). |
+| **Gereedheid**, **Meldingsmethoden**, **Hoe ik bereikbaar ben** | Of die persoon kan worden opgeroepen, en hoe. Zichtbaar voor Project Owners, Project Admins, de persoon zelf en iedereen die de meldingsregels van anderen mag lezen. Zie [Gereedheid en rapporten](/docs/on-call/readiness). |
 | **Aangepaste velden** | De aangepaste velden van het project voor personen, als het die heeft. |
 | **Verwijderen uit project** | Die persoon uit het project halen. |
 

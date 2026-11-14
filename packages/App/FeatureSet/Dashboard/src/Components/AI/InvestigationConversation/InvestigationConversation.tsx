@@ -74,6 +74,7 @@ import {
 import useInvestigationConversation, {
   UseInvestigationConversation,
 } from "./useInvestigationConversation";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   subjectType: InvestigationConversationSubjectType;
@@ -873,10 +874,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     body = (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
         <span>
-          {translator.translateTemplate(
-            "Could not load the conversation: {{error}}",
-            { error: conversation.loadError },
-          )}
+          <ErrorSentence
+            template="Could not load the conversation: {{error}}"
+            error={conversation.loadError}
+          />
         </span>
         <button
           type="button"

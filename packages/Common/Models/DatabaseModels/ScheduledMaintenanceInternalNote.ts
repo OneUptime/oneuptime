@@ -80,11 +80,14 @@ import {
 })
 @TableMetadata({
   tableName: "ScheduledMaintenanceInternalNote",
-  singularName: "Scheduled Event Internal Note",
-  pluralName: "Scheduled Event Internal Notes",
+  singularName: "Maintenance Event Internal Note",
+  pluralName: "Maintenance Event Internal Notes",
+  // Was "Scheduled Event Internal Note" (#6817): its CLI name stays.
+  apiSingularName: "Scheduled Event Internal Note",
+  apiPluralName: "Scheduled Event Internal Notes",
   icon: IconProp.Lock,
   tableDescription:
-    "Manage internal or postmortem note for your scheduled event",
+    "Manage internal or postmortem notes for your maintenance event",
 })
 export default class ScheduledMaintenanceInternalNote extends BaseModel {
   @ColumnAccessControl({
@@ -192,8 +195,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Relation to Scheduled Maintenance Event this resource belongs to",
+    description: "Relation to Maintenance Event this resource belongs to",
   })
   @ManyToOne(
     () => {

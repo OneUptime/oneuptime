@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Правила эскалации](/docs/on-call/escalation-rules): Оповещайте это расписание с уровня политики дежурства.
 - [Хронология дежурств](/docs/on-call/schedule-timeline): Смотрите все расписания рядом, с пробелами в покрытии.
 - [Календарные ленты](/docs/on-call/calendar-feeds): Добавьте смены в Google Календарь, Outlook или Календарь Apple.
-- [Личные правила дежурства](/docs/notifications/on-call-rules): Решите, как вызов дойдёт до вас во время дежурства.
+- [Как со мной связаться](/docs/notifications/on-call-rules): Решите, как вызов дойдёт до вас во время дежурства.
 :::

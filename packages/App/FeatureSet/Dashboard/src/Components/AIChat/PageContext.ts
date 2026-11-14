@@ -355,7 +355,7 @@ const areaPageRules: Array<AreaPageRule> = [
     baseRoute: RouteMap[PageMap.PROFILES],
     type: AIChatPageContextType.ProfilesExplorer,
     noun: translationKey("profiles"),
-    chipLabel: "Profiler",
+    chipLabel: "Profiles",
     icon: IconProp.Fire,
   },
   {

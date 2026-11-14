@@ -2,6 +2,9 @@
 
 Un monitor API chiama un endpoint HTTP secondo una pianificazione, con il metodo, le intestazioni e il corpo che scegliete, e controlla cosa torna: il codice di stato, il tempo di risposta, le intestazioni e il corpo. Usatelo per endpoint REST, JSON e GraphQL, controlli di salute e qualsiasi chiamata da cui dipendono i vostri utenti.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
+
 :::cards
 - [Creare il monitor](#creare-un-monitor-api): Sei passaggi nella dashboard.
 - [Opzioni di configurazione](#opzioni-di-configurazione): Metodo, intestazioni, corpo, reindirizzamenti, certificati, timeout e nuovi tentativi.
@@ -56,7 +59,7 @@ Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e 
 
 ### Rivedere i criteri
 
-**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando l'API non risponde o risponde con un errore, online con qualsiasi stato `2xx` o `3xx`. Per controllare anche cosa restituisce l'API, aggiungete un filtro, poi fate clic su **Avanti**.
+**Criteri** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando l'API non risponde o risponde con un errore, online con qualsiasi stato `2xx` o `3xx`. Per controllare anche cosa restituisce l'API, aggiungete un filtro, poi fate clic su **Avanti**.
 
 ### Scegliere le sonde e creare
 

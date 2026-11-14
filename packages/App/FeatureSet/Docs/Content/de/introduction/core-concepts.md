@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitor-Gruppen](/docs/monitor/monitor-groups): Mehrere Monitore zu einem Status zusammenfassen.
-- [Dienstkatalog](/docs/telemetry/services): Jede Anwendung, die Sie betreiben, auf je einer eigenen Seite.
+- [Dienste](/docs/telemetry/services): Jede Anwendung, die Sie betreiben, auf je einer eigenen Seite.
 - [Inventar – Übersicht](/docs/inventory/overview): Alles, was OneUptime über Ihre Umgebung weiß.
 :::
 
@@ -132,7 +132,7 @@ Eine **Statusseite** zeigt Ihren Kunden, ob Ihre Dienste funktionieren. Sie wäh
 
 ## Telemetrie
 
-**Telemetrie** ist das, was Ihre Systeme an OneUptime senden: Logs, Metriken, Traces, Ausnahmen und Profile. Anwendungen senden sie mit OpenTelemetry, und die Agenten von OneUptime senden sie von Hosts, Kubernetes-Clustern, Docker-Hosts und anderer Infrastruktur. Jeder Absender nutzt einen **Ingestion-Schlüssel**, angelegt unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. Sie durchsuchen Telemetrie, stellen sie auf Dashboards dar und überwachen sie mit Telemetrie-Monitoren, die wie jeder andere Monitor Vorfälle und Warnungen auslösen. Im Menü öffnen **Protokolle**, **Metriken**, **Traces**, **Leistungsprofile** und **Ausnahmen** jeweils eine Art; **KI / LLM** verfolgt die Gespräche Ihrer KI, **Data Observability** beobachtet die Tabellen in Ihren Datenbanken, und **Topologie** zeigt, wie alles zusammenhängt.
+**Telemetrie** ist das, was Ihre Systeme an OneUptime senden: Logs, Metriken, Traces, Ausnahmen und Profile. Anwendungen senden sie mit OpenTelemetry, und die Agenten von OneUptime senden sie von Hosts, Kubernetes-Clustern, Docker-Hosts und anderer Infrastruktur. Jeder Absender nutzt einen **Ingestion-Schlüssel**, angelegt unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. Sie durchsuchen Telemetrie, stellen sie auf Dashboards dar und überwachen sie mit Telemetrie-Monitoren, die wie jeder andere Monitor Vorfälle und Warnungen auslösen. Im Menü öffnen **Protokolle**, **Metriken**, **Traces**, **Profile** und **Ausnahmen** jeweils eine Art; **KI / LLM** verfolgt die Gespräche Ihrer KI, **Data Observability** beobachtet die Tabellen in Ihren Datenbanken, und **Topologie** zeigt, wie alles zusammenhängt.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, Metriken und Traces aus Ihren Anwendungen senden.
@@ -198,7 +198,7 @@ Die eigenen Regeln eines Monitors sind seine Kriterien. Die Bereitschaftsregeln 
 
 :::cards
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#regeln-die-beim-anlegen-eines-vorfalls-laufen): Die Regeln, die laufen, wenn ein Vorfall angelegt wird, der Reihe nach.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Wie eine Alarmierung Sie erreicht.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Wie eine Alarmierung Sie erreicht.
 :::
 
 ## Nächste Schritte

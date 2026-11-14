@@ -20,7 +20,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Reglas de etiquetas** | Añade etiquetas a los eventos que coinciden.                   |
 | **Reglas de recordatorio** | Recuerda a los propietarios a intervalos hasta que un evento se completa. |
 
-La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Aprobación de notas públicas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario** y **Numeración**. **Ajustes del calendario** se trata en [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#calendarios-externos), y el resto más abajo.
+La sección **Ajustes** contiene **Estado del mantenimiento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de mantenimiento**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Aprobación de notas públicas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario** y **Numeración**. **Ajustes del calendario** se trata en [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#calendarios-externos), y el resto más abajo.
 
 La sección **Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican eventos en canales. Consulta [Slack](/docs/workspace-connections/slack#reglas-de-notificación) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams#reglas-de-notificación).
 
@@ -69,7 +69,7 @@ Las **Reglas de runbook** inician un runbook cuando coincide un evento nuevo, co
 :::steps
 ### Elegir sobre qué eventos recordar
 
-Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **Coincidencia**, deja marcado **Todos los eventos de mantenimiento programado** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento programado que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
+Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **Coincidencia**, deja marcado **Todos los eventos de mantenimiento** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 
@@ -92,7 +92,7 @@ Estos recordatorios son para tu equipo. Los recordatorios que reciben los suscri
 
 ### Plantillas de notas
 
-**Mantenimiento programado → Ajustes → Plantillas de notas** guarda textos listos para las actualizaciones de mantenimiento. La tarjeta **Plantillas de notas públicas o privadas para eventos de mantenimiento programado** los lista; **Crear Plantilla de nota de mantenimiento programado** pide un **Nombre de la plantilla**, una **Descripción de la plantilla** y la **Nota**. Se ofrece una plantilla cuando alguien escribe una nota pública o privada en un evento y cuando cambia su estado, y su texto se puede editar antes de publicarlo. A diferencia de las plantillas de notas de incidentes, las plantillas de notas de mantenimiento no rellenan variables.
+**Mantenimiento programado → Ajustes → Plantillas de notas** guarda textos listos para las actualizaciones de mantenimiento. La tarjeta **Plantillas de notas públicas o privadas para eventos de mantenimiento** los lista; **Crear Plantilla de nota de mantenimiento programado** pide un **Nombre de la plantilla**, una **Descripción de la plantilla** y la **Nota**. Se ofrece una plantilla cuando alguien escribe una nota pública o privada en un evento y cuando cambia su estado, y su texto se puede editar antes de publicarlo. A diferencia de las plantillas de notas de incidentes, las plantillas de notas de mantenimiento no rellenan variables.
 
 ### Aprobación de notas públicas
 
@@ -117,7 +117,7 @@ La tarjeta **Próximo número** de debajo fija el número que recibe el próximo
 
 ## Flujos de trabajo
 
-Cada modelo de mantenimiento tiene disparadores y acciones de flujo de trabajo con su nombre: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** y **On Delete Scheduled Maintenance Event**, lo mismo para **Scheduled Maintenance State Timeline** y los demás, y acciones como **Create One Scheduled Maintenance Event** y **Update One Scheduled Maintenance Event**. Las definiciones de campos personalizados y los valores de las mediciones son las excepciones: no tienen pasos de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
+Cada modelo de mantenimiento tiene disparadores y acciones de flujo de trabajo con su nombre: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** y **On Delete Maintenance Event**, lo mismo para **Scheduled Maintenance State Timeline** y los demás, y acciones como **Create One Maintenance Event** y **Update One Maintenance Event**. Las definiciones de campos personalizados y los valores de las mediciones son las excepciones: no tienen pasos de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
 ## Quién puede cambiarlos
 
@@ -142,8 +142,8 @@ Comprueba que una regla de recordatorio coincide con las etiquetas del evento, q
 ## Próximos pasos
 
 :::cards
-- [Estados del mantenimiento](/docs/scheduled-maintenance/states): La página Estado del evento, y qué hace cada estado.
-- [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates): La página Plantillas de eventos, en detalle.
+- [Estados del mantenimiento](/docs/scheduled-maintenance/states): La página Estado del mantenimiento, y qué hace cada estado.
+- [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates): La página Plantillas de mantenimiento, en detalle.
 - [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules): El formulario de regla, paso a paso.
 - [Ajustes de notificaciones](/docs/notifications/notification-settings): Cómo elige cada propietario lo que le llega.
 :::

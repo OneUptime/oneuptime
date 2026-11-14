@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { seededRandom, SeededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   formatRelativeTime,
+  formatRelativeTimeParts,
   getRelativeTimeParts,
   isJustNow,
   JUST_NOW_THRESHOLD_IN_SECONDS,
@@ -124,6 +125,37 @@ describe("the words", () => {
   test("just now is exactly the times said as now", () => {
     expect(isJustNow({ date: at(-5 * SECOND), now: NOW })).toBe(true);
     expect(isJustNow({ date: at(-2 * MINUTE), now: NOW })).toBe(false);
+  });
+
+  /*
+   * A caller that counts a time its own way - a note's age, in whole
+   * minutes and hours (EventNotesUtil) - has it said in the same words.
+   */
+  test("a time its caller already put in a unit, in the reader's words and digits", () => {
+    const twentyMinutesAgo: RelativeTimeParts = { value: -20, unit: "minute" };
+    const threeHoursAgo: RelativeTimeParts = { value: -3, unit: "hour" };
+
+    expect(
+      formatRelativeTimeParts({ parts: twentyMinutesAgo, language: "de" }),
+    ).toBe("vor 20 Minuten");
+    expect(
+      formatRelativeTimeParts({ parts: twentyMinutesAgo, language: "fa" }),
+    ).toBe("۲۰ دقیقه پیش");
+    expect(
+      formatRelativeTimeParts({ parts: twentyMinutesAgo, language: "ar" }),
+    ).toBe("قبل 20 دقيقة");
+    expect(
+      formatRelativeTimeParts({ parts: threeHoursAgo, language: "en" }),
+    ).toBe("3 hours ago");
+    expect(formatRelativeTimeParts({ parts: threeHoursAgo })).toBe(
+      "3 hours ago",
+    );
+    expect(
+      formatRelativeTimeParts({
+        parts: threeHoursAgo,
+        language: "not a language!",
+      }),
+    ).toBe("3 hours ago");
   });
 });
 

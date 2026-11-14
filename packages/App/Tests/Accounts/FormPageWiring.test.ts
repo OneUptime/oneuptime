@@ -2,6 +2,7 @@ import FormMessage from "../../FeatureSet/Accounts/src/Utils/FormMessage";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import { RouteAttributes, pageRoutesIn, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * ---------------------------------------------------------------------------
@@ -116,20 +117,25 @@ const fieldBuilderSource: string = readCode(
 );
 
 describe("the routes", () => {
-  const ROUTE: string = 'path="/accounts/form/:shareKey"';
-  const OLD_ROUTE: string = 'path="/accounts/incident-form/:shareKey"';
+  // The Accounts app mounts react-router's <Route> by its own name.
+  const routes: Array<RouteAttributes> = pageRoutesIn(
+    nodePath.join(ACCOUNTS_SRC, "App.tsx"),
+    "Route",
+  );
+  const ROUTE: string = '"/accounts/form/:shareKey"';
+  const OLD_ROUTE: string = '"/accounts/incident-form/:shareKey"';
 
   test("the form's page is registered once, lazily like every Accounts page", () => {
-    expect(countOccurrences(appSource, ROUTE)).toBe(1);
-    expect(appSource).toContain(`${ROUTE} element={<FormPage />}`);
+    expect(routesAt(routes, ROUTE)).toEqual([
+      { path: ROUTE, element: "<FormPage />" },
+    ]);
     expect(appSource).toContain('return import("./Pages/Form");');
   });
 
   test("an incident form link from before Forms forwards to the same form, replacing the old address", () => {
-    expect(countOccurrences(appSource, OLD_ROUTE)).toBe(1);
-    expect(appSource).toContain(
-      `${OLD_ROUTE} element={<LegacyIncidentFormRedirect />}`,
-    );
+    expect(routesAt(routes, OLD_ROUTE)).toEqual([
+      { path: OLD_ROUTE, element: "<LegacyIncidentFormRedirect />" },
+    ]);
 
     const redirect: string = sliceBetween(
       appSource,
@@ -150,17 +156,22 @@ describe("the routes", () => {
   });
 
   test("both come before the catch-all, which would otherwise answer every link", () => {
-    const catchAll: number = appSource.indexOf('path="*"');
+    const paths: Array<string | undefined> = routes.map(
+      (route: RouteAttributes): string | undefined => {
+        return route["path"];
+      },
+    );
+    const catchAll: number = paths.indexOf('"*"');
 
     for (const route of [ROUTE, OLD_ROUTE]) {
-      expect(appSource.indexOf(route)).toBeGreaterThan(-1);
-      expect(catchAll).toBeGreaterThan(appSource.indexOf(route));
+      expect(paths.indexOf(route)).toBeGreaterThan(-1);
+      expect(catchAll).toBeGreaterThan(paths.indexOf(route));
     }
   });
 
   test("have no key-less twin: the key never leaves the path", () => {
-    expect(appSource).not.toContain('path="/accounts/form"');
-    expect(appSource).not.toContain('path="/accounts/incident-form"');
+    expect(routesAt(routes, '"/accounts/form"')).toEqual([]);
+    expect(routesAt(routes, '"/accounts/incident-form"')).toEqual([]);
   });
 
   test("are not token routes, so the bootstrap never strips the key", () => {
@@ -510,14 +521,14 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   // A File question takes one file, and says so.
   "Click to choose a file or drag & drop.",
   "Click to add more or drag & drop.",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
   "Chosen files",
   "Remove",
   "Replace",
   "File {{number}}",
-  '"{{fileName}}" exceeds the 10MB limit.',
-  "These files exceed the 10MB limit: {{fileNames}}.",
+  '"{{fileName}}" exceeds the {{size}} limit.',
+  "These files exceed the {{size}} limit: {{fileNames}}.",
   '"{{fileName}}" is not a type of file this field takes.',
   "These files are not a type this field takes: {{fileNames}}.",
   "Add one file at a time.",

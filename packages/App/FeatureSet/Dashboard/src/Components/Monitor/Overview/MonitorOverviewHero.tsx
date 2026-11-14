@@ -51,6 +51,7 @@ import { MonitorOverviewTarget } from "Common/Utils/Monitor/MonitorOverviewTarge
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import {
   translatableTerm,
   Translator,
@@ -725,19 +726,24 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid="monitor-overview-refresh-error"
             className="mt-4 text-sm text-red-700"
           >
+            {/*
+             * The error in the reader's language too: an error nobody
+             * explained says why and what to do next, the reference with
+             * its copy button (#7307).
+             */}
             {props.lastLoadedAt ? (
-              <TranslatedSentence
+              <ErrorSentence
                 template="Couldn't refresh. Showing what loaded at {{time}}. {{error}}"
-                values={{ error: props.refreshError }}
+                error={props.refreshError}
                 slots={{
                   time: <LoadedAtTime loadedAt={props.lastLoadedAt} />,
                 }}
               />
             ) : (
-              translator.translateTemplate(
-                "Couldn't refresh. Showing what loaded earlier. {{error}}",
-                { error: props.refreshError },
-              )
+              <ErrorSentence
+                template="Couldn't refresh. Showing what loaded earlier. {{error}}"
+                error={props.refreshError}
+              />
             )}
           </p>
         ) : (

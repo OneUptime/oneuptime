@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "What do you want to do first?",
+      "Know when my website or API is down",
+      "Page the right person when something breaks",
+      "Tell my customers with a status page",
+      "See my logs, metrics and traces",
+      "Watch my servers, Kubernetes or cloud",
+      "I am moving from another tool",
+      "Just looking around",
+      "Skip",
+      "Continue",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Skip",
+      "button: Continue"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-paging": {
+    "text": [
+      "What do you want to do first?",
+      "Know when my website or API is down",
+      "Page the right person when something breaks",
+      "Tell my customers with a status page",
+      "See my logs, metrics and traces",
+      "Watch my servers, Kubernetes or cloud",
+      "I am moving from another tool",
+      "Just looking around",
+      "Skip",
+      "Continue",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Skip",
+      "button: Continue"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goal-status-page": {
+    "text": [
+      "What do you want to do first?",
+      "Know when my website or API is down",
+      "Page the right person when something breaks",
+      "Tell my customers with a status page",
+      "See my logs, metrics and traces",
+      "Watch my servers, Kubernetes or cloud",
+      "I am moving from another tool",
+      "Just looking around",
+      "Skip",
+      "Continue",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Skip",
+      "button: Continue"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "home-goals-three": {
+    "text": [
+      "What do you want to do first?",
+      "Know when my website or API is down",
+      "Page the right person when something breaks",
+      "Tell my customers with a status page",
+      "See my logs, metrics and traces",
+      "Watch my servers, Kubernetes or cloud",
+      "I am moving from another tool",
+      "Just looking around",
+      "Skip",
+      "Continue",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Skip",
+      "button: Continue"
+    ],
+    "width": 902,
+    "height": 366
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "What should we check?",
+      "OneUptime checks it every 5 minutes from several locations. If it does not answer, or answers with an error, an incident opens.",
+      "Website or API address",
+      "This is an API endpoint",
+      "Start checking",
+      "More monitor types",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: Start checking",
+      "link: More monitor types"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "Who should be told?",
+      "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.",
+      "Who is paged",
+      "Add teammates",
+      "AL",
+      "Ada Lovelace",
+      "This makes the on-call policy \"Default on-call policy\", which pages them for every new incident and alert in this project.",
+      "Save and continue"
+    ],
+    "outline": [
+      "button: Add teammates",
+      "button: Remove Ada Lovelace",
+      "button: Save and continue"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "Send a test",
+      "Send yourself a test page now. It goes out the way a real page would and every message says TEST. Acknowledge it from the message to finish.",
+      "Send me a test page",
+      "Skip the test"
+    ],
+    "outline": [
+      "button: Send me a test page",
+      "button: Skip the test"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example is set up",
+      "Checked",
+      "Every 5 minutes, from 2 locations.",
+      "When it goes down",
+      "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+      "Who is told",
+      "The on-call policy \"Default on-call policy\" pages Ada Lovelace for every new incident and alert. You own this monitor, so you are emailed when its status changes.",
+      "Tested",
+      "Ada Lovelace acknowledged it by email after 14 seconds.",
+      "What next",
+      "Show it on a status page",
+      "Get paged by SMS or phone call",
+      "Open the monitor",
+      "Check another address"
+    ],
+    "outline": [
+      "heading: acme-commerce.example is set up",
+      "heading: What next",
+      "link: Show it on a status page",
+      "link: Get paged by SMS or phone call",
+      "link: Open the monitor",
+      "button: Check another address"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "How should we reach you?",
+      "A page goes to every method you have verified. Add your phone to be texted and called.",
+      "Email",
+      "Email · •••mple",
+      "SMS and phone calls",
+      "No phone number yet.",
+      "SMS is off in this project, so pages that use it are not sent.",
+      "Phone call is off in this project, so pages that use it are not sent.",
+      "Texts and calls are paid from this project's balance, which is 0.00 USD. Adding a number sends a text, so the balance must be more than 1.00 USD.",
+      "Add balance",
+      "Turn on SMS and phone calls",
+      "Mobile app or browser",
+      "Not set up.",
+      "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
+      "Set up the app or this browser",
+      "Continue",
+      "Recheck"
+    ],
+    "outline": [
+      "button: Add balance",
+      "button: Turn on SMS and phone calls",
+      "link: Set up the app or this browser",
+      "button: Continue",
+      "button: Recheck"
+    ],
+    "width": 768,
+    "height": 592
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "How should we reach you?",
+      "A page goes to every method you have verified. Add your phone to be texted and called.",
+      "Email",
+      "Email · •••mple",
+      "SMS and phone calls",
+      "No phone number yet.",
+      "Texts and calls are paid from this project's balance, which is 20.00 USD. Adding a number sends a text, so the balance must be more than 1.00 USD.",
+      "Your phone number",
+      "Text me a code",
+      "Mobile app or browser",
+      "Not set up.",
+      "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
+      "Set up the app or this browser",
+      "Continue",
+      "Recheck",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: Text me a code",
+      "link: Set up the app or this browser",
+      "button: Continue",
+      "button: Recheck"
+    ],
+    "width": 768,
+    "height": 564
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Who else is on call?",
+      "This makes the on-call policy \"Default on-call policy\". It pages these people first, for every new incident and alert in this project.",
+      "Paged first",
+      "Add teammates",
+      "AL",
+      "Ada Lovelace",
+      "Save and continue"
+    ],
+    "outline": [
+      "button: Add teammates",
+      "button: Remove Ada Lovelace",
+      "button: Save and continue"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "What if nobody answers?",
+      "A page waits for someone to acknowledge it. If nobody does in time:",
+      "Page someone else",
+      "Page the same people again",
+      "Do nothing more",
+      "Minutes to wait",
+      "Paged next",
+      "Add teammates",
+      "GH",
+      "Grace Hopper",
+      "Save and continue",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Add teammates",
+      "button: Remove Grace Hopper",
+      "button: Save and continue"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Send a test page",
+      "Test the policy now: it pages its first escalation rule the way a real incident would, and every message says TEST. Acknowledge it from the message to finish.",
+      "Test this policy",
+      "Skip the test"
+    ],
+    "outline": [
+      "button: Test this policy",
+      "button: Skip the test"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Paging is set up",
+      "Who is paged",
+      "Any new incident or alert runs \"Default on-call policy\", which pages Ada Lovelace (Email, SMS, Phone call).",
+      "If nobody answers",
+      "If nobody acknowledges within 30 minutes, Grace Hopper is paged.",
+      "Tested",
+      "Ada Lovelace acknowledged it by email after 14 seconds.",
+      "What next",
+      "Take turns with an on-call schedule",
+      "Connect Slack or Microsoft Teams",
+      "Page only in working hours for less urgent incidents",
+      "See who can be paged",
+      "Open the on-call policy",
+      "Set up another policy"
+    ],
+    "outline": [
+      "heading: Paging is set up",
+      "heading: What next",
+      "link: Take turns with an on-call schedule",
+      "link: Connect Slack or Microsoft Teams",
+      "link: Page only in working hours for less urgent incidents",
+      "link: See who can be paged",
+      "link: Open the on-call policy",
+      "button: Set up another policy"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "Name it, and pick what it shows",
+      "Status page name",
+      "What it shows",
+      "Each monitor you pick appears on the page with its current status and its uptime.",
+      "Select all",
+      "Clear",
+      "1 of 1 picked",
+      "Acme website",
+      "Operational",
+      "The page is public as soon as you create it: anyone with its link sees the status of the monitors you picked.",
+      "Create the status page",
+      "value: Acme Commerce Status",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Acme Status",
+      "button: Select all",
+      "button: Clear",
+      "field checkbox: ",
+      "button: Create the status page"
+    ],
+    "width": 768,
+    "height": 408
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "This is what your customers see",
+      "Your status page is live at this link. Here is what it shows and what appears on it.",
+      "Acme Commerce Status",
+      "IT SHOWS",
+      "Acme website",
+      "Operational",
+      "Public link",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "An incident on one of these monitors appears here by itself, and subscribers are emailed.",
+      "Alerts never appear here. They are for your team.",
+      "Scheduled maintenance and announcements appear when you post them.",
+      "Looks good"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: Looks good"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "\"Acme Commerce Status\" is live",
+      "Address",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Shows",
+      "Acme website",
+      "Appears by itself",
+      "An incident on one of these monitors appears here by itself, and subscribers are emailed.",
+      "Alerts never appear here. They are for your team.",
+      "Scheduled maintenance and announcements appear when you post them.",
+      "Make it yours (optional)",
+      "Your own domain Serve the page at an address such as status.example.com.",
+      "Your logo and colours Make the page look like your product.",
+      "Who can subscribe By email, SMS, Slack, Microsoft Teams or webhook.",
+      "Private instead of public Only people you invite, or who sign in, see the page.",
+      "What's next",
+      "Post a first announcement",
+      "Schedule a maintenance",
+      "Add the status to your website",
+      "Open this status page's settings",
+      "Set up another status page"
+    ],
+    "outline": [
+      "heading: \"Acme Commerce Status\" is live",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: Make it yours (optional)",
+      "link: Your own domain",
+      "link: Your logo and colours",
+      "link: Who can subscribe",
+      "link: Private instead of public",
+      "heading: What's next",
+      "link: Post a first announcement",
+      "link: Schedule a maintenance",
+      "link: Add the status to your website",
+      "link: Open this status page's settings",
+      "button: Set up another status page"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "Incident Feed",
+      "Everything that has happened to this incident: status changes, notes, owners and every notification sent.",
+      "Actions",
+      "Monday, September 14, 2026",
+      "Today",
+      "BST",
+      "19:12",
+      "8 min. ago",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "11 min. ago",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "15 min. ago",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "16 min. ago",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "19 min. ago",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Incident Feed",
+      "button: Actions",
+      "button: More options",
+      "heading: Monday, September 14, 2026",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "Acknowledged",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "Resolve",
+      "Created",
+      "Acknowledged",
+      "Resolved",
+      "ONGOING FOR",
+      "19 minutes",
+      "INCIDENT COMMANDER",
+      "MC",
+      "Maya Chen",
+      "OWNERS",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "Add",
+      "Add owners",
+      "MONITORS",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: Resolve",
+      "button: Add Add owners",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 279
+  }
+}

@@ -550,12 +550,13 @@ describe("what a press asks to be connected for", () => {
     [
       WorkspacePendingActionKind.MarkAsOngoing,
       WorkspaceEventType.ScheduledMaintenance,
-      "mark this scheduled maintenance event as ongoing",
+      // A maintenance event, as the model has named it since #6817.
+      "mark this maintenance event as ongoing",
     ],
     [
       WorkspacePendingActionKind.MarkAsComplete,
       WorkspaceEventType.ScheduledMaintenance,
-      "mark this scheduled maintenance event as complete",
+      "mark this maintenance event as complete",
     ],
   ])(
     "%s on %s: %s",
@@ -589,7 +590,7 @@ describe("what a press asks to be connected for", () => {
       WorkspacePendingActionKind.SavePublicNote,
       WorkspaceEventType.ScheduledMaintenance,
       WorkspaceType.Slack,
-      "save the message you reacted to as a public note on this scheduled maintenance event",
+      "save the message you reacted to as a public note on this maintenance event",
     ],
     [
       WorkspacePendingActionKind.SavePrivateNote,

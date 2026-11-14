@@ -311,6 +311,41 @@ export const PAGE_FIXTURES: Record<string, PageFixture> = {
   model: { page: "model", slug: "monitor", pageData: MODEL_PAGE_DATA },
 };
 
+/*
+ * A data type page. Not one of the fixtures above: the suites that walk every
+ * page add it themselves.
+ */
+export const DATA_TYPE_PAGE: PageFixture = {
+  page: "data-type",
+  slug: "monitor-steps",
+  pageData: {
+    title: "MonitorSteps",
+    description: "The checks a monitor runs (one step per target).",
+    isEnum: false,
+    properties: [
+      {
+        name: "monitorStepsInstanceArray",
+        required: true,
+        type: "Array<MonitorStep>",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "MonitorStep", path: "monitor-step" },
+          { label: ">", path: "" },
+        ],
+        description: "An ordered array of steps (usually one).",
+      },
+    ],
+    values: [],
+    jsonExample: '{ "_type": "MonitorSteps", "value": {} }',
+    relatedTypes: [],
+    typeHierarchy: [],
+    propertyCount: 1,
+    valueCount: 0,
+    jsonWrapperType: "MonitorSteps",
+    jsonWrapperKeys: ["value"],
+  },
+};
+
 export interface RenderOptions {
   lang?: string;
   /*

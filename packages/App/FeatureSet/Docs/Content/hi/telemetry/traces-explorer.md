@@ -37,7 +37,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आते हुए ट्रेस।** अपनी सेवाओं को [OpenTelemetry](/docs/telemetry/open-telemetry) से इंस्ट्रूमेंट करें। **सेटअप गाइड** टैब आपकी भाषा का कोड दिखाता है।
-- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Telemetry Service Traces अनुमति वाली कस्टम भूमिका। उसका दायरा तय करता है कि आप किसके स्पैन देखते हैं: देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
+- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Traces अनुमति वाली कस्टम भूमिका। उसका दायरा तय करता है कि आप किसके स्पैन देखते हैं: देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
 
 ## अनुरोध ढूँढना
 
@@ -183,6 +183,6 @@ OneUptime AI हर दिन (UTC) खुद से अधिकतम 5 पु
 :::cards
 - [खोज सिंटैक्स](/docs/telemetry/search-syntax): वे सभी फ़िल्टर जो खोज बॉक्स समझता है।
 - [ट्रेस मॉनिटर](/docs/monitor/traces-monitor): विफल या धीमे अनुरोधों पर अलर्ट पाएँ।
-- [अपवाद ट्रैकिंग](/docs/telemetry/exceptions): आपके स्पैन की दर्ज की गई त्रुटियों को छाँटें।
+- [अपवाद](/docs/telemetry/exceptions): आपके स्पैन की दर्ज की गई त्रुटियों को छाँटें।
 - [लॉग एक्सप्लोरर](/docs/telemetry/logs-explorer): किसी अनुरोध की लिखी लॉग पंक्तियाँ पढ़ें।
 :::

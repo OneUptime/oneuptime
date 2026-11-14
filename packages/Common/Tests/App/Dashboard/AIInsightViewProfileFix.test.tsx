@@ -22,7 +22,7 @@ import { MemoryRouter } from "react-router-dom";
  * while it is open with no fix linked, "Fix with AI" as the Profiler offers
  * it for the function - what an AI rule that asks before fixing leaves to a
  * person. The fix it starts names the finding; once it has, the page reads
- * the finding again and shows its fix task instead. "Open in Profiler" goes
+ * the finding again and shows its fix task instead. "Open in Profiles" goes
  * to the function, in the window it was found in.
  *
  * The UI review: the offer said what was found a third time (the title and
@@ -367,7 +367,7 @@ describe("a slow-code finding's page", () => {
     expect(screen.queryByText("Evidence")).not.toBeInTheDocument();
   });
 
-  test("Open in Profiler goes to the function, in the window it was found in", async () => {
+  test("Open in Profiles goes to the function, in the window it was found in", async () => {
     const navigate: ReturnType<typeof jest.spyOn> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {
@@ -377,7 +377,7 @@ describe("a slow-code finding's page", () => {
     await renderPage();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Open in Profiler" }),
+      await screen.findByRole("button", { name: "Open in Profiles" }),
     );
 
     const target: string = String(navigate.mock.calls[0]![0]);

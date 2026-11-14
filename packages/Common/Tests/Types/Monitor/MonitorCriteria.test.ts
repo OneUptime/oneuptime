@@ -206,7 +206,7 @@ describe("MonitorCriteria", () => {
       criteria.data = undefined;
       expect(
         MonitorCriteria.getValidationError(criteria, MonitorType.Ping),
-      ).toBe("Monitor Criteria is required");
+      ).toBe("Criteria are required");
     });
 
     test("errors when the instance array is empty", () => {
@@ -214,7 +214,7 @@ describe("MonitorCriteria", () => {
       criteria.data = { monitorCriteriaInstanceArray: [] };
       expect(
         MonitorCriteria.getValidationError(criteria, MonitorType.Ping),
-      ).toBe("Monitor Criteria is required");
+      ).toBe("Criteria are required");
     });
 
     test("propagates a validation error from a contained instance", () => {

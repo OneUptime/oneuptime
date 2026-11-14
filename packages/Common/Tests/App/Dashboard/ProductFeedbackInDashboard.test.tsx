@@ -30,7 +30,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     the end, wherever the server takes feedback;
  *   - Give feedback in Help, on every page and in the phone's menu;
  *   - "Was this clear?" under How OneUptime works;
- *   - the first-week check-in on Home;
+ *   - the first-week check-in on Home, its links in the reader's words;
  *   - the page an answer carries: a route pattern with no ids.
  */
 
@@ -41,11 +41,33 @@ const updateByIdMock: MockFunction = getJestMockFunction();
 
 let billingEnabled: boolean = false;
 
+/*
+ * The reader's language: English, each word as written, unless a test hands
+ * t() a locale's words. t() then answers from them as i18next answers from a
+ * loaded locale file, and a word they lack falls back to its English, as
+ * i18next's defaultValue does.
+ */
+let readerLanguage: string = "en";
+let readerWords: Readonly<Record<string, string>> = {};
+
+/*
+ * Words a stand-in translateText answers nothing for. Its type allows it
+ * (Translator.translateText answers string | undefined, the reason #7407's
+ * links failed the Dashboard's type check); the real lookup answers a
+ * missing word in English, so only a stand-in does this.
+ */
+let wordsTranslateTextAnswersNothingFor: ReadonlySet<string> =
+  new Set<string>();
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, options?: unknown): string => {
+          if (Object.prototype.hasOwnProperty.call(readerWords, key)) {
+            return readerWords[key] as string;
+          }
+
           if (typeof options === "string") {
             return options;
           }
@@ -61,7 +83,35 @@ jest.mock("react-i18next", () => {
 
           return key;
         },
-        i18n: { resolvedLanguage: "en", language: "en" },
+        i18n: { resolvedLanguage: readerLanguage, language: readerLanguage },
+      };
+    },
+  };
+});
+
+// The real useTranslator, whose translateText answers nothing for some words.
+jest.mock("../../../UI/Utils/UseTranslator", () => {
+  const actual: { default: () => Translator } = jest.requireActual(
+    "../../../UI/Utils/UseTranslator",
+  ) as { default: () => Translator };
+
+  return {
+    __esModule: true,
+    default: (): Translator => {
+      const translator: Translator = actual.default();
+
+      if (wordsTranslateTextAnswersNothingFor.size === 0) {
+        return translator;
+      }
+
+      return {
+        ...translator,
+        translateText: (text: string | undefined): string | undefined => {
+          return text !== undefined &&
+            wordsTranslateTextAnswersNothingFor.has(text)
+            ? undefined
+            : translator.translateText(text);
+        },
       };
     },
   };
@@ -111,9 +161,11 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   };
 });
 
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { Translator } from "../../../Types/Translator";
 import {
   PRODUCT_FEEDBACK_ASK_ROUTE,
   PRODUCT_FEEDBACK_DETAILS_ROUTE,
@@ -216,6 +268,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   billingEnabled = false;
+  readerLanguage = "en";
+  readerWords = {};
+  wordsTranslateTextAnswersNothingFor = new Set<string>();
   serverSaysAsk = true;
   ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
   ProductFeedback.setPageResolver(() => {
@@ -791,11 +846,32 @@ describe("the first-week check-in on Home", () => {
     );
   };
 
+  /*
+   * Clicks Not yet and waits until the answer it sends is kept, so the card
+   * is at rest when a test reads it: nothing updates it outside act.
+   */
+  const answerNotYet: () => Promise<void> = async (): Promise<void> => {
+    const answersKept: number = postsTo(PRODUCT_FEEDBACK_ROUTE).length;
+
+    const notYet: HTMLElement = await screen.findByTestId(
+      SETUP_CHECK_IN_NOT_YET_TEST_ID,
+    );
+
+    await act(async () => {
+      fireEvent.click(notYet);
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toHaveLength(answersKept + 1);
+  };
+
   test("Not yet leads to Setup health when it found something, without repeating its findings", async () => {
     projectMadeDaysAgo(8);
     drawCheckIn(false, 3);
 
-    fireEvent.click(await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID));
+    await answerNotYet();
 
     const line: HTMLElement = screen.getByTestId(
       SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID,
@@ -815,9 +891,7 @@ describe("the first-week check-in on Home", () => {
       projectMadeDaysAgo(8);
       drawCheckIn(false, count);
 
-      fireEvent.click(
-        await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID),
-      );
+      await answerNotYet();
 
       expect(screen.queryByTestId(SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID)).toBe(
         null,
@@ -980,6 +1054,204 @@ describe("the first-week check-in on Home", () => {
     expect(
       isCheckInForReader({ project: project, userId: "", now: new Date() }),
     ).toBe(false);
+  });
+
+  /*
+   * THE LINKS UNDER NOT YET, IN THE READER'S WORDS (#7407).
+   *
+   * Open Setup Health and the four guided setups are AppLinks, whose words
+   * must be a string. translateText answers string | undefined, so each
+   * link falls back to its English words: in German every link reads
+   * German, a word the locale lacks reads English, and a translateText that
+   * answers nothing never leaves an empty link.
+   */
+  describe("its links, in the reader's words", () => {
+    const DE: Readonly<Record<string, string>> =
+      germanLocale as unknown as Record<string, string>;
+
+    // The guided setups the card offers, in its order.
+    const GUIDED_SETUP_TITLES: ReadonlyArray<string> = [
+      "Know when my website or API is down",
+      "Page the right person when something breaks",
+      "Publish a status page",
+      "Send logs, metrics and traces, then get alerted",
+    ];
+
+    const OPEN_SETUP_HEALTH: string = "Open Setup Health";
+
+    const SETUP_HEALTH_SENTENCE: string =
+      "Setup health lists what in your project's setup needs a look.";
+
+    const GUIDED_SETUPS_SENTENCE: string =
+      "These guided setups do the most common jobs from start to finish:";
+
+    // A locale's words, less the ones a test says it lacks.
+    const withoutWords: (
+      words: Readonly<Record<string, string>>,
+      missing: ReadonlyArray<string>,
+    ) => Record<string, string> = (
+      words: Readonly<Record<string, string>>,
+      missing: ReadonlyArray<string>,
+    ): Record<string, string> => {
+      const kept: Record<string, string> = { ...words };
+
+      for (const word of missing) {
+        delete kept[word];
+      }
+
+      return kept;
+    };
+
+    // Not yet, with Setup health's finding: both kinds of link are drawn.
+    const openNotYet: () => Promise<void> = async (): Promise<void> => {
+      projectMadeDaysAgo(8);
+      drawCheckIn(false, 3);
+
+      await answerNotYet();
+    };
+
+    const setupHealthLink: () => HTMLAnchorElement = (): HTMLAnchorElement => {
+      const links: Array<HTMLAnchorElement> = Array.from(
+        screen
+          .getByTestId(SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID)
+          .querySelectorAll("a"),
+      );
+
+      expect(links).toHaveLength(1);
+
+      return links[0] as HTMLAnchorElement;
+    };
+
+    const guidedSetupLinks: () => Array<HTMLAnchorElement> =
+      (): Array<HTMLAnchorElement> => {
+        return Array.from(
+          screen
+            .getByTestId(SETUP_CHECK_IN_SETUPS_TEST_ID)
+            .querySelectorAll("a"),
+        );
+      };
+
+    const wordsOf: (links: Array<HTMLAnchorElement>) => Array<string> = (
+      links: Array<HTMLAnchorElement>,
+    ): Array<string> => {
+      return links.map((link: HTMLAnchorElement): string => {
+        return link.textContent || "";
+      });
+    };
+
+    const pagesOf: (links: Array<HTMLAnchorElement>) => Array<string> = (
+      links: Array<HTMLAnchorElement>,
+    ): Array<string> => {
+      return links.map((link: HTMLAnchorElement): string => {
+        return link.getAttribute("href") || "";
+      });
+    };
+
+    test("German has its own words for every link and the sentences above them", () => {
+      for (const words of [
+        OPEN_SETUP_HEALTH,
+        SETUP_HEALTH_SENTENCE,
+        GUIDED_SETUPS_SENTENCE,
+        ...GUIDED_SETUP_TITLES,
+      ]) {
+        expect(typeof DE[words]).toBe("string");
+        expect((DE[words] as string).trim()).not.toBe("");
+        expect(DE[words]).not.toBe(words);
+      }
+    });
+
+    test("in English, each link reads its own words", async () => {
+      await openNotYet();
+
+      expect(wordsOf([setupHealthLink()])).toEqual([OPEN_SETUP_HEALTH]);
+      expect(wordsOf(guidedSetupLinks())).toEqual([...GUIDED_SETUP_TITLES]);
+    });
+
+    test("in German, Open Setup Health and each guided setup are links in German, to the same pages as in English", async () => {
+      await openNotYet();
+
+      const englishPages: Array<string> = pagesOf([
+        setupHealthLink(),
+        ...guidedSetupLinks(),
+      ]);
+
+      cleanup();
+      readerLanguage = "de";
+      readerWords = DE;
+      await openNotYet();
+
+      expect(
+        screen.getByRole("link", { name: DE[OPEN_SETUP_HEALTH] as string }),
+      ).toBe(setupHealthLink());
+      expect(wordsOf([setupHealthLink()])).toEqual([DE[OPEN_SETUP_HEALTH]]);
+      expect(wordsOf(guidedSetupLinks())).toEqual(
+        GUIDED_SETUP_TITLES.map((title: string): string => {
+          return DE[title] as string;
+        }),
+      );
+
+      for (const title of GUIDED_SETUP_TITLES) {
+        expect(
+          screen.getByRole("link", { name: DE[title] as string }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: title })).toBeNull();
+      }
+
+      // The words change; the pages they open do not.
+      expect(englishPages.every(Boolean)).toBe(true);
+      expect(pagesOf([setupHealthLink(), ...guidedSetupLinks()])).toEqual(
+        englishPages,
+      );
+    });
+
+    test("a word the German locale lacks is a link in English, while the words around it stay German", async () => {
+      readerLanguage = "de";
+      readerWords = withoutWords(DE, [
+        OPEN_SETUP_HEALTH,
+        "Publish a status page",
+      ]);
+      await openNotYet();
+
+      expect(wordsOf([setupHealthLink()])).toEqual([OPEN_SETUP_HEALTH]);
+      expect(wordsOf(guidedSetupLinks())).toEqual([
+        DE["Know when my website or API is down"],
+        DE["Page the right person when something breaks"],
+        "Publish a status page",
+        DE["Send logs, metrics and traces, then get alerted"],
+      ]);
+      expect(
+        screen.getByTestId(SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID),
+      ).toHaveTextContent(DE[SETUP_HEALTH_SENTENCE] as string);
+      expect(
+        screen.getByTestId(SETUP_CHECK_IN_SETUPS_TEST_ID),
+      ).toHaveTextContent(DE[GUIDED_SETUPS_SENTENCE] as string);
+    });
+
+    test("a translateText that answers nothing for a link (its type allows it) leaves the link in English, never empty", async () => {
+      readerLanguage = "de";
+      readerWords = DE;
+      wordsTranslateTextAnswersNothingFor = new Set<string>([
+        OPEN_SETUP_HEALTH,
+        ...GUIDED_SETUP_TITLES,
+      ]);
+      await openNotYet();
+
+      expect(wordsOf([setupHealthLink()])).toEqual([OPEN_SETUP_HEALTH]);
+      expect(wordsOf(guidedSetupLinks())).toEqual([...GUIDED_SETUP_TITLES]);
+
+      for (const link of [setupHealthLink(), ...guidedSetupLinks()]) {
+        expect((link.textContent || "").trim()).not.toBe("");
+        expect(link.getAttribute("href")).toBeTruthy();
+      }
+
+      // The stand-in took only those words: the sentences are still German.
+      expect(
+        screen.getByTestId(SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID),
+      ).toHaveTextContent(DE[SETUP_HEALTH_SENTENCE] as string);
+      expect(
+        screen.getByTestId(SETUP_CHECK_IN_SETUPS_TEST_ID),
+      ).toHaveTextContent(DE[GUIDED_SETUPS_SENTENCE] as string);
+    });
   });
 });
 

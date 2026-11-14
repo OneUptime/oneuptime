@@ -28,6 +28,7 @@ import {
   readProjectSecurityLogSource,
 } from "./SecurityLogsSourceCard";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const SECURITY_EVENTS_EMPTY_STATE_ID: string =
   "security-events-empty-state";
@@ -379,9 +380,10 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
             data-testid={`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-last-error`}
             className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
           >
-            {translator.translateTemplate("The last check failed: {{error}}", {
-              error: logSource.lastError,
-            })}
+            <ErrorSentence
+              template="The last check failed: {{error}}"
+              error={logSource.lastError}
+            />
           </p>
         ) : (
           <></>

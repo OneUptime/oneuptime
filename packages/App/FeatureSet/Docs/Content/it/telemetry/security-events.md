@@ -591,7 +591,7 @@ level: high
 
 Un monitor di eventi di sicurezza conta gli eventi che corrispondono ai suoi filtri su una finestra mobile e applica al conteggio i soliti criteri dei monitor: cambia lo stato del monitor, apre avvisi o incidenti e chiama la reperibilità. Creane uno in **Monitor → Crea monitor**, con **Eventi di sicurezza** come tipo; viene elencato lì insieme agli altri tuoi monitor.
 
-Il suo modulo mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe di eventi**. **Filtra per servizio di telemetria**, **Filtra per attributi** e **Filtra per elenchi di controllo** aspettano in **Altri campi**, la cui intestazione mostra quelli che un monitor usa. **Filtra per elenchi di controllo** tiene gli eventi il cui campo è, o non è, in uno dei tuoi [elenchi di controllo](#elenchi-di-controllo). I suoi criteri controllano **Numero di eventi di sicurezza**.
+Il suo modulo mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe di eventi**. **Filtra per servizio**, **Filtra per attributi** e **Filtra per elenchi di controllo** aspettano in **Altri campi**, la cui intestazione mostra quelli che un monitor usa. **Filtra per elenchi di controllo** tiene gli eventi il cui campo è, o non è, in uno dei tuoi [elenchi di controllo](#elenchi-di-controllo). I suoi criteri controllano **Numero di eventi di sicurezza**.
 
 | | Regola di rilevamento | Monitor di eventi di sicurezza |
 | --- | --- | --- |

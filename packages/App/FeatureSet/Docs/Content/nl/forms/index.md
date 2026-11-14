@@ -1,6 +1,6 @@
 # Formulieren – overzicht
 
-Een formulier is een pagina die iedereen met de link kan invullen, zonder OneUptime-account. Elke inzending maakt iets aan in uw project: een **incident**, voor probleemmeldingen, of een **geplande onderhoudsgebeurtenis**, voor wijzigings- en onderhoudsverzoeken. U bouwt de vragen van het formulier in een editor met slepen en neerzetten, bepaalt hoe de antwoorden het record worden en deelt de link met de mensen die het moeten gebruiken.
+Een formulier is een pagina die iedereen met de link kan invullen, zonder OneUptime-account. Elke inzending maakt iets aan in uw project: een **incident**, voor probleemmeldingen, of een **onderhoudsgebeurtenis**, voor wijzigings- en onderhoudsverzoeken. U bouwt de vragen van het formulier in een editor met slepen en neerzetten, bepaalt hoe de antwoorden het record worden en deelt de link met de mensen die het moeten gebruiken.
 
 Gebruik een formulier als de mensen die een probleem opmerken, of een wijziging nodig hebben, niet degenen zijn die uw incidenten en onderhoud afhandelen: supportmedewerkers, collega's van een andere afdeling, een filiaalmanager, het operationele team van een klant. Ze openen de link, beantwoorden uw vragen en klikken op **Verzenden**. Uw team krijgt een gewoon incident of een gewone gebeurtenis, met de antwoorden in de velden en een privénotitie die vastlegt wie het heeft verzonden.
 
@@ -257,7 +257,7 @@ Het antwoord op een bestandsvraag zijn de bestanden zoals ze zijn opgeslagen, el
 
 ### Workflows
 
-Formulieren hebben de gegenereerde workflowcomponenten: **On Create Form**, **On Update Form** enzovoort. Gebruik **On Create Incident** of **On Create Scheduled Maintenance Event** om te reageren op wat een formulier heeft aangemaakt.
+Formulieren hebben de gegenereerde workflowcomponenten: **On Create Form**, **On Update Form** enzovoort. Gebruik **On Create Incident** of **On Create Maintenance Event** om te reageren op wat een formulier heeft aangemaakt.
 
 ### De eigen eindpunten van de openbare pagina
 

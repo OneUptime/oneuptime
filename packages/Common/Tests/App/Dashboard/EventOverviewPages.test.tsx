@@ -668,7 +668,7 @@ const INCIDENT_CASE: PageCase = {
   detailsCardName: "Incident Details",
   // When it was declared, and by whom, are the stat bar's Declared tile.
   expectedDetailTitles: [
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, read only.
     "Status Page Scope",
@@ -757,7 +757,7 @@ const ALERT_CASE: PageCase = {
     "Created At",
     "Monitor",
     "Episode",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
     "Alert Number",
     "Alert ID",

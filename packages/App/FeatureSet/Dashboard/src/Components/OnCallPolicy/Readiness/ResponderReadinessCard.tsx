@@ -9,8 +9,11 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import UserUtil from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
@@ -304,10 +307,35 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
                 key={`method-${index}`}
                 className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
               >
-                {translator.translateTerm(method.methodType)}
-                <span className="font-normal text-gray-500">
-                  {method.maskedIdentifier}
-                </span>
+                {NotificationMethodUtil.getMethodName(
+                  translator,
+                  method.methodType,
+                )}
+                {/*
+                 * A number reads +1 ••• ••• 4821 in every language
+                 * (PhoneNumberText), any other identifier the way it is
+                 * written (IsolatedText): printed as it came, a Persian or
+                 * Arabic chip drew a WhatsApp number "4821 ••• ••• 1+".
+                 */}
+                {NotificationMethodUtil.isPhoneNumberMethod(
+                  method.methodType,
+                ) ? (
+                  <PhoneNumberText
+                    phoneNumber={method.maskedIdentifier}
+                    className="font-normal text-gray-500"
+                    dataTestId="readiness-method-identifier"
+                  />
+                ) : (
+                  <IsolatedText
+                    text={NotificationMethodUtil.getIdentifierText(
+                      translator,
+                      method.methodType,
+                      method.maskedIdentifier,
+                    )}
+                    className="font-normal text-gray-500"
+                    dataTestId="readiness-method-identifier"
+                  />
+                )}
               </span>
             );
           },

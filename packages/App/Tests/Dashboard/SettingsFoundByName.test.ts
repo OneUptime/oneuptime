@@ -80,12 +80,15 @@ const ENTRIES: Array<PageSearchIndexEntry> = getPageSearchIndexEntries(AREAS);
 const ALL_ON: PageSearchAvailability = {
   isBillingEnabled: true,
   isMonitorGroupsEnabled: true,
+  isDashboardRecordingOn: true,
   canDeleteProject: true,
 };
 
 const SELF_HOSTED: PageSearchAvailability = {
   ...ALL_ON,
   isBillingEnabled: false,
+  // A self-hosted server never records its Dashboard (#6834).
+  isDashboardRecordingOn: false,
 };
 
 const TEMPLATE: (key: string) => string = (key: string): string => {
@@ -315,13 +318,9 @@ describe("what people searched for, and found nothing, lands where the setting i
       "notification channels",
       commands,
     );
-    // The setting itself, on the page it is on.
+    // The page, named for what it holds since #6817.
     expect(found[0]!.title).toBe("Notification Channels");
-    expect(found[0]!.breadcrumb).toEqual([
-      "Project Settings",
-      "Notifications",
-      "Notification Settings",
-    ]);
+    expect(found[0]!.breadcrumb).toEqual(["Project Settings", "Notifications"]);
     expect(pageKeyOf(found[0]!)).toBe(PageMap.SETTINGS_NOTIFICATION_SETTINGS);
   });
 });
@@ -658,20 +657,18 @@ describe("a setting there only on OneUptime Cloud is offered only there", () => 
     ).not.toContain(PageMap.SETTINGS);
   });
 
-  test("Notification Settings' balance is named only where there is one", () => {
+  test("Notification Channels' balance is named only where there is one", () => {
     const notificationSettings: PageSearchPage = ENTRIES.find(
       (entry: PageSearchIndexEntry): boolean => {
         return entry.page.page === PageMap.SETTINGS_NOTIFICATION_SETTINGS;
       },
     )!.page;
+    // The channels card is the page's own name now, so it is no setting of it.
     expect(offeredNames(notificationSettings, ALL_ON)).toEqual([
-      "Notification Channels",
       "Current Balance",
       "Auto Recharge",
     ]);
-    expect(offeredNames(notificationSettings, SELF_HOSTED)).toEqual([
-      "Notification Channels",
-    ]);
+    expect(offeredNames(notificationSettings, SELF_HOSTED)).toEqual([]);
   });
 });
 

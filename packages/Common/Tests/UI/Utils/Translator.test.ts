@@ -8,6 +8,7 @@ import {
   isTranslatableTerm,
   PluralTemplate,
   TextLookup,
+  toLabelTerm,
   toSentenceTerm,
   translatableTerm,
   translationKey,
@@ -155,6 +156,13 @@ describe("toSentenceTerm", () => {
     // Only after "Google" is "Cloud" a name.
     ["Cloud Resources", "en", "cloud resources"],
     ["Cloud Google", "en", "cloud Google"],
+    // Notification methods named in a sentence ("Remove this ... method?").
+    ["Microsoft Teams", "en", "Microsoft Teams"],
+    ["Mattermost", "en", "Mattermost"],
+    ["Phone call", "en", "phone call"],
+    ["Push notification", "en", "push notification"],
+    // Only after "Microsoft" is "Teams" a name.
+    ["Teams", "en", "teams"],
     // ... alone or as a compound's first part.
     ["Google Cloud-projekt", "da", "Google Cloud-projekt"],
     ["Google Cloud-project", "nl", "Google Cloud-project"],
@@ -185,6 +193,74 @@ describe("toSentenceTerm", () => {
   test("an unknown language code still lower-cases", () => {
     expect(toSentenceTerm("Status Pages", "not-a-language-code!!")).toBe(
       "status pages",
+    );
+  });
+});
+
+/*
+ * A name the locale words for the middle of a sentence ("clúster de
+ * Kubernetes"), drawn where it starts a label: a row, a chip, a line.
+ */
+describe("toLabelTerm", () => {
+  test.each([
+    // The Template sync settings card's infrastructure rows (#7607).
+    ["clúster de Kubernetes", "es", "Clúster de Kubernetes"],
+    ["cluster Kubernetes", "fr", "Cluster Kubernetes"],
+    ["hôte Docker", "fr", "Hôte Docker"],
+    ["host Docker", "it", "Host Docker"],
+    ["cluster Kubernetes", "pt", "Cluster Kubernetes"],
+    ["кластер Kubernetes", "ru", "Кластер Kubernetes"],
+    ["облако OpenStack", "ru", "Облако OpenStack"],
+    ["nube OpenStack", "es", "Nube OpenStack"],
+    // Upper-cased the way the language writes a capital.
+    ["istanbul", "tr", "İstanbul"],
+    ["istanbul", "en", "Istanbul"],
+    // Already a capital: a German noun, a compound, an English label.
+    ["Kubernetes-Cluster", "de", "Kubernetes-Cluster"],
+    ["Docker-хост", "ru", "Docker-хост"],
+    ["Kubernetes cluster", "en", "Kubernetes cluster"],
+    // A script without case reads the same.
+    ["ホスト", "ja", "ホスト"],
+    ["호스트", "ko", "호스트"],
+    ["主机", "zh-CN", "主机"],
+    ["主機", "zh-TW", "主機"],
+    ["होस्ट", "hi", "होस्ट"],
+    ["خوشه Kubernetes", "fa", "خوشه Kubernetes"],
+    ["عنقود Kubernetes", "ar", "عنقود Kubernetes"],
+    // A first word that keeps its own case.
+    ["vCenter archivados", "es", "vCenter archivados"],
+    ["iOS", "en", "iOS"],
+    ["eBPF-Programme", "de", "eBPF-Programme"],
+    // Only the first word's case is the label's to change.
+    ["e-mail del proyecto", "es", "E-mail del proyecto"],
+    // Anything but a letter first.
+    ["3 réplicas", "es", "3 réplicas"],
+    ["(sin nombre)", "es", "(sin nombre)"],
+    [" clúster", "es", " clúster"],
+  ])(
+    "%s in %s starts a label as %s",
+    (text: string, language: string, expected: string) => {
+      expect(toLabelTerm(text, language)).toBe(expected);
+    },
+  );
+
+  test("an empty text stays empty", () => {
+    expect(toLabelTerm("", "es")).toBe("");
+  });
+
+  test("without a language, or with one that is not a code, it still capitalizes", () => {
+    expect(toLabelTerm("clúster de Kubernetes")).toBe("Clúster de Kubernetes");
+    expect(toLabelTerm("clúster de Kubernetes", "not-a-language-code!!")).toBe(
+      "Clúster de Kubernetes",
+    );
+  });
+
+  test("it undoes nothing toSentenceTerm keeps", () => {
+    expect(toLabelTerm(toSentenceTerm("Kubernetes Clusters", "en"), "en")).toBe(
+      "Kubernetes clusters",
+    );
+    expect(toLabelTerm(toSentenceTerm("Monitors", "en"), "en")).toBe(
+      "Monitors",
     );
   });
 });

@@ -11,6 +11,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 import AttemptLine from "./AttemptLine";
 
@@ -114,7 +115,11 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
           )}
           <SummaryFact
             title="Execution Time (in ms)"
-            value={executionTimeInMS ? executionTimeInMS + " ms" : "-"}
+            value={
+              executionTimeInMS
+                ? formatMilliseconds(translator, executionTimeInMS)
+                : "-"
+            }
           />
           <SummaryFact
             title="Monitored At"
@@ -184,13 +189,10 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                                 : "text-green-700",
                             },
                             {
-                              text: translator.translateTemplate(
-                                "{{value}} ms",
-                                {
-                                  value: translator.formatNumber(
-                                    Math.round(attempt.executionTimeInMS),
-                                  ),
-                                },
+                              text: formatMilliseconds(
+                                translator,
+                                attempt.executionTimeInMS,
+                                { maximumFractionDigits: 0 },
                               ),
                             },
                           ]}

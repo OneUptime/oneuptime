@@ -106,14 +106,14 @@ Confira se você tem um método verificado nesse canal em **Configurações do u
 :::
 
 :::details Continuo recebendo e-mails depois de desativar tudo
-Os acionamentos seguem as suas regras de plantão, não esses interruptores, e e-mails de login, segurança e cobrança não são novidades sobre registros. Cada projeto tem as próprias configurações, então confira o projeto de onde o e-mail veio. Veja [Regras de Plantão pessoais](/docs/notifications/on-call-rules).
+Os acionamentos seguem as suas regras de plantão, não esses interruptores, e e-mails de login, segurança e cobrança não são novidades sobre registros. Cada projeto tem as próprias configurações, então confira o projeto de onde o e-mail veio. Veja [Como me contatar](/docs/notifications/on-call-rules).
 :::
 
 ## Próximos passos
 
 :::cards
 - [Métodos de notificação](/docs/notifications/notification-methods): Adicione os métodos para os quais as suas configurações enviam.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Decida como um acionamento chega até você.
+- [Como me contatar](/docs/notifications/on-call-rules): Decida como um acionamento chega até você.
 - [Resumo de notificações](/docs/emails/notification-rollup): Menos e-mails, mais completos, durante uma rajada.
 - [Como o OneUptime chega até você](/docs/notifications/index): Como métodos, regras e configurações se encaixam.
 :::

@@ -127,3 +127,48 @@ describe("on an English page", () => {
     expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
   });
 });
+
+/*
+ * Each chart's heading carried a card's id, card-details-heading: the same
+ * on every chart, repeated on every page with two (#7594). Nothing pointed
+ * at it, and a chart's heading has no id now.
+ */
+describe("two charts' headings", () => {
+  test("repeat no id", () => {
+    render(
+      <I18nextProvider i18n={instances["en"]!}>
+        <ChartGroup
+          charts={[
+            {
+              id: "duration",
+              title: TITLE,
+              description: DESCRIPTION,
+              type: ChartType.LINE,
+              props: {} as unknown as LineChartProps,
+            },
+            {
+              id: "errors",
+              title: "http.server.errors (checkout-api)",
+              description: "How often the checkout API fails.",
+              type: ChartType.LINE,
+              props: {} as unknown as LineChartProps,
+            },
+          ]}
+        />
+      </I18nextProvider>,
+    );
+
+    const ids: Array<string> = Array.from(
+      document.querySelectorAll("[id]"),
+    ).map((element: Element): string => {
+      return element.id;
+    });
+
+    expect(screen.getAllByTestId("card-details-heading")).toHaveLength(2);
+    expect(
+      ids.filter((id: string, index: number): boolean => {
+        return ids.indexOf(id) !== index;
+      }),
+    ).toEqual([]);
+  });
+});

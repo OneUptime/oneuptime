@@ -67,8 +67,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyEscalationRuleTeam",
-  singularName: "Team On-Call Duty Escalation Rule",
-  pluralName: "Team On-Call Duty Escalation Rules",
+  singularName: "Escalation Rule Team",
+  pluralName: "Escalation Rule Teams",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "Team On-Call Duty Escalation Rule",
+  apiPluralName: "Team On-Call Duty Escalation Rules",
   icon: IconProp.Call,
   tableDescription: "Add teams to your escalation rules.",
 })

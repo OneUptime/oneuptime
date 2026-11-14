@@ -8,14 +8,14 @@ Voeg een controle toe op het tabblad **Controles** van een tabel:
 
 | Controle | Wat ze leest |
 | --- | --- |
-| **Null Percent** | Percentage rijen waarvan de kolom leeg is |
-| **Duplicate Percent** | Percentage waarden die de waarde van een andere rij herhalen |
-| **Distinct Count** | Hoeveel verschillende waarden de kolom bevat |
+| **Percentage NULL** | Percentage rijen waarvan de kolom leeg is |
+| **Percentage duplicaten** | Percentage waarden die de waarde van een andere rij herhalen |
+| **Aantal unieke waarden** | Hoeveel verschillende waarden de kolom bevat |
 | **Minimum**, **Maximum**, **Gemiddelde**, **Som** | Van een numerieke kolom (een Som over nul rijen is 0) |
-| **Invalid Percent** | Percentage waarden buiten een lijst die je opgeeft |
-| **Format Mismatch Percent** | Percentage waarden die niet in een door jou gekozen formaat staan, zoals Email, UUID of Country Code, of die niet overeenkomen met een reguliere expressie van jou (elke engine behalve SQL Server en Dataverse) |
-| **Orphan Count** | Rijen waarvan de waarde geen tegenhanger heeft in de kolom van een andere tabel |
-| **Row Count** | Rijen in de tabel, het nuttigst met **Segmenteren op** |
+| **Percentage ongeldige waarden** | Percentage waarden buiten een lijst die je opgeeft |
+| **Percentage afwijkende opmaak** | Percentage waarden die niet in een door jou gekozen formaat staan, zoals Email, UUID of Country Code, of die niet overeenkomen met een reguliere expressie van jou (elke engine behalve SQL Server en Dataverse) |
+| **Aantal verweesde rijen** | Rijen waarvan de waarde geen tegenhanger heeft in de kolom van een andere tabel |
+| **Aantal rijen** | Rijen in de tabel, het nuttigst met **Segmenteren op** |
 | **Aangepaste SQL** | Het getal dat een eigen alleen-lezen SELECT teruggeeft, met de naam `value` (bij MongoDB dat van een aggregatiepijplijn) |
 | **Mislukte rijen** | Hoeveel rijen één alleen-lezen SELECT van jou teruggeeft: de rijen die niet zouden moeten bestaan. 0 is gezond (bij MongoDB de documenten waarmee een pipeline eindigt) |
 
@@ -31,7 +31,7 @@ Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één
 
 ## Segmenten
 
-**Segmenteren op** voert een controle één keer per waarde van een kolom uit, zoals een tenant of een regio: één reeks en één waarschuwing per waarde, voor de 100 grootste segmenten. Een gesegmenteerde Row Count waarschuwt wanneer één tenant geen gegevens meer stuurt terwijl de andere gewoon doorgaan.
+**Segmenteren op** voert een controle één keer per waarde van een kolom uit, zoals een tenant of een regio: één reeks en één waarschuwing per waarde, voor de 100 grootste segmenten. Een gesegmenteerd aantal rijen waarschuwt wanneer één tenant geen gegevens meer stuurt terwijl de andere gewoon doorgaan.
 
 ## Waarschuwingen op een controle
 
@@ -48,13 +48,13 @@ De **Status** van een controle, op **Controles** en op het tabblad **Controles**
 
 Een controle concurreert met je applicatie om de database, en op een warehouse dat afrekent op wat een query leest, kost ze geld. Drie dingen houden dat in de hand:
 
-- **Steekproefpercentage** leest een deel van de rijen in plaats van alle, voor een controle die een ratio leest: Null Percent, Gemiddelde, Invalid Percent en Format Mismatch Percent. De meeste engines slaan hele pagina's van de tabel over; MySQL, Redshift, ClickHouse en MongoDB lezen nog steeds elke rij, en worden het werk op de rest bespaard. Dataverse neemt geen steekproef: een controle daar leest elke rij. Een view kan het weigeren, en de controle meldt dat.
+- **Steekproefpercentage** leest een deel van de rijen in plaats van alle, voor een controle die een ratio leest: Percentage NULL, Gemiddelde, Percentage ongeldige waarden en Percentage afwijkende opmaak. De meeste engines slaan hele pagina's van de tabel over; MySQL, Redshift, ClickHouse en MongoDB lezen nog steeds elke rij, en worden het werk op de rest bespaard. Dataverse neemt geen steekproef: een controle daar leest elke rij. Een view kan het weigeren, en de controle meldt dat.
 - **Maximaal te lezen door een controle (GB)**, onder **Instellingen**, stopt een controle op BigQuery of Athena voordat ze meer dan zoveel gigabyte leest. Het is 10 totdat je het wijzigt.
 - **Wachten wanneer een database druk is**, onder **Instellingen**, laat verschuldigde controles tot de volgende verzamelronde liggen wanneer een PostgreSQL-, MySQL- of SQL Server-database druk lijkt. Het staat aan totdat je het uitzet, en de database meldt wanneer controles hebben gewacht.
 
 ## Mislukte rijen
 
-Een getal zegt dat er iets mis is; een paar rijen zeggen wat. **Mislukte rijen bewaren** onder **Instellingen** bewaart maximaal 20 van de rijen die een controle Failing Rows, Invalid Percent, Format Mismatch Percent of Orphan Count vond, en **Mislukte rijen** op de controle toont ze. Deze instelling staat uit tot je ze inschakelt. Gevoelige kolommen worden gemaskeerd op de plek waar de rij wordt gelezen, op basis van wat Gegevensbeveiliging erin vond of van hun namen, dus wat de database of een sonde verlaat, is al gemaskeerd. Een gevoelige kolom die geen scan heeft gevonden en waarvan de naam niets verraadt, wordt bewaard zoals ze is.
+Een getal zegt dat er iets mis is; een paar rijen zeggen wat. **Mislukte rijen bewaren** onder **Instellingen** bewaart maximaal 20 van de rijen die een controle Mislukte rijen, Percentage ongeldige waarden, Percentage afwijkende opmaak of Aantal verweesde rijen vond, en **Mislukte rijen** op de controle toont ze. Deze instelling staat uit tot je ze inschakelt. Gevoelige kolommen worden gemaskeerd op de plek waar de rij wordt gelezen, op basis van wat Gegevensbeveiliging erin vond of van hun namen, dus wat de database of een sonde verlaat, is al gemaskeerd. Een gevoelige kolom die geen scan heeft gevonden en waarvan de naam niets verraadt, wordt bewaard zoals ze is.
 
 De rijen worden opgeslagen in OneUptime: op de servers van OneUptime bij OneUptime Cloud, en op je eigen servers bij een zelf gehoste installatie. Iedereen die de controles van het project mag lezen, kan ze zien. Een controle bewaart alleen de rijen van de laatste uitvoering, en als je **Mislukte rijen bewaren** uitschakelt, wordt verwijderd wat elke controle heeft bewaard.
 
@@ -104,9 +104,9 @@ De sleutels zijn `name`, `table`, `database`, `type`, `column`, `segment`, `acce
 
 Kopieën lopen uit elkaar: het warehouse heeft minder bestellingen dan de database van de applicatie, of een migratie is rijen kwijtgeraakt. Een reconciliatie vergelijkt één meting van twee tabellen, in één database of in twee, onder **Reconciliaties**:
 
-- **Row Count**
+- **Aantal rijen**
 - **Som** van een kolom
-- **Distinct Count** van een kolom
+- **Aantal unieke waarden** van een kolom
 - **Aangepaste SQL**: een alleen-lezen query die één getal teruggeeft, met de naam `value`
 
 Ze heeft een tolerantie: **Absoluut**, een vast bedrag, of **Procent**, een percentage van de waarde van de bron. Elke kant wordt gelezen door een eigen controle, die de reconciliatie aanmaakt en bijhoudt, met de verzamelronde van haar database, zodat een reconciliatie een PostgreSQL-tabel in je netwerk kan vergelijken met haar kopie in Snowflake. De twee waarden worden vergeleken zodra beide binnen 15 minuten van elkaar zijn gelezen. Een reconciliatie schrijft:

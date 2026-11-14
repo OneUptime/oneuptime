@@ -34,6 +34,8 @@ Escribe un **Nombre del proyecto**, por ejemplo el nombre de tu empresa. En OneU
 
 ### Crearlo
 
+![Inicio pregunta «¿Qué quieres hacer primero?», con los tres objetivos de esta guía marcados](screen:home-goals-three)
+
 Haz clic en **Crear proyecto**. Se abre la página de inicio de tu proyecto, con la lista **Te damos la bienvenida a OneUptime 👋** arriba. Primero pregunta **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API**, **Avisar a la persona adecuada cuando algo falle** y **Informar a mis clientes con una página de estado**, y haz clic en **Continuar**.
 :::
 
@@ -59,6 +61,8 @@ Mantén las **Sondas** seleccionadas y el **Intervalo de monitoreo** de **Cada 5
 
 Para probar la comprobación antes de guardar, haz clic en **Probar monitor** en el segundo paso. Todos los demás tipos de monitor se describen en [Crear un monitor](/docs/monitor/create-monitor).
 
+Para comprobar también una API, elegir a quién se avisa y enviar un aviso de prueba que demuestre que el mensaje te llega, sigue [Saber cuándo tu sitio web o tu API deja de funcionar](/docs/guides/website-down).
+
 ## Recibir un aviso cuando caiga
 
 Tal como está, un incidente sin propietarios se envía por correo a los propietarios del proyecto, y eso te incluye a ti. Para que te avisen hasta que alguien responda, crea una política de guardia: la primera de un proyecto se activa con cada nuevo incidente y cada nueva alerta.
@@ -78,7 +82,7 @@ Tu correo de inicio de sesión ya es una forma de localizarte. Para recibir tamb
 :::
 
 > [!NOTE]
-> Los SMS y las llamadas están desactivados en un proyecto nuevo. Un propietario del proyecto, un Billing Admin o alguien con Manage Billing los activa en la tarjeta **Canales de notificación**, en **Ajustes del proyecto → Notificaciones → Ajustes de notificaciones**.
+> Los SMS y las llamadas están desactivados en un proyecto nuevo. Un propietario del proyecto, un Billing Admin o alguien con Manage Billing los activa en la tarjeta **Canales de notificación**, en **Ajustes del proyecto → Notificaciones → Canales de notificación**.
 
 Para más niveles, rotaciones y cuánto espera cada nivel, consulta [Reglas de escalado](/docs/on-call/escalation-rules) y [Programaciones de guardia](/docs/on-call/schedules).
 
@@ -119,9 +123,13 @@ Abre **Incidentes** y haz clic en **Declarar incidente**. Escribe un **Título**
 
 ### Ver lo que pasa
 
+![«Feed del incidente» de un incidente resuelto: a quién se avisó y cada cambio de estado, del más reciente al más antiguo](screen:incident-feed)
+
 En uno o dos minutos, tu política de guardia te avisa y el incidente aparece en tu página de estado.
 
 ### Resolverlo
+
+![Un incidente en «Reconocido», con «Resolver» resaltado](screen:incident-resolve)
 
 En la página del incidente, haz clic en **Resolver**. Los avisos se detienen y el incidente sale de tu página de estado.
 :::

@@ -51,7 +51,7 @@ Lägg till boten i varje team där OneUptime ska publicera, på samma sätt som 
 
 ### Anslut projektet
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Mattermost** i OneUptime och klicka på **Anslut till Mattermost**. Ange din servers adress, till exempel `https://chat.example.com`, och botens åtkomsttoken. OneUptime kontrollerar token mot din server innan något sparas. Om boten är med i mer än ett team frågar OneUptime vilket som är standardteamet: det team där en aviseringsregel som inte anger något team skapar sina kanaler. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Mattermost** i OneUptime och klicka på **Anslut till Mattermost**. Ange din servers adress, till exempel `https://chat.example.com`, och botens åtkomsttoken. OneUptime kontrollerar token mot din server innan något sparas. Om boten är med i mer än ett team frågar OneUptime vilket som är standardteamet: det team där en aviseringsregel som inte anger något team skapar sina kanaler. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jour **Anslut en arbetsyta**, som också leder hit.
 
 ### Lägg till en aviseringsregel
 
@@ -100,11 +100,11 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Matter
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer som ett direktmeddelande från projektets bot.
 :::
 
-Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Mattermost från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**. Varje larm har en länk för att bekräfta det och en för att eskalera det. När du kopplar från ditt Mattermost-konto tas den här metoden och jourreglerna som använder den bort.
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Mattermost från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**. Varje larm har en länk för att bekräfta det och en för att eskalera det. När du kopplar från ditt Mattermost-konto tas den här metoden och jourreglerna som använder den bort.
 
 ## Aviseringsregler
 
-En aviseringsregel anger vilka händelser som publiceras i Mattermost, och var. Varje produkt har sina egna regler, under **Arbetsyta** > **Mattermost** i sin meny: **Incidenter** (med **Incidentepisoder** och fliken **Sammanfattning**), **Larm** (med **Larmepisoder** och **Sammanfattning**), **Schemalagt underhåll**, **Monitorer**, **Jourtjänst**, **Säkerhetshändelser** och **SLOs**. De fungerar som Slacks regler: se [Aviseringsregler](/docs/workspace-connections/slack#aviseringsregler) för villkor, mål och vilka som går med i en kanal.
+En aviseringsregel anger vilka händelser som publiceras i Mattermost, och var. Varje produkt har sina egna regler, under **Arbetsyta** > **Mattermost** i sin meny: **Incidenter** (med **Incidentepisoder** och fliken **Sammanfattning**), **Larm** (med **Larmepisoder** och **Sammanfattning**), **Schemalagt underhåll**, **Monitorer**, **Jour**, **Säkerhetshändelser** och **SLOs**. De fungerar som Slacks regler: se [Aviseringsregler](/docs/workspace-connections/slack#aviseringsregler) för villkor, mål och vilka som går med i en kanal.
 
 En kanal som en regel skapar får namn efter sin post: incident INC-42 får `inc-42`. Mattermost tar små bokstäver, siffror, `-` och `_`, upp till 64 tecken, med en bokstav eller en siffra först och sist, och regelformuläret visar namnet medan du skriver. Finns det redan en kanal med det namnet, till exempel en arkiverad kanal, lägger OneUptime till `-2`, `-3` och så vidare. En privat incident, ett privat larm eller en privat episod får en privat kanal.
 

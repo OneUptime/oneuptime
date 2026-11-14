@@ -97,7 +97,7 @@ import path from "path";
  *   - every line of prose translated, and a title that is the nav link's.
  *
  * And it names the Dashboard the way that language's Dashboard draws it,
- * Persian included: a bold label by drawnActionLabel, the Telemetry
+ * Persian included: a bold label by drawnActionLabel, the
  * Ingestion Keys table's create button by drawnCreateButton, and a menu path
  * segment by segment (drawnPath: one bold span joined by " → "; in Persian a
  * bold span per segment joined by " > ", with no "→" left in the prose). A
@@ -584,11 +584,9 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("keep in English only what no Dashboard locale has as a label, or a permission's name", () => {
+  it("keep in English only what no Dashboard locale has as a label", () => {
     for (const page of PAGE_NAMES) {
       for (const name of listed(KEPT_AS_WRITTEN, page)) {
-        // A permission's title reads as a create button would; it is not one.
-        const permission: boolean = name === "Create Telemetry Ingestion Key";
         /*
          * The Web Vitals card's rating chips and the web vital
          * recommendations are drawn with no lookup, so they stay English
@@ -605,7 +603,7 @@ describe("the lists this test keeps", () => {
         }).toEqual({
           page,
           name,
-          label: permission,
+          label: false,
         });
       }
     }
@@ -1073,7 +1071,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("keeps in English what every Dashboard draws in English: a permission, the vitals card's words, P75 and the recommendations", () => {
+    it("keeps in English what every Dashboard draws in English: the vitals card's words, P75 and the recommendations", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = listed(KEPT_AS_WRITTEN, entry.page).filter(
         (name: string): boolean => {

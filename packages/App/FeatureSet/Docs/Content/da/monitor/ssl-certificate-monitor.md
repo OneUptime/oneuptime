@@ -54,7 +54,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **K
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når certifikatet ikke er gyldigt, en advarsel, når det udløber om 14 dage eller mindre. Ret dem efter behov, og klik derefter på **Næste**.
+**Kriterier** starter med [standardkriterierne](#standardkriterier): offline, når certifikatet ikke er gyldigt, en advarsel, når det udløber om 14 dage eller mindre. Ret dem efter behov, og klik derefter på **Næste**.
 
 ### Vælg sonder, og opret
 
@@ -106,7 +106,7 @@ For at blive advaret tidligere skal du ændre værdien af filteret **Dage til ud
 :::details Føj advarslen til en monitor, der blev oprettet, før den fandtes
 Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet kriterium "udløber snart". Sådan tilføjer du det:
 
-1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger overvågningskriterier**.
+1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger kriterier**.
 2. Klik på **Tilføj kriterier**. Sæt dets filter til **Certifikatet er gyldigt** / **Sand**, klik på **Tilføj filter**, og sæt det andet til **Dage til udløb** / **Mindre end eller lig med** / `14`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
 3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.

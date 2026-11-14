@@ -43,7 +43,7 @@ import {
 } from "./DetailRecordTime";
 import { getDetailCopyText, hasDetailValue } from "./DetailValue";
 import { DetailValueContext } from "./DetailValueContext";
-import EmptyValue from "./EmptyValue";
+import EmptyValue, { isDashPlaceholder } from "./EmptyValue";
 import Field from "./Field";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import CustomFieldFileList, {
@@ -1077,6 +1077,17 @@ const Detail: DetailFunction = <T extends GenericObject>(
             "' threw and was ignored. " +
             (err instanceof Error ? err.message : String(err)),
         );
+      }
+
+      /*
+       * A field whose own element is a bare dash (`<p>-</p>`) has no value:
+       * the card's own dash, read out as "Not set" - or the field's words
+       * for that - as a table's cell draws one (isDashPlaceholder). It drew
+       * a hyphen as dark as a value beside the dash of every empty field
+       * (#7264).
+       */
+      if (isDashPlaceholder(data)) {
+        data = "";
       }
     }
 

@@ -15,7 +15,7 @@ Invia la posta di OneUptime tramite l'API HTTPS di un provider email invece che 
 
 :::tabs
 @tab Progetto
-In **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, apri **Altre impostazioni** e fai clic su **Crea: Configurazione SMTP** nella scheda **Configurazioni SMTP personalizzate**. Nel passaggio **Provider**, inserisci un **Nome** e scegli il provider. Il passaggio successivo chiede le impostazioni di quel provider, e il passaggio **Mittente** l'**Email mittente** e il **Nome mittente**. Una volta salvata la configurazione, **Invia e-mail di prova** sulla sua riga verifica che funzioni.
+In **Impostazioni del progetto > Notifiche > Canali di notifica**, apri **Altre impostazioni** e fai clic su **Crea: Configurazione SMTP** nella scheda **Configurazioni SMTP personalizzate**. Nel passaggio **Provider**, inserisci un **Nome** e scegli il provider. Il passaggio successivo chiede le impostazioni di quel provider, e il passaggio **Mittente** l'**Email mittente** e il **Nome mittente**. Una volta salvata la configurazione, **Invia e-mail di prova** sulla sua riga verifica che funzioni.
 @tab Istanza self-hosted
 Nell'Admin Dashboard, apri **Impostazioni**, poi **Notifiche > E-mail**. Nella scheda **Impostazioni del server e-mail**, fai clic su **Modifica server** e scegli il provider come **Tipo di server email**. Sotto compare la scheda del provider, ad esempio **Impostazioni Amazon SES**: fai clic sul suo pulsante di modifica, ad esempio **Modifica Amazon SES**, e compila le impostazioni del provider e il passaggio **Mittente**. Finché manca qualcosa, la scheda dice cosa manca, e ogni e-mail viene rifiutata indicando l'impostazione da compilare.
 :::

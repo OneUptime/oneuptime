@@ -86,7 +86,7 @@ Filtrer listen etter **Bruker**, **Status** eller **Team**. Klikk på en rad for
 | --- | --- |
 | **Profil** | Navn, e-postadresse, bilde og bruker-ID. |
 | **Team** | Teamene personen er med i. Legg til eller fjern et team her. |
-| **Beredskap**, **Varselmetoder**, **Vaktregler** | Om personen kan tilkalles, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle som kan lese andres varselregler. Se [Beredskap og rapporter](/docs/on-call/readiness). |
+| **Beredskap**, **Varselmetoder**, **Slik når man meg** | Om personen kan tilkalles, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle som kan lese andres varselregler. Se [Beredskap og rapporter](/docs/on-call/readiness). |
 | **Egendefinerte felt** | Prosjektets egendefinerte felt for personer, hvis det har noen. |
 | **Fjern fra prosjekt** | Ta personen ut av prosjektet. |
 

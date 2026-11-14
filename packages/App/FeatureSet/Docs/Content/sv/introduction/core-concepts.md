@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitorgrupper](/docs/monitor/monitor-groups): Slå ihop flera monitorer till en status.
-- [Tjänstekatalog](/docs/telemetry/services): Varje applikation som du kör, på en sida var.
+- [Tjänster](/docs/telemetry/services): Varje applikation som du kör, på en sida var.
 - [Inventarie – Översikt](/docs/inventory/overview): Allt som OneUptime vet om din miljö.
 :::
 
@@ -132,7 +132,7 @@ En **statussida** visar dina kunder om dina tjänster fungerar. Du väljer vilka
 
 ## Telemetri
 
-**Telemetri** är det som dina system skickar till OneUptime: loggar, mätvärden, spår, undantag och profiler. Appar skickar den med OpenTelemetry, och OneUptimes agenter skickar den från värdar, Kubernetes-kluster, Docker-värdar och övrig infrastruktur. Varje avsändare använder en **intagningsnyckel**, som skapas under **Projektinställningar → Telemetri och APM → Intagningsnycklar**. Du söker i telemetrin, visar den på instrumentpaneler och håller koll på den med telemetrimonitorer, som öppnar incidenter och larm precis som alla andra monitorer. I menyn öppnar **Loggar**, **Mätvärden**, **Spår**, **Prestandaprofiler** och **Undantag** var sin sort; **AI / LLM** följer din AI:s konversationer, **Dataobserverbarhet** håller koll på tabellerna i dina databaser, och **Topologi** kartlägger hur allt hänger ihop.
+**Telemetri** är det som dina system skickar till OneUptime: loggar, mätvärden, spår, undantag och profiler. Appar skickar den med OpenTelemetry, och OneUptimes agenter skickar den från värdar, Kubernetes-kluster, Docker-värdar och övrig infrastruktur. Varje avsändare använder en **intagningsnyckel**, som skapas under **Projektinställningar → Telemetri och APM → Intagningsnycklar**. Du söker i telemetrin, visar den på instrumentpaneler och håller koll på den med telemetrimonitorer, som öppnar incidenter och larm precis som alla andra monitorer. I menyn öppnar **Loggar**, **Mätvärden**, **Spår**, **Profiler** och **Undantag** var sin sort; **AI / LLM** följer din AI:s konversationer, **Dataobserverbarhet** håller koll på tabellerna i dina databaser, och **Topologi** kartlägger hur allt hänger ihop.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka loggar, mätvärden och spår från dina appar.
@@ -198,7 +198,7 @@ En monitors egna regler är dess kriterier. Jourreglerna under **Användarinstä
 
 :::cards
 - [Incidentinställningar och automatisering](/docs/incidents/settings#regler-som-körs-när-en-incident-skapas): Reglerna som körs när en incident skapas, i ordning.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Hur ett larm når dig.
+- [Så når man mig](/docs/notifications/on-call-rules): Hur ett larm når dig.
 :::
 
 ## Nästa steg

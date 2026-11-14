@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitorgroepen](/docs/monitor/monitor-groups): Meerdere monitoren samenvoegen tot één status.
-- [Servicecatalogus](/docs/telemetry/services): Elke applicatie die u draait, elk op een eigen pagina.
+- [Services](/docs/telemetry/services): Elke applicatie die u draait, elk op een eigen pagina.
 - [Inventaris – Overzicht](/docs/inventory/overview): Alles wat OneUptime over uw omgeving weet.
 :::
 
@@ -132,7 +132,7 @@ Een **statuspagina** laat uw klanten zien of uw services werken. U kiest welke m
 
 ## Telemetrie
 
-**Telemetrie** is wat uw systemen naar OneUptime sturen: logs, metrics, traces, exceptions en profielen. Applicaties versturen haar met OpenTelemetry, en de agents van OneUptime versturen haar vanaf hosts, Kubernetes-clusters, Docker-hosts en overige infrastructuur. Elke afzender gebruikt een **ingestiesleutel**, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. U doorzoekt telemetrie, zet haar op dashboards en bewaakt haar met telemetriemonitoren, die net als elke andere monitor incidenten en waarschuwingen openen. In het menu opent elk van **Logboeken**, **Metrieken**, **Traces**, **Prestatieprofielen** en **Uitzonderingen** één soort; **AI / LLM** volgt de gesprekken van uw AI, **Data Observability** bewaakt de tabellen in uw databases, en **Topologie** brengt in kaart hoe alles samenhangt.
+**Telemetrie** is wat uw systemen naar OneUptime sturen: logs, metrics, traces, exceptions en profielen. Applicaties versturen haar met OpenTelemetry, en de agents van OneUptime versturen haar vanaf hosts, Kubernetes-clusters, Docker-hosts en overige infrastructuur. Elke afzender gebruikt een **ingestiesleutel**, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. U doorzoekt telemetrie, zet haar op dashboards en bewaakt haar met telemetriemonitoren, die net als elke andere monitor incidenten en waarschuwingen openen. In het menu opent elk van **Logboeken**, **Metrieken**, **Traces**, **Profielen** en **Uitzonderingen** één soort; **AI / LLM** volgt de gesprekken van uw AI, **Data Observability** bewaakt de tabellen in uw databases, en **Topologie** brengt in kaart hoe alles samenhangt.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, metrics en traces vanuit uw applicaties versturen.
@@ -198,7 +198,7 @@ De eigen regels van een monitor zijn zijn criteria. De bereikbaarheidsregels ond
 
 :::cards
 - [Incidentinstellingen en automatisering](/docs/incidents/settings#regels-die-draaien-als-een-incident-wordt-aangemaakt): De regels die worden uitgevoerd wanneer een incident wordt aangemaakt, op volgorde.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Hoe een oproep u bereikt.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Hoe een oproep u bereikt.
 :::
 
 ## Volgende stappen

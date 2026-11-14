@@ -945,7 +945,7 @@ describe("OnCallPageService.page", () => {
           "Paging people, teams or on-call schedules directly takes access to every on-call policy of the project.",
         );
         expect(error.message).toContain(
-          "your access to On-Call Duty Policies covers only some of them.",
+          "your access to On-Call Policies covers only some of them.",
         );
       });
 

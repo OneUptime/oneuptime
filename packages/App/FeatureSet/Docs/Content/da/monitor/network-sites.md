@@ -186,7 +186,7 @@ Et gennemsnit over børn vægter en butik med to enheder lige så højt som et d
 
 ## Planlagt vedligeholdelse for netværkslokationer
 
-Knyt lokationer til en planlagt vedligeholdelse under **Andre berørte ressourcer**, i hændelsens trin **Berørte ressourcer**, som du ville gøre med en vært. En lokations egen side **Planlagt vedligeholdelse** viser de hændelser, der er knyttet til den, og dens **Opret planlagt vedligeholdelseshændelse** åbner formularen med lokationen allerede valgt.
+Knyt lokationer til en planlagt vedligeholdelse under **Andre berørte ressourcer**, i hændelsens trin **Berørte ressourcer**, som du ville gøre med en vært. En lokations egen side **Planlagt vedligeholdelse** viser de hændelser, der er knyttet til den, og dens **Opret vedligeholdelseshændelse** åbner formularen med lokationen allerede valgt.
 
 Et vindue på en forælder dækker alt under den: et vindue på en region dækker hvert marked og hver enhed i den, inklusive lokationer oprettet efter, at vinduet blev planlagt, så et regionalt skift af operatør ikke behøver at opremse fire hundrede butikker.
 

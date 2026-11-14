@@ -100,6 +100,6 @@ A probe counts as disconnected after three minutes without a heartbeat, and late
 
 :::cards
 - [Custom Probes](/docs/probe/custom-probe): Run a probe in your own network.
-- [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses): How criteria decide a monitor's status.
+- [Criteria & Statuses](/docs/monitor/criteria-and-statuses): How criteria decide a monitor's status.
 - [Incident & Alert Templating](/docs/monitor/incident-alert-templating): Word the incident a monitor declares.
 :::

@@ -1,12 +1,13 @@
-# Reglas de guardia personales
+# Cómo contactarme
 
-Tus reglas de guardia deciden cómo te llega un aviso: qué métodos de notificación tuyos prueba OneUptime, y cuánto tiempo después de que empiece el aviso. Cada tipo de aviso tiene sus propias reglas, un conjunto por gravedad, de modo que un incidente crítico puede llamarte al instante mientras una alerta leve espera a un correo. Las configuras en **Ajustes de usuario → Reglas de guardia**.
+Tus reglas de guardia deciden cómo te llega un aviso: qué métodos de notificación tuyos prueba OneUptime, y cuánto tiempo después de que empiece el aviso. Cada tipo de aviso tiene sus propias reglas, un conjunto por gravedad, de modo que un incidente crítico puede llamarte al instante mientras una alerta leve espera a un correo. Las configuras en **Ajustes de usuario → Cómo contactarme**.
 
 > [!NOTE]
 > Estas reglas son solo tuyas. Las **Reglas de guardia** de **Incidentes → Reglas** y **Alertas → Reglas** son otra cosa: deciden qué políticas de guardia ejecuta un incidente o una alerta nuevos.
 
 :::cards
 - [Cómo te llega un aviso](#cómo-te-llega-un-aviso): Tus reglas para un aviso, paso a paso.
+- [Una sola secuencia para todo](#una-sola-secuencia-para-todo): Los pasos que prueba cada aviso, configurados una vez.
 - [Las reglas con las que empiezas](#las-reglas-con-las-que-empiezas): Lo que añade cada método verificado, y cómo recortarlo.
 - [Añade una regla](#añade-una-regla): Un método y un retraso para una gravedad.
 - [Reglas push](#reglas-push): Suenan aunque el teléfono esté en silencio, y se repiten hasta que alguien reconoce.
@@ -26,9 +27,33 @@ flowchart TB
 
 La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y los mensajes de WhatsApp, Telegram, Slack, Microsoft Teams y Mattermost llevan un enlace para reconocerlo, y una llamada te pide que pulses 1. Si no puedes atender un aviso, los mismos mensajes te permiten escalarlo, y una llamada te pide que pulses 2: la política avisa de inmediato a su siguiente nivel, y no te vuelven a avisar de ello. Consulta [Escalar un aviso](/docs/on-call/escalation-rules#escalar-un-aviso). Cada aviso que recibes aparece en **Ajustes de usuario → Registros de guardia**, donde **Ver cronología** muestra cada mensaje enviado y si se entregó.
 
+## Una sola secuencia para todo
+
+**Ajustes de usuario → Cómo contactarme** se abre con tu secuencia: los pasos que prueba cada aviso, para incidentes, alertas y episodios de cualquier gravedad. Cada paso es uno de tus métodos verificados y cuándo usarlo, por ejemplo un SMS de inmediato y una llamada después de 5 minutos. Los pasos con la misma espera salen juntos, así que la secuencia se lee en el orden en que avisa.
+
+:::steps
+### Añadir una forma de contactarte
+
+Elige uno de tus métodos verificados en **Añadir una forma de contactarte**. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**.
+
+### Elegir cuándo se usa
+
+Junto a cada paso, elige una espera de **Inmediatamente** a **1 hora**. Un paso de push indica además cómo suena y si se repite: consulta [Reglas push](#reglas-push).
+
+### Guardar
+
+Haz clic en **Guardar secuencia**. Escribe las mismas reglas en cada tarjeta de cada pestaña: las reglas que añadirías a mano a cada tarjeta.
+:::
+
+**Prueba tus avisos**, al pie de la página, te envía un aviso de prueba a través de ellas.
+
+Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades** abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**, y la secuencia indica qué hace cada una en su lugar. Si tus reglas ya difieren, la página se abre en las tarjetas, con **Usar una sola secuencia para todo**: al guardar, primero nombra las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
+
+Una política de guardia decide a quién se avisa y cuándo llega su siguiente nivel. Cómo se te contacta es esta secuencia, para cada política que te avisa.
+
 ## Las cuatro pestañas
 
-**Ajustes de usuario → Reglas de guardia** tiene una pestaña por tipo de aviso. Cada pestaña tiene una tarjeta por gravedad, con el nombre y el color que les dio tu proyecto:
+**Ajustes de usuario → Cómo contactarme** tiene una pestaña por tipo de aviso. Cada pestaña tiene una tarjeta por gravedad, con el nombre y el color que les dio tu proyecto:
 
 | Pestaña | Avisos de | Tarjetas para |
 | --- | --- | --- |
@@ -60,11 +85,11 @@ Tus propias reglas no tienen horas de silencio: deja las gravedades bajas en cor
 :::steps
 ### Abre la tarjeta
 
-Ve a **Ajustes de usuario → Reglas de guardia**, abre la pestaña del tipo de aviso y busca la tarjeta de la gravedad.
+Ve a **Ajustes de usuario → Cómo contactarme**, abre la pestaña del tipo de aviso y busca la tarjeta de la gravedad.
 
 ### Elige el método
 
-Haz clic en **Añadir Regla de notificación**. En **Método de notificación**, elige uno de tus métodos verificados; un método que no has verificado no se ofrece.
+Haz clic en **Añadir regla de notificación**. En **Método de notificación**, elige uno de tus métodos verificados; un método que no has verificado no se ofrece.
 
 ### Elige cómo suena un push
 
@@ -72,7 +97,7 @@ Para un teléfono, elige **Notificación push**: **Alerta crítica** o **Estánd
 
 ### Fija el retraso
 
-Elige **Notificarme después de**: **Inmediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** o **1 hora**. Luego haz clic en **Añadir Regla de notificación** en el diálogo.
+Elige **Notificarme después de**: **Inmediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** o **1 hora**. Luego haz clic en **Añadir regla de notificación** en el diálogo.
 :::
 
 La tarjeta lista sus reglas por orden de retraso, con **Método de notificación** y **Notificar después de** para cada una.
@@ -105,12 +130,12 @@ La API puede guardar una regla de exclusión, con `isOptOut` activado y sin mét
 :::
 
 :::details Desactivar la alternativa para todo un proyecto
-Un propietario del proyecto, o alguien con **Manage Billing**, puede establecer `disableOnCallNotificationFallback` del proyecto mediante la API. Un aviso que no encuentra regla no se entrega entonces, y su registro dice que el usuario debe añadir reglas en **Ajustes de usuario → Reglas de guardia**.
+Un propietario del proyecto, o alguien con **Manage Billing**, puede establecer `disableOnCallNotificationFallback` del proyecto mediante la API. Un aviso que no encuentra regla no se entrega entonces, y su registro dice que el usuario debe añadir reglas en **Ajustes de usuario → Cómo contactarme**.
 :::
 
 ## Las reglas de un compañero
 
-Los propietarios y administradores del proyecto pueden ver y cambiar la misma página para cualquier persona del proyecto: en **Usuarios**, abren a la persona y luego **Reglas de guardia** en la sección **De guardia**. **Preparación**, al lado, muestra si cada gravedad le llega. Cuando otra persona añade, cambia o elimina tus reglas, recibes un correo al respecto, y cada cambio queda en el registro de auditoría del proyecto.
+Los propietarios y administradores del proyecto pueden ver y cambiar la misma página para cualquier persona del proyecto: en **Usuarios**, abren a la persona y luego **Cómo contactarme** en la sección **Guardia**. **Preparación**, al lado, muestra si cada gravedad le llega. Cuando otra persona añade, cambia o elimina tus reglas, recibes un correo al respecto, y cada cambio queda en el registro de auditoría del proyecto.
 
 ## Solución de problemas
 

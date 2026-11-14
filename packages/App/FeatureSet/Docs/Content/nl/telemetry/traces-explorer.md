@@ -37,7 +37,7 @@ De verkenner heeft vijf tabbladen:
 ## Voordat u begint
 
 - **Binnenkomende traces.** Instrumenteer uw services met [OpenTelemetry](/docs/telemetry/open-telemetry). Het tabblad **Installatiegids** toont de code voor uw taal.
-- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Telemetry Service Traces. Het bereik ervan bepaalt van wie u de spans ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
+- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Traces. Het bereik ervan bepaalt van wie u de spans ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Een verzoek vinden
 
@@ -183,6 +183,6 @@ Elke rij is een span, geen verzoek: met **Entry spans**, de standaardinstelling,
 :::cards
 - [Zoeksyntaxis](/docs/telemetry/search-syntax): Elk filter dat het zoekvak begrijpt.
 - [Traces-monitor](/docs/monitor/traces-monitor): Een melding krijgen bij mislukte of trage verzoeken.
-- [Uitzonderingen volgen](/docs/telemetry/exceptions): De fouten beoordelen die uw spans vastleggen.
+- [Uitzonderingen](/docs/telemetry/exceptions): De fouten beoordelen die uw spans vastleggen.
 - [Logboekverkenner](/docs/telemetry/logs-explorer): De logregels lezen die een verzoek schreef.
 :::

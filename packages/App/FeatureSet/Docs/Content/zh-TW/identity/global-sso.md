@@ -34,10 +34,10 @@
 :::tabs
 @tab SAML
 - 按一下 **新增 SAML 提供者**。
-- 輸入 **名稱**、身分提供者的 **Sign On URL** 和 **Issuer**，並貼上 **Public Certificate**。其餘內容已在 **更多欄位** 中填好：**Signature Method**（`RSA-SHA256`）、**Digest Method**（`SHA256`）以及描述（`Sign in with` 加上名稱）。僅在您的 IdP 需要時才變更它們。儲存後會開啟提供者的頁面。
+- 輸入 **名稱**、身分提供者的 **登入 URL** 和 **簽發者**，並貼上 **公開憑證**。其餘內容已在 **更多欄位** 中填好：**簽章方法**（`RSA-SHA256`）、**摘要方法**（`SHA256`）以及描述（`Sign in with` 加上名稱）。僅在您的 IdP 需要時才變更它們。儲存後會開啟提供者的頁面。
 @tab OpenID Connect
 - 按一下 **新增 OIDC 提供者**。
-- 輸入 **名稱**、**Issuer URL**，以及您在 IdP 中註冊之應用程式的 **Client ID** 和 **Client Secret**。也可以把 IdP 的探索 URL 貼到 **Issuer URL** 中。其餘內容已在 **更多欄位** 中填好：**Discovery URL**（簽發者後接 `/.well-known/openid-configuration`）、**Scopes**（`openid email profile`）、`email` 和 `name` 宣告名稱，以及描述（`Sign in with` 加上名稱）。僅在您的 IdP 需要時才變更它們。儲存後會開啟提供者的頁面。
+- 輸入 **名稱**、**簽發者 URL**，以及您在 IdP 中註冊之應用程式的 **用戶端 ID** 和 **用戶端密鑰**。也可以把 IdP 的探索 URL 貼到 **簽發者 URL** 中。其餘內容已在 **更多欄位** 中填好：**探索 URL**（簽發者後接 `/.well-known/openid-configuration`）、**範圍**（`openid email profile`）、`email` 和 `name` 宣告名稱，以及描述（`Sign in with` 加上名稱）。僅在您的 IdP 需要時才變更它們。儲存後會開啟提供者的頁面。
 :::
 
 ### 把 OneUptime 的 URL 複製到身分提供者
@@ -150,7 +150,7 @@ flowchart TB
 :::
 
 :::details "Issuer URL does not match"
-對於 SAML 提供者，身分提供者回應中的簽發者不是提供者上儲存的 **Issuer**。請從身分提供者重新複製；兩者必須完全一致。
+對於 SAML 提供者，身分提供者回應中的簽發者不是提供者上儲存的 **簽發者**。請從身分提供者重新複製；兩者必須完全一致。
 :::
 
 :::details "SAML Audience does not match"

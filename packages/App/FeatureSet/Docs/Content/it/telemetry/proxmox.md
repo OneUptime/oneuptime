@@ -48,7 +48,7 @@ I modelli **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up*
 
 ### Dove eseguire l'agent
 
-L'agent interroga l'API di Proxmox VE in rete, quindi non deve risiedere su un nodo del cluster, e non dovrebbe: eseguilo su una macchina che sopravvive al guasto di un nodo (una piccola VM di monitoraggio su hardware separato, un host di gestione), oppure punta `PVE_HOST` a un IP virtuale o a un nome DNS round-robin invece che all'indirizzo di un singolo nodo. Se il target API dell'agent è il nodo appena caduto, il tuo monitoraggio cade con esso. `PVE_NODES` è diverso: elenca ogni nodo al suo indirizzo, mai un IP virtuale (vedi [Cosa raccoglie l'agent](#cosa-raccoglie-lagent)). L'unica eccezione è la pipeline opzionale dei log di journald, che deve girare su un nodo Proxmox VE (vedi [Inviare i log dei servizi Proxmox](#opzionale-inviare-i-log-dei-servizi-proxmox)).
+L'agent interroga l'API di Proxmox VE in rete, quindi non deve risiedere su un nodo del cluster, e non dovrebbe: eseguilo su una macchina che sopravvive al guasto di un nodo (una piccola VM di monitoraggio su hardware separato, un host di gestione o una VM che Proxmox HA riavvia su un altro nodo). Legge il cluster da `PVE_HOST` e, quando quel nodo cade, dal nodo successivo in `PVE_NODES`, quindi non ha bisogno di un IP virtuale (vedi [Quando un nodo cade](#quando-un-nodo-cade)). `PVE_NODES` elenca ogni nodo al suo indirizzo, mai un IP virtuale (vedi [Cosa raccoglie l'agent](#cosa-raccoglie-lagent)). L'unica eccezione è la pipeline opzionale dei log di journald, che deve girare su un nodo Proxmox VE (vedi [Inviare i log dei servizi Proxmox](#opzionale-inviare-i-log-dei-servizi-proxmox)).
 
 ## Installa l'agent
 
@@ -134,7 +134,7 @@ docker compose ps
 docker logs -f oneuptime-proxmox-agent
 ```
 
-`docker compose ps` elenca il collector (`oneuptime-proxmox-agent`), l'exporter incluso (`oneuptime-pve-exporter`, a meno che tu non usi il tuo) e l'agente IA (`oneuptime-proxmox-ai-agent`). I log del collector dovrebbero mostrare questa riga una volta avviato:
+`docker compose ps` elenca il collector (`oneuptime-proxmox-agent`), il failover dei nodi (`oneuptime-pve-api-failover`), l'exporter incluso (`oneuptime-pve-exporter`, a meno che tu non usi il tuo) e l'agente IA (`oneuptime-proxmox-ai-agent`). I log del collector dovrebbero mostrare questa riga una volta avviato:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,8 +154,8 @@ Lo script di installazione le scrive in `/opt/oneuptime-proxmox-agent/.env`; un'
 | `ONEUPTIME_URL` | Sì | Il tuo URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. Usa `http://` e la sua porta se l'istanza usa solo HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 | `PROXMOX_CLUSTER_NAME` | Sì | Il nome del cluster in OneUptime, applicato a ogni metrica come attributo di risorsa `proxmox.cluster.name`. Mantienilo stabile: cambiarlo in seguito registra un secondo cluster. Il valore predefinito è `proxmox-cluster`. |
-| `PVE_HOST` | Sì | L'host dell'API di Proxmox VE da cui l'exporter legge il cluster e che l'agente IA interroga: qualsiasi nodo, o un IP virtuale che passa dall'uno all'altro, come `192.168.1.10`. |
-| `PVE_NODES` | In un cluster | L'indirizzo API di ogni nodo, separato da virgole tra parentesi quadre, come `[192.168.1.10,192.168.1.11,192.168.1.12]`. L'exporter legge l'avvio al boot, la replica e la sottoscrizione solo per il nodo che interroga, quindi ogni nodo viene interrogato a turno. Per impostazione predefinita solo `PVE_HOST`, che basta per un singolo nodo. |
+| `PVE_HOST` | Sì | Il nodo dalla cui API di Proxmox VE l'exporter legge il cluster e che l'agente IA interroga, come `192.168.1.10`. Finché la sua API non risponde, entrambi usano il nodo successivo in `PVE_NODES` che risponde. |
+| `PVE_NODES` | In un cluster | L'indirizzo API di ogni nodo, separato da virgole tra parentesi quadre, come `[192.168.1.10,192.168.1.11,192.168.1.12]`. L'exporter legge l'avvio al boot, la replica e la sottoscrizione solo per il nodo che interroga, quindi ogni nodo viene interrogato a turno, e l'agent legge il cluster dal successivo di essi quando `PVE_HOST` cade. Per impostazione predefinita solo `PVE_HOST`, che basta per un singolo nodo. |
 | `PVE_EXPORTER_URL` | No | L'indirizzo (`host:port`, senza schema) di prometheus-pve-exporter. Il valore predefinito è l'exporter incluso, `pve-exporter:9221`. |
 | `PVE_API_TOKEN_ID` | Exporter incluso o agente IA | L'ID completo del token API di Proxmox, come `monitoring@pam!oneuptime`. L'agente IA legge l'API con esso, a meno che non abbia un token proprio (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`). |
 | `PVE_API_TOKEN_SECRET` | Exporter incluso o agente IA | Il secret del token API di Proxmox. |
@@ -164,7 +164,7 @@ Lo script di installazione le scrive in `/opt/oneuptime-proxmox-agent/.env`; un'
 
 ## Cosa raccoglie l'agent
 
-Il collector raccoglie l'exporter ogni 30 secondi: i suoi collector di cluster una volta, su `PVE_HOST`, e i suoi collector di nodo una volta per ogni nodo in `PVE_NODES`. Qualsiasi nodo risponde ai collector di cluster, tra cui `backup-info`, attivo per impostazione predefinita, per l'intero cluster. I collector di nodo (`config`, per l'avvio al boot, e `replication`) leggono solo il nodo che l'exporter interroga, quindi un nodo che manca in `PVE_NODES` non invia né i flag di avvio al boot dei suoi guest, di cui **Guest Down** ha bisogno, né i suoi job di replica. Ogni serie porta un'etichetta `id` che identifica la risorsa: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` o `storage/<node>/<storage>`.
+Il collector raccoglie l'exporter ogni 30 secondi: i suoi collector di cluster una volta, su `PVE_HOST` (o sul nodo da cui legge il cluster mentre `PVE_HOST` è giù), e i suoi collector di nodo una volta per ogni nodo in `PVE_NODES`. Qualsiasi nodo risponde ai collector di cluster, tra cui `backup-info`, attivo per impostazione predefinita, per l'intero cluster. I collector di nodo (`config`, per l'avvio al boot, e `replication`) leggono solo il nodo che l'exporter interroga, quindi un nodo che manca in `PVE_NODES` non invia né i flag di avvio al boot dei suoi guest, di cui **Guest Down** ha bisogno, né i suoi job di replica. Ogni serie porta un'etichetta `id` che identifica la risorsa: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` o `storage/<node>/<storage>`.
 
 | Categoria | Metriche |
 | --- | --- |
@@ -186,6 +186,12 @@ I criteri dei monitor e i filtri sugli attributi confrontano per uguaglianza, no
 | `pve.id` | Tutto ciò che segue il primo `/` di `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 L'etichetta `id` originale viene mantenuta così com'è.
+
+## Quando un nodo cade
+
+L'agent legge l'intero cluster tramite l'API di un solo nodo: quella di `PVE_HOST`, finché risponde. Ogni 15 secondi il suo container `oneuptime-pve-api-failover` controlla quel nodo e, quando la sua API smette di rispondere, il collector legge il cluster dal nodo successivo in `PVE_NODES` che risponde, finché `PVE_HOST` non risponde di nuovo. Con il token API in `.env` salta anche un nodo che risponde ma è isolato dalla parte del cluster che ha il quorum: dal suo punto di vista tutti gli altri nodi risulterebbero giù. L'[agente IA](#agente-ia) fa lo stesso per ognuna delle sue chiamate. Così, quando un nodo si guasta, **Node Offline** scatta per esso e il resto del cluster continua a inviare dati, senza alcun IP virtuale da configurare. `docker logs oneuptime-pve-api-failover` dice da quale nodo viene letto il cluster, e perché.
+
+Ciò che non può coprire è la macchina su cui gira l'agent: se cade, l'intero cluster smette di inviare dati e scatta **Cluster Stopped Reporting**. Esegui l'agent fuori dal cluster, o in una VM che Proxmox HA riavvia su un altro nodo (`ha-manager add vm:<vmid>`, su storage condiviso), ed esegui un solo agent per cluster: ogni agent legge l'intero cluster, quindi un secondo agent riporta ogni risorsa due volte.
 
 ## Invia le notifiche di Proxmox VE
 
@@ -402,6 +408,10 @@ Termina con un verdetto che indica la causa più probabile.
 
 :::details L'exporter restituisce errori 401 o 595
 Il token API è errato o non ha i permessi necessari. Controlla il formato dell'ID del token (`user@realm!tokenname`), il secret e che il ruolo **PVEAuditor** sia sul percorso `/` per il token e per il suo utente. I log dell'exporter stesso mostrano la risposta dell'API: `docker logs oneuptime-pve-exporter`.
+:::
+
+:::details Il cluster mostra "API non leggibile"
+L'agente è in esecuzione, ma non legge il cluster dall'API di Proxmox VE da almeno 15 minuti, quindi il cluster mostra **API non leggibile** invece di **Connesso**: il nodo da cui legge è fuori servizio e nessun altro nodo in `PVE_NODES` risponde, il token API è stato revocato o ha perso il ruolo **PVEAuditor**, oppure la macchina dell'agente non raggiunge la porta `8006` di nessun nodo. Le sue pagine mantengono quanto ha letto per ultimo. Lo script diagnostico qui sopra verifica ciascuna di queste cause, e `docker logs oneuptime-pve-api-failover` indica da quale nodo legge l'agente e perché ha scartato gli altri.
 :::
 
 :::details Solo metriche dei nodi, nessuna metrica dei guest

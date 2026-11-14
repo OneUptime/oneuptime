@@ -147,9 +147,14 @@ jest.mock(
 
 import DashboardSloComponentElement, {
   SLO_WIDGET_LEGEND_ROW_IN_PX,
+  SLO_WIDGET_TILE_VALUE_TEST_ID,
   SLO_WIDGET_TITLE_NAME_TEST_ID,
   SLO_WIDGET_TITLE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloComponent";
+import {
+  PROPORTIONAL_NUMBERS_CLASS_NAME,
+  TABULAR_NUMBERS_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetDigits";
 import DashboardSloListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloListComponent";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -806,6 +811,42 @@ describe("the SLO widget's tile in Arabic", () => {
     expect(titleText()).toBe(`${SLO_NAME} · ${worded(AR, "Burn Rate")}`);
     expect(texts.join("\n")).not.toMatch(ENGLISH_WORDS);
   });
+});
+
+/*
+ * Vazirmatn's Persian digits at one width are each as wide as its widest:
+ * "۹۹٫۹۵٪" read "۹ ۹٫۹ ۵٪". A tile's figure in Persian digits takes each
+ * digit's own width, as the Gauge and the Value widget beside it do; Latin
+ * digits keep one width.
+ */
+describe("the SLO tile's figure, each digit at its width", () => {
+  test("a Persian board's figure takes each digit's own width", async () => {
+    await inLanguage("fa");
+    await renderWidget({ metric: SloWidgetMetric.Sli, slo: buildSlo() });
+
+    const figure: HTMLElement = screen.getByTestId(
+      SLO_WIDGET_TILE_VALUE_TEST_ID,
+    );
+
+    expect(figure.textContent).toBe("۹۹٫۹۵٪");
+    expect(figure).toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+    expect(figure).not.toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+  });
+
+  test.each(["en", "de", "ar"])(
+    "a %s board's, in Latin digits, keeps one width as it always did",
+    async (language: string) => {
+      await inLanguage(language);
+      await renderWidget({ metric: SloWidgetMetric.Sli, slo: buildSlo() });
+
+      const figure: HTMLElement = screen.getByTestId(
+        SLO_WIDGET_TILE_VALUE_TEST_ID,
+      );
+
+      expect(figure).toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+      expect(figure).not.toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+    },
+  );
 });
 
 describe("the SLO widget in English reads as it always did", () => {

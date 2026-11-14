@@ -158,7 +158,7 @@ En episode, som en privat advarsel åbner, er ikke privat, så den viser aldrig 
 
 ## Hvem der hører om en advarsel
 
-- **Vagten.** Advarslens vagtpolitikker tilkalder deres personer, hver på den måde, de har sat det op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**. Svarer man på tilkaldelsen, bekræftes advarslen, og tilkaldelsen stopper.
+- **Vagten.** Advarslens vagtpolitikker tilkalder deres personer, hver på den måde, de har sat det op under **Brugerindstillinger → Sådan når man mig** på fanen **Advarsler**. Svarer man på tilkaldelsen, bekræftes advarslen, og tilkaldelsen stopper.
 - **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Påmindelse om advarsel** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet projektets ejere besked.
 - **Dine chatværktøjer.** **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

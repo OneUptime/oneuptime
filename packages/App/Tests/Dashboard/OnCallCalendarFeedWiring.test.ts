@@ -158,7 +158,7 @@ describe("Breadcrumbs", () => {
       '...BuildBreadcrumbLinksByTitles( PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED, ["Project", "User Settings", "Calendar Feed"], )',
     );
     expect(onCall).toContain(
-      '...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_CALENDAR_FEEDS, [ "Project", "On-Call Duty", "Calendar Feeds", ])',
+      '...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_CALENDAR_FEEDS, [ "Project", "On-Call", "Calendar Feeds", ])',
     );
   });
 
@@ -192,7 +192,7 @@ describe("Breadcrumbs", () => {
       '{ getter: "getUserSettingsBreadcrumbs", pagePattern: "/dashboard/:projectId/user-settings/calendar-feed", titles: ["Project", "User Settings", "Calendar Feed"], }',
     );
     expect(trails).toContain(
-      '{ getter: "getOnCallDutyBreadcrumbs", pagePattern: "/dashboard/:projectId/on-call-duty/calendar-feeds", titles: ["Project", "On-Call Duty", "Calendar Feeds"], }',
+      '{ getter: "getOnCallDutyBreadcrumbs", pagePattern: "/dashboard/:projectId/on-call-duty/calendar-feeds", titles: ["Project", "On-Call", "Calendar Feeds"], }',
     );
     expect(patterns).toContain(
       '"/dashboard/:projectId/user-settings/calendar-feed"',
@@ -227,7 +227,7 @@ describe("Side menus", () => {
     expect(workspaceIndex).toBeGreaterThan(calendarIndex);
   });
 
-  test("On-Call Duty lists Calendar Feeds in the Schedules section", () => {
+  test("On-Call lists Calendar Feeds in the Schedules section", () => {
     const menu: string = readCode("Pages", "OnCallDuty", "SideMenu.tsx");
 
     expect(menu).toContain(
@@ -265,7 +265,7 @@ describe("Pages and cards", () => {
     );
   });
 
-  test("the On-Call Duty page hosts the project-wide shared feed card", () => {
+  test("the On-Call page hosts the project-wide shared feed card", () => {
     const page: string = readCode("Pages", "OnCallDuty", "CalendarFeeds.tsx");
 
     expect(page).toContain(

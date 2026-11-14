@@ -34,6 +34,8 @@ Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su On
 
 ### Crearlo
 
+![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con i tre obiettivi di questa guida selezionati](screen:home-goals-three)
+
 Fai clic su **Crea progetto**. Si apre la home page del tuo progetto, con l'elenco **Benvenuto in OneUptime 👋** in alto. Prima chiede **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona**, **Avvisare la persona giusta quando qualcosa si guasta** e **Informare i clienti con una pagina di stato**, e fai clic su **Continua**.
 :::
 
@@ -59,6 +61,8 @@ Mantieni le **Sonde** selezionate e l'**Intervallo di monitoraggio** di **Ogni 5
 
 Per provare il controllo prima di salvare, fai clic su **Testa il monitor** nel secondo passaggio. Tutti gli altri tipi di monitor sono descritti in [Creare un monitor](/docs/monitor/create-monitor).
 
+Per controllare anche un'API, scegliere chi viene avvisato e inviare una chiamata di test che dimostra che il messaggio ti raggiunge, segui [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
+
 ## Essere avvisati quando va giù
 
 Così com'è, un incidente senza proprietari viene inviato via e-mail ai proprietari del progetto, e tra loro ci sei tu. Per essere avvisato finché qualcuno non risponde, crea una policy di reperibilità: la prima di un progetto si attiva per ogni nuovo incidente e ogni nuovo avviso.
@@ -78,7 +82,7 @@ La tua e-mail di accesso è già un modo per raggiungerti. Per ricevere anche SM
 :::
 
 > [!NOTE]
-> SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Billing Admin o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Impostazioni notifiche**.
+> SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Billing Admin o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Canali di notifica**.
 
 Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
 
@@ -119,9 +123,13 @@ Apri **Incidenti** e fai clic su **Dichiara incidente**. Inserisci un **Titolo**
 
 ### Guardare cosa succede
 
+![«Feed dell'incidente» di un incidente risolto: chi è stato chiamato e ogni cambio di stato, dal più recente](screen:incident-feed)
+
 Entro un paio di minuti, la tua policy di reperibilità ti avvisa e l'incidente compare sulla tua pagina di stato.
 
 ### Risolverlo
+
+![Un incidente nello stato «Riconosciuto», con «Risolvi» evidenziato](screen:incident-resolve)
 
 Nella pagina dell'incidente, fai clic su **Risolvi**. Gli avvisi si fermano e l'incidente lascia la tua pagina di stato.
 :::

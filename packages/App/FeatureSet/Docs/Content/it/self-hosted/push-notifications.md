@@ -159,7 +159,7 @@ flowchart TB
 Perché un avviso superi la modalità silenziosa devono essere vere quattro condizioni. Se ne manca anche una, l'avviso viene comunque consegnato – solo in silenzio.
 
 1. **La persona l'ha attivato per quel dispositivo.** Memorizzato per dispositivo, disattivato per impostazione predefinita, in `UserPush.isCriticalAlertEnabled`. Il telefono e il tablet di una stessa persona sono decisioni separate. Le versioni dell'app successive alla 1.6.0 lo comunicano di nuovo a ogni apertura, come disattivato finché le impostazioni del telefono stesso non consentono gli avvisi critici, così l'elenco dei dispositivi mostra ciò che il telefono farà davvero.
-2. **La regola di reperibilità che ha inviato l'avviso lo chiede.** In **Impostazioni utente > Regole di reperibilità**, ogni regola che notifica un telefono è impostata su «Avviso critico», il valore predefinito, o su «Standard», che segue le impostazioni audio del telefono – così una persona può essere svegliata per un incidente critico e avvisata in silenzio per uno minore. Memorizzato per regola in `UserNotificationRule.pushNotificationLevel`.
+2. **La regola di reperibilità che ha inviato l'avviso lo chiede.** In **Impostazioni utente > Come contattarmi**, ogni regola che notifica un telefono è impostata su «Avviso critico», il valore predefinito, o su «Standard», che segue le impostazioni audio del telefono – così una persona può essere svegliata per un incidente critico e avvisata in silenzio per uno minore. Memorizzato per regola in `UserNotificationRule.pushNotificationLevel`.
 3. **Il server contrassegna l'avviso come critico.** Invia il payload del suono critico di APNs più `interruptionLevel: critical` per iOS, e punta a un canale di notifica critico per Android: `oncall_critical`, o il canale proprio dell'allarme scelto (vedi [Scegliere il suono di allarme](#scegliere-il-suono-di-allarme)).
 4. **Il sistema operativo lo consente**, ed è qui che le due piattaforme differiscono.
 
@@ -204,7 +204,7 @@ Un dispositivo mantiene il suono di sistema finché non esegue una versione dell
 
 ### Ripetere un avviso fino al riconoscimento
 
-Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo riconosce. In **Impostazioni utente > Regole di reperibilità**, imposta **Ripeti fino al riconoscimento** quando aggiungi una regola push, o cambialo in seguito nella riga della regola: ogni minuto, oppure ogni 2, 3, 5, 10, 15 o 30 minuti. L'avviso viene inviato di nuovo a quell'intervallo, al massimo altre 10 volte, e si ferma non appena l'incidente, l'avviso o l'episodio viene riconosciuto. Memorizzato per regola in `UserNotificationRule.repeatEveryMinutes`, dove 0, il valore predefinito, invia l'avviso una sola volta.
+Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo riconosce. In **Impostazioni utente > Come contattarmi**, imposta **Ripeti fino al riconoscimento** quando aggiungi una regola push, o cambialo in seguito nella riga della regola: ogni minuto, oppure ogni 2, 3, 5, 10, 15 o 30 minuti. L'avviso viene inviato di nuovo a quell'intervallo, al massimo altre 10 volte, e si ferma non appena l'incidente, l'avviso o l'episodio viene riconosciuto. Memorizzato per regola in `UserNotificationRule.repeatEveryMinutes`, dove 0, il valore predefinito, invia l'avviso una sola volta.
 
 ## Risoluzione dei problemi
 
@@ -225,7 +225,7 @@ Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo rico
 ### Gli avvisi critici non superano la modalità silenziosa
 
 - Controlla che l'interruttore sia attivo per **quel** dispositivo – l'impostazione è per dispositivo, e una reinstallazione o un nuovo telefono configurato da zero crea una nuova registrazione del dispositivo (un telefono configurato da un backup del vecchio subentra nella registrazione del vecchio telefono non appena questo non riceve più notifiche, con l'impostazione che aveva l'app)
-- Controlla la regola di reperibilità di quella gravità in **Impostazioni utente > Regole di reperibilità**: una regola push impostata su «Standard» segue le impostazioni audio del telefono, qualunque cosa dica l'interruttore del dispositivo
+- Controlla la regola di reperibilità di quella gravità in **Impostazioni utente > Come contattarmi**: una regola push impostata su «Standard» segue le impostazioni audio del telefono, qualunque cosa dica l'interruttore del dispositivo
 - **iOS**: conferma che la build abbia l'entitlement degli avvisi critici di Apple (vedi sopra), e che Critical Alerts sia consentito in iOS Settings > Notifications > OneUptime On-Call
 - **Android**: conferma che l'app abbia l'accesso a Non disturbare in Settings > Notifications > Do Not Disturb access
 - **Android**: se hai scelto un suono di allarme, anche il suo canale di notifica deve poter superare Non disturbare; la schermata Alarm sound dell'app indica quando non può

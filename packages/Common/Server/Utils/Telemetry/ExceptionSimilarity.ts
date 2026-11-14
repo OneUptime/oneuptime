@@ -18,8 +18,8 @@ import StackTraceParser, {
  * signatures are compared for the strongest reason they share
  * (SimilarExceptionReason). A message or a stack trace can be megabytes on
  * one line, and the normalizer runs regular expressions, so each is cut to
- * a fixed length before anything reads it (AGENTS.md, "Megabyte-long
- * values").
+ * a fixed length before anything reads it (Docs/notifications/README.md,
+ * "Megabyte-long values").
  */
 
 export const MAX_SIGNATURE_MESSAGE_LENGTH: number = 1000;

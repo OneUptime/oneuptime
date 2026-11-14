@@ -17,7 +17,7 @@ Een bereikbaarheidsschema bepaalt wie er op elk moment dienst heeft. Mensen wiss
 Wanneer u op de pagina **Bereikbaarheidsschema's** een schema maakt, vraagt het formulier om de **Naam** en **Wie wisselen elkaar af?**. De mensen die u kiest, vormen de eerste laag van het schema, **Layer 1**, de klok rond van dienst.
 
 :::steps
-1. Ga naar **Bereikbaarheidsdienst** > **Bereikbaarheidsschema's** en klik op **Bereikbaarheidsschema maken**.
+1. Ga naar **Bereikbaarheid** > **Bereikbaarheidsschema's** en klik op **Bereikbaarheidsschema maken**.
 2. Vul een **Naam** in.
 3. Klik onder **Wie wisselen elkaar af?** op **Gebruiker toevoegen** en kies de mensen, in de volgorde waarin ze elkaar afwisselen.
 4. Open desgewenst **Meer velden** om te wijzigen hoe lang elke beurt duurt, de tijdzone, de beschrijving of de labels.
@@ -86,7 +86,7 @@ Zolang die persoon afwezig is:
 
 Kies je in plaats daarvan iemand onder **Wie vervangt?**, dan krijgt die alle oproepen van de persoon, uit elk schema en elk beleid, in plaats van dat de rotatie de beurten overneemt.
 
-Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraagt ze het recht voor overrides over het hele project. Is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, dan komt ze in plaats daarvan op het beleid van dit schema waarvoor je overrides mag toevoegen, met één override per beleid, vermeld op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid; zijn het er meer, dan vink je ze aan onder **Bereikbaarheidsbeleid**. **Overslaan tot…** is alleen vergrendeld en zegt waarom waar je dat voor geen enkel beleid mag. Ze staat onder **Bereikbaarheidsdienst** > **Geavanceerd** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraagt ze het recht voor overrides over het hele project. Is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, dan komt ze in plaats daarvan op het beleid van dit schema waarvoor je overrides mag toevoegen, met één override per beleid, vermeld op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid; zijn het er meer, dan vink je ze aan onder **Bereikbaarheidsbeleid**. **Overslaan tot…** is alleen vergrendeld en zegt waarom waar je dat voor geen enkel beleid mag. Ze staat onder **Bereikbaarheid** > **Geavanceerd** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Escalatieregels](/docs/on-call/escalation-rules): Laat een niveau van een bereikbaarheidsbeleid dit schema oproepen.
 - [Tijdlijn van bereikbaarheidsschema's](/docs/on-call/schedule-timeline): Bekijk alle schema's naast elkaar, met de dekkingsgaten.
 - [Agendafeeds](/docs/on-call/calendar-feeds): Zet diensten in Google Agenda, Outlook of Apple Agenda.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Bepaal hoe een oproep je bereikt terwijl je bereikbaarheidsdienst hebt.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Bepaal hoe een oproep je bereikt terwijl je bereikbaarheidsdienst hebt.
 :::

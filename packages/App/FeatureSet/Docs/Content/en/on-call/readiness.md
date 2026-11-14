@@ -1,12 +1,12 @@
 # Readiness & Reports
 
-Readiness answers a question before an incident does: if something fired right now, would everyone your on-call policies page actually be reached? It lists every responder in the project, says who is ready and who is not, and lets you remind people to finish their setup. The **User On Call Time** report then shows how long each person was on call.
+Readiness answers a question before an incident does: if something fired right now, would everyone your on-call policies page actually be reached? It lists every responder in the project, says who is ready and who is not, and lets you remind people to finish their setup. The **User On-Call Time** report then shows how long each person was on call.
 
 :::cards
 - [How a status is worked out](#how-a-status-is-worked-out): Ready, Needs setup or Unreachable, and why.
 - [The Readiness page](#the-readiness-page): Every responder in the project, in one list.
 - [Remind people to finish their setup](#remind-people-to-finish-their-setup): An email that names what is missing.
-- [User On Call Time](#user-on-call-time): How long each person was on call.
+- [User On-Call Time](#user-on-call-time): How long each person was on call.
 :::
 
 ## How a status is worked out
@@ -26,7 +26,7 @@ A responder is anyone an on-call policy can page: a person named on an escalatio
 
 | Status | What it means |
 | --- | --- |
-| **Ready** | They have a verified method on a channel the project has on, and a rule for every severity, on every tab of their on-call rules. |
+| **Ready** | They have a verified method on a channel the project has on, and a rule for every severity, on every tab of their How to Reach Me. |
 | **Needs setup** | They can be reached, but some severities have no rule. The row counts these gaps. |
 | **Unreachable** | Nothing reaches them: no verified method, every verified method is on a channel the project has turned off, or they are not a member of the project. |
 
@@ -34,7 +34,7 @@ A gap is a severity with no rule, on the incidents, incident episodes, alerts or
 
 ## The Readiness page
 
-Open **On-Call Duty → Readiness**. The **On-call readiness** card lists everyone any on-call policy in the project can reach, the people who need something first. Anyone in the project can open it.
+Open **On-Call → Readiness**. The **On-call readiness** card lists everyone any on-call policy in the project can reach, the people who need something first. Anyone in the project can open it.
 
 Above the list, the tiles count **Responders**, **Ready**, **Needs setup** and **Unreachable**. Click **Ready**, **Needs setup** or **Unreachable** to list only those responders, and click it again to list everyone.
 
@@ -58,7 +58,7 @@ Only the person can add and verify their own notification methods and rules, so 
 3. Confirm. Each person gets one email naming what is missing from their own setup, with a link to the page that fixes it.
 :::
 
-A banner then says how many reminders were sent, skipped or failed, and why for each one that was not sent. Nobody is reminded more than once in 24 hours, and one go reminds at most 250 people. Sending reminders takes **Project Owner**, **Project Admin** or **On-Call Admin**, or **Edit On-Call Duty Policy** in a custom role.
+A banner then says how many reminders were sent, skipped or failed, and why for each one that was not sent. Nobody is reminded more than once in 24 hours, and one go reminds at most 250 people. Sending reminders takes **Project Owner**, **Project Admin** or **On-Call Admin**, or **Edit On-Call Policy** in a custom role.
 
 ## Readiness on other pages
 
@@ -73,9 +73,9 @@ Once a week, OneUptime checks every project that has an on-call policy. When any
 
 A week with everyone ready sends nothing, so the email always means something needs fixing. When someone cannot be paged at all, its subject starts with `[Action Required]`.
 
-## User On Call Time
+## User On-Call Time
 
-**On-Call Duty → Reports → User On Call Time** shows how long each person was on call, over a range you pick: **Past 1 Month** to start with.
+**On-Call → Reports → User On-Call Time** shows how long each person was on call, over a range you pick: **Past 1 Month** to start with.
 
 | Column | What it shows |
 | --- | --- |
@@ -108,5 +108,5 @@ It is sent only in a week when someone is **Unreachable** or **Needs setup**, an
 :::cards
 - [How OneUptime Reaches You](/docs/notifications/index): The methods, rules and fallback behind every status.
 - [Notification Methods](/docs/notifications/notification-methods): Add and verify the ways OneUptime reaches someone.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): Close the gaps, severity by severity.
+- [How to Reach Me](/docs/notifications/on-call-rules): Close the gaps, severity by severity.
 :::

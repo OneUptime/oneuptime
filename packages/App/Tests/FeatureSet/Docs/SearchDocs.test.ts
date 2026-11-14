@@ -201,9 +201,11 @@ describe("Home Page & Shortcuts explains Search", () => {
 
 /*
  * The settings on a page are found by the names their cards show
- * (PageSearchPage.settings), in English and in the reader's language. The
- * page names two, in every docs language: each, typed as that language's
- * dashboard draws it, finds the page the setting is on first.
+ * (PageSearchPage.settings, and a folded card's action), in English and in
+ * the reader's language. The page names two, in every docs language: each,
+ * typed as that language's dashboard draws it, finds the page the setting
+ * is on first. The second was the Notification Channels card, until its
+ * page took the name (#6817): a card named as its page shows nothing.
  */
 const SETTING_EXAMPLES: Array<{
   setting: string;
@@ -216,11 +218,25 @@ const SETTING_EXAMPLES: Array<{
     pageKey: PageMap.SETTINGS_SSO,
   },
   {
-    setting: "Notification Channels",
-    page: "Notification Settings",
+    setting: "Custom SMTP Configs",
+    page: "Notification Channels",
     pageKey: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
   },
 ];
+
+// The names Search finds a page's cards by: its settings, and its actions.
+function cardNamesOf(entry: PageSearchIndexEntry): Array<string> {
+  return [
+    ...(entry.page.settings || []).map(
+      (setting: string | { name: string }): string => {
+        return typeof setting === "string" ? setting : setting.name;
+      },
+    ),
+    ...(entry.page.actions || []).map((action: PageSearchAction): string => {
+      return action.title;
+    }),
+  ];
+}
 
 const DASHBOARD_LOCALES: string = path.join(
   __dirname,
@@ -291,20 +307,23 @@ function firstPageKey(
     },
   );
 
-  return (opened?.routePath || "").replace("/dashboard/project/", "");
+  // A folded card's result opens the page at the card ("#custom-smtp-configs").
+  return (opened?.routePath || "")
+    .replace("/dashboard/project/", "")
+    .split("#")[0] as string;
 }
 
 describe("Home Page & Shortcuts finds a setting by its name", () => {
   test("it names the settings, and the pages they are on", () => {
     expect(SECTION).toContain("**The settings on a page**");
     expect(SECTION).toContain(
-      "*Require SSO for Login* finds SSO, and *Notification Channels* finds Notification Settings",
+      "*Require SSO for Login* finds SSO, and *Custom SMTP Configs* finds Notification Channels",
     );
     expect(SECTION).toContain("Type the name in English or in your language.");
 
     for (const example of SETTING_EXAMPLES) {
       expect(
-        findEntry(example.page, "project-settings").page.settings || [],
+        cardNamesOf(findEntry(example.page, "project-settings")),
       ).toContain(example.setting);
     }
   });

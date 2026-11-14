@@ -34,7 +34,7 @@ flowchart LR
 | **Basique** | **Projet**, **Produits**, **Étiquettes** | [Les détails du projet](#les-détails-du-projet), [Produits](#produits), [Étiquettes](#étiquettes) |
 | **Espace de travail** | **Slack**, **Microsoft Teams**, **Mattermost**, **Appels vidéo** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Appels vidéo](/docs/workspace-connections/video-calls) |
 | **Télémétrie & APM** | **Clés d'ingestion**, **Rétention des données**, **Utilisation** | [Clés d'ingestion](/docs/telemetry/ingestion-keys), [Rétention des données](/docs/telemetry/data-retention), [Utilisation de la télémétrie](/docs/telemetry/usage) |
-| **Notifications** | **Paramètres de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
+| **Notifications** | **Canaux de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
 | **IA** | **Fonctionnalités IA**, **Fournisseurs LLM**, **Serveurs MCP externes**, **Crédits IA**, **Journaux IA**, **Serveur MCP** | [Fournisseurs LLM](/docs/ai/llm-provider), [Serveurs MCP externes](/docs/ai/external-mcp-servers), [Serveur MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#maîtrise-des-coûts) |
 | **Avancé** | **Domaines**, **Clés API**, **Drapeaux de fonctionnalités**, **Importer depuis un autre outil** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités), [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie) et les autres guides de migration |
 | **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -61,6 +61,8 @@ flowchart LR
 **Paramètres du projet → Basique → Produits** choisit les produits que ce projet affiche dans son menu **Produits**, sur l'accueil et dans la liste de la recherche. Chaque produit a un interrupteur qui enregistre dès que vous le basculez : activé, il affiche le produit. Les utilisateurs, les équipes et les paramètres du projet sont toujours affichés, et **Afficher tous les produits** les réaffiche tous.
 
 Un produit masqué n'est pas désactivé. Il passe sous **Plus de produits**, la dernière ligne du menu **Produits** : la recherche le trouve toujours, ses pages et son API fonctionnent, et ses données continuent d'arriver. Quiconque l'a épinglé garde son épingle.
+
+Sur un serveur auto-hébergé, un administrateur principal peut aussi désactiver un produit pour tous les projets, sous **Paramètres → Produits** dans l'Admin Dashboard (voir [N'exécuter que ce dont vous avez besoin](/docs/installation/docker-compose#nexécuter-que-ce-dont-vous-avez-besoin)). Un tel produit n'a pas d'interrupteur ici : il affiche **Désactivé sur ce serveur**, avec qui peut l'activer.
 
 Un nouveau projet part de ce que son propriétaire a dit vouloir faire sur l'accueil : les essentiels, les paramètres et ce dont ces objectifs ont besoin sont affichés, et le reste est masqué. Un projet qui a passé la question, ou qui a été créé avant elle, affiche tous les produits. Dès que quelqu'un modifie la liste ici, les objectifs ne la modifient plus.
 
@@ -94,7 +96,7 @@ Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au l
 
 **Paramètres du projet → Notifications** contient la façon dont le projet envoie ses notifications :
 
-- **Paramètres de notification** : la carte **Canaux de notification** active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram pour le projet. Les quatre sont désactivés au départ. Un Project Owner, un **Administrateur de la facturation** ou une personne avec **Manage Billing** les active. La page contient aussi, repliés sous **Plus de paramètres**, les propres serveurs de messagerie du projet, dans **Configurations SMTP personnalisées** (voir [SMTP](/docs/emails/smtp)), et son propre compte Twilio (voir [Intégration Twilio](/docs/self-hosted/twilio-integration)). Sur OneUptime Cloud, elle contient le solde qui paie ces messages : voir [Soldes prépayés](/docs/configuration/billing#soldes-prépayés).
+- **Canaux de notification** : la carte **Canaux de notification** active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram pour le projet. Les quatre sont désactivés au départ. Un Project Owner, un **Administrateur de la facturation** ou une personne avec **Manage Billing** les active. La page contient aussi, repliés sous **Plus de paramètres**, les propres serveurs de messagerie du projet, dans **Configurations SMTP personnalisées** (voir [SMTP](/docs/emails/smtp)), et son propre compte Twilio (voir [Intégration Twilio](/docs/self-hosted/twilio-integration)). Sur OneUptime Cloud, elle contient le solde qui paie ces messages : voir [Soldes prépayés](/docs/configuration/billing#soldes-prépayés).
 - **Journaux de notification** : chaque notification que le projet a envoyée, avec un onglet par canal : **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Appel**, **Push** et **Espace de travail**.
 - **Applications mobiles** : où obtenir les applications iOS et Android. Voir [Vue d'ensemble des applications](/docs/mobile-desktop-apps/index).
 

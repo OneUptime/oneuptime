@@ -133,7 +133,6 @@ const LEFT_TO_WRITE: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackResourceList.tsx {{total}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx {{number}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx {{max}}",
-  "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackHostGroups.tsx {{percent}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackHostGroups.tsx {{total}}",
   "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCreateRunner.ts {{created}}",
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/DetectionRuleSummary.tsx {{count}}",

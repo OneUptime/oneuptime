@@ -155,7 +155,7 @@ That is the rule: the group shows its worst monitor. Open **Monitors** on the gr
 ## Next steps
 
 :::cards
-- [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses): What sets each monitor's status.
+- [Criteria & Statuses](/docs/monitor/criteria-and-statuses): What sets each monitor's status.
 - [Status Page Resources & Groups](/docs/status-pages/resources-and-groups): Lay out the rows of a status page.
 - [Subscribers & Announcements](/docs/status-pages/subscribers): Tell customers about a group's incidents.
 :::

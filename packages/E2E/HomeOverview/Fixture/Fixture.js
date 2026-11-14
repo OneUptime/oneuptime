@@ -91,6 +91,7 @@ import HomeLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout"
 import Home from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
 import SetupHealthPage from "../../../App/FeatureSet/Dashboard/src/Pages/Home/SetupHealth";
 import MovedHomeRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/MovedHomeRoutes";
+import DashboardRecording from "../../../App/FeatureSet/Dashboard/src/Components/DashboardRecording/DashboardRecording";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -113,6 +114,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
@@ -270,6 +272,8 @@ const fixture = {
   apiRequests: [],
   paletteToggles: 0,
   unhandled: [],
+  // The recording switches read (#6834): only ever with ?recording=cloud.
+  recordingSwitchReads: [],
 };
 window.__homeOverviewFixture = fixture;
 
@@ -983,6 +987,16 @@ if (!isNew) {
 UserUtil.isMasterAdmin = () => {
   return false;
 };
+/*
+ * Signed in, as far as recording the setup pages is concerned (#6834): it
+ * reads the person's switch only for somebody signed in. Only with
+ * ?recording=cloud, so every other scenario runs as it always has.
+ */
+if (params.get("recording") === "cloud") {
+  UserUtil.isLoggedIn = () => {
+    return true;
+  };
+}
 UserUtil.getUserId = () => {
   return new ObjectID(ID.user(1));
 };
@@ -1115,12 +1129,23 @@ ModelAPI.count = async (options) => {
 });
 
 ModelAPI.getItem = async (options) => {
-  // The project's channel switches and fallback, for the personal checklist.
+  /*
+   * The project's channel switches and fallback, for the personal checklist;
+   * and, with ?recording=cloud, its switch for recording the setup pages
+   * (#6834), on.
+   */
   if (tableName(options.modelType) === "Project") {
     return make(Project, {
       _id: PROJECT_ID,
       disableOnCallNotificationFallback: false,
+      disableDashboardRecording: false,
     });
+  }
+
+  // The person's own switch for recording the setup pages (#6834), on.
+  if (tableName(options.modelType) === "User") {
+    fixture.recordingSwitchReads.push("User");
+    return make(User, { disableDashboardRecording: false });
   }
 
   fixture.unhandled.push({
@@ -1611,7 +1636,7 @@ const PRODUCT_LISTS = [
   [PageMap.UNRESOLVED_ALERTS, "Active Alerts"],
   [PageMap.UNRESOLVED_ALERT_EPISODES, "Active Alert Episodes"],
   [PageMap.MONITORS_INOPERATIONAL, "Not Operational Monitors"],
-  [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS, "Ongoing Events"],
+  [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS, "Ongoing Maintenance Events"],
   [PageMap.SLOS, "SLOs"],
 ];
 
@@ -1639,6 +1664,11 @@ function FixtureApp() {
         </div>
       </header>
       <HowOneUptimeWorksDialog />
+      {/*
+       * As App.tsx mounts it (#6834). Without OneUptime Cloud's configuration
+       * - every scenario but ?recording=cloud - it does nothing at all.
+       */}
+      <DashboardRecording projectId={PROJECT_ID} />
       <Routes>
         <Route element={<FixtureHomeLayout />}>
           <Route

@@ -7,6 +7,7 @@ import {
   HOST_COLLECTOR_INSTALLABLE_OS_TYPES,
   HOST_COLLECTOR_INSTALL_SCRIPT_PATH,
   HOST_COLLECTOR_OPAMP_PATH,
+  HOST_COLLECTOR_OPAMP_ROUTE,
   HOST_COLLECTOR_OS_NAMES,
   HOST_COLLECTOR_URL_ENV,
   HOST_COLLECTOR_URL_REFERENCE,
@@ -94,8 +95,17 @@ describe("where a host's collector sends, as every config writes it", () => {
     expect(HOST_COLLECTOR_EXPORTER_ENDPOINT).toBe("${env:ONEUPTIME_URL}/otlp");
   });
 
-  test("the supervisor posts to /opamp/v1, and every OneUptime serves the installers under /docs/static", () => {
-    expect(HOST_COLLECTOR_OPAMP_PATH).toBe("/opamp/v1");
+  test("the supervisor posts to the OpAMP route under /telemetry, and every OneUptime serves the installers under /docs/static", () => {
+    /*
+     * /telemetry reaches the App through every OneUptime ingress; the bare
+     * route reached only the marketing site on oneuptime.com, so the
+     * installers write the route under /telemetry.
+     */
+    expect(HOST_COLLECTOR_OPAMP_ROUTE).toBe("/opamp/v1");
+    expect(HOST_COLLECTOR_OPAMP_PATH).toBe("/telemetry/opamp/v1");
+    expect(HOST_COLLECTOR_OPAMP_PATH.endsWith(HOST_COLLECTOR_OPAMP_ROUTE)).toBe(
+      true,
+    );
     expect(HOST_COLLECTOR_INSTALL_SCRIPT_PATH).toBe(
       "/docs/static/scripts/host-collector/install.sh",
     );

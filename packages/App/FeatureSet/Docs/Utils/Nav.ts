@@ -114,6 +114,11 @@ const DocsNav: NavGroup[] = [
     section: "Get Started",
     links: [
       {
+        title: "Know When Your Website or API Is Down",
+        url: "/docs/guides/website-down",
+        isGuide: true,
+      },
+      {
         title: "Get Paged by Phone, SMS or Push",
         url: "/docs/guides/paging",
         isGuide: true,
@@ -193,7 +198,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/monitor-templates",
       },
       {
-        title: "Monitor Criteria & Statuses",
+        title: "Criteria & Statuses",
         url: "/docs/monitor/criteria-and-statuses",
       },
       {
@@ -521,7 +526,7 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "On Call",
+    title: "On-Call",
     section: "Incident Response",
     links: [
       {
@@ -579,7 +584,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/notifications/notification-methods",
       },
       {
-        title: "Personal On-Call Rules",
+        title: "How to Reach Me",
         url: "/docs/notifications/on-call-rules",
       },
       {
@@ -694,7 +699,7 @@ const DocsNav: NavGroup[] = [
        * explorers share.
        */
       {
-        title: "Service Catalog",
+        title: "Services",
         url: "/docs/telemetry/services",
       },
       {
@@ -710,7 +715,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/metrics-explorer",
       },
       {
-        title: "Exception Tracking",
+        title: "Exceptions",
         url: "/docs/telemetry/exceptions",
       },
       {
@@ -756,7 +761,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ingestion-budgets",
       },
       {
-        title: "Continuous Profiling",
+        title: "Profiles",
         url: "/docs/telemetry/profiles",
       },
       {

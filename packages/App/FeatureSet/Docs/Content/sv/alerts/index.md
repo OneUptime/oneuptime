@@ -158,7 +158,7 @@ En episod som ett privat larm öppnar är inte privat, så den visar aldrig larm
 
 ## Vem som får veta om ett larm
 
-- **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Jourregler** på fliken **Larm**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
+- **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Så når man mig** på fliken **Larm**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
 - **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Påminnelse om larm** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare.
 - **Dina chattverktyg.** **Larm → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

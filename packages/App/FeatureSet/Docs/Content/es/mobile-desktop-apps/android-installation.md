@@ -78,7 +78,7 @@ En el panel, abra **Ajustes de usuario → Métodos de notificación** y la pest
 Haga clic en **Notificación de prueba** en la fila del teléfono. Llega una notificación al teléfono; tóquela para abrir la aplicación.
 :::
 
-Sus reglas de guardia deciden qué avisos van al teléfono, y con qué rapidez: consulte **Ajustes de usuario → Reglas de guardia**. Un teléfono nuevo recibe las mismas reglas predeterminadas que cualquier otro método que añada.
+Sus reglas de guardia deciden qué avisos van al teléfono, y con qué rapidez: consulte **Ajustes de usuario → Cómo contactarme**. Un teléfono nuevo recibe las mismas reglas predeterminadas que cualquier otro método que añada.
 
 ## Sonar pese al modo silencio
 
@@ -139,7 +139,7 @@ La aplicación no pudo llegar a `https://<your-oneuptime>/api/status`. Compruebe
 - Compruebe en los ajustes de Android que las notificaciones de la aplicación están activadas, y que No molestar está desactivado o las alertas críticas activadas.
 - Compruebe que el teléfono aparece en **Notificaciones push** en **Ajustes de usuario → Métodos de notificación**, y envíele una **Notificación de prueba**.
 - Si el teléfono está marcado como **No recibe notificaciones**, abra la aplicación con la sesión iniciada. Vuelve a registrar el teléfono; consulte [Cuando un teléfono tiene que volver a registrarse](/docs/mobile-desktop-apps/faq-troubleshooting#cuando-un-teléfono-tiene-que-volver-a-registrarse).
-- Compruebe sus reglas de guardia en **Ajustes de usuario → Reglas de guardia**.
+- Compruebe sus reglas de guardia en **Ajustes de usuario → Cómo contactarme**.
 - En un OneUptime autoalojado, compruebe que su servidor llega a su relé push: consulte [Notificaciones push](/docs/self-hosted/push-notifications#acceso-de-red).
 :::
 

@@ -36,6 +36,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * EVERY WORD THE IMPORT PAGE SAYS ABOUT A TOOL, AN ITEM OR A RUN.
@@ -1065,6 +1066,14 @@ function toTemplateValue(
     return durationValue(value);
   }
 
+  /*
+   * A part that could not be added says why in the server's words
+   * (PartNotAdded): said as any error in a sentence is (#7307).
+   */
+  if (key === "error" && typeof value === "string") {
+    return errorInSentence(value);
+  }
+
   if (typeof value === "number") {
     return translator.formatNumber(value);
   }
@@ -1075,7 +1084,8 @@ function toTemplateValue(
 /*
  * A note in the reader's language. Values are put in as they are, except a
  * kind (translated with the sentence), a date and a number (written the
- * reader's way). A note this build has no sentence for says nothing.
+ * reader's way), and an error (errorInSentence). A note this build has no
+ * sentence for says nothing.
  */
 export function describeToolImportNote(
   note: ToolImportNote,

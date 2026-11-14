@@ -30,7 +30,8 @@ export type ProxmoxRemoveNodeResult =
  * Writes and reads the Proxmox inventory table populated by the
  * telemetry ingest path. Callers are either:
  *   - OtelMetricsIngestService (bulkUpsert + bulkUpdateLatestMetrics,
- *     from the pve_* snapshot scan in processMetricsAsync)
+ *     from the pve_* snapshot scan in processMetricsAsync, and
+ *     bulkUpdateStartOnBoot for what only a node's own scrape reported)
  *   - CleanupStaleResources worker (deleteStaleForCluster)
  *   - ProxmoxResourceAPI / the dashboard pages (reads via the
  *     inherited DatabaseService CRUD)
@@ -107,6 +108,17 @@ export interface ProxmoxInventorySummary {
   countsByKind: Record<string, number>;
   nodeOnlineCount: number;
   guestRunningCount: number;
+}
+
+/*
+ * What a node's own scrape says about a guest it holds: its start-on-boot
+ * flag, and so the node it is on (bulkUpdateStartOnBoot).
+ */
+export interface ProxmoxResourceStartOnBoot {
+  kind: string;
+  externalId: string;
+  onboot: boolean | null;
+  parentNodeName: string | null;
 }
 
 const UPSERT_BATCH_SIZE: number = 500;
@@ -394,6 +406,80 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * Write what a node's own scrape reported about guests the batch said
+   * nothing else about: their start-on-boot flag (pve_onboot_status), and
+   * the node it came from. It is configuration, not status - a node reports
+   * it for every guest it holds, running or not, and keeps reporting it
+   * while the cluster itself cannot be read - so this never moves a row's
+   * lastSeenAt or metricsUpdatedAt: a guest whose status nobody has read
+   * must not look freshly reported, nor be ranked by a stale reading
+   * (issue #7439). Nor does it insert: a guest is added by the read that
+   * reports its status, and a flag for a guest not added yet waits for the
+   * next scrape.
+   *
+   * COALESCE keeps what a batch did not carry. Unordered: a flag is a
+   * setting that changes rarely, and a late batch's value is put right by
+   * the next scrape. Returns nothing - like the latest-metric mirror, a
+   * row that is not there is skipped silently.
+   */
+  @CaptureSpan()
+  public async bulkUpdateStartOnBoot(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    resources: Array<ProxmoxResourceStartOnBoot>;
+  }): Promise<void> {
+    const resources: Array<ProxmoxResourceStartOnBoot> = data.resources.filter(
+      (r: ProxmoxResourceStartOnBoot): boolean => {
+        return r.onboot !== null || r.parentNodeName !== null;
+      },
+    );
+
+    for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ProxmoxResourceStartOnBoot> = resources.slice(
+        i,
+        i + UPSERT_BATCH_SIZE,
+      );
+
+      const valueFragments: Array<string> = [];
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.proxmoxClusterId.toString(),
+      ];
+      let paramIndex: number = 3;
+
+      for (const r of chunk) {
+        valueFragments.push(
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::boolean, $${paramIndex++})`,
+        );
+        // The identity clamps MUST match bulkUpsert's (see bulkUpdateLatestMetrics).
+        params.push(
+          truncateShortText(r.kind),
+          truncateShortText(r.externalId),
+          r.onboot,
+          truncateShortText(r.parentNodeName),
+        );
+      }
+
+      const sql: string = `
+        UPDATE "ProxmoxResource" AS p
+        SET
+          "onboot" = COALESCE(v."onboot", p."onboot"),
+          "parentNodeName" = COALESCE(v."parentNodeName", p."parentNodeName"),
+          "updatedAt" = now()
+        FROM (VALUES ${valueFragments.join(", ")})
+          AS v("kind", "externalId", "onboot", "parentNodeName")
+        WHERE
+          p."projectId" = $1
+          AND p."proxmoxClusterId" = $2
+          AND p."kind" = v."kind"
+          AND p."externalId" = v."externalId"
+      `;
+
+      await this.getRepository().manager.query(sql, params);
+    }
+  }
+
+  /**
    * Write what the cluster's backup notifications say about its guests: the
    * last run that included each one, how it ended, its size and how long it
    * took, and when its last successful backup finished. Guests are found by
@@ -535,6 +621,24 @@ export class Service extends DatabaseService<Model> {
     olderThan: Date;
     now?: Date | undefined;
   }): Promise<number> {
+    /*
+     * NEVER THE WHOLE INVENTORY AT ONCE (issue #7439). Every read of a
+     * cluster reports at least one node, so a cluster with no row fresher
+     * than the cutoff has not lost every node: its reads stopped describing
+     * it - the agent cannot read the Proxmox VE API, ingest is catching up
+     * on a backlog older than the cutoff, or the agent's clock is behind.
+     * Pruning then would empty its pages for a fault that is not in the
+     * cluster, so nothing is pruned until a read refreshes a row again. A
+     * row goes stale on its own - a node removed, a guest deleted - only
+     * while some other row is fresh.
+     */
+    const anyRowFresh: string = `EXISTS (
+                 SELECT 1 FROM "ProxmoxResource" AS fresh
+                 WHERE fresh."proxmoxClusterId" = $1
+                   AND fresh."lastSeenAt" >= $2
+                   AND fresh."deletedAt" IS NULL
+               )`;
+
     const result: Array<{ affected?: number }> | { affected?: number } =
       isProxmoxSilentNodeDetectionEnabled()
         ? await this.getRepository().manager.query(
@@ -543,7 +647,8 @@ export class Service extends DatabaseService<Model> {
                AND "lastSeenAt" < $2
                AND NOT ("kind" = 'Node'
                         AND "isNativePush" IS TRUE
-                        AND "lastSeenAt" >= $3)`,
+                        AND "lastSeenAt" >= $3)
+               AND ${anyRowFresh}`,
             [
               data.proxmoxClusterId.toString(),
               data.olderThan,
@@ -551,7 +656,10 @@ export class Service extends DatabaseService<Model> {
             ],
           )
         : await this.getRepository().manager.query(
-            `DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2`,
+            `DELETE FROM "ProxmoxResource"
+             WHERE "proxmoxClusterId" = $1
+               AND "lastSeenAt" < $2
+               AND ${anyRowFresh}`,
             [data.proxmoxClusterId.toString(), data.olderThan],
           );
 

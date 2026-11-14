@@ -44,7 +44,7 @@ import {
 } from "./IngestRefusalWords";
 
 /*
- * Settings > Telemetry Ingestion Keys > a key > REFUSED TELEMETRY (issue
+ * Settings > Ingestion Keys > a key > REFUSED TELEMETRY (issue
  * #6378): what the ingest endpoints turned away from this key in the past
  * 30 days - why, where, how many and when - so "is anything sending with
  * this key, and is it getting through?" has its answer beside Last Used At.

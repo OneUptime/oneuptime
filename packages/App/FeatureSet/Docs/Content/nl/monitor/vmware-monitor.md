@@ -60,7 +60,7 @@ Een nieuwe monitor begint met **vCenter Stopped Reporting**, onder **Waarover te
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
+Open elk criterium onder **Criteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor maken
 

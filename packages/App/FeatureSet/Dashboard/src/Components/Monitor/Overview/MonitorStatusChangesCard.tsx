@@ -18,6 +18,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -97,10 +98,10 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
       if (props.statusRows.status === "error") {
         return (
           <p className="text-sm text-red-700">
-            {translator.translateTemplate(
-              "Couldn't load status history. {{error}}",
-              { error: props.statusRows.error || "" },
-            )}
+            <ErrorSentence
+              template="Couldn't load status history. {{error}}"
+              error={props.statusRows.error || ""}
+            />
           </p>
         );
       }
@@ -156,10 +157,10 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
         )}
         {props.statusRows.refreshError ? (
           <p className="mt-2 text-xs text-gray-500">
-            {translator.translateTemplate(
-              "Couldn't refresh status history. {{error}}",
-              { error: props.statusRows.refreshError || "" },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh status history. {{error}}"
+              error={props.statusRows.refreshError || ""}
+            />
           </p>
         ) : (
           <></>

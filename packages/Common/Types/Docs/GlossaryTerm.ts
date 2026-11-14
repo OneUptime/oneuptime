@@ -38,6 +38,8 @@ enum GlossaryTerm {
   OnCallSchedule = "on-call-schedule",
   Layer = "layer",
   NotificationMethod = "notification-method",
+  // A person's own paging rules: the page #6820 named, #6817 defined.
+  HowToReachMe = "how-to-reach-me",
   StatusPage = "status-page",
   Subscriber = "subscriber",
   ScheduledMaintenance = "scheduled-maintenance",

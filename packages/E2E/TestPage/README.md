@@ -23,6 +23,9 @@ The suite pins:
   listed as the reader's language lists them, the amount as the reader writes
   money
 - a phone number in the preview keeps its own direction beside Persian words
+- the preview's numbered list of methods counts in Persian digits on a Persian
+  page ("۱. ۲."), and in Latin ones on an Arabic page, which writes them by
+  choice (#7258)
 - a send asks for the severity picked - and, for a policy, whether to walk every
   level - and nothing else
 - the result shows each message as it goes out: who acknowledged it, by what and

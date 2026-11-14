@@ -1,4 +1,4 @@
-# अपवाद ट्रैकिंग
+# अपवाद
 
 अपवाद ट्रैकिंग आपके कोड से फेंकी गई त्रुटियों को इकट्ठा करती है और एक ही त्रुटि की हर घटना को एक अपवाद में समूहित करती है, उसके स्टैक ट्रेस, उसके रुझान और उन अनुरोधों के साथ जिनमें वह हुई। उन्हें एक कार्य सूची की तरह छाँटें: ठीक करें, सुलझाएँ, या शोर को संग्रहीत करें, और जिन्हें AI ठीक कर सकता है उनके लिए उसे pull request खोलने दें।
 
@@ -39,7 +39,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आते हुए स्पैन या लॉग।** अपनी सेवाओं को [OpenTelemetry](/docs/telemetry/open-telemetry) से इंस्ट्रूमेंट करें। **सेटअप गाइड** टैब आपकी भाषा का कोड दिखाता है।
-- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Telemetry Service Exception अनुमति वाली कस्टम भूमिका। सुलझाने और संग्रहीत करने के लिए Project Owner या Project Admin, या Edit Telemetry Service Exception अनुमति चाहिए।
+- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Exceptions अनुमति वाली कस्टम भूमिका। सुलझाने और संग्रहीत करने के लिए Project Owner या Project Admin, या Edit Exceptions अनुमति चाहिए।
 
 ## सूची को छाँटना
 

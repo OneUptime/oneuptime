@@ -5,7 +5,7 @@ A DNS monitor queries a DNS record on a schedule and checks the answer: that the
 :::cards
 - [Create the monitor](#create-a-dns-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): The name, the record type and the DNS server.
-- [Monitoring criteria](#monitoring-criteria): Resolution, records, response time and DNSSEC.
+- [Criteria](#criteria): Resolution, records, response time and DNSSEC.
 - [Troubleshooting](#troubleshooting): When the monitor and `dig` disagree.
 :::
 
@@ -52,7 +52,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the name does not resolve, online when it does. To check what the records say, add a **DNS Record Value** filter, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the name does not resolve, online when it does. To check what the records say, add a **DNS Record Value** filter, then click **Next**.
 
 ### Pick probes and create
 
@@ -89,7 +89,7 @@ A **DNS Record Value** criteria compares your text with each record as the probe
 
 A `TXT` record split into several strings is joined into one value.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the name counts as online, degraded or offline, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 

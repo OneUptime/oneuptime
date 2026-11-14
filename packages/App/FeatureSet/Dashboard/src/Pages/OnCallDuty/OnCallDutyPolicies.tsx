@@ -188,7 +188,7 @@ const OnCallDutyPage: FunctionComponent<
           ],
         }}
         cardProps={{
-          title: "On-Call Duty Policies",
+          title: "On-Call Policies",
           description:
             "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
           titleGlossaryTerm: GlossaryTerm.OnCallPolicy,
@@ -254,7 +254,6 @@ const OnCallDutyPage: FunctionComponent<
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
           },

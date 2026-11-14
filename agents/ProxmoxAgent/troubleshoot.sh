@@ -47,6 +47,9 @@ CURL_IMAGE="curlimages/curl:latest"
 USE_COLOR=1
 AGENT_CONTAINER="oneuptime-proxmox-agent"
 EXPORTER_CONTAINER="oneuptime-pve-exporter"
+# Picks the node the collector reads the cluster from (agent 0.161.2 and later).
+FAILOVER_CONTAINER="oneuptime-pve-api-failover"
+FAILOVER_TARGET_FILE="/run/oneuptime/pve-api/target.json"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -233,6 +236,21 @@ else
   info "No bundled exporter container — assuming an external pve-exporter (PVE_EXPORTER_URL)."
 fi
 
+# The node failover container: it checks PVE_HOST, then each node of
+# PVE_NODES, and tells the collector which node to read the cluster from.
+FAILOVER_RUNNING=0
+FO_STATE=$(docker inspect -f '{{.State.Status}}' "$FAILOVER_CONTAINER" 2>/dev/null)
+if [ -z "$FO_STATE" ]; then
+  warn "No '$FAILOVER_CONTAINER' container — an agent from before 0.161.2 reads the cluster from PVE_HOST alone, and goes blind when that node goes down."
+  add_finding "Upgrade the agent so it reads the cluster from another node of PVE_NODES when PVE_HOST's goes down: re-run install.sh (or download docker-compose.yml and otel-collector-config.yaml again and run docker compose up -d)."
+elif [ "$FO_STATE" = "running" ]; then
+  pass "Node failover '$FAILOVER_CONTAINER' is running"
+  FAILOVER_RUNNING=1
+else
+  fail "Node failover '$FAILOVER_CONTAINER' is NOT running (state: $FO_STATE)"
+  add_finding "The failover container is down, so the collector keeps the last node it was told to read the cluster from (none after a restart). Check: docker logs $FAILOVER_CONTAINER"
+fi
+
 # ----------------------------------------------------------------------------
 section "2. pve-exporter reachability"
 # ----------------------------------------------------------------------------
@@ -254,9 +272,29 @@ else
       add_finding "PVE_EXPORTER_URL must be reachable from a container: use the host's LAN IP or DNS name (or host.docker.internal on Docker Desktop), never localhost." ;;
   esac
 
+  # The node the collector reads the cluster from: the failover container's
+  # choice (PVE_HOST while its API answers), or PVE_HOST on an older agent.
+  CLUSTER_TARGET="$PVE_HOST"
+  if [ "$FAILOVER_RUNNING" = 1 ]; then
+    CHOSEN=$(docker exec "$FAILOVER_CONTAINER" cat "$FAILOVER_TARGET_FILE" 2>/dev/null \
+      | sed -n 's/.*"targets":\["\([^"]*\)"\].*/\1/p' | head -1)
+    if [ -z "$CHOSEN" ]; then
+      fail "The failover container has not chosen a node — the collector has no node to read the cluster from."
+      detail "$(docker logs --tail 2 "$FAILOVER_CONTAINER" 2>&1 | tr '\n' ' ' | head -c 300)"
+      add_finding "No node to read the cluster from yet. Check PVE_HOST and PVE_NODES in $ENV_FILE, and why the failover container chose none: docker logs $FAILOVER_CONTAINER"
+    elif [ "$CHOSEN" = "$PVE_HOST" ]; then
+      pass "The collector reads the cluster from PVE_HOST ($PVE_HOST)."
+    else
+      warn "The collector reads the cluster from $CHOSEN: PVE_HOST ($PVE_HOST) does not answer, or is not part of the quorate cluster."
+      detail "$(docker logs --tail 1 "$FAILOVER_CONTAINER" 2>&1 | head -c 300)"
+      add_finding "PVE_HOST ($PVE_HOST) does not answer the agent, so it reads the cluster from $CHOSEN instead and monitoring goes on. Check that node, or set PVE_HOST in $ENV_FILE to a node that is up and run docker compose up -d."
+      CLUSTER_TARGET="$CHOSEN"
+    fi
+  fi
+
   # Scrape exactly what the collector scrapes, from the collector's netns:
-  # the cluster collectors once, at PVE_HOST.
-  SCRAPE_URL="http://${PVE_EXPORTER_URL}/pve?target=${PVE_HOST}&cluster=1&node=0"
+  # the cluster collectors once, at the node it reads the cluster from.
+  SCRAPE_URL="http://${PVE_EXPORTER_URL}/pve?target=${CLUSTER_TARGET}&cluster=1&node=0"
   if [ "$AGENT_RUNNING" = 1 ]; then
     SCRAPE_OUT=$(docker run --rm --network "container:$AGENT_CONTAINER" "$CURL_IMAGE" -sS -m 30 "$SCRAPE_URL" 2>&1)
   else

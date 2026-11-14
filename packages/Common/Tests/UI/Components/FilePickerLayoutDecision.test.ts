@@ -136,7 +136,7 @@ describe("the prompt's words", () => {
     expect(wordsOf({})).toEqual({
       label: "Upload files",
       instruction: "Click to choose a file or drag & drop.",
-      hint: "Max 10MB each.",
+      hint: "Max 10 MB each.",
     });
   });
 
@@ -170,7 +170,7 @@ describe("the prompt's words", () => {
   test("it names the types it takes, each once", () => {
     expect(
       wordsOf({ mimeTypes: [MimeType.png, MimeType.jpg, MimeType.png] }).hint,
-    ).toBe("Types: PNG, JPG. Max 10MB each.");
+    ).toBe("Types: PNG, JPG. Max 10 MB each.");
   });
 
   test("it names its own limit when it has one", () => {

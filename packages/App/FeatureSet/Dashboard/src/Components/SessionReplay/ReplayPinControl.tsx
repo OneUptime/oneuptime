@@ -19,6 +19,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import { ReplayToolButton } from "./ReplayUi";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * Pin / Unpin for the recording on screen.
@@ -336,12 +338,15 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
         <span
           className={`${CONTROL_MESSAGE_CLASS} text-red-700`}
           data-testid="replay-pin-error"
-          title={state.message}
+          title={getErrorInSentenceText({
+            message: state.message,
+            translator: translator,
+          })}
         >
-          {translator.translateTemplate(
-            "Could not check whether this recording is pinned: {{error}}",
-            { error: state.message },
-          )}
+          <ErrorSentence
+            template="Could not check whether this recording is pinned: {{error}}"
+            error={state.message}
+          />
         </span>
         <ReplayToolButton
           label="Retry"
@@ -361,11 +366,15 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
       <span
         className={`${CONTROL_MESSAGE_CLASS} text-red-700`}
         data-testid="replay-pin-error"
-        title={actionError.message}
-      >
-        {translator.translateTemplate("Could not pin: {{error}}", {
-          error: actionError.message,
+        title={getErrorInSentenceText({
+          message: actionError.message,
+          translator: translator,
         })}
+      >
+        <ErrorSentence
+          template="Could not pin: {{error}}"
+          error={actionError.message}
+        />
       </span>
     ) : null;
 
@@ -479,11 +488,15 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
         <span
           className={`${CONTROL_MESSAGE_CLASS} text-red-700`}
           data-testid="replay-pin-error"
-          title={actionError.message}
-        >
-          {translator.translateTemplate("Could not unpin: {{error}}", {
-            error: actionError.message,
+          title={getErrorInSentenceText({
+            message: actionError.message,
+            translator: translator,
           })}
+        >
+          <ErrorSentence
+            template="Could not unpin: {{error}}"
+            error={actionError.message}
+          />
         </span>
       )}
 

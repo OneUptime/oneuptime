@@ -499,7 +499,8 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
       const writes: WriteSpies = spyOnMonitorWrites();
       const refusal: ProjectScopedReferenceException = refusalOf(
         reference,
-        "scheduled maintenance event",
+        // A maintenance event, as the model has named it since #6817.
+        "maintenance event",
       );
       const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
         jest
@@ -516,7 +517,7 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
 
       const messages: Array<string> = sentMessages(turnContext);
       expect(messages).toEqual([
-        `❌ Could not create the scheduled maintenance event: ${UNAVAILABLE_REFERENCE_REASON}`,
+        `❌ Could not create the maintenance event: ${UNAVAILABLE_REFERENCE_REASON}`,
       ]);
       for (const identifying of [
         ...reference.identifying,
@@ -529,7 +530,7 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
       expect(errorLog).toHaveBeenCalledTimes(2);
       expect(errorLog).toHaveBeenNthCalledWith(
         1,
-        `Could not create a scheduled maintenance event from Microsoft Teams: ${refusal.constructor.name}: This scheduled maintenance event ${reference.says}`,
+        `Could not create a maintenance event from Microsoft Teams: ${refusal.constructor.name}: This maintenance event ${reference.says}`,
         { projectId: PROJECT_ID.toString() },
       );
       expect(errorLog.mock.calls[1]![0]).toBe(refusal);
@@ -741,7 +742,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
      */
     expect(directMessages).toHaveBeenCalledTimes(1);
     expect(directMessages.mock.calls[0]![0].text).toBe(
-      "Scheduled event created successfully.",
+      "Maintenance event created successfully.",
     );
   });
 
@@ -755,7 +756,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
 
     expect(directMessages).toHaveBeenCalledTimes(1);
     expect(directMessages.mock.calls[0]![0].text).toBe(
-      "Scheduled Event SM-3 created successfully.",
+      "Maintenance Event SM-3 created successfully.",
     );
     const markdown: string = String(
       (
@@ -765,7 +766,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
       ).text,
     );
     expect(markdown).toContain(
-      "**Scheduled Event SM-3** created successfully.",
+      "**Maintenance Event SM-3** created successfully.",
     );
     expect(markdown).toContain("[View Event](");
     expect(markdown).toContain(
@@ -781,7 +782,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
     await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
 
     expect(directMessages.mock.calls[0]![0].text).toBe(
-      "Scheduled Event #3 created successfully.",
+      "Maintenance Event #3 created successfully.",
     );
     expect(JSON.stringify(directMessages.mock.calls)).not.toContain(
       "undefined",
@@ -794,18 +795,14 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
       const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
         jest
           .spyOn(ScheduledMaintenanceService, "create")
-          .mockRejectedValue(
-            refusalOf(reference, "scheduled maintenance event"),
-          );
+          .mockRejectedValue(refusalOf(reference, "maintenance event"));
 
       await expect(submit(reference)).resolves.toBeUndefined();
 
       expect(createSpy).toHaveBeenCalledTimes(1);
       const texts: Array<string> = directMessageTexts(directMessages);
       expect(texts).toHaveLength(1);
-      expect(texts[0]).toContain(
-        "Could not create the scheduled maintenance event: ",
-      );
+      expect(texts[0]).toContain("Could not create the maintenance event: ");
       for (const identifying of reference.identifying) {
         expect(texts[0]).not.toContain(identifying);
       }

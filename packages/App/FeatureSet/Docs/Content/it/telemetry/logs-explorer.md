@@ -37,7 +37,7 @@ L'esploratore ha cinque schede:
 ## Prima di iniziare
 
 - **Log in arrivo.** Inviateli con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La scheda **Guida alla configurazione** mostra la configurazione per il vostro linguaggio o collector.
-- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Telemetry Service Log. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
+- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Logs. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una riga di log
 
@@ -141,7 +141,7 @@ OneUptime registra tre tipi di rilevamento:
 
 | Rilevamento | Quando OneUptime lo registra | La pull request |
 | --- | --- | --- |
-| **Log di errore** | Un servizio ha registrato uno stesso messaggio in Error o Fatal 20 volte o più nell'ora, un messaggio con parole proprie e senza eccezione. Un messaggio registrato con un'eccezione, o con uno stack trace al suo interno, viene invece seguito nel [Tracciamento delle eccezioni](/docs/telemetry/exceptions). | Corregge il motivo per cui l'errore viene registrato, o lo registra al livello che merita. |
+| **Log di errore** | Un servizio ha registrato uno stesso messaggio in Error o Fatal 20 volte o più nell'ora, un messaggio con parole proprie e senza eccezione. Un messaggio registrato con un'eccezione, o con uno stack trace al suo interno, viene invece seguito nel [Eccezioni](/docs/telemetry/exceptions). | Corregge il motivo per cui l'errore viene registrato, o lo registra al livello che merita. |
 | **Log mancanti** | Almeno 20 span di un'operazione sono falliti nell'ora, il 5% o più di essi, mentre almeno 100 log del servizio portano un ID di traccia, e nessuna delle 20 richieste fallite più recenti dell'operazione ha scritto una riga di log. Oppure un servizio ha inviato 500 log o più e 100 span o più nell'ora, e meno dell'1% dei suoi log porta un ID di traccia. | Registra il fallimento dove avviene, o fa sì che i log del servizio portino l'ID di traccia. |
 | **Log rumoroso** | Un messaggio registrato sotto Error è il 25% o più delle righe di un servizio nell'ora, circa 10.000 righe o più. | Registra la riga meno spesso: in Debug, una volta per lotto o per niente. |
 

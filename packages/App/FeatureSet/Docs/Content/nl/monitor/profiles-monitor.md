@@ -26,7 +26,7 @@ Elke minuut leest OneUptime de profielen die aan de filters van de monitor voldo
 
 ## Voordat u begint
 
-- Uw services sturen continue profileringsgegevens naar OneUptime, via Grafana Alloy (eBPF), een Pyroscope-SDK of de Kubernetes-agent van OneUptime. Zie [Continue profilering](/docs/telemetry/profiles).
+- Uw services sturen continue profileringsgegevens naar OneUptime, via Grafana Alloy (eBPF), een Pyroscope-SDK of de Kubernetes-agent van OneUptime. Zie [Profielen](/docs/telemetry/profiles).
 - Om een functie te volgen, kent u haar naam, of een deel van het pad van haar bestand of pakket, zoals de Profiler het toont.
 
 ## Een profielen-monitor maken
@@ -34,7 +34,7 @@ Elke minuut leest OneUptime de profielen die aan de filters van de monitor voldo
 :::steps
 ### Beginnen vanuit de Profiler, of via Monitor maken
 
-Het snelst gaat het vanuit de functie zelf: open in **Prestatieprofielen** de functie en klik op de link die een waarschuwing op haar aandeel aanbiedt. **Monitor maken** opent met de monitor ingevuld voor die functie en haar service, met een drempel boven wat ze vandaag inneemt, zoals beschreven in [Uitgewerkt voorbeeld: een functie wordt zwaarder](#uitgewerkt-voorbeeld-een-functie-wordt-zwaarder). Ga anders naar **Monitoren** en klik op **Monitor maken**.
+Het snelst gaat het vanuit de functie zelf: open in **Profielen** de functie en klik op de link die een waarschuwing op haar aandeel aanbiedt. **Monitor maken** opent met de monitor ingevuld voor die functie en haar service, met een drempel boven wat ze vandaag inneemt, zoals beschreven in [Uitgewerkt voorbeeld: een functie wordt zwaarder](#uitgewerkt-voorbeeld-een-functie-wordt-zwaarder). Ga anders naar **Monitoren** en klik op **Monitor maken**.
 
 ### Profiles kiezen
 
@@ -84,7 +84,7 @@ Zet de ID van de service in `telemetryServiceIds`, of laat de lijst leeg om prof
 | `attributes` | Profielen waarvan de attributen deze waarden hebben. | Leeg: geen voorwaarde |
 | `lastXSecondsOfProfiles` | Profielen die binnen dit aantal seconden vóór de evaluatie zijn begonnen. | Geen: stel het altijd in, anders wordt elk opgeslagen profiel geteld en zakt het aantal nooit naar 0 |
 
-Alle filters die u instelt, moeten overeenkomen voordat een profiel wordt gelezen. In het formulier stelt **Functie** `functionName` in, **Wat analyseren** stelt `profileTypes` in (**Elk soort profiel** laat het leeg), **Profielen bewaken gedurende (tijd)** stelt `lastXSecondsOfProfiles` in, en **Filteren op telemetrieservice** en **Filteren op infrastructuurentiteit** stellen `telemetryServiceIds` en `entityKeys` in.
+Alle filters die u instelt, moeten overeenkomen voordat een profiel wordt gelezen. In het formulier stelt **Functie** `functionName` in, **Wat analyseren** stelt `profileTypes` in (**Elk soort profiel** laat het leeg), **Profielen bewaken gedurende (tijd)** stelt `lastXSecondsOfProfiles` in, en **Filteren op service** en **Filteren op infrastructuurentiteit** stellen `telemetryServiceIds` en `entityKeys` in.
 
 ## Hoe hij wordt geëvalueerd
 
@@ -127,7 +127,7 @@ Aantallen profielen hebben geen anomaliecondities: er is geen baseline om ze mee
 
 In de checkout-service neemt `parseOrder` 18% van de CPU-tijd in. Een deploy die een grotere payload parset, mag niet onopgemerkt blijven:
 
-1. Kies in **Prestatieprofielen** de checkout-service en open `parseOrder`.
+1. Kies in **Profielen** de checkout-service en open `parseOrder`.
 2. Klik op de link die een waarschuwing op haar aandeel aanbiedt. De Profiler stelt 30% voor: de helft boven het aandeel van vandaag, minstens 10 punten meer, naar boven afgerond op een veelvoud van 5.
 3. **Monitor maken** opent met een profielen-monitor van de checkout-service die **CPU-tijd** over de **Laatste 5 minuten** leest, met twee criteria: **Functieaandeel (in %)** **Groter dan** `30` geeft een waarschuwing, die zichzelf oplost, en zet de monitor op verminderd; **Kleiner dan of gelijk aan** `30` zet hem op operationeel. Het incident is ingevuld maar uitgeschakeld: schakel het in om iemand op te roepen.
 4. Klik op **Monitor maken**.
@@ -157,7 +157,7 @@ Geen enkel frame in het venster bevat de functietekst. Open de functie in de Pro
 ## Volgende stappen
 
 :::cards
-- [Continue profilering](/docs/telemetry/profiles): Stuur profielen en lees ze in de Profiler.
+- [Profielen](/docs/telemetry/profiles): Stuur profielen en lees ze in de Profiler.
 - [Monitorstappen](/docs/terraform/monitor-steps): Geef de configuratie van de stap door vanuit Terraform.
 - [Traces-monitor](/docs/monitor/traces-monitor): Word gewaarschuwd voor mislukte spans.
 - [Metrics-monitor](/docs/monitor/metrics-monitor): Word gewaarschuwd op CPU, geheugen en andere metrieken.

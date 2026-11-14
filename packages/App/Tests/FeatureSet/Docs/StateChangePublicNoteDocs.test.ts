@@ -1,5 +1,5 @@
 import StateChangeSubscriberNotification from "Common/Types/StatusPage/StateChangeSubscriberNotification";
-import { dashboardLabel, drawnActionLabel } from "./DocsDashboardLabels";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -14,10 +14,8 @@ import path from "path";
  * the code the guides quote (the dialog's labels, the status badge's words,
  * the API route and the misc data key) and checks the guides still say it.
  *
- * A guide names the dialog as its language's Dashboard draws it: the status
- * pages with drawnActionLabel, Persian included (StatusPageDocsTranslations),
- * the incident pages with dashboardLabel, which keeps Persian in English
- * (IncidentDocsTranslations).
+ * A guide names the dialog as its language's Dashboard draws it, Persian
+ * included (StatusPageDocsTranslations, IncidentDocsTranslations, #7100).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -48,19 +46,10 @@ const NOTE_POSTED_ONCE_THE_CHANGE_IS_SAVED: Record<string, string> = {
 const NOTE_KEY_IN_THE_API: string = `"miscDataProps": {"${StateChangeSubscriberNotification.publicNoteKey}": "..."}`;
 
 // The dialog's labels, in bold, as a guide in this language names them.
-function dialogLabels(language: string, page: string): Array<string> {
-  const named: (english: string) => string =
-    page === SUBSCRIBERS_PAGE
-      ? (english: string): string => {
-          return drawnActionLabel(language, english);
-        }
-      : (english: string): string => {
-          return dashboardLabel(language, english);
-        };
-
+function dialogLabels(language: string): Array<string> {
   return ["Public Note", "Notify Status Page Subscribers", "Change State"].map(
     (english: string): string => {
-      return `**${named(english)}**`;
+      return `**${drawnActionLabel(language, english)}**`;
     },
   );
 }
@@ -141,7 +130,7 @@ describe.each(LANGUAGES)("the %s guides", (language: string) => {
       SCHEDULED_MAINTENANCE_SECTION[language]!,
     );
 
-    for (const label of dialogLabels(language, SUBSCRIBERS_PAGE)) {
+    for (const label of dialogLabels(language)) {
       expect(section).toContain(label);
     }
 
@@ -167,7 +156,7 @@ describe.each(LANGUAGES)("the %s guides", (language: string) => {
       INCIDENT_SECTION[language]!,
     );
 
-    for (const label of dialogLabels(language, STATES_PAGE)) {
+    for (const label of dialogLabels(language)) {
       expect(section).toContain(label);
     }
   });

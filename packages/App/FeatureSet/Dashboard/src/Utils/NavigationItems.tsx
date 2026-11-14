@@ -6,6 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import { useTranslation } from "react-i18next";
+import { BILLING_ENABLED } from "Common/UI/Config";
 
 export interface DashboardNavigationItems {
   navItems: NavItem[];
@@ -131,9 +132,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.OnCall,
       title: t("navbar.items.onCallDutyTitle"),
+      /*
+       * The product was "On-Call Duty" until #6817 named it On-Call: its
+       * old name is a keyword, so people who learned it still find it.
+       */
       keywords: [
         "oncall",
         "on call",
+        "on-call duty",
         "pager",
         "paging",
         "escalation",
@@ -177,6 +183,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "maintenance window",
         "planned downtime",
         "scheduled downtime",
+        // What one of its records was called before it became a maintenance event (#6817).
+        "scheduled maintenance events",
+        "scheduled events",
       ],
       description: t("navbar.items.scheduledMaintenanceDescription"),
       route: RouteUtil.populateRouteParams(
@@ -260,6 +269,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       title: t("navbar.items.performanceProfilesTitle"),
       keywords: [
         "profiling",
+        // Its names before they became Profiles (#6817).
+        "performance profiles",
         "profiler",
         "continuous profiling",
         "flamegraph",
@@ -277,7 +288,15 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Exceptions,
       title: t("navbar.items.exceptionsTitle"),
-      keywords: ["errors", "error tracking", "bugs", "crashes", "stack traces"],
+      keywords: [
+        "errors",
+        "error tracking",
+        // Its name in the docs before it became Exceptions (#6817).
+        "exception tracking",
+        "bugs",
+        "crashes",
+        "stack traces",
+      ],
       description: t("navbar.items.exceptionsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
@@ -520,6 +539,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "microservices",
         "otel",
         "opentelemetry",
+        // Its names before it became Services (#6817).
+        "service catalog",
+        "telemetry services",
       ],
       description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
@@ -1070,7 +1092,17 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "permissions",
         "sso",
       ],
-      description: t("navbar.items.projectSettingsDescription"),
+      /*
+       * What Project Settings holds, by the names of its pages (#6817: the
+       * channel switches are Notification Channels). A server without
+       * billing has no Billing page, so it is not offered (#7474).
+       */
+      description: BILLING_ENABLED
+        ? t("navbar.items.projectSettingsDescription")
+        : t(
+            "navbar.items.projectSettingsDescriptionWithoutBilling",
+            "API keys, SSO, labels and notification channels.",
+          ),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
       activeRoute: RouteMap[PageMap.SETTINGS],
       icon: IconProp.Settings,

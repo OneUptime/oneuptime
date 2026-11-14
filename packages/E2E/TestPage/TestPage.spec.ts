@@ -33,6 +33,11 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * each level with a line down to the next, on the side a reader starts
  * from: the left, or the right in Arabic and Persian. A phone number in
  * the preview keeps its own direction beside Persian words.
+ *
+ * And since #7262 and #7263: a person with no rule for the severity is
+ * listed with the methods the project's fallback sends to, under a line
+ * that says so, and the cost line lists only what the project's balance
+ * pays for - never a text the project's own Twilio account sends.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000e1";
@@ -171,6 +176,19 @@ function dialog(page: Page): Locator {
   return page.getByRole("dialog");
 }
 
+/*
+ * The counter style the browser numbers the dialog's list of methods with
+ * ("1.", "۱."): Theme.css's html:lang(fa) rule on a Persian page (#7258).
+ */
+async function methodsListStyle(page: Page): Promise<string> {
+  return dialog(page)
+    .getByTestId("test-page-preview-method")
+    .first()
+    .evaluate((element: Element): string => {
+      return getComputedStyle(element.parentElement as Element).listStyleType;
+    });
+}
+
 async function screenshot(page: Page, name: string): Promise<void> {
   fs.mkdirSync(SCREENSHOTS, { recursive: true });
   await page.screenshot({
@@ -246,7 +264,7 @@ test("Test your pages: the dialog says what it will send, in the order a page re
   await screenshot(page, "self-dialog-1280");
 });
 
-test("a test that sends paid texts and calls says what it costs, before it is sent", async ({
+test("a test says what the project's balance pays for, before it is sent - not the text its own Twilio account sends", async ({
   page,
 }: {
   page: Page;
@@ -254,11 +272,20 @@ test("a test that sends paid texts and calls says what it costs, before it is se
   await openPage(page, "?cost=1");
   await openDialog(page, "Send me a test page");
 
+  // The preview still lists the text: it is sent, only not paid from the balance.
+  await expect(
+    dialog(page).getByTestId("test-page-preview-method").nth(0),
+  ).toContainText("SMS");
+
   const cost: Locator = dialog(page).getByTestId("test-page-cost");
 
-  await expect(cost).toContainText("1 SMS");
-  await expect(cost).toContainText("1 phone call");
-  await expect(cost).toContainText("$0.25");
+  await expect(cost).toHaveText(
+    "This test sends 1 phone call, paid from this project's SMS and call balance: about $0.25.",
+  );
+  await expect(cost).not.toContainText("1 SMS");
+
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "self-dialog-cost-1280");
 });
 
 test("sent, it shows each message as it goes out, and who acknowledged it, by what and how fast", async ({
@@ -348,8 +375,22 @@ test("Test this policy: who its first level pages, how, and who it can't reach a
     "This email method is not verified, so the test can't use it.",
   );
   await expect(people.nth(1)).toContainText("Sam Rivera");
-  await expect(people.nth(1)).toContainText(
-    "No on-call rule covers this severity",
+
+  /*
+   * Sam has no rule for the severity: the method the fallback sends to is
+   * listed, and the line under it says why (#7262).
+   */
+  const samsMethods: Locator = people
+    .nth(1)
+    .getByTestId("test-page-preview-method");
+
+  await expect(samsMethods).toHaveCount(1);
+  await expect(samsMethods.first()).toHaveText("Email");
+  // One method listed: "the method above", never "the methods above".
+  await expect(
+    people.nth(1).getByTestId("test-page-preview-warning"),
+  ).toHaveText(
+    "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
   );
   await expect(
     dialog(page).getByTestId("test-page-preview-not-paged"),
@@ -434,6 +475,16 @@ test("a server from before the codes and the walk: its English, and a walk price
   await expect(
     dialog(page).getByTestId("test-page-preview-not-paged"),
   ).toHaveText("Lee Park is away until Nov 14, 2026, with nobody covering.");
+
+  // An older server listed no method for a person with no rule, and said so in English.
+  const sam: Locator = dialog(page)
+    .getByTestId("test-page-preview-person")
+    .nth(1);
+
+  await expect(sam.getByTestId("test-page-preview-method")).toHaveCount(0);
+  await expect(sam.getByTestId("test-page-preview-warning")).toHaveText(
+    "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+  );
 
   await dialog(page).getByText(GERMAN["Walk every escalation level"]!).click();
 
@@ -560,6 +611,18 @@ test("in German, the policy's preview, its levels and the walk's cost are worded
   expect(
     await wordsOf(dialog(page).getByTestId("test-page-preview-not-paged")),
   ).toMatch(/^Lee Park ist bis .+, ohne Vertretung\.$/);
+  /*
+   * Sam falls back to the one method listed above the line, in German: the
+   * sentence's "one" form (#7262).
+   */
+  await expect(
+    people.nth(1).getByTestId("test-page-preview-warning"),
+  ).toHaveText(
+    worded(
+      GERMAN,
+      "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one",
+    ),
+  );
 
   await dialog(page).getByText(GERMAN["Walk every escalation level"]!).click();
 
@@ -604,6 +667,8 @@ test("in Arabic, the policy's levels read from the right", async ({
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await page.getByTestId("send-test-page").click();
   await expect(dialog(page).getByTestId("test-page-preview")).toBeVisible();
+  // Arabic writes Latin digits by choice: its numbered lists stay "1. 2.".
+  expect(await methodsListStyle(page)).toBe("decimal");
   await dialog(page).getByText(ARABIC["Walk every escalation level"]!).click();
 
   const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
@@ -676,6 +741,12 @@ test("in Persian, the dialog and its result read from the right", async ({
   await expect(
     dialog(page).getByRole("button", { name: sendLabel }),
   ).toBeVisible();
+
+  /*
+   * Its numbered list of methods counts in Persian digits, "۱. ۲. ۳.", as
+   * the page writes every other number - not "1. 2. 3." (#7258).
+   */
+  expect(await methodsListStyle(page)).toBe("persian");
 
   /*
    * The preview's phone number keeps its own direction beside Persian words

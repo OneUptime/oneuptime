@@ -45,7 +45,7 @@ OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for
 
 ## Before you begin
 
-- **A role that manages ingestion keys.** Project Owner or Project Admin, or a custom role with the Create Telemetry Ingestion Key permission. The Telemetry roles do not include ingestion keys.
+- **A role that manages ingestion keys.** Project Owner or Project Admin, or a custom role with the Create Ingestion Key permission. The Telemetry roles do not include ingestion keys.
 - **On OneUptime Cloud, a payment method.** Telemetry is billed as you use it, so a project on the Free plan needs a payment method before it can create a key. The create dialog then ends on a **Billing** step with the pricing.
 
 ## Create an ingestion key
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Lock down a Browser key
 
-A Browser key sits in your page, where anyone can copy it. These settings limit what a copy can do. Change them on the key's page with **Edit Telemetry Ingestion Key**.
+A Browser key sits in your page, where anyone can copy it. These settings limit what a copy can do. Change them on the key's page with **Edit Ingestion Key**.
 
 | Setting | What it does |
 | --- | --- |
@@ -104,7 +104,7 @@ An origin is a scheme, a host and an optional port: `https://app.example.com` do
 ]
 ```
 
-The [Service Catalog](/docs/telemetry/services#how-a-service-gets-into-the-catalog) shows how a pinned name decides the service. The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.
+[Services](/docs/telemetry/services#how-a-service-gets-into-the-catalog) shows how a pinned name decides the service. The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.
 
 ## Rotate, turn off or delete a key
 
@@ -112,9 +112,9 @@ A key's page shows its **Status**, its **Secret Key** behind **Click to reveal**
 
 | To | Do this | What senders see |
 | --- | --- | --- |
-| Stop a key at once, and undo it later | Click **Edit Telemetry Ingestion Key**, open **Access & Limits** and turn **Enabled** off. The status reads **Disabled — telemetry refused**. | `422` until you turn it back on |
+| Stop a key at once, and undo it later | Click **Edit Ingestion Key**, open **Access & Limits** and turn **Enabled** off. The status reads **Disabled — telemetry refused**. | `422` until you turn it back on |
 | Replace a leaked secret | Click **Reset Secret Key** and confirm. The key keeps its settings and gets a new secret. | `401` until they send the new secret |
-| Stop a key for good | Click **Delete Telemetry Ingestion Key** at the bottom of its page. | `401` |
+| Stop a key for good | Click **Delete Ingestion Key** at the bottom of its page. | `401` |
 
 To change a secret without losing data, create a second key, move your senders to it, and delete the old key once its **Last Used At** stops moving. **Last Used At** is updated every few minutes, not on every request.
 
@@ -155,7 +155,7 @@ Nothing has sent data with this key since OneUptime began recording its use. Che
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send traces, metrics and logs with your key.
-- [Service Catalog](/docs/telemetry/services): See the services your telemetry is filed under.
+- [Services](/docs/telemetry/services): See the services your telemetry is filed under.
 - [Data Retention](/docs/telemetry/data-retention): Decide how long the data is kept.
 - [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules): Drop or mask data before it is stored.
 - [Ingestion Budgets](/docs/telemetry/ingestion-budgets): Cap how much each key may send in a day.

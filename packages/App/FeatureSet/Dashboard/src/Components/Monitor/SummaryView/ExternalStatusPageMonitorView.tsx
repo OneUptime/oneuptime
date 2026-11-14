@@ -10,6 +10,7 @@ import ExternalStatusPageReading, {
 } from "Common/Utils/Monitor/ExternalStatusPageReading";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
@@ -23,6 +24,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import ExternalStatusPageComponentStatusDisplayUtil, {
   ExternalStatusPageComponentStatusDisplay,
 } from "../../../Utils/ExternalStatusPageComponentStatusDisplay";
@@ -34,6 +36,8 @@ export const EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID: string =
   "external-status-page-incidents-outside-scope";
 export const EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID: string =
   "external-status-page-overall-status";
+export const EXTERNAL_STATUS_PAGE_ERROR_TEST_ID: string =
+  "external-status-page-error-text";
 
 /*
  * What a check watched of the page: the components it chose (a check made
@@ -176,6 +180,64 @@ export const getComponentDescription: (data: {
   });
 };
 
+/*
+ * Why a check failed, as the summary's Error draws it. When the OneUptime
+ * Status Page provider read a OneUptime page that would not let the probe
+ * in - a private page, or one whose IP allowlist leaves the probe out - the
+ * probe wrote why in OneUptime's words (ExternalStatusPageReading's
+ * readOneUptimeFailureCause), and that reads in the reader's language.
+ *
+ * Such a check names its provider (OneUptime); one stored before the probe
+ * named it names none, and is read the same way, since no other provider's
+ * failure carries those sentences. A check another provider made - an
+ * Atlassian Statuspage, incident.io, a feed - keeps every cause as
+ * written, even one that reads like OneUptime's; so does any other cause
+ * (the network's, a timeout's).
+ */
+export const getFailureCause: (data: {
+  translator: Translator;
+  failureCause: string;
+  provider: string | undefined;
+}) => string = (data: {
+  translator: Translator;
+  failureCause: string;
+  provider: string | undefined;
+}): string => {
+  const provider: string = (data.provider || "").trim();
+  const isOneUptimeCheck: boolean =
+    !provider || provider === ExternalStatusPageProviderType.OneUptime;
+  const sentence: string | null = isOneUptimeCheck
+    ? ExternalStatusPageReading.readOneUptimeFailureCause(data.failureCause)
+    : null;
+
+  if (!sentence) {
+    return data.failureCause.trim();
+  }
+
+  return data.translator.translateText(sentence) || sentence;
+};
+
+/*
+ * The Active Incidents fact: the count the page gave, written as the
+ * reader's language writes a number ("3", "۳"), or "-" when the check
+ * could not read the page and so counted nothing.
+ */
+export const getActiveIncidentsText: (data: {
+  translator: Translator;
+  activeIncidentCount: number | undefined;
+  isPageRead: boolean;
+}) => string = (data: {
+  translator: Translator;
+  activeIncidentCount: number | undefined;
+  isPageRead: boolean;
+}): string => {
+  if (!data.isPageRead) {
+    return "-";
+  }
+
+  return data.translator.formatNumber(data.activeIncidentCount || 0);
+};
+
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   probeName?: string | undefined;
@@ -264,6 +326,27 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
     externalStatusPageResponse?.provider ===
     ExternalStatusPageProviderType.OneUptime;
 
+  // Why the check failed, in the reader's language when OneUptime wrote it.
+  const failureCause: string = props.probeMonitorResponse.failureCause
+    ? getFailureCause({
+        translator: translator,
+        failureCause: props.probeMonitorResponse.failureCause.toString(),
+        provider: externalStatusPageResponse?.provider,
+      })
+    : "";
+
+  /*
+   * The page's active incidents, in the reader's digits. A check that could
+   * not read the page - a private page, a timeout, a page that would not
+   * answer - counted none, so it says "-", as its Overall Status does,
+   * rather than a 0 that reads as a quiet page.
+   */
+  const activeIncidents: string = getActiveIncidentsText({
+    translator: translator,
+    activeIncidentCount: externalStatusPageResponse?.activeIncidentCount,
+    isPageRead: !(failureCause && !props.probeMonitorResponse.isOnline),
+  });
+
   /*
    * The line under a component's name: its group, and what the page says.
    * What a OneUptime page says of a resource it gives no status - a note
@@ -312,7 +395,11 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         />
         <SummaryFact
           title="Response Time"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+          value={
+            responseTimeInMs
+              ? formatMilliseconds(translator, responseTimeInMs)
+              : "-"
+          }
         />
         <SummaryFact
           title="Monitored At"
@@ -326,12 +413,24 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         />
       </SummaryFacts>
 
-      {props.probeMonitorResponse.failureCause && (
+      {failureCause && (
         <SummaryFacts dataTestId="external-status-page-error">
+          {/*
+           * In its own direction: a cause left in English (a network
+           * error, another provider's) reads left to right on an Arabic
+           * or Persian page, its full stop at its end.
+           */}
           <SummaryFact
             isWide={true}
             title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+            value={
+              <IsolatedLine
+                as="span"
+                className="block break-words"
+                text={failureCause}
+                dataTestId={EXTERNAL_STATUS_PAGE_ERROR_TEST_ID}
+              />
+            }
           />
         </SummaryFacts>
       )}
@@ -365,8 +464,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
           value={
             incidentsOutsideScope > 0 ? (
               <>
-                {externalStatusPageResponse?.activeIncidentCount?.toString() ||
-                  "0"}
+                {activeIncidents}
                 <span
                   className="mt-0.5 block text-xs text-gray-500"
                   data-testid={EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID}
@@ -381,7 +479,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                 </span>
               </>
             ) : (
-              externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
+              activeIncidents
             )
           }
         />

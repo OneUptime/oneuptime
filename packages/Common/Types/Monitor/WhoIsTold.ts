@@ -2,7 +2,11 @@ import {
   OnCallPageChannel,
   getOnCallPageChannelName,
 } from "../OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPaged,
+  OnCallTestPageReachedThrough,
+  OnCallTestPageRecordKind,
+} from "../OnCallDutyPolicy/OnCallTestPage";
 
 /*
  * WHO IS TOLD WHEN A MONITOR GOES DOWN, AND WHERE THE CHAIN BREAKS (#6810).
@@ -83,6 +87,13 @@ export interface WhoIsToldPerson {
   name: string;
   // Why them: "Team Platform", "Schedule Primary", "Covering for Ana".
   reachedThrough?: string | undefined;
+  /*
+   * The same, as a code with the name it names (#7261), for the card to
+   * word in the reader's language as the test page's dialog does
+   * (OnCallTestPageWords). reachedThrough is its English, for a Dashboard
+   * that does not know the code.
+   */
+  reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
   // The channels a page of this severity reaches them by, in order.
   channels: Array<OnCallPageChannel>;
   /*
@@ -114,6 +125,12 @@ export interface WhoIsToldPolicy {
   people: Array<WhoIsToldPerson>;
   // Targets of its first level that reach nobody, and why (in English).
   notPaged: Array<string>;
+  /*
+   * The same, one code each with the names and the date it names (#7261),
+   * in notPaged's order: what the card words in the reader's language.
+   * Left out by a server from before them, whose English then shows.
+   */
+  notPagedCodes?: Array<OnCallTestPageNotPaged> | undefined;
 }
 
 // An on-call or owner rule that matches what opens.
@@ -454,7 +471,7 @@ export function getWhoIsToldBreakMessage(
         ]
       }, so a page won't reach them.`;
     case WhoIsToldBreakKind.ChannelOff:
-      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Settings.`;
+      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Channels.`;
     case WhoIsToldBreakKind.NoBalance:
       return "This project has no balance left for SMS and calls, so they are not sent. Add balance, or turn on auto-recharge, in Billing.";
     case WhoIsToldBreakKind.ServerCannotSend:
@@ -800,6 +817,7 @@ export function redactWhoIsTold(data: {
                     levelCount: 0,
                     people: [],
                     notPaged: [],
+                    notPagedCodes: [],
                   };
                 },
               ),

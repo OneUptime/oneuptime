@@ -31,6 +31,7 @@ import ProbeStatusProbeChoices, {
   WATCH_PROBE_QUERY_PARAM,
 } from "./ProbeStatusProbeChoices";
 import Navigation from "Common/UI/Utils/Navigation";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorStepProbeStatusMonitor: MonitorStepProbeStatusMonitor;
@@ -135,10 +136,12 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     if (loadError) {
       return (
         <ErrorMessage
-          message={translator.translateTemplate(
-            "The probes could not be loaded. {{error}}",
-            { error: loadError },
-          )}
+          message={
+            <ErrorSentence
+              template="The probes could not be loaded. {{error}}"
+              error={loadError}
+            />
+          }
           onRefreshClick={() => {
             setLoadAttempt((attempt: number): number => {
               return attempt + 1;

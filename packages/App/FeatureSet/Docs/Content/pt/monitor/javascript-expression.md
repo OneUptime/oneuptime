@@ -29,7 +29,7 @@ Como os marcadores são substituídos como texto, `{{responseBody.item}}` vira o
 :::steps
 ### Abrir os critérios
 
-No monitor, abra **Configuração → Critérios** e clique em **Editar critérios de monitoramento**, ou use o passo **Critérios** de **Criar monitor**. Trabalhe no critério que você quer mudar, ou clique em **Adicionar critérios** para um novo.
+No monitor, abra **Configuração → Critérios** e clique em **Editar critérios**, ou use o passo **Critérios** de **Criar monitor**. Trabalhe no critério que você quer mudar, ou clique em **Adicionar critérios** para um novo.
 
 ### Adicionar um filtro
 

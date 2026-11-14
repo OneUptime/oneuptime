@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Grupos de monitores](/docs/monitor/monitor-groups): Reunir vários monitores em um único status.
-- [Catálogo de serviços](/docs/telemetry/services): Cada aplicativo que você executa, cada um em sua própria página.
+- [Serviços](/docs/telemetry/services): Cada aplicativo que você executa, cada um em sua própria página.
 - [Visão geral do inventário](/docs/inventory/overview): Tudo o que o OneUptime sabe sobre o seu ambiente.
 :::
 
@@ -132,7 +132,7 @@ A **manutenção programada** anuncia com antecedência um trabalho planejado. U
 
 ## Telemetria
 
-**Telemetria** é o que seus sistemas enviam ao OneUptime: logs, métricas, traces, exceções e perfis. Os aplicativos a enviam com OpenTelemetry, e os agentes do OneUptime a enviam a partir de hosts, clusters Kubernetes, hosts Docker e do resto da infraestrutura. Todo remetente usa uma **chave de ingestão**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. Você pesquisa a telemetria, a exibe em painéis e a acompanha com monitores de telemetria, que abrem incidentes e alertas como qualquer outro monitor. No menu, **Registros**, **Métricas**, **Traços**, **Perfis de desempenho** e **Exceções** abrem, cada um, um tipo de dado; **IA / LLM** acompanha as conversas da sua IA, **Observabilidade de dados** observa as tabelas dos seus bancos de dados, e **Topologia** mapeia como tudo se conecta.
+**Telemetria** é o que seus sistemas enviam ao OneUptime: logs, métricas, traces, exceções e perfis. Os aplicativos a enviam com OpenTelemetry, e os agentes do OneUptime a enviam a partir de hosts, clusters Kubernetes, hosts Docker e do resto da infraestrutura. Todo remetente usa uma **chave de ingestão**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. Você pesquisa a telemetria, a exibe em painéis e a acompanha com monitores de telemetria, que abrem incidentes e alertas como qualquer outro monitor. No menu, **Registros**, **Métricas**, **Traços**, **Perfis** e **Exceções** abrem, cada um, um tipo de dado; **IA / LLM** acompanha as conversas da sua IA, **Observabilidade de dados** observa as tabelas dos seus bancos de dados, e **Topologia** mapeia como tudo se conecta.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Enviar logs, métricas e traces dos seus aplicativos.
@@ -198,7 +198,7 @@ As regras próprias de um monitor são os critérios dele. As regras de plantão
 
 :::cards
 - [Configurações e automação de incidentes](/docs/incidents/settings#regras-executadas-quando-um-incidente-é-criado): As regras que são executadas quando um incidente é criado, em ordem.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Como um acionamento chega até você.
+- [Como me contatar](/docs/notifications/on-call-rules): Como um acionamento chega até você.
 :::
 
 ## Próximos passos

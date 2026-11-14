@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [上報規則](/docs/on-call/escalation-rules): 讓待命策略的某個級別呼叫此排程。
 - [待命時間軸](/docs/on-call/schedule-timeline): 並排查看所有排程及涵蓋空檔。
 - [行事曆訂閱源](/docs/on-call/calendar-feeds): 將班次放進 Google 日曆、Outlook 或 Apple 行事曆。
-- [個人待命規則](/docs/notifications/on-call-rules): 決定待命時呼叫如何送達你。
+- [如何聯絡我](/docs/notifications/on-call-rules): 決定待命時呼叫如何送達你。
 :::

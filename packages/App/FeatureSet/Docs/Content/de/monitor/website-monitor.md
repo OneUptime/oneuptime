@@ -2,6 +2,9 @@
 
 Ein Website-Monitor prüft, ob eine Webseite antwortet. Bei jeder Prüfung fragt eine Sonde die URL der Seite ab, und der Monitor geht offline und meldet einen Vorfall, wenn die Seite nicht oder mit einem Fehler antwortet. Um einen Endpunkt mit einer Methode, Headern oder einem Body aufzurufen, verwenden Sie stattdessen einen [API-Monitor](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
+
 :::cards
 - [Den Monitor erstellen](#einen-website-monitor-erstellen): Sechs Schritte im Dashboard.
 - [Konfigurationsoptionen](#konfigurationsoptionen): URL-Platzhalter, Weiterleitungen, Zertifikate, Zeitlimits und Wiederholungen.
@@ -57,7 +60,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Website nicht oder mit einem Fehler antwortet, online bei jedem Status `2xx` oder `3xx`. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Website nicht oder mit einem Fehler antwortet, online bei jedem Status `2xx` oder `3xx`. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 

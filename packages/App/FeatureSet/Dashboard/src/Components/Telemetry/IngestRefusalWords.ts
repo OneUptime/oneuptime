@@ -205,7 +205,7 @@ function translate(translator: Translator, text: string): string {
 }
 
 /*
- * Settings > Telemetry Ingestion Keys > a key > Refused Telemetry
+ * Settings > Ingestion Keys > a key > Refused Telemetry
  * (IngestionKeyRefusalsCard): the card's own words.
  */
 export const REFUSALS_LOOKBACK_DAYS: number = 30;

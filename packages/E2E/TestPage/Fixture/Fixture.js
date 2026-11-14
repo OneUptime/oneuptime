@@ -11,10 +11,16 @@
  *   - result=<state>     what the result reads once sent: acknowledged (the
  *                        default), paging, or failed (a message that did not
  *                        go out, with where to fix it)
- *   - cost=1             the preview's test sends paid texts and calls
+ *   - cost=1             the preview's test is priced on OneUptime Cloud:
+ *                        yours sends a text through the project's own
+ *                        Twilio account, which the balance does not pay
+ *                        for, and a call it does (#7263); a policy's texts
+ *                        and calls are all paid from the balance
  *   - old=1              the preview as a server from before #7015 and
- *                        #7016 sends it: English only, no codes, and nothing
- *                        about the levels a walking test reaches
+ *                        #7016 sends it: English only, no codes, nothing
+ *                        about the levels a walking test reaches, no
+ *                        methods for a person with no rule (#7262) and no
+ *                        paid counts (#7263)
  *   - lang=de            the Dashboard's German words (fa: Persian, ar:
  *                        Arabic, both read from the right)
  *   - theme=dark         dark mode (set before the bundle by server.js)
@@ -172,12 +178,20 @@ const SELF_PREVIEW = {
     },
   ],
   notPaged: [],
+  /*
+   * Priced (cost=1): the text goes through the project's own Twilio
+   * account, so the balance pays for the call alone - 25 cents (#7263).
+   */
   cost: {
     isPaid: isPaid,
     smsCount: isPaid ? 1 : 0,
     callCount: isPaid ? 1 : 0,
     whatsAppCount: 0,
     telegramCount: 0,
+    paidSmsCount: 0,
+    paidCallCount: isPaid ? 1 : 0,
+    paidWhatsAppCount: 0,
+    paidTelegramCount: 0,
     ...(isPaid ? { estimatedCostInUSDCents: 25 } : {}),
   },
 };
@@ -187,6 +201,12 @@ const EMAIL_NOT_VERIFIED =
   "This Email method is not verified, so the test can't use it.";
 const NO_RULE =
   "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.";
+/*
+ * The same, since #7262: the method the fallback picks is listed above it -
+ * "the method above" for one, as Sam's email is.
+ */
+const NO_RULE_LISTED =
+  "No on-call rule covers this severity: like a real page, the test falls back to the method above.";
 const LEE_AWAY = "Lee Park is away until Nov 14, 2026, with nobody covering.";
 const LEVEL_3_EMPTY =
   "Escalation rule 3 pages nobody yet. Add people, a team or a schedule to it.";
@@ -199,6 +219,10 @@ function policyCost(smsCount, callCount) {
     callCount: callCount,
     whatsAppCount: 0,
     telegramCount: 0,
+    paidSmsCount: isPaid ? smsCount : 0,
+    paidCallCount: isPaid ? callCount : 0,
+    paidWhatsAppCount: 0,
+    paidTelegramCount: 0,
     ...(isPaid
       ? { estimatedCostInUSDCents: smsCount * 10 + callCount * 25 }
       : {}),
@@ -207,7 +231,8 @@ function policyCost(smsCount, callCount) {
 
 /*
  * Payments primary: its first level pages Dana (on call in its schedule)
- * and Sam (in team Platform), and can't reach Lee, who is away. Walking
+ * and Sam (in team Platform; no rule for the severity, so the fallback
+ * emails him), and can't reach Lee, who is away. Walking
  * every level, nobody acknowledging it, the test pages Ravi at level 2 two
  * minutes later, and passes level 3, which names nobody, two minutes after
  * that.
@@ -250,11 +275,21 @@ const POLICY_PREVIEW = {
       userName: "Sam Rivera",
       reachedThrough: "Team Platform",
       reachedThroughCode: { code: "Team", name: "Platform" },
-      methods: [],
+      methods: [
+        {
+          channel: "Email",
+          notifyAfterMinutes: 0,
+          isVerified: true,
+          canAcknowledge: true,
+          isFallback: true,
+        },
+      ],
       hasNoRule: true,
       isOptedOut: false,
-      warnings: [NO_RULE],
-      warningCodes: [{ code: "NoRuleFallsBack", message: NO_RULE }],
+      warnings: [NO_RULE_LISTED],
+      warningCodes: [
+        { code: "NoRuleFallsBackToListed", message: NO_RULE_LISTED },
+      ],
     },
   ],
   notPaged: [LEE_AWAY],
@@ -313,18 +348,38 @@ const POLICY_PREVIEW = {
   walkCost: policyCost(1, 1),
 };
 
-// The same, as a server from before the codes and the walk sends it.
+/*
+ * The same, as a server from before the codes and the walk sends it: no
+ * method listed for a person with no rule, and no paid counts.
+ */
 const OLDER_POLICY_PREVIEW = {
   kind: POLICY_PREVIEW.kind,
   people: POLICY_PREVIEW.people.map((person) => {
     const older = { ...person };
     delete older.reachedThroughCode;
     delete older.warningCodes;
+
+    if (older.hasNoRule) {
+      older.methods = [];
+      older.warnings = [NO_RULE];
+    }
+
     return older;
   }),
   notPaged: POLICY_PREVIEW.notPaged,
   levelCount: POLICY_PREVIEW.levelCount,
-  cost: POLICY_PREVIEW.cost,
+  cost: {
+    isPaid: POLICY_PREVIEW.cost.isPaid,
+    smsCount: POLICY_PREVIEW.cost.smsCount,
+    callCount: POLICY_PREVIEW.cost.callCount,
+    whatsAppCount: POLICY_PREVIEW.cost.whatsAppCount,
+    telegramCount: POLICY_PREVIEW.cost.telegramCount,
+    ...(POLICY_PREVIEW.cost.estimatedCostInUSDCents === undefined
+      ? {}
+      : {
+          estimatedCostInUSDCents: POLICY_PREVIEW.cost.estimatedCostInUSDCents,
+        }),
+  },
 };
 
 const STARTED_AT = new Date(Date.now() - 20 * 1000);

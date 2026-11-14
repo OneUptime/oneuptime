@@ -597,6 +597,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder: "+11234567890\n+11234567891\n+11234567892",
+                    /*
+                     * Numbers read left to right in every language, the
+                     * example's with them: on a Persian or Arabic page
+                     * each "+" went after its digits (#7180).
+                     */
+                    readsLeftToRight: true,
                     // Nothing in it a number: said under it, and Next waits.
                     customValidation: (
                       values: FormValues<BulkAddFormData>,

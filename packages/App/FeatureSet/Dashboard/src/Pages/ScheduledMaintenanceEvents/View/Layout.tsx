@@ -17,7 +17,7 @@ const ScheduledMaintenanceViewLayout: FunctionComponent<
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
     <ModelPage
-      title="Scheduled Event"
+      title="Maintenance Event"
       modelType={ScheduledMaintenance}
       modelId={modelId}
       modelNameField="title"

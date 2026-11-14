@@ -126,7 +126,7 @@ Passkeys kräver att adressen till ditt OneUptime börjar med `https://`, och en
 - Kontrollera att telefonen tillåter aviseringar från OneUptime On-Call, och att Stör ej eller ett Fokus inte håller tillbaka dem.
 - Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, att telefonen finns i listan, och skicka en **Testavisering** till den.
 - Är den markerad som **Tar inte emot aviseringar**, öppnar du appen medan du är inloggad: se [När en telefon måste registreras igen](#när-en-telefon-måste-registreras-igen).
-- Kontrollera dina jourregler under **Användarinställningar → Jourregler**: de avgör vilka larm som når vilken metod.
+- Kontrollera dina jourregler under **Användarinställningar → Så når man mig**: de avgör vilka larm som når vilken metod.
 - På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).
 :::
 
@@ -135,7 +135,7 @@ Ställ in appens batterianvändning på **Obegränsad** i Androids inställninga
 :::
 
 :::details Kritiska larm ringer inte igenom tyst läge
-Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas på den telefonen. Kontrollera sedan under **Användarinställningar → Jourregler** att jourregeln som skickade larmet är satt till **Kritiskt larm**, inte **Normal**. Varje telefon har sitt eget reglage.
+Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas på den telefonen. Kontrollera sedan under **Användarinställningar → Så når man mig** att jourregeln som skickade larmet är satt till **Kritiskt larm**, inte **Normal**. Varje telefon har sitt eget reglage.
 :::
 
 ### Skrivbordsapp

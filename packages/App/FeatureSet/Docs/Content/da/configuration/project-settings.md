@@ -34,7 +34,7 @@ flowchart LR
 | **Grundlæggende** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring**, **Forbrug** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention), [Telemetriforbrug](/docs/telemetry/usage) |
-| **Notifikationer** | **Notifikationsindstillinger**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
+| **Notifikationer** | **Notifikationskanaler**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
 | **AI** | **AI-funktioner**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
 | **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -61,6 +61,8 @@ flowchart LR
 **Projektindstillinger → Grundlæggende → Produkter** vælger de produkter, dette projekt viser i menuen **Produkter**, på Hjem og i Søgs liste. Hvert produkt har en kontakt, der gemmer, når du slår den om: slået til viser den produktet. Brugere, Teams og Projektindstillinger vises altid, og **Vis alle produkter** viser dem alle igen.
 
 Et skjult produkt er ikke slået fra. Det flytter ned under **Flere produkter**, den sidste række i menuen **Produkter**: Søgning finder det stadig, dets sider og API virker fortsat, og dets data bliver ved med at komme. Den, der har fastgjort det, beholder sin fastgørelse.
+
+På en selv-hostet server kan en masteradministrator også slå et produkt fra for alle projekter under **Indstillinger → Produkter** i Admin Dashboard (se [Kør kun det, du har brug for](/docs/installation/docker-compose#kør-kun-det-du-har-brug-for)). Sådan et produkt har ingen kontakt her: Der står **Slået fra på denne server** sammen med, hvem der kan slå det til.
 
 Et nyt projekt starter med det, ejeren sagde på Hjem, at det skal bruges til: det grundlæggende, indstillingerne og det, de mål kræver, vises, og resten skjules. Et projekt, der sprang spørgsmålet over, eller som blev oprettet før det, viser alle produkter. Så snart nogen ændrer listen her, ændrer målene den ikke længere.
 
@@ -94,7 +96,7 @@ For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet 
 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:
 
-- **Notifikationsindstillinger**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Project Owner, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
+- **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Project Owner, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
 - **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**.
 - **Mobilapps**: hvor du får apps til iOS og Android. Se [Apps – Oversigt](/docs/mobile-desktop-apps/index).
 

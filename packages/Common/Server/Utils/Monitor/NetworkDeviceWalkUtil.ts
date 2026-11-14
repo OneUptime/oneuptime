@@ -384,7 +384,8 @@ export default class NetworkDeviceWalkUtil {
      * Transceivers: this poll's optics folded into what the device had
      * stored, and judged - before inventory, metrics and criteria read the
      * response. Never fatal: a poll that cannot judge its optics leaves the
-     * stored ones alone.
+     * stored ones alone. Timed at the poll's receipt, like everything else
+     * the poll saw (OneUptime issue #7389).
      */
     let transceiverSnapshot: Array<NetworkDeviceTransceiver> | undefined =
       undefined;
@@ -393,7 +394,7 @@ export default class NetworkDeviceWalkUtil {
       transceiverSnapshot = NetworkDeviceWalkUtil.applyTransceivers({
         device: device,
         snmpResponse: data.snmpResponse,
-        now: OneUptimeDate.getCurrentDate(),
+        now: receivedAt,
       });
     } catch (err) {
       logger.error(
@@ -405,7 +406,9 @@ export default class NetworkDeviceWalkUtil {
     /*
      * Inventory sync also prunes data.snmpResponse.interfaces down to
      * monitored ports, so the metrics and criteria below only see ports the
-     * user cares about.
+     * user cares about. It stamps what the poll saw with the same receipt
+     * time, and writes nothing a newer poll of the device has written
+     * already (OneUptime issue #7389).
      */
     await NetworkInventoryUtil.updateFromWalk({
       projectId: device.projectId,
@@ -416,6 +419,7 @@ export default class NetworkDeviceWalkUtil {
       snmpTableSnapshot: snmpTableSnapshot,
       transceiverSnapshot: transceiverSnapshot,
       probeId: data.probeId,
+      receivedAt: receivedAt,
       dnsResolution: data.pingResponse
         ? {
             hostname:

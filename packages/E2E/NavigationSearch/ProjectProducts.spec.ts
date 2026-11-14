@@ -110,7 +110,7 @@ const FIVE_PIN_TITLES: Array<string> = [
   "Incidents",
   "Monitors",
   "Scheduled Maintenance",
-  "On-Call Duty",
+  "On-Call",
 ];
 
 const HIDDEN_TITLES: Array<string> = [
@@ -600,7 +600,7 @@ test.describe("products the project hides", () => {
     await openProductsMenu(page);
 
     await expect(
-      cardOf(page, "On-Call Duty").getByTestId("navbar-menu-not-set-up"),
+      cardOf(page, "On-Call").getByTestId("navbar-menu-not-set-up"),
     ).toHaveText("Not set up");
     await expect(
       cardOf(page, "Monitors").getByTestId("navbar-menu-not-set-up"),

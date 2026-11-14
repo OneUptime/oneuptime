@@ -9,7 +9,7 @@ import path from "path";
  * answered, read through the real snapshot scan. Every read is recorded. What jsdom
  * cannot show is checked here: what needs attention first and its way to each part's
  * page, the region kept in the address, a laptop's, a tablet's and a phone's width,
- * dark mode, German and Persian.
+ * dark mode, German, Persian and Arabic.
  */
 const port: string = process.env["OPENSTACK_PAGES_FIXTURE_PORT"] || "4662";
 

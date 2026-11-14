@@ -60,7 +60,7 @@ Go to **Incidents** > **Workspace** > **Mattermost**, and create a rule. For exa
 
 The bot's access token is kept on the OneUptime server only, encrypted with the project's other secrets, and is never shown again. The server address, the teams and the bot's username are shown to everyone in the project, on the Mattermost settings page.
 
-A project is connected to one Mattermost server. To move it to another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them. Your notification rules and summaries are kept for when you connect again.
+A project is connected to one Mattermost server. To move it to another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the steps of How to Reach Me that use them. Your notification rules and summaries are kept for when you connect again.
 
 ## More than one team
 
@@ -100,11 +100,11 @@ To be paged by direct message when you are on call, add Mattermost as one of you
 3. Click **Send Test Message** on its row. The message arrives as a direct message from the project's bot.
 :::
 
-Adding it adds it to your on-call rules straight away, so pages reach you in Mattermost from then on. Change which pages it gets under **User Settings** > **On-Call Rules**. Each page carries a link to acknowledge it and one to escalate it. Disconnecting your Mattermost account removes this method and the on-call rules that use it.
+Adding it adds it to How to Reach Me straight away, so pages reach you in Mattermost from then on. Change which pages it gets under **User Settings** > **How to Reach Me**. Each page carries a link to acknowledge it and one to escalate it. Disconnecting your Mattermost account removes this method and the steps of How to Reach Me that use it.
 
 ## Notification rules
 
-A notification rule says which events post to Mattermost, and where. Each product has its own rules, under **Workspace** > **Mattermost** in its menu: **Incidents** (with **Incident Episodes** and a **Summary** tab), **Alerts** (with **Alert Episodes** and **Summary**), **Scheduled Maintenance**, **Monitors**, **On-Call Duty**, **Security Events** and **SLOs**. They work as Slack's do: see [Notification rules](/docs/workspace-connections/slack#notification-rules) for conditions, destinations and who joins a channel.
+A notification rule says which events post to Mattermost, and where. Each product has its own rules, under **Workspace** > **Mattermost** in its menu: **Incidents** (with **Incident Episodes** and a **Summary** tab), **Alerts** (with **Alert Episodes** and **Summary**), **Scheduled Maintenance**, **Monitors**, **On-Call**, **Security Events** and **SLOs**. They work as Slack's do: see [Notification rules](/docs/workspace-connections/slack#notification-rules) for conditions, destinations and who joins a channel.
 
 A channel a rule creates is named after its record: incident INC-42 gets `inc-42`. Mattermost takes lowercase letters, numbers, `-` and `_`, up to 64 characters, starting and ending with a letter or a number, and the rule form shows the name as you type. If a channel by that name already exists, such as an archived one, OneUptime adds `-2`, `-3` and so on. A private incident, alert or episode gets a private channel.
 

@@ -2,6 +2,9 @@
 
 Un monitor de sitio web comprueba que una página web responde. En cada comprobación, una sonda solicita la URL de la página, y el monitor pasa a sin conexión y declara un incidente cuando la página no responde o responde con un error. Para llamar a un endpoint con un método, encabezados o un cuerpo, use en su lugar un [monitor de API](/docs/monitor/api-monitor).
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Saber cuándo tu sitio web o tu API deja de funcionar](/docs/guides/website-down).
+
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-sitio-web): Seis pasos en el panel.
 - [Opciones de configuración](#opciones-de-configuración): Marcadores de URL, redirecciones, certificados, tiempos de espera y reintentos.
@@ -57,7 +60,7 @@ Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el sitio no responde o responde con un error, en línea con cualquier estado `2xx` o `3xx`. Cámbielos si lo necesita y haga clic en **Siguiente**.
+**Criterios** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el sitio no responde o responde con un error, en línea con cualquier estado `2xx` o `3xx`. Cámbielos si lo necesita y haga clic en **Siguiente**.
 
 ### Elegir sondas y crear
 

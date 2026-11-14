@@ -130,7 +130,7 @@ const EXAMPLE: TeamComplianceStatusJSON = {
       compliantCount: 1,
       nonCompliantCount: 1,
       warnings: [
-        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notifications > Notification Settings.",
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notifications > Notification Channels.",
       ],
     },
     {

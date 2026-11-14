@@ -579,6 +579,50 @@ describe("each explanation is complete", () => {
     },
   );
 
+  /*
+   * A product's guide (#6821) is one of the docs' guides: a page of the
+   * Guides group, marked as a guide in the nav, on disk, and not the page
+   * its documentation link opens.
+   */
+  test("a product's guide is a guide of the docs, besides its documentation", () => {
+    const nav: string = fs.readFileSync(
+      path.join(DOCS, "Utils/Nav.ts"),
+      "utf8",
+    );
+    const guided: Array<string> = [];
+
+    for (const [product, onboarding] of ONBOARDINGS) {
+      if (!onboarding.guideRoute) {
+        continue;
+      }
+
+      const guidePath: string = onboarding.guideRoute.toString();
+
+      guided.push(product);
+      expect(guidePath).toMatch(/^\/docs\/guides\/[a-z-]+$/);
+      expect(guidePath).not.toBe(onboarding.docsRoute.toString());
+      expect(nav).toContain(`url: "${guidePath}",\n        isGuide: true,`);
+      expect(
+        fs.existsSync(
+          path.join(
+            DOCS,
+            "Content/en",
+            `${guidePath.replace("/docs/", "")}.md`,
+          ),
+        ),
+      ).toBe(true);
+    }
+
+    // The jobs that have a guide today; each new guide adds its product.
+    expect(guided).toEqual(
+      expect.arrayContaining([
+        ProductKey.Monitors,
+        ProductKey.OnCall,
+        ProductKey.StatusPages,
+      ]),
+    );
+  });
+
   test("a product's words are English translation keys a translator finds in en.json", () => {
     const missing: Array<string> = [];
 

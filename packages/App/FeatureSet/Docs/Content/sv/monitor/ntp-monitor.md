@@ -57,7 +57,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när servern inte levererar tillförlitlig tid, online när den gör det. Ändra dem vid behov och klicka på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när servern inte levererar tillförlitlig tid, online när den gör det. Ändra dem vid behov och klicka på **Nästa**.
 
 ### Välj sonder och skapa
 

@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitor Groups](/docs/monitor/monitor-groups): Roll several monitors into one status.
-- [Service Catalog](/docs/telemetry/services): Every application you run, on one page each.
+- [Services](/docs/telemetry/services): Every application you run, on one page each.
 - [Inventory Overview](/docs/inventory/overview): Everything OneUptime knows about your estate.
 :::
 
@@ -132,7 +132,7 @@ A **status page** shows your customers whether your services work. You choose wh
 
 ## Telemetry
 
-**Telemetry** is what your systems send OneUptime: logs, metrics, traces, exceptions and profiles. Apps send it with OpenTelemetry, and OneUptime's agents send it from hosts, Kubernetes clusters, Docker hosts and other infrastructure. Every sender uses an **ingestion key**, created under **Project Settings → Telemetry & APM → Ingestion Keys**. You search telemetry, chart it on dashboards, and watch it with telemetry monitors, which raise incidents and alerts like any other monitor. In the menu, **Logs**, **Metrics**, **Traces**, **Performance Profiles** and **Exceptions** each open one kind; **AI / LLM** follows your AI's conversations, **Data Observability** watches the tables in your databases, and **Topology** maps how it all connects.
+**Telemetry** is what your systems send OneUptime: logs, metrics, traces, exceptions and profiles. Apps send it with OpenTelemetry, and OneUptime's agents send it from hosts, Kubernetes clusters, Docker hosts and other infrastructure. Every sender uses an **ingestion key**, created under **Project Settings → Telemetry & APM → Ingestion Keys**. You search telemetry, chart it on dashboards, and watch it with telemetry monitors, which raise incidents and alerts like any other monitor. In the menu, **Logs**, **Metrics**, **Traces**, **Profiles** and **Exceptions** each open one kind; **AI / LLM** follows your AI's conversations, **Data Observability** watches the tables in your databases, and **Topology** maps how it all connects.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces from your apps.
@@ -194,11 +194,11 @@ Many things in OneUptime are called a rule. Each makes one decision for you when
 | What runs on it | **Runbook Rules** start runbooks, and **AI Rules** decide what OneUptime AI investigates and fixes |
 | When to follow up | **SLA Rules** track response and resolution times, and **Reminder Rules** remind owners while it is open |
 
-A monitor's own rules are its criteria. The on-call rules under **User Settings** are something else again: each person's own, they decide how a page reaches that person.
+A monitor's own rules are its criteria. How to Reach Me, under **User Settings**, is something else again: each person's own steps, which decide how a page reaches them.
 
 :::cards
 - [Incident Settings & Automation](/docs/incidents/settings#rules-that-run-when-an-incident-is-created): The rules that run when an incident is created, in order.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): How a page reaches you.
+- [How to Reach Me](/docs/notifications/on-call-rules): How a page reaches you.
 :::
 
 ## Next steps

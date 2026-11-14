@@ -32,6 +32,8 @@ import {
 } from "../../../Utils/Rum/UserFlow";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { ParagraphDirection } from "../../Helpers/BidiLayout";
+import { getPathArrows, PathArrow } from "../../Helpers/PathArrows";
 import UserFlowOverview, {
   USER_FLOW_TILE_HINT_CLASS_NAME,
   USER_FLOW_TILE_LABEL_CLASS_NAME,
@@ -228,12 +230,15 @@ function linkBetween(from: UserFlowNode, to: UserFlowNode): UserFlowLink {
   return link;
 }
 
-function renderDetail(selection: UserFlowSelection): void {
+function renderDetail(
+  selection: UserFlowSelection,
+  analysis: UserFlowAnalysis = ANALYSIS,
+): void {
   render(
     <MemoryRouter>
       <UserFlowDetailPanel
         selection={selection}
-        analysis={ANALYSIS}
+        analysis={analysis}
         rumApplicationId={APP_ID}
         timeRange={{ range: TimeRange.PAST_ONE_DAY }}
         onAnchor={(): void => {
@@ -618,6 +623,52 @@ const FOLDED: UserFlowAnalysis = analyzeUserFlow(
   { pagesPerStep: 1 },
 );
 
+// A one-line title as it is drawn: its words, its dir and its arrows.
+interface DrawnTitle {
+  shown: string;
+  dir: string | null;
+  pointsBack: Array<boolean>;
+}
+
+// Laid out in the title's own dir, or the page's where it has none.
+function drawnTitle(
+  title: HTMLElement,
+  pageDirection: ParagraphDirection,
+): DrawnTitle {
+  const dir: string | null = title.getAttribute("dir");
+
+  return {
+    shown: shown(title),
+    dir: dir,
+    pointsBack: getPathArrows(
+      title.textContent || "",
+      (dir as ParagraphDirection | null) ?? pageDirection,
+    ).map((arrow: PathArrow): boolean => {
+      return arrow.pointsBack;
+    }),
+  };
+}
+
+// The transition out of the fold, at the first step, to /cart.
+function linkOutOfTheFold(): UserFlowLink {
+  const fold: UserFlowNode | undefined = FOLDED.graph.nodes.find(
+    (node: UserFlowNode): boolean => {
+      return node.isOther && node.step === 0;
+    },
+  );
+  const link: UserFlowLink | undefined = FOLDED.graph.links.find(
+    (candidate: UserFlowLink): boolean => {
+      return candidate.sourceId === fold?.id;
+    },
+  );
+
+  if (!fold || !link) {
+    throw new Error("No transition out of the fold");
+  }
+
+  return link;
+}
+
 function renderOverview(): void {
   render(
     <UserFlowOverview
@@ -697,6 +748,41 @@ describe("UI review: the user flow map on a page read from the right", () => {
     expect(shown(title)).toMatch(/^\/\S* → \/\S*$/);
     expect(title).toHaveAttribute("dir", "ltr");
   });
+
+  /*
+   * The fold is named in Arabic there, so most of the letters of a band
+   * out of it read from the right. Joined as "صفحات أخرى → /cart" with
+   * nothing set apart, its tooltip was laid out from the right: the arrow
+   * pointed back at the fold, and the page read "cart/". Its name set
+   * apart (joinWithArrowsInDirection), the line reads the map's way.
+   */
+  test("Arabic: a band out of the fold reads from the left too, its arrow on to the page", async () => {
+    await i18next.changeLanguage("ar");
+    renderMap(FOLDED);
+
+    const titles: Array<DrawnTitle> = screen
+      .getAllByTestId("user-flow-link")
+      .map((band: HTMLElement): DrawnTitle => {
+        fireEvent.mouseEnter(band);
+
+        const title: DrawnTitle = drawnTitle(
+          screen
+            .getByTestId("user-flow-tooltip")
+            .querySelector("p") as HTMLElement,
+          "rtl",
+        );
+
+        fireEvent.mouseLeave(band);
+
+        return title;
+      });
+
+    expect(titles).toContainEqual({
+      shown: `${worded(AR, "Other pages")} → /cart`,
+      dir: "ltr",
+      pointsBack: [false],
+    });
+  });
 });
 
 describe("UI review: a page's path reads from the left in the panel and the tables", () => {
@@ -714,6 +800,21 @@ describe("UI review: a page's path reads from the left in the panel and the tabl
 
     expect(shown(title)).toBe("/home → /cart");
     expect(title).toHaveAttribute("dir", "ltr");
+    expect(title.className.split(" ")).toContain("text-end");
+  });
+
+  test("Arabic: a transition out of the fold is named from the left too, its arrow on", async () => {
+    await i18next.changeLanguage("ar");
+
+    renderDetail({ kind: "link", id: linkOutOfTheFold().id }, FOLDED);
+
+    const title: HTMLElement = screen.getByTestId("user-flow-detail-title");
+
+    expect(drawnTitle(title, "rtl")).toEqual({
+      shown: `${worded(AR, "Other pages")} → /cart`,
+      dir: "ltr",
+      pointsBack: [false],
+    });
     expect(title.className.split(" ")).toContain("text-end");
   });
 

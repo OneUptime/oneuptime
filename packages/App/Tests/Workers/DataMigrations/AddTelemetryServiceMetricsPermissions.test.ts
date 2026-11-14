@@ -117,7 +117,7 @@ const NOTHING: MetricPermissionPlan = {
   writesNotCopied: [],
 };
 
-describe("which grantees are given Read Telemetry Service Metrics", () => {
+describe("which grantees are given Read Metrics", () => {
   test("Read Traces read metrics: Read Metrics, with its scope and labels", () => {
     expect(
       planMetricPermissionCopies([

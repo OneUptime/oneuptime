@@ -8,7 +8,7 @@ A Server / VM monitor watches one machine through the OneUptime infrastructure a
 :::cards
 - [Connect the agent](#connect-the-agent): Install it, give it the monitor's secret key and start it.
 - [What the agent reports](#what-the-agent-reports): CPU, memory, disks, load, network and processes.
-- [Monitoring criteria](#monitoring-criteria): Decide when the server counts as online or offline.
+- [Criteria](#criteria): Decide when the server counts as online or offline.
 - [Troubleshooting](#troubleshooting): The agent does not report, or the monitor never goes offline.
 :::
 
@@ -209,7 +209,7 @@ Every report carries the server's hostname and:
 
 Values the operating system does not provide are left out, and a criteria on a value the report does not have is not met: a missing value is not 0. The monitor's **Metrics** tab charts availability, CPU, memory, disk usage and I/O, load averages, swap, network traffic and errors, connections, uptime and the process count.
 
-## Monitoring criteria
+## Criteria
 
 Criteria decide when the monitor is online, degraded or offline, and when it opens an alert or incident. Each filter in a criteria has a **Filter Type**, a **Filter Condition** and, for most types, a value.
 

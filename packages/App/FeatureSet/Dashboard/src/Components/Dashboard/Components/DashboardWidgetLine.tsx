@@ -2,7 +2,12 @@ import { getIsolatedLine } from "Common/UI/Components/IsolatedText/IsolatedLine"
 import { DEFAULT_PAGE_LANGUAGE } from "Common/UI/Utils/PageLanguage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import React, {
+  CSSProperties,
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+} from "react";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 
 /*
@@ -64,6 +69,11 @@ export interface ComponentProps {
   // Under the pointer: the words whole, for a line cut short.
   title?: string | undefined;
   dataTestId?: string | undefined;
+  /*
+   * The box's own measures, when a class cannot say them: a honeycomb
+   * tile's label is as wide as its tile lets it be.
+   */
+  style?: CSSProperties | undefined;
 }
 
 const DashboardWidgetLine: FunctionComponent<ComponentProps> = (
@@ -84,6 +94,7 @@ const DashboardWidgetLine: FunctionComponent<ComponentProps> = (
       className={line.className || undefined}
       title={props.title}
       data-testid={props.dataTestId}
+      style={props.style}
     >
       {props.children === undefined ? props.text : props.children}
     </Tag>

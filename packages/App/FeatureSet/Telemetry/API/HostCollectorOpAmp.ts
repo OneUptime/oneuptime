@@ -31,8 +31,11 @@ const router: ExpressRouter = Express.getRouter();
 
 /*
  * The most an AgentToServer may be. OneUptime's installers do not ask for
- * the collector's effective config or its component list, so a message is
- * a few kilobytes; this leaves room for a long error message.
+ * the collector's component list, and OneUptime turns off the collector's
+ * report of the config it runs, so a message is a few kilobytes - tens when
+ * a supervisor sends its own merge of the config files, as it does when it
+ * starts; this leaves room for a long error message. The ingress lets more
+ * than this through (Nginx/default.conf.template), so the 413 is the App's.
  */
 export const MAX_OPAMP_MESSAGE_BYTES: number = 1024 * 1024;
 
@@ -46,8 +49,11 @@ function sendText(res: ExpressResponse, status: number, message: string): void {
 }
 
 /*
- * HOST_COLLECTOR_OPAMP_PATH, written out: TelemetryIngestSurfaceWiring reads
- * each ingest route's path beside the surface it names.
+ * HOST_COLLECTOR_OPAMP_ROUTE, written out: TelemetryIngestSurfaceWiring reads
+ * each ingest route's path beside the surface it names. Mounted under
+ * /telemetry and /, it answers at the address the installers write
+ * (HOST_COLLECTOR_OPAMP_PATH, /telemetry/opamp/v1) and at /opamp/v1, where
+ * hosts installed before still ask.
  */
 router.post(
   "/opamp/v1",

@@ -3,7 +3,10 @@ import DashboardClockComponentType, {
   ClockWidgetFace,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardClockComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetLine, {
+  getWidgetPageLanguage,
+} from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import {
   ClockHandAngles,
@@ -227,6 +230,11 @@ const DayNightGlyph: FunctionComponent<{ isDaytime: boolean }> = (props: {
   );
 };
 
+// The digital face's time (with its seconds), its AM/PM and its date.
+export const CLOCK_TIME_TEST_ID: string = "dashboard-clock-time";
+export const CLOCK_MERIDIEM_TEST_ID: string = "dashboard-clock-meridiem";
+export const CLOCK_DATE_TEST_ID: string = "dashboard-clock-date";
+
 const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -239,6 +247,13 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
    */
   const now: Date = useClockTick(showSeconds);
 
+  /*
+   * The date and the AM/PM in the reader's language, its digits too
+   * (#7093). A public dashboard's page is English whatever its visitor's
+   * browser speaks, and so is its clock (getWidgetPageLanguage).
+   */
+  const language: string = getWidgetPageLanguage(translator.language);
+
   const display: ClockWidgetDisplay = useMemo(() => {
     return getClockWidgetDisplay({
       date: now,
@@ -249,9 +264,11 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
       showDate: props.component.arguments.showDate,
       showTimezoneAbbreviation:
         props.component.arguments.showTimezoneAbbreviation,
+      language: language,
     });
   }, [
     now,
+    language,
     showSeconds,
     props.component.arguments.timezone,
     props.component.arguments.label,
@@ -294,7 +311,10 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
   const secondaryRows: ReactElement = (
     <>
       {display.dateText ? (
-        <div className="text-[11px] text-gray-400 text-center truncate max-w-full">
+        <div
+          className="text-[11px] text-gray-400 text-center truncate max-w-full"
+          data-testid={CLOCK_DATE_TEST_ID}
+        >
           {display.dateText}
         </div>
       ) : (
@@ -364,20 +384,51 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
           letterSpacing: "-0.03em",
         }}
       >
-        <span>{display.time}</span>
-        {display.seconds ? (
+        {display.meridiem && display.isMeridiemFirst ? (
           <span
-            className="text-gray-400 font-medium"
-            style={{ fontSize: `${secondaryFontPx}px` }}
+            className="text-gray-400 font-medium tracking-normal"
+            data-testid={CLOCK_MERIDIEM_TEST_ID}
+            style={{
+              fontSize: `${secondaryFontPx}px`,
+              marginInlineEnd: "0.25em",
+            }}
           >
-            :{display.seconds}
+            {display.meridiem}
           </span>
         ) : (
           <></>
         )}
-        {display.meridiem ? (
+        {/*
+         * The time and its seconds read left to right on every board: on
+         * an Arabic or Persian one the row runs from the right, and drew
+         * the seconds before the hour ("07: 9:05"). The meridiem keeps
+         * the board's side of them ("ب.ظ." to the left of a Persian time).
+         */}
+        <span dir="ltr" data-testid={CLOCK_TIME_TEST_ID}>
+          {/*
+           * Persian's hours and minutes take each digit's own width
+           * (getNumberSpacingClassName): "۱۱:۲۹", not "۱ ۱:۲ ۹". They change
+           * once a minute; the seconds, which tick, keep digits of one
+           * width so the line does not shift every second.
+           */}
+          <span className={getNumberSpacingClassName(display.time)}>
+            {display.time}
+          </span>
+          {display.seconds ? (
+            <span
+              className="text-gray-400 font-medium"
+              style={{ fontSize: `${secondaryFontPx}px` }}
+            >
+              :{display.seconds}
+            </span>
+          ) : (
+            <></>
+          )}
+        </span>
+        {display.meridiem && !display.isMeridiemFirst ? (
           <span
             className="text-gray-400 font-medium tracking-normal"
+            data-testid={CLOCK_MERIDIEM_TEST_ID}
             style={{
               fontSize: `${secondaryFontPx}px`,
               marginInlineStart: "0.25em",

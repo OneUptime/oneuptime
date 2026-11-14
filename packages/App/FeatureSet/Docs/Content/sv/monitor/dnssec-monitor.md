@@ -66,7 +66,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när kedjan är bruten, online när den är giltig. För att bli varnad innan signaturer går ut lägger du till ett kriterium (se [Bästa praxis](#bästa-praxis)) och klickar sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när kedjan är bruten, online när den är giltig. För att bli varnad innan signaturer går ut lägger du till ett kriterium (se [Bästa praxis](#bästa-praxis)) och klickar sedan på **Nästa**.
 
 ### Välj sonder och skapa
 

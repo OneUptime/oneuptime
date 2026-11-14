@@ -45,7 +45,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../FeatureSet/Docs/Locales",
 );
 
-const NAV_GROUP_TITLE: string = "On Call";
+const NAV_GROUP_TITLE: string = "On-Call";
 const PAGE_TITLE: string = "Calendar Feeds";
 const PAGE_RELATIVE_PATH: string = "on-call/calendar-feeds";
 const PAGE_URL: string = `/docs/${PAGE_RELATIVE_PATH}`;
@@ -274,7 +274,7 @@ const MOBILE_UI_NAMES: Array<string> = [
 
 describe("Calendar Feeds docs page", () => {
   describe("navigation", () => {
-    it("is linked from the On Call group", () => {
+    it("is linked from the On-Call group", () => {
       expect(onCallGroup).toBeDefined();
 
       const link: NavLink | undefined = onCallGroup.links.find(

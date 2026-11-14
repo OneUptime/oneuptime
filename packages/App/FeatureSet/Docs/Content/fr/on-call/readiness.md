@@ -58,7 +58,7 @@ Seule la personne elle-même peut ajouter et vérifier ses méthodes de notifica
 3. Confirmez. Chaque personne reçoit un e-mail qui nomme ce qui manque dans sa propre configuration, avec un lien vers la page qui le corrige.
 :::
 
-Un bandeau indique ensuite combien de rappels ont été envoyés, ignorés ou ont échoué, et pourquoi pour chacun de ceux qui n'ont pas été envoyés. Personne ne reçoit plus d'un rappel en 24 heures, et un envoi rappelle au plus 250 personnes. Envoyer des rappels demande **Propriétaire du projet**, **Administrateur du projet** ou **Administrateur des astreintes**, ou **Edit On-Call Duty Policy** dans un rôle personnalisé.
+Un bandeau indique ensuite combien de rappels ont été envoyés, ignorés ou ont échoué, et pourquoi pour chacun de ceux qui n'ont pas été envoyés. Personne ne reçoit plus d'un rappel en 24 heures, et un envoi rappelle au plus 250 personnes. Envoyer des rappels demande **Propriétaire du projet**, **Administrateur du projet** ou **Administrateur des astreintes**, ou **Edit On-Call Policy** dans un rôle personnalisé.
 
 ## La disponibilité sur d'autres pages
 
@@ -108,5 +108,5 @@ Il n'est envoyé qu'une semaine où quelqu'un est **Injoignable** ou **À config
 :::cards
 - [Comment OneUptime vous joint](/docs/notifications/index): Les méthodes, les règles et le repli derrière chaque statut.
 - [Méthodes de notification](/docs/notifications/notification-methods): Ajouter et vérifier les moyens par lesquels OneUptime joint quelqu'un.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Combler les lacunes, gravité par gravité.
+- [Comment me joindre](/docs/notifications/on-call-rules): Combler les lacunes, gravité par gravité.
 :::

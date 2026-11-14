@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 2876
+    "keys": 51296,
+    "untranslated": 2833
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -108,6 +108,7 @@
     "Bermuda",
     "Bhutan",
     "Bits",
+    "Blade",
     "Body",
     "Bootstrap",
     "Botswana",
@@ -138,6 +139,7 @@
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
+    "Chassis",
     "Chat",
     "Chats",
     "Checkout primary",
@@ -475,7 +477,6 @@
     "Postmortem",
     "Powered by OneUptime",
     "Problem",
-    "Profiler",
     "Prompt",
     "Puerto Rico",
     "Pull Requests",
@@ -801,6 +802,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
+    "{{count}} OSDs",
     "{{count}} SLO",
     "{{count}} SLOs",
     "{{count}} SMS",
@@ -811,6 +814,7 @@
     "{{count}} s",
     "{{count}} vCPU",
     "{{count}} vCPUs",
+    "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{size}} in {{duration}}",

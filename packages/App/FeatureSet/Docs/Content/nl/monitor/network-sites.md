@@ -186,7 +186,7 @@ Een gemiddelde over kinderen weegt een winkel met twee apparaten even zwaar als 
 
 ## Gepland onderhoud voor netwerklocaties
 
-Koppel locaties aan een gepland onderhoud onder **Andere getroffen resources**, in de stap **Getroffen middelen** van de gebeurtenis, zoals je met een host zou doen. De eigen pagina **Geplande onderhoud** van een locatie somt de gebeurtenissen op die eraan gekoppeld zijn, en haar **Geplande onderhoudsgebeurtenis aanmaken** opent het formulier met de locatie al gekozen.
+Koppel locaties aan een gepland onderhoud onder **Andere getroffen resources**, in de stap **Getroffen middelen** van de gebeurtenis, zoals je met een host zou doen. De eigen pagina **Geplande onderhoud** van een locatie somt de gebeurtenissen op die eraan gekoppeld zijn, en haar **Onderhoudsgebeurtenis aanmaken** opent het formulier met de locatie al gekozen.
 
 Een venster op een ouder dekt alles eronder: een venster op een regio dekt elke markt en unit erin, inclusief locaties die zijn aangemaakt nadat het venster was gepland, dus een regionale overstap van provider hoeft geen vierhonderd winkels op te sommen.
 

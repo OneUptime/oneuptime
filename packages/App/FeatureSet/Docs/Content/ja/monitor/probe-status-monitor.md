@@ -100,6 +100,6 @@ flowchart TB
 
 :::cards
 - [カスタムプローブ](/docs/probe/custom-probe): 自分のネットワークでプローブを動かします。
-- [モニターの条件とステータス](/docs/monitor/criteria-and-statuses): 条件がモニターのステータスをどう決めるか。
+- [条件とステータス](/docs/monitor/criteria-and-statuses): 条件がモニターのステータスをどう決めるか。
 - [インシデントとアラートのテンプレート](/docs/monitor/incident-alert-templating): モニターが宣言するインシデントの文面を決めます。
 :::

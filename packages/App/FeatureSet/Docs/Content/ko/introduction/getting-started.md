@@ -5,7 +5,7 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 ## 무엇을 하고 싶으신가요?
 
 :::cards
-- [웹사이트나 API가 다운되면 알기](/docs/monitor/website-monitor): 전 세계의 프로브에서 확인하고, 장애가 나면 이메일이나 호출을 받습니다.
+- [웹사이트나 API가 다운되면 알기](/docs/guides/website-down): 전 세계의 프로브에서 확인하고, 장애가 나면 이메일이나 호출을 받습니다.
 - [전화, SMS, 푸시로 호출을 받고 에스컬레이션하기](/docs/guides/paging): 온콜 담당자를 호출하고, 아무도 응답하지 않으면 다음 사람을 호출합니다.
 - [내 도메인에 상태 페이지 게시하기](/docs/guides/status-page): 나만의 주소에서 고객에게 무슨 일이 일어나고 있는지 알립니다.
 - [로그, 메트릭, 트레이스 보내기](/docs/telemetry/open-telemetry): OpenTelemetry로 앱의 텔레메트리를 보내고, 검색하고, 알림을 받습니다.

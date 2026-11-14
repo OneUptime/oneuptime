@@ -72,7 +72,7 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Tipos de excepción** | Excepciones de cualquiera de estos tipos, separados por comas, como `TypeError, NullReferenceException`. El nombre del tipo debe coincidir exactamente. | Vacío: todos los tipos |
 | **Entornos** | Excepciones de cualquiera de estos entornos, separados por comas; consulta [Entornos](#entornos). | Vacío: todos los entornos |
 | **Ventana de tiempo** (en **Cuándo alertar**) | Excepciones de los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
-| **Filtrar por servicio de telemetría** (en **Más campos**) | Excepciones de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
+| **Filtrar por servicio** (en **Más campos**) | Excepciones de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Excepciones de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Incluir excepciones resueltas** (en **Más campos**) | Contar también las excepciones marcadas como resueltas. | Desactivado |
 | **Incluir excepciones archivadas** (en **Más campos**) | Contar también las excepciones archivadas. | Desactivado |
@@ -193,7 +193,7 @@ El **Número de excepciones** es 3, así que **Más de** `0` coincide: el monito
 ## Solución de problemas
 
 :::details Las excepciones aparecen en el explorador, pero el monitor cuenta 0
-Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Excepciones coincidentes** muestra con qué coinciden los filtros.
+Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios**: **Excepciones coincidentes** muestra con qué coinciden los filtros.
 :::
 
 :::details El incidente se resolvió cuando resolví la excepción

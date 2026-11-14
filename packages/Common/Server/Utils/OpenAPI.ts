@@ -19,6 +19,7 @@ import {
 import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
+import { getApiSingularName } from "../../Utils/ModelApiName";
 import crypto from "crypto";
 import zlib from "zlib";
 
@@ -149,8 +150,11 @@ export default class OpenAPIUtil {
         continue;
       }
 
-      // Add tag for this model
-      const singularModelName: string = model.singularName || modelName;
+      /*
+       * Add tag for this model, by the name the API keeps: a model renamed on
+       * screen keeps its tag, and so its Terraform resource (ModelApiName).
+       */
+      const singularModelName: string = getApiSingularName(model) || modelName;
       tags.push({
         name: singularModelName,
         description:
@@ -322,7 +326,7 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Use schema names that are already registered
     const querySchemaName: string = `${tableName}QuerySchema`;
@@ -398,7 +402,7 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Use schema name that is already registered
     const querySchemaName: string = `${tableName}QuerySchema`;
@@ -450,7 +454,7 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating create API if model has no create permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.createRecordPermissions)) {
@@ -567,7 +571,7 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating get API if model has no read permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.readRecordPermissions)) {
@@ -645,7 +649,7 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating update API if model has no update permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.updateRecordPermissions)) {
@@ -721,7 +725,7 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating delete API if model has no delete permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.deleteRecordPermissions)) {
@@ -985,7 +989,7 @@ export default class OpenAPIUtil {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownAnalyticsModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Use schema names that are already registered
     const querySchemaName: string = `${tableName}QuerySchema`;
@@ -1063,7 +1067,7 @@ export default class OpenAPIUtil {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownAnalyticsModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Use schema name that is already registered
     const querySchemaName: string = `${tableName}QuerySchema`;
@@ -1115,7 +1119,7 @@ export default class OpenAPIUtil {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownAnalyticsModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating create API if model has no create permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.getCreatePermissions())) {
@@ -1177,7 +1181,7 @@ export default class OpenAPIUtil {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownAnalyticsModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating get API if model has no read permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.getReadPermissions())) {
@@ -1250,7 +1254,7 @@ export default class OpenAPIUtil {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownAnalyticsModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating update API if model has no update permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.getUpdatePermissions())) {
@@ -1326,7 +1330,7 @@ export default class OpenAPIUtil {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownAnalyticsModel";
-    const singularModelName: string = model.singularName || tableName;
+    const singularModelName: string = getApiSingularName(model) || tableName;
 
     // Skip generating delete API if model has no delete permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.getDeletePermissions())) {

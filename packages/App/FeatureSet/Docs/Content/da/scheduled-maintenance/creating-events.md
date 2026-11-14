@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åbn formularen
 
-Gå til **Planlagt vedligeholdelse → Alle begivenheder**, og klik på **Opret planlagt vedligeholdelseshændelse**. Formularen åbner på sit første trin, **Begivenhed**.
+Gå til **Planlagt vedligeholdelse → Alle vedligeholdelseshændelser**, og klik på **Opret vedligeholdelseshændelse**. Formularen åbner på sit første trin, **Detaljer om vedligeholdelse**.
 
 ### Sig, hvad der sker og hvornår
 
@@ -47,7 +47,7 @@ Vælg statussiderne under **Vis begivenhed på disse statussider**. **Notifikati
 
 ### Opret den
 
-Klik på **Næste** for at se gennemgangen, tjek den, og klik derefter på **Opret planlagt vedligeholdelseshændelse**. Begivenhedens egen side åbner.
+Klik på **Næste** for at se gennemgangen, tjek den, og klik derefter på **Opret vedligeholdelseshændelse**. Begivenhedens egen side åbner.
 :::
 
 Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på nogen statusside, giver ingen abonnent besked.
@@ -56,12 +56,12 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 
 | Felt                                 | Trin               | Starter som                     | Hvad det gør                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Begivenhed**     | Tom, og påkrævet                | Navngiver begivenheden overalt, også på dine statussider.                        |
-| **Beskrivelse**                      | **Begivenhed**     | Tom                             | Forklarer arbejdet for dine kunder, i Markdown.                                  |
-| **Begynder den**                     | **Begivenhed**     | Den næste hele time             | Hvornår begivenheden starter af sig selv.                                        |
-| **Slutter den**                      | **Begivenhed**     | En time efter **Begynder den**  | Hvornår begivenheden slutter af sig selv. Den skal ligge efter **Begynder den**. |
-| **Ejere**                            | **Begivenhed**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
-| **Etiketter**                        | **Begivenhed**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
+| **Titel**                            | **Detaljer om vedligeholdelse**     | Tom, og påkrævet                | Navngiver begivenheden overalt, også på dine statussider.                        |
+| **Beskrivelse**                      | **Detaljer om vedligeholdelse**     | Tom                             | Forklarer arbejdet for dine kunder, i Markdown.                                  |
+| **Begynder den**                     | **Detaljer om vedligeholdelse**     | Den næste hele time             | Hvornår begivenheden starter af sig selv.                                        |
+| **Slutter den**                      | **Detaljer om vedligeholdelse**     | En time efter **Begynder den**  | Hvornår begivenheden slutter af sig selv. Den skal ligge efter **Begynder den**. |
+| **Ejere**                            | **Detaljer om vedligeholdelse**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
+| **Etiketter**                        | **Detaljer om vedligeholdelse**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
 | **Skift overvågningsstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
@@ -75,13 +75,13 @@ To ting udfylder formularen for dig undervejs:
 
 ## Start fra en ressource eller en skabelon
 
-På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, en tjeneste eller en netværkslokation åbner **Opret planlagt vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
+På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, en tjeneste eller en netværkslokation åbner **Opret vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
 
 **Opret fra skabelon**, ved siden af knappen til at oprette, beder dig om at **Vælg skabelon for planlagt vedligeholdelse** og åbner derefter formularen udfyldt fra skabelonen. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 
 ## Hvad der sker, når du opretter den
 
-I det øjeblik du klikker på **Opret planlagt vedligeholdelseshændelse**, gennemgår OneUptime disse trin i denne rækkefølge:
+I det øjeblik du klikker på **Opret vedligeholdelseshændelse**, gennemgår OneUptime disse trin i denne rækkefølge:
 
 1. **Den får et nummer og en tilstand.** Nummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`SM-42`). Begivenheden starter i din planlagte tilstand, uanset hvilken tilstand en anmodning nævner.
 2. **Dine chatværktøjer hører om den.** Slack- og Microsoft Teams-reglerne under **Arbejdsområde** poster den i deres kanaler, og en regel kan oprette en kanal til begivenheden. Dens feed registrerer, at den blev oprettet.
@@ -90,7 +90,7 @@ I det øjeblik du klikker på **Opret planlagt vedligeholdelseshændelse**, genn
 5. **Runbook-regler starter** de runbooks, der matcher begivenheden.
 6. **Påmindelser planlægges**, når en påmindelsesregel matcher, for dens ejere.
 
-Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Workflow-triggeren **On Create Scheduled Maintenance Event** starter ethvert workflow, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
+Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Workflow-triggeren **On Create Maintenance Event** starter ethvert workflow, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 
 ## Offentliggør den senere
 
@@ -113,7 +113,7 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 
 | For at ændre                                | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Detaljer om vedligeholdelse** i dens **Oversigt**, trinnet **Begivenhed** |
+| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Detaljer om vedligeholdelse** i dens **Oversigt**, trinnet **Detaljer om vedligeholdelse** |
 | Statussiderne, hvornår den offentliggøres, eller påmindelserne | Samme **Rediger**, trinnet **Statussider**                   |
 | Monitorerne, deres status eller andre ressourcer | **Rediger** på kortet **Berørte ressourcer**                              |
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Kontakten **Når begivenheden planlægges**. De to andre tidspunkter har deres egne felter. |
 | `publishOnStatusPageAt`                               | Hvornår begivenheden offentliggøres på sine statussider, og dens abonnenter får besked om, at den er planlagt. Udeladt: med det samme. |
 
-Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). Et workflow opretter én med sit trin **Create One Scheduled Maintenance Event**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
+Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). Et workflow opretter én med sit trin **Create One Maintenance Event**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
 
 ## Fejlfinding
 

@@ -56,6 +56,11 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       APP_TAG: latest
+      # Go's soft memory limit, for every step that compiles the provider:
+      # without it the compiler alone took ~15 GB of the runner's 16, and the
+      # job lost its runner (Scripts/TerraformProvider/Core/GoCommand.ts).
+      # terraform, tofu and docker are Go programs too, far below it.
+      GOMEMLIMIT: 10GiB
       # Terraform phones checkpoint-api.hashicorp.com for an update check on
       # every command; nothing here wants that network call.
       CHECKPOINT_DISABLE: 1

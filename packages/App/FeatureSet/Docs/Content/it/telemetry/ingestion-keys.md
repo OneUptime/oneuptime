@@ -45,7 +45,7 @@ Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT,
 
 ## Prima di iniziare
 
-- **Un ruolo che gestisce le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Create Telemetry Ingestion Key. I ruoli Telemetry non includono le chiavi di acquisizione.
+- **Un ruolo che gestisce le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Create Ingestion Key. I ruoli Telemetry non includono le chiavi di acquisizione.
 - **Su OneUptime Cloud, un metodo di pagamento.** La telemetria si paga in base all'uso, quindi un progetto sul piano Free ha bisogno di un metodo di pagamento prima di poter creare una chiave. La finestra di creazione termina allora con un passaggio **Fatturazione** che mostra i prezzi.
 
 ## Creare una chiave di acquisizione
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Proteggere una chiave Browser
 
-Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste impostazioni limitano ciò che una copia può fare. Cambiatele nella pagina della chiave con **Modifica: Telemetria Ingestione Key**.
+Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste impostazioni limitano ciò che una copia può fare. Cambiatele nella pagina della chiave con **Modifica: Chiave di acquisizione**.
 
 | Impostazione | Che cosa fa |
 | --- | --- |
@@ -104,7 +104,7 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 ]
 ```
 
-Il [Catalogo servizi](/docs/telemetry/services#come-un-servizio-entra-nel-catalogo) mostra come un nome fissato decide il servizio. Il Runner e l'agente IA dell'agent Kubernetes, e gli agenti IA dell'infrastruttura, non si registrano con una chiave fissata: date loro una chiave Server senza nome fissato.
+[Servizi](/docs/telemetry/services#come-un-servizio-entra-nel-catalogo) mostra come un nome fissato decide il servizio. Il Runner e l'agente IA dell'agent Kubernetes, e gli agenti IA dell'infrastruttura, non si registrano con una chiave fissata: date loro una chiave Server senza nome fissato.
 
 ## Ruotare, disattivare o eliminare una chiave
 
@@ -112,9 +112,9 @@ La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietr
 
 | Per | Fate questo | Che cosa vedono i mittenti |
 | --- | --- | --- |
-| Fermare subito una chiave, potendo annullare in seguito | Fate clic su **Modifica: Telemetria Ingestione Key**, aprite **Accesso e limiti** e disattivate **Abilitato**. Lo stato indica **Disabled — telemetry refused**. | `422` finché non la riattivate |
+| Fermare subito una chiave, potendo annullare in seguito | Fate clic su **Modifica: Chiave di acquisizione**, aprite **Accesso e limiti** e disattivate **Abilitato**. Lo stato indica **Disabled — telemetry refused**. | `422` finché non la riattivate |
 | Sostituire un segreto trapelato | Fate clic su **Reimposta la chiave segreta** e confermate. La chiave mantiene le sue impostazioni e riceve un nuovo segreto. | `401` finché non inviano il nuovo segreto |
-| Fermare una chiave per sempre | Fate clic su **Elimina: Telemetria Ingestione Key** in fondo alla sua pagina. | `401` |
+| Fermare una chiave per sempre | Fate clic su **Elimina: Chiave di acquisizione** in fondo alla sua pagina. | `401` |
 
 Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate i mittenti su di essa ed eliminate la vecchia chiave quando il suo **Last Used At** smette di muoversi. **Last Used At** si aggiorna ogni pochi minuti, non a ogni richiesta.
 
@@ -155,7 +155,7 @@ Nulla ha inviato dati con questa chiave da quando OneUptime ha iniziato a regist
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Inviate tracce, metriche e log con la vostra chiave.
-- [Catalogo servizi](/docs/telemetry/services): Vedete i servizi sotto cui è archiviata la vostra telemetria.
+- [Servizi](/docs/telemetry/services): Vedete i servizi sotto cui è archiviata la vostra telemetria.
 - [Conservazione dei dati](/docs/telemetry/data-retention): Decidete per quanto tempo vengono conservati i dati.
 - [Filtri di scarto e regole di mascheramento](/docs/telemetry/drop-filters-and-scrub-rules): Scartate o mascherate i dati prima che vengano salvati.
 - [Budget di acquisizione](/docs/telemetry/ingestion-budgets): Limitate quanto può inviare ogni chiave in un giorno.

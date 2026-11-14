@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9552
+    "keys": 51296,
+    "untranslated": 9513
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -43,6 +43,7 @@
     "Backup",
     "Badge",
     "Bare Metal",
+    "Blade",
     "Branding",
     "Breadcrumb",
     "Browser",
@@ -59,6 +60,7 @@
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",
+    "Chassis",
     "Chat",
     "ClickHouse",
     "Client",
@@ -242,7 +244,6 @@
     "Powered by OneUptime",
     "Principal",
     "Privacy",
-    "Profiler",
     "Prompt",
     "Provider",
     "Pull request",
@@ -474,6 +475,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",
@@ -496,6 +498,7 @@
     "{{count}} log",
     "{{count}} manager",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} ms",
     "{{count}} placement group",
     "{{count}} pod",
@@ -514,6 +517,7 @@
     "{{count}} volume",
     "{{count}} worker",
     "{{count}} worker down",
+    "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",

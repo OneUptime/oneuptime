@@ -34,7 +34,7 @@ flowchart TB
 ## 開始之前
 
 - **執行個體和專案的預算需要 Admin Dashboard。** 在自行託管的安裝上，只有執行個體管理員可以設定它們。專案的擁有者和管理員可以看到專案的預算，但無法變更。
-- **金鑰的自有預算需要能夠編輯擷取金鑰的角色。** Project Owner 或 Project Admin，或者擁有 Edit Telemetry Ingestion Key 權限的自訂角色。
+- **金鑰的自有預算需要能夠編輯擷取金鑰的角色。** Project Owner 或 Project Admin，或者擁有 Edit Ingestion Key 權限的自訂角色。
 - **查看預算需要能看到專案使用量的角色。** 能看到 [遙測使用量](/docs/telemetry/usage) 頁面的角色，都能在該頁面上看到專案的預算。
 
 ## 設定所有專案的預設預算

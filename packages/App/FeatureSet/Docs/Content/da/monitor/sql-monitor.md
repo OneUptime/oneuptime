@@ -31,7 +31,7 @@ Sonden rapporterer kun:
 
 | Værdi | Hvad det er |
 |---|---|
-| **Row Count** | Antallet af rækker, forespørgslen returnerede (begrænset af grænsen Max Rows). |
+| **Antal rækker** | Antallet af rækker, forespørgslen returnerede (begrænset af grænsen Max Rows). |
 | **Skalarværdi** | Den første kolonne i den første række. Det er den naturlige værdi for en forespørgsel i stil med `SELECT COUNT(*)`. |
 | **First Row** | Den første række som par af kolonne og værdi, vist i kontrollens resumé som kontekst. |
 | **Execution Time** | Hvor længe kontrollen tog, i millisekunder — inklusive forbindelsen, ikke kun forespørgslen. |
@@ -204,7 +204,7 @@ WHERE status = 'CANCELLED'
 :::
 
 > [!TIP]
-> For en forespørgsel i stil med `COUNT(*)` er antallet tilgængeligt både som **Row Count** (som er `1`, fordi der returneres én række) og som **Skalarværdi** (selve antallet, fra den første kolonne). Vil du advare på "hvor mange", så sammenlign med **Skalarværdi**.
+> For en forespørgsel i stil med `COUNT(*)` er antallet tilgængeligt både som **Antal rækker** (som er `1`, fordi der returneres én række) og som **Skalarværdi** (selve antallet, fra den første kolonne). Vil du advare på "hvor mange", så sammenlign med **Skalarværdi**.
 
 ## Brug en monitorhemmelighed til adgangskoden
 

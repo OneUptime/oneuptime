@@ -85,6 +85,14 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     },
   ): Promise<void> {
     /*
+     * A sample project (issue #6808) is never billed: nothing of it is
+     * counted, written or reported to the payment provider.
+     */
+    if (await ProjectService.isSampleProject(projectId)) {
+      return;
+    }
+
+    /*
      * One live read of the payment setup for the whole report. Staging and the
      * usage write each used to repeat it seconds later, for every product type
      * of every project in the billing pass; they are handed this one instead,

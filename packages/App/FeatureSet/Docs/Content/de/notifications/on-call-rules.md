@@ -1,12 +1,13 @@
-# Persönliche Bereitschaftsregeln
+# Wie ich erreichbar bin
 
-Ihre Bereitschaftsregeln entscheiden, wie ein Alarm Sie erreicht: welche Ihrer Benachrichtigungsmethoden OneUptime versucht, und wie lange nach dem Beginn des Alarms. Jede Art von Alarm hat eigene Regeln, ein Satz pro Schweregrad, sodass ein kritischer Vorfall Sie sofort anrufen kann, während eine Warnung mit niedrigem Schweregrad auf eine E-Mail wartet. Sie legen sie unter **Benutzereinstellungen → Bereitschaftsregeln** fest.
+Ihre Bereitschaftsregeln entscheiden, wie ein Alarm Sie erreicht: welche Ihrer Benachrichtigungsmethoden OneUptime versucht, und wie lange nach dem Beginn des Alarms. Jede Art von Alarm hat eigene Regeln, ein Satz pro Schweregrad, sodass ein kritischer Vorfall Sie sofort anrufen kann, während eine Warnung mit niedrigem Schweregrad auf eine E-Mail wartet. Sie legen sie unter **Benutzereinstellungen → Wie ich erreichbar bin** fest.
 
 > [!NOTE]
 > Diese Regeln gehören nur Ihnen. Die **Bereitschaftsregeln** unter **Vorfälle → Regeln** und **Warnungen → Regeln** sind etwas anderes: Sie entscheiden, welche Bereitschaftsrichtlinien ein neuer Vorfall oder eine neue Warnung ausführt.
 
 :::cards
 - [Wie ein Alarm Sie erreicht](#wie-ein-alarm-sie-erreicht): Ihre Regeln für einen Alarm, Schritt für Schritt.
+- [Ein Ablauf für alles](#ein-ablauf-für-alles): Die Schritte, die jeder Alarm versucht, einmal festgelegt.
 - [Die Regeln, mit denen Sie starten](#die-regeln-mit-denen-sie-starten): Was jede verifizierte Methode hinzufügt, und wie Sie es kürzen.
 - [Eine Regel hinzufügen](#eine-regel-hinzufügen): Eine Methode und eine Wartezeit für einen Schweregrad.
 - [Push-Regeln](#push-regeln): Den Lautlosmodus durchbrechen und wiederholen, bis jemand bestätigt.
@@ -26,9 +27,33 @@ flowchart TB
 
 Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrichten über WhatsApp, Telegram, Slack, Microsoft Teams und Mattermost enthalten einen Bestätigungslink, und ein Anruf bittet Sie, die 1 zu drücken. Können Sie einen Alarm nicht übernehmen, können Sie ihn über dieselben Nachrichten eskalieren, und ein Anruf bittet Sie, die 2 zu drücken: Die Richtlinie alarmiert sofort ihre nächste Stufe, und Sie werden dazu nicht mehr alarmiert. Siehe [Eine Alarmierung eskalieren](/docs/on-call/escalation-rules#eine-alarmierung-eskalieren). Jeder Alarm an Sie steht unter **Benutzereinstellungen → Bereitschaftsprotokolle**, wo **Zeitachse anzeigen** jede gesendete Nachricht zeigt und ob sie zugestellt wurde.
 
+## Ein Ablauf für alles
+
+**Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: den Schritten, die jeder Alarm versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist eine Ihrer verifizierten Methoden und der Zeitpunkt, sie zu verwenden, etwa sofort eine SMS und nach 5 Minuten ein Anruf. Schritte mit derselben Wartezeit gehen zusammen hinaus, sodass sich der Ablauf in der Reihenfolge liest, in der er alarmiert.
+
+:::steps
+### Eine Möglichkeit hinzufügen, Sie zu erreichen
+
+Wählen Sie unter **Eine Möglichkeit hinzufügen, Sie zu erreichen** eine Ihrer verifizierten Methoden. Eine Nummer oder Adresse, die noch auf ihren Code wartet, steht unter **Noch nicht verifiziert**, mit **Verifizieren**.
+
+### Festlegen, wann sie verwendet wird
+
+Wählen Sie neben jedem Schritt eine Wartezeit von **Sofort** bis **1 Stunde**. Ein Push-Schritt sagt außerdem, wie er klingt und ob er sich wiederholt: siehe [Push-Regeln](#push-regeln).
+
+### Speichern
+
+Klicken Sie auf **Ablauf speichern**. Das schreibt dieselben Regeln in jede Karte jedes Tabs: die Regeln, die Sie jeder Karte von Hand hinzufügen würden.
+:::
+
+**Ihre Alarmierungen testen**, am Fuß der Seite, sendet Ihnen einen Testalarm durch sie.
+
+Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders** die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert, und der Ablauf nennt, was jede stattdessen tut. Weichen Ihre Regeln schon ab, öffnet sich die Seite mit den Karten und mit **Einen Ablauf für alles verwenden**: Beim Speichern nennt es zuerst die Karten, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
+
+Eine Bereitschaftsrichtlinie entscheidet, wer alarmiert wird und wann ihre nächste Stufe kommt. Wie Sie erreicht werden, ist dieser Ablauf, für jede Richtlinie, die Sie alarmiert.
+
 ## Die vier Tabs
 
-**Benutzereinstellungen → Bereitschaftsregeln** hat einen Tab für jede Art von Alarm. Jeder Tab hat eine Karte pro Schweregrad, benannt und eingefärbt, wie Ihr Projekt es festgelegt hat:
+**Benutzereinstellungen → Wie ich erreichbar bin** hat einen Tab für jede Art von Alarm. Jeder Tab hat eine Karte pro Schweregrad, benannt und eingefärbt, wie Ihr Projekt es festgelegt hat:
 
 | Tab | Alarme für | Karten für |
 | --- | --- | --- |
@@ -60,7 +85,7 @@ Ihre eigenen Regeln haben keine Ruhezeiten: Lassen Sie niedrige Schweregrade bei
 :::steps
 ### Die Karte öffnen
 
-Gehen Sie zu **Benutzereinstellungen → Bereitschaftsregeln**, öffnen Sie den Tab für die Art von Alarm und suchen Sie die Karte des Schweregrads.
+Gehen Sie zu **Benutzereinstellungen → Wie ich erreichbar bin**, öffnen Sie den Tab für die Art von Alarm und suchen Sie die Karte des Schweregrads.
 
 ### Die Methode wählen
 
@@ -105,12 +130,12 @@ Die API kann eine Opt-out-Regel speichern, mit gesetztem `isOptOut` und ohne Met
 :::
 
 :::details Den Rückfall für ein ganzes Projekt ausschalten
-Ein Projekteigentümer oder jemand mit **Manage Billing** kann über die API `disableOnCallNotificationFallback` des Projekts setzen. Ein Alarm, der keine Regel findet, wird dann nicht zugestellt, und sein Protokoll sagt, dass der Benutzer Regeln unter **Benutzereinstellungen → Bereitschaftsregeln** hinzufügen sollte.
+Ein Projekteigentümer oder jemand mit **Manage Billing** kann über die API `disableOnCallNotificationFallback` des Projekts setzen. Ein Alarm, der keine Regel findet, wird dann nicht zugestellt, und sein Protokoll sagt, dass der Benutzer Regeln unter **Benutzereinstellungen → Wie ich erreichbar bin** hinzufügen sollte.
 :::
 
 ## Regeln eines Teammitglieds
 
-Projekteigentümer und Admins können dieselbe Seite für jeden im Projekt ansehen und ändern: Unter **Benutzer** öffnen sie die Person und dann **Bereitschaftsregeln** im Abschnitt **Bereitschaft**. **Einsatzbereitschaft** daneben zeigt, ob jeder Schweregrad die Person erreicht. Wenn jemand anderes Ihre Regeln hinzufügt, ändert oder löscht, erhalten Sie darüber eine E-Mail, und jede Änderung steht im Audit-Log des Projekts.
+Projekteigentümer und Admins können dieselbe Seite für jeden im Projekt ansehen und ändern: Unter **Benutzer** öffnen sie die Person und dann **Wie ich erreichbar bin** im Abschnitt **Bereitschaft**. **Einsatzbereitschaft** daneben zeigt, ob jeder Schweregrad die Person erreicht. Wenn jemand anderes Ihre Regeln hinzufügt, ändert oder löscht, erhalten Sie darüber eine E-Mail, und jede Änderung steht im Audit-Log des Projekts.
 
 ## Fehlerbehebung
 

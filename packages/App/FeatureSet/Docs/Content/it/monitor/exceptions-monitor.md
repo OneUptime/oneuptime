@@ -72,7 +72,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Tipi di eccezione** | Eccezioni di uno qualsiasi di questi tipi, separati da virgole, come `TypeError, NullReferenceException`. Il nome del tipo deve corrispondere esattamente. | Vuoto: tutti i tipi |
 | **Ambienti** | Eccezioni di uno qualsiasi di questi ambienti, separati da virgole (vedete [Ambienti](#ambienti)). | Vuoto: tutti gli ambienti |
 | **Finestra temporale** (in **Quando avvisare**) | Eccezioni degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
-| **Filtra per servizio di telemetria** (in **Altri campi**) | Eccezioni di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
+| **Filtra per servizio** (in **Altri campi**) | Eccezioni di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Eccezioni di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Includi eccezioni risolte** (in **Altri campi**) | Contare anche le eccezioni contrassegnate come risolte. | Disattivato |
 | **Includi eccezioni archiviate** (in **Altri campi**) | Contare anche le eccezioni archiviate. | Disattivato |
@@ -193,7 +193,7 @@ Il **Numero di eccezioni** è 3, quindi **Più di** `0` corrisponde: il monitor 
 ## Risoluzione dei problemi
 
 :::details Le eccezioni compaiono nell'esploratore, ma il monitor conta 0
-Confrontate il valore di **Ambienti** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri di monitoraggio**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
+Confrontate il valore di **Ambienti** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
 :::
 
 :::details L'incidente si è risolto quando ho risolto l'eccezione

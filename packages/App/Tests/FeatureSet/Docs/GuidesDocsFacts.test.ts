@@ -531,3 +531,151 @@ describe("Publish a Status Page, against the product", () => {
     );
   });
 });
+
+const WEBSITE_DOWN: string = readPage("en", "guides/website-down");
+const WEBSITE_DOWN_SETUP: string = dashboardFile(
+  "Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts",
+);
+const WEBSITE_DOWN_PAGE: string = dashboardFile(
+  "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx",
+);
+
+describe("Know When Your Website or API Is Down, against the product", () => {
+  it("walks the guided setup at /monitors/setup, by its own title", () => {
+    const title: string = copyValue(WEBSITE_DOWN_SETUP, "pageTitle");
+
+    expect(title).toBe("Know when my website or API is down");
+    expect(WEBSITE_DOWN).toContain(`**${title}**`);
+    expect(ROUTE_MAP).toContain('[PageMap.MONITOR_GUIDED_SETUP]: "setup",');
+  });
+
+  it("opens it from Home's checklist, whose question offers the job, or from Search by the words it gives", () => {
+    const step: string = entryOf(WELCOME_CATALOG, "step: WelcomeStep.Monitor,");
+
+    expect(step).toContain(
+      'title: translationKey("Create your first monitor")',
+    );
+    expect(step).toContain("guidedSetupPage: PageMap.MONITOR_GUIDED_SETUP,");
+    expect(WELCOME_CATALOG).toContain(
+      'title: translationKey("Know when my website or API is down")',
+    );
+    expect(WEBSITE_DOWN).toContain("type `website down`");
+    expect(searchEntryOf("MONITOR_GUIDED_SETUP")).toContain('"website down",');
+  });
+
+  it("meets the setup's three steps in the setup's order, then its summary", () => {
+    const list: string = WEBSITE_DOWN_SETUP.slice(
+      WEBSITE_DOWN_SETUP.indexOf("export const WEBSITE_DOWN_STEPS"),
+    );
+    const steps: string = list.slice(0, list.indexOf("];"));
+    const places: Array<number> = [
+      "checkTitle",
+      "addressLabel",
+      "startChecking",
+      "whoTitle",
+      "testTitle",
+      "summaryChecked",
+      "nextMonitor",
+      "startOver",
+    ].map((property: string): number => {
+      return WEBSITE_DOWN.indexOf(
+        `**${copyValue(WEBSITE_DOWN_SETUP, property)}**`,
+      );
+    });
+
+    expect(steps.match(/WebsiteDownStep\.\w+,/g)).toHaveLength(3);
+    expect(places).not.toContain(-1);
+    expect(
+      [...places].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(places);
+  });
+
+  it("checks every 5 minutes, and counts no answer or an answer outside 200 to 399 as down", () => {
+    expect(
+      dashboardFile("Utils/Form/Monitor/MonitoringIntervalDefault.ts"),
+    ).toContain(
+      'export const DEFAULT_MONITORING_INTERVAL: string = "*/5 * * * *";',
+    );
+    expect(copyValue(WEBSITE_DOWN_SETUP, "checkHelp")).toContain(
+      "every 5 minutes",
+    );
+    const criteria: string = repoFile(
+      "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+    );
+
+    expect(criteria).toContain(
+      "public static readonly DEFAULT_HEALTHY_STATUS_CODE_FROM: number = 200;",
+    );
+    expect(criteria).toContain(
+      "public static readonly DEFAULT_HEALTHY_STATUS_CODE_BELOW: number = 400;",
+    );
+    expect(WEBSITE_DOWN).toContain("every 5 minutes");
+    expect(WEBSITE_DOWN).toContain("an answer outside 200 to 399, as down");
+  });
+
+  it("says who may create a monitor, and that a member is told they are emailed instead", () => {
+    const monitor: string = repoFile(
+      "packages/Common/Models/DatabaseModels/Monitor.ts",
+    );
+    const creators: string = monitor.slice(
+      monitor.indexOf("@TableAccessControl({"),
+      monitor.indexOf("read: [", monitor.indexOf("@TableAccessControl({")),
+    );
+
+    for (const role of ["ProjectOwner", "ProjectAdmin", "ProjectMember"]) {
+      expect(creators).toContain(`Permission.${role},`);
+    }
+    expect(WEBSITE_DOWN).toContain("an owner, admin or member may");
+    expect(copyValue(WEBSITE_DOWN_SETUP, "whoOwnerOnlyHelp")).toContain(
+      "You own this monitor, so you are emailed when it goes down.",
+    );
+  });
+
+  it("names the policy the setup makes, and when it makes one", () => {
+    // A single-quoted sentence (it quotes the policy's name), read as written.
+    expect(WEBSITE_DOWN_SETUP).toContain(
+      `'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.'`,
+    );
+    expect(WEBSITE_DOWN).toContain("`Default on-call policy`");
+    expect(WEBSITE_DOWN).toContain(
+      "With no on-call policy or on-call rule yet",
+    );
+  });
+
+  it("sends the test page to the person setting up, from Send me a test page", () => {
+    expect(WEBSITE_DOWN_PAGE).toContain('target={{ kind: "self" }}');
+    expect(
+      dashboardFile("Components/OnCallTestPage/SendTestPageButton.tsx"),
+    ).toContain('return "Send me a test page";');
+    expect(WEBSITE_DOWN).toContain("click **Send me a test page**");
+  });
+
+  it("says the master admin is not made the owner of what they create", () => {
+    expect(
+      repoFile("packages/Common/Server/Services/DatabaseService.ts"),
+    ).toContain("if (props.isRoot || props.isMasterAdmin || !props.userId) {");
+    expect(WEBSITE_DOWN).toContain(
+      "The master admin is not made the owner of what they create",
+    );
+  });
+
+  it("says the Free plan has 10 active monitors", () => {
+    expect(repoFile("packages/Common/Server/EnvironmentConfig.ts")).toMatch(
+      /ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"\]\.toString\(\),\n\s+\)\n\s+: 10;/,
+    );
+    expect(WEBSITE_DOWN).toContain("The Free plan has 10 active monitors.");
+  });
+
+  it("explains the first check's two silences as the setup words them", () => {
+    expect(WEBSITE_DOWN_SETUP).toContain(
+      '"No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes."',
+    );
+    expect(WEBSITE_DOWN_SETUP).toContain(
+      'one: "Checking {{host}} from {{count}} location...",',
+    );
+    expect(WEBSITE_DOWN).toContain("no location checks the address");
+    expect(WEBSITE_DOWN).toContain("keeps saying it is checking");
+  });
+});

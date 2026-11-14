@@ -13,6 +13,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
 import {
+  PluralTemplate,
+  TemplateValues,
   translatableTerm,
   translationKey,
   Translator,
@@ -94,6 +96,43 @@ export const ROW_UNARCHIVE_SENTENCE: string = translationKey(
   "It will reappear in the main list.",
 );
 
+/*
+ * The bulk dialog's title, with how many are selected: "Archive 3 hosts?".
+ * Its question mark is the question a resource's own sentence under it
+ * (an SLO's "Archived SLOs are hidden ...") does not ask.
+ */
+export const BULK_ARCHIVE_TITLE: PluralTemplate = {
+  one: "Archive {{count}} {{itemName}}?",
+  other: "Archive {{count}} {{itemsName}}?",
+};
+
+export const BULK_UNARCHIVE_TITLE: PluralTemplate = {
+  one: "Unarchive {{count}} {{itemName}}?",
+  other: "Unarchive {{count}} {{itemsName}}?",
+};
+
+/*
+ * The bulk dialog's question on a list that gives no sentence of its own,
+ * about a telemetry resource: one selected, or several. No count is said,
+ * so these are two sentences, not a plural - "the selected hosts" for 21 of
+ * them in Russian too, where 21 takes the "one" form of a count.
+ */
+export const BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE: string = translationKey(
+  "Are you sure you want to archive the selected {{itemName}}? It will be hidden from the list but will keep collecting telemetry. You can unarchive it anytime from the Archived tab.",
+);
+
+export const BULK_ARCHIVE_TELEMETRY_SENTENCE: string = translationKey(
+  "Are you sure you want to archive the selected {{itemsName}}? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.",
+);
+
+export const BULK_UNARCHIVE_SENTENCE_ONE: string = translationKey(
+  "Are you sure you want to unarchive the selected {{itemName}}? It will reappear in the main list.",
+);
+
+export const BULK_UNARCHIVE_SENTENCE: string = translationKey(
+  "Are you sure you want to unarchive the selected {{itemsName}}? They will reappear in the main list.",
+);
+
 type ArchiveMode = "archive" | "unarchive";
 
 /**
@@ -122,6 +161,58 @@ function useBulkArchiveActions<T extends BaseModel>(
     config.singularName || model.singularName || "resource";
   const pluralName: string =
     config.pluralName || model.pluralName || "resources";
+
+  /*
+   * The names as the dialog's title says them ("Archive 3 Services?") and
+   * as its question does ("... the selected services?"), each in the
+   * reader's language: both are keys of the Dashboard's locales.
+   */
+  const titleNames: TemplateValues = {
+    itemName: translatableTerm(singularName),
+    itemsName: translatableTerm(pluralName),
+  };
+
+  const sentenceNames: TemplateValues = {
+    itemName: translatableTerm(singularName, { inSentence: true }),
+    itemsName: translatableTerm(pluralName, { inSentence: true }),
+  };
+
+  // The dialog's title for this many: "Archive 3 hosts?", "Archive 1 SLO?".
+  const getConfirmTitle: (mode: ArchiveMode, count: number) => string = (
+    mode: ArchiveMode,
+    count: number,
+  ): string => {
+    return translator.translatePlural(
+      mode === "archive" ? BULK_ARCHIVE_TITLE : BULK_UNARCHIVE_TITLE,
+      count,
+      titleNames,
+    );
+  };
+
+  /*
+   * The dialog's question on a list that gives no sentence of its own: the
+   * one-selected sentence for one, the several-selected one otherwise.
+   */
+  const getDefaultConfirmMessage: (
+    mode: ArchiveMode,
+    count: number,
+  ) => string = (mode: ArchiveMode, count: number): string => {
+    const isOne: boolean = count === 1;
+
+    if (mode === "archive") {
+      return translator.translateTemplate(
+        isOne
+          ? BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE
+          : BULK_ARCHIVE_TELEMETRY_SENTENCE,
+        sentenceNames,
+      );
+    }
+
+    return translator.translateTemplate(
+      isOne ? BULK_UNARCHIVE_SENTENCE_ONE : BULK_UNARCHIVE_SENTENCE,
+      sentenceNames,
+    );
+  };
 
   const applyArchive: (
     mode: ArchiveMode,
@@ -184,18 +275,18 @@ function useBulkArchiveActions<T extends BaseModel>(
     icon: IconProp.Archive,
     buttonStyleType: ButtonStyleType.NORMAL,
     confirmTitle: (items: Array<T>): string => {
-      return `Archive ${items.length} ${
-        items.length === 1 ? singularName : pluralName
-      }?`;
+      return getConfirmTitle("archive", items.length);
     },
+    /*
+     * A list's own sentence is an English key: the dialog (ConfirmModal)
+     * looks it up, so it reaches the reader in their language.
+     */
     confirmMessage: (items: Array<T>): string => {
       if (config.archiveConfirmMessage) {
         return config.archiveConfirmMessage;
       }
 
-      return `Are you sure you want to archive the selected ${
-        items.length === 1 ? singularName : pluralName
-      }? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.`;
+      return getDefaultConfirmMessage("archive", items.length);
     },
     onClick: async (props: BulkActionOnClickProps<T>): Promise<void> => {
       await applyArchive("archive", props);
@@ -207,18 +298,14 @@ function useBulkArchiveActions<T extends BaseModel>(
     icon: IconProp.Unarchive,
     buttonStyleType: ButtonStyleType.NORMAL,
     confirmTitle: (items: Array<T>): string => {
-      return `Unarchive ${items.length} ${
-        items.length === 1 ? singularName : pluralName
-      }?`;
+      return getConfirmTitle("unarchive", items.length);
     },
     confirmMessage: (items: Array<T>): string => {
       if (config.unarchiveConfirmMessage) {
         return config.unarchiveConfirmMessage;
       }
 
-      return `Are you sure you want to unarchive the selected ${
-        items.length === 1 ? singularName : pluralName
-      }? They will reappear in the main list.`;
+      return getDefaultConfirmMessage("unarchive", items.length);
     },
     onClick: async (props: BulkActionOnClickProps<T>): Promise<void> => {
       await applyArchive("unarchive", props);

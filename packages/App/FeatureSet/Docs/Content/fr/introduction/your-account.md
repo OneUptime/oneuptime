@@ -138,7 +138,7 @@ Les **Paramètres utilisateur**, à droite dans la barre sous la barre supérieu
 | --- | --- | --- |
 | **Liste de configuration** | Vous guide à travers tout ce qui suit, et montre ce qu'il reste à faire. | |
 | **Méthodes de notification** | Les adresses e-mail, numéros de téléphone, applications et webhooks par lesquels OneUptime peut vous joindre. Votre e-mail de connexion est ajouté pour vous. | |
-| **Règles d'astreinte** | Quelle méthode utiliser, et au bout de combien de temps, quand une politique d'astreinte vous alerte. | [Règles d'escalade](/docs/on-call/escalation-rules) |
+| **Comment me joindre** | Quelle méthode utiliser, et au bout de combien de temps, quand une politique d'astreinte vous alerte. | [Règles d'escalade](/docs/on-call/escalation-rules) |
 | **Paramètres de notification** | Les nouvelles que vous recevez sur les incidents, les alertes, les moniteurs et plus encore, et sur quel canal. | |
 | **Préférences e-mail** | Combien d'e-mails vous recevez : un par un, ou regroupés. | [Regroupement des notifications](/docs/emails/notification-rollup) |
 | **Journaux d'astreinte** | Chaque alerte qui vous a été envoyée, et ce qu'elle est devenue. | |

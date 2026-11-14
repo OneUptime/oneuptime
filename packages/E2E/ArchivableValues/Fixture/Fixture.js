@@ -14,10 +14,10 @@
  *   - page=severities   Incidents > Settings > Incident Severity (default)
  *   - page=states       Incidents > Settings > Incident State
  *   - page=templates    Incidents > Settings > Incident Templates
- *   - page=on-call-rules  User Settings > On-Call Rules, where an archived
+ *   - page=on-call-rules  User Settings > How to Reach Me, where an archived
  *                       severity the person has rules for comes last - also
- *                       at its own address, which the Archive dialog's "See
- *                       your on-call rules" opens
+ *                       at its own address, which the Archive dialog's "Open
+ *                       How to Reach Me" opens
  *   - theme=dark        the Dashboard's dark mode
  *   - refuse-archive=1  the server refuses every archive, in its own words
  *   - slow-usage=1      what uses a value takes a second and a half to answer,
@@ -219,9 +219,9 @@ const labels = [
 ];
 
 /*
- * The signed-in person's own on-call rules (User Settings > On-Call Rules):
- * their verified email, and a rule for every live severity - and two for
- * the archived "[DONOTUSE] Very critical", which still page for the
+ * The signed-in person's own on-call rules (User Settings > How to Reach
+ * Me): their verified email, and a rule for every live severity - and two
+ * for the archived "[DONOTUSE] Very critical", which still page for the
  * incidents that keep it. No alert severities: the Alerts tab draws none.
  */
 const OWN_EMAIL_ID = "23000000-0000-4000-8000-000000000001";
@@ -704,11 +704,11 @@ const PAGES = {
   },
   "on-call-rules": {
     component: OnCallRulesPage,
-    trail: ["User Settings", "On-Call Rules"],
+    trail: ["User Settings", "How to Reach Me"],
   },
 };
 
-// The On-Call Rules page's own address, as the Archive dialog links to it.
+// How to Reach Me's own address, as the Archive dialog links to it.
 const ON_CALL_RULES_PATH = "/user-settings/on-call-rules";
 
 function Fixture() {

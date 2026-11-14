@@ -368,15 +368,21 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
 /*
  * The other half of the split. NetworkInventoryUtil's device enrichment write
- * carries sysName — an identity column — plus lastSeenAt / isReachable, and it
- * MUST keep going through updateOneById: that is the write whose hooks
- * re-evaluate site-assignment rules for a device that has no site, and it is
- * how a discovery-imported device (imported with only an IP) ever gets placed.
+ * carries sysName — an identity column — and it MUST keep going through
+ * updateOneById: that is the write whose hooks re-evaluate site-assignment
+ * rules for a device that has no site, and it is how a discovery-imported
+ * device (imported with only an IP) ever gets placed.
+ *
+ * The poll's verdict - reachability, liveness, the interface counts - left
+ * it for a statement of its own (issue #7389), which writes it only when the
+ * device holds no verdict from a poll received later. That is safe for the
+ * same reason as the baseline above: no hook reads any of those columns.
  */
 describe("NetworkInventoryUtil — the device enrichment write", () => {
   function mockInventoryServices(): {
     hookedUpdate: jest.SpyInstance;
     hookFreeUpdate: jest.SpyInstance;
+    pollVerdict: jest.SpyInstance;
   } {
     const ownedDevice: NetworkDevice = new NetworkDevice();
     ownedDevice.id = new ObjectID(DEVICE_ID);
@@ -400,6 +406,9 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
       hookFreeUpdate: jest
         .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
         .mockResolvedValue(undefined),
+      pollVerdict: jest
+        .spyOn(NetworkDeviceService, "writePollVerdict")
+        .mockResolvedValue(true),
     };
   }
 
@@ -407,6 +416,7 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
     const spies: {
       hookedUpdate: jest.SpyInstance;
       hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
     } = mockInventoryServices();
 
     await NetworkInventoryUtil.updateFromWalk({
@@ -435,14 +445,17 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
   });
 
   /*
-   * The enrichment write is also the one that stamps reachability, which the
-   * device list, the topology graph and the site rollup all read. It stays on
-   * the hooked path with sysName rather than being split off for speed.
+   * Reachability - what the device list, the topology graph and the site
+   * rollup read - is written first, by the guarded verdict statement, and
+   * never by the hooked write. Moved back onto the hooked payload, an older
+   * poll processed after a newer one would put its answer back over the
+   * newer one's again.
    */
-  test("reachability and liveness ride along on that same hooked write", async () => {
+  test("reachability and liveness go through the guarded verdict write, never the hooked one", async () => {
     const spies: {
       hookedUpdate: jest.SpyInstance;
       hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
     } = mockInventoryServices();
 
     await NetworkInventoryUtil.updateFromWalk({
@@ -453,17 +466,97 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
         responseTimeInMs: 12,
         failureCause: "",
         oidResponses: [],
+        systemInfo: { sysName: "UN0664LANSWI03" },
       } as unknown as SnmpMonitorResponse,
       isOnline: true,
     });
 
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    expect(spies.pollVerdict.mock.calls[0][0].verdict).toEqual({
+      isReachable: true,
+      isSnmpReachable: true,
+      interfaceCounts: undefined,
+    });
+    expect(spies.pollVerdict.mock.invocationCallOrder[0]).toBeLessThan(
+      spies.hookedUpdate.mock.invocationCallOrder[0] as number,
+    );
+
     const payload: JSONObject = spies.hookedUpdate.mock.calls[0][0][
       "data"
     ] as JSONObject;
-    expect(payload["isReachable"]).toBe(true);
-    expect(payload["lastPolledAt"]).toBeDefined();
-    expect(payload["lastSeenAt"]).toBeDefined();
+
+    for (const column of [
+      "lastPollReceivedAt",
+      "lastPolledAt",
+      "isReachable",
+      "lastSeenAt",
+      "isSnmpReachable",
+      "lastSnmpSeenAt",
+      "interfacesTotal",
+      "interfacesUp",
+      "interfacesDown",
+    ]) {
+      expect(payload).not.toHaveProperty(column);
+    }
+
     expect(spies.hookFreeUpdate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The verdict statement's columns are fixed (writePollVerdict), and the
+   * verdict it is handed names none of the columns a hook watches.
+   */
+  test("the verdict carries no column any device update hook watches", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      isOnline: true,
+    });
+
+    const verdictKeys: Array<string> = Object.keys(
+      spies.pollVerdict.mock.calls[0][0].verdict as JSONObject,
+    );
+
+    for (const watched of HOOK_WATCHED_COLUMNS) {
+      expect(verdictKeys).not.toContain(watched);
+    }
+  });
+
+  /*
+   * A poll older than the verdict the device holds wrote nothing through the
+   * verdict statement, and its system group, neighbours and snapshots are
+   * older than the device's too: the hooked write is not made at all.
+   */
+  test("an older poll than the one the device holds makes no enrichment write", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+    spies.pollVerdict.mockResolvedValue(false);
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: {
+        isOnline: true,
+        responseTimeInMs: 12,
+        failureCause: "",
+        oidResponses: [],
+        systemInfo: { sysName: "UN0664LANSWI03" },
+      } as unknown as SnmpMonitorResponse,
+      isOnline: true,
+    });
+
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    expect(spies.hookedUpdate).not.toHaveBeenCalled();
   });
 });
 
@@ -877,13 +970,40 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
       "is the moment it is processed when the job %s",
       async (_label: string, dataReceivedAt: Date | undefined) => {
         mockWalkPipeline();
+        const transceiverSpy: jest.SpyInstance = jest.spyOn(
+          NetworkDeviceWalkUtil,
+          "applyTransceivers",
+        );
 
         await runWalk(buildSnmpResponse(), { dataReceivedAt });
 
         expect(rateSpy.mock.calls[0][0].now).toEqual(NOW);
         expect(storedWalkLog()["monitoredAt"]).toEqual(NOW);
+        expect(transceiverSpy.mock.calls[0][0].now).toEqual(NOW);
+        expect(inventorySpy.mock.calls[0][0].receivedAt).toEqual(NOW);
       },
     );
+
+    /*
+     * Everything else the poll saw is timed at the same receipt (issue
+     * #7389): the inventory - when the device, its interfaces and its
+     * endpoints were last seen, and the readings of its own MAC and
+     * address - and the transceivers' judgement.
+     */
+    test("is the time the inventory and the transceivers are stamped with too", async () => {
+      mockWalkPipeline();
+      const transceiverSpy: jest.SpyInstance = jest.spyOn(
+        NetworkDeviceWalkUtil,
+        "applyTransceivers",
+      );
+
+      await runWalk(buildSnmpResponse(), { dataReceivedAt: RECEIVED_AT });
+
+      expect(inventorySpy).toHaveBeenCalledTimes(1);
+      expect(inventorySpy.mock.calls[0][0].receivedAt).toEqual(RECEIVED_AT);
+      expect(transceiverSpy).toHaveBeenCalledTimes(1);
+      expect(transceiverSpy.mock.calls[0][0].now).toEqual(RECEIVED_AT);
+    });
 
     /*
      * The burst the issue's charts would have shown. Two polls five minutes

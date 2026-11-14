@@ -43,7 +43,7 @@ Eén Slack-workspace kan aan meer dan één project gekoppeld zijn, zoals produc
 :::steps
 ### OneUptime installeren in je Slack-workspace
 
-Ga naar **Projectinstellingen** > **Werkruimte** > **Slack** en klik op **Verbinden met Slack**. Kies de workspace en sta OneUptime toe. Slack stuurt je terug naar dezelfde pagina, die nu de workspace noemt waaraan het project is gekoppeld. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
+Ga naar **Projectinstellingen** > **Werkruimte** > **Slack** en klik op **Verbinden met Slack**. Kies de workspace en sta OneUptime toe. Slack stuurt je terug naar dezelfde pagina, die nu de workspace noemt waaraan het project is gekoppeld. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheid **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Je eigen Slack-account koppelen
 
@@ -90,7 +90,7 @@ Een meldingsregel bepaalt welke gebeurtenissen in Slack worden geplaatst, en waa
 | **Waarschuwingen** | **Waarschuwingen**, **Waarschuwingsepisodes**, **Samenvatting** |
 | **Geplande onderhoud** | Eén lijst met regels |
 | **Monitoren** | Eén lijst met regels |
-| **Bereikbaarheidsdienst** | Eén lijst met regels |
+| **Bereikbaarheid** | Eén lijst met regels |
 | **SLOs** | Eén lijst met regels |
 
 Een regel aanmaken gaat in vier stappen:
@@ -154,7 +154,7 @@ Het formulier van een samenvatting heeft vier stappen: **Basisinformatie** (de n
 
 ## Meldingsregels onder het Growth-abonnement
 
-Op OneUptime Cloud horen meldingsregels en samenvattingen bij het **Growth**-abonnement en hoger. Een project daaronder houdt de regels en samenvattingen die het al heeft, en die blijven in Slack plaatsen. Daarom toont de **Slack**-pagina van elk product (Incidenten, Waarschuwingen, Gepland onderhoud, Bereikbaarheidsdienst, Monitoren) de abonnementsmelding met die regels eronder (**Nog ingestelde meldingsregels**, **Nog ingestelde samenvattingen**): verwijder een regel, of zet een samenvatting uit of verwijder hem. Regels en samenvattingen toevoegen of wijzigen vereist **Growth**.
+Op OneUptime Cloud horen meldingsregels en samenvattingen bij het **Growth**-abonnement en hoger. Een project daaronder houdt de regels en samenvattingen die het al heeft, en die blijven in Slack plaatsen. Daarom toont de **Slack**-pagina van elk product (Incidenten, Waarschuwingen, Gepland onderhoud, Bereikbaarheid, Monitoren) de abonnementsmelding met die regels eronder (**Nog ingestelde meldingsregels**, **Nog ingestelde samenvattingen**): verwijder een regel, of zet een samenvatting uit of verwijder hem. Regels en samenvattingen toevoegen of wijzigen vereist **Growth**.
 
 ## Opgeroepen worden in Slack
 
@@ -166,7 +166,7 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Slack
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan in je directe berichten in Slack.
 :::
 
-Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Slack. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**.
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Slack. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**.
 
 ## Berichten als notities opslaan
 
@@ -235,7 +235,7 @@ OneUptime antwoordt alleen op wat aan OneUptime gericht is.
 - **In het eigen kanaal van een waarschuwing.** In het kanaal dat OneUptime voor een waarschuwing aanmaakte, zegt het formulier zolang de waarschuwing open is dat het incident vanuit die waarschuwing wordt gemeld, en begint het met de titel van de waarschuwing en de resources waaraan ze gekoppeld is die jij mag zien. Het incident wordt aan de waarschuwing gekoppeld, net als een incident dat vanaf de pagina van de waarschuwing wordt gemeld, en het incident van een privéwaarschuwing is ook privé. Als je geen waarschuwingen aan incidenten mag koppelen, wordt het incident zonder de koppeling gemeld, en krijg je te horen waarom.
 - **Wat een formulier mag noemen.** Het incident of de gebeurtenis wordt aangemaakt met jouw eigen rechten en op jouw naam gezet. Een monitor, bereikbaarheidsbeleid, label, ernstniveau of status die je niet mag lezen, of een uit een ander project, wordt geweigerd alsof het project die niet heeft, zelfs vanuit een formulier dat werd geopend voordat je toegang veranderde, en er wordt niets aangemaakt. OneUptime vertelt je in het kanaal waarom, in een bericht dat alleen jij ziet.
 
-**Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Duty Policy** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat je mag lezen.
+**Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Policies** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat je mag lezen.
 
 ## Iemand oproepen vanuit Slack
 
@@ -246,7 +246,7 @@ OneUptime antwoordt alleen op wat aan OneUptime gericht is.
 - **Wie meteen wordt opgeroepen.** De mensen die je met @ noemt, en wie er dienst heeft in de schema's die een gebruikersgroep volgt die je met @ noemt (zie [Gebruikersgroepen voor bereikbaarheid](#gebruikersgroepen-voor-bereikbaarheid)), als er een bericht op hen volgt, of zonder bericht in het eigen kanaal van een incident of een waarschuwing. OneUptime herkent iemand aan het OneUptime-account waaraan diens Slack-account is gekoppeld, of anders aan het e-mailadres dat Slack van diegene heeft. Niemand buiten het project wordt opgeroepen.
 - **Al het andere opent een formulier.** Zonder iemand met @ genoemd, zonder bericht waar de oproep er een nodig heeft, met `@here`, met een gebruikersgroep die geen bereikbaarheidsschema volgt dat je kunt zien, of met iemand die OneUptime niet herkent, opent het formulier **Page someone** met wat je typte al ingevuld, en zegt het wie het niet kon kiezen. In het eigen kanaal van een incident of een waarschuwing opent het met dat incident of die waarschuwing. Kies mensen, een team, een bereikbaarheidsschema, dat oproept wie er nu dienst in heeft, of een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels, en verstuur het. Een naam die je eerst typt, zoals in `/oneuptime page Primary The disk is full`, kiest het schema, het team of het beleid met die naam.
 - **Waar het te zien is.** Het kanaal toont de oproep als één bericht dat wordt bijgewerkt: wie werd opgeroepen en hoe, elk team bij zijn naam met zijn mensen erachter, je bericht, en wie bevestigde. Waar OneUptime niet kan posten, zoals in een privékanaal waarvoor het niet is uitgenodigd, zegt een bericht dat alleen jij ziet wie werd opgeroepen, met een link naar het incident of de waarschuwing.
-- **Wie mag oproepen.** In het eigen kanaal van een incident of een waarschuwing iedereen die een bereikbaarheidsbeleid mag uitvoeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Duty Policy** in een aangepaste rol) en dat incident of die waarschuwing mag lezen. Overal elders maakt de oproep een waarschuwing aan, dus vereist hij ook het recht om er een aan te maken: **Projecteigenaar**, **Projectbeheerder** en **Projectlid**, of **Bereikbaarheidslid** samen met **Waarschuwingslid** (**Execute On-Call Duty Policy** en **Create Alert** in een aangepaste rol). Mensen, een team of een schema rechtstreeks oproepen, zonder bereikbaarheidsbeleid achter de oproep, vereist daarnaast toegang tot elk bereikbaarheidsbeleid van het project. Ieder ander krijgt dat te horen waar die de opdracht gaf, en niemand wordt opgeroepen. Op OneUptime Cloud vereist oproepen het Growth-abonnement: daaronder zegt OneUptime welk abonnement nodig is, en wordt niemand opgeroepen.
+- **Wie mag oproepen.** In het eigen kanaal van een incident of een waarschuwing iedereen die een bereikbaarheidsbeleid mag uitvoeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Policies** in een aangepaste rol) en dat incident of die waarschuwing mag lezen. Overal elders maakt de oproep een waarschuwing aan, dus vereist hij ook het recht om er een aan te maken: **Projecteigenaar**, **Projectbeheerder** en **Projectlid**, of **Bereikbaarheidslid** samen met **Waarschuwingslid** (**Execute On-Call Policies** en **Create Alert** in een aangepaste rol). Mensen, een team of een schema rechtstreeks oproepen, zonder bereikbaarheidsbeleid achter de oproep, vereist daarnaast toegang tot elk bereikbaarheidsbeleid van het project. Ieder ander krijgt dat te horen waar die de opdracht gaf, en niemand wordt opgeroepen. Op OneUptime Cloud vereist oproepen het Growth-abonnement: daaronder zegt OneUptime welk abonnement nodig is, en wordt niemand opgeroepen.
 
 Om mensen op de hoogte te houden terwijl anderen reageren, roep je ze op als waarnemers. Typ in het eigen kanaal van een incident of een waarschuwing `as observers` na wie je oproept, zoals in `/oneuptime page @oversight as observers Team Y is on it`, of kies **Observers: keep them informed** onder **Page them as** in het formulier. Hun oproep zegt dat ze waarnemers zijn, en wie hem bevestigt, zegt daarmee alleen dat hij hem heeft gezien: het incident of de waarschuwing wordt niet bevestigd, geen andere oproep stopt, en waar de oproep te zien is, staat dat ze als waarnemers worden opgeroepen. Een oproep over iets nieuws heeft iemand nodig die reageert, dus overal anders wordt `as observers` geweigerd en wordt niemand opgeroepen.
 
@@ -257,7 +257,7 @@ Houd een Slack-gebruikersgroep, zoals `@payments-oncall`, gelijk aan wie er dien
 :::steps
 ### Een gebruikersgroep aan een schema koppelen
 
-Open het schema onder **Bereikbaarheidsdienst** > **Bereikbaarheidsschema's**. Klik in de kaart **Slack-gebruikersgroepen** op **Gebruikersgroep koppelen**, en kies een van de gebruikersgroepen in je werkruimte, of **Nieuwe gebruikersgroep maken** met een naam en een alias. De leden worden meteen vervangen door wie er dienst heeft.
+Open het schema onder **Bereikbaarheid** > **Bereikbaarheidsschema's**. Klik in de kaart **Slack-gebruikersgroepen** op **Gebruikersgroep koppelen**, en kies een van de gebruikersgroepen in je werkruimte, of **Nieuwe gebruikersgroep maken** met een naam en een alias. De leden worden meteen vervangen door wie er dienst heeft.
 
 ### De groep ook aan het secundaire schema koppelen
 
@@ -268,7 +268,7 @@ Voor een groep met zowel de primaire als de secundaire dienst koppel je dezelfde
 - **Niemand heeft dienst.** Slack kan geen lege gebruikersgroep bewaren, dus OneUptime schakelt de groep uit tot iemand dienst heeft, en schakelt die dan weer in.
 - **De groep oproepen.** `/oneuptime page @payments-oncall The checkout API is down` roept op wie er dienst heeft in de schema's die de groep volgt. Zie [Iemand oproepen vanuit Slack](#iemand-oproepen-vanuit-slack).
 - **Wat Slack nodig heeft.** Gebruikersgroepen horen bij de betaalde abonnementen van Slack, en een werkruimte kan alleen de eigenaren en beheerders toestaan ze te wijzigen: de kaart zegt welke van de twee, en wat je kunt doen. Als Slack gekoppeld is voordat OneUptime gebruikersgroepen kon bijhouden, koppel het dan één keer opnieuw onder **Projectinstellingen** > **Werkruimte** > **Slack**.
-- **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
+- **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Edit On-Call Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
 - **In een Slack Enterprise-organisatie.** Is OneUptime toegevoegd aan twee of meer van haar workspaces, dan vraagt **Gebruikersgroep koppelen** eerst in welke **Slack-werkruimte** de groep staat, en toont daarna de gebruikersgroepen van die workspace. De kaart noemt de workspace van elke groep, en OneUptime houdt de groep daar bij.
 - **Ontkoppelen.** OneUptime past de groep niet meer aan. De groep en de leden blijven in Slack zoals ze zijn.
 

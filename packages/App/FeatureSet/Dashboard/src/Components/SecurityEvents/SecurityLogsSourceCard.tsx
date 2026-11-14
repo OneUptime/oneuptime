@@ -37,6 +37,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const SECURITY_LOGS_SOURCE_CARD_ID: string = "security-logs-source";
 
@@ -482,9 +483,10 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
             className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800"
             data-testid="security-logs-source-last-error"
           >
-            {translator.translateTemplate("The last check failed: {{error}}", {
-              error: source.lastError,
-            })}
+            <ErrorSentence
+              template="The last check failed: {{error}}"
+              error={source.lastError}
+            />
           </p>
         ) : (
           <></>

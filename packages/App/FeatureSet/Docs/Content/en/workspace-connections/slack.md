@@ -90,7 +90,7 @@ A notification rule says which events post to Slack, and where. Each product has
 | **Alerts** | **Alerts**, **Alert Episodes**, **Summary** |
 | **Scheduled Maintenance** | One list of rules |
 | **Monitors** | One list of rules |
-| **On-Call Duty** | One list of rules |
+| **On-Call** | One list of rules |
 | **SLOs** | One list of rules |
 
 Creating a rule walks four steps:
@@ -154,7 +154,7 @@ The summary form has four steps: **Basic Info** (its name and the channels), **S
 
 ## Notification rules below the Growth plan
 
-On OneUptime Cloud, notification rules and summaries are on the **Growth** plan and above. A project below it keeps the rules and summaries it already has, and they keep posting to Slack. So each product's **Slack** page (Incidents, Alerts, Scheduled Maintenance, On-Call Duty, Monitors) shows the plan note with them under it (**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.
+On OneUptime Cloud, notification rules and summaries are on the **Growth** plan and above. A project below it keeps the rules and summaries it already has, and they keep posting to Slack. So each product's **Slack** page (Incidents, Alerts, Scheduled Maintenance, On-Call, Monitors) shows the plan note with them under it (**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.
 
 ## Getting paged in Slack
 
@@ -166,7 +166,7 @@ To be paged by direct message when you are on call, add Slack as one of your not
 3. Click **Send Test Message** on its row. The message arrives in your Slack direct messages.
 :::
 
-Adding it adds it to your on-call rules straight away, so pages reach you in Slack from then on. Change which pages it gets under **User Settings** > **On-Call Rules**.
+Adding it adds it to How to Reach Me straight away, so pages reach you in Slack from then on. Change which pages it gets under **User Settings** > **How to Reach Me**.
 
 ## Saving messages as notes
 
@@ -235,18 +235,18 @@ OneUptime answers only what is addressed to it.
 - **In an alert's own channel.** In the channel OneUptime created for an alert, while the alert is open, the form says the incident is declared from that alert, and starts with the alert's title and the resources it is linked to that you may view. The incident is linked to the alert, as one declared from the alert's page is, and a private alert's incident is private too. When you may not link alerts to incidents, the incident is declared without the link, and you are told why.
 - **What a form may name.** The incident or event is created with your own permissions and credited to you. A monitor, on-call policy, label, severity or status you may not read, or one of another project, is refused like one the project does not have, even from a form opened before your access changed, and nothing is created. OneUptime tells you why in the channel, in a message only you see.
 
-**Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Duty Policy** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies you may read.
+**Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Policies** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies you may read.
 
 ## Paging someone from Slack
 
-`/oneuptime page @nawaz The checkout API is throwing 500s` pages Nawaz straight away. He gets a phone call, an SMS, a push notification or an email, as his own on-call rules say, and each one tells him who paged him, through which team or schedule, and your message. Where you run the command decides what the page is about:
+`/oneuptime page @nawaz The checkout API is throwing 500s` pages Nawaz straight away. He gets a phone call, an SMS, a push notification or an email, as his How to Reach Me says, and each one tells him who paged him, through which team or schedule, and your message. Where you run the command decides what the page is about:
 
 - **In an incident's or an alert's own channel**, the one OneUptime created for it, the page is about that incident or alert, and nothing new is created. A message is optional there: `/oneuptime page @nawaz` is enough. The people you page are paged until one of them answers, from the page or by acknowledging the incident or alert; somebody else acknowledging it does not stop the page, and resolving it does.
 - **Anywhere else**, such as another channel, a direct message, the app's **Home** tab or the channel of an incident or alert that is resolved, OneUptime creates an alert whose title is your message, and pages until somebody acknowledges the alert. The form says so, and so does the answer only you see before anyone is paged.
 - **Who is paged at once.** The people you @mention, and whoever is on call in the schedules a user group you @mention follows (see [On-call user groups](#on-call-user-groups)), when a message follows them, or with no message in an incident's or an alert's own channel. OneUptime knows a person by the OneUptime account their Slack account is connected to, or else by the email address Slack has for them. Nobody outside the project is paged.
 - **Anything else opens a form.** With nobody @mentioned, no message where the page needs one, `@here`, a user group that follows no on-call schedule you can see, or a person OneUptime cannot tell, the **Page someone** form opens with what you typed filled in, and says whom it could not pick. In an incident's or an alert's own channel, it opens with that incident or alert. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. A name you type first, as in `/oneuptime page Primary The disk is full`, picks the schedule, team or policy of that name.
 - **Where it shows.** The channel shows the page as one message, kept up to date: who was paged and how, each team by its name with its people after it, your message, and who acknowledged. Where OneUptime cannot post, such as a private channel it was not invited to, a message only you see says who was paged, with a link to the incident or alert.
-- **Who may page.** In an incident's or an alert's own channel, anyone who may execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Duty Policy** in a custom role) and read that incident or alert. Anywhere else the page creates an alert, so it also takes permission to create one: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Execute On-Call Duty Policy** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so where they ran the command, and nobody is paged. On OneUptime Cloud, paging needs the Growth plan: below it, OneUptime says which plan it needs, and nobody is paged.
+- **Who may page.** In an incident's or an alert's own channel, anyone who may execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Policies** in a custom role) and read that incident or alert. Anywhere else the page creates an alert, so it also takes permission to create one: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Execute On-Call Policies** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so where they ran the command, and nobody is paged. On OneUptime Cloud, paging needs the Growth plan: below it, OneUptime says which plan it needs, and nobody is paged.
 
 To keep people informed while others respond, page them as observers. In an incident's or an alert's own channel, type `as observers` after who to page, as in `/oneuptime page @oversight as observers Team Y is on it`, or pick **Observers: keep them informed** under **Page them as** in the form. Their page says they are observers, and acknowledging it only says they have seen it: the incident or alert is not acknowledged, nobody else's page stops, and where the page shows, it says they are paged as observers. A page about something new needs somebody to respond, so anywhere else `as observers` is refused, and nobody is paged.
 
@@ -257,7 +257,7 @@ Keep a Slack user group, such as `@payments-oncall`, equal to whoever is on call
 :::steps
 ### Connect a user group to a schedule
 
-Open the schedule under **On-Call Duty** > **On-Call Schedules**. In its **Slack user groups** card, click **Connect user group**, then pick one of your workspace's user groups, or **Create a new user group** with a name and a handle. The people in it are replaced with whoever is on call straight away.
+Open the schedule under **On-Call** > **On-Call Schedules**. In its **Slack user groups** card, click **Connect user group**, then pick one of your workspace's user groups, or **Create a new user group** with a name and a handle. The people in it are replaced with whoever is on call straight away.
 
 ### Connect it to the secondary schedule too
 
@@ -268,7 +268,7 @@ For a group that holds the primary and the secondary on call, connect the same g
 - **Nobody on call.** Slack cannot keep a user group with nobody in it, so OneUptime turns the group off until somebody is on call, then turns it back on.
 - **Paging it.** `/oneuptime page @payments-oncall The checkout API is down` pages whoever is on call in the schedules the group follows. See [Paging someone from Slack](#paging-someone-from-slack).
 - **What Slack needs.** User groups are on Slack's paid plans, and a workspace can let only its owners and admins change them: the card says which, and what to do. If Slack was connected before OneUptime could keep user groups, connect it again once under **Project Settings** > **Workspace** > **Slack**.
-- **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
+- **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
 - **In a Slack Enterprise organization.** When OneUptime is added to two or more of its workspaces, **Connect user group** asks first which **Slack workspace** the group is in, then lists that workspace's user groups. The card names each group's workspace, and OneUptime keeps the group up to date there.
 - **Disconnecting.** OneUptime stops changing the group. The group, and the people in it, stay in Slack as they are.
 
@@ -316,7 +316,7 @@ When your project's public notes need approval and you turn on Slack for **Publi
 - **Uninstall OneUptime from Slack**, on **Project Settings** > **Workspace** > **Slack**, disconnects the project. OneUptime stops posting to Slack, and the **Workspace** menus stop listing it. The notification rules and summaries are kept for when you connect again.
 
 > [!WARNING]
-> Uninstalling also unlinks every member's own Slack account in the project, and removes the Slack notification methods and the on-call rules that used them. People who were paged in Slack are paged on their other notification methods until they add Slack again.
+> Uninstalling also unlinks every member's own Slack account in the project, and removes the Slack notification methods and the steps of How to Reach Me that used them. People who were paged in Slack are paged on their other notification methods until they add Slack again.
 
 ## Your Slack data
 

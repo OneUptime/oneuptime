@@ -283,7 +283,7 @@ const INCIDENT_PAGE: EventPage = {
   ],
   detailsCard: "Incident Details",
   detailLabels: [
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, read only.
     "Status Page Scope",
@@ -347,7 +347,7 @@ const ALERT_PAGE: EventPage = {
   detailLabels: [
     "Monitor",
     "Episode",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
     "Alert Number",
   ],
@@ -464,7 +464,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Episode Severity",
     "Incident Count",
     "Grouping Rule",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
@@ -516,7 +516,7 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Episode Severity",
     "Alert Count",
     "Grouping Rule",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,

@@ -42,7 +42,8 @@ import {
  * Common/Tests/Fixtures/OpenStack/traces/<release>, and OpenStackTracesRecordings.test.ts.
  *
  * Spans are text anyone holding the key can write into, so a value is read with indexOf and
- * loops, never a regular expression with a quantifier (AGENTS.md).
+ * loops, never a regular expression with a quantifier (Docs/notifications/README.md,
+ * "Megabyte-long values").
  *
  * These attribute keys are stored in customers' traces: never rename one.
  */

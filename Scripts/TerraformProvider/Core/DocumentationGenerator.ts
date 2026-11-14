@@ -1442,6 +1442,15 @@ resource "${provider}_monitor" "example" {
       return attrInfo.relation.isList ? `[${reference}]` : reference;
     }
 
+    /*
+     * Ids of records the provider has no resource or data source for: still
+     * a list of ids, as the attribute takes them. The spec's own example is
+     * the API's list of objects ([{ id = "..." }]), which Terraform refuses.
+     */
+    if (attrInfo.elementKind === "entity") {
+      return '["<id>"]';
+    }
+
     // Typed nested monitor steps: show the real nested syntax.
     if (attrInfo.isMonitorSteps) {
       return `[{

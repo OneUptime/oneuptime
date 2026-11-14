@@ -106,14 +106,14 @@ Vérifiez que vous avez une méthode vérifiée sur ce canal dans **Paramètres 
 :::
 
 :::details Je reçois encore des e-mails après avoir tout désactivé
-Les alertes suivent vos règles d'astreinte, pas ces interrupteurs, et les e-mails de connexion, de sécurité et de facturation ne sont pas des nouvelles sur des éléments. Chaque projet a ses propres paramètres, vérifiez donc le projet d'où vient l'e-mail. Voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules).
+Les alertes suivent vos règles d'astreinte, pas ces interrupteurs, et les e-mails de connexion, de sécurité et de facturation ne sont pas des nouvelles sur des éléments. Chaque projet a ses propres paramètres, vérifiez donc le projet d'où vient l'e-mail. Voir [Comment me joindre](/docs/notifications/on-call-rules).
 :::
 
 ## Étapes suivantes
 
 :::cards
 - [Méthodes de notification](/docs/notifications/notification-methods): Ajoutez les méthodes auxquelles vos paramètres envoient.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Décidez comment une alerte vous parvient.
+- [Comment me joindre](/docs/notifications/on-call-rules): Décidez comment une alerte vous parvient.
 - [Regroupement des notifications](/docs/emails/notification-rollup): Moins d'e-mails, mais plus complets, pendant une rafale.
 - [Comment OneUptime vous joint](/docs/notifications/index): Comment les méthodes, les règles et les paramètres s'articulent.
 :::

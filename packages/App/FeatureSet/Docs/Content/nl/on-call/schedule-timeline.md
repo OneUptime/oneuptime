@@ -20,7 +20,7 @@ flowchart TB
 
 ## De tijdlijn openen
 
-- **Bereikbaarheidsdienst** > **Tijdlijn van bereikbaarheidsschema's** toont elk schema dat u kunt zien, gegroepeerd per eigenaarsteam. Op **Bereikbaarheidsschema's** opent **Tijdlijn van bereikbaarheidsschema's** in het menu **⋯** dezelfde pagina.
+- **Bereikbaarheid** > **Tijdlijn van bereikbaarheidsschema's** toont elk schema dat u kunt zien, gegroepeerd per eigenaarsteam. Op **Bereikbaarheidsschema's** opent **Tijdlijn van bereikbaarheidsschema's** in het menu **⋯** dezelfde pagina.
 - **Teams** > een team > **Bereikbaarheidsschema's** toont alleen de schema's van dat team.
 
 Een team is eigenaar van een schema wanneer het op de pagina **Eigenaren** van het schema staat. Schema's zonder eigenaarsteam staan gegroepeerd onder **Geen eigenaarteam**. Zet **Groeperen op team** uit om alle schema's in één lijst te zien, gesorteerd op naam.
@@ -47,7 +47,7 @@ Onder het raster toont **Bereikbaar deze week** (**Bereikbaar deze maand** in de
 - De tijdlijn beslaat 180 dagen terug en 365 dagen vooruit.
 
 > [!NOTE]
-> Eerdere diensten worden opnieuw berekend uit de huidige instellingen van elk schema, dus ze tonen de rotatie zoals die nu is ingesteld, wat kan verschillen van wie destijds echt is opgeroepen. Voor de uren die mensen echt dienst hadden, gebruikt u **Bereikbaarheidsdienst** > **Rapporten** > **Bereikbaarheidstijd gebruiker**. Zie [Bereikbaarheidstijd gebruiker](/docs/on-call/readiness#bereikbaarheidstijd-gebruiker).
+> Eerdere diensten worden opnieuw berekend uit de huidige instellingen van elk schema, dus ze tonen de rotatie zoals die nu is ingesteld, wat kan verschillen van wie destijds echt is opgeroepen. Voor de uren die mensen echt dienst hadden, gebruikt u **Bereikbaarheid** > **Rapporten** > **Bereikbaarheidstijd gebruiker**. Zie [Bereikbaarheidstijd gebruiker](/docs/on-call/readiness#bereikbaarheidstijd-gebruiker).
 
 ## Een schema of een persoon vinden
 

@@ -167,7 +167,7 @@ The rules table shows, for each rule, its threshold, its windows and suppression
 | What it is | The light signal: it lands in the alert list. | The heavy one: it takes an incident number and opens the whole response workflow. |
 | Title and description | Its own, or the built-in text | Its own, or the built-in text |
 | Severity | **Alert Severity**: the project's most severe one if empty | **Incident Severity**: the project's most severe one if empty |
-| Escalation | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Escalation | **Alert On-Call Policies** | **Incident On-Call Policies** |
 | Owners and labels | **Alert Owners** and **Alert Labels** | **Incident Owners** and **Incident Labels** |
 | Private | Off | Off |
 | Auto-resolve | On | On |

@@ -125,7 +125,7 @@ The public page is its own app, with a small set of routes:
 - `/rss` — the feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` and `/master-password` — only relevant on a private page.
 
-The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Events** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.
+The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.
 
 A single incident, episode, announcement or scheduled event opens only when the page would list it, whatever its history window: a private incident or episode, one hidden from status pages, a scheduled event hidden from status pages, or an announcement scheduled for later is not found by its link either.
 
@@ -138,7 +138,7 @@ The overview is the page most visitors ever see. Top to bottom it renders:
 3. **An overall uptime percent**, if you turned it on: at the end of the overall status banner, while every resource is operational. Off by default.
 4. **The resource groups**, each with its resources, their current status, and their uptime history bars.
 5. **Active Incidents**, with the active episodes.
-6. **Scheduled Maintenance Events**.
+6. **Scheduled Maintenance**.
 
 A brand-new page with nothing on it shows an empty state telling you to add resources from the dashboard — which is your cue to head to the **Resources** screen.
 
@@ -154,7 +154,7 @@ What visitors see is set in one card: **What your status page shows**, on **Stat
 - **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — also in the incidents row, off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. It also decides which incidents bring their episodes onto the page, so it stays when **Show Incidents** is off. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Show Episodes** (`showEpisodesOnStatusPage`) — on by default, with **Show the last … days** (`showEpisodeHistoryInDays`, default 14) and **Show Episode Labels** (`showEpisodeLabelsOnStatusPage`, off by default). Episodes are their own model with their own endpoints, not a view of incidents.
 - **Show Announcements** (`showAnnouncementsOnStatusPage`) — on by default, with **Show the last … days** (`showAnnouncementHistoryInDays`, default 14).
-- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default, with **Show the last … days** (`showScheduledEventHistoryInDays`, default 14) and **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`, off by default).
+- **Show Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default, with **Show the last … days** (`showScheduledEventHistoryInDays`, default 14) and **Show Maintenance Event Labels** (`showScheduledEventLabelsOnStatusPage`, off by default).
 - **Uptime History** — everything about the page's uptime, in one row:
   - **Show the last … days** (`showUptimeHistoryInDays`) is the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number, and so does the overall uptime percent.
   - **Show Overall Uptime Percent** (`showOverallUptimePercentOnStatusPage`) — off by default. Turn it on and the overall status banner ends with one uptime percentage for the whole page, the average of its resources and groups, while everything is operational. While it is on, **Precision** (`overallUptimePercentPrecision`) picks how many decimals it shows: `99%`, `99.9%`, `99.99%` (the default) or `99.999%`. Each resource and group has its own precision.
@@ -228,7 +228,7 @@ Three ways to surface status somewhere other than the page itself.
 
 **RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Each item is dated as the page dates it: an incident by when it was declared, an announcement by when it went up, and a scheduled maintenance event by when it starts, its description opening with its window. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
 
-**Maintenance calendar.** Every status page also serves `/maintenance.ics`: the scheduled maintenance it shows, as a calendar that Google Calendar, Apple Calendar or Outlook can subscribe to. Visitors add it with **Subscribe to calendar** on the page's **Scheduled Events** page, and a single event with **Add to calendar** on the event's own page. A private page's calendar is empty, since a calendar app cannot sign in. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
+**Maintenance calendar.** Every status page also serves `/maintenance.ics`: the scheduled maintenance it shows, as a calendar that Google Calendar, Apple Calendar or Outlook can subscribe to. Visitors add it with **Subscribe to calendar** on the page's **Scheduled Maintenance** page, and a single event with **Add to calendar** on the event's own page. A private page's calendar is empty, since a calendar app cannot sign in. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
 
 If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, scheduled maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
 

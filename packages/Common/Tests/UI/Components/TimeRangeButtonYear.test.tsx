@@ -19,6 +19,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import {
   forgetRememberedDateTexts,
+  getHourOption,
   setDateDisplayLanguage,
 } from "../../../Types/DateLanguage";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
@@ -27,8 +28,9 @@ import Timezone from "../../../Types/Timezone";
 import TimeRangePickerDropdown, {
   getTimeRangeButtonLabel,
 } from "../../../UI/Components/Date/TimeRangePickerDropdown";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -507,5 +509,191 @@ describe("OneUptimeDate.getDateAsLocalShortDateTimeString with its year", () => 
         }),
       ),
     ).toBe(expected);
+  });
+});
+
+/*
+ * A 12-HOUR TIME HAS NO LEADING ZERO IN ANY LANGUAGE (issue #7279).
+ *
+ * English wrote "5:14 AM" on a 12-hour clock, but every other language kept
+ * the zero a 24-hour time has: "오전 05:14", "上午05:14", "05:14 am", "05:14
+ * ص". None of them writes a 12-hour time that way. The hour of a 12-hour
+ * time has no zero now, in every language, and a 24-hour time keeps its
+ * zero ("05:14"), as it always did.
+ */
+describe("a 12-hour time in the reader's language has no leading zero", () => {
+  // The issue's window: 5:14 to 6:14 in the morning, last year.
+  const MORNING: RangeStartAndEndDateTime = custom(
+    "2025-11-05T05:14:00.000Z",
+    "2025-11-05T06:14:00.000Z",
+  );
+
+  // Each time of day a label holds: its hour and its minutes, as written.
+  const TIME_OF_DAY: RegExp = /(\d{1,2})[:.](\d{2})/g;
+  const DIGIT: RegExp = /\p{Nd}/gu;
+
+  // Persian's digits as Latin ones, so one pattern reads every language.
+  function inLatinDigits(text: string): string {
+    return text.replace(DIGIT, (digit: string): string => {
+      const code: number = digit.codePointAt(0) || 0;
+
+      // EXTENDED ARABIC-INDIC DIGIT ZERO (Persian) to NINE.
+      if (code >= 0x06f0 && code <= 0x06f9) {
+        return String(code - 0x06f0);
+      }
+
+      // ARABIC-INDIC DIGIT ZERO to NINE.
+      if (code >= 0x0660 && code <= 0x0669) {
+        return String(code - 0x0660);
+      }
+
+      return digit;
+    });
+  }
+
+  // The hours of the label's times of day, as written: ["5", "6"].
+  function hoursOf(text: string): Array<string> {
+    return Array.from(inLatinDigits(text).matchAll(TIME_OF_DAY)).map(
+      (match: RegExpMatchArray): string => {
+        return match[1] || "";
+      },
+    );
+  }
+
+  test.each<[string, string]>([
+    ["ko", "2025년 11월 5일 오전 5:14 – 2025년 11월 5일 오전 6:14"],
+    ["zh-TW", "2025年11月5日 上午5:14 – 2025年11月5日 上午6:14"],
+    ["hi", "5 नव॰ 2025, 5:14 am – 5 नव॰ 2025, 6:14 am"],
+    ["ar", "5 نوفمبر 2025، 5:14 ص – 5 نوفمبر 2025، 6:14 ص"],
+    ["ja", "2025年11月5日 午前5:14 – 2025年11月5日 午前6:14"],
+    ["zh-CN", "2025年11月5日 上午5:14 – 2025年11月5日 上午6:14"],
+    ["de", "5. Nov. 2025, 5:14 AM – 5. Nov. 2025, 6:14 AM"],
+    ["fa", "۵ نوامبر ۲۰۲۵، ۵:۱۴ ق.ظ. – ۵ نوامبر ۲۰۲۵، ۶:۱۴ ق.ظ."],
+  ])("%s on a 12-hour clock: %s", (language: string, expected: string) => {
+    pin(true);
+    setDateDisplayLanguage(language);
+
+    expect(label(MORNING)).toBe(expected);
+  });
+
+  test.each<[string, string]>([
+    ["ko", "2025년 11월 5일 05:14 – 2025년 11월 5일 06:14"],
+    ["zh-TW", "2025年11月5日 05:14 – 2025年11月5日 06:14"],
+    ["hi", "5 नव॰ 2025, 05:14 – 5 नव॰ 2025, 06:14"],
+    ["ar", "5 نوفمبر 2025، 05:14 – 5 نوفمبر 2025، 06:14"],
+    ["de", "5. Nov. 2025, 05:14 – 5. Nov. 2025, 06:14"],
+    ["fa", "۵ نوامبر ۲۰۲۵، ۰۵:۱۴ – ۵ نوامبر ۲۰۲۵، ۰۶:۱۴"],
+  ])(
+    "%s on a 24-hour clock keeps the zero: %s",
+    (language: string, expected: string) => {
+      pin(false);
+      setDateDisplayLanguage(language);
+
+      expect(label(MORNING)).toBe(expected);
+    },
+  );
+
+  test("English is as it was: 5:14 AM, and 05:14 on a 24-hour clock", () => {
+    pin(true);
+    expect(label(MORNING)).toBe("Nov 5, 2025, 5:14 AM – Nov 5, 2025, 6:14 AM");
+
+    pin(false);
+    expect(label(MORNING)).toBe("Nov 5, 2025, 05:14 – Nov 5, 2025, 06:14");
+  });
+
+  test("an hour of two digits is written whole on either clock: 10:05 AM, 10:05", () => {
+    const LATE_MORNING: RangeStartAndEndDateTime = custom(
+      "2025-11-05T10:05:00.000Z",
+      "2025-11-05T11:30:00.000Z",
+    );
+
+    pin(true);
+    setDateDisplayLanguage("ko");
+    expect(label(LATE_MORNING)).toBe(
+      "2025년 11월 5일 오전 10:05 – 2025년 11월 5일 오전 11:30",
+    );
+
+    pin(false);
+    expect(label(LATE_MORNING)).toBe(
+      "2025년 11월 5일 10:05 – 2025년 11월 5일 11:30",
+    );
+  });
+
+  test("the reader's own helper says so: numeric on a 12-hour clock, two digits on a 24-hour one", () => {
+    expect(getHourOption(true)).toBe("numeric");
+    expect(getHourOption(false)).toBe("2-digit");
+    expect(getHourOption(undefined)).toBe("2-digit");
+  });
+
+  describe.each(
+    DASHBOARD_LANGUAGES.map((code: string): [string] => {
+      return [code];
+    }),
+  )("in %s", (language: string) => {
+    test("on a 12-hour clock, neither end's hour has a zero", () => {
+      pin(true);
+      setDateDisplayLanguage(language);
+
+      expect(hoursOf(label(MORNING))).toEqual(["5", "6"]);
+    });
+
+    test("on a 24-hour clock, both ends' hours keep theirs", () => {
+      pin(false);
+      setDateDisplayLanguage(language);
+
+      expect(hoursOf(label(MORNING))).toEqual(["05", "06"]);
+    });
+  });
+
+  test("every Dashboard language is read here, and the reader of hours finds two times in each", () => {
+    // A negative control: the pattern reads a zero where there is one.
+    expect(hoursOf("오전 05:14 – 오전 06:14")).toEqual(["05", "06"]);
+    expect(hoursOf("۰۵:۱۴ – ۰۶:۱۴")).toEqual(["05", "06"]);
+    expect(hoursOf("5. nov. 2025, 05.14")).toEqual(["05"]);
+    expect(DASHBOARD_LANGUAGES.length).toBeGreaterThanOrEqual(17);
+    expect(DASHBOARD_LANGUAGES).toEqual(
+      expect.arrayContaining(["ko", "zh-TW", "hi", "ar", "fa", "da"]),
+    );
+  });
+
+  test("the windows under 'Around the start' read the same in the list", () => {
+    pin(true);
+    pinNow(NOW);
+    setDateDisplayLanguage("ko");
+
+    render(
+      <TimeRangePickerDropdown
+        value={MORNING}
+        onChange={() => {
+          // The list under test does not depend on the change handler.
+        }}
+        dataTestIdPrefix={PREFIX}
+        dropdownWidthInPx={288}
+        moments={{
+          heading: "Around this incident",
+          presetsHeading: "Relative to now",
+          options: [
+            {
+              id: "start",
+              label: "Around the start",
+              detail: getTimeRangeButtonLabel(MORNING, NOW),
+            },
+          ],
+          selectedId: null,
+          onSelect: () => {
+            // Picking is not under test.
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId(`${PREFIX}-button`));
+
+    const moment: HTMLElement = screen.getByTestId(`${PREFIX}-moment-start`);
+
+    expect(spaced(moment.textContent || "")).toBe(
+      "Around the start2025년 11월 5일 오전 5:14 – 2025년 11월 5일 오전 6:14",
+    );
+    expect(moment.textContent).not.toContain("05:14");
   });
 });

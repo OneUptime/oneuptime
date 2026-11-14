@@ -97,6 +97,7 @@ import {
 } from "../../Types/StatusPage/StatusPageArchive";
 import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
 import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
+import SampleProjectStatusPages from "../Utils/StatusPage/SampleProjectStatusPages";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -1167,6 +1168,33 @@ export class Service extends ProjectReferencesService<StatusPage> {
           hasReadAccess: false,
           error: new NotFoundException(STATUS_PAGE_NOT_FOUND_MESSAGE),
         };
+      }
+
+      /*
+       * A sample project's page (issue #6808) is never public: a signed-in
+       * member of the sample reads it, from the Dashboard's link, without a
+       * status page sign-in, and nobody else reads it at all, whatever its
+       * own switches say (SampleProjectStatusPages).
+       */
+      if (statusPage) {
+        const sampleReadAccess: boolean | null =
+          await SampleProjectStatusPages.getReadAccess({
+            req: req,
+            statusPageId: statusPageId,
+          });
+
+        if (sampleReadAccess === true) {
+          return {
+            hasReadAccess: true,
+          };
+        }
+
+        if (sampleReadAccess === false) {
+          return {
+            hasReadAccess: false,
+            error: new NotFoundException(STATUS_PAGE_NOT_FOUND_MESSAGE),
+          };
+        }
       }
 
       if (statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {

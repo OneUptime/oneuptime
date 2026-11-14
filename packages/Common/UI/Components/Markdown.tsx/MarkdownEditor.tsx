@@ -86,6 +86,7 @@ import React, {
 
 export interface ComponentProps {
   initialValue?: undefined | string;
+  // In English: the editor looks it up in the reader's language.
   placeholder?: undefined | string;
   className?: undefined | string;
   onChange?: undefined | ((value: string) => void);
@@ -480,14 +481,22 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
    * incident form, translated all round, they were the only English left.
    * The English text is the key, and an app whose locale has no entry for
    * it shows the English.
+   *
+   * A placeholder it is given is English too, and looked up here, once, as
+   * Input and TextArea look theirs up: a form hands its field's placeholder
+   * over as written (#7663), and a monitor's "Describe the incident..."
+   * stayed English on every page.
    */
   const { translateString } = useTranslateValue();
+  const givenPlaceholder: string | undefined = translateString(
+    props.placeholder,
+  );
   const visualPlaceholder: string =
-    props.placeholder ||
+    givenPlaceholder ||
     (translateString("Type your content here...") ??
       "Type your content here...");
   const sourcePlaceholder: string =
-    props.placeholder ||
+    givenPlaceholder ||
     (translateString("Type your markdown here...") ??
       "Type your markdown here...");
   const helpTitle: string =
@@ -2537,6 +2546,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         /* Nested bullets step through circle and square, as MarkdownViewer draws them. */
         .oneuptime-wysiwyg ul ul, .oneuptime-wysiwyg ol ul { list-style-type: circle; }
         .oneuptime-wysiwyg ul ul ul, .oneuptime-wysiwyg ul ol ul, .oneuptime-wysiwyg ol ul ul, .oneuptime-wysiwyg ol ol ul { list-style-type: square; }
+        /* Persian counts in its own digits: Theme.css's html:lang(fa) rule (issue #7258). */
         .oneuptime-wysiwyg ol { list-style-type: decimal; }
         .oneuptime-wysiwyg ul.task-list, .oneuptime-wysiwyg ul.task-list li { list-style: none; margin-inline-start: 0; }
         .oneuptime-wysiwyg ul.task-list li { padding-inline-start: 0; }

@@ -100,7 +100,7 @@ Pour être alerté par message direct quand vous êtes d'astreinte, ajoutez Matt
 3. Cliquez sur **Send Test Message** sur sa ligne. Le message arrive en message direct du bot du projet.
 :::
 
-L'ajouter l'ajoute aussitôt à vos règles d'astreinte, si bien que les alertes vous atteignent dans Mattermost dès lors. Changez les alertes qu'il reçoit dans **Paramètres utilisateur** > **Règles d'astreinte**. Chaque alerte contient un lien pour la prendre en compte et un autre pour l'escalader. Déconnecter votre compte Mattermost supprime cette méthode et les règles d'astreinte qui l'utilisent.
+L'ajouter l'ajoute aussitôt à vos règles d'astreinte, si bien que les alertes vous atteignent dans Mattermost dès lors. Changez les alertes qu'il reçoit dans **Paramètres utilisateur** > **Comment me joindre**. Chaque alerte contient un lien pour la prendre en compte et un autre pour l'escalader. Déconnecter votre compte Mattermost supprime cette méthode et les règles d'astreinte qui l'utilisent.
 
 ## Règles de notification
 

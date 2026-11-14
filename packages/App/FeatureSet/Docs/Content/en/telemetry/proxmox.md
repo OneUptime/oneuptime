@@ -48,7 +48,7 @@ The **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **B
 
 ### Where to run the agent
 
-The agent queries the Proxmox VE API over the network, so it does not have to live on a cluster node, and it should not: run it on a machine that survives a node failure (a small monitoring VM on separate hardware, a management host), or point `PVE_HOST` at a virtual IP or round-robin DNS name instead of one node's address. If the agent's API target is the node that just died, your monitoring dies with it. `PVE_NODES` is different: it lists every node at its own address, never a virtual IP (see [What the agent collects](#what-the-agent-collects)). The one exception is the optional journald logs pipeline, which must run on a Proxmox VE node (see [Ship Proxmox service logs](#optional-ship-proxmox-service-logs)).
+The agent queries the Proxmox VE API over the network, so it does not have to live on a cluster node, and it should not: run it on a machine that survives a node failure (a small monitoring VM on separate hardware, a management host, or a VM that Proxmox HA restarts on another node). It reads the cluster from `PVE_HOST` and, when that node goes down, from the next node in `PVE_NODES`, so it needs no virtual IP (see [When a node goes down](#when-a-node-goes-down)). `PVE_NODES` lists every node at its own address, never a virtual IP (see [What the agent collects](#what-the-agent-collects)). The one exception is the optional journald logs pipeline, which must run on a Proxmox VE node (see [Ship Proxmox service logs](#optional-ship-proxmox-service-logs)).
 
 ## Install the agent
 
@@ -134,7 +134,7 @@ docker compose ps
 docker logs -f oneuptime-proxmox-agent
 ```
 
-`docker compose ps` lists the collector (`oneuptime-proxmox-agent`), the bundled exporter (`oneuptime-pve-exporter`, unless you use your own) and the AI agent (`oneuptime-proxmox-ai-agent`). The collector's logs should show this line once it has started:
+`docker compose ps` lists the collector (`oneuptime-proxmox-agent`), the node failover (`oneuptime-pve-api-failover`), the bundled exporter (`oneuptime-pve-exporter`, unless you use your own) and the AI agent (`oneuptime-proxmox-ai-agent`). The collector's logs should show this line once it has started:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,8 +154,8 @@ The install script writes these to `/opt/oneuptime-proxmox-agent/.env`; a Docker
 | `ONEUPTIME_URL` | Yes | Your OneUptime URL, such as `https://oneuptime.com` or your self-hosted instance. Use `http://` and its port if the instance is HTTP-only. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
 | `PROXMOX_CLUSTER_NAME` | Yes | The cluster's name in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `proxmox-cluster`. |
-| `PVE_HOST` | Yes | The Proxmox VE API host the exporter reads the cluster from and the AI agent queries: any node, or a virtual IP that fails over between them, such as `192.168.1.10`. |
-| `PVE_NODES` | On a cluster | Every node's own API address, comma-separated in square brackets, such as `[192.168.1.10,192.168.1.11,192.168.1.12]`. The exporter reads start-on-boot, replication and the subscription only for the node it asks, so each node is asked in turn. Defaults to `PVE_HOST` alone, which is enough for a single node. |
+| `PVE_HOST` | Yes | The node whose Proxmox VE API the exporter reads the cluster from and the AI agent queries, such as `192.168.1.10`. While its API does not answer, both use the next node in `PVE_NODES` that does. |
+| `PVE_NODES` | On a cluster | Every node's own API address, comma-separated in square brackets, such as `[192.168.1.10,192.168.1.11,192.168.1.12]`. The exporter reads start-on-boot, replication and the subscription only for the node it asks, so each node is asked in turn, and the agent reads the cluster from the next of them when `PVE_HOST` goes down. Defaults to `PVE_HOST` alone, which is enough for a single node. |
 | `PVE_EXPORTER_URL` | No | The address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter, `pve-exporter:9221`. |
 | `PVE_API_TOKEN_ID` | Bundled exporter or AI agent | The full Proxmox API token id, such as `monitoring@pam!oneuptime`. The AI agent reads the API with it unless it has a token of its own (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`). |
 | `PVE_API_TOKEN_SECRET` | Bundled exporter or AI agent | The Proxmox API token secret. |
@@ -164,7 +164,7 @@ The install script writes these to `/opt/oneuptime-proxmox-agent/.env`; a Docker
 
 ## What the agent collects
 
-The collector scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`. Any node answers the cluster collectors, the default-on `backup-info` among them, for the whole cluster. The node collectors (`config`, for start-on-boot, and `replication`) read only the node the exporter asks, so a node missing from `PVE_NODES` sends neither its guests' start-on-boot flags, which **Guest Down** needs, nor its replication jobs. Every series carries an `id` label naming the resource: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` or `storage/<node>/<storage>`.
+The collector scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST` (or the node it reads the cluster from while `PVE_HOST` is down), and its node collectors once for each node in `PVE_NODES`. Any node answers the cluster collectors, the default-on `backup-info` among them, for the whole cluster. The node collectors (`config`, for start-on-boot, and `replication`) read only the node the exporter asks, so a node missing from `PVE_NODES` sends neither its guests' start-on-boot flags, which **Guest Down** needs, nor its replication jobs. Every series carries an `id` label naming the resource: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` or `storage/<node>/<storage>`.
 
 | Category | Metrics |
 | --- | --- |
@@ -186,6 +186,12 @@ Monitor criteria and attribute filters match on equality, not on a prefix, so th
 | `pve.id` | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 The original `id` label is kept as it is.
+
+## When a node goes down
+
+The agent reads the whole cluster through one node's API: `PVE_HOST`'s while it answers. Every 15 seconds its `oneuptime-pve-api-failover` container checks that node, and when its API stops answering, the collector reads the cluster from the next node in `PVE_NODES` that answers, until `PVE_HOST` answers again. With the API token in `.env` it also passes over a node that answers but is cut off from the quorate part of the cluster, whose view would report every other node down. The [AI agent](#ai-agent) does the same for each of its calls. So when a node fails, **Node Offline** fires for it and the rest of the cluster keeps reporting, with no virtual IP to set up. `docker logs oneuptime-pve-api-failover` says which node the cluster is read from, and why.
+
+What it cannot cover is the machine the agent runs on: if that goes down, the whole cluster goes quiet and **Cluster Stopped Reporting** fires. Run the agent off the cluster, or in a VM that Proxmox HA restarts on another node (`ha-manager add vm:<vmid>`, on shared storage), and run one agent per cluster: each agent reads the whole cluster, so a second one reports every resource twice.
 
 ## Send Proxmox VE's notifications
 
@@ -402,6 +408,10 @@ It ends with a verdict naming the most likely cause.
 
 :::details The exporter returns 401 or 595 errors
 The API token is wrong or lacks permissions. Check the token id's format (`user@realm!tokenname`), the secret, and that the **PVEAuditor** role is on path `/` for the token and for its user. The exporter's own logs show the API's answer: `docker logs oneuptime-pve-exporter`.
+:::
+
+:::details The cluster shows "Can't read API"
+The agent is running, but it has not read the cluster from the Proxmox VE API for 15 minutes or more, so the cluster shows **Can't read API** instead of **Connected**: the node it reads is down and no other node in `PVE_NODES` answers, the API token was revoked or lost the **PVEAuditor** role, or the agent's machine cannot reach port `8006` on any node. Its pages keep what it last read. The diagnostic script above checks each of these, and `docker logs oneuptime-pve-api-failover` says which node the agent reads and why it passed over the others.
 :::
 
 :::details Only node metrics, no guest metrics

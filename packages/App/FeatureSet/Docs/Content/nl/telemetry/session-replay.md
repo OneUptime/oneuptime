@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ De recorder publiceert `window.OneUptimeReplay`. Omdat hij asynchroon laadt, moe
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` en `addTag` worden toegepast voordat de recorder start, dus een toestemmingsbeslissing in de wachtrij bepaalt of er iets wordt geüpload, en een identiteit in de wachtrij reist al mee op de eerste chunk. `track`, `metric`, `captureSession` en `onSessionChange` worden direct na de start uitgevoerd.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` en `addTag` worden toegepast voordat de recorder start, dus een toestemmingsbeslissing in de wachtrij bepaalt of er iets wordt geüpload, en een identiteit in de wachtrij reist al mee op de eerste chunk. `track`, `metric`, `captureSession` en `onSessionChange` worden direct na de start uitgevoerd.
 
 | Methode | Wat het doet |
 | --- | --- |
@@ -268,6 +270,8 @@ De recorder publiceert `window.OneUptimeReplay`. Omdat hij asynchroon laadt, moe
 | `getSessionId()` | De huidige sessie-id, of `null` wanneer er niets wordt opgenomen. Gebruik liever `onSessionChange()`, dat ook sessiewissels volgt. |
 | `getVisitorId()` | De [anonieme bezoekers-id](#anonieme-bezoekers) — 32 hexadecimale tekens, één per browserprofiel, gelijk over sessiewissels heen — of `""` voordat de recorder start, na `stop()` en zolang de toestemming is ingetrokken. Willekeurig en geen identiteit; hangt niet af van **Identiteit van eindgebruiker vastleggen**. |
 | `stop()` | Uploadt de laatste chunk, sluit de sessie af en stopt voor de rest van het leven van de pagina. |
+| `pause()` | Stopt het vastleggen van wat op het scherm staat tot `resume()`: het open chunk gaat de deur uit met een _paused_-markering en intussen wordt niets opgenomen (niet de pagina, invoer, verzoeken, console of klikken). De sessie blijft open en invoer van de bezoeker hervat haar niet. Voor een pagina die maar een deel van zichzelf opneemt; in de wachtrij gezet voordat de recorder laadt, start die gepauzeerd. |
+| `resume()` | Neemt na `pause()` verder op, in dezelfde sessie, op een nieuwe momentopname van de pagina zoals die nu is. De speler slaat het gepauzeerde stuk over. |
 | `setDebug(enabled)` | Drukt vanaf nu de beslissingen van de recorder af in de console. |
 | `getDiagnostics()` | Alles wat de recorder besliste, of diagnostiek nu aanstond of niet. Zie hieronder. |
 
@@ -370,7 +374,12 @@ Gemaskeerde waarden behouden hun lengte niet. Een gemaskeerd veld is een plaatsh
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Onder _Mask all text_ wordt tekst in een element met de klasse `oneuptime-unmask` opgenomen zoals hij er staat: gebruik haar voor de eigen interfacewoorden van uw pagina, zoals knoppen, koppen en menu's. Een `oneuptime-mask`-element of een van uw extra maskeerselectors daarbinnen maskeert de tekst opnieuw, formuliervelden blijven gemaskeerd en in de andere maskeermodi doet de klasse niets. Een pagina kan op het init-globaal ook om meer maskering vragen dan haar beleid geeft: `maskAllText: true` neemt op onder _Mask all text_, wat het beleid ook zegt, en `blockSelectors` vult de blokkeerselectors van het beleid aan. Geen van beide kan een opname meer laten zien.
 
 Je kunt ook **Extra maskeerselectors** en **Blokkeerselectors** toevoegen op de pagina **Herhalingsbeleid** van je applicatie, zonder je markup te wijzigen. Met de standaardmaskeringsmodus zijn ze het belangrijkste middel om inhoud te beschermen die je markup niet als gevoelig aanmerkt.
 

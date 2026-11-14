@@ -15,6 +15,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import EditionEnforcement from "../Utils/EditionEnforcement";
 import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
+import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserRegistrationToken from "../Utils/UserRegistrationToken";
 import PublicMessageRateLimit, {
@@ -26,6 +27,10 @@ import BillingService from "./BillingService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
+import {
+  SAMPLE_PROJECT_REFUSALS,
+  isSamplePersonEmail,
+} from "../../Types/SampleProject/SampleProject";
 import TeamPermissionService from "./TeamPermissionService";
 import TeamService from "./TeamService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -185,6 +190,58 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     return count.toNumber() > 0;
   }
 
+  /*
+   * THE RULES A SAMPLE PROJECT KEEPS FOR ITS MEMBERS (issue #6808):
+   *
+   *   - nobody joins a sample but the person it was made for and its sample
+   *     people, whom OneUptime writes as root when it is made: an invitation
+   *     is an email, and nobody is ever notified from a sample;
+   *   - a sample person joins no other project: they are made up, and a
+   *     member takes a seat. Asked by the address an invitation names, and
+   *     by the person a request names.
+   *
+   * Refused with what to do instead. OneUptime itself (root) is let
+   * through: it writes the sample's own members.
+   */
+  @CaptureSpan()
+  public async assertSampleProjectRules(data: {
+    createBy: CreateBy<TeamMember>;
+    projectId: ObjectID;
+    invitedEmail: Email | null;
+    namedUserId: ObjectID | null;
+  }): Promise<void> {
+    if (data.createBy.props.isRoot) {
+      return;
+    }
+
+    if (await ProjectService.isSampleProject(data.projectId)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.member);
+    }
+
+    if (data.invitedEmail && isSamplePersonEmail(data.invitedEmail)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.samplePersonElsewhere);
+    }
+
+    // Read only with a database to read from (a unit test has none).
+    if (data.namedUserId && PostgresAppInstance.isConnected()) {
+      const namedUser: User | null = await UserService.findOneById({
+        id: data.namedUserId,
+        select: {
+          sampleProjectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (namedUser?.sampleProjectId) {
+        throw new BadDataException(
+          SAMPLE_PROJECT_REFUSALS.samplePersonElsewhere,
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
@@ -311,6 +368,13 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           },
         })
       : null;
+
+    await this.assertSampleProjectRules({
+      createBy: createBy,
+      projectId: projectId,
+      invitedEmail: invitedEmail,
+      namedUserId: namedUserId,
+    });
 
     /*
      * Check if this project can have more people: early, so a project at

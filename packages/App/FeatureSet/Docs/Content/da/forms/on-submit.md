@@ -1,6 +1,6 @@
 # Hvad en indsendelse opretter
 
-Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse** eller en **planlagt vedligeholdelsesbegivenhed**. En formulars side **Ved indsendelse** viser hvilken, og hvordan hvert felt på den nye post udfyldes — fra et svar, fra en standardværdi, fra en indstilling, der altid gælder, eller fra hændelsesskabelonen. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder.
+Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse** eller en **vedligeholdelsesbegivenhed**. En formulars side **Ved indsendelse** viser hvilken, og hvordan hvert felt på den nye post udfyldes — fra et svar, fra en standardværdi, fra en indstilling, der altid gælder, eller fra hændelsesskabelonen. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder.
 
 :::cards
 - [Sådan bliver en indsendelse til en hændelse](#sådan-bliver-en-indsendelse-til-en-hændelse): Hvert felt på den nye hændelse, og hvor dets værdi kommer fra.

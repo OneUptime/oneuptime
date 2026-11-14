@@ -4,7 +4,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the Send Test SMS and Send Test Call dialogs of a Twilio config say,
- * on Project Settings > Notifications > Notification Settings > Twilio
+ * on Project Settings > Notifications > Notification Channels > Twilio
  * Config: the row actions that check a config works - and, since a config
  * can send SMS from numbers of their own (TwilioConfigNumbersCopy), which
  * number it sends from.

@@ -1,5 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { getArrowOn, joinWithArrowsOn } from "Common/Types/DirectionArrow";
 
 /*
  * Pure helpers for the exception Breadcrumbs card: what kind of event a span
@@ -63,10 +64,11 @@ function readString(attributes: JSONObject, keys: Array<string>): string {
   return "";
 }
 
-function truncate(value: string): string {
-  return value.length > SUMMARY_MAX_LENGTH
-    ? `${value.substring(0, SUMMARY_MAX_LENGTH)}…`
-    : value;
+function truncate(
+  value: string,
+  maxLength: number = SUMMARY_MAX_LENGTH,
+): string {
+  return value.length > maxLength ? `${value.substring(0, maxLength)}…` : value;
 }
 
 function readLevel(attributes: JSONObject): string {
@@ -137,9 +139,13 @@ export function categorizeBreadcrumb(
 /*
  * The one line a row shows: the request, the statement, the exception
  * message or the log message — whatever says the most — falling back to the
- * event name.
+ * event name. A request's status follows it after an arrow that points the
+ * way a line read in `language` reads (joinWithArrowsOn).
  */
-export function getBreadcrumbSummary(event: BreadcrumbEventInput): string {
+export function getBreadcrumbSummary(
+  event: BreadcrumbEventInput,
+  language?: string | undefined,
+): string {
   const attributes: JSONObject = event.attributes || {};
 
   const method: string = readString(attributes, [
@@ -159,7 +165,27 @@ export function getBreadcrumbSummary(event: BreadcrumbEventInput): string {
       "http.response.status_code",
     ]);
 
-    return truncate(`${method} ${url}${status ? ` → ${status}` : ""}`.trim());
+    const request: string = `${method} ${url}`.trim();
+
+    if (!status) {
+      return truncate(request);
+    }
+
+    /*
+     * A request too long for the line is cut short before its status, so
+     * the status stays, and so does each mark that sets the two apart: a
+     * line cut inside them would leave an isolate open over what follows.
+     */
+    return joinWithArrowsOn(
+      [
+        truncate(
+          request,
+          SUMMARY_MAX_LENGTH - ` ${getArrowOn(language)} ${status}`.length,
+        ),
+        status,
+      ],
+      language,
+    );
   }
 
   const statement: string = readString(attributes, [
@@ -347,16 +373,20 @@ export function sortBreadcrumbEvents<TEvent extends BreadcrumbEventInput>(
     .slice(-Math.max(1, maxEvents));
 }
 
-// Consecutive events of the same category and summary fold into one row.
+/*
+ * Consecutive events of the same category and summary fold into one row.
+ * Each summary is written for a line read in `language`.
+ */
 export function groupBreadcrumbEvents<TEvent extends BreadcrumbEventInput>(
   events: ReadonlyArray<TEvent>,
+  language?: string | undefined,
 ): Array<BreadcrumbGroup<TEvent>> {
   const groups: Array<BreadcrumbGroup<TEvent>> = [];
   let current: BreadcrumbGroup<TEvent> | null = null;
 
   for (const event of events) {
     const category: BreadcrumbCategory = categorizeBreadcrumb(event);
-    const summary: string = getBreadcrumbSummary(event);
+    const summary: string = getBreadcrumbSummary(event, language);
 
     if (
       current &&

@@ -126,7 +126,7 @@ Le passkey richiedono che l'indirizzo del tuo OneUptime inizi con `https://`, e 
 - Controlla che il telefono consenta le notifiche di OneUptime On-Call, e che Non disturbare o una modalità Full immersion non le trattengano.
 - In **Impostazioni utente → Metodi di notifica**, scheda **Notifiche push**, controlla che il telefono sia elencato, e inviagli una **Notifica di test**.
 - Se è segnato **Non riceve notifiche**, apri l'app da connesso: vedi [Quando un telefono deve registrarsi di nuovo](#quando-un-telefono-deve-registrarsi-di-nuovo).
-- Controlla le tue regole di reperibilità in **Impostazioni utente → Regole di reperibilità**: decidono quali avvisi raggiungono quale metodo.
+- Controlla le tue regole di reperibilità in **Impostazioni utente → Come contattarmi**: decidono quali avvisi raggiungono quale metodo.
 - Su un OneUptime self-hosted, controlla che il server raggiunga il suo relay push: vedi [Notifiche push](/docs/self-hosted/push-notifications#accesso-di-rete).
 :::
 
@@ -135,7 +135,7 @@ Imposta l'utilizzo della batteria dell'app su **Senza restrizioni** nelle impost
 :::
 
 :::details Gli avvisi critici non suonano in modalità silenziosa
-Apri **Settings** nell'app: la riga sotto **Critical On-Call Alerts** dice cosa manca su quel telefono. Poi controlla in **Impostazioni utente → Regole di reperibilità** che la regola di reperibilità che ha inviato l'avviso sia impostata su **Avviso critico**, non su **Standard**. Ogni telefono ha il suo interruttore.
+Apri **Settings** nell'app: la riga sotto **Critical On-Call Alerts** dice cosa manca su quel telefono. Poi controlla in **Impostazioni utente → Come contattarmi** che la regola di reperibilità che ha inviato l'avviso sia impostata su **Avviso critico**, non su **Standard**. Ogni telefono ha il suo interruttore.
 :::
 
 ### App desktop

@@ -21,6 +21,30 @@ import {
 import type { SpyInstance } from "jest-mock";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
+
+/*
+ * Read by a self-hosted server's member, whatever the environment says: a
+ * server failure's reference goes to whoever runs the server
+ * (serverNextWithReferenceSelfHosted). CI's config.env sets
+ * BILLING_ENABLED=true, which reads as OneUptime's cloud and sends the
+ * reader to support instead.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
 import WhoIsToldApi, {
   getWhoIsToldUrl,
@@ -39,6 +63,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
+import OneUptimeDate from "../../../Types/Date";
 import {
   WhoIsToldBreak,
   WhoIsToldBreakKind,
@@ -57,14 +82,23 @@ import {
 } from "../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPagedCode,
+  OnCallTestPageReachedThroughCode,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   createTranslator,
   getGlobalTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+} from "../../../Types/Exception/UnexplainedError";
 import fs from "fs";
 import path from "path";
+import { isolated } from "../../Helpers/IsolateMarks";
 
 /*
  * "WHEN THIS GOES DOWN" ON A MONITOR'S OVERVIEW (#6810): what happens and
@@ -981,6 +1015,51 @@ describe("MonitorWhoIsToldCard", () => {
     );
   });
 
+  /*
+   * #7307: the read's error is API.getFriendlyMessage's answer. A gateway's
+   * 502 or 504 is SERVER_DOWN_MESSAGE and a server failure comes with its
+   * reference: the card said them as they came, half in English in every
+   * other language, the reference with no copy button. It says why and what
+   * to do next now (ErrorSentence), the reference in code with its button.
+   */
+  test("a gateway's 502 or 504: the server did not answer, try again in a few minutes - never the English it came as", async () => {
+    getForMonitor.mockRejectedValue(new Error(SERVER_DOWN_MESSAGE));
+    renderCard();
+
+    const error: HTMLElement = await screen.findByTestId("who-is-told-error");
+
+    expect(error.textContent).toBe(
+      "Couldn't work out who is told. The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
+    );
+    expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+    expect(error.textContent).not.toContain("Error connecting to server");
+    expect(within(error).getByTestId("error-in-sentence")).toHaveAttribute(
+      "data-error-kind",
+      "ServerDown",
+    );
+    expect(screen.getByTestId("who-is-told-try-again")).toBeInTheDocument();
+  });
+
+  test("a server failure with its reference: why, what next, and the reference in code with a copy button", async () => {
+    getForMonitor.mockRejectedValue(
+      new Error(getUnexplainedServerErrorMessage("1f0c9a2b")),
+    );
+    renderCard();
+
+    const error: HTMLElement = await screen.findByTestId("who-is-told-error");
+
+    expect(error.textContent).toBe(
+      "Couldn't work out who is told. The server ran into a problem it could not explain. Try again. If it keeps failing, give this reference to whoever runs your OneUptime server: 1f0c9a2b.",
+    );
+
+    const reference: HTMLElement = within(error).getByTestId("error-reference");
+
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
+  });
+
   test("a monitor whose criteria do nothing names that break, with Criteria to fix it", async () => {
     getForMonitor.mockResolvedValue(result([]));
     renderCard();
@@ -1108,6 +1187,266 @@ describe("MonitorWhoIsToldCard", () => {
       `Ana Lopez${mark}Team Platform${mark}SMS, Email`,
       `Ben Ito${mark}Can't be paged`,
     ]);
+  });
+
+  /*
+   * Why each is paged and who is not, from the codes the server sends
+   * (#7261): in English, the server's own English, word for word - a name
+   * set apart only where it reads the other way.
+   */
+  describe("why each is paged and who is not", () => {
+    const AWAY_UNTIL: string = "2026-11-14T09:00:00.000Z";
+
+    function awayTime(): string {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        OneUptimeDate.fromString(AWAY_UNTIL),
+      );
+    }
+
+    function notPagedEnglish(): Array<string> {
+      return [
+        `Lee Park is away until ${awayTime()}, with nobody covering.`,
+        "Team Night shift has no members.",
+        "Nobody is next in the rotation of schedule Weekend.",
+        "Dana Wu is not a member of this project.",
+        "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
+      ];
+    }
+
+    function codedPolicy(): WhoIsToldPolicy {
+      const english: Array<string> = notPagedEnglish();
+
+      return policy({
+        levelCount: 2,
+        people: [
+          person({
+            reachedThrough: "Team Platform",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Team,
+              name: "Platform",
+            },
+          }),
+          person({
+            userId: BEN,
+            name: "Ben Ito",
+            reachedThrough: "Covering for Ana Lopez",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.CoveringFor,
+              name: "Ana Lopez",
+            },
+          }),
+          person({
+            userId: "68102222-0000-4000-8000-0000000000d3",
+            name: "Cho Park",
+            reachedThrough: "Schedule Primary",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Schedule,
+              name: "Primary",
+            },
+          }),
+          // A Persian team's name on an English page.
+          person({
+            userId: "68102222-0000-4000-8000-0000000000d4",
+            name: "Dan Moss",
+            reachedThrough: "Team \u0634\u0628",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Team,
+              name: "\u0634\u0628",
+            },
+          }),
+        ],
+        notPaged: english,
+        notPagedCodes: [
+          {
+            code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+            userName: "Lee Park",
+            awayUntil: AWAY_UNTIL,
+            message: english[0]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+            teamName: "Night shift",
+            message: english[1]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.NobodyNextInRotation,
+            scheduleName: "Weekend",
+            message: english[2]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.NotProjectMember,
+            userName: "Dana Wu",
+            message: english[3]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.LevelNamesNobody,
+            levelOrder: 1,
+            message: english[4]!,
+          },
+        ],
+      });
+    }
+
+    async function drawChain(paging: WhoIsToldPolicy): Promise<void> {
+      getForMonitor.mockResolvedValue(
+        result([offline({ events: [event({ policies: [paging] })] })]),
+      );
+      renderCard();
+
+      fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+    }
+
+    function textsOf(testId: string): Array<string> {
+      return screen
+        .queryAllByTestId(testId)
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        });
+    }
+
+    test("worded from the server's codes, they read as its English, word for word", async () => {
+      await drawChain(codedPolicy());
+
+      expect(textsOf("who-is-told-reached-through")).toEqual([
+        "Team Platform",
+        "Covering for Ana Lopez",
+        "Schedule Primary",
+        `Team ${isolated("\u0634\u0628")}`,
+      ]);
+      expect(textsOf("who-is-told-not-paged")).toEqual(notPagedEnglish());
+    });
+
+    test("a server that sends no codes: its English, as before", async () => {
+      const coded: WhoIsToldPolicy = codedPolicy();
+      const older: WhoIsToldPolicy = {
+        ...coded,
+        people: coded.people.map((item: WhoIsToldPerson): WhoIsToldPerson => {
+          const olderPerson: WhoIsToldPerson = { ...item };
+          delete olderPerson.reachedThroughCode;
+          return olderPerson;
+        }),
+      };
+      delete older.notPagedCodes;
+
+      await drawChain(older);
+
+      expect(textsOf("who-is-told-reached-through")).toEqual([
+        "Team Platform",
+        "Covering for Ana Lopez",
+        "Schedule Primary",
+        "Team \u0634\u0628",
+      ]);
+      expect(textsOf("who-is-told-not-paged")).toEqual(notPagedEnglish());
+    });
+
+    test("somebody the level names directly has no line of how, and a policy whose level reaches everyone none of who not", async () => {
+      await drawChain(
+        policy({ people: [person()], notPaged: [], notPagedCodes: [] }),
+      );
+
+      expect(screen.getByTestId("who-is-told-person")).toBeInTheDocument();
+      expect(textsOf("who-is-told-reached-through")).toEqual([]);
+      expect(textsOf("who-is-told-not-paged")).toEqual([]);
+      expect(screen.queryByTestId("who-is-told-not-paged-row")).toBeNull();
+    });
+
+    /*
+     * A target that reaches nobody is a gap in who is paged, drawn as one:
+     * a row of the policy's own list after its people, the warning in the
+     * icon column a person who can't be paged has, the sentence where the
+     * names are - never a note under the list, read as one more line about
+     * the person above it. A policy whose first level reaches nobody at all
+     * draws its list of rows too.
+     */
+    test("each target that reaches nobody is a row of the policy's list, after its people, its warning beside it", async () => {
+      const nobody: WhoIsToldPolicy = policy({
+        id: "68102222-0000-4000-8000-0000000000a2",
+        name: "Database",
+        people: [],
+        notPaged: ["Team DBA has no members."],
+        notPagedCodes: [
+          {
+            code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+            teamName: "DBA",
+            message: "Team DBA has no members.",
+          },
+        ],
+      });
+
+      getForMonitor.mockResolvedValue(
+        result([
+          offline({
+            events: [event({ policies: [codedPolicy(), nobody] })],
+          }),
+        ]),
+      );
+      renderCard();
+
+      fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+      const blocks: Array<HTMLElement> =
+        screen.getAllByTestId("who-is-told-policy");
+
+      // One list a policy: who it reaches, then each target that reaches nobody.
+      const rowsOf: (block: HTMLElement) => Array<string> = (
+        block: HTMLElement,
+      ): Array<string> => {
+        expect(block.querySelectorAll("ul")).toHaveLength(1);
+
+        return Array.from(block.querySelectorAll("ul > li")).map(
+          (row: Element): string => {
+            return row.getAttribute("data-testid") || "";
+          },
+        );
+      };
+
+      expect(blocks).toHaveLength(2);
+      expect(rowsOf(blocks[0]!)).toEqual([
+        ...new Array<string>(4).fill("who-is-told-person"),
+        ...new Array<string>(5).fill("who-is-told-not-paged-row"),
+      ]);
+      expect(rowsOf(blocks[1]!)).toEqual(["who-is-told-not-paged-row"]);
+      expect(
+        within(blocks[1]!).getByTestId("who-is-told-not-paged"),
+      ).toHaveTextContent("Team DBA has no members.");
+
+      // No sentence is left outside a policy's list.
+      for (const block of blocks) {
+        for (const line of within(block).queryAllByTestId(
+          "who-is-told-not-paged",
+        )) {
+          expect(line.closest("li")).toHaveAttribute(
+            "data-testid",
+            "who-is-told-not-paged-row",
+          );
+        }
+      }
+
+      const personIcon: SVGElement = screen
+        .getAllByTestId("who-is-told-person")[0]!
+        .querySelector("svg")!;
+      const rows: Array<HTMLElement> = screen.getAllByTestId(
+        "who-is-told-not-paged-row",
+      );
+
+      expect(rows).toHaveLength(6);
+
+      for (const row of rows) {
+        const icon: SVGElement | null = row.children[0]!.querySelector("svg");
+        const words: HTMLElement = within(row).getByTestId(
+          "who-is-told-not-paged",
+        );
+
+        // The warning first, in the people's icon column, beside the words.
+        expect(row.children).toHaveLength(2);
+        expect(icon).not.toBeNull();
+        expect(icon).toHaveClass("text-amber-600", "h-4", "w-4", "shrink-0");
+        expect(personIcon).toHaveClass("h-4", "w-4", "shrink-0");
+        expect(row.children[1]).toBe(words);
+        expect(words.querySelector("svg")).toBeNull();
+        expect(words).toHaveClass("min-w-0", "break-words");
+      }
+    });
   });
 
   // An Icon draws a div of its own, which a paragraph can't hold.

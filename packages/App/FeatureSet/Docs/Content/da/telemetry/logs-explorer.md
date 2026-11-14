@@ -37,7 +37,7 @@ Udforskeren har fem faner:
 ## Før du begynder
 
 - **Protokoller, der ankommer.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Opsætningsvejledning** viser konfigurationen til dit sprog eller din collector.
-- **En rolle, der må læse telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Telemetry Service Log. Dens omfang afgør, hvis protokoller du ser: se [Telemetri](/docs/permissions/index#telemetri).
+- **En rolle, der må læse telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Logs. Dens omfang afgør, hvis protokoller du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Find en protokollinje
 
@@ -141,7 +141,7 @@ OneUptime opretter tre slags fund:
 
 | Fund | Hvornår OneUptime opretter det | Pull requesten |
 | --- | --- | --- |
-| **Fejllog** | En tjeneste loggede den samme meddelelse med Error eller Fatal 20 gange eller mere i timen, en meddelelse med egne ord og uden undtagelse. En meddelelse, der logges med en undtagelse eller med en stakspore i, følges i stedet i [Undtagelsessporing](/docs/telemetry/exceptions). | Retter årsagen til, at fejlen logges, eller logger den på det niveau, den fortjener. |
+| **Fejllog** | En tjeneste loggede den samme meddelelse med Error eller Fatal 20 gange eller mere i timen, en meddelelse med egne ord og uden undtagelse. En meddelelse, der logges med en undtagelse eller med en stakspore i, følges i stedet i [Undtagelser](/docs/telemetry/exceptions). | Retter årsagen til, at fejlen logges, eller logger den på det niveau, den fortjener. |
 | **Manglende logning** | Mindst 20 af en operations spans fejlede i timen, 5 % eller flere af dem, mens mindst 100 af tjenestens logs bærer et sporings-id, og ingen af operationens 20 seneste fejlede forespørgsler skrev en loglinje. Eller en tjeneste sendte 500 logs eller flere og 100 spans eller flere i timen, og under 1 % af dens logs bærer et sporings-id. | Logger fejlen, hvor den sker, eller får tjenestens logs til at bære sporings-id'et. |
 | **Støjende log** | Én meddelelse logget under Error udgør 25 % eller mere af en tjenestes linjer i timen, omkring 10.000 linjer eller flere. | Logger linjen mindre: med Debug, én gang pr. batch eller slet ikke. |
 

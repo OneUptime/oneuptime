@@ -52,6 +52,11 @@ import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneSe
 import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectUserPreferenceService from "../../../Server/Services/ProjectUserPreferenceService";
 import logger from "../../../Server/Utils/Logger";
+import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
+import {
+  ServerProductOffReason,
+  ServerProductsOff,
+} from "../../../Types/Product/ServerProducts";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -106,6 +111,8 @@ let pins: Record<string, Array<ProductKey>>;
 let queries: Array<{ sql: string; parameters: Array<unknown> }>;
 let usageQueryShouldFail: boolean;
 let findProjectSpy: SpyInstance<typeof ProjectService.findOneById>;
+// What the server switched off for every project (#6815).
+let offOnServer: ServerProductsOff;
 
 const PLAN_ORDER: Array<PlanType> = [
   PlanType.Free,
@@ -176,7 +183,14 @@ beforeEach(() => {
   pins = {};
   queries = [];
   usageQueryShouldFail = false;
+  offOnServer = {};
   ProjectProductsService.forgetUsage();
+
+  jest
+    .spyOn(ServerProducts, "getOff")
+    .mockImplementation((async (): Promise<ServerProductsOff> => {
+      return { ...offOnServer };
+    }) as never);
 
   findProjectSpy = jest
     .spyOn(ProjectService, "findOneById")
@@ -777,5 +791,126 @@ describe("the keys", () => {
     for (const product of Object.keys(PRODUCT_RECORD_MODELS)) {
       expect(PRODUCT_KEYS).toContain(product);
     }
+  });
+});
+
+/*
+ * THE SERVER'S OFF LIST (#6815) rides along in every answer, and is
+ * stronger than the project's choice and a person's pins.
+ */
+describe("products switched off on the server", () => {
+  test("every answer says what is off, and why, the same for every person", async () => {
+    offOnServer = {
+      [ProductKey.StatusPages]: ServerProductOffReason.SwitchedOff,
+      [ProductKey.Logs]: ServerProductOffReason.TelemetryIngestionStopped,
+    };
+
+    for (const asker of [OWNER(), MEMBER(), MONITOR_READER()]) {
+      const answer: ProjectProductsAnswer =
+        await ProjectProductsService.getAnswer(asker);
+
+      expect(answer.offOnServer).toEqual(offOnServer);
+    }
+  });
+
+  test("nothing off: the answer says so", async () => {
+    expect(
+      (await ProjectProductsService.getAnswer(OWNER())).offOnServer,
+    ).toEqual({});
+  });
+
+  test("Home does not ask about a hidden product with data that is off on the server", async () => {
+    row = {
+      productSettings: {
+        hidden: [ProductKey.Logs, ProductKey.Traces],
+        chosenBy: ProjectProductsChosenBy.Member,
+      },
+    };
+    milestones = [
+      ActivationMilestone.FirstLogsReceived,
+      ActivationMilestone.FirstTracesReceived,
+    ];
+    offOnServer = { [ProductKey.Logs]: ServerProductOffReason.SwitchedOff };
+
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(OWNER());
+
+    expect(answer.hiddenWithData).toEqual([ProductKey.Traces]);
+  });
+
+  test("showing a product that is off is refused, saying who can switch it on, and nothing is written", async () => {
+    row = {
+      productSettings: {
+        hidden: [ProductKey.StatusPages],
+        chosenBy: ProjectProductsChosenBy.Member,
+      },
+    };
+    offOnServer = {
+      [ProductKey.StatusPages]: ServerProductOffReason.SwitchedOff,
+    };
+
+    const refusal: Promise<void> = ProjectProductsService.setProductShown(
+      OWNER(),
+      { product: ProductKey.StatusPages, isShown: true },
+    );
+
+    await expect(refusal).rejects.toBeInstanceOf(BadDataException);
+    await expect(refusal).rejects.toThrow(
+      "Status Pages is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.",
+    );
+    expect(stored()?.hidden).toEqual([ProductKey.StatusPages]);
+  });
+
+  test("hiding a product that is off is allowed: it is ready for when the server switches it on", async () => {
+    offOnServer = {
+      [ProductKey.StatusPages]: ServerProductOffReason.SwitchedOff,
+    };
+
+    await ProjectProductsService.setProductShown(OWNER(), {
+      product: ProductKey.StatusPages,
+      isShown: false,
+    });
+
+    expect(stored()?.hidden).toEqual([ProductKey.StatusPages]);
+  });
+
+  test("pinning a product that is off is refused", async () => {
+    offOnServer = {
+      [ProductKey.Logs]: ServerProductOffReason.TelemetryIngestionStopped,
+    };
+
+    await expect(
+      ProjectProductsService.setPinnedProducts(MEMBER(), [
+        ProductKey.Monitors,
+        ProductKey.Logs,
+      ]),
+    ).rejects.toThrow("DISABLE_TELEMETRY_INGESTION");
+    expect(pins[MEMBER_ID.toString()]).toBeUndefined();
+  });
+
+  test("a pin made before the product was switched off is kept, and others can still change", async () => {
+    pins[MEMBER_ID.toString()] = [ProductKey.Logs];
+    offOnServer = { [ProductKey.Logs]: ServerProductOffReason.SwitchedOff };
+
+    await ProjectProductsService.setPinnedProducts(MEMBER(), [
+      ProductKey.Logs,
+      ProductKey.Monitors,
+    ]);
+
+    expect(pins[MEMBER_ID.toString()]).toEqual([
+      ProductKey.Logs,
+      ProductKey.Monitors,
+    ]);
+  });
+
+  test("unpinning a product that is off is allowed", async () => {
+    pins[MEMBER_ID.toString()] = [ProductKey.Logs, ProductKey.Monitors];
+    offOnServer = { [ProductKey.Logs]: ServerProductOffReason.SwitchedOff };
+
+    await ProjectProductsService.setPinnedProducts(MEMBER(), [
+      ProductKey.Monitors,
+    ]);
+
+    expect(pins[MEMBER_ID.toString()]).toEqual([ProductKey.Monitors]);
   });
 });

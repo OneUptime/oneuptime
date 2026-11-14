@@ -15,7 +15,7 @@ Una plantilla es un punto de partida. Un evento creado a partir de ella es una c
 
 ```mermaid title="Dos formas en que una plantilla se convierte en un evento"
 flowchart TB
-    template["Una plantilla<br/>en Plantillas de eventos"] --> byhand["Crear desde plantilla<br/>rellena el formulario"]
+    template["Una plantilla<br/>en Plantillas<br/>de mantenimiento"] --> byhand["Crear desde plantilla<br/>rellena el formulario"]
     template --> schedule["Recurrente activado<br/>revisado cada minuto"]
     byhand --> event["Un evento nuevo<br/>en Programado"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir las plantillas
 
-Ve a **Mantenimiento programado → Ajustes → Plantillas de eventos**. **Ajustes** empieza plegado en el menú lateral: despliégalo primero. Haz clic en **Crear Plantilla de mantenimiento programado**.
+Ve a **Mantenimiento programado → Ajustes → Plantillas de mantenimiento**. **Ajustes** empieza plegado en el menú lateral: despliégalo primero. Haz clic en **Crear Plantilla de mantenimiento programado**.
 
 ### Nombrar la plantilla
 
@@ -39,7 +39,7 @@ En **Información de la plantilla**, dale un **Nombre de la plantilla** y una **
 
 ### Describir el evento
 
-En **Evento**, rellena el **Título** y la **Descripción** con los que empieza cada evento creado con ella. **Propietarios** y **Etiquetas** esperan en **Más campos**.
+En **Detalles del mantenimiento**, rellena el **Título** y la **Descripción** con los que empieza cada evento creado con ella. **Propietarios** y **Etiquetas** esperan en **Más campos**.
 
 ### Elegir qué afecta
 
@@ -68,7 +68,7 @@ Una plantilla pide **Cambiar el estado del monitor a** aunque no nombre ningún 
 :::steps
 ### Elegir la plantilla
 
-En **Mantenimiento programado → Todos los eventos**, haz clic en **Crear desde plantilla** y elige una plantilla en **Seleccionar plantilla de mantenimiento programado**.
+En **Mantenimiento programado → Todos los eventos de mantenimiento**, haz clic en **Crear desde plantilla** y elige una plantilla en **Seleccionar plantilla de mantenimiento programado**.
 
 ### Revisar el formulario
 
@@ -76,10 +76,10 @@ Haz clic en **Crear desde plantilla**. El formulario de creación se abre con la
 
 ### Crear el evento
 
-Recorre los pasos con **Siguiente** y luego haz clic en **Crear evento de mantenimiento programado** en la revisión.
+Recorre los pasos con **Siguiente** y luego haz clic en **Crear evento de mantenimiento** en la revisión.
 :::
 
-Cuando el proyecto aún no tiene ninguna plantilla, **Crear desde plantilla** lo dice y enlaza a **Plantillas de eventos**.
+Cuando el proyecto aún no tiene ninguna plantilla, **Crear desde plantilla** lo dice y enlaza a **Plantillas de mantenimiento**.
 
 ## Eventos recurrentes
 
@@ -108,7 +108,7 @@ Una tarea revisa las plantillas recurrentes cada minuto. Cuando llega la próxim
 
 Abre una plantilla desde la lista para ver su página:
 
-- **Detalles de la plantilla de mantenimiento programado** muestra con qué empiezan los eventos nuevos. Su **Editar** recorre **Información de la plantilla**, **Evento**, **Páginas de estado** y **Recurrente**.
+- **Detalles de la plantilla de mantenimiento programado** muestra con qué empiezan los eventos nuevos. Su **Editar** recorre **Información de la plantilla**, **Detalles del mantenimiento**, **Páginas de estado** y **Recurrente**.
 - **Recursos afectados** contiene sus **Monitores**, su **Cambiar el estado del monitor a** y sus **Otros recursos afectados**, con su propio **Editar**.
 - **Propietarios** lista las personas y los equipos a los que pertenece cada evento programado a partir de ella.
 

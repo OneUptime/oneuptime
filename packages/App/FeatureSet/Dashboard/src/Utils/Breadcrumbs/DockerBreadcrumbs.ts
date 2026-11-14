@@ -127,7 +127,7 @@ export function getDockerBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Docker",
       "View Host",
-      "Performance Profiles",
+      "Profiles",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_OWNERS, [
       "Project",

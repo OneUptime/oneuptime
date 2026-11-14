@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9585
+    "keys": 51296,
+    "untranslated": 9546
   },
   "sameAsEnglish": [
     " is",
@@ -56,6 +56,7 @@
     "Band",
     "Binary",
     "Bits",
+    "Blade",
     "Body",
     "Branch",
     "Branches",
@@ -74,6 +75,7 @@
     "Canonical Sunbeam",
     "Capture",
     "Celsius",
+    "Chassis",
     "Chat",
     "Chats",
     "Claim",
@@ -343,7 +345,6 @@
     "Processors",
     "Producer",
     "Product",
-    "Profiler",
     "Project",
     "Project: {{accounts}}",
     "Prompt",
@@ -533,6 +534,7 @@
     "cursors",
     "customer facing|tier-1",
     "dashboard",
+    "dashboards",
     "database",
     "databases",
     "datastore",
@@ -673,6 +675,7 @@
     "volume",
     "volumes",
     "workflow",
+    "workflows",
     "workload",
     "writesets",
     "x86",
@@ -686,6 +689,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} VM",
     "{{count}} alarm",
@@ -698,6 +702,7 @@
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
+    "{{count}} component",
     "{{count}} container",
     "{{count}} containers",
     "{{count}} dashboard",
@@ -783,6 +788,7 @@
     "{{count}}m",
     "{{count}}s",
     "{{delta}} pp",
+    "{{exceptionType}} in {{serviceName}}",
     "{{field}} is {{value}}",
     "{{gigabytes}} GB",
     "{{inQuorum}}/{{count}} mon in quorum",

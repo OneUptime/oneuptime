@@ -1,6 +1,6 @@
 # Runbook-regler
 
-Runbook-regler startar runbooks automatiskt när en **incident**, ett **larm** eller en **schemalagd underhållshändelse** skapas, så att ingen behöver komma ihåg att köra dem mitt i ett avbrott. Varje produkt har sin egen regelsida i sin meny **Regler**:
+Runbook-regler startar runbooks automatiskt när en **incident**, ett **larm** eller en **underhållshändelse** skapas, så att ingen behöver komma ihåg att köra dem mitt i ett avbrott. Varje produkt har sin egen regelsida i sin meny **Regler**:
 
 - Incidenter → Regler → **Runbook-regler**
 - Larm → Regler → **Runbook-regler**

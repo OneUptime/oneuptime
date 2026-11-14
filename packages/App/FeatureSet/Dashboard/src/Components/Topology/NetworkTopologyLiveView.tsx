@@ -98,6 +98,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Self-contained live network topology view: fetch + auto-refresh + search
@@ -1126,10 +1127,10 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           className="mb-3 rounded-md bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800"
           data-testid="network-topology-refresh-error"
         >
-          {translator.translateTemplate(
-            "{{error}} — showing the last map that loaded.",
-            { error: error },
-          )}
+          <ErrorSentence
+            template="{{error}} — showing the last map that loaded."
+            error={error}
+          />
         </div>
       ) : (
         <></>

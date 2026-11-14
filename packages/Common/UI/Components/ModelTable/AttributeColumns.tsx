@@ -5,6 +5,7 @@ import FieldType from "../Types/FieldType";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../../Types/JSON";
+import { getTableNoValue } from "../Table/TableEmptyValue";
 import React, { ReactElement } from "react";
 
 /*
@@ -184,11 +185,15 @@ export const renderAttributeValue: RenderAttributeValueFunction = (data: {
   value: unknown;
   noValueMessage?: string | undefined;
 }): ReactElement => {
-  const noValueMessage: string = data.noValueMessage ?? "-";
   const text: string = getAttributeExportValue(data.value);
 
+  /*
+   * A key this row does not carry is the quiet dash every empty cell is -
+   * a "-" of its own was a hyphen beside it, with nothing for a screen
+   * reader to hear - or the column's own words (getTableNoValue).
+   */
   if (text.length === 0) {
-    return <span className="text-gray-400">{noValueMessage}</span>;
+    return getTableNoValue(data.noValueMessage);
   }
 
   return (

@@ -380,6 +380,38 @@ describe("explainRecorderDiagnostics headline", () => {
     );
   });
 
+  test("a pause the page asked for is no outcome, so it never outlasts its resume", () => {
+    /*
+     * OneUptimeReplay.pause() and resume() (#6834): like an idle pause,
+     * what the page asked for, not why nothing recorded.
+     */
+    const paused: RecorderDiagnosticsResult = explainRecorderDiagnostics({
+      isRecording: false,
+      state: "paused",
+      records: [
+        { code: "recording", level: "info" },
+        { code: "recording-paused-page", level: "info" },
+      ],
+    });
+    const resumed: RecorderDiagnosticsResult = explainRecorderDiagnostics({
+      isRecording: true,
+      isUploading: true,
+      state: "uploading",
+      records: [
+        { code: "recording", level: "info" },
+        { code: "recording-paused-page", level: "info" },
+        { code: "recording-resumed-page", level: "info" },
+      ],
+    });
+
+    expect(paused.ok && paused.explanation.headline).toBe(
+      "No outcome record was found; the records below list what the recorder did.",
+    );
+    expect(resumed.ok && resumed.explanation.headline).toBe(
+      "The recorder is recording and uploading on this page.",
+    );
+  });
+
   test("facts summarise version, session, state, decisions and capabilities", () => {
     const result: RecorderDiagnosticsResult = explainRecorderDiagnostics({
       version: "1.4.0",

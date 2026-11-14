@@ -61,7 +61,7 @@ import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 export default class SlackScheduledMaintenanceActions {
   // Changing an event's state, as a refusal names it.
   public static readonly CHANGE_STATE_ACTION: string =
-    "change the state of this scheduled maintenance event";
+    "change the state of this maintenance event";
 
   // What a change-state form says instead of opening with nothing to pick.
   public static readonly NO_STATES_MESSAGE: string =
@@ -237,7 +237,7 @@ export default class SlackScheduledMaintenanceActions {
         await SlackActionAuthorization.authorize({
           requester: slackRequest,
           modelType: ScheduledMaintenance,
-          action: "create a scheduled maintenance event",
+          action: "create a maintenance event",
           resources: [],
         });
 
@@ -312,7 +312,7 @@ export default class SlackScheduledMaintenanceActions {
       const createdEvent: ScheduledMaintenance | null =
         await SlackActionAuthorization.runForRequester({
           requester: slackRequest,
-          action: "create the scheduled maintenance event",
+          action: "create the maintenance event",
           run: async (): Promise<ScheduledMaintenance> => {
             return await ScheduledMaintenanceService.create({
               data: scheduledMaintenance,
@@ -351,8 +351,8 @@ export default class SlackScheduledMaintenanceActions {
       const confirmation: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
         text: (eventName
-          ? mdText`**Scheduled Event ${eventName}** created successfully. [View Event](${eventLink})`
-          : mdText`Scheduled event created successfully. [View Event](${eventLink})`
+          ? mdText`**Maintenance Event ${eventName}** created successfully. [View Event](${eventLink})`
+          : mdText`Maintenance event created successfully. [View Event](${eventLink})`
         ).toString(),
       };
 
@@ -383,8 +383,8 @@ export default class SlackScheduledMaintenanceActions {
             place: place,
             messageBlocks: [confirmation],
             text: eventName
-              ? `Scheduled Event ${eventName} created successfully.`
-              : "Scheduled event created successfully.",
+              ? `Maintenance Event ${eventName} created successfully.`
+              : "Maintenance event created successfully.",
           });
         }
       }
@@ -414,7 +414,7 @@ export default class SlackScheduledMaintenanceActions {
       await SlackActionAuthorization.authorize({
         requester: data.slackRequest,
         modelType: ScheduledMaintenance,
-        action: "create a scheduled maintenance event",
+        action: "create a maintenance event",
       });
 
     if (!props) {
@@ -594,7 +594,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "New Scheduled Event",
+      title: "New Maintenance Event",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewScheduledMaintenance,
@@ -671,7 +671,7 @@ export default class SlackScheduledMaintenanceActions {
         await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: ScheduledMaintenanceStateTimeline,
-          action: "mark this scheduled maintenance event as ongoing",
+          action: "mark this maintenance event as ongoing",
           event: {
             type: WorkspaceEventType.ScheduledMaintenance,
             id: scheduledMaintenanceId,
@@ -708,7 +708,7 @@ export default class SlackScheduledMaintenanceActions {
       const isMarked: boolean | null =
         await SlackActionAuthorization.runForRequester({
           requester: slackRequest,
-          action: "mark the scheduled maintenance event as ongoing",
+          action: "mark the maintenance event as ongoing",
           run: async (): Promise<boolean> => {
             await WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
               event: scheduledMaintenance,
@@ -832,7 +832,7 @@ export default class SlackScheduledMaintenanceActions {
         await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: ScheduledMaintenanceStateTimeline,
-          action: "mark this scheduled maintenance event as complete",
+          action: "mark this maintenance event as complete",
           event: {
             type: WorkspaceEventType.ScheduledMaintenance,
             id: scheduledMaintenanceId,
@@ -863,7 +863,7 @@ export default class SlackScheduledMaintenanceActions {
       const isMarked: boolean | null =
         await SlackActionAuthorization.runForRequester({
           requester: slackRequest,
-          action: "mark the scheduled maintenance event as complete",
+          action: "mark the maintenance event as complete",
           run: async (): Promise<boolean> => {
             await WorkspaceMemberActions.resolve({
               event: scheduledMaintenance,
@@ -1011,7 +1011,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Change Event State",
+      title: "Change Maintenance State",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitChangeScheduledMaintenanceState,
@@ -1091,7 +1091,7 @@ export default class SlackScheduledMaintenanceActions {
      */
     await SlackActionAuthorization.runForRequester({
       requester: data.slackRequest,
-      action: "change the state of the scheduled maintenance event",
+      action: "change the state of the maintenance event",
       run: async (): Promise<void> => {
         await WorkspaceMemberActions.changeState({
           event: authorized.event,
@@ -1178,8 +1178,8 @@ export default class SlackScheduledMaintenanceActions {
             : ScheduledMaintenanceInternalNote,
         action:
           noteType === "public"
-            ? "add a public note to this scheduled maintenance event"
-            : "add a private note to this scheduled maintenance event",
+            ? "add a public note to this maintenance event"
+            : "add a private note to this maintenance event",
         resources: [
           { service: ScheduledMaintenanceService, id: scheduledMaintenanceId },
         ],

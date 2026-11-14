@@ -525,9 +525,13 @@ describe("the Scheduled Maintenance group in the docs", () => {
 
   it("opens the product from the Products menu, by the menu item the Dashboard draws", () => {
     const navigation: string = readDashboardSource("Utils/NavigationItems.tsx");
+    const title: number = navigation.indexOf(
+      't("navbar.items.scheduledMaintenanceTitle")',
+    );
+    // The item, from its key to the next item's.
     const item: string = navigation.slice(
-      navigation.indexOf('t("navbar.items.scheduledMaintenanceTitle")') - 200,
-      navigation.indexOf('t("navbar.items.scheduledMaintenanceTitle")') + 400,
+      navigation.lastIndexOf("key: ProductKey.", title),
+      navigation.indexOf("key: ProductKey.", title),
     );
 
     expect(item).toContain("PageMap.SCHEDULED_MAINTENANCE_EVENTS");
@@ -591,7 +595,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
     );
   });
 
-  it("counts the events in progress on the Ongoing Events badge: ongoing, or in a state of the project's own between Ongoing and Ended", () => {
+  it("counts the events in progress on the Ongoing Maintenance Events badge: ongoing, or in a state of the project's own between Ongoing and Ended", () => {
     expect(MAINTENANCE_MENU_FILE).toContain(
       "useInProgressScheduledMaintenanceStateIds()",
     );
@@ -602,7 +606,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
       readDashboardSource("Pages/ScheduledMaintenanceEvents/Ongoing.tsx"),
     ).toContain("useInProgressScheduledMaintenanceStateIds()");
     expect(where).toContain(
-      "**All Events** and **Ongoing Events**, whose badge counts the events in progress right now.",
+      "**All Maintenance Events** and **Ongoing Maintenance Events**, whose badge counts the events in progress right now.",
     );
   });
 
@@ -900,12 +904,10 @@ describe("where events come from", () => {
   );
 
   it("opens the form from the list and from a resource's Scheduled Maintenance tab, and from a template", () => {
-    expect(LIST_TABLE).toContain(
-      'title: "Create Scheduled Maintenance Event",',
-    );
+    expect(LIST_TABLE).toContain('title: "Create Maintenance Event",');
     expect(LIST_TABLE).toContain('title: "Create from Template",');
     expect(sources).toContain(
-      "Click **Create Scheduled Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you.",
+      "Click **Create Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you.",
     );
     expect(sources).toContain(
       "**Create from Template** fills the form in from a template you saved for work you do often.",
@@ -1312,10 +1314,10 @@ describe("the seeded maintenance states", () => {
 
   it("gives the list's path as the menu holds it", () => {
     expect(sectionByTitle(maintenanceMenu(), "Settings").items[0]).toBe(
-      "Event State",
+      "Maintenance State",
     );
     expect(states).toContain(
-      "> The list is under **Scheduled Maintenance → Settings → Event State**. **Settings** starts folded in the side menu: expand it first.",
+      "> The list is under **Scheduled Maintenance → Settings → Maintenance State**. **Settings** starts folded in the side menu: expand it first.",
     );
   });
 });
@@ -1606,7 +1608,7 @@ describe("what starting and ending do", () => {
     );
   });
 
-  it("tells owners who turned the state change notification on, and lists the event under Ongoing Events", () => {
+  it("tells owners who turned the state change notification on, and lists the event under Ongoing Maintenance Events", () => {
     expect(
       readWorkerSource(
         "ScheduledMaintenanceOwners/SendStateChangeNotification.ts",
@@ -1615,10 +1617,10 @@ describe("what starting and ending do", () => {
       "NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION",
     );
     expect(sectionByTitle(maintenanceMenu(), "Overview").items).toContain(
-      "Ongoing Events",
+      "Ongoing Maintenance Events",
     );
     expect(startAndEnd).toContain(
-      "- **Its owners are told**, if they turned the state change notification on, and the event appears under **Ongoing Events**.",
+      "- **Its owners are told**, if they turned the state change notification on, and the event appears under **Ongoing Maintenance Events**.",
     );
   });
 });
@@ -2035,24 +2037,27 @@ describe("the create form", () => {
   const creating: string = english(CREATING_EVENTS);
   const fieldsTable: string = section(creating, "## The form's fields");
 
-  it("walks two steps, Event and Resources Affected, then the review with the create button", () => {
+  it("walks two steps, Maintenance Details and Resources Affected, then the review with the create button", () => {
     const steps: string = CREATE_PAGE.slice(
       CREATE_PAGE.indexOf("steps={["),
       CREATE_PAGE.indexOf("]}", CREATE_PAGE.indexOf("steps={[")),
     );
 
-    expect(quotedTitles(steps)).toEqual(["Event", "Resources Affected"]);
+    expect(quotedTitles(steps)).toEqual([
+      "Maintenance Details",
+      "Resources Affected",
+    ]);
     expect(CREATE_PAGE).toContain(
-      'submitButtonText={"Create Scheduled Maintenance Event"}',
+      'submitButtonText={"Create Maintenance Event"}',
     );
     expect(creating).toContain(
-      "Click **Next** to see the review, check it, then click **Create Scheduled Maintenance Event**. The event's own page opens.",
+      "Click **Next** to see the review, check it, then click **Create Maintenance Event**. The event's own page opens.",
     );
   });
 
   it("has a row per field, on the step the form asks it", () => {
     const stepTitles: Record<string, string> = {
-      event: "Event",
+      event: "Maintenance Details",
       "resources-affected": "Resources Affected",
     };
     const rows: Array<Array<string>> = tableRows(fieldsTable).map(
@@ -2089,7 +2094,7 @@ describe("the create form", () => {
             `get${field}FormField(?:<ScheduledMaintenance>)?\\(\\{\\s*stepId: "event",`,
           ),
         );
-        expect(step).toBe("Event");
+        expect(step).toBe("Maintenance Details");
         continue;
       }
 
@@ -2118,7 +2123,7 @@ describe("the create form", () => {
       "Only the title has to be typed; everything else starts with a sensible default.",
     );
     expect(fieldsTable).toContain(
-      "| **Title**                            | **Event**          | Empty, and required",
+      "| **Title**                            | **Maintenance Details** | Empty, and required",
     );
   });
 
@@ -2310,7 +2315,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 
@@ -2654,10 +2659,13 @@ describe("changing an event later", () => {
       details.indexOf("]}", details.indexOf("formSteps={[")),
     );
 
-    expect(quotedTitles(steps)).toEqual(["Event", "Status Pages"]);
+    expect(quotedTitles(steps)).toEqual([
+      "Maintenance Details",
+      "Status Pages",
+    ]);
     expect(details).toContain('editButtonText="Edit"');
     expect(later).toContain(
-      "| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Event** |",
+      "| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Maintenance Details** |",
     );
     expect(later).toContain(
       "| The status pages, when it is published, or the reminders | The same **Edit**, step **Status Pages**",
@@ -2815,7 +2823,7 @@ describe("creating events from code", () => {
       'resource "oneuptime_scheduled_maintenance_event"',
     );
     expect(code).toContain(
-      "The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Scheduled Maintenance Event** step",
+      "The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Maintenance Event** step",
     );
   });
 });
@@ -2839,13 +2847,13 @@ describe("maintenance templates", () => {
     );
   });
 
-  it("walk the form's steps: Template Info, Event, Resources Affected, Recurring - Status Pages on the view page's Edit", () => {
+  it("walk the form's steps: Template Info, Maintenance Details, Resources Affected, Recurring - Status Pages on the view page's Edit", () => {
     expect(TEMPLATES_PAGE).toContain(
-      '{\n      title: "Template Info",\n      id: "template-info",\n    },\n    {\n      title: "Event",\n      id: "event",\n    },\n    {\n      title: data.excludeAffectedResources\n        ? "Status Pages"\n        : "Resources Affected",\n      id: "resources-affected",\n    },\n    {\n      title: "Recurring",\n      id: "recurring",\n    },',
+      '{\n      title: "Template Info",\n      id: "template-info",\n    },\n    {\n      title: "Maintenance Details",\n      id: "event",\n    },\n    {\n      title: data.excludeAffectedResources\n        ? "Status Pages"\n        : "Resources Affected",\n      id: "resources-affected",\n    },\n    {\n      title: "Recurring",\n      id: "recurring",\n    },',
     );
     expect(TEMPLATE_VIEW_PAGE).toContain("excludeAffectedResources: true,");
     expect(templates).toContain(
-      "Its **Edit** walks **Template Info**, **Event**, **Status Pages** and **Recurring**.",
+      "Its **Edit** walks **Template Info**, **Maintenance Details**, **Status Pages** and **Recurring**.",
     );
   });
 
@@ -2862,15 +2870,15 @@ describe("maintenance templates", () => {
     );
   });
 
-  it("is created from the Event Templates page by its create button", () => {
+  it("is created from the Maintenance Templates page by its create button", () => {
     expect(sectionByTitle(maintenanceMenu(), "Settings").items).toContain(
-      "Event Templates",
+      "Maintenance Templates",
     );
     expect(`Create ${new ScheduledMaintenanceTemplate().singularName}`).toBe(
       "Create Scheduled Maintenance Template",
     );
     expect(templates).toContain(
-      "Go to **Scheduled Maintenance → Settings → Event Templates**. **Settings** starts folded in the side menu: expand it first. Click **Create Scheduled Maintenance Template**.",
+      "Go to **Scheduled Maintenance → Settings → Maintenance Templates**. **Settings** starts folded in the side menu: expand it first. Click **Create Scheduled Maintenance Template**.",
     );
   });
 
@@ -2918,15 +2926,15 @@ describe("maintenance templates", () => {
     );
   });
 
-  it("say so when the project has none, and link to Event Templates", () => {
+  it("say so when the project has none, and link to Maintenance Templates", () => {
     expect(LIST_TABLE).toContain(
-      'description="This project has no scheduled maintenance templates yet. Create them in Scheduled Maintenance → Settings → Event Templates."',
+      'description="This project has no scheduled maintenance templates yet. Create them in Scheduled Maintenance → Settings → Maintenance Templates."',
     );
     expect(LIST_TABLE).toContain(
       "PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES",
     );
     expect(templates).toContain(
-      "When the project has no template yet, **Create from Template** says so, and links to **Event Templates**.",
+      "When the project has no template yet, **Create from Template** says so, and links to **Maintenance Templates**.",
     );
   });
 
@@ -3215,8 +3223,8 @@ describe("where maintenance settings live", () => {
     ).items;
 
     expect(items).toEqual([
-      "Event State",
-      "Event Templates",
+      "Maintenance State",
+      "Maintenance Templates",
       "Note Templates",
       "Public Note Approval",
       "Custom Fields",
@@ -3512,7 +3520,7 @@ describe("reminder rules", () => {
       "Create Scheduled Maintenance Reminder Rule",
     );
     expect(reminders).toContain(
-      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked",
+      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All maintenance events** picked",
     );
     expect(reminders).toContain(
       'pick when to remind them under **Remind Owners**. Its **Name** follows both, such as "Remind every 30 minutes while it is in progress"',
@@ -3644,7 +3652,7 @@ describe("the Settings section's pages", () => {
 
   it("name the note template card, create button and fields, offered on notes and state changes", () => {
     expect(NOTE_TEMPLATES_PAGE).toContain(
-      '"Public or Private Note Templates for Scheduled Maintenance Events",',
+      '"Public or Private Note Templates for Maintenance Events",',
     );
     expect(NOTE_TEMPLATES_PAGE).toContain(
       "Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",

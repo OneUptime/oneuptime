@@ -59,7 +59,9 @@ flowchart TB
 Dina ändringar är bara dina tills du sparar dem. Inget sparas medan du redigerar, så andra ser fortfarande instrumentpanelen som den var.
 
 - **Spara ändringar** sparar widgetarna, deras placeringar och storlekar, variablerna samt standardtidsintervallet och standarden för automatisk uppdatering, allt på en gång, och går tillbaka till visningsläge. Om sparandet nekas, till exempel för att du har förlorat behörigheten under tiden, stannar du i redigeringsläge med dina ändringar, och orsaken visas ovanför rutnätet.
-- **Avbryt** frågar först, eftersom den kastar dina ändringar: **Kasta ändringar** går tillbaka till instrumentpanelen som den sparades, och **Fortsätt redigera** tar dig tillbaka till ditt arbete.
+- **Avbryt** går tillbaka till visningsläge. Om du har ändrat något frågar den först, eftersom den kastar dina ändringar: **Kasta ändringar** går tillbaka till instrumentpanelen som den sparades, och **Fortsätt redigera** tar dig tillbaka till ditt arbete.
+
+Att lämna instrumentpanelen med osparade ändringar frågar också först. En länk i sidomenyn, brödsmulorna eller det övre fältet, eller webbläsarens bakåt- och framåtknappar, öppnar **Lämna utan att spara?** med samma två val: **Fortsätt redigera** stannar på instrumentpanelen med dina ändringar, och **Kasta ändringar** går vidare till sidan du var på väg till. Stänger eller laddar du om fliken frågar webbläsaren med sin egen dialogruta. En instrumentpanel som du öppnade för redigering och inte ändrade frågar ingenting, och inte heller en som du just har sparat.
 
 Medan du redigerar pausas den automatiska uppdateringen, och ett inzoomat tidsintervall går tillbaka till intervallet du valde.
 

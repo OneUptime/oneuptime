@@ -27,6 +27,8 @@ Il tuo server deve poter inviare email e SMS, e fare chiamate. Il suo amministra
 :::steps
 ### Aprire la configurazione guidata
 
+![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Avvisare la persona giusta quando qualcosa si guasta» selezionato](screen:home-goal-paging)
+
 Nella **Home** del tuo progetto, fai clic su **Configura una policy di reperibilità** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Avvisare la persona giusta quando qualcosa si guasta** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**.
 
 ### Installare l'app sul telefono
@@ -35,21 +37,31 @@ Installa OneUptime On-Call dall'App Store o da Google Play e accedi: l'app regis
 
 ### Attivare SMS e chiamate
 
+![Il passaggio «Come dobbiamo raggiungerti?», con «Attiva SMS e chiamate» evidenziato](screen:paging-reach-you)
+
 Nei nuovi progetti, SMS e chiamate sono disattivati. Se sei il proprietario del progetto, fai clic su **Attiva SMS e chiamate**; agli altri viene detto chi può farlo. Su OneUptime Cloud, se il credito è di 1.00 USD o meno, fai clic su **Aggiungi credito**, inserisci da 20 a 1.000 USD in **Importo (USD)** e fai clic su **Ricarica**.
 
 ### Aggiungere il tuo numero di telefono
+
+![Il campo «Il tuo numero di telefono», con «Inviami un codice via SMS» evidenziato](screen:paging-phone)
 
 Digita il tuo numero di cellulare con il prefisso internazionale in **Il tuo numero di telefono**, per esempio `+15551234567`, e fai clic su **Inviami un codice via SMS**. Inserisci il codice ricevuto via SMS e fai clic su **Verifica**: anche le telefonate di reperibilità arrivano a questo numero. Fai clic su **Continua**. Per essere avvisato solo dall'app e via email, lascia vuoto il numero e fai clic subito su **Continua**.
 
 ### Scegliere chi altro viene avvisato
 
+![Il passaggio «Chi altro è reperibile?», con «Salva e continua» evidenziato](screen:paging-who-else)
+
 In **Chi altro è reperibile?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone insieme a te, poi fai clic su **Salva e continua**. In un progetto che non ha ancora una policy di reperibilità, questo crea `Default on-call policy`, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
 
 ### Decidere cosa succede se nessuno risponde
 
+![Il passaggio «E se nessuno risponde?», con «Salva e continua» evidenziato](screen:paging-no-answer)
+
 In **E se nessuno risponde?**, mantieni **Chiama qualcun altro**, scegli chi in **Chiamati dopo** e lascia **Minuti di attesa** a `30` o cambia il valore. Fai clic su **Salva e continua**. Con il piano Free, il passaggio propone invece **Richiama le stesse persone**, con **Volte da richiamare** a `2`.
 
 ### Inviare una chiamata di test
+
+![Il passaggio «Invia una chiamata di test», con «Testa questa policy» evidenziato](screen:paging-test)
 
 In **Invia una chiamata di test**, fai clic su **Testa questa policy**. Scegli una **Gravità** e fai clic su **Invia chiamata di test**. La prima regola di escalation della policy viene avvisata come farebbe un incidente reale, e ogni messaggio dice TEST. Non viene creato alcun incidente, e nessuna pagina di stato o iscritto viene informato.
 
@@ -59,6 +71,8 @@ Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 dur
 :::
 
 ## Controllare che funzioni
+
+![Il riepilogo «Le chiamate sono configurate»: «Chi viene chiamato», «Se nessuno risponde» e «Testato»](screen:paging-summary)
 
 - Il passaggio di test dice chi ha riconosciuto la chiamata, come e in quanto tempo.
 - La configurazione termina su **Le chiamate sono configurate**, un riepilogo ricavato da ciò che è stato salvato: **Chi viene chiamato**, **Se nessuno risponde** e **Testato**. Un problema della policy stessa, come qualcuno che non riesce a raggiungere, è elencato in **Richiede attenzione**.
@@ -89,6 +103,6 @@ Controlla prima il prefisso internazionale del numero. Dopo una chiamata di test
 :::cards
 - [Pianificazioni di reperibilità](/docs/on-call/schedules): Fare i turni, così ogni chiamata va a chi è reperibile. Su Cloud, dal piano Growth.
 - [Regole di escalation](/docs/on-call/escalation-rules): Aggiungere livelli, team e pianificazioni alla policy.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Scegliere quale metodo ti raggiunge per primo, e quando.
+- [Come contattarmi](/docs/notifications/on-call-rules): Scegliere quale metodo ti raggiunge per primo, e quando.
 - [Pubblicare una pagina di stato](/docs/guides/status-page): Dire ai tuoi clienti cosa succede, sul tuo dominio.
 :::

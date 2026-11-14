@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Gruppi di monitor](/docs/monitor/monitor-groups): Riunire più monitor in un unico stato.
-- [Catalogo servizi](/docs/telemetry/services): Ogni applicazione che gestisci, con una pagina ciascuna.
+- [Servizi](/docs/telemetry/services): Ogni applicazione che gestisci, con una pagina ciascuna.
 - [Panoramica dell'inventario](/docs/inventory/overview): Tutto ciò che OneUptime sa della tua infrastruttura.
 :::
 
@@ -132,7 +132,7 @@ La **manutenzione programmata** annuncia in anticipo i lavori previsti. Un event
 
 ## Telemetria
 
-La **telemetria** è ciò che i tuoi sistemi inviano a OneUptime: log, metriche, tracce, eccezioni e profili. Le applicazioni la inviano con OpenTelemetry, e gli agenti di OneUptime la inviano da host, cluster Kubernetes, host Docker e dal resto dell'infrastruttura. Ogni mittente usa una **chiave di acquisizione**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. Cerchi nella telemetria, la rappresenti nelle dashboard e la tieni sotto controllo con i monitor di telemetria, che aprono incidenti e avvisi come qualsiasi altro monitor. Nel menu, **Registri**, **Metriche**, **Tracce**, **Profili di prestazioni** ed **Eccezioni** aprono ciascuno un tipo; **IA / LLM** segue le conversazioni della tua IA, **Osservabilità dei dati** tiene sotto controllo le tabelle dei tuoi database e **Topologia** mostra come tutto si collega.
+La **telemetria** è ciò che i tuoi sistemi inviano a OneUptime: log, metriche, tracce, eccezioni e profili. Le applicazioni la inviano con OpenTelemetry, e gli agenti di OneUptime la inviano da host, cluster Kubernetes, host Docker e dal resto dell'infrastruttura. Ogni mittente usa una **chiave di acquisizione**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. Cerchi nella telemetria, la rappresenti nelle dashboard e la tieni sotto controllo con i monitor di telemetria, che aprono incidenti e avvisi come qualsiasi altro monitor. Nel menu, **Registri**, **Metriche**, **Tracce**, **Profili** ed **Eccezioni** aprono ciascuno un tipo; **IA / LLM** segue le conversazioni della tua IA, **Osservabilità dei dati** tiene sotto controllo le tabelle dei tuoi database e **Topologia** mostra come tutto si collega.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Inviare log, metriche e tracce dalle tue applicazioni.
@@ -198,7 +198,7 @@ Le regole proprie di un monitor sono i suoi criteri. Le regole di reperibilità 
 
 :::cards
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings#regole-che-vengono-eseguite-alla-creazione-di-un-incidente): Le regole eseguite quando viene creato un incidente, in ordine.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Come una chiamata ti raggiunge.
+- [Come contattarmi](/docs/notifications/on-call-rules): Come una chiamata ti raggiunge.
 :::
 
 ## Passaggi successivi

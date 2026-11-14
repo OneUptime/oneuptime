@@ -8,6 +8,8 @@ import OpAmpCodec, {
 } from "../../../../Server/Utils/HostCollector/OpAmp/OpAmpCodec";
 import {
   DesiredHostCollectorConfig,
+  HOST_COLLECTOR_OPAMP_SETTINGS_FILE,
+  HOST_COLLECTOR_OPAMP_SETTINGS_YAML,
   HOST_FEATURE_JOURNALD_ATTRIBUTE,
   HOST_FEATURE_SYSTEMD_ATTRIBUTE,
   HostCollectorAgentState,
@@ -15,6 +17,7 @@ import {
   applyHostCollectorReport,
   describeHostCollectorAgent,
   exchangeWithHostCollector,
+  getHostCollectorSentConfigHash,
   getOpAmpErrorResponse,
   getOpAmpInstanceUidText,
   getOpAmpRemoteConfig,
@@ -36,6 +39,7 @@ import {
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
+import yaml from "js-yaml";
 import path from "path";
 
 /*
@@ -55,6 +59,9 @@ const CONFIG_A: string = "# config A\nreceivers: {}\n";
 const CONFIG_B: string = "# config B\nreceivers: {}\n";
 const HASH_A: string = getHostCollectorConfigHash(CONFIG_A);
 const HASH_B: string = getHostCollectorConfigHash(CONFIG_B);
+// What a host reports once it runs config A or B as OneUptime sends it.
+const SENT_A: string = getHostCollectorSentConfigHash(HASH_A);
+const SENT_B: string = getHostCollectorSentConfigHash(HASH_B);
 
 const DESIRED_A: DesiredHostCollectorConfig = {
   configYaml: CONFIG_A,
@@ -170,8 +177,15 @@ describe("OpAMP messages", () => {
     expect(decoded.remoteConfig?.config.configMap[""]?.contentType).toBe(
       "text/yaml",
     );
+    expect(
+      Buffer.from(
+        decoded.remoteConfig!.config.configMap[
+          HOST_COLLECTOR_OPAMP_SETTINGS_FILE
+        ]!.body,
+      ).toString("utf8"),
+    ).toBe(HOST_COLLECTOR_OPAMP_SETTINGS_YAML);
     expect(Buffer.from(decoded.remoteConfig!.configHash).toString("hex")).toBe(
-      HASH_A,
+      SENT_A,
     );
     expect(decoded.capabilities).toBe(ONEUPTIME_OPAMP_SERVER_CAPABILITIES);
   });
@@ -182,9 +196,58 @@ describe("OpAMP messages", () => {
     }).toThrow();
   });
 
-  test("OneUptime takes status reports and the effective config, and offers remote config", () => {
-    // AcceptsStatus | OffersRemoteConfig | AcceptsEffectiveConfig
-    expect(ONEUPTIME_OPAMP_SERVER_CAPABILITIES).toBe(0x1 | 0x2 | 0x4);
+  test("OneUptime takes status reports and offers remote config, and does not take the effective config", () => {
+    // AcceptsStatus | OffersRemoteConfig, without AcceptsEffectiveConfig (0x4).
+    expect(ONEUPTIME_OPAMP_SERVER_CAPABILITIES).toBe(0x1 | 0x2);
+  });
+
+  test("the effective config a supervisor forwards is dropped as the message is read", () => {
+    /*
+     * What a collector reports it runs has its ${env:...} values filled
+     * in: a host installed before OneUptime turned that report off still
+     * sends it. It goes no further than the decoder.
+     */
+    const effectiveYaml: string = [
+      "exporters:",
+      "  otlp_http/oneuptime:",
+      "    headers:",
+      "      x-oneuptime-token: '[REDACTED]'",
+      "processors:",
+      "  resource:",
+      "    attributes:",
+      "      - key: db.dsn",
+      "        value: postgres://app:SECRET-PASSWORD-456@db:5432/app",
+      "",
+    ].join("\n");
+
+    const decoded: OpAmpAgentToServer = OpAmpCodec.decodeAgentToServer(
+      OpAmpCodec.encodeAgentToServer({
+        instanceUid: INSTANCE,
+        sequenceNum: 3,
+        capabilities: 0x805,
+        health: { healthy: true },
+        effectiveConfig: {
+          configMap: {
+            configMap: {
+              "": {
+                body: new Uint8Array(Buffer.from(effectiveYaml, "utf8")),
+                contentType: "text/yaml",
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    expect(
+      (decoded as unknown as Record<string, unknown>)["effectiveConfig"],
+    ).toBeUndefined();
+    expect(JSON.stringify(decoded)).not.toContain("SECRET-PASSWORD-456");
+    expect(JSON.stringify(decoded)).not.toContain("db.dsn");
+    // The rest of the message is read as before.
+    expect(decoded.sequenceNum).toBe("3");
+    expect(decoded.capabilities).toBe("2053");
+    expect(decoded.health).toEqual({ healthy: true });
   });
 
   test("the proto files are the OpAMP specification's, unchanged", () => {
@@ -567,13 +630,32 @@ describe("whether the answer carries the config", () => {
   test("a host that runs it, or is applying it, is not sent it again", () => {
     expect(
       shouldSendHostCollectorConfig({
-        state: { ...FRESH, configHash: HASH_A },
+        state: { ...FRESH, configHash: SENT_A },
         desired: DESIRED_A,
       }),
     ).toBe(false);
   });
 
+  test("a host that runs it as it was sent before the settings file is sent it again", () => {
+    // It reports the config's own hash, which OneUptime sent it with then.
+    expect(
+      shouldSendHostCollectorConfig({
+        state: { ...FRESH, configHash: HASH_A },
+        desired: DESIRED_A,
+      }),
+    ).toBe(true);
+  });
+
   test("a config that failed on the host is not sent again", () => {
+    expect(
+      shouldSendHostCollectorConfig({
+        state: { ...FRESH, configHash: SENT_B, failedConfigHash: SENT_A },
+        desired: DESIRED_A,
+      }),
+    ).toBe(false);
+  });
+
+  test("nor is one that failed before the settings file came with it", () => {
     expect(
       shouldSendHostCollectorConfig({
         state: { ...FRESH, configHash: HASH_B, failedConfigHash: HASH_A },
@@ -591,7 +673,7 @@ describe("one exchange", () => {
       desired: DESIRED_A,
     });
 
-    expect(result.sentConfigHash).toBe(HASH_A);
+    expect(result.sentConfigHash).toBe(SENT_A);
     expect(sentYaml(result.response)).toBe(CONFIG_A);
     expect(Buffer.from(result.response.instanceUid)).toEqual(
       Buffer.from(INSTANCE),
@@ -606,12 +688,12 @@ describe("one exchange", () => {
     const result: OpAmpExchangeResult = exchangeWithHostCollector({
       state: {
         ...FRESH,
-        configHash: HASH_A,
+        configHash: SENT_A,
         configStatus: HostCollectorConfigStatus.Applied,
       },
       message: message({
         status: OpAmpRemoteConfigStatus.Applied,
-        hash: HASH_A,
+        hash: SENT_A,
       }),
       desired: DESIRED_A,
     });
@@ -624,12 +706,12 @@ describe("one exchange", () => {
     const result: OpAmpExchangeResult = exchangeWithHostCollector({
       state: {
         ...FRESH,
-        configHash: HASH_A,
+        configHash: SENT_A,
         configStatus: HostCollectorConfigStatus.Applied,
       },
       message: message({
         status: OpAmpRemoteConfigStatus.Applied,
-        hash: HASH_A,
+        hash: SENT_A,
       }),
       desired: DESIRED_B,
     });
@@ -641,19 +723,19 @@ describe("one exchange", () => {
     const failed: OpAmpExchangeResult = exchangeWithHostCollector({
       state: {
         ...FRESH,
-        configHash: HASH_A,
+        configHash: SENT_A,
         configStatus: HostCollectorConfigStatus.Applied,
       },
       message: message({
         status: OpAmpRemoteConfigStatus.Failed,
-        hash: HASH_B,
+        hash: SENT_B,
         errorMessage: "boom",
       }),
       desired: DESIRED_B,
     });
 
     expect(failed.sentConfigHash).toBeNull();
-    expect(failed.state.failedConfigHash).toBe(HASH_B);
+    expect(failed.state.failedConfigHash).toBe(SENT_B);
 
     const fixed: DesiredHostCollectorConfig = {
       configYaml: `${CONFIG_B}# fixed\n`,
@@ -663,19 +745,21 @@ describe("one exchange", () => {
       state: failed.state,
       message: message({
         status: OpAmpRemoteConfigStatus.Applied,
-        hash: HASH_A,
+        hash: SENT_A,
       }),
       desired: fixed,
     });
 
-    expect(changed.sentConfigHash).toBe(fixed.configHash);
+    expect(changed.sentConfigHash).toBe(
+      getHostCollectorSentConfigHash(fixed.configHash),
+    );
   });
 
   test("Try again: once the failure is cleared, the same config is sent once more", () => {
     const retried: OpAmpExchangeResult = exchangeWithHostCollector({
       state: {
         ...FRESH,
-        configHash: HASH_A,
+        configHash: SENT_A,
         configStatus: HostCollectorConfigStatus.Failed,
         // Cleared by Try again.
         failedConfigHash: null,
@@ -683,12 +767,12 @@ describe("one exchange", () => {
       },
       message: message({
         status: OpAmpRemoteConfigStatus.Applied,
-        hash: HASH_A,
+        hash: SENT_A,
       }),
       desired: DESIRED_B,
     });
 
-    expect(retried.sentConfigHash).toBe(HASH_B);
+    expect(retried.sentConfigHash).toBe(SENT_B);
   });
 
   test("a supervisor that is stopping is sent nothing new", () => {
@@ -712,6 +796,167 @@ describe("one exchange", () => {
     expect(() => {
       OpAmpCodec.encodeServerToAgent(result.response);
     }).not.toThrow();
+  });
+});
+
+/*
+ * What OneUptime adds to every config it sends: a settings file that stops
+ * the collector reporting the config it runs, which it would send with its
+ * ${env:...} values filled in. The file changes the hash a config is sent
+ * with, so hosts that ran their config before it came are sent it once
+ * more - and only once: a host sent its config again on every poll would
+ * restart its collector every 30 seconds.
+ */
+describe("what OneUptime adds to every config it sends", () => {
+  // A supervisor that applies whatever it is sent, as the real one does.
+  function poll(
+    state: HostCollectorAgentState,
+    desired: DesiredHostCollectorConfig,
+    runs: string | null,
+    sequenceNum: number,
+  ): { result: OpAmpExchangeResult; runs: string | null } {
+    const result: OpAmpExchangeResult = exchangeWithHostCollector({
+      state,
+      message: message({
+        sequenceNum,
+        ...(runs
+          ? { status: OpAmpRemoteConfigStatus.Applied, hash: runs }
+          : { noStatus: true }),
+      }),
+      desired,
+    });
+    const received: string | null = result.response.remoteConfig
+      ? Buffer.from(result.response.remoteConfig.configHash).toString("hex")
+      : null;
+    return { result, runs: received || runs };
+  }
+
+  test("a settings file that turns off the collector's report of the config it runs, and nothing else", () => {
+    expect(HOST_COLLECTOR_OPAMP_SETTINGS_FILE).toBe("oneuptime-opamp.yaml");
+    expect(yaml.load(HOST_COLLECTOR_OPAMP_SETTINGS_YAML)).toEqual({
+      extensions: {
+        opamp: { capabilities: { reports_effective_config: false } },
+      },
+    });
+  });
+
+  test("goes beside the host's config, which is sent as it is", () => {
+    const remoteConfig: NonNullable<OpAmpServerToAgent["remoteConfig"]> =
+      getOpAmpRemoteConfig(DESIRED_A);
+    const files: Record<string, { body: Uint8Array; contentType: string }> =
+      remoteConfig.config.configMap;
+
+    expect(Object.keys(files).sort()).toEqual([
+      "",
+      HOST_COLLECTOR_OPAMP_SETTINGS_FILE,
+    ]);
+    expect(Buffer.from(files[""]!.body).toString("utf8")).toBe(CONFIG_A);
+    expect(
+      Buffer.from(files[HOST_COLLECTOR_OPAMP_SETTINGS_FILE]!.body).toString(
+        "utf8",
+      ),
+    ).toBe(HOST_COLLECTOR_OPAMP_SETTINGS_YAML);
+    expect(files[HOST_COLLECTOR_OPAMP_SETTINGS_FILE]!.contentType).toBe(
+      "text/yaml",
+    );
+  });
+
+  test("and the config is sent with a hash of its own hash and the file", () => {
+    expect(SENT_A).toMatch(/^[0-9a-f]{64}$/);
+    expect(SENT_A).not.toBe(HASH_A);
+    expect(SENT_A).not.toBe(SENT_B);
+    expect(getHostCollectorSentConfigHash(HASH_A)).toBe(SENT_A);
+    expect(SENT_A).toBe(
+      getHostCollectorConfigHash(
+        `${HOST_COLLECTOR_OPAMP_SETTINGS_YAML}\n${HASH_A}`,
+      ),
+    );
+    expect(
+      Buffer.from(getOpAmpRemoteConfig(DESIRED_A).configHash).toString("hex"),
+    ).toBe(SENT_A);
+  });
+
+  test("a new install is sent its config once, then never again, poll after poll", () => {
+    let state: HostCollectorAgentState = FRESH;
+    let runs: string | null = null;
+    const sentOn: Array<number> = [];
+
+    for (let sequenceNum: number = 0; sequenceNum < 12; sequenceNum++) {
+      const step: { result: OpAmpExchangeResult; runs: string | null } = poll(
+        state,
+        DESIRED_A,
+        runs,
+        sequenceNum,
+      );
+      if (step.result.sentConfigHash) {
+        sentOn.push(sequenceNum);
+      }
+      state = step.result.state;
+      runs = step.runs;
+    }
+
+    expect(sentOn).toEqual([0]);
+    expect(runs).toBe(SENT_A);
+    expect(state.configHash).toBe(SENT_A);
+    expect(state.configStatus).toBe(HostCollectorConfigStatus.Applied);
+  });
+
+  test("a host that ran its config before the file came is sent it once more, then never again", () => {
+    let state: HostCollectorAgentState = {
+      ...FRESH,
+      configHash: HASH_A,
+      configStatus: HostCollectorConfigStatus.Applied,
+    };
+    let runs: string | null = HASH_A;
+    const sentOn: Array<number> = [];
+
+    for (let sequenceNum: number = 40; sequenceNum < 52; sequenceNum++) {
+      const step: { result: OpAmpExchangeResult; runs: string | null } = poll(
+        state,
+        DESIRED_A,
+        runs,
+        sequenceNum,
+      );
+      if (step.result.sentConfigHash) {
+        sentOn.push(sequenceNum);
+        expect(
+          step.result.response.remoteConfig!.config.configMap[
+            HOST_COLLECTOR_OPAMP_SETTINGS_FILE
+          ],
+        ).toBeDefined();
+        expect(sentYaml(step.result.response)).toBe(CONFIG_A);
+      }
+      state = step.result.state;
+      runs = step.runs;
+    }
+
+    expect(sentOn).toEqual([40]);
+    expect(state.configHash).toBe(SENT_A);
+  });
+
+  test("a host whose config failed before the file came is not sent it again", () => {
+    let state: HostCollectorAgentState = {
+      ...FRESH,
+      configHash: HASH_B,
+      configStatus: HostCollectorConfigStatus.Failed,
+      failedConfigHash: HASH_A,
+      configError: "boom",
+    };
+    let runs: string | null = HASH_B;
+
+    for (let sequenceNum: number = 7; sequenceNum < 12; sequenceNum++) {
+      const step: { result: OpAmpExchangeResult; runs: string | null } = poll(
+        state,
+        DESIRED_A,
+        runs,
+        sequenceNum,
+      );
+      expect(step.result.sentConfigHash).toBeNull();
+      state = step.result.state;
+      runs = step.runs;
+    }
+
+    expect(state.configStatus).toBe(HostCollectorConfigStatus.Failed);
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import Timezone from "Common/Types/Timezone";
+import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
 import {
   BREADCRUMB_CATEGORY_LABELS,
   BREADCRUMB_CATEGORY_ORDER,
@@ -165,6 +166,38 @@ describe("getBreadcrumbSummary", () => {
 
     expect(summary).toHaveLength(161);
     expect(summary.endsWith("…")).toBe(true);
+  });
+
+  test("on a page read from the right, the status follows the request after the arrow that points on", () => {
+    expect(
+      withoutIsolateMarks(
+        getBreadcrumbSummary(
+          event("http.response", {
+            "http.method": "PUT",
+            "http.url": "https://warehouse/reservations",
+            "http.status_code": 409,
+          }),
+          "fa",
+        ),
+      ),
+    ).toBe("PUT https://warehouse/reservations ← 409");
+  });
+
+  test("a request too long for the line is cut short before its status, every isolate it opens closed", () => {
+    const request: BreadcrumbEventInput = event("http.response", {
+      "http.method": "GET",
+      "http.url": `https://warehouse/${"x".repeat(400)}`,
+      "http.status_code": 503,
+    });
+    const english: string = getBreadcrumbSummary(request, "en");
+    const persian: string = getBreadcrumbSummary(request, "fa");
+
+    expect(english).toHaveLength(161);
+    expect(english.endsWith("… → 503")).toBe(true);
+    expect(withoutIsolateMarks(persian).endsWith("… ← 503")).toBe(true);
+    expect((persian.match(/[\u2066-\u2068]/g) || []).length).toBe(
+      (persian.match(/\u2069/g) || []).length,
+    );
   });
 });
 

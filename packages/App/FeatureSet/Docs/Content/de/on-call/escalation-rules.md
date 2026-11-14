@@ -32,7 +32,7 @@ flowchart TB
 Wenn Sie auf der Seite **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie anlegen, fragt das Formular nach ihrem **Name** und **Wer wird zuerst alarmiert?**. Die Frage nutzt dieselbe Auswahl wie **Benachrichtigen**: Bereitschaftspläne, Teams und Personen, so viele Sie brauchen. Die Ausgewählten bilden die erste Eskalationsregel der Richtlinie, **Level 1**, die **30 Minuten** auf eine Bestätigung wartet, bevor die nächste Stufe alarmiert wird.
 
 :::steps
-1. Öffnen Sie **Bereitschaftsdienst** > **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
+1. Öffnen Sie **Bereitschaft** > **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
 2. Geben Sie einen **Name** ein.
 3. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie die Bereitschaftspläne, Teams und Personen, die zuerst alarmiert werden.
 4. Klicken Sie auf **Bereitschaftsrichtlinie erstellen**. Die neue Richtlinie öffnet sich danach auf ihrer Seite **Eskalationsregeln**, wo Sie weitere Stufen hinzufügen können.
@@ -92,7 +92,7 @@ Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: 
 
 ### Wie jede Person erreicht wird
 
-Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Bereitschaftsregeln**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Bereitschaftsregeln**. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
+Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Wie ich erreichbar bin**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Wie ich erreichbar bin**. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wen eine Stufe alarmiert und wie jede Person erreicht wird"
 flowchart TB
@@ -169,14 +169,14 @@ Die Eigentümer des Projekts erhalten dazu einmal eine E-Mail, bis das Guthaben 
 
 Eine Alarmierung, die den Benachrichtigungsdienst von OneUptime nicht erreichen konnte, sagt `Could not reach the Notification service to send this (ECONNREFUSED).`, mit dem Code des Netzwerkfehlers in den Klammern. Eine Alarmierung, deren Versand nie fertig wurde, etwa weil ein Server während des Versands neu gestartet ist, sagt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Wird der Versand doch noch fertig, ersetzt sein Ergebnis diese Meldung.
 
-In OneUptime Cloud wird jede SMS, jeder Anruf, jede WhatsApp- und Telegram-Nachricht vom Guthaben des Projekts unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** bezahlt: Ihre genauen Kosten werden abgebucht, wenn der Anbieter sie annimmt, egal wie viele Nachrichten gleichzeitig hinausgehen.
+In OneUptime Cloud wird jede SMS, jeder Anruf, jede WhatsApp- und Telegram-Nachricht vom Guthaben des Projekts unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** bezahlt: Ihre genauen Kosten werden abgebucht, wenn der Anbieter sie annimmt, egal wie viele Nachrichten gleichzeitig hinausgehen.
 
 - Ist dort **Automatisches Aufladen** eingeschaltet, lädt die Nachricht, die das Guthaben unter dem Schwellenwert vorfindet, zuerst den eingestellten Betrag auf und belastet die Karte des Projekts; Nachrichten, die es im selben Moment niedrig vorfinden, belasten die Karte nur einmal.
-- Schlägt diese Belastung fehl (es gibt keine Zahlungsmethode oder die Karte wurde abgelehnt), versucht es das automatische Aufladen eine Stunde später erneut, und **Benachrichtigungseinstellungen** zeigt das bis dahin oben an. Guthaben von Hand aufzuladen oder das automatische Aufladen erneut zu speichern, versucht es sofort.
+- Schlägt diese Belastung fehl (es gibt keine Zahlungsmethode oder die Karte wurde abgelehnt), versucht es das automatische Aufladen eine Stunde später erneut, und **Benachrichtigungskanäle** zeigt das bis dahin oben an. Guthaben von Hand aufzuladen oder das automatische Aufladen erneut zu speichern, versucht es sofort.
 - Alarmierungen gehen mit dem verbleibenden Guthaben weiter hinaus, solange das automatische Aufladen die Karte nicht belasten kann.
 
 > [!IMPORTANT]
-> SMS, Telefonanrufe, WhatsApp und Telegram sind in einem neuen Projekt ausgeschaltet: In OneUptime Cloud wird jede Nachricht vom Guthaben des Projekts bezahlt, und eine selbst gehostete Installation braucht zuerst ein Twilio-Konto, ein SMS- und Anruf-Gateway oder einen Telegram-Bot. Solange ein Kanal aus ist, kann niemand im Projekt eine Methode dafür hinzufügen. Nur ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** kann einen Kanal einschalten, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** — ein Projektadministrator kann es nicht. Alle anderen erfahren überall, wo ein Kanal aus ist, genau, wer ihn einschalten kann: über ihrer eigenen Liste der Methoden dafür, in ihrer Einrichtungs-Checkliste und in der Meldung, die sie bekommen, wenn etwas den Kanal braucht.
+> SMS, Telefonanrufe, WhatsApp und Telegram sind in einem neuen Projekt ausgeschaltet: In OneUptime Cloud wird jede Nachricht vom Guthaben des Projekts bezahlt, und eine selbst gehostete Installation braucht zuerst ein Twilio-Konto, ein SMS- und Anruf-Gateway oder einen Telegram-Bot. Solange ein Kanal aus ist, kann niemand im Projekt eine Methode dafür hinzufügen. Nur ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** kann einen Kanal einschalten, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** — ein Projektadministrator kann es nicht. Alle anderen erfahren überall, wo ein Kanal aus ist, genau, wer ihn einschalten kann: über ihrer eigenen Liste der Methoden dafür, in ihrer Einrichtungs-Checkliste und in der Meldung, die sie bekommen, wenn etwas den Kanal braucht.
 
 ## Zur nächsten Person in der Rotation eskalieren
 

@@ -10,7 +10,7 @@ import path from "path";
  * Every stepped form walks with a plain Next and offers its action on the
  * last step only (Common/UI/Components/Forms/Utils/SteppedFormFooter.ts). The
  * docs used to promise the opposite in a few places - Declare Incident and
- * Create Scheduled Maintenance Event "from the first step", Subscribe right
+ * Create Maintenance Event "from the first step", Subscribe right
  * under the address, Save Changes "on every step" of an edit dialog - and
  * Markdown is not compiled, so nothing else notices when such a promise
  * comes back. This reads every page, in every language.
@@ -92,7 +92,7 @@ describe("the docs on stepped forms", () => {
     ],
     [
       "status-pages/subscribers.md",
-      "**Create Scheduled Maintenance Event** is on the review at the end",
+      "**Create Maintenance Event** is on the review at the end",
     ],
     /*
      * The subscribe form has no steps: Preferences is folded on its one

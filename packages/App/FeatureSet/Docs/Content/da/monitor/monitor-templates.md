@@ -47,10 +47,10 @@ Vælg under **Overvågningsstandarder** **Monitortype** med den samme vælger so
 
 ### Angiv kriterierne og intervallet
 
-Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitorskabelon** på det sidste trin.
+Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Indstillinger for skabelonsynkronisering** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitorskabelon** på det sidste trin.
 :::
 
-Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Overvågningsstandarder**, **Overvågningskriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Standardværdier for brugerdefinerede felter** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede overvågninger**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger kriterier** eller **Rediger interval**.
+Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Overvågningsstandarder**, **Kriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Standardværdier for brugerdefinerede felter** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede overvågninger**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger kriterier** eller **Rediger interval**.
 
 ## Opret monitorer ud fra en skabelon
 
@@ -61,7 +61,7 @@ Værdier, der er sat under **Standardværdier for brugerdefinerede felter**, skr
 
 ## Synkronisér ændringer til tilknyttede monitorer
 
-At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til de tilknyttede monitorer bruger du synkroniseringsknappen på det kort, du har ændret. Hver knap nævner, hvor mange monitorer den når, som **Sync Criteria to 3 Linked Monitors**, og er nedtonet, så længe intet er tilknyttet. En synkronisering kan ikke fortrydes.
+At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til de tilknyttede monitorer bruger du synkroniseringsknappen på det kort, du har ændret. Hver knap nævner, hvor mange monitorer den når, som **Synkronisér kriterier til 3 tilknyttede overvågninger**, og er nedtonet, så længe intet er tilknyttet. En synkronisering kan ikke fortrydes.
 
 | Knap | Kopierer til hver tilknyttet monitor | Lader være |
 | --- | --- | --- |
@@ -85,22 +85,22 @@ Gå til **Monitorer → Indstillinger → Skabeloner**, og åbn skabelonen.
 
 ### Rediger dens kriterier
 
-Klik på **Rediger kriterier** på kortet **Overvågningskriterier**.
+Klik på **Rediger kriterier** på kortet **Kriterier**.
 
 ### Beskyt felterne
 
-Sæt under **Template sync settings** flueben i **Do not sync this field** ud for hvert felt, du vil beholde på de tilknyttede monitorer.
+Sæt under **Indstillinger for skabelonsynkronisering** flueben i **Synkronisér ikke dette felt** ud for hvert felt, du vil beholde på de tilknyttede monitorer.
 
 ### Gem
 
-Gem dine ændringer. Kortet **Overvågningskriterier** og bekræftelsen af begge synkroniseringer nedenfor viser de beskyttede felter.
+Gem dine ændringer. Kortet **Kriterier** og bekræftelsen af begge synkroniseringer nedenfor viser de beskyttede felter.
 
 ### Synkronisér
 
 Brug **Synkronisér kriterier til tilknyttede overvågninger** eller **Synkronisér fra skabelon** på en enkelt tilknyttet monitor.
 :::
 
-Beskyt for eksempel **Monitor destination** og **Anmodningsheadere** på en API-skabelon. Produktions- og staging-monitorer beholder deres egne URL'er og headere, mens begge får skabelonens opdaterede kriterier og de øvrige ubeskyttede indstillinger.
+Beskyt for eksempel **Monitor-mål** og **Anmodningsheadere** på en API-skabelon. Produktions- og staging-monitorer beholder deres egne URL'er og headere, mens begge får skabelonens opdaterede kriterier og de øvrige ubeskyttede indstillinger.
 
 Hvilke muligheder der findes, afhænger af monitortypen. De omfatter destinationer og porte, HTTP-anmodningsindstillinger, databaseforbindelser, DNS-indstillinger, infrastrukturvælgere og telemetriforespørgsler. Relaterede legitimationsoplysninger, som et klientcertifikat og dets private nøgle, holdes sammen.
 
@@ -159,7 +159,7 @@ Udelad arrayet, eller sæt det til `[]`, for at synkronisere alle understøttede
 | Protokoller, Security Events, Spor, AI / LLM, Metrikker, Undtagelser, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (monitorens hele konfiguration) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastrukturmonitorer (Kubernetes, Docker Container, Vært, Podman Container, Proxmox, Docker Swarm, Ceph, Lagerarray, IoT Device) tilbyder deres ressourcevælger, filtre (alle undtagen Vært), metrikforespørgsler og forespørgslens tidsvindue. Deres navne vises under **Template sync settings** på en skabelon af den type.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Vært, Podman Container, Proxmox, Docker Swarm, Ceph, Lagerarray, IoT Device) tilbyder deres ressourcevælger, filtre (alle undtagen Vært), metrikforespørgsler og forespørgslens tidsvindue. Deres navne vises under **Indstillinger for skabelonsynkronisering** på en skabelon af den type.
 :::
 
 ## Fejlfinding

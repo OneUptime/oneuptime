@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-Il gateway prende il posto dell'account Twilio del server per tutto ciò che passerebbe da esso: avvisi di reperibilità, notifiche, codici di verifica e SMS agli iscritti delle pagine di stato. I progetti che aggiungono una propria configurazione Twilio, nella scheda **Configurazione Twilio** in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, continuano a inviare tramite quella configurazione. Gli interruttori di SMS e chiamate di ogni progetto, e il suo saldo dove la fatturazione è attiva, vengono controllati come per Twilio.
+Il gateway prende il posto dell'account Twilio del server per tutto ciò che passerebbe da esso: avvisi di reperibilità, notifiche, codici di verifica e SMS agli iscritti delle pagine di stato. I progetti che aggiungono una propria configurazione Twilio, nella scheda **Configurazione Twilio** in **Impostazioni del progetto > Notifiche > Canali di notifica**, continuano a inviare tramite quella configurazione. Gli interruttori di SMS e chiamate di ogni progetto, e il suo saldo dove la fatturazione è attiva, vengono controllati come per Twilio.
 
 ## Configurare il gateway
 

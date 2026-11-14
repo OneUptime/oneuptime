@@ -171,6 +171,89 @@ function locale(language: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
+/*
+ * Where each size in an element is drawn - "۶٫۰ TiB" or "6.0 TiB", a number
+ * in Persian or Latin digits and a unit - measured with a text Range over
+ * its number and one over its unit (issue #7191). On a page read from the
+ * right a size drawn as bare text put its unit first ("TiB ۶٫۰"); read its
+ * own way, its number's box ends left of its unit's. In a narrow column a
+ * size drawn as two words broke between them, its unit alone on the next
+ * line; kept whole, its number and unit share a line.
+ */
+export interface DrawnSize {
+  text: string;
+  numberRight: number;
+  unitLeft: number;
+  isOneLine: boolean;
+}
+
+export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
+  return locator.evaluate((element: Element): Array<DrawnSize> => {
+    const sizes: Array<DrawnSize> = [];
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (node) {
+      const text: Text = node as Text;
+      const pattern: RegExp =
+        /(?<![0-9.,\u06F0-\u06F9\u066B\u066C])([0-9\u06F0-\u06F9][0-9.,\u06F0-\u06F9\u066B\u066C]*) (B|KiB|MiB|GiB|TiB)\b/g;
+      let match: RegExpExecArray | null = pattern.exec(text.data);
+
+      while (match) {
+        const boxOf: (start: number, length: number) => DOMRect = (
+          start: number,
+          length: number,
+        ): DOMRect => {
+          const range: Range = document.createRange();
+          range.setStart(text, start);
+          range.setEnd(text, start + length);
+          return range.getBoundingClientRect();
+        };
+        const number: DOMRect = boxOf(match.index, match[1]!.length);
+        const unit: DOMRect = boxOf(
+          match.index + match[1]!.length + 1,
+          match[2]!.length,
+        );
+
+        sizes.push({
+          text: match[0],
+          numberRight: number.right,
+          unitLeft: unit.left,
+          isOneLine: Math.abs(number.top - unit.top) < 2,
+        });
+        match = pattern.exec(text.data);
+      }
+
+      node = walker.nextNode();
+    }
+
+    return sizes;
+  });
+}
+
+// Every size drawn with its number first: its number's box left of its unit's, on one line.
+export async function expectSizesNumberFirst(
+  locator: Locator,
+  message: string,
+): Promise<Array<DrawnSize>> {
+  const sizes: Array<DrawnSize> = await drawnSizes(locator);
+
+  expect(sizes.length, message).toBeGreaterThan(0);
+
+  for (const size of sizes) {
+    expect(size.isOneLine, `${message}: ${size.text} on one line`).toBe(true);
+    expect(
+      size.numberRight,
+      `${message}: ${size.text} has its number left of its unit`,
+    ).toBeLessThanOrEqual(size.unitLeft);
+  }
+
+  return sizes;
+}
+
 // The Dashboard's German and Persian words, as the fixture draws them.
 export const GERMAN: Record<string, string> = locale("de");
 export const PERSIAN: Record<string, string> = locale("fa");

@@ -3,6 +3,7 @@ import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import AttemptLine, { AttemptLinePart } from "./AttemptLine";
 
 export interface ComponentProps {
@@ -60,10 +61,8 @@ const ProbeAttemptsView: FunctionComponent<ComponentProps> = (
 
           if (typeof attempt.responseTimeInMs === "number") {
             parts.push({
-              text: translator.translateTemplate("{{value}} ms", {
-                value: translator.formatNumber(
-                  Math.round(attempt.responseTimeInMs),
-                ),
+              text: formatMilliseconds(translator, attempt.responseTimeInMs, {
+                maximumFractionDigits: 0,
               }),
             });
           }

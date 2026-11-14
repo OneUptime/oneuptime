@@ -29,6 +29,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -483,9 +484,10 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
 
         {openEvents && error ? (
           <p role="alert" className="mt-3 text-xs text-red-700">
-            {translator.translateTemplate("Could not refresh: {{error}}", {
-              error: error,
-            })}
+            <ErrorSentence
+              template="Could not refresh: {{error}}"
+              error={error}
+            />
           </p>
         ) : (
           <></>

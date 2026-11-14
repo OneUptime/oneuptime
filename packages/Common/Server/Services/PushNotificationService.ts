@@ -2,6 +2,10 @@ import PushNotificationRequest from "../../Types/PushNotification/PushNotificati
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
+import {
+  PUSH_NOT_SENT_TO_APP_THAT_NO_LONGER_RECEIVES_MESSAGE,
+  PUSH_NOT_SENT_TO_BROWSER_THAT_NO_LONGER_RECEIVES_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallPageLine";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
@@ -305,10 +309,10 @@ export default class PushNotificationService {
     deviceType: PushDeviceType | string | undefined,
   ): string {
     if (isExpoPushDeviceType(deviceType)) {
-      return "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.";
+      return PUSH_NOT_SENT_TO_APP_THAT_NO_LONGER_RECEIVES_MESSAGE;
     }
 
-    return "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.";
+    return PUSH_NOT_SENT_TO_BROWSER_THAT_NO_LONGER_RECEIVES_MESSAGE;
   }
 
   /*

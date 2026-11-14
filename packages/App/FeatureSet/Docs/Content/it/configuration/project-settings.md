@@ -34,7 +34,7 @@ flowchart LR
 | **Base** | **Progetto**, **Prodotti**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Prodotti](#prodotti), [Etichette](#etichette) |
 | **Area di lavoro** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochiamate** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochiamate](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati**, **Utilizzo** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention), [Utilizzo della telemetria](/docs/telemetry/usage) |
-| **Notifiche** | **Impostazioni notifiche**, **Registri di notifica**, **App mobili** | [Notifiche](#notifiche) |
+| **Notifiche** | **Canali di notifica**, **Registri di notifica**, **App mobili** | [Notifiche](#notifiche) |
 | **IA** | **Funzionalità IA**, **Provider LLM**, **Server MCP esterni**, **Crediti IA**, **Registri IA**, **Server MCP** | [Provider LLM](/docs/ai/llm-provider), [Server MCP esterni](/docs/ai/external-mcp-servers), [Server MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controllo-dei-costi) |
 | **Avanzato** | **Domini**, **Chiavi API**, **Flag delle funzionalità**, **Importa da un altro strumento** | [Domini personalizzati](/docs/status-pages/branding-and-domains#domini-personalizzati), [Chiavi API](/docs/permissions/index#chiavi-api), [Flag delle funzionalità](#flag-delle-funzionalità), [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie) e le altre guide alla migrazione |
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -61,6 +61,8 @@ flowchart LR
 **Impostazioni del progetto → Base → Prodotti** sceglie i prodotti che questo progetto mostra nel menu **Prodotti**, nella Home e nell'elenco della ricerca. Ogni prodotto ha un interruttore che salva appena lo sposti: attivo, mostra il prodotto. Utenti, Team e Impostazioni del progetto sono sempre mostrati, e **Mostra tutti i prodotti** li mostra di nuovo tutti.
 
 Un prodotto nascosto non è disattivato. Passa in **Altri prodotti**, l'ultima riga del menu **Prodotti**: la ricerca lo trova ancora, le sue pagine e la sua API funzionano, e i suoi dati continuano ad arrivare. Chi lo ha fissato lo tiene fissato.
+
+Su un server self-hosted, un amministratore principale può anche disattivare un prodotto per tutti i progetti, in **Impostazioni → Prodotti** nell'Admin Dashboard (vedi [Esegui solo ciò che ti serve](/docs/installation/docker-compose#esegui-solo-ciò-che-ti-serve)). Un prodotto così non ha un interruttore qui: mostra **Disattivato su questo server**, con chi può attivarlo.
 
 Un nuovo progetto parte da ciò che il suo proprietario ha detto di voler fare nella Home: sono mostrati gli essenziali, le impostazioni e ciò che servono a quegli obiettivi, e il resto è nascosto. Un progetto che ha saltato la domanda, o creato prima di essa, mostra tutti i prodotti. Appena qualcuno cambia l'elenco qui, gli obiettivi non lo cambiano più.
 
@@ -94,7 +96,7 @@ Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di 
 
 **Impostazioni del progetto → Notifiche** raccoglie il modo in cui il progetto invia le notifiche:
 
-- **Impostazioni notifiche**: la scheda **Canali di notifica** attiva o disattiva SMS, chiamate telefoniche, WhatsApp e Telegram per il progetto. Tutti e quattro partono disattivati. Li attiva un Project Owner, un **Amministratore della fatturazione** o chi ha **Manage Billing**. La pagina contiene anche, chiusi in **Altre impostazioni**, i server di posta del progetto, in **Configurazioni SMTP personalizzate** (vedi [SMTP](/docs/emails/smtp)), e il suo account Twilio (vedi [Integrazione Twilio](/docs/self-hosted/twilio-integration)). Su OneUptime Cloud contiene il saldo con cui si pagano questi messaggi: vedi [Saldi prepagati](/docs/configuration/billing#saldi-prepagati).
+- **Canali di notifica**: la scheda **Canali di notifica** attiva o disattiva SMS, chiamate telefoniche, WhatsApp e Telegram per il progetto. Tutti e quattro partono disattivati. Li attiva un Project Owner, un **Amministratore della fatturazione** o chi ha **Manage Billing**. La pagina contiene anche, chiusi in **Altre impostazioni**, i server di posta del progetto, in **Configurazioni SMTP personalizzate** (vedi [SMTP](/docs/emails/smtp)), e il suo account Twilio (vedi [Integrazione Twilio](/docs/self-hosted/twilio-integration)). Su OneUptime Cloud contiene il saldo con cui si pagano questi messaggi: vedi [Saldi prepagati](/docs/configuration/billing#saldi-prepagati).
 - **Registri di notifica**: ogni notifica inviata dal progetto, con una scheda per canale: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chiamata**, **Push** e **Area di lavoro**.
 - **App mobili**: dove trovare le app per iOS e Android. Vedi [Panoramica delle app](/docs/mobile-desktop-apps/index).
 

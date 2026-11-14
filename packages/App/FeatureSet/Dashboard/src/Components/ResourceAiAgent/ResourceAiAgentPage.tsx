@@ -213,6 +213,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A resource's AI agent page (AI → AI agent): whether OneUptime AI can reach
@@ -1606,10 +1607,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         <Alert
           type={AlertType.WARNING}
           strongTitle="Could not refresh the AI agent status"
-          title={translator.translateTemplate(
-            "{{error}} Showing the last known status; this page retries on its own.",
-            { error: error },
-          )}
+          title={
+            <ErrorSentence
+              template="{{error}} Showing the last known status; this page retries on its own."
+              error={error}
+            />
+          }
           dataTestId="ai-access-refresh-warning"
         />
       ) : (
@@ -1771,20 +1774,18 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               className="text-xs text-rose-600"
               data-testid="ai-agent-last-error"
             >
-              {lastVerifiedAt
-                ? translator.translateTemplate(
-                    "Last command error (last worked {{lastVerifiedAt}}): {{error}}",
-                    {
-                      lastVerifiedAt: lastVerifiedAt,
-                      error: status.aiAccessLastError,
-                    },
-                  )
-                : translator.translateTemplate(
-                    "Last command error: {{error}}",
-                    {
-                      error: status.aiAccessLastError,
-                    },
-                  )}
+              {lastVerifiedAt ? (
+                <ErrorSentence
+                  template="Last command error (last worked {{lastVerifiedAt}}): {{error}}"
+                  error={status.aiAccessLastError}
+                  values={{ lastVerifiedAt: lastVerifiedAt }}
+                />
+              ) : (
+                <ErrorSentence
+                  template="Last command error: {{error}}"
+                  error={status.aiAccessLastError}
+                />
+              )}
             </p>
           ) : (
             <></>

@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ Il registratore pubblica `window.OneUptimeReplay`. Poiché si carica in modo asi
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` e `addTag` vengono applicati prima che il registratore si avvii, quindi una decisione di consenso in coda decide se viene inviato qualcosa, e un'identità in coda viaggia già nel primo frammento. `track`, `metric`, `captureSession` e `onSessionChange` vengono eseguiti subito dopo l'avvio.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` e `addTag` vengono applicati prima che il registratore si avvii, quindi una decisione di consenso in coda decide se viene inviato qualcosa, e un'identità in coda viaggia già nel primo frammento. `track`, `metric`, `captureSession` e `onSessionChange` vengono eseguiti subito dopo l'avvio.
 
 | Metodo | Cosa fa |
 | --- | --- |
@@ -268,6 +270,8 @@ Il registratore pubblica `window.OneUptimeReplay`. Poiché si carica in modo asi
 | `getSessionId()` | L'id di sessione corrente, oppure `null` quando non viene registrato nulla. Preferisci `onSessionChange()`, che segue anche i cambi di sessione. |
 | `getVisitorId()` | L'[id visitatore anonimo](#visitatori-anonimi) — 32 caratteri esadecimali, uno per profilo del browser, lo stesso in tutti i cambi di sessione — oppure `""` prima che il registratore si avvii, dopo `stop()` e mentre il consenso è revocato. Casuale e non un'identità; non dipende da **Acquisisci l'identità dell'utente finale**. |
 | `stop()` | Invia l'ultimo frammento, chiude la sessione e si ferma per il resto della vita della pagina. |
+| `pause()` | Sospende la cattura di ciò che è sullo schermo fino a `resume()`: il chunk aperto parte con un marcatore _paused_ e nel frattempo non viene registrato nulla (né la pagina, né input, richieste, console o clic). La sessione resta aperta e l'attività del visitatore non la riprende. Per una pagina che registra solo alcune sue parti; messa in coda prima che il registratore si carichi, questo parte in pausa. |
+| `resume()` | Riprende la registrazione dopo `pause()`, nella stessa sessione, con una nuova istantanea della pagina com'è ora. Il player salta il tratto in pausa. |
 | `setDebug(enabled)` | Da ora in poi stampa le decisioni del registratore nella console. |
 | `getDiagnostics()` | Tutto ciò che il registratore ha deciso, che la diagnostica fosse attiva o no. Vedi sotto. |
 
@@ -370,7 +374,12 @@ I valori mascherati non conservano la lunghezza. Un campo mascherato è un segna
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Con _Mask all text_, il testo dentro un elemento con la classe `oneuptime-unmask` viene registrato così com'è: usala per le parole dell'interfaccia della tua pagina, come pulsanti, titoli e menu. Un elemento `oneuptime-mask` o uno dei tuoi selettori di mascheramento aggiuntivi al suo interno maschera di nuovo il testo, i campi dei moduli restano mascherati e negli altri modi di mascheramento la classe non fa nulla. Una pagina può anche chiedere più mascheramento di quello della sua policy, nell'oggetto globale di inizializzazione: `maskAllText: true` registra con _Mask all text_ qualunque cosa dica la policy, e `blockSelectors` si aggiunge ai selettori di blocco della policy. Nessuno dei due può far mostrare di più a una registrazione.
 
 Puoi anche aggiungere **Selettori di mascheramento aggiuntivi** e **Selettori di blocco** nella pagina **Policy di riproduzione** della tua applicazione, senza cambiare il tuo markup. Con la modalità di mascheramento predefinita, sono lo strumento principale per proteggere contenuti che il tuo markup non dichiara sensibili.
 

@@ -826,7 +826,7 @@ Every monitor made from that template afterwards carries those values: those you
 
 A plain **Sync from Template** leaves custom fields alone: pushing criteria or an interval never rewrites the values on your monitors.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria check each poll result and trap, and open incidents or alerts.
 

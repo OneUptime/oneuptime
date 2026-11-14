@@ -1077,7 +1077,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               sendFirstReportAt: true,
             },
-            noValueMessage: "-",
             title: "First Report",
             type: FieldType.DateTime,
           },
@@ -1113,7 +1112,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               nextSendAt: true,
             },
-            noValueMessage: "-",
             title: "Next Send",
             type: FieldType.DateTime,
           },

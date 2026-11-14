@@ -180,6 +180,10 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import UserUtil from "../../../UI/Utils/User";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  EMPTY_VALUE_MARK,
+  EMPTY_VALUE_TEST_ID,
+} from "../../../UI/Components/Detail/EmptyValue";
 import IncidentEpisodeOwnerTeam from "../../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "../../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -321,9 +325,11 @@ const renderPage: RenderPageFunction = async (
  * from the label and taking the sibling is what a person reading the row does.
  * The compact style the overview uses keeps exactly that shape.
  */
-type FieldValueFunction = (title: string) => string;
+type FieldValueElementFunction = (title: string) => HTMLElement;
 
-const fieldValue: FieldValueFunction = (title: string): string => {
+const fieldValueElement: FieldValueElementFunction = (
+  title: string,
+): HTMLElement => {
   const label: HTMLElement = screen.getByText(title);
   const labelRoot: Element | null = label.closest("div.space-y-1");
   const container: HTMLElement | null | undefined = labelRoot?.parentElement;
@@ -338,7 +344,33 @@ const fieldValue: FieldValueFunction = (title: string): string => {
     throw new Error(`The field "${title}" rendered no value element`);
   }
 
-  return (value.textContent || "").trim();
+  return value as HTMLElement;
+};
+
+type FieldValueFunction = (title: string) => string;
+
+const fieldValue: FieldValueFunction = (title: string): string => {
+  return (fieldValueElement(title).textContent || "").trim();
+};
+
+/*
+ * A field the episode has no value for. The page draws a bare "-" for it,
+ * and since 3e034e6b7f2 the card draws that as its own empty value: the
+ * dash every empty field is, read out as "Not set" (Detail/EmptyValue).
+ * It is all that field's row says.
+ */
+type ExpectEmptyFieldFunction = (title: string) => void;
+
+const expectEmptyField: ExpectEmptyFieldFunction = (title: string): void => {
+  const empty: HTMLElement = within(fieldValueElement(title)).getByTestId(
+    EMPTY_VALUE_TEST_ID,
+  );
+
+  expect(within(empty).getByText(EMPTY_VALUE_MARK)).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+  expect(fieldValue(title)).toEqual((empty.textContent || "").trim());
 };
 
 type PillForFunction = (title: string) => HTMLElement;
@@ -523,7 +555,7 @@ describe("Incident Episode detail page: severity (issue #3374)", () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     expect(screen.getByText("Episode Severity")).toBeInTheDocument();
-    expect(fieldValue("Episode Severity")).toEqual("-");
+    expectEmptyField("Episode Severity");
     expectNoCrash();
   });
 
@@ -541,7 +573,7 @@ describe("Incident Episode detail page: severity (issue #3374)", () => {
       expect(screen.getByText("Episode Severity")).toBeInTheDocument();
     });
 
-    expect(fieldValue("Episode Severity")).toEqual("-");
+    expectEmptyField("Episode Severity");
     expectNoCrash();
   });
 
@@ -622,7 +654,7 @@ describe("Incident Episode detail page: current state", () => {
     });
 
     expect(screen.getByText("Current State")).toBeInTheDocument();
-    expect(fieldValue("Current State")).toEqual("-");
+    expectEmptyField("Current State");
     expectNoCrash();
   });
 
@@ -664,8 +696,8 @@ describe("Incident Episode detail page: both relations missing", () => {
   test("renders both placeholders when state and severity are absent", async () => {
     await renderPage({});
 
-    expect(fieldValue("Episode Severity")).toEqual("-");
-    expect(fieldValue("Current State")).toEqual("-");
+    expectEmptyField("Episode Severity");
+    expectEmptyField("Current State");
     expect(fieldValue("Episode Number")).toContain("#7");
     expectNoCrash();
   });
@@ -697,7 +729,7 @@ describe("Incident Episode overview: details column", () => {
       "Episode Severity",
       "Incident Count",
       "Grouping Rule",
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Labels",
     ]);
 

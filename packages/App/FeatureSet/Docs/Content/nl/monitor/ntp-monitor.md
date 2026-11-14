@@ -57,7 +57,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline als de server geen betrouwbare tijd levert, online als hij dat wel doet. Pas ze aan als dat nodig is en klik op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline als de server geen betrouwbare tijd levert, online als hij dat wel doet. Pas ze aan als dat nodig is en klik op **Volgende**.
 
 ### Sondes kiezen en maken
 

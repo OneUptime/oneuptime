@@ -12,6 +12,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ResourceConnectionCopy,
   ResourceConnectionGuide,
   ResourceConnectionGuideStep,
 } from "./ResourceConnectionGuides";
@@ -48,6 +49,14 @@ import { splitCommandAtAddressSlashes } from "../SetupGuide/CommandDisplay";
 export interface ComponentProps {
   status: string | null | undefined;
   lastSeenAt: Date | string | null | undefined;
+  /*
+   * When the resource's agent last sent anything, read or not - for a
+   * resource whose agent reads it from an API (a Proxmox cluster). While it
+   * is recent and the resource is not connected, the card says the agent
+   * cannot read the resource (guide.unreadableCopy) instead of "stopped
+   * sending data" (issue #7439).
+   */
+  agentLastSeenAt?: Date | string | null | undefined;
   guide: ResourceConnectionGuide;
   // The resource's Documentation tab - the full, prefilled guide.
   documentationRoute: Route;
@@ -67,7 +76,13 @@ interface StateCopy {
   // The link drawn as the quieter, outlined button.
   isLinkSecondary?: boolean | undefined;
   // What the card is saying, for its data-variant (and its tests).
-  variant: "setup" | "starting" | "stopped" | "idle";
+  variant:
+    | "setup"
+    | "starting"
+    | "stopped"
+    | "idle"
+    | "unreadable"
+    | "waiting-for-read";
   accent: {
     border: string;
     gradient: string;
@@ -100,6 +115,52 @@ const getStateCopy: (
    * each kind of resource (ResourceConnectionGuide's setupCopy).
    */
   const agentName: TranslatableTerm = translatableTerm(guide.agentName);
+
+  /*
+   * The agent is running but the resource is not read (issue #7439): the
+   * API needs looking at, not the agent - amber once a read stopped, the
+   * calmer indigo of a first read on its way while none has come yet.
+   */
+  if (
+    guide.unreadableCopy &&
+    (state === ResourceConnectionState.ReadingStopped ||
+      state === ResourceConnectionState.NotReadYet)
+  ) {
+    const isStopped: boolean = state === ResourceConnectionState.ReadingStopped;
+    const copy: ResourceConnectionCopy = isStopped
+      ? guide.unreadableCopy.stopped
+      : guide.unreadableCopy.notYet;
+    // Translated with the sentence it goes into, as a date is.
+    const lastRead: string | TranslatableTerm = lastSeenAt
+      ? OneUptimeDate.fromNow(lastSeenAt)
+      : translatableTerm("a while ago");
+
+    return {
+      variant: isStopped ? "unreadable" : "waiting-for-read",
+      icon: isStopped ? IconProp.Alert : IconProp.Clock,
+      title: translator.translateTemplate(copy.title),
+      description: translator.translateTemplate(copy.description, {
+        lastRead: lastRead,
+        agentName: agentName,
+      }),
+      steps: guide.unreadableCopy.steps,
+      accent: isStopped
+        ? {
+            border: "border-amber-200",
+            gradient: "from-amber-50",
+            iconRing: "ring-amber-200",
+            iconText: "text-amber-600",
+            stepBadge: "bg-amber-50 text-amber-700 ring-amber-200",
+          }
+        : {
+            border: "border-indigo-200",
+            gradient: "from-indigo-50",
+            iconRing: "ring-indigo-200",
+            iconText: "text-indigo-600",
+            stepBadge: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+          },
+    };
+  }
 
   if (state === ResourceConnectionState.Disconnected) {
     // Translated with the sentence it goes into, as a date is.
@@ -203,10 +264,23 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
   const [areFoldedStepsShown, setAreFoldedStepsShown] =
     useState<boolean>(false);
 
-  const state: ResourceConnectionState = getResourceConnectionState({
+  const readState: ResourceConnectionState = getResourceConnectionState({
     status: props.status,
     lastSeenAt: props.lastSeenAt,
+    agentLastSeenAt: props.agentLastSeenAt,
   });
+
+  /*
+   * A guide with nothing to say about an agent that cannot read its
+   * resource reads it as before: stopped, or never connected.
+   */
+  const state: ResourceConnectionState = props.guide.unreadableCopy
+    ? readState
+    : readState === ResourceConnectionState.ReadingStopped
+      ? ResourceConnectionState.Disconnected
+      : readState === ResourceConnectionState.NotReadYet
+        ? ResourceConnectionState.NeverConnected
+        : readState;
 
   if (state === ResourceConnectionState.Connected) {
     return <></>;

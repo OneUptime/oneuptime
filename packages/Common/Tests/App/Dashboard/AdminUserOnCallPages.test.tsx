@@ -350,8 +350,8 @@ const SECTION_PAGES: Array<SectionPage> = [
   },
   {
     pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
-    menuTitle: "On-Call Rules",
-    breadcrumbTitle: "On-Call Rules",
+    menuTitle: "How to Reach Me",
+    breadcrumbTitle: "How to Reach Me",
     element: <UserViewOnCallRules {...pageProps} />,
   },
 ];
@@ -706,8 +706,14 @@ describe("the On-Call Rules page draws one kind at a time", () => {
     });
   }
 
-  test("a bare address opens Incidents", async () => {
+  /*
+   * The bare address opens How to Reach Me's ladder (#6820); its grid is
+   * one click away, and opens on Incidents.
+   */
+  test("a bare address opens the ladder, and Different for Some Severities opens Incidents", async () => {
     renderPage(RULES_PAGE);
+
+    fireEvent.click(await screen.findByText("Different for Some Severities"));
 
     await waitForTablesOf(TAB_CASES[0]!);
 
@@ -724,7 +730,8 @@ describe("the On-Call Rules page draws one kind at a time", () => {
   });
 
   test("opening another tab draws its kind and drops the one before", async () => {
-    renderPage(RULES_PAGE);
+    // A link to the first tab opens the grid at once (#6820).
+    renderPage(RULES_PAGE, "?type=incidents");
 
     await waitForTablesOf(TAB_CASES[0]!);
 
@@ -738,7 +745,8 @@ describe("the On-Call Rules page draws one kind at a time", () => {
   });
 
   test("the address follows the open tab, and the first tab is the bare address", async () => {
-    renderPage(RULES_PAGE);
+    // A link to the first tab opens the grid at once (#6820).
+    renderPage(RULES_PAGE, "?type=incidents");
 
     await waitForTablesOf(TAB_CASES[0]!);
 
@@ -762,7 +770,8 @@ describe("the On-Call Rules page draws one kind at a time", () => {
   });
 
   test("the four tabs are the four kinds, in order", async () => {
-    renderPage(RULES_PAGE);
+    // A link to the first tab opens the grid at once (#6820).
+    renderPage(RULES_PAGE, "?type=incidents");
 
     await waitForTablesOf(TAB_CASES[0]!);
 
@@ -816,7 +825,8 @@ describe("the On-Call Rules page draws one kind at a time", () => {
 
 describe("the section shares one load of the person it is about", () => {
   test("the rules page reads identity and readiness exactly once, however many tabs are opened", async () => {
-    renderPage(RULES_PAGE);
+    // A link to the first tab opens the grid at once (#6820).
+    renderPage(RULES_PAGE, "?type=incidents");
 
     await waitForTablesOf(TAB_CASES[0]!);
 
@@ -871,7 +881,8 @@ describe("the section shares one load of the person it is about", () => {
   });
 
   test("the rule tables are about the user in the URL, on every tab", async () => {
-    renderPage(RULES_PAGE);
+    // A link to the first tab opens the grid at once (#6820).
+    renderPage(RULES_PAGE, "?type=incidents");
 
     await waitForTablesOf(TAB_CASES[0]!);
 
@@ -1005,7 +1016,7 @@ describe("every page is reachable", () => {
     expect(allTitles.slice(readinessIndex, readinessIndex + 3)).toEqual([
       "Readiness",
       "Notification Methods",
-      "On-Call Rules",
+      "How to Reach Me",
     ]);
 
     for (const retiredTitle of [
@@ -1073,7 +1084,7 @@ describe("every page is reachable", () => {
     }
   });
 
-  test("the On-Call Rules entry stays marked whichever tab is open", async () => {
+  test("the How to Reach Me entry stays marked whichever tab is open", async () => {
     const rulesHref: string = RouteUtil.populateRouteParams(
       RouteMap[PageMap.USER_VIEW_ON_CALL_RULES] as Route,
       { modelId: TARGET_USER_ID },
@@ -1100,10 +1111,10 @@ describe("every page is reachable", () => {
         );
       });
 
-      expect(activeLinkTitles()).toEqual(["On-Call Rules"]);
+      expect(activeLinkTitles()).toEqual(["How to Reach Me"]);
 
       const rulesLink: HTMLElement | null = screen
-        .getByText("On-Call Rules")
+        .getByText("How to Reach Me")
         .closest("a");
 
       // The bare address: a menu link never pins a tab.

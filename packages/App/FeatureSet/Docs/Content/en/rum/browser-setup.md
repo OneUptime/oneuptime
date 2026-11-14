@@ -26,7 +26,7 @@ flowchart TB
 
 - A web app whose code you can change and redeploy, with its dependencies installed through npm.
 - The origins your pages are served from, such as `https://app.example.com`. A Browser key accepts requests only from the origins you list on it.
-- A role that can create ingestion keys: project owners and admins can, and so can anyone with the **Create Telemetry Ingestion Key** permission.
+- A role that can create ingestion keys: project owners and admins can, and so can anyone with the Create Ingestion Key permission.
 
 ## Set it up
 
@@ -38,7 +38,7 @@ flowchart TB
 3. Click **Create Ingestion Key**, and pick **Browser** as the **Key Type**.
 4. On the **Browser Settings** step, list your origins in **Allowed Origins** as a JSON array, such as `["https://app.example.com"]`, then create the key. On OneUptime Cloud's Free plan, a last **Billing** step shows the telemetry price first.
 
-![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
 
 The new key opens on its own page. Copy its **Secret Key**: it is the token the SDK sends as `x-oneuptime-token`.
 

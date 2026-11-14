@@ -129,6 +129,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import React, {
   FormEvent,
   Fragment,
@@ -140,6 +141,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * THE TRAFFIC PAGE - a device's, a site's, or the whole network's.
@@ -976,7 +978,10 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
           trailing={formatTrafficBytes(row.octets)}
         />
       ),
-      title: `${getTrafficAddressText(source)} → ${getTrafficAddressText(destination)}`,
+      title: joinWithArrowsOn(
+        [getTrafficAddressText(source), getTrafficAddressText(destination)],
+        translator.language,
+      ),
       octets: row.octets,
       isActive: isActive,
       ariaLabel: translator.translateTemplate(
@@ -1350,10 +1355,10 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                       className="h-4 w-4 shrink-0 text-red-500"
                     />
                     <span>
-                      {translator.translateTemplate(
-                        "Couldn't refresh — showing previously loaded data. {{error}}",
-                        { error: error },
-                      )}
+                      <ErrorSentence
+                        template="Couldn't refresh — showing previously loaded data. {{error}}"
+                        error={error}
+                      />
                     </span>
                   </div>
                 ) : (

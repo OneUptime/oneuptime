@@ -259,7 +259,7 @@ const CASES: Array<TableCase> = [
     element: <ProfileTable />,
     listPath: "/profile/get-list",
     rows: PROFILE_ROWS,
-    title: "Performance Profile ID",
+    title: "Performance profile ID",
   },
   {
     name: "ExceptionInstanceTable",

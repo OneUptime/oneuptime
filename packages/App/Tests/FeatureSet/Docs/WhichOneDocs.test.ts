@@ -2,6 +2,7 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { anchorsOf, hasPage, readPage } from "./DocsContentSupport";
 import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import {
   menuSections,
   readDashboardSource,
@@ -404,14 +405,16 @@ describe.each(LANGUAGES)("Which One Do I Use? in %s", (language: string) => {
         if (span.includes(PATH_SEPARATOR)) {
           const segments: Array<string> = span.split(PATH_SEPARATOR);
 
+          // With the arrows this language's pages draw ("←" beside a Persian step, #7611).
           return segments.every((segment: string): boolean => {
             return isActionLabel(segment.trim());
           })
-            ? segments
-                .map((segment: string): string => {
+            ? pathWithArrows(
+                segments.map((segment: string): string => {
                   return drawnActionLabel(language, segment.trim());
-                })
-                .join(PATH_SEPARATOR)
+                }),
+                language,
+              )
             : null;
         }
 

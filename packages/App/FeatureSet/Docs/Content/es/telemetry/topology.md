@@ -28,7 +28,7 @@ flowchart LR
 ## Antes de empezar
 
 - **Telemetría que llega.** El mapa de servicios necesita trazas: consulte [OpenTelemetry](/docs/telemetry/open-telemetry). La vista de infraestructura necesita un host o un clúster que envíe datos: consulte el [agente de Kubernetes](/docs/telemetry/kubernetes-agent). La vista de red necesita dispositivos de red: consulte [Monitor de dispositivos de red](/docs/monitor/network-device-monitor).
-- **Un rol que lea la telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Telemetry Service.
+- **Un rol que lea la telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Inventory Item.
 
 ## Abrir la topología
 
@@ -114,7 +114,7 @@ Un proyecto muy grande alcanza los límites del mapa, y un aviso dice cuántos r
 ## Próximos pasos
 
 :::cards
-- [Catálogo de servicios](/docs/telemetry/services): Todo sobre un servicio.
+- [Servicios](/docs/telemetry/services): Todo sobre un servicio.
 - [Explorador de trazas](/docs/telemetry/traces-explorer): Las solicitudes detrás de cada flecha.
 - [Visión general del inventario](/docs/inventory/overview): Cada recurso que dibuja el mapa.
 - [Monitor de dispositivos de red](/docs/monitor/network-device-monitor): Ponga su red en el mapa.

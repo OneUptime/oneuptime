@@ -111,6 +111,17 @@ export const PublicNoteApprovalCopy: {
   editSubmit: string;
   editFilesLocked: string;
   heldNotificationNotice: string;
+  /*
+   * What failed, said first for an error nobody explained
+   * (ErrorExplanation): sending a note or an edit for approval, and each
+   * of the approval's own actions.
+   */
+  sendFailed: string;
+  editSendFailed: string;
+  approveFailed: string;
+  rejectFailed: string;
+  publishFailed: string;
+  withdrawEditFailed: string;
 } = {
   waiting: translationKey("Waiting for approval"),
   rejected: translationKey("Rejected"),
@@ -171,6 +182,12 @@ export const PublicNoteApprovalCopy: {
   heldNotificationNotice: translationKey(
     "Subscribers are told once it is published.",
   ),
+  sendFailed: translationKey("Couldn't send the note for approval."),
+  editSendFailed: translationKey("Couldn't send the edit for approval."),
+  approveFailed: translationKey("Couldn't approve the note."),
+  rejectFailed: translationKey("Couldn't reject the note."),
+  publishFailed: translationKey("Couldn't publish the note."),
+  withdrawEditFailed: translationKey("Couldn't withdraw the edit."),
 };
 
 // How a note reads, from the columns the feed loads.
@@ -263,6 +280,8 @@ export interface PublicNoteApprovalActions {
   canResubmit: boolean;
   canWithdrawEdit: boolean;
   resubmitLabel: string;
+  // What failed when the resubmit fails: sending it again, or publishing it.
+  resubmitFailed: string;
   // Approving publishes the note.
   isApprovalFinal: boolean;
 }
@@ -295,6 +314,9 @@ export function getApprovalActions(data: {
     resubmitLabel: data.isRequired
       ? PublicNoteApprovalCopy.sendAgain
       : PublicNoteApprovalCopy.publishNow,
+    resubmitFailed: data.isRequired
+      ? PublicNoteApprovalCopy.sendFailed
+      : PublicNoteApprovalCopy.publishFailed,
     isApprovalFinal: Boolean(data.summary?.step?.isFinal),
   };
 }

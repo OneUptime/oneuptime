@@ -49,7 +49,7 @@ Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco c
 | **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** | **Incidenti → Incidenti attivi** |
 | **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** | **Avvisi → Avvisi attivi** |
 | **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati, e quelli con il monitoraggio disattivato, non contano. | **Tutti operativi** | **Monitor → Non operativo** |
-| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** | **Manutenzione programmata → Eventi in corso** |
+| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** | **Manutenzione programmata → Eventi di manutenzione in corso** |
 | **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** | **SLOs** |
 
 Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Finché un SLO è a rischio, **SLO a rischio** apre l'elenco **SLOs** filtrato su quegli SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
@@ -129,7 +129,7 @@ Due barre attraversano la parte alta di ogni pagina.
 | In alto a destra | **Cerca** e **Chiedi all'IA**, la campanella delle notifiche con ciò che ti aspetta ora (incidenti e avvisi attivi, le policy di reperibilità in cui sei di turno, gli inviti in sospeso), **Aiuto**, e la tua foto, che apre il menu del tuo [account](/docs/introduction/your-account). |
 | Sotto | **Home** e **Prodotti** a sinistra, **Impostazioni utente** a destra: come OneUptime ti raggiunge in questo progetto. |
 
-**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Keyboard shortcuts** e il supporto via e-mail e su Slack. Su un tablet o in una finestra stretta, **Chiedi all'IA** viene tolto per fare spazio: si trova tra le azioni di **Cerca**. Su un telefono, **Cerca** e **Aiuto** passano nell'elenco del pulsante del menu, in cima e in fondo; la campanella e la tua foto restano.
+**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Scorciatoie da tastiera** e il supporto via e-mail e su Slack. Su un tablet o in una finestra stretta, **Chiedi all'IA** viene tolto per fare spazio: si trova tra le azioni di **Cerca**. Su un telefono, **Cerca** e **Aiuto** passano nell'elenco del pulsante del menu, in cima e in fondo; la campanella e la tua foto restano.
 
 Una parola con una linea tratteggiata sotto, come **Sonde** nel modulo di un nuovo monitor, dice cosa significa quando la indichi, la raggiungi con Tab o la tocchi. Il suo **Leggi di più** apre la parola nel [Glossario](/docs/introduction/glossary).
 
@@ -149,7 +149,7 @@ Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impost
 Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona di ricerca nella barra in alto, e inizia a digitare. La ricerca trova:
 
 - **Ogni pagina dei menu**, con il nome che il menu le dà: Chiavi API, Zona pericolosa, Pianificazioni di reperibilità, Gravità incidente, i tuoi Metodi di notifica. Ogni risultato dice dove si trova, per esempio *Impostazioni del progetto › Avanzato*, così le pagine con lo stesso nome (Campi personalizzati in Incidenti, Avvisi e Monitor) si distinguono facilmente.
-- **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Canali di notifica* trova Impostazioni notifiche. Digita il nome in inglese o nella tua lingua.
+- **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Configurazioni SMTP personalizzate* trova Canali di notifica. Digita il nome in inglese o nella tua lingua.
 - **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
 - **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome, e incidenti e avvisi anche per numero, come `INC-42`. Ogni risultato di un incidente o di un avviso comincia con il suo numero, così due con lo stesso titolo si distinguono.
 - **La documentazione**, in un gruppo *Documentazione* sotto tutto il resto: le pagine e le sezioni le cui parole corrispondono a ciò che digiti, nella tua lingua, anche con un errore di battitura. Ognuna si apre in una nuova scheda, così non perdi il punto in cui eri.
@@ -165,7 +165,7 @@ Con la casella di ricerca vuota, la ricerca elenca le pagine aperte di recente, 
 
 ## Scorciatoie da tastiera
 
-Premi `?` in qualsiasi punto della dashboard per vedere tutte le scorciatoie, oppure apri **Aiuto** e scegli **Keyboard shortcuts**. Su un Mac, `Mod` è il tasto Comando; su Windows e Linux è Ctrl.
+Premi `?` in qualsiasi punto della dashboard per vedere tutte le scorciatoie, oppure apri **Aiuto** e scegli **Scorciatoie da tastiera**. Su un Mac, `Mod` è il tasto Comando; su Windows e Linux è Ctrl.
 
 | Tasti | Cosa fanno |
 | --- | --- |

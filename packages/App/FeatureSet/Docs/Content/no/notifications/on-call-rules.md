@@ -1,12 +1,13 @@
-# Personlige vaktregler
+# Slik når man meg
 
-Vaktreglene dine avgjør hvordan en tilkalling når deg: hvilke av varselmetodene dine OneUptime prøver, og hvor lenge etter at tilkallingen startet. Hver type tilkalling har egne regler, ett sett per alvorlighetsgrad, så en kritisk hendelse kan ringe deg med en gang mens et lavt varsel venter på en e-post. Du setter dem opp under **Brukerinnstillinger → Vaktregler**.
+Vaktreglene dine avgjør hvordan en tilkalling når deg: hvilke av varselmetodene dine OneUptime prøver, og hvor lenge etter at tilkallingen startet. Hver type tilkalling har egne regler, ett sett per alvorlighetsgrad, så en kritisk hendelse kan ringe deg med en gang mens et lavt varsel venter på en e-post. Du setter dem opp under **Brukerinnstillinger → Slik når man meg**.
 
 > [!NOTE]
 > Disse reglene er bare dine. **Vaktregler** under **Hendelser → Regler** og **Varsler → Regler** er noe annet: de avgjør hvilke vaktpolicyer en ny hendelse eller et nytt varsel kjører.
 
 :::cards
 - [Slik når en tilkalling deg](#slik-når-en-tilkalling-deg): Reglene dine for én tilkalling, steg for steg.
+- [Én rekkefølge for alt](#én-rekkefølge-for-alt): Trinnene hvert oppkall prøver, satt opp én gang.
 - [Reglene du starter med](#reglene-du-starter-med): Hva hver verifisert metode legger til, og hvordan du kutter ned.
 - [Legg til en regel](#legg-til-en-regel): En metode og en ventetid for én alvorlighetsgrad.
 - [Push-regler](#push-regler): Bryt gjennom lydløs, og gjenta til noen bekrefter.
@@ -26,9 +27,33 @@ flowchart TB
 
 De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsApp, Telegram, Slack, Microsoft Teams og Mattermost har en bekreftelseslenke, og et anrop ber deg trykke 1. Kan du ikke ta en tilkalling, kan du eskalere den fra de samme meldingene, og et anrop ber deg trykke 2: retningslinjen varsler neste nivå med en gang, og du blir ikke varslet om det igjen. Se [Eskaler en varsling](/docs/on-call/escalation-rules#eskaler-en-varsling). Hver tilkalling du får, står under **Brukerinnstillinger → Vaktlogger**, der **Vis tidslinje** viser hver sendte melding og om den ble levert.
 
+## Én rekkefølge for alt
+
+**Brukerinnstillinger → Slik når man meg** åpner med rekkefølgen din: trinnene hvert oppkall prøver, for hendelser, varsler og episoder av enhver alvorlighetsgrad. Hvert trinn er en av de verifiserte metodene dine og når den brukes, for eksempel en SMS med en gang og en samtale etter 5 minutter. Trinn med samme ventetid sendes samtidig, så rekkefølgen leses i den rekkefølgen den kaller opp.
+
+:::steps
+### Legg til en måte å nå deg på
+
+Velg en av de verifiserte metodene dine i **Legg til en måte å nå deg på**. Et nummer eller en adresse som fortsatt venter på koden, står under **Ikke verifisert ennå**, med **Verifiser**.
+
+### Velg når den brukes
+
+Velg ved hvert trinn en ventetid fra **Umiddelbart** til **1 time**. Et push-trinn sier også hvordan det høres ut og om det gjentas: se [Push-regler](#push-regler).
+
+### Lagre den
+
+Klikk på **Lagre rekkefølge**. Det skriver de samme reglene i hvert kort på hver fane: reglene du ville lagt til hvert kort for hånd.
+:::
+
+**Test oppkallene dine**, nederst på siden, sender deg et testoppkall gjennom dem.
+
+Når en alvorlighetsgrad fortjener noe annet, åpner **Annerledes for noen alvorlighetsgrader** fanene og kortene som beskrives nedenfor. Et kort som avviker fra rekkefølgen din, er merket **Avviker fra rekkefølgen**, og rekkefølgen viser hva hvert kort gjør i stedet. Avviker reglene dine allerede, åpner siden på kortene, med **Bruk én rekkefølge for alt**: når du lagrer, nevner den først kortene som mister avviket sitt. En alvorlighetsgrad prosjektet ditt har arkivert, beholder sine egne regler.
+
+En vaktpolicy bestemmer hvem som kalles opp og når neste nivå kommer. Hvordan du nås, er denne rekkefølgen, for hver policy som kaller deg opp.
+
 ## De fire fanene
 
-**Brukerinnstillinger → Vaktregler** har en fane for hver type tilkalling. Hver fane har et kort per alvorlighetsgrad, med navnet og fargen prosjektet ditt har gitt den:
+**Brukerinnstillinger → Slik når man meg** har en fane for hver type tilkalling. Hver fane har et kort per alvorlighetsgrad, med navnet og fargen prosjektet ditt har gitt den:
 
 | Fane | Tilkallinger for | Kort for |
 | --- | --- | --- |
@@ -60,11 +85,11 @@ Dine egne regler har ingen stilletimer: hold lave alvorlighetsgrader på e-post,
 :::steps
 ### Åpne kortet
 
-Gå til **Brukerinnstillinger → Vaktregler**, åpne fanen for typen tilkalling, og finn kortet for alvorlighetsgraden.
+Gå til **Brukerinnstillinger → Slik når man meg**, åpne fanen for typen tilkalling, og finn kortet for alvorlighetsgraden.
 
 ### Velg metoden
 
-Klikk **Legg til Varsling Regel**. Velg en av de verifiserte metodene dine under **Varselmetode**; en metode du ikke har verifisert, blir ikke tilbudt.
+Klikk **Legg til varselregel**. Velg en av de verifiserte metodene dine under **Varselmetode**; en metode du ikke har verifisert, blir ikke tilbudt.
 
 ### Velg hvordan en push høres ut
 
@@ -72,7 +97,7 @@ For en telefon velger du under **Push-varsel** enten **Kritisk varsel** eller **
 
 ### Sett ventetiden
 
-Velg **Varsle meg etter**: **Umiddelbart**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klikk så **Legg til Varsling Regel** i dialogen.
+Velg **Varsle meg etter**: **Umiddelbart**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klikk så **Legg til varselregel** i dialogen.
 :::
 
 Kortet viser reglene sine i rekkefølge etter ventetid, med **Varselmetode** og **Varsle etter** for hver.
@@ -105,12 +130,12 @@ API-et kan lagre en reservasjonsregel, med `isOptOut` satt og uten metode: da bl
 :::
 
 :::details Slå av reserveløsningen for et helt prosjekt
-En prosjekteier, eller noen med **Manage Billing**, kan sette prosjektets `disableOnCallNotificationFallback` via API-et. En tilkalling som ikke finner noen regel, blir da ikke levert, og loggen dens sier at brukeren må legge til regler under **Brukerinnstillinger → Vaktregler**.
+En prosjekteier, eller noen med **Manage Billing**, kan sette prosjektets `disableOnCallNotificationFallback` via API-et. En tilkalling som ikke finner noen regel, blir da ikke levert, og loggen dens sier at brukeren må legge til regler under **Brukerinnstillinger → Slik når man meg**.
 :::
 
 ## Reglene til en kollega
 
-Prosjekteiere og administratorer kan se og endre den samme siden for alle i prosjektet: Under **Brukere** åpner de personen, og deretter **Vaktregler** i seksjonen **Vakt**. **Beredskap**, rett ved siden av, viser om hver alvorlighetsgrad når personen. Når noen andre legger til, endrer eller sletter reglene dine, får du en e-post om det, og hver endring står i prosjektets revisjonslogg.
+Prosjekteiere og administratorer kan se og endre den samme siden for alle i prosjektet: Under **Brukere** åpner de personen, og deretter **Slik når man meg** i seksjonen **Vakt**. **Beredskap**, rett ved siden av, viser om hver alvorlighetsgrad når personen. Når noen andre legger til, endrer eller sletter reglene dine, får du en e-post om det, og hver endring står i prosjektets revisjonslogg.
 
 ## Feilsøking
 

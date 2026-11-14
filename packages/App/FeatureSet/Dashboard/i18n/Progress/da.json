@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9563
+    "keys": 51296,
+    "untranslated": 9524
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -42,6 +42,7 @@
     "Backups",
     "Badge",
     "Bare Metal",
+    "Blade",
     "Branding",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
@@ -56,6 +57,7 @@
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",
+    "Chassis",
     "Chat",
     "Chats",
     "ClickHouse",
@@ -257,7 +259,6 @@
     "Powered by OneUptime",
     "Principal",
     "Problem",
-    "Profiler",
     "Prompt",
     "Pull request",
     "Pull request #{{number}}",
@@ -397,6 +398,7 @@
     "container",
     "customer facing|tier-1",
     "dashboard",
+    "dashboards",
     "database",
     "datastore",
     "db-primary",
@@ -502,6 +504,7 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "workflow",
+    "workflows",
     "writesets",
     "x86",
     "z",
@@ -513,6 +516,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} VM",
     "{{count}} alarm",
@@ -538,6 +542,7 @@
     "{{count}} hunt",
     "{{count}} hunts",
     "{{count}} hypervisor",
+    "{{count}} job",
     "{{count}} live",
     "{{count}} load balancer",
     "{{count}} manager",

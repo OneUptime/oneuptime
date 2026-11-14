@@ -47,10 +47,10 @@ In **Impostazioni predefinite del monitor**, scegliete il **Tipo di monitor**, c
 
 ### Impostare i criteri e l'intervallo
 
-In **Criteri**, compilate cosa controllare e i criteri, come in [Crea monitor](/docs/monitor/create-monitor#criteri). La scheda **Template sync settings** in alto vi permette di proteggere i campi dalle sincronizzazioni (vedete [Mantenere valori propri di ogni monitor](#mantenere-valori-propri-di-ogni-monitor)). Per un tipo di monitor controllato dalle sonde, l'ultimo passaggio, **Intervallo**, chiede l'**Intervallo di monitoraggio**. Fate clic su **Crea: Modello di monitor** all'ultimo passaggio.
+In **Criteri**, compilate cosa controllare e i criteri, come in [Crea monitor](/docs/monitor/create-monitor#criteri). La scheda **Impostazioni di sincronizzazione del modello** in alto vi permette di proteggere i campi dalle sincronizzazioni (vedete [Mantenere valori propri di ogni monitor](#mantenere-valori-propri-di-ogni-monitor)). Per un tipo di monitor controllato dalle sonde, l'ultimo passaggio, **Intervallo**, chiede l'**Intervallo di monitoraggio**. Fate clic su **Crea: Modello di monitor** all'ultimo passaggio.
 :::
 
-Il modello viene aggiunto all'elenco. Apritelo per vedere la sua pagina, con una scheda per ogni parte: **Informazioni del modello**, **Impostazioni predefinite del monitor**, **Criteri di monitoraggio**, **Intervallo di monitoraggio** (con **Accordo minimo tra sonde**), **Etichette**, **Valori predefiniti dei campi personalizzati** (quando il progetto ha campi personalizzati per i monitor) e **Monitor collegati**. Ogni parte si modifica nella propria scheda, per esempio con **Modifica criteri** o **Modifica intervallo**.
+Il modello viene aggiunto all'elenco. Apritelo per vedere la sua pagina, con una scheda per ogni parte: **Informazioni del modello**, **Impostazioni predefinite del monitor**, **Criteri**, **Intervallo di monitoraggio** (con **Accordo minimo tra sonde**), **Etichette**, **Valori predefiniti dei campi personalizzati** (quando il progetto ha campi personalizzati per i monitor) e **Monitor collegati**. Ogni parte si modifica nella propria scheda, per esempio con **Modifica criteri** o **Modifica intervallo**.
 
 ## Creare monitor da un modello
 
@@ -61,7 +61,7 @@ I valori impostati in **Valori predefiniti dei campi personalizzati** vengono sc
 
 ## Sincronizzare le modifiche sui monitor collegati
 
-Modificare un modello cambia solo il modello. Per copiare una modifica sui monitor collegati, usate il pulsante di sincronizzazione della scheda che avete modificato. Ogni pulsante indica quanti monitor raggiunge, come **Sync Criteria to 3 Linked Monitors**, ed è disattivato finché nulla è collegato. Una sincronizzazione non si può annullare.
+Modificare un modello cambia solo il modello. Per copiare una modifica sui monitor collegati, usate il pulsante di sincronizzazione della scheda che avete modificato. Ogni pulsante indica quanti monitor raggiunge, come **Sincronizza criteri con 3 monitor collegati**, ed è disattivato finché nulla è collegato. Una sincronizzazione non si può annullare.
 
 | Pulsante | Copia su ogni monitor collegato | Lascia invariato |
 | --- | --- | --- |
@@ -85,22 +85,22 @@ Andate in **Monitor → Impostazioni → Modelli** e aprite il modello.
 
 ### Modificarne i criteri
 
-Nella scheda **Criteri di monitoraggio**, fate clic su **Modifica criteri**.
+Nella scheda **Criteri**, fate clic su **Modifica criteri**.
 
 ### Proteggere i campi
 
-In **Template sync settings**, spuntate **Do not sync this field** accanto a ogni campo che volete mantenere sui monitor collegati.
+In **Impostazioni di sincronizzazione del modello**, spuntate **Non sincronizzare questo campo** accanto a ogni campo che volete mantenere sui monitor collegati.
 
 ### Salvare
 
-Salvate le modifiche. La scheda **Criteri di monitoraggio**, e la conferma di entrambe le sincronizzazioni qui sotto, elencano i campi protetti.
+Salvate le modifiche. La scheda **Criteri**, e la conferma di entrambe le sincronizzazioni qui sotto, elencano i campi protetti.
 
 ### Sincronizzare
 
 Usate **Sincronizza criteri con i monitor collegati**, oppure **Sincronizza dal modello** su un singolo monitor collegato.
 :::
 
-Per esempio, proteggete **Monitor destination** e **Intestazioni della richiesta** su un modello API. I monitor di produzione e di staging mantengono i propri URL e intestazioni, mentre entrambi ricevono i criteri aggiornati del modello e le altre impostazioni non protette.
+Per esempio, proteggete **Destinazione del monitor** e **Intestazioni della richiesta** su un modello API. I monitor di produzione e di staging mantengono i propri URL e intestazioni, mentre entrambi ricevono i criteri aggiornati del modello e le altre impostazioni non protette.
 
 Le opzioni disponibili dipendono dal tipo di monitor. Comprendono destinazioni e porte, opzioni delle richieste HTTP, connessioni ai database, impostazioni DNS, selettori dell'infrastruttura e query di telemetria. Le credenziali correlate, come un certificato client e la sua chiave privata, vengono mantenute insieme.
 
@@ -159,7 +159,7 @@ Omettete l'array o impostatelo a `[]` per sincronizzare tutte le impostazioni de
 | Registri, Security Events, Tracce, IA / LLM, Metriche, Eccezioni, Profili | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (l'intera configurazione del monitor) |
 | Stato della sonda | `probeStatusMonitor.probeIds` |
 
-I monitor dell'infrastruttura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array di storage, IoT Device) offrono il loro selettore di risorse, i filtri (tutti tranne Host), le query delle metriche e la finestra temporale della query. I loro nomi sono elencati in **Template sync settings** su un modello di quel tipo.
+I monitor dell'infrastruttura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array di storage, IoT Device) offrono il loro selettore di risorse, i filtri (tutti tranne Host), le query delle metriche e la finestra temporale della query. I loro nomi sono elencati in **Impostazioni di sincronizzazione del modello** su un modello di quel tipo.
 :::
 
 ## Risoluzione dei problemi

@@ -1,12 +1,13 @@
-# Personal On-Call Rules
+# How to Reach Me
 
-Your on-call rules decide how a page reaches you: which of your notification methods OneUptime tries, and how long after the page starts. Each kind of page has its own rules, one set per severity, so a critical incident can call you at once while a low alert waits for an email. You set them under **User Settings → On-Call Rules**.
+How to Reach Me decides how a page reaches you: which of your notification methods OneUptime tries, and how long after the page starts. Each kind of page has its own rules, one set per severity, so a critical incident can call you at once while a low alert waits for an email. You set them under **User Settings → How to Reach Me**.
 
 > [!NOTE]
 > These rules are yours alone. The **On-Call Rules** under **Incidents → Rules** and **Alerts → Rules** are something else: they decide which on-call policies a new incident or alert runs.
 
 :::cards
 - [How a page reaches you](#how-a-page-reaches-you): Your rules for one page, step by step.
+- [One ladder for everything](#one-ladder-for-everything): The steps every page tries, set once.
 - [The rules you start with](#the-rules-you-start-with): What every verified method adds, and how to trim it.
 - [Add a rule](#add-a-rule): A method and a delay for one severity.
 - [Push rules](#push-rules): Ring through silent mode, and repeat until someone acknowledges.
@@ -26,9 +27,33 @@ flowchart TB
 
 Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Slack, Microsoft Teams and Mattermost messages carry an acknowledge link, and a call asks you to press 1. When you cannot take a page, the same messages let you escalate it, and a call asks you to press 2: the policy pages its next level straight away, and you are not paged again for it. See [Escalating a page](/docs/on-call/escalation-rules#escalating-a-page). Each page you get is listed under **User Settings → On-Call Logs**, where **View Timeline** shows every message it sent and whether it was delivered.
 
+## One ladder for everything
+
+**User Settings → How to Reach Me** opens on your ladder: the steps every page tries, for incidents, alerts and episodes of every severity. Each step is one of your verified methods and when to use it, such as SMS at once and a call after 5 minutes. Steps with the same wait go out together, so the ladder reads in the order it pages.
+
+:::steps
+### Add a way to reach you
+
+Pick one of your verified methods in **Add a way to reach you**. A number or an address still waiting for its code is listed under **Not verified yet**, with **Verify**.
+
+### Choose when it is used
+
+Beside each step, pick a wait from **Immediately** to **1 hour**. A push step also says how it sounds and whether it repeats: see [Push rules](#push-rules).
+
+### Save it
+
+Click **Save Ladder**. It writes the same rules into every card of every tab: the rules you would add to each card by hand.
+:::
+
+**Test your pages**, at the foot of the page, sends you a test page through them.
+
+When a severity deserves something else, **Different for Some Severities** opens the tabs and cards described below. A card that differs from your ladder is marked **Differs from the ladder**, and the ladder lists what each one does instead. If your rules already differ, the page opens on the cards, with **Use One Ladder for Everything**: saving it first names the cards that lose their difference. A severity your project archived keeps its own rules.
+
+An on-call policy decides who is paged and when its next level is. How you are reached is this ladder, for every policy that pages you.
+
 ## The four tabs
 
-**User Settings → On-Call Rules** has a tab for each kind of page. Each tab has a card per severity, named and coloured as your project named it:
+**User Settings → How to Reach Me** has a tab for each kind of page. Each tab has a card per severity, named and coloured as your project named it:
 
 | Tab | Pages for | Cards for |
 | --- | --- | --- |
@@ -60,7 +85,7 @@ Your own rules have no quiet hours: keep low severities on email, or on a push r
 :::steps
 ### Open the card
 
-Go to **User Settings → On-Call Rules**, open the tab for the kind of page, and find the card of the severity.
+Go to **User Settings → How to Reach Me**, open the tab for the kind of page, and find the card of the severity.
 
 ### Pick the method
 
@@ -105,12 +130,12 @@ The API can store an opt-out rule, with `isOptOut` set and no method: you are th
 :::
 
 :::details Turning the fallback off for a whole project
-A project owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API. A page that finds no rule is then not delivered, and its log says the user should add rules under **User Settings → On-Call Rules**.
+A project owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API. A page that finds no rule is then not delivered, and its log says the user should add rules under **User Settings → How to Reach Me**.
 :::
 
 ## Rules for a teammate
 
-Project owners and admins can see and change the same page for anyone in the project: under **Users**, open the person, then **On-Call Rules** in the **On-Call** section. **Readiness**, beside it, shows whether every severity reaches them. When someone else adds, changes or deletes your rules, you get an email about it, and each change is in the project's audit log.
+Project owners and admins can see and change the same page for anyone in the project: under **Users**, open the person, then **How to Reach Me** in the **On-Call** section. **Readiness**, beside it, shows whether every severity reaches them. When someone else adds, changes or deletes your rules, you get an email about it, and each change is in the project's audit log.
 
 ## Troubleshooting
 

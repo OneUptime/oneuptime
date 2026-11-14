@@ -1,4 +1,4 @@
-# Monitorkriterier och statusar
+# Kriterier och statusar
 
 En monitors kriterier avgör vad varje kontroll betyder: om monitorn är uppe eller nere, och om OneUptime deklarerar en incident eller skapar ett larm. Statusar är ditt projekts lista över vad en monitor kan vara, från **Fungerar** till **Offline**. Den här sidan förklarar båda för alla monitortyper; varje typs egen sida listar de filter den erbjuder.
 
@@ -111,7 +111,7 @@ Hemligheter och personuppgifter maskeras innan något sparas: headers som `Autho
 :::steps
 ### Öppna kriteriesidan
 
-Gå till **Monitorer** och öppna monitorn. Fäll ut **Konfiguration** i dess sidomeny och klicka på **Kriterier**. Kortet **Övervakningskriterier** visar varje kriterium, vad det kontrollerar och vad det gör.
+Gå till **Monitorer** och öppna monitorn. Fäll ut **Konfiguration** i dess sidomeny och klicka på **Kriterier**. Kortet **Kriterier** visar varje kriterium, vad det kontrollerar och vad det gör.
 
 ### Klicka på Redigera övervakningskriterier
 

@@ -1,4 +1,4 @@
-# ردیابی استثناها
+# استثناها
 
 ردیابی استثناها خطاهایی را که کدتان پرتاب می‌کند جمع می‌کند و هر رخداد از یک خطای یکسان را در یک استثنا گروه می‌کند، با ردیابی پشته، روند و درخواست‌هایی که در آن‌ها رخ داده است. آن‌ها را مثل یک فهرست کارها دسته‌بندی کنید: اصلاح کنید، برطرف‌شده علامت بزنید، یا هیاهو را بایگانی کنید، و بگذارید هوش مصنوعی برای آن‌هایی که می‌تواند اصلاح کند یک pull request باز کند.
 
@@ -39,7 +39,7 @@ flowchart TB
 ## پیش از شروع
 
 - **اسپن‌ها یا لاگ‌های در حال رسیدن.** سرویس‌هایتان را با [OpenTelemetry](/docs/telemetry/open-telemetry) ابزارگذاری کنید. زبانهٔ **راهنمای راه‌اندازی** کد زبان شما را نشان می‌دهد.
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Telemetry Service Exception. برطرف کردن و بایگانی کردن به Project Owner یا Project Admin، یا مجوز Edit Telemetry Service Exception نیاز دارد.
+- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Exceptions. برطرف کردن و بایگانی کردن به Project Owner یا Project Admin، یا مجوز Edit Exceptions نیاز دارد.
 
 ## دسته‌بندی فهرست
 
@@ -119,7 +119,7 @@ flowchart TB
 | کلاس | چه معنایی دارد | در **مسائل** |
 | --- | --- | --- |
 | `code-fault` | نقصی در کد. تنها کلاسی که هوش مصنوعی خودش اصلاح می‌کند. | بله |
-| `infrastructure` | یک وقفهٔ زمانی، یک اتصال قطع‌شده یا منابع تمام‌شده. | بله |
+| `infrastructure` | پایان مهلت، یک اتصال قطع‌شده یا منابع تمام‌شده. | بله |
 | `unknown` | هنوز طبقه‌بندی نشده است. | بله |
 | `user-error` | نتیجهٔ ورودی نامعتبر یک کاربر. | خیر |
 | `expected-denial` | بررسی‌ای که کارش را انجام می‌دهد، مانند یک ورود ردشده. | خیر |

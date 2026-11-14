@@ -103,11 +103,11 @@ export default class MonitorCriteria extends DatabaseProperty {
     monitorType: MonitorType,
   ): string | null {
     if (!value.data) {
-      return "Monitor Criteria is required";
+      return "Criteria are required";
     }
 
     if (value.data.monitorCriteriaInstanceArray.length === 0) {
-      return "Monitor Criteria is required";
+      return "Criteria are required";
     }
 
     for (const criteria of value.data.monitorCriteriaInstanceArray) {

@@ -174,6 +174,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
     kind: "keys",
   },
+  /*
+   * A monitor template's Template sync settings (#7546): the name of each
+   * field a linked monitor can keep its own value for, and what it keeps
+   * together, as the card and its summary line say them. Only the words the
+   * file marks are read: each field's path is stored in a template's
+   * doNotSyncFields as written.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
+    kind: "keys",
+  },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   /*
@@ -662,6 +673,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
     kind: "keys",
   },
+  /*
+   * The checks a table's columns call for (Data Observability's Suggested
+   * Checks, #7221): each one's name and why it is suggested, as whole
+   * sentences with the names they give as values, for the Dashboard to
+   * word in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+    kind: "keys",
+  },
 ];
 
 /*
@@ -811,9 +833,11 @@ const CODE_ELEMENTS: ReadonlySet<string> = new Set<string>([
 
 /*
  * Components whose `template` attribute is a sentence they translate:
- * <TranslatedSentence template="{{field}} is {{value}}" ... />.
+ * <TranslatedSentence template="{{field}} is {{value}}" ... />, and
+ * ErrorSentence, a TranslatedSentence with an error in it (#7307).
  */
 const TEMPLATE_COMPONENTS: ReadonlySet<string> = new Set<string>([
+  "ErrorSentence",
   "NamedSentence",
   "TranslatedSentence",
 ]);

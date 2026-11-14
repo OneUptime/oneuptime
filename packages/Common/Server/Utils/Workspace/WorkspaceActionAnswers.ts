@@ -144,8 +144,8 @@ export default class WorkspaceActionAnswers {
 
   /*
    * What a press that OneUptime can finish asks to be connected for:
-   * "acknowledge this incident", "mark this scheduled maintenance event as
-   * ongoing". A pinned message names the message by how it was chosen in
+   * "acknowledge this incident", "mark this maintenance event as ongoing".
+   * A pinned message names the message by how it was chosen in
    * that chat - "save the message you pinned as a private note on this
    * incident" (WorkspaceNoteReactionUtil.getSavedMessageWords) - as the
    * prompt is not next to it.

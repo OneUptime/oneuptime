@@ -125,7 +125,7 @@ SMS-, Telefon-, WhatsApp- und Telegram-Nachrichten werden aus dem Guthaben des P
 
 | Guthaben | Wo |
 | --- | --- |
-| SMS, Anrufe, WhatsApp und Telegram | **Projekteinstellungen → Benachrichtigungen → Benachrichtigungseinstellungen** |
+| SMS, Anrufe, WhatsApp und Telegram | **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** |
 | OneUptime AI | **Projekteinstellungen → KI → KI-Guthaben** |
 
 :::steps

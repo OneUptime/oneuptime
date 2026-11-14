@@ -75,6 +75,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The network topology, entered through the hierarchy instead of all at
@@ -792,10 +793,10 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
             data-testid="topology-hierarchy-refresh-error"
           >
-            {translator.translateTemplate(
-              "{{error}} — showing the last level that loaded.",
-              { error: error },
-            )}
+            <ErrorSentence
+              template="{{error}} — showing the last level that loaded."
+              error={error}
+            />
           </div>
         ) : (
           <></>

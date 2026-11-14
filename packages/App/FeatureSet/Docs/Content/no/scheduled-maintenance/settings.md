@@ -20,7 +20,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 | **Etikettregler**  | Legger til etiketter på matchende hendelser.                        |
 | **Påminnelsesregler** | Påminner eierne med et intervall til en hendelse er fullført.       |
 
-Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
+Seksjonen **Innstillinger** rommer **Vedlikeholdsstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Vedlikeholdsmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
 Seksjonen **Arbeidsområde** rommer Slack- og Microsoft Teams-reglene som poster hendelser i kanaler. Se [Slack](/docs/workspace-connections/slack#varslingsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#varslingsregler).
 
@@ -69,7 +69,7 @@ En regel matcher bare når hver betingelse du fyller ut, holder; en betingelse s
 :::steps
 ### Velg hvilke hendelser det skal påminnes om
 
-Klikk på **Opprett Scheduled Maintenance Reminder Rule**. Under **Treff** lar du **Alle planlagte vedlikeholdshendelser** være valgt for å påminne om hver hendelse, eller du velger **Bare planlagte vedlikeholdshendelser som oppfyller betingelsene** og deretter **Etiketter** den gjelder for.
+Klikk på **Opprett Scheduled Maintenance Reminder Rule**. Under **Treff** lar du **Alle vedlikeholdshendelser** være valgt for å påminne om hver hendelse, eller du velger **Bare vedlikeholdshendelser som oppfyller betingelsene** og deretter **Etiketter** den gjelder for.
 
 ### Still inn intervallet
 
@@ -92,7 +92,7 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 ### Notatmaler
 
-**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Notatmal for planlagt vedlikehold** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
+**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for vedlikeholdshendelser** viser dem; **Opprett Notatmal for planlagt vedlikehold** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
 
 ### Godkjenning av offentlige notater
 
@@ -117,7 +117,7 @@ Kortet **Neste nummer** under setter nummeret den neste hendelsen får, for å f
 
 ## Arbeidsflyter
 
-Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter seg: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** og **On Delete Scheduled Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Scheduled Maintenance Event** og **Update One Scheduled Maintenance Event**. Definisjoner av egendefinerte felt og måleverdier er unntakene: de har ingen arbeidsflyttrinn. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter seg: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definisjoner av egendefinerte felt og måleverdier er unntakene: de har ingen arbeidsflyttrinn. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dette
 
@@ -142,8 +142,8 @@ Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påmin
 ## Neste steg
 
 :::cards
-- [Vedlikeholdstilstander](/docs/scheduled-maintenance/states): Siden Hendelsesstatus, og hva hver tilstand gjør.
-- [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates): Siden Hendelsesmaler, i dybden.
+- [Vedlikeholdstilstander](/docs/scheduled-maintenance/states): Siden Vedlikeholdsstatus, og hva hver tilstand gjør.
+- [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates): Siden Vedlikeholdsmaler, i dybden.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): Regelskjemaet, trinn for trinn.
 - [Varselinnstillinger](/docs/notifications/notification-settings): Hvordan hver eier velger hva som når frem til dem.
 :::

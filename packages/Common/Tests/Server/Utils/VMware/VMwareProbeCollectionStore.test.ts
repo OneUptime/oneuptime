@@ -11,6 +11,11 @@ import VMwareCollectionErrorCode from "../../../../Types/VMware/VMwareCollection
 import VMwareCollectionMethod from "../../../../Types/VMware/VMwareCollectionMethod";
 import VMwareCollectionStatus from "../../../../Types/VMware/VMwareCollectionStatus";
 import {
+  DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+  MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+  MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+} from "../../../../Utils/VMware/VMwareCollectionSettings";
+import {
   VMwareCollectionJob,
   VMwareCollectionReport,
   VMwarePresentedCertificate,
@@ -49,10 +54,8 @@ interface FakeService {
 }
 
 function fakeService(data: {
-  selectedRows?: Array<{
-    _id: string;
-    collectionIntervalInMinutes: number | null;
-  }>;
+  // What the claim's one statement answers: the ids it claimed, in claim order.
+  claimedIds?: Array<string>;
   vcenters?: Array<VMwareVCenter>;
   vcenter?: VMwareVCenter | null;
 }): FakeService {
@@ -61,18 +64,28 @@ function fakeService(data: {
   const updates: Array<{ id: string; data: Record<string, unknown> }> = [];
 
   const service: unknown = {
-    executeTransaction: async <T>(
-      run: (manager: unknown) => Promise<T>,
-    ): Promise<T> => {
-      return await run({
-        query: async (
-          sql: string,
-          parameters: Array<unknown>,
-        ): Promise<unknown> => {
-          queries.push({ sql: sql, parameters: parameters });
-          return sql.trim().startsWith("SELECT") ? data.selectedRows || [] : [];
+    /*
+     * The claim is one self-committing statement (OneUptime issue #7194): a
+     * transaction would hold each claimed vCenter's lock across round trips,
+     * so one opened here fails the test.
+     */
+    executeTransaction: async (): Promise<never> => {
+      throw new Error("A claim must not open a transaction.");
+    },
+    getRepository: (): unknown => {
+      return {
+        manager: {
+          query: async (
+            sql: string,
+            parameters: Array<unknown>,
+          ): Promise<unknown> => {
+            queries.push({ sql: sql, parameters: parameters });
+            return (data.claimedIds || []).map((id: string) => {
+              return { _id: id };
+            });
+          },
         },
-      });
+      };
     },
     findBy: async (options: Record<string, unknown>): Promise<unknown> => {
       findByCalls.push(options);
@@ -222,18 +235,22 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
       'pr."deletedAt" IS NULL',
       'p."deletedAt" IS NULL',
       "LIMIT $3",
-      "FOR UPDATE OF vc SKIP LOCKED",
+      "FOR NO KEY UPDATE OF vc SKIP LOCKED",
     ]) {
       expect(select.sql).toContain(clause);
     }
+
+    /*
+     * FOR NO KEY UPDATE, never FOR UPDATE: the foreign-key check of a row
+     * that names a vCenter takes FOR KEY SHARE, which FOR UPDATE would make
+     * wait (OneUptime issue #7194).
+     */
+    expect(select.sql).not.toMatch(/FOR UPDATE/);
   });
 
-  test("moves each claimed vCenter's next collection one interval on, in the same transaction", async () => {
+  test("moves each claimed vCenter's next collection one interval on, in the same statement", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [
-        { _id: VCENTER_ID, collectionIntervalInMinutes: 5 },
-        { _id: VCENTER_ID_2, collectionIntervalInMinutes: null },
-      ],
+      claimedIds: [VCENTER_ID, VCENTER_ID_2],
       vcenters: [],
     });
 
@@ -243,28 +260,31 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
       limit: 4,
     });
 
-    expect(fake.queries).toHaveLength(2);
-    const now: Date = fake.queries[0]!.parameters[1] as Date;
-    const update: Query = fake.queries[1]!;
+    // One statement locks, moves and answers: nothing waits between them.
+    expect(fake.queries).toHaveLength(1);
+    const claim: Query = fake.queries[0]!;
+    const sql: string = claim.sql.replace(/\s+/g, " ");
 
-    expect(update.sql).toBe(
-      'UPDATE "VMwareVCenter" SET "nextCollectionAt" = CASE "_id" WHEN $1 THEN $2::timestamptz WHEN $3 THEN $4::timestamptz END WHERE "_id" IN ($5, $6)',
+    expect(sql).toContain('UPDATE "VMwareVCenter" AS vc');
+    // getSafeInterval's rule: none or not positive is the default, else 1 to 60.
+    expect(sql).toContain(
+      'SET "nextCollectionAt" = $2::timestamptz + ( CASE WHEN vc."collectionIntervalInMinutes" IS NULL OR vc."collectionIntervalInMinutes" <= 0 THEN $8::int ELSE LEAST(GREATEST(vc."collectionIntervalInMinutes", $9::int), $10::int) END ) * INTERVAL \'1 minute\'',
     );
-    expect(update.parameters[0]).toBe(VCENTER_ID);
-    expect((update.parameters[1] as Date).getTime() - now.getTime()).toBe(
-      5 * 60_000,
+    expect(sql).toContain('FROM "due" WHERE vc."_id" = "due"."_id"');
+    expect(claim.parameters.slice(7)).toEqual([
+      DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+      MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+      MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+    ]);
+    // Only what the statement wrote is answered, the longest overdue first.
+    expect(sql).toContain(
+      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC NULLS FIRST',
     );
-    expect(update.parameters[2]).toBe(VCENTER_ID_2);
-    // No interval saved: the default two minutes.
-    expect((update.parameters[3] as Date).getTime() - now.getTime()).toBe(
-      2 * 60_000,
-    );
-    expect(update.parameters.slice(4)).toEqual([VCENTER_ID, VCENTER_ID_2]);
   });
 
   test("hands each claimed vCenter out with its credentials, read as OneUptime", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: VCENTER_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [VCENTER_ID],
       vcenters: [
         vcenterRow({
           trustedCertificateFingerprint: FINGERPRINT.replace(
@@ -302,7 +322,7 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
 
   test("a claimed vCenter missing its address, user or password is not handed out", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: VCENTER_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [VCENTER_ID],
       vcenters: [
         vcenterRow({ vcenterPassword: undefined }),
         vcenterRow({ _id: VCENTER_ID_2, vcenterUrl: undefined }),
@@ -321,7 +341,7 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
 
   test("an interval outside the bounds is held to them; an unsaved version is 0", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: VCENTER_ID, collectionIntervalInMinutes: 500 }],
+      claimedIds: [VCENTER_ID],
       vcenters: [
         vcenterRow({
           collectionIntervalInMinutes: 500,

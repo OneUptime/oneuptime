@@ -251,6 +251,18 @@ Desktop, and with no browser picked Next says so by the button and goes nowhere;
 Failure and Request Timeout say what they are in one line, and the retry rule waits in the
 (i) by the title, wrapped inside the window.
 
+Probes' title is a defined term (issue #7543): only a press on the word opens its
+definition, and it stays open once the pointer moves away; a click on the empty end of the
+title's row, under the arrow every title has, leaves it closed. The dropdown is still named
+Probes, and so is the word. While the definition shows, the dropdown is still named Probes
+alone (issue #7561): the definition is drawn by the word but after the title's row, which
+names the dropdown, and Tab goes from the word to Read more and back.
+
+The Criteria card's title is a defined term too. While its definition shows, the card's
+heading still holds its title alone (issue #7594): the definition is drawn by the word but
+right after the heading, and Tab goes from the word to Read more, then on to the card's
+Learn more.
+
 At the plan's limit on active monitors (`?billing=true&monitorLimit=`), a notice above the
 form says which limit, how many active monitors the project has, what to do (with the plan
 a click away) and what counts; past the limit it says the monitors keep running and when the

@@ -44,7 +44,7 @@ sequenceDiagram
 | جهت | مقصد | پروتکل / پورت | هدف |
 | --- | --- | --- | --- |
 | SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | تحویل ایمیل تجزیه‌شده به‌صورت یک POST چندبخشی. |
-| سرورهای ایمیل فرستنده → SendGrid | `mx.sendgrid.net`، که رکورد MX عمومی دامنهٔ ورودی شما انتخابش می‌کند | SMTP / TCP 25 | دریافت ایمیل در SendGrid؛ این اتصال به سرور OneUptime شما نمی‌رسد. |
+| سرورهای ایمیل فرستنده ← SendGrid | `mx.sendgrid.net`، که رکورد MX عمومی دامنهٔ ورودی شما انتخابش می‌کند | SMTP / TCP 25 | دریافت ایمیل در SendGrid؛ این اتصال به سرور OneUptime شما نمی‌رسد. |
 | OneUptime → SendGrid، فقط وقتی ارسال ایمیل با ارائه‌دهندهٔ SendGrid جداگانه پیکربندی شده باشد | `api.sendgrid.com` | HTTPS / TCP 443 | فرستادن ایمیل‌های اعلان از راه Mail Send API. |
 
 ‏DNS نام میزبان وب‌هوک را منتشر کنید و گواهی‌ای ارائه دهید که کلاینت‌های عمومی به آن اعتماد دارند. یک استقرار خصوصی OneUptime می‌تواند فقط مسیر وب‌هوک را از راه یک پراکسی معکوس یا دروازهٔ عمومی که از داخل به OneUptime می‌رسد در دسترس بگذارد. مسیر، راز، نوع محتوا و بدنهٔ چندبخشی درخواست را دست‌نخورده نگه دارید، و بگذارید POST بدون ورود تعاملی یا چالش مرورگر عبور کند. سرور OneUptime به شنوندهٔ SMTP ورودی نیاز ندارد. [راه‌اندازی Inbound Parse در SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook) را ببینید.

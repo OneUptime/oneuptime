@@ -55,7 +55,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **K
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når porten ikke accepterer en forbindelse, online, når den gør. Ret dem efter behov, og klik så på **Næste**.
+**Kriterier** starter med [standardkriterierne](#standardkriterier): offline, når porten ikke accepterer en forbindelse, online, når den gør. Ret dem efter behov, og klik så på **Næste**.
 
 ### Vælg sonder, og opret
 

@@ -191,10 +191,20 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
          * validate weekly restriction windows here — a "start day/time after
          * end day/time" window is a supported wrap-around (e.g. Fri -> Mon)
          * coverage feature, not an error.
+         *
+         * Compared to the minute, as both fields show them (#7593): a layer
+         * saved before times were picked to the minute can start at
+         * 08:00:17, which reads 08:00, and a hand-off picked at 08:00 is
+         * then the start's own minute - which the engine hands off at as it
+         * does at the start itself - not one before it.
          */
         if (startsAt && handOffTime) {
-          const start: Date = OneUptimeDate.fromString(startsAt as any);
-          const handoff: Date = OneUptimeDate.fromString(handOffTime as any);
+          const start: Date = OneUptimeDate.getStartOfMinute(
+            OneUptimeDate.fromString(startsAt as any),
+          );
+          const handoff: Date = OneUptimeDate.getStartOfMinute(
+            OneUptimeDate.fromString(handOffTime as any),
+          );
 
           if (OneUptimeDate.isBefore(handoff, start)) {
             errors["handOffTime"] = translator.translateTemplate(

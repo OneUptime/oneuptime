@@ -113,8 +113,10 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
       /*
        * The supervisor on every host OneUptime manages polls here for the
-       * config the host runs: /opamp/v1, and /telemetry/opamp/v1 behind an
-       * ingress that routes only /telemetry to the App.
+       * config the host runs: at /telemetry/opamp/v1, where the installers
+       * point it (every OneUptime ingress sends /telemetry to the App), and
+       * at /opamp/v1 from the hosts installed before they did, which the
+       * ingress has a location of its own for (Nginx/default.conf.template).
        */
       app.use(TELEMETRY_PREFIXES, HostCollectorOpAmpAPI);
       /*
@@ -143,7 +145,7 @@ const TelemetryFeatureSet: FeatureSet = {
       // Transport itself is installed at module scope above (boot-race note there).
       if (isTelemetryWriterForwardingEnabled()) {
         logger.info(
-          `Telemetry Service - forwarding ClickHouse inserts to telemetry-writer tier at ${getTelemetryWriterUrl()}`,
+          `Telemetry ingest - forwarding ClickHouse inserts to telemetry-writer tier at ${getTelemetryWriterUrl()}`,
           { service: "telemetry" },
         );
       }
@@ -175,7 +177,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);
 
       logger.info(
-        `Telemetry Service - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
+        `Telemetry ingest - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
         { service: "telemetry" },
       );
 

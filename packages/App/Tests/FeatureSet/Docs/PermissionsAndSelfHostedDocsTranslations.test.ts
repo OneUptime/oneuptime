@@ -139,9 +139,9 @@ const PERMISSIONS: Record<string, Array<string>> = {
     "All Operational Resources",
     "Watch Session Replays",
     "List Session Replays",
-    "Read Telemetry Service Log",
-    "Read Telemetry Service Traces",
-    "Read Telemetry Service Metrics",
+    "Read Logs",
+    "Read Traces",
+    "Read Metrics",
     // What Add Permission offers a scope for, and what it offers none for.
     "Create Workflow",
     "Edit Workflow",
@@ -278,7 +278,8 @@ const ADMIN_DASHBOARD: string = "Admin Dashboard";
  */
 const PROSE: Record<string, Array<string>> = {
   [PERMISSIONS_PAGE]: ["project", "teams", "Labels", "All resources", "All"],
-  [PRIVATE_NETWORK_PAGE]: ["monitors", "probe", "Private"],
+  // "**Not** covered": the paging ladder's Not (#6820) is a Dashboard label.
+  [PRIVATE_NETWORK_PAGE]: ["monitors", "probe", "Private", "Not"],
   [ARCHITECTURE_PAGE]: ["Probes"],
   [ENTERPRISE_PAGE]: ["read-only"],
 };
@@ -346,7 +347,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "API server",
     "Forbidden",
     "user webhooks",
-    "Not",
     "webhook subscribers who sign up on a status page",
     "without a DNS check",
     "Never put `169.254.169.254`, or any range containing it, in the allowlist.",
@@ -412,7 +412,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
  */
 const PATHS_HELD_ELSEWHERE: Record<string, Array<string>> = {
   [PERMISSIONS_PAGE]: [
-    "Project Settings > Notifications > Notification Settings",
+    "Project Settings > Notifications > Notification Channels",
     "Project Settings > AI > AI Credits",
   ],
 };

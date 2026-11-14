@@ -29,12 +29,13 @@ import {
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 
 /*
  * Docs overhaul task 11: the telemetry pages - Search Syntax, Zooming Into a
- * Time Range, Log Pipelines, Continuous Profiling, Source Maps and Log
+ * Time Range, Log Pipelines, Profiles, Source Maps and Log
  * Recording Rules - in every docs language. Each translation says what the
  * English page says: the same sections, steps, tabs, tables, lists, cards,
  * code and diagrams, the same numbers, links that land on a heading in the
@@ -99,7 +100,7 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: SEARCH, navTitle: "Search Syntax" },
   { page: ZOOM, navTitle: "Zooming Into a Time Range" },
   { page: PIPELINES, navTitle: "Log Pipelines" },
-  { page: PROFILES, navTitle: "Continuous Profiling" },
+  { page: PROFILES, navTitle: "Profiles" },
   { page: SOURCE_MAPS, navTitle: "Source Maps" },
   { page: RECORDING_RULES, navTitle: "Log Recording Rules" },
 ];
@@ -273,7 +274,7 @@ const PRODUCTS: string = "Products";
  * label key.
  */
 const PRODUCTS_MENU_KEYS: Record<string, string> = {
-  "Performance Profiles": "performanceProfilesTitle",
+  Profiles: "performanceProfilesTitle",
   "Project Settings": "projectSettingsTitle",
   Services: "servicesTitle",
 };
@@ -365,12 +366,14 @@ function drawnPathSegment(
   return drawnActionLabel(language, segment);
 }
 
+// A menu path as a page in a language writes it, its arrows pointing on.
 function drawnPath(language: string, segments: Array<string>): string {
-  return segments
-    .map((_segment: string, index: number): string => {
+  return pathWithArrows(
+    segments.map((_segment: string, index: number): string => {
       return drawnPathSegment(language, segments, index);
-    })
-    .join(PATH_SEPARATOR);
+    }),
+    language,
+  );
 }
 
 /*
@@ -977,18 +980,20 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw a product after Products as the Products menu does, the rest as labels", () => {
-    expect(drawnPath("de", ["Products", "Performance Profiles"])).toBe(
-      "Produkte → Performance-Profile",
+    // Russian's menu says Сервисы where a label says Службы.
+    expect(drawnPath("ru", ["Products", "Services"])).toBe(
+      "Продукты → Сервисы",
     );
-    expect(drawnActionLabel("de", "Performance Profiles")).toBe(
-      "Leistungsprofile",
+    expect(drawnActionLabel("ru", "Services")).toBe("Службы");
+    expect(drawnPath("de", ["Products", "Profiles"])).toBe(
+      "Produkte → Profile",
     );
     // Not after Products: a label like any other.
     expect(drawnPath("de", ["Logs", "Settings", "Pipelines"])).toBe(
       "Protokolle → Einstellungen → Pipelines",
     );
-    expect(drawnPath("en", ["Products", "Performance Profiles"])).toBe(
-      "Products → Performance Profiles",
+    expect(drawnPath("en", ["Products", "Profiles"])).toBe(
+      "Products → Profiles",
     );
   });
 

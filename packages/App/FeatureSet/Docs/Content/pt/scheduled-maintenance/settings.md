@@ -20,7 +20,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. As seç
 | **Regras de Rótulos** | Adiciona rótulos aos eventos que correspondem.                   |
 | **Regras de lembrete** | Lembra os proprietários em intervalos até um evento ser concluído.  |
 
-A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Aprovação de notas públicas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
+A seção **Configurações** reúne **Estado da manutenção**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de manutenção**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Aprovação de notas públicas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
 
 A seção **Espaço de trabalho** reúne as regras do Slack e do Microsoft Teams que publicam eventos em canais. Veja [Slack](/docs/workspace-connections/slack#regras-de-notificação) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regras-de-notificação).
 
@@ -69,7 +69,7 @@ As **Regras de runbook** iniciam um runbook quando um evento novo corresponde, c
 :::steps
 ### Escolher sobre quais eventos lembrar
 
-Clique em **Criar: Scheduled Maintenance Reminder Rule**. Em **Corresponder**, deixe **Todos os eventos de manutenção programada** selecionado para lembrar de todos os eventos, ou escolha **Somente os eventos de manutenção programada que atendem às condições** e depois os **Rótulos** a que ela se aplica.
+Clique em **Criar: Scheduled Maintenance Reminder Rule**. Em **Corresponder**, deixe **Todos os eventos de manutenção** selecionado para lembrar de todos os eventos, ou escolha **Somente os eventos de manutenção que atendem às condições** e depois os **Rótulos** a que ela se aplica.
 
 ### Definir o intervalo
 
@@ -92,7 +92,7 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 ### Modelos de notas
 
-**Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de nota pública ou privada para eventos de manutenção programada** os lista; **Criar: Modelo de nota de manutenção programada** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Ao contrário dos modelos de nota de incidentes, os modelos de nota de manutenção não preenchem variáveis.
+**Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de notas públicas ou privadas para eventos de manutenção** os lista; **Criar: Modelo de nota de manutenção programada** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Ao contrário dos modelos de nota de incidentes, os modelos de nota de manutenção não preenchem variáveis.
 
 ### Aprovação de notas públicas
 
@@ -117,7 +117,7 @@ O cartão **Próximo número** abaixo define o número que o próximo evento rec
 
 ## Workflows
 
-Cada modelo de manutenção tem gatilhos e ações de workflow com o nome dele: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** e **On Delete Scheduled Maintenance Event**, o mesmo para **Scheduled Maintenance State Timeline** e os outros, e ações como **Create One Scheduled Maintenance Event** e **Update One Scheduled Maintenance Event**. As definições de campos personalizados e os valores das medições são as exceções: não têm etapas de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de manutenção tem gatilhos e ações de workflow com o nome dele: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** e **On Delete Maintenance Event**, o mesmo para **Scheduled Maintenance State Timeline** e os outros, e ações como **Create One Maintenance Event** e **Update One Maintenance Event**. As definições de campos personalizados e os valores das medições são as exceções: não têm etapas de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterá-las
 
@@ -142,8 +142,8 @@ Confira se uma regra de lembrete corresponde aos rótulos do evento, se **Enviar
 ## Próximos passos
 
 :::cards
-- [Estados da manutenção](/docs/scheduled-maintenance/states): A página Estado do evento, e o que cada estado faz.
-- [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates): A página Modelos de eventos, em detalhe.
+- [Estados da manutenção](/docs/scheduled-maintenance/states): A página Estado da manutenção, e o que cada estado faz.
+- [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates): A página Modelos de manutenção, em detalhe.
 - [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules): O formulário de regra, passo a passo.
 - [Configurações de notificação](/docs/notifications/notification-settings): Como cada proprietário escolhe o que chega até ele.
 :::

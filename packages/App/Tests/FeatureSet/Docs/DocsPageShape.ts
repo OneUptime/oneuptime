@@ -1,3 +1,9 @@
+import {
+  LEFTWARDS_ARROW,
+  PathArrow,
+  getPathArrows,
+} from "Common/Tests/Helpers/PathArrows";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import { boldSpans, prose } from "./DocsTranslationChecks";
 
 /*
@@ -11,6 +17,74 @@ import { boldSpans, prose } from "./DocsTranslationChecks";
 
 // How the docs write a path through the product's menus: "A → B → C".
 export const PATH_SEPARATOR: string = " → ";
+
+/*
+ * The arrow between two steps of a path, whichever way it points (#7611).
+ * A browser draws "→" as it is written, even in a line read from the right,
+ * where it would point each step back at the one before. So a Persian page
+ * writes "←" beside a step in Persian words, and keeps "→" between two
+ * steps in Latin letters, which are drawn from the left:
+ * "**AWS Console → App Runner → Services ← سرویس شما**" is one path of four
+ * steps. A suite that reads a translated page's paths splits them on either.
+ * Which way each arrow points is for Common's PathArrowsInRightToLeftSentences
+ * to hold, on every page: a page read from the left writes no "←" but in code
+ * or as the left arrow key's name.
+ */
+export const PATH_ARROW: RegExp = / [→←] /;
+
+// Either arrow, as a path writes it with no space round it ("A→B").
+export const EITHER_ARROW: RegExp = /[→←]/;
+
+// Whether a span is a menu path: steps with an arrow between them.
+export function isArrowPath(span: string): boolean {
+  return PATH_ARROW.test(span);
+}
+
+// A menu path's steps, whichever way its arrows point.
+export function pathSteps(path: string): Array<string> {
+  return path.split(PATH_ARROW).map((step: string): string => {
+    return step.trim();
+  });
+}
+
+/*
+ * A menu path as a page in `language` writes it: " → " between its steps,
+ * and, in a language read from the right, "←" for each arrow that "→" would
+ * point back where the path is drawn (PathArrows, which lays the line out
+ * as a browser does). A translation suite that looks for a path a page
+ * should write builds it here.
+ */
+export function pathWithArrows(
+  steps: ReadonlyArray<string>,
+  language: string,
+): string {
+  const path: string = steps.join(PATH_SEPARATOR);
+
+  if (!isRightToLeftLanguage(language)) {
+    return path;
+  }
+
+  return getPathArrows(path, "rtl").reduce(
+    (written: string, arrow: PathArrow): string => {
+      return arrow.pointsBack
+        ? written.slice(0, arrow.index) +
+            LEFTWARDS_ARROW +
+            written.slice(arrow.index + 1)
+        : written;
+    },
+    path,
+  );
+}
+
+/*
+ * The arrow between two steps, as a regular expression's source, for a path
+ * a page in `language` writes around a step whose words the suite does not
+ * know (a placeholder, "your page"): " → ", or either arrow in a language
+ * read from the right, where the step's own words turn it.
+ */
+export function pathArrowPattern(language: string): string {
+  return isRightToLeftLanguage(language) ? PATH_ARROW.source : PATH_SEPARATOR;
+}
 
 const HEADING_LINE: RegExp = /^(#{1,6})\s/;
 const FENCE_LINE: RegExp = /^\s*```/;
@@ -119,7 +193,7 @@ export function tabLabels(markdown: string): Array<string> {
 // The bold spans of a page that are one label, not a path.
 export function boldLabels(markdown: string): Array<string> {
   return boldSpans(prose(markdown)).filter((span: string): boolean => {
-    return !span.includes(PATH_SEPARATOR);
+    return !isArrowPath(span);
   });
 }
 
@@ -127,12 +201,10 @@ export function boldLabels(markdown: string): Array<string> {
 export function boldPaths(markdown: string): Array<Array<string>> {
   return boldSpans(prose(markdown))
     .filter((span: string): boolean => {
-      return span.includes(PATH_SEPARATOR);
+      return isArrowPath(span);
     })
     .map((span: string): Array<string> => {
-      return span.split(PATH_SEPARATOR).map((segment: string): string => {
-        return segment.trim();
-      });
+      return pathSteps(span);
     });
 }
 

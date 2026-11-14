@@ -59,7 +59,28 @@ const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFam
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Home preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const ENVIRONMENT = {
+  HOST: "oneuptime.acme-commerce.example",
+  HTTP_PROTOCOL: "https",
+  BILLING_ENABLED: "false",
+  VERSION: "1.0.0",
+  NODE_ENV: "development",
+};
+/*
+ * ?recording=cloud: OneUptime Cloud with recording of its setup pages
+ * switched on (#6834) - billing on, and the four settings, the recorder's
+ * host being this server, so nothing ever leaves it. Every other scenario
+ * is a server that records nobody, as every self-hosted one is.
+ */
+const CLOUD_RECORDING_ENVIRONMENT = {
+  ...ENVIRONMENT,
+  BILLING_ENABLED: "true",
+  PUBLIC_DASHBOARD_SESSION_REPLAY_ENABLED: "true",
+  PUBLIC_DASHBOARD_SESSION_REPLAY_TOKEN: "fixture-ingestion-key",
+  PUBLIC_DASHBOARD_SESSION_REPLAY_APP_IDENTIFIER: "fixture-dashboard",
+  PUBLIC_DASHBOARD_SESSION_REPLAY_HOST: `http://127.0.0.1:${port}`,
+};
+const htmlFor = (environment) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Home preview</title><script>window.process={env:${JSON.stringify(environment)}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -77,6 +98,16 @@ async function main() {
 
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, `http://127.0.0.1:${port}`);
+    /*
+     * The recorder's loader, as OneUptime Cloud serves it, stood in for by
+     * one line that says it was fetched (#6834): only ?recording=cloud with
+     * consent ever asks for it.
+     */
+    if (url.pathname === "/telemetry/session-replay/v1/recorder.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      response.end("window.__fixtureRecorderLoaderFetched = true;");
+      return;
+    }
     response.setHeader("Cache-Control", "no-store");
     response.setHeader(
       "Content-Security-Policy",
@@ -115,7 +146,13 @@ async function main() {
       return;
     }
     response.setHeader("Content-Type", "text/html");
-    response.end(html);
+    response.end(
+      htmlFor(
+        url.searchParams.get("recording") === "cloud"
+          ? CLOUD_RECORDING_ENVIRONMENT
+          : ENVIRONMENT,
+      ),
+    );
   });
   server.listen(port, "127.0.0.1", () => {
     console.log(

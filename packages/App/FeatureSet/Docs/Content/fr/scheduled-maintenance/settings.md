@@ -20,7 +20,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles d'étiquettes** | Ajoute des étiquettes aux événements qui correspondent.        |
 | **Règles de rappel** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
 
-La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
+La section **Paramètres** contient **État de la maintenance**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles de maintenance**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
 
 La section **Espace de travail** contient les règles Slack et Microsoft Teams qui publient les événements dans des canaux. Voir [Slack](/docs/workspace-connections/slack#règles-de-notification) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams#règles-de-notification).
 
@@ -69,7 +69,7 @@ Les **Règles de runbook** démarrent un runbook quand un nouvel événement cor
 :::steps
 ### Choisir les événements concernés
 
-Cliquez sur **Créer : Règle de rappel des maintenances planifiées**. Dans **Correspondance**, laissez **Tous les événements de maintenance planifiée** sélectionné pour faire des rappels sur chaque événement, ou choisissez **Uniquement les événements de maintenance planifiée qui correspondent aux conditions** puis les **Étiquettes** auxquelles elle s'applique.
+Cliquez sur **Créer : Règle de rappel des maintenances planifiées**. Dans **Correspondance**, laissez **Tous les événements de maintenance** sélectionné pour faire des rappels sur chaque événement, ou choisissez **Uniquement les événements de maintenance qui correspondent aux conditions** puis les **Étiquettes** auxquelles elle s'applique.
 
 ### Régler l'intervalle
 
@@ -92,7 +92,7 @@ Ces rappels sont pour votre équipe. Les rappels que reçoivent les abonnés de 
 
 ### Modèles de notes
 
-**Maintenance planifiée → Paramètres → Modèles de notes** contient des textes prêts à l'emploi pour les mises à jour de maintenance. La carte **Modèles de notes publiques ou privées pour les événements de maintenance planifiée** les liste ; **Créer : Modèle de note de maintenance planifiée** demande un **Nom du modèle**, une **Description du modèle** et la **Note**. Un modèle est proposé quand quelqu'un écrit une note publique ou privée sur un événement, et quand quelqu'un change son état, et son texte peut être modifié avant publication. Contrairement aux modèles de notes d'incident, les modèles de notes de maintenance ne remplissent aucune variable.
+**Maintenance planifiée → Paramètres → Modèles de notes** contient des textes prêts à l'emploi pour les mises à jour de maintenance. La carte **Modèles de notes publiques ou privées pour les événements de maintenance** les liste ; **Créer : Modèle de note de maintenance planifiée** demande un **Nom du modèle**, une **Description du modèle** et la **Note**. Un modèle est proposé quand quelqu'un écrit une note publique ou privée sur un événement, et quand quelqu'un change son état, et son texte peut être modifié avant publication. Contrairement aux modèles de notes d'incident, les modèles de notes de maintenance ne remplissent aucune variable.
 
 ### Approbation des notes publiques
 
@@ -117,7 +117,7 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevra le prochain
 
 ## Workflows
 
-Chaque modèle de maintenance a des déclencheurs et des actions de workflow, nommés d'après lui : **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** et **On Delete Scheduled Maintenance Event**, de même pour **Scheduled Maintenance State Timeline** et les autres, et des actions comme **Create One Scheduled Maintenance Event** et **Update One Scheduled Maintenance Event**. Les définitions de champs personnalisés et les valeurs de mesure sont les exceptions : elles n'ont aucune étape de workflow. Voir [Présentation des workflows](/docs/workflows/index).
+Chaque modèle de maintenance a des déclencheurs et des actions de workflow, nommés d'après lui : **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** et **On Delete Maintenance Event**, de même pour **Scheduled Maintenance State Timeline** et les autres, et des actions comme **Create One Maintenance Event** et **Update One Maintenance Event**. Les définitions de champs personnalisés et les valeurs de mesure sont les exceptions : elles n'ont aucune étape de workflow. Voir [Présentation des workflows](/docs/workflows/index).
 
 ## Qui peut les modifier
 
@@ -142,8 +142,8 @@ Vérifiez qu'une règle de rappel correspond aux étiquettes de l'événement, q
 ## Prochaines étapes
 
 :::cards
-- [États de la maintenance](/docs/scheduled-maintenance/states): La page État de l'événement, et ce que fait chaque état.
-- [Modèles et événements récurrents](/docs/scheduled-maintenance/templates): La page Modèles d'événement, en détail.
+- [États de la maintenance](/docs/scheduled-maintenance/states): La page État de la maintenance, et ce que fait chaque état.
+- [Modèles et événements récurrents](/docs/scheduled-maintenance/templates): La page Modèles de maintenance, en détail.
 - [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules): Le formulaire de règle, étape par étape.
 - [Paramètres de notification](/docs/notifications/notification-settings): Comment chaque propriétaire choisit ce qui lui parvient.
 :::

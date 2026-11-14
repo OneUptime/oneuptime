@@ -34,10 +34,10 @@ Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazion
 :::tabs
 @tab SAML
 - Fai clic su **Aggiungi provider SAML**.
-- Inserisci un **Nome**, la **Sign On URL** e l'**Issuer** del tuo provider di identità, e incolla il **Public Certificate**. Tutto il resto è già compilato sotto **Altri campi**: il **Signature Method** (`RSA-SHA256`), il **Digest Method** (`SHA256`) e una descrizione (`Sign in with` seguito dal nome). Modificali solo se il tuo IdP lo richiede. Il salvataggio apre la pagina del provider.
+- Inserisci un **Nome**, l'**URL di accesso** e l'**Emittente** del tuo provider di identità, e incolla il **Certificato pubblico**. Tutto il resto è già compilato sotto **Altri campi**: il **Metodo di firma** (`RSA-SHA256`), il **Metodo di digest** (`SHA256`) e una descrizione (`Sign in with` seguito dal nome). Modificali solo se il tuo IdP lo richiede. Il salvataggio apre la pagina del provider.
 @tab OpenID Connect
 - Fai clic su **Aggiungi provider OIDC**.
-- Inserisci un **Nome**, l'**Issuer URL**, il **Client ID** e il **Client Secret** dell'app che hai registrato nel tuo IdP. Funziona anche incollare l'URL di discovery dell'IdP in **Issuer URL**. Tutto il resto è già compilato sotto **Altri campi**: la **Discovery URL** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Scopes** (`openid email profile`), i nomi delle attestazioni `email` e `name`, e una descrizione (`Sign in with` seguito dal nome). Modificali solo se il tuo IdP lo richiede. Il salvataggio apre la pagina del provider.
+- Inserisci un **Nome**, l'**URL dell'emittente**, il **Client ID** e il **Client Secret** dell'app che hai registrato nel tuo IdP. Funziona anche incollare l'URL di discovery dell'IdP in **URL dell'emittente**. Tutto il resto è già compilato sotto **Altri campi**: l'**URL di discovery** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Ambiti** (`openid email profile`), i nomi delle attestazioni `email` e `name`, e una descrizione (`Sign in with` seguito dal nome). Modificali solo se il tuo IdP lo richiede. Il salvataggio apre la pagina del provider.
 :::
 
 ### Copiare gli URL di OneUptime nel provider di identità
@@ -150,7 +150,7 @@ La persona ha un account ma non appartiene a nessun progetto, e il provider non 
 :::
 
 :::details "Issuer URL does not match"
-Per un provider SAML, l'emittente nella risposta del tuo provider di identità non è l'**Issuer** salvato sul provider. Copialo di nuovo dal tuo provider di identità; i due devono coincidere esattamente.
+Per un provider SAML, l'emittente nella risposta del tuo provider di identità non è l'**Emittente** salvato sul provider. Copialo di nuovo dal tuo provider di identità; i due devono coincidere esattamente.
 :::
 
 :::details "SAML Audience does not match"

@@ -87,7 +87,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       escalationRuleOrder:
         createdModel.onCallDutyPolicyEscalationRule?.order?.toString() ||
         "No order provided",
-      reason: "You have been added to the on-call duty policy escalation rule.",
+      reason: "You have been added to the on-call policy escalation rule.",
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
           createdModel!.projectId!,
@@ -100,20 +100,20 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     const emailMessage: EmailEnvelope = {
       templateType: EmailTemplateType.UserAddedToOnCallPolicy,
       vars: vars,
-      subject: `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name}`,
+      subject: `You have been added to the on-call policy ${createdModel.onCallDutyPolicy?.name}`,
       isSubjectLiteral: true,
     };
 
     const sms: SMSMessage = {
       message: buildNotificationSms(
-        `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}.`,
+        `You have been added to the on-call policy ${createdModel.onCallDutyPolicy?.name} for escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}.`,
       ),
     };
 
     const callMessage: CallRequestMessage = {
       data: [
         {
-          sayMessage: `This is a message from OneUptime. You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good Bye`,
+          sayMessage: `This is a message from OneUptime. You have been added to the on-call policy ${createdModel.onCallDutyPolicy?.name} for escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good Bye`,
         },
       ],
     };
@@ -318,7 +318,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           deletedItem.onCallDutyPolicyEscalationRule?.order?.toString() ||
           "No order provided",
         reason:
-          "You have been removed from the on-call duty policy escalation rule.",
+          "You have been removed from the on-call policy escalation rule.",
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             deletedItem!.projectId!,
@@ -331,20 +331,20 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       const emailMessage: EmailEnvelope = {
         templateType: EmailTemplateType.UserRemovedFromOnCallPolicy,
         vars: vars,
-        subject: `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name}`,
+        subject: `You have been removed from the on-call policy ${deletedItem.onCallDutyPolicy?.name}`,
         isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {
         message: buildNotificationSms(
-          `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}.`,
+          `You have been removed from the on-call policy ${deletedItem.onCallDutyPolicy?.name} for escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}.`,
         ),
       };
 
       const callMessage: CallRequestMessage = {
         data: [
           {
-            sayMessage: `This is a message from OneUptime. You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good Bye`,
+            sayMessage: `This is a message from OneUptime. You have been removed from the on-call policy ${deletedItem.onCallDutyPolicy?.name} for escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good Bye`,
           },
         ],
       };

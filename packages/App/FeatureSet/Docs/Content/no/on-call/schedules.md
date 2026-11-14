@@ -17,7 +17,7 @@ En vaktplan bestemmer hvem som har vakt til enhver tid. Folk bytter på i den: h
 Når du oppretter en vaktplan på siden **Vaktplaner**, spør skjemaet om **Navn** og **Hvem bytter på å ha vakt?**. Personene du velger, blir det første laget i vaktplanen, **Layer 1**, med vakt døgnet rundt.
 
 :::steps
-1. Gå til **Vakttjeneste** > **Vaktplaner**, og klikk på **Opprett vaktplan**.
+1. Gå til **Vakt** > **Vaktplaner**, og klikk på **Opprett vaktplan**.
 2. Skriv inn et **Navn**.
 3. Klikk på **Legg til bruker** under **Hvem bytter på å ha vakt?**, og velg personene i den rekkefølgen de bytter på.
 4. Åpne eventuelt **Flere felt** for å endre hvor lenge hver vakt varer, tidssonen, beskrivelsen eller etikettene.
@@ -86,7 +86,7 @@ Mens de er borte:
 
 Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle retningslinjer, i stedet for at rotasjonen tar vaktene deres.
 
-Fravær som legges til på denne måten, gjelder for alle vaktretningslinjer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legges det i stedet på retningslinjene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per retningslinje, som står på hver retningslinjes egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakttjeneste** > **Avansert** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én retningslinje legger du til overstyringen på den retningslinjens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Fravær som legges til på denne måten, gjelder for alle vaktretningslinjer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legges det i stedet på retningslinjene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per retningslinje, som står på hver retningslinjes egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Avansert** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én retningslinje legger du til overstyringen på den retningslinjens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskaleringsregler](/docs/on-call/escalation-rules): La et nivå i en vaktretningslinje varsle denne vaktplanen.
 - [Tidslinje for vaktplaner](/docs/on-call/schedule-timeline): Se alle vaktplanene side om side, med hull i dekningen.
 - [Kalenderfeeder](/docs/on-call/calendar-feeds): Få vakter inn i Google Kalender, Outlook eller Apple Kalender.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Bestem hvordan et varsel når deg mens du har vakt.
+- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan et varsel når deg mens du har vakt.
 :::

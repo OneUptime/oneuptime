@@ -125,6 +125,7 @@ import {
   SERIES_COUNT_TEMPLATE,
 } from "./SeriesCounts";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -3427,10 +3428,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             colorsOverride: undefined,
             seriesControls: (
               <ErrorMessage
-                message={translator.translateTemplate(
-                  "Formula error: {{error}}",
-                  { error: formulaResult.errorMessage || "" },
-                )}
+                message={
+                  <ErrorSentence
+                    template="Formula error: {{error}}"
+                    error={formulaResult.errorMessage || ""}
+                  />
+                }
               />
             ),
           }

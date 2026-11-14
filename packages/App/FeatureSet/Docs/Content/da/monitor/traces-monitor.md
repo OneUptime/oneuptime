@@ -73,7 +73,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Span-status** | Spans med en af de valgte statusser: **Ikke angivet**, **Ok** eller **Fejl**. | Tom: alle statusser |
 | **Span-navnet indeholder** | Spans, hvis navn indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle spans |
 | **Tidsvindue** (i **Hvornår der advares**) | Spans, der startede inden for de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
-| **Filtrér efter telemetritjeneste** (under **Flere felter**) | Spans fra en af de valgte tjenester. | Tom: alle tjenester |
+| **Filtrer efter tjeneste** (under **Flere felter**) | Spans fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Spans fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Filtrér efter attributter** (under **Flere felter**) | Spans, hvis attributter opfylder alle betingelser. Hver betingelse har sin egen operator, såsom "er lig med" eller "indeholder". | Tom: ingen betingelse |
 
@@ -154,7 +154,7 @@ Med 30 mislykkede anmodninger matcher reglen, og hændelsen erklæres. Når der 
 ## Fejlfinding
 
 :::details Monitoren tæller ingen spans for mit endpoint
-**Span-navnet indeholder** sammenlignes med spannets navn, og instrumentering navngiver ofte server-spans efter ruten (`POST /api/checkout`) eller kun efter metoden (`GET`). Find det præcise navn i trace-explorer. Åbn derefter monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger overvågningskriterier**: **Matchende spans** viser, hvad filtrene matcher lige nu.
+**Span-navnet indeholder** sammenlignes med spannets navn, og instrumentering navngiver ofte server-spans efter ruten (`POST /api/checkout`) eller kun efter metoden (`GET`). Find det præcise navn i trace-explorer. Åbn derefter monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger kriterier**: **Matchende spans** viser, hvad filtrene matcher lige nu.
 :::
 
 :::details Vellykkede anmodninger tælles ikke, når jeg filtrerer på Ok

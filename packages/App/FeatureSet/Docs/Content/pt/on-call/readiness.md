@@ -58,7 +58,7 @@ Só a própria pessoa pode adicionar e verificar seus métodos de notificação 
 3. Confirme. Cada pessoa recebe um e-mail que diz o que falta na própria configuração, com um link para a página que resolve isso.
 :::
 
-Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e por quê para cada um que não foi enviado. Ninguém recebe mais de um lembrete a cada 24 horas, e um envio lembra no máximo 250 pessoas. Enviar lembretes exige **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de plantão**, ou **Edit On-Call Duty Policy** em uma função personalizada.
+Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e por quê para cada um que não foi enviado. Ninguém recebe mais de um lembrete a cada 24 horas, e um envio lembra no máximo 250 pessoas. Enviar lembretes exige **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de plantão**, ou **Edit On-Call Policy** em uma função personalizada.
 
 ## A prontidão em outras páginas
 
@@ -108,5 +108,5 @@ Ele só é enviado em uma semana em que alguém está **Inacessível** ou **Prec
 :::cards
 - [Como o OneUptime chega até você](/docs/notifications/index): Os métodos, as regras e a alternativa por trás de cada status.
 - [Métodos de notificação](/docs/notifications/notification-methods): Adicionar e verificar as formas como o OneUptime contata alguém.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Fechar as lacunas, gravidade por gravidade.
+- [Como me contatar](/docs/notifications/on-call-rules): Fechar as lacunas, gravidade por gravidade.
 :::

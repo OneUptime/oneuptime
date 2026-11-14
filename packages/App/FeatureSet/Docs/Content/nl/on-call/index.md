@@ -9,7 +9,7 @@ Bereikbaarheidsdienst is hoe OneUptime iemand op elk uur bij een probleem krijgt
 - [Hoe een oproep iemand bereikt](#hoe-een-oproep-iemand-bereikt): Van een nieuw incident tot de persoon die antwoordt.
 - [De bouwstenen](#de-bouwstenen): Beleid, escalatieregels, schema's, overschrijvingen en persoonlijke regels.
 - [Bereikbaarheid instellen](#bereikbaarheid-instellen): Van niets tot een team dat wordt opgeroepen, in vijf stappen.
-- [Waar de bereikbaarheid staat](#waar-de-bereikbaarheid-staat): Het menu Bereikbaarheidsdienst, sectie voor sectie.
+- [Waar de bereikbaarheid staat](#waar-de-bereikbaarheid-staat): Het menu Bereikbaarheid, sectie voor sectie.
 :::
 
 ## Hoe een oproep iemand bereikt
@@ -48,17 +48,17 @@ De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/do
 | Escalatieregel | Eén niveau van een beleid: wie het oproept en hoe lang het op een bevestiging wacht | [Escalatieregels](/docs/on-call/escalation-rules) |
 | Bereikbaarheidsschema | Wie op elk moment dienst heeft, om de beurt | [Bereikbaarheidsschema's](/docs/on-call/schedules) |
 | Gebruikersoverschrijving | Wie iemand vervangt terwijl die afwezig is | [Gebruikersoverschrijvingen](/docs/on-call/user-overrides) |
-| Persoonlijke bereikbaarheidsregels | Hoe één persoon wordt bereikt: via welke methode en na hoeveel tijd | [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules) |
+| Hoe ik bereikbaar ben | Hoe één persoon wordt bereikt: via welke methode en na hoeveel tijd | [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules) |
 | Beleid voor inkomende oproepen | Een telefoonnummer dat overgaat bij wie dienst heeft | [Beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy) |
 
-Beleid, escalatieregels, schema's en overschrijvingen horen bij het project, onder **Bereikbaarheidsdienst**. Meldingsmethoden en persoonlijke bereikbaarheidsregels horen bij elke persoon zelf, onder **Gebruikersinstellingen**: een beheerder kan de instellingen van iemand bekijken, maar alleen die persoon kan de eigen telefoon of e-mail verifiëren. Zie [Hoe OneUptime je bereikt](/docs/notifications/index).
+Beleid, escalatieregels, schema's en overschrijvingen horen bij het project, onder **Bereikbaarheid**. Meldingsmethoden en persoonlijke bereikbaarheidsregels horen bij elke persoon zelf, onder **Gebruikersinstellingen**: een beheerder kan de instellingen van iemand bekijken, maar alleen die persoon kan de eigen telefoon of e-mail verifiëren. Zie [Hoe OneUptime je bereikt](/docs/notifications/index).
 
 ## Bereikbaarheid instellen
 
 :::steps
 ### Een schema maken
 
-Open **Bereikbaarheidsdienst** via het menu **Producten** en ga naar **Bereikbaarheidsschema's**. Klik op **Bereikbaarheidsschema maken**, geef het een naam en kies onder **Wie wisselen elkaar af?** de personen in de volgorde waarin ze elkaar afwisselen. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
+Open **Bereikbaarheid** via het menu **Producten** en ga naar **Bereikbaarheidsschema's**. Klik op **Bereikbaarheidsschema maken**, geef het een naam en kies onder **Wie wisselen elkaar af?** de personen in de volgorde waarin ze elkaar afwisselen. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
 ### Een beleid maken
 
@@ -74,7 +74,7 @@ Het eerste beleid van een project kan dit al bij het aanmaken: laat **Activeren 
 
 ### Controleren of iedereen bereikbaar is
 
-Open **Bereikbaarheidsdienst → Gereedheid**. Iedereen die je beleid kan oproepen staat daar als **Gereed**, **Moet worden ingesteld** of **Onbereikbaar**, met wat er ontbreekt. Zie [Gereedheid en rapporten](/docs/on-call/readiness).
+Open **Bereikbaarheid → Gereedheid**. Iedereen die je beleid kan oproepen staat daar als **Gereed**, **Moet worden ingesteld** of **Onbereikbaar**, met wat er ontbreekt. Zie [Gereedheid en rapporten](/docs/on-call/readiness).
 :::
 
 > [!NOTE]
@@ -82,7 +82,7 @@ Open **Bereikbaarheidsdienst → Gereedheid**. Iedereen die je beleid kan oproep
 
 ## Waar de bereikbaarheid staat
 
-Open **Bereikbaarheidsdienst** via het menu **Producten** in de bovenste balk. Het opent op **Bereikbaarheidsbeleid**, op `/dashboard/{projectId}/on-call-duty/policies`, en het zijmenu bevat de rest:
+Open **Bereikbaarheid** via het menu **Producten** in de bovenste balk. Het opent op **Bereikbaarheidsbeleid**, op `/dashboard/{projectId}/on-call-duty/policies`, en het zijmenu bevat de rest:
 
 | Sectie | Pagina's |
 | --- | --- |
@@ -106,11 +106,11 @@ Open de pagina **Bereikbaarheidsuitvoeringen** van het incident. Is die leeg, da
 :::
 
 :::details Iemand werd via het verkeerde kanaal opgeroepen, of helemaal niet
-Open **Bereikbaarheidsdienst → Gereedheid** en klik op **Dekking** in de rij van die persoon. Je ziet de methoden die die heeft geverifieerd en elke ernst waarvoor die geen regel heeft. Alleen die persoon kan dat oplossen, onder **Gebruikersinstellingen**: stuur een herinnering om de instellingen af te ronden vanaf dezelfde pagina. Zie [Gereedheid en rapporten](/docs/on-call/readiness). Op OneUptime Cloud kan een telefoon die onbekende bellers blokkeert een oproep stilzetten: zet [de nummers van OneUptime](/docs/on-call/phone-number-whitelist) op de lijst met toegestane nummers.
+Open **Bereikbaarheid → Gereedheid** en klik op **Dekking** in de rij van die persoon. Je ziet de methoden die die heeft geverifieerd en elke ernst waarvoor die geen regel heeft. Alleen die persoon kan dat oplossen, onder **Gebruikersinstellingen**: stuur een herinnering om de instellingen af te ronden vanaf dezelfde pagina. Zie [Gereedheid en rapporten](/docs/on-call/readiness). Op OneUptime Cloud kan een telefoon die onbekende bellers blokkeert een oproep stilzetten: zet [de nummers van OneUptime](/docs/on-call/phone-number-whitelist) op de lijst met toegestane nummers.
 :::
 
 :::details Iemand op vakantie wordt nog steeds opgeroepen
-Voeg een gebruikersoverschrijving toe met die persoon onder **Wie is afwezig?**. Een overschrijving onder **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** geldt voor elk beleid; een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Voeg een gebruikersoverschrijving toe met die persoon onder **Wie is afwezig?**. Een overschrijving onder **Bereikbaarheid → Geavanceerd → Gebruikersoverschrijvingen** geldt voor elk beleid; een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 :::
 
 ## Volgende stappen

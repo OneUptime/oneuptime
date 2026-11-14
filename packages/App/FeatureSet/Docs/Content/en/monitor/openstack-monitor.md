@@ -57,7 +57,7 @@ A new monitor starts on **Cloud Stopped Reporting**, under **What to alert on**.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the default criteria, which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the default criteria, which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -745,7 +745,7 @@ These names and labels are stable, and SLOs and status pages can stand on them.
 - `openstack_check_api_success` and `openstack_check_token_success` answer the same for each API, once a minute.
 - A check that refuses its own credential, or was skipped because another run might be going, says nothing about the cloud, and leaves these series as they were.
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. An OpenStack monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 

@@ -1,12 +1,13 @@
-# Regras de Plantão pessoais
+# Como me contatar
 
-As suas regras de plantão decidem como um acionamento chega até você: quais dos seus métodos de notificação o OneUptime tenta, e quanto tempo depois do início do acionamento. Cada tipo de acionamento tem as próprias regras, um conjunto por gravidade, então um incidente crítico pode ligar para você na hora enquanto um alerta de baixa gravidade espera por um e-mail. Você as define em **Configurações do usuário → Regras de Plantão**.
+As suas regras de plantão decidem como um acionamento chega até você: quais dos seus métodos de notificação o OneUptime tenta, e quanto tempo depois do início do acionamento. Cada tipo de acionamento tem as próprias regras, um conjunto por gravidade, então um incidente crítico pode ligar para você na hora enquanto um alerta de baixa gravidade espera por um e-mail. Você as define em **Configurações do usuário → Como me contatar**.
 
 > [!NOTE]
 > Estas regras são só suas. As **Regras de Plantão** em **Incidentes → Regras** e **Alertas → Regras** são outra coisa: elas decidem quais políticas de plantão um novo incidente ou alerta executa.
 
 :::cards
 - [Como um acionamento chega até você](#como-um-acionamento-chega-até-você): As suas regras para um acionamento, passo a passo.
+- [Uma só sequência para tudo](#uma-só-sequência-para-tudo): As etapas que cada chamada tenta, definidas uma vez.
 - [As regras com que você começa](#as-regras-com-que-você-começa): O que cada método verificado adiciona, e como enxugar.
 - [Adicione uma regra](#adicione-uma-regra): Um método e um atraso para uma gravidade.
 - [Regras de push](#regras-de-push): Tocar mesmo no silencioso, e repetir até alguém confirmar.
@@ -26,9 +27,33 @@ flowchart TB
 
 A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens do WhatsApp, do Telegram, do Slack, do Microsoft Teams e do Mattermost trazem um link de confirmação, e uma chamada pede que você pressione 1. Se você não puder atender um acionamento, as mesmas mensagens permitem escaloná-lo, e uma chamada pede que você pressione 2: a política aciona o próximo nível na hora, e você não é mais acionado sobre isso. Veja [Escalonar um acionamento](/docs/on-call/escalation-rules#escalonar-um-acionamento). Cada acionamento que você recebe aparece em **Configurações do usuário → Registros de plantão**, onde **Ver linha do tempo** mostra cada mensagem enviada e se ela foi entregue.
 
+## Uma só sequência para tudo
+
+**Configurações do usuário → Como me contatar** abre na sua sequência: as etapas que cada chamada tenta, para incidentes, alertas e episódios de qualquer gravidade. Cada etapa é um dos seus métodos verificados e quando usá-lo, por exemplo um SMS na hora e uma ligação após 5 minutos. Etapas com a mesma espera saem juntas, então a sequência se lê na ordem em que chama.
+
+:::steps
+### Adicionar uma forma de contatar você
+
+Escolha um dos seus métodos verificados em **Adicionar uma forma de contatar você**. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**.
+
+### Escolher quando usar
+
+Ao lado de cada etapa, escolha uma espera de **Imediatamente** a **1 hora**. Uma etapa de push também diz como toca e se repete: veja [Regras de push](#regras-de-push).
+
+### Salvar
+
+Clique em **Salvar sequência**. As mesmas regras são gravadas em cada cartão de cada aba: as regras que você adicionaria à mão em cada cartão.
+:::
+
+**Teste suas chamadas**, no pé da página, envia a você uma chamada de teste por elas.
+
+Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades** abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**, e a sequência diz o que cada um faz no lugar. Se suas regras já diferem, a página abre nos cartões, com **Usar uma só sequência para tudo**: ao salvar, ela primeiro nomeia os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
+
+Uma política de plantão decide quem é chamado e quando vem o próximo nível. Como você é contatado é esta sequência, para cada política que chama você.
+
 ## As quatro abas
 
-**Configurações do usuário → Regras de Plantão** tem uma aba para cada tipo de acionamento. Cada aba tem um cartão por gravidade, com o nome e a cor que o seu projeto deu a ela:
+**Configurações do usuário → Como me contatar** tem uma aba para cada tipo de acionamento. Cada aba tem um cartão por gravidade, com o nome e a cor que o seu projeto deu a ela:
 
 | Aba | Acionamentos de | Cartões para |
 | --- | --- | --- |
@@ -60,11 +85,11 @@ Suas próprias regras não têm horário de silêncio: deixe as gravidades baixa
 :::steps
 ### Abra o cartão
 
-Vá até **Configurações do usuário → Regras de Plantão**, abra a aba do tipo de acionamento e encontre o cartão da gravidade.
+Vá até **Configurações do usuário → Como me contatar**, abra a aba do tipo de acionamento e encontre o cartão da gravidade.
 
 ### Escolha o método
 
-Clique em **Adicionar: Regra de notificação**. Em **Método de notificação**, escolha um dos seus métodos verificados; um método que você não verificou não é oferecido.
+Clique em **Adicionar regra de notificação**. Em **Método de notificação**, escolha um dos seus métodos verificados; um método que você não verificou não é oferecido.
 
 ### Escolha como o push toca
 
@@ -72,7 +97,7 @@ Para um telefone, escolha **Notificação push**: **Alerta crítico** ou **Norma
 
 ### Defina o atraso
 
-Escolha **Notificar-me após**: **Imediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** ou **1 hora**. Depois clique em **Adicionar: Regra de notificação** na caixa.
+Escolha **Notificar-me após**: **Imediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** ou **1 hora**. Depois clique em **Adicionar regra de notificação** na caixa.
 :::
 
 O cartão lista as regras dele em ordem de atraso, com **Método de notificação** e **Notificar após** para cada uma.
@@ -105,12 +130,12 @@ A API pode salvar uma regra de exclusão, com `isOptOut` definido e sem método:
 :::
 
 :::details Desativar a alternativa para um projeto inteiro
-Um proprietário do projeto, ou alguém com **Manage Billing**, pode definir `disableOnCallNotificationFallback` do projeto pela API. Um acionamento que não encontra regra então não é entregue, e o registro dele diz que o usuário deve adicionar regras em **Configurações do usuário → Regras de Plantão**.
+Um proprietário do projeto, ou alguém com **Manage Billing**, pode definir `disableOnCallNotificationFallback` do projeto pela API. Um acionamento que não encontra regra então não é entregue, e o registro dele diz que o usuário deve adicionar regras em **Configurações do usuário → Como me contatar**.
 :::
 
 ## As regras de um colega
 
-Proprietários e administradores do projeto podem ver e alterar a mesma página para qualquer pessoa do projeto: em **Usuários**, eles abrem a pessoa e depois **Regras de Plantão** na seção **Plantão**. **Prontidão**, ao lado, mostra se cada gravidade chega até ela. Quando outra pessoa adiciona, altera ou exclui as suas regras, você recebe um e-mail sobre isso, e cada mudança fica no log de auditoria do projeto.
+Proprietários e administradores do projeto podem ver e alterar a mesma página para qualquer pessoa do projeto: em **Usuários**, eles abrem a pessoa e depois **Como me contatar** na seção **Plantão**. **Prontidão**, ao lado, mostra se cada gravidade chega até ela. Quando outra pessoa adiciona, altera ou exclui as suas regras, você recebe um e-mail sobre isso, e cada mudança fica no log de auditoria do projeto.
 
 ## Solução de problemas
 

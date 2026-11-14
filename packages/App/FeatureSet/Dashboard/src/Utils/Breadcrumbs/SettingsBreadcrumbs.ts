@@ -17,11 +17,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS, [
       "Project",
       "Settings",
-      "Telemetry Ingestion Keys",
+      "Ingestion Keys",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
-      ["Project", "Settings", "Telemetry Ingestion Keys", "View Key"],
+      ["Project", "Settings", "Ingestion Keys", "View Key"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TELEMETRY_SETTINGS, [
       "Project",
@@ -70,7 +70,7 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_SETTINGS, [
       "Project",
       "Settings",
-      "Notification Settings",
+      "Notification Channels",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_LOGS, [
       "Project",

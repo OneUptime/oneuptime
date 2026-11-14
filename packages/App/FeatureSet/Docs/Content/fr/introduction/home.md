@@ -49,7 +49,7 @@ Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvr
 | **Incidents actifs** | Les incidents qui ne sont pas résolus | **Tout va bien** | **Incidents → Incidents actifs** |
 | **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** | **Alertes → Alertes actives** |
 | **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés, et ceux dont la surveillance est désactivée, ne comptent pas. | **Tous opérationnels** | **Moniteurs → Non opérationnel** |
-| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** | **Maintenance planifiée → Événements en cours** |
+| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** | **Maintenance planifiée → Événements de maintenance en cours** |
 | **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** | **SLOs** |
 
 Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** pour la maintenance et les SLO. Tant qu'un SLO est à risque, **SLO à risque** ouvre la liste **SLOs** filtrée sur ces SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant**, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux-là ouvrent alors les listes **Moniteurs** et **SLOs**, où vous en créez un.
@@ -149,7 +149,7 @@ Au-dessus du titre de chaque page, un fil comme *Projet › Docker › Paramètr
 Appuyez sur **Cmd+K** (Mac) ou **Ctrl+K** (Windows et Linux), ou cliquez sur l'icône de recherche dans la barre du haut, et commencez à taper. La recherche trouve :
 
 - **Chaque page des menus**, sous le nom que le menu lui donne : Clés API, Zone de danger, Plannings d'astreinte, Gravité de l'incident, vos propres Méthodes de notification. Chaque résultat indique où il se trouve, par exemple *Paramètres du projet › Avancé*, si bien que les pages qui portent le même nom (Champs personnalisés dans Incidents, Alertes et Moniteurs) se distinguent facilement.
-- **Les paramètres d'une page**, sous le nom qu'affiche leur carte ou leur interrupteur : *Exiger le SSO pour la connexion* trouve SSO, et *Canaux de notification* trouve Paramètres de notification. Tapez le nom en anglais ou dans votre langue.
+- **Les paramètres d'une page**, sous le nom qu'affiche leur carte ou leur interrupteur : *Exiger le SSO pour la connexion* trouve SSO, et *Configurations SMTP personnalisées* trouve Canaux de notification. Tapez le nom en anglais ou dans votre langue.
 - **Actions**, d'après ce que vous voulez faire : Déclarer un incident, Créer un moniteur, ou Supprimer le projet, qui ouvre la Zone de danger. Une action qui modifie quelque chose n'est proposée qu'aux personnes autorisées à la faire.
 - **Vos moniteurs, incidents, alertes, pages de statut et politiques d'astreinte**, par leur nom, et les incidents et les alertes aussi par leur numéro, comme `INC-42`. Chaque résultat d'incident ou d'alerte commence par son numéro, si bien que deux du même titre se distinguent.
 - **La documentation**, dans un groupe *Documentation* sous tout le reste : les pages et les sections dont les mots correspondent à ce que vous tapez, dans votre langue, même avec une faute de frappe. Chacune s'ouvre dans un nouvel onglet, pour que vous gardiez votre place.

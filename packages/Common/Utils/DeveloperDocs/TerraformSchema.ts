@@ -20,6 +20,7 @@ import {
   PersonColumnKind,
 } from "./PeopleByEmail";
 import { isSecretFieldName } from "./TerraformValues";
+import { getApiSingularName } from "../ModelApiName";
 
 /*
  * What the OneUptime Terraform provider makes of a model, worked out in the
@@ -363,9 +364,10 @@ export function getTerraformTypeName(
   }
 
   const model: DatabaseBaseModel = new modelType();
+  // By the name the API keeps: a model renamed on screen keeps its resource.
   const name: string = getClientResourceName(
     model.tableName || "",
-    model.singularName || model.tableName || "",
+    getApiSingularName(model),
   );
 
   return `oneuptime_${toTerraformTypeSnakeCase(name)}`;

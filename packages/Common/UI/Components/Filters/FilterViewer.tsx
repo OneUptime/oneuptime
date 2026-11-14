@@ -395,15 +395,18 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const value: unknown = data.filterData[key];
 
       const shouldOnlyShowDate: boolean = data.filter.type === FieldType.Date;
-      const shouldShowSeconds: boolean =
-        data.filter.type === FieldType.DateTime;
 
+      /*
+       * A date and time reads in hours and minutes, as the filter's own
+       * field shows and takes it (DateFilter, #7593): "Starts is after
+       * Nov 13 2026, 11:15", not "11:15:00", whose seconds were always
+       * the :00 of a time picked to the minute.
+       */
       type FormatFunction = (d: Date) => string;
       const format: FormatFunction = (d: Date): string => {
         return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           d,
           shouldOnlyShowDate,
-          shouldShowSeconds,
         );
       };
 

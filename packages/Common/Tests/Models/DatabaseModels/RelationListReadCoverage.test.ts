@@ -822,9 +822,7 @@ describe("the records a hook names are asked about too", () => {
     const asks: number = hook.indexOf(
       "await this.checkRecordsNamedSoFar(createBy);",
     );
-    const number: number = hook.indexOf(
-      "ProjectService.incrementAndGetIncidentCounter(",
-    );
+    const number: number = hook.indexOf("this.takeNextIncidentNumber(");
 
     expect(asks).toBeGreaterThan(-1);
     expect(number).toBeGreaterThan(asks);

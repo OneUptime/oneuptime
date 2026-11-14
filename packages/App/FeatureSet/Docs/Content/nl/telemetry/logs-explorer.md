@@ -37,7 +37,7 @@ De verkenner heeft vijf tabbladen:
 ## Voordat u begint
 
 - **Binnenkomende logboeken.** Stuur ze met [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) of [Syslog](/docs/telemetry/syslog). Het tabblad **Installatiegids** toont de configuratie voor uw taal of collector.
-- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Telemetry Service Log. Het bereik ervan bepaalt van wie u de logboeken ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
+- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Logs. Het bereik ervan bepaalt van wie u de logboeken ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Een logregel vinden
 
@@ -141,7 +141,7 @@ OneUptime legt drie soorten bevindingen vast:
 
 | Bevinding | Wanneer OneUptime die vastlegt | De pull request |
 | --- | --- | --- |
-| **Foutlog** | Een service logde in het uur één bericht 20 keer of vaker op Error of Fatal, een bericht met eigen woorden en zonder uitzondering. Een bericht dat met een uitzondering, of met een stacktrace erin, wordt gelogd, wordt in plaats daarvan gevolgd in [Uitzonderingen volgen](/docs/telemetry/exceptions). | Lost op waarom de fout wordt gelogd, of logt hem op het niveau dat hij verdient. |
+| **Foutlog** | Een service logde in het uur één bericht 20 keer of vaker op Error of Fatal, een bericht met eigen woorden en zonder uitzondering. Een bericht dat met een uitzondering, of met een stacktrace erin, wordt gelogd, wordt in plaats daarvan gevolgd in [Uitzonderingen](/docs/telemetry/exceptions). | Lost op waarom de fout wordt gelogd, of logt hem op het niveau dat hij verdient. |
 | **Ontbrekende logging** | Minstens 20 spans van een bewerking zijn in het uur mislukt, 5% of meer ervan, terwijl minstens 100 logs van de service een trace-ID dragen, en geen van de 20 meest recente mislukte verzoeken van de bewerking heeft een logregel geschreven. Of een service stuurde in het uur 500 of meer logs en 100 of meer spans, en minder dan 1% van haar logs draagt een trace-ID. | Logt de storing waar die gebeurt, of laat de logs van de service de trace-ID dragen. |
 | **Luidruchtige log** | Eén bericht dat onder Error wordt gelogd, is in het uur 25% of meer van de regels van een service, zo'n 10.000 regels of meer. | Logt de regel minder: op Debug, eenmaal per batch, of helemaal niet. |
 

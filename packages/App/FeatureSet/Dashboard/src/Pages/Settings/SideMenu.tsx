@@ -140,7 +140,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Notification Settings",
+            title: "Notification Channels",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
             ),

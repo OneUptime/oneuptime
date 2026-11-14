@@ -92,6 +92,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import { getUsedByRelations } from "Common/Types/UsedBy/UsedBy";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -292,7 +293,12 @@ const RECORDS = {
   StatusPageDomain: () => {
     return [
       ...domainSpecs.map((spec) => {
-        return domainRow(StatusPageDomain, "statusPageId", STATUS_PAGE_ID, spec);
+        return domainRow(
+          StatusPageDomain,
+          "statusPageId",
+          STATUS_PAGE_ID,
+          spec,
+        );
       }),
       ...addedDomains,
     ];
@@ -453,7 +459,11 @@ ModelAPI.create = async (options) => {
     );
     return new HTTPResponse(
       200,
-      { _id: spec.id, fullDomain: spec.fullDomain, subdomain: values.subdomain },
+      {
+        _id: spec.id,
+        fullDomain: spec.fullDomain,
+        subdomain: values.subdomain,
+      },
       {},
     );
   }
@@ -474,7 +484,11 @@ function cnameCheck(name) {
   };
   switch (dns) {
     case "wrong":
-      return { ...base, outcome: "WrongValue", foundValues: ["acme.netlify.app"] };
+      return {
+        ...base,
+        outcome: "WrongValue",
+        foundValues: ["acme.netlify.app"],
+      };
     case "proxied":
       return {
         ...base,
@@ -524,8 +538,38 @@ function readinessAnswer() {
   }
 }
 
+/*
+ * What refers to the record a page is about ("Used by", #6813): GET
+ * /used-by/:recordKind/:recordId, answered as UsedByService answers for a
+ * record nothing refers to - every relation of the kind, each empty - so
+ * the page's Used by card says what to do next.
+ */
+function usedByNothing(url) {
+  const parts = String(url).split("/used-by/")[1].split("?")[0].split("/");
+
+  return {
+    recordKind: parts[0],
+    recordId: parts[1],
+    groups: getUsedByRelations(parts[0]).map((description) => {
+      return {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: 0,
+        hiddenCount: 0,
+        rows: [],
+      };
+    }),
+  };
+}
+
 API.get = async (options) => {
   const url = String(options && options.url);
+  // The Used by card's read, kept apart from the addresses the page checks.
+  if (url.includes("/used-by/")) {
+    window.__fixture.usedByGets = window.__fixture.usedByGets || [];
+    window.__fixture.usedByGets.push(url);
+    return new HTTPResponse(200, usedByNothing(url), {});
+  }
   window.__fixture.apiGets.push(url);
   if (url.includes("/certificates/")) {
     if (failing === "certs") {

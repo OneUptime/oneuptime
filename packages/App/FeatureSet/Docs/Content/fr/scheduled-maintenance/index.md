@@ -41,12 +41,12 @@ Les annonces sont traitées dans [Abonnés et annonces](/docs/status-pages/subsc
 
 ## D'où viennent les événements
 
-- **Le formulaire.** Cliquez sur **Créer un événement de maintenance planifiée** dans la liste des événements, ou dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster, d'un service, d'un site réseau ou d'une autre ressource, qui sélectionne cette ressource pour vous. Voir [Créer des événements de maintenance](/docs/scheduled-maintenance/creating-events).
+- **Le formulaire.** Cliquez sur **Créer un événement de maintenance** dans la liste des événements, ou dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster, d'un service, d'un site réseau ou d'une autre ressource, qui sélectionne cette ressource pour vous. Voir [Créer des événements de maintenance](/docs/scheduled-maintenance/creating-events).
 - **Un modèle.** **Créer à partir d'un modèle** remplit le formulaire à partir d'un modèle que vous avez enregistré pour des travaux fréquents. Voir [Modèles et événements récurrents](/docs/scheduled-maintenance/templates).
 - **Une planification.** Un modèle récurrent crée un nouvel événement selon une planification, par exemple chaque semaine ou chaque mois, sans que personne n'ouvre le formulaire.
 - **Un formulaire.** Un formulaire dont les soumissions créent des événements de maintenance transforme une demande de changement en événement. Voir [Ce que crée une soumission](/docs/forms/on-submit#comment-une-soumission-devient-un-événement-de-maintenance-planifiée).
 - **Le chat.** `/oneuptime maintenance` dans Slack, ou `maintenance` écrit au bot OneUptime dans Microsoft Teams, ouvre le formulaire dans votre outil de chat. Voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
-- **Le code.** L'API sous `/api/scheduled-maintenance`, la ressource Terraform `oneuptime_scheduled_maintenance_event` et l'étape **Create One Scheduled Maintenance Event** d'un workflow.
+- **Le code.** L'API sous `/api/scheduled-maintenance`, la ressource Terraform `oneuptime_scheduled_maintenance_event` et l'étape **Create One Maintenance Event** d'un workflow.
 
 ## Où se trouve la maintenance dans le tableau de bord
 
@@ -54,11 +54,11 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 
 | Section       | Ce que vous y faites                                                                                                       |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Vue d'ensemble** | **Tous les événements** et **Événements en cours**, dont le badge compte les événements en cours en ce moment.         |
+| **Vue d'ensemble** | **Tous les événements de maintenance** et **Événements de maintenance en cours**, dont le badge compte les événements en cours en ce moment.         |
 | **Calendrier** | **Calendrier de maintenance** : chaque événement sur un mois, une semaine ou un jour, à côté des calendriers extérieurs au projet que vous ajoutez. |
 | **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost**, selon ce que le projet a connecté, ou **Connecter un espace de travail** s'il n'en a aucun. |
 | **Règles**    | **Règles de propriétaire**, **Règles de runbook**, **Règles d'étiquettes**, **Règles de rappel**.                              |
-| **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
+| **Paramètres** | **État de la maintenance**, **Modèles de maintenance**, **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
 
 **Vue d'ensemble** et **Calendrier** sont ouvertes ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **API**, **CLI** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
 
@@ -88,7 +88,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 | **Notifications**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
 | **Notes**         | **Notes privées** et **Notes publiques**                                                       |
 | **Développeurs**  | **Terraform**, **API**, **CLI** et **Assistants IA** : l'événement géré par le code            |
-| **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement**      |
+| **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement de maintenance**      |
 
 **Vue d'ensemble**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 

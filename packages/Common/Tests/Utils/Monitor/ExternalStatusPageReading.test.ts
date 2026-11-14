@@ -5,7 +5,9 @@ import StatusPageSummaryUtil, {
 import ExternalStatusPageReading, {
   EXTERNAL_STATUS_PAGE_MAX_COMPONENTS,
   EXTERNAL_STATUS_PAGE_MAX_INCIDENTS,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
@@ -826,5 +828,69 @@ describe("what a page may list", () => {
         summary: { components, ongoing_incidents: incidents },
       })!.components,
     ).toHaveLength(EXTERNAL_STATUS_PAGE_MAX_COMPONENTS);
+  });
+});
+
+/*
+ * Why a OneUptime page turned the probe away (#7222): the probe stores the
+ * English, which monitor criteria and logs compare, and the summary reads
+ * it back - exactly those words, nothing like them - to draw it in the
+ * reader's language.
+ */
+describe("OneUptime's failure causes, read back", () => {
+  test("the probe's words, as it always wrote them", () => {
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE).toBe(
+      "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.",
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE).toBe(
+      "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.",
+    );
+  });
+
+  test("each reads back as itself", () => {
+    for (const cause of [
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+    ]) {
+      expect(ExternalStatusPageReading.readOneUptimeFailureCause(cause)).toBe(
+        cause,
+      );
+    }
+  });
+
+  test("with space round it, it still reads back, trimmed", () => {
+    expect(
+      ExternalStatusPageReading.readOneUptimeFailureCause(
+        ` ${EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE}\n`,
+      ),
+    ).toBe(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE);
+  });
+
+  test("words close to them, but not the same, are not OneUptime's", () => {
+    for (const cause of [
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE.slice(0, -1),
+      `${EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE} (HTTP 401)`,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE.toUpperCase(),
+      `Error: ${EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE}`,
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+    ]) {
+      expect(
+        ExternalStatusPageReading.readOneUptimeFailureCause(cause),
+      ).toBeNull();
+    }
+  });
+
+  test("any other cause, or none, is not OneUptime's", () => {
+    for (const cause of [
+      "HTTP status 503",
+      "Request timed out",
+      "",
+      "   ",
+      undefined,
+    ]) {
+      expect(
+        ExternalStatusPageReading.readOneUptimeFailureCause(cause),
+      ).toBeNull();
+    }
   });
 });

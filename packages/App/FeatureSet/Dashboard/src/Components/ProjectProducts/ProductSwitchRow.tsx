@@ -1,4 +1,6 @@
 import { ProductsSettingsCopy } from "./ProjectProductsCopy";
+import { ServerProductOffCopy } from "../ServerProducts/ServerProductsCopy";
+import { ServerProductOffReason } from "Common/Types/Product/ServerProducts";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Yellow } from "Common/Types/BrandColors";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -23,6 +25,10 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  *
  * The layout is ModelSwitchRow's: the status and marks to the right of the
  * text from sm up, under it on a phone, lined up with it.
+ *
+ * A product switched off on the whole server (#6815) has no switch: the
+ * project cannot show it. In the switch's place it says so, and why, and
+ * who can switch it on.
  */
 
 export enum ProductSwitchSaveState {
@@ -47,6 +53,8 @@ export interface ComponentProps {
   isInUse: boolean;
   isNotSetUp: boolean;
   neededPlan?: string | undefined;
+  // Switched off on the whole server, and why (#6815): no switch.
+  offOnServerReason?: ServerProductOffReason | undefined;
   dataTestId: string;
   onChange: (isShown: boolean) => void;
 }
@@ -71,6 +79,56 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
   );
 
   const marks: Array<ReactNode> = [];
+
+  if (props.offOnServerReason) {
+    return (
+      <div
+        className="flex flex-col py-3 sm:flex-row sm:items-start sm:justify-between"
+        data-testid={`${props.dataTestId}-row`}
+      >
+        <div
+          className="flex min-w-0 flex-1 items-start gap-3"
+          data-testid={`${props.dataTestId}-off`}
+        >
+          {/*
+           * Where the switch would be, the power sign: the project cannot
+           * show it while the server has it off.
+           */}
+          <span className="mt-0.5 w-11 flex-none text-center text-xs text-gray-400">
+            <Icon icon={IconProp.Power} className="mx-auto h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-500">{title}</div>
+            <p className="mt-0.5 text-sm text-gray-500">{props.description}</p>
+            <p
+              className="mt-1 text-sm text-gray-600"
+              data-testid={`${props.dataTestId}-off-reason`}
+            >
+              {translator.translateText(
+                props.offOnServerReason ===
+                  ServerProductOffReason.TelemetryIngestionStopped
+                  ? ServerProductOffCopy.rowIngestionStoppedReason
+                  : ServerProductOffCopy.rowSwitchedOffReason,
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-shrink-0 items-center pl-14 text-sm sm:ml-4 sm:pl-0 sm:pt-0.5">
+          <span
+            className="mt-2 text-xs text-gray-500 sm:mt-0"
+            data-testid={`${props.dataTestId}-off-label`}
+          >
+            {translator.translateText(
+              props.offOnServerReason ===
+                ServerProductOffReason.TelemetryIngestionStopped
+                ? ServerProductOffCopy.rowIngestionStopped
+                : ServerProductOffCopy.rowSwitchedOff,
+            )}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (props.neededPlan) {
     marks.push(

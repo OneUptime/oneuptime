@@ -603,7 +603,7 @@ const scheduledMaintenanceStateChangedDefaults: EventDefaults = {
       intro: "Here are more details for this scheduled event:",
       fields: [
         { label: "Event Title", value: "{{scheduledMaintenanceTitle}}" },
-        { label: "Event State", value: "{{scheduledMaintenanceState}}" },
+        { label: "Maintenance State", value: "{{scheduledMaintenanceState}}" },
         { label: "Resources Affected", value: "{{resourcesAffected}}" },
       ],
       buttonUrl: "{{detailsUrl}}",

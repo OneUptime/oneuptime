@@ -78,7 +78,7 @@ Appen viser ett prosjekt om gangen: trykk på prosjektets navn øverst på en sk
 Klikk på **Testvarsel** i telefonens rad. Et varsel kommer frem på telefonen; trykk på det for å åpne appen.
 :::
 
-Vaktreglene dine bestemmer hvilke varsler som går til telefonen, og hvor raskt: se **Brukerinnstillinger → Vaktregler**. En ny telefon får de samme standardreglene som enhver annen metode du legger til.
+Vaktreglene dine bestemmer hvilke varsler som går til telefonen, og hvor raskt: se **Brukerinnstillinger → Slik når man meg**. En ny telefon får de samme standardreglene som enhver annen metode du legger til.
 
 ## Ring gjennom lydløs
 
@@ -139,7 +139,7 @@ Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inklude
 - Sjekk i Android-innstillingene at varsler er på for appen, og at Ikke forstyrr er av eller kritiske varsler er på.
 - Sjekk at telefonen står under **Push-varsler** i **Brukerinnstillinger → Varselmetoder**, og send den et **Testvarsel**.
 - Er telefonen merket **Mottar ikke varsler**, åpner du appen mens du er logget inn. Den registrerer telefonen på nytt; se [Når en telefon må registreres på nytt](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-må-registreres-på-nytt).
-- Sjekk vaktreglene dine under **Brukerinnstillinger → Vaktregler**.
+- Sjekk vaktreglene dine under **Brukerinnstillinger → Slik når man meg**.
 - På et selvdriftet OneUptime sjekker du at serveren din når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).
 :::
 

@@ -13,6 +13,11 @@
  * PVE_HOST and the node collectors once per node in PVE_NODES, and the
  * doctor checks exactly that: the same scrapes, every listed node, and a
  * cluster with more nodes than the list.
+ *
+ * Since 0.161.2 the cluster collectors are scraped at the node the
+ * pve-api-failover container picked (PVE_HOST while its API answers, else the
+ * next node of PVE_NODES that does), so the doctor reads that choice and
+ * scrapes the same node, and says when it is not PVE_HOST.
  */
 
 const fs = require("fs");
@@ -55,13 +60,25 @@ const CLUSTER_SCRAPE = [
  * collectors for any target, the node collectors only for the nodes listed
  * in $STUB_DIR/reachable-nodes.
  */
-function run({ env }) {
+function run({
+  env,
+  // What pve-api-failover wrote for the collector: PVE_HOST by default.
+  failoverTarget = '[{"targets":["10.0.0.11"]}]',
+  failoverLog = "",
+  missingContainers = [],
+}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "proxmox-doctor-"));
   scratchDirs.push(dir);
   const bin = path.join(dir, "bin");
   fs.mkdirSync(bin);
   fs.writeFileSync(path.join(dir, "cluster.prom"), `${CLUSTER_SCRAPE}\n`);
   fs.writeFileSync(path.join(dir, "reachable-nodes"), "10.0.0.11\n10.0.0.12\n");
+  fs.writeFileSync(path.join(dir, "failover-target"), failoverTarget);
+  fs.writeFileSync(path.join(dir, "failover-log"), failoverLog);
+  fs.writeFileSync(
+    path.join(dir, "missing-containers"),
+    missingContainers.join("\n"),
+  );
   writeExecutable(
     path.join(bin, "docker"),
     `#!/usr/bin/env bash
@@ -69,13 +86,25 @@ printf '%s\\n' "$*" >> "$STUB_DIR/docker.log"
 case "$1" in
   info|compose) exit 0 ;;
   inspect)
+    for name in $(cat "$STUB_DIR/missing-containers" 2>/dev/null); do
+      case "$*" in *"$name"*) exit 1 ;; esac
+    done
     case "$*" in
       *Config.Env*) cat "$STUB_DIR/container.env" ;;
       *restarting*) printf 'running restarting=false restarts=0\\n' ;;
       *State.Status*) printf 'running\\n' ;;
     esac
     exit 0 ;;
-  logs) exit 0 ;;
+  exec)
+    case "$*" in
+      *oneuptime-pve-api-failover*target.json*) cat "$STUB_DIR/failover-target" 2>/dev/null ;;
+    esac
+    exit 0 ;;
+  logs)
+    case "$*" in
+      *oneuptime-pve-api-failover*) cat "$STUB_DIR/failover-log" 2>/dev/null ;;
+    esac
+    exit 0 ;;
   run)
     case "$*" in
       *"cluster=1&node=0"*) cat "$STUB_DIR/cluster.prom"; exit 0 ;;
@@ -201,5 +230,80 @@ describe("agents/ProxmoxAgent/troubleshoot.sh, the exporter scrapes", () => {
         return url.includes("cluster=0&node=1");
       }),
     ).toEqual([]);
+  });
+});
+
+describe("agents/ProxmoxAgent/troubleshoot.sh, the node the cluster is read from", () => {
+  test("PVE_HOST while its API answers: says so, and scrapes the cluster there", () => {
+    const result = run({ env: ["PVE_NODES=[10.0.0.11,10.0.0.12]"] });
+
+    expect(result.output).toContain(
+      "✔ Node failover 'oneuptime-pve-api-failover' is running",
+    );
+    expect(result.output).toContain(
+      "✔ The collector reads the cluster from PVE_HOST (10.0.0.11).",
+    );
+    expect(result.scrapes[0]).toBe(
+      "http://pve-exporter:9221/pve?target=10.0.0.11&cluster=1&node=0",
+    );
+  });
+
+  test("another node when PVE_HOST does not answer: scrapes the cluster at that node, and says why", () => {
+    const result = run({
+      env: ["PVE_NODES=[10.0.0.11,10.0.0.12]"],
+      failoverTarget: '[{"targets":["10.0.0.12"]}]\n',
+      failoverLog:
+        "Reading the cluster from 10.0.0.12: 10.0.0.11 does not answer.\n",
+    });
+
+    expect(result.output).toContain(
+      "▲ The collector reads the cluster from 10.0.0.12: PVE_HOST (10.0.0.11) does not answer, or is not part of the quorate cluster.",
+    );
+    expect(result.output).toContain(
+      "Reading the cluster from 10.0.0.12: 10.0.0.11 does not answer.",
+    );
+    expect(result.scrapes).toEqual([
+      "http://pve-exporter:9221/pve?target=10.0.0.12&cluster=1&node=0",
+      // The node collectors still ask every listed node at its own address.
+      "http://pve-exporter:9221/pve?target=10.0.0.11&cluster=0&node=1",
+      "http://pve-exporter:9221/pve?target=10.0.0.12&cluster=0&node=1",
+    ]);
+    expect(result.output).toContain(
+      "PVE_HOST (10.0.0.11) does not answer the agent, so it reads the cluster from 10.0.0.12 instead and monitoring goes on.",
+    );
+  });
+
+  test("an agent from before 0.161.2 has no failover container: told how to upgrade, and checked at PVE_HOST", () => {
+    const result = run({
+      env: ["PVE_NODES=[10.0.0.11,10.0.0.12]"],
+      missingContainers: ["oneuptime-pve-api-failover"],
+    });
+
+    expect(result.output).toContain(
+      "▲ No 'oneuptime-pve-api-failover' container — an agent from before 0.161.2 reads the cluster from PVE_HOST alone, and goes blind when that node goes down.",
+    );
+    expect(result.output).toContain(
+      "Upgrade the agent so it reads the cluster from another node of PVE_NODES when PVE_HOST's goes down",
+    );
+    expect(result.scrapes[0]).toBe(
+      "http://pve-exporter:9221/pve?target=10.0.0.11&cluster=1&node=0",
+    );
+  });
+
+  test("a failover container that has chosen no node is a failure, and the scrape falls back to PVE_HOST", () => {
+    const result = run({
+      env: ["PVE_NODES=[10.0.0.11,10.0.0.12]"],
+      failoverTarget: "",
+      failoverLog:
+        "Neither PVE_HOST nor PVE_NODES names a node: set PVE_HOST in .env to a node's address, then run docker compose up -d.\n",
+    });
+
+    expect(result.output).toContain(
+      "✗ The failover container has not chosen a node — the collector has no node to read the cluster from.",
+    );
+    expect(result.output).toContain("Neither PVE_HOST nor PVE_NODES names a node");
+    expect(result.scrapes[0]).toBe(
+      "http://pve-exporter:9221/pve?target=10.0.0.11&cluster=1&node=0",
+    );
   });
 });

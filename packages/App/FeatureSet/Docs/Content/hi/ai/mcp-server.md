@@ -483,7 +483,7 @@ MCP सर्वर स्टेटलेस है: वह न सेशन id 
 | घटनाएं | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | अलर्ट | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | स्टेटस पेज | Status Page, Status Page Announcement |
-| निर्धारित रखरखाव | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| निर्धारित रखरखाव | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | टीमें और ऑन-कॉल | Team, On-Call Policy |
 | लेबल | Label |
 | सुरक्षा | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

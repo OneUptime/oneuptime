@@ -252,6 +252,8 @@ OneUptimeReplay.captureSession("installation test");
 | `session-ended-idle` | 페이지에서 30분 동안 아무 일도 없어 세션이 끝났습니다. 레코더가 알아챈 시각이 아니라 마지막 활동 시각으로 끝납니다(`idleForMs`가 얼마나 지났는지 알려 줌). 사용자가 돌아올 때까지 아무것도 업로드되지 않으며, 자신의 출처로 가는 요청에 세션 ID가 붙지 않습니다. 아무도 없는 열린 탭이 반 시간마다 새 세션을 시작하지는 않습니다. |
 | `recording-paused-idle` | 5분 동안 아무도 키를 누르거나, 클릭하거나, 마우스를 움직이거나, 스크롤하거나, 페이지를 터치하지 않아 녹화가 일시 중지되었습니다(`idleForMs`가 경과 시간을 알려 줌). 다음 입력이 같은 세션을 다시 시작할 때까지 아무것도 캡처하거나 업로드하지 않으며, 자신의 출처로 가는 요청에 세션 ID가 붙지 않습니다. [유휴 시간](/docs/telemetry/session-replay#유휴-시간)을 참고하세요. 방치된 탭에서는 모두 정상입니다. |
 | `recording-resumed` | 녹화가 일시 중지된 동안 사용자가 돌아와, 새 스냅샷에서 같은 세션으로 다시 시작했습니다(`pausedForMs`가 일시 중지된 시간을 알려 줌). 플레이어는 그 사이 구간을 건너뜁니다. |
+| `recording-paused-page` | 페이지가 `OneUptimeReplay.pause()`로 녹화를 일시 중지했습니다. 페이지가 `OneUptimeReplay.resume()`을 호출할 때까지 아무것도 캡처하지 않습니다. 방문자의 입력은 세션을 열어 두지만 녹화를 다시 시작하지는 않습니다. 이 페이지를 녹화해야 한다면 `OneUptimeReplay.pause()`를 호출하는 곳을 찾으세요. |
+| `recording-resumed-page` | 페이지가 `OneUptimeReplay.resume()`으로 녹화를 다시 시작했습니다. 녹화는 같은 세션에서 새 스냅샷으로 이어지거나, 일시 중지 중에 그 세션이 끝났다면 새 세션에서 이어집니다. |
 | `session-rotated` | 새 세션이 시작되었습니다(사용자가 30분 유휴 후 돌아왔거나, 세션이 4시간에 도달했거나, `identify()`가 세션의 사용자와 다른 사용자를 지정했거나 — `rotationReason: "identity-change"` — 같은 방문자의 다른 탭이 먼저 새 세션을 시작한 경우 — `rotationReason: "adopted"`). 녹화는 새 ID로 계속되고, `onSessionChange` 리스너에 알림이 가며, 그 이후 자신의 출처로 가는 요청에는 새 ID가 붙습니다. |
 | `command-queue-not-an-array` | `window.OneUptimeReplayQueue`가 배열이 아니어서 대기열의 모든 명령이 무시되었습니다. `[command, ...arguments]` 항목의 배열이어야 합니다. |
 | `command-queue-unknown-command` | 대기열의 명령 이름을 인식하지 못했습니다. [JavaScript API](/docs/telemetry/session-replay#javascript-api)와 철자를 대조해 보세요. |

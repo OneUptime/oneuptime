@@ -194,14 +194,20 @@ export default class DataObservabilityApi {
     );
   }
 
-  // OneUptime AI writes a Custom SQL check from a rule in a sentence, for the person to review.
+  /*
+   * OneUptime AI writes a Custom SQL check from a rule in a sentence, for
+   * the person to review: its name and explanation in the language they
+   * read OneUptime in (#7220).
+   */
   public static async suggestCheck(
     dataAssetId: ObjectID,
     sentence: string,
+    language: string,
   ): Promise<DataObservabilityCheckSuggestion> {
     return (await post(DATA_OBSERVABILITY_API_ROUTES.checkSuggest, {
       dataAssetId: dataAssetId.toString(),
       sentence,
+      language,
     })) as unknown as DataObservabilityCheckSuggestion;
   }
 

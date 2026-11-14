@@ -5,12 +5,8 @@ import os from "os";
 import path from "path";
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
-const COMMON_MODULES: string = path.join(
-  REPOSITORY_ROOT,
-  "packages",
-  "Common",
-  "node_modules",
-);
+const COMMON_ROOT: string = path.join(REPOSITORY_ROOT, "packages", "Common");
+const COMMON_MODULES: string = path.join(COMMON_ROOT, "node_modules");
 const ESBUILD_CONFIG: string = path.join(
   REPOSITORY_ROOT,
   "packages",
@@ -61,6 +57,13 @@ function renderSharedLink(nodeEnv: string): RenderResult {
         { recursive: true, dereference: true },
       );
     }
+    /*
+     * Each package has Common installed as the App's is (npm links
+     * packages/App/node_modules/Common to ../../Common): the link asks
+     * before it leaves a board with unsaved changes (LeaveGuard,
+     * Navigation; #7173), so its bundle reads Common's own code.
+     */
+    fs.symlinkSync(COMMON_ROOT, path.join(moduleDirectory, "Common"), "dir");
   }
 
   fs.cpSync(APP_LINK_DIRECTORY, path.join(root, "shared"), {

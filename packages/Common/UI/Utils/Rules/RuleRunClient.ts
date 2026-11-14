@@ -15,6 +15,7 @@ import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import { APP_API_URL } from "../../Config";
 import API from "../API/API";
 import { translateTemplate, translateText } from "../TranslateTemplate";
+import { errorInSentence } from "../ErrorInSentence";
 
 /*
  * The dashboard half of "Run now" for label, owner, privacy and status page
@@ -103,7 +104,7 @@ export default class RuleRunClient {
         message: translateTemplate(
           "{{message}} The run stopped part-way. Before it stopped: {{summary}}",
           {
-            message: message,
+            message: errorInSentence(message),
             summary: RuleRunSummary.describe({
               ruleType: data.ruleType,
               result: partial,

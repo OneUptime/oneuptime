@@ -27,6 +27,8 @@ Din server skal kunne sende e-mail, sms og opkald. Dens masteradministrator sæt
 :::steps
 ### Åbn den guidede opsætning
 
+![Hjem spørger »Hvad vil du gøre først?«, med »Tilkalde den rette person, når noget går ned« markeret](screen:home-goal-paging)
+
 På siden **Hjem** i dit projekt klikker du på **Opsæt en vagtpolitik** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Tilkalde den rette person, når noget går ned**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**.
 
 ### Hent appen på din telefon
@@ -35,21 +37,31 @@ Installér OneUptime On-Call fra App Store eller Google Play, og log ind: så re
 
 ### Slå sms og opkald til
 
+![Trinnet »Hvordan skal vi nå dig?«, med »Slå sms og opkald til« fremhævet](screen:paging-reach-you)
+
 Nye projekter starter med sms og telefonopkald slået fra. Ejer du projektet, så klik på **Slå sms og opkald til**; alle andre får at vide, hvem der kan. Er saldoen på OneUptime Cloud 1.00 USD eller mindre, så klik på **Tilføj saldo**, indtast 20 til 1.000 USD under **Beløb (USD)**, og klik på **Genoplad**.
 
 ### Tilføj dit telefonnummer
+
+![Feltet »Dit telefonnummer«, med »Send mig en kode på sms« fremhævet](screen:paging-phone)
 
 Skriv dit mobilnummer med landekode i **Dit telefonnummer**, for eksempel `+15551234567`, og klik på **Send mig en kode på sms**. Indtast koden fra sms'en, og klik på **Bekræft**: det samme nummer bliver også ringet op ved tilkald. Klik på **Fortsæt**. Vil du kun tilkaldes via appen og e-mail, så udelad nummeret, og klik straks på **Fortsæt**.
 
 ### Vælg, hvem der ellers tilkaldes
 
+![Trinnet »Hvem har ellers vagt?«, med »Gem og fortsæt« fremhævet](screen:paging-who-else)
+
 Under **Hvem har ellers vagt?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre sammen med dig, og klik derefter på **Gem og fortsæt**. I et projekt, der endnu ikke har en vagtpolitik, oprettes `Default on-call policy`, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
 
 ### Bestem, hvad der sker, hvis ingen svarer
 
+![Trinnet »Hvad hvis ingen svarer?«, med »Gem og fortsæt« fremhævet](screen:paging-no-answer)
+
 Under **Hvad hvis ingen svarer?** beholder du **Tilkald en anden**, vælger, hvem det skal være, under **Tilkaldes derefter** og lader **Minutter at vente** stå på `30` eller ændrer det. Klik på **Gem og fortsæt**. På Free-planen tilbyder trinnet i stedet **Tilkald de samme personer igen**, med **Antal nye tilkaldelser** på `2`.
 
 ### Send et testkald
+
+![Trinnet »Send et testkald«, med »Test denne politik« fremhævet](screen:paging-test)
 
 Under **Send et testkald** klikker du på **Test denne politik**. Vælg en **Alvorlighed**, og klik på **Send testkald**. Politikkens første eskaleringsregel tilkaldes, som en rigtig hændelse ville tilkalde den, og der står TEST i hver besked. Der oprettes ingen hændelse, og ingen statusside eller abonnent får besked.
 
@@ -59,6 +71,8 @@ Under **Send et testkald** klikker du på **Test denne politik**. Vælg en **Alv
 :::
 
 ## Tjek, at det virker
+
+![Oversigten »Tilkaldelse er sat op«: »Hvem der tilkaldes«, »Hvis ingen svarer« og »Testet«](screen:paging-summary)
 
 - Testtrinnet viser, hvem der kvitterede for tilkaldet, hvordan og hvor hurtigt.
 - Opsætningen slutter med **Tilkaldelse er sat op**, hentet fra det, der faktisk er gemt: **Hvem der tilkaldes**, **Hvis ingen svarer** og **Testet**. Et problem med selve politikken, for eksempel en person, den ikke kan nå, står under **Kræver opmærksomhed**.
@@ -89,6 +103,6 @@ Tjek først nummerets landekode. Efter et testkald lukker du dialogen med **Fær
 :::cards
 - [Vagtplaner](/docs/on-call/schedules): Del vagterne, så hvert tilkald går til den, der har vagt. På Cloud fra Growth-planen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Føj niveauer, teams og vagtplaner til politikken.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Vælg, hvilken metode der når dig først, og hvornår.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Vælg, hvilken metode der når dig først, og hvornår.
 - [Udgiv en statusside](/docs/guides/status-page): Fortæl dine kunder, hvad der sker, på dit eget domæne.
 :::

@@ -27,6 +27,8 @@ Votre serveur doit pouvoir envoyer des e-mails et des SMS, et passer des appels.
 :::steps
 ### Ouvrir la configuration guidée
 
+![Accueil demande « Que voulez-vous faire en premier ? », avec « Alerter la bonne personne quand quelque chose tombe en panne » coché](screen:home-goal-paging)
+
 Sur la page **Accueil** de votre projet, cliquez sur **Configurez une politique d'astreinte** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Alerter la bonne personne quand quelque chose tombe en panne** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**.
 
 ### Installer l'application sur votre téléphone
@@ -35,21 +37,31 @@ Installez OneUptime On-Call depuis l'App Store ou Google Play et connectez-vous 
 
 ### Activer les SMS et les appels
 
+![L'étape « Comment devons-nous vous joindre ? », avec « Activer les SMS et les appels » entouré](screen:paging-reach-you)
+
 Dans un nouveau projet, les SMS et les appels téléphoniques sont désactivés. Si vous êtes propriétaire du projet, cliquez sur **Activer les SMS et les appels** ; les autres voient qui peut le faire. Sur OneUptime Cloud, si le solde est de 1.00 USD ou moins, cliquez sur **Ajouter du solde**, saisissez un montant de 20 à 1 000 USD sous **Montant (USD)** et cliquez sur **Recharger**.
 
 ### Ajouter votre numéro de téléphone
+
+![Le champ « Votre numéro de téléphone », avec « M'envoyer un code par SMS » entouré](screen:paging-phone)
 
 Saisissez votre numéro de mobile avec son indicatif pays dans **Votre numéro de téléphone**, par exemple `+15551234567`, et cliquez sur **M'envoyer un code par SMS**. Saisissez ensuite le code reçu par SMS et cliquez sur **Vérifier** : ce même numéro est aussi appelé lors des alertes. Cliquez sur **Continuer**. Pour n'être alerté que par l'application et par e-mail, laissez le numéro vide et cliquez directement sur **Continuer**.
 
 ### Choisir qui d'autre est alerté
 
+![L'étape « Qui d'autre est d'astreinte ? », avec « Enregistrer et continuer » entouré](screen:paging-who-else)
+
 Sous **Qui d'autre est d'astreinte ?**, vous êtes déjà dans **Alertés en premier**. Cliquez sur **Ajouter des membres de l'équipe** pour alerter d'autres personnes avec vous, puis cliquez sur **Enregistrer et continuer**. Dans un projet qui n'a pas encore de politique d'astreinte, cela crée `Default on-call policy`, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte. Dans un projet qui en a une, choisissez-la sous **Politique d'astreinte**, et ajoutez plutôt les personnes sous **Ajouter à la première règle d'escalade**. Si quelqu'un ne peut pas encore être joint, l'étape reste ouverte sur **Une alerte les atteint-elle ?** : cliquez sur **Envoyer un rappel de configuration** pour cette personne, puis sur **Continuer**.
 
 ### Décider de ce qui se passe si personne ne répond
 
+![L'étape « Et si personne ne répond ? », avec « Enregistrer et continuer » entouré](screen:paging-no-answer)
+
 Sous **Et si personne ne répond ?**, gardez **Alerter quelqu'un d'autre**, choisissez qui sous **Alertés ensuite**, et laissez **Minutes d'attente** à `30` ou choisissez une autre valeur. Cliquez sur **Enregistrer et continuer**. Avec le forfait Free, l'étape propose plutôt **Alerter à nouveau les mêmes personnes**, avec **Nombre de nouvelles alertes** à `2`.
 
 ### Envoyer un appel de test
+
+![L'étape « Envoyer un appel de test », avec « Tester cette politique » entouré](screen:paging-test)
 
 Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**. Choisissez une **Gravité** et cliquez sur **Envoyer l'appel de test**. La première règle d'escalade de la politique est alertée comme le ferait un vrai incident, et chaque message indique TEST. Aucun incident n'est créé, et aucune page de statut ni aucun abonné n'est informé.
 
@@ -59,6 +71,8 @@ Prenez l'appel de test en compte depuis le lien du SMS ou de l'e-mail, ou appuye
 :::
 
 ## Vérifier que tout fonctionne
+
+![Le résumé « L'alerte est configurée » : « Qui est alerté », « Si personne ne répond » et « Testé »](screen:paging-summary)
 
 - L'étape de test indique qui a pris l'appel de test en compte, par quel moyen et en combien de temps.
 - La configuration se termine sur **L'alerte est configurée**, un récapitulatif tiré de ce qui est enregistré : **Qui est alerté**, **Si personne ne répond** et **Testé**. Un problème de la politique elle-même, comme une personne qu'elle ne peut pas joindre, est listé sous **Attention requise**.
@@ -89,6 +103,6 @@ Vérifiez d'abord l'indicatif pays du numéro. Après un appel de test, fermez l
 :::cards
 - [Plannings d'astreinte](/docs/on-call/schedules): Se relayer, pour que chaque alerte aille à la personne d'astreinte. Sur Cloud, à partir du forfait Growth.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Ajouter des niveaux, des équipes et des plannings à la politique.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Choisir quel moyen vous joint en premier, et quand.
+- [Comment me joindre](/docs/notifications/on-call-rules): Choisir quel moyen vous joint en premier, et quand.
 - [Publier une page de statut](/docs/guides/status-page): Dire à vos clients ce qui se passe, sur votre propre domaine.
 :::

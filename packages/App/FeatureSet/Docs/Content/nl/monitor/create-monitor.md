@@ -44,7 +44,7 @@ Voor een monitor die sondes controleren, voert **Monitor testen** de controle é
 
 ### De criteria nakijken
 
-Daaronder bepalen de **Monitorcriteria** wanneer de monitor van status verandert, een incident meldt of een waarschuwing maakt. Een nieuwe monitor begint met criteria die bij de meeste monitoren passen, elk ingeklapt tot één regel die zegt wat het controleert en wat het doet. Een nieuwe websitemonitor wordt bijvoorbeeld als offline gemarkeerd en meldt een incident wanneer de site niet antwoordt of antwoordt met een foutstatuscode.
+Daaronder bepalen de **Criteria** wanneer de monitor van status verandert, een incident meldt of een waarschuwing maakt. Een nieuwe monitor begint met criteria die bij de meeste monitoren passen, elk ingeklapt tot één regel die zegt wat het controleert en wat het doet. Een nieuwe websitemonitor wordt bijvoorbeeld als offline gemarkeerd en meldt een incident wanneer de site niet antwoordt of antwoordt met een foutstatuscode.
 
 Klik op een criterium om het te openen en te wijzigen. **Criteria toevoegen** voegt er een toe, geopend en klaar om in te vullen. Om de volgorde te wijzigen, sleept u een criterium aan de greep links ervan.
 
@@ -72,7 +72,7 @@ flowchart TB
     end
 ```
 
-Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de standaardcriteria, lossen zichzelf op zodra hun criterium niet meer overeenkomt. Een monitor die door meer dan één sonde wordt gecontroleerd, verandert pas wanneer zijn sondes het eens zijn: standaard moet elke ingeschakelde en verbonden sonde tot hetzelfde resultaat komen. Om minder te eisen, stelt u **Sonde-overeenstemming** in op de pagina **Configuratie → Sondes en interval** van de monitor. Alles wat een criterium kan bevatten, en de statussen die een monitor kan tonen, vindt u in [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
+Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de standaardcriteria, lossen zichzelf op zodra hun criterium niet meer overeenkomt. Een monitor die door meer dan één sonde wordt gecontroleerd, verandert pas wanneer zijn sondes het eens zijn: standaard moet elke ingeschakelde en verbonden sonde tot hetzelfde resultaat komen. Om minder te eisen, stelt u **Sonde-overeenstemming** in op de pagina **Configuratie → Sondes en interval** van de monitor. Alles wat een criterium kan bevatten, en de statussen die een monitor kan tonen, vindt u in [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ## Sondes en interval
 
@@ -103,7 +103,7 @@ Elk monitortype heeft een eigen pagina met zijn instellingen, zijn standaardcrit
 :::cards
 - [Website-monitor](/docs/monitor/website-monitor): Controleren of een pagina laadt, en wat die antwoordt.
 - [API-monitor](/docs/monitor/api-monitor): Een endpoint aanroepen met een methode, headers en een body.
-- [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
+- [Criteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
 - [Monitorsjablonen](/docs/monitor/monitor-templates): Veel monitoren maken vanuit één configuratie en ze gelijk houden.
 - [Monitorgroepen](/docs/monitor/monitor-groups): Meerdere monitoren tot één status samenvoegen.
 - [Incidenten](/docs/incidents/index): Wat er gebeurt nadat een monitor een incident meldt.

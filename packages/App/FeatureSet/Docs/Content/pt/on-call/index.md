@@ -48,7 +48,7 @@ As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction
 | Regra de escalonamento | Um nível de uma política: quem ela aciona e quanto tempo espera por uma confirmação | [Regras de escalonamento](/docs/on-call/escalation-rules) |
 | Agendamento de plantão | Quem está de plantão a cada momento, em revezamento | [Agendamentos de plantão](/docs/on-call/schedules) |
 | Substituição de usuário | Quem cobre alguém enquanto essa pessoa está ausente | [Substituições de usuário](/docs/on-call/user-overrides) |
-| Regras de plantão pessoais | Como uma pessoa é contatada: por qual método e depois de quanto tempo | [Regras de Plantão pessoais](/docs/notifications/on-call-rules) |
+| Regras de plantão pessoais | Como uma pessoa é contatada: por qual método e depois de quanto tempo | [Como me contatar](/docs/notifications/on-call-rules) |
 | Política de chamadas recebidas | Um número de telefone que toca para quem está de plantão | [Política de chamadas recebidas](/docs/on-call/incoming-call-policy) |
 
 Políticas, regras de escalonamento, agendamentos e substituições pertencem ao projeto, em **Plantão**. Métodos de notificação e regras de plantão pessoais pertencem a cada pessoa, em **Configurações do usuário**: um administrador pode ver a configuração de alguém, mas só a própria pessoa pode verificar seu telefone ou e-mail. Veja [Como o OneUptime chega até você](/docs/notifications/index).

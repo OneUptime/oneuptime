@@ -1,4 +1,9 @@
-import { EMPTY_VALUE_MARK } from "../Detail/EmptyValue";
+import {
+  DASH_PLACEHOLDERS,
+  EMPTY_VALUE_MARK,
+  isDashPlaceholder,
+  isDashText,
+} from "../Detail/EmptyValue";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -20,57 +25,18 @@ export const TABLE_EMPTY_VALUE_CLASS_NAME: string =
 
 export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
 
-// The marks pages draw for "nothing here" in a cell of their own.
-export const DASH_PLACEHOLDERS: ReadonlyArray<string> = [
-  "-",
-  "\u2013",
-  "\u2014",
-];
-
 /*
- * Whether a column's own element is a bare dash - `<>-</>`, `<p>-</p>`,
- * `<span>-</span>` with no classes of its own - the mark some fifty columns
- * draw for a value that is not there. In a table it becomes the quiet dash
- * every other empty cell is (TableRow), rather than a hyphen as dark as a
- * value; an element with classes of its own is kept as the page drew it.
+ * The marks pages draw for "nothing here" in a cell of their own, and
+ * whether a column's own element is only one (a bare `<p>-</p>`): one rule
+ * for a table's cell and a detail card's field (Detail/EmptyValue).
  */
-export const isDashPlaceholder: (node: React.ReactNode) => boolean = (
-  node: React.ReactNode,
-): boolean => {
-  if (typeof node === "string") {
-    return DASH_PLACEHOLDERS.includes(node.trim());
-  }
-
-  if (!React.isValidElement(node)) {
-    return false;
-  }
-
-  const elementProps: { children?: React.ReactNode; className?: string } =
-    node.props as { children?: React.ReactNode; className?: string };
-
-  if (
-    node.type !== React.Fragment &&
-    node.type !== "span" &&
-    node.type !== "p"
-  ) {
-    return false;
-  }
-
-  if (elementProps.className) {
-    return false;
-  }
-
-  return (
-    typeof elementProps.children === "string" &&
-    DASH_PLACEHOLDERS.includes(elementProps.children.trim())
-  );
-};
+export { DASH_PLACEHOLDERS, isDashPlaceholder };
 
 export interface ComponentProps {
   /*
    * What a screen reader hears in place of the dash: the column's own
    * sentence ("No labels attached.", "No owners."). "Not set" when there is
-   * none.
+   * none - or when it is only a dash, which says nothing out loud.
    */
   screenReaderText?: string | undefined;
 }
@@ -79,7 +45,8 @@ const TableEmptyValue: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const text: string = props.screenReaderText?.trim() || "Not set";
+  const words: string = props.screenReaderText?.trim() || "";
+  const text: string = words && !isDashText(words) ? words : "Not set";
 
   return (
     <span
@@ -90,6 +57,51 @@ const TableEmptyValue: FunctionComponent<ComponentProps> = (
       <span className="sr-only">{translateString(text) ?? text}</span>
     </span>
   );
+};
+
+/*
+ * A column's own words for a value that is not there ("Never", "No
+ * labels"), in the grey a missing value is drawn in, and in the reader's
+ * language.
+ */
+export const TABLE_NO_VALUE_MESSAGE_CLASS_NAME: string = "text-gray-500";
+
+export interface TableNoValueMessageProps {
+  text: string;
+}
+
+export const TableNoValueMessage: FunctionComponent<
+  TableNoValueMessageProps
+> = (props: TableNoValueMessageProps): ReactElement => {
+  const { translateString } = useTranslateValue();
+
+  return (
+    <span className={TABLE_NO_VALUE_MESSAGE_CLASS_NAME}>
+      {translateString(props.text) ?? props.text}
+    </span>
+  );
+};
+
+/*
+ * What a cell shows for a value that is not there, given the words its
+ * column has for that (Column.noValueMessage): those words when it has
+ * some, and the quiet dash when it has none - or when they are only a dash
+ * ("-", "–", "—"), which some sixty columns wrote. Those drew a hyphen
+ * darker than the dash beside it, with nothing for a screen reader to hear,
+ * so one row showed two marks for the same "nothing here" (#7264).
+ *
+ * A function rather than a component of its own: a phone's card leaves out
+ * a field whose value is the quiet dash, and knows it by its element's type
+ * (TableRow), as a cell's folded lines do (TableFoldedValues).
+ */
+export const getTableNoValue: (
+  noValueMessage?: string | undefined,
+) => ReactElement = (noValueMessage?: string | undefined): ReactElement => {
+  if (!noValueMessage?.trim() || isDashText(noValueMessage)) {
+    return <TableEmptyValue />;
+  }
+
+  return <TableNoValueMessage text={noValueMessage} />;
 };
 
 export default TableEmptyValue;

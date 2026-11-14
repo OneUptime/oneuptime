@@ -1,4 +1,5 @@
 import OneUptimeLogo from "../../Images/logos/OneUptimeSVG/3-transparent.svg";
+import OneUptimeMark from "../../Images/logos/OneUptimeSVG/mark-transparent.svg";
 import {
   getProductBranding,
   getProductLogoUrl,
@@ -79,6 +80,59 @@ export const getProductLogoSource: (theme: Theme) => string | null = (
   return theme === Theme.Dark ? DarkOneUptimeLogo : OneUptimeLogo;
 };
 
+/*
+ * OneUptime's mark for a dark background, made the first time it is asked
+ * for (getProductMarkSource). Made as this module loads, as the wordmark's
+ * is, it would keep the mark - a data: URL of its SVG - in every bundle that
+ * draws ProductLogo, the sign-in pages' among them, though only the
+ * Dashboard's header draws it (packages/Common/Scripts/first-load-budgets.js).
+ */
+let darkOneUptimeMark: string | null = null;
+
+/*
+ * Below 640px, as a media query: Tailwind's max-sm, which the header's own
+ * classes use for the same screens.
+ */
+export const SMALL_SCREEN_MEDIA_QUERY: string =
+  "not all and (min-width: 640px)";
+
+/*
+ * The product's mark for a theme: what a header that asks for it
+ * (markOnSmallScreens) draws on a small screen in place of the logo, so a
+ * phone's header has room for what it is there to say - the project's name
+ * (#7236). OneUptime's mark (its "Up" and green square, the browser tab's
+ * icon) in place of its wordmark; the installation's own browser tab icon
+ * in place of its own logo. Null when there is none: an installation's logo
+ * without a tab icon is drawn as it is (the header's classes hold it to a
+ * small screen's width), and an installation that goes by a name of its
+ * own and has no logo draws its name.
+ *
+ * The header hands this to ProductLogo (markOnSmallScreens), which never
+ * calls it on its own: a bundle whose modules do not import it - the
+ * sign-in pages' - is built without the mark.
+ */
+export const getProductMarkSource: (theme: Theme) => string | null = (
+  theme: Theme,
+): string | null => {
+  if (getProductLogoUrl(theme)) {
+    return getProductBranding()?.faviconUrl || null;
+  }
+
+  if (isProductRenamed()) {
+    return null;
+  }
+
+  if (theme !== Theme.Dark) {
+    return OneUptimeMark;
+  }
+
+  if (darkOneUptimeMark === null) {
+    darkOneUptimeMark = getDarkThemeLogo(OneUptimeMark);
+  }
+
+  return darkOneUptimeMark;
+};
+
 // The logo at the top of a sign-in page: centred, 40px tall, 48px from sm.
 export const PAGE_LOGO_CLASS_NAME: string =
   "mx-auto h-10 w-auto max-w-full object-contain sm:h-12";
@@ -118,6 +172,15 @@ export interface ComponentProps {
    * PAGE_PRODUCT_NAME_CLASS_NAME.
    */
   nameClassName?: string | undefined;
+  /*
+   * Below 640px, draw the product's mark in place of its logo - the one
+   * this gives for the theme, getProductMarkSource - as one image whose
+   * source the browser picks by the screen's width: the Dashboard's header,
+   * where a phone has no room for both the wordmark and the project's name.
+   * Handed in, not called from here: the mark would come along into every
+   * bundle that draws this logo.
+   */
+  markOnSmallScreens?: ((theme: Theme) => string | null) | undefined;
   onClick?: (() => void) | undefined;
   dataTestId?: string | undefined;
 }
@@ -151,7 +214,7 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
       ? { [LOGO_PLATE_ATTRIBUTE]: "" }
       : {};
 
-  return (
+  const image: ReactElement = (
     <img
       className={props.className || PAGE_LOGO_CLASS_NAME}
       src={source}
@@ -160,6 +223,25 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
       onClick={props.onClick}
       {...plateProps}
     />
+  );
+
+  const markSource: string | null = props.markOnSmallScreens
+    ? props.markOnSmallScreens(theme)
+    : null;
+
+  if (!markSource) {
+    return image;
+  }
+
+  /*
+   * One image, its name the product's: the browser draws the mark on a
+   * small screen and the logo from 640px, and loads only the one it draws.
+   */
+  return (
+    <picture>
+      <source media={SMALL_SCREEN_MEDIA_QUERY} srcSet={markSource} />
+      {image}
+    </picture>
   );
 };
 

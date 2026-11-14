@@ -16,7 +16,15 @@ import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService"
 import Encryption from "../../../Server/Utils/Encryption";
 import logger from "../../../Server/Utils/Logger";
 import VMwareVCenterConnection from "../../../Server/Utils/VMware/VMwareVCenterConnection";
-import { VMwareCollectionReportOutcome } from "../../../Server/Utils/VMware/VMwareProbeCollectionStore";
+import VMwareProbeCollectionStore, {
+  VMwareCollectionReportOutcome,
+} from "../../../Server/Utils/VMware/VMwareProbeCollectionStore";
+import {
+  createReferencingTable,
+  expectClaimLocksHoldOnlyTheRow,
+  expectConcurrentClaimsHandOutEachRowOnce,
+  expectHeldRowSkipped,
+} from "../TestingUtils/Postgres/ClaimRowLocks";
 import { Gray500 } from "../../../Types/BrandColors";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import ObjectID from "../../../Types/ObjectID";
@@ -32,8 +40,9 @@ import { DataSource } from "typeorm";
 
 /*
  * Probe collection's hand-written SQL against a real Postgres: the probe's
- * claim of the vCenters it collects (FOR UPDATE SKIP LOCKED, its tenancy
- * backstop, the subscription rule), what a report writes, the settings
+ * claim of the vCenters it collects (one statement, FOR NO KEY UPDATE SKIP
+ * LOCKED, its interval rule, its tenancy backstop, the subscription rule,
+ * and the locks it holds), what a report writes, the settings
  * version bump a settings change makes, and the connection tests' claim,
  * report and expiry - each keyed on the probe. The unit suites pin the
  * statements' text; this runs them.
@@ -82,6 +91,8 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
     .toString()
     .replace(DASHES, "")}`;
   let database: DataSource;
+  // Rows that name a vCenter by a foreign key, as an incident or a feed entry does.
+  let referencingTable: string;
 
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();
@@ -136,6 +147,12 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
         `ALTER TABLE "${schema}"."${column.table_name}" ALTER COLUMN "${column.column_name}" DROP NOT NULL`,
       );
     }
+
+    referencingTable = await createReferencingTable({
+      database: database,
+      schema: schema,
+      parentTable: "VMwareVCenter",
+    });
 
     expect(
       (await database.query("SELECT current_schema()"))[0].current_schema,
@@ -514,7 +531,7 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
       ).toEqual(IsBillingEnabled ? [] : [vcenter.toString()]);
     });
 
-    test("hands out no more than the free slots, and two claims at once never hand out one vCenter twice", async () => {
+    test("hands out no more than the free slots, and four claims at once hand out each vCenter once", async () => {
       const ids: Array<string> = [];
 
       for (let index: number = 0; index < 6; index++) {
@@ -535,22 +552,139 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
         });
       expect(idsOf(firstTwo)).toEqual(ids.slice(0, 2));
 
-      const [left, right] = await Promise.all([
-        VMwareVCenterService.claimForCollection({
-          probeId: probeId,
-          runningVMwareVCenterIds: [],
-          limit: 4,
-        }),
-        VMwareVCenterService.claimForCollection({
-          probeId: probeId,
-          runningVMwareVCenterIds: [],
-          limit: 4,
-        }),
-      ]);
+      // The rest, shared by four claims at once: none twice, none lost.
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: ids.slice(2),
+        claim: async (limit: number): Promise<Array<string>> => {
+          return idsOf(
+            await VMwareVCenterService.claimForCollection({
+              probeId: probeId,
+              runningVMwareVCenterIds: [],
+              limit: limit,
+            }),
+          );
+        },
+      });
+    });
 
-      const handedOut: Array<string> = [...idsOf(left!), ...idsOf(right!)];
-      expect(new Set(handedOut).size).toBe(handedOut.length);
-      expect([...handedOut].sort()).toEqual([...ids.slice(2)].sort());
+    /*
+     * The claim moves each vCenter on in SQL now, by getSafeInterval's
+     * rule: none or not positive is the default, otherwise 1 to 60 minutes.
+     * The job is handed the same interval the row is moved by.
+     */
+    test("moves each claimed vCenter's next collection by its own interval, held to getSafeInterval's bounds", async () => {
+      // [interval stored, minutes to the next collection]
+      const intervals: Array<[number | null, number]> = [
+        [null, 2],
+        [-3, 2],
+        [0, 2],
+        [1, 1],
+        [2, 2],
+        [7, 7],
+        [59, 59],
+        [60, 60],
+        [61, 60],
+        [500, 60],
+      ];
+      const ids: Array<ObjectID> = [];
+
+      for (const [index, [stored]] of intervals.entries()) {
+        ids.push(
+          await insertVCenter({
+            nextCollectionAt: minutesFromNow(-30 + index),
+            intervalInMinutes: stored,
+          }),
+        );
+      }
+
+      const before: number = Date.now();
+      const jobs: Array<VMwareCollectionJob> =
+        await VMwareVCenterService.claimForCollection({
+          probeId: probeId,
+          runningVMwareVCenterIds: [],
+          limit: 20,
+        });
+      const after: number = Date.now();
+
+      expect(idsOf(jobs)).toEqual(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const [index, [stored, minutes]] of intervals.entries()) {
+        expect([
+          stored,
+          VMwareProbeCollectionStore.getSafeInterval(stored),
+          jobs[index]!.collectionIntervalInMinutes,
+        ]).toEqual([stored, minutes, minutes]);
+
+        // The claim read its clock between before and after.
+        const next: number = (
+          await readVCenter(ids[index]!)
+        ).nextCollectionAt!.getTime();
+        expect([stored, Math.round((next - before) / 60_000)]).toEqual([
+          stored,
+          minutes,
+        ]);
+        expect(next).toBeGreaterThanOrEqual(before + minutes * 60_000);
+        expect(next).toBeLessThanOrEqual(after + minutes * 60_000);
+      }
+    });
+
+    test("a vCenter another writer holds is skipped, not waited for, and is handed out once it is free", async () => {
+      const held: ObjectID = await insertVCenter({
+        nextCollectionAt: minutesFromNow(-9),
+      });
+      const free: Array<ObjectID> = [
+        await insertVCenter({ nextCollectionAt: minutesFromNow(-8) }),
+        await insertVCenter({ nextCollectionAt: minutesFromNow(-7) }),
+      ];
+
+      await expectHeldRowSkipped({
+        database: database,
+        schema: schema,
+        table: "VMwareVCenter",
+        held: held,
+        free: free,
+        claim: async (): Promise<Array<string>> => {
+          return idsOf(
+            await VMwareVCenterService.claimForCollection({
+              probeId: probeId,
+              runningVMwareVCenterIds: [],
+              limit: 10,
+            }),
+          );
+        },
+      });
+    });
+
+    /*
+     * The failure OneUptime issue #7194 reported, at its root: a claim held
+     * every vCenter it handed out FOR UPDATE for a whole transaction, and
+     * every row that names one - an incident, an alert, a feed entry -
+     * waited for it, past lock_timeout on a busy database.
+     */
+    test("while a claim's row locks are held, a row that names the vCenter is still written; only the vCenter row itself waits", async () => {
+      const vcenter: ObjectID = await insertVCenter({});
+
+      await expectClaimLocksHoldOnlyTheRow({
+        database: database,
+        schema: schema,
+        service: VMwareVCenterService,
+        table: "VMwareVCenter",
+        referencingTable: referencingTable,
+        id: vcenter,
+        claim: async (): Promise<Array<string>> => {
+          return idsOf(
+            await VMwareVCenterService.claimForCollection({
+              probeId: probeId,
+              runningVMwareVCenterIds: [],
+              limit: 10,
+            }),
+          );
+        },
+      });
     });
   });
 

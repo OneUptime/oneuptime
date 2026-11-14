@@ -21,15 +21,15 @@ flowchart TB
 
 ## Kalendersidan
 
-Öppna **Schemalagt underhåll → Underhållskalender** i avsnittet **Kalender** i sidomenyn. **Alla händelser** visar samma händelser som en lista.
+Öppna **Schemalagt underhåll → Underhållskalender** i avsnittet **Kalender** i sidomenyn. **Alla underhållshändelser** visar samma händelser som en lista.
 
 - Kalendern öppnas på den här månaden, med dagens datum markerat. **Månad**, **Vecka** och **Dag** ändrar hur mycket den visar; bläddra med pilarna och gå tillbaka med **Idag**. Tiderna visas i din egen tidszon.
 - Varje händelse är ett block i färgen för dess tillstånd, och tillståndens färger namnges under kalendern. Klicka på en händelse för att öppna den.
 - Filtren ovanför kalendern fungerar som i listan: välj ett tillstånd, en etikett eller en ägare för att bara se de händelserna.
-- En dag som ännu inte har kommit visar ett **+** när du pekar på dess vecka. Det öppnar **Skapa schemalagt underhållsevenemang** med **Börjar den** på den dagen, vid den timme formuläret skulle välja i dag. Du ser det bara om du får skapa händelser.
+- En dag som ännu inte har kommit visar ett **+** när du pekar på dess vecka. Det öppnar **Skapa underhållshändelse** med **Börjar den** på den dagen, vid den timme formuläret skulle välja i dag. Du ser det bara om du får skapa händelser.
 - En vy visar upp till 500 händelser. En fullare månad säger till: begränsa den med filtren eller titta på en vecka.
 
-**Alla händelser** växlade tidigare mellan en lista och en kalender. Om din webbläsare senast lämnade den på kalendern öppnar **Alla händelser** **Underhållskalender** en gång och är listan från och med då.
+**Alla underhållshändelser** växlade tidigare mellan en lista och en kalender. Om din webbläsare senast lämnade den på kalendern öppnar **Alla underhållshändelser** **Underhållskalender** en gång och är listan från och med då.
 
 ## Externa kalendrar
 

@@ -506,7 +506,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                 },
                 title: t("pages.projectSubscription.fieldPlan"),
                 fieldType: FieldType.Text,
-                placeholder: "-",
               },
               {
                 field: {
@@ -522,7 +521,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                 },
                 title: t("pages.projectSubscription.fieldSubscriptionStatus"),
                 fieldType: FieldType.Text,
-                placeholder: "-",
               },
               {
                 field: {
@@ -532,7 +530,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                   "pages.projectSubscription.fieldMeteredSubscriptionStatus",
                 ),
                 fieldType: FieldType.Text,
-                placeholder: "-",
               },
               {
                 field: {
@@ -540,7 +537,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                 },
                 title: t("pages.projectSubscription.fieldSubscriptionId"),
                 fieldType: FieldType.Text,
-                placeholder: "-",
                 opts: {
                   isCopyable: true,
                 },
@@ -553,7 +549,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                   "pages.projectSubscription.fieldMeteredSubscriptionId",
                 ),
                 fieldType: FieldType.Text,
-                placeholder: "-",
                 opts: {
                   isCopyable: true,
                 },

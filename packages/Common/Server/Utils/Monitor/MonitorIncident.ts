@@ -70,6 +70,10 @@ import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
 import IncidentRoleFeedText from "../Incident/IncidentRoleFeedText";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Notification/CreatedNotificationHold";
+import CreateBy from "../../Types/Database/CreateBy";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -1146,77 +1150,96 @@ export default class MonitorIncident {
           }
 
           /*
-           * Its pages start when OneUptime received the data that tripped
-           * the monitor, when it knows it (OnCallPageTiming).
+           * Its owners are added below, once it exists - the rules on an
+           * OpenStack project's, the criteria's and the network device's -
+           * and its owners' "Incident Created" notification waits for them
+           * (CreatedNotificationHold): until they are in, or adding them
+           * failed.
            */
-          const createdIncident: Incident =
-            await OnCallPageTiming.runAsMonitorTriggered(
+          const createBy: CreateBy<Incident> = {
+            data: incident,
+            props: {
+              isRoot: true,
+            },
+          };
+
+          CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+          let createdIncident: Incident;
+
+          try {
+            /*
+             * Its pages start when OneUptime received the data that tripped
+             * the monitor, when it knows it (OnCallPageTiming).
+             */
+            createdIncident = await OnCallPageTiming.runAsMonitorTriggered(
               {
                 dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
                   input.dataToProcess,
                 ),
               },
               (): Promise<Incident> => {
-                return IncidentService.create({
-                  data: incident,
-                  props: {
-                    isRoot: true,
-                  },
-                });
+                return IncidentService.create(createBy);
               },
             );
 
-          await OpenStackScopedRules.finishIncident({
-            projectId: input.monitor.projectId!,
-            incidentId: createdIncident.id!,
-            match: openStackRules,
-          });
+            await OpenStackScopedRules.finishIncident({
+              projectId: input.monitor.projectId!,
+              incidentId: createdIncident.id!,
+              match: openStackRules,
+            });
 
-          // Whoever asked to hear about a project this reaches, once they have seen who that tells.
-          await OpenStackProjectNotices.recordForIncident({
-            projectId: input.monitor.projectId!,
-            incidentId: createdIncident.id!,
-            isPrivate: incident.isPrivate,
-            series: openStackSeries,
-            monitorSteps: input.monitor.monitorSteps,
-          });
+            // Whoever asked to hear about a project this reaches, once they have seen who that tells.
+            await OpenStackProjectNotices.recordForIncident({
+              projectId: input.monitor.projectId!,
+              incidentId: createdIncident.id!,
+              isPrivate: incident.isPrivate,
+              series: openStackSeries,
+              monitorSteps: input.monitor.monitorSteps,
+            });
 
-          /*
-           * Add owner teams and users after incident creation. Owners
-           * configured on the criteria template are merged (deduped) with the
-           * owners of the network device this monitor watches, so device
-           * ownership flows into the incidents its monitor raises.
-           */
-          if (networkDeviceOwners === null) {
-            networkDeviceOwners =
-              await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
-                monitor: input.monitor,
-                monitorStepId: (
-                  input.dataToProcess as ProbeMonitorResponse
-                ).monitorStepId?.toString(),
-              });
-          }
+            /*
+             * Add owner teams and users after incident creation. Owners
+             * configured on the criteria template are merged (deduped) with
+             * the owners of the network device this monitor watches, so
+             * device ownership flows into the incidents its monitor raises.
+             */
+            if (networkDeviceOwners === null) {
+              networkDeviceOwners =
+                await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+                  monitor: input.monitor,
+                  monitorStepId: (
+                    input.dataToProcess as ProbeMonitorResponse
+                  ).monitorStepId?.toString(),
+                });
+            }
 
-          const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
-            criteriaIncident.ownerUserIds || [],
-            networkDeviceOwners.ownerUserIds,
-          );
+            const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+              criteriaIncident.ownerUserIds || [],
+              networkDeviceOwners.ownerUserIds,
+            );
 
-          const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
-            criteriaIncident.ownerTeamIds || [],
-            networkDeviceOwners.ownerTeamIds,
-          );
+            const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+              criteriaIncident.ownerTeamIds || [],
+              networkDeviceOwners.ownerTeamIds,
+            );
 
-          if (ownerTeamIds.length || ownerUserIds.length) {
-            await IncidentService.addOwners(
-              input.monitor.projectId!,
-              createdIncident.id!,
-              ownerUserIds,
-              ownerTeamIds,
-              true, // notify owners
-              {
-                isRoot: true,
-              },
+            if (ownerTeamIds.length || ownerUserIds.length) {
+              await IncidentService.addOwners(
+                input.monitor.projectId!,
+                createdIncident.id!,
+                ownerUserIds,
+                ownerTeamIds,
+                true, // notify owners
+                {
+                  isRoot: true,
+                },
+              );
+            }
+          } finally {
+            await CreatedNotificationHold.ownersAreIn(
+              createBy,
+              OwnersAddedBy.Caller,
             );
           }
 

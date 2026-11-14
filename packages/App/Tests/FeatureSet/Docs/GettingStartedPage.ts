@@ -26,7 +26,7 @@ export const GETTING_STARTED_JOBS: ReadonlyArray<{
 }> = [
   {
     job: "Know when your website or API is down",
-    target: "/docs/monitor/website-monitor",
+    target: "/docs/guides/website-down",
   },
   {
     job: "Get paged by phone, SMS or push, and escalate",

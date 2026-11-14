@@ -1721,7 +1721,7 @@ describe("who hears about an alert", () => {
       readDashboardSource("Components/NotificationRule/OnCallRuleKinds.ts"),
     ).toContain('tabName: "Alerts",');
     expect(hears).toContain(
-      "under **User Settings → On-Call Rules**, on the **Alerts** tab.",
+      "under **User Settings → How to Reach Me**, on the **Alerts** tab.",
     );
     expect(hears).toContain(
       "under **User Settings → Notification Settings**, on the **Alerts** tab",
@@ -2062,7 +2062,7 @@ describe("alert episodes and grouping rules", () => {
   );
   const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
 
-  it("lists the four templates with their names and time windows, in the order they are offered", () => {
+  it("lists the five templates with their names and time windows, in the order they are offered", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "### Start from a template"),
     ).map(tableCells);
@@ -2133,7 +2133,7 @@ describe("alert episodes and grouping rules", () => {
     );
   });
 
-  it("names the Custom step's five switches as the form draws them, and the step after it", () => {
+  it("names the Custom step's six switches as the form draws them, and the step after it", () => {
     const own: string = section(page, "### Create your own");
     const switches: Array<string> = [
       "Group By Monitor",
@@ -2141,6 +2141,7 @@ describe("alert episodes and grouping rules", () => {
       "Group By Alert Title",
       "Group By Alert Labels",
       "Group By Monitor Labels",
+      "Group By Connected Services",
     ];
 
     expect(rulesPage).toContain(
@@ -2152,7 +2153,7 @@ describe("alert episodes and grouping rules", () => {
     }
 
     expect(own).toContain(
-      `adds a **Group By** step with five switches: ${switches
+      `adds a **Group By** step with six switches: ${switches
         .slice(0, -1)
         .map((title: string): string => {
           return `**${title}**`;
@@ -2188,7 +2189,7 @@ describe("alert episodes and grouping rules", () => {
     }
 
     expect(boldNames(table[0]?.[1] || "")).toEqual([
-      "On-Call Duty Policies",
+      "On-Call Policies",
       GROUPING_RULE_COPY.episodeOwnersTitle,
     ]);
     expect(boldNames(table[1]?.[1] || "")).toEqual([
@@ -2475,7 +2476,7 @@ describe("alert episodes and grouping rules", () => {
       ),
     ).toBe(true);
     expect(page).toContain(
-      "**A new episode** runs the rule's **On-Call Duty Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.",
+      "**A new episode** runs the rule's **On-Call Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.",
     );
   });
 
@@ -2763,7 +2764,7 @@ describe("alert rules and settings", () => {
     );
     expect(form).toContain('{ title: "Match", id: "match-criteria" },');
     expect(form).toContain('{ title: "On-Call Policies", id: "on-call" },');
-    expect(form).toContain('title: "On-Call Duty Policies",');
+    expect(form).toContain('title: "On-Call Policies",');
     expect(form).toContain('allPicks: translationKey("Page {{policies}}"),');
     expect(form).toContain("doNotShowWhenCreating: true,");
     expect(
@@ -2774,7 +2775,7 @@ describe("alert rules and settings", () => {
       "Create Alert On-Call Rule",
       "Match",
       "On-Call Policies",
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Name",
       "Description",
       "More fields",

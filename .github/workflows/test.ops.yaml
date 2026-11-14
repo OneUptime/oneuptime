@@ -271,6 +271,15 @@ jobs:
       # the third changing only its last node - must all be read in full,
       # with their metrics.
       - run: bash Tests/Ops/swarm-agent-inventory-behaviour.sh
+      # And for the Proxmox agent's node failover (#6844): its collector and
+      # pve-api-failover container exactly as they ship (scraping every 5
+      # seconds instead of 30), against three stand-in Proxmox VE nodes and a
+      # stand-in pve-exporter. The cluster must be read from PVE_HOST while it
+      # answers, from the next node of PVE_NODES when it goes down or loses
+      # quorum, and from PVE_HOST again once it is back - the scrape's target
+      # following within an interval each time - with the token never on a
+      # command line. Its stand-ins run on the node image warmed above.
+      - run: bash Tests/Ops/proxmox-agent-failover-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a

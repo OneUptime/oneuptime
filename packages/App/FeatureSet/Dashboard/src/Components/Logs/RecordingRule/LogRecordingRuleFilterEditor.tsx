@@ -117,10 +117,10 @@ const LogRecordingRuleFilterEditor: FunctionComponent<ComponentProps> = (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <FieldLabelElement title="Telemetry Services" />
+          <FieldLabelElement title="Services" />
           <Dropdown
             isMultiSelect={true}
-            ariaLabel="Telemetry Services"
+            ariaLabel="Services"
             placeholder="All services"
             options={serviceOptions}
             value={serviceOptions.filter((option: DropdownOption): boolean => {

@@ -108,7 +108,7 @@ export function getTestPageDialogDescription(
   if (target.kind === "policy") {
     return (
       translator.translateText(
-        "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
+        "It goes through each person's How to Reach Me for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
       ) || ""
     );
   }
@@ -116,14 +116,14 @@ export function getTestPageDialogDescription(
   if (target.kind === "member") {
     return (
       translator.translateText(
-        "It goes through their own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
+        "It goes through their How to Reach Me for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
       ) || ""
     );
   }
 
   return (
     translator.translateText(
-      "It goes through your own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
+      "It goes through your How to Reach Me for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
     ) || ""
   );
 }
@@ -201,54 +201,84 @@ export function formatTestPageAmount(
 }
 
 /*
- * What a test sends that is paid for, as a sentence lists it: "1 SMS",
- * "3 SMS, 3 phone calls and 1 WhatsApp message" - the last two joined as
- * the reader's language joins them. Empty when it sends nothing paid.
+ * How many of what a test sends the project's balance pays for, by channel
+ * (#7263): an SMS or a call the project's own Twilio account sends is not.
+ * A server from before #7263 says only what it sends, all read as paid.
+ */
+export function getTestPagePaidCounts(cost: OnCallTestPageCost): {
+  sms: number;
+  calls: number;
+  whatsApp: number;
+  telegram: number;
+} {
+  const paid: (count: number | undefined, sent: number) => number = (
+    count: number | undefined,
+    sent: number,
+  ): number => {
+    return typeof count === "number" ? count : sent;
+  };
+
+  return {
+    sms: paid(cost.paidSmsCount, cost.smsCount),
+    calls: paid(cost.paidCallCount, cost.callCount),
+    whatsApp: paid(cost.paidWhatsAppCount, cost.whatsAppCount),
+    telegram: paid(cost.paidTelegramCount, cost.telegramCount),
+  };
+}
+
+/*
+ * What a test sends that the project's balance pays for, as a sentence
+ * lists it: "1 SMS", "3 SMS, 3 phone calls and 1 WhatsApp message" - the
+ * last two joined as the reader's language joins them. Never what the
+ * project's own Twilio account sends (#7263). Empty when it sends nothing
+ * paid.
  */
 export function getTestPageCostItems(
   translator: Translator,
   cost: OnCallTestPageCost,
 ): string {
+  const paid: ReturnType<typeof getTestPagePaidCounts> =
+    getTestPagePaidCounts(cost);
   const items: Array<string> = [];
 
-  if (cost.smsCount > 0) {
+  if (paid.sms > 0) {
     items.push(
       translator.translatePlural(
         { one: "{{count}} SMS", other: "{{count}} SMS" },
-        cost.smsCount,
+        paid.sms,
       ),
     );
   }
 
-  if (cost.callCount > 0) {
+  if (paid.calls > 0) {
     items.push(
       translator.translatePlural(
         { one: "{{count}} phone call", other: "{{count}} phone calls" },
-        cost.callCount,
+        paid.calls,
       ),
     );
   }
 
-  if (cost.whatsAppCount > 0) {
+  if (paid.whatsApp > 0) {
     items.push(
       translator.translatePlural(
         {
           one: "{{count}} WhatsApp message",
           other: "{{count}} WhatsApp messages",
         },
-        cost.whatsAppCount,
+        paid.whatsApp,
       ),
     );
   }
 
-  if (cost.telegramCount > 0) {
+  if (paid.telegram > 0) {
     items.push(
       translator.translatePlural(
         {
           one: "{{count}} Telegram message",
           other: "{{count}} Telegram messages",
         },
-        cost.telegramCount,
+        paid.telegram,
       ),
     );
   }
@@ -266,8 +296,9 @@ export function getTestPageCostItems(
 /*
  * What a test costs, in a sentence, or empty when it costs nothing: the
  * first level's, or - for a test that walks every level - the most the
- * walk costs, nobody acknowledging it (#7016). The list and the amount are
- * written in the sentence's language: the reader's, or English's while
+ * walk costs, nobody acknowledging it (#7016). It lists only what the
+ * project's balance pays for (#7263), as it says. The list and the amount
+ * are written in the sentence's language: the reader's, or English's while
  * the reader's has no wording of the sentence.
  */
 export function describeTestPageCost(

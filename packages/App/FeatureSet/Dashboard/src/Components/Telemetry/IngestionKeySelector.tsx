@@ -32,6 +32,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import OneUptimeDate from "Common/Types/Date";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Why a key cannot send right now (issue #6378): turned off, or past its
@@ -407,10 +408,10 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       return (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-600">
-            {translator.translateTemplate(
-              "Failed to load ingestion keys: {{error}}",
-              { error: keyError },
-            )}
+            <ErrorSentence
+              template="Failed to load ingestion keys: {{error}}"
+              error={keyError}
+            />
           </p>
           <button
             type="button"

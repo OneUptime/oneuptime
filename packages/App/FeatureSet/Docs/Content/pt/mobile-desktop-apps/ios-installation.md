@@ -68,7 +68,7 @@ No painel, abra **Configurações do usuário → Métodos de notificação** e 
 Clique em **Notificação de teste** na linha do dispositivo. Uma notificação chega ao dispositivo; toque nela para abrir o aplicativo.
 :::
 
-As suas regras de plantão decidem quais acionamentos vão para o dispositivo, e com que rapidez: veja **Configurações do usuário → Regras de Plantão**. Um dispositivo novo recebe as mesmas regras padrão que qualquer outro método que você adicione.
+As suas regras de plantão decidem quais acionamentos vão para o dispositivo, e com que rapidez: veja **Configurações do usuário → Como me contatar**. Um dispositivo novo recebe as mesmas regras padrão que qualquer outro método que você adicione.
 
 ## Tocar mesmo no modo silencioso
 
@@ -132,7 +132,7 @@ O aplicativo não conseguiu chegar a `https://<your-oneuptime>/api/status`. Veri
 - Verifique se **Permitir Notificações** está ativado em **Ajustes → Notificações → OneUptime On-Call**, e se nenhum Foco está retendo os acionamentos.
 - Verifique se o dispositivo aparece em **Notificações push** em **Configurações do usuário → Métodos de notificação**, e envie a ele uma **Notificação de teste**.
 - Se o dispositivo está marcado como **Não está recebendo notificações**, abra o aplicativo estando conectado. Ele registra o dispositivo de novo; veja [Quando um celular precisa se registrar de novo](/docs/mobile-desktop-apps/faq-troubleshooting#quando-um-celular-precisa-se-registrar-de-novo).
-- Verifique as suas regras de plantão em **Configurações do usuário → Regras de Plantão**.
+- Verifique as suas regras de plantão em **Configurações do usuário → Como me contatar**.
 - Num OneUptime auto-hospedado, verifique se o seu servidor chega ao relay push dele: veja [Notificações push](/docs/self-hosted/push-notifications#acesso-de-rede).
 :::
 

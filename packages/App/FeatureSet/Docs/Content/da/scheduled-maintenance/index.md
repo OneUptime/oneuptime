@@ -41,12 +41,12 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 
 ## Hvor begivenheder kommer fra
 
-- **Formularen.** Klik på **Opret planlagt vedligeholdelseshændelse** på listen over begivenheder eller på fanen **Planlagt vedligeholdelse** for en vært, en klynge, en tjeneste, en netværkslokation eller en anden ressource, som vælger den ressource for dig. Se [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events).
+- **Formularen.** Klik på **Opret vedligeholdelseshændelse** på listen over begivenheder eller på fanen **Planlagt vedligeholdelse** for en vært, en klynge, en tjeneste, en netværkslokation eller en anden ressource, som vælger den ressource for dig. Se [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events).
 - **En skabelon.** **Opret fra skabelon** udfylder formularen fra en skabelon, du har gemt til arbejde, du ofte udfører. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 - **En tidsplan.** En tilbagevendende skabelon opretter en ny begivenhed efter en tidsplan, for eksempel hver uge eller hver måned, uden at nogen åbner formularen.
 - **En formular.** En formular, hvis indsendelser opretter vedligeholdelsesbegivenheder, gør en ændringsanmodning til en begivenhed. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-planlagt-vedligeholdelsesbegivenhed).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-botten i Microsoft Teams, åbner formularen i dit chatværktøj. Se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
-- **Kode.** API'et på `/api/scheduled-maintenance`, Terraform-ressourcen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Scheduled Maintenance Event** i et workflow.
+- **Kode.** API'et på `/api/scheduled-maintenance`, Terraform-ressourcen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i et workflow.
 
 ## Hvor vedligeholdelse findes i dashboardet
 
@@ -54,11 +54,11 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 
 | Sektion       | Hvad du gør der                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Oversigt**  | **Alle begivenheder** og **Igangværende hændelser**, hvis mærke tæller de begivenheder, der står på lige nu.                |
+| **Oversigt**  | **Alle vedligeholdelseshændelser** og **Igangværende vedligeholdelseshændelser**, hvis mærke tæller de begivenheder, der står på lige nu.                |
 | **Kalender** | **Vedligeholdelseskalender**: hver begivenhed på en måned, en uge eller en dag, ved siden af de kalendere uden for projektet, du tilføjer. |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det ikke har nogen af dem. |
 | **Regler**    | **Ejerregler**, **Runbook-regler**, **Etiketregler**, **Påmindelsesregler**.                                                   |
-| **Indstillinger** | **Begivenhedsstatus**, **Begivenhedsskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
+| **Indstillinger** | **Vedligeholdelsesstatus**, **Vedligeholdelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
 
 **Oversigt** og **Kalender** er åbne; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API**, **CLI** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
 
@@ -88,7 +88,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 | **Notifikationer**   | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om begivenheden, og hvad AI har gjort for den |
 | **Noter**         | **Private noter** og **Offentlige noter**                                                      |
 | **Udvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: begivenheden styret fra kode            |
-| **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet begivenhed**             |
+| **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet vedligeholdelseshændelse**             |
 
 **Oversigt**, **Team** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
 

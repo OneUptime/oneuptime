@@ -79,7 +79,7 @@ flowchart TB
 
 서비스나 리소스의 **설정** 페이지를 열고 **추가 설정**을 펼칩니다. 그 **텔레메트리 데이터 보존** 카드에는 보내는 모든 것에 적용되는 숫자 하나인 **텔레메트리 데이터 보존 기간(일)** 필드가 있고, **텔레메트리 유형별 보존** 카드에는 프로젝트와 같은 필드가 있습니다. 프로젝트 설정을 쓰려면 필드를 비워 둡니다.
 
-서비스, 호스트, Kubernetes 클러스터, Docker 및 Podman 호스트, Docker Swarm, Proxmox, Ceph 클러스터, 스토리지 어레이, vCenter, 데이터베이스, 서버리스 함수, 클라우드 환경, RUM 애플리케이션, IoT 플릿에 모두 이 카드가 있습니다. 서비스의 **설정** 페이지는 [서비스 카탈로그](/docs/telemetry/services#서비스-변경)를 참고하세요.
+서비스, 호스트, Kubernetes 클러스터, Docker 및 Podman 호스트, Docker Swarm, Proxmox, Ceph 클러스터, 스토리지 어레이, vCenter, 데이터베이스, 서버리스 함수, 클라우드 환경, RUM 애플리케이션, IoT 플릿에 모두 이 카드가 있습니다. 서비스의 **설정** 페이지는 [서비스](/docs/telemetry/services#서비스-변경)를 참고하세요.
 
 ### 플랜이나 라이선스에 재정의가 더 이상 포함되지 않을 때
 
@@ -121,6 +121,6 @@ flowchart TB
 :::cards
 - [수집 키](/docs/telemetry/ingestion-keys): 프로젝트로 텔레메트리를 보냅니다.
 - [드롭 필터 및 스크럽 규칙](/docs/telemetry/drop-filters-and-scrub-rules): 필요한 텔레메트리만 남깁니다.
-- [서비스 카탈로그](/docs/telemetry/services): 서비스 자체의 보존 기간을 정합니다.
+- [서비스](/docs/telemetry/services): 서비스 자체의 보존 기간을 정합니다.
 - [엔터프라이즈 에디션](/docs/self-hosted/enterprise): 보존 재정의가 포함된 에디션.
 :::

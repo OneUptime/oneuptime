@@ -80,7 +80,7 @@ flowchart TB
 
 متغیرهای رانبوک بیرون از `RunbookAdmin` هستند، که آن‌ها را فقط می‌خواند تا در گام‌هایی که می‌نویسد انتخابشان کند. مدیریت متغیرها به `ProjectOwner` یا `ProjectAdmin`، یا مجوزهای `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` و `ReadRunbookSecret` نیاز دارد: مجوزهای رازهای رانبوک، که وقتی رازها متغیر شدند نامشان را نگه داشتند. [متغیرهای رانبوک](/docs/runbooks/variables) را ببینید.
 
-قواعد مالکیت و قواعد برچسب زیر **رانبوک‌ها → تنظیمات** هم بیرون از `RunbookAdmin` هستند. مدیریت آن‌ها به `ProjectOwner` یا `ProjectAdmin`، یا مجوزهای `CreateRunbookOwnerRule` و `CreateRunbookLabelRule` و همتاهای ویرایش، حذف و خواندن آن‌ها نیاز دارد.
+قواعد مالکیت و قواعد برچسب زیر **رانبوک‌ها ← تنظیمات** هم بیرون از `RunbookAdmin` هستند. مدیریت آن‌ها به `ProjectOwner` یا `ProjectAdmin`، یا مجوزهای `CreateRunbookOwnerRule` و `CreateRunbookLabelRule` و همتاهای ویرایش، حذف و خواندن آن‌ها نیاز دارد.
 
 برای اینکه نقش‌ها و مجوزهای جزئی چگونه با هم ترکیب می‌شوند، [کاربران، تیم‌ها و دسترسی‌ها](/docs/permissions/index) را ببینید.
 
@@ -108,7 +108,7 @@ flowchart TB
 | `RunbookExecution` | یک ردیف برای هر اجرا، با کلیدهای خارجی nullable به نام‌های `incidentId`، `alertId` و `scheduledMaintenanceId` و یک آرایه JSON به نام `stepExecutions` که گام‌ها و وضعیت هر گام را منجمد نگه می‌دارد. |
 | `RunbookRule` | قواعد فعال‌سازی خودکار، با یک تمایزدهنده `triggerEntityType` (Incident، Alert، ScheduledMaintenance)، یک رابطه چند به چند با رانبوک‌هایی که باید شروع شوند، و آنچه با آن جور می‌شوند: یک ستون JSON به نام `criteria` (شرط‌ها) به‌علاوه پیوندهای چند به چند به مانیتورها، شدت‌های حادثه، شدت‌های هشدار، برچسب‌ها و برچسب‌های مانیتور، و الگوهای عنوان، توضیحات، نام مانیتور و توضیحات مانیتور. |
 | `Runner` | یک ردیف برای هر Runner نصب‌شده: نام، کلید محرمانه، `lastAlive`، `connectionStatus`، اطلاعات میزبان و قابلیت‌ها. یک Runner سراسری `isGlobalRunner` را تنظیم‌شده دارد و هیچ پروژه‌ای ندارد. Runner پیش‌فرض پروژه `isProjectDefault` را تنظیم‌شده دارد. |
-| `RunnerJob` | یک ردیف برای هر گامی که به یک Runner فرستاده شده: `targetAgentId` (Runner‌ای که نویسنده گام انتخاب کرده)، نوع گام، اسکریپت یا محموله، وضعیت (`Pending` → `Claimed` → `Running` → `Succeeded`، `Failed`، `TimedOut` یا `Cancelled`)، مهلت برداشتن، اجاره، خروجی و کد خروج. `runsOnGlobalRunner` گامی را مشخص می‌کند که هر Runner سراسری‌ای می‌تواند بردارد. |
+| `RunnerJob` | یک ردیف برای هر گامی که به یک Runner فرستاده شده: `targetAgentId` (Runner‌ای که نویسنده گام انتخاب کرده)، نوع گام، اسکریپت یا محموله، وضعیت (`Pending` ← `Claimed` ← `Running` ← `Succeeded`، `Failed`، `TimedOut` یا `Cancelled`)، مهلت برداشتن، اجاره، خروجی و کد خروج. `runsOnGlobalRunner` گامی را مشخص می‌کند که هر Runner سراسری‌ای می‌تواند بردارد. |
 | `RunbookVariable` | متغیرهای رانبوک: متغیرهای سراسری پروژه، و متغیرهای خودِ یک رانبوک که آن را در `runbookId` نام می‌برند؛ مقدار راز رمزگذاری‌شده، و Runnerهایی که می‌توانند یک راز را دریافت کنند. |
 
 ## نکته‌های عملیاتی

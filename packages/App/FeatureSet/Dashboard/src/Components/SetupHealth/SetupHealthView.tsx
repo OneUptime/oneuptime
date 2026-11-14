@@ -25,6 +25,7 @@ import {
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Card from "Common/UI/Components/Card/Card";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -547,12 +548,10 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
             role="alert"
             data-testid="setup-health-error"
           >
-            {translator.translateTemplate(
-              SETUP_HEALTH_WORDS_PAGE.couldNotLoad,
-              {
-                error: translator.translateText(state.message) || state.message,
-              },
-            )}
+            <ErrorSentence
+              template={SETUP_HEALTH_WORDS_PAGE.couldNotLoad}
+              error={state.message}
+            />
           </p>
         </Card>
       );

@@ -27,6 +27,7 @@ import {
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import { getAllDockerAlertTemplates } from "Common/Types/Monitor/DockerAlertTemplates";
 import { getAllDockerSwarmAlertTemplates } from "Common/Types/Monitor/DockerSwarmAlertTemplates";
 import { getAllHostAlertTemplates } from "Common/Types/Monitor/HostAlertTemplates";
@@ -439,12 +440,14 @@ function drawnPathSegment(
   return drawnActionLabel(language, segment);
 }
 
+// A menu path as a page in a language writes it, its arrows pointing on.
 function drawnPath(language: string, segments: Array<string>): string {
-  return segments
-    .map((_segment: string, index: number): string => {
+  return pathWithArrows(
+    segments.map((_segment: string, index: number): string => {
       return drawnPathSegment(language, segments, index);
-    })
-    .join(PATH_SEPARATOR);
+    }),
+    language,
+  );
 }
 
 // A sensitivity option's name as that language's Dashboard starts it.

@@ -1,3 +1,4 @@
+import IncidentStatusPageScopeCopy from "../../../FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   DocsFence,
@@ -19,6 +20,7 @@ import {
   navTitle,
   tableShape,
 } from "./DocsTranslationChecks";
+import { pathWithArrows } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -77,6 +79,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "incidents/declaring-incidents": [
     // The workflow step's setting: the workflow docs name it in English.
     "Incident Template",
+    /*
+     * A plan's name, which the Dashboard shows as written in every language
+     * (PlanPickerCopy, the plan pills), as on the invoice.
+     */
+    "Growth",
   ],
   "incidents/states-and-severities": [
     // Custom states a project might add: names people give.
@@ -104,12 +111,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   "incidents/settings": [
     /*
-     * The workflow builder's trigger names and ports, which are not
-     * translated. (The panel's own sections, Popular and OneUptime
-     * resources, are drawn in the reader's language.)
+     * A trigger's out-port, which the workflow docs name in English as a
+     * step's own output (WorkflowDocsTranslations' OUTPUTS). The Add
+     * Trigger panel, its sections and its Incident resource are drawn in
+     * the reader's language, and the page names them so.
      */
-    "Incident",
-    "Add Trigger",
     "Success",
     // The workflow step's setting.
     "Incident Template",
@@ -150,6 +156,12 @@ const PROSE: Record<string, Array<string>> = {
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const MENU_PATH: RegExp = /\*\*([^*\n]+? → [^*\n]+?)\*\*/g;
+
+// The audience summary's headline, as the English pages quote it.
+const WILL_NOTIFY: string = "Will notify";
+
+// A headline's colon, ASCII or full-width, and the space French puts first.
+const TRAILING_COLON: RegExp = /\s*[:：]$/;
 
 function englishPage(page: string): string {
   return readPage("en", page);
@@ -337,11 +349,12 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return dashboardLabel(language, segment);
-            })
-            .join(" → ");
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);
@@ -444,6 +457,42 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
         label.charAt(0).toLocaleLowerCase(language) + label.slice(1);
 
       expect(page.split(`_${marker}_`).length - 1).toBe(2);
+    });
+  });
+
+  /*
+   * The line under Notify status page subscribers that says who will hear -
+   * on the note composer and on the declare form - opens with the audience
+   * summary's headline ("Will notify:"). The key is the headline with its
+   * colon, so no bold label matches it: the pages name it without the
+   * colon, as the status page docs do.
+   */
+  describe.each([
+    { page: "incidents/notes-owners-and-feed", times: 2 },
+    { page: "incidents/declaring-incidents", times: 1 },
+  ])("$page's Will notify line", (entry: { page: string; times: number }) => {
+    const headline: string = dashboardLabel(
+      language,
+      IncidentStatusPageScopeCopy.audienceWillNotify,
+    )
+      .trim()
+      .replace(TRAILING_COLON, "");
+
+    it("names it as the Dashboard draws it, as often as the English page does", () => {
+      const translated: string = readPage(language, entry.page);
+
+      expect(headline).not.toMatch(TRAILING_COLON);
+      expect(
+        englishPage(entry.page).split(`**${WILL_NOTIFY}**`).length - 1,
+      ).toBe(entry.times);
+      // At least as often: a word can be another label too (Norwegian Varsler).
+      expect(
+        translated.split(`**${headline}**`).length - 1,
+      ).toBeGreaterThanOrEqual(entry.times);
+
+      if (headline !== WILL_NOTIFY) {
+        expect(translated).not.toContain(`**${WILL_NOTIFY}**`);
+      }
     });
   });
 });

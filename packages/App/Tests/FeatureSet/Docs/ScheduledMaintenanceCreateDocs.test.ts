@@ -63,7 +63,7 @@ describe("the scheduled maintenance create form in the docs", () => {
   test("walks the form's two steps, in its order", () => {
     const steps: Array<string> = stepTitles();
 
-    expect(steps).toEqual(["Event", "Resources Affected"]);
+    expect(steps).toEqual(["Maintenance Details", "Resources Affected"]);
 
     let from: number = 0;
 

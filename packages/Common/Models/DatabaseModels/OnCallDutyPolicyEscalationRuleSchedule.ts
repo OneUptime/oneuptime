@@ -67,8 +67,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyEscalationRuleSchedule",
-  singularName: "Schedule's On-Call Duty Escalation Rule",
-  pluralName: "Schedule's On-Call Duty Escalation Rules",
+  singularName: "Escalation Rule Schedule",
+  pluralName: "Escalation Rule Schedules",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "Schedule's On-Call Duty Escalation Rule",
+  apiPluralName: "Schedule's On-Call Duty Escalation Rules",
   icon: IconProp.Calendar,
   tableDescription: "Add on-call schedules to your escalation rules.",
 })
@@ -255,9 +258,8 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On Call Policy Schedule",
-    description:
-      "Relation to On Call Policy Schedule who is in this escalation rule.",
+    title: "On-Call Schedule",
+    description: "Relation to On-Call Schedule who is in this escalation rule.",
   })
   @ManyToOne(
     () => {
@@ -296,7 +298,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "On Call Duty Policy Schedule ID",
+    title: "On-Call Schedule ID",
     description:
       "ID of the on-call schedule the escalation rule pages: whoever is on call in it",
   })

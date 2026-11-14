@@ -41,12 +41,12 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 
 ## Var händelser kommer ifrån
 
-- **Formuläret.** Klicka på **Skapa schemalagt underhållsevenemang** i listan över händelser, eller på fliken **Schemalagt underhåll** för en värd, ett kluster, en tjänst, en nätverksplats eller en annan resurs, som väljer den resursen åt dig. Se [Skapa underhållshändelser](/docs/scheduled-maintenance/creating-events).
+- **Formuläret.** Klicka på **Skapa underhållshändelse** i listan över händelser, eller på fliken **Schemalagt underhåll** för en värd, ett kluster, en tjänst, en nätverksplats eller en annan resurs, som väljer den resursen åt dig. Se [Skapa underhållshändelser](/docs/scheduled-maintenance/creating-events).
 - **En mall.** **Skapa från mall** fyller i formuläret från en mall du har sparat för arbete du gör ofta. Se [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates).
 - **Ett schema.** En återkommande mall skapar en ny händelse enligt ett schema, till exempel varje vecka eller varje månad, utan att någon öppnar formuläret.
 - **Ett formulär.** Ett formulär vars inlämningar skapar underhållshändelser gör en ändringsbegäran till en händelse. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-schemalagd-underhållshändelse).
 - **Chatt.** `/oneuptime maintenance` i Slack, eller `maintenance` skrivet till OneUptime-boten i Microsoft Teams, öppnar formuläret i ditt chattverktyg. Se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
-- **Kod.** API:et på `/api/scheduled-maintenance`, Terraform-resursen `oneuptime_scheduled_maintenance_event` och steget **Create One Scheduled Maintenance Event** i ett arbetsflöde.
+- **Kod.** API:et på `/api/scheduled-maintenance`, Terraform-resursen `oneuptime_scheduled_maintenance_event` och steget **Create One Maintenance Event** i ett arbetsflöde.
 
 ## Var underhåll finns i instrumentpanelen
 
@@ -54,11 +54,11 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 
 | Avsnitt       | Vad du gör där                                                                                                             |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Översikt**  | **Alla händelser** och **Pågående händelser**, vars märke räknar de händelser som pågår just nu.                            |
+| **Översikt**  | **Alla underhållshändelser** och **Pågående underhållshändelser**, vars märke räknar de händelser som pågår just nu.                            |
 | **Kalender** | **Underhållskalender**: varje händelse på en månad, en vecka eller en dag, bredvid de kalendrar utanför projektet som du lägger till. |
 | **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut en arbetsyta** när det inte har något av dem. |
 | **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Påminnelseregler**.                                                  |
-| **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
+| **Inställningar** | **Underhållsstatus**, **Underhållsmallar**, **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
 
 **Översikt** och **Kalender** är öppna; **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Utvecklare** rymmer **Terraform**, **API**, **CLI** och **AI-assistenter**, för att styra underhåll från kod. Allt om underhåll finns här, inte i **Projektinställningar**.
 
@@ -88,7 +88,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 | **Aviseringar**        | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om händelsen, och vad AI har gjort för den |
 | **Anteckningar**  | **Privata anteckningar** och **Offentliga anteckningar**                                       |
 | **Utvecklare**    | **Terraform**, **API**, **CLI** och **AI-assistenter**: händelsen styrd från kod               |
-| **Avancerad**     | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort händelse**             |
+| **Avancerad**     | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort underhållshändelse**             |
 
 **Översikt**, **Team** och **Anteckningar** är öppna; de andra avsnitten förblir hopfällda tills du klickar på dem.
 

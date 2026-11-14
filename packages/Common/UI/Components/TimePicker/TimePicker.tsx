@@ -194,55 +194,64 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Time} className="h-5 w-5" />
         </div>
 
-        {/* Hours */}
-        <input
-          ref={hoursInputRef}
-          data-testid={props.dataTestId}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoFocus={props.autoFocus}
-          tabIndex={props.tabIndex}
-          spellCheck={false}
-          placeholder={translator.translateText(
-            props.placeholder || (userPrefers12h ? "hh" : "HH"),
-          )}
-          className={
-            inputClass +
-            " rounded-l-md pl-1 focus:ring-0 focus-visible:outline-none"
-          }
-          readOnly={true}
-          aria-label={translator.translateText("Hours")}
-          aria-invalid={props.error ? true : undefined}
-          value={display.hours}
-          onFocus={props.onFocus}
-          onBlur={() => {
-            return props.onBlur?.();
-          }}
-        />
+        {/*
+         * Hours, then minutes, left to right in every language: a time is
+         * written 01:00 on a Persian or Arabic page too, as the browser's
+         * own date and time fields write it. Laid out the page's way, the
+         * two numbers swapped sides there, and 01:00 read "00 : 01" - one
+         * minute past midnight. The clock icon and AM/PM follow the page.
+         */}
+        <span dir="ltr" className="flex items-center">
+          {/* Hours */}
+          <input
+            ref={hoursInputRef}
+            data-testid={props.dataTestId}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoFocus={props.autoFocus}
+            tabIndex={props.tabIndex}
+            spellCheck={false}
+            placeholder={translator.translateText(
+              props.placeholder || (userPrefers12h ? "hh" : "HH"),
+            )}
+            className={
+              inputClass +
+              " rounded-l-md pl-1 focus:ring-0 focus-visible:outline-none"
+            }
+            readOnly={true}
+            aria-label={translator.translateText("Hours")}
+            aria-invalid={props.error ? true : undefined}
+            value={display.hours}
+            onFocus={props.onFocus}
+            onBlur={() => {
+              return props.onBlur?.();
+            }}
+          />
 
-        <span className="px-2 text-gray-500">:</span>
+          <span className="px-2 text-gray-500">:</span>
 
-        {/* Minutes */}
-        <input
-          ref={minutesInputRef}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          spellCheck={false}
-          placeholder={translator.translateText("mm")}
-          className={
-            inputClass +
-            " rounded-r-md pr-2 focus:ring-0 focus-visible:outline-none"
-          }
-          readOnly={true}
-          aria-label={translator.translateText("Minutes")}
-          aria-invalid={props.error ? true : undefined}
-          value={display.minutes}
-          onBlur={() => {
-            return props.onBlur?.();
-          }}
-        />
+          {/* Minutes */}
+          <input
+            ref={minutesInputRef}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            spellCheck={false}
+            placeholder={translator.translateText("mm")}
+            className={
+              inputClass +
+              " rounded-r-md pr-2 focus:ring-0 focus-visible:outline-none"
+            }
+            readOnly={true}
+            aria-label={translator.translateText("Minutes")}
+            aria-invalid={props.error ? true : undefined}
+            value={display.minutes}
+            onBlur={() => {
+              return props.onBlur?.();
+            }}
+          />
+        </span>
 
         {/* spacer to maintain layout without right icon */}
         <div className="ml-auto mr-1" />
@@ -322,111 +331,121 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         >
           <div className="p-2">
             <div className="flex items-center justify-center gap-6">
-              {/* Hours selector */}
-              <div className="flex flex-col items-center">
-                <button
-                  type="button"
-                  aria-label={translator.translateText("Increase hours")}
-                  className="p-2 rounded hover:bg-gray-50"
-                  onClick={() => {
-                    return setTempHours24((h: number): number => {
-                      return (h + 1) % 24;
-                    });
-                  }}
-                >
-                  <Icon icon={IconProp.ChevronUp} className="h-6 w-6" />
-                </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  aria-label={translator.translateText("Hours")}
-                  className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
-                  value={
-                    userPrefers12h
-                      ? pad2(((tempHours24 + 11) % 12) + 1)
-                      : pad2(tempHours24)
-                  }
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                    const raw: string = e.target.value.replace(/\D/g, "");
-                    let h: number = parseInt(raw || "0", 10);
-                    if (userPrefers12h) {
-                      h = clamp(h, 1, 12);
-                      // map back to 24h preserving period
-                      const isPM: boolean = tempHours24 >= 12;
-                      const newH: number =
-                        h === 12 ? (isPM ? 12 : 0) : isPM ? h + 12 : h;
-                      setTempHours24(newH);
-                    } else {
-                      setTempHours24(clamp(h, 0, 23));
+              {/*
+               * Hours, then minutes, left to right in every language, as
+               * the field above shows them; AM/PM follows the page.
+               */}
+              <div dir="ltr" className="flex items-center gap-6">
+                {/* Hours selector */}
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    aria-label={translator.translateText("Increase hours")}
+                    className="p-2 rounded hover:bg-gray-50"
+                    onClick={() => {
+                      return setTempHours24((h: number): number => {
+                        return (h + 1) % 24;
+                      });
+                    }}
+                  >
+                    <Icon icon={IconProp.ChevronUp} className="h-6 w-6" />
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    aria-label={translator.translateText("Hours")}
+                    className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                    value={
+                      userPrefers12h
+                        ? pad2(((tempHours24 + 11) % 12) + 1)
+                        : pad2(tempHours24)
                     }
-                  }}
-                />
-                <button
-                  type="button"
-                  aria-label={translator.translateText("Decrease hours")}
-                  className="p-2 rounded hover:bg-gray-50"
-                  onClick={(): void => {
-                    return setTempHours24((h: number): number => {
-                      return (h + 23) % 24;
-                    });
-                  }}
-                >
-                  <Icon icon={IconProp.ChevronDown} className="h-6 w-6" />
-                </button>
-              </div>
+                    onChange={(
+                      e: React.ChangeEvent<HTMLInputElement>,
+                    ): void => {
+                      const raw: string = e.target.value.replace(/\D/g, "");
+                      let h: number = parseInt(raw || "0", 10);
+                      if (userPrefers12h) {
+                        h = clamp(h, 1, 12);
+                        // map back to 24h preserving period
+                        const isPM: boolean = tempHours24 >= 12;
+                        const newH: number =
+                          h === 12 ? (isPM ? 12 : 0) : isPM ? h + 12 : h;
+                        setTempHours24(newH);
+                      } else {
+                        setTempHours24(clamp(h, 0, 23));
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={translator.translateText("Decrease hours")}
+                    className="p-2 rounded hover:bg-gray-50"
+                    onClick={(): void => {
+                      return setTempHours24((h: number): number => {
+                        return (h + 23) % 24;
+                      });
+                    }}
+                  >
+                    <Icon icon={IconProp.ChevronDown} className="h-6 w-6" />
+                  </button>
+                </div>
 
-              <div className="text-3xl font-semibold text-gray-500">:</div>
+                <div className="text-3xl font-semibold text-gray-500">:</div>
 
-              {/* Minutes selector */}
-              <div className="flex flex-col items-center">
-                <button
-                  type="button"
-                  aria-label={translator.translateText("Increase minutes")}
-                  className="p-2 rounded hover:bg-gray-50"
-                  onClick={(): void => {
-                    let m: number = tempMinutes + 1;
-                    let h: number = tempHours24;
-                    if (m >= 60) {
-                      m = 0;
-                      h = (h + 1) % 24;
-                    }
-                    setTempMinutes(m);
-                    setTempHours24(h);
-                  }}
-                >
-                  <Icon icon={IconProp.ChevronUp} className="h-6 w-6" />
-                </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  aria-label={translator.translateText("Minutes")}
-                  className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
-                  value={pad2(tempMinutes)}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                    const raw: string = e.target.value.replace(/\D/g, "");
-                    const m: number = clamp(parseInt(raw || "0", 10), 0, 59);
-                    setTempMinutes(m);
-                  }}
-                />
-                <button
-                  type="button"
-                  aria-label={translator.translateText("Decrease minutes")}
-                  className="p-2 rounded hover:bg-gray-50"
-                  onClick={(): void => {
-                    let m: number = tempMinutes - 1;
-                    let h: number = tempHours24;
-                    if (m < 0) {
-                      m = 59;
-                      h = (h + 23) % 24;
-                    }
-                    setTempMinutes(m);
-                    setTempHours24(h);
-                  }}
-                >
-                  <Icon icon={IconProp.ChevronDown} className="h-6 w-6" />
-                </button>
+                {/* Minutes selector */}
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    aria-label={translator.translateText("Increase minutes")}
+                    className="p-2 rounded hover:bg-gray-50"
+                    onClick={(): void => {
+                      let m: number = tempMinutes + 1;
+                      let h: number = tempHours24;
+                      if (m >= 60) {
+                        m = 0;
+                        h = (h + 1) % 24;
+                      }
+                      setTempMinutes(m);
+                      setTempHours24(h);
+                    }}
+                  >
+                    <Icon icon={IconProp.ChevronUp} className="h-6 w-6" />
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    aria-label={translator.translateText("Minutes")}
+                    className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                    value={pad2(tempMinutes)}
+                    onChange={(
+                      e: React.ChangeEvent<HTMLInputElement>,
+                    ): void => {
+                      const raw: string = e.target.value.replace(/\D/g, "");
+                      const m: number = clamp(parseInt(raw || "0", 10), 0, 59);
+                      setTempMinutes(m);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={translator.translateText("Decrease minutes")}
+                    className="p-2 rounded hover:bg-gray-50"
+                    onClick={(): void => {
+                      let m: number = tempMinutes - 1;
+                      let h: number = tempHours24;
+                      if (m < 0) {
+                        m = 59;
+                        h = (h + 23) % 24;
+                      }
+                      setTempMinutes(m);
+                      setTempHours24(h);
+                    }}
+                  >
+                    <Icon icon={IconProp.ChevronDown} className="h-6 w-6" />
+                  </button>
+                </div>
               </div>
 
               {/* AM/PM */}

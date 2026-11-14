@@ -1,4 +1,8 @@
-import ValueFormatter, { FormattedValue } from "../../Utils/ValueFormatter";
+import ValueFormatter, {
+  FormattedValue,
+  ValueFormatterOptions,
+} from "../../Utils/ValueFormatter";
+import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
 
 describe("ValueFormatter", () => {
   describe("formatValue - bytes", () => {
@@ -831,6 +835,388 @@ describe("ValueFormatter", () => {
           // The numeric portion never changes — only how the unit is spelled.
           expect(readable.startsWith(compact.value)).toBe(true);
         }
+      }
+    });
+  });
+  /*
+   * #7094: the Gauge and the Value widget drew every number with Latin
+   * digits and a point, on every board - "73.40%" beside a Persian SLO
+   * tile's "۹۹٫۹٪". Given the reader's language, a number is written the
+   * way that language writes it: its digits, its decimal sign, its minus,
+   * its percent sign and the space before it, keeping exactly the
+   * decimals and the scale letter it was written with. No language, or
+   * English, writes every number exactly as it always was.
+   */
+  describe("in the reader's language", () => {
+    const NBSP: string = String.fromCharCode(0xa0);
+    const NARROW_NBSP: string = String.fromCharCode(0x202f);
+    const LATIN_DIGIT: RegExp = /[0-9]/;
+    // A digit that is not a Latin one: Persian's, Arabic-Indic, any other.
+    const OTHER_DIGIT: RegExp = /(?![0-9])\p{Nd}/u;
+
+    interface LanguageCase {
+      value: number;
+      unit: string;
+      options?: ValueFormatterOptions;
+    }
+
+    const CPU: ValueFormatterOptions = { metricName: "system.cpu.utilization" };
+
+    // Every branch of the core, as the no-drift table walks it, and more.
+    const CASES: Array<LanguageCase> = [
+      { value: 23.5, unit: "Cel" },
+      { value: 12, unit: "ug/m3" },
+      { value: 23.5, unit: "%" },
+      { value: 73.4, unit: "%" },
+      { value: 12345, unit: "%" },
+      { value: -4.25, unit: "%" },
+      { value: 1536, unit: "By" },
+      { value: 0, unit: "By" },
+      { value: -2000, unit: "bytes" },
+      { value: 90, unit: "s" },
+      { value: 3600, unit: "seconds" },
+      { value: 0.5, unit: "seconds" },
+      { value: 1500, unit: "ms" },
+      { value: 42, unit: "1" },
+      { value: 1234, unit: "1" },
+      { value: 119250000000, unit: "" },
+      { value: 0.25, unit: "1", options: CPU },
+      { value: 42, unit: "{thread}" },
+      { value: 1500000, unit: "By/s" },
+      { value: 5, unit: "requests/s" },
+      { value: 98.6, unit: "[degF]" },
+      { value: -3.2, unit: "" },
+      { value: 0.000123, unit: "" },
+      { value: 0.0000001234, unit: "" },
+      { value: Number.NaN, unit: "" },
+      { value: Number.POSITIVE_INFINITY, unit: "%" },
+      { value: 42, unit: "" },
+    ];
+
+    function withLanguage(
+      options: ValueFormatterOptions | undefined,
+      language: string | undefined,
+    ): ValueFormatterOptions {
+      return { ...(options || {}), language: language };
+    }
+
+    test.each([undefined, "en", "en-GB", "en-US", "EN", " en ", ""])(
+      "language %p writes every number exactly as before",
+      (language: string | undefined) => {
+        for (const languageCase of CASES) {
+          const before: string = ValueFormatter.formatValue(
+            languageCase.value,
+            languageCase.unit,
+            languageCase.options,
+          );
+          const options: ValueFormatterOptions = withLanguage(
+            languageCase.options,
+            language,
+          );
+
+          expect({
+            ...languageCase,
+            written: ValueFormatter.formatValue(
+              languageCase.value,
+              languageCase.unit,
+              options,
+            ),
+          }).toEqual({ ...languageCase, written: before });
+          expect(
+            ValueFormatter.formatValueInParts(
+              languageCase.value,
+              languageCase.unit,
+              options,
+            ).formatted,
+          ).toBe(before);
+          expect(
+            ValueFormatter.formatValueCompact(
+              languageCase.value,
+              languageCase.unit,
+              options,
+            ),
+          ).toEqual(
+            ValueFormatter.formatValueCompact(
+              languageCase.value,
+              languageCase.unit,
+              languageCase.options,
+            ),
+          );
+        }
+      },
+    );
+
+    test("in German: a decimal comma, and the percent sign set apart as German sets it", () => {
+      const de: ValueFormatterOptions = { language: "de" };
+
+      expect(ValueFormatter.formatValue(73.4, "%", de)).toBe(`73,40${NBSP}%`);
+      expect(ValueFormatter.formatValue(12345, "%", de)).toBe(
+        `12.345,00${NBSP}%`,
+      );
+      expect(ValueFormatter.formatValue(-4.25, "%", de)).toBe(`-4,25${NBSP}%`);
+      expect(ValueFormatter.formatValue(1536, "By", de)).toBe("1,54 KB");
+      expect(ValueFormatter.formatValue(-2000, "bytes", de)).toBe("-2 KB");
+      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe("1 hours");
+      expect(ValueFormatter.formatValue(1234, "1", de)).toBe("1,23K");
+      expect(ValueFormatter.formatValue(119250000000, "", de)).toBe("119,25B");
+      expect(ValueFormatter.formatValue(0.000123, "", de)).toBe("0,00012");
+      expect(ValueFormatter.formatValue(42, "", de)).toBe("42");
+      expect(
+        ValueFormatter.formatValue(0.25, "1", { ...CPU, language: "de" }),
+      ).toBe(`25,00${NBSP}%`);
+    });
+
+    test("in German, its parts: the number, and the sign that follows it", () => {
+      const parts: FormattedValue = ValueFormatter.formatValueInParts(
+        73.4,
+        "%",
+        { language: "de" },
+      );
+
+      expect(parts).toEqual({
+        value: "73,40",
+        unit: "%",
+        formatted: `73,40${NBSP}%`,
+      });
+      expect(ValueFormatter.isUnitSetApart(parts)).toBe(true);
+      expect(
+        ValueFormatter.formatValueCompact(23.5, "Cel", { language: "de" }),
+      ).toEqual({ value: "23,5", unit: "°C", formatted: "23,5 °C" });
+    });
+
+    test("in Persian: Persian digits, its decimal sign and its percent sign, no space before it", () => {
+      const fa: ValueFormatterOptions = { language: "fa" };
+      const parts: FormattedValue = ValueFormatter.formatValueInParts(
+        73.4,
+        "%",
+        fa,
+      );
+
+      expect(parts).toEqual({
+        value: "۷۳٫۴۰",
+        unit: "٪",
+        formatted: "۷۳٫۴۰٪",
+      });
+      expect(ValueFormatter.isUnitSetApart(parts)).toBe(false);
+      expect(ValueFormatter.formatValue(1536, "By", fa)).toBe("۱٫۵۴ KB");
+      expect(ValueFormatter.formatValue(1234, "1", fa)).toBe("۱٫۲۳K");
+      expect(ValueFormatter.formatValue(42, "", fa)).toBe("۴۲");
+
+      for (const languageCase of CASES) {
+        // The number: a unit's own figures ("m3") are the unit's.
+        const written: string = ValueFormatter.formatValueInParts(
+          languageCase.value,
+          languageCase.unit,
+          withLanguage(languageCase.options, "fa"),
+        ).value;
+
+        // A number it could not read (NaN) is left as it was written.
+        if (Number.isFinite(languageCase.value)) {
+          expect({
+            ...languageCase,
+            written,
+            latin: LATIN_DIGIT.test(written),
+          }).toEqual({ ...languageCase, written, latin: false });
+        }
+      }
+    });
+
+    test("in Persian a negative number keeps its minus before its digits, on a page read from the right too", () => {
+      const written: string = ValueFormatter.formatValue(-3.2, "", {
+        language: "fa",
+      });
+
+      expect(written).toContain("۳٫۲");
+      expect(written).toContain("−");
+      expect(written.indexOf("−")).toBeLessThan(written.indexOf("۳"));
+      expect(written).not.toMatch(LATIN_DIGIT);
+    });
+
+    test("in Arabic: the Latin digits Arabic pages write, the percent sign as Arabic sets it", () => {
+      const parts: FormattedValue = ValueFormatter.formatValueInParts(
+        73.4,
+        "%",
+        { language: "ar" },
+      );
+
+      expect(parts.value).toBe("73.40");
+      expect(parts.unit).toContain("%");
+      expect(parts.formatted.startsWith("73.40")).toBe(true);
+      expect(ValueFormatter.isUnitSetApart(parts)).toBe(false);
+      expect(ValueFormatter.formatValue(1536, "By", { language: "ar" })).toBe(
+        "1.54 KB",
+      );
+
+      for (const languageCase of CASES) {
+        const written: string = ValueFormatter.formatValue(
+          languageCase.value,
+          languageCase.unit,
+          withLanguage(languageCase.options, "ar"),
+        );
+
+        expect({
+          ...languageCase,
+          written,
+          other: OTHER_DIGIT.test(written),
+        }).toEqual({ ...languageCase, written, other: false });
+      }
+    });
+
+    test("in French the percent sign is set apart by the space French puts before it", () => {
+      const parts: FormattedValue = ValueFormatter.formatValueInParts(
+        73.4,
+        "%",
+        { language: "fr" },
+      );
+
+      // A space that never breaks: a wide one or a narrow one, as ICU has it.
+      expect([`73,40${NBSP}%`, `73,40${NARROW_NBSP}%`]).toContain(
+        parts.formatted,
+      );
+      expect(parts.value).toBe("73,40");
+      expect(ValueFormatter.isUnitSetApart(parts)).toBe(true);
+    });
+
+    test("every Dashboard language writes a number its own way, the number found in what it writes", () => {
+      for (const language of DASHBOARD_LANGUAGES) {
+        for (const languageCase of CASES) {
+          const options: ValueFormatterOptions = withLanguage(
+            languageCase.options,
+            language,
+          );
+          const parts: FormattedValue = ValueFormatter.formatValueInParts(
+            languageCase.value,
+            languageCase.unit,
+            options,
+          );
+          const compact: FormattedValue = ValueFormatter.formatValueCompact(
+            languageCase.value,
+            languageCase.unit,
+            options,
+          );
+
+          expect(parts.value).not.toBe("");
+          expect({
+            language,
+            ...languageCase,
+            found: parts.formatted.includes(parts.value),
+          }).toEqual({ language, ...languageCase, found: true });
+          // The compact form changes how the unit is spelled, never the number.
+          expect(compact.value).toBe(parts.value);
+          expect(
+            ValueFormatter.formatValue(
+              languageCase.value,
+              languageCase.unit,
+              options,
+            ),
+          ).toBe(parts.formatted);
+        }
+
+        // Latin digits in every language but Persian, Arabic too.
+        expect({
+          language,
+          latin: LATIN_DIGIT.test(
+            ValueFormatter.formatValue(73.4, "%", { language }),
+          ),
+        }).toEqual({ language, latin: language !== "fa" });
+      }
+    });
+
+    test("a language Intl cannot read writes English", () => {
+      for (const language of ["!!", "a b", "x-"]) {
+        expect(ValueFormatter.formatValue(73.4, "%", { language })).toBe(
+          "73.40%",
+        );
+        expect(ValueFormatter.formatValue(1536, "By", { language })).toBe(
+          "1.54 KB",
+        );
+      }
+    });
+
+    test("the unit's words stay as the formatter names them", () => {
+      expect(
+        ValueFormatter.formatValueInParts(5, "requests/s", { language: "de" }),
+      ).toEqual({
+        value: "5",
+        unit: "requests per Second",
+        formatted: "5 requests per Second",
+      });
+      expect(
+        ValueFormatter.formatValueInParts(3600, "seconds", { language: "fa" }),
+      ).toEqual({ value: "۱", unit: "hours", formatted: "۱ hours" });
+    });
+  });
+
+  describe("isUnitSetApart", () => {
+    const NBSP: string = String.fromCharCode(0xa0);
+
+    test("a unit written after a space is set apart; a percent sign written on its number is not", () => {
+      expect(
+        ValueFormatter.isUnitSetApart({
+          value: "1.5",
+          unit: "MB",
+          formatted: "1.5 MB",
+        }),
+      ).toBe(true);
+      expect(
+        ValueFormatter.isUnitSetApart({
+          value: "73.40",
+          unit: "%",
+          formatted: "73.40%",
+        }),
+      ).toBe(false);
+      expect(
+        ValueFormatter.isUnitSetApart({
+          value: "73,40",
+          unit: "%",
+          formatted: `73,40${NBSP}%`,
+        }),
+      ).toBe(true);
+    });
+
+    test("no unit, nothing to set apart", () => {
+      expect(
+        ValueFormatter.isUnitSetApart({
+          value: "42",
+          unit: "",
+          formatted: "42",
+        }),
+      ).toBe(false);
+    });
+
+    test("a number not found in its text: a percent sign is written on it, any other unit set apart", () => {
+      expect(
+        ValueFormatter.isUnitSetApart({
+          value: "x",
+          unit: "%",
+          formatted: "y%",
+        }),
+      ).toBe(false);
+      expect(
+        ValueFormatter.isUnitSetApart({
+          value: "x",
+          unit: "MB",
+          formatted: "y MB",
+        }),
+      ).toBe(true);
+    });
+
+    test("every English number reads as formatValue wrote it: a gap but before a percent sign", () => {
+      for (const [value, unit] of [
+        [1536, "By"],
+        [73.4, "%"],
+        [42, ""],
+        [3600, "seconds"],
+        [5, "requests/s"],
+      ] as Array<[number, string]>) {
+        const parts: FormattedValue = ValueFormatter.formatValueInParts(
+          value,
+          unit,
+        );
+
+        expect(ValueFormatter.isUnitSetApart(parts)).toBe(
+          parts.unit !== "" && parts.unit !== "%",
+        );
       }
     });
   });

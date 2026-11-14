@@ -59,7 +59,7 @@ REST 리소스는 세 가지이며, 각각 [OneUptime API](/docs/api-reference/a
 
 ### 필요한 것만 주기
 
-읽기 전용 내보내기에는 **Read Telemetry Service** 권한 하나가 필요합니다. 인벤토리는 자체 권한 없이 텔레메트리 권한을 함께 씁니다. 키의 페이지에서 **권한 추가**를 클릭하고 이 권한을 고릅니다. 값을 다시 쓰려면 **Edit Telemetry Service**도 추가합니다.
+읽기 전용 내보내기에는 **Read Inventory Item** 권한 하나가 필요합니다. 인벤토리는 자체 권한 없이 텔레메트리 권한을 함께 씁니다. 키의 페이지에서 **권한 추가**를 클릭하고 이 권한을 고릅니다. 값을 다시 쓰려면 **Edit Inventory Item**도 추가합니다.
 
 ### 키 복사
 
@@ -232,9 +232,9 @@ ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로�
 
 ## 다시 쓰기
 
-같은 엔드포인트는 쓰기도 받으므로, 동기화가 `customFields`에 값을 보낼 수 있습니다. 예를 들어 CMDB가 이미 관리하는 자산 태그를 대응하는 OneUptime 항목에 지정할 수 있습니다. 이를 위해 키에 **Edit Telemetry Service**가 필요합니다.
+같은 엔드포인트는 쓰기도 받으므로, 동기화가 `customFields`에 값을 보낼 수 있습니다. 예를 들어 CMDB가 이미 관리하는 자산 태그를 대응하는 OneUptime 항목에 지정할 수 있습니다. 이를 위해 키에 **Edit Inventory Item**가 필요합니다.
 
-OneUptime이 볼 수 없는 것에 대한 항목도 `POST /api/inventory-item`으로 추가할 수 있습니다. `entityType`에 `external.service`, `external.database`, `appliance` 중 하나를, 그리고 `displayName`을 지정합니다. 식별 키는 OneUptime이 계산하며, 이런 항목은 만료되지 않습니다. 이 작업에는 키에 **Create Telemetry Service**가 필요합니다.
+OneUptime이 볼 수 없는 것에 대한 항목도 `POST /api/inventory-item`으로 추가할 수 있습니다. `entityType`에 `external.service`, `external.database`, `appliance` 중 하나를, 그리고 `displayName`을 지정합니다. 식별 키는 OneUptime이 계산하며, 이런 항목은 만료되지 않습니다. 이 작업에는 키에 **Create Inventory Item**가 필요합니다.
 
 ## 문제 해결
 
@@ -243,7 +243,7 @@ OneUptime Cloud에서 API 키는 프로젝트가 **Growth** 이상의 플랜에 
 :::
 
 :::details 모든 요청이 422 You do not have permissions로 응답함
-키에 인벤토리를 읽는 권한이 없습니다. **나중에 권한 선택**으로 만든 키는 권한을 받기 전까지 아무것도 할 수 없습니다. [시작하기 전에](#시작하기-전에)처럼 키의 페이지에서 **Read Telemetry Service**를 추가하세요.
+키에 인벤토리를 읽는 권한이 없습니다. **나중에 권한 선택**으로 만든 키는 권한을 받기 전까지 아무것도 할 수 없습니다. [시작하기 전에](#시작하기-전에)처럼 키의 페이지에서 **Read Inventory Item**를 추가하세요.
 :::
 
 :::details 필요한 열 없이 목록이 돌아옴

@@ -72,7 +72,7 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Ausnahmetypen** | Ausnahmen eines dieser Typen, durch Kommas getrennt, etwa `TypeError, NullReferenceException`. Der Typname muss genau übereinstimmen. | Leer: jeder Typ |
 | **Umgebungen** | Ausnahmen aus einer dieser Umgebungen, durch Kommas getrennt – siehe [Umgebungen](#umgebungen). | Leer: jede Umgebung |
 | **Zeitfenster** (in **Wann alarmieren**) | Ausnahmen der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 5 Minuten** |
-| **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Ausnahmen von einem der gewählten Dienste. | Leer: jeder Dienst |
+| **Nach Dienst filtern** (unter **Weitere Felder**) | Ausnahmen von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Ausnahmen von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Behobene Ausnahmen einbeziehen** (unter **Weitere Felder**) | Auch Ausnahmen zählen, die als behoben markiert sind. | Aus |
 | **Archivierte Ausnahmen einbeziehen** (unter **Weitere Felder**) | Auch Ausnahmen zählen, die archiviert sind. | Aus |
@@ -193,7 +193,7 @@ Die **Anzahl der Ausnahmen** ist 3, also passt **Mehr als** `0`: Der Monitor geh
 ## Fehlerbehebung
 
 :::details Ausnahmen erscheinen im Explorer, aber der Monitor zählt 0
-Vergleichen Sie den Wert von **Umgebungen** mit dem Filter `env:` des Explorers: Der Abgleich ist exakt und unterscheidet Groß-/Kleinschreibung, und Ausnahmen ohne Umgebung werden ausgelassen, wenn der Filter gesetzt ist. Prüfen Sie dann, ob diese Ausnahmen behoben oder archiviert sind. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Ausnahmen** zeigt, worauf die Filter passen.
+Vergleichen Sie den Wert von **Umgebungen** mit dem Filter `env:` des Explorers: Der Abgleich ist exakt und unterscheidet Groß-/Kleinschreibung, und Ausnahmen ohne Umgebung werden ausgelassen, wenn der Filter gesetzt ist. Prüfen Sie dann, ob diese Ausnahmen behoben oder archiviert sind. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Kriterien bearbeiten**: **Passende Ausnahmen** zeigt, worauf die Filter passen.
 :::
 
 :::details Der Vorfall wurde behoben, als ich die Ausnahme behoben habe

@@ -1,6 +1,6 @@
 # Notification Settings
 
-Notification settings decide which updates reach you about the records you own, such as an incident, a monitor or a status page, and about your own on-call shifts, and on which channels. They never page you: paging is your on-call rules' job. You set them under **User Settings → Notification Settings**, one switch per event and channel.
+Notification settings decide which updates reach you about the records you own, such as an incident, a monitor or a status page, and about your own on-call shifts, and on which channels. They never page you: paging is How to Reach Me's job. You set them under **User Settings → Notification Settings**, one switch per event and channel.
 
 :::cards
 - [How settings work](#how-settings-work): One switch per event and channel, sent to every verified method.
@@ -106,14 +106,14 @@ Check that you have a verified method on that channel under **User Settings → 
 :::
 
 :::details I still get emails after switching everything off
-Pages follow your on-call rules, not these switches, and sign-in, security and billing emails are not updates about records. Each project has its own settings, so check the project the email came from. See [Personal On-Call Rules](/docs/notifications/on-call-rules).
+Pages follow How to Reach Me, not these switches, and sign-in, security and billing emails are not updates about records. Each project has its own settings, so check the project the email came from. See [How to Reach Me](/docs/notifications/on-call-rules).
 :::
 
 ## Next steps
 
 :::cards
 - [Notification Methods](/docs/notifications/notification-methods): Add the methods your settings send to.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): Decide how a page reaches you.
+- [How to Reach Me](/docs/notifications/on-call-rules): Decide how a page reaches you.
 - [Notification Rollup](/docs/emails/notification-rollup): Fewer, fuller emails during a burst.
 - [How OneUptime Reaches You](/docs/notifications/index): How methods, rules and settings fit together.
 :::

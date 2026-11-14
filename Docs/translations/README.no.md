@@ -47,6 +47,8 @@ Du kan bruke [OneUptime Cloud](https://oneuptime.com) eller kjøre OneUptime på
 - **[API, CLI og Terraform](https://oneuptime.com/docs/no/api-reference/api-reference)**: Automatiser OneUptime fra skriptene dine og CI-en din, og administrer monitorer, statussider og vakt som kode.
 - **[MCP-server](https://oneuptime.com/docs/no/ai/mcp-server)** (`https://oneuptime.com/mcp`): Koble til Claude, Cursor, VS Code med GitHub Copilot eller en annen klient for Model Context Protocol (MCP), og be den se på en hendelse, spørre etter logger og spor, kvittere for et varsel eller sette opp en monitor.
 
+Trinnvise guider tar deg gjennom én oppgave fra start til slutt, på OneUptime Cloud eller din egen server: [Få beskjed når nettstedet eller API-et ditt går ned](https://oneuptime.com/docs/no/guides/website-down), [Bli varslet via telefon, SMS eller push](https://oneuptime.com/docs/no/guides/paging) og [Publiser en statusside](https://oneuptime.com/docs/no/guides/status-page).
+
 Alt annet står i [dokumentasjonen](https://oneuptime.com/docs/no/introduction/getting-started).
 
 ## Kom i gang

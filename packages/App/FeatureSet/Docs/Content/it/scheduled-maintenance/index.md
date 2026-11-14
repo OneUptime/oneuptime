@@ -41,12 +41,12 @@ Gli annunci sono trattati in [Iscritti e annunci](/docs/status-pages/subscribers
 
 ## Da dove arrivano gli eventi
 
-- **Il modulo.** Fate clic su **Crea evento di manutenzione programmata** nell'elenco degli eventi, oppure nella scheda **Manutenzione programmata** di un host, un cluster, un servizio, un sito di rete o un'altra risorsa, che seleziona quella risorsa per voi. Vedere [Creare eventi di manutenzione](/docs/scheduled-maintenance/creating-events).
+- **Il modulo.** Fate clic su **Crea evento di manutenzione** nell'elenco degli eventi, oppure nella scheda **Manutenzione programmata** di un host, un cluster, un servizio, un sito di rete o un'altra risorsa, che seleziona quella risorsa per voi. Vedere [Creare eventi di manutenzione](/docs/scheduled-maintenance/creating-events).
 - **Un modello.** **Crea da modello** compila il modulo partendo da un modello che avete salvato per i lavori frequenti. Vedere [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates).
 - **Una pianificazione.** Un modello ricorrente crea un nuovo evento secondo una pianificazione, per esempio ogni settimana o ogni mese, senza che nessuno apra il modulo.
 - **Un modulo.** Un modulo i cui invii creano eventi di manutenzione trasforma una richiesta di modifica in un evento. Vedere [Cosa crea un invio](/docs/forms/on-submit#come-un-invio-diventa-un-evento-di-manutenzione-programmata).
 - **La chat.** `/oneuptime maintenance` in Slack, oppure `maintenance` scritto al bot di OneUptime in Microsoft Teams, apre il modulo nel vostro strumento di chat. Vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
-- **Il codice.** L'API in `/api/scheduled-maintenance`, la risorsa Terraform `oneuptime_scheduled_maintenance_event` e il passo **Create One Scheduled Maintenance Event** di un workflow.
+- **Il codice.** L'API in `/api/scheduled-maintenance`, la risorsa Terraform `oneuptime_scheduled_maintenance_event` e il passo **Create One Maintenance Event** di un workflow.
 
 ## Dove si trova la manutenzione nella dashboard
 
@@ -54,11 +54,11 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 
 | Sezione       | Cosa ci fate                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Panoramica** | **Tutti gli eventi** ed **Eventi in corso**, il cui badge conta gli eventi in corso in questo momento.                    |
+| **Panoramica** | **Tutti gli eventi di manutenzione** ed **Eventi di manutenzione in corso**, il cui badge conta gli eventi in corso in questo momento.                    |
 | **Calendario** | **Calendario della manutenzione**: ogni evento su un mese, una settimana o un giorno, accanto ai calendari esterni al progetto che aggiungete. |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di quale il progetto ha collegato, oppure **Collega un'area di lavoro** se non ne ha nessuno. |
 | **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Regole dei promemoria**.                               |
-| **Impostazioni** | **Stato evento**, **Modelli di eventi**, **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
+| **Impostazioni** | **Stato della manutenzione**, **Modelli di manutenzione**, **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
 
 **Panoramica** e **Calendario** sono aperte; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API**, **CLI** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
 
@@ -88,7 +88,7 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 | **Notifiche**      | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
 | **Note**          | **Note private** e **Note pubbliche**                                                          |
 | **Sviluppatori**  | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'evento gestito dal codice               |
-| **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina evento**          |
+| **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina evento di manutenzione**          |
 
 **Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
 

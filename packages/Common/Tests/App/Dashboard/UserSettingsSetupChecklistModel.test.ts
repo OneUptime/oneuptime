@@ -379,7 +379,7 @@ describe("setup checklist - reaching you at all", () => {
     expect(step!.pageMap).toBeUndefined();
     expect(step!.detail).toBe(ChannelStepCopy.whoCanTurnOnDetail);
     expect(step!.detail).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings",
+      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
     );
     expect(step!.actionTitle).toBe(ChannelStepCopy.whoCanTurnOnAction);
     expect(step!.detail.toLowerCase()).not.toContain("project admin");
@@ -435,11 +435,11 @@ describe("setup checklist - reaching you at all", () => {
     expect(step!.pageQuery).toBeUndefined();
     expect(step!.detail).toBe(ChannelStepCopy.canTurnOnDetail);
     expect(step!.detail).toContain(
-      "Turn it on in Project Settings → Notifications → Notification Settings",
+      "Turn it on in Project Settings → Notifications → Notification Channels",
     );
     expect(step!.actionTitle).toBe(ChannelStepCopy.canTurnOnAction);
     expect(step!.actionTitle).toBe(
-      "Go to Project Settings → Notifications → Notification Settings",
+      "Go to Project Settings → Notifications → Notification Channels",
     );
   });
 
@@ -491,7 +491,7 @@ describe("setup checklist - reaching you at all", () => {
       serverClause.toLowerCase(),
     );
     expect(serverClause).toBe(
-      "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings",
+      "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
     );
   });
 

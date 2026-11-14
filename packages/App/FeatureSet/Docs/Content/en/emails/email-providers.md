@@ -15,7 +15,7 @@ Send OneUptime's email through an email provider's HTTPS API instead of an SMTP 
 
 :::tabs
 @tab Project
-On **Project Settings > Notifications > Notification Settings**, open **More settings** and click **Create SMTP Config** in the **Custom SMTP Configs** card. On the **Provider** step, enter a **Name** and pick the provider. The next step asks for that provider's settings, and the **Sender** step for the **From Email** and **From Name**. Once saved, **Send Test Email** on the config's row checks that it works.
+On **Project Settings > Notifications > Notification Channels**, open **More settings** and click **Create SMTP Config** in the **Custom SMTP Configs** card. On the **Provider** step, enter a **Name** and pick the provider. The next step asks for that provider's settings, and the **Sender** step for the **From Email** and **From Name**. Once saved, **Send Test Email** on the config's row checks that it works.
 @tab Self-hosted instance
 In the Admin Dashboard, open **Settings**, then **Notifications > Emails**. In the **Email Server Settings** card, click **Edit Server** and pick the provider as the **Email Server Type**. The provider's card appears below it, such as **Amazon SES Settings**: click its edit button, such as **Edit Amazon SES**, and fill in the provider's settings and the **Sender** step. Until it has everything it needs, the card says what is missing, and each email is refused with the setting to fill in.
 :::

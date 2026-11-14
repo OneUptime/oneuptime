@@ -441,7 +441,7 @@ export const FormsCopy: {
   changeTargetConfirm: "Change",
   mappingIncidentTitle: "How a Submission Becomes an Incident",
   mappingScheduledMaintenanceTitle:
-    "How a Submission Becomes a Scheduled Maintenance Event",
+    "How a Submission Becomes a Maintenance Event",
   mappingIncidentDescription:
     "Where each field of the new incident comes from: an answer or a setting of this form. The incident template fills the rest.",
   mappingScheduledMaintenanceDescription:

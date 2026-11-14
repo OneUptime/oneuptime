@@ -222,7 +222,7 @@ if [ -z "$PROXMOX_CLUSTER_NAME" ]; then
 fi
 
 if [ -z "$PVE_HOST" ]; then
-    read -rp "Proxmox VE API host (any node or a virtual IP; the exporter and the AI agent query it, e.g., 192.168.1.10): " PVE_HOST
+    read -rp "Proxmox VE API host (any node; the agent reads the cluster from it, e.g., 192.168.1.10): " PVE_HOST
 fi
 
 # Decide whether to run the bundled prometheus-pve-exporter. An .env that
@@ -269,10 +269,11 @@ fi
 # Every node's own address (PVE_NODES). pve-exporter reads start-on-boot (what
 # Guest Down needs), replication and the subscription only for the node it
 # queries, so the collector queries each node in turn: PVE_HOST alone leaves
-# the guests and replication jobs of every other node unseen. With a token the
-# script lists the cluster's nodes itself and offers them. A re-run asks
-# nothing: an .env from before PVE_NODES keeps reading PVE_HOST alone, as it
-# did, and is told how to add the others.
+# the guests and replication jobs of every other node unseen. The same list is
+# where the agent reads the cluster from when PVE_HOST's node goes down. With a
+# token the script lists the cluster's nodes itself and offers them. A re-run
+# asks nothing: an .env from before PVE_NODES keeps reading PVE_HOST alone, as
+# it did, and is told how to add the others.
 if [ -z "$PVE_NODES" ]; then
     DISCOVERED_NODES=""
     if [ -n "$PVE_API_TOKEN_ID" ] && [ -n "$PVE_API_TOKEN_SECRET" ]; then
@@ -286,6 +287,7 @@ if [ -z "$PVE_NODES" ]; then
         echo ""
         echo "The exporter reads start-on-boot, replication and the subscription only for the"
         echo "node it asks, so the agent asks every node at its own address (not a virtual IP)."
+        echo "When the first node's API stops answering, the agent reads the cluster from the next."
         read -rp "Every node's API address, comma-separated [${DISCOVERED_NODES:-$PVE_HOST}]: " PVE_NODES
         PVE_NODES="${PVE_NODES:-${DISCOVERED_NODES:-$PVE_HOST}}"
     fi
@@ -504,6 +506,7 @@ echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"
 echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
 echo "AI agent status:  docker exec oneuptime-proxmox-ai-agent wget -qO- http://127.0.0.1:3877/status"
+echo "Node it reads:    docker logs oneuptime-pve-api-failover"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "To upgrade:       run this installer again; it reuses $ENV_FILE"
@@ -514,6 +517,7 @@ if [ -n "${NODES_NOTE:-}" ]; then
     echo "replication and the subscription from $PVE_HOST alone. On a cluster, list every"
     echo "node's own address there, e.g. PVE_NODES=[$NODES_NOTE], then:"
     echo "cd $INSTALL_DIR && docker compose up -d"
+    echo "The agent then also reads the cluster from another node when $PVE_HOST goes down."
 fi
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then

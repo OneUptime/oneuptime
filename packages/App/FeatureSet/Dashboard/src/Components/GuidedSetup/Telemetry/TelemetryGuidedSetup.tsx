@@ -60,6 +60,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: SEND LOGS, METRICS AND TRACES, THEN GET ALERTED ON THEM
@@ -585,10 +586,12 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
               (failure: { name: string; message: string }, index: number) => {
                 return (
                   <li key={`${failure.name}-${index}`}>
-                    {translator.translateTemplate("{{name}}: {{reason}}", {
-                      name: failure.name,
-                      reason: failure.message,
-                    })}
+                    <ErrorSentence
+                      template="{{name}}: {{reason}}"
+                      error={failure.message}
+                      errorPlaceholder="reason"
+                      values={{ name: failure.name }}
+                    />
                   </li>
                 );
               },

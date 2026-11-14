@@ -34,6 +34,8 @@ Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneU
 
 ### Le créer
 
+![Accueil demande « Que voulez-vous faire en premier ? », avec les trois objectifs de ce guide cochés](screen:home-goals-three)
+
 Cliquez sur **Créer un projet**. La page d'accueil de votre projet s'ouvre, avec la liste de vérification **Bienvenue sur OneUptime 👋** en haut. Il demande d'abord **Que voulez-vous faire en premier ?** : cochez **Savoir quand mon site web ou mon API est en panne**, **Alerter la bonne personne quand quelque chose tombe en panne** et **Informer mes clients avec une page de statut**, puis cliquez sur **Continuer**.
 :::
 
@@ -59,6 +61,8 @@ Gardez les **Sondes** sélectionnées et l'**Intervalle de surveillance** **Tout
 
 Pour essayer la vérification avant d'enregistrer, cliquez sur **Tester le moniteur** à la deuxième étape. Tous les autres types de moniteurs sont décrits dans [Créer un moniteur](/docs/monitor/create-monitor).
 
+Pour vérifier aussi une API, choisir qui est prévenu et envoyer un appel de test qui prouve que le message vous parvient, suivez [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+
 ## Être alerté en cas de panne
 
 En l'état, un incident sans propriétaire est envoyé par e-mail aux propriétaires du projet, dont vous faites partie. Pour être alerté jusqu'à ce que quelqu'un réponde, créez une politique d'astreinte : la première d'un projet se déclenche pour chaque nouvel incident et chaque nouvelle alerte.
@@ -78,7 +82,7 @@ Votre e-mail de connexion est déjà un moyen de vous joindre. Pour recevoir aus
 :::
 
 > [!NOTE]
-> Les SMS et les appels téléphoniques sont désactivés dans un nouveau projet. Un propriétaire du projet, un Billing Admin ou une personne disposant de Manage Billing les active dans la carte **Canaux de notification**, sous **Paramètres du projet → Notifications → Paramètres de notification**.
+> Les SMS et les appels téléphoniques sont désactivés dans un nouveau projet. Un propriétaire du projet, un Billing Admin ou une personne disposant de Manage Billing les active dans la carte **Canaux de notification**, sous **Paramètres du projet → Notifications → Canaux de notification**.
 
 Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
 
@@ -119,9 +123,13 @@ Ouvrez **Incidents** et cliquez sur **Déclarer un incident**. Saisissez un **Ti
 
 ### Observer ce qui se passe
 
+![« Fil d'activité de l'incident » d'un incident résolu : qui a été appelé, puis chaque changement d'état, du plus récent au plus ancien](screen:incident-feed)
+
 En une minute ou deux, votre politique d'astreinte vous alerte, et l'incident apparaît sur votre page de statut.
 
 ### Le résoudre
+
+![Un incident à l'état « Pris en compte », avec « Résoudre » entouré](screen:incident-resolve)
 
 Sur la page de l'incident, cliquez sur **Résoudre**. Les alertes s'arrêtent, et l'incident quitte votre page de statut.
 :::

@@ -121,6 +121,7 @@ import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 // How many status page names the header lists before summarising the rest.
 export const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
@@ -752,7 +753,7 @@ const ScheduledMaintenanceView: FunctionComponent<
              */
             formSteps={[
               {
-                title: "Event",
+                title: "Maintenance Details",
                 id: "event",
               },
               {
@@ -1048,10 +1049,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {translator.translateTemplate(
-                              "Could not resend notifications: {{error}}",
-                              { error: resendNotificationError },
-                            )}
+                            <ErrorSentence
+                              template="Could not resend notifications: {{error}}"
+                              error={resendNotificationError}
+                            />
                           </p>
                         )}
                       </div>
@@ -1145,7 +1146,7 @@ const ScheduledMaintenanceView: FunctionComponent<
               });
             }}
             /*
-             * Split as Create Scheduled Maintenance Event is: the monitors
+             * Split as Create Maintenance Event is: the monitors
              * on their own, the status they change to under them, and
              * everything else the event affects below. The status can be
              * changed until the event starts, and is read-only after.

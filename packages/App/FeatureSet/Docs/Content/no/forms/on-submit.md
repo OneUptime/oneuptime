@@ -1,6 +1,6 @@
 # Hva en innsending oppretter
 
-Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendelse** eller en **planlagt vedlikeholdsbegivenhet**. Et skjemas side **Ved innsending** viser hvilken, og hvordan hvert felt på den nye posten fylles ut — fra et svar, fra en standardverdi, fra en innstilling som alltid gjelder, eller fra hendelsesmalen. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder.
+Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendelse** eller en **vedlikeholdshendelse**. Et skjemas side **Ved innsending** viser hvilken, og hvordan hvert felt på den nye posten fylles ut — fra et svar, fra en standardverdi, fra en innstilling som alltid gjelder, eller fra hendelsesmalen. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder.
 
 :::cards
 - [Slik blir en innsending til en hendelse](#slik-blir-en-innsending-til-en-hendelse): Hvert felt på den nye hendelsen, og hvor verdien kommer fra.

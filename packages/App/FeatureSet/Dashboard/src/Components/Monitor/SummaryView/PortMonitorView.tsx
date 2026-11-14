@@ -4,6 +4,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import PortTimingsView from "./PortTimingsView";
@@ -16,14 +17,21 @@ export interface ComponentProps {
   probeName?: string | undefined;
 }
 
-const formatDurationInMs: (durationInMs: number | undefined) => string = (
+// "31.27 ms" in the reader's language: a connection's time, to two decimals.
+const formatDurationInMs: (
+  translator: Translator,
+  durationInMs: number | undefined,
+) => string = (
+  translator: Translator,
   durationInMs: number | undefined,
 ): string => {
   if (durationInMs === undefined) {
     return "-";
   }
 
-  return `${Math.round(durationInMs * 100) / 100} ms`;
+  return formatMilliseconds(translator, durationInMs, {
+    maximumFractionDigits: 2,
+  });
 };
 
 const PortMonitorView: FunctionComponent<ComponentProps> = (
@@ -60,7 +68,7 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
         />
         <SummaryFact
           title="Total Connection Time (DNS + TCP)"
-          value={formatDurationInMs(response.responseTimeInMs)}
+          value={formatDurationInMs(translator, response.responseTimeInMs)}
         />
         <SummaryFact
           title="Monitored At"

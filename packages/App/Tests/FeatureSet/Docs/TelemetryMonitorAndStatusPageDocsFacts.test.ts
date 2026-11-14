@@ -554,7 +554,7 @@ describe("the telemetry monitors in Create Monitor", () => {
       "Function",
       "What to analyze",
       "Monitor profiles for (time)",
-      "Filter by Telemetry Service (folded)",
+      "Filter by Service (folded)",
       "Filter by Infrastructure Entity (folded)",
     ]);
     expect(copy).toContain('"What this monitor reads now"');
@@ -2533,7 +2533,7 @@ describe("the Profiles monitor's criteria", () => {
     );
   });
 
-  it("the Profiler's alert link: a threshold above today, an alert that resolves itself, the incident switched off", () => {
+  it("Profiles' alert link: a threshold above today, an alert that resolves itself, the incident switched off", () => {
     const view: string = oneLine(dashboardSource("Utils/ProfilesView.ts"));
     const prefill: string = oneLine(
       dashboardSource("Utils/ProfileMonitorPrefill.ts"),
@@ -2543,7 +2543,7 @@ describe("the Profiles monitor's criteria", () => {
       "const above: number = share + Math.max(10, share * 0.5); const rounded: number = Math.ceil(above / 5) * 5;",
     );
     expect(PROFILES).toContain(
-      "The Profiler suggests 30%: half again above today's share, at least 10 points more, rounded up to a multiple of 5.",
+      "Profiles suggests 30%: half again above today's share, at least 10 points more, rounded up to a multiple of 5.",
     );
     expect(prefill).toContain(
       "checkOn: CheckOn.ProfileFunctionShare, filterType: FilterType.GreaterThan, value: data.link.threshold,",

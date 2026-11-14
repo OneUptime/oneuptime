@@ -71,6 +71,7 @@ import SessionReplayInstallSnippet, {
   buildCspSnippet,
   getOneUptimeUrl,
 } from "./SessionReplayInstallSnippet";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Test your installation": the diagnostic the recorder cannot provide for
@@ -933,11 +934,11 @@ function InstallationTestBody(props: BodyProps): ReactElement {
             {describeHealthError(health.error, translator).detail}
           </div>
           <div className="mt-1 text-xs text-gray-500">
-            {translator.translateTemplate(
-              "Server said: {{message}}",
-              { message: health.error.message },
-              { setsValuesApart: true },
-            )}
+            <ErrorSentence
+              template="Server said: {{message}}"
+              error={health.error.message}
+              errorPlaceholder="message"
+            />
           </div>
         </div>
       )}
@@ -1177,11 +1178,10 @@ const InstallationTestPanel: FunctionComponent<ComponentProps> = (
             className="text-sm text-rose-700"
             data-testid="install-test-apps-error"
           >
-            {translator.translateTemplate(
-              "The application list could not be loaded: {{error}}",
-              { error: applicationsError },
-              { setsValuesApart: true },
-            )}
+            <ErrorSentence
+              template="The application list could not be loaded: {{error}}"
+              error={applicationsError}
+            />
           </div>
         )}
 

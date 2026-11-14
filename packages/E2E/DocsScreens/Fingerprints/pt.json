@@ -1,0 +1,557 @@
+{
+  "home-goal-website": {
+    "text": [
+      "O que você quer fazer primeiro?",
+      "Saber quando meu site ou API cair",
+      "Acionar a pessoa certa quando algo quebrar",
+      "Informar meus clientes com uma página de status",
+      "Ver meus logs, métricas e traces",
+      "Acompanhar meus servidores, Kubernetes ou nuvem",
+      "Estou vindo de outra ferramenta",
+      "Só estou dando uma olhada",
+      "Pular",
+      "Continuar",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Pular",
+      "button: Continuar"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goal-paging": {
+    "text": [
+      "O que você quer fazer primeiro?",
+      "Saber quando meu site ou API cair",
+      "Acionar a pessoa certa quando algo quebrar",
+      "Informar meus clientes com uma página de status",
+      "Ver meus logs, métricas e traces",
+      "Acompanhar meus servidores, Kubernetes ou nuvem",
+      "Estou vindo de outra ferramenta",
+      "Só estou dando uma olhada",
+      "Pular",
+      "Continuar",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Pular",
+      "button: Continuar"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goal-status-page": {
+    "text": [
+      "O que você quer fazer primeiro?",
+      "Saber quando meu site ou API cair",
+      "Acionar a pessoa certa quando algo quebrar",
+      "Informar meus clientes com uma página de status",
+      "Ver meus logs, métricas e traces",
+      "Acompanhar meus servidores, Kubernetes ou nuvem",
+      "Estou vindo de outra ferramenta",
+      "Só estou dando uma olhada",
+      "Pular",
+      "Continuar",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Pular",
+      "button: Continuar"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "home-goals-three": {
+    "text": [
+      "O que você quer fazer primeiro?",
+      "Saber quando meu site ou API cair",
+      "Acionar a pessoa certa quando algo quebrar",
+      "Informar meus clientes com uma página de status",
+      "Ver meus logs, métricas e traces",
+      "Acompanhar meus servidores, Kubernetes ou nuvem",
+      "Estou vindo de outra ferramenta",
+      "Só estou dando uma olhada",
+      "Pular",
+      "Continuar",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: on",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "field checkbox: ",
+      "button: Pular",
+      "button: Continuar"
+    ],
+    "width": 902,
+    "height": 374
+  },
+  "website-down-address": {
+    "text": [
+      "1",
+      "O que devemos verificar?",
+      "O OneUptime verifica isso a cada 5 minutos, de vários locais. Se não houver resposta, ou se a resposta for um erro, um incidente é aberto.",
+      "Endereço do site ou da API",
+      "Este é um endpoint de API",
+      "Começar a verificar",
+      "Mais tipos de monitor",
+      "value: https://acme-commerce.example",
+      "checkbox: off"
+    ],
+    "outline": [
+      "field text: https://example.com",
+      "field checkbox: ",
+      "button: Começar a verificar",
+      "link: Mais tipos de monitor"
+    ],
+    "width": 768,
+    "height": 298
+  },
+  "website-down-who": {
+    "text": [
+      "2",
+      "Quem deve ser avisado?",
+      "Quando ele cai, o OneUptime abre um incidente e aciona essas pessoas, cada uma como diz o seu “Como me contatar”. Começa por você, por e-mail.",
+      "Quem é acionado",
+      "Adicionar membros da equipe",
+      "AL",
+      "Ada Lovelace",
+      "Isso cria a política de plantão \"Default on-call policy\", que aciona essas pessoas para cada novo incidente e cada novo alerta deste projeto.",
+      "Salvar e continuar"
+    ],
+    "outline": [
+      "button: Adicionar membros da equipe",
+      "button: Remover Ada Lovelace",
+      "button: Salvar e continuar"
+    ],
+    "width": 768,
+    "height": 302
+  },
+  "website-down-test": {
+    "text": [
+      "3",
+      "Envie um teste",
+      "Envie uma chamada de teste para você mesmo agora. Ela sai como sairia uma chamada real e todas as mensagens dizem TEST. Confirme-a pela mensagem para concluir.",
+      "Enviar uma chamada de teste para mim",
+      "Pular o teste"
+    ],
+    "outline": [
+      "button: Enviar uma chamada de teste para mim",
+      "button: Pular o teste"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "website-down-summary": {
+    "text": [
+      "acme-commerce.example está configurado",
+      "Verificado",
+      "A cada 5 minutos, de 2 locais.",
+      "Quando ele cai",
+      "Se não houver resposta, ou se a resposta for um erro, o OneUptime abre um incidente (Critical Incident).",
+      "Quem é avisado",
+      "A política de plantão \"Default on-call policy\" aciona Ada Lovelace para cada novo incidente e cada novo alerta. Você é proprietário deste monitor, então recebe um e-mail quando o status dele muda.",
+      "Testado",
+      "Ada Lovelace confirmou por e-mail após 14 segundos.",
+      "Próximos passos",
+      "Mostrar em uma página de status",
+      "Ser acionado por SMS ou ligação telefônica",
+      "Abrir o monitor",
+      "Verificar outro endereço"
+    ],
+    "outline": [
+      "heading: acme-commerce.example está configurado",
+      "heading: Próximos passos",
+      "link: Mostrar em uma página de status",
+      "link: Ser acionado por SMS ou ligação telefônica",
+      "link: Abrir o monitor",
+      "button: Verificar outro endereço"
+    ],
+    "width": 768,
+    "height": 511
+  },
+  "paging-reach-you": {
+    "text": [
+      "1",
+      "Como devemos contatar você?",
+      "Um acionamento vai para cada método que você verificou. Adicione seu telefone para receber SMS e chamadas.",
+      "E-mail",
+      "E-mail · •••mple",
+      "SMS e chamadas",
+      "Nenhum número de telefone ainda.",
+      "SMS está desligado neste projeto, então os acionamentos que o usam não são enviados.",
+      "Chamada telefônica está desligado neste projeto, então os acionamentos que o usam não são enviados.",
+      "SMS e chamadas são pagos com o saldo deste projeto, que é de 0.00 USD. Adicionar um número envia um SMS, então o saldo precisa ser maior que 1.00 USD.",
+      "Adicionar saldo",
+      "Ativar SMS e chamadas",
+      "App móvel ou navegador",
+      "Não configurado.",
+      "Baixe o app do OneUptime ou ative as notificações neste navegador, pelos seus métodos de notificação.",
+      "Configurar o app ou este navegador",
+      "Continuar",
+      "Verificar de novo"
+    ],
+    "outline": [
+      "button: Adicionar saldo",
+      "button: Ativar SMS e chamadas",
+      "link: Configurar o app ou este navegador",
+      "button: Continuar",
+      "button: Verificar de novo"
+    ],
+    "width": 768,
+    "height": 652
+  },
+  "paging-phone": {
+    "text": [
+      "1",
+      "Como devemos contatar você?",
+      "Um acionamento vai para cada método que você verificou. Adicione seu telefone para receber SMS e chamadas.",
+      "E-mail",
+      "E-mail · •••mple",
+      "SMS e chamadas",
+      "Nenhum número de telefone ainda.",
+      "SMS e chamadas são pagos com o saldo deste projeto, que é de 20.00 USD. Adicionar um número envia um SMS, então o saldo precisa ser maior que 1.00 USD.",
+      "Seu número de telefone",
+      "Enviar um código por SMS",
+      "App móvel ou navegador",
+      "Não configurado.",
+      "Baixe o app do OneUptime ou ative as notificações neste navegador, pelos seus métodos de notificação.",
+      "Configurar o app ou este navegador",
+      "Continuar",
+      "Verificar de novo",
+      "placeholder: +15551234567"
+    ],
+    "outline": [
+      "field text: +15551234567",
+      "button: Enviar um código por SMS",
+      "link: Configurar o app ou este navegador",
+      "button: Continuar",
+      "button: Verificar de novo"
+    ],
+    "width": 768,
+    "height": 584
+  },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Quem mais está de plantão?",
+      "Isso cria a política de plantão \"Default on-call policy\". Ela aciona primeiro essas pessoas, a cada novo incidente e alerta deste projeto.",
+      "Acionados primeiro",
+      "Adicionar membros da equipe",
+      "AL",
+      "Ada Lovelace",
+      "Salvar e continuar"
+    ],
+    "outline": [
+      "button: Adicionar membros da equipe",
+      "button: Remover Ada Lovelace",
+      "button: Salvar e continuar"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "E se ninguém responder?",
+      "Um acionamento espera que alguém o confirme. Se ninguém fizer isso a tempo:",
+      "Acionar outra pessoa",
+      "Acionar as mesmas pessoas de novo",
+      "Não fazer mais nada",
+      "Minutos de espera",
+      "Acionados em seguida",
+      "Adicionar membros da equipe",
+      "GH",
+      "Grace Hopper",
+      "Salvar e continuar",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Adicionar membros da equipe",
+      "button: Remover Grace Hopper",
+      "button: Salvar e continuar"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Enviar uma chamada de teste",
+      "Teste a política agora: ela aciona a primeira regra de escalonamento como um incidente real faria, e cada mensagem diz TEST. Confirme pela mensagem para concluir.",
+      "Testar esta política",
+      "Pular o teste"
+    ],
+    "outline": [
+      "button: Testar esta política",
+      "button: Pular o teste"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "O acionamento está configurado",
+      "Quem é acionado",
+      "Todo novo incidente ou alerta executa \"Default on-call policy\", que aciona Ada Lovelace (E-mail, SMS, Chamada telefônica).",
+      "Se ninguém responder",
+      "Se ninguém confirmar em 30 minutos, Grace Hopper é acionado.",
+      "Testado",
+      "Ada Lovelace confirmou por e-mail após 14 segundos.",
+      "Próximos passos",
+      "Revezar com uma escala de plantão",
+      "Conectar o Slack ou o Microsoft Teams",
+      "Acionar só no horário comercial para incidentes menos urgentes",
+      "Ver quem pode ser acionado",
+      "Abrir a política de plantão",
+      "Configurar outra política"
+    ],
+    "outline": [
+      "heading: O acionamento está configurado",
+      "heading: Próximos passos",
+      "link: Revezar com uma escala de plantão",
+      "link: Conectar o Slack ou o Microsoft Teams",
+      "link: Acionar só no horário comercial para incidentes menos urgentes",
+      "link: Ver quem pode ser acionado",
+      "link: Abrir a política de plantão",
+      "button: Configurar outra política"
+    ],
+    "width": 768,
+    "height": 482
+  },
+  "status-page-pick": {
+    "text": [
+      "1",
+      "Dê um nome e escolha o que ela mostra",
+      "Nome da página de status",
+      "O que ela mostra",
+      "Cada monitor que você escolhe aparece na página com seu status atual e sua disponibilidade.",
+      "Selecionar tudo",
+      "Limpar",
+      "1 de 1 selecionado",
+      "Acme website",
+      "Operational",
+      "A página é pública assim que você a cria: qualquer pessoa com o link vê o status dos monitores que você escolheu.",
+      "Criar a página de status",
+      "value: Status de Acme Commerce",
+      "checkbox: on"
+    ],
+    "outline": [
+      "field text: Status de Acme",
+      "button: Selecionar tudo",
+      "button: Limpar",
+      "field checkbox: ",
+      "button: Criar a página de status"
+    ],
+    "width": 768,
+    "height": 408
+  },
+  "status-page-review": {
+    "text": [
+      "2",
+      "É isto que seus clientes veem",
+      "Sua página de status está no ar neste link. Veja o que ela mostra e o que aparece nela.",
+      "Status de Acme Commerce",
+      "ELA MOSTRA",
+      "Acme website",
+      "Operational",
+      "Link público",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Um incidente em um desses monitores aparece aqui sozinho, e os assinantes recebem um e-mail.",
+      "Os alertas nunca aparecem aqui. Eles são para a sua equipe.",
+      "A manutenção programada e os anúncios aparecem quando você os publica.",
+      "Parece bom"
+    ],
+    "outline": [
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "button: Parece bom"
+    ],
+    "width": 768,
+    "height": 466
+  },
+  "status-page-summary": {
+    "text": [
+      "\"Status de Acme Commerce\" está no ar",
+      "Endereço",
+      "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
+      "Mostra",
+      "Acme website",
+      "Aparece sozinho",
+      "Um incidente em um desses monitores aparece aqui sozinho, e os assinantes recebem um e-mail.",
+      "Os alertas nunca aparecem aqui. Eles são para a sua equipe.",
+      "A manutenção programada e os anúncios aparecem quando você os publica.",
+      "Deixe com a sua cara (opcional)",
+      "Seu próprio domínio Disponibilize a página em um endereço como status.example.com.",
+      "Seu logotipo e suas cores Faça a página ter a aparência do seu produto.",
+      "Quem pode assinar Por e-mail, SMS, Slack, Microsoft Teams ou webhook.",
+      "Privada em vez de pública Somente as pessoas que você convida, ou que fazem login, veem a página.",
+      "Próximos passos",
+      "Publicar um primeiro anúncio",
+      "Agendar uma manutenção",
+      "Adicione o status ao seu site",
+      "Abrir as configurações desta página de status",
+      "Configurar outra página de status"
+    ],
+    "outline": [
+      "heading: \"Status de Acme Commerce\" está no ar",
+      "link: https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-0000",
+      "heading: Deixe com a sua cara (opcional)",
+      "link: Seu próprio domínio",
+      "link: Seu logotipo e suas cores",
+      "link: Quem pode assinar",
+      "link: Privada em vez de pública",
+      "heading: Próximos passos",
+      "link: Publicar um primeiro anúncio",
+      "link: Agendar uma manutenção",
+      "link: Adicione o status ao seu site",
+      "link: Abrir as configurações desta página de status",
+      "button: Configurar outra página de status"
+    ],
+    "width": 768,
+    "height": 682
+  },
+  "incident-feed": {
+    "text": [
+      "Feed do incidente",
+      "Tudo o que aconteceu com este incidente: mudanças de status, notas, proprietários e cada notificação enviada.",
+      "Ações",
+      "segunda-feira, 14 de setembro de 2026",
+      "Hoje",
+      "BST",
+      "19:12",
+      "há 8 min.",
+      "Maya Chen",
+      "changed Incident #1042 State to Resolved",
+      "19:09",
+      "há 11 min.",
+      "Maya Chen",
+      "Private note: Rolling checkout-api back to 2026.09.14-1 to restore DB_POOL_MAX=40. Watching p95 on the checkout dashboard.",
+      "19:05",
+      "há 15 min.",
+      "Maya Chen",
+      "took the Incident Commander role on Incident #1042.",
+      "19:04",
+      "há 16 min.",
+      "Sam Rivera",
+      "changed Incident #1042 State to Acknowledged",
+      "19:01",
+      "há 19 min.",
+      "On Call Policy Started Executing: On Call Policy Checkout primary on-call started executing for Incident #1042. Users on call on this policy will now be notified.",
+      "Incident #1042 Created:",
+      "Checkout API p95 latency above 2s:",
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+      "🔴 Incident State: Created",
+      "⚠️ Severity: SEV-2",
+      "🌎 Resources Affected:",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Feed do incidente",
+      "button: Ações",
+      "button: Mais opções",
+      "heading: segunda-feira, 14 de setembro de 2026",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "link: Incident #1042",
+      "heading: Incident #1042 Created:",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 576,
+    "height": 950
+  },
+  "incident-resolve": {
+    "text": [
+      "#1042",
+      "Confirmado",
+      "SEV-2",
+      "Checkout API p95 latency above 2s",
+      "Resolver",
+      "Criado",
+      "Confirmado",
+      "Resolvido",
+      "EM ANDAMENTO HÁ",
+      "19 minutos",
+      "COMANDANTE DO INCIDENTE",
+      "MC",
+      "Maya Chen",
+      "PROPRIETÁRIOS",
+      "CS",
+      "Checkout SRE",
+      "SR",
+      "Sam Rivera",
+      "Adicionar",
+      "Adicionar proprietários",
+      "MONITORES",
+      "Checkout API p95 latency",
+      "Orders DB connection pool"
+    ],
+    "outline": [
+      "heading: Checkout API p95 latency above 2s",
+      "button: Resolver",
+      "button: Adicionar Adicionar proprietários",
+      "link: Checkout API p95 latency",
+      "link: Orders DB connection pool"
+    ],
+    "width": 876,
+    "height": 295
+  }
+}

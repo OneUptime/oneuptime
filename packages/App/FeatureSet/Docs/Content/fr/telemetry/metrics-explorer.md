@@ -36,7 +36,7 @@ L'explorateur a cinq onglets :
 ## Avant de commencer
 
 - **Des métriques qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), ou depuis un agent comme le [collecteur OpenTelemetry pour hôte](/docs/telemetry/host-otel-collector) ou l'[agent Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Telemetry Service Metrics. Voir [Télémétrie](/docs/permissions/index#télémétrie) pour savoir quelles métriques il lit.
+- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Metrics. Voir [Télémétrie](/docs/permissions/index#télémétrie) pour savoir quelles métriques il lit.
 
 ## Trouver une métrique
 

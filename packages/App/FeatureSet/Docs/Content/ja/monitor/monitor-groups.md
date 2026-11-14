@@ -155,7 +155,7 @@ flowchart TB
 ## 次のステップ
 
 :::cards
-- [モニターの条件とステータス](/docs/monitor/criteria-and-statuses): 各モニターのステータスを決めるもの。
+- [条件とステータス](/docs/monitor/criteria-and-statuses): 各モニターのステータスを決めるもの。
 - [ステータス ページのリソースとグループ](/docs/status-pages/resources-and-groups): ステータスページの行を配置します。
 - [購読者とお知らせ](/docs/status-pages/subscribers): グループのインシデントを顧客に知らせます。
 :::

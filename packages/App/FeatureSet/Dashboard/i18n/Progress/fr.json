@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 5332
+    "keys": 51296,
+    "untranslated": 5278
   },
   "sameAsEnglish": [
     " incidents",
@@ -682,6 +682,7 @@
     "volume",
     "volumes",
     "workflow",
+    "workflows",
     "writesets",
     "x86",
     "z",
@@ -690,6 +691,7 @@
     "{{amount}}, ratio {{ratio}}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",

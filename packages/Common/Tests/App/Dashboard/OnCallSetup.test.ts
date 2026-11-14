@@ -33,7 +33,10 @@ import {
   parseRepeatTimes,
   parseWaitMinutes,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
-import { WEBSITE_DOWN_POLICY_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
+import {
+  WEBSITE_DOWN_COPY,
+  WEBSITE_DOWN_POLICY_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import {
   WhoIsToldBreak,
   WhoIsToldBreakKind,
@@ -770,6 +773,22 @@ describe("the summary", () => {
 });
 
 describe("its words", () => {
+  test("a policy made meanwhile, and a read that failed, are said in the website-down setup's words (#7252)", () => {
+    // Two setups, one product: the same moment reads the same in both.
+    expect(ON_CALL_SETUP_COPY.policyMadeElsewhere).toBe(
+      WEBSITE_DOWN_COPY.policyMadeElsewhere,
+    );
+    expect(ON_CALL_SETUP_COPY.policyMadeElsewhere).toBe(
+      "An on-call policy was added to this project while this page was open, so no new policy was made.",
+    );
+    expect(ON_CALL_SETUP_COPY.couldNotSave).toBe(
+      WEBSITE_DOWN_COPY.couldNotSave,
+    );
+    expect(ON_CALL_SETUP_COPY.couldNotSave).toBe(
+      "That did not save. Check your connection and try again.",
+    );
+  });
+
   const words: Array<string> = Array.from(
     new Set(Object.values(ON_CALL_SETUP_COPY)),
   );

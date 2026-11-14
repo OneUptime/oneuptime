@@ -44,7 +44,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
       <CardModelDetail<TelemetryIngestionKey>
         name="Telemetry Ingestion Key Details"
         cardProps={{
-          title: "Telemetry Ingestion Key Details",
+          title: "Ingestion Key Details",
           description:
             "Your apps and collectors send this key with their telemetry, so it lands in this project.",
         }}
@@ -64,7 +64,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             stepId: "details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Telemetry Ingestion Key Name",
+            placeholder: "Ingestion Key Name",
             validation: {
               minLength: 2,
             },
@@ -79,7 +79,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             stepId: "details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Telemetry Ingestion Key Description",
+            placeholder: "Ingestion Key Description",
             hideColumnDescription: true,
           },
           {

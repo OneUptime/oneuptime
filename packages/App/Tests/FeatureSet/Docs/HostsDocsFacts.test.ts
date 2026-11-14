@@ -2,6 +2,7 @@ import { readPage } from "./DocsContentSupport";
 import {
   HOST_COLLECTOR_EXPORTER_ENDPOINT,
   HOST_COLLECTOR_INGESTION_KEY_REFERENCE,
+  HOST_COLLECTOR_OPAMP_PATH,
   HOST_COLLECTOR_PINNED_VERSION,
   HOST_COLLECTOR_SERVICE_NAME,
   HostCollectorOsType,
@@ -317,7 +318,32 @@ describe("what the page says about the service", () => {
 
     expect(text).toContain("HTTP `401`");
     expect(text).toContain("HTTP `422`");
-    expect(INSTALL_SH).toContain("for status in 401 403 422; do");
+    expect(INSTALL_SH).toContain("for status in 401 403 422 404; do");
+  });
+
+  test("a 404 is explained as the installers report it: OneUptime not found where the collector asks", () => {
+    const text: string = section("Troubleshooting");
+
+    expect(text).toContain(
+      ":::details The command says OneUptime was not found",
+    );
+    expect(text).toContain(
+      `HTTP \`404\`: the address the collector asks for its config, your OneUptime URL followed by \`${HOST_COLLECTOR_OPAMP_PATH}\`, does not reach OneUptime.`,
+    );
+    expect(text).toContain(
+      `have it send \`${HOST_COLLECTOR_OPAMP_PATH}\` to OneUptime, as it sends \`/otlp\``,
+    );
+    // The page names the address the installers write.
+    expect(INSTALL_SH).toContain(`OPAMP_PATH="${HOST_COLLECTOR_OPAMP_PATH}"`);
+    expect(INSTALL_PS1).toContain(
+      `$OpAmpPath = "${HOST_COLLECTOR_OPAMP_PATH}"`,
+    );
+    expect(INSTALL_SH).toContain(
+      'say "OneUptime was not found at $OPAMP_URL (HTTP 404)."',
+    );
+    expect(INSTALL_PS1).toContain(
+      'Write-Host "OneUptime was not found at $Url$OpAmpPath (HTTP 404)."',
+    );
   });
 });
 

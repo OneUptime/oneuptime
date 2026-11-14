@@ -41,11 +41,11 @@ import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
  * What follows a page (a tab, a card) is not checked. Every Project Settings
  * path is walked: all of its sections but Basic start folded, so nearly every
  * page in it is named with its section ("Project Settings > Notifications >
- * Notification Settings", "Project Settings > Billing and Invoices >
+ * Notification Channels", "Project Settings > Billing and Invoices >
  * Billing").
  *
  * A product's own menu is walked the same way, from the product's name on
- * the bar: On-Call Duty's ("On-Call Duty > Advanced > User Overrides",
+ * the bar: On-Call's ("On-Call > Advanced > User Overrides",
  * OnCallDutyMenuPathsInProductText).
  *
  * App tests must not import the Dashboard's React modules, so the menus are
@@ -138,11 +138,11 @@ export function userSettingsMenu(): SettingsMenu {
   };
 }
 
-// The On-Call Duty product, as the bar names it.
-export const ON_CALL_DUTY: string = "On-Call Duty";
+// The On-Call product, as the bar names it (On-Call Duty until #6817).
+export const ON_CALL_DUTY: string = "On-Call";
 
 /*
- * The On-Call Duty product's side menu, as it draws it: its own sections,
+ * The On-Call product's side menu, as it draws it: its own sections,
  * the Workspace section where the menu adds it (with every entry it can
  * show: the connected workspaces, or the one that connects a workspace), and
  * the Developer section every product menu ends with.
@@ -186,7 +186,7 @@ const PROJECT_SETTINGS_BREADCRUMB: RegExp =
 
 /*
  * The titles Project Settings' pages go by in their breadcrumbs, some of
- * them not the menu's ("Telemetry Ingestion Keys" for the Ingestion Keys
+ * them not the menu's ("Telemetry Settings" for the Data Retention
  * entry): a text that names a page by one, after "Settings", still means
  * Project Settings.
  */
@@ -236,9 +236,13 @@ export function readableText(text: string): string {
     .join("");
 }
 
-// A separator between two steps of a path: ">", "→", "->" or "›".
-const SEPARATOR_AHEAD: RegExp = /^\s*(?:->|>|→|›)\s*/;
-const SEPARATOR_BEHIND: RegExp = /\s*(?:->|>|→|›)\s*$/;
+/*
+ * A separator between two steps of a path: ">", "→", "->" or "›", and "←",
+ * the arrow a path written in Arabic or Persian points on to its next step
+ * with.
+ */
+const SEPARATOR_AHEAD: RegExp = /^\s*(?:->|>|→|←|›)\s*/;
+const SEPARATOR_BEHIND: RegExp = /\s*(?:->|>|→|←|›)\s*$/;
 /*
  * A value a template puts in: "{value}" where the scan reads a template
  * literal, "{{workspace}}" in a translation.
@@ -429,8 +433,8 @@ function pathStarts(
 
 /*
  * Every path a text writes through a product's menu - each place the menu's
- * name is followed by a separator, "On-Call Duty > Advanced > User
- * Overrides" - walked as the menu draws it.
+ * name is followed by a separator, "On-Call > Advanced > User Overrides" -
+ * walked as the menu draws it.
  */
 export function pathsThrough(
   text: string,
@@ -456,11 +460,11 @@ export function pathsThrough(
 }
 
 /*
- * Where a text starts a path at a name no menu has - "Open On-Call >
- * Readiness", when the bar's entry is On-Call Duty - as the text from the
- * name on. A name that goes on ("On-Call Duty") is another name, and one
- * with a separator before it is a step of a longer path (a member's page
- * has an On-Call section), not where a path starts.
+ * Where a text starts a path at a name no menu has - "Open On-Call Duty >
+ * Readiness", now that the bar's entry is On-Call (#6817) - as the text
+ * from the name on. A name that goes on ("On-Call Duty rotates") is not a
+ * path, and one with a separator before it is a step of a longer path (a
+ * member's page has an On-Call section), not where a path starts.
  */
 export function pathsStartingAt(text: string, name: string): Array<string> {
   const readable: string = readableText(text);

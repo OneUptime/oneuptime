@@ -1,6 +1,6 @@
 # Visión general de los formularios
 
-Un formulario es una página que cualquiera con su enlace puede rellenar, sin una cuenta de OneUptime. Cada envío crea algo en tu proyecto: un **incidente**, para avisos de problemas, o un **evento de mantenimiento programado**, para solicitudes de cambio y de mantenimiento. Construyes las preguntas del formulario en un editor de arrastrar y soltar, decides cómo las respuestas se convierten en el registro y compartes el enlace con las personas que deben usarlo.
+Un formulario es una página que cualquiera con su enlace puede rellenar, sin una cuenta de OneUptime. Cada envío crea algo en tu proyecto: un **incidente**, para avisos de problemas, o un **evento de mantenimiento**, para solicitudes de cambio y de mantenimiento. Construyes las preguntas del formulario en un editor de arrastrar y soltar, decides cómo las respuestas se convierten en el registro y compartes el enlace con las personas que deben usarlo.
 
 Usa un formulario cuando quienes detectan un problema, o necesitan un cambio, no son quienes gestionan tus incidentes y mantenimientos: agentes de soporte, compañeros de otro departamento, el responsable de una tienda, el equipo de operaciones de un cliente. Abren el enlace, responden a tus preguntas y pulsan **Enviar**. Tu equipo recibe un incidente o un evento normal, con las respuestas en sus campos y una nota privada que registra quién lo envió.
 
@@ -257,7 +257,7 @@ La respuesta a una pregunta de archivos son los archivos tal como se guardaron, 
 
 ### Workflows
 
-Los formularios tienen los componentes de workflow generados: **On Create Form**, **On Update Form**, etc. Para actuar sobre lo que creó un formulario, usa **On Create Incident** u **On Create Scheduled Maintenance Event**.
+Los formularios tienen los componentes de workflow generados: **On Create Form**, **On Update Form**, etc. Para actuar sobre lo que creó un formulario, usa **On Create Incident** u **On Create Maintenance Event**.
 
 ### Los endpoints propios de la página pública
 

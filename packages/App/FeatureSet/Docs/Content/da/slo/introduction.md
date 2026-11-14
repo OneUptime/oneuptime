@@ -199,13 +199,13 @@ Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver tin
 | **Overholdelsesperiode** | **Vinduestype**, **Vindue (dage)** og **Tidszone**, med **Rediger periode**. | Forbrugsrateregler beholder deres tærskler, når vinduet ændres, så gennemgå dem bagefter. |
 | **Beregning af nedetid** | **Tilstand for flere monitorer** og **Nedetidsovervågningsstatusser**, med **Rediger beregning af nedetid**. | Uden statusser tæller alle ikke-operationelle statusser, også dem, der tilføjes senere. |
 | **Evaluering** | Kontakten **Evaluer dette SLO**, der gemmer, så snart du slår den om. | At slå den fra beder om bekræftelse, fordi det også løser SLO'ets åbne forbrugsrateadvarsler og -hændelser. |
-| **Archive SLO** | **Arkiver** eller **Fjern fra arkiv**. | Se [Arkivér et SLO](#arkivér-et-slo). |
+| **Arkivér SLO** | **Arkiver** eller **Fjern fra arkiv**. | Se [Arkivér et SLO](#arkivér-et-slo). |
 
 Efter en ændring af målet, perioden eller beregningen af nedetid evaluerer OneUptime SLO'et igen ved næste kørsel.
 
 ## Arkivér et SLO
 
-Arkivér et SLO, du ikke længere måler, men vil beholde, som en udfaset tjeneste eller sidste års mål. Arkivér det fra **Indstillinger** → **Archive SLO**, eller vælg SLO'er på listen og vælg **Arkiver**.
+Arkivér et SLO, du ikke længere måler, men vil beholde, som en udfaset tjeneste eller sidste års mål. Arkivér det fra **Indstillinger** → **Arkivér SLO**, eller vælg SLO'er på listen og vælg **Arkiver**.
 
 Et arkiveret SLO:
 

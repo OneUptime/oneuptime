@@ -11,12 +11,13 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
 import Clipboard from "Common/UI/Utils/Clipboard";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
   NOTE_ADDED_BY,
+  NoteActionFailedCopy,
   NoteAuthor,
   NoteNotificationSummary,
   NoteRecord,
@@ -327,9 +328,17 @@ const NoteCard: FunctionComponent<ComponentProps> = (
             ? "border-transparent"
             : "border-gray-200 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
         }`}
-        aria-label={`${authorName}, ${
-          timestamp ? getNoteFullTimeLabel(timestamp) : ""
-        }`}
+        /*
+         * Who wrote it and when, joined as the reader's language joins two
+         * parts ("، " in Persian, "、" in Japanese); a note with no time is
+         * named by its author alone, not with a comma left hanging.
+         */
+        aria-label={formatList(
+          timestamp
+            ? [authorName, getNoteFullTimeLabel(timestamp)]
+            : [authorName],
+          translator,
+        )}
       >
         {isEditingThis ? (
           <NoteComposer
@@ -346,6 +355,11 @@ const NoteCard: FunctionComponent<ComponentProps> = (
             isPostedAtEditable={props.isPostedAtEditable}
             isSubmitting={isSaving}
             error={editError}
+            errorWhatFailed={
+              props.approval?.isEditHeld
+                ? PublicNoteApprovalCopy.editSendFailed
+                : NoteActionFailedCopy.edit
+            }
             isAutoFocused={true}
             notice={
               props.approval?.isEditHeld ? (
@@ -394,7 +408,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                     className="whitespace-nowrap text-sm text-gray-500"
                     data-testid="note-time"
                   >
-                    {getNoteTimeLabel(timestamp, props.now)}
+                    {getNoteTimeLabel(timestamp, props.now, translator)}
                   </time>
                 </Tooltip>
               )}
@@ -541,6 +555,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
           closeButtonText={tx("Keep note")}
           isLoading={isDeleting}
           error={deleteError || undefined}
+          errorWhatFailed={tx(NoteActionFailedCopy.delete)}
           onClose={() => {
             setIsDeleteConfirmOpen(false);
           }}

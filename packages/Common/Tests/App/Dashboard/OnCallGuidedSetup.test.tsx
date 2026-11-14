@@ -1,5 +1,7 @@
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -15,6 +17,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -424,7 +428,10 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 
 import OnCallGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallGuidedSetup";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
-import { OnCallPolicyRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
+import {
+  ON_CALL_SETUP_COPY,
+  OnCallPolicyRecord,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
@@ -440,6 +447,8 @@ import {
 } from "../../../Types/ServerSending/ServerSendingStatus";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -879,6 +888,29 @@ describe("how should we reach you", () => {
     );
   });
 
+  /*
+   * ISSUE #7180: the number is typed in a box that reads left to right on
+   * every page, its example "+15551234567" with it - on a Persian or Arabic
+   * page its "+" went after its digits - and a phone offers its dial pad.
+   */
+  test("the number's box reads left to right, its example with it, on a phone's dial pad", async () => {
+    await renderSetup();
+
+    const box: HTMLElement = screen.getByTestId("on-call-setup-phone");
+
+    expect(box.tagName).toBe("INPUT");
+    expect(box).toHaveAttribute("inputmode", "tel");
+    expect(box).toHaveAttribute("dir", "ltr");
+    expect(box.parentElement).toHaveAttribute("dir", "ltr");
+    expect(box).toHaveAttribute("placeholder", "+15551234567");
+    // Its label is a sentence of the page, with no direction of its own.
+    expect(
+      document
+        .querySelector('label[for="on-call-setup-phone"]')!
+        .closest("[dir]"),
+    ).toBeNull();
+  });
+
   test("one number, one code: verified by text, then added for calls with no second code", async () => {
     await renderSetup();
 
@@ -1158,6 +1190,10 @@ describe("who else is on call", () => {
       "Page this policy for every new incident and alert",
     );
 
+    // Read again just before (still missing), then once the rule is added.
+    api["loadPolicy"]!.mockResolvedValueOnce(
+      policyRecord({ alertRuleCount: 0 }),
+    );
     api["loadPolicy"]!.mockResolvedValue(policyRecord());
     await press("on-call-setup-who-continue");
 
@@ -1518,5 +1554,456 @@ describe("coming back", () => {
     expect(storedRun()).toEqual({ reachConfirmed: true });
     expect(stepState("who_else")).toBe("open");
     expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * A POLICY MADE MEANWHILE, IN ANOTHER TAB OR ON ANOTHER DEVICE (#7252):
+ * the step decides between making the project's first policy and adding
+ * to one from what it read when the page opened. Save and continue reads
+ * the project's policies again just before it makes one, so a policy made
+ * elsewhere meanwhile - the website-down setup's step 2 in another tab, for
+ * one - is never made twice, nor its pair of on-call rules that page it for
+ * every new incident and alert.
+ */
+describe("a policy made meanwhile, in another tab or on another device (#7252)", () => {
+  const MADE_ELSEWHERE: string =
+    "An on-call policy was added to this project while this page was open, so no new policy was made.";
+
+  const NO_POLICY_YET: Record<string, unknown> = {
+    policies: [],
+    mayCreatePolicy: true,
+    mayAddRules: true,
+    mayEditLevels: true,
+  };
+
+  const ONE_POLICY_NOW: Record<string, unknown> = {
+    policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+    mayCreatePolicy: true,
+    mayAddRules: true,
+    mayEditLevels: true,
+  };
+
+  const reachDone: () => Promise<void> = async (): Promise<void> => {
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+    expect(stepState("who_else")).toBe("open");
+  };
+
+  test("the project's policies are asked again just before the policy is made", async () => {
+    await reachDone();
+    await press("on-call-setup-who-save");
+
+    expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(2);
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(api["loadPolicyChoices"]!.mock.invocationCallOrder[1]!).toBeLessThan(
+      api["createPolicy"]!.mock.invocationCallOrder[0]!,
+    );
+    expect(
+      screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeNull();
+  });
+
+  test("a policy made since the page opened: none is made, the step turns to the project's policies and says why first", async () => {
+    await reachDone();
+    await pressText("Add Ben to on-call-setup-people");
+
+    // Another tab of this person made the project's first policy meanwhile.
+    api["loadPolicyChoices"]!.mockResolvedValue(ONE_POLICY_NOW);
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(api["addToFirstLevel"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({ reachConfirmed: true });
+    expect(stepState("who_else")).toBe("open");
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    // Why the step changed, said first; then the project's policy to pick.
+    const note: HTMLElement = screen.getByTestId(
+      "on-call-setup-policy-made-elsewhere",
+    );
+    expect(note).toHaveTextContent(MADE_ELSEWHERE);
+    const help: HTMLElement = screen.getByText(
+      "This project already has on-call policies. Pick the one to set up: the people you add join its first escalation rule.",
+    );
+    expect(
+      note.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+      POLICY_ID,
+    );
+    // The people picked are kept, to join its first escalation rule.
+    expect(screen.getByText("Add to the first escalation rule")).toBeVisible();
+    expect(screen.getByTestId("on-call-setup-people-picked")).toHaveTextContent(
+      JSON.stringify({ user: [USER_ID, "user-ben"], team: ["team-platform"] }),
+    );
+
+    // Save and continue now joins them to that policy, and makes nothing.
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(api["addToFirstLevel"]).toHaveBeenCalledWith({
+      policyId: POLICY_ID,
+      firstLevelId: "level-1",
+      userIds: ["user-ben"],
+      teamIds: ["team-platform"],
+    });
+    expect(storedRun()).toEqual({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    // Its on-call rules page it already: no second pair is added.
+    expect(api["addEveryNewEventRules"]).not.toHaveBeenCalled();
+    expect(stepState("who_else")).toBe("done");
+    expect(stepState("no_answer")).toBe("open");
+  });
+
+  /*
+   * Save and continue stays where it was when the step turns, so nothing
+   * else tells a screen reader why: the help is a polite live region that
+   * was on the page before the turn (a region added with its words is not
+   * read out), and the sentence and the new help are said in it.
+   */
+  test("the sentence is read out: it is said in the step's help, a polite live region that was there before the step turned", async () => {
+    await reachDone();
+    const region: HTMLElement = screen.getByTestId("on-call-setup-who-help");
+
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toHaveTextContent(
+      'This makes the on-call policy "Default on-call policy".',
+    );
+    expect(region).not.toHaveTextContent(MADE_ELSEWHERE);
+
+    api["loadPolicyChoices"]!.mockResolvedValue(ONE_POLICY_NOW);
+    await press("on-call-setup-who-save");
+
+    // The same element, now holding why and what to do.
+    expect(screen.getByTestId("on-call-setup-who-help")).toBe(region);
+    expect(region).toHaveTextContent(MADE_ELSEWHERE);
+    expect(region).toHaveTextContent(
+      "This project already has on-call policies. Pick the one to set up",
+    );
+    expect(
+      region.contains(
+        screen.getByTestId("on-call-setup-policy-made-elsewhere"),
+      ),
+    ).toBe(true);
+    // The picker and the button are not read out with it.
+    expect(region.contains(screen.getByTestId("on-call-setup-who-save"))).toBe(
+      false,
+    );
+  });
+
+  test("choices that cannot be read just before: nothing is made, the step says to try again, and trying again makes one", async () => {
+    await reachDone();
+    api["loadPolicyChoices"]!.mockRejectedValueOnce(
+      new Error("The server could not be reached."),
+    );
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That did not save. Check your connection and try again.",
+    );
+    expect(stepState("who_else")).toBe("open");
+    // The people picked stay; nothing claims a policy appeared.
+    expect(screen.getByTestId("on-call-setup-people")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeNull();
+    expect(storedRun()).toEqual({ reachConfirmed: true });
+
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(storedRun()).toEqual({ reachConfirmed: true, policyId: POLICY_ID });
+    expect(stepState("who_else")).toBe("done");
+  });
+
+  test("permission to make a policy taken away meanwhile: nothing is made, and the step says who can", async () => {
+    await reachDone();
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [],
+      mayCreatePolicy: false,
+      mayAddRules: false,
+      mayEditLevels: false,
+    });
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("on-call-setup-cannot-create")).toHaveTextContent(
+      "Ask a project owner or admin",
+    );
+    // No policy appeared, so none is said to have.
+    expect(
+      screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeNull();
+    expect(storedRun()).toEqual({ reachConfirmed: true });
+  });
+
+  test("the rules are added as they are read just before: whoever may add them now decides", async () => {
+    await reachDone();
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      ...NO_POLICY_YET,
+      mayAddRules: false,
+    });
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledWith(
+      expect.objectContaining({ addRules: false }),
+    );
+  });
+
+  test("a project that had policies when the page opened says nothing of a policy made meanwhile, and reads nothing again", async () => {
+    api["loadPolicyChoices"]!.mockResolvedValue(ONE_POLICY_NOW);
+    await reachDone();
+
+    expect(
+      screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeNull();
+
+    await press("on-call-setup-who-save");
+
+    expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(1);
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(stepState("no_answer")).toBe("open");
+  });
+
+  test("Set up another policy before the project's policies are read again makes no second policy", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      noAnswerDone: true,
+      testSkipped: true,
+    });
+    await renderSetup();
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+
+    // The read Set up another policy starts fails: the old choices (none) stay.
+    api["loadPolicyChoices"]!.mockRejectedValueOnce(new Error("offline"));
+    await press("on-call-setup-start-over");
+    expect(stepState("who_else")).toBe("open");
+    expect(screen.queryByTestId("on-call-setup-policy-choice")).toBeNull();
+
+    // The project has the policy this page made: the save finds it.
+    api["loadPolicyChoices"]!.mockResolvedValue(ONE_POLICY_NOW);
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+      POLICY_ID,
+    );
+    expect(
+      screen.getByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toHaveTextContent(MADE_ELSEWHERE);
+  });
+
+  test("Set up another policy starts without the sentence", async () => {
+    await reachDone();
+    api["loadPolicyChoices"]!.mockResolvedValue(ONE_POLICY_NOW);
+    await press("on-call-setup-who-save");
+    expect(
+      screen.getByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeInTheDocument();
+
+    // Into that policy, past the rest, to the summary and a new run.
+    await press("on-call-setup-who-save");
+    await press("choice-nothing");
+    await press("on-call-setup-no-answer-save");
+    await press("on-call-setup-skip-test");
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+    await press("on-call-setup-start-over");
+
+    expect(stepState("who_else")).toBe("open");
+    expect(
+      screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeNull();
+  });
+
+  test("on-call rules another tab added meanwhile are not added twice", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    api["loadPolicy"]!.mockResolvedValue(policyRecord({ alertRuleCount: 0 }));
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+    expect(screen.getByTestId("on-call-setup-who-continue")).toHaveTextContent(
+      "Page this policy for every new incident and alert",
+    );
+
+    // Another tab pressed the same button meanwhile.
+    api["loadPolicy"]!.mockResolvedValue(policyRecord());
+    await press("on-call-setup-who-continue");
+
+    expect(api["addEveryNewEventRules"]).not.toHaveBeenCalled();
+    expect(stepState("no_answer")).toBe("open");
+  });
+
+  test("only the kinds of on-call rule still missing are added", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    api["loadPolicy"]!.mockResolvedValue(
+      policyRecord({ incidentRuleCount: 0, alertRuleCount: 0 }),
+    );
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+
+    // Another tab added the incident rule meanwhile; the alert rule is missing.
+    api["loadPolicy"]!.mockResolvedValueOnce(
+      policyRecord({ incidentRuleCount: 1, alertRuleCount: 0 }),
+    );
+    api["loadPolicy"]!.mockResolvedValue(policyRecord());
+    await press("on-call-setup-who-continue");
+
+    expect(api["addEveryNewEventRules"]).toHaveBeenCalledTimes(1);
+    expect(api["addEveryNewEventRules"]).toHaveBeenCalledWith({
+      policyId: POLICY_ID,
+      policyName: "Default on-call policy",
+      incident: false,
+      alert: true,
+    });
+    expect(stepState("no_answer")).toBe("open");
+  });
+
+  test("the policy's rules that cannot be read just before: nothing is added, and the step says why", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    api["loadPolicy"]!.mockResolvedValue(policyRecord({ alertRuleCount: 0 }));
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+
+    api["loadPolicy"]!.mockRejectedValueOnce(
+      new Error("The server could not be reached."),
+    );
+    await press("on-call-setup-who-continue");
+
+    expect(api["addEveryNewEventRules"]).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The server could not be reached.",
+    );
+    expect(stepState("who_else")).toBe("open");
+  });
+});
+
+/*
+ * READ IN ANOTHER LANGUAGE (#7252): the sentence that a policy appeared
+ * while the page was open, and the one asking to try again when the
+ * project's policies could not be read, are in the reader's words - in
+ * German, and on the right-to-left pages, Arabic and Persian.
+ */
+describe("read in another language (#7252)", () => {
+  const LANGUAGES: Array<string> = ["de", "ar", "fa"];
+
+  const worded: (language: string, key: string) => string = (
+    language: string,
+    key: string,
+  ): string => {
+    const text: string = readDashboardLocale(language)[key] || "";
+
+    expect({ language, key, worded: Boolean(text) && text !== key }).toEqual({
+      language,
+      key,
+      worded: true,
+    });
+
+    return text;
+  };
+
+  beforeAll(async () => {
+    const resources: Record<string, { translation: Record<string, string> }> =
+      {};
+
+    for (const language of LANGUAGES) {
+      resources[language] = { translation: readDashboardLocale(language) };
+    }
+
+    await i18next.use(initReactI18next).init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: resources,
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("en");
+    });
+  });
+
+  describe.each(LANGUAGES)("in %s", (language: string) => {
+    beforeEach(async () => {
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage(language);
+      });
+    });
+
+    test("a policy made meanwhile: the step says so in their words", async () => {
+      keepRun({ reachConfirmed: true });
+      await renderSetup();
+      api["loadPolicyChoices"]!.mockResolvedValue({
+        policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+        mayCreatePolicy: true,
+        mayAddRules: true,
+        mayEditLevels: true,
+      });
+      await press("on-call-setup-who-save");
+
+      const sentence: string = withoutIsolateMarks(
+        screen.getByTestId("on-call-setup-policy-made-elsewhere").textContent ||
+          "",
+      );
+
+      expect(sentence).toBe(
+        worded(language, ON_CALL_SETUP_COPY.policyMadeElsewhere),
+      );
+      expect(sentence).not.toContain("while this page was open");
+      expect(api["createPolicy"]).not.toHaveBeenCalled();
+    });
+
+    test("policies that cannot be read: try again, in their words", async () => {
+      keepRun({ reachConfirmed: true });
+      await renderSetup();
+      api["loadPolicyChoices"]!.mockRejectedValueOnce(new Error("offline"));
+      await press("on-call-setup-who-save");
+
+      const alert: string = withoutIsolateMarks(
+        screen.getByRole("alert").textContent || "",
+      );
+
+      expect(alert).toBe(worded(language, ON_CALL_SETUP_COPY.couldNotSave));
+      expect(alert).not.toContain("Check your connection");
+      expect(api["createPolicy"]).not.toHaveBeenCalled();
+    });
   });
 });

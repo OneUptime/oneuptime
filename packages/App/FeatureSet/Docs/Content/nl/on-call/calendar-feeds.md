@@ -34,7 +34,7 @@ Vaste toewijzingen — een gebruiker of team die rechtstreeks in een regel van e
 | --- | --- | --- | --- |
 | **Persoonlijke feed** | Elke gebruiker, één per project | Jouw diensten in elk rooster van dat project, plus de diensten waarin je iemand vervangt (optioneel) | **Gebruikersinstellingen** > **Agenda** > **Agendafeed** |
 | **Roosterfeed** | Iedereen die het rooster mag bewerken; iedereen die het mag lezen, mag de link kopiëren | De diensten van iedereen in één rooster, met optionele afspraken voor dekkingsgaten | De pagina van het rooster, kaart **Abonneren op dit rooster** |
-| **Projectfeed** | Iedereen die bereikbaarheidsschema's mag bewerken; iedereen die ze mag lezen, mag de link kopiëren | De diensten van iedereen in elk rooster van het project, met optionele afspraken voor dekkingsgaten | **Bereikbaarheidsdienst** > **Agendafeeds** |
+| **Projectfeed** | Iedereen die bereikbaarheidsschema's mag bewerken; iedereen die ze mag lezen, mag de link kopiëren | De diensten van iedereen in elk rooster van het project, met optionele afspraken voor dekkingsgaten | **Bereikbaarheid** > **Agendafeeds** |
 
 De links zien er zo uit:
 
@@ -206,7 +206,7 @@ Op de pagina van een rooster heeft de kaart **Abonneren op dit rooster** twee he
 
 ### Projectfeed
 
-**Bereikbaarheidsdienst** > **Agendafeeds** bevat de kaart **Diensten van iedereen in dit project (gedeelde link)** — één gedeelde link voor elk rooster in het project — met dezelfde acties voor publiceren, opnieuw genereren en uitschakelen, en een link naar de pagina van je persoonlijke feed.
+**Bereikbaarheid** > **Agendafeeds** bevat de kaart **Diensten van iedereen in dit project (gedeelde link)** — één gedeelde link voor elk rooster in het project — met dezelfde acties voor publiceren, opnieuw genereren en uitschakelen, en een link naar de pagina van je persoonlijke feed.
 
 ### Instellingen van gedeelde links
 
@@ -233,7 +233,7 @@ Wanneer iemand zijn laatste team in een project verlaat, verwijdert OneUptime di
 
 ## Planning, geen audit
 
-De feed toont de rotatie **zoals die nu is ingesteld**, ook voor dagen in het verleden: een override die achteraf wordt ingevoerd, herschrijft de geschiedenis in de agenda. Voor de uren die echt in bereikbaarheid zijn doorgebracht, eerlijkheidsbeoordelingen en vergoedingen gebruik je **Bereikbaarheidsdienst** > **Rapporten** > **Bereikbaarheidstijd gebruiker**, dat wordt opgebouwd uit wat de pager echt heeft gedaan. Zie [Bereikbaarheidstijd gebruiker](/docs/on-call/readiness#bereikbaarheidstijd-gebruiker).
+De feed toont de rotatie **zoals die nu is ingesteld**, ook voor dagen in het verleden: een override die achteraf wordt ingevoerd, herschrijft de geschiedenis in de agenda. Voor de uren die echt in bereikbaarheid zijn doorgebracht, eerlijkheidsbeoordelingen en vergoedingen gebruik je **Bereikbaarheid** > **Rapporten** > **Bereikbaarheidstijd gebruiker**, dat wordt opgebouwd uit wat de pager echt heeft gedaan. Zie [Bereikbaarheidstijd gebruiker](/docs/on-call/readiness#bereikbaarheidstijd-gebruiker).
 
 ## Beveiliging
 

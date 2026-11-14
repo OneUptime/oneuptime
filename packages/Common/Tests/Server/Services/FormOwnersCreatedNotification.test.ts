@@ -85,6 +85,7 @@ import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/Incident
 import CaptchaUtil from "../../../Server/Utils/Captcha";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
+import CreatedNotificationHold from "../../../Server/Utils/Notification/CreatedNotificationHold";
 import { FormFieldSource } from "../../../Types/Form/FormField";
 import { PublicFormSubmissionResult } from "../../../Types/Form/FormPublic";
 import FormTargetType from "../../../Types/Form/FormTargetType";
@@ -446,20 +447,23 @@ describe("the Incident Created notification of an incident reported through a fo
 
     finishWorkspace();
     await waitUntil((): boolean => {
-      return ownerRulesApplied;
+      return incidentsTheJobWouldTake().length > 0;
     });
 
-    // Its next run takes the incident, whose owners are the template's now.
+    // Its next run takes the incident, whose owners are the template's now - and the owner rules'.
+    expect(ownerRulesApplied).toBe(true);
     expect(ownerUserIds).toEqual([TEMPLATE_OWNER_ID]);
     expect(incidentsTheJobWouldTake()).toEqual([INCIDENT_ID]);
   });
 
   /*
-   * With no owners to wait for, nothing is held: the job takes the incident
-   * on its next run and, finding no owners, tells the project's owners - as
-   * it does for every incident nobody owns.
+   * With no owners named, it is held all the same (#7210): the project's
+   * owner rules, further down the chain, may add some. Once they have run,
+   * the job takes the incident on its next run and, should it find no
+   * owners, tells the project's owners - as it does for every incident
+   * nobody owns.
    */
-  test("holds nothing when the form's template names no owners", async () => {
+  test("waits for the owner rules when the form's template names no owners", async () => {
     templateOwners = [];
 
     await submit();
@@ -467,24 +471,26 @@ describe("the Incident Created notification of an incident reported through a fo
       return workspaceStarted;
     });
 
-    expect(incidentsTheJobWouldTake()).toEqual([INCIDENT_ID]);
+    expect(incidentsTheJobWouldTake()).toEqual([]);
 
     finishWorkspace();
     await waitUntil((): boolean => {
-      return ownerRulesApplied;
+      return incidentsTheJobWouldTake().length > 0;
     });
 
+    expect(ownerRulesApplied).toBe(true);
+    expect(ownerUserIds).toEqual([]);
     expect(incidentsTheJobWouldTake()).toEqual([INCIDENT_ID]);
-    expect(IncidentService.updateOneById).not.toHaveBeenCalled();
+    expect(IncidentService.updateOneById).toHaveBeenCalledTimes(1);
   });
 
   /*
-   * Only an internal (root) caller can ask for owners to be notified - misc
-   * data is whatever a request body says - so a dashboard declare that asks
-   * is written, and notified, as it always was. Its declarer is a project
-   * member, who may add the owners they pick.
+   * Misc data is whatever a request body says, so a dashboard declare that
+   * asks for its template's owners to be notified changes nothing: its
+   * create's hook holds it as it holds every create (#7210). Its declarer
+   * is a project member, who may add the owners they pick.
    */
-  test("holds nothing for a dashboard declare that asks for its template's owners to be notified", async () => {
+  test("a dashboard declare that asks for its template's owners to be notified is held as every create is", async () => {
     // The root cause names the declaring user.
     jest
       .spyOn(UserService, "getUserMarkdownString")
@@ -495,6 +501,11 @@ describe("the Incident Created notification of an incident reported through a fo
     incident.title = "Checkout is down";
     incident.incidentSeverityId = new ObjectID(FORM_SEVERITY_ID);
     incident.createdIncidentTemplateId = TEMPLATE_ID;
+
+    const held: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      CreatedNotificationHold,
+      "hold",
+    );
 
     const onCreate: OnCreate<Incident> = await (
       IncidentService as unknown as { onBeforeCreate: OnBeforeCreate }
@@ -524,9 +535,51 @@ describe("the Incident Created notification of an incident reported through a fo
       },
     });
 
-    expect(
-      onCreate.createBy.data.isOwnerNotifiedOfResourceCreation,
-    ).toBeUndefined();
+    expect(onCreate.createBy.data.isOwnerNotifiedOfResourceCreation).toBe(true);
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![0]).toBe(onCreate.createBy);
+  });
+
+  /*
+   * A create that says it was notified already is written as it says, and
+   * held by nobody: nothing ever marks it not notified, so the job never
+   * takes it.
+   */
+  test("a create written as notified already is not held, and never let go", async () => {
+    jest
+      .spyOn(UserService, "getUserMarkdownString")
+      .mockResolvedValue(FeedMarkdown.asMarkdown("Ada") as never);
+    const held: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      CreatedNotificationHold,
+      "hold",
+    );
+
+    const incident: Incident = new Incident();
+    incident.projectId = PROJECT_ID;
+    incident.title = "Checkout is down";
+    incident.incidentSeverityId = new ObjectID(FORM_SEVERITY_ID);
+    incident.createdIncidentTemplateId = TEMPLATE_ID;
+    incident.isOwnerNotifiedOfResourceCreation = true;
+
+    await IncidentService.create({
+      data: incident,
+      props: { isRoot: true },
+    });
+    await waitUntil((): boolean => {
+      return workspaceStarted;
+    });
+    finishWorkspace();
+    await waitUntil((): boolean => {
+      return ownerRulesApplied;
+    });
+    // Anything the chain set off after its owner rules has had its turn.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(held).not.toHaveBeenCalled();
+    expect(incidentsTheJobWouldTake()).toEqual([]);
+    expect(IncidentService.updateOneById).not.toHaveBeenCalled();
   });
 
   // What the hold relies on: the job takes exactly the incidents not marked.

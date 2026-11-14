@@ -88,7 +88,7 @@ Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eing
 Öffnen Sie jeden unter **Monitore** und prüfen Sie seine ersten Ergebnisse. Ein Heartbeat-Monitor hat eine neue Adresse: Richten Sie den Job, der ihn anpingt, darauf aus.
 
 ### Festlegen, wer benachrichtigt wird
-Fügen Sie Ihren Monitoren Eigentümer hinzu oder den Vorfällen, die sie eröffnen, eine Bereitschaftsrichtlinie unter **Bereitschaftsdienst** > **Bereitschaftsrichtlinien**, damit die richtigen Personen erfahren, wenn etwas ausfällt.
+Fügen Sie Ihren Monitoren Eigentümer hinzu oder den Vorfällen, die sie eröffnen, eine Bereitschaftsrichtlinie unter **Bereitschaft** > **Bereitschaftsrichtlinien**, damit die richtigen Personen erfahren, wenn etwas ausfällt.
 
 ### Die Prüfungen in StatusCake ausschalten
 Sobald OneUptime dasselbe prüft, pausieren Sie die Prüfungen in StatusCake, damit niemand doppelt benachrichtigt wird.

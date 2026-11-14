@@ -90,6 +90,7 @@ import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 const AlertEpisodeView: FunctionComponent<
   PageComponentProps
@@ -458,10 +459,10 @@ const AlertEpisodeView: FunctionComponent<
           className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
         >
           <span className="min-w-0 break-words">
-            {translator.translateTemplate(
-              "Couldn't refresh episode timings: {{error}}",
-              { error: refreshError },
-            )}
+            <ErrorSentence
+              template="Couldn't refresh episode timings: {{error}}"
+              error={refreshError}
+            />
           </span>
           <button
             type="button"
@@ -774,7 +775,7 @@ const AlertEpisodeView: FunctionComponent<
                       _id: true,
                     },
                   },
-                  title: "On-Call Duty Policies",
+                  title: "On-Call Policies",
                   fieldType: FieldType.Element,
                   getElement: (item: AlertEpisode): ReactElement => {
                     return (

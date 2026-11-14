@@ -66,6 +66,7 @@ import {
   getWorkflowTestRunLogLine,
 } from "Common/Types/Workflow/WorkflowEnabled";
 import ProjectService from "Common/Server/Services/ProjectService";
+import { SAMPLE_PROJECT_REFUSALS } from "Common/Types/SampleProject/SampleProject";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -519,10 +520,14 @@ export default class RunWorkflow {
    * firing has none and is skipped, and the schedule is kept, so it fires
    * again once the project is unblocked.
    */
-  private async stopRunOfBlockedProject(runProps: RunProps): Promise<void> {
+  private async stopRunOfBlockedProject(
+    runProps: RunProps,
+    // What the run's log says: blocked, or a sample project's (issue #6808).
+    reason: string = WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE,
+  ): Promise<void> {
     if (!runProps.workflowLogId) {
       logger.debug(
-        "A scheduled run of a workflow whose project is blocked came due. Skipping it.",
+        "A scheduled run of a workflow whose project is blocked or a sample came due. Skipping it.",
         this.getLogAttributes(),
       );
       return;
@@ -543,7 +548,7 @@ export default class RunWorkflow {
       this.logs = [existingLog.logs as string];
     }
 
-    this.log(WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE);
+    this.log(reason);
 
     // A run asleep in a Sleep step is not woken again.
     await WorkflowLogService.updateColumnsByIdWithoutHooks({
@@ -755,6 +760,22 @@ export default class RunWorkflow {
         (await ProjectService.isProjectBlocked(workflow.projectId))
       ) {
         await this.stopRunOfBlockedProject(runProps);
+        return;
+      }
+
+      /*
+       * Nor does a sample project (issue #6808), whose workflows never run:
+       * the queue refuses them, and a run that reached here anyway is
+       * stopped the same way, with why.
+       */
+      if (
+        workflow.projectId &&
+        (await ProjectService.isSampleProject(workflow.projectId))
+      ) {
+        await this.stopRunOfBlockedProject(
+          runProps,
+          SAMPLE_PROJECT_REFUSALS.workflow,
+        );
         return;
       }
 

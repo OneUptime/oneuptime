@@ -49,7 +49,7 @@ Hvert tal tæller noget, siger, om det kræver din opmærksomhed, og åbner list
 | **Aktive hændelser** | Hændelser, der ikke er løst | **Alt er i orden** | **Hændelser → Aktive hændelser** |
 | **Aktive advarsler** | Advarsler, der ikke er løst | **Alt er i orden** | **Advarsler → Aktive advarsler** |
 | **Ikke-operationelle monitorer** | Monitorer, hvis status ikke er en driftsstatus. Arkiverede monitorer, og monitorer med overvågning slået fra, tæller ikke med. | **Alle i drift** | **Monitorer → Ikke operationel** |
-| **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** | **Planlagt vedligeholdelse → Igangværende hændelser** |
+| **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** | **Planlagt vedligeholdelse → Igangværende vedligeholdelseshændelser** |
 | **SLO'er i fare** | Aktive SLO'er, der er i fare eller har brugt deres fejlbudget op | **Budgetterne er sunde** | **SLOs** |
 
 Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet bruges op** for vedligeholdelse og SLO'er. Så længe en SLO er i fare, åbner **SLO'er i fare** listen **SLOs** filtreret til netop dem. Et projekt uden monitorer ser **Ingen monitorer endnu**, og et uden SLO'er ser **Ingen SLO'er endnu**: et tomt projekt er ikke det samme som et sundt. De to åbner så listerne **Monitorer** og **SLOs**, hvor du opretter en.
@@ -74,7 +74,7 @@ Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Cl
 
 En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slutter med, hvad den har sat op, og hvad du kan gøre bagefter. Søg efter dens navn for at åbne den igen senere.
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagt** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
 ```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB
@@ -109,7 +109,7 @@ Når noget i projektets opsætning ville forhindre, at folk får besked, slutter
 
 ## Find rundt
 
-Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grupper som rækkerne i én liste og åbner altid med den første af dem, det grundlæggende, foldet ud: Overvågninger, Hændelser, Advarsler, Vagtordning, Statussider, Planlagt vedligeholdelse og SLOs. Hver anden gruppe (Observabilitet, Sikkerhed, AI, Kode, Ressourcer, Infrastruktur, Cloud, Dashboards og automatisering og Indstillinger) er foldet sammen til en række i den samme liste. Hver række nævner gruppens produkter og siger, hvor mange der er. Klik på en række for at folde den ud eller sammen, eller gå til den med piletasterne og tryk på **Enter**.
+Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grupper som rækkerne i én liste og åbner altid med den første af dem, det grundlæggende, foldet ud: Overvågninger, Hændelser, Advarsler, Vagt, Statussider, Planlagt vedligeholdelse og SLOs. Hver anden gruppe (Observabilitet, Sikkerhed, AI, Kode, Ressourcer, Infrastruktur, Cloud, Dashboards og automatisering og Indstillinger) er foldet sammen til en række i den samme liste. Hver række nævner gruppens produkter og siger, hvor mange der er. Klik på en række for at folde den ud eller sammen, eller gå til den med piletasterne og tryk på **Enter**.
 
 - **Søgning finder alt.** Skriv i menuens søgefelt for at finde ethvert produkt på navn, på hvad det gør, eller på et velkendt ord som `k8s` eller `RUM`. Søgningen kigger også i de sammenfoldede grupper.
 - **Du starter, hvor du er.** Gruppen for den side, du er på, folder sig selv ud, og de produkter, du har åbnet for nylig, står øverst.
@@ -129,7 +129,7 @@ To bjælker løber hen over toppen af hver side.
 | Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Keyboard shortcuts** og support via e-mail og på Slack. På en tablet eller i et smalt vindue er **Spørg AI** udeladt for at spare plads: den findes blandt handlingerne i **Søg**. På en telefon flytter **Søg** og **Hjælp** ind i menuknappens liste, øverst og nederst; klokken og dit billede bliver.
+**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Tastaturgenveje** og support via e-mail og på Slack. På en tablet eller i et smalt vindue er **Spørg AI** udeladt for at spare plads: den findes blandt handlingerne i **Søg**. På en telefon flytter **Søg** og **Hjælp** ind i menuknappens liste, øverst og nederst; klokken og dit billede bliver.
 
 Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor, fortæller, hvad det betyder, når du peger på det, tabber til det eller trykker på det. Dets **Læs mere** åbner ordet i [Ordliste](/docs/introduction/glossary).
 
@@ -149,7 +149,7 @@ Over hver sides titel viser et spor som *Projekt › Docker › Indstillinger �
 Tryk på **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klik på søgeikonet i topbjælken, og begynd at skrive. Søgningen finder:
 
 - **Hver side i menuerne**, under det navn, menuen giver den: API-nøgler, Farezone, Vagtplaner, Hændelsesalvor, dine egne Notifikationsmetoder. Hvert resultat siger, hvor det ligger, for eksempel *Projektindstillinger › Avanceret*, så sider med samme navn (Brugerdefinerede felter under Hændelser, Advarsler og Monitorer) er lette at skelne.
-- **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO til login* finder SSO, og *Notifikationskanaler* finder Notifikationsindstillinger. Skriv navnet på engelsk eller på dit eget sprog.
+- **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO til login* finder SSO, og *Brugerdefinerede SMTP-konfigurationer* finder Notifikationskanaler. Skriv navnet på engelsk eller på dit eget sprog.
 - **Handlinger**, efter hvad du vil gøre: Erklær hændelse, Opret monitor eller Delete Project, som åbner Farezone. En handling, der ændrer noget, tilbydes kun til dem, der må udføre den.
 - **Dine monitorer, hændelser, advarsler, statussider og vagtpolitikker**, efter navn, og hændelser og advarsler også efter nummer, for eksempel `INC-42`. Hvert resultat for en hændelse eller advarsel starter med dens nummer, så to med samme titel kan kendes fra hinanden.
 - **Dokumentationen**, i en gruppe *Dokumentation* under alt det andet: de sider og afsnit, hvis ord passer til det, du skriver, på dit sprog, også med en tastefejl. Hver åbner i en ny fane, så du beholder din plads.
@@ -165,7 +165,7 @@ Med et tomt søgefelt viser søgningen de sider, du har åbnet for nylig, handli
 
 ## Tastaturgenveje
 
-Tryk på `?` hvor som helst i dashboardet for at se alle genveje, eller åbn **Hjælp** og vælg **Keyboard shortcuts**. På en Mac er `Mod` Command-tasten; på Windows og Linux er det Ctrl.
+Tryk på `?` hvor som helst i dashboardet for at se alle genveje, eller åbn **Hjælp** og vælg **Tastaturgenveje**. På en Mac er `Mod` Command-tasten; på Windows og Linux er det Ctrl.
 
 | Taster | Hvad de gør |
 | --- | --- |
@@ -185,7 +185,7 @@ Tryk på `g` og derefter et bogstav for at gå direkte til et produkt. Tryk bogs
 | `g` derefter `m` | Overvågninger |
 | `g` derefter `i` | Hændelser |
 | `g` derefter `a` | Advarsler |
-| `g` derefter `o` | Vagtordning |
+| `g` derefter `o` | Vagt |
 | `g` derefter `s` | Statussider |
 | `g` derefter `e` | Planlagt vedligeholdelse |
 | `g` derefter `d` | Dashboards |

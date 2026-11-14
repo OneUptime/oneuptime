@@ -20,7 +20,7 @@ Die Konfiguration der Wartung liegt in **Geplante Wartung**, nicht in den **Proj
 | **Beschriftungsregeln** | Fügt passenden Ereignissen Beschriftungen hinzu.               |
 | **Erinnerungsregeln** | Erinnert Eigentümer in einem Intervall, bis ein Ereignis abgeschlossen ist. |
 
-Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
+Der Abschnitt **Einstellungen** enthält **Wartungsstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Wartungsvorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
 
 Der Abschnitt **Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Ereignisse in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack#benachrichtigungsregeln) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams#benachrichtigungsregeln).
 
@@ -69,7 +69,7 @@ Eine Regel passt nur, wenn jede ausgefüllte Bedingung zutrifft; eine leer gelas
 :::steps
 ### Wählen, an welche Ereignisse erinnert wird
 
-Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Lassen Sie unter **Übereinstimmung** die Auswahl **Alle geplanten Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur geplante Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
+Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Lassen Sie unter **Übereinstimmung** die Auswahl **Alle Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
 
 ### Das Intervall festlegen
 
@@ -92,7 +92,7 @@ Diese Erinnerungen sind für Ihr Team. Die Erinnerungen, die die Abonnenten Ihre
 
 ### Notizvorlagen
 
-**Geplante Wartung → Einstellungen → Notiz-Vorlagen** enthält vorgefertigte Texte für Wartungs-Updates. Die Karte **Vorlagen für öffentliche oder private Notizen für geplante Wartungsereignisse** listet sie auf; **Notizvorlage für geplante Wartungen erstellen** fragt nach einem **Vorlagenname**, einer **Vorlagenbeschreibung** und der **Notiz**. Eine Vorlage wird angeboten, wenn jemand eine öffentliche oder private Notiz zu einem Ereignis schreibt und wenn jemand seinen Status ändert, und ihr Text lässt sich vor dem Posten bearbeiten. Anders als Notizvorlagen für Vorfälle füllen Notizvorlagen für Wartungen keine Variablen aus.
+**Geplante Wartung → Einstellungen → Notiz-Vorlagen** enthält vorgefertigte Texte für Wartungs-Updates. Die Karte **Öffentliche oder private Notizvorlagen für Wartungsereignisse** listet sie auf; **Notizvorlage für geplante Wartungen erstellen** fragt nach einem **Vorlagenname**, einer **Vorlagenbeschreibung** und der **Notiz**. Eine Vorlage wird angeboten, wenn jemand eine öffentliche oder private Notiz zu einem Ereignis schreibt und wenn jemand seinen Status ändert, und ihr Text lässt sich vor dem Posten bearbeiten. Anders als Notizvorlagen für Vorfälle füllen Notizvorlagen für Wartungen keine Variablen aus.
 
 ### Genehmigung öffentlicher Notizen
 
@@ -117,7 +117,7 @@ Die Karte **Nächste Nummer** darunter legt die Nummer fest, die das nächste Er
 
 ## Workflows
 
-Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** und **On Delete Scheduled Maintenance Event**, dasselbe für **Scheduled Maintenance State Timeline** und die anderen, und Aktionen wie **Create One Scheduled Maintenance Event** und **Update One Scheduled Maintenance Event**. Definitionen benutzerdefinierter Felder und Messwerte sind die Ausnahmen: Sie haben keine Workflow-Schritte. Siehe [Workflows – Übersicht](/docs/workflows/index).
+Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** und **On Delete Maintenance Event**, dasselbe für **Scheduled Maintenance State Timeline** und die anderen, und Aktionen wie **Create One Maintenance Event** und **Update One Maintenance Event**. Definitionen benutzerdefinierter Felder und Messwerte sind die Ausnahmen: Sie haben keine Workflow-Schritte. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
 ## Wer sie ändern darf
 
@@ -142,8 +142,8 @@ Prüfen Sie, ob eine Erinnerungsregel auf die Beschriftungen des Ereignisses pas
 ## Nächste Schritte
 
 :::cards
-- [Wartungsstatus](/docs/scheduled-maintenance/states): Die Seite Ereignisstatus und was jeder Status bewirkt.
-- [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates): Die Seite Ereignis-Vorlagen im Detail.
+- [Wartungsstatus](/docs/scheduled-maintenance/states): Die Seite Wartungsstatus und was jeder Status bewirkt.
+- [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates): Die Seite Wartungsvorlagen im Detail.
 - [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules): Das Regelformular, Schritt für Schritt.
 - [Benachrichtigungseinstellungen](/docs/notifications/notification-settings): Wie jeder Eigentümer wählt, was ihn erreicht.
 :::

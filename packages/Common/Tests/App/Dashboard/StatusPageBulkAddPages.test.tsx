@@ -173,6 +173,7 @@ import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import { BULK_ACTION_CONCURRENCY } from "../../../UI/Components/BulkUpdate/BulkActionRunner";
 import { BULK_NOT_STARTED_COUNT } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -860,6 +861,32 @@ describe("what each page writes for an entry", () => {
     expect(subscriber.subscriberEmail!.toString()).toBe("ada@example.com");
     expect(subscriber.isSubscriptionConfirmed).toBe(false);
     expect(subscriber.sendYouHaveSubscribedMessage).toBe(false);
+  });
+
+  /*
+   * ISSUE #7180: one number a line, read left to right on every page - the
+   * box and its example with it - as a phone number field reads. Drawn the
+   * page's way, a Persian or Arabic page put each "+" after its digits.
+   */
+  test("SMS Subscribers: the box of numbers reads left to right, its example with it", async () => {
+    await renderPage(PAGES[1]!);
+    await pressAddInBulk();
+
+    const fields: Array<Record<string, unknown>> = (
+      lastBulkForm()["formProps"] as Record<string, unknown>
+    )["fields"] as Array<Record<string, unknown>>;
+    const phones: Record<string, unknown> | undefined = fields.find(
+      (field: Record<string, unknown>): boolean => {
+        return Boolean((field["field"] as Record<string, unknown>)["phones"]);
+      },
+    );
+
+    expect(phones).toBeDefined();
+    expect(phones!["fieldType"]).toBe(FormFieldSchemaType.LongText);
+    expect(phones!["readsLeftToRight"]).toBe(true);
+    expect(phones!["placeholder"]).toBe(
+      "+11234567890\n+11234567891\n+11234567892",
+    );
   });
 
   test("SMS Subscribers: the number, and whether it is told it is subscribed", async () => {

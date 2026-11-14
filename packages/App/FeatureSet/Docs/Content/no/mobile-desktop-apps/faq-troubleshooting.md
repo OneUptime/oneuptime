@@ -126,7 +126,7 @@ Tilgangsnøkler krever at adressen til ditt OneUptime begynner med `https://`, o
 - Sjekk at telefonen tillater varsler fra OneUptime On-Call, og at Ikke forstyrr eller et Fokus ikke holder dem tilbake.
 - Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at telefonen står i listen, og send den et **Testvarsel**.
 - Er den merket **Mottar ikke varsler**, åpner du appen mens du er logget inn: se [Når en telefon må registreres på nytt](#når-en-telefon-må-registreres-på-nytt).
-- Sjekk vaktreglene dine under **Brukerinnstillinger → Vaktregler**: de bestemmer hvilke varsler som når hvilken metode.
+- Sjekk vaktreglene dine under **Brukerinnstillinger → Slik når man meg**: de bestemmer hvilke varsler som når hvilken metode.
 - På et selvdriftet OneUptime sjekker du at serveren når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).
 :::
 
@@ -135,7 +135,7 @@ Sett appens batteribruk til **Ubegrenset** i Android-innstillingene for OneUptim
 :::
 
 :::details Kritiske varsler ringer ikke gjennom lydløs
-Åpne **Settings** i appen: linjen under **Critical On-Call Alerts** sier hva som mangler på den telefonen. Sjekk deretter under **Brukerinnstillinger → Vaktregler** at vaktregelen som sendte varselet, er satt til **Kritisk varsel**, ikke **Normal**. Hver telefon har sin egen bryter.
+Åpne **Settings** i appen: linjen under **Critical On-Call Alerts** sier hva som mangler på den telefonen. Sjekk deretter under **Brukerinnstillinger → Slik når man meg** at vaktregelen som sendte varselet, er satt til **Kritisk varsel**, ikke **Normal**. Hver telefon har sin egen bryter.
 :::
 
 ### Skrivebordsapp

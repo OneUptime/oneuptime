@@ -88,7 +88,7 @@ A notification rule says which events post to Microsoft Teams, and where. Each p
 | **Alerts** | **Alerts**, **Alert Episodes**, **Summary** |
 | **Scheduled Maintenance** | One list of rules |
 | **Monitors** | One list of rules |
-| **On-Call Duty** | One list of rules |
+| **On-Call** | One list of rules |
 | **SLOs** | One list of rules |
 
 Creating a rule walks four steps:
@@ -138,7 +138,7 @@ The summary form has four steps: **Basic Info** (its name, the channels and thei
 
 ## Notification rules below the Growth plan
 
-On OneUptime Cloud, notification rules and summaries are on the **Growth** plan and above. A project below it keeps the rules and summaries it already has, and they keep posting to Microsoft Teams. So each product's **Microsoft Teams** page (Incidents, Alerts, Scheduled Maintenance, On-Call Duty, Monitors) shows the plan note with them under it (**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.
+On OneUptime Cloud, notification rules and summaries are on the **Growth** plan and above. A project below it keeps the rules and summaries it already has, and they keep posting to Microsoft Teams. So each product's **Microsoft Teams** page (Incidents, Alerts, Scheduled Maintenance, On-Call, Monitors) shows the plan note with them under it (**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.
 
 ## Getting paged in Microsoft Teams
 
@@ -150,7 +150,7 @@ To be paged by direct message when you are on call, add Microsoft Teams as one o
 3. Click **Send Test Message** on its row. The message arrives in your Microsoft Teams chats.
 :::
 
-Adding it adds it to your on-call rules straight away, so pages reach you in Microsoft Teams from then on. Change which pages it gets under **User Settings** > **On-Call Rules**.
+Adding it adds it to How to Reach Me straight away, so pages reach you in Microsoft Teams from then on. Change which pages it gets under **User Settings** > **How to Reach Me**.
 
 ## Saving messages as notes
 
@@ -208,18 +208,18 @@ Typing `incident` or `maintenance` to the OneUptime bot opens a form for the per
 - **In an alert's own channel.** Typed in the channel OneUptime created for an alert, while the alert is open, `incident` opens a card that says the incident is declared from that alert, and starts with the alert's title and the resources it is linked to that the person who asked for it may view. The incident is linked to the alert, as one declared from the alert's page is, and a private alert's incident is private too. When the person who submits the card may not link alerts to incidents, the incident is declared without the link, and the bot tells them why.
 - **What a form may name.** In a channel or a group chat anyone there may submit the form, and it is submitted as whoever does, with their own permissions. The incident or event is created with those permissions and credited to that person. A monitor, on-call policy, label, severity or status they may not read, or one of another project, is refused like one the project does not have, and nothing is created: the bot answers "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-**Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Duty Policy** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies the person may read. Viewing a monitor or an on-call policy from a card reads it as the person who pressed the button, too.
+**Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Policies** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies the person may read. Viewing a monitor or an on-call policy from a card reads it as the person who pressed the button, too.
 
 ## Paging someone from Microsoft Teams
 
-In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` pages Nawaz straight away. He gets a phone call, an SMS, a push notification or an email, as his own on-call rules say, and each one tells him who paged him, through which team or schedule, and your message. Where you send the command decides what the page is about:
+In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` pages Nawaz straight away. He gets a phone call, an SMS, a push notification or an email, as his How to Reach Me says, and each one tells him who paged him, through which team or schedule, and your message. Where you send the command decides what the page is about:
 
 - **In an incident's or an alert's own channel**, the one OneUptime created for it, the page is about that incident or alert, and nothing new is created. A message is optional there: `@OneUptime page @Nawaz Dhandala` is enough. The people you page are paged until one of them answers, from the page or by acknowledging the incident or alert; somebody else acknowledging it does not stop the page, and resolving it does.
 - **Anywhere else**, such as another channel, a group chat, a personal chat with the bot or the channel of an incident or alert that is resolved, OneUptime creates an alert whose title is your message, and pages until somebody acknowledges the alert. The card says so, and the page shown in the conversation names the alert.
 - **Who is paged at once.** The people you @mention, and whoever is on call in the schedules a tag you @mention follows (see [On-call tags](#on-call-tags)), when a message follows them, or with no message in an incident's or an alert's own channel. OneUptime knows a person by the OneUptime account their Microsoft Teams account is connected to, or else by their email address in Microsoft Teams. Nobody outside the project is paged.
 - **Anything else gets a card.** With nobody @mentioned, as in a personal chat with the bot, no message where the page needs one, a tag that follows no on-call schedule you can see, or a person OneUptime cannot tell, the bot answers with the **Page someone** card, what you typed filled in, and says whom it could not pick. In an incident's or an alert's own channel, the card opens with that incident or alert. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. Anyone in the conversation may submit the card, as themselves. Once it has paged, the card is removed, so nobody pages with it twice.
 - **Where it shows.** The conversation shows the page as one card, kept up to date: who was paged and how, each team by its name with its people after it, your message, and who acknowledged. Where the bot cannot post it, its reply says who was paged, with a link to the incident or alert.
-- **Who may page.** In an incident's or an alert's own channel, anyone who may execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Duty Policy** in a custom role) and read that incident or alert. Anywhere else the page creates an alert, so it also takes permission to create one: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Execute On-Call Duty Policy** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged. On OneUptime Cloud, paging needs the Growth plan: below it, OneUptime says which plan it needs, and nobody is paged.
+- **Who may page.** In an incident's or an alert's own channel, anyone who may execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Policies** in a custom role) and read that incident or alert. Anywhere else the page creates an alert, so it also takes permission to create one: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Execute On-Call Policies** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged. On OneUptime Cloud, paging needs the Growth plan: below it, OneUptime says which plan it needs, and nobody is paged.
 
 To keep people informed while others respond, page them as observers. In an incident's or an alert's own channel, type `as observers` after who to page, as in `@OneUptime page @Oversight as observers Team Y is on it`, or pick **Observers: keep them informed** under **Page them as** on the card. Their page says they are observers, and acknowledging it only says they have seen it: the incident or alert is not acknowledged, nobody else's page stops, and where the page shows, it says they are paged as observers. A page about something new needs somebody to respond, so anywhere else `as observers` is refused, and nobody is paged.
 
@@ -230,7 +230,7 @@ Keep a Microsoft Teams tag, such as `@Payments on-call`, equal to whoever is on 
 :::steps
 ### Connect a tag to a schedule
 
-Open the schedule under **On-Call Duty** > **On-Call Schedules**. In its **Microsoft Teams tags** card, click **Connect tag**, pick the team, and name the tag: the team's tag of that name, or a new one OneUptime makes. The people in it are replaced with whoever is on call straight away.
+Open the schedule under **On-Call** > **On-Call Schedules**. In its **Microsoft Teams tags** card, click **Connect tag**, pick the team, and name the tag: the team's tag of that name, or a new one OneUptime makes. The people in it are replaced with whoever is on call straight away.
 
 ### Connect it to the secondary schedule too
 
@@ -241,7 +241,7 @@ For a tag that holds the primary and the secondary on call, connect the same tag
 - **Nobody on call.** OneUptime takes everybody out of the tag until somebody is on call. A new tag needs somebody from the team on call, as Microsoft Teams makes no tag with nobody in it.
 - **Paging it.** `@OneUptime page @Payments on-call The checkout API is down` pages whoever is on call in the schedules the tag follows. See [Paging someone from Microsoft Teams](#paging-someone-from-microsoft-teams).
 - **What Microsoft 365 needs.** Changing tags takes the app's `TeamworkTag.ReadWrite.All` permission, which a Microsoft 365 administrator grants with **Grant Admin Consent** under **Project Settings** > **Workspace** > **Microsoft Teams**. If your organization consented before OneUptime could keep tags, consent once more.
-- **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
+- **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
 - **Disconnecting.** OneUptime stops changing the tag. The tag, and the people in it, stay in Microsoft Teams as they are.
 
 ## Managing an incident from Microsoft Teams
@@ -289,7 +289,7 @@ When your project's public notes need approval and you turn on Microsoft Teams f
 - **Uninstall OneUptime from Microsoft Teams**, on **Project Settings** > **Workspace** > **Microsoft Teams**, disconnects the project. OneUptime stops posting to Microsoft Teams, and the **Workspace** menus stop listing it. The notification rules and summaries are kept for when you connect again.
 
 > [!WARNING]
-> Uninstalling also unlinks every member's own Microsoft Teams account in the project, and removes the Microsoft Teams notification methods and the on-call rules that used them. A project is connected to one Microsoft 365 organization: to move it to another, uninstall first.
+> Uninstalling also unlinks every member's own Microsoft Teams account in the project, and removes the Microsoft Teams notification methods and the steps of How to Reach Me that used them. A project is connected to one Microsoft 365 organization: to move it to another, uninstall first.
 
 ## Troubleshooting
 

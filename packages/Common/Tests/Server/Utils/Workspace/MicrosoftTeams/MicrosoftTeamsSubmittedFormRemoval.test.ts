@@ -308,9 +308,10 @@ const MAINTENANCE_ACTION_FAILED: string =
 const INCIDENT_CREATE_FAILED: string = `❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime: ${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/create`;
 const INCIDENT_CREATE_FAILED_WITHOUT_LINK: string =
   "❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime.";
-const MAINTENANCE_CREATE_FAILED: string = `❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime: ${DASHBOARD_URL}/${PROJECT_ID.toString()}/scheduled-maintenance-events/create`;
+// A maintenance event, as the model has named it since #6817.
+const MAINTENANCE_CREATE_FAILED: string = `❌ Could not create the maintenance event because of an unexpected error. Please try again, or create it in OneUptime: ${DASHBOARD_URL}/${PROJECT_ID.toString()}/scheduled-maintenance-events/create`;
 const MAINTENANCE_CREATE_FAILED_WITHOUT_LINK: string =
-  "❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime.";
+  "❌ Could not create the maintenance event because of an unexpected error. Please try again, or create it in OneUptime.";
 
 /*
  * Why a create was refused when a value it picked is not in the project.
@@ -1465,9 +1466,9 @@ const CREATE_SUBMIT_DETAILS: Record<string, CreateSubmitDetails> = {
     {
       failureReplyWithoutLink: MAINTENANCE_CREATE_FAILED_WITHOUT_LINK,
       failureLogSummary:
-        "Could not create a scheduled maintenance event from Microsoft Teams",
-      unavailableReferenceReply: `❌ Could not create the scheduled maintenance event: ${UNAVAILABLE_REFERENCE}`,
-      subject: "scheduled maintenance event",
+        "Could not create a maintenance event from Microsoft Teams",
+      unavailableReferenceReply: `❌ Could not create the maintenance event: ${UNAVAILABLE_REFERENCE}`,
+      subject: "maintenance event",
       monitorsField: "scheduledMaintenanceMonitors",
     },
 };

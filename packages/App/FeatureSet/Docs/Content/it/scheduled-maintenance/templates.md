@@ -15,7 +15,7 @@ Un modello è un punto di partenza. Un evento creato da esso è una copia con va
 
 ```mermaid title="Due modi in cui un modello diventa un evento"
 flowchart TB
-    template["Un modello<br/>in Modelli di eventi"] --> byhand["Crea da modello<br/>compila il modulo"]
+    template["Un modello<br/>in Modelli di manutenzione"] --> byhand["Crea da modello<br/>compila il modulo"]
     template --> schedule["Ricorrente attivo<br/>controllato ogni minuto"]
     byhand --> event["Un nuovo evento<br/>in Programmato"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Aprire i modelli
 
-Andate in **Manutenzione programmata → Impostazioni → Modelli di eventi**. **Impostazioni** parte chiusa nel menu laterale: apritela prima. Fate clic su **Crea: Modello di manutenzione programmata**.
+Andate in **Manutenzione programmata → Impostazioni → Modelli di manutenzione**. **Impostazioni** parte chiusa nel menu laterale: apritela prima. Fate clic su **Crea: Modello di manutenzione programmata**.
 
 ### Dare un nome al modello
 
@@ -39,7 +39,7 @@ In **Informazioni del modello**, dategli un **Nome del modello** e una **Descriz
 
 ### Descrivere l'evento
 
-In **Evento**, compilate il **Titolo** e la **Descrizione** con cui parte ogni evento creato da esso. **Proprietari** ed **Etichette** attendono in **Altri campi**.
+In **Dettagli della manutenzione**, compilate il **Titolo** e la **Descrizione** con cui parte ogni evento creato da esso. **Proprietari** ed **Etichette** attendono in **Altri campi**.
 
 ### Scegliere cosa interessa
 
@@ -68,7 +68,7 @@ Un modello chiede **Cambia lo stato del monitor in** anche quando non nomina alc
 :::steps
 ### Scegliere il modello
 
-In **Manutenzione programmata → Tutti gli eventi**, fate clic su **Crea da modello** e scegliete un modello in **Seleziona modello di manutenzione programmata**.
+In **Manutenzione programmata → Tutti gli eventi di manutenzione**, fate clic su **Crea da modello** e scegliete un modello in **Seleziona modello di manutenzione programmata**.
 
 ### Controllare il modulo
 
@@ -76,10 +76,10 @@ Fate clic su **Crea da modello**. Il modulo di creazione si apre con le risposte
 
 ### Creare l'evento
 
-Percorrete i passi con **Avanti**, poi fate clic su **Crea evento di manutenzione programmata** nel riepilogo.
+Percorrete i passi con **Avanti**, poi fate clic su **Crea evento di manutenzione** nel riepilogo.
 :::
 
-Quando il progetto non ha ancora nessun modello, **Crea da modello** lo dice e rimanda a **Modelli di eventi**.
+Quando il progetto non ha ancora nessun modello, **Crea da modello** lo dice e rimanda a **Modelli di manutenzione**.
 
 ## Eventi ricorrenti
 
@@ -108,7 +108,7 @@ Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossim
 
 Aprite un modello dall'elenco per vedere la sua pagina:
 
-- **Dettagli del modello di manutenzione programmata** mostra con cosa partono i nuovi eventi. Il suo **Modifica** percorre **Informazioni del modello**, **Evento**, **Pagine di stato** e **Ricorrente**.
+- **Dettagli del modello di manutenzione programmata** mostra con cosa partono i nuovi eventi. Il suo **Modifica** percorre **Informazioni del modello**, **Dettagli della manutenzione**, **Pagine di stato** e **Ricorrente**.
 - **Risorse interessate** contiene i suoi **Monitor**, il loro **Cambia lo stato del monitor in** e le sue **Altre risorse interessate**, con un proprio **Modifica**.
 - **Proprietari** elenca le persone e i team a cui appartiene ogni evento pianificato da esso.
 

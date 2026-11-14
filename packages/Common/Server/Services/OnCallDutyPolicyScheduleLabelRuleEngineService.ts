@@ -78,13 +78,10 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
 
       await this.applyRules({ schedule: schedule, rules: rules });
     } catch (error) {
-      logger.error(
-        `Error applying on-call duty schedule label rules: ${error}`,
-        {
-          projectId: schedule.projectId?.toString(),
-          onCallDutyPolicyScheduleId: schedule.id?.toString(),
-        } as LogAttributes,
-      );
+      logger.error(`Error applying on-call schedule label rules: ${error}`, {
+        projectId: schedule.projectId?.toString(),
+        onCallDutyPolicyScheduleId: schedule.id?.toString(),
+      } as LogAttributes);
     }
   }
 
@@ -106,13 +103,10 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
         props: data.props,
       });
     } catch (error) {
-      logger.error(
-        `Error running on-call duty schedule label rules: ${error}`,
-        {
-          projectId: data.resource.projectId?.toString(),
-          onCallDutyPolicyScheduleId: data.resource.id?.toString(),
-        } as LogAttributes,
-      );
+      logger.error(`Error running on-call schedule label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        onCallDutyPolicyScheduleId: data.resource.id?.toString(),
+      } as LogAttributes);
 
       return RuleApplicationResultUtil.failed();
     }
@@ -312,7 +306,7 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
       return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
-        `Invalid regex in on-call duty schedule label rule ${rule.id}: ${pattern}`,
+        `Invalid regex in on-call schedule label rule ${rule.id}: ${pattern}`,
       );
       return false;
     }

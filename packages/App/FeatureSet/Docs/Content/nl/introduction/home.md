@@ -49,7 +49,7 @@ Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erac
 | **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** | **Incidenten → Actieve incidenten** |
 | **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** | **Waarschuwingen → Actieve waarschuwingen** |
 | **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** | **Monitoren → Niet operationeel** |
-| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende gebeurtenissen** |
+| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende onderhoudsgebeurtenissen** |
 | **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** | **SLOs** |
 
 Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Zolang er een SLO in gevaar is, opent **SLO's in gevaar** de lijst **SLOs**, gefilterd op die SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
@@ -74,7 +74,7 @@ De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abon
 
 Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en eindigt met wat ze heeft ingesteld en wat je daarna doet. Zoek later op de naam om er een opnieuw te openen.
 
-Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
+Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheid** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
 
 ```mermaid title="Wanneer de welkomstchecklist verschijnt"
 flowchart TB
@@ -109,7 +109,7 @@ Als iets in de inrichting van het project zou verhinderen dat mensen een melding
 
 ## Uw weg vinden
 
-Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheidsdienst, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
+Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
 
 - **Zoeken vindt alles.** Typ in het zoekvak van het menu om elk product te vinden op naam, op wat het doet, of op een bekend woord zoals `k8s` of `RUM`. Zoeken kijkt ook in de ingeklapte groepen.
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
@@ -129,7 +129,7 @@ Twee balken lopen bovenaan over elke pagina.
 | Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Keyboard shortcuts** en ondersteuning per e-mail en op Slack. Op een tablet of in een smal venster verdwijnt **AI vragen** om ruimte te besparen: u vindt het tussen de acties in **Zoeken**. Op een telefoon staan **Zoeken** en **Hulp** in de lijst van de menuknop, helemaal bovenaan en helemaal onderaan; de bel en uw foto blijven.
+**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Sneltoetsen** en ondersteuning per e-mail en op Slack. Op een tablet of in een smal venster verdwijnt **AI vragen** om ruimte te besparen: u vindt het tussen de acties in **Zoeken**. Op een telefoon staan **Zoeken** en **Hulp** in de lijst van de menuknop, helemaal bovenaan en helemaal onderaan; de bel en uw foto blijven.
 
 Een woord met een stippellijn eronder, zoals **Sondes** in het formulier van een nieuwe monitor, zegt wat het betekent als u ernaar wijst, er met Tab naartoe gaat of erop tikt. Met **Lees meer** opent u het woord in de [Woordenlijst](/docs/introduction/glossary).
 
@@ -149,7 +149,7 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpictogram in de bovenste balk, en begin te typen. Zoeken vindt:
 
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Gevarenzone, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
-- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
+- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
 - **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
@@ -165,7 +165,7 @@ Met een leeg zoekvak toont Zoeken de pagina's die u onlangs hebt geopend, de act
 
 ## Sneltoetsen
 
-Druk overal in het dashboard op `?` om alle sneltoetsen te zien, of open **Hulp** en kies **Keyboard shortcuts**. Op een Mac is `Mod` de Command-toets; op Windows en Linux is het Ctrl.
+Druk overal in het dashboard op `?` om alle sneltoetsen te zien, of open **Hulp** en kies **Sneltoetsen**. Op een Mac is `Mod` de Command-toets; op Windows en Linux is het Ctrl.
 
 | Toetsen | Wat ze doen |
 | --- | --- |
@@ -185,7 +185,7 @@ Druk op `g` en dan op een letter om direct naar een product te gaan. Druk de let
 | `g` dan `m` | Monitoren |
 | `g` dan `i` | Incidenten |
 | `g` dan `a` | Waarschuwingen |
-| `g` dan `o` | Bereikbaarheidsdienst |
+| `g` dan `o` | Bereikbaarheid |
 | `g` dan `s` | Statuspagina's |
 | `g` dan `e` | Geplande onderhoud |
 | `g` dan `d` | Dashboards |

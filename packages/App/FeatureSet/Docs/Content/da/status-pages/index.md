@@ -125,7 +125,7 @@ Den offentlige side er en applikation for sig, med et lille sæt ruter:
 - `/rss`: feedet.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` og `/master-password`: kun relevante på en privat side.
 
-Navigationsbjælken øverst viser altid **Oversigt**; resten vises kun, når det er slået til. **Hændelser**, **Meddelelser** og **Planlagte hændelser** kræver hver deres kontakt; **Abonner** kræver både **Vis abonnentside** og mindst én slået-til abonnementskanal. En privat side har også et punkt **Log ud**.
+Navigationsbjælken øverst viser altid **Oversigt**; resten vises kun, når det er slået til. **Hændelser**, **Meddelelser** og **Planlagt vedligeholdelse** kræver hver deres kontakt; **Abonner** kræver både **Vis abonnentside** og mindst én slået-til abonnementskanal. En privat side har også et punkt **Log ud**.
 
 En enkelt hændelse, episode, meddelelse eller planlagt begivenhed åbner kun, hvis siden ville vise den, uanset dens historikvindue: en privat hændelse eller episode, en, der er skjult på statussider, en planlagt begivenhed, der er skjult på statussider, eller en meddelelse, der er planlagt til senere, findes heller ikke via sit link.
 
@@ -138,7 +138,7 @@ Oversigten er den side, de fleste besøgende ser. Fra top til bund viser den:
 3. **En samlet oppetidsprocent**, hvis du har slået den til: i slutningen af banneret med den samlede status, så længe alle ressourcer er i drift. Slået fra som standard.
 4. **Ressourcegrupperne**, hver med sine ressourcer, deres aktuelle status og deres bjælker med oppetidshistorik.
 5. **Aktive hændelser**, med aktive episoder.
-6. **Planlagte vedligeholdelseshændelser**.
+6. **Planlagt vedligeholdelse**.
 
 En nyoprettet side uden indhold viser en tom tilstand, der beder dig tilføje ressourcer fra dashboardet — signalet til at gå til skærmen **Ressourcer**.
 
@@ -154,7 +154,7 @@ Hvad besøgende ser, angives på ét kort: **Hvad din statusside viser** under *
 - **Vis kun hændelser, der er begrænset til denne side** (`onlyShowScopedIncidents`): også i hændelsesrækken, slået fra som standard. Slå den til, og siden viser, og underretter sine abonnenter om, kun de hændelser, der er begrænset til den med **Begræns til disse statussider**. Hændelser, der ikke er begrænset til nogen side, også dem, som en monitor, Slack, Microsoft Teams, API'et eller AI åbner af sig selv, når aldrig siden, før nogen tilføjer siden til dem. Den bestemmer også, hvilke hændelser der bringer deres episoder på siden, og derfor er den fortsat tilgængelig, når **Vis hændelser** er slået fra. For sider, der deler monitorer, men betjener forskellige målgrupper, se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Vis episoder** (`showEpisodesOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showEpisodeHistoryInDays`, standard 14) og **Vis episodeetiketter** (`showEpisodeLabelsOnStatusPage`, slået fra som standard). Episoder er en model for sig med egne endpoints, ikke en visning af hændelser.
 - **Vis meddelelser** (`showAnnouncementsOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14).
-- **Vis planlagte vedligeholdelsesbegivenheder** (`showScheduledMaintenanceEventsOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showScheduledEventHistoryInDays`, standard 14) og **Vis begivenhedsetiketter** (`showScheduledEventLabelsOnStatusPage`, slået fra som standard).
+- **Vis vedligeholdelseshændelser** (`showScheduledMaintenanceEventsOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showScheduledEventHistoryInDays`, standard 14) og **Vis etiketter for vedligeholdelseshændelser** (`showScheduledEventLabelsOnStatusPage`, slået fra som standard).
 - **Oppetidshistorik**: alt om sidens oppetid, i én række:
   - **Vis de seneste … dage** (`showUptimeHistoryInDays`) er længden af oppetidsbjælken ved hver ressource. Den er 90 som standard og skal være mellem 1 og 90. Alle en ressources eller gruppes indstillinger **Vis oppetid %** og **Vis statushistorikdiagram** læser dette tal, og det samme gør den samlede oppetidsprocent.
   - **Vis samlet oppetidsprocent** (`showOverallUptimePercentOnStatusPage`): slået fra som standard. Slå den til, og banneret med den samlede status slutter med en oppetidsprocent for hele siden, gennemsnittet af dens ressourcer og grupper, så længe alt er i drift. Mens den er slået til, vælger **Præcision** (`overallUptimePercentPrecision`), hvor mange decimaler den viser: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. Hver ressource og hver gruppe har sin egen præcision.
@@ -168,7 +168,7 @@ Hvad besøgende ser, angives på ét kort: **Hvad din statusside viser** under *
 
 Om siden viser et punkt **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, slået til som standard), og hvilke kanaler besøgende kan abonnere på, angives ikke på denne skærm: begge dele står på kortet **Kanaler** under **Abonnenter → Abonnementsindstillinger** (se [Abonnementskanaler](/docs/status-pages/subscribers#abonnementskanaler)).
 
-Under kortet står **Eksportér Statusside som JSON**, der downloader statussidens egne indstillinger til en fil, du kan importere igen, og **Archive status page** (se [Arkivér en statusside](#at-arkivere-en-statusside)). Den samlede oppetidsprocent og nedetidsstatusserne var tidligere to selvstændige kort her, hver bag en knap **Rediger**; nu er de rækker på kortet.
+Under kortet står **Eksportér Statusside som JSON**, der downloader statussidens egne indstillinger til en fil, du kan importere igen, og **Arkivér statusside** (se [Arkivér en statusside](#at-arkivere-en-statusside)). Den samlede oppetidsprocent og nedetidsstatusserne var tidligere to selvstændige kort her, hver bag en knap **Rediger**; nu er de rækker på kortet.
 
 **Hvor farverne er.** Oppetidsbjælkernes farver er ikke her: **Standardbjælkefarve** og farvereglerne for bjælkerne ligger under **Yderligere indstillinger** i **Statussider → din side → Branding → Branding**. Sidens **Tema** (lyst, mørkt eller som hver besøgendes enhed er indstillet) er et kort øverst på samme side. Der findes ingen indstilling for brandfarve; alt ud over disse kontroller klarer du med **Brugerdefineret CSS**.
 
@@ -228,7 +228,7 @@ Tre måder at vise status andre steder end på selve siden.
 
 **RSS-feed.** Hver statusside leverer `/rss`: et feed med titlen "{sidetitel} Updates", med den **Sidetitel**, der er angivet under **Branding**, eller sidens navn, hvis den ikke har nogen, og hvis elementer begynder med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Hvert element er dateret, som siden daterer det: en hændelse efter, hvornår den blev erklæret, en meddelelse efter, hvornår den kom op, og en planlagt vedligeholdelsesbegivenhed efter, hvornår den begynder, og dens beskrivelse starter med dens tidsvindue. Nyttigt for dem, der hellere vil trække dine opdateringer ind i en feedlæser eller en chatbot end abonnere via e-mail.
 
-**Vedligeholdelseskalender.** Hver statusside leverer også `/maintenance.ics`: den planlagte vedligeholdelse, den viser, som en kalender, Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøgende tilføjer den med **Abonner på kalender** på sidens side **Planlagte hændelser**, og en enkelt begivenhed med **Føj til kalender** på begivenhedens egen side. En privat sides kalender er tom, da en kalenderapp ikke kan logge ind. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#en-statussides-kalender).
+**Vedligeholdelseskalender.** Hver statusside leverer også `/maintenance.ics`: den planlagte vedligeholdelse, den viser, som en kalender, Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøgende tilføjer den med **Abonner på kalender** på sidens side **Planlagt vedligeholdelse**, og en enkelt begivenhed med **Føj til kalender** på begivenhedens egen side. En privat sides kalender er tom, da en kalenderapp ikke kan logge ind. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#en-statussides-kalender).
 
 Hvis du hellere vil hente dataene selv, bygger statussiden på offentlige læse-endpoints for oversigten, hændelserne, de planlagte vedligeholdelsesbegivenheder, meddelelserne og episoderne: se [Offentlig API](/docs/status-pages/public-api).
 
@@ -241,7 +241,7 @@ Arkivér en statusside for at tage den offline uden at slette den. En arkiveret 
 - **Forsvinder fra listen over statussider.** Du finder den under **Statussider → Avanceret → Arkiveret**.
 - **Beholder alt.** Dens ressourcer, grupper, branding, domæner, private brugere og abonnenter bevares, så når du fjerner den fra arkivet, kommer siden online igen præcis, som den var.
 
-For at arkivere en statusside åbner du den og går til **Avanceret → Avancerede indstillinger → Archive status page**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkiv**, eller du åbner den og klikker på **Fjern fra arkiv** i banneret øverst på dens sider.
+For at arkivere en statusside åbner du den og går til **Avanceret → Avancerede indstillinger → Arkivér statusside**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkiv**, eller du åbner den og klikker på **Fjern fra arkiv** i banneret øverst på dens sider.
 
 ## Næste trin
 

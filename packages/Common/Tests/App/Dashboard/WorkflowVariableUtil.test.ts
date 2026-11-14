@@ -76,6 +76,32 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * Who reads the page decides what an error nobody explained tells them to
+ * do next (#7307): API.getFriendlyMessage gives ErrorInSentence the page's
+ * reader (ErrorReader), which is on OneUptime Cloud when BILLING_ENABLED is
+ * on. The suite says which, rather than taking the environment's: CI's
+ * config.env turns billing on. A server somebody runs unless a test says
+ * Cloud.
+ */
+const mockConfig: { billingEnabled: boolean } = { billingEnabled: false };
+
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return mockConfig.billingEnabled;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import {
   CLIENT_AUTHENTICATION_DROPDOWN_OPTIONS,
   GRANT_TYPE_OPTIONS,
@@ -847,6 +873,11 @@ describe("fetchTokenRefreshOutcome", () => {
       variable: () => WorkflowVariable;
       // What API.getFriendlyMessage makes of the failure.
       reason: string;
+      /*
+       * How the sentence says it, when that is not the reason as written:
+       * an error nobody explained is said in words of its own (#7307).
+       */
+      said?: string;
     };
 
     const FAILURES: Array<FailureCase> = [
@@ -899,10 +930,35 @@ describe("fetchTokenRefreshOutcome", () => {
         },
         /*
          * "Internal server error." says nothing, so it reads as a failure
-         * the server did not explain, with what to do next (#6836).
+         * the server did not explain, with what to do next (#6836) - said
+         * in the sentence as why and what next (#7307).
          */
         reason:
           "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
+        said: "The server ran into a problem it could not explain. Try again in a moment.",
+      },
+      {
+        label: "a server error with its reference (500)",
+        arrange: (): void => {
+          failWith(500, { message: "", reference: "a1b2c3d4" });
+        },
+        variable: (): WorkflowVariable => {
+          return makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" });
+        },
+        reason:
+          "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: a1b2c3d4.",
+        said: "The server ran into a problem it could not explain. Try again. If it keeps failing, give this reference to whoever runs your OneUptime server: a1b2c3d4.",
+      },
+      {
+        label: "a gateway's 502",
+        arrange: (): void => {
+          failWith(502, {});
+        },
+        variable: (): WorkflowVariable => {
+          return makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" });
+        },
+        reason: "Error connecting to server. Please try again in few minutes.",
+        said: "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
       },
       {
         label: "a network error",
@@ -962,13 +1018,36 @@ describe("fetchTokenRefreshOutcome", () => {
           "Could Not Fetch an Access Token",
         );
         expect(description).toBe(
-          `${prefix}OneUptime could not fetch an access token for "API_TOKEN": ${entry.reason}`,
+          `${prefix}OneUptime could not fetch an access token for "API_TOKEN": ${entry.said || entry.reason}`,
         );
         expect(description).not.toContain("said no");
         expect(description).not.toContain("asked your identity provider");
         expect(description).not.toContain("did not ask");
       },
     );
+
+    /*
+     * The cases above are read on a server somebody runs. On OneUptime
+     * Cloud nobody reading the page runs the server, so the reference goes
+     * to OneUptime support instead.
+     */
+    test("on OneUptime Cloud, a server error with its reference sends the reader to OneUptime support", async () => {
+      mockConfig.billingEnabled = true;
+
+      try {
+        failWith(500, { message: "", reference: "a1b2c3d4" });
+
+        const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+          variable: makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" }),
+        });
+
+        expect(getTokenRefreshDescription(outcome)).toBe(
+          'OneUptime could not fetch an access token for "API_TOKEN": The server ran into a problem it could not explain. Try again. If it keeps failing, contact OneUptime support and give them this reference: a1b2c3d4.',
+        );
+      } finally {
+        mockConfig.billingEnabled = false;
+      }
+    });
   });
 
   test("reads the error from the response's `data` field too", async () => {

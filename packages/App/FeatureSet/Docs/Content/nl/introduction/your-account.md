@@ -138,7 +138,7 @@ U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het
 | --- | --- | --- |
 | **Instellingschecklist** | Leidt u door alles hieronder, en toont wat er nog te doen is. | |
 | **Meldingsmethoden** | De e-mailadressen, telefoonnummers, apps en webhooks waarop OneUptime u kan bereiken. Uw inlog-e-mail wordt voor u toegevoegd. | |
-| **Bereikbaarheidsregels** | Welke methode wordt gebruikt, en na hoe lang, wanneer een bereikbaarheidsbeleid u oproept. | [Escalatieregels](/docs/on-call/escalation-rules) |
+| **Hoe ik bereikbaar ben** | Welke methode wordt gebruikt, en na hoe lang, wanneer een bereikbaarheidsbeleid u oproept. | [Escalatieregels](/docs/on-call/escalation-rules) |
 | **Meldingsinstellingen** | Welke updates over incidenten, waarschuwingen, monitoren en meer u krijgt, en via welk kanaal. | |
 | **E-mailvoorkeuren** | Hoeveel e-mails u krijgt: één voor één, of gebundeld. | [Meldingsoverzicht](/docs/emails/notification-rollup) |
 | **Bereikbaarheidslogboeken** | Elke oproep die naar u is gestuurd, en wat ermee gebeurde. | |

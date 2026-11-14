@@ -856,7 +856,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Last Poll Summary",
             type: FieldType.Text,
-            noValueMessage: "-",
             /*
              * Under the feed's status, where the list does not fit its card
              * (TableFit): in German at 1280px, beside the side menu, it ran
@@ -878,7 +877,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Interval (Minutes)",
             type: FieldType.Number,
-            noValueMessage: "-",
             isHiddenByDefault: true,
           },
           {
@@ -887,7 +885,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Last Error",
             type: FieldType.LongText,
-            noValueMessage: "-",
             wrapContent: true,
             isHiddenByDefault: true,
           },
@@ -906,7 +903,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Last Match Error",
             type: FieldType.LongText,
-            noValueMessage: "-",
             wrapContent: true,
             isHiddenByDefault: true,
           },
@@ -1017,7 +1013,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             field: { confidence: true },
             title: "Confidence",
             type: FieldType.Number,
-            noValueMessage: "-",
             /*
              * STIX's 0 is "not specified", and an unscored indicator matches
              * as Medium: "Not scored", as the threat levels name it, not a
@@ -1037,7 +1032,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             field: { validFrom: true },
             title: "Valid From",
             type: FieldType.DateTime,
-            noValueMessage: "-",
             isHiddenByDefault: true,
           },
           /*
@@ -1049,7 +1043,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             field: { validUntil: true },
             title: "Valid Until",
             type: FieldType.DateTime,
-            noValueMessage: "-",
             getElement: (item: ThreatIntelIndicator): ReactElement => {
               return <IndicatorValidUntilCell validUntil={item.validUntil} />;
             },
