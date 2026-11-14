@@ -44,6 +44,8 @@ import {
 } from "../Archive/ResourceArchiveCopy";
 import { getArchivedColumns } from "../Archive/ArchivedColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -859,6 +861,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                   color={item.currentMonitorStatus.color || Black}
                   shouldAnimate={true}
                   text={item.currentMonitorStatus.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.MonitorStatus,
+                    item.currentMonitorStatus.name,
+                  )}
                 />
               );
             },

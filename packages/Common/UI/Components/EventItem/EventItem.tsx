@@ -10,6 +10,7 @@ import { VeryLightGray } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
+import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { sortByNaturalName } from "../../../Utils/NaturalOrder";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
@@ -170,6 +171,8 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 <div key={i} className={EVENT_ITEM_LABEL_CLASS_NAME}>
                   <Pill
                     text={label.name}
+                    // A label's name is its owner's, drawn as written.
+                    isUserContent={true}
                     color={label.color}
                     isWrapping={true}
                   />
@@ -263,6 +266,20 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                     (item.state?.getColumnValue(
                                       "name",
                                     ) as string)
+                                  }
+                                  /*
+                                   * The page's own words for the state, or
+                                   * its name: OneUptime's default looked
+                                   * up, the project's own as written.
+                                   */
+                                  isUserContent={
+                                    Boolean(item.stateDisplayName) ||
+                                    isRecordNameAsWritten(
+                                      item.state?.tableName,
+                                      item.state?.getColumnValue(
+                                        "name",
+                                      ) as string,
+                                    )
                                   }
                                   color={
                                     item.state?.getColumnValue("color") as Color

@@ -12,6 +12,8 @@ import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../Icon/Icon";
 import Pill from "../Pill/Pill";
 import Color from "../../../Types/Color";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
+import { StateListType } from "../../../Utils/StateOrder";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
@@ -232,6 +234,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
               if (incident.incidentSeverity) {
                 pills.push({
                   name: incident.incidentSeverity.name,
+                  list: StateListType.IncidentSeverity,
                   color: incident.incidentSeverity.color,
                 });
               }
@@ -239,6 +242,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
               if (incident.currentIncidentState) {
                 pills.push({
                   name: incident.currentIncidentState.name,
+                  list: StateListType.IncidentState,
                   color: incident.currentIncidentState.color,
                 });
               }
@@ -314,6 +318,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                       ? [
                           {
                             name: event.currentState.name,
+                            list: StateListType.ScheduledMaintenanceState,
                             color: event.currentState.color,
                             dataTestId: "uptime-day-maintenance-state",
                           },
@@ -397,6 +402,11 @@ export const DAY_EVENT_CARD_FOCUS_CLASS_NAME: string =
 // A severity or a state, drawn as the product's Pill.
 interface DayEventPill {
   name: string;
+  /*
+   * The list it is one of, for how its name reads: OneUptime's default
+   * names looked up, the project's own as written (Utils/DefaultRecordNames).
+   */
+  list: StateListType;
   color: Color;
   dataTestId?: string | undefined;
 }
@@ -511,6 +521,7 @@ const DayEventCard: FunctionComponent<{
               >
                 <Pill
                   text={pill.name}
+                  isUserContent={isRecordNameAsWritten(pill.list, pill.name)}
                   color={pill.color}
                   style={{ fontSize: "12px" }}
                 />

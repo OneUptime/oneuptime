@@ -89,6 +89,12 @@ const UserProjects: FunctionComponent = (): ReactElement => {
             <Pill
               key={team._id?.toString() || index.toString()}
               text={team.name?.toString() || "-"}
+              /*
+               * Looked up, as before: whether the teams every project starts
+               * with (Owners, Admin, Members) read in the reader's language
+               * is still to be decided (#7786).
+               */
+              isUserContent={false}
               color={Green}
             />
           );

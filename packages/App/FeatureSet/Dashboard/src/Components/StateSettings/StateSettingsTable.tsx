@@ -11,7 +11,8 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
-import { StateListDefinition } from "Common/Utils/StateOrder";
+import { StateListDefinition, StateListType } from "Common/Utils/StateOrder";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -46,6 +47,11 @@ const selectField: <T extends BaseModel>(
 
 export interface StateSettingsNameCellProps {
   name: string;
+  /*
+   * The list the row is in, for how its name reads: OneUptime's default
+   * names looked up, the project's own as written (DefaultRecordNames).
+   */
+  stateList: StateListType;
   color: Color;
   // What OneUptime does with this row, when it is a built-in one.
   builtInTooltip?: string | undefined;
@@ -80,7 +86,12 @@ export const StateSettingsNameCell: FunctionComponent<
       className="flex flex-wrap items-center gap-2 md:flex-nowrap"
       data-testid="state-settings-name"
     >
-      <Pill isMinimal={true} color={props.color} text={props.name} />
+      <Pill
+        isMinimal={true}
+        color={props.color}
+        text={props.name}
+        isUserContent={isRecordNameAsWritten(props.stateList, props.name)}
+      />
       {builtInTooltip ? (
         /*
          * Focusable, so the tooltip opens from the keyboard too. What it
@@ -177,6 +188,7 @@ export const getStateSettingsColumns: <T extends BaseModel>(data: {
         return (
           <StateSettingsNameCell
             name={(record["name"] as string) || ""}
+            stateList={data.definition.type}
             color={(record["color"] as Color) || Gray500}
             builtInTooltip={getStateSettingsBuiltInTooltip({
               definition: data.definition,

@@ -20,6 +20,8 @@ import useEventStateActions from "../EventView/useEventStateActions";
 import { EventStateKind } from "../EventView/EventStateKinds";
 import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -854,6 +856,10 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                       text={
                         item.currentScheduledMaintenanceState.name || "Unknown"
                       }
+                      isUserContent={isRecordNameAsWritten(
+                        StateListType.ScheduledMaintenanceState,
+                        item.currentScheduledMaintenanceState.name,
+                      )}
                     />
                   );
                 }

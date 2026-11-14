@@ -80,6 +80,8 @@ export default class StatusPageUtil {
       categories.push({
         id: group._id!,
         title: group.name!,
+        // A group's name is the page's own, drawn as written.
+        isUserContent: true,
       });
     });
 
@@ -97,6 +99,8 @@ export default class StatusPageUtil {
       options.push({
         value: resource._id!,
         label: resource.displayName!,
+        // A resource's name on the page is the page's own, drawn as written.
+        isUserContent: true,
         categoryId: resource.statusPageGroup?._id || "",
       });
     });

@@ -6,6 +6,7 @@ import {
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Color from "../../Types/Color";
 import Text from "../../Types/Text";
+import { isRecordNameAsWritten } from "../../Utils/DefaultRecordNames";
 
 type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
 
@@ -80,6 +81,14 @@ export default class DropdownUtil {
    * draws before the name, so "Resolved" reads as green at a glance wherever
    * it is picked. Select the colour column along with the label and value -
    * a row fetched without it simply has no dot.
+   *
+   * Its label is the row's name, drawn as written in every language
+   * (DropdownOption.isUserContent): a label named "Network" is "Network" on
+   * a Spanish page, never "Red", and a state the project named "Open" never
+   * the verb "Abrir". OneUptime's default names of the row's own table - a
+   * state's, a severity's, a status's - are its words, looked up as their
+   * badges are (Utils/DefaultRecordNames): the default "Operational" reads
+   * "Operativo".
    */
   public static getDropdownOptionsFromEntityArray<
     TBaseModel extends BaseModel,
@@ -89,9 +98,12 @@ export default class DropdownUtil {
     valueField: string;
   }): Array<DropdownOption> {
     return data.array.map((item: TBaseModel) => {
+      const label: string =
+        (item.getColumnValue(data.labelField) as string | null) ?? "";
       const option: DropdownOption = {
-        label: (item.getColumnValue(data.labelField) as string | null) ?? "",
+        label: label,
         value: item.getColumnValue(data.valueField) as string,
+        isUserContent: isRecordNameAsWritten(item.tableName, label),
       };
 
       const colorColumnName: string | null =

@@ -611,6 +611,17 @@ then `npm run i18n:validate` from the root.
   [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
   and
   [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
+- **A name reads as written, in a badge and in a picker.** A label, a monitor or a state is named by
+  its project, and a name is never looked up: in Spanish a label named "Network" read "Red", and a
+  state a project named "Open" read "Abrir", the verb. Only the names a new project starts with, such
+  as "Resolved", "Operational" or "Critical Incident", are OneUptime's words, read in the reader's
+  language. A badge or an option that draws a record's name takes `isRecordNameAsWritten` or
+  `translateRecordName` from `Common/Utils/DefaultRecordNames`, which know those names list by list.
+  Enforced by
+  [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
+  [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx)
+  and
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

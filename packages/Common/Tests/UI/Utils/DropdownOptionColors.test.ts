@@ -191,7 +191,10 @@ describe("DropdownUtil.getDropdownOptionsFromEntityArray with real models", () =
         valueField: "_id",
       });
 
-    expect(options).toEqual([{ label: "Identified", value: "id-1" }]);
+    // A new project's state: OneUptime's word, looked up (#7782).
+    expect(options).toEqual([
+      { label: "Identified", value: "id-1", isUserContent: false },
+    ]);
     expect(Object.keys(options[0]!)).not.toContain("color");
   });
 
@@ -203,7 +206,10 @@ describe("DropdownUtil.getDropdownOptionsFromEntityArray with real models", () =
         valueField: "_id",
       });
 
-    expect(options).toEqual([{ label: "API", value: "monitor-1" }]);
+    // A monitor's name is its owner's, drawn as written (#7782).
+    expect(options).toEqual([
+      { label: "API", value: "monitor-1", isUserContent: true },
+    ]);
   });
 
   test("a row without a name gets an empty label rather than null", () => {

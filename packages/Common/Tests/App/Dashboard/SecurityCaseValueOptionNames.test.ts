@@ -117,4 +117,27 @@ describe("a project's case statuses, offered in Spanish", () => {
       "Network",
     ]);
   });
+
+  /*
+   * A name is OneUptime's only in the list it starts in (#7780): "High" is
+   * a new project's priority, never one of its statuses.
+   */
+  test("a status the project named High, a priority's name, is its own: High, never Alta", () => {
+    const statuses: Array<SecurityCaseStatus> = [
+      ...buildDefaultTestStatuses(),
+      buildTestStatus({
+        id: "76900000-0000-4000-8000-0000000000b2",
+        name: "High",
+        order: 5,
+        stage: SecurityCaseStage.Acknowledged,
+      }),
+    ];
+
+    expect(
+      getSecurityCaseStatusOptions(statuses, { forFilter: true }).map(drawn),
+    ).toEqual([
+      ...inSpanish(["New", "Investigating", "Contained", "Closed"]),
+      "High",
+    ]);
+  });
 });

@@ -6,6 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Loader from "Common/UI/Components/Loader/Loader";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -121,6 +123,10 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
     <Statusbubble
       color={currentGroupStatus.color! as Color}
       text={currentGroupStatus.name! as string}
+      isUserContent={isRecordNameAsWritten(
+        StateListType.MonitorStatus,
+        currentGroupStatus.name,
+      )}
       shouldAnimate={true}
     />
   );

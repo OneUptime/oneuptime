@@ -16,6 +16,8 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
 import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -174,6 +176,10 @@ const MonitorGroupView: FunctionComponent<
     return (
       <Statusbubble
         text={currentGroupStatus?.name || "Operational"}
+        isUserContent={isRecordNameAsWritten(
+          StateListType.MonitorStatus,
+          currentGroupStatus?.name,
+        )}
         color={currentGroupStatus?.color || Green}
         shouldAnimate={true}
       />

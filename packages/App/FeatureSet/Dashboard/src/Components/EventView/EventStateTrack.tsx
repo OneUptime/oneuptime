@@ -1,8 +1,9 @@
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface EventStateTrackState {
@@ -14,6 +15,8 @@ export interface EventStateTrackState {
 export interface ComponentProps {
   // The states the record walks down, in their order.
   states: Array<EventStateTrackState>;
+  // The list they are of, for how their names read.
+  stateList: StateListType;
   currentStateId?: string | undefined;
 }
 
@@ -77,7 +80,6 @@ export function getEventStateTrackColumns(
 const EventStateTrack: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
   const translator: Translator = useTranslator();
 
   const currentIndex: number = props.states.findIndex(
@@ -107,8 +109,16 @@ const EventStateTrack: FunctionComponent<ComponentProps> = (
             index,
             currentIndex,
           );
-          // A project's own state reads as named; a default one in the reader's words.
-          const name: string = translateString(state.name) || state.name;
+          /*
+           * A project's own state reads as named; a default one in the
+           * reader's words (Common/Utils/DefaultRecordNames). Every name was
+           * looked up: a state named "Open" read "Abrir" on a Spanish page.
+           */
+          const name: string = translateRecordName(
+            translator,
+            props.stateList,
+            state.name,
+          );
 
           return (
             <li

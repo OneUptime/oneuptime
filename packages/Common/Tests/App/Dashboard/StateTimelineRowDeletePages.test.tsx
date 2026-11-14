@@ -680,13 +680,14 @@ describe("in the reader's language", () => {
     const reason: string = ONLY_STATE_DELETE_MESSAGES[pageCase.record];
     mockTranslations = {
       Acknowledged: "Bestätigt",
-      Created: "Erstellt",
+      Identified: "Identifiziert",
       [reason]: "Der einzige Status eines Vorfalls kann nicht gelöscht werden.",
       [PREVIOUS_STATE_TAKES_OVER]:
         "{{state}}, der Status davor, übernimmt seine Zeit.",
     };
 
-    timeline = [stateRow(pageCase, ROW_ONE, "Created", AT_ONE, null)];
+    // The states a new project's incidents go through (ProjectService).
+    timeline = [stateRow(pageCase, ROW_ONE, "Identified", AT_ONE, null)];
 
     await renderPage(pageCase);
     await tableLoaded();
@@ -695,7 +696,11 @@ describe("in the reader's language", () => {
       "Der einzige Status eines Vorfalls kann nicht gelöscht werden.",
     );
 
-    timeline = threeStates(pageCase);
+    timeline = [
+      stateRow(pageCase, ROW_ONE, "Identified", AT_ONE, AT_TWO),
+      stateRow(pageCase, ROW_TWO, "Acknowledged", AT_TWO, AT_THREE),
+      stateRow(pageCase, ROW_THREE, "Resolved", AT_THREE, null),
+    ];
 
     expect(recordedTableProps!.getItemName!(timeline[1]!)).toBe(
       `Bestätigt (${shown(AT_TWO)})`,
@@ -704,10 +709,49 @@ describe("in the reader's language", () => {
     const confirmation: DrawnConfirmation = await confirmationFor(timeline[1]!);
 
     expect(confirmation.effect?.text).toBe(
-      "Erstellt, der Status davor, übernimmt seine Zeit.",
+      "Identifiziert, der Status davor, übernimmt seine Zeit.",
     );
     expect(confirmation.bold).toContain("Bestätigt");
     expect(confirmation.text).not.toContain("Acknowledged");
+  });
+
+  /*
+   * A state the project named itself is its own, as its pill shows it
+   * (#7780): German has words for "Open" and "Created", and neither is a
+   * name OneUptime gives an incident's states.
+   */
+  test("a state the project named itself is named as written, as its pill shows it", async () => {
+    mockTranslations = {
+      Created: "Erstellt",
+      Open: "Öffnen",
+      Resolved: "Behoben",
+      [PREVIOUS_STATE_TAKES_OVER]:
+        "{{state}}, der Status davor, übernimmt seine Zeit.",
+    };
+
+    timeline = [
+      stateRow(pageCase, ROW_ONE, "Created", AT_ONE, AT_TWO),
+      stateRow(pageCase, ROW_TWO, "Open", AT_TWO, AT_THREE),
+      stateRow(pageCase, ROW_THREE, "Resolved", AT_THREE, null),
+    ];
+
+    await renderPage(pageCase);
+    await tableLoaded();
+
+    expect(recordedTableProps!.getItemName!(timeline[1]!)).toBe(
+      `Open (${shown(AT_TWO)})`,
+    );
+    expect(recordedTableProps!.getItemName!(timeline[2]!)).toBe(
+      `Behoben (${shown(AT_THREE)})`,
+    );
+
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[1]!);
+
+    expect(confirmation.effect?.text).toBe(
+      "Created, der Status davor, übernimmt seine Zeit.",
+    );
+    expect(confirmation.bold).toContain("Open");
+    expect(confirmation.text).not.toContain("Öffnen");
   });
 });
 
