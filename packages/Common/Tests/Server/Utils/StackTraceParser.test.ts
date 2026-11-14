@@ -355,6 +355,161 @@ describe("StackTraceParser.parse - Ruby", () => {
   });
 });
 
+/*
+ * Ruby's own output of an exception (Exception#full_message, which the
+ * OpenTelemetry Ruby SDK records as exception.stacktrace) writes the message
+ * on the line of the frame that raised it, and "from " before every frame
+ * after that one. That line does not end in a quote, so the frame was lost,
+ * and every other frame's file began with "from " - the file in-app
+ * detection, source links and grouping read
+ * (github.com/OneUptime/oneuptime/issues/7702).
+ */
+describe("StackTraceParser.parse - Ruby's own output of an exception", () => {
+  type FrameRow = [string, string, number, boolean];
+
+  const rowsOf: (trace: string) => Array<FrameRow> = (
+    trace: string,
+  ): Array<FrameRow> => {
+    return StackTraceParser.parse(trace).frames.map(
+      (frame: StackFrame): FrameRow => {
+        return [
+          frame.functionName,
+          frame.fileName,
+          frame.lineNumber,
+          frame.inApp,
+        ];
+      },
+    );
+  };
+
+  test("reads the raising frame from the message line, and every frame's file without 'from '", () => {
+    const trace: string = [
+      "app/models/order.rb:42:in `pay': card declined (PaymentError)",
+      "\tfrom app/controllers/orders_controller.rb:10:in `create'",
+      "\tfrom config/routes.rb:5:in `block in <main>'",
+    ].join("\n");
+
+    expect(StackTraceParser.parse(trace).frames).toEqual([
+      {
+        functionName: "pay",
+        fileName: "app/models/order.rb",
+        lineNumber: 42,
+        inApp: true,
+      },
+      {
+        functionName: "create",
+        fileName: "app/controllers/orders_controller.rb",
+        lineNumber: 10,
+        inApp: true,
+      },
+      {
+        functionName: "block in <main>",
+        fileName: "config/routes.rb",
+        lineNumber: 5,
+        inApp: true,
+      },
+    ]);
+  });
+
+  test("reads Ruby 3.4's quotes and class-qualified methods the same way, a gem's frame marked as not in-app", () => {
+    const trace: string = [
+      "/app/app/models/order.rb:42:in 'Order#pay': card declined (PaymentError)",
+      "\tfrom /usr/local/bundle/gems/activesupport-7.1.3/lib/active_support/callbacks.rb:121:in 'block in ActiveSupport::Callbacks#run_callbacks'",
+      "\tfrom /app/app/controllers/orders_controller.rb:10:in 'OrdersController#create'",
+    ].join("\n");
+
+    expect(rowsOf(trace)).toEqual([
+      ["Order#pay", "/app/app/models/order.rb", 42, true],
+      [
+        "block in ActiveSupport::Callbacks#run_callbacks",
+        "/usr/local/bundle/gems/activesupport-7.1.3/lib/active_support/callbacks.rb",
+        121,
+        false,
+      ],
+      [
+        "OrdersController#create",
+        "/app/app/controllers/orders_controller.rb",
+        10,
+        true,
+      ],
+    ]);
+  });
+
+  test('ends the method at the first "\': ", whatever quotes the message holds', () => {
+    // A message with a "': " of its own.
+    expect(
+      rowsOf(
+        "app/models/order.rb:42:in 'Order#pay': couldn't find 'User': record gone (ActiveRecord::RecordNotFound)",
+      ),
+    ).toEqual([["Order#pay", "app/models/order.rb", 42, true]]);
+
+    // An anonymous class adds no "(Class)", so the line can end in the message's own quote.
+    expect(
+      rowsOf("app/jobs/sync.rb:7:in `perform': can't open 'config.yml'"),
+    ).toEqual([["perform", "app/jobs/sync.rb", 7, true]]);
+  });
+
+  test("reads the raising frame whatever follows it: the class alone, no message, a message of several lines", () => {
+    // An empty message is written as the class's name, or for RuntimeError as "unhandled exception".
+    expect(rowsOf("app/a.rb:3:in 'run': PaymentError")).toEqual([
+      ["run", "app/a.rb", 3, true],
+    ]);
+    expect(rowsOf("app/a.rb:3:in `run': unhandled exception")).toEqual([
+      ["run", "app/a.rb", 3, true],
+    ]);
+
+    // The message's first line goes on the frame's line, the rest on lines of their own.
+    expect(
+      rowsOf(
+        [
+          "app/a.rb:3:in 'run': config is invalid (ArgumentError)",
+          "missing key: database.host",
+          "\tfrom app/b.rb:1:in '<main>'",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      ["run", "app/a.rb", 3, true],
+      ["<main>", "app/b.rb", 1, true],
+    ]);
+  });
+
+  test("reads the frames of a cause, written after the exception in the same layout", () => {
+    const trace: string = [
+      "app/models/order.rb:42:in 'Order#pay': card declined (PaymentError)",
+      "\tfrom app/controllers/orders_controller.rb:10:in 'OrdersController#create'",
+      "app/gateways/card.rb:7:in 'Card#charge': execution expired (Net::ReadTimeout)",
+      "\tfrom app/models/order.rb:40:in 'Order#pay'",
+    ].join("\n");
+
+    expect(rowsOf(trace)).toEqual([
+      ["Order#pay", "app/models/order.rb", 42, true],
+      [
+        "OrdersController#create",
+        "app/controllers/orders_controller.rb",
+        10,
+        true,
+      ],
+      ["Card#charge", "app/gateways/card.rb", 7, true],
+      ["Order#pay", "app/models/order.rb", 40, true],
+    ]);
+  });
+
+  test("takes 'from ' off only where it is written before a frame", () => {
+    expect(
+      rowsOf(
+        [
+          "fromage.rb:1:in 'eat'",
+          "from /srv/my app/lib/task.rb:2:in 'call'",
+          "from here on, retries are off",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      ["eat", "fromage.rb", 1, true],
+      ["call", "/srv/my app/lib/task.rb", 2, true],
+    ]);
+  });
+});
+
 describe("StackTraceParser.parse - C#/.NET", () => {
   test("parses `at Namespace.Class.Method(params) in file:line N`", () => {
     const trace: string = [
@@ -806,6 +961,17 @@ describe("StackTraceParser.parse - browser parser election", () => {
         trace: [
           "/app/models/user.rb:12:in `save'",
           "/app/controllers/users_controller.rb:8:in `create'",
+          "x@https://a.example.com/a.js:1:1",
+          "y@https://a.example.com/a.js:2:1",
+        ].join("\n"),
+        expectedFile: "/app/models/user.rb",
+      },
+      {
+        // Ruby's own output: the raising frame on the message line counts too.
+        name: "ruby's own output",
+        trace: [
+          "/app/models/user.rb:12:in `save': Validation failed (ActiveRecord::RecordInvalid)",
+          "\tfrom /app/controllers/users_controller.rb:8:in `create'",
           "x@https://a.example.com/a.js:1:1",
           "y@https://a.example.com/a.js:2:1",
         ].join("\n"),
