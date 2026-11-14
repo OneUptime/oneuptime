@@ -377,6 +377,48 @@ describe("on the AI card, in German and in Arabic", () => {
     },
   );
 
+  /*
+   * The card reads the code, not only the English: a server whose
+   * sentence was reworded since (here Investigate now's words before
+   * #7359) is still said in the reader's language, by the code beside it.
+   */
+  test.each([
+    {
+      language: "de",
+      code: AiRunRefusalCode.NoProviderToInvestigate,
+      english:
+        "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+    },
+    {
+      language: "ar",
+      code: AiRunRefusalCode.AiOff,
+      english:
+        "AI is turned off for this project (Project Settings → AI → AI Features).",
+    },
+  ])(
+    "$language: Try again says the code's words whatever English came beside it",
+    async (data: {
+      language: string;
+      code: AiRunRefusalCode;
+      english: string;
+    }) => {
+      await inLanguage(data.language);
+
+      // Not a sentence the Dashboard words by its text.
+      expect(EN[data.english]).toBeUndefined();
+
+      const said: HTMLElement = await pressTryAgain({
+        message: data.english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(
+        wordsOf(data.language)[AI_RUN_REFUSALS[data.code]]!,
+      );
+      expect(said.textContent).not.toContain(data.english);
+    },
+  );
+
   test.each(["de", "ar"])(
     "%s: a code this Dashboard does not know (a newer server's) says the server's English",
     async (language: string) => {
@@ -500,6 +542,42 @@ describe("on the AI card, in German and in Arabic", () => {
       expect(said).toHaveAttribute("role", "alert");
       expect(said).toHaveTextContent(wordsOf(data.language)[english]!);
       expect(said.textContent).not.toContain(english);
+    },
+  );
+
+  test.each([
+    {
+      language: "de",
+      code: AiRunRefusalCode.ProjectDailyLimitReached,
+      english:
+        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+    },
+    {
+      language: "ar",
+      code: AiRunRefusalCode.NoProviderToInvestigate,
+      english:
+        "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+    },
+  ])(
+    "$language: Investigate now says the code's words whatever English came beside it",
+    async (data: {
+      language: string;
+      code: AiRunRefusalCode;
+      english: string;
+    }) => {
+      await inLanguage(data.language);
+
+      expect(EN[data.english]).toBeUndefined();
+
+      const said: HTMLElement = await pressInvestigateNow(data.language, {
+        message: data.english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(
+        wordsOf(data.language)[AI_RUN_REFUSALS[data.code]]!,
+      );
+      expect(said.textContent).not.toContain(data.english);
     },
   );
 
