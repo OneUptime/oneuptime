@@ -57,7 +57,8 @@ export function getKnownTableWords(
  * mit Status „Partial Outage …") and Russian's order line at 390 pixels.
  * Balanced, a count never stands alone on the last line.
  */
-export const WORDED_HEADING_LINE_CLASS_NAME: string = "break-words text-balance";
+export const WORDED_HEADING_LINE_CLASS_NAME: string =
+  "break-words text-balance";
 
 export interface DrawnWidgetHeading {
   /*
