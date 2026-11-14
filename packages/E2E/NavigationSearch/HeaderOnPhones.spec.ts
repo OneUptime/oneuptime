@@ -526,10 +526,7 @@ test.describe("the header on a phone", () => {
 
     // The project's row is the keyboard's: a ground of its own on the list.
     await expect(projectRow).toHaveAttribute("aria-selected", "true");
-    const activeGround: string = await settled(
-      projectRow,
-      "background-color",
-    );
+    const activeGround: string = await settled(projectRow, "background-color");
     expect(activeGround).not.toBe(TRANSPARENT);
     expect(activeGround).not.toBe(panelGround);
     const restingEdge: string = await settled(createRow, "border-top-color");
