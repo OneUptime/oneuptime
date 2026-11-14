@@ -895,6 +895,7 @@ describe("the readers each family is held to are the ones the product uses", () 
         "readV8FrameWithoutParens(",
         "readPythonFrame(",
         "readRubyFrame(",
+        "readRubyFrameWithMessage(",
         "readCSharpFrameWithFile(",
         "readPhpFrame(",
       ],

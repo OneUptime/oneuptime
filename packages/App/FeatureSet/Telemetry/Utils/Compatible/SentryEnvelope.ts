@@ -1595,9 +1595,9 @@ export default class SentryEnvelope {
    * line)" with Java's "... N more" for the frames a cause shares with the
    * exception it caused, .NET's "at Ns.Type.Fn() in file:line N", Go's
    * goroutine dump, Ruby's backtrace lines ("file:line:in 'fn'", under a
-   * "Type: message" line - Ruby's own output puts the message on the top
-   * frame's line and "from " before the rest, which StackTraceParser
-   * misreads) and PHP's "#N file(line): fn()".
+   * "Type: message" line, where Ruby's own output puts the message on the
+   * top frame's line and "from " before the rest; StackTraceParser reads
+   * both) and PHP's "#N file(line): fn()".
    *
    * At most MAX_FRAMES_PER_EXCEPTION frames an exception (the newest kept),
    * MAX_EXCEPTIONS_PER_CHAIN exceptions (the raised one and its nearest
