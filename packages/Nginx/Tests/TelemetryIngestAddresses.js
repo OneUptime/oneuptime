@@ -42,6 +42,16 @@ const COMPATIBLE_INGEST_DOCS =
 const LOG_SHIPPER_SNIPPETS =
   "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets.ts";
 
+/*
+ * The Setup Guide's OpenTelemetry SDK snippets, which give an exporter its
+ * signal's URL under <YOUR_ONEUPTIME_URL>, and the guide, which fills that
+ * with its OTLP endpoint (issue #7885).
+ */
+const OTEL_SDK_SNIPPETS =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/OtelSdkSnippets.ts";
+const TELEMETRY_SETUP_GUIDE =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation.tsx";
+
 const HOST_COLLECTOR_INSTALL_SH =
   "packages/App/FeatureSet/Docs/Static/scripts/host-collector/install.sh";
 const HOST_COLLECTOR_INSTALL_PS1 =
@@ -82,6 +92,16 @@ const TELEMETRY_INGEST_ADDRESSES = [
               file: "packages/Common/Types/HostCollector/HostCollector.ts",
               contains:
                 "HOST_COLLECTOR_EXPORTER_ENDPOINT: string = `${HOST_COLLECTOR_URL_REFERENCE}/otlp`",
+            },
+            // An SDK exporter given its signal's URL in code.
+            {
+              file: OTEL_SDK_SNIPPETS,
+              contains: `"<YOUR_ONEUPTIME_URL>/v1/${signal}"`,
+            },
+            // The guide's OTLP endpoint, which <YOUR_ONEUPTIME_URL> is.
+            {
+              file: TELEMETRY_SETUP_GUIDE,
+              contains: "`${httpProtocol}://${HOST}/otlp`",
             },
             // Fluent Bit's opentelemetry output, as its Logs_uri.
             ...(signal === "logs"
