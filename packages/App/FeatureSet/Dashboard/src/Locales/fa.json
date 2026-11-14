@@ -52264,5 +52264,11 @@
   "Request was tried {{count}} times and it timed out._one": "درخواست یک بار امتحان شد و مهلت آن تمام شد.",
   "Server Response": "پاسخ سرور",
   "TCP Connection": "اتصال TCP",
-  "Target Resolution": "تفکیک نام هدف"
+  "Target Resolution": "تفکیک نام هدف",
+  "Click to configure a metric column": "برای پیکربندی یک ستون متریک کلیک کنید",
+  "Click to pick a dimension to group rows by": "برای انتخاب بُعدی برای گروه‌بندی سطرها کلیک کنید",
+  "No dimension to group rows by yet.": "هنوز هیچ بُعدی برای گروه‌بندی سطرها انتخاب نشده است.",
+  "No metric column set up yet.": "هنوز هیچ ستون متریکی تنظیم نشده است.",
+  "Pick a dimension to group rows by in the settings below.": "در تنظیمات زیر یک بُعد برای گروه‌بندی سطرها انتخاب کنید.",
+  "Pick a metric for a column in the settings below.": "در تنظیمات زیر برای یک ستون، یک متریک انتخاب کنید."
 }

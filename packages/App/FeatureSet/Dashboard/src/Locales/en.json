@@ -52264,5 +52264,11 @@
   "Request was tried {{count}} times and it timed out._one": "Request was tried once and it timed out.",
   "Server Response": "Server Response",
   "TCP Connection": "TCP Connection",
-  "Target Resolution": "Target Resolution"
+  "Target Resolution": "Target Resolution",
+  "Click to configure a metric column": "Click to configure a metric column",
+  "Click to pick a dimension to group rows by": "Click to pick a dimension to group rows by",
+  "No dimension to group rows by yet.": "No dimension to group rows by yet.",
+  "No metric column set up yet.": "No metric column set up yet.",
+  "Pick a dimension to group rows by in the settings below.": "Pick a dimension to group rows by in the settings below.",
+  "Pick a metric for a column in the settings below.": "Pick a metric for a column in the settings below."
 }

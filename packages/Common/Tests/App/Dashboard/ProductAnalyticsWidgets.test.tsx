@@ -108,11 +108,31 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import { ProductAnalyticsRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/useProductAnalyticsRead";
 import {
+  DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_ERROR_LINE_TEST_ID,
   DashboardWidgetPlace,
   getDashboardWidgetSetupLine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetSetupCopy";
+import { DASHBOARD_WIDGET_ERROR_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetError";
 
 const PROJECT_ID: string = "6a305555-0000-4000-8000-000000000001";
+
+/*
+ * A refused read is every widget's error line (issue #7330): under the
+ * widget's icon, readable, never a page's error with a page's margins.
+ */
+function expectWidgetErrorLine(words: string): void {
+  const line: HTMLElement = screen.getByTestId(
+    DASHBOARD_WIDGET_ERROR_LINE_TEST_ID,
+  );
+
+  expect(line).toHaveTextContent(words);
+  expect(line.className).toBe(DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME);
+  expect(screen.getByTestId(DASHBOARD_WIDGET_ERROR_TEST_ID)).toContainElement(
+    line,
+  );
+  expect(line.closest(".my-10")).toBeNull();
+}
 const APP_ID: string = "6a305555-0000-4000-8000-000000000002";
 const FUNNEL_ID: string = "6a305555-0000-4000-8000-000000000003";
 const RETENTION_ID: string = "6a305555-0000-4000-8000-000000000004";
@@ -806,6 +826,9 @@ describe("the Funnel widget", () => {
         "You do not have permission to read Saved Product Analytics Views.",
       ),
     ).toBeInTheDocument();
+    expectWidgetErrorLine(
+      "You do not have permission to read Saved Product Analytics Views.",
+    );
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -824,6 +847,7 @@ describe("the Funnel widget", () => {
     expect(
       await screen.findByText("A funnel read covers at most 90 days."),
     ).toBeInTheDocument();
+    expectWidgetErrorLine("A funnel read covers at most 90 days.");
     expect(
       screen.getByTestId(`${FUNNEL_WIDGET_TEST_ID}-title`),
     ).toHaveTextContent("Pricing to purchase");

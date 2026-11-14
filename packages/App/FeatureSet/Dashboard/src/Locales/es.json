@@ -20868,7 +20868,7 @@
   "Put this resource on the grid": "Colocar este recurso en la cuadrícula",
   "Puts a Subscribe link on the status page, where visitors sign up by the channels below.": "Añade un enlace «Suscribirse» a la página de estado, donde los visitantes se suscriben por los canales de abajo.",
   "Query ({{language}})": "Query ({{language}})",
-  "Query {{number}}": "Query {{number}}",
+  "Query {{number}}": "Consulta {{number}}",
   "RUM application": "aplicación RUM",
   "Ranking exceptions": "Clasificando excepciones",
   "Re-run with your permissions over the same time window the AI used.": "Se volvió a ejecutar con tus permisos en el mismo intervalo de tiempo que usó la IA.",
@@ -52264,5 +52264,11 @@
   "Request was tried {{count}} times and it timed out._one": "La solicitud se intentó una vez y se agotó el tiempo de espera.",
   "Server Response": "Respuesta del servidor",
   "TCP Connection": "Conexión TCP",
-  "Target Resolution": "Resolución del destino"
+  "Target Resolution": "Resolución del destino",
+  "Click to configure a metric column": "Haz clic para configurar una columna de métrica",
+  "Click to pick a dimension to group rows by": "Haz clic para elegir una dimensión para agrupar las filas",
+  "No dimension to group rows by yet.": "Aún no hay ninguna dimensión para agrupar las filas.",
+  "No metric column set up yet.": "Aún no se ha configurado ninguna columna de métrica.",
+  "Pick a dimension to group rows by in the settings below.": "Elige una dimensión para agrupar las filas en la configuración de abajo.",
+  "Pick a metric for a column in the settings below.": "Elige una métrica para una columna en la configuración de abajo."
 }

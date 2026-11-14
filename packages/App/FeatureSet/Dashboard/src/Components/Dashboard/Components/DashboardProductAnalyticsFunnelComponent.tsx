@@ -8,7 +8,7 @@ import {
   ProductAnalyticsSavedViewType,
 } from "Common/Types/Rum/ProductAnalyticsSavedViews";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { fetchProductAnalyticsFunnel } from "../../ProductAnalytics/ProductAnalyticsEventsApi";
@@ -27,6 +27,7 @@ import {
   useProductAnalyticsWidgetPeriod,
   useProductAnalyticsWidgetSavedView,
 } from "./DashboardProductAnalyticsWidget";
+import DashboardWidgetError from "./DashboardWidgetError";
 
 /*
  * The Funnel widget (issue #6630): a funnel saved on a RUM application's
@@ -80,8 +81,11 @@ const DashboardProductAnalyticsFunnelComponentElement: FunctionComponent<
 
   let content: ReactElement;
 
+  // A read refused: every widget's error line (issue #7330), under its title.
   if (funnel.error) {
-    content = <ErrorMessage message={funnel.error} />;
+    content = (
+      <DashboardWidgetError icon={IconProp.Funnel} error={funnel.error} />
+    );
   } else if (!funnel.data) {
     content = (
       <div className="flex h-full items-center justify-center">

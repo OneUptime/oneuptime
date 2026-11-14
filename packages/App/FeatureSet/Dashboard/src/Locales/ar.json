@@ -52264,5 +52264,11 @@
   "Request was tried {{count}} times and it timed out._one": "جرت محاولة الطلب مرة واحدة وانتهت مهلته.",
   "Server Response": "استجابة الخادم",
   "TCP Connection": "اتصال TCP",
-  "Target Resolution": "تحليل عنوان الهدف"
+  "Target Resolution": "تحليل عنوان الهدف",
+  "Click to configure a metric column": "انقر لتهيئة عمود مقياس",
+  "Click to pick a dimension to group rows by": "انقر لاختيار بُعد لتجميع الصفوف",
+  "No dimension to group rows by yet.": "لم يُختر أي بُعد لتجميع الصفوف بعد.",
+  "No metric column set up yet.": "لم يُعدّ أي عمود مقياس بعد.",
+  "Pick a dimension to group rows by in the settings below.": "اختر بُعدًا لتجميع الصفوف في الإعدادات أدناه.",
+  "Pick a metric for a column in the settings below.": "اختر مقياسًا لعمود في الإعدادات أدناه."
 }

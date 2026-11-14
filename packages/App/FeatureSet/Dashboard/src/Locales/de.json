@@ -20868,7 +20868,7 @@
   "Put this resource on the grid": "Put this resource on the grid",
   "Puts a Subscribe link on the status page, where visitors sign up by the channels below.": "Zeigt auf der Statusseite einen Link „Abonnieren“, über den sich Besucher über die Kanäle unten anmelden.",
   "Query ({{language}})": "Query ({{language}})",
-  "Query {{number}}": "Query {{number}}",
+  "Query {{number}}": "Abfrage {{number}}",
   "RUM application": "RUM-Anwendung",
   "Ranking exceptions": "Ausnahmen werden sortiert",
   "Re-run with your permissions over the same time window the AI used.": "Mit Ihren Berechtigungen über dasselbe Zeitfenster erneut ausgeführt, das die KI verwendet hat.",
@@ -52264,5 +52264,11 @@
   "Request was tried {{count}} times and it timed out._one": "Die Anfrage wurde einmal versucht und hat das Zeitlimit überschritten.",
   "Server Response": "Serverantwort",
   "TCP Connection": "TCP-Verbindung",
-  "Target Resolution": "Zielauflösung"
+  "Target Resolution": "Zielauflösung",
+  "Click to configure a metric column": "Klicken, um eine Metrikspalte zu konfigurieren",
+  "Click to pick a dimension to group rows by": "Klicken, um eine Dimension zum Gruppieren der Zeilen auszuwählen",
+  "No dimension to group rows by yet.": "Noch keine Dimension zum Gruppieren der Zeilen.",
+  "No metric column set up yet.": "Noch keine Metrikspalte eingerichtet.",
+  "Pick a dimension to group rows by in the settings below.": "Wählen Sie unten in den Einstellungen eine Dimension zum Gruppieren der Zeilen aus.",
+  "Pick a metric for a column in the settings below.": "Wählen Sie unten in den Einstellungen eine Metrik für eine Spalte aus."
 }
