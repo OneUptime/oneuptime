@@ -22,6 +22,7 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
+import { AiRunRefusalCode } from "../../../../Types/AI/AiRunRefusal";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -999,14 +1000,34 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     ).toBe(true);
   });
 
+  /*
+   * What stops OneUptime AI for the project is said as Try again says it,
+   * naming who can change it, with its code beside it (#7359).
+   */
   test.each([
-    ["ai_disabled", "AI is turned off for this project"],
-    ["provider_missing", "no LLM provider"],
-    ["insufficient_ai_balance", "out of AI credits"],
-    ["project_daily_limit_reached", "daily AI limit"],
+    [
+      "ai_disabled",
+      AiRunRefusalCode.AiOff,
+      "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+    ],
+    [
+      "provider_missing",
+      AiRunRefusalCode.NoProviderToInvestigate,
+      "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    ],
+    [
+      "insufficient_ai_balance",
+      AiRunRefusalCode.AiCreditsUsedUp,
+      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+    ],
+    [
+      "project_daily_limit_reached",
+      AiRunRefusalCode.ProjectDailyLimitReached,
+      "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+    ],
   ])(
     "does not start while %s, saying so, and the wait stays",
-    async (code: string, words: string) => {
+    async (code: string, refusalCode: AiRunRefusalCode, words: string) => {
       jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(waiting());
       jest
         .spyOn(AIInvestigationEngine, "getDisabledReason")
@@ -1019,18 +1040,16 @@ describe("startNow: someone starts a waiting investigation at once", () => {
         subjectId: INCIDENT_ID,
       });
 
-      expect(result.isStarted).toBe(false);
-      expect(result.isStarted === false && result.problem).toBe(code);
-      expect(result.isStarted === false && result.message).toContain(words);
+      expect(result).toEqual({
+        isStarted: false,
+        problem: code,
+        refusalCode,
+        message: words,
+      });
       // The setting is LLM Providers, never an "AI provider" (#6738).
       expect(result.isStarted === false && result.message).not.toMatch(
         /\bAI providers?\b/i,
       );
-      if (code === "provider_missing") {
-        expect(result.isStarted === false && result.message).toBe(
-          "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
-        );
-      }
       expect(enqueue).not.toHaveBeenCalled();
       expect(mocks.incidentCas).not.toHaveBeenCalled();
     },
@@ -1061,6 +1080,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     expect(result).toEqual({
       isStarted: false,
       problem: "daily_budget_exhausted",
+      refusalCode: AiRunRefusalCode.IncidentTokenLimitUsedUp,
       message:
         "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
     });
@@ -1077,36 +1097,42 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     {
       lane: "Incident" as const,
       budget: { exhausted: true, limitInTokens: 0, usedTokensToday: 0 },
+      refusalCode: AiRunRefusalCode.IncidentTokenLimitPaused,
       message:
         "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
     },
     {
       lane: "Incident" as const,
       budget: { exhausted: true, limitInTokens: -5, usedTokensToday: 0 },
+      refusalCode: AiRunRefusalCode.IncidentTokenLimitPaused,
       message:
         "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
     },
     {
       lane: "Incident" as const,
       budget: { exhausted: true, limitInTokens: 500, usedTokensToday: 900 },
+      refusalCode: AiRunRefusalCode.IncidentTokenLimitUsedUp,
       message:
         "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
     },
     {
       lane: "Alert" as const,
       budget: { exhausted: true, limitInTokens: 0, usedTokensToday: 0 },
+      refusalCode: AiRunRefusalCode.AlertTokenLimitPaused,
       message:
         "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
     },
     {
       lane: "Alert" as const,
       budget: { exhausted: true, limitInTokens: -1, usedTokensToday: 0 },
+      refusalCode: AiRunRefusalCode.AlertTokenLimitPaused,
       message:
         "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
     },
     {
       lane: "Alert" as const,
       budget: { exhausted: true, limitInTokens: 500, usedTokensToday: 500 },
+      refusalCode: AiRunRefusalCode.AlertTokenLimitUsedUp,
       message:
         "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
     },
@@ -1119,6 +1145,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
         limitInTokens: number;
         usedTokensToday: number;
       };
+      refusalCode: AiRunRefusalCode;
       message: string;
     }) => {
       if (data.lane === "Incident") {
@@ -1166,6 +1193,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
       expect(result).toEqual({
         isStarted: false,
         problem: "daily_budget_exhausted",
+        refusalCode: data.refusalCode,
         message: data.message,
       });
       expect(data.message.includes("midnight")).toBe(
@@ -1192,6 +1220,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     ).toEqual({
       isStarted: false,
       problem: "already_investigated",
+      refusalCode: AiRunRefusalCode.AlreadyInvestigated,
       message: "OneUptime AI has already started investigating this.",
     });
   });
@@ -1218,6 +1247,9 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     });
     expect(notWaiting.isStarted === false && notWaiting.problem).toBe(
       "not_waiting",
+    );
+    expect(notWaiting.isStarted === false && notWaiting.refusalCode).toBe(
+      AiRunRefusalCode.NotWaiting,
     );
 
     mocks.runCount.mockResolvedValue(new PositiveNumber(1));
@@ -1281,6 +1313,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     ).toEqual({
       isStarted: false,
       problem: "enqueue_failed",
+      refusalCode: AiRunRefusalCode.InvestigationNotStarted,
       message: "The investigation could not be started. Try again in a moment.",
     });
   });

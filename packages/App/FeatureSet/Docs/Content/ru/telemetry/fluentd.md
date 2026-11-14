@@ -74,6 +74,13 @@ Fluentd отправляет записи пакетами в формате JSO
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` отправляет каждый блок буфера одним массивом JSON, а `flush_interval 10s` отправляет буфер каждые 10 секунд. `chunk_limit_size 900k` держит каждый запрос меньше 1 МБ: больше OneUptime на этом адресе не принимает.
@@ -123,6 +130,13 @@ Fluentd отправляет записи пакетами в формате JSO
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 Чтобы отправлять разные источники как разные службы, используйте по одной секции `<match>` на тег, каждую со своим `x-oneuptime-service-name`.

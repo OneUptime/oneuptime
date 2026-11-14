@@ -8,6 +8,7 @@ import { NetworkTrafficSummary } from "Common/Types/NetFlow/NetworkTraffic";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -156,17 +157,27 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
       </div>
       {summary.maxSamplingRate > 1 ? (
         <div
-          className="mt-2 flex items-center gap-1.5 text-xs text-gray-500"
+          className="mt-2 flex items-start gap-1.5 text-xs text-gray-500"
           data-testid="traffic-sampled-note"
         >
-          <Icon icon={IconProp.Info} className="h-3.5 w-3.5 text-gray-400" />
-          <span>
-            {translator.translateTemplate(
+          {/*
+           * Beside the note's first line, and the (i) after its last word:
+           * a note that wraps on a phone keeps both where they belong
+           * (issue #7348).
+           */}
+          <Icon
+            icon={IconProp.Info}
+            className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <WordsWithInfoTooltip
+            className="min-w-0"
+            text={translator.translateTemplate(
               "Estimated from sampled traffic (up to 1 in {{rate}} packets).",
               { rate: translator.formatNumber(summary.maxSamplingRate) },
             )}
-          </span>
-          <InfoTooltip label="Sampled" text={TILE_HELP.sampled} />
+            label="Sampled"
+            description={TILE_HELP.sampled}
+          />
         </div>
       ) : (
         <></>

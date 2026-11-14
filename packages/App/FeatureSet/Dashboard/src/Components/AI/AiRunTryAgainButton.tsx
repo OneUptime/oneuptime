@@ -1,10 +1,12 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { readAiRunRefusalCode } from "Common/Types/AI/AiRunRefusal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
+import { getTranslatedLineDirection } from "Common/UI/Utils/LineDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { describeAiRunRefusal } from "./AiRunFailureWords";
@@ -80,12 +82,19 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
       if (isMountedRef.current) {
         /*
          * The server's refusal says why ("... is queued or running
-         * already"), in the reader's language when the Dashboard words it
-         * (describeAiRunRefusal); anything else gets the button's own words.
+         * already"), in the reader's language: by the code beside its
+         * message, or by the message (describeAiRunRefusal). Anything else
+         * gets the button's own words.
          */
         setError(
           err instanceof HTTPErrorResponse || err instanceof Error
-            ? describeAiRunRefusal(API.getFriendlyMessage(err), translator)
+            ? describeAiRunRefusal(
+                API.getFriendlyMessage(err),
+                translator,
+                err instanceof HTTPErrorResponse
+                  ? readAiRunRefusalCode(err.data)
+                  : null,
+              )
             : (translator.translateText(
                 "The run could not start again. Try again in a moment.",
               ) as string),
@@ -112,15 +121,18 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
         }}
       />
       {/*
-       * A refusal the Dashboard does not word stays in the server's
-       * English, the button's own words are in the reader's language:
-       * dir="auto" lays each out by its first letter, so an English refusal
-       * on a page that reads right to left keeps its full stop at the end.
+       * A refusal is in the reader's language when the Dashboard words it,
+       * and in the server's English otherwise. A worded one reads as the
+       * page does, even when it starts with a name in Latin letters
+       * ("OneUptime AI ..." in Arabic and Persian, which dir="auto" laid out
+       * from the left, its words out of order); an English one on a page
+       * read from the right reads from the left, so its full stop stays at
+       * its end (getTranslatedLineDirection).
        */}
       {error ? (
         <p
           role="alert"
-          dir="auto"
+          dir={getTranslatedLineDirection(error, translator.language)}
           data-testid={`${testId}-error`}
           className={TRY_AGAIN_ERROR_CLASS_NAME}
         >

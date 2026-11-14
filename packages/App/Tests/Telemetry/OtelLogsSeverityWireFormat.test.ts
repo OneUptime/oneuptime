@@ -129,6 +129,10 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
       ): Promise<TelemetryIngestionKeyPolicy | null> => {
         return Promise.resolve(mockPolicyByToken.get(token) ?? null);
       },
+      // An accepted export stamps its key as used (issue #7887).
+      markUsed: (): Promise<void> => {
+        return Promise.resolve();
+      },
     },
   };
 });

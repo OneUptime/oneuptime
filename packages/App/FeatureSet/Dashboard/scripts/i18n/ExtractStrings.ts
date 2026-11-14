@@ -593,6 +593,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why OneUptime AI did not start a run someone asked for - Try again,
+   * Investigate now - one sentence per refusal code: the server sends the
+   * code beside its English message and the card says the code's sentence
+   * in the reader's language (#7359).
+   */
+  {
+    directory: "packages/Common/Types/AI/AiRunRefusal.ts",
+    kind: "keys",
+  },
+  /*
    * How an AI remediation round reads on the Remediation step - 'AI
    * remediation for cluster "prod"' - in the reader's language, and the
    * kinds of resource a round runs on.

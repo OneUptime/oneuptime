@@ -145,7 +145,7 @@ export default class PublicNoteApprovalStep extends BaseModel {
     allowedValues: Object.values(PublicNoteApprovalEventType),
     title: "Event Type",
     description:
-      "Whose public notes this step approves: Incident (the public notes of incidents and incident episodes) or ScheduledMaintenance (the public notes of scheduled maintenance events).",
+      "Whose public notes this step approves: Incident (the public notes of incidents and incident episodes) or ScheduledMaintenance (the public notes of maintenance events).",
     example: "Incident",
   })
   @Column({

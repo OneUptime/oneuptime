@@ -288,13 +288,22 @@ export function getHostAndPort(endpoint: CompatibleIngestEndpoint): {
 }
 
 /*
- * The host as Fluent Bit's outputs take it, apart from the port: the
- * address itself. Fluent Bit resolves Host as it is written, so a bracketed
- * IPv6 host ("[::1]") fails as "Misformatted domain name" and sends
- * nothing, where "::1" connects (#7753).
+ * The host and the port as a Fluent Bit output writes them, as two settings:
+ * the address itself, and the port. Fluent Bit resolves Host as it is
+ * written, so a bracketed IPv6 host ("[::1]") fails as "Misformatted domain
+ * name" and sends nothing, where "::1" connects (#7753).
+ *
+ * Every Fluent Bit file the guides hand out takes them from here: the Loki
+ * output below, the logs guide's (LogShipperSnippets) and the Security
+ * Events guide's (#7889).
  */
-export function getFluentBitHost(endpoint: CompatibleIngestEndpoint): string {
-  return HostAddressUtil.stripBrackets(getHostAndPort(endpoint).hostname);
+export function getFluentBitHostAndPort(endpoint: CompatibleIngestEndpoint): {
+  host: string;
+  port: string;
+} {
+  const { hostname, port } = getHostAndPort(endpoint);
+
+  return { host: HostAddressUtil.stripBrackets(hostname), port };
 }
 
 function getOrigin(endpoint: CompatibleIngestEndpoint): string {
@@ -339,6 +348,8 @@ export function getCompatibleIngestSnippets(
 ): Array<CompatibleIngestSnippet> {
   const url: string = getCompatibleIngestEndpointValue(method, endpoint);
   const { hostname, port } = getHostAndPort(endpoint);
+  const fluentBit: { host: string; port: string } =
+    getFluentBitHostAndPort(endpoint);
   const isTls: boolean = endpoint.protocol !== "http";
 
   switch (method) {
@@ -390,8 +401,8 @@ clients:
           code: `[OUTPUT]
     Name         loki
     Match        *
-    Host         ${getFluentBitHost(endpoint)}
-    Port         ${port}
+    Host         ${fluentBit.host}
+    Port         ${fluentBit.port}
     Tls          ${isTls ? "On" : "Off"}
     Uri          ${COMPATIBLE_INGEST_URL_PREFIX}${LOKI_PUSH_PATH}
     Http_User    oneuptime

@@ -138,7 +138,7 @@ Een notitie lezen via de API, Terraform of een workflow toont alleen de bijlagen
 
 ## Een notitie met AI genereren
 
-De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Openbare notitie toevoegen** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de AI-provider van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
+De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Openbare notitie toevoegen** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de [LLM-provider](/docs/ai/llm-provider) van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
 
 | Dialoogvenster                     | Wat het schrijft                                                     | Sjablonen                                                         |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
