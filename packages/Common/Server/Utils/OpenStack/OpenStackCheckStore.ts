@@ -782,8 +782,11 @@ export default class OpenStackCheckStore {
    * "ownProbeDue", the checks that name this probe, a range of the (probeId, due) index that stops
    * at the limit; and "cloudProbeDue", the checks that name none, of the clouds this probe
    * collects, read through OpenStackCloud's (collectionProbeId, ...) index and each cloud's one row
-   * of checks - at most one check per cloud of this probe. "due" keeps the oldest of the two, up to
-   * the limit; a row a branch locked that "due" does not keep is let go when the statement ends.
+   * of checks - at most one check per cloud of this probe. Each joins the probe it runs on by the
+   * column that names it in that branch, never by the COALESCE: joined on an expression of both
+   * tables, Postgres had to pair every check with its cloud before it could look the probe up, and
+   * read every cloud to do it. "due" keeps the oldest of the two, up to the limit; a row a branch
+   * locked that "due" does not keep is let go when the statement ends.
    * `due <= now` and no longer `IS NULL OR`, ordered NULLS FIRST, which no btree serves: a check
    * with no due time is made due by the set-aside.
    */
@@ -823,8 +826,7 @@ export default class OpenStackCheckStore {
         FROM "OpenStackCloudCheck" ck
         INNER JOIN "OpenStackCloud" c ON ck."openStackCloudId" = c."_id"
         INNER JOIN "Project" p ON ck."projectId" = p."_id"
-        INNER JOIN "Probe" pr
-          ON pr."_id" = COALESCE(ck."probeId", c."collectionProbeId")
+        INNER JOIN "Probe" pr ON pr."_id" = ck."probeId"
         WHERE ck."probeId" = $1
           AND NOT (ck."_id" = ANY($5::uuid[]))
           AND ck."${nextColumn}" <= $2
@@ -838,8 +840,7 @@ export default class OpenStackCheckStore {
         FROM "OpenStackCloud" c
         INNER JOIN "OpenStackCloudCheck" ck ON ck."openStackCloudId" = c."_id"
         INNER JOIN "Project" p ON ck."projectId" = p."_id"
-        INNER JOIN "Probe" pr
-          ON pr."_id" = COALESCE(ck."probeId", c."collectionProbeId")
+        INNER JOIN "Probe" pr ON pr."_id" = c."collectionProbeId"
         WHERE c."collectionProbeId" = $1
           AND ck."probeId" IS NULL
           AND NOT (ck."_id" = ANY($5::uuid[]))
@@ -897,8 +898,7 @@ export default class OpenStackCheckStore {
      * next claim does not step over them again (Utils/Probe/ClaimSetAside).
      */
     await setAsideAfterClaim({
-      claim:
-        data.kind === "api" ? "claimApiChecks" : "claimLifecycleChecks",
+      claim: data.kind === "api" ? "claimApiChecks" : "claimLifecycleChecks",
       probeId: data.probeId,
       rows: `OpenStack ${data.kind === "api" ? "API" : "lifecycle"} checks nothing may run now`,
       round: async (): Promise<SetAsideCounts> => {

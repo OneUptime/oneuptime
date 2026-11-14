@@ -78,6 +78,11 @@ export const SET_ASIDE_ROUNDS_PER_CLAIM: number = 4;
  * its limit - and judges each again by the claim's own rule
  * (`claimable`, IS NOT TRUE): only a row that may still not be handed out
  * is moved, SET_ASIDE_FOR_MINUTES on plus up to SET_ASIDE_SPREAD_IN_MINUTES.
+ * Those rows are looked up by their ids, `= ANY(ARRAY(...))`, so the
+ * statement costs what the probe's oldest due rows are, whatever the
+ * table's size: with `IN (SELECT ...)` Postgres may hash them against a
+ * scan of the whole table, and did for the OpenStack checks, whose probe
+ * is read through their cloud and so is no index's.
  * IS NOT TRUE rather than NOT, because through the LEFT JOINs a missing
  * project or probe makes the rule NULL, and NOT NULL is NULL: such a row
  * would never move.
@@ -177,7 +182,7 @@ export function getClaimSetAsideStatement(setAside: ClaimSetAside): string {
         SELECT ${alias}."_id"
         FROM "${setAside.table}" ${alias}
         ${setAside.joins}
-        WHERE ${alias}."_id" IN (SELECT "_id" FROM "oldestDue")
+        WHERE ${alias}."_id" = ANY(ARRAY(SELECT "_id" FROM "oldestDue"))
           AND ${setAside.isProbesRow}
           AND ${due} <= $2
           AND (
