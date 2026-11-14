@@ -35,14 +35,13 @@ import {
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
-  CLOUD_PROVIDER_LABELS,
-  CloudProvider,
   MANAGED_CLOUD_PLATFORMS,
   ManagedCloudPlatformDescriptor,
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import CLOUD_ENVIRONMENT_ONBOARDING from "../../Components/Cloud/CloudEnvironmentOnboarding";
+import { getCloudProviderOptions } from "../../Components/Cloud/CloudProviderOptions";
 import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
 import CLOUD_ENVIRONMENT_SHOWCASE from "../../Components/Cloud/CloudEnvironmentShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -60,7 +59,8 @@ import { fetchEnvironmentCloudAccountOptions } from "../../Components/AppPlatfor
  * Options for the Platform filter. The label carries the raw cloud.platform
  * value in brackets because that string is what the user has to find in
  * their collector's resource attributes to confirm they picked the right
- * one.
+ * one. The clouds' product names and their values, as written in every
+ * language (DropdownOption.isUserContent).
  */
 const PLATFORM_DROPDOWN_OPTIONS: Array<DropdownOption> =
   MANAGED_CLOUD_PLATFORMS.map(
@@ -68,15 +68,13 @@ const PLATFORM_DROPDOWN_OPTIONS: Array<DropdownOption> =
       return {
         label: `${descriptor.productName} (${descriptor.platform})`,
         value: descriptor.platform,
+        isUserContent: true,
       };
     },
   );
 
-const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
-  CloudProvider,
-).map((provider: CloudProvider): DropdownOption => {
-  return { label: CLOUD_PROVIDER_LABELS[provider], value: provider };
-});
+const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> =
+  getCloudProviderOptions();
 
 /*
  * App Platforms > All Environments: one row per platform, account and

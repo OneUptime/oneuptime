@@ -684,7 +684,8 @@ describe("incident and maintenance: the forms, with the title as typed", () => {
     ["create incident Checkout is down", "declare an incident", "incident"],
     [
       "maintenance Database upgrade",
-      "create a scheduled maintenance event",
+      // A maintenance event, as the model has named it since #6817.
+      "create a maintenance event",
       "maintenance",
     ],
   ])(

@@ -302,6 +302,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.ShieldCheck,
         },
+        /*
+         * Whether Notify Status Page Subscribers starts ticked when someone
+         * declares an incident: beside Public Note Approval, the other page
+         * about what status page subscribers are told.
+         */
+        {
+          link: {
+            title: "Subscriber Notifications",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Megaphone,
+        },
         {
           link: {
             title: "Postmortem Templates",

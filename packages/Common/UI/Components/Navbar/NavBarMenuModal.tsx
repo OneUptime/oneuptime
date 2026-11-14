@@ -1,6 +1,6 @@
 import Icon from "../Icon/Icon";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../Utils/TranslateTemplate";
 import { MAX_PINNED_PRODUCTS } from "../../../Types/Product/ProductPins";
 import useTranslator from "../../Utils/UseTranslator";
 import KeyboardShortcut, {
@@ -125,9 +125,12 @@ export interface ComponentProps {
    * without the placeholder's trailing "…", which is a prompt to type and
    * which a screen reader reads out as "dot dot dot" or not at all. Without
    * one the box is named by its placeholder (the Admin Dashboard's "Search
-   * admin…"), and without that "Search products" (#7486).
+   * admin…"), and without that "Search products" (#7486). Handed over in
+   * English: the box looks it up once.
    */
   searchLabel?: string | undefined;
+  // In the reader's words already: said as given (#7682).
+  isSearchPlaceholderTranslated?: boolean | undefined;
   noResultsText?: string | undefined;
   /*
    * Defaults to visible for direct/legacy consumers. Dashboard hides it when
@@ -303,6 +306,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   };
 
   const recentLabel: string = tx(props.recentLabel || "Recent");
+  // The search box's words: a caller's in the reader's words drawn as given.
+  const searchWords: (fallback: string) => string = (
+    fallback: string,
+  ): string => {
+    return props.searchPlaceholder && props.isSearchPlaceholderTranslated
+      ? props.searchPlaceholder
+      : tx(props.searchPlaceholder || fallback);
+  };
   const isSearching: boolean = query.trim().length > 0;
 
   // Keep familiar acronyms searchable even when the displayed title is translated.
@@ -992,11 +1003,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 aria-activedescendant={
                   activeEntry ? entryElementId(activeEntry) : undefined
                 }
-                aria-label={tx(
-                  props.searchLabel ||
-                    props.searchPlaceholder ||
-                    "Search products",
-                )}
+                aria-label={
+                  props.searchLabel
+                    ? tx(props.searchLabel)
+                    : searchWords(translationKey("Search products"))
+                }
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1006,7 +1017,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   updateQuery(event.target.value);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={tx(props.searchPlaceholder || "Search…")}
+                placeholder={searchWords(translationKey("Search…"))}
                 className="flex-1 border-0 bg-transparent p-0 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
               />
               {query ? (

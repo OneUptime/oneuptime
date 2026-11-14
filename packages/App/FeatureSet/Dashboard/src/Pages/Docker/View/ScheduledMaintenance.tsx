@@ -31,7 +31,7 @@ const DockerHostScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.DockerHost, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this host."
+        noItemsMessage="No maintenance events for this host."
       />
     </Fragment>
   );

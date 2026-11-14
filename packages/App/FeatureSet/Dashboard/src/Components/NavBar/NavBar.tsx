@@ -102,7 +102,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
       moreMenuFooter={moreMenuFooter}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
-      moreMenuSearchLabel={translator.translateText(PRODUCTS_SEARCH_LABEL)}
+      moreMenuSearchLabel={PRODUCTS_SEARCH_LABEL}
+      // A keyed text, in the reader's words here: drawn as given (#7682).
+      isMoreMenuSearchPlaceholderTranslated={true}
       moreMenuNoResultsText={t("navbar.search.noResults")}
       moreMenuKeyboardHint={t("navbar.search.hint")}
       moreMenuRecentLabel={t("navbar.search.recent")}

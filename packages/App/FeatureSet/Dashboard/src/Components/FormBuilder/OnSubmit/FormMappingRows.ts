@@ -2,6 +2,8 @@ import FormsCopy from "../FormsCopy";
 import {
   FormReferenceData,
   FormReferenceLists,
+  NamedRecord,
+  nameRecord,
   nameRecords,
 } from "./FormOnSubmitData";
 import {
@@ -29,7 +31,7 @@ import FormTargetType from "Common/Types/Form/FormTargetType";
  */
 
 export enum FormMappingLineKind {
-  // The answer to a question, named in quotes after "Answer to the question:".
+  // The answer to a question: "Answer to the question: “Title”".
   Answer = "Answer",
   // "If it is left empty:" what applies then.
   Fallback = "Fallback",
@@ -47,10 +49,17 @@ export interface FormMappingLine {
   kind: FormMappingLineKind;
   /*
    * The question's label (Answer, CustomField), the value (Value, Fallback,
-   * Warning) or names (Always, joined by the page).
+   * Warning) or, for a line of records, their names joined with ", ", a
+   * record deleted since as FormsCopy.deletedRecord.
    */
   text: string;
-  names?: Array<string> | undefined;
+  /*
+   * The records a line names (Always, and a Value of on-call policies or
+   * owners), one by one: the page draws each name set apart, a record
+   * deleted since as the reader's word for it, and separates them the
+   * reader's way (IsolatedTextList), never the joined text.
+   */
+  names?: Array<NamedRecord> | undefined;
   // For CustomField: the custom field's name.
   customFieldName?: string | undefined;
   // Whether text is one of FormsCopy's sentences, to translate.
@@ -105,6 +114,19 @@ const notSet: FormMappingLine = {
   kind: FormMappingLineKind.Value,
   text: FormsCopy.notSet,
   isCopy: true,
+};
+
+type RecordsTextFunction = (names: Array<NamedRecord>) => string;
+
+// A line of records' text, in English: their names, a deleted one as such.
+const recordsText: RecordsTextFunction = (
+  names: Array<NamedRecord>,
+): string => {
+  return names
+    .map((record: NamedRecord): string => {
+      return record.isDeleted ? FormsCopy.deletedRecord : record.name;
+    })
+    .join(", ");
 };
 
 type TitleRowFunction = (data: {
@@ -188,17 +210,16 @@ const recordsRow: RecordsRowFunction = (data: {
   const lines: Array<FormMappingLine> =
     answerLines({ fields: data.fields, key: data.key }) || [];
 
-  const names: Array<string> = nameRecords({
+  const names: Array<NamedRecord> = nameRecords({
     lists: data.lists,
     model: data.model,
     ids: data.ids,
-    deletedLabel: FormsCopy.deletedRecord,
   });
 
   if (names.length > 0) {
     lines.push({
       kind: FormMappingLineKind.Always,
-      text: names.join(", "),
+      text: recordsText(names),
       names: names,
     });
   }
@@ -228,11 +249,10 @@ const settingRow: SettingRowFunction = (data: {
   ids: Array<string> | undefined;
   empty?: FormMappingLine | undefined;
 }): FormMappingRow => {
-  const names: Array<string> = nameRecords({
+  const names: Array<NamedRecord> = nameRecords({
     lists: data.lists,
     model: data.model,
     ids: data.ids,
-    deletedLabel: FormsCopy.deletedRecord,
   });
 
   return {
@@ -240,7 +260,13 @@ const settingRow: SettingRowFunction = (data: {
     title: data.title,
     lines:
       names.length > 0
-        ? [{ kind: FormMappingLineKind.Value, text: names.join(", ") }]
+        ? [
+            {
+              kind: FormMappingLineKind.Value,
+              text: recordsText(names),
+              names: names,
+            },
+          ]
         : [data.empty || notSet],
   };
 };
@@ -260,18 +286,16 @@ const ownersRow: OwnersRowFunction = (data: {
   userIds: Array<string> | undefined;
   teamIds: Array<string> | undefined;
 }): FormMappingRow => {
-  const names: Array<string> = [
+  const names: Array<NamedRecord> = [
     ...nameRecords({
       lists: data.lists,
       model: FormTargetSettingReferenceModel.User,
       ids: data.userIds,
-      deletedLabel: FormsCopy.deletedRecord,
     }),
     ...nameRecords({
       lists: data.lists,
       model: FormTargetSettingReferenceModel.Team,
       ids: data.teamIds,
-      deletedLabel: FormsCopy.deletedRecord,
     }),
   ];
 
@@ -280,7 +304,13 @@ const ownersRow: OwnersRowFunction = (data: {
     title: FormsCopy.owners,
     lines:
       names.length > 0
-        ? [{ kind: FormMappingLineKind.Value, text: names.join(", ") }]
+        ? [
+            {
+              kind: FormMappingLineKind.Value,
+              text: recordsText(names),
+              names: names,
+            },
+          ]
         : [notSet],
   };
 };
@@ -449,23 +479,17 @@ export const getFormMappingRows: GetFormMappingRowsFunction = (data: {
   const settings: IncidentFormTargetSettings =
     data.settings as IncidentFormTargetSettings;
 
-  const templateName: string | undefined = settings.incidentTemplateId
-    ? nameRecords({
-        lists,
-        model: FormTargetSettingReferenceModel.IncidentTemplate,
-        ids: [settings.incidentTemplateId],
-        deletedLabel: "",
-      })[0] || undefined
-    : undefined;
+  const templateName: string | undefined = nameRecord({
+    lists,
+    model: FormTargetSettingReferenceModel.IncidentTemplate,
+    id: settings.incidentTemplateId,
+  });
 
-  const severityName: string | undefined = settings.incidentSeverityId
-    ? nameRecords({
-        lists,
-        model: FormTargetSettingReferenceModel.IncidentSeverity,
-        ids: [settings.incidentSeverityId],
-        deletedLabel: "",
-      })[0] || undefined
-    : undefined;
+  const severityName: string | undefined = nameRecord({
+    lists,
+    model: FormTargetSettingReferenceModel.IncidentSeverity,
+    id: settings.incidentSeverityId,
+  });
 
   const templateSetsSeverity: boolean = Boolean(
     templateName &&

@@ -92,7 +92,7 @@ export const STATUS_PAGE_CALENDAR_NOT_FOUND_MESSAGE: string =
   "Status Page not found";
 
 export const STATUS_PAGE_CALENDAR_EVENT_NOT_FOUND_MESSAGE: string =
-  "This scheduled maintenance event is not on this status page.";
+  "This maintenance event is not on this status page.";
 
 export const STATUS_PAGE_CALENDAR_SIGN_IN_MESSAGE: string =
   "Sign in to this status page to add its events to your calendar.";

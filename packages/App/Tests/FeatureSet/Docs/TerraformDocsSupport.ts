@@ -65,6 +65,8 @@ export interface ProviderAttribute {
   settable: boolean;
   sensitive: boolean;
   isDateTime: boolean;
+  // A phone number, compared as OneUptime keeps it (phone.go).
+  isPhone: boolean;
   // A JSON value or a wrapped scalar (a Color, a Domain) the API wraps.
   isComplexObject: boolean;
   enumValues: Array<string>;
@@ -118,6 +120,7 @@ interface TerraformAttribute {
   computed?: boolean;
   sensitive?: boolean;
   isDateTime?: boolean;
+  isPhone?: boolean;
   isComplexObject?: boolean;
   enumValues?: Array<string>;
   relation?: { name: string } | undefined;
@@ -210,6 +213,7 @@ function attributeOf(
     settable: flags.required || flags.optional,
     sensitive: Boolean(attribute.sensitive),
     isDateTime: Boolean(attribute.isDateTime),
+    isPhone: Boolean(attribute.isPhone),
     isComplexObject: Boolean(attribute.isComplexObject),
     enumValues: attribute.enumValues || [],
     relation: attribute.relation ? attribute.relation.name : null,

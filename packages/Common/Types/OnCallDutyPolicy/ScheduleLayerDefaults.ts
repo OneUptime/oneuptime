@@ -18,7 +18,9 @@ import RestrictionTimes from "./RestrictionTimes";
  *
  * A new layer:
  *
- *   - is on call from now: the first person in it is on call at once;
+ *   - is on call from now: the first person in it is on call at once. Now
+ *     is the minute it is (11:15, not 11:15:52), as Rotation starts at shows
+ *     it, so its hand-offs fall on the minute every summary prints;
  *   - hands off once a week, the rotation most on-call teams run, unless the
  *     caller picks another;
  *   - hands off for the first time one rotation after it starts, at the same
@@ -117,7 +119,7 @@ export interface NewScheduleLayerData {
   order?: number | undefined;
   // How long each turn lasts. Default: getDefaultLayerRotation (a week).
   rotation?: Recurring | undefined;
-  // When the first turn starts. Default: now.
+  // When the first turn starts. Default: now, to the minute.
   startsAt?: Date | undefined;
   // The schedule's time zone, which hand-off times are kept in.
   timezone?: string | undefined;
@@ -129,7 +131,9 @@ export const buildNewScheduleLayer: (
 ) => OnCallDutyPolicyScheduleLayer = (
   data: NewScheduleLayerData,
 ): OnCallDutyPolicyScheduleLayer => {
-  const startsAt: Date = data.startsAt || OneUptimeDate.getCurrentDate();
+  const startsAt: Date =
+    data.startsAt ||
+    OneUptimeDate.getStartOfMinute(OneUptimeDate.getCurrentDate());
 
   // A copy: the layer must not share a rotation the caller may change.
   const rotation: Recurring = data.rotation

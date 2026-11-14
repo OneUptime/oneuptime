@@ -170,7 +170,7 @@ Todo lo que hay en el fragmento llega a tus visitantes, así que cualquiera pued
 | **Caduca el** | Después de esta fecha, la clave deja de aceptarse. |
 | **Habilitado** | Desactívalo para detener al instante una clave filtrada. |
 
-Una clave de Navegador escribe trazas, registros y métricas OTLP, además de reproducciones de sesiones; todas las demás vías de ingesta la rechazan. Estos ajustes se cambian en la propia página de la clave. El tipo de clave no se puede cambiar una vez creada la clave.
+Una clave de Navegador escribe trazas, registros y métricas OTLP, reproducciones de sesiones y eventos de un [SDK de Sentry en el navegador](/docs/telemetry/compatible-endpoints#sdk-de-sentry); todas las demás vías de ingesta la rechazan. Estos ajustes se cambian en la propia página de la clave. El tipo de clave no se puede cambiar una vez creada la clave.
 
 > [!WARNING]
 > No pongas nunca una clave de **Servidor** en una página. Una clave de Servidor escribe cualquier tipo de telemetría desde cualquier lugar, sin comprobar el origen, así que cualquiera que lea tu página podría escribir en tu proyecto.

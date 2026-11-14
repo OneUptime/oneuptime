@@ -69,7 +69,7 @@ En regel matchar bara när varje villkor du fyller i stämmer; ett villkor som l
 :::steps
 ### Välj vilka händelser det ska påminnas om
 
-Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Matcha** låter du **Alla schemalagda underhållshändelser** vara valt för att påminna om varje händelse, eller väljer **Endast schemalagda underhållshändelser som uppfyller villkoren** och sedan de **Etiketter** den gäller för.
+Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Matcha** låter du **Alla underhållshändelser** vara valt för att påminna om varje händelse, eller väljer **Endast underhållshändelser som uppfyller villkoren** och sedan de **Etiketter** den gäller för.
 
 ### Ställ in intervallet
 

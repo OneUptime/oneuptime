@@ -371,7 +371,7 @@ const RECORD_KINDS: Record<WorkspaceChannelRecordType, ChannelRecordKind> = {
     },
   },
   [WorkspaceChannelRecordType.ScheduledMaintenance]: {
-    noun: "scheduled maintenance event",
+    noun: "maintenance event",
     findReadable: async (data: {
       id: ObjectID;
       props: DatabaseCommonInteractionProps;

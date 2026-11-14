@@ -1,6 +1,13 @@
 import { UserFlowScope } from "./UserFlowScope";
 import { translationKey, Translator } from "Common/Types/Translator";
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  LEFT_TO_RIGHT,
+  POP_DIRECTIONAL_ISOLATE,
+  ReadingDirection,
+} from "Common/Types/ReadingDirection";
+import { LEFT_TO_RIGHT_ISOLATE } from "Common/Types/CodeInSentence";
+import { getOneWayLineDirection } from "Common/UI/Utils/LineDirection";
 
 /*
  * Number formatting for the User Flows page. Pure, so the copy the page
@@ -144,11 +151,61 @@ export function formatUserFlowDuration(ms: number): string {
   return restMinutes > 0 ? `${hours}h ${restMinutes}m` : `${hours}h`;
 }
 
+// A path of nothing but slashes: the site's root, "/".
+const ROOT_PATH_REGEX: RegExp = /^\/*$/;
+
+/*
+ * THE WAY A PAGE'S PATH READS, ON EVERY PAGE: from the left, its "/"
+ * first, and the Arabic or Persian words in it from the right (Common's
+ * getUserFlowPageText). Its box used to read the way most of its letters
+ * do (getLineDirection), which was from the left while it showed the
+ * escaped key. Read so, a path decoded into Arabic letters would turn
+ * round on an Arabic page - "الرئيسية/" - and get a box read from the
+ * right on an English page. None for the root, "/", which looks the same
+ * either way and keeps reading as the page does, as it always has. `page`
+ * is a page's key or its text.
+ */
+export function getUserFlowPathDirection(
+  page: string,
+): ReadingDirection | undefined {
+  return ROOT_PATH_REGEX.test(page) ? undefined : LEFT_TO_RIGHT;
+}
+
+/*
+ * The dir of a box that holds one page's path: a chip, a row of a list, a
+ * journey's step, a tile. "ltr" on a page read from the right, and none on
+ * one read from the left, which reads that way already
+ * (getOneWayLineDirection).
+ */
+export function getUserFlowPathLineDirection(
+  page: string,
+  language: string | null | undefined,
+): ReadingDirection | undefined {
+  const direction: ReadingDirection | undefined =
+    getUserFlowPathDirection(page);
+
+  return direction ? getOneWayLineDirection(direction, language) : undefined;
+}
+
 /*
  * A label that fits a node box: keep the END of a path, which is the part
- * that names the page ("…/orders/:id/refund"), not the start.
+ * that names the page ("…/orders/:id/refund"), not the start. A path set
+ * apart for its right-to-left words (Common's getUserFlowPageText) is cut
+ * inside its marks, which take no room: "…/الرئيسية" still reads from the
+ * left, and a path that fits is not cut for them.
  */
 export function truncateUserFlowLabel(label: string, maxChars: number): string {
+  if (
+    label.length > 2 &&
+    label.startsWith(LEFT_TO_RIGHT_ISOLATE) &&
+    label.endsWith(POP_DIRECTIONAL_ISOLATE)
+  ) {
+    return `${LEFT_TO_RIGHT_ISOLATE}${truncateUserFlowLabel(
+      label.slice(1, -1),
+      maxChars,
+    )}${POP_DIRECTIONAL_ISOLATE}`;
+  }
+
   if (label.length <= maxChars) {
     return label;
   }

@@ -80,7 +80,14 @@ export const getProductLogoSource: (theme: Theme) => string | null = (
   return theme === Theme.Dark ? DarkOneUptimeLogo : OneUptimeLogo;
 };
 
-const DarkOneUptimeMark: string = getDarkThemeLogo(OneUptimeMark);
+/*
+ * OneUptime's mark for a dark background, made the first time it is asked
+ * for (getProductMarkSource). Made as this module loads, as the wordmark's
+ * is, it would keep the mark - a data: URL of its SVG - in every bundle that
+ * draws ProductLogo, the sign-in pages' among them, though only the
+ * Dashboard's header draws it (packages/Common/Scripts/first-load-budgets.js).
+ */
+let darkOneUptimeMark: string | null = null;
 
 /*
  * Below 640px, as a media query: Tailwind's max-sm, which the header's own
@@ -99,6 +106,10 @@ export const SMALL_SCREEN_MEDIA_QUERY: string =
  * without a tab icon is drawn as it is (the header's classes hold it to a
  * small screen's width), and an installation that goes by a name of its
  * own and has no logo draws its name.
+ *
+ * The header hands this to ProductLogo (markOnSmallScreens), which never
+ * calls it on its own: a bundle whose modules do not import it - the
+ * sign-in pages' - is built without the mark.
  */
 export const getProductMarkSource: (theme: Theme) => string | null = (
   theme: Theme,
@@ -111,7 +122,15 @@ export const getProductMarkSource: (theme: Theme) => string | null = (
     return null;
   }
 
-  return theme === Theme.Dark ? DarkOneUptimeMark : OneUptimeMark;
+  if (theme !== Theme.Dark) {
+    return OneUptimeMark;
+  }
+
+  if (darkOneUptimeMark === null) {
+    darkOneUptimeMark = getDarkThemeLogo(OneUptimeMark);
+  }
+
+  return darkOneUptimeMark;
 };
 
 // The logo at the top of a sign-in page: centred, 40px tall, 48px from sm.
@@ -154,12 +173,14 @@ export interface ComponentProps {
    */
   nameClassName?: string | undefined;
   /*
-   * Below 640px, draw the product's mark in place of its logo
-   * (getProductMarkSource), as one image whose source the browser picks by
-   * the screen's width: the Dashboard's header, where a phone has no room
-   * for both the wordmark and the project's name.
+   * Below 640px, draw the product's mark in place of its logo - the one
+   * this gives for the theme, getProductMarkSource - as one image whose
+   * source the browser picks by the screen's width: the Dashboard's header,
+   * where a phone has no room for both the wordmark and the project's name.
+   * Handed in, not called from here: the mark would come along into every
+   * bundle that draws this logo.
    */
-  markOnSmallScreens?: boolean | undefined;
+  markOnSmallScreens?: ((theme: Theme) => string | null) | undefined;
   onClick?: (() => void) | undefined;
   dataTestId?: string | undefined;
 }
@@ -205,7 +226,7 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
   );
 
   const markSource: string | null = props.markOnSmallScreens
-    ? getProductMarkSource(theme)
+    ? props.markOnSmallScreens(theme)
     : null;
 
   if (!markSource) {

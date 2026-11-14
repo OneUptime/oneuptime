@@ -36,7 +36,7 @@ flowchart TB
 | | **伺服器** | **瀏覽器** |
 | --- | --- | --- |
 | 用途 | 在你營運的機器上執行的應用程式、collector 和代理程式 | 網頁，以及 React Native Session Replay |
-| 傳送內容 | 所有類型的遙測，送往所有端點 | 追蹤、日誌、指標和 Session Replay |
+| 傳送內容 | 所有類型的遙測，送往所有端點 | 追蹤、日誌、指標、Session Replay 和 [Sentry 事件](/docs/telemetry/compatible-endpoints#sentry-sdk) |
 | 是否為機密 | 是：請把它保存在你的伺服器上 | 否：任何檢視頁面的人都能讀取它 |
 | 來源 | 不檢查 | 只接受列出的來源 |
 | 每分鐘請求數 | 無上限，除非你設定了上限 | 6,000，除非你設定了其他上限 |

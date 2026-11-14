@@ -772,8 +772,21 @@ describe("the explorer's search reaches every level of the hierarchy", () => {
         'const SEARCH_PLACEHOLDER: string = translationKey( "Search sites by name — anywhere in your network", );',
       ),
     );
-    expect(EXPLORER_SEARCH_BOX).toContain(
-      squash("translateString(SEARCH_PLACEHOLDER) || SEARCH_PLACEHOLDER"),
+    /*
+     * Handed over in English, and looked up once, by the Input the box
+     * draws. Looked up here too, its translation was looked up again: a
+     * translation that is itself an English key read as another word
+     * (#7682).
+     */
+    expect(EXPLORER_SEARCH_BOX).toContain("placeholder={SEARCH_PLACEHOLDER}");
+    expect(EXPLORER_SEARCH_BOX).not.toContain("translateString(");
+
+    const boxInput: string = jsxElement(
+      readCode("Components", "NetworkSite", "SiteSearchBox.tsx"),
+      "Input",
+    );
+    expect(boxInput).toContain(
+      squash("placeholder={props.placeholder || DEFAULT_PLACEHOLDER}"),
     );
     // The old level-only wording is gone.
     expect(EXPLORER_CODE).not.toContain("`Search ${childTypeLabelPlural}`");

@@ -330,7 +330,7 @@ Além das ferramentas para cada tipo de registro, o servidor tem ferramentas fei
 
 - **`acknowledge_incident`** / **`resolve_incident`**: mover um incidente para o estado Acknowledged ou Resolved do projeto, como faz o botão do painel
 - **`acknowledge_alert`** / **`resolve_alert`**: o mesmo para alertas
-- **`add_incident_note`**: adicionar uma nota a um incidente com `visibility: "internal"` (só a equipe, o padrão) ou `visibility: "public"` (publicada na página de status). Markdown é suportado
+- **`add_incident_note`**: adicionar uma nota a um incidente com `visibility: "internal"` (só quem pode ver o incidente, o padrão) ou `visibility: "public"` (publicada na página de status). Markdown é suportado
 - **`add_alert_note`**: adicionar uma nota interna a um alerta
 
 Um ciclo típico: `list_incidents` → `acknowledge_incident` → investigar com `list_logs` → `add_incident_note` (pública) → `resolve_incident`.

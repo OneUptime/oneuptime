@@ -768,6 +768,48 @@ describe("Create Announcement, from the project's Announcements list", () => {
     expect(navigatedTo()).toMatch(/\/status-pages\/announcements$/);
   });
 
+  /*
+   * Issue #7593: a time people schedule is picked to the minute. Opened at
+   * 09:20:42, the start read 09:20:42 and the picker asked for seconds; it
+   * starts at the minute it was opened in, which has already begun, so the
+   * announcement still shows at once.
+   */
+  test("opened seconds into a minute, it starts at that minute, and its times ask for no seconds", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-03T09:20:42.500Z"));
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await renderPage();
+    await writeAnnouncement();
+    await goToNextStep("Status Pages");
+
+    fireEvent.click(sectionHeader("Schedule & Notifications"));
+
+    expect(startsAtInput().value).toBe("2026-10-03T09:20");
+    expect(startsAtInput()).not.toHaveAttribute("step");
+    expect(endsAtInput()).not.toHaveAttribute("step");
+
+    await user.click(
+      screen.getByRole("combobox", {
+        name: /Show announcement on these status pages/,
+      }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: /Acme Public Status/ }),
+    );
+
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(isoOf(createdModel().showAnnouncementAt)).toBe(
+      "2026-10-03T09:20:00.000Z",
+    );
+  });
+
   test("the review step reviews the schedule and the notifications by their line", async () => {
     await renderPage();
     await writeAnnouncement();

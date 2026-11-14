@@ -11,6 +11,12 @@ import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * How the subscriber's manage page (Update Subscription) is wired into the
@@ -100,23 +106,36 @@ describe("the manage page's route", () => {
   });
 
   test("both the credential and the token-free form reach the page, live and in preview", () => {
-    const app: string = readCode("App.tsx");
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(STATUS_PAGE_SRC, "App.tsx"),
+    );
+    const routePaths: Array<string> = [
+      "UPDATE_SUBSCRIPTION",
+      "PREVIEW_UPDATE_SUBSCRIPTION",
+    ].flatMap((page: string): Array<string> => {
+      return [`tokenFreeRoute(${routeMapPath(page)})`, routeMapPath(page)];
+    });
 
-    for (const page of ["UPDATE_SUBSCRIPTION", "PREVIEW_UPDATE_SUBSCRIPTION"]) {
-      expect(app).toContain(
-        `path={tokenFreeRoute( RouteMap[PageMap.${page}]?.toString() || "", )} element={ <UpdateSubscription`,
-      );
+    for (const routePath of routePaths) {
+      expect(routesAt(routes, routePath)).toEqual([
+        {
+          path: routePath,
+          element: expect.stringMatching(/^<UpdateSubscription /),
+        },
+      ]);
     }
 
-    expect(app).toContain(
-      `path={RouteMap[PageMap.UPDATE_SUBSCRIPTION]?.toString() || ""} element={ <UpdateSubscription`,
-    );
-    expect(app).toContain(
-      `path={ RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION]?.toString() || "" } element={ <UpdateSubscription`,
-    );
-
     // Four routes, one page.
-    expect(app.split("<UpdateSubscription ").length - 1).toBe(4);
+    expect(
+      routes
+        .filter((route: RouteAttributes): boolean => {
+          return (route["element"] || "").startsWith("<UpdateSubscription ");
+        })
+        .map((route: RouteAttributes): string => {
+          return route["path"] || "";
+        })
+        .sort(),
+    ).toEqual([...routePaths].sort());
   });
 });
 

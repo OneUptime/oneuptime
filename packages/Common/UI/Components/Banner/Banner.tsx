@@ -1,6 +1,7 @@
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
+import DirectionArrow from "../DirectionArrow/DirectionArrow";
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -36,7 +37,7 @@ const Banner: FunctionComponent<ComponentProps> = (
           <circle cx="1" cy="1" r="1" />
         </svg>
         {readAsWritten(translatedDescription, translator.language)}&nbsp;
-        <span aria-hidden="true">&rarr;</span>
+        <DirectionArrow isDecorative={true} />
       </>
     );
   };

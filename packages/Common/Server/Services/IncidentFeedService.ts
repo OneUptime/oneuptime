@@ -23,6 +23,10 @@ import FeedWorkspaceNotificationUtil, {
   FeedWorkspaceAuthor,
   FeedWorkspaceNotification,
 } from "../Utils/Feed/FeedWorkspaceNotification";
+import FeedUpdateKinds, {
+  INCIDENT_FEED_UPDATE_KINDS,
+} from "../Utils/Feed/FeedUpdateKinds";
+import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
@@ -215,6 +219,11 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
             incidentId: data.incidentId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            // Which updates it is: posted where a rule wants one of them.
+            updateKinds: FeedUpdateKinds.resolve({
+              named: data.workspaceNotification.updateKinds,
+              ofType: INCIDENT_FEED_UPDATE_KINDS[data.incidentFeedEventType],
+            }),
             author: FeedWorkspaceNotificationUtil.getAuthor({
               workspaceNotification: data.workspaceNotification,
               userId: data.userId,
@@ -261,6 +270,11 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
     workspaceNotification: FeedWorkspaceNotification;
     // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
     author?: FeedWorkspaceAuthor | undefined;
+    /*
+     * Which updates the entry is (FeedUpdateKinds): posted only where a
+     * rule wants one of them. Left out, wherever its messages go.
+     */
+    updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -274,6 +288,7 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
           FeedWorkspaceNotificationUtil.toWorkspaceNotification({
             workspaceNotification: data.workspaceNotification,
             author: data.author,
+            updateKinds: data.updateKinds,
           }),
       },
     );

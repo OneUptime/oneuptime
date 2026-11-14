@@ -136,10 +136,10 @@ afterEach(() => {
 describe("describeLinkedInfrastructure", () => {
   test("how many open or recent alerts were on which resources, listed as a sentence lists them", () => {
     expect(describeLinkedInfrastructure(activity())).toBe(
-      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
+      "Read 2 open or recent alerts on host web-1 and Docker host web-1",
     );
     expect(describeLinkedInfrastructure(activity({ alertCount: 1 }))).toBe(
-      "Read 1 open or recent alert on Host web-1 and Docker host web-1",
+      "Read 1 open or recent alert on host web-1 and Docker host web-1",
     );
     expect(
       describeLinkedInfrastructure(
@@ -152,18 +152,18 @@ describe("describeLinkedInfrastructure", () => {
         }),
       ),
     ).toBe(
-      "Read 2 open or recent alerts on Host a, Docker host b and Kubernetes cluster c",
+      "Read 2 open or recent alerts on host a, Docker host b and Kubernetes cluster c",
     );
     expect(
       describeLinkedInfrastructure(
         activity({ resources: [{ kind: "Host", name: "web-1" }] }),
       ),
-    ).toBe("Read 2 open or recent alerts on Host web-1");
+    ).toBe("Read 2 open or recent alerts on host web-1");
   });
 
   test("none is said too: there was nothing on the infrastructure", () => {
     expect(describeLinkedInfrastructure(activity({ alertCount: 0 }))).toBe(
-      "No open or recent alerts on Host web-1 and Docker host web-1",
+      "No open or recent alerts on host web-1 and Docker host web-1",
     );
   });
 
@@ -173,7 +173,7 @@ describe("describeLinkedInfrastructure", () => {
         activity({ alertCount: 10, hasMoreAlerts: true }),
       ),
     ).toBe(
-      "Read the 10 newest open or recent alerts on Host web-1 and Docker host web-1",
+      "Read the 10 newest open or recent alerts on host web-1 and Docker host web-1",
     );
   });
 
@@ -192,7 +192,7 @@ describe("describeLinkedInfrastructure", () => {
         }),
       ),
     ).toBe(
-      "No open or recent alerts on Kubernetes cluster prod, Podman host build-1, Database orders and 2 more",
+      "No open or recent alerts on Kubernetes cluster prod, Podman host build-1, database orders and 2 more",
     );
   });
 
@@ -223,7 +223,7 @@ describe("describeLinkedInfrastructure", () => {
           resources: [{ kind: "CloudResource", name: "web-alb" }],
         }),
       ),
-    ).toBe("No open or recent alerts on Cloud resource web-alb");
+    ).toBe("No open or recent alerts on cloud resource web-alb");
   });
 
   /*
@@ -258,7 +258,7 @@ describe("describeLinkedInfrastructure", () => {
         }),
       ),
     ).toBe(
-      "No open or recent alerts on Cloud environment checkout · us-east-1 and Cloud resource orders-db",
+      "No open or recent alerts on cloud environment checkout · us-east-1 and cloud resource orders-db",
     );
     expect(
       describeFollowUpCheck(
@@ -268,7 +268,7 @@ describe("describeLinkedInfrastructure", () => {
         }),
       ),
     ).toBe(
-      "Checking again: alert #12 opened on Cloud environment checkout · us-east-1 after the first analysis",
+      "Checking again: alert #12 opened on cloud environment checkout · us-east-1 after the first analysis",
     );
   });
 
@@ -340,7 +340,7 @@ describe("describeLinkedInfrastructure", () => {
           ],
         }),
       ),
-    ).toBe("No open or recent alerts on Resource enterprise and Host");
+    ).toBe("No open or recent alerts on resource enterprise and host");
   });
 
   test("a language lists the names its own way: its 'and', and its own comma", () => {
@@ -397,6 +397,41 @@ describe("describeLinkedInfrastructure", () => {
     },
   );
 
+  /*
+   * A kind is a noun in the middle of these sentences, so every kind reads
+   * as one, the reader's way (#7862): "sur hôte web-1 et hôte Docker web-2",
+   * never a label's "sur Hôte web-1" beside "hôte Docker web-2". German
+   * keeps its nouns' capital.
+   */
+  test.each([
+    ["en", "on host web-1 and Docker host web-2"],
+    ["de", "auf Host web-1 und Docker-Host web-2"],
+    ["fr", "sur hôte web-1 et hôte Docker web-2"],
+    ["es", "en host web-1 y host de Docker web-2"],
+    ["it", "su host web-1 e host Docker web-2"],
+    ["pt", "em host web-1 e host Docker web-2"],
+    ["nl", "op host web-1 en Docker-host web-2"],
+    ["da", "på vært web-1 og Docker-vært web-2"],
+    ["no", "på vert web-1 og Docker-vert web-2"],
+    ["sv", "på värd web-1 och Docker-värd web-2"],
+    ["ru", "хост web-1 и Docker-хост web-2"],
+  ])(
+    "%s names a host mid-sentence as it names a Docker host: %s",
+    (language: string, named: string) => {
+      expect(
+        describeLinkedInfrastructure(
+          activity({
+            resources: [
+              { kind: "Host", name: "web-1" },
+              { kind: "DockerHost", name: "web-2" },
+            ],
+          }),
+          translatorFor(language),
+        ),
+      ).toContain(named);
+    },
+  );
+
   test("a sentence a language has not worded yet is English through and through, names included", () => {
     const halfway: Translator = createTranslator(
       (text: string): string | undefined => {
@@ -411,10 +446,10 @@ describe("describeLinkedInfrastructure", () => {
     );
 
     expect(describeLinkedInfrastructure(activity(), halfway)).toBe(
-      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
+      "Read 2 open or recent alerts on host web-1 and Docker host web-1",
     );
     expect(describeFollowUpCheck(followUp(), halfway)).toBe(
-      "Checking again: alert #12 opened on Host web-1 after the first analysis",
+      "Checking again: alert #12 opened on host web-1 after the first analysis",
     );
   });
 
@@ -447,18 +482,18 @@ describe("describeLinkedInfrastructure", () => {
 describe("describeFollowUpCheck", () => {
   test("the alert's number and the resource it opened on", () => {
     expect(describeFollowUpCheck(followUp())).toBe(
-      "Checking again: alert #12 opened on Host web-1 after the first analysis",
+      "Checking again: alert #12 opened on host web-1 after the first analysis",
     );
     expect(
       describeFollowUpCheck(followUp({ alertNumberWithPrefix: "ALT-12" })),
     ).toBe(
-      "Checking again: alert ALT-12 opened on Host web-1 after the first analysis",
+      "Checking again: alert ALT-12 opened on host web-1 after the first analysis",
     );
   });
 
   test("without a number, or without a resource, it still reads", () => {
     expect(describeFollowUpCheck(followUp({ alertNumber: undefined }))).toBe(
-      "Checking again: an alert opened on Host web-1 after the first analysis",
+      "Checking again: an alert opened on host web-1 after the first analysis",
     );
     expect(describeFollowUpCheck(followUp({ resourceKind: "" }))).toBe(
       "Checking again: alert #12 opened on this incident's infrastructure after the first analysis",
@@ -471,6 +506,22 @@ describe("describeFollowUpCheck", () => {
       "Checking again: an alert opened on this incident's infrastructure after the first analysis",
     );
   });
+
+  // The kind it opened on, as the middle of a sentence says it (#7862).
+  test.each([
+    ["en", "opened on host web-1 after"],
+    ["de", "auf Host web-1"],
+    ["fr", "sur hôte web-1"],
+    ["da", "på vært web-1"],
+    ["sv", "på värd web-1"],
+  ])(
+    "%s names the resource's kind mid-sentence: %s",
+    (language: string, named: string) => {
+      expect(
+        describeFollowUpCheck(followUp(), translatorFor(language)),
+      ).toContain(named);
+    },
+  );
 
   test.each(LANGUAGES)("%s words it its own way", (language: string) => {
     const translator: Translator = translatorFor(language);
@@ -513,10 +564,10 @@ describe("the activity feed draws them", () => {
     );
 
     const followUpLine: HTMLElement = screen.getByText(
-      "Checking again: alert #12 opened on Host web-1 after the first analysis",
+      "Checking again: alert #12 opened on host web-1 after the first analysis",
     );
     const linkedLine: HTMLElement = screen.getByText(
-      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
+      "Read 2 open or recent alerts on host web-1 and Docker host web-1",
     );
 
     expect(followUpLine).toBeVisible();

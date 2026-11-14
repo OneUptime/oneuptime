@@ -61,7 +61,7 @@ Los valores definidos en **Valores predeterminados de campos personalizados** se
 
 ## Sincronizar cambios con los monitores vinculados
 
-Editar una plantilla solo cambia la plantilla. Para copiar un cambio en los monitores vinculados, use el botón de sincronización de la tarjeta que cambió. Cada botón indica a cuántos monitores llega, como **Sync Criteria to 3 Linked Monitors**, y aparece atenuado mientras no haya nada vinculado. Una sincronización no se puede deshacer.
+Editar una plantilla solo cambia la plantilla. Para copiar un cambio en los monitores vinculados, use el botón de sincronización de la tarjeta que cambió. Cada botón indica a cuántos monitores llega, como **Sincronizar criterios con 3 monitores vinculados**, y aparece atenuado mientras no haya nada vinculado. Una sincronización no se puede deshacer.
 
 | Botón | Copia en cada monitor vinculado | Deja sin tocar |
 | --- | --- | --- |

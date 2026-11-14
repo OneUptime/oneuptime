@@ -620,13 +620,15 @@ describe("TelemetryIngest browser ingestion key guard", () => {
   });
 
   describe("browser key surface allowlist", () => {
-    test("a browser key is admitted on exactly the four surfaces a real browser agent emits", async () => {
+    test("a browser key is admitted on exactly the five surfaces a real browser agent emits", async () => {
       expect(Array.from(BROWSER_ALLOWED_INGEST_SURFACES).sort()).toEqual(
         [
           TelemetryIngestSurface.OtelLogs,
           TelemetryIngestSurface.OtelMetrics,
           TelemetryIngestSurface.OtelTraces,
           TelemetryIngestSurface.SessionReplay,
+          // @sentry/browser's envelopes: a DSN is published by design.
+          TelemetryIngestSurface.Sentry,
         ].sort(),
       );
 
@@ -655,9 +657,23 @@ describe("TelemetryIngest browser ingestion key guard", () => {
        * Kubernetes AI agent and the resource AI agents), which mint cluster
        * or infrastructure credentials and must never be reachable with a key
        * scraped off a page, and the supervisor of a host OneUptime manages,
-       * which is sent the config the host runs.
+       * which is sent the config the host runs. And four of the compatible
+       * endpoints - Prometheus remote write, Loki, Splunk HEC and Datadog -
+       * which agents and servers send to, never a page.
        */
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(18);
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(22);
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.PrometheusRemoteWrite,
+      );
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.Loki,
+      );
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.SplunkHec,
+      );
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.Datadog,
+      );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.OpenLineage,
       );

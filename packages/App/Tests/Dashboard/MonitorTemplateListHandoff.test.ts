@@ -2,6 +2,7 @@ import {
   ALL_MONITORS_TABLE_ID,
   MONITOR_TEMPLATE_FACET_QUERY_FIELD,
 } from "../../FeatureSet/Dashboard/src/Components/Monitor/MonitorFacets";
+import { LINKED_MONITORS_TITLE } from "../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "@jest/globals";
@@ -75,10 +76,11 @@ describe("the Linked Monitors card on a template", () => {
    * is open to answer, and it should be answerable without reading a button
    * that is about to overwrite them.
    */
-  test("puts the count in its title", () => {
+  test("puts the count in its title, in the reader's language and digits", () => {
     expect(TEMPLATE_VIEW_PAGE).toContain(
-      "`Linked Monitors (${linkedMonitorCount})`",
+      "translator.translateTemplate(LINKED_MONITORS_TITLE, { count: translator.formatNumber(linkedMonitorCount), })",
     );
+    expect(LINKED_MONITORS_TITLE).toBe("Linked Monitors ({{count}})");
     expect(TEMPLATE_VIEW_PAGE).toContain("title={linkedMonitorsTitle}");
   });
 

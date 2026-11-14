@@ -158,6 +158,7 @@ Meddelandet beskriver ändringen med samma ord som SLO:ets **Feed**: nivån som 
 | **SLO-etiketter** | SLO:ets etiketter: någon av dem som du väljer, alla, eller ingen av dem. |
 | **SLO-namn** | SLO:ets namn: lika med din text eller inte, innehåller den eller inte, börjar eller slutar med den. |
 | **Ändring i felbudgetpolicy** | Vad som ändrades: **Gick in i en allvarligare nivå**, **Återhämtade sig till en mindre allvarlig nivå**, **Lämnade alla nivåer**, **Distributioner frysta** eller **Distributioner tillåtna igen**. |
+| **Ägare av SLO** | De personer och team som är registrerade som SLO:ets ägare: någon av dem som du väljer, eller ingen av dem. Att vara med i ett team som äger SLO:et räknas inte. |
 
 Ett byte av nivå som frös distributioner, eller tillät dem igen, är ett enda meddelande som rymmer båda ändringarna. En regel för **Distributioner frysta** publicerar alltså också bytet till en nivå som fryser dem: en kanal för releaser får veta om varje frysning.
 

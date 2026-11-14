@@ -10,6 +10,7 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import DiffFlamegraph, { DiffFlamegraphNode } from "./DiffFlamegraph";
 import ProfileUtil from "../../Utils/ProfileUtil";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -476,10 +477,18 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                         </div>
 
                         <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-mono text-gray-700">
-                            {row.baselineSharePercent.toFixed(1)}%{" "}
-                            <span className="text-gray-400">→</span>{" "}
-                            {row.comparisonSharePercent.toFixed(1)}%
+                          {/*
+                           * The baseline's share, then the comparison's,
+                           * each set apart so the arrow points the way the
+                           * page reads.
+                           */}
+                          <div
+                            className="text-sm font-mono text-gray-700"
+                            data-testid="profile-function-share-change"
+                          >
+                            <bdi>{row.baselineSharePercent.toFixed(1)}%</bdi>{" "}
+                            <DirectionArrow className="text-gray-400" />{" "}
+                            <bdi>{row.comparisonSharePercent.toFixed(1)}%</bdi>
                           </div>
                           <div
                             className={`text-[11px] font-medium ${

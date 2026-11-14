@@ -7,7 +7,15 @@ import {
   KubernetesServiceObject,
   KubernetesServicePort,
 } from "./KubernetesObjectParser";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { LEFT_TO_RIGHT_ISOLATE } from "Common/Types/CodeInSentence";
+import {
+  isRightToLeftLanguage,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
 
 /*
  * What the pages of a Route, a Service and a DeploymentConfig read off those
@@ -124,10 +132,20 @@ export function getRouteTlsLabel(termination: string): string {
     : termination;
 }
 
-// A Service's ports: "8080/TCP", "443→8443/TCP", "80:31080/TCP" for a node port.
+/*
+ * A Service's ports: "8080/TCP", "443→8443/TCP", "80:31080/TCP" for a node
+ * port. Each is a notation read as written, so in a language read from the
+ * right (the reader's, unless `language` says) each is set apart to read
+ * from the left (LRI ... PDI). Laid out from the right, "443→8443/TCP" was
+ * drawn "TCP/8443→443": its protocol first, and its arrow pointing from
+ * the target port back at the port.
+ */
 export function getServicePortsLabel(
   ports: ReadonlyArray<KubernetesServicePort>,
+  language: string = getGlobalTranslator().language,
 ): string {
+  const isSetApart: boolean = isRightToLeftLanguage(language);
+
   return ports
     .map((port: KubernetesServicePort): string => {
       const target: string =
@@ -135,8 +153,11 @@ export function getServicePortsLabel(
           ? `→${port.targetPort}`
           : "";
       const nodePort: string = port.nodePort ? `:${port.nodePort}` : "";
+      const notation: string = `${port.port}${nodePort}${target}/${port.protocol || "TCP"}`;
 
-      return `${port.port}${nodePort}${target}/${port.protocol || "TCP"}`;
+      return isSetApart
+        ? `${LEFT_TO_RIGHT_ISOLATE}${notation}${POP_DIRECTIONAL_ISOLATE}`
+        : notation;
     })
     .join(", ");
 }

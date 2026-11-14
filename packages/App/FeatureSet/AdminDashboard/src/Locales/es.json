@@ -535,13 +535,24 @@
         "pillNoAccessKey": "No habilitado. Por favor, añada la clave de acceso.",
         "pillNoRegion": "No habilitado. Por favor, añada la región.",
         "pillNoDomain": "No habilitado. Por favor, añada el dominio.",
-        "pillNoServerToken": "No habilitado. Por favor, añada el token de API del servidor."
+        "pillNoServerToken": "No habilitado. Por favor, añada el token de API del servidor.",
+        "environmentCardDescription": "Definidos mediante variables de entorno: email en los valores del chart de Helm, o los ajustes GLOBAL_EMAIL_ de config.env. Para cambiar estos ajustes, cámbielos allí y reinicie OneUptime.",
+        "environmentProblemsTitle": "Este servidor no envía correos electrónicos hasta que se corrijan estas variables de entorno:",
+        "environmentUnusedTitle": "Algunas variables de entorno de correo electrónico no se utilizan:",
+        "environmentIgnoredTitle": "Estas variables de entorno están definidas, pero los ajustes de correo elegidos no las leen, así que no cambian nada:",
+        "environmentValueSet": "Configurado",
+        "environmentValueNotSet": "Sin configurar"
       },
       "callSms": {
         "cardTitle": "Configuración de Twilio",
         "cardDescription": "La cuenta de Twilio con la que OneUptime envía SMS y hace llamadas, salvo que un proyecto use su propia configuración de Twilio.",
         "editButton": "Editar config de Twilio",
-        "smsSameAsCalls": "Los mismos números que las llamadas"
+        "smsSameAsCalls": "Los mismos números que las llamadas",
+        "environmentCardDescription": "Definida mediante variables de entorno: twilio en los valores del chart de Helm, o los ajustes GLOBAL_TWILIO_ de config.env. Para cambiar esta cuenta, cámbielos allí y reinicie OneUptime.",
+        "environmentProblemsTitle": "Esta cuenta no envía SMS ni hace llamadas hasta que se corrijan estas variables de entorno:",
+        "environmentUnusedTitle": "Algunas variables de entorno de Twilio no se utilizan:",
+        "authTokenSet": "Configurado",
+        "authTokenNotSet": "Sin configurar"
       },
       "whatsapp": {
         "metaCardTitle": "Ajustes de Meta WhatsApp",
@@ -2701,8 +2712,8 @@
   "does not contain": "no contiene",
   "starts with": "comienza con",
   "ends with": "termina con",
-  "matches": "coincidencias",
-  "does not match": "no coincide",
+  "matches": "coincide con",
+  "does not match": "no coincide con",
   "greater than": "mayor que",
   "greater than or equal": "mayor o igual que",
   "less than": "menor que",
@@ -2867,8 +2878,8 @@
   "Only incident episodes that match conditions": "Solo los episodios de incidente que cumplen las condiciones",
   "All alert episodes": "Todos los episodios de alerta",
   "Only alert episodes that match conditions": "Solo los episodios de alerta que cumplen las condiciones",
-  "All scheduled maintenance events": "Todos los eventos de mantenimiento programado",
-  "Only scheduled maintenance events that match conditions": "Solo los eventos de mantenimiento programado que cumplen las condiciones",
+  "All maintenance events": "Todos los eventos de mantenimiento",
+  "Only maintenance events that match conditions": "Solo los eventos de mantenimiento que cumplen las condiciones",
   "All monitors": "Todos los monitores",
   "Only monitors that match conditions": "Solo los monitores que cumplen las condiciones",
   "All status pages": "Todas las páginas de estado",
@@ -3008,5 +3019,9 @@
   "You need one of these permissions: {{permissions}}.": "Necesitas uno de estos permisos: {{permissions}}.",
   "You need this role: {{role}}.": "Necesitas este rol: {{role}}.",
   "You need one of these roles: {{roles}}.": "Necesitas uno de estos roles: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "No tiene permiso para aplicar «{{action}}» a este elemento ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "No tiene permiso para aplicar «{{action}}» a este elemento ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Este monitor no existe en este proyecto o no tiene acceso a él.",
+  "This monitor and this template are in different projects.": "Este monitor y esta plantilla están en proyectos distintos.",
+  "This monitor is not linked to this template.": "Este monitor no está vinculado a esta plantilla.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Este monitor es de tipo {{monitorType}} y esta plantilla es de tipo {{templateType}}. Solo se pueden vincular a ella monitores del tipo de la plantilla."
 }

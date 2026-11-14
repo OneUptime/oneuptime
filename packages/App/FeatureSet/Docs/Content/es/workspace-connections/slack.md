@@ -93,14 +93,17 @@ Una regla de notificación indica qué eventos se publican en Slack, y dónde. C
 | **Guardia** | Una lista de reglas |
 | **SLO** | Una lista de reglas |
 
-Crear una regla recorre cuatro pasos:
+Crear una regla recorre hasta cinco pasos:
 
 | Paso | Lo que defines |
 | --- | --- |
 | **Básico** | **Nombre de la regla** y **Descripción de la regla**. |
 | **Condiciones** | A qué eventos se aplica la regla, por ejemplo por gravedad, estado, etiqueta, monitor o palabras del título. Se comprueban al crear un evento y de nuevo con cada actualización que OneUptime publica sobre él, así que una regla para incidentes reconocidos actúa cuando se reconoce un incidente. Una regla nueva se aplica a todos los eventos, por ejemplo **Todos los incidentes**. Para acotarla, elige **Solo los incidentes que cumplen las condiciones** y añade las condiciones. Con dos o más, **Condición de coincidencia** indica si deben coincidir todas o basta con una. |
 | **Destino** | Dónde publica: **Publicar en canales existentes** con los nombres de los canales, **Crear un canal para cada incidente** (o alerta, episodio, evento, monitor o política de guardia) con quién se une a él, o ambos. Bajo el paso, **Qué hace esta regla** lo dice en frases, como la tarjeta de la regla. |
+| **Actualizaciones** | Solo incidentes, alertas, episodios y mantenimientos programados: qué actualizaciones publica la regla después del primer mensaje del registro. **Todas las actualizaciones**, con la que empieza una regla nueva, las publica todas. **Solo actualizaciones clave** publica las que más importan, que el paso enumera para cada tipo de registro: para un incidente, su resolución o reapertura, los cambios de gravedad, las notas públicas y el post mortem. **Elegir actualizaciones** te deja marcarlas una a una. Elijas lo que elijas, la regla publica el primer mensaje del registro, y una videollamada cuando empieza. |
 | **Videollamada** | Solo incidentes y alertas: iniciar una llamada para cada uno. Consulta [Videollamadas](/docs/workspace-connections/video-calls). |
+
+Cada condición se lee como una frase: el campo, cómo se compara y el valor. Los valores para elegir vienen de las listas del propio proyecto, como sus estados, gravedades, etiquetas y monitores. Una regla de guardia elige sus políticas en **Política de guardia**, que sigue coincidiendo con una política aunque se le cambie el nombre, mientras que **Nombre de la política de guardia** busca palabras en el nombre de una política. Cada tipo de evento que tiene propietarios tiene una condición de propietario, como **Propietario del incidente**: elige personas y equipos, y coincide con las personas y los equipos registrados como propietarios del evento. Pertenecer a un equipo propietario del evento no cuenta. Un propietario añadido más tarde hace que la regla coincida a partir de esa actualización, y una regla que crea canales crea el canal entonces. Un valor archivado, como una gravedad o una política de guardia, no se ofrece para una condición nueva. Una regla que ya tiene uno lo conserva, marcado como **Archivado**, y sigue coincidiendo con los eventos que lo tienen. Una persona, un equipo o una política que el proyecto ya no tiene se queda en la condición, y la tarjeta de la regla lo indica.
 
 Una regla de SLO publica los cambios de la política de presupuesto de errores de un SLO: cuando el SLO entra en un nivel, se recupera a uno menos grave o sale de todos los niveles, y cuando sus despliegues se congelan o se vuelven a permitir. Solo publica en canales existentes, ya que un SLO no tiene canal propio. Consulta [Publica en Slack, Microsoft Teams y Mattermost](/docs/slo/error-budget-policy#publica-en-slack-microsoft-teams-y-mattermost).
 
@@ -112,7 +115,7 @@ Una regla crea su canal la primera vez que un evento la cumple: al crear el even
 
 Para una programación de guardia de **Invitar también**, quien esté de guardia en ella cuando se crea el canal se une, tal como lo muestra la página de la programación, y no se le avisa. Para añadir personas solo a los canales de algunos incidentes, da a una segunda regla esas condiciones y esas personas, con el mismo **Prefijo del nombre del canal** que la primera: las reglas que un incidente cumple cuando se crea su canal comparten ese canal, y cada una añade a sus propias personas.
 
-Cada actualización posterior del registro — un cambio de estado, una nota, un nuevo propietario — se publica en sus canales, y en los canales existentes que nombran sus reglas mientras se cumplan sus condiciones. Con **Archivar el canal cuando se resuelva el incidente** activado, o su equivalente para alertas, episodios, eventos, monitores y políticas de guardia, la regla que creó un canal lo archiva cuando el registro se resuelve, se completa o se elimina, digan lo que digan entonces sus condiciones. Un incidente, una alerta o un episodio creado ya resuelto no recibe canal propio; su mensaje de creación igualmente va a los canales que nombran tus reglas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
+Cada actualización posterior del registro — un cambio de estado, una nota, un nuevo propietario — se publica en sus canales, y en los canales existentes que nombran sus reglas mientras se cumplan sus condiciones, cuando una regla que publica allí la elige en su paso **Actualizaciones**. Con **Archivar el canal cuando se resuelva el incidente** activado, o su equivalente para alertas, episodios, eventos, monitores y políticas de guardia, la regla que creó un canal lo archiva cuando el registro se resuelve, se completa o se elimina, digan lo que digan entonces sus condiciones. Un incidente, una alerta o un episodio creado ya resuelto no recibe canal propio; su mensaje de creación igualmente va a los canales que nombran tus reglas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 
 Un incidente, una alerta, un episodio o un evento de mantenimiento programado con un canal propio tiene **Abrir en Slack** en la cabecera de su página en OneUptime, junto a sus botones de estado. Abre ese canal en una pestaña nueva, en la aplicación de Slack o en el navegador. Un registro con dos canales propios los lista a ambos bajo el botón. Un registro con canales tanto en Slack como en Microsoft Teams tiene en su lugar un único botón **Abrir canal**, que los lista todos. Los canales existentes en los que publican tus reglas no se ofrecen.
 
@@ -174,7 +177,7 @@ Reacciona a un mensaje en el canal de un incidente, una alerta, un episodio o un
 
 | Reacción | Se guarda como |
 | --- | --- |
-| 📌 Un emoji de chincheta, o el propio **Pin to channel** de Slack | Una nota privada, visible solo para tu equipo |
+| 📌 Un emoji de chincheta, o el propio **Pin to channel** de Slack | Una nota privada, que solo puede leer quien puede ver el registro |
 | 📢 Un emoji de megáfono o altavoz | Una nota pública, mostrada en la página de estado. Solo incidentes y eventos de mantenimiento programado. En un incidente privado, una nota privada, y la confirmación dice por qué. Cuando las notas públicas del proyecto necesitan aprobación, se muestra una vez aprobada, y la confirmación dice a quién espera: consulta [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas). |
 
 La nota conserva el mensaje tal como lo mostraba Slack: su formato, sus enlaces y su código, las personas y los canales que menciona por su nombre, y sus archivos e imágenes como enlaces a ellos. Una nota pública deja fuera los archivos y las imágenes, ya que solo se abren para tu equipo.
@@ -281,7 +284,7 @@ El mensaje de un incidente tiene cuatro botones, **Acknowledge Incident**, **Res
 | **Change Severity** | Establece la gravedad del incidente. |
 | **Change Incident State** | Pasa el incidente a un estado posterior. |
 | **Assign Role** | Da a alguien un rol en el incidente, como **Incident Commander**. Un rol para una sola persona pasa a esa persona. |
-| **Page Someone** | Avisa a personas, a un equipo, a quien esté de guardia en una programación o a una política de guardia sobre el incidente, con un mensaje opcional. Las personas reciben avisos hasta que una de ellas responde; una política avisa hasta que alguien reconoce el incidente. |
+| **Page Someone** | Avisa a personas, a un equipo, a quien esté de guardia en una programación o a una política de guardia sobre el incidente, con un mensaje opcional. Todas las personas a las que avisa, también las de una política, reciben avisos hasta que una de ellas responde o el incidente se resuelve. |
 | **Edit Custom Fields** | Establece los campos personalizados del incidente, cada uno rellenado con lo que tiene el incidente. Un campo que se deja vacío se borra. |
 
 `/oneuptime incident 42` muestra el incidente 42, con estos botones y su menú, en un mensaje que solo ves tú. Escribe el número como lo muestra OneUptime: `42`, `#42` o `INC-42`. En el canal propio de un incidente, `/oneuptime incident` sin nada más muestra ese incidente.

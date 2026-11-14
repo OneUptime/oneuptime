@@ -498,6 +498,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   },
                   required: true,
                   placeholder: t("pages.userProjects.fieldProjectPlaceholder"),
+                  isPlaceholderTranslated: true,
                 },
                 {
                   field: {
@@ -531,6 +532,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                         placeholder={t(
                           "pages.userProjects.fieldTeamPlaceholder",
                         )}
+                        isPlaceholderTranslated={true}
                         noProjectMessage={t(
                           "pages.userProjects.selectProjectFirst",
                         )}

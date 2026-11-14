@@ -535,13 +535,24 @@
         "pillNoAccessKey": "Nicht aktiviert. Bitte fügen Sie den Zugriffsschlüssel hinzu.",
         "pillNoRegion": "Nicht aktiviert. Bitte fügen Sie die Region hinzu.",
         "pillNoDomain": "Nicht aktiviert. Bitte fügen Sie die Domäne hinzu.",
-        "pillNoServerToken": "Nicht aktiviert. Bitte fügen Sie das Server-API-Token hinzu."
+        "pillNoServerToken": "Nicht aktiviert. Bitte fügen Sie das Server-API-Token hinzu.",
+        "environmentCardDescription": "Durch Umgebungsvariablen festgelegt: email in den Werten des Helm-Charts oder die GLOBAL_EMAIL_-Einstellungen in config.env. Um diese Einstellungen zu ändern, ändern Sie sie dort und starten Sie OneUptime neu.",
+        "environmentProblemsTitle": "Dieser Server sendet keine E-Mails, bis diese Umgebungsvariablen korrigiert sind:",
+        "environmentUnusedTitle": "Einige E-Mail-Umgebungsvariablen werden nicht verwendet:",
+        "environmentIgnoredTitle": "Diese Umgebungsvariablen sind festgelegt, werden von den gewählten E-Mail-Einstellungen aber nicht gelesen und ändern daher nichts:",
+        "environmentValueSet": "Festgelegt",
+        "environmentValueNotSet": "Nicht festgelegt"
       },
       "callSms": {
         "cardTitle": "Twilio-Konfiguration",
         "cardDescription": "Das Twilio-Konto, über das OneUptime SMS und Anrufe sendet, sofern ein Projekt keine eigene Twilio-Konfiguration verwendet.",
         "editButton": "Twilio-Konfiguration bearbeiten",
-        "smsSameAsCalls": "Dieselben Nummern wie für Anrufe"
+        "smsSameAsCalls": "Dieselben Nummern wie für Anrufe",
+        "environmentCardDescription": "Durch Umgebungsvariablen festgelegt: twilio in den Werten des Helm-Charts oder die GLOBAL_TWILIO_-Einstellungen in config.env. Um dieses Konto zu ändern, ändern Sie sie dort und starten Sie OneUptime neu.",
+        "environmentProblemsTitle": "Dieses Konto sendet keine SMS und tätigt keine Anrufe, bis diese Umgebungsvariablen korrigiert sind:",
+        "environmentUnusedTitle": "Einige Twilio-Umgebungsvariablen werden nicht verwendet:",
+        "authTokenSet": "Festgelegt",
+        "authTokenNotSet": "Nicht festgelegt"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-Einstellungen",
@@ -2701,7 +2712,7 @@
   "does not contain": "enthält nicht",
   "starts with": "beginnt mit",
   "ends with": "endet mit",
-  "matches": "Treffer",
+  "matches": "stimmt überein",
   "does not match": "stimmt nicht überein",
   "greater than": "größer als",
   "greater than or equal": "größer oder gleich",
@@ -2851,10 +2862,10 @@
   "No matches found.": "Keine Treffer gefunden.",
   "No probe found.": "Keine Sonde gefunden.",
   "Probe": "Sonde",
-  "Value for condition {{number}}": "Value for condition {{number}}",
-  "Criteria for condition {{number}}": "Criteria for condition {{number}}",
-  "Operator for condition {{number}}": "Operator for condition {{number}}",
-  "Remove condition {{number}}": "Remove condition {{number}}",
+  "Value for condition {{number}}": "Wert für Bedingung {{number}}",
+  "Criteria for condition {{number}}": "Kriterium für Bedingung {{number}}",
+  "Operator for condition {{number}}": "Operator für Bedingung {{number}}",
+  "Remove condition {{number}}": "Bedingung {{number}} entfernen",
   "Applies to": "Gilt für",
   "No conditions yet": "Noch keine Bedingungen",
   "Conditions": "Bedingungen",
@@ -2867,8 +2878,8 @@
   "Only incident episodes that match conditions": "Nur Vorfallsepisoden, die den Bedingungen entsprechen",
   "All alert episodes": "Alle Warnungsepisoden",
   "Only alert episodes that match conditions": "Nur Warnungsepisoden, die den Bedingungen entsprechen",
-  "All scheduled maintenance events": "Alle geplanten Wartungsereignisse",
-  "Only scheduled maintenance events that match conditions": "Nur geplante Wartungsereignisse, die den Bedingungen entsprechen",
+  "All maintenance events": "Alle Wartungsereignisse",
+  "Only maintenance events that match conditions": "Nur Wartungsereignisse, die den Bedingungen entsprechen",
   "All monitors": "Alle Monitore",
   "Only monitors that match conditions": "Nur Monitore, die den Bedingungen entsprechen",
   "All status pages": "Alle Statusseiten",
@@ -3008,5 +3019,9 @@
   "You need one of these permissions: {{permissions}}.": "Sie benötigen eine dieser Berechtigungen: {{permissions}}.",
   "You need this role: {{role}}.": "Sie benötigen diese Rolle: {{role}}.",
   "You need one of these roles: {{roles}}.": "Sie benötigen eine dieser Rollen: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "Sie haben keine Berechtigung für „{{action}}“ bei diesem Eintrag ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "Sie haben keine Berechtigung für „{{action}}“ bei diesem Eintrag ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Dieser Monitor existiert in diesem Projekt nicht, oder Sie haben keinen Zugriff darauf.",
+  "This monitor and this template are in different projects.": "Dieser Monitor und diese Vorlage gehören zu verschiedenen Projekten.",
+  "This monitor is not linked to this template.": "Dieser Monitor ist nicht mit dieser Vorlage verknüpft.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Dieser Monitor hat den Typ {{monitorType}}, diese Vorlage den Typ {{templateType}}. Nur Monitore vom Typ der Vorlage können mit ihr verknüpft werden."
 }

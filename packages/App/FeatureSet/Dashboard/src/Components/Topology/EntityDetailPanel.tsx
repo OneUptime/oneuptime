@@ -1,4 +1,7 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -35,7 +38,7 @@ import {
   formatCallRate,
   formatDurationMs,
   formatErrorRate,
-  labelForRelationship,
+  sentenceForRelationship,
   metaForEntityType,
 } from "./TopologyMeta";
 import {
@@ -876,11 +879,30 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     const otherLabel: string =
       row.otherName ||
       (row.otherKnown ? t("Unnamed resource") : t("Undiscovered resource"));
-    const verb: string = t(labelForRelationship(row.relationshipType));
-    const sentence: string =
+    // The stored edge's own sentence, with this resource at its end of it.
+    const ends: { from: string; to: string } =
       row.direction === "out"
-        ? `${displayName} ${verb} ${otherLabel}`
-        : `${otherLabel} ${verb} ${displayName}`;
+        ? { from: displayName, to: otherLabel }
+        : { from: otherLabel, to: displayName };
+    /*
+     * Each name keeps the way it is written inside the sentence (a pod's
+     * hyphens stay where they are in an Arabic one) and a long one breaks
+     * after its own dots and hyphens, not at whatever letter fills the line.
+     * The sentence reads the way its own words do (dir auto skips the
+     * names): a type this Dashboard does not know is worded in English,
+     * and on a Persian page it kept its names in English order.
+     */
+    const sentence: ReactElement = (
+      <span dir="auto" data-testid="entity-connection-sentence">
+        <TranslatedSentence
+          template={sentenceForRelationship(row.relationshipType)}
+          slots={{
+            from: <IsolatedText text={ends.from} breaksLikeAName={true} />,
+            to: <IsolatedText text={ends.to} breaksLikeAName={true} />,
+          }}
+        />
+      </span>
+    );
     const hasMetrics: boolean = Boolean(
       config.showMetrics && row.callCount && row.callCount > 0,
     );
@@ -928,7 +950,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             onClick={open}
           >
-            {sentence} <span aria-hidden={true}>→</span>
+            {sentence} <DirectionArrow isDecorative={true} />
           </button>
         ) : (
           <p className="text-sm text-gray-900">{sentence}</p>

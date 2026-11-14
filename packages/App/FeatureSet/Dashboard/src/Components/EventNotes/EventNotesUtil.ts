@@ -593,15 +593,48 @@ export interface NotesCopy {
 
 /*
  * The events a notes feed belongs to, as its sentences name them ("Internal
- * notes for your team about this incident."). Listed so the extraction finds
- * each one; getNotesCopy translates the noun it is given as a term.
+ * notes about this incident."). Listed so the extraction finds each one;
+ * getNotesCopy translates the noun it is given as a term.
  */
 export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
   translationKey("incident"),
   translationKey("alert"),
   translationKey("episode"),
-  translationKey("scheduled maintenance event"),
+  translationKey("maintenance event"),
 ];
+
+/*
+ * WHO CAN READ A PRIVATE NOTE, beside "Private" while one is written (#7595).
+ *
+ * A private note is read through its event (@CanAccessIfCanReadOn): only the
+ * people who can see the event can read its notes - on a private incident,
+ * alert or episode, its owners and the project's owners and admins. It used
+ * to say "Only your team can see this", which read as one of OneUptime's
+ * Teams. The sentence names the event in its own word, as the chats' private
+ * note line does ("only the people who can see the incident can read it",
+ * WorkspaceNoteForm), and each event's sentence is a whole key: a language
+ * words "this incident" and "this episode" each its own way. A maintenance
+ * event's sentence says "this maintenance event": the record's name since
+ * #6817, and what the chats' option calls it.
+ */
+export const PRIVATE_NOTE_AUDIENCE_HINTS: Record<string, string> = {
+  incident: translationKey(
+    "Only people who can see this incident can read this",
+  ),
+  alert: translationKey("Only people who can see this alert can read this"),
+  episode: translationKey("Only people who can see this episode can read this"),
+  "maintenance event": translationKey(
+    "Only people who can see this maintenance event can read this",
+  ),
+};
+
+// An event's sentence: an incident's for a noun not listed.
+export function getPrivateNoteAudienceHint(eventNoun: string): string {
+  return (
+    PRIVATE_NOTE_AUDIENCE_HINTS[eventNoun] ||
+    PRIVATE_NOTE_AUDIENCE_HINTS["incident"]!
+  );
+}
 
 /*
  * The words a feed uses. The two kinds of note look alike on screen, so the
@@ -648,23 +681,32 @@ export function getNotesCopy(
     };
   }
 
+  /*
+   * Who can read a private note, said the way the composer's badge says it
+   * (PRIVATE_NOTE_AUDIENCE_HINTS): the people who can see the event. No
+   * sentence here says "your team", which read as one of OneUptime's Teams
+   * (#7595) - not the feed's header, not the prompt, and not the editor's
+   * placeholder right under the badge - and the empty feed no longer says
+   * "only people in your project", beside the badge's narrower answer on a
+   * private incident.
+   */
   return {
     title: translationKey("Private notes"),
     description: translator.translateTemplate(
-      "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.",
+      "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.",
       { event },
     ),
     composerPlaceholder: translationKey(
-      "Share findings, decisions and next steps with your team.",
+      "Share findings, decisions and next steps.",
     ),
-    composerPrompt: translationKey("Write a note for your team…"),
+    composerPrompt: translationKey("Write a private note…"),
     emptyTitle: translationKey("No private notes yet"),
     emptyDescription: translator.translateTemplate(
-      "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
+      "Capture what you learn while working on this {{event}}. Only people who can see it can read these notes.",
       { event },
     ),
     audienceLabel: translationKey("Private"),
-    audienceHint: translationKey("Only your team can see this"),
+    audienceHint: getPrivateNoteAudienceHint(eventNoun),
     submitLabel: translationKey("Add note"),
     deleteTitle: translationKey("Delete this private note?"),
     deleteDescription: translationKey(
@@ -674,6 +716,22 @@ export function getNotesCopy(
     editNoteLabel: translationKey("Edit private note"),
   };
 }
+
+/*
+ * What failed, said first when posting, editing or deleting a note fails
+ * with an error nobody explained (ErrorExplanation): the composer's error
+ * line and the delete dialog have no heading that says it. English keys,
+ * looked up where they are shown.
+ */
+export const NoteActionFailedCopy: {
+  post: string;
+  edit: string;
+  delete: string;
+} = {
+  post: translationKey("Couldn't post the note."),
+  edit: translationKey("Couldn't save your changes."),
+  delete: translationKey("Couldn't delete the note."),
+};
 
 /*
  * Whether the viewer holds one of a column's permissions for an operation,
@@ -850,7 +908,7 @@ export function canWriteNoteColumn(data: {
  * backdates an update to the second.
  */
 export function toDateTimeInputValue(date: Date): string {
-  return OneUptimeDate.toDateTimeLocalString(date).substring(0, 16);
+  return OneUptimeDate.toDateTimeLocalMinuteString(date);
 }
 
 export function fromDateTimeInputValue(value: string): Date | null {

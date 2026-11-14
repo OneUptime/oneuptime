@@ -1,7 +1,8 @@
-import { joinSentences } from "../Components/DeleteConfirmation/DeleteConsequences";
+import { joinSentences } from "./SentenceSeparator";
 import {
   composedValue,
   ComposedValue,
+  TemplateValues,
   Translator,
 } from "../../Types/Translator";
 import {
@@ -12,6 +13,11 @@ import {
   UnexplainedErrorKind,
   UnexplainedErrorReader,
 } from "../../Types/Exception/UnexplainedError";
+import {
+  readRefusalValues,
+  RefusalWithValues,
+} from "../../Types/Exception/RefusalWithValues";
+import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -33,7 +39,10 @@ import {
  * failed and what to do next, in the reader's language, with the reference
  * - but as words that go where the card's sentence puts {{error}}. Any
  * other message (one the server or the page put into words) is looked up in
- * the reader's language and otherwise drawn as written, as before.
+ * the reader's language and otherwise drawn as written, as before. A
+ * refusal of the server's with values in it (REFUSALS_WITH_VALUES: why a
+ * monitor cannot be linked to a template, with the two types) is read back
+ * and said in the reader's language with its values (#7678).
  *
  * Two ways in, one set of words:
  *   - ErrorSentence (Common/UI/Components/ErrorMessage/ErrorSentence), for a
@@ -96,6 +105,35 @@ export type ErrorInSentenceWords =
       fullStop: string;
     };
 
+/*
+ * The server's refusals with values in them (RefusalWithValues), which a
+ * message may be: each read back out of the English it arrives in, and
+ * said in the sentence's language with its values.
+ */
+const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
+  MONITOR_TYPE_MISMATCH_REFUSAL,
+];
+
+/*
+ * A message somebody put into words, in `translator`'s language: a refusal
+ * with values said with them, any other message looked up, or as written
+ * where the language has no wording of it.
+ */
+const sayMessage: (message: string, translator: Translator) => string = (
+  message: string,
+  translator: Translator,
+): string => {
+  for (const refusal of REFUSALS_WITH_VALUES) {
+    const values: TemplateValues | null = readRefusalValues(refusal, message);
+
+    if (values) {
+      return translator.translateTemplate(refusal.template, values);
+    }
+  }
+
+  return translator.translateText(message) || message;
+};
+
 // A member of a server somebody runs: the reader until the page says.
 const PLAIN_READER: UnexplainedErrorReader = {
   isCloud: false,
@@ -127,7 +165,8 @@ export const getPageErrorReader: () => UnexplainedErrorReader =
 /*
  * `message` as words for a sentence in `translator`'s language: for an
  * error nobody explained, why it failed and what to do next (and the
- * reference); for any other, the message in that language, or as written.
+ * reference); for any other, the message in that language (a refusal with
+ * values with its values), or as written.
  * The reader is the page's (getPageErrorReader) unless given, and is read
  * only for an error nobody explained: any other message is the same to
  * anyone.
@@ -150,7 +189,10 @@ export const getErrorInSentenceWords: (data: {
   const error: UnexplainedError | null = readUnexplainedError(message);
 
   if (!error) {
-    return { isUnexplained: false, text: say(message) };
+    return {
+      isUnexplained: false,
+      text: sayMessage(message, data.translator),
+    };
   }
 
   const explanation: UnexplainedErrorExplanation = getExplanationWords({
