@@ -58,12 +58,12 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/MonitorProbeService", () => {
+jest.mock("../../../../Server/Utils/Monitor/MonitorProbeLastResults", () => {
   return {
     __esModule: true,
     default: {
-      findBy: jest.fn(),
-      updateColumnsByIdWithoutHooks: jest.fn(),
+      storeResultAndReadProbes: jest.fn(),
+      readProbes: jest.fn(),
     },
   };
 });
@@ -115,7 +115,7 @@ import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorService from "../../../../Server/Services/MonitorService";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
@@ -155,11 +155,8 @@ const findMonitorMock: jest.Mock =
 const updateMonitorColumnsMock: jest.Mock =
   MonitorService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
 
-const findMonitorProbesMock: jest.Mock =
-  MonitorProbeService.findBy as unknown as jest.Mock;
-
-const updateMonitorProbeColumnsMock: jest.Mock =
-  MonitorProbeService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
+// The monitor's probe rows, and the results stored under them.
+let probeRows: MonitorProbeRowsInMemory = new MonitorProbeRowsInMemory();
 
 const lockMock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
 
@@ -293,13 +290,9 @@ type StoredProbeLogFunction = () => MonitorStepProbeResponse;
 
 // What monitorResource wrote to MonitorProbe.lastMonitoringLog.
 const storedProbeLog: StoredProbeLogFunction = (): MonitorStepProbeResponse => {
-  expect(updateMonitorProbeColumnsMock).toHaveBeenCalledTimes(1);
+  expect(probeRows.stored).toHaveLength(1);
 
-  return (
-    updateMonitorProbeColumnsMock.mock.calls[0]![0] as {
-      data: { lastMonitoringLog: MonitorStepProbeResponse };
-    }
-  ).data.lastMonitoringLog;
+  return probeRows.stored[0]!.lastMonitoringLog;
 };
 
 type StoredMonitorColumnFunction = (column: string) => unknown;
@@ -325,7 +318,12 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
 
     lockMock.mockResolvedValue({});
 
-    updateMonitorProbeColumnsMock.mockImplementation(refuseLikePostgres);
+    // The probe result write refuses what Postgres refuses, too.
+    probeRows = new MonitorProbeRowsInMemory();
+    probeRows.install();
+    probeRows.beforeStore = (result: JSONObject): void => {
+      assertJsonbAccepts(result);
+    };
     updateMonitorColumnsMock.mockImplementation(refuseLikePostgres);
 
     // No criteria met: nothing past the probe log and payload writes runs.
@@ -378,7 +376,7 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       monitorProbe.isEnabled = true;
 
       findMonitorMock.mockResolvedValue(monitor);
-      findMonitorProbesMock.mockResolvedValue([monitorProbe]);
+      probeRows.set([monitorProbe]);
     });
 
     test("is exactly what Postgres refused - the fixture reproduces the incident", () => {
@@ -405,7 +403,7 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
         ),
       ).resolves.toBeDefined();
 
-      expect(updateMonitorProbeColumnsMock).toHaveBeenCalledTimes(1);
+      expect(probeRows.stored).toHaveLength(1);
       expect(processMonitorStepMock).toHaveBeenCalledTimes(1);
       expect(jsonbWouldRefuse(storedProbeLog())).toBe(false);
     });
@@ -571,15 +569,26 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
         }),
       );
 
-      // The in-memory row is the stored value, not the live payload.
-      expect(monitorProbe.lastMonitoringLog).toBe(storedProbeLog());
-
       const agreementInput: { monitorProbes: Array<MonitorProbe> } =
         checkProbeAgreementSpy.mock.calls[0]![0] as {
           monitorProbes: Array<MonitorProbe>;
         };
 
-      expect(agreementInput.monitorProbes[0]).toBe(monitorProbe);
+      // Agreement reads the stored value, not the live payload.
+      expect(agreementInput.monitorProbes[0]!.id!.toString()).toBe(
+        monitorProbe.id!.toString(),
+      );
+      expect(
+        JSON.parse(
+          JSON.stringify(
+            agreementInput.monitorProbes[0]!.lastMonitoringLog![
+              step.id.toString()
+            ],
+          ),
+        ),
+      ).toEqual(
+        JSON.parse(JSON.stringify(storedProbeLog()[step.id.toString()])),
+      );
       expect(
         jsonbWouldRefuse(agreementInput.monitorProbes[0]!.lastMonitoringLog),
       ).toBe(false);
@@ -601,12 +610,10 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
        */
       let previousCopy: JSONObject = {};
 
-      updateMonitorProbeColumnsMock.mockImplementation(
-        (write: ColumnsWrite): Promise<void> => {
-          previousCopy = JSON.parse(JSON.stringify(result));
-          return refuseLikePostgres(write);
-        },
-      );
+      probeRows.beforeStore = (stored: JSONObject): void => {
+        previousCopy = JSON.parse(JSON.stringify(result));
+        assertJsonbAccepts(stored);
+      };
 
       await MonitorResourceUtil.monitorResource(result);
 
@@ -839,7 +846,7 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       monitorProbe.isEnabled = true;
 
       findMonitorMock.mockResolvedValue(monitor);
-      findMonitorProbesMock.mockResolvedValue([monitorProbe]);
+      probeRows.set([monitorProbe]);
 
       jest
         .spyOn(MonitorIncident, "checkOpenIncidentsAndCloseIfResolved")
@@ -983,7 +990,7 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
       monitorProbe.probeId = probeId;
       monitorProbe.isEnabled = true;
 
-      findMonitorProbesMock.mockResolvedValue([monitorProbe]);
+      probeRows.set([monitorProbe]);
     });
 
     test("the monitor's log row is saved by the monitor's switch, with the step the check ran", async () => {

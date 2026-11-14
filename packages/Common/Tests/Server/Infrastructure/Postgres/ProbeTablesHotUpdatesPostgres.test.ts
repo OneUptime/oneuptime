@@ -1,10 +1,10 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
-import { MonitorStepProbeResponse } from "../../../../Models/DatabaseModels/MonitorProbe";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import logger from "../../../../Server/Utils/Logger";
 import NetworkDeviceWalkUtil from "../../../../Server/Utils/Monitor/NetworkDeviceWalkUtil";
+import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -324,7 +324,10 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
   });
 
   describe("MonitorProbe", () => {
-    async function insertMonitorProbe(): Promise<ObjectID> {
+    async function insertMonitorProbe(): Promise<{
+      id: ObjectID;
+      monitorId: ObjectID;
+    }> {
       const monitorId: ObjectID = ObjectID.generate();
       const id: ObjectID = ObjectID.generate();
 
@@ -352,25 +355,24 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
         ],
       );
 
-      return id;
+      return { id, monitorId };
     }
 
     test("a probe's result stored over a monitor probe is a HOT update", async () => {
-      const id: ObjectID = await insertMonitorProbe();
+      const { monitorId } = await insertMonitorProbe();
 
       expect(
-        await writesOf("MonitorProbe", () => {
+        await writesOf("MonitorProbe", async (): Promise<void> => {
           // MonitorResource's write of a probe's latest result.
-          return MonitorProbeService.updateColumnsByIdWithoutHooks({
-            id,
-            data: {
-              lastMonitoringLog: {
-                "step-1": {
-                  isOnline: true,
-                  responseTimeInMs: 182,
-                  monitoredAt: NOW.toISOString(),
-                },
-              } as unknown as MonitorStepProbeResponse,
+          await MonitorProbeLastResults.storeResultAndReadProbes({
+            monitorId,
+            reportingProbeId: PROBE_ID,
+            reportedStepId: "step-1",
+            judgedStepId: "step-1",
+            result: {
+              isOnline: true,
+              responseTimeInMs: 182,
+              monitoredAt: NOW.toISOString(),
             },
           });
         }),
@@ -378,7 +380,7 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
     });
 
     test("the claim is not, and cannot be: it moves nextPingAt, which the claim's own index orders by", async () => {
-      const id: ObjectID = await insertMonitorProbe();
+      const { id } = await insertMonitorProbe();
       let claimed: Array<ObjectID> = [];
 
       expect(

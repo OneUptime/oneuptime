@@ -62,12 +62,12 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/MonitorProbeService", () => {
+jest.mock("../../../../Server/Utils/Monitor/MonitorProbeLastResults", () => {
   return {
     __esModule: true,
     default: {
-      findBy: jest.fn(),
-      updateColumnsByIdWithoutHooks: jest.fn(),
+      storeResultAndReadProbes: jest.fn(),
+      readProbes: jest.fn(),
     },
   };
 });
@@ -116,7 +116,7 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import MonitorService from "../../../../Server/Services/MonitorService";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -140,8 +140,8 @@ const processMonitorStepMock: jest.Mock =
 const findOneByIdMock: jest.Mock =
   MonitorService.findOneById as unknown as jest.Mock;
 
-const findByMock: jest.Mock =
-  MonitorProbeService.findBy as unknown as jest.Mock;
+// The monitor's probe rows, as MonitorProbeLastResults answers them.
+const probeRows: MonitorProbeRowsInMemory = new MonitorProbeRowsInMemory();
 
 const lockMock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
 
@@ -311,7 +311,8 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
       monitorProbe.isEnabled = true;
 
       findOneByIdMock.mockResolvedValue(monitor);
-      findByMock.mockResolvedValue([monitorProbe]);
+      probeRows.install();
+      probeRows.set([monitorProbe]);
     });
 
     test("evaluates the named step's criteria, not step 0's", async () => {
@@ -492,7 +493,8 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
       monitorProbe.isEnabled = true;
 
       findOneByIdMock.mockResolvedValue(monitor);
-      findByMock.mockResolvedValue([monitorProbe]);
+      probeRows.install();
+      probeRows.set([monitorProbe]);
 
       await MonitorResourceUtil.monitorResource(
         makeProbeResult({
@@ -527,7 +529,8 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
       monitorProbe.isEnabled = true;
 
       findOneByIdMock.mockResolvedValue(monitor);
-      findByMock.mockResolvedValue([monitorProbe]);
+      probeRows.install();
+      probeRows.set([monitorProbe]);
 
       await MonitorResourceUtil.monitorResource(
         makeProbeResult({

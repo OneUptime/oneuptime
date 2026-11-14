@@ -1,4 +1,3 @@
-import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
 import ProjectService from "../../Services/ProjectService";
 import MonitorStatusTimelineService, {
@@ -98,8 +97,13 @@ import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
-import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../Models/DatabaseModels/Probe";
+import MonitorProbeLastResults, {
+  MonitorProbeOfResult,
+  MonitorProbesOfResult,
+} from "./MonitorProbeLastResults";
 import { toStorableJson } from "../Database/PostgresStorableValue";
 import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
@@ -520,12 +524,13 @@ export default class MonitorResourceUtil {
       const monitorName: string | undefined = monitor.name || undefined;
 
       /*
-       * All MonitorProbe rows for this monitor, fetched once per result and
-       * reused by checkProbeAgreement below. The rows carry the heavy
-       * lastMonitoringLog jsonb, so re-fetching them per result was the
-       * second-largest read on the hottest Postgres path. Safe to reuse: the
-       * per-monitor semaphore above serializes every writer of these rows
-       * for the duration of this function.
+       * This monitor's probes, read once per result with the statement that
+       * stores the result (MonitorProbeLastResults) and reused by
+       * checkProbeAgreement below. Of each probe's lastMonitoringLog only
+       * what agreement judges is read: the step judged, from the other
+       * enabled, connected probes. Safe to reuse: the per-monitor semaphore
+       * above serializes every writer of these rows for the duration of this
+       * function.
        */
       let monitorProbesForMonitor: Array<MonitorProbe> | null = null;
 
@@ -554,54 +559,17 @@ export default class MonitorResourceUtil {
       ) {
         dataToProcess = dataToProcess as ProbeMonitorResponse;
         if ((dataToProcess as ProbeMonitorResponse).probeId) {
-          /*
-           * One query for every probe assigned to this monitor (instead of
-           * one for the current probe here plus another for all of them in
-           * checkProbeAgreement). The select is the union both consumers
-           * need.
-           */
-          monitorProbesForMonitor = await MonitorProbeService.findBy({
-            query: {
-              monitorId: monitor.id!,
-            },
-            select: {
-              _id: true,
-              probeId: true,
-              isEnabled: true,
-              lastMonitoringLog: true,
-              probe: {
-                name: true,
-                connectionStatus: true,
-              },
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          const probeResult: ProbeMonitorResponse =
+            dataToProcess as ProbeMonitorResponse;
 
           /*
            * The probe the result is from must be one of this monitor's own:
            * its result is stored under that probe's row and nowhere else.
            * Ids compared as Postgres compares uuids, whatever their case.
            */
-          const resultProbeId: string = (dataToProcess as ProbeMonitorResponse)
+          const resultProbeId: string = probeResult
             .probeId!.toString()
             .toLowerCase();
-
-          const monitorProbe: MonitorProbe | undefined =
-            monitorProbesForMonitor.find((mp: MonitorProbe) => {
-              return mp.probeId?.toString().toLowerCase() === resultProbeId;
-            });
-
-          if (!monitorProbe) {
-            throw new BadDataException(
-              ExceptionMessages.ProbeNotAssignedToMonitor,
-            );
-          }
-
-          probeName = monitorProbe.probe?.name || undefined;
 
           /*
            * Network Device monitors no longer flow through here: they are
@@ -610,78 +578,131 @@ export default class MonitorResourceUtil {
            * inventory, and evaluates watching monitors on each device walk.
            */
 
-          if (!isSnmpTrapEvent) {
-            /*
-             * Runs once per probe check result — the hottest recurring write
-             * in the product. The full updateOneBy pipeline would re-SELECT
-             * this row (including the large lastMonitoringLog jsonb we just
-             * fetched above) and then save() it (another SELECT + UPDATE in a
-             * transaction). MonitorProbe has no workflow/audit/realtime
-             * decorators, so those hooks were inert anyway — a single
-             * UPDATE by the id we already hold is equivalent and 3x cheaper.
-             * See the Monitor heartbeat writes below for the same pattern.
-             *
-             * The copy written is a storable one: a single NUL in the
-             * response body or headers made Postgres refuse the whole jsonb
-             * value, failing this job before the result was evaluated, on
-             * every retry. dataToProcess itself stays as the probe sent it,
-             * for the criteria below. The other steps' entries were read back
-             * from this column, so they are storable already.
-             *
-             * Kept as the probe sent it, unlike the monitor's logs:
-             * checkProbeAgreement judges it again against the criteria, and
-             * a filter on the body needs the body. People read it redacted
-             * as the logs are (MonitorProbeService.onFindSuccess).
-             */
-            const updatedLastMonitoringLog: MonitorStepProbeResponse = {
-              ...(monitorProbe.lastMonitoringLog || {}),
-              [(
-                dataToProcess as ProbeMonitorResponse
-              ).monitorStepId.toString()]: {
-                ...toStorableJson(dataToProcess as ProbeMonitorResponse),
-                monitoredAt: OneUptimeDate.getCurrentDate(),
-              },
-            };
+          /*
+           * The result as the probe's last for its step, stored once per
+           * probe check result — the hottest recurring write in the
+           * product. A single statement merges it into the probe's
+           * lastMonitoringLog in Postgres and reads the monitor's probes
+           * (MonitorProbeLastResults); the column is never read out to be
+           * written back. MonitorProbe has no workflow/audit/realtime
+           * decorators, so the hook pipeline would have been inert anyway.
+           *
+           * The copy written is a storable one: a single NUL in the
+           * response body or headers made Postgres refuse the whole jsonb
+           * value, failing this job before the result was evaluated, on
+           * every retry. dataToProcess itself stays as the probe sent it,
+           * for the criteria below. The other steps' entries stay in the
+           * column as they were, so they are storable already.
+           *
+           * Kept as the probe sent it, unlike the monitor's logs:
+           * checkProbeAgreement judges it again against the criteria, and
+           * a filter on the body needs the body. People read it redacted
+           * as the logs are (MonitorProbeService.onFindSuccess).
+           *
+           * A trap is not a check of its own, and a result that names no
+           * step has no entry to be: nothing is stored for either, and the
+           * probes are only read.
+           */
+          const reportedStepId: string =
+            probeResult.monitorStepId?.toString() || "";
 
+          const storedResult: ProbeMonitorResponse | undefined =
+            isSnmpTrapEvent || !reportedStepId
+              ? undefined
+              : ({
+                  ...toStorableJson(probeResult),
+                  monitoredAt: OneUptimeDate.getCurrentDate(),
+                } as ProbeMonitorResponse);
+
+          /*
+           * What probe agreement will read of the other probes: the step
+           * this result is judged against. A trap is not judged by
+           * agreement.
+           */
+          const judgedStepId: string | undefined = isSnmpTrapEvent
+            ? undefined
+            : MonitorResourceUtil.findStepToJudge({
+                monitorSteps: monitor.monitorSteps,
+                dataToProcess: dataToProcess,
+              })?.id.toString();
+
+          let probesOfResult: MonitorProbesOfResult;
+
+          try {
+            probesOfResult =
+              await MonitorProbeLastResults.storeResultAndReadProbes({
+                monitorId: monitor.id!,
+                reportingProbeId: probeResult.probeId!,
+                reportedStepId: reportedStepId,
+                judgedStepId: judgedStepId,
+                result: storedResult as unknown as JSONObject | undefined,
+              });
+          } catch (err) {
             /*
              * A row lock another writer held past lock_timeout costs the
              * stored copy of this one result, not the result (OneUptime
-             * issue #7194): the evaluation below runs on it all the same,
-             * and the probe's next result is stored over it. Thrown, it
-             * failed the whole job, and the queue ran it again from the
-             * start - twice - on the database that was already too busy.
-             * Any other failure is still thrown.
+             * issue #7194): the probes are read without the write, the
+             * evaluation below runs on the result all the same, and the
+             * probe's next result is stored over it. Thrown, it failed the
+             * whole job, and the queue ran it again from the start - twice
+             * - on the database that was already too busy. Any other
+             * failure is still thrown.
              */
-            try {
-              await MonitorProbeService.updateColumnsByIdWithoutHooks({
-                id: monitorProbe.id!,
-                data: {
-                  lastMonitoringLog: updatedLastMonitoringLog as any,
-                },
-              });
-            } catch (err) {
-              if (!isPostgresLockContentionError(err)) {
-                throw err;
-              }
-
-              logger.warn(
-                `${dataToProcess.monitorId.toString()} - the result of probe ${resultProbeId} is evaluated but not stored as its last result: another writer held the monitor probe's row (${
-                  err instanceof Error ? err.message : String(err)
-                }). Its next result is stored as usual.`,
-                {
-                  projectId: monitor.projectId?.toString(),
-                  monitorId: monitor.id?.toString(),
-                } as LogAttributes,
-              );
+            if (!storedResult || !isPostgresLockContentionError(err)) {
+              throw err;
             }
 
-            /*
-             * Mirror the write onto the in-memory row so checkProbeAgreement
-             * (which reuses monitorProbesForMonitor instead of re-querying)
-             * sees exactly what a fresh read would return.
-             */
-            monitorProbe.lastMonitoringLog = updatedLastMonitoringLog;
+            logger.warn(
+              `${dataToProcess.monitorId.toString()} - the result of probe ${resultProbeId} is evaluated but not stored as its last result: another writer held the monitor probe's row (${
+                err instanceof Error ? err.message : String(err)
+              }). Its next result is stored as usual.`,
+              {
+                projectId: monitor.projectId?.toString(),
+                monitorId: monitor.id?.toString(),
+              } as LogAttributes,
+            );
+
+            probesOfResult =
+              await MonitorProbeLastResults.storeResultAndReadProbes({
+                monitorId: monitor.id!,
+                reportingProbeId: probeResult.probeId!,
+                reportedStepId: reportedStepId,
+                judgedStepId: judgedStepId,
+                result: undefined,
+              });
           }
+
+          const reportingProbe: MonitorProbeOfResult | undefined =
+            probesOfResult.probes.find((probe: MonitorProbeOfResult) => {
+              return probe.probeId.toString().toLowerCase() === resultProbeId;
+            });
+
+          if (!reportingProbe) {
+            throw new BadDataException(
+              ExceptionMessages.ProbeNotAssignedToMonitor,
+            );
+          }
+
+          probeName = reportingProbe.probeName || undefined;
+
+          /*
+           * The probes as checkProbeAgreement reads them: the reporting
+           * probe with this result as its last for the step it reported
+           * (stored or, under another writer's lock, not), the others with
+           * their last result for the step judged.
+           */
+          monitorProbesForMonitor = probesOfResult.probes.map(
+            (probe: MonitorProbeOfResult): MonitorProbe => {
+              return MonitorResourceUtil.toMonitorProbeForAgreement({
+                probe: probe,
+                judgedStepId: judgedStepId,
+                reportedResult:
+                  probe === reportingProbe && storedResult
+                    ? { stepId: reportedStepId, result: storedResult }
+                    : undefined,
+              });
+            },
+          );
         }
       }
 
@@ -921,37 +942,15 @@ export default class MonitorResourceUtil {
        * step 0's id into checkProbeAgreement (so agreement compared this
        * result against other probes' logs for the wrong step).
        */
-      let monitorStep: MonitorStep | undefined =
-        monitorSteps.data.monitorStepsInstanceArray[0];
+      const monitorStep: MonitorStep | undefined =
+        MonitorResourceUtil.findStepToJudge({
+          monitorSteps: monitorSteps,
+          dataToProcess: dataToProcess,
+        });
 
       logger.debug(
-        `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"}`,
+        `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"} (reported: ${(dataToProcess as ProbeMonitorResponse).monitorStepId})`,
       );
-
-      if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
-        const ingestedMonitorStep: MonitorStep | undefined =
-          monitorSteps.data.monitorStepsInstanceArray.find(
-            (step: MonitorStep) => {
-              return (
-                step.id.toString() ===
-                (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
-              );
-            },
-          );
-
-        /*
-         * An id that matches no step is stale - the step was deleted after the
-         * probe was scheduled. Keep the existing behaviour there and fall back
-         * to the first step rather than dropping the result.
-         */
-        if (ingestedMonitorStep) {
-          monitorStep = ingestedMonitorStep;
-        }
-
-        logger.debug(
-          `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
-        );
-      }
 
       if (!monitorStep) {
         logger.debug("No steps found, ignoring everything.");
@@ -1955,6 +1954,83 @@ export default class MonitorResourceUtil {
   }
 
   /*
+   * The step a result is judged against. A probe result carries the
+   * monitorStepId it ran, and a monitor can have several steps whose
+   * criteria differ - so the step must be looked up, not assumed to be the
+   * first one. An id that matches no step is stale - the step was deleted
+   * after the probe was scheduled - and the first step is judged instead
+   * rather than dropping the result. Undefined for a monitor with no steps.
+   */
+  public static findStepToJudge(input: {
+    monitorSteps: MonitorSteps | undefined;
+    dataToProcess: DataToProcess;
+  }): MonitorStep | undefined {
+    const steps: Array<MonitorStep> =
+      input.monitorSteps?.data?.monitorStepsInstanceArray || [];
+
+    const reportedStepId: string | undefined = (
+      input.dataToProcess as ProbeMonitorResponse
+    ).monitorStepId?.toString();
+
+    if (reportedStepId) {
+      const reportedStep: MonitorStep | undefined = steps.find(
+        (step: MonitorStep) => {
+          return step.id.toString() === reportedStepId;
+        },
+      );
+
+      if (reportedStep) {
+        return reportedStep;
+      }
+    }
+
+    return steps[0];
+  }
+
+  /*
+   * A probe of the monitor as checkProbeAgreement reads it: its last result
+   * of the step judged, and - for the probe that reported the result being
+   * handled - that result as its last of the step it reported.
+   */
+  public static toMonitorProbeForAgreement(input: {
+    probe: MonitorProbeOfResult;
+    judgedStepId: string | undefined;
+    reportedResult?:
+      | { stepId: string; result: ProbeMonitorResponse }
+      | undefined;
+  }): MonitorProbe {
+    const probe: Probe = new Probe();
+
+    if (input.probe.probeName !== undefined) {
+      probe.name = input.probe.probeName;
+    }
+
+    if (input.probe.probeConnectionStatus !== undefined) {
+      probe.connectionStatus = input.probe.probeConnectionStatus;
+    }
+
+    const lastMonitoringLog: MonitorStepProbeResponse = {};
+
+    if (input.judgedStepId && input.probe.resultForJudgedStep) {
+      lastMonitoringLog[input.judgedStepId] = input.probe.resultForJudgedStep;
+    }
+
+    if (input.reportedResult) {
+      lastMonitoringLog[input.reportedResult.stepId] =
+        input.reportedResult.result;
+    }
+
+    const monitorProbe: MonitorProbe = new MonitorProbe();
+    monitorProbe.id = input.probe.monitorProbeId;
+    monitorProbe.probeId = input.probe.probeId;
+    monitorProbe.isEnabled = input.probe.isEnabled;
+    monitorProbe.probe = probe;
+    monitorProbe.lastMonitoringLog = lastMonitoringLog;
+
+    return monitorProbe;
+  }
+
+  /*
    * A primary-key read of a single column; kept separate from the monitor
    * load above so that load can stay outside the lock (see the comment on
    * the lock for why validation must come first).
@@ -2123,11 +2199,11 @@ export default class MonitorResourceUtil {
     currentProbeId?: ObjectID | undefined;
     /*
      * Pre-fetched MonitorProbe rows for this monitor (probeId, isEnabled,
-     * lastMonitoringLog, probe.name/connectionStatus). The probe-result hot
-     * path passes these to avoid re-reading every row's lastMonitoringLog
-     * jsonb per result; safe because the caller holds the per-monitor lock,
-     * so the rows cannot change underneath us. When absent, fall back to
-     * querying.
+     * probe.name/connectionStatus, and the step judged of lastMonitoringLog).
+     * The probe-result hot path passes the ones it read with the statement
+     * that stored its result; safe because the caller holds the per-monitor
+     * lock, so the rows cannot change underneath us. When absent, they are
+     * read - with no more of lastMonitoringLog than the step judged.
      */
     monitorProbes?: Array<MonitorProbe> | undefined;
     /*
@@ -2146,25 +2222,17 @@ export default class MonitorResourceUtil {
      */
     const monitorProbes: Array<MonitorProbe> =
       input.monitorProbes ||
-      (await MonitorProbeService.findBy({
-        query: {
+      (
+        await MonitorProbeLastResults.readProbes({
           monitorId: monitor.id!,
-        },
-        select: {
-          probeId: true,
-          isEnabled: true,
-          lastMonitoringLog: true,
-          probe: {
-            connectionStatus: true,
-            name: true,
-          },
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      }));
+          judgedStepId: monitorStep.id.toString(),
+        })
+      ).map((probe: MonitorProbeOfResult): MonitorProbe => {
+        return MonitorResourceUtil.toMonitorProbeForAgreement({
+          probe: probe,
+          judgedStepId: monitorStep.id.toString(),
+        });
+      });
 
     // Filter to only active probes (enabled AND connected)
     const activeProbes: Array<MonitorProbe> = monitorProbes.filter(
