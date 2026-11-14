@@ -47,7 +47,7 @@ export ONEUPTIME_URL=https://oneuptime.com
 oneuptime whoami --check -o json
 ```
 
-Legen Sie den Schlüssel unter **Projekteinstellungen → Erweitert → API-Schlüssel** an: siehe [Einen API-Schlüssel anlegen](/docs/api-reference/api-reference#einen-api-schlüssel-anlegen). Ein Schlüssel, der nur lesen darf, lässt den Agenten nachsehen und sonst nichts.
+Legen Sie den Schlüssel unter **Projekteinstellungen → Erweitert → API-Schlüssel** an: siehe [Einen API-Schlüssel erstellen](/docs/api-reference/api-reference#einen-api-schlüssel-erstellen). Ein Schlüssel, der nur lesen darf, lässt den Agenten nachsehen und sonst nichts.
 
 ## Wie ein Agent sich zurechtfindet
 

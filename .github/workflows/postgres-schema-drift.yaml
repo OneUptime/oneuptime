@@ -3221,6 +3221,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
 
+      # A key used only over OTLP gRPC shows as used (#7887), end to end: the
+      # production gRPC server on a loopback port, a real client's OTLP
+      # export, the key resolved from Postgres and its lastUsedAt written by
+      # the throttled stamp the HTTP ingest middleware shares. An accepted
+      # export stamps its own key's row, once per throttle window, leaving
+      # updatedAt alone; a refused key, a blocked or unpaid project, a
+      # budget refusal and a failed enqueue stamp nothing. Clones the
+      # migrated Project and TelemetryIngestionKey into an isolated schema.
+      - name: Test that a key used only over OTLP gRPC is stamped as used on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_GRPC_KEY_LAST_USED_TESTS: "true"
+          GRPC_KEY_LAST_USED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GRPC_KEY_LAST_USED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GRPC_KEY_LAST_USED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/GrpcServerKeyLastUsedPostgres.test.ts --forceExit
+
       # An exception's activity timeline: a triage written through the
       # service's updates leaves its rows (and one that changes nothing
       # leaves none), and a teammate reads only the timelines of the

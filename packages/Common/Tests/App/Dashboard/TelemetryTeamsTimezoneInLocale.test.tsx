@@ -189,10 +189,12 @@ describe("the telemetry overviews' refresh control in German and Arabic", () => 
     });
 
     expect(options[0]).toBe(worded(DE, "Off"));
+    // The interval is German too, not English's short "30s" (issue #7303).
     expect(options).toContain(
-      worded(DE, "Every {{interval}}", { interval: "30s" }),
+      worded(DE, "Every {{interval}}", { interval: "30 Sek." }),
     );
     expect(options.join(" ")).not.toContain("Every");
+    expect(options.join(" ")).not.toContain("30s");
     expect(screen.getByTitle(worded(DE, "Refresh now"))).toBeInTheDocument();
   });
 

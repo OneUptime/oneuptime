@@ -265,15 +265,22 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                   data-testid="user-flow-insight"
                   data-kind={insight.kind}
                   data-focus-direction={insight.focusDirection}
+                  /*
+                   * Only drawn: the page is set apart from the words
+                   * around it (setsValuesApart), so an Arabic or Persian
+                   * title names "/cart", not "cart/".
+                   */
                   title={
                     insight.focusDirection === "backward"
                       ? translator.translateTemplate(
                           "Show how sessions reached {{page}}",
                           { page: getUserFlowPageText(insight.page) },
+                          { setsValuesApart: true },
                         )
                       : translator.translateTemplate(
                           "Show paths from {{page}}",
                           { page: getUserFlowPageText(insight.page) },
+                          { setsValuesApart: true },
                         )
                   }
                   onClick={(): void => {

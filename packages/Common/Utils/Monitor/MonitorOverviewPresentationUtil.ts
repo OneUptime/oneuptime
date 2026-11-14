@@ -443,7 +443,7 @@ const PAUSED_EXPLANATION: Record<
 };
 
 const MANUAL_EXPLANATION: string = translationKey(
-  "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.",
+  "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or maintenance event changes it.",
 );
 
 /*

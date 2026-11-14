@@ -138,7 +138,7 @@ At læse en note via API'et, Terraform eller et workflow viser kun de vedhæftni
 
 ## Generér en note med AI
 
-Editoren har en knap **Udkast med AI** på begge notesider og i feedets dialoger **Tilføj offentlig note** og **Tilføj privat note**. Den sender hændelsen til dit projekts AI-udbyder og sætter den genererede Markdown ind i noten, hvor du redigerer den, før du slår den op — intet offentliggøres automatisk.
+Editoren har en knap **Udkast med AI** på begge notesider og i feedets dialoger **Tilføj offentlig note** og **Tilføj privat note**. Den sender hændelsen til dit projekts [LLM-udbyder](/docs/ai/llm-provider) og sætter den genererede Markdown ind i noten, hvor du redigerer den, før du slår den op — intet offentliggøres automatisk.
 
 | Dialog                             | Hvad den skriver                                                     | Skabeloner                                                        |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

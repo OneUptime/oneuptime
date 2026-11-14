@@ -48,9 +48,6 @@ const SESSION_ANNOUNCED_STORAGE_KEY: string = "oneuptime.analytics.session";
 /* How often the location is looked at for a single-page app's route change. */
 const PAGE_CHECK_INTERVAL_MS: number = 1000;
 
-/* A hash that is a route (#/orders, #!/orders) rather than an in-page anchor. */
-const HASH_ROUTE_PATTERN: RegExp = /^#!?\//;
-
 /* The longest a recorder waits before trying a failed batch again. */
 const MAX_RETRY_DELAY_MS: number = 5 * 60 * 1000;
 
@@ -124,20 +121,14 @@ function writeStorage(key: string, value: string): void {
 /*
  * The page an event happened on: the scrubbed path, without query or
  * fragment - and for a hash router (#/orders/42) the route in the hash,
- * after the page's own path.
+ * after the page's own path. Which fragment is a route is UrlScrubber's
+ * rule, the one the replay's URLs are stored by.
  */
 export function readProductAnalyticsPage(locationRef: Location): string {
   let path: string = UrlScrubber.scrubPath(locationRef.pathname || "/");
-  const hash: string = locationRef.hash || "";
+  const route: string | null = UrlScrubber.getHashRoute(locationRef.hash || "");
 
-  if (HASH_ROUTE_PATTERN.test(hash)) {
-    let route: string = hash.slice(hash.charAt(1) === "!" ? 2 : 1);
-    const queryIndex: number = route.indexOf("?");
-
-    if (queryIndex >= 0) {
-      route = route.slice(0, queryIndex);
-    }
-
+  if (route !== null) {
     path =
       (path.endsWith("/") ? path.slice(0, -1) : path) +
       UrlScrubber.scrubPath(route);

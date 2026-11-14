@@ -304,6 +304,21 @@ export const ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED: ReadonlyArray<{
     docsPage: "scheduled-maintenance/creating-events",
     alsoAnswers: ["scheduled-maintenance/index"],
   },
+  /*
+   * The product's button is "API-Schlüssel erstellen" (#7876). While the
+   * API reference called its step "anlegen", these found it 8th, after six
+   * migration guides whose "erstellen" step makes a key in the other tool.
+   */
+  {
+    language: "de",
+    question: "Wie erstelle ich einen API-Schlüssel?",
+    docsPage: "api-reference/api-reference",
+  },
+  {
+    language: "de",
+    question: "Wie kann ich einen API-Schlüssel erstellen?",
+    docsPage: "api-reference/api-reference",
+  },
   {
     language: "fa",
     question: "چطور یک صفحه وضعیت بسازم؟",

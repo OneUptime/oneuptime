@@ -309,7 +309,7 @@ OneUptime kunde inte lägga mötet i organisatörens kalender, så den startade 
 :::
 
 :::details OneUptime AI kunde inte läsa en transkription
-Kortet säger varför: AI är avstängt för projektet, projektet har nått en daglig AI-gräns, eller AI-leverantören nekade. När det är åtgärdat läser **Försök igen** på kortet den igen.
+Kortet säger varför: AI är avstängt för projektet, projektet har nått en daglig AI-gräns, eller projektets [LLM-leverantör](/docs/ai/llm-provider) nekade. När det är åtgärdat läser **Försök igen** på kortet den igen.
 :::
 
 ## Nästa steg

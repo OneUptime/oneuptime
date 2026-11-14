@@ -110,7 +110,12 @@ function busyFleet(loadedAt) {
         latestDiskPercent: 96.4,
         latestDiskMountpoint: "/var/lib/postgresql",
         latestLoadAverage15m: 6.4,
-        bootedAt: new Date(loadedAt - 41 * DAY),
+        /*
+         * Booted 41 days and 7 seconds before the data was built: its
+         * hero says "Up 41d" whatever second it is drawn in, never days
+         * with seconds ("Up 41d 7s", issue #7306).
+         */
+        bootedAt: new Date(loadedAt - 41 * DAY - 7 * 1000),
         collectorConfig: { _id: CONFIG_ID, name: "Databases" },
       },
       loadedAt,

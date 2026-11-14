@@ -74,6 +74,13 @@ Fluentd की कॉन्फ़िगरेशन फ़ाइल आमतौ
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` बफ़र के हर चंक को एक JSON ऐरे के रूप में भेजता है, और `flush_interval 10s` हर 10 सेकंड में बफ़र भेजता है। `chunk_limit_size 900k` हर रिक्वेस्ट को 1 MB से कम रखता है, जो इस एंडपॉइंट पर OneUptime की अधिकतम सीमा है।
@@ -123,6 +130,13 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 अलग-अलग स्रोतों को अलग-अलग सेवाओं के रूप में भेजने के लिए, हर टैग के लिए एक `<match>` सेक्शन इस्तेमाल करें, और हर एक में अपना `x-oneuptime-service-name` रखें।

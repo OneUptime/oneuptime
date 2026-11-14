@@ -32,6 +32,8 @@ import MoreMenuItem from "../../../UI/Components/MoreMenu/MoreMenuItem";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import IconProp from "../../../Types/Icon/IconProp";
+import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * ---------------------------------------------------------------------------
@@ -123,6 +125,22 @@ const fill: (template: string, values: Record<string, string>) => string = (
   }
 
   return text;
+};
+
+/*
+ * A sentence that names a column, as the picker fills it: through the
+ * Dashboard's Translator, the column's title a term. A Chinese or Japanese
+ * sentence keeps no space where the name and its words meet in their own
+ * script: "名前を上へ移動", "上移名称" (#7864).
+ */
+const namingColumn: (
+  language: string,
+  template: string,
+  title: string,
+) => string = (language: string, template: string, title: string): string => {
+  return dashboardTranslator(language).translateTemplate(template, {
+    column: translatableTerm(title),
+  });
 };
 
 // Everything the picker and the way to it say, as the source writes it.
@@ -374,23 +392,21 @@ describe.each(LANGUAGES)("Customize Columns in %s", (language: string) => {
     );
 
     for (const column of VCENTER_COLUMNS) {
-      const name: string = drawn(language, column.title);
-
       expect(
         within(picker()).getByTestId(`column-move-up-${column.field}`),
       ).toHaveAttribute(
         "aria-label",
-        fill(drawn(language, MOVE_COLUMN_UP), { column: name }),
+        namingColumn(language, MOVE_COLUMN_UP, column.title),
       );
       expect(
         within(picker()).getByTestId(`column-move-down-${column.field}`),
       ).toHaveAttribute(
         "aria-label",
-        fill(drawn(language, MOVE_COLUMN_DOWN), { column: name }),
+        namingColumn(language, MOVE_COLUMN_DOWN, column.title),
       );
       expect(
         within(list).getByLabelText(
-          fill(drawn(language, DRAG_COLUMN), { column: name }),
+          namingColumn(language, DRAG_COLUMN, column.title),
         ),
       ).toBeInTheDocument();
     }

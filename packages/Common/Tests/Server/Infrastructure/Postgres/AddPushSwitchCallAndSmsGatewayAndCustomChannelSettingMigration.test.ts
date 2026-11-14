@@ -18,6 +18,7 @@ import {
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddCustomNotificationChannelIndexesAndKeys1808090000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808090000000-AddCustomNotificationChannelIndexesAndKeys";
 import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808100000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
+import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809126000000-GlobalConfigCredentialsEncryptedColumns";
 
 /*
  * THE MIGRATION FOR THE PUSH SWITCH, THE SMS AND CALL GATEWAY AND CUSTOM
@@ -42,6 +43,11 @@ import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 } fr
  * exactly those columns, that down() takes back exactly them, that the
  * migration and the models describe the same columns, and that it is
  * registered after every migration before it.
+ *
+ * The gateway's secret has since been stored encrypted, as the server's
+ * other credentials are (#7739): the model's column is text, and the later
+ * GlobalConfigCredentialsEncryptedColumns migration widens the varchar this
+ * one adds to it, so the migrations together still end where the model is.
  */
 
 const MIGRATION_TIMESTAMP: string = "1808100000000";
@@ -252,24 +258,49 @@ describe("the migration and the models", () => {
     expect(options!.unique).toBe(false);
   });
 
-  test.each([
-    ["callAndSmsGatewayUrl", ColumnType.LongText, ColumnLength.LongText],
-    ["callAndSmsGatewaySecret", ColumnType.ShortText, ColumnLength.ShortText],
-  ] as Array<[string, ColumnType, number]>)(
-    "GlobalConfig.%s: nullable, with no default",
-    (column: string, type: ColumnType, length: number) => {
-      const options: ColumnMetadataArgs["options"] | undefined = typeOrmColumn(
-        GlobalConfig,
-        column,
-      )?.options;
+  test("GlobalConfig.callAndSmsGatewayUrl: long text, nullable, with no default", () => {
+    const options: ColumnMetadataArgs["options"] | undefined = typeOrmColumn(
+      GlobalConfig,
+      "callAndSmsGatewayUrl",
+    )?.options;
 
-      expect(options).toBeDefined();
-      expect(options!.type).toBe(type);
-      expect(options!.length).toBe(length);
-      expect(options!.nullable).toBe(true);
-      expect(options!.default).toBeUndefined();
-    },
-  );
+    expect(options).toBeDefined();
+    expect(options!.type).toBe(ColumnType.LongText);
+    expect(options!.length).toBe(ColumnLength.LongText);
+    expect(options!.nullable).toBe(true);
+    expect(options!.default).toBeUndefined();
+  });
+
+  test("GlobalConfig.callAndSmsGatewaySecret: nullable, with no default, and text for its ciphertext, as the later migration widens it to", async () => {
+    const options: ColumnMetadataArgs["options"] | undefined = typeOrmColumn(
+      GlobalConfig,
+      "callAndSmsGatewaySecret",
+    )?.options;
+
+    expect(options).toBeDefined();
+    expect(options!.type).toBe(ColumnType.VeryLongText);
+    expect(options!.length).toBeUndefined();
+    expect(options!.nullable).toBe(true);
+    expect(options!.default).toBeUndefined();
+
+    // This migration adds a varchar; the later one alters it to text in place.
+    const { runner, statements } = recordingRunner();
+
+    await new GlobalConfigCredentialsEncryptedColumns1809126000000().up(runner);
+
+    expect(statements).toContain(
+      `ALTER TABLE "GlobalConfig" ALTER COLUMN "callAndSmsGatewaySecret" TYPE ${ColumnType.VeryLongText}`,
+    );
+    expect(
+      SchemaMigrations.indexOf(
+        GlobalConfigCredentialsEncryptedColumns1809126000000,
+      ),
+    ).toBeGreaterThan(
+      SchemaMigrations.indexOf(
+        AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
+      ),
+    );
+  });
 
   test("UserNotificationSetting.alertByCustomChannel: boolean, off by default, like the other channels", () => {
     const options: ColumnMetadataArgs["options"] | undefined = typeOrmColumn(

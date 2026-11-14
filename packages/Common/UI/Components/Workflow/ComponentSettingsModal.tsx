@@ -130,6 +130,12 @@ export interface ComponentProps {
  */
 const READ_ONLY_BOX_SELECTOR: string = '[aria-readonly="true"], [readonly]';
 
+/*
+ * What a view draws a step's settings and its identifier in (viewOnlyForm):
+ * nothing in it changes the step, so the dialog does not start there.
+ */
+const VIEW_ONLY_FORM_SELECTOR: string = "[data-workflow-view-only-form]";
+
 // The view-only dialog's footer: what it is, before the reason.
 export const WORKFLOW_STEP_VIEW_ONLY_TEXT: string = translationKey(
   "You can look at this step but not change it.",
@@ -169,7 +175,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    * On a view there is nothing to type, so a box that is only read is no
    * place to start either: If / Else and Switch / Case draw their first box
    * at once, and the dialog put the focus - and its ring - on it, as if it
-   * could be typed in. The focus goes back to the dialog from there too.
+   * could be typed in. Nor is anything else in what a view draws the
+   * settings in: the dialog passes over a box that is only read for the
+   * first control after it (Modal's pickInitialFocusElement), and on a view
+   * that is a fold - If / Else's Compare as - not a setting to change. The
+   * focus goes back to the dialog from there too.
    *
    * This runs after the Modal's own effect: React runs a child's effects
    * before its parent's.
@@ -179,8 +189,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     const firstSection: Element | null = body ? body.firstElementChild : null;
     const focused: Element | null = document.activeElement;
 
-    const isOnABoxOnlyRead: boolean = Boolean(
-      isViewOnly && focused && focused.closest(READ_ONLY_BOX_SELECTOR),
+    const isNoPlaceToStartOnAView: boolean = Boolean(
+      isViewOnly &&
+        focused &&
+        (focused.closest(READ_ONLY_BOX_SELECTOR) ||
+          focused.closest(VIEW_ONLY_FORM_SELECTOR)),
     );
 
     if (
@@ -188,7 +201,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       !firstSection ||
       !focused ||
       !body.contains(focused) ||
-      (firstSection.contains(focused) && !isOnABoxOnlyRead)
+      (firstSection.contains(focused) && !isNoPlaceToStartOnAView)
     ) {
       return;
     }
@@ -302,7 +315,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
     return (
       <WorkflowViewOnlyContext.Provider value={true}>
-        <div className="min-w-0" data-testid={testId}>
+        <div
+          className="min-w-0"
+          data-testid={testId}
+          data-workflow-view-only-form=""
+        >
           {form}
         </div>
       </WorkflowViewOnlyContext.Provider>

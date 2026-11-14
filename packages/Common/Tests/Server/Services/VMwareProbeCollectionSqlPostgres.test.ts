@@ -15,6 +15,10 @@ import VMwareVCenterConnectionTestService from "../../../Server/Services/VMwareV
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import Encryption from "../../../Server/Utils/Encryption";
 import logger from "../../../Server/Utils/Logger";
+import {
+  SET_ASIDE_FOR_MINUTES,
+  SET_ASIDE_SPREAD_IN_MINUTES,
+} from "../../../Server/Utils/Probe/ClaimSetAside";
 import VMwareVCenterConnection from "../../../Server/Utils/VMware/VMwareVCenterConnection";
 import VMwareProbeCollectionStore, {
   VMwareCollectionReportOutcome,
@@ -400,20 +404,23 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
         project: otherProjectId,
       });
 
-      const before: Map<string, Date | null> = new Map();
-
-      for (const id of [
-        notDue,
+      // Left as they are: not due, still running, or another probe's.
+      const untouched: Array<ObjectID> = [notDue, running, anotherProbes];
+      // Due on this probe, but nothing may collect them: set aside.
+      const uncollectable: Array<ObjectID> = [
         agent,
         noPassword,
         deleted,
-        running,
-        anotherProbes,
         otherProjects,
-      ]) {
+      ];
+
+      const before: Map<string, Date | null> = new Map();
+
+      for (const id of untouched) {
         before.set(id.toString(), (await readVCenter(id)).nextCollectionAt);
       }
 
+      const claimedAt: number = Date.now();
       const jobs: Array<VMwareCollectionJob> =
         await VMwareVCenterService.claimForCollection({
           probeId: probeId,
@@ -421,9 +428,17 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
           limit: 10,
         });
 
-      expect(idsOf(jobs)).toEqual([neverCollected.toString(), due.toString()]);
+      /*
+       * The read is `nextCollectionAt <= now`, a range of the index: a
+       * vCenter never collected has no due time, so the set-aside after
+       * the claim makes it due, and the next claim hands it out.
+       */
+      expect(idsOf(jobs)).toEqual([due.toString()]);
+      expect(
+        (await readVCenter(neverCollected)).nextCollectionAt!.getTime(),
+      ).toBeLessThanOrEqual(Date.now());
 
-      expect(jobs[1]).toEqual({
+      expect(jobs[0]).toEqual({
         vmwareVCenterId: due.toString(),
         vcenterName: expect.any(String),
         vcenterUrl: expect.stringMatching(/^https:\/\/vcsa-\d+\.example\.com$/),
@@ -440,22 +455,38 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
       expect(movedBy).toBeGreaterThan(7 * 60_000 - 30_000);
       expect(movedBy).toBeLessThanOrEqual(7 * 60_000);
 
-      for (const id of [
-        notDue,
-        agent,
-        noPassword,
-        deleted,
-        running,
-        anotherProbes,
-        otherProjects,
-      ]) {
+      for (const id of untouched) {
         expect({
           id: id.toString(),
           next: (await readVCenter(id)).nextCollectionAt,
         }).toEqual({ id: id.toString(), next: before.get(id.toString()) });
       }
 
-      // A second claim right away hands nothing out twice.
+      // Set aside a quarter of an hour on, plus the spread (ClaimSetAside).
+      for (const id of uncollectable) {
+        const next: number = (
+          await readVCenter(id)
+        ).nextCollectionAt!.getTime();
+
+        expect(next).toBeGreaterThanOrEqual(
+          claimedAt + SET_ASIDE_FOR_MINUTES * 60_000,
+        );
+        expect(next).toBeLessThanOrEqual(
+          Date.now() +
+            (SET_ASIDE_FOR_MINUTES + SET_ASIDE_SPREAD_IN_MINUTES) * 60_000,
+        );
+      }
+
+      // A second claim right away hands out the one made due, nothing twice.
+      expect(
+        idsOf(
+          await VMwareVCenterService.claimForCollection({
+            probeId: probeId,
+            runningVMwareVCenterIds: [running.toString()],
+            limit: 10,
+          }),
+        ),
+      ).toEqual([neverCollected.toString()]);
       expect(
         await VMwareVCenterService.claimForCollection({
           probeId: probeId,

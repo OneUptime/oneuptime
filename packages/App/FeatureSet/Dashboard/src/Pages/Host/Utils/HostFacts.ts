@@ -1,4 +1,5 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   HOST_DISK_FULL_PERCENT,
   HOST_DISK_NEAR_FULL_PERCENT,
@@ -195,6 +196,22 @@ export function getHostUptimeSeconds(data: {
     (data.now.getTime() - bootedAt.getTime()) / 1000,
   );
   return seconds >= 0 ? seconds : null;
+}
+
+/*
+ * How long a host has been up, as its hero's chip says it: "Up 12d 4h",
+ * "Up 41d" - the largest unit and the one right below it, in `language`
+ * ("41 Tg." in German, "۴۱ روز" in Persian). Never a day count with
+ * seconds beside it: a host booted 41 days and a second ago read "41d 1s",
+ * noise next to a day count that changed every second.
+ */
+export function formatHostUptime(
+  seconds: number,
+  language?: string | undefined,
+): string {
+  return formatDurationCompactInLanguage(seconds, language, {
+    adjacentUnitsOnly: true,
+  });
 }
 
 /*

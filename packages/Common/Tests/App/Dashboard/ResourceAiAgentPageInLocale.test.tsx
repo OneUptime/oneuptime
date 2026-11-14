@@ -12,6 +12,7 @@ import {
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -52,7 +53,11 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
-import { toSentenceTerm } from "../../../UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  translatableTerm,
+} from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import Host from "../../../Models/DatabaseModels/Host";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
@@ -117,6 +122,8 @@ const LOCALES: Record<string, Locale> = {
   de: readLocale("de"),
   fr: readLocale("fr"),
   ja: readLocale("ja"),
+  "zh-CN": readLocale("zh-CN"),
+  "zh-TW": readLocale("zh-TW"),
 };
 
 // The locale's wording of `key`, failing when it has none of its own.
@@ -131,35 +138,31 @@ function wordingIn(code: string, key: string): string {
 }
 
 /*
- * A name as a translated sentence shows it: the locale's word, or the
- * English one where the locale keeps it (most keep the agents' names).
+ * The locale's sentence for `template`, filled as the page fills it: a
+ * name the page hands in as a term in the locale's word, where the
+ * sentence puts it, without a space a Chinese or Japanese sentence drops
+ * beside it (the Translator, #7864); anything else as it is.
  */
-function nameIn(code: string, key: string): string {
-  return LOCALES[code]![key] || key;
-}
-
-// The locale's sentence for `template`, its {{placeholders}} filled.
 function filledIn(
   code: string,
   template: string,
-  values: Record<string, string>,
+  values: TemplateValues,
 ): string {
-  let sentence: string = wordingIn(code, template);
+  // The locale words the sentence itself: no English fallback passes.
+  wordingIn(code, template);
 
-  for (const name of Object.keys(values)) {
-    sentence = sentence.split(`{{${name}}}`).join(values[name]!);
-  }
-
-  return sentence;
+  return dashboardTranslator(code).translateTemplate(template, values);
 }
 
-// The agent and the resource as the sentences name them.
-function namesIn(code: string): Record<string, string> {
-  return {
-    agent: nameIn(code, DOCKER.agentName),
-    noun: toSentenceTerm(nameIn(code, DOCKER.noun), code),
-  };
-}
+/*
+ * The agent and the resource as the page's sentences take them
+ * (ResourceAiAgentStatus's getAgentAndNoun): the agent by its product
+ * name, the resource cased for the middle of a sentence.
+ */
+const AGENT_AND_NOUN: TemplateValues = {
+  agent: translatableTerm(DOCKER.agentName),
+  noun: translatableTerm(DOCKER.noun, { inSentence: true }),
+};
 
 let postSpy: ReturnType<typeof jest.spyOn>;
 
@@ -287,6 +290,8 @@ beforeAll(async () => {
       de: { translation: LOCALES["de"]! },
       fr: { translation: LOCALES["fr"]! },
       ja: { translation: LOCALES["ja"]! },
+      "zh-CN": { translation: LOCALES["zh-CN"]! },
+      "zh-TW": { translation: LOCALES["zh-TW"]! },
     },
     interpolation: { escapeValue: false },
     keySeparator: false,
@@ -402,7 +407,7 @@ describe("a resource's AI agent page in the reader's language", () => {
         filledIn(
           code,
           "The {{agent}} is running next to this {{noun}}.",
-          namesIn(code),
+          AGENT_AND_NOUN,
         ),
       );
     },
@@ -430,7 +435,7 @@ describe("a resource's AI agent page in the reader's language", () => {
           code,
           "The {{agent}} is running, but it could not reach this {{noun}} at its last check: {{error}} Check its logs:",
           {
-            ...namesIn(code),
+            ...AGENT_AND_NOUN,
             error: "Cannot connect to the Docker daemon",
           },
         ),
@@ -462,7 +467,7 @@ describe("a resource's AI agent page in the reader's language", () => {
         filledIn(
           code,
           "Bring the {{agent}} back online. Its logs say why it is offline (the command is above).",
-          { agent: nameIn(code, DOCKER.agentName) },
+          { agent: translatableTerm(DOCKER.agentName) },
         ),
       );
 
@@ -533,6 +538,77 @@ describe("a resource's AI agent page in the reader's language", () => {
           "Want AI to propose fixes? Click Change and choose Ask for approval.",
         ),
       );
+    },
+  );
+});
+
+/*
+ * "Reset the AI agent?" names the agent in the middle of its sentence. The
+ * Chinese and Japanese sentences put a space on each side of the name,
+ * and the agents' names start or end in those languages' own words: the
+ * dialog read "此操作会撤销 数据库 AI 代理 的密钥。" and "Docker AI
+ * エージェント のキー". A space where the name and the words meet in
+ * Chinese or Japanese is dropped; one beside a Latin letter stays (#7864).
+ */
+describe("Reset the AI agent? in Chinese and Japanese", () => {
+  const DATABASE: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+    AiResourceType.DatabaseServer,
+  );
+
+  test.each([
+    [
+      "zh-CN",
+      AiResourceType.DatabaseServer,
+      DATABASE,
+      "此操作会撤销数据库 AI 代理的密钥。代理会在几分钟内自动重新注册。如果代理已迁移或其密钥可能已泄露，请使用此操作。",
+    ],
+    [
+      "zh-CN",
+      AiResourceType.DockerHost,
+      DOCKER,
+      "此操作会撤销 Docker AI 代理的密钥。代理会在几分钟内自动重新注册。",
+    ],
+    [
+      "zh-TW",
+      AiResourceType.DatabaseServer,
+      DATABASE,
+      "這會撤銷資料庫 AI 代理程式的金鑰。代理程式會在幾分鐘內自動重新註冊。",
+    ],
+    [
+      "ja",
+      AiResourceType.DatabaseServer,
+      DATABASE,
+      "データベース AI エージェントのキーを無効にします。エージェントは数分以内に自動的に再登録されます。",
+    ],
+    [
+      "ja",
+      AiResourceType.DockerHost,
+      DOCKER,
+      "Docker AI エージェントのキーを無効にします。",
+    ],
+  ] as Array<[string, AiResourceType, ResourceAiAgentDescriptor, string]>)(
+    "%s, %s: the dialog's sentence names the agent with no stray space",
+    async (
+      code: string,
+      type: AiResourceType,
+      descriptor: ResourceAiAgentDescriptor,
+      sentence: string,
+    ) => {
+      await setLanguage(code);
+      serve(makeStatus({ resourceType: type }));
+      openAgentPage(descriptor);
+
+      fireEvent.click(await findTestId("ai-agent-actions-button"));
+      const menu: HTMLElement = await screen.findByRole(
+        "menu",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      fireEvent.click(within(menu).getByTestId("ai-agent-reset-button"));
+
+      expect(
+        await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT }),
+      ).toHaveTextContent(sentence);
     },
   );
 });

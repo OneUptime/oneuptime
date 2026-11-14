@@ -8,36 +8,71 @@ import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * The row the arrow keys are on, while the search box has the focus: the
+ * ground Search's (Ctrl K) row takes under its cursor, so a keyboard user
+ * sees it at a glance. A hover's light gray (bg-gray-50) is all but white
+ * on white, and a row the keyboard is on must stand out from one the
+ * pointer only passes over.
+ */
+export const PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME: string = "bg-indigo-50";
+
 export interface ComponentProps {
   icon: IconProp;
   onProjectSelected: (project: Project) => void;
   project: Project;
+  // The row's own id, unique on the page (aria-activedescendant names it).
+  id: string;
+  // The arrow keys (or the pointer) are on this row.
+  isActive?: boolean | undefined;
+  // The row is drawn as the one the keyboard is on.
+  showsActive?: boolean | undefined;
+  onPointerOver?: (() => void) | undefined;
 }
+
+/*
+ * Opening a project from the list, by a click or by Enter in the list's
+ * search box: another project is another page, and the switch reloads the
+ * app in it, so a page holding unsaved work asks first, before anything
+ * switches (LeaveGuard). Keep Editing leaves the open project as it was - a
+ * project switched with its page kept would save into the wrong one.
+ */
+export const openProjectFromPicker: (
+  project: Project,
+  onProjectSelected: (project: Project) => void,
+) => void = (
+  project: Project,
+  onProjectSelected: (project: Project) => void,
+): void => {
+  const route: Route = new Route("/dashboard/" + project.id?.toString());
+
+  LeaveGuard.whenLeaving(route.toString(), () => {
+    onProjectSelected(project);
+    Navigation.navigate(route);
+  });
+};
 
 const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const title: string = props.project.name!;
-  const route: Route = new Route("/dashboard/" + props.project.id?.toString());
 
   return (
     <li
-      className="text-gray-700 relative select-none py-2.5 px-3 mx-2 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors duration-150"
-      id="listbox-option-0"
+      className={`text-gray-700 relative select-none py-2.5 px-3 mx-2 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors duration-150 ${
+        props.isActive && props.showsActive
+          ? PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME
+          : ""
+      }`}
+      id={props.id}
       role="option"
+      aria-selected={Boolean(props.isActive)}
+      onMouseMove={() => {
+        props.onPointerOver?.();
+      }}
       onClick={() => {
-        /*
-         * Another project is another page, and the switch reloads the app in
-         * it: a page holding unsaved work asks first, before anything
-         * switches (LeaveGuard). Keep Editing leaves the open project as it
-         * was - a project switched with its page kept would save into the
-         * wrong one.
-         */
-        LeaveGuard.whenLeaving(route.toString(), () => {
-          props.onProjectSelected(props.project);
-          Navigation.navigate(route);
-        });
+        openProjectFromPicker(props.project, props.onProjectSelected);
       }}
     >
       <div className="flex items-center gap-3">

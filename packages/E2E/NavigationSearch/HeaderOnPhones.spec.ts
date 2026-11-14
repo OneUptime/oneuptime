@@ -20,7 +20,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * phone), inside the window, with the whole name and Create New Project on
  * one line: on a phone, and on a tablet and a wide screen too, where the
  * list was as narrow as the picker and cut both. From 640px the header
- * itself is as it was.
+ * itself is as it was. The list is a listbox named in the reader's
+ * language, with an id of its own for each row, and its search box names
+ * the row the arrow keys are on (#7487).
  *
  * The fixture's ?header=true page (HeaderFixture.js) is the top of every
  * Dashboard page: the production header and nav bar, in a project named
@@ -52,6 +54,9 @@ interface HeaderWords {
   bell: string;
   profile: string;
   createProject: string;
+  // The picker's list and its search box, as a screen reader names them.
+  projects: string;
+  searchProjects: string;
 }
 
 type LocaleTree = { [key: string]: string | LocaleTree };
@@ -65,6 +70,8 @@ function wordsOf(language: Language): HeaderWords {
     bell: locale["View notifications"] as string,
     profile: (locale["userProfile"] as LocaleTree)["label"] as string,
     createProject: locale["Create New Project"] as string,
+    projects: locale["Projects"] as string,
+    searchProjects: locale["Search Projects"] as string,
   };
 }
 
@@ -428,8 +435,124 @@ test.describe("the header on a phone", () => {
 
       await expectNoSidewaysScroll(page, { message: `list at ${width}px` });
       await screenshot(page, `list-${lang}-${width}`);
+
+      /*
+       * The list a screen reader meets (#7487): a listbox named in the
+       * reader's language, a row with an id of its own for the project and
+       * one for Create New Project (both were listbox-option-0), and the
+       * search box named by its label, naming the row the arrow keys are on.
+       */
+      const listbox: Locator = menu.getByRole("listbox", {
+        name: words.projects,
+        exact: true,
+      });
+      await expect(listbox).toBeVisible();
+      const rowIds: Array<string> = await listbox
+        .getByRole("option")
+        .evaluateAll((rows: Array<Element>): Array<string> => {
+          return rows.map((row: Element): string => {
+            return row.id;
+          });
+        });
+      expect(rowIds).toHaveLength(2);
+      expect(new Set(rowIds).size).toBe(2);
+      expect(rowIds).not.toContain("listbox-option-0");
+      expect(rowIds).not.toContain("");
+
+      const search: Locator = menu.getByRole("combobox", {
+        name: words.searchProjects,
+        exact: true,
+      });
+      await search.focus();
+      await expect(search).toHaveAttribute("aria-activedescendant", rowIds[0]!);
+      await search.press("ArrowDown");
+      await expect(search).toHaveAttribute("aria-activedescendant", rowIds[1]!);
+      await expect(
+        listbox.getByRole("option", { selected: true }),
+      ).toHaveAttribute("id", rowIds[1]!);
     });
   }
+
+  test("in the dark theme the row the keyboard is on stands out from the rest, Create New Project too, and Shift+Tab puts the list away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * The keyboard's row takes Search's cursor ground, and Create New
+     * Project a stronger edge as well as a deeper ground: the dark theme
+     * gives bg-indigo-50 and bg-indigo-100 the one wash (Theme.css), so a
+     * ground alone did not tell the row Enter opens from the row at rest.
+     */
+    const TRANSPARENT: string = "rgba(0, 0, 0, 0)";
+    const words: HeaderWords = wordsOf("en");
+    await open(page, 1280, { theme: "dark" });
+
+    // Enter on the picker: the list opens with the focus in its search box.
+    await picker(page).focus();
+    await page.keyboard.press("Enter");
+
+    const menu: Locator = page.getByTestId("project-picker-menu");
+    const search: Locator = menu.getByRole("combobox", {
+      name: words.searchProjects,
+      exact: true,
+    });
+    await expect(search).toBeFocused();
+
+    const projectRow: Locator = menu
+      .getByRole("option")
+      .filter({ hasText: PROJECT_NAME });
+    const createRow: Locator = menu
+      .getByRole("option")
+      .filter({ hasText: words.createProject });
+    /*
+     * A row's colour once its transitions have run (the rows ease their
+     * ground and edge in over 150ms).
+     */
+    const settled: (row: Locator, property: string) => Promise<string> = (
+      row: Locator,
+      property: string,
+    ): Promise<string> => {
+      return row.evaluate(async (element: Element, name: string) => {
+        await Promise.all(
+          element.getAnimations().map((animation: Animation) => {
+            return animation.finished;
+          }),
+        );
+        return window.getComputedStyle(element).getPropertyValue(name);
+      }, property);
+    };
+    const panelGround: string = await settled(menu, "background-color");
+
+    // The project's row is the keyboard's: a ground of its own on the list.
+    await expect(projectRow).toHaveAttribute("aria-selected", "true");
+    const activeGround: string = await settled(projectRow, "background-color");
+    expect(activeGround).not.toBe(TRANSPARENT);
+    expect(activeGround).not.toBe(panelGround);
+    const restingEdge: string = await settled(createRow, "border-top-color");
+
+    await search.press("ArrowDown");
+    await expect(createRow).toHaveAttribute("aria-selected", "true");
+    // The project's row is back on the list's ground; Create's edge changes.
+    await expect
+      .poll(() => {
+        return settled(projectRow, "background-color");
+      })
+      .toBe(TRANSPARENT);
+    await expect
+      .poll(() => {
+        return settled(createRow, "border-top-color");
+      })
+      .not.toBe(restingEdge);
+
+    /*
+     * Shift+Tab moves the focus back to the picker, as anywhere, and the
+     * list goes away behind it rather than cover the page.
+     */
+    await search.press("Shift+Tab");
+    await expect(picker(page)).toBeFocused();
+    await expect(menu).toBeHidden();
+  });
 });
 
 test.describe("the header on a phone's own screen", () => {

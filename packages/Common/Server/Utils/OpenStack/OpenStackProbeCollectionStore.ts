@@ -32,6 +32,15 @@ import OpenStackCollectionSettings, {
   MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
   MIN_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
 } from "../../../Utils/OpenStack/OpenStackCollectionSettings";
+import {
+  SetAsideCounts,
+  getClaimSetAsideParameters,
+  getClaimSetAsideStatement,
+  getMakeDueNowParameters,
+  getMakeDueNowStatement,
+  readSetAsideCounts,
+  setAsideAfterClaim,
+} from "../Probe/ClaimSetAside";
 
 /*
  * The database half of probe collection: which clouds a probe collects now, and what
@@ -42,7 +51,10 @@ import OpenStackCollectionSettings, {
  * overlapping ticks, or two server replicas - never hand one cloud out twice, and no
  * claim holds a cloud longer than that statement runs. The clouds a probe says it is
  * still collecting are left out, so a collection slower than its interval is skipped,
- * not stacked.
+ * not stacked. After each claim, the due clouds it stepped over because nothing may collect
+ * them are set aside for a quarter of an hour (Utils/Probe/ClaimSetAside), so no claim steps
+ * over them again and again; a write that makes one collectable makes it due at once
+ * (OpenStackCloudConnection.afterWrite, and OpenStackCloudService for one unarchived).
  *
  * Only a probe that may collect a cloud is ever handed one: the cloud names it, and it
  * is the project's own probe - or, on a self-hosted install, one of the instance's own
@@ -159,10 +171,15 @@ export default class OpenStackProbeCollectionStore {
      * clouds are locked FOR NO KEY UPDATE SKIP LOCKED and moved an interval
      * on by the same statement, so the locks last only as long as it runs,
      * and the foreign-key check of a row that names a cloud never waits for
-     * them. The interval is held to getSafeInterval's bounds in SQL (the
-     * last three parameters; the column is a NOT NULL integer, so it is the
-     * same rule). The ids come back in claim order, the longest overdue
-     * first.
+     * them. `nextCollectionAt <= now`, oldest first, is a range of the
+     * (collectionProbeId, nextCollectionAt) index in its own order, which
+     * stops at the limit; `IS NULL OR` and `NULLS FIRST` made it read and
+     * sort every due cloud of the probe. A cloud with no nextCollectionAt
+     * is made due by the set-aside below. The clouds the probe is still
+     * collecting are left out, but not set aside: they may be collected.
+     * The interval is held to getSafeInterval's bounds in SQL (the last
+     * three parameters; the column is a NOT NULL integer, so it is the same
+     * rule). The ids come back in claim order, the longest overdue first.
      */
     const claimedRows: unknown = await service.getRepository().manager.query(
       `
@@ -172,29 +189,14 @@ export default class OpenStackProbeCollectionStore {
         INNER JOIN "Project" p ON c."projectId" = p."_id"
         INNER JOIN "Probe" pr ON c."collectionProbeId" = pr."_id"
         WHERE c."collectionProbeId" = $1
-          AND c."collectionMethod" = $5
-          AND c."deletedAt" IS NULL
-          AND c."isArchived" = false
-          AND c."isCredentialSet" = true
-          AND c."authUrl" IS NOT NULL
-          AND (c."nextCollectionAt" IS NULL OR c."nextCollectionAt" <= $2)
           AND NOT (c."_id" = ANY($6::uuid[]))
-          -- The tenancy backstop: the project's own probe, or a global
-          -- probe on an instance where those are the operator's own.
-          AND (
-            (pr."isGlobalProbe" = false AND pr."projectId" = c."projectId")
-            OR (pr."isGlobalProbe" = true AND $7::boolean = false)
-          )
-          AND pr."deletedAt" IS NULL
-          AND p."deletedAt" IS NULL
-          -- A project a master admin blocked is not collected until it is unblocked.
-          AND p."isBlocked" = false
-          AND p."isSampleProject" = false
-          AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
-          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
-        ORDER BY c."nextCollectionAt" ASC NULLS FIRST
+          AND c."nextCollectionAt" <= $2
+          AND ${OpenStackProbeCollectionStore.getCollectableSql({
+            collectionMethodParameter: "$5",
+            statusesParameter: "$4",
+            isBillingEnabledParameter: "$7",
+          })}
+        ORDER BY c."nextCollectionAt" ASC
         LIMIT $3
         FOR NO KEY UPDATE OF c SKIP LOCKED
       ),
@@ -217,7 +219,7 @@ export default class OpenStackProbeCollectionStore {
       SELECT "due"."_id"
       FROM "due"
       INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
-      ORDER BY "due"."dueAt" ASC NULLS FIRST
+      ORDER BY "due"."dueAt" ASC
     `,
       [
         data.probeId.toString(),
@@ -238,6 +240,26 @@ export default class OpenStackProbeCollectionStore {
           return row._id;
         })
       : [];
+
+    /*
+     * The due clouds the claim stepped over - nothing may collect them
+     * now - are set aside, so the next claim does not step over them again
+     * (Utils/Probe/ClaimSetAside).
+     */
+    await setAsideAfterClaim({
+      claim: "claimDueClouds",
+      probeId: data.probeId,
+      rows: "OpenStack clouds nothing may collect now",
+      round: async (): Promise<SetAsideCounts> => {
+        return await OpenStackProbeCollectionStore.setAsideUncollectable(
+          service,
+          {
+            probeId: data.probeId,
+            currentDate: currentDate,
+          },
+        );
+      },
+    });
 
     if (claimedIds.length === 0) {
       return [];
@@ -315,6 +337,126 @@ export default class OpenStackProbeCollectionStore {
     }
 
     return jobs;
+  }
+
+  /*
+   * Sets aside the probe's due clouds that nothing may collect now (Utils/Probe/ClaimSetAside):
+   * collected by the OpenStack agent - switching to it clears nextCollectionAt and keeps the
+   * probe - archived, without a credential or Keystone's address, on a probe that may not collect
+   * it, or of a suspended, blocked, sample or deleted project. Each is judged again by the claim's
+   * own rule (getCollectableSql, IS NOT TRUE), so a cloud the claim would hand out is never moved.
+   * Makes due the probe's clouds with no nextCollectionAt at all.
+   *
+   * Returns how many it set aside, and how many it made due.
+   */
+  public static async setAsideUncollectable(
+    service: OpenStackCollectionCloudService,
+    data: {
+      probeId: ObjectID;
+      currentDate: Date;
+    },
+  ): Promise<SetAsideCounts> {
+    const rows: unknown = await service.getRepository().manager.query(
+      getClaimSetAsideStatement({
+        table: "OpenStackCloud",
+        alias: "c",
+        dueColumn: "nextCollectionAt",
+        sources: [
+          {
+            from: `"OpenStackCloud" c`,
+            where: `c."collectionProbeId" = $1`,
+          },
+        ],
+        joins: `LEFT JOIN "Project" p ON c."projectId" = p."_id"
+        LEFT JOIN "Probe" pr ON c."collectionProbeId" = pr."_id"`,
+        isProbesRow: `c."collectionProbeId" = $1`,
+        claimable: OpenStackProbeCollectionStore.getCollectableSql({
+          collectionMethodParameter: "$6",
+          statusesParameter: "$7",
+          isBillingEnabledParameter: "$8",
+        }),
+      }),
+      getClaimSetAsideParameters({
+        probeId: data.probeId,
+        currentDate: data.currentDate,
+        ruleParameters: [
+          OpenStackCollectionMethod.Probe,
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+          IsBillingEnabled,
+        ],
+      }),
+    );
+
+    return readSetAsideCounts(rows);
+  }
+
+  /*
+   * Makes probe-collected clouds due now, unless they are due already (Utils/Probe/ClaimSetAside,
+   * getMakeDueNowStatement): for a write that makes a cloud the claim set aside collectable again
+   * that is not a collection settings write - those make the cloud due themselves
+   * (OpenStackCloudConnection.afterWrite) - such as unarchiving it. A cloud the agent sends is
+   * left as it is.
+   */
+  public static async makeDueNow(
+    service: Pick<OpenStackCollectionCloudService, "getRepository">,
+    openStackCloudIds: Array<ObjectID>,
+  ): Promise<void> {
+    const parameters: Array<unknown> | null = getMakeDueNowParameters({
+      ids: openStackCloudIds,
+      currentDate: OneUptimeDate.getCurrentDate(),
+    });
+
+    if (!parameters) {
+      return;
+    }
+
+    await service.getRepository().manager.query(
+      getMakeDueNowStatement({
+        table: "OpenStackCloud",
+        dueColumns: ["nextCollectionAt"],
+        idColumn: "_id",
+        where: `"collectionMethod" = '${OpenStackCollectionMethod.Probe}'`,
+      }),
+      parameters,
+    );
+  }
+
+  /*
+   * Whether a cloud may be handed to its probe to collect now, as SQL over the aliases the claim's
+   * statements use - `c` (the OpenStackCloud), `p` (its Project) and `pr` (its collection Probe) -
+   * with the Probe collection method, the served subscription statuses and whether billing is on
+   * bound as the parameters named. The claim keeps the clouds it is true for and the set-aside
+   * moves the ones it is not true for: one definition, so a cloud the claim would hand out is never
+   * one the set-aside moves. Read through LEFT JOINs, a missing project or probe is NULL here,
+   * never true.
+   *
+   * - Collected by a probe, not deleted or archived, with the credential and Keystone's address a
+   *   collection needs.
+   * - The tenancy backstop: the project's own probe, or a global probe on an instance where those
+   *   are the operator's own (billing off).
+   * - The project is served (ProjectService.getActiveProjectStatusQuery): not deleted, not blocked
+   *   by a master admin - it is not collected until it is unblocked - not a sample, and its
+   *   subscriptions not inactive.
+   */
+  public static getCollectableSql(parameters: {
+    collectionMethodParameter: string;
+    statusesParameter: string;
+    isBillingEnabledParameter: string;
+  }): string {
+    return [
+      `c."collectionMethod" = ${parameters.collectionMethodParameter}`,
+      `c."deletedAt" IS NULL`,
+      `c."isArchived" = false`,
+      `c."isCredentialSet" = true`,
+      `c."authUrl" IS NOT NULL`,
+      `((pr."isGlobalProbe" = false AND pr."projectId" = c."projectId") OR (pr."isGlobalProbe" = true AND ${parameters.isBillingEnabledParameter}::boolean = false))`,
+      `pr."deletedAt" IS NULL`,
+      `p."deletedAt" IS NULL`,
+      `p."isBlocked" = false`,
+      `p."isSampleProject" = false`,
+      `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+      `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+    ].join("\n          AND ");
   }
 
   /*
