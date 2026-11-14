@@ -3488,6 +3488,43 @@ function failureNotice(page: Page): Locator {
   return investigationStep(page).getByTestId("investigation-error");
 }
 
+// The Persian card's Try again, and the start of its AI-off refusal (#7359).
+const PERSIAN_TRY_AGAIN: string = "تلاش دوباره";
+const PERSIAN_AI_OFF_START: string = "OneUptime AI برای این پروژه خاموش است.";
+// Investigate now on the Arabic card, and its daily-limit refusal (#7359).
+const ARABIC_INVESTIGATE_NOW: string = "التحقيق الآن";
+const ARABIC_DAILY_LIMIT_START: string =
+  "بلغ المشروع حده اليومي للذكاء الاصطناعي.";
+
+/*
+ * How a line's first words sit: the line's direction, and whether they
+ * start at its right edge, where a line read from the right starts. They
+ * are its text's first characters.
+ */
+async function firstWordsPlace(
+  line: Locator,
+  firstWords: string,
+): Promise<{ direction: string; startsAtTheRight: boolean }> {
+  return await line.evaluate(
+    (
+      element: Element,
+      words: string,
+    ): { direction: string; startsAtTheRight: boolean } => {
+      const text: Text = element.firstChild as Text;
+      const range: Range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, words.length);
+      const wordsBox: DOMRect = range.getBoundingClientRect();
+      const lineBox: DOMRect = element.getBoundingClientRect();
+      return {
+        direction: getComputedStyle(element).direction,
+        startsAtTheRight: lineBox.right - wordsBox.right < 2,
+      };
+    },
+    firstWords,
+  );
+}
+
 function tryAgainButton(page: Page): Locator {
   return failureNotice(page).getByRole("button", { name: "Try again" });
 }
@@ -3646,6 +3683,46 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
     await screenshotElement(
       investigationStep(page),
       "investigation-try-again-refused",
+    );
+  });
+
+  /*
+   * #7359: a refusal the Dashboard words reads as the page does, even when
+   * it starts with a name in Latin letters. Persian says "OneUptime AI"
+   * first: laid out by that first letter (dir="auto"), the sentence ran
+   * from the left on a page read from the right, its words out of order.
+   */
+  test("a refusal in Persian reads right to left, though it starts with OneUptime AI (?lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      INCIDENT_PATH,
+      "ai=failed&fail=investigation-try-again&lang=fa&dir=auto",
+    );
+    const button: Locator = failureNotice(page).getByRole("button", {
+      name: PERSIAN_TRY_AGAIN,
+    });
+    await expect(button).toBeEnabled({ timeout: 30000 });
+
+    await button.click();
+
+    const refusal: Locator = failureNotice(page).getByRole("alert");
+    await expect(refusal).toHaveAttribute(
+      "data-testid",
+      "investigation-error-try-again-error",
+    );
+    await expect(refusal).toContainText(PERSIAN_AI_OFF_START);
+    await expect(refusal).not.toContainText("switched off");
+    expect(await firstWordsPlace(refusal, "OneUptime AI")).toEqual({
+      direction: "rtl",
+      startsAtTheRight: true,
+    });
+    await screenshotElement(
+      investigationStep(page),
+      "investigation-try-again-refused-fa",
     );
   });
 
@@ -3850,6 +3927,40 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
     await expect(
       stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Waiting");
+  });
+
+  // #7359: the refusal in the reader's language, read as the page reads.
+  test("in Arabic, the refusal says why in Arabic, right to left (?lang=ar&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&fail=investigate-now&lang=ar&dir=auto",
+    );
+    const button: Locator = waitingBody(page).getByRole("button", {
+      name: ARABIC_INVESTIGATE_NOW,
+    });
+    await expect(button).toBeEnabled({ timeout: 30000 });
+
+    await button.click();
+
+    const error: Locator = waitingBody(page).getByTestId(
+      "investigate-now-error",
+    );
+    await expect(error).toHaveAttribute("role", "alert");
+    await expect(error).toContainText(ARABIC_DAILY_LIMIT_START);
+    await expect(error).not.toContainText("daily AI limit");
+    expect(
+      await firstWordsPlace(error, ARABIC_DAILY_LIMIT_START.split(" ")[0]!),
+    ).toEqual({ direction: "rtl", startsAtTheRight: true });
+    await expect(button).toBeEnabled();
+    await screenshotElement(
+      investigationStep(page),
+      "investigate-now-refused-ar",
+    );
   });
 
   test("?ai=waiting-viewer: someone who may not change the incident is told who can, and gets no button", async ({

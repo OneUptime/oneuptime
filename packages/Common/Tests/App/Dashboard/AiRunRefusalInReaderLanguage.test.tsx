@@ -92,7 +92,13 @@ import {
  * worded by its sentence when the Dashboard words it - a record's own
  * daily AI token limit says the same sentence on the card as in the
  * refusal - and one the Dashboard does not word stays in the server's
- * English, laid out by its own first letter.
+ * English.
+ *
+ * A worded refusal reads as the page does, even when it starts with a
+ * name in Latin letters: Arabic and Persian say "OneUptime AI ..." first,
+ * and laid out by that first letter (dir="auto") the sentence ran from the
+ * left on a page read from the right, its words out of order. Only an
+ * English refusal on such a page reads from the left (dir="ltr").
  */
 
 const EN: Record<string, string> = readDashboardLocale("en");
@@ -255,8 +261,13 @@ describe("on the AI card, in German and in Arabic", () => {
   );
   const DE: Record<string, string> = readDashboardLocale("de");
   const AR: Record<string, string> = readDashboardLocale("ar");
+  const FA: Record<string, string> = readDashboardLocale("fa");
 
   function wordsOf(language: string): Record<string, string> {
+    if (language === "fa") {
+      return FA;
+    }
+
     return language === "de" ? DE : AR;
   }
 
@@ -264,7 +275,11 @@ describe("on the AI card, in German and in Arabic", () => {
     await i18next.use(initReactI18next).init({
       lng: "de",
       fallbackLng: "en",
-      resources: { de: { translation: DE }, ar: { translation: AR } },
+      resources: {
+        de: { translation: DE },
+        ar: { translation: AR },
+        fa: { translation: FA },
+      },
       interpolation: { escapeValue: false },
       keySeparator: false,
       nsSeparator: false,
@@ -345,7 +360,8 @@ describe("on the AI card, in German and in Arabic", () => {
         wordsOf(data.language)[data.refusal.message]!,
       );
       expect(said.textContent).not.toContain("Token Limit");
-      expect(said).toHaveAttribute("dir", "auto");
+      // The reader's own words read as the page does.
+      expect(said).not.toHaveAttribute("dir");
     },
   );
 
@@ -373,7 +389,7 @@ describe("on the AI card, in German and in Arabic", () => {
       expect(said).toHaveTextContent(wordsOf(data.language)[english]!);
       expect(said.textContent).not.toContain(english);
       expect(said.textContent).not.toMatch(/\b(?:project|investigation)\b/);
-      expect(said).toHaveAttribute("dir", "auto");
+      expect(said).not.toHaveAttribute("dir");
     },
   );
 
@@ -433,15 +449,50 @@ describe("on the AI card, in German and in Arabic", () => {
     },
   );
 
-  test.each(["de", "ar"])(
-    "%s: a refusal the Dashboard does not word stays in the server's English, laid out by its own first letter",
-    async (language: string) => {
-      await inLanguage(language);
+  test("de: a refusal the Dashboard does not word stays in the server's English, read as the page reads", async () => {
+    await inLanguage("de");
 
-      const said: HTMLElement = await pressTryAgain(UNWORDED_REFUSAL);
+    const said: HTMLElement = await pressTryAgain(UNWORDED_REFUSAL);
 
-      expect(said).toHaveTextContent(UNWORDED_REFUSAL);
-      expect(said).toHaveAttribute("dir", "auto");
+    expect(said).toHaveTextContent(UNWORDED_REFUSAL);
+    expect(said).not.toHaveAttribute("dir");
+  });
+
+  test("ar: a refusal the Dashboard does not word stays in the server's English, read from the left so its full stop stays at its end", async () => {
+    await inLanguage("ar");
+
+    const said: HTMLElement = await pressTryAgain(UNWORDED_REFUSAL);
+
+    expect(said).toHaveTextContent(UNWORDED_REFUSAL);
+    expect(said).toHaveAttribute("dir", "ltr");
+  });
+
+  /*
+   * Arabic and Persian say "OneUptime AI ..." first: laid out by that
+   * first letter (dir="auto"), the whole sentence ran from the left on a
+   * page read from the right. Each reads as the page does.
+   */
+  test.each([
+    { language: "ar", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AlreadyInvestigated },
+  ])(
+    "$language: Try again refused with $code, a sentence that starts with OneUptime AI, reads from the right",
+    async (data: { language: string; code: AiRunRefusalCode }) => {
+      await inLanguage(data.language);
+
+      const english: string = AI_RUN_REFUSALS[data.code];
+      const words: string = wordsOf(data.language)[english]!;
+      // The case dir="auto" got wrong: a Latin first letter.
+      expect(words.startsWith("OneUptime AI ")).toBe(true);
+
+      const said: HTMLElement = await pressTryAgain({
+        message: english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(words);
+      expect(said).not.toHaveAttribute("dir");
     },
   );
 
@@ -581,12 +632,43 @@ describe("on the AI card, in German and in Arabic", () => {
     },
   );
 
-  test("ar: an Investigate now refusal the Dashboard does not word stays English, laid out by its own first letter", async () => {
+  test("ar: an Investigate now refusal the Dashboard does not word stays English, read from the left so its full stop stays at its end", async () => {
     await inLanguage("ar");
 
     const said: HTMLElement = await pressInvestigateNow("ar", UNWORDED_REFUSAL);
 
     expect(said).toHaveTextContent(UNWORDED_REFUSAL);
-    expect(said).toHaveAttribute("dir", "auto");
+    expect(said).toHaveAttribute("dir", "ltr");
   });
+
+  test("de: an Investigate now refusal the Dashboard does not word stays English, read as the page reads", async () => {
+    await inLanguage("de");
+
+    const said: HTMLElement = await pressInvestigateNow("de", UNWORDED_REFUSAL);
+
+    expect(said).toHaveTextContent(UNWORDED_REFUSAL);
+    expect(said).not.toHaveAttribute("dir");
+  });
+
+  test.each([
+    { language: "de", code: AiRunRefusalCode.ProjectDailyLimitReached },
+    { language: "ar", code: AiRunRefusalCode.ProjectDailyLimitReached },
+    { language: "ar", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AiOff },
+    { language: "fa", code: AiRunRefusalCode.AlreadyInvestigated },
+  ])(
+    "$language: Investigate now refused with $code reads as the page does, whatever its first letter",
+    async (data: { language: string; code: AiRunRefusalCode }) => {
+      await inLanguage(data.language);
+
+      const english: string = AI_RUN_REFUSALS[data.code];
+      const said: HTMLElement = await pressInvestigateNow(data.language, {
+        message: english,
+        refusalCode: data.code,
+      });
+
+      expect(said).toHaveTextContent(wordsOf(data.language)[english]!);
+      expect(said).not.toHaveAttribute("dir");
+    },
+  );
 });
