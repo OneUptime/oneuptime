@@ -192,8 +192,8 @@ function createApi(
 }
 
 function createListRequest(data: {
-  body?: JSONObject;
-  query?: JSONObject;
+  body?: JSONObject | undefined;
+  query?: JSONObject | undefined;
 }): OneUptimeRequest {
   return {
     query: data.query || {},

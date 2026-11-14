@@ -204,17 +204,33 @@ export default class PagedFind {
     }
 
     const idOptions: FindManyOptions<TEntity> = {
-      where: options.where,
-      order: options.order,
-      withDeleted: options.withDeleted,
-      skip: options.skip,
-      take: options.take,
       select: {
         [primaryColumn.propertyName]: true,
-      } as FindManyOptions<TEntity>["select"],
+      } as NonNullable<FindManyOptions<TEntity>["select"]>,
       // Joined to select only: they decide neither the records nor their order.
       loadEagerRelations: false,
     };
+
+    // The read's own filter, order, page and deleted rows, as it set them.
+    if (options.where !== undefined) {
+      idOptions.where = options.where;
+    }
+
+    if (options.order !== undefined) {
+      idOptions.order = options.order;
+    }
+
+    if (options.withDeleted !== undefined) {
+      idOptions.withDeleted = options.withDeleted;
+    }
+
+    if (options.skip !== undefined) {
+      idOptions.skip = options.skip;
+    }
+
+    if (options.take !== undefined) {
+      idOptions.take = options.take;
+    }
 
     const idBuilder: SelectQueryBuilder<TEntity> = PagedFind.createQueryBuilder(
       repository,
