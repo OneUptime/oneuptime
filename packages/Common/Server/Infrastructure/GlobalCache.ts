@@ -106,7 +106,9 @@ export default abstract class GlobalCache {
         this.parseJSONArrayOrObject(value);
 
       if (json && Array.isArray(json)) {
-        throw new BadDataException("Expected JSONObject, but got JSONArray");
+        throw new BadDataException(
+          "A cached value is a list where an object was expected. Clear it from the cache and try again.",
+        );
       }
 
       return json;
