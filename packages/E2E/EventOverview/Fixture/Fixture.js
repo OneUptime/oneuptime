@@ -1691,7 +1691,7 @@ const RESEND_FAILURE_MESSAGE =
 
 // ?fail=publish: Publish Now's write of #58's publish time is refused.
 const PUBLISH_FAILURE_MESSAGE =
-  "This scheduled maintenance event could not be updated. Please try again.";
+  "This maintenance event could not be updated. Please try again.";
 
 function stateChangeFeed(kind, number, state, when, byUser) {
   const emoji = state.isResolvedState ? "✅" : "🟡";
