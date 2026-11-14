@@ -223,6 +223,41 @@ describe("docs search, on the real docs", () => {
     BUILD_TIMEOUT_MS,
   );
 
+  /*
+   * A German "how do I" question opens the page it asks about (#7874): the
+   * words it is phrased with ("wie", "ich", "meine") are not looked for, as
+   * Ask AI's search does not look for them. The German docs say "Sie" and
+   * "Ihre", so the pages that held every word were the ones that quote a
+   * question, and Website-Überwachung was not shown at all. A page named
+   * with them is still found by its name; the API key question needs the
+   * step named by the button's word, above.
+   */
+  test.each([
+    ["Wie überwache ich meine Website?", "monitor/website-monitor", 3],
+    ["Wie erstelle ich eine Bereitschaftsrichtlinie?", "on-call/policies", 2],
+    ["Wie plane ich eine Wartung?", "scheduled-maintenance/creating-events", 2],
+    ["Wie ich erreichbar bin", "notifications/on-call-rules", 3],
+    ["Wie erstelle ich einen API-Schlüssel?", "api-reference/api-reference", 1],
+  ] as Array<[string, string, number]>)(
+    'German: "%s" opens %s in the first %d',
+    async (question: string, page: string, within: number) => {
+      const address: string = `/docs/de/${page}`;
+      const first: Array<string> = urls(await search("de", question)).slice(
+        0,
+        within,
+      );
+
+      expect({
+        question,
+        first,
+        opens: first.some((url: string): boolean => {
+          return url === address || url.startsWith(`${address}#`);
+        }),
+      }).toEqual({ question, first, opens: true });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
   test(
     "French: a half-typed word, a reader's word and a phrase from the middle of a page",
     async () => {
