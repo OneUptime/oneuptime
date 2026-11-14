@@ -227,6 +227,40 @@ describe("the Danish Archive verb, spelled one way", () => {
   });
 });
 
+// The spelling Hindi no longer uses for archive (#7387).
+const HINDI_ARCHIVE_OTHER_SPELLING: RegExp = /संग्रहित/;
+
+describe("the Hindi Archive verb, spelled one way", () => {
+  it("the Dashboard draws संग्रहीत करें, and no Hindi page spells it संग्रहित", () => {
+    expect(drawnDashboardLabel("hi", "Archive")).toBe("संग्रहीत करें");
+
+    const other: Array<string> = linesIn("hi")
+      .filter((docsLine: DocsLine): boolean => {
+        return HINDI_ARCHIVE_OTHER_SPELLING.test(docsLine.line);
+      })
+      .map((docsLine: DocsLine): string => {
+        return docsLine.page;
+      });
+
+    expect(other).toEqual([]);
+  });
+
+  it("the Hindi pages quote the Archive button as drawn", () => {
+    const button: string = drawnDashboardLabel("hi", "Archive");
+    const pages: Set<string> = new Set(
+      linesIn("hi")
+        .filter((docsLine: DocsLine): boolean => {
+          return boldSpans(docsLine.line).includes(button);
+        })
+        .map((docsLine: DocsLine): string => {
+          return docsLine.page;
+        }),
+    );
+
+    expect(pages.size).toBeGreaterThanOrEqual(5);
+  });
+});
+
 /*
  * The Archived workflows page's column says whether a workflow runs again
  * once unarchived. The workflows page names it in every language.

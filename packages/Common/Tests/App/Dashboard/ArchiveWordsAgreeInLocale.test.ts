@@ -433,6 +433,52 @@ describe("Danish spells Archive one way", () => {
 });
 
 /*
+ * Hindi spelled archive two ways: the Archive button and about a hundred
+ * sentences संग्रहित, the Archived state and twice as many संग्रहीत - so
+ * the Archived SLOs page said "संग्रहित SLO" under a menu saying
+ * "संग्रहीत". One spelling, the dictionary's (#7387).
+ */
+const HINDI_ARCHIVE_OTHER_SPELLING: RegExp = /संग्रहित/;
+
+describe("Hindi spells archive one way", () => {
+  test("the button, the card's title and the state say संग्रहीत", () => {
+    const words: Record<string, string> = readDashboardLocale("hi");
+
+    expect([
+      words["Archive"],
+      words["Archive {{itemName}}"],
+      words["Archived"],
+      words["Archived SLOs"],
+    ]).toEqual([
+      "संग्रहीत करें",
+      "{{itemName}} संग्रहीत करें",
+      "संग्रहीत",
+      "संग्रहीत SLO",
+    ]);
+  });
+
+  test("no sentence of the Dashboard spells it संग्रहित", () => {
+    const words: Record<string, string> = readDashboardLocale("hi");
+    const other: Array<string> = Object.keys(words).filter(
+      (key: string): boolean => {
+        const value: unknown = words[key];
+
+        return (
+          typeof value === "string" && HINDI_ARCHIVE_OTHER_SPELLING.test(value)
+        );
+      },
+    );
+
+    expect(other).toEqual([]);
+  });
+
+  test("the pattern finds the spelling it replaced", () => {
+    expect("संग्रहित करें").toMatch(HINDI_ARCHIVE_OTHER_SPELLING);
+    expect("संग्रहीत करें").not.toMatch(HINDI_ARCHIVE_OTHER_SPELLING);
+  });
+});
+
+/*
  * The first three letters of a name's first word, as its locale says it:
  * "сервис" and "сервисы" agree, as do "база" and "базы"; "служба" and
  * "сервисы" do not, nor "dienst" and "services".
