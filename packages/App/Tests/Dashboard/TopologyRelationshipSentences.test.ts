@@ -184,7 +184,9 @@ describe("the drawer draws the sentence whole", () => {
   });
 
   test("the arrow that opens the other end is the shared one, pointing on in a line read right to left", () => {
-    expect(PANEL).toContain("{sentence} <DirectionArrow isDecorative={true} />");
+    expect(PANEL).toContain(
+      "{sentence} <DirectionArrow isDecorative={true} />",
+    );
     expect(PANEL).not.toContain("rtl:-scale-x-100");
   });
 
