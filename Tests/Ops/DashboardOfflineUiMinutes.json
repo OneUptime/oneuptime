@@ -47,7 +47,7 @@
     "test-docker-swarm-pages-ui": 1.7,
     "test-episode-bulk-add-ui": 2.5,
     "test-event-notes-ui": 2.7,
-    "test-event-overview-ui 1/2": 18.8,
+    "test-event-overview-ui 1/2": 18.9,
     "test-event-overview-ui 2/2": 20.6,
     "test-exception-detail-ui": 2.3,
     "test-exceptions-ai-ui": 2.0,
