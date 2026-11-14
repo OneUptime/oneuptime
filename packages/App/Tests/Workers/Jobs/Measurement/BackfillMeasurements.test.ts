@@ -169,6 +169,9 @@ const mockedLogger: { error: jest.Mock; warn: jest.Mock } =
     warn: jest.Mock;
   };
 
+// What QueryHelper.isNull() writes for a column.
+const IS_NULL: RegExp = /IS NULL/i;
+
 // Mirrors the constants in the job. A page shorter than this ends the run.
 const PAGE_SIZE: number = 500;
 const MAX_PAGES_PER_RUN: number = 10;
@@ -333,14 +336,18 @@ describe("Measurement:Backfill", () => {
           "backfillRequestedAt",
         ]);
         expect(
-          (read.query["backfillRequestedAt"] as { getSql: (a: string) => string }).getSql(
-            "c",
-          ),
+          (
+            read.query["backfillRequestedAt"] as {
+              getSql: (a: string) => string;
+            }
+          ).getSql("c"),
         ).toMatch(/c IS NOT NULL/i);
         expect(
-          (read.query["backfillCompletedAt"] as { getSql: (a: string) => string }).getSql(
-            "c",
-          ),
+          (
+            read.query["backfillCompletedAt"] as {
+              getSql: (a: string) => string;
+            }
+          ).getSql("c"),
         ).toMatch(/c IS NULL/i);
         expect(read.sort).toEqual({
           backfillRequestedAt: "ASC",
@@ -374,9 +381,9 @@ describe("Measurement:Backfill", () => {
           query: Record<string, { getSql: (a: string) => string }>;
           limit: number;
         }): Promise<Array<MeasurementRow>> => {
-          const onlyUnfinished: boolean = /IS NULL/i.test(
-            args.query["backfillCompletedAt"]?.getSql("c") || "",
-          );
+          const unfinishedPredicate: string =
+            args.query["backfillCompletedAt"]?.getSql("c") || "";
+          const onlyUnfinished: boolean = IS_NULL.test(unfinishedPredicate);
 
           return [...finished, fresh]
             .filter((row: MeasurementRow) => {

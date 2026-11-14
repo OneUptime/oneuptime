@@ -104,8 +104,7 @@ class FakeDatabase {
   public episodeReads: Array<{ afterId: string | null; limit: number }> = [];
   public ruleReads: Array<Array<string>> = [];
   public stateReads: Array<Array<string>> = [];
-  public aggregateQueries: Array<{ sql: string; params: Array<unknown> }> =
-    [];
+  public aggregateQueries: Array<{ sql: string; params: Array<unknown> }> = [];
   public stamps: Array<{ episodeId: string; at: Date | null }> = [];
   public resolved: Array<string> = [];
 
@@ -206,8 +205,7 @@ class FakeDatabase {
           .filter((episode: FakeEpisode) => {
             return (
               !episode.resolvedAt &&
-              (!data.afterId ||
-                episode.id.toString() > data.afterId.toString())
+              (!data.afterId || episode.id.toString() > data.afterId.toString())
             );
           })
           .sort((a: FakeEpisode, b: FakeEpisode) => {
@@ -257,7 +255,7 @@ class FakeDatabase {
           })
           .map((state: FakeState): AutoResolveState => {
             return {
-              _id: new ObjectID(state.id),
+              id: new ObjectID(state.id),
               projectId: new ObjectID(state.projectId),
               order: state.order,
               isResolvedState: state.isResolvedState,
@@ -326,7 +324,10 @@ class FakeDatabase {
         at: Date | null;
       }): Promise<void> => {
         await this.write(() => {
-          this.stamps.push({ episodeId: data.episodeId.toString(), at: data.at });
+          this.stamps.push({
+            episodeId: data.episodeId.toString(),
+            at: data.at,
+          });
           const episode: FakeEpisode | undefined = this.episodes.find(
             (candidate: FakeEpisode) => {
               return candidate.id.toString() === data.episodeId.toString();
@@ -402,7 +403,11 @@ describe("every open episode, a page at a time", () => {
     const project: ObjectID = id("aaaaaaaa", 1);
     db.addProject(project);
 
-    for (let index: number = 0; index < EPISODE_AUTO_RESOLVE_PAGE_SIZE * 2 + 5; index++) {
+    for (
+      let index: number = 0;
+      index < EPISODE_AUTO_RESOLVE_PAGE_SIZE * 2 + 5;
+      index++
+    ) {
       // Members still open: nothing resolves, so every page is read as it was.
       db.addEpisode({
         id: id("eeeeeeee", index),
@@ -440,7 +445,11 @@ describe("every open episode, a page at a time", () => {
       resolveDelayMinutes: 10,
     });
 
-    for (let index: number = 0; index < EPISODE_AUTO_RESOLVE_PAGE_SIZE * 3; index++) {
+    for (
+      let index: number = 0;
+      index < EPISODE_AUTO_RESOLVE_PAGE_SIZE * 3;
+      index++
+    ) {
       db.addEpisode({
         id: id("eeeeeeee", index),
         projectId: projects[index % 2]!,
@@ -472,7 +481,11 @@ describe("every open episode, a page at a time", () => {
       const ids: Array<string> = query.params[0] as Array<string>;
       const orders: Array<number> = query.params[1] as Array<number>;
       expect(ids).toHaveLength(EPISODE_AUTO_RESOLVE_PAGE_SIZE);
-      expect(orders).toEqual(ids.map(() => RESOLVED_ORDER));
+      expect(orders).toEqual(
+        ids.map(() => {
+          return RESOLVED_ORDER;
+        }),
+      );
       expect(query.sql).toBe(getEpisodeMemberCountsSql(db.kind().tables));
     }
   });
@@ -630,7 +643,11 @@ describe("its deadline", () => {
     const project: ObjectID = id("aaaaaaaa", 1);
     db.addProject(project);
 
-    for (let index: number = 0; index < EPISODE_AUTO_RESOLVE_PAGE_SIZE * 3; index++) {
+    for (
+      let index: number = 0;
+      index < EPISODE_AUTO_RESOLVE_PAGE_SIZE * 3;
+      index++
+    ) {
       db.addEpisode({
         id: id("eeeeeeee", index),
         projectId: project,
@@ -733,8 +750,7 @@ describe("the aggregate query", () => {
       projectId: project,
       memberOrders: [RESOLVED_ORDER],
     });
-    db.records.get(`${id("eeeeeeee", 3).toString()}-record-0`)!.stateId =
-      null;
+    db.records.get(`${id("eeeeeeee", 3).toString()}-record-0`)!.stateId = null;
 
     // Every member left: an episode with no members is left alone.
     db.addEpisode({

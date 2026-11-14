@@ -261,9 +261,11 @@ describe("AlertEpisode:AutoResolve", () => {
     expect(states).toEqual([state]);
     expect(
       Object.keys(
-        (stateService.findBy.mock.calls[0]![0] as {
-          select: Record<string, unknown>;
-        }).select,
+        (
+          stateService.findBy.mock.calls[0]![0] as {
+            select: Record<string, unknown>;
+          }
+        ).select,
       ).sort(),
     ).toEqual(["_id", "isResolvedState", "order", "projectId"]);
   });

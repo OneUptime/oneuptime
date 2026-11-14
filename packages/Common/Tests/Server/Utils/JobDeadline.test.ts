@@ -146,9 +146,9 @@ describe("JobDeadline", () => {
     });
 
     expect(deadline.getRemainingMs(now)).toBe(30_000);
-    expect(
-      deadline.getRemainingMs(new Date("2026-11-14T10:01:00.000Z")),
-    ).toBe(0);
+    expect(deadline.getRemainingMs(new Date("2026-11-14T10:01:00.000Z"))).toBe(
+      0,
+    );
     expect(JobDeadline.none().getRemainingMs(now)).toBeNull();
   });
 

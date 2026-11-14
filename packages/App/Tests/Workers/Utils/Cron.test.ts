@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A SCHEDULED JOB RUNS ONE AT A TIME, AND STOPS AT ITS TIME LIMIT.
@@ -118,7 +111,6 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
 import RunCron, {
-  CronRunFunction,
   buildCronJobFunction,
 } from "../../../FeatureSet/Workers/Utils/Cron";
 import {
@@ -130,7 +122,7 @@ import JobDictionary, {
   WorkerJobFunction,
 } from "../../../FeatureSet/Workers/Utils/JobDictionary";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = jest.Mock;
 
 const JOB_NAME: string = "TelemetryMonitor:MonitorTelemetryMonitor";
 const FIVE_MINUTES: number = 5 * 60 * 1000;
@@ -164,9 +156,12 @@ async function advance(ms: number, stepMs: number = 1000): Promise<void> {
 
 // The job as the Worker queue runs it: with its time limit (RunWorkerJob).
 function runAsQueueJob(job: WorkerJobFunction): Promise<void> {
-  return QueueWorker.runJobWithTimeout(FIVE_MINUTES, (deadline: JobDeadline) => {
-    return job(undefined, deadline);
-  });
+  return QueueWorker.runJobWithTimeout(
+    FIVE_MINUTES,
+    (deadline: JobDeadline) => {
+      return job(undefined, deadline);
+    },
+  );
 }
 
 beforeEach(() => {
@@ -188,13 +183,11 @@ afterEach(() => {
 describe("a run of a scheduled job", () => {
   test("skips while another run of the job is still going, and runs once it is done", async () => {
     const firstRun: Gate = gate();
-    const runFunction: jest.Mock<CronRunFunction> = jest.fn(
-      async (): Promise<void> => {
-        if (runFunction.mock.calls.length === 1) {
-          await firstRun.promise;
-        }
-      },
-    );
+    const runFunction: jest.Mock = jest.fn(async (): Promise<void> => {
+      if (runFunction.mock.calls.length === 1) {
+        await firstRun.promise;
+      }
+    });
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: JOB_NAME,
       options: {},
@@ -219,17 +212,25 @@ describe("a run of a scheduled job", () => {
 
   test("keeps runs of different jobs apart only from themselves", async () => {
     const slow: Gate = gate();
-    const first: jest.Mock<CronRunFunction> = jest.fn(async () => {
+    const first: jest.Mock = jest.fn(async () => {
       await slow.promise;
     });
-    const second: jest.Mock<CronRunFunction> = jest.fn(async () => {});
+    const second: jest.Mock = jest.fn(async () => {});
 
     const firstRun: Promise<void> = runAsQueueJob(
-      buildCronJobFunction({ jobName: "A:Job", options: {}, runFunction: first }),
+      buildCronJobFunction({
+        jobName: "A:Job",
+        options: {},
+        runFunction: first,
+      }),
     );
     await settle();
     await runAsQueueJob(
-      buildCronJobFunction({ jobName: "B:Job", options: {}, runFunction: second }),
+      buildCronJobFunction({
+        jobName: "B:Job",
+        options: {},
+        runFunction: second,
+      }),
     );
 
     expect(second).toHaveBeenCalledTimes(1);
@@ -239,8 +240,8 @@ describe("a run of a scheduled job", () => {
 
   test("gives the lock back when the run throws, and the error still fails the job", async () => {
     const failure: Error = new Error("database unreachable");
-    const runFunction: jest.Mock<CronRunFunction> = jest
-      .fn<CronRunFunction>()
+    const runFunction: jest.Mock = jest
+      .fn()
       .mockRejectedValueOnce(failure)
       .mockResolvedValue(undefined);
     const job: WorkerJobFunction = buildCronJobFunction({
@@ -265,7 +266,9 @@ describe("a run of a scheduled job", () => {
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: JOB_NAME,
       options: {},
-      runFunction: async (deadline: JobDeadline): Promise<void> => {
+      runFunction: async (
+        deadline: JobDeadline = JobDeadline.none(),
+      ): Promise<void> => {
         seen = deadline;
 
         while (!deadline.hasPassed()) {
@@ -303,14 +306,12 @@ describe("a run of a scheduled job", () => {
 
   test("gives the lock back after its time limit and the grace, though its work never ends", async () => {
     const hang: Gate = gate();
-    const runFunction: jest.Mock<CronRunFunction> = jest.fn(
-      async (): Promise<void> => {
-        if (runFunction.mock.calls.length === 1) {
-          // Checks no deadline and never returns: a query that never comes back.
-          await hang.promise;
-        }
-      },
-    );
+    const runFunction: jest.Mock = jest.fn(async (): Promise<void> => {
+      if (runFunction.mock.calls.length === 1) {
+        // Checks no deadline and never returns: a query that never comes back.
+        await hang.promise;
+      }
+    });
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: JOB_NAME,
       options: {},
@@ -352,7 +353,7 @@ describe("a run of a scheduled job", () => {
       expiresAt: Date.now() + CRON_LOCK_LEASE_MS,
     });
 
-    const runFunction: jest.Mock<CronRunFunction> = jest.fn(async () => {});
+    const runFunction: jest.Mock = jest.fn(async () => {});
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: JOB_NAME,
       options: {},
@@ -373,7 +374,9 @@ describe("a run of a scheduled job", () => {
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: JOB_NAME,
       options: {},
-      runFunction: async (deadline: JobDeadline): Promise<void> => {
+      runFunction: async (
+        deadline: JobDeadline = JobDeadline.none(),
+      ): Promise<void> => {
         // Valkey restarted and lost every lease.
         mockLeases.clear();
 
@@ -391,12 +394,12 @@ describe("a run of a scheduled job", () => {
     await advance(CRON_LOCK_KEEP_EVERY_MS + 1000);
     await run;
 
-    expect(stoppedBecause?.message).toContain("lock lapsed");
+    expect((stoppedBecause as Error | null)?.message).toContain("lock lapsed");
   });
 
   test("runs without the lock when Valkey cannot be reached", async () => {
     mockValkeyDown = true;
-    const runFunction: jest.Mock<CronRunFunction> = jest.fn(async () => {});
+    const runFunction: jest.Mock = jest.fn(async () => {});
 
     await runAsQueueJob(
       buildCronJobFunction({ jobName: JOB_NAME, options: {}, runFunction }),
@@ -408,13 +411,11 @@ describe("a run of a scheduled job", () => {
 
   test("of a job that allows overlap takes no lock and runs beside another", async () => {
     const slow: Gate = gate();
-    const runFunction: jest.Mock<CronRunFunction> = jest.fn(
-      async (): Promise<void> => {
-        if (runFunction.mock.calls.length === 1) {
-          await slow.promise;
-        }
-      },
-    );
+    const runFunction: jest.Mock = jest.fn(async (): Promise<void> => {
+      if (runFunction.mock.calls.length === 1) {
+        await slow.promise;
+      }
+    });
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: JOB_NAME,
       options: { allowOverlap: true },
@@ -439,7 +440,9 @@ describe("a run of a scheduled job", () => {
     const job: WorkerJobFunction = buildCronJobFunction({
       jobName: "Outside:Queue",
       options: {},
-      runFunction: async (deadline: JobDeadline): Promise<void> => {
+      runFunction: async (
+        deadline: JobDeadline = JobDeadline.none(),
+      ): Promise<void> => {
         seen = deadline;
         await hang.promise;
       },
@@ -461,7 +464,7 @@ describe("a run of a scheduled job", () => {
 
 describe("RunCron", () => {
   test("registers the locked run under the job's name, with its time limit and schedule", async () => {
-    const runFunction: jest.Mock<CronRunFunction> = jest.fn(async () => {});
+    const runFunction: jest.Mock = jest.fn(async () => {});
 
     RunCron(
       "Registered:Job",

@@ -13,9 +13,11 @@ import Telemetry, {
 /*
  * What a scheduled job runs, handed its deadline: when its time limit runs
  * out, or it lost its lock (JobDeadline, CronLock). A job that loops checks
- * deadline.hasPassed() between pages and items and stops there.
+ * deadline.hasPassed() between pages and items and stops there. RunCron
+ * always hands it one; optional so a job can still be run, and typed, as a
+ * function of no arguments - give it a default (JobDeadline.none()).
  */
-export type CronRunFunction = (deadline: JobDeadline) => Promise<void>;
+export type CronRunFunction = (deadline?: JobDeadline) => Promise<void>;
 
 export interface CronOptions {
   schedule: string;

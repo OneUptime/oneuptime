@@ -43,26 +43,29 @@ export const INCIDENT_EPISODE_AUTO_RESOLVE: EpisodeAutoResolveKind = {
     afterId: ObjectID | null;
     limit: number;
   }): Promise<Array<AutoResolveEpisode>> => {
-    const episodes: Array<IncidentEpisode> = await IncidentEpisodeService.findBy({
-      query: {
-        resolvedAt: QueryHelper.isNull(),
-        ...(data.afterId ? { _id: QueryHelper.greaterThan(data.afterId) } : {}),
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        incidentGroupingRuleId: true,
-        allIncidentsResolvedAt: true,
-      },
-      sort: {
-        _id: SortOrder.Ascending,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: data.limit,
-      skip: 0,
-    });
+    const episodes: Array<IncidentEpisode> =
+      await IncidentEpisodeService.findBy({
+        query: {
+          resolvedAt: QueryHelper.isNull(),
+          ...(data.afterId
+            ? { _id: QueryHelper.greaterThan(data.afterId) }
+            : {}),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          incidentGroupingRuleId: true,
+          allIncidentsResolvedAt: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: data.limit,
+        skip: 0,
+      });
 
     return episodes.map((episode: IncidentEpisode): AutoResolveEpisode => {
       return {
@@ -124,7 +127,7 @@ export const INCIDENT_EPISODE_AUTO_RESOLVE: EpisodeAutoResolveKind = {
       },
       limit: LIMIT_MAX,
       skip: 0,
-    })) as Array<IncidentState> as Array<AutoResolveState>;
+    })) as Array<IncidentState>;
   },
   query: async (
     sql: string,

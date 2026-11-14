@@ -124,7 +124,7 @@ export const ALERT_EPISODE_AUTO_RESOLVE: EpisodeAutoResolveKind = {
       },
       limit: LIMIT_MAX,
       skip: 0,
-    })) as Array<AlertState> as Array<AutoResolveState>;
+    })) as Array<AlertState>;
   },
   query: async (
     sql: string,

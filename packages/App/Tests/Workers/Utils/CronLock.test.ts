@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ONE RUN OF A SCHEDULED JOB AT A TIME (CronLock).
@@ -54,7 +47,7 @@ import CronLock, {
   CronLockTakeResult,
 } from "../../../FeatureSet/Workers/Utils/CronLock";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = jest.Mock;
 
 const semaphore: { lock: AnyMock; keepLock: AnyMock; release: AnyMock } =
   Semaphore as unknown as {
@@ -63,7 +56,8 @@ const semaphore: { lock: AnyMock; keepLock: AnyMock; release: AnyMock } =
     release: AnyMock;
   };
 
-const JOB_NAME: string = "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
+const JOB_NAME: string =
+  "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const mutex: { identifier: string } = { identifier: "held-by-this-run" };
 
@@ -133,7 +127,9 @@ describe("CronLock.take", () => {
   });
 
   test("says Valkey is unavailable on any other error, so the run goes on unlocked", async () => {
-    semaphore.lock.mockRejectedValue(new Error("Redis client is not connected"));
+    semaphore.lock.mockRejectedValue(
+      new Error("Redis client is not connected"),
+    );
 
     const take: CronLockTake = await CronLock.take({
       jobName: JOB_NAME,
@@ -154,9 +150,7 @@ describe("a held lock", () => {
       deadline: new JobDeadline(),
     });
 
-    expect(CRON_LOCK_KEEP_EVERY_MS * 3).toBeLessThanOrEqual(
-      CRON_LOCK_LEASE_MS,
-    );
+    expect(CRON_LOCK_KEEP_EVERY_MS * 3).toBeLessThanOrEqual(CRON_LOCK_LEASE_MS);
 
     await advance(CRON_LOCK_KEEP_EVERY_MS - 1);
     expect(semaphore.keepLock).not.toHaveBeenCalled();

@@ -243,9 +243,12 @@ describe("QueueWorker.runJobWithTimeout deadline", () => {
     jest.setSystemTime(new Date("2026-11-14T10:00:00.000Z"));
     let seen: JobDeadline | null = null;
 
-    await QueueWorker.runJobWithTimeout(300_000, async (deadline: JobDeadline) => {
-      seen = deadline;
-    });
+    await QueueWorker.runJobWithTimeout(
+      300_000,
+      async (deadline: JobDeadline) => {
+        seen = deadline;
+      },
+    );
 
     expect(seen).not.toBeNull();
     expect(seen!.endsAt?.toISOString()).toBe("2026-11-14T10:05:00.000Z");

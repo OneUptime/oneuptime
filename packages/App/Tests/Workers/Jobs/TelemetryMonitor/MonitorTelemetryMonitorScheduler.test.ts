@@ -249,9 +249,11 @@ function cursorOf(query: Record<string, unknown>): string | undefined {
 
 // The due monitors the database holds, served a keyset page at a time.
 function serveDueMonitors(monitors: Array<Monitor>): void {
-  const sorted: Array<Monitor> = [...monitors].sort((a: Monitor, b: Monitor) => {
-    return a.id!.toString() < b.id!.toString() ? -1 : 1;
-  });
+  const sorted: Array<Monitor> = [...monitors].sort(
+    (a: Monitor, b: Monitor) => {
+      return a.id!.toString() < b.id!.toString() ? -1 : 1;
+    },
+  );
 
   monitorService.findBy.mockImplementation(
     async (args: {
@@ -610,7 +612,14 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
 
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
-    expect(events).toEqual(["read", "stamp", "queue", "read", "stamp", "queue"]);
+    expect(events).toEqual([
+      "read",
+      "stamp",
+      "queue",
+      "read",
+      "stamp",
+      "queue",
+    ]);
   });
 
   test("queues never more than its limit of a page's jobs at once", async () => {
@@ -652,7 +661,9 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
 
   test("a page whose UPDATE fails fails the run before its jobs are queued", async () => {
     serveDueMonitors([makeMonitor({ id: MONITOR_A_ID })]);
-    mockQuery.mockRejectedValue(new Error("canceling statement due to statement timeout"));
+    mockQuery.mockRejectedValue(
+      new Error("canceling statement due to statement timeout"),
+    );
 
     await expect(enqueueDueTelemetryMonitorEvaluationJobs()).rejects.toThrow(
       "statement timeout",

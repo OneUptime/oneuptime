@@ -119,7 +119,9 @@ const episodeService: {
   resolveEpisode: jest.Mock;
 };
 const memberService: { getIncidentsInEpisode: jest.Mock } =
-  IncidentEpisodeMemberService as unknown as { getIncidentsInEpisode: jest.Mock };
+  IncidentEpisodeMemberService as unknown as {
+    getIncidentsInEpisode: jest.Mock;
+  };
 const stateService: { findBy: jest.Mock } = IncidentStateService as unknown as {
   findBy: jest.Mock;
 };
@@ -261,9 +263,11 @@ describe("IncidentEpisode:AutoResolve", () => {
     expect(states).toEqual([state]);
     expect(
       Object.keys(
-        (stateService.findBy.mock.calls[0]![0] as {
-          select: Record<string, unknown>;
-        }).select,
+        (
+          stateService.findBy.mock.calls[0]![0] as {
+            select: Record<string, unknown>;
+          }
+        ).select,
       ).sort(),
     ).toEqual(["_id", "isResolvedState", "order", "projectId"]);
   });
@@ -281,7 +285,10 @@ describe("IncidentEpisode:AutoResolve", () => {
     const sql: string = getEpisodeMemberCountsSql(
       INCIDENT_EPISODE_AUTO_RESOLVE.tables,
     );
-    await INCIDENT_EPISODE_AUTO_RESOLVE.query(sql, [[EPISODE_ID.toString()], [3]]);
+    await INCIDENT_EPISODE_AUTO_RESOLVE.query(sql, [
+      [EPISODE_ID.toString()],
+      [3],
+    ]);
 
     expect(mockMemberQuery).toHaveBeenCalledWith(sql, [
       [EPISODE_ID.toString()],

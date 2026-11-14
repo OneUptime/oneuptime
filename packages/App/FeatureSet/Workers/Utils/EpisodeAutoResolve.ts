@@ -40,9 +40,11 @@ export interface AutoResolveRule {
   resolveDelayMinutes: number;
 }
 
-// A state of a project's list, as ResolvedStateUtil reads it.
+/*
+ * A state of a project's list, as ResolvedStateUtil reads it: an
+ * AlertState or an IncidentState, or anything shaped like one.
+ */
 export interface AutoResolveState {
-  _id?: ObjectID | undefined;
   id?: ObjectID | null | undefined;
   projectId?: ObjectID | undefined;
   order?: number | undefined;
@@ -86,14 +88,16 @@ export function getEpisodeMemberCountsSql(tables: EpisodeMemberTables): string {
 export interface EpisodeAutoResolveKind {
   jobName: string;
   // The kind's list of states, for its project's resolved state.
-  stateList: StateListType;
+  stateList: StateListType.AlertState | StateListType.IncidentState;
   tables: EpisodeMemberTables;
   // A keyset page of open episodes: sorted by _id, after `afterId`.
   readOpenEpisodes: (data: {
     afterId: ObjectID | null;
     limit: number;
   }) => Promise<Array<AutoResolveEpisode>>;
-  readRules: (ruleIds: Array<ObjectID>) => Promise<Map<string, AutoResolveRule>>;
+  readRules: (
+    ruleIds: Array<ObjectID>,
+  ) => Promise<Map<string, AutoResolveRule>>;
   readStates: (projectIds: Array<ObjectID>) => Promise<Array<AutoResolveState>>;
   // Runs a read-only statement (the aggregate query).
   query: (sql: string, params: Array<unknown>) => Promise<Array<unknown>>;
@@ -193,7 +197,9 @@ export default async function runEpisodeAutoResolve(data: {
     jobName: kind.jobName,
     pageSize: EPISODE_AUTO_RESOLVE_PAGE_SIZE,
     deadline: data.deadline,
-    readPage: (afterId: ObjectID | null): Promise<Array<AutoResolveEpisode>> => {
+    readPage: (
+      afterId: ObjectID | null,
+    ): Promise<Array<AutoResolveEpisode>> => {
       return kind.readOpenEpisodes({
         afterId: afterId,
         limit: EPISODE_AUTO_RESOLVE_PAGE_SIZE,
@@ -270,7 +276,10 @@ export default async function runEpisodeAutoResolve(data: {
           now: now,
         });
 
-        if (decision.resolve || decision.setAllMembersResolvedAt !== undefined) {
+        if (
+          decision.resolve ||
+          decision.setAllMembersResolvedAt !== undefined
+        ) {
           toWrite.push({ episode, decision });
         }
       }
