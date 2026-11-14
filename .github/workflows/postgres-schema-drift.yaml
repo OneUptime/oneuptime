@@ -3202,6 +3202,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
+      # The episode auto-resolve aggregate query (EpisodeAutoResolve) on the
+      # migrated AlertEpisodeMember / Alert / AlertState and incident tables'
+      # structure: one query per page counts each episode's members and the
+      # unresolved ones, as the per-episode reads it replaced counted them -
+      # members that left, deleted records, states that are gone or unset.
+      - name: Test the episode auto-resolve aggregate query on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EPISODE_AUTO_RESOLVE_TESTS: "true"
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/Utils/EpisodeAutoResolvePostgres.test.ts --forceExit
+
       # An Incoming Request monitor's latest request, kept twice (#6402): the
       # column 1809080466402 adds is a nullable jsonb; a request is written
       # as it came and cut in one statement; changing Keep request content

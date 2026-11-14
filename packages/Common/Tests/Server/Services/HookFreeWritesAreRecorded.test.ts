@@ -189,7 +189,7 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     },
   "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
     {
-      "enqueueDueTelemetryMonitorEvaluationJobs Monitor": Why.Bookkeeping,
+      "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
     },
   "packages/Common/Server/API/DataObservabilityAPI.ts": {
     "(module) DataStore": Why.Recorded,
