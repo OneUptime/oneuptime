@@ -23,11 +23,12 @@ flowchart TB
     chart --> dash["Een dashboardwidget"]
 ```
 
-De verkenner heeft vijf tabbladen:
+De verkenner heeft zes tabbladen:
 
 | Tabblad | Waarvoor het dient |
 | --- | --- |
 | **Kijker** | De lijst met metrieken, elk met een kleine grafiek en de laatste waarde. Opent op het afgelopen uur. |
+| **PromQL** | Bevraag uw metrieken met PromQL, de querytaal van Prometheus, en koppel Grafana eraan. Zie [Metrieken bevragen met PromQL](/docs/telemetry/promql). |
 | **Inzichten** | Welke services metrieken melden, en hoeveel. |
 | **AI** | De problemen die OneUptime in uw metrieken vindt (te veel waarden, histogram-buckets die niet passen, ontbrekende metrieken), en wat OneUptime AI eraan deed. Zie [Metrieken verbeteren en ontbrekende toevoegen met AI](#metrieken-verbeteren-en-ontbrekende-toevoegen-met-ai). |
 | **Installatiegids** | Hoe u metrieken verstuurt met OpenTelemetry, met een van uw ingestiesleutels. |

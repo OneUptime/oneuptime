@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **Die Bedingungen der Regel** entscheiden, für welche Warnungen sie gilt. Eine Regel ohne Bedingungen gilt für jede neue Warnung.
-- **Der Gruppierungsschlüssel** entscheidet, welche Warnungen sich eine Episode teilen: die mit demselben Monitor, demselben Schweregrad, demselben Titel oder der Mischung, nach der die Regel gruppiert. Eine Regel, die nach nichts gruppiert, legt jede Warnung, auf die sie zutrifft, in eine einzige Episode.
+- **Der Gruppierungsschlüssel** entscheidet, welche Warnungen sich eine Episode teilen: die mit demselben Monitor, demselben Schweregrad, demselben Titel, die bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen, oder der Mischung, nach der die Regel gruppiert. Eine Regel, die nach nichts gruppiert, legt jede Warnung, auf die sie zutrifft, in eine einzige Episode.
 - **Das Zeitfenster** entscheidet, wie lange eine Episode Warnungen aufnimmt. Ist es eingeschaltet, tritt eine Warnung nur bei, wenn sie innerhalb des Fensters nach der letzten Warnung der Episode eintrifft. Ist es ausgeschaltet, treten passende Warnungen bei, bis die Episode behoben ist.
 - **Auf weitere Warnungen warten** entscheidet, wann eine neue Episode geöffnet wird. Ist es ausgeschaltet, womit eine neue Regel beginnt, öffnet die erste passende Warnung eine. Ist es eingeschaltet, wartet eine Warnung für sich, bis die von Ihnen eingestellte Anzahl passender Warnungen ihrer Gruppe läuft, und dann öffnet sich eine Episode mit ihnen allen. Siehe [Eine Episode nur für mehrere Warnungen öffnen](#eine-episode-nur-für-mehrere-warnungen-öffnen).
 
@@ -41,12 +41,13 @@ Gehen Sie zu **Warnungen → Regeln → Gruppierungsregeln**. Der Bereich **Rege
 
 ### Mit einer Vorlage beginnen
 
-Ein Projekt ohne Gruppierungsregeln sieht statt einer leeren Liste vier fertige Regeln; sobald Sie Regeln haben, öffnet **Aus Vorlage erstellen** auf der Karte sie. **Regel hinzufügen** speichert eine mit einem Klick, aktiviert, am Ende der Liste und für jede neue Warnung geltend. Bearbeiten Sie sie danach wie jede andere Regel.
+Ein Projekt ohne Gruppierungsregeln sieht statt einer leeren Liste fünf fertige Regeln; sobald Sie Regeln haben, öffnet **Aus Vorlage erstellen** auf der Karte sie. **Regel hinzufügen** speichert eine mit einem Klick, aktiviert, am Ende der Liste und für jede neue Warnung geltend. Bearbeiten Sie sie danach wie jede andere Regel.
 
 | Vorlage                                         | Gruppiert                                                                    | Zeitfenster |
 | ----------------------------------------------- | ---------------------------------------------------------------------------- | ----------- |
 | **Warnungen desselben Monitors gruppieren**     | Eine Episode pro Monitor                                                     | 30 Minuten  |
 | **Gleichzeitige Warnungen gruppieren**          | Eine gemeinsame Episode, egal welcher Monitor                                | 10 Minuten  |
+| **Warnungen verbundener Dienste gruppieren** | Eine Episode für Dienste, die sich auf der Dienstkarte gegenseitig aufrufen | 30 Minuten  |
 | **Warnungen nach Schweregrad gruppieren**       | Eine Episode pro Schweregrad                                                 | 30 Minuten  |
 | **Wiederholungen derselben Warnung gruppieren** | Eine Episode pro Warnungstitel, Zahlen und Groß-/Kleinschreibung ignoriert   | 1 Stunde    |
 
@@ -55,7 +56,7 @@ Ein Projekt ohne Gruppierungsregeln sieht statt einer leeren Liste vier fertige 
 :::steps
 #### Festlegen, wie gruppiert wird
 
-Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie Regeln haben, auf der Karte auf **Gruppierungsregel für Warnungen erstellen**. Im Schritt **Gruppierung** stellt **Warnungen gruppieren nach** eine Frage: **Überwachung**, **Alles zusammen**, **Schweregrad**, **Titel** oder **Benutzerdefiniert**. Der **Name** folgt Ihrer Antwort, bis Sie einen eigenen eingeben.
+Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie Regeln haben, auf der Karte auf **Gruppierungsregel für Warnungen erstellen**. Im Schritt **Gruppierung** stellt **Warnungen gruppieren nach** eine Frage: **Überwachung**, **Alles zusammen**, **Verbundene Dienste**, **Schweregrad**, **Titel** oder **Benutzerdefiniert**. Der **Name** folgt Ihrer Antwort, bis Sie einen eigenen eingeben.
 
 #### Das Zeitfenster festlegen
 
@@ -63,7 +64,7 @@ Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie R
 
 #### Felder kombinieren, für Benutzerdefiniert
 
-**Benutzerdefiniert** fügt einen Schritt **Gruppieren nach** mit fünf Schaltern hinzu: **Gruppieren nach Überwachung**, **Gruppieren nach Warnungsschweregrad**, **Gruppieren nach Warnungstitel**, **Gruppieren nach Warnungsbeschriftungen** und **Gruppieren nach Überwachungsbeschriftungen**. Beschriftungen gruppieren nach ihrer genauen Zusammenstellung.
+**Benutzerdefiniert** fügt einen Schritt **Gruppieren nach** mit sechs Schaltern hinzu: **Gruppieren nach Überwachung**, **Gruppieren nach Warnungsschweregrad**, **Gruppieren nach Warnungstitel**, **Gruppieren nach Warnungsbeschriftungen**, **Gruppieren nach Überwachungsbeschriftungen** und **Gruppieren nach verbundenen Diensten**. Beschriftungen gruppieren nach ihrer genauen Zusammenstellung.
 
 #### Eingrenzen
 
@@ -90,6 +91,17 @@ Regeln werden von oben nach unten geprüft, und der erste Treffer gewinnt: Ziehe
 - **Es zählt pro Gruppe.** Mit **Alles zusammen** zählen alle passenden Warnungen, sodass sich eine Episode nur bei einem Ausfall öffnet, der mehrere Monitore zugleich auslöst. Mit **Überwachung** öffnet sich die Episode eines Monitors, sobald dieser Monitor mehrere laufende Warnungen hat.
 
 Die Spalte **Gruppierung** der Liste sagt „Öffnet eine Episode, sobald 3 passende Warnungen laufen“. Über die API und Terraform heißt es `enableMinimumAlertCount` und `minimumAlertCount`.
+
+### Warnungen verbundener Dienste gruppieren
+
+Wenn ein Dienst ausfällt, fallen auch die Dienste aus, die ihn aufrufen, und jeder löst auf seinem eigenen Monitor eine Warnung aus. **Verbundene Dienste** legt diese Warnungen in eine Episode und nutzt dafür die [Dienstkarte](/docs/telemetry/topology), die OneUptime aus Ihren Traces zeichnet.
+
+- Die Dienste einer Warnung sind die, die unter **Betroffene Ressourcen** mit ihr verknüpft sind, und die, die mit ihrem Monitor verknüpft sind.
+- Eine Warnung tritt einer offenen Episode der Regel bei, wenn einer ihrer Dienste ein Dienst einer Warnung in der Episode ist, ihn aufruft oder von ihm aufgerufen wird. So bleibt ein Fehler, der sich ausbreitet, in einer Episode.
+- Verbunden heißt einen Aufruf entfernt: Zwei Dienste, die nur dieselbe Datenbank oder dieselbe externe API aufrufen, sind nicht verbunden. Sonst würde eine Abhängigkeit, die die Hälfte Ihrer Dienste aufruft, jede Warnung in eine Episode legen.
+- Eine Warnung ohne Dienst wird nach ihrem Monitor gruppiert, so wie **Überwachung** gruppiert.
+
+Ein Aufruf, der 30 Tage lang nicht gesehen wurde, verschwindet von der Dienstkarte und mit ihm die Verbindung. Die Spalte **Gruppierung** der Liste sagt „Warnungen verbundener Dienste teilen sich eine Episode“. Über die API und Terraform heißt es `groupByConnectedServices`.
 
 ## Episodentitel
 

@@ -5,6 +5,7 @@ import {
   MeasurementValues,
   getMeasurementSummary,
 } from "../../Utils/Measurement/MeasurementSetup";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { fillTemplate } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -27,6 +28,13 @@ export interface ComponentProps {
  * What a measurement measures, in the list: "Declared → Acknowledged". The
  * columns this replaced read "Starts At: Timeline Start, Ends At: State Role
  * Entered", which did not even say which state.
+ *
+ * The arrow points the way the page reads (DirectionArrow): on a Persian
+ * page "اعلام‌شده ← تأییدشده" reads from the right, as the Persian docs
+ * write it. A bare "→" there pointed from the end back at the start. Each
+ * end is set apart, because a state's name is the project's own word, in
+ * Latin letters or not: between two names in Latin letters an arrow is
+ * drawn the way they read, from the left, not the way the page does.
  */
 const MeasurementSummaryElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,9 +74,9 @@ const MeasurementSummaryElement: FunctionComponent<ComponentProps> = (
       className={props.className || "text-sm text-gray-900"}
       data-testid="measurement-summary"
     >
-      {describe(summary.start)}
-      <span className="mx-1.5 text-gray-400">→</span>
-      {describe(summary.end)}
+      <bdi>{describe(summary.start)}</bdi>
+      <DirectionArrow className="mx-1.5 text-gray-400" />
+      <bdi>{describe(summary.end)}</bdi>
     </span>
   );
 };

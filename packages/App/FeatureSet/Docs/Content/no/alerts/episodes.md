@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **Regelens betingelser** avgjør hvilke varsler den gjelder for. En regel uten betingelser gjelder for hvert nytt varsel.
-- **Grupperingsnøkkelen** avgjør hvilke varsler som deler en episode: de med samme monitor, samme alvorlighetsgrad, samme tittel eller den kombinasjonen regelen grupperer etter. En regel som ikke grupperer etter noe, legger hvert varsel den samsvarer med, i én episode.
+- **Grupperingsnøkkelen** avgjør hvilke varsler som deler en episode: de med samme monitor, samme alvorlighetsgrad, samme tittel, de på tjenester som kaller hverandre på tjenestekartet, eller den kombinasjonen regelen grupperer etter. En regel som ikke grupperer etter noe, legger hvert varsel den samsvarer med, i én episode.
 - **Tidsvinduet** avgjør hvor lenge en episode fortsetter å ta imot varsler. Når det er slått på, blir et varsel bare med hvis det kommer innenfor vinduet etter episodens siste varsel. Når det er slått av, fortsetter samsvarende varsler å bli med til episoden er løst.
 - **Vent på flere varsler** avgjør når en ny episode åpnes. Når det er slått av, som en ny regel starter med, åpner det første samsvarende varselet en. Når det er slått på, venter et varsel alene til så mange samsvarende varsler fra gruppen som du har satt, pågår, og da åpnes én episode med alle sammen. Se [Åpne en episode bare for flere varsler](#åpne-en-episode-bare-for-flere-varsler).
 
@@ -41,12 +41,13 @@ Gå til **Varsler → Regler → Grupperingsregler**. Seksjonen **Regler** i sid
 
 ### Start fra en mal
 
-Et prosjekt uten grupperingsregler ser fire ferdige regler i stedet for en tom liste; når du har regler, åpner **Opprett fra mal** på kortet dem. **Legg til regel** lagrer en med ett klikk, aktivert, sist i listen og gjeldende for hvert nytt varsel. Rediger den etterpå som enhver annen regel.
+Et prosjekt uten grupperingsregler ser fem ferdige regler i stedet for en tom liste; når du har regler, åpner **Opprett fra mal** på kortet dem. **Legg til regel** lagrer en med ett klikk, aktivert, sist i listen og gjeldende for hvert nytt varsel. Rediger den etterpå som enhver annen regel.
 
 | Mal                                           | Grupperer                                                                     | Tidsvindu   |
 | --------------------------------------------- | ----------------------------------------------------------------------------- | ----------- |
 | **Grupper varsler fra samme overvåking**      | Én episode per monitor                                                        | 30 minutter |
 | **Grupper varsler som skjer samtidig**        | Én felles episode, uansett monitor                                            | 10 minutter |
+| **Grupper varsler på tilkoblede tjenester** | Én episode for tjenester som kaller hverandre på tjenestekartet | 30 minutter |
 | **Grupper varsler etter alvorlighetsgrad**    | Én episode per alvorlighetsgrad                                               | 30 minutter |
 | **Grupper gjentakelser av samme varsel**      | Én episode per varseltittel, uten hensyn til tall og store/små bokstaver      | 1 time      |
 
@@ -55,7 +56,7 @@ Et prosjekt uten grupperingsregler ser fire ferdige regler i stedet for en tom l
 :::steps
 #### Svar på hvordan det skal grupperes
 
-Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupperingsregel for varsler** på kortet når du har regler. På trinnet **Gruppering** stiller **Grupper varsler etter** ett spørsmål: **Overvåking**, **Alt samlet**, **Alvorlighetsgrad**, **Tittel** eller **Egendefinert**. **Navn** følger svaret ditt til du skriver ditt eget.
+Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupperingsregel for varsler** på kortet når du har regler. På trinnet **Gruppering** stiller **Grupper varsler etter** ett spørsmål: **Overvåking**, **Alt samlet**, **Tilkoblede tjenester**, **Alvorlighetsgrad**, **Tittel** eller **Egendefinert**. **Navn** følger svaret ditt til du skriver ditt eget.
 
 #### Angi tidsvinduet
 
@@ -63,7 +64,7 @@ Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupp
 
 #### Kombiner felt, for Egendefinert
 
-**Egendefinert** legger til et trinn **Grupper etter** med fem brytere: **Grupper etter overvåking**, **Grupper etter varselalvorlighet**, **Grupper etter varseltittel**, **Grupper etter varseletiketter** og **Grupper etter overvåkingsetiketter**. Etiketter grupperer etter det nøyaktige settet sitt.
+**Egendefinert** legger til et trinn **Grupper etter** med seks brytere: **Grupper etter overvåking**, **Grupper etter varselalvorlighet**, **Grupper etter varseltittel**, **Grupper etter varseletiketter**, **Grupper etter overvåkingsetiketter** og **Grupper etter tilkoblede tjenester**. Etiketter grupperer etter det nøyaktige settet sitt.
 
 #### Avgrens den
 
@@ -90,6 +91,17 @@ Regler kontrolleres ovenfra og ned i listen, og det første samsvaret vinner: Dr
 - **Det teller per gruppe.** Med **Alt samlet** teller alle samsvarende varsler, så en episode åpnes bare ved et utfall som utløser flere monitorer samtidig. Med **Overvåking** åpnes en monitors episode når den monitoren har flere pågående varsler.
 
 Listens kolonne **Gruppering** sier "Åpner en episode når 3 samsvarende varsler pågår". Via API-et og Terraform heter det `enableMinimumAlertCount` og `minimumAlertCount`.
+
+### Grupper varsler på tilkoblede tjenester
+
+Når en tjeneste svikter, begynner tjenestene som kaller den, også å feile, og hver av dem utløser et varsel på sin egen overvåking. **Tilkoblede tjenester** samler disse varslene i én episode ved hjelp av [tjenestekartet](/docs/telemetry/topology) som OneUptime tegner ut fra sporene dine.
+
+- Tjenestene til et varsel er de som er koblet til det under **Berørte ressurser**, og de som er koblet til overvåkingen til varselet.
+- Et varsel går inn i en åpen episode for regelen når en av tjenestene er, kaller eller kalles av en tjeneste til et varsel som allerede er i den, så en feil som sprer seg, holder én episode.
+- Tilkoblet betyr ett kall unna: to tjenester som bare kaller den samme databasen eller det samme eksterne API-et, er ikke tilkoblet, ellers ville en avhengighet som halvparten av tjenestene dine kaller, legge hvert varsel i én episode.
+- Et varsel uten tjeneste grupperes etter overvåkingen sin, slik **Overvåking** grupperer.
+
+Et kall som ikke er sett på 30 dager, forsvinner fra tjenestekartet, og forbindelsen med det. Listens kolonne **Gruppering** sier "Varsler på tilkoblede tjenester deler én episode". Via API-et og Terraform heter det `groupByConnectedServices`.
 
 ## Episodetitler
 

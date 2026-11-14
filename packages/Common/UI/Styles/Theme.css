@@ -793,6 +793,7 @@ html.dark :is(.bg-green-50, .bg-green-100, [class~="bg-green-50/50"]) {
 html.dark :is(
     .bg-emerald-50,
     .bg-emerald-100,
+    [class~="bg-emerald-50/40"],
     [class~="bg-emerald-50/60"],
     [class~="bg-emerald-50/70"]
   ) {
@@ -1128,6 +1129,14 @@ html.dark .group:hover :is(
     [class~="group-hover:bg-indigo-100"]
   ) {
   background-color: rgb(49 46 129 / 48%) !important;
+}
+
+/*
+ * A green row deepens on hover as an indigo one does: someone added to an
+ * on-call layer, New until the page is saved (LayerUser).
+ */
+html.dark [class~="hover:bg-emerald-50/70"]:hover {
+  background-color: rgb(6 78 59 / 48%) !important;
 }
 
 html.dark :is(

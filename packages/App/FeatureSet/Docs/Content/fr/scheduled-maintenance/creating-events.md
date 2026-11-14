@@ -124,7 +124,7 @@ Tout ce que contient le formulaire peut être modifié sur les pages de l'évén
 ## Publier des notes pendant les travaux
 
 - Les **Notes publiques** sont des mises à jour pour vos clients : elles s'affichent sur les pages de statut de l'événement, et chacune peut prévenir leurs abonnés avec **Notifier les abonnés à la page de statut**.
-- Les **Notes privées** sont réservées à votre équipe.
+- Les **Notes privées** ne peuvent être lues que par les personnes qui peuvent voir l'événement.
 
 Rédigez-en une sur la page **Notes publiques** ou **Notes privées** de l'événement, ou depuis le menu **Actions** du **Fil d'activité de la maintenance planifiée** avec **Ajouter une note publique** ou **Ajouter une note privée**. Le même menu lance un runbook avec **Exécuter le runbook**. Un modèle de note remplit un texte que votre équipe écrit souvent : voir [Règles et paramètres de la maintenance](/docs/scheduled-maintenance/settings#modèles-de-notes).
 

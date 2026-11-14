@@ -348,6 +348,12 @@ const INSTALL_SPECS: Readonly<
         ),
       },
       {
+        name: "PVE_NODES",
+        composeValue: "${PVE_NODES:-}",
+        description:
+          "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.",
+      },
+      {
         name: "PVE_PORT",
         composeValue: "${PVE_PORT:-}",
         description:

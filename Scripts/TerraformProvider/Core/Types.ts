@@ -208,6 +208,12 @@ export interface TerraformAttribute {
   isWrappedScalar?: boolean;
   format?: string; // OpenAPI format information (e.g., "binary", "date-time", etc.)
   isDateTime?: boolean; // RFC3339 timestamp (spec DateTime wrapper) — uses semantic instant equality
+  /*
+   * A phone number (spec Phone wrapper): written and kept in state as the
+   * plain number, and compared as OneUptime keeps it - as written, or as its
+   * digits (StaticFiles/phone.go).
+   */
+  isPhone?: boolean;
   isMonitorSteps?: boolean; // MonitorSteps wrapper — emitted as a typed nested attribute (monitorsteps.go)
   enumValues?: string[]; // Allowed values from the spec's enum — emitted as a OneOf validator
   /*

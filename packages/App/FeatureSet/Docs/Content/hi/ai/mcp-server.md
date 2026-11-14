@@ -330,7 +330,7 @@ curl https://oneuptime.com/mcp/tools
 
 - **`acknowledge_incident`** / **`resolve_incident`**: किसी घटना को प्रोजेक्ट की Acknowledged या Resolved स्थिति में ले जाएं, जैसा डैशबोर्ड का बटन करता है
 - **`acknowledge_alert`** / **`resolve_alert`**: अलर्ट के लिए वही
-- **`add_incident_note`**: किसी घटना में `visibility: "internal"` (सिर्फ़ टीम, डिफ़ॉल्ट) या `visibility: "public"` (स्टेटस पेज पर पोस्ट) के साथ नोट जोड़ें। Markdown समर्थित है
+- **`add_incident_note`**: किसी घटना में `visibility: "internal"` (सिर्फ़ वे लोग जो घटना देख सकते हैं, डिफ़ॉल्ट) या `visibility: "public"` (स्टेटस पेज पर पोस्ट) के साथ नोट जोड़ें। Markdown समर्थित है
 - **`add_alert_note`**: किसी अलर्ट में आंतरिक नोट जोड़ें
 
 एक सामान्य क्रम: `list_incidents` → `acknowledge_incident` → `list_logs` से जांच → `add_incident_note` (सार्वजनिक) → `resolve_incident`।

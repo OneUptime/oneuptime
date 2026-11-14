@@ -36,6 +36,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -2185,9 +2186,9 @@ const ProxmoxClusterOverview: FunctionComponent<
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-700">
-                      {job.source || "—"}
-                      <span className="text-gray-400"> → </span>
-                      {job.target || "—"}
+                      <bdi>{job.source || "—"}</bdi>{" "}
+                      <DirectionArrow className="text-gray-400" />{" "}
+                      <bdi>{job.target || "—"}</bdi>
                     </td>
                     <td className={`px-4 py-2.5 text-sm ${ageClass}`}>
                       {ageSeconds === null ? "—" : formatAge(ageSeconds)}

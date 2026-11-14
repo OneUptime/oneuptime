@@ -183,6 +183,15 @@ export const INGEST_SURFACE_LABELS: Readonly<Record<string, string>> = {
     "Fivetran and Airbyte webhooks",
   ),
   [TelemetryIngestSurface.SecurityEvents]: translationKey("Security Events"),
+  [TelemetryIngestSurface.PrometheusRemoteWrite]: translationKey(
+    "Prometheus remote write",
+  ),
+  [TelemetryIngestSurface.Loki]: translationKey("Loki push API"),
+  [TelemetryIngestSurface.SplunkHec]: translationKey(
+    "Splunk HTTP Event Collector",
+  ),
+  [TelemetryIngestSurface.Datadog]: translationKey("Datadog Agent and API"),
+  [TelemetryIngestSurface.Sentry]: translationKey("Sentry SDKs"),
   [TelemetryIngestSurface.Grpc]: translationKey("OTLP over gRPC"),
   [TelemetryIngestSurface.Mqtt]: translationKey("MQTT"),
   [TelemetryIngestSurface.KubernetesAgentRunner]: translationKey(

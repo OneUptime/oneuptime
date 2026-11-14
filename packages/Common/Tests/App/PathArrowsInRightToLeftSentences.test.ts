@@ -16,12 +16,14 @@ import { isolated } from "../Helpers/IsolateMarks";
 import {
   LEFTWARDS_ARROW,
   PathArrow,
+  RIGHTWARDS_ARROW,
   getPathArrows,
   withArrowsDecoded,
 } from "../Helpers/PathArrows";
 
 /*
- * A PATH'S ARROWS POINT THE WAY ARABIC AND PERSIAN READ IT, IN EVERY APP.
+ * A PATH'S ARROWS, AND A LINK'S, POINT THE WAY ARABIC AND PERSIAN READ
+ * THEM, IN EVERY APP.
  *
  * A browser draws "→" as it is written in a line read from the right: it
  * is not mirrored, as ">" and "›" are. The API Reference's Persian master
@@ -36,13 +38,22 @@ import {
  * and the docs' - lays each line out as a page draws it, with a copy of the
  * bidi algorithm (Helpers/BidiLayout, through Helpers/PathArrows), and
  * checks each arrow between two steps: "←" where the line is drawn from the
- * right, "→" where it is drawn from the left. An arrow at either end of a
- * text leads a link on or back ("مشاهده ←", "→ رجوع") and is no path's.
+ * right, "→" where it is drawn from the left.
+ *
+ * An arrow at either end of a text is no path's: it leads a link on or
+ * back. Its English says which - "→" at the end leads on ("All metrics →"),
+ * "←" at the start back ("← Back") - and a page read from the right leads
+ * on to the left: Arabic ends a link that leads on with "←" ("كل المقاييس
+ * ←") and starts one that leads back with "→" ("→ رجوع"). Persian wrote
+ * fifteen of its Dashboard's links the other way round (#7610). A text
+ * whose English leads neither on nor back is not held to either.
  *
  * A value ({{name}}) is filled both ways a page fills it: as it is, and set
  * apart in an isolate of its own. An arrow that points back either way is
  * the locale file's to fix; one whose way turns with the value
- * ("{{original}} → {{substitute}}") is decided by the page that fills it.
+ * ("{{original}} → {{substitute}}") is decided by the page that fills it,
+ * which sets the values apart so that the arrow is the sentence's own
+ * (OnCallOverrideArrowsInRightToLeft).
  */
 
 const PACKAGES: string = path.resolve(__dirname, "..", "..", "..");
@@ -106,6 +117,15 @@ const textsOf: (
   return found;
 };
 
+const readTree: (folder: string, file: string) => LocaleTree = (
+  folder: string,
+  file: string,
+): LocaleTree => {
+  return JSON.parse(
+    fs.readFileSync(path.join(folder, file), "utf8"),
+  ) as LocaleTree;
+};
+
 // Every text of every app's locale file for a language read from the right.
 const RIGHT_TO_LEFT_TEXTS: Array<LocaleText> = Object.entries(
   LOCALE_DIRS,
@@ -122,15 +142,28 @@ const RIGHT_TO_LEFT_TEXTS: Array<LocaleText> = Object.entries(
     })
     .flatMap((file: string): Array<LocaleText> => {
       const language: string = file.slice(0, -".json".length);
-      const tree: LocaleTree = JSON.parse(
-        fs.readFileSync(path.join(folder, file), "utf8"),
-      ) as LocaleTree;
 
-      return textsOf(tree).map(([key, text]: [string, string]): LocaleText => {
-        return { app, language, key, text };
-      });
+      return textsOf(readTree(folder, file)).map(
+        ([key, text]: [string, string]): LocaleText => {
+          return { app, language, key, text };
+        },
+      );
     });
 });
+
+// Each app's English, by the same path of keys: what a text says in English.
+const ENGLISH_TEXTS: Map<string, Map<string, string>> = new Map(
+  Object.entries(LOCALE_DIRS).map(
+    ([app, directory]: [string, string]): [string, Map<string, string>] => {
+      return [
+        app,
+        new Map<string, string>(
+          textsOf(readTree(path.join(PACKAGES, directory), "en.json")),
+        ),
+      ];
+    },
+  ),
+);
 
 const LRI: string = String.fromCharCode(0x2066);
 const PDI: string = String.fromCharCode(0x2069);
@@ -227,8 +260,110 @@ const describeArrow: (found: ArrowInText) => string = (
   return `${found.entry.app} ${found.entry.language} "${found.entry.key}": ${found.arrow} points back | ${found.entry.text}`;
 };
 
-describe("a path's arrows in a language read from the right", () => {
-  test("every app's locale files are read, and the paths in them", () => {
+/*
+ * What a page draws nothing for at either end of a text: spaces, Markdown's
+ * emphasis, and the marks that steer the bidi algorithm (LRM, RLM, ALM and
+ * the isolates).
+ */
+const DRAWS_NOTHING: string = ` \t\n*_${String.fromCharCode(
+  0x200e,
+  0x200f,
+  0x061c,
+  0x2066,
+  0x2067,
+  0x2068,
+  0x2069,
+)}`;
+
+// The first and the last character of a text that a page draws.
+const endsOf: (text: string) => { first: string; last: string } = (
+  text: string,
+): { first: string; last: string } => {
+  const drawn: Array<string> = Array.from(asDrawn(text)).filter(
+    (character: string): boolean => {
+      return !DRAWS_NOTHING.includes(character);
+    },
+  );
+
+  return { first: drawn[0] || "", last: drawn[drawn.length - 1] || "" };
+};
+
+const isArrow: (character: string) => boolean = (
+  character: string,
+): boolean => {
+  return character === RIGHTWARDS_ARROW || character === LEFTWARDS_ARROW;
+};
+
+type TextEnd = "start" | "end";
+
+interface LinkArrow {
+  entry: LocaleText;
+  end: TextEnd;
+  arrow: string;
+  // The arrow that end holds in a line read from the right.
+  wayItGoes: string;
+}
+
+/*
+ * The arrows of a link that leads on or back, at the ends of a text: the
+ * end its English leads on from ("→" last) or back from ("←" first), where
+ * the translation has an arrow too.
+ */
+const linkArrowsIn: (entry: LocaleText, english: string) => Array<LinkArrow> = (
+  entry: LocaleText,
+  english: string,
+): Array<LinkArrow> => {
+  const englishEnds: { first: string; last: string } = endsOf(english);
+  const ends: { first: string; last: string } = endsOf(entry.text);
+  const found: Array<LinkArrow> = [];
+
+  if (englishEnds.last === RIGHTWARDS_ARROW && isArrow(ends.last)) {
+    found.push({
+      entry,
+      end: "end",
+      arrow: ends.last,
+      wayItGoes: LEFTWARDS_ARROW,
+    });
+  }
+
+  if (englishEnds.first === LEFTWARDS_ARROW && isArrow(ends.first)) {
+    found.push({
+      entry,
+      end: "start",
+      arrow: ends.first,
+      wayItGoes: RIGHTWARDS_ARROW,
+    });
+  }
+
+  return found;
+};
+
+const LINK_ARROWS: Array<LinkArrow> = RIGHT_TO_LEFT_TEXTS.flatMap(
+  (entry: LocaleText): Array<LinkArrow> => {
+    const english: string | undefined = ENGLISH_TEXTS.get(entry.app)?.get(
+      entry.key,
+    );
+
+    return english === undefined ? [] : linkArrowsIn(entry, english);
+  },
+);
+
+const describeLinkArrow: (found: LinkArrow) => string = (
+  found: LinkArrow,
+): string => {
+  return `${found.entry.app} ${found.entry.language} "${found.entry.key}": ${
+    found.end === "end" ? "ends" : "starts"
+  } with ${found.arrow} | ${found.entry.text}`;
+};
+
+const leadsTheWayItGoes: (found: LinkArrow) => boolean = (
+  found: LinkArrow,
+): boolean => {
+  return found.arrow === found.wayItGoes;
+};
+
+describe("a path's arrows, and a link's, in a language read from the right", () => {
+  test("every app's locale files are read, and the paths and links in them", () => {
     const read: Set<string> = new Set<string>(
       RIGHT_TO_LEFT_TEXTS.map((entry: LocaleText): string => {
         return `${entry.app} ${entry.language}`;
@@ -255,6 +390,8 @@ describe("a path's arrows in a language read from the right", () => {
     );
     // Over five hundred: the Dashboard's guides, Accounts' passkey help, the API Reference's key step.
     expect(ARROWS.length).toBeGreaterThan(400);
+    // Over fifty: the Dashboard's "All metrics →" and "← Back" in Arabic and Persian, and the server's.
+    expect(LINK_ARROWS.length).toBeGreaterThan(50);
   });
 
   test("every arrow between two steps points the way its line is drawn", () => {
@@ -263,6 +400,30 @@ describe("a path's arrows in a language read from the right", () => {
         return found.pointsBack;
       }).map(describeArrow),
     ).toEqual([]);
+  });
+
+  test("every link's arrow points the way the link leads: on at its end, back at its start", () => {
+    expect(
+      LINK_ARROWS.filter((found: LinkArrow): boolean => {
+        return !leadsTheWayItGoes(found);
+      }).map(describeLinkArrow),
+    ).toEqual([]);
+  });
+
+  test("the control: Arabic's Dashboard links, which have always led the way they go, are read", () => {
+    const arabic: Array<LinkArrow> = LINK_ARROWS.filter(
+      (found: LinkArrow): boolean => {
+        return found.entry.app === "Dashboard" && found.entry.language === "ar";
+      },
+    );
+
+    expect(arabic.length).toBeGreaterThan(20);
+    expect(arabic.every(leadsTheWayItGoes)).toBe(true);
+    expect(
+      arabic.map((found: LinkArrow): string => {
+        return found.end;
+      }),
+    ).toEqual(expect.arrayContaining(["end", "start"]));
   });
 });
 
@@ -652,7 +813,7 @@ describe("the check", () => {
     ).toEqual([{ arrow: "←", pointsBack: false }]);
   });
 
-  test("leaves a link's arrow at either end alone", () => {
+  test("leaves the arrow at either end of a text to the link's check", () => {
     expect(arrowsOf("مشاهده ←")).toEqual([]);
     expect(arrowsOf("→ رجوع")).toEqual([]);
     expect(arrowsOf("همهٔ متریک‌ها →")).toEqual([]);
@@ -674,5 +835,81 @@ describe("the check", () => {
       { arrow: "→", pointsBack: true },
       { arrow: "→", pointsBack: false },
     ]);
+  });
+});
+
+describe("the link's check", () => {
+  // A Dashboard text in `language`, and the English it translates.
+  const linkArrowsOf: (
+    text: string,
+    english: string,
+    language?: string,
+  ) => Array<{ end: TextEnd; arrow: string; leadsTheWayItGoes: boolean }> = (
+    text: string,
+    english: string,
+    language: string = "fa",
+  ): Array<{ end: TextEnd; arrow: string; leadsTheWayItGoes: boolean }> => {
+    return linkArrowsIn(
+      { app: "Dashboard", language, key: english, text },
+      english,
+    ).map(
+      (
+        found: LinkArrow,
+      ): { end: TextEnd; arrow: string; leadsTheWayItGoes: boolean } => {
+        return {
+          end: found.end,
+          arrow: found.arrow,
+          leadsTheWayItGoes: leadsTheWayItGoes(found),
+        };
+      },
+    );
+  };
+
+  test("passes Arabic's links: ← at the end of one that leads on, → at the start of one that leads back", () => {
+    expect(linkArrowsOf("كل المقاييس ←", "All metrics →", "ar")).toEqual([
+      { end: "end", arrow: "←", leadsTheWayItGoes: true },
+    ]);
+    expect(linkArrowsOf("→ رجوع", "← Back", "ar")).toEqual([
+      { end: "start", arrow: "→", leadsTheWayItGoes: true },
+    ]);
+  });
+
+  test("catches Persian's links as they were, and an English label left in a Persian file", () => {
+    expect(linkArrowsOf("همهٔ متریک‌ها →", "All metrics →")).toEqual([
+      { end: "end", arrow: "→", leadsTheWayItGoes: false },
+    ]);
+    expect(linkArrowsOf("← بازگشت", "← Back")).toEqual([
+      { end: "start", arrow: "←", leadsTheWayItGoes: false },
+    ]);
+    expect(linkArrowsOf("All profiles →", "All profiles →")).toEqual([
+      { end: "end", arrow: "→", leadsTheWayItGoes: false },
+    ]);
+  });
+
+  test("reads the arrow a page draws: through tags, references, emphasis and bidi marks", () => {
+    expect(
+      linkArrowsOf("<a>همهٔ متریک‌ها</a> &rarr;", "<a>All metrics</a> &rarr;"),
+    ).toEqual([{ end: "end", arrow: "→", leadsTheWayItGoes: false }]);
+    expect(linkArrowsOf("**همهٔ متریک‌ها ←**", "**All metrics →**")).toEqual([
+      { end: "end", arrow: "←", leadsTheWayItGoes: true },
+    ]);
+    expect(
+      linkArrowsOf(
+        `${String.fromCharCode(0x200f)}← بازگشت${String.fromCharCode(0x200f)}`,
+        "← Back",
+      ),
+    ).toEqual([{ end: "start", arrow: "←", leadsTheWayItGoes: false }]);
+  });
+
+  test("leaves an arrow whose English leads neither on nor back alone", () => {
+    // Its English has no arrow.
+    expect(linkArrowsOf("دانلود →", "Download")).toEqual([]);
+    // Its English leads on, and the translation has no arrow to hold.
+    expect(linkArrowsOf("همهٔ متریک‌ها", "All metrics →")).toEqual([]);
+    // "→" at the start, or "←" at the end, is not how English leads on or back.
+    expect(linkArrowsOf("→ بعدی", "→ Next")).toEqual([]);
+    expect(linkArrowsOf("بعدی ←", "Next ←")).toEqual([]);
+    // An arrow between two steps is the path's check.
+    expect(linkArrowsOf("حوادث ← تنظیمات", "Incidents → Settings")).toEqual([]);
   });
 });

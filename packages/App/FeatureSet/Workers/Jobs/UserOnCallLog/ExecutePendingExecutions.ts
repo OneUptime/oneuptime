@@ -30,9 +30,7 @@ import {
 } from "Common/Types/NotificationRule/NotificationRepeat";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import ObjectID from "Common/Types/ObjectID";
-import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
-import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
-import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallPageEndedOnlyByAnAnswer } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
@@ -71,8 +69,10 @@ RunCron(
           /*
            * A page again goes on until the run itself is acknowledged
            * (OnCallAcknowledgementTimeout): its record was acknowledged all
-           * along. So does a page a person asked for (OnCallPersonPage),
-           * told apart by who started it, and an observer's page
+           * along. So do a page a person asked for (OnCallPersonPage) and a
+           * policy a person started by hand (OnCallPolicyStartedByHand),
+           * told apart by who started them, the policy and the event type
+           * that tells a test page apart, and an observer's page
            * (OnCallObserverPage).
            */
           onCallDutyPolicyExecutionLog: {
@@ -82,6 +82,7 @@ RunCron(
             triggeredByUserId: true,
             triggeredByWorkflowId: true,
             isObserverPage: true,
+            userNotificationEventType: true,
           },
         },
         props: {
@@ -275,18 +276,18 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
        * So does a page a person asked for from Slack or Microsoft Teams
        * (OnCallPersonPage): somebody else acknowledging the record does not
        * mean the people they paged have seen it - the record is often
-       * acknowledged before they page at all.
+       * acknowledged before they page at all. And so does a policy a person
+       * started by hand (OnCallPolicyStartedByHand), for the same reason:
+       * its people get every notification their On-Call Rules send until
+       * one of them answers it.
        *
        * And so does an observer's page (OnCallObserverPage): the responders
        * acknowledging the record is no sign the observers have seen it.
        */
       const pageRun: OnCallDutyPolicyExecutionLog | undefined =
         pendingNotificationLog.onCallDutyPolicyExecutionLog;
-      const isPageAgain: boolean = isOnCallPageAgainRun(pageRun);
-      const isPersonPage: boolean = isOnCallPersonPage(pageRun);
-      const isObserverPage: boolean = isOnCallObserverPage(pageRun);
       const endsWhenAnsweredOrResolved: boolean =
-        isPageAgain || isPersonPage || isObserverPage;
+        isOnCallPageEndedOnlyByAnAnswer(pageRun);
 
       if (endsWhenAnsweredOrResolved) {
         const record: {

@@ -35,6 +35,7 @@ import {
 } from "../../../Types/Cloud/CloudRightSizing";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -448,7 +449,17 @@ describe("the card, drawn", () => {
     const change: HTMLElement = within(card).getByTestId(
       "cloud-right-sizing-change",
     );
-    expect(change.tagName).toBe("BDI");
+    /*
+     * Each of the cloud's size names set apart in its own direction (bdi),
+     * and the arrow between them the page's (DirectionArrow, #7666).
+     */
+    expect(
+      Array.from(change.querySelectorAll("bdi")).map(
+        (name: Element): string => {
+          return name.textContent || "";
+        },
+      ),
+    ).toEqual(["m5.2xlarge", "m5.xlarge"]);
     expect(change).toHaveTextContent("m5.2xlarge → m5.xlarge");
     expect(change.className).toContain("font-mono");
     const savingLine: HTMLElement = within(card).getByTestId(
@@ -888,6 +899,8 @@ describe("the reads", () => {
     const read: AggregateBy<CloudCost> = aggregates[0]!.aggregateBy;
     expect(aggregates[0]!.modelType).toBe(CloudCost);
     expect(read.aggregationInterval).toBe(AggregationInterval.Day);
+    // A bill's UTC day, whatever zone the reader is in (#7277).
+    expect(read.timezone).toBe(Timezone.UTC);
     expect(read.query["resourceId" as keyof CloudCost] as unknown).toBe(ARN);
     expect(read.query["currency" as keyof CloudCost] as unknown).toBe("USD");
     expect(read.startTimestamp).toEqual(new Date("2026-10-22T00:00:00.000Z"));

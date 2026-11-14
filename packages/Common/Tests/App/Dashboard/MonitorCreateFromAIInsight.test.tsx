@@ -1,13 +1,17 @@
 import "@testing-library/jest-dom";
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { getJestSpyOn } from "../../Spy";
@@ -194,6 +198,7 @@ import ObjectID from "../../../Types/ObjectID";
 import UiAnalytics from "../../../UI/Utils/Analytics";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",
@@ -826,4 +831,99 @@ describe("the monitor create page opened from an AI insight", () => {
 
     expect(insightRequests()).toHaveLength(0);
   });
+});
+
+/*
+ * WHY, IN THE READER'S LANGUAGE (#7664). The reasons an insight cannot
+ * become a monitor were English in 15 of the Dashboard's 17 languages:
+ * Monitor Create, opened on a latency regression or on a drift of a
+ * cumulative counter, said why in English to a German or Japanese reader.
+ * It says it in their words now, as the Dashboard ships them (src/Locales).
+ * Last in the file: it switches the language, and puts English back after.
+ */
+describe("the monitor create page in German and in Japanese", () => {
+  const WORDS: Record<string, Record<string, string>> = {
+    de: readDashboardLocale("de"),
+    ja: readDashboardLocale("ja"),
+  };
+
+  beforeAll(async () => {
+    await i18next.use(initReactI18next).init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: {
+        de: { translation: WORDS["de"]! },
+        ja: { translation: WORDS["ja"]! },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  beforeEach(() => {
+    capturedForm = null;
+    getItemRequests = [];
+    analyticsRequests = [];
+    metricShapeRows = [];
+    listFailure = null;
+
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    getJestSpyOn(Navigation, "navigate").mockImplementation((): void => {});
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  afterAll(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("en");
+    });
+  });
+
+  test.each([
+    { language: "de", finding: "a latency regression" },
+    { language: "ja", finding: "a latency regression" },
+    { language: "de", finding: "a drift on a cumulative counter" },
+    { language: "ja", finding: "a drift on a cumulative counter" },
+  ])(
+    "$language: $finding says why in the reader's words",
+    async (data: { language: string; finding: string }) => {
+      const isLatency: boolean = data.finding === "a latency regression";
+      const blocker: string = isLatency
+        ? AI_INSIGHT_MONITOR_LATENCY_BLOCKER
+        : AI_INSIGHT_MONITOR_CUMULATIVE_COUNTER_BLOCKER;
+      const worded: string | undefined = WORDS[data.language]![blocker];
+
+      // The language words it its own way: the reason is not its English.
+      expect(worded).toBeDefined();
+      expect(worded).not.toBe(blocker);
+
+      insightRow = (): Promise<unknown> => {
+        return Promise.resolve(isLatency ? LATENCY : METRIC_DRIFT);
+      };
+      if (!isLatency) {
+        metricShapeRows = [
+          metricPoint({
+            pointType: MetricPointType.Sum,
+            isMonotonic: true,
+            temporality: AggregationTemporality.Cumulative,
+          }),
+        ];
+      }
+      linkTo({ aiInsightId: INSIGHT_ID });
+
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage(data.language);
+      });
+
+      renderCreatePage();
+
+      expect(await screen.findByText(worded!)).toBeInTheDocument();
+      expect(screen.queryByText(blocker)).toBeNull();
+      expect(capturedForm).toBeNull();
+    },
+  );
 });

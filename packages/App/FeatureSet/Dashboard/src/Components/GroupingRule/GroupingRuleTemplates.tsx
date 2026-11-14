@@ -144,14 +144,23 @@ const GroupingRuleTemplates: <TBaseModel extends BaseModel>(
 
       <ul role="list" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {GROUPING_RULE_TEMPLATES.map(
-          (template: GroupingRuleTemplate): ReactElement => {
+          (template: GroupingRuleTemplate, index: number): ReactElement => {
             const name: string = translate(template.name[props.kind]);
             const isAdding: boolean = addingTemplateId === template.id;
+            /*
+             * Two to a row: an odd last one takes the whole row, so the list
+             * never ends on half a row of bare page.
+             */
+            const fillsLastRow: boolean =
+              index === GROUPING_RULE_TEMPLATES.length - 1 &&
+              GROUPING_RULE_TEMPLATES.length % 2 === 1;
 
             return (
               <li
                 key={template.id}
-                className="flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                className={`flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm${
+                  fillsLastRow ? " sm:col-span-2" : ""
+                }`}
                 data-testid={`grouping-rule-template-${template.id}`}
               >
                 <div className="flex items-start gap-3">

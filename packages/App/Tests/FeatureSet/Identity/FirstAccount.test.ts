@@ -10,6 +10,11 @@ import fs from "fs";
 import http from "http";
 import { AddressInfo } from "net";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routesAt,
+} from "../../Helpers/PageRoutes";
 
 /*
  * A self-hosted server waiting for its first account (#5229's follow-ups).
@@ -348,17 +353,20 @@ describe("isSignInPagePath", () => {
   });
 
   test("they are the routes the Accounts app draws its sign-in page at", () => {
-    const app: string = fs.readFileSync(
+    // The Accounts app mounts react-router's <Route> by its own name.
+    const routes: Array<RouteAttributes> = pageRoutesIn(
       path.join(REPO_PACKAGES, "App/FeatureSet/Accounts/src/App.tsx"),
-      "utf8",
+      "Route",
     );
 
     for (const page of SIGN_IN_PAGE_PATHS) {
-      expect(app).toContain(`<Route path="${page}" element={<LoginPage />} />`);
+      expect(routesAt(routes, `"${page}"`)).toEqual([
+        { path: `"${page}"`, element: "<LoginPage />" },
+      ]);
     }
-    expect(app).toContain(
-      `<Route path="${REGISTER_PAGE_PATH}" element={<RegisterPage />} />`,
-    );
+    expect(routesAt(routes, `"${REGISTER_PAGE_PATH}"`)).toEqual([
+      { path: `"${REGISTER_PAGE_PATH}"`, element: "<RegisterPage />" },
+    ]);
   });
 });
 

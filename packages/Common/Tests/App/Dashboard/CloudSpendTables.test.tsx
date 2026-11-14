@@ -59,6 +59,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import CloudSavingsTable, {
   getSavingChangeText,
@@ -364,7 +365,7 @@ describe("the ways to spend less, as a table", () => {
   });
 
   test("what would change, as the recommender says it", () => {
-    expect(getSavingChangeText(recommendation())).toBe(
+    expect(getSavingChangeText(recommendation(), "en")).toBe(
       "m5.2xlarge → m5.xlarge",
     );
     expect(
@@ -373,6 +374,7 @@ describe("the ways to spend less, as a table", () => {
           recommendedConfiguration: " ",
           currentConfiguration: "Idle for 14 days",
         }),
+        "en",
       ),
     ).toBe("Idle for 14 days");
     expect(
@@ -381,8 +383,15 @@ describe("the ways to spend less, as a table", () => {
           currentConfiguration: "",
           recommendedConfiguration: "",
         }),
+        "en",
       ),
     ).toBe("");
+  });
+
+  test("on a page read from the right, the arrow points on from what runs now", () => {
+    expect(
+      withoutIsolateMarks(getSavingChangeText(recommendation(), "fa")),
+    ).toBe("m5.2xlarge ← m5.xlarge");
   });
 });
 

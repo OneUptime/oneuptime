@@ -676,7 +676,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             fields: getStateChangeFormFields<AlertStateTimeline>({
               noteType: BulkStateChangeNoteType.Private,
               noteDescription: translationKey(
-                "Add an optional private note about this state change. Only your team can see it.",
+                "Add an optional private note about this state change. Only people who can see this alert can read it.",
               ),
               noteTemplates: alertNoteTemplates.map(
                 toBulkStateChangeNoteTemplate,

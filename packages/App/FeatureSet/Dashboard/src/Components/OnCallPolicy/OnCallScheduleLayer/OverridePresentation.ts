@@ -5,7 +5,12 @@ import {
   OverrideEventMeta,
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import UserOverrideOverlap, {
+  UserOverrideOverlapNote,
+  UserOverrideTimes,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
 import {
+  SentenceOptions,
   translatePlural,
   translateTemplate,
   translationKey,
@@ -166,6 +171,19 @@ export function formatOverrideEventTitle(data: {
 }
 
 /*
+ * A hover text's line with an arrow from one value to the next: "Override:
+ * {{original}} → {{substitute}}", "{{start}} → {{end}}". Each value is set
+ * apart from the sentence (SentenceOptions' setsValuesApart), so the arrow
+ * is the sentence's own and points the way its language reads: "←" in
+ * Arabic and Persian. Filled in as they were, the values carried the arrow
+ * with them - drawn from the left between two Latin names or two English
+ * dates, from the right between two Persian names - and whichever way a
+ * translation wrote it, it pointed back for some readers (#7610). A hover
+ * text is only drawn, so the isolates' marks reach no record.
+ */
+const ARROW_BETWEEN_VALUES: SentenceOptions = { setsValuesApart: true };
+
+/*
  * The hover text for an overridden block. Multi-line on purpose: this is where
  * a reader goes when the block itself is too narrow to have told them anything,
  * so it repeats the whole substitution rather than assuming the label was read.
@@ -191,27 +209,39 @@ export function buildOverrideEventTooltip(data: {
         "{{substitute}} is next in the rotation, so this turn is theirs.",
         { substitute: data.substituteName },
       ),
-      translateTemplate("Away: {{start}} → {{end}}", {
-        start: formatShiftInstant(data.overrideStartsAt, data.timezone),
-        end: formatShiftInstant(data.overrideEndsAt, data.timezone),
-      }),
+      translateTemplate(
+        "Away: {{start}} → {{end}}",
+        {
+          start: formatShiftInstant(data.overrideStartsAt, data.timezone),
+          end: formatShiftInstant(data.overrideEndsAt, data.timezone),
+        },
+        ARROW_BETWEEN_VALUES,
+      ),
       data.scope.detail,
     ].join("\n");
   }
 
   return [
-    translateTemplate("Override: {{original}} → {{substitute}}", {
-      original: data.originalName,
-      substitute: data.substituteName,
-    }),
+    translateTemplate(
+      "Override: {{original}} → {{substitute}}",
+      {
+        original: data.originalName,
+        substitute: data.substituteName,
+      },
+      ARROW_BETWEEN_VALUES,
+    ),
     translateTemplate(
       "Alerts that would page {{original}} go to {{substitute}}.",
       { original: data.originalName, substitute: data.substituteName },
     ),
-    translateTemplate("Override window: {{start}} → {{end}}", {
-      start: formatShiftInstant(data.overrideStartsAt, data.timezone),
-      end: formatShiftInstant(data.overrideEndsAt, data.timezone),
-    }),
+    translateTemplate(
+      "Override window: {{start}} → {{end}}",
+      {
+        start: formatShiftInstant(data.overrideStartsAt, data.timezone),
+        end: formatShiftInstant(data.overrideEndsAt, data.timezone),
+      },
+      ARROW_BETWEEN_VALUES,
+    ),
     data.scope.detail,
   ].join("\n");
 }
@@ -225,10 +255,14 @@ export function buildPlainEventTooltip(data: {
 }): string {
   return [
     translateTemplate("On call: {{user}}", { user: data.userLabel }),
-    `${formatShiftInstant(data.start, data.timezone)} → ${formatShiftInstant(
-      data.end,
-      data.timezone,
-    )}`,
+    translateTemplate(
+      "{{start}} → {{end}}",
+      {
+        start: formatShiftInstant(data.start, data.timezone),
+        end: formatShiftInstant(data.end, data.timezone),
+      },
+      ARROW_BETWEEN_VALUES,
+    ),
   ].join("\n");
 }
 
@@ -239,6 +273,19 @@ export function buildPlainEventTooltip(data: {
  */
 export interface OverrideSummaryRow {
   key: string;
+  /*
+   * The override's id, for its Edit (issue #7631); "" for a record read
+   * without one.
+   */
+  overrideId: string;
+  // Its policy, or "" for a global override: who may edit it differs.
+  onCallDutyPolicyId: string;
+  /*
+   * Saved before overlaps were refused (issue #7630): the other override of
+   * the same person in its scope that it overlaps, and which of the two is
+   * used there. Absent for most rows.
+   */
+  overlapNote?: UserOverrideOverlapNote<UserOverrideTimes> | undefined;
   originalUserId: string;
   originalName: string;
   // "" for a skip: nobody is named, the next person in the rotation covers.
@@ -263,12 +310,21 @@ export interface OverrideSummaryRow {
  * still applies.
  */
 export function buildOverrideSummaryRows(data: {
-  records: Array<UserOverrideRecord>;
+  records: Array<UserOverrideRecord | UserOverrideTimes>;
   userInfoById: Dictionary<OverrideUserDisplayInfo>;
   policyNameById: Dictionary<string>;
   now: Date;
 }): Array<OverrideSummaryRow> {
   const rows: Array<OverrideSummaryRow> = [];
+
+  // Two of one person in one scope that overlap: saved before the rule.
+  const overlapNotes: Map<
+    string,
+    UserOverrideOverlapNote<UserOverrideTimes>
+  > = UserOverrideOverlap.getOverlapNotes(
+    data.records as Array<UserOverrideTimes>,
+    data.now,
+  );
 
   for (const record of data.records) {
     if (OneUptimeDate.isOnOrBefore(record.endsAt, data.now)) {
@@ -277,9 +333,15 @@ export function buildOverrideSummaryRows(data: {
 
     const policyId: string = record.onCallDutyPolicyId || "";
     const substituteUserId: string = record.routeAlertsToUserId || "";
+    const overrideId: string = (record as UserOverrideTimes).id || "";
 
     rows.push({
       key: `${record.overrideUserId}-${substituteUserId || "rotation"}-${record.startsAt.getTime()}-${record.endsAt.getTime()}-${policyId}`,
+      overrideId: overrideId,
+      onCallDutyPolicyId: policyId,
+      overlapNote: overrideId
+        ? overlapNotes.get(overrideId.toLowerCase())
+        : undefined,
       originalUserId: record.overrideUserId,
       originalName: getUserDisplayName(
         data.userInfoById[record.overrideUserId],

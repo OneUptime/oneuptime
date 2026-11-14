@@ -153,7 +153,7 @@ const RESOURCE_TYPES: Record<
       return ScheduledMaintenanceService as unknown as ResourceService;
     },
     logColumn: "scheduledMaintenanceId",
-    noun: "scheduled maintenance",
+    noun: "maintenance event",
     label: "Scheduled Maintenance",
     eventType: WorkspaceEventType.ScheduledMaintenance,
   },

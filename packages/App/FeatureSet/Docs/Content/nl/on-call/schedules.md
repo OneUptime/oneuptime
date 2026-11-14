@@ -69,7 +69,18 @@ flowchart TB
 | **Tijd van eerste overdracht** | De eerste overdracht aan de volgende persoon, bij of na het begin. Latere overdrachten volgen elk rotatie-interval. |
 | **Beperkingen** | De uren waarop de laag dienst heeft: **Geen beperkingen**, **Specifieke tijdstippen van de dag** of **Specifieke tijdstippen van de week**, in de tijdzone van het schema. Daarbuiten nemen lagere lagen het over. |
 
-Om te wijzigen welke laag eerst komt, gebruikt u **Laag omhoog (hogere prioriteit)** of **Laag omlaag (lagere prioriteit)** in het menu van een laag.
+Om te wijzigen welke laag eerst komt, gebruikt u de pijlen op de kaart van een laag: **Laag omhoog (hogere prioriteit)** of **Laag omlaag (lagere prioriteit)**.
+
+Wijzigingen in wie elkaar afwisselt, wachten tot u ze opslaat, zodat u er meerdere kunt maken en controleren voordat iemands beurt verschuift. Sleep mensen in een nieuwe volgorde, voeg mensen toe of verwijder ze, zet een laag hoger of lager of verwijder er een, en de pagina toont elke wijziging voordat die is opgeslagen:
+
+- Wie u hebt toegevoegd, is gemarkeerd met **Nieuw**, en wie u naar een nieuwe plek hebt gesleept met **Verplaatst**. De mensen die u hebt verwijderd, staan onder **Verwijderd bij opslaan**, elk met **Ongedaan maken**.
+- Een laag die u verwijdert, meldt dat hij bij het opslaan wordt verwijderd, met **Ongedaan maken**.
+- Elke laag en het uiteindelijke schema tonen de rotatie zoals die wordt. Het uiteindelijke schema is gemarkeerd met **Bevat niet-opgeslagen wijzigingen**.
+- Een balk onderaan de pagina noemt de wijzigingen, met **Wijzigingen opslaan** en **Negeren**.
+
+**Wijzigingen opslaan** slaat alle wijzigingen in één keer op. Wie er bereikbaar is, wordt daarna één keer bepaald, voor de lagen zoals ze zijn opgeslagen: wie bereikbaar wordt, dat niet meer is of de volgende is, hoort het één keer, niet één keer per wijziging. **Negeren** zet de lagen terug zoals ze het laatst zijn opgeslagen. Als u de pagina verlaat voordat u opslaat, wordt eerst gevraagd: **Doorgaan met bewerken** blijft op de pagina, **Wijzigingen verwerpen** verlaat de pagina zonder op te slaan.
+
+Als iemand anders de lagen heeft gewijzigd nadat u de pagina opende, worden uw wijzigingen niet over die van hen heen opgeslagen. De balk meldt dat, en **Lagen opnieuw laden** toont de lagen zoals ze nu zijn, zodat u uw wijzigingen opnieuw kunt aanbrengen. **Laag toevoegen** voegt de laag meteen toe, en de instellingen van een laag worden opgeslagen met de eigen knop **Laag opslaan**.
 
 Elke persoon houdt overal één kleur, zodat u hem of haar in één oogopslag kunt volgen: in elke laag, in het uiteindelijke schema en de overrides ervan, en op de **Tijdlijn van bereikbaarheidsschema's**.
 

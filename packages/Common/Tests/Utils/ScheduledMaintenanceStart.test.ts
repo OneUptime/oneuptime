@@ -1253,6 +1253,54 @@ describe("ScheduledMaintenanceStartUtil.getEndedState and getCompletedState", ()
 });
 
 /*
+ * THE scheduled state: the one a new event is created in - not a state of
+ * the project's own placed before it (Draft) or after it (Confirmed).
+ */
+describe("ScheduledMaintenanceStartUtil.getScheduledState", () => {
+  test("is the state flagged scheduled, not Draft before it or Confirmed after it", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getScheduledState({
+        states: FULL_MODELS,
+      })?._id?.toString(),
+    ).toBe(SCHEDULED.id);
+  });
+
+  test("is the first from the top so flagged, whatever order the rows come in", () => {
+    const secondScheduled: ScheduledMaintenanceState = model({
+      id: "aaaaaaaa-0000-4000-8000-0000000000b6",
+      name: "Scheduled again",
+      order: 20,
+      kind: "scheduled",
+    });
+
+    expect(
+      ScheduledMaintenanceStartUtil.getScheduledState({
+        states: [secondScheduled, ...[...FULL_MODELS].reverse()],
+      })?._id?.toString(),
+    ).toBe(SCHEDULED.id);
+  });
+
+  test("reads the API's JSON for the states as well", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getScheduledState({
+        states: FULL_LIST.map(json),
+      })?.["_id"],
+    ).toBe(SCHEDULED.id);
+  });
+
+  test("is none in a project without one", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getScheduledState({
+        states: [model(ONGOING), model(ENDED), model(COMPLETED)],
+      }),
+    ).toBeNull();
+    expect(
+      ScheduledMaintenanceStartUtil.getScheduledState({ states: [] }),
+    ).toBeNull();
+  });
+});
+
+/*
  * The rows of an event's timeline it was completed with: the moves into a
  * state where it is complete from one where it was not. The measurements'
  * "completed state entered" reads them.

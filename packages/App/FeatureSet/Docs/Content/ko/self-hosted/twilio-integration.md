@@ -1,9 +1,9 @@
 # Twilio 통합
 
-자체 호스팅 OneUptime은 자신의 Twilio 계정을 통해 SMS와 음성 알림을 보내며, 요금은 Twilio에 직접 냅니다. Twilio 자격 증명은 환경 변수가 아니라 OneUptime 대시보드에 저장합니다. 알림 전송은 저장된 구성을 읽으며, Helm 차트에는 Twilio 자격 증명 값이 없습니다.
+자체 호스팅 OneUptime은 자신의 Twilio 계정을 통해 SMS와 음성 알림을 보내며, 요금은 Twilio에 직접 냅니다. Twilio 자격 증명은 OneUptime 대시보드에 프로젝트 하나용 또는 설치 전체용으로 저장합니다. 코드로 배포하는 설치에서는 대신 환경 변수로 설치 전체의 계정을 설정할 수 있으며, Helm 차트와 Docker Compose가 이를 전달합니다. [환경 변수로 설치 전체의 계정 설정하기](#환경-변수로-설치-전체의-계정-설정하기)를 참고하세요.
 
 > [!NOTE]
-> 예전 마이그레이션이 `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`를 가져왔습니다. 이 변수들을 바꿔도 기존 설치의 자격 증명은 업데이트되지 않습니다.
+> 예전 마이그레이션이 `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`를 한 번 가져왔습니다. 이 변수들을 바꿔도 기존 설치의 자격 증명은 업데이트되지 않습니다. 아래의 `GLOBAL_TWILIO_` 변수는 업데이트합니다.
 
 :::cards
 - [Twilio 계정 준비](#1-twilio-계정-준비): 자격 증명, 전화번호, 계정의 제한.
@@ -53,6 +53,66 @@
 :::
 
 설치 전체의 기본값을 쓰려면, 관리자가 대신 **Admin Dashboard > 설정 > 통화 및 SMS**를 열어 계정이 보내는 것을 고르고, Twilio 자격 증명과 전화번호를 편집하고 저장합니다. 구성원 알림은 프로젝트에 기본값이 없을 때 이 전역 구성을 사용합니다. Auth Token은 기밀로 유지하세요.
+
+### 환경 변수로 설치 전체의 계정 설정하기
+
+새 설치는 손으로 설정할 것 없이 SMS와 통화가 동작하는 상태로 시작할 수 있습니다. Terraform이나 OneUptime을 배포하는 도구에서 환경 변수로 설치 전체의 계정을 설정하세요. `GLOBAL_TWILIO_ACCOUNT_SID`가 설정되면 계정은 변수가 설명하는 계정이 됩니다. **Admin Dashboard > 설정 > 통화 및 SMS**에 저장된 계정은 사용되지 않으며, 그 페이지는 이 계정을 읽기 전용으로, 각 필드를 설정하는 변수와 함께 보여 줍니다. 대신 Admin Dashboard에서 계정을 설정하려면 `GLOBAL_TWILIO_ACCOUNT_SID`를 비워 두세요. 프로젝트 구성에는 영향이 없습니다.
+
+| 변수 | Helm 값 | 담는 내용 |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | Account SID. 이 값을 설정해야 OneUptime이 다른 변수를 읽습니다 |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken` 또는 `twilio.existingSecret.name`에 지정한 Secret | Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms`(비어 있을 때도 동일), `sms-only` 또는 `calls-only` |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | 통화가 발신되는 번호로, 국가 코드를 포함합니다. `sms-only`에는 필요 없습니다 |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 선택 사항이며 쉼표로 구분합니다. 해당 국가의 수신자에게 기본 번호 대신 쓰이는 번호입니다 |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | 모든 SMS가 발신되는, 쉼표로 구분한 번호입니다. `sms-only`에는 필수입니다 |
+
+Helm에서는 values의 `twilio` 아래에 설정합니다. Helm이 릴리스마다 저장하는 values에 auth token이 남지 않도록, 직접 관리하는 Secret에 넣고 그 Secret을 `twilio.existingSecret.name`에 지정하세요.
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+values 파일에서는 전화번호를 따옴표로 감싸고, `--set` 대신 `--set-string`으로 전달하세요. 따옴표가 없으면 `+14155550100`은 숫자가 되며 차트가 이를 거부합니다. 차트는 `twilio.accountSid` 없는 다른 `twilio` 값, auth token 없는 Account SID, `twilio.authToken`과 Secret 양쪽에 지정된 auth token도 거부합니다. Terraform에서는 같은 값을 `helm_release`에 설정하고, auth token은 민감한 값으로 전달하세요.
+
+Docker Compose에서는 `config.env`에서 `GLOBAL_TWILIO_` 설정을 지정한 다음, `npm run start`를 실행해 컨테이너를 다시 만드세요.
+
+OneUptime은 시작할 때 변수를 읽습니다. OneUptime이 읽을 수 없는 전화번호나 누락된 auth token처럼 하나라도 잘못되면, 고칠 때까지 계정은 SMS를 보내지 않고 전화도 걸지 않습니다. 서버 로그, **Admin Dashboard > 설정 > 통화 및 SMS**, `/admin/setup`의 체크리스트가 해당 변수를 알려 줍니다. auth token은 절대 표시되지 않습니다. 계정을 바꾸려면 변수를 바꾸고 OneUptime을 다시 시작하세요. Admin Dashboard에서는 바꿀 수 없습니다.
+
+### Terraform으로 프로젝트 구성 관리하기
+
+프로젝트 구성은 [Terraform 프로바이더](/docs/terraform/index)의 `oneuptime_call_and_sms_config` 리소스이기도 하며, 같은 이름의 데이터 소스로 구성을 읽을 수 있습니다. Auth Token은 민감한 값이므로 플랜, 로그, 출력에 표시되지 않습니다. 민감한 변수로 전달하세요.
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **프로젝트 기본값.** Terraform은 `is_project_default = true`일 때만 구성을 프로젝트 기본값으로 만듭니다. 생략하면 Terraform이 `false`를 보내므로, 대시보드에서와 달리 프로젝트의 첫 구성이 기본값이 되지 않습니다. 메시지 종류마다 구성 하나에만 설정하세요. `used_for`가 같은 두 구성에 모두 설정하면 apply할 때마다 서로 기본값을 가져갑니다. `is_project_default_for_sms`와 `is_project_default_for_calls`는 OneUptime이 설정하며, Terraform은 읽기만 합니다.
+- **전화번호.** 각 번호는 `+`와 국가 코드를 붙여 쓰세요. 숫자 사이의 공백, 하이픈, 점, 괄호는 괜찮습니다. OneUptime은 `+1 415 555 0100`을 `+14155550100`으로 저장하고, Terraform은 이를 작성한 번호와 같은 번호로 읽으므로 plan에 변경 사항이 나타나지 않습니다.
+- **API 키.** Terraform이 사용하는 키는 구성을 만들고 편집하는 것 외에 Auth Token도 읽을 수 있어야 합니다: **프로젝트 소유자**, **프로젝트 관리자**, 또는 사용자 지정 역할의 **Read Call and SMS**. 읽을 수 없는 키로는 구성 읽기가 실패하며, 오류에 토큰을 읽을 수 있는 사람이 표시됩니다.
+- **참조.** 상태 페이지의 `call_sms_config_id`와 수신 통화 정책의 `project_call_sms_config_id`에는 구성의 `id`를 지정합니다.
 
 ### 통화와 SMS에 별도 번호 사용
 

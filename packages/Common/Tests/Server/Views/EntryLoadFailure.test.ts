@@ -1148,6 +1148,27 @@ describe("EntryLoadFailure: its stylesheet", () => {
     );
   });
 
+  /*
+   * The page's own margin, the one rule of the card's page that is not the
+   * screen's: where ErrorScreenStyle draws, in the app, the page's Tailwind
+   * (its preflight) has already taken the body's margin away. The card is
+   * also drawn where Tailwind never arrived - the connection dropped as the
+   * page loaded - and there the browser's 8 px around a root as tall as the
+   * window (the Dashboard's and the Admin Dashboard's #root, min-height
+   * 100vh) scrolled the page 16 px down.
+   */
+  const PAGE_MARGIN: string = "|body|margin";
+
+  test("takes the page's margin away while its card is drawn, as the page's Tailwind does where it arrived", () => {
+    expect(
+      declarationsOf(partialCss()).filter(
+        (declaration: Declaration): boolean => {
+          return declaration.key === PAGE_MARGIN;
+        },
+      ),
+    ).toEqual([{ key: PAGE_MARGIN, value: "0" }]);
+  });
+
   test("says what ErrorScreenStyle says, rule for rule", () => {
     const appValues: Map<string, string> = new Map<string, string>();
 
@@ -1155,7 +1176,12 @@ describe("EntryLoadFailure: its stylesheet", () => {
       appValues.set(declaration.key, declaration.value);
     }
 
-    const ownDeclarations: Array<Declaration> = declarationsOf(partialCss());
+    // The screen's rules: the page's margin is the test above's.
+    const ownDeclarations: Array<Declaration> = declarationsOf(
+      partialCss(),
+    ).filter((declaration: Declaration): boolean => {
+      return declaration.key !== PAGE_MARGIN;
+    });
 
     expect(ownDeclarations.length).toBeGreaterThan(60);
 

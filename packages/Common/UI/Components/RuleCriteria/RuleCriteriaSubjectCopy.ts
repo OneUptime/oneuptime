@@ -39,11 +39,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All alert episodes"),
     matching: translationKey("Only alert episodes that match conditions"),
   },
+  // One record of Scheduled Maintenance is a maintenance event (#6817).
   [RuleCriteriaSubject.ScheduledMaintenanceEvents]: {
-    all: translationKey("All scheduled maintenance events"),
-    matching: translationKey(
-      "Only scheduled maintenance events that match conditions",
-    ),
+    all: translationKey("All maintenance events"),
+    matching: translationKey("Only maintenance events that match conditions"),
   },
   [RuleCriteriaSubject.Monitors]: {
     all: translationKey("All monitors"),

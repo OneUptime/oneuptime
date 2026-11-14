@@ -1,6 +1,10 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import {
+  SET_ASIDE_FOR_MINUTES,
+  SET_ASIDE_SPREAD_IN_MINUTES,
+} from "../../../Server/Utils/Probe/ClaimSetAside";
 import logger from "../../../Server/Utils/Logger";
 import { isPostgresLockContentionError } from "../../../Server/Utils/Database/PostgresLockContention";
 import OneUptimeDate from "../../../Types/Date";
@@ -269,6 +273,18 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
       .sort();
   }
 
+  // Set aside by a claim at NOW: SET_ASIDE_FOR_MINUTES on, plus the spread.
+  function expectSetAside(nextPollAt: Date): void {
+    expect(nextPollAt.getTime()).toBeGreaterThanOrEqual(
+      minutesFromNow(SET_ASIDE_FOR_MINUTES).getTime(),
+    );
+    expect(nextPollAt.getTime()).toBeLessThanOrEqual(
+      minutesFromNow(
+        SET_ASIDE_FOR_MINUTES + SET_ASIDE_SPREAD_IN_MINUTES,
+      ).getTime(),
+    );
+  }
+
   function sorted(ids: Array<ObjectID>): Array<string> {
     return ids
       .map((id: ObjectID) => {
@@ -330,7 +346,12 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
     expect(await claim()).toEqual([]);
   });
 
-  test("a device the predicate leaves out is neither claimed nor moved", async () => {
+  /*
+   * Nothing the predicate leaves out is ever handed out. What is due on
+   * this probe is set aside (setAsideUnpollable), so later claims stop
+   * stepping over it; what is not due, or another probe's, is not touched.
+   */
+  test("a device the predicate leaves out is never claimed: due on this probe, it is set aside; otherwise left alone", async () => {
     const due: ObjectID = await insertDevice({
       nextPollAt: minutesFromNow(-1),
     });
@@ -344,7 +365,7 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
       deletedAt: minutesFromNow(-60),
     });
 
-    const leftOut: Array<ObjectID> = [
+    const untouched: Array<ObjectID> = [
       // Not due yet.
       await insertDevice({ nextPollAt: minutesFromNow(1) }),
       // Another probe's.
@@ -352,6 +373,9 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
         nextPollAt: minutesFromNow(-1),
         probeId: OTHER_PROBE_ID,
       }),
+    ];
+
+    const setAside: Array<ObjectID> = [
       await insertDevice({
         nextPollAt: minutesFromNow(-1),
         isPollingEnabled: false,
@@ -385,14 +409,18 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
     ];
 
     const before: Array<string> = [];
-    for (const id of leftOut) {
+    for (const id of untouched) {
       before.push((await nextPollAtOf(id)).toISOString());
     }
 
     expect(await claim()).toEqual([due.toString()]);
 
-    for (const [index, id] of leftOut.entries()) {
+    for (const [index, id] of untouched.entries()) {
       expect((await nextPollAtOf(id)).toISOString()).toBe(before[index]);
+    }
+
+    for (const id of setAside) {
+      expectSetAside(await nextPollAtOf(id));
     }
   });
 
@@ -545,5 +573,93 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
       [device.toString()],
     );
     expect(interfaces[0]!.count).toBe("1");
+  });
+
+  test("set aside, a device nothing may poll is no longer due for the next claim", async () => {
+    const pollingOff: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-30),
+      isPollingEnabled: false,
+    });
+    const noAddress: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-20),
+      hostname: null,
+    });
+    const due: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-1),
+    });
+
+    expect(await claim()).toEqual([due.toString()]);
+
+    const stillDue: Array<{ count: number }> = await database.query(
+      `SELECT COUNT(*)::int AS "count" FROM "${schema}"."NetworkDevice"
+       WHERE "probeId" = $1 AND "nextPollAt" <= $2`,
+      [PROBE_ID.toString(), NOW],
+    );
+    expect(stillDue[0]!.count).toBe(0);
+
+    expectSetAside(await nextPollAtOf(pollingOff));
+    expectSetAside(await nextPollAtOf(noAddress));
+  });
+
+  test("a pollable device the claim had no room for is left due, never set aside", async () => {
+    const first: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-3),
+    });
+    const waiting: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-2),
+    });
+
+    expect(await claim(1)).toEqual([first.toString()]);
+    expect((await nextPollAtOf(waiting)).toISOString()).toBe(
+      minutesFromNow(-2).toISOString(),
+    );
+  });
+
+  test("turning polling back on brings a set-aside device back for the next claim", async () => {
+    const device: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-5),
+      isPollingEnabled: false,
+    });
+
+    expect(await claim()).toEqual([]);
+    expectSetAside(await nextPollAtOf(device));
+
+    await database.query(
+      `UPDATE "${schema}"."NetworkDevice" SET "isPollingEnabled" = true WHERE "_id" = $1`,
+      [device.toString()],
+    );
+    // What onUpdateSuccess does after a write that turns polling on.
+    await (
+      NetworkDeviceService as unknown as {
+        makeDueNow: (ids: Array<ObjectID>) => Promise<void>;
+      }
+    ).makeDueNow([device]);
+
+    expect((await nextPollAtOf(device)).toISOString()).toBe(NOW.toISOString());
+    expect(await claim()).toEqual([device.toString()]);
+  });
+
+  test("the set-aside skips a device another writer holds instead of waiting for it", async () => {
+    const held: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-10),
+      isPollingEnabled: false,
+    });
+    const lock: { release: () => Promise<void> } = await holdDevice(held);
+
+    const startedAt: number = Date.now();
+
+    try {
+      expect(await claim()).toEqual([]);
+    } finally {
+      await lock.release();
+    }
+
+    expect(Date.now() - startedAt).toBeLessThan(LOCK_TIMEOUT_MS / 2);
+    expect((await nextPollAtOf(held)).toISOString()).toBe(
+      minutesFromNow(-10).toISOString(),
+    );
+
+    expect(await claim()).toEqual([]);
+    expectSetAside(await nextPollAtOf(held));
   });
 });

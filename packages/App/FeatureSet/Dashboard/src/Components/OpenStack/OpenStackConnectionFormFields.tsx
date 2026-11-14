@@ -229,7 +229,11 @@ function getKeystoneFields(data: {
 function getCredentialFields(data: {
   isSecretRequired: boolean;
 }): Array<CloudField> {
-  // Most clouds log in to the domain called Default, which is what these start as.
+  /*
+   * Most clouds log in to the domain called Default, which is what these start as. Their
+   * placeholder is that domain's name in Keystone, in every language (isPlaceholderIdentifier):
+   * German read it "Normal" and Spanish "Predeterminado", domains no cloud has (#7663).
+   */
   const domainsSection: FormFieldCollapsibleSection<OpenStackCloud> =
     getAdvancedFormSection<OpenStackCloud>();
 
@@ -300,6 +304,7 @@ function getCredentialFields(data: {
       required: false,
       showIf: isPasswordKind,
       placeholder: "Default",
+      isPlaceholderIdentifier: true,
       autoComplete: "off",
       collapsibleSection: domainsSection,
     },
@@ -313,6 +318,7 @@ function getCredentialFields(data: {
       required: false,
       showIf: isPasswordKind,
       placeholder: "Default",
+      isPlaceholderIdentifier: true,
       autoComplete: "off",
       collapsibleSection: domainsSection,
     },

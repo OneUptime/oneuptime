@@ -477,7 +477,10 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
       readCommon("UI", "Components", "FormModal", "BasicFormModal.tsx"),
     ).toContain("<Modal {...props}");
 
-    // FormField translates the field's title, description and placeholder.
+    /*
+     * FormField translates the field's title and description, and the
+     * control that draws it its placeholder.
+     */
     expect(dialog).toContain("title: props.fieldTitle");
     expect(dialog).toContain("description: props.fieldDescription");
     expect(dialog).toContain("placeholder: props.placeholder");
@@ -761,9 +764,18 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "Forms", "Fields", "FormField.tsx"],
         "translateValue(props.field.description)",
       ],
+      /*
+       * FormField hands a placeholder over as written, and the control that
+       * draws it - the link dialog's EntityDropdown - looks it up, once
+       * (#7663).
+       */
       [
         ["UI", "Components", "Forms", "Fields", "FormField.tsx"],
-        "translateString( props.field.placeholder, )",
+        "const fieldPlaceholder: string | undefined = props.field.placeholder;",
+      ],
+      [
+        ["UI", "Components", "EntityDropdown", "EntityDropdown.tsx"],
+        'translator.translateText(props.placeholder || "Select...")',
       ],
       [
         ["UI", "Components", "Table", "TableHeader.tsx"],

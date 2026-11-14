@@ -106,6 +106,8 @@ export const getFilePickerLayout: (data: {
 
 export interface FilePickerPromptData {
   placeholder?: string | undefined;
+  // In the reader's words already: said as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   hint?: string | undefined;
   mimeTypes?: Array<MimeType> | undefined;
   maxFileSizeInBytes?: number | undefined;
@@ -159,13 +161,16 @@ export const getFilePickerPromptWords: (
   };
 
   return {
-    label: translator.translateText(
-      data.placeholder
+    label:
+      data.placeholder && data.isPlaceholderTranslated
         ? data.placeholder
-        : data.hasFiles
-          ? "Add more files"
-          : "Upload files",
-    ),
+        : translator.translateText(
+            data.placeholder
+              ? data.placeholder
+              : data.hasFiles
+                ? "Add more files"
+                : "Upload files",
+          ),
     instruction: translator.translateText(
       data.isDragActive
         ? data.keepFilesInBrowser
