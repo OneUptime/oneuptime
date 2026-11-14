@@ -544,6 +544,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
 
+      # Checks the migrated MonitorProbe and NetworkDevice tables' indexes and
+      # fillfactor, then clones them (with Project, Probe and Monitor) into an
+      # isolated schema and reads pg_stat_user_tables around each write of a
+      # probe cycle (issue #7921). A probe's result and a reachable poll's
+      # verdict and rate baseline must be HOT updates, which write no index
+      # entry. The claims cannot be, and with lastSeenAt indexed again the
+      # verdict is not either.
+      - name: Test which probe table writes are HOT updates against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_TABLE_HOT_UPDATE_TESTS: "true"
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/ProbeTablesHotUpdatesPostgres.test.ts --forceExit
+
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
       # once and let exactly one racing save win, no workflow may take

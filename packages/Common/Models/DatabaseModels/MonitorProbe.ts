@@ -27,6 +27,14 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
 @EnableDocumentation()
 @CanAccessIfCanReadOn("monitor")
 @TenantColumn("projectId")
+/*
+ * Every probe claim moves `nextPingAt`, which is indexed, so no claim is a
+ * HOT update: each one writes an entry into every index on this table. So
+ * no index here repeats the leading columns of another. These composites
+ * also serve every read by `monitorId` or `probeId` alone, and the ON
+ * DELETE CASCADE of a monitor or a probe; the bare `monitorId` and
+ * `probeId` indexes went for that reason (OneUptime issue #7921).
+ */
 @Index(["monitorId", "probeId"]) // Composite index for efficient monitor-probe relationship queries
 @Index(["monitorId", "projectId"]) // Alternative index for monitor queries within project
 @Index(["probeId", "isEnabled", "nextPingAt"]) // Scheduler hot path: pick due probes per probeId
@@ -203,7 +211,10 @@ export default class MonitorProbe extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  /*
+   * No bare @Index() here on purpose: ("probeId", "isEnabled", "nextPingAt")
+   * declared on the class leads with this column.
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -277,7 +288,10 @@ export default class MonitorProbe extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  /*
+   * No bare @Index() here on purpose: ("monitorId", "probeId") and
+   * ("monitorId", "projectId") declared on the class lead with this column.
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,

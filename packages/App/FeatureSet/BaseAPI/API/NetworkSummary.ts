@@ -266,6 +266,13 @@ async function getDevicesNeedingAttention(data: {
       props: data.props,
     });
 
+  /*
+   * Sorted rather than read in index order: `lastSeenAt` is in no index on
+   * purpose, since every reachable poll moves it (the Status index on the
+   * NetworkDevice model says why). Postgres reads the project's down devices
+   * through that index and keeps the eight longest out of contact, a top-N
+   * sort as large as the number of devices down.
+   */
   const unreachablePromise: Promise<Array<NetworkDevice>> =
     NetworkDeviceService.findBy({
       query: {

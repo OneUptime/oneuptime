@@ -983,6 +983,9 @@ import { AddAIRunRecording1809125000000 } from "./1809125000000-AddAIRunRecordin
 import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "./1809126000000-GlobalConfigCredentialsEncryptedColumns";
 import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
 import { AddProbeCollectionClaimIndexes1809150400000 } from "./1809150400000-AddProbeCollectionClaimIndexes";
+import { DropRedundantMonitorProbeIndexes1809151000000 } from "./1809151000000-DropRedundantMonitorProbeIndexes";
+import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000 } from "./1809151100000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
+import { SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 } from "./1809151200000-SetMonitorProbeAndNetworkDeviceFillfactor";
 
 export default [
   InitialMigration,
@@ -1970,4 +1973,7 @@ export default [
   GlobalConfigCredentialsEncryptedColumns1809126000000,
   AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
   AddProbeCollectionClaimIndexes1809150400000,
+  DropRedundantMonitorProbeIndexes1809151000000,
+  DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000,
+  SetMonitorProbeAndNetworkDeviceFillfactor1809151200000,
 ];
