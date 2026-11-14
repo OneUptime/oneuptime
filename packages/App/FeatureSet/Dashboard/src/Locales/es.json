@@ -52234,5 +52234,21 @@
   "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "El nombre de la cola, el tema o la suscripción que usan tus aplicaciones y tu broker. Una URL, un ARN o una ruta de recurso se reduce a su nombre.",
   "This email was sent without a subject.": "Este correo electrónico se envió sin asunto.",
   "Exclusion rule": "Regla de exclusión",
-  "Import rule": "Regla de importación"
+  "Import rule": "Regla de importación",
+  "Changes to the policy": "Cambios en la política",
+  "One line at each hand-off: who is on call, and until when.": "Una línea en cada relevo: quién está de guardia y hasta cuándo.",
+  "User overrides": "Sustituciones de usuarios",
+  "Overrides added, changed and taken back: who is away, and who covers.": "Sustituciones añadidas, modificadas y retiradas: quién está ausente y quién cubre.",
+  "Schedules, people and teams added to its escalation rules or taken out.": "Programaciones, personas y equipos añadidos a sus reglas de escalado o quitados.",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "La regla siempre publica cuando se crea una política de guardia. Elige las actualizaciones que publica después.",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "Cuando una programación se queda sin nadie de guardia, de modo que las alertas que le llegan no avisan a nadie.",
+  "Who is on call next": "Quién está de guardia después",
+  "Who is on call now": "Quién está de guardia ahora",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Quién está de guardia ahora y después, nadie de guardia, sustituciones, y cambios en la política y sus propietarios.",
+  "Who is on call now, and when nobody is.": "Quién está de guardia ahora, y cuándo no hay nadie.",
+  "Who takes over at the next hand-off, and when.": "Quién toma el relevo en el próximo cambio de turno, y cuándo.",
+  "With none ticked, the rule posts only when an on-call policy is created.": "Sin ninguna marcada, la regla solo publica cuando se crea una política de guardia.",
+  "Only when an on-call policy is created": "Solo cuando se crea una política de guardia",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Tienes cambios sin guardar en las preguntas de este formulario. Si sales ahora, se perderán.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en los pasos de este runbook. Si sales ahora, se perderán."
 }

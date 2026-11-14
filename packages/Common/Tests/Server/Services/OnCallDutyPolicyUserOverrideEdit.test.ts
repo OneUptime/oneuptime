@@ -584,6 +584,86 @@ describe("what does not change", () => {
   });
 });
 
+/*
+ * What the policy's chat channels hear of an edit (issue #7549): one short
+ * line, the override as it is now, said as an added one is - each moment
+ * in its reader's own zone - not the feed's entry with what it was and the
+ * times in the zones of both people.
+ */
+describe("the line the policy's chat channels get", () => {
+  const chatLines: () => Array<string | undefined> = (): Array<
+    string | undefined
+  > => {
+    return (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>): string | undefined => {
+      return (call[0] as { chatInfoInMarkdown?: string | undefined })
+        .chatInfoInMarkdown;
+    });
+  };
+
+  // A moment as the line writes it: the reader's own day and time.
+  const moment: (date: Date) => string = (date: Date): string => {
+    // To the second, in UTC: "2026-11-14T09:00:00Z".
+    const iso: string = `${date.toISOString().slice(0, 19)}Z`;
+
+    return `{{DATE(${iso}, SHORT)}} at {{TIME(${iso})}}`;
+  };
+
+  test("a new cover: who covers for whom now, from when to when", async () => {
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(CAROL) });
+
+    expect(chatLines()).toEqual([
+      `✏️ Changed an override on [Payments](https://oneuptime.example/policy): Carol Ng covers for Jane Doe from ${moment(UPCOMING_STARTS)} to ${moment(UPCOMING_ENDS)}.`,
+    ]);
+  });
+
+  test("a cover taken off: the person is away, and the rotation covers", async () => {
+    await edit(UPCOMING, { routeAlertsToUserId: null });
+
+    expect(chatLines()).toEqual([
+      `✏️ Changed an override on [Payments](https://oneuptime.example/policy): Jane Doe is away from ${moment(UPCOMING_STARTS)} to ${moment(UPCOMING_ENDS)}, and their turns go to the next person in the rotation.`,
+    ]);
+  });
+
+  test("new times: the times it has now", async () => {
+    const endsAt: Date = new Date("2026-11-14T18:00:00.000Z");
+
+    await edit(UPCOMING, { endsAt: endsAt });
+
+    expect(chatLines()).toEqual([
+      `✏️ Changed an override on [Payments](https://oneuptime.example/policy): Bob Lee covers for Jane Doe from ${moment(UPCOMING_STARTS)} to ${moment(endsAt)}.`,
+    ]);
+  });
+
+  test("leaves what it was, and the times in both people's zones, to the feed", async () => {
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(CAROL) });
+
+    const line: string = chatLines()[0] || "";
+
+    expect(line).toContain("✏️ Changed an override on");
+    expect(line).not.toContain("it was");
+    expect(line).not.toContain("Changed:");
+    expect(line).not.toContain("User Override Rule");
+    expect(line).not.toContain("Bob Lee");
+    // The feed's entry still says it.
+    expect(feedEntries()[0]!.text).toContain(
+      "Changed: who covers (it was **Bob Lee**).",
+    );
+  });
+
+  test("an edit that changes nothing, or a global override's, posts no line", async () => {
+    await edit(UPCOMING, {
+      routeAlertsToUserId: new ObjectID(BOB),
+      startsAt: UPCOMING_STARTS,
+      endsAt: UPCOMING_ENDS,
+    });
+    await edit(GLOBAL, { routeAlertsToUserId: new ObjectID(BOB) });
+
+    expect(chatLines()).toEqual([]);
+  });
+});
+
 describe("who may edit", () => {
   test.each([
     ["a project owner", [Permission.ProjectOwner]],

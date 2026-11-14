@@ -100,7 +100,7 @@ Creating a rule walks up to five steps:
 | **Basic** | **Rule Name** and **Rule Description**. |
 | **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: **Post to existing channels** with the channel names, **Create a channel for each incident** (or alert, episode, event, monitor or on-call policy) with who joins it, or both. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
-| **Updates** | Incidents, alerts, episodes and scheduled maintenance only: which updates the rule posts after the record's first message. **Every update**, which a new rule starts with, posts them all. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. |
+| **Updates** | Incidents, alerts, episodes, scheduled maintenance and on-call policies only: which updates the rule posts after the record's first message. **Every update** posts them all, and a new rule starts with it, except an on-call policy's. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem; for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. See [On-call messages](#on-call-messages). |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
 Each condition reads as a sentence: the field, how it compares and the value. Values to pick come from the project's own lists, such as its states, severities, labels and monitors. An on-call rule picks its policies under **On-Call Policy**, which keeps matching a policy after it is renamed, while **On-Call Policy Name** matches words in a policy's name. Every kind of event that has owners has an owner condition, such as **Incident Owner**: pick people and teams, and it matches the people and teams recorded as the event's owners. Being in a team that owns the event does not count. An owner added later makes the rule match from that update on, and a rule that creates channels creates the channel then. An archived value, such as a severity or an on-call policy, is not offered for a new condition. A rule that already has one keeps it, marked **Archived**, and still matches the events that have it. A person, team or policy the project no longer has stays in the condition, and the rule's card says so.
@@ -124,6 +124,29 @@ A channel stays readable: each event is posted once, and a record's first state 
 **Project Settings** > **Workspace** > **Slack** lists the channels OneUptime can see, with **Send Test** beside each one. OneUptime joins a public channel on its own the first time it posts there. A private channel is listed, and can be posted to, only after the OneUptime app is invited to it in Slack.
 
 A notification rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see the rules sees it read-only. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
+### On-call messages
+
+At each hand-off, an on-call policy's channels hear who is on call, in one line:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments links to the policy in OneUptime. When the policy pages more than one schedule, the line names the schedule too: Payments (Primary).
+- A person is named by their Slack name once they have connected their Slack account to OneUptime, and by their OneUptime name until then. Times show in each reader's own time zone.
+- When several escalation rules of the policy page the same schedule, each hand-off is posted once, not once for each rule.
+
+A rule posts what it chose in its **Updates** step, and a new rule starts on **Key updates only**: who is on call now, and when nobody is.
+
+| Update | What the channel hears |
+| --- | --- |
+| **Who is on call now** | The line above, at each hand-off. |
+| **Who is on call next** | Who takes over at the next hand-off, and when: at the end of that line, or in a line of its own for a rule that does not post who is on call now. |
+| **Nobody on call** | A schedule left with nobody on call, so alerts that reach it page no one: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **User overrides** | An override added, changed or taken back: who is away, and who covers. |
+| **Changes to the policy** | Schedules, people and teams added to its escalation rules or taken out. |
+| **Owners** | Owners added and removed. |
+
+A channel gets one message for a hand-off, even when two rules post to it. An on-call rule saved before rules chose their updates posts every one, as it did.
 
 ## Who is in a record's channel
 
