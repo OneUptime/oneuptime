@@ -22,7 +22,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import Link from "Common/UI/Components/Link/Link";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -189,23 +189,25 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="network-device-latency-trend">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-baseline justify-between gap-4">
         {/*
          * The (i) says what now / avg / max are: per-minute averages, so
-         * "max" is the slowest minute and not the slowest single ping.
+         * "max" is the slowest minute and not the slowest single ping. It
+         * follows the title's last word on whichever line it ends (issue
+         * #7348): German wraps this title in the Network Map's drawer on a
+         * phone, which pushed a flex sibling to the far edge.
          */}
-        <span className="flex items-center gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            {trendTitle}
-          </span>
-          <InfoTooltip
-            label={trendTitle}
-            text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.latencyTrend}
-          />
-        </span>
+        <WordsWithInfoTooltip
+          className="min-w-0 text-xs font-medium uppercase tracking-wide text-gray-500"
+          text={trendTitle}
+          label={trendTitle}
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.latencyTrend}
+          dataTestId="network-device-latency-title"
+        />
+        {/* Kept whole: the title beside it gives way first. */}
         <Link
           to={metricsRoute}
-          className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+          className="flex-shrink-0 whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800"
         >
           {translateString("Open metrics")}
         </Link>
@@ -241,19 +243,15 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
               },
             )}
           </p>
-          <p
-            data-testid="network-device-loss-summary"
-            className="flex items-center gap-1"
-          >
-            <span>
-              {translator.translateTemplate("{{label}}: {{value}}", {
+          {/* Its own (i) after the value, on the line the value ends on. */}
+          <p data-testid="network-device-loss-summary">
+            <WordsWithInfoTooltip
+              text={translator.translateTemplate("{{label}}: {{value}}", {
                 label: lossTitle,
                 value: lossSummary ? formatPercent(lossSummary.max) : "—",
               })}
-            </span>
-            <InfoTooltip
               label={lossTitle}
-              text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.packetLossPeak}
+              description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.packetLossPeak}
             />
           </p>
         </div>

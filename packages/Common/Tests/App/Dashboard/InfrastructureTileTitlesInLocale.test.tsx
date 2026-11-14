@@ -525,7 +525,14 @@ describe("a golden metric tile", () => {
     renderTile("en", { title: "Unhealthy Hardware" });
 
     expect(titleElement().className).not.toContain("hyphens-auto");
-    expect(titleElement().querySelector("span")).toBeNull();
+    // No word in a box of its own: the only box is the (i)'s glue.
+    expect(
+      Array.from(titleElement().querySelectorAll("span")).map(
+        (span: Element): boolean => {
+          return span.hasAttribute("data-info-glue");
+        },
+      ),
+    ).toEqual([true]);
   });
 
   test("the icon keeps its size beside a long title", () => {

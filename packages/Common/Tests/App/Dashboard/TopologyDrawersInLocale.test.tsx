@@ -319,3 +319,43 @@ describe("the network link drawer in the reader's language", () => {
     },
   );
 });
+
+/*
+ * From sm up the side-over leaves the top spacing of its body to what it
+ * draws (sm:pt-0, for a panel whose sticky search box sits at the very
+ * top). The map's drawers drew their first row - the device's status and a
+ * "Monitoring off" pill beside it, the link's kind - on the header's edge.
+ */
+describe("the map's drawers keep their top spacing beside the header", () => {
+  // The element the side-over's body draws first.
+  function drawnFirst(): HTMLElement {
+    const body: HTMLElement | null =
+      document.querySelector<HTMLElement>("div.sm\\:pt-0");
+
+    expect(body).not.toBeNull();
+
+    return body!.firstElementChild as HTMLElement;
+  }
+
+  test("the device drawer", () => {
+    renderDevicePanel();
+
+    const content: HTMLElement = drawnFirst();
+    expect(content).toHaveClass("space-y-6", "sm:pt-6");
+    expect(content).toContainElement(
+      screen.getByTestId("network-topology-device-status"),
+    );
+  });
+
+  test("the link drawer", () => {
+    renderLinkPanel();
+
+    const content: HTMLElement = drawnFirst();
+    expect(content).toHaveClass("space-y-6", "sm:pt-6");
+    // The link's state pill first, then its facts.
+    expect(content.firstElementChild).toHaveClass("flex", "flex-wrap");
+    expect(content).toContainElement(
+      screen.getAllByText("Operational status")[0]!,
+    );
+  });
+});

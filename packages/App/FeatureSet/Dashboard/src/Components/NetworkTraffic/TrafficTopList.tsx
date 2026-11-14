@@ -6,7 +6,7 @@ import {
 import Card from "Common/UI/Components/Card/Card";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -236,10 +236,12 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={
-        <span className="inline-flex items-center gap-1.5">
-          {translator.translateText(props.title)}
-          <InfoTooltip label={props.title} text={props.help} />
-        </span>
+        /* The (i) after the title's last word (issue #7348). */
+        <WordsWithInfoTooltip
+          text={translator.translateText(props.title) || props.title}
+          label={props.title}
+          description={props.help}
+        />
       }
       description={props.description}
       fillHeight={props.fillHeight !== false}
