@@ -22,7 +22,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   triggerEntityType: RunbookRuleTriggerEntity;
-  entityLabel: string; // "incident", "alert", "scheduled maintenance event"
+  entityLabel: string; // "incident", "alert", "maintenance event"
 }
 
 /*
@@ -83,10 +83,10 @@ const RUNBOOK_RULE_COPY: Record<RunbookRuleTriggerEntity, RunbookRuleCopy> = {
   },
   [RunbookRuleTriggerEntity.ScheduledMaintenance]: {
     cardDescription: translationKey(
-      "Auto-attach runbooks when matching scheduled maintenance events are created.",
+      "Auto-attach runbooks when matching maintenance events are created.",
     ),
     helpDescription: translationKey(
-      "Match scheduled maintenance events and start runbooks automatically.",
+      "Match maintenance events and start runbooks automatically.",
     ),
     labelsTitle: translationKey("Event Labels"),
     titleTitle: translationKey("Event Title"),

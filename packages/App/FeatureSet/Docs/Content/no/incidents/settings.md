@@ -736,7 +736,7 @@ Reglene siden selv har med, er verdt å gjøre til dine egne:
 - Settet med policyer som faktisk kjøres, er foreningen av policyene til hver samsvarende regel pluss alle policyer som er knyttet til hendelsen for hånd eller av en mal, uten duplikater, slik at hver policy kjører høyst én gang. Når to samsvarende regler tilkaller den samme policyen, tilkaller den så snart en av dem tillater det: med en gang vinner over arbeidstiden.
 
 > [!NOTE]
-> Alvorlighetsgraden er et treffkriterium her og ingen andre steder. Det finnes ikke noe vaktfelt på en alvorlighetsgrad for hendelser — å velge «Critical Incident» tilkaller ikke i seg selv noen. Vil du at alvorlighetsgraden skal styre tilkallingen, skriver du en vaktregel som samsvarer med den.
+> Alvorlighetsgraden er et treffkriterium her og ingen andre steder. Det finnes ikke noe vaktfelt på en alvorlighetsgrad for hendelser — å velge «Kritisk hendelse» tilkaller ikke i seg selv noen. Vil du at alvorlighetsgraden skal styre tilkallingen, skriver du en vaktregel som samsvarer med den.
 
 ## Knytt vaktpolicyer direkte
 

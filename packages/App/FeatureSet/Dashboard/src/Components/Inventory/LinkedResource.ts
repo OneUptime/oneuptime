@@ -177,6 +177,11 @@ export type DescribeMissingLinkFunction = (
  * What to tell someone looking at an item that can never have its own
  * incidents. `signal` is the plural noun for the page ("incidents",
  * "alerts", "maintenance windows").
+ *
+ * The item's type goes in the middle of the sentence, after "This", as a
+ * term cased the reader's way: "This Kubernetes pod does not carry its
+ * own", never a label's "A Kubernetes Pod", and no article that has to
+ * agree with the type ("A ESXi Host", "A IoT Device") (#7862).
  */
 export const describeMissingLink: DescribeMissingLinkFunction = (
   entityType: string | undefined,
@@ -199,10 +204,12 @@ export const describeMissingLink: DescribeMissingLinkFunction = (
 
   return capitalizeFirst(
     translator.translateTemplate(
-      "{{signal}} are raised against services, hosts and Kubernetes clusters. A {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+      "{{signal}} are raised against services, hosts and Kubernetes clusters. This {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
       {
         signal: signalTerm,
-        type: translatableTerm(getInventoryTypeLabel(entityType)),
+        type: translatableTerm(getInventoryTypeLabel(entityType), {
+          inSentence: true,
+        }),
       },
     ),
   );

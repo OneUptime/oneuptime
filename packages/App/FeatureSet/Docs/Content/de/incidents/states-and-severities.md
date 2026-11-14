@@ -37,7 +37,7 @@ flowchart TB
 
 Das Modell `IncidentState` hat `name`, `description`, `color` und `order`, dazu drei boolesche Werte: `isCreatedState`, `isAcknowledgedState` und `isResolvedState`. Alles, was das Produkt mit Status tut, hängt an diesen Werten und an `order` – nie am Namen des Status. Deshalb können Sie **Behoben** in „Closed“ umbenennen, ohne dass etwas kaputtgeht: Das Flag bleibt an der Zeile.
 
-Das Modell `IncidentSeverity` hat `name`, `description`, `color` und `order` – und sonst nichts. Es gibt keine Flags. Nichts in OneUptime behandelt **Critical Incident** von sich aus anders als **Minor Incident** – der Schweregrad zählt nur dort, wo Sie etwas darauf ausrichten, etwa beim Kriterium **Vorfallsschweregrade** einer Bereitschaftsregel.
+Das Modell `IncidentSeverity` hat `name`, `description`, `color` und `order` – und sonst nichts. Es gibt keine Flags. Nichts in OneUptime behandelt **Kritischer Vorfall** von sich aus anders als **Geringfügiger Vorfall** – der Schweregrad zählt nur dort, wo Sie etwas darauf ausrichten, etwa beim Kriterium **Vorfallsschweregrade** einer Bereitschaftsregel.
 
 Ein paar schnelle Regeln:
 
@@ -138,9 +138,9 @@ Drei Schweregrade werden mit dem Projekt angelegt, in dieser Reihenfolge, der sc
 
 | Schweregrad           | `order` | Farbe     | Vorangelegte Beschreibung |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Probleme mit sehr hoher Auswirkung auf Kunden. Eine sofortige Reaktion ist erforderlich. Beispiele sind ein vollständiger Ausfall oder ein Datenleck. |
-| **Major Incident**    | `2`     | `#fd625e` | Probleme mit erheblicher Auswirkung. Eine sofortige Reaktion ist meist erforderlich. Möglicherweise gibt es Umgehungen, die die Auswirkung auf Kunden mildern. Beispiel ist der Ausfall eines wichtigen Teilsystems. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Probleme mit geringer Auswirkung, die meist innerhalb der Arbeitszeit erledigt werden können. Die meisten Kunden bemerken wahrscheinlich nichts. Beispiel ist ein leichter Rückgang der Anwendungsleistung. |
+| **Kritischer Vorfall** | `1`     | `#b70400` | Probleme mit sehr hoher Auswirkung auf Kunden. Eine sofortige Reaktion ist erforderlich. Beispiele sind ein vollständiger Ausfall oder ein Datenleck. |
+| **Schwerwiegender Vorfall**    | `2`     | `#fd625e` | Probleme mit erheblicher Auswirkung. Eine sofortige Reaktion ist meist erforderlich. Möglicherweise gibt es Umgehungen, die die Auswirkung auf Kunden mildern. Beispiel ist der Ausfall eines wichtigen Teilsystems. |
+| **Geringfügiger Vorfall**    | `3`     | `#ffbf53` | Probleme mit geringer Auswirkung, die meist innerhalb der Arbeitszeit erledigt werden können. Die meisten Kunden bemerken wahrscheinlich nichts. Beispiel ist ein leichter Rückgang der Anwendungsleistung. |
 
 Der Schweregrad ist beim Melden eines Vorfalls Pflicht und ebenso bei jeder Vorfallangabe in den Kriterien eines Monitors, sodass jeder Vorfall – manuell oder automatisch – mit einem eintrifft. Den Meldeablauf finden Sie unter [Einen Vorfall melden](/docs/incidents/declaring-incidents), den Weg über Monitore unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 
@@ -155,7 +155,7 @@ Zwei Unterschiede zu Status:
 - **Es gibt keinen Löschschutz.** Jeder Schweregrad kann gelöscht werden, auch die drei vorangelegten.
 - **Keine Flags zum Erben und kein „Zählt als“.** Ein neuer Schweregrad verhält sich genau wie die vorangelegten – eine Beschriftung mit Farbe und Rang.
 
-Wo der Schweregrad mehr tut als beschreiben: Unter **Vorfälle → Regeln → Bereitschaftsregeln** ist das Feld **Vorfallsschweregrade** einer Regel ein Kriterium. **Critical Incident** dort aufzuführen ist die Art, „bei allem Kritischen das Datenbankteam alarmieren“ auszudrücken – die Bereitschaftsrichtlinie liegt an der Regel, nicht am Schweregrad.
+Wo der Schweregrad mehr tut als beschreiben: Unter **Vorfälle → Regeln → Bereitschaftsregeln** ist das Feld **Vorfallsschweregrade** einer Regel ein Kriterium. **Kritischer Vorfall** dort aufzuführen ist die Art, „bei allem Kritischen das Datenbankteam alarmieren“ auszudrücken – die Bereitschaftsrichtlinie liegt an der Regel, nicht am Schweregrad.
 
 **Den Schweregrad eines Vorfalls ändern** – über **Bearbeiten** auf der Karte **Vorfalldetails** des Vorfalls, über die API oder Terraform (`incidentSeverityId`), mit einem Workflow oder mit den KI-Werkzeugen – bewirkt auf jedem Weg dieselben vier Dinge: Der Vorfall-Feed erhält einen Eintrag **Incident updated**, der den neuen Schweregrad nennt, die SLA-Fristen des Vorfalls werden neu berechnet, seine Erinnerungsregel wird neu zugeordnet, und die Vorfallsmetriken zählen eine Schweregradänderung. Den Schweregrad zu speichern, den der Vorfall schon hat, bewirkt nichts davon; nur den Titel eines Vorfalls zu bearbeiten lässt also seine SLA-Fristen, Erinnerungen und den Zähler der Schweregradänderungen unverändert. Der Schweregrad einer Warnung funktioniert für ihren Feed-Eintrag und ihre Erinnerungen genauso.
 

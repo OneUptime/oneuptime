@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` og `order`, pluss tre booleans: `isCreatedState`, `isAcknowledgedState` og `isResolvedState`. Alt produktet gjør med tilstander, tar utgangspunkt i de booleans og i `order` — aldri i tilstandens navn. Derfor kan du gi **Løst** navnet "Closed" uten at noe går i stykker: flagget følger med raden.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og ingenting annet. Det finnes ingen flagg. Ingenting i OneUptime behandler av seg selv **Critical Incident** annerledes enn **Minor Incident** — alvorlighetsgraden betyr bare noe der du peker noe på den, som treffkriteriet **Alvorlighetsgrader for hendelser** i en vaktregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og ingenting annet. Det finnes ingen flagg. Ingenting i OneUptime behandler av seg selv **Kritisk hendelse** annerledes enn **Mindre hendelse** — alvorlighetsgraden betyr bare noe der du peker noe på den, som treffkriteriet **Alvorlighetsgrader for hendelser** i en vaktregel.
 
 Noen raske regler:
 
@@ -138,9 +138,9 @@ Tre alvorlighetsgrader opprettes med prosjektet, i denne rekkefølgen, den mest 
 
 | Alvorlighetsgrad      | `order` | Farge     | Forhåndsopprettet beskrivelse                                                                                                                                                             |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Kritisk hendelse** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Større hendelse**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Mindre hendelse**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 Alvorlighetsgraden er påkrevd når du erklærer en hendelse, og den er påkrevd i hver hendelsesspesifikasjon i kriteriene til en monitor, så hver hendelse — manuell eller automatisk — kommer med en. Se [Opprette en hendelse](/docs/incidents/declaring-incidents) for erklæringsflyten og [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating) for veien via monitorer.
 
@@ -155,7 +155,7 @@ To forskjeller fra tilstander:
 - **Det finnes ingen beskyttelse mot sletting.** Enhver alvorlighetsgrad kan slettes, også de tre forhåndsopprettede.
 - **Det finnes ingen flagg å arve og ingen "Teller som".** En ny alvorlighetsgrad oppfører seg nøyaktig som de forhåndsopprettede — den er en etikett med en farge og en rang.
 
-Der alvorlighetsgraden gjør mer enn å beskrive: under **Hendelser → Regler → Vaktregler** er feltet **Alvorlighetsgrader for hendelser** i en regel et treffkriterium. Å oppgi **Critical Incident** der er hvordan "tilkall databaseteamet ved alt kritisk" uttrykkes — vaktpolicyen sitter på regelen, ikke på alvorlighetsgraden.
+Der alvorlighetsgraden gjør mer enn å beskrive: under **Hendelser → Regler → Vaktregler** er feltet **Alvorlighetsgrader for hendelser** i en regel et treffkriterium. Å oppgi **Kritisk hendelse** der er hvordan "tilkall databaseteamet ved alt kritisk" uttrykkes — vaktpolicyen sitter på regelen, ikke på alvorlighetsgraden.
 
 **Å endre alvorlighetsgraden til en hendelse** — under **Rediger** på hendelsens kort **Hendelsesdetaljer**, via API-et eller Terraform (`incidentSeverityId`), med en arbeidsflyt eller med KI-verktøyene — gjør de samme fire tingene uansett hvordan det sendes: hendelsens feed får en oppføring **Incident updated** som nevner den nye alvorlighetsgraden, hendelsens SLA-frister regnes ut på nytt, påminnelsesregelen samsvares på nytt, og hendelsesmetrikkene teller én endring av alvorlighetsgrad. Å lagre alvorlighetsgraden hendelsen allerede har, gjør ingen av dem, så redigerer du bare tittelen på en hendelse, blir SLA-fristene, påminnelsene og antallet endringer av alvorlighetsgrad som de var. Alvorlighetsgraden til et varsel fungerer på samme måte for feedoppføringen og påminnelsene.
 

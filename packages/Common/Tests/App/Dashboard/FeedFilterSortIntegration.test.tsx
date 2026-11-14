@@ -320,8 +320,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(ScheduledMaintenanceFeedEventType),
     storageKey: "scheduled-maintenance",
     iconFn: getScheduledMaintenanceFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this scheduled maintenance event yet.",
+    noItemsMessage: "Nothing has happened to this maintenance event yet.",
     hasActionsMenu: true,
   },
   {
