@@ -90,8 +90,10 @@ describe("the same steps give the same signature", () => {
 
   test("a key left undefined is left out, as the JSON Save Steps writes leaves it out", () => {
     const withUndefined: Array<RunbookStep> = steps();
-    withUndefined[0]!.continueOnFailure = undefined;
-    withUndefined[1]!.description = undefined;
+    // As a spread copy can carry them: present, and undefined.
+    Object.assign(withUndefined[0]!, { continueOnFailure: undefined });
+    Object.assign(withUndefined[1]!, { description: undefined });
+    expect(Object.keys(withUndefined[0]!)).toContain("continueOnFailure");
 
     expect(signature(withUndefined)).toBe(signature(steps()));
   });
@@ -220,12 +222,15 @@ describe("any change Save Steps would write gives another signature", () => {
     ],
   ];
 
-  test.each(changes)("%s", (_: string, change: (v: Array<RunbookStep>) => void) => {
-    const changed: Array<RunbookStep> = steps();
-    change(changed);
+  test.each(changes)(
+    "%s",
+    (_: string, change: (v: Array<RunbookStep>) => void) => {
+      const changed: Array<RunbookStep> = steps();
+      change(changed);
 
-    expect(signature(changed)).not.toBe(signature(steps()));
-  });
+      expect(signature(changed)).not.toBe(signature(steps()));
+    },
+  );
 });
 
 test("the default export is the same function", () => {

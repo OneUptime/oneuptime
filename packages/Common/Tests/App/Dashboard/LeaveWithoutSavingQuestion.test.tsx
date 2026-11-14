@@ -9,6 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import React from "react";
 import LeaveWithoutSavingQuestion from "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion";
 import { LeavePrompt } from "../../../UI/Utils/UseLeaveGuard";
@@ -27,13 +28,13 @@ const RUNBOOK_SENTENCE: string =
 
 interface Answers {
   prompt: LeavePrompt;
-  stay: jest.Mock;
-  leave: jest.Mock;
+  stay: Mock<() => void>;
+  leave: Mock<() => void>;
 }
 
 function prompt(isAsking: boolean): Answers {
-  const stay: jest.Mock = jest.fn();
-  const leave: jest.Mock = jest.fn();
+  const stay: Mock<() => void> = jest.fn<() => void>();
+  const leave: Mock<() => void> = jest.fn<() => void>();
 
   return {
     prompt: { isAsking, stay, leave },

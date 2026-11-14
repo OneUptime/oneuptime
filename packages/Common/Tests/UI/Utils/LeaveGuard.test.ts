@@ -606,7 +606,8 @@ describe("LeaveGuard and the browser's Back and Forward buttons", () => {
 describe("LeaveGuard keeps the page where the reader had it, across Back and Forward (#7404)", () => {
   let calls: Array<string> = [];
   let frames: Array<FrameRequestCallback> = [];
-  let scrollToSpy: SpyInstance<Window["scrollTo"]>;
+  // spyOn types an overloaded method by its last signature: scrollTo(x, y).
+  let scrollToSpy: SpyInstance<(x: number, y: number) => void>;
   let goSpy: SpyInstance<History["go"]>;
   let pushStateSpy: SpyInstance<History["pushState"]>;
   let frameSpy: SpyInstance<Window["requestAnimationFrame"]>;
