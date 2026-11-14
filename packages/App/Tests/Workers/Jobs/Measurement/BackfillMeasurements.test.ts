@@ -309,6 +309,96 @@ describe("Measurement:Backfill", () => {
     expect(maintenanceMeasurements.findBy).toHaveBeenCalledTimes(1);
   });
 
+  describe("reading the measurements still to backfill", () => {
+    test("asks the database only for unfinished requests, oldest first, in every domain", async () => {
+      await runTick();
+
+      for (const service of [
+        incidentMeasurements,
+        alertMeasurements,
+        maintenanceMeasurements,
+      ]) {
+        const read: {
+          query: Record<string, unknown>;
+          sort: Record<string, unknown>;
+          limit: number;
+        } = service.findBy.mock.calls[0]![0] as {
+          query: Record<string, unknown>;
+          sort: Record<string, unknown>;
+          limit: number;
+        };
+
+        expect(Object.keys(read.query).sort()).toEqual([
+          "backfillCompletedAt",
+          "backfillRequestedAt",
+        ]);
+        expect(
+          (read.query["backfillRequestedAt"] as { getSql: (a: string) => string }).getSql(
+            "c",
+          ),
+        ).toMatch(/c IS NOT NULL/i);
+        expect(
+          (read.query["backfillCompletedAt"] as { getSql: (a: string) => string }).getSql(
+            "c",
+          ),
+        ).toMatch(/c IS NULL/i);
+        expect(read.sort).toEqual({
+          backfillRequestedAt: "ASC",
+          _id: "ASC",
+        });
+        expect(read.limit).toBe(PAGE_SIZE);
+      }
+    });
+
+    test("reaches a new request past 500 finished ones: a finished backfill never crowds one out", async () => {
+      // What the table holds: 600 finished backfills, then one new request.
+      const finished: Array<MeasurementRow> = Array.from(
+        { length: 600 },
+        (_value: unknown, index: number): MeasurementRow => {
+          return measurementRow({
+            id: new ObjectID(
+              `33333333-3333-4333-8333-${String(index).padStart(12, "0")}`,
+            ),
+            requestedAt: new Date("2026-07-01T00:00:00.000Z"),
+            completedAt: new Date("2026-07-01T00:05:00.000Z"),
+          });
+        },
+      );
+      const fresh: MeasurementRow = measurementRow({
+        requestedAt: new Date("2026-07-02T00:00:00.000Z"),
+      });
+
+      // A database that applies the read's filter and limit.
+      incidentMeasurements.findBy.mockImplementation(
+        async (args: {
+          query: Record<string, { getSql: (a: string) => string }>;
+          limit: number;
+        }): Promise<Array<MeasurementRow>> => {
+          const onlyUnfinished: boolean = /IS NULL/i.test(
+            args.query["backfillCompletedAt"]?.getSql("c") || "",
+          );
+
+          return [...finished, fresh]
+            .filter((row: MeasurementRow) => {
+              return !onlyUnfinished || !row.backfillCompletedAt;
+            })
+            .slice(0, args.limit);
+        },
+      );
+
+      await runTick();
+
+      expect(incidents.findBy).toHaveBeenCalledTimes(1);
+      expect(
+        incidentMeasurements.updateOneById.mock.calls.map(
+          (call: Array<unknown>): string => {
+            return idOf(call).toString();
+          },
+        ),
+      ).toEqual([MEASUREMENT_ID.toString()]);
+    });
+  });
+
   describe("deciding what still needs a backfill", () => {
     test("skips a measurement that finished after it was requested, so a done backfill is not redone every five minutes", async () => {
       incidentMeasurements.findBy.mockResolvedValue([
