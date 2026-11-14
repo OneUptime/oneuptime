@@ -42,6 +42,13 @@
     "errorOnSignUp": "註冊前請完成人機驗證挑戰。"
   },
   "login": {
+    "title": "登入您的帳號",
+    "subtitle": "使用密碼、組織的單一登入（SSO）或通行密鑰。",
+    "sessionEnded": {
+      "lengthReached": "您的工作階段已達到時間上限，因此已被登出。請重新登入，從上次離開的地方繼續。",
+      "inactive": "由於一段時間沒有活動，您已被登出。請重新登入，從上次離開的地方繼續。"
+    },
+    "submitButton": "登入",
     "passkey": {
       "signIn": "使用通行密鑰登入",
       "inProgress": "使用密碼前，請完成或取消通行密鑰登入。",
@@ -57,13 +64,6 @@
       "insecure": "通行密鑰需要安全連線（HTTPS）。您仍可使用密碼或 SSO 登入。",
       "tryAgain": "重試通行密鑰"
     },
-    "title": "登入您的帳號",
-    "subtitle": "使用密碼、組織的單一登入（SSO）或通行密鑰。",
-    "sessionEnded": {
-      "lengthReached": "您的工作階段已達到時間上限，因此已被登出。請重新登入，從上次離開的地方繼續。",
-      "inactive": "由於一段時間沒有活動，您已被登出。請重新登入，從上次離開的地方繼續。"
-    },
-    "submitButton": "登入",
     "forgotPassword": "忘記密碼？",
     "signInWithSso": "使用 SSO 登入",
     "signInWithMicrosoft": "使用 Microsoft 登入",
@@ -397,6 +397,9 @@
   "Copy": "複製",
   "Copied!": "已複製！",
   "Copy failed": "複製失敗",
+  "Hide": "隱藏",
+  "Click to reveal": "按一下以顯示",
+  "Click to copy": "按一下以複製",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM 佈建停止，稽核日誌記錄停止記錄，企業設定變為唯讀，企業管理後台遭到鎖定。只要啟用授權，一切都會恢復，核心監控絕不受影響。",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "沒有有效授權時（{{days}} 天試用期結束後），SCIM 佈建停止，稽核日誌記錄停止記錄，企業設定變為唯讀，企業管理後台遭到鎖定。只要啟用授權，一切都會恢復，核心監控絕不受影響。",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "沒有有效授權時（{{days}} 天寬限期結束後），SCIM 佈建停止，稽核日誌記錄停止記錄，企業設定變為唯讀，企業管理後台遭到鎖定。只要啟用授權，一切都會恢復，核心監控絕不受影響。",

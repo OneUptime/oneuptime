@@ -42,6 +42,13 @@
     "errorOnSignUp": "Slutför captcha-utmaningen innan du registrerar dig."
   },
   "login": {
+    "title": "Logga in på ditt konto",
+    "subtitle": "Använd ditt lösenord, organisationens SSO eller en passnyckel.",
+    "sessionEnded": {
+      "lengthReached": "Du loggades ut eftersom din session nådde sin tidsgräns. Logga in igen för att fortsätta där du slutade.",
+      "inactive": "Du loggades ut efter en tid utan aktivitet. Logga in igen för att fortsätta där du slutade."
+    },
+    "submitButton": "Logga in",
     "passkey": {
       "signIn": "Logga in med en passnyckel",
       "inProgress": "Slutför eller avbryt inloggningen med passnyckel innan du använder lösenordet.",
@@ -57,13 +64,6 @@
       "insecure": "Passnycklar kräver en säker anslutning (HTTPS). Du kan fortfarande logga in med ditt lösenord eller SSO.",
       "tryAgain": "Försök med passnyckeln igen"
     },
-    "title": "Logga in på ditt konto",
-    "subtitle": "Använd ditt lösenord, organisationens SSO eller en passnyckel.",
-    "sessionEnded": {
-      "lengthReached": "Du loggades ut eftersom din session nådde sin tidsgräns. Logga in igen för att fortsätta där du slutade.",
-      "inactive": "Du loggades ut efter en tid utan aktivitet. Logga in igen för att fortsätta där du slutade."
-    },
-    "submitButton": "Logga in",
     "forgotPassword": "Glömt lösenord?",
     "signInWithSso": "Logga in med SSO",
     "signInWithMicrosoft": "Logga in med Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "Kopiera",
   "Copied!": "Kopierat!",
   "Copy failed": "Kopieringen misslyckades",
+  "Hide": "Dölj",
+  "Click to reveal": "Klicka för att visa",
+  "Click to copy": "Klicka för att kopiera",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM-etableringen stoppas, granskningsloggningen slutar registrera, enterprise-konfigurationen blir skrivskyddad och enterprise-admindashboardarna låses. Allt återupptas så snart en licens aktiveras, och kärnövervakningen påverkas aldrig.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Utan en giltig licens (efter provperioden på {{days}} dagar) stoppas SCIM-etableringen, granskningsloggningen slutar registrera, enterprise-konfigurationen blir skrivskyddad och enterprise-admindashboardarna låses. Allt återupptas så snart en licens aktiveras, och kärnövervakningen påverkas aldrig.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Utan en giltig licens (efter fristen på {{days}} dagar) stoppas SCIM-etableringen, granskningsloggningen slutar registrera, enterprise-konfigurationen blir skrivskyddad och enterprise-admindashboardarna låses. Allt återupptas så snart en licens aktiveras, och kärnövervakningen påverkas aldrig.",

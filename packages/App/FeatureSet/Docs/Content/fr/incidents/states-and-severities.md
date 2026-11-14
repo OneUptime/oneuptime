@@ -37,7 +37,7 @@ flowchart TB
 
 Le modèle `IncidentState` a un `name`, une `description`, une `color` et un `order`, plus trois booléens : `isCreatedState`, `isAcknowledgedState` et `isResolvedState`. Tout ce que le produit fait avec les états repose sur ces booléens et sur `order` — jamais sur le nom de l'état. C'est pourquoi vous pouvez renommer **Résolu** en « Closed » sans rien casser : l'indicateur suit la ligne.
 
-Le modèle `IncidentSeverity` a un `name`, une `description`, une `color` et un `order`, et rien d'autre. Il n'y a pas d'indicateurs. Rien dans OneUptime ne traite de lui-même **Critical Incident** différemment de **Minor Incident** — la gravité ne compte que là où vous faites pointer quelque chose vers elle, comme le critère de correspondance **Gravités d'incident** d'une règle d'astreinte.
+Le modèle `IncidentSeverity` a un `name`, une `description`, une `color` et un `order`, et rien d'autre. Il n'y a pas d'indicateurs. Rien dans OneUptime ne traite de lui-même **Incident critique** différemment de **Incident mineur** — la gravité ne compte que là où vous faites pointer quelque chose vers elle, comme le critère de correspondance **Gravités d'incident** d'une règle d'astreinte.
 
 Quelques règles rapides :
 
@@ -138,9 +138,9 @@ Trois gravités sont créées avec le projet, dans cet ordre, de la plus grave �
 
 | Gravité               | `order` | Couleur   | Description créée d'office                                                                                                                                                                |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Incident critique** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Incident majeur**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Incident mineur**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 La gravité est obligatoire quand vous déclarez un incident, et elle est obligatoire sur chaque spécification d'incident dans les critères d'un moniteur ; chaque incident — manuel ou automatique — en a donc une. Voir [Déclarer un incident](/docs/incidents/declaring-incidents) pour le parcours de déclaration et [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating) pour le chemin piloté par les moniteurs.
 
@@ -155,7 +155,7 @@ Deux différences avec les états :
 - **Il n'y a pas de protection contre la suppression.** Toute gravité peut être supprimée, y compris les trois créées d'office.
 - **Il n'y a pas d'indicateurs à hériter, ni de « Compte comme ».** Une nouvelle gravité se comporte exactement comme celles créées d'office — c'est une étiquette avec une couleur et un rang.
 
-Là où la gravité fait plus que décrire : dans **Incidents → Règles → Règles d'astreinte**, le champ **Gravités d'incident** d'une règle est un critère de correspondance. Y lister **Critical Incident**, c'est ainsi qu'on exprime « alerter l'équipe base de données pour tout ce qui est critique » — la politique d'astreinte vit sur la règle, pas sur la gravité.
+Là où la gravité fait plus que décrire : dans **Incidents → Règles → Règles d'astreinte**, le champ **Gravités d'incident** d'une règle est un critère de correspondance. Y lister **Incident critique**, c'est ainsi qu'on exprime « alerter l'équipe base de données pour tout ce qui est critique » — la politique d'astreinte vit sur la règle, pas sur la gravité.
 
 **Changer la gravité d'un incident** — via **Modifier** sur la carte **Détails de l'incident** de l'incident, par l'API ou Terraform (`incidentSeverityId`), avec un workflow ou avec les outils d'IA — fait les quatre mêmes choses quelle que soit la façon dont c'est envoyé : le fil d'activité de l'incident reçoit une entrée **Incident updated** qui nomme la nouvelle gravité, les échéances SLA de l'incident sont recalculées, sa règle de rappel est de nouveau appariée, et les métriques d'incident comptent un changement de gravité. Enregistrer la gravité que l'incident a déjà ne fait rien de tout cela, si bien que modifier seulement le titre d'un incident laisse ses échéances SLA, ses rappels et son compteur de changements de gravité tels qu'ils étaient. La gravité d'une alerte fonctionne de la même façon pour son entrée de fil d'activité et ses rappels.
 

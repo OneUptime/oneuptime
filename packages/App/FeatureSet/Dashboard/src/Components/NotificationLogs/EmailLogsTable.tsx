@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -23,6 +24,14 @@ import User from "Common/Models/DatabaseModels/User";
 import ServerSendingWords, {
   SERVER_EMAIL_NOT_SET_UP_MESSAGE,
 } from "Common/Types/ServerSending/ServerSendingWords";
+
+/*
+ * What View Subject says for an email sent without one: a dialog with an
+ * empty body read as if the subject had failed to load.
+ */
+export const EMAIL_WITHOUT_SUBJECT_TEXT: string = translationKey(
+  "This email was sent without a subject.",
+);
 
 export interface EmailLogsTableProps {
   query?: Query<BaseModel>;
@@ -160,7 +169,15 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (item: EmailLog, onCompleteAction: VoidFunction) => {
-              setModalText(JSON.stringify(item["subject"]) as string);
+              /*
+               * The subject as it was sent, as the SMS log shows its text:
+               * not a JSON string, which wrapped it in quotes and escaped it.
+               * An email sent without one says so (the dialog translates it).
+               */
+              setModalText(
+                (item["subject"] as string | undefined) ||
+                  EMAIL_WITHOUT_SUBJECT_TEXT,
+              );
               setModalTitle("Subject of Email Message");
               setShowModal(true);
               onCompleteAction();

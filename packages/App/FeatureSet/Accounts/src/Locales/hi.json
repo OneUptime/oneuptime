@@ -42,6 +42,13 @@
     "errorOnSignUp": "साइन अप करने से पहले कृपया कैप्चा चुनौती पूरी करें।"
   },
   "login": {
+    "title": "अपने खाते में साइन इन करें",
+    "subtitle": "पासवर्ड, अपने संगठन के SSO या पासकी से साइन इन करें।",
+    "sessionEnded": {
+      "lengthReached": "आपको साइन आउट कर दिया गया, क्योंकि आपका सत्र अपनी समय-सीमा तक पहुँच गया। जहाँ आपने छोड़ा था, वहीं से जारी रखने के लिए फिर से साइन इन करें।",
+      "inactive": "कुछ समय तक कोई गतिविधि न होने के कारण आपको साइन आउट कर दिया गया। जहाँ आपने छोड़ा था, वहीं से जारी रखने के लिए फिर से साइन इन करें।"
+    },
+    "submitButton": "लॉगिन",
     "passkey": {
       "signIn": "पासकी से साइन इन करें",
       "inProgress": "पासवर्ड का उपयोग करने से पहले पासकी से साइन इन पूरा करें या रद्द करें।",
@@ -57,13 +64,6 @@
       "insecure": "पासकी के लिए सुरक्षित कनेक्शन (HTTPS) ज़रूरी है। आप अब भी अपने पासवर्ड या SSO से साइन इन कर सकते हैं।",
       "tryAgain": "पासकी से दोबारा कोशिश करें"
     },
-    "title": "अपने खाते में साइन इन करें",
-    "subtitle": "पासवर्ड, अपने संगठन के SSO या पासकी से साइन इन करें।",
-    "sessionEnded": {
-      "lengthReached": "आपको साइन आउट कर दिया गया, क्योंकि आपका सत्र अपनी समय-सीमा तक पहुँच गया। जहाँ आपने छोड़ा था, वहीं से जारी रखने के लिए फिर से साइन इन करें।",
-      "inactive": "कुछ समय तक कोई गतिविधि न होने के कारण आपको साइन आउट कर दिया गया। जहाँ आपने छोड़ा था, वहीं से जारी रखने के लिए फिर से साइन इन करें।"
-    },
-    "submitButton": "लॉगिन",
     "forgotPassword": "पासवर्ड भूल गए?",
     "signInWithSso": "SSO से साइन इन करें",
     "signInWithMicrosoft": "Microsoft से साइन इन करें",
@@ -397,6 +397,9 @@
   "Copy": "कॉपी करें",
   "Copied!": "कॉपी हो गया!",
   "Copy failed": "कॉपी नहीं हो सका",
+  "Hide": "छिपाएं",
+  "Click to reveal": "दिखाने के लिए क्लिक करें",
+  "Click to copy": "कॉपी करने के लिए क्लिक करें",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM प्रोविजनिंग रुक जाती है, ऑडिट लॉगिंग रिकॉर्ड करना बंद कर देती है, एंटरप्राइज़ कॉन्फ़िगरेशन केवल-पढ़ने योग्य हो जाता है और एंटरप्राइज़ एडमिन डैशबोर्ड लॉक हो जाते हैं। लाइसेंस सक्रिय होते ही सब कुछ फिर से शुरू हो जाता है, और मुख्य मॉनिटरिंग पर कभी असर नहीं पड़ता।",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "मान्य लाइसेंस के बिना ({{days}} दिन के ट्रायल के बाद) SCIM प्रोविजनिंग रुक जाती है, ऑडिट लॉगिंग रिकॉर्ड करना बंद कर देती है, एंटरप्राइज़ कॉन्फ़िगरेशन केवल-पढ़ने योग्य हो जाता है और एंटरप्राइज़ एडमिन डैशबोर्ड लॉक हो जाते हैं। लाइसेंस सक्रिय होते ही सब कुछ फिर से शुरू हो जाता है, और मुख्य मॉनिटरिंग पर कभी असर नहीं पड़ता।",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "मान्य लाइसेंस के बिना ({{days}} दिन की ग्रेस अवधि के बाद) SCIM प्रोविजनिंग रुक जाती है, ऑडिट लॉगिंग रिकॉर्ड करना बंद कर देती है, एंटरप्राइज़ कॉन्फ़िगरेशन केवल-पढ़ने योग्य हो जाता है और एंटरप्राइज़ एडमिन डैशबोर्ड लॉक हो जाते हैं। लाइसेंस सक्रिय होते ही सब कुछ फिर से शुरू हो जाता है, और मुख्य मॉनिटरिंग पर कभी असर नहीं पड़ता।",

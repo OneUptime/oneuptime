@@ -129,6 +129,7 @@ import React, {
   ReactElement,
   ReactNode,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
@@ -141,6 +142,9 @@ import {
 } from "react-beautiful-dnd";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import { getRunbookStepsSignature } from "Common/Utils/Runbook/RunbookStepsSignature";
+import LeaveWithoutSavingQuestion from "../../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
 import {
   composedValue,
   TemplateValue,
@@ -621,10 +625,29 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
-  const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
+
+  /*
+   * The steps as they were last loaded or saved (getRunbookStepsSignature):
+   * what Save Steps would write is unsaved while it differs from them. A
+   * change undone - a step moved and moved back - leaves nothing unsaved.
+   */
+  const [savedStepsSignature, setSavedStepsSignature] = useState<string>(
+    getRunbookStepsSignature([]),
+  );
+  const hasUnsaved: boolean = useMemo(() => {
+    return getRunbookStepsSignature(steps) !== savedStepsSignature;
+  }, [steps, savedStepsSignature]);
 
   // Steps moved or edited and not saved yet: nothing reloads under them.
   useUnsavedChanges(hasUnsaved);
+
+  /*
+   * And leaving them asks first (LeaveGuard): a side menu entry, a crumb,
+   * the header, the browser's Back and Forward buttons, closing or
+   * reloading the tab. Leaving used to drop every unsaved step without a
+   * word (issue #7401).
+   */
+  const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   /*
    * Who can run the steps: the project's own Runners, the global Runners
@@ -769,6 +792,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         initialCollapsed[s.id] = true;
       });
       setSteps(loaded);
+      setSavedStepsSignature(getRunbookStepsSignature(loaded));
       setCollapsedState(initialCollapsed);
 
       setRunnerChoices(loadedRunnerChoices);
@@ -814,10 +838,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
   }, []);
 
-  const markDirty: () => void = (): void => {
-    setHasUnsaved(true);
-  };
-
   const toggleCollapsed: (id: string) => void = (id: string): void => {
     setCollapsedState((prev: Record<string, boolean>) => {
       return { ...prev, [id]: !prev[id] };
@@ -833,7 +853,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       copy[idx] = { ...copy[idx]!, ...patch };
       return copy;
     });
-    markDirty();
   };
 
   const updateConfig: (idx: number, patch: Record<string, unknown>) => void = (
@@ -849,7 +868,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       copy[idx] = applyStepConfigChange(copy[idx]!, patch);
       return copy;
     });
-    markDirty();
   };
 
   const remove: (idx: number) => void = (idx: number): void => {
@@ -863,7 +881,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         });
       return copy;
     });
-    markDirty();
   };
 
   const add: (type: RunbookStepType) => void = (
@@ -877,7 +894,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
       return [...prev, created];
     });
-    markDirty();
   };
 
   const handleDragEnd: (result: DropResult) => void = (
@@ -903,7 +919,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
       return copy;
     });
-    markDirty();
   };
 
   // The examples under a script or a prompt: a label, then one chip each.
@@ -995,7 +1010,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           steps: normalized as unknown as JSONArray,
         },
       });
-      setHasUnsaved(false);
+      /*
+       * What was written is saved; a change made while it was on its way
+       * is still unsaved.
+       */
+      setSavedStepsSignature(getRunbookStepsSignature(normalized));
       setSuccess(true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -1314,7 +1333,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               copy[idx] = setStepRequiresApproval(copy[idx]!, v);
               return copy;
             });
-            markDirty();
           }}
         />
         <Toggle
@@ -1427,7 +1445,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   copy[idx] = convertLegacyCredentialStep(copy[idx]!);
                   return copy;
                 });
-                markDirty();
               }}
             />
           </div>
@@ -2578,7 +2595,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )}
           </div>
 
-          {steps.length > 0 ? (
+          {/*
+           * Under the steps - and under the empty runbook when its last
+           * step was removed, so the removal can be saved too.
+           */}
+          {steps.length > 0 || hasUnsaved ? (
             <div className="mt-6 flex items-center justify-end gap-3">
               {hasUnsaved ? (
                 <span className="text-xs text-amber-600 flex items-center gap-1">
@@ -2622,6 +2643,16 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
         />
       )}
+
+      {/*
+       * Someone is leaving the steps while they have unsaved changes. Keep
+       * Editing stays with the steps as they are; Discard Changes goes
+       * where they were going. Last, so it opens above any other dialog.
+       */}
+      <LeaveWithoutSavingQuestion
+        prompt={leavePrompt}
+        description="You have unsaved changes to this runbook's steps. If you leave now, they will be lost."
+      />
     </Fragment>
   );
 };

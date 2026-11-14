@@ -42,6 +42,13 @@
     "errorOnSignUp": "登録する前にcaptchaチャレンジを完了してください。"
   },
   "login": {
+    "title": "アカウントにサインインする",
+    "subtitle": "パスワード、組織のSSO、またはパスキーでサインインできます。",
+    "sessionEnded": {
+      "lengthReached": "セッションが時間の上限に達したため、サインアウトされました。もう一度サインインすると、中断したところから続けられます。",
+      "inactive": "しばらく操作がなかったため、サインアウトされました。もう一度サインインすると、中断したところから続けられます。"
+    },
+    "submitButton": "ログイン",
     "passkey": {
       "signIn": "パスキーでサインイン",
       "inProgress": "パスワードを使用する前に、パスキーでのサインインを完了またはキャンセルしてください。",
@@ -57,13 +64,6 @@
       "insecure": "パスキーには安全な接続（HTTPS）が必要です。パスワードまたはSSOでサインインできます。",
       "tryAgain": "パスキーでもう一度試す"
     },
-    "title": "アカウントにサインインする",
-    "subtitle": "パスワード、組織のSSO、またはパスキーでサインインできます。",
-    "sessionEnded": {
-      "lengthReached": "セッションが時間の上限に達したため、サインアウトされました。もう一度サインインすると、中断したところから続けられます。",
-      "inactive": "しばらく操作がなかったため、サインアウトされました。もう一度サインインすると、中断したところから続けられます。"
-    },
-    "submitButton": "ログイン",
     "forgotPassword": "パスワードをお忘れですか？",
     "signInWithSso": "SSO でサインイン",
     "signInWithMicrosoft": "Microsoft でサインイン",
@@ -397,6 +397,9 @@
   "Copy": "コピー",
   "Copied!": "コピーしました",
   "Copy failed": "コピーに失敗しました",
+  "Hide": "非表示",
+  "Click to reveal": "クリックして表示",
+  "Click to copy": "クリックしてコピー",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM プロビジョニングが停止し、監査ログの記録が止まり、エンタープライズ設定は読み取り専用になり、エンタープライズ管理ダッシュボードはロックされます。ライセンスを有効化するとすぐにすべてが再開し、コアの監視が影響を受けることはありません。",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "有効なライセンスがない場合（{{days}} 日間のトライアルの後）、SCIM プロビジョニングが停止し、監査ログの記録が止まり、エンタープライズ設定は読み取り専用になり、エンタープライズ管理ダッシュボードはロックされます。ライセンスを有効化するとすぐにすべてが再開し、コアの監視が影響を受けることはありません。",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "有効なライセンスがない場合（{{days}} 日間の猶予期間の後）、SCIM プロビジョニングが停止し、監査ログの記録が止まり、エンタープライズ設定は読み取り専用になり、エンタープライズ管理ダッシュボードはロックされます。ライセンスを有効化するとすぐにすべてが再開し、コアの監視が影響を受けることはありません。",

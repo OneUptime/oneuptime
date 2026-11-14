@@ -10,8 +10,7 @@ import React, {
 import DashboardToolbar from "./Toolbar/DashboardToolbar";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import LeaveWithoutSavingQuestion from "../UnsavedChanges/LeaveWithoutSavingQuestion";
 import { getDashboardViewConfigSignature } from "Common/Utils/Dashboard/DashboardViewConfigSignature";
 import DashboardCanvas from "./Canvas/Index";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
@@ -1272,21 +1271,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
        * the board, as it was; Discard Changes goes where they were going.
        * Last, so it opens above any dialog that is open on the board.
        */}
-      {leavePrompt.isAsking ? (
-        <ConfirmModal
-          title={"Leave without saving?"}
-          description={
-            "You have unsaved changes to this dashboard. If you leave now, they will be lost."
-          }
-          submitButtonType={ButtonStyleType.DANGER}
-          submitButtonText={"Discard Changes"}
-          closeButtonText={"Keep Editing"}
-          onSubmit={leavePrompt.leave}
-          onClose={leavePrompt.stay}
-        />
-      ) : (
-        <></>
-      )}
+      <LeaveWithoutSavingQuestion
+        prompt={leavePrompt}
+        description="You have unsaved changes to this dashboard. If you leave now, they will be lost."
+      />
     </div>
   );
 };

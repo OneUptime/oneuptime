@@ -42,6 +42,13 @@
     "errorOnSignUp": "Complete el desafío captcha antes de registrarse."
   },
   "login": {
+    "title": "Inicie sesión en su cuenta",
+    "subtitle": "Usa tu contraseña, el SSO de tu organización o una clave de acceso.",
+    "sessionEnded": {
+      "lengthReached": "Se cerró tu sesión porque alcanzó su límite de tiempo. Vuelve a iniciar sesión para seguir donde lo dejaste.",
+      "inactive": "Se cerró tu sesión tras un periodo de inactividad. Vuelve a iniciar sesión para seguir donde lo dejaste."
+    },
+    "submitButton": "Iniciar sesión",
     "passkey": {
       "signIn": "Iniciar sesión con una clave de acceso",
       "inProgress": "Completa o cancela el inicio de sesión con clave de acceso antes de usar tu contraseña.",
@@ -57,13 +64,6 @@
       "insecure": "Las claves de acceso necesitan una conexión segura (HTTPS). Puedes seguir iniciando sesión con tu contraseña o SSO.",
       "tryAgain": "Volver a intentar con clave de acceso"
     },
-    "title": "Inicie sesión en su cuenta",
-    "subtitle": "Usa tu contraseña, el SSO de tu organización o una clave de acceso.",
-    "sessionEnded": {
-      "lengthReached": "Se cerró tu sesión porque alcanzó su límite de tiempo. Vuelve a iniciar sesión para seguir donde lo dejaste.",
-      "inactive": "Se cerró tu sesión tras un periodo de inactividad. Vuelve a iniciar sesión para seguir donde lo dejaste."
-    },
-    "submitButton": "Iniciar sesión",
     "forgotPassword": "¿Olvidó su contraseña?",
     "signInWithSso": "Iniciar sesión con SSO",
     "signInWithMicrosoft": "Iniciar sesión con Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "Copiar",
   "Copied!": "¡Copiado!",
   "Copy failed": "Error al copiar",
+  "Hide": "Ocultar",
+  "Click to reveal": "Haz clic para mostrar",
+  "Click to copy": "Haz clic para copiar",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "El aprovisionamiento SCIM se detiene, el registro de auditoría deja de registrar, la configuración empresarial pasa a ser de solo lectura y los paneles de administración empresarial se bloquean. Todo se reanuda en cuanto se activa una licencia, y el monitoreo principal nunca se ve afectado.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sin una licencia válida (tras la prueba de {{days}} días), el aprovisionamiento SCIM se detiene, el registro de auditoría deja de registrar, la configuración empresarial pasa a ser de solo lectura y los paneles de administración empresarial se bloquean. Todo se reanuda en cuanto se activa una licencia, y el monitoreo principal nunca se ve afectado.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sin una licencia válida (tras el periodo de gracia de {{days}} días), el aprovisionamiento SCIM se detiene, el registro de auditoría deja de registrar, la configuración empresarial pasa a ser de solo lectura y los paneles de administración empresarial se bloquean. Todo se reanuda en cuanto se activa una licencia, y el monitoreo principal nunca se ve afectado.",

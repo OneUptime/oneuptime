@@ -848,14 +848,14 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
       "Scheduled Maintenance > Slack",
       4,
       WorkspaceType.Slack,
-      "scheduled maintenance event",
+      "maintenance event",
       "true",
     ],
     [
       "Scheduled Maintenance > Microsoft Teams",
       5,
       WorkspaceType.MicrosoftTeams,
-      "scheduled maintenance event",
+      "maintenance event",
       "true",
     ],
   ])(

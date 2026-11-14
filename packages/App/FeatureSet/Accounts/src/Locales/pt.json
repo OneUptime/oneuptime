@@ -42,6 +42,13 @@
     "errorOnSignUp": "Complete o desafio captcha antes de se cadastrar."
   },
   "login": {
+    "title": "Faça login na sua conta",
+    "subtitle": "Use sua senha, o SSO da sua organização ou uma chave de acesso.",
+    "sessionEnded": {
+      "lengthReached": "Você foi desconectado porque sua sessão atingiu o limite de tempo. Entre novamente para continuar de onde parou.",
+      "inactive": "Você foi desconectado depois de um período de inatividade. Entre novamente para continuar de onde parou."
+    },
+    "submitButton": "Entrar",
     "passkey": {
       "signIn": "Entrar com uma chave de acesso",
       "inProgress": "Conclua ou cancele o acesso com a chave de acesso antes de usar sua senha.",
@@ -57,13 +64,6 @@
       "insecure": "As chaves de acesso precisam de uma conexão segura (HTTPS). Você ainda pode entrar com sua senha ou SSO.",
       "tryAgain": "Tentar novamente com chave de acesso"
     },
-    "title": "Faça login na sua conta",
-    "subtitle": "Use sua senha, o SSO da sua organização ou uma chave de acesso.",
-    "sessionEnded": {
-      "lengthReached": "Você foi desconectado porque sua sessão atingiu o limite de tempo. Entre novamente para continuar de onde parou.",
-      "inactive": "Você foi desconectado depois de um período de inatividade. Entre novamente para continuar de onde parou."
-    },
-    "submitButton": "Entrar",
     "forgotPassword": "Esqueceu a senha?",
     "signInWithSso": "Entrar com SSO",
     "signInWithMicrosoft": "Entrar com a Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "Copiar",
   "Copied!": "Copiado!",
   "Copy failed": "Falha ao copiar",
+  "Hide": "Ocultar",
+  "Click to reveal": "Clique para mostrar",
+  "Click to copy": "Clique para copiar",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "O provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sem uma licença válida (depois do período de teste de {{days}} dias), o provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sem uma licença válida (depois do período de carência de {{days}} dias), o provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",

@@ -789,6 +789,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "meaning",
   "message",
   "moreText",
+  // A stepped dialog's Next button, named for what it does (SteppedFormFooter).
+  "nextButtonText",
   "nextStep",
   "noItemsMessage",
   "noLogsMessage",

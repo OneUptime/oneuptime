@@ -458,7 +458,7 @@ const ScheduledMaintenanceView: FunctionComponent<
           setLoadError("");
         } else {
           setLoadedEvent(null);
-          setLoadError("This scheduled maintenance event could not be found.");
+          setLoadError("This maintenance event could not be found.");
         }
       } catch (err: unknown) {
         if (requestNumber !== latestRequestRef.current) {
@@ -556,9 +556,7 @@ const ScheduledMaintenanceView: FunctionComponent<
       );
     }
 
-    return (
-      <EventOverviewSkeleton loadingText="Loading scheduled maintenance event" />
-    );
+    return <EventOverviewSkeleton loadingText="Loading maintenance event" />;
   }
 
   const scheduledMaintenance: ScheduledMaintenance | undefined =

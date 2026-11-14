@@ -42,6 +42,13 @@
     "errorOnSignUp": "لطفاً پیش از ثبت‌نام، چالش کپچا را کامل کنید."
   },
   "login": {
+    "title": "به حساب کاربری خود وارد شوید",
+    "subtitle": "از رمز عبور، ورود یکپارچه (SSO) سازمان خود یا کلید عبور استفاده کنید.",
+    "sessionEnded": {
+      "lengthReached": "از حساب خارج شدید، چون نشست شما به محدودیت زمانی‌اش رسید. دوباره وارد شوید تا از همان جایی که بودید ادامه دهید.",
+      "inactive": "به دلیل مدتی بی‌فعالیتی از حساب خارج شدید. دوباره وارد شوید تا از همان جایی که بودید ادامه دهید."
+    },
+    "submitButton": "ورود",
     "passkey": {
       "signIn": "ورود با کلید عبور",
       "inProgress": "پیش از استفاده از رمز عبور، ورود با کلید عبور را تکمیل یا لغو کنید.",
@@ -57,13 +64,6 @@
       "insecure": "کلیدهای عبور به اتصال امن (HTTPS) نیاز دارند. همچنان می‌توانید با رمز عبور یا SSO وارد شوید.",
       "tryAgain": "تلاش دوباره با کلید عبور"
     },
-    "title": "به حساب کاربری خود وارد شوید",
-    "subtitle": "از رمز عبور، ورود یکپارچه (SSO) سازمان خود یا کلید عبور استفاده کنید.",
-    "sessionEnded": {
-      "lengthReached": "از حساب خارج شدید، چون نشست شما به محدودیت زمانی‌اش رسید. دوباره وارد شوید تا از همان جایی که بودید ادامه دهید.",
-      "inactive": "به دلیل مدتی بی‌فعالیتی از حساب خارج شدید. دوباره وارد شوید تا از همان جایی که بودید ادامه دهید."
-    },
-    "submitButton": "ورود",
     "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
     "signInWithSso": "ورود با SSO",
     "signInWithMicrosoft": "ورود با Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "کپی",
   "Copied!": "کپی شد!",
   "Copy failed": "کپی ناموفق بود",
+  "Hide": "پنهان کردن",
+  "Click to reveal": "برای نمایش کلیک کنید",
+  "Click to copy": "برای کپی کلیک کنید",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "بدون پروانهٔ معتبر (پس از دورهٔ آزمایشی {{days}} روزه)، تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "بدون پروانهٔ معتبر (پس از دورهٔ مهلت {{days}} روزه)، تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",

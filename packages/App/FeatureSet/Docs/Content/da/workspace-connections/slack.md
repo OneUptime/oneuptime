@@ -93,13 +93,14 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Slack, og hvor. 
 | **Vagt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
-At oprette en regel går gennem fire trin:
+At oprette en regel går gennem op til fem trin:
 
 | Trin | Hvad du angiver |
 | --- | --- |
 | **Grundlæggende** | **Regelnavn** og **Regelbeskrivelse**. |
 | **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. En ny regel gælder for hver begivenhed, for eksempel **Alle hændelser**. For at indsnævre den vælger du **Kun hændelser, der opfylder betingelserne** og tilføjer betingelserne. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
 | **Destination** | Hvor den slår op: **Skriv i eksisterende kanaler** med kanalnavnene, **Opret en kanal for hver hændelse** (eller advarsel, episode, begivenhed, monitor eller vagtpolitik) med hvem der kommer med i den, eller begge dele. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
+| **Opdateringer** | Kun hændelser, advarsler, episoder, planlagt vedligeholdelse og vagtpolitikker: hvilke opdateringer reglen slår op efter postens første besked. **Alle opdateringer** slår dem alle op, og en ny regel starter med den, undtagen en vagtpolitiks. **Kun vigtige opdateringer** slår dem op, der betyder mest, som trinnet viser for hver slags post: for en hændelse dens løsning eller genåbning, ændringer i alvorlighed, offentlige noter og postmortem; for en vagtpolitik, hvem der har vagt nu, og hvornår ingen har, som en ny regel for en vagtpolitik starter med. Med **Vælg opdateringer** sætter du flueben ved dem én ad gangen. Uanset hvad du vælger, slår reglen postens første besked op og et videoopkald, når et starter. Se [Vagtbeskeder](#vagtbeskeder). |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 
 Hver betingelse læses som en sætning: feltet, hvordan det sammenlignes, og værdien. Værdier at vælge kommer fra projektets egne lister, som dets tilstande, alvorligheder, etiketter og monitorer. En regel for vagtpolitikker vælger sine politikker under **Vagtpolitik**, som bliver ved med at matche en politik, efter at den har fået nyt navn, mens **Navn på vagtpolitik** matcher ord i en politiks navn. Hver slags begivenhed, der har ejere, har en ejerbetingelse, som **Ejer af hændelse**: vælg personer og teams, og den matcher de personer og teams, der er registreret som begivenhedens ejere. At være med i et team, der ejer begivenheden, tæller ikke. En ejer, der tilføjes senere, får reglen til at matche fra den opdatering, og en regel, der opretter kanaler, opretter kanalen da. En arkiveret værdi, som en alvorlighed eller en vagtpolitik, tilbydes ikke til en ny betingelse. En regel, der allerede har en, beholder den, markeret **Arkiveret**, og matcher stadig de begivenheder, der har den. En person, et team eller en politik, som projektet ikke længere har, bliver i betingelsen, og reglens kort siger det.
@@ -114,7 +115,7 @@ En regel opretter sin kanal første gang, en begivenhed matcher den: når begive
 
 For en vagtplan i **Inviter også** kommer den, der ifølge vagtplanens side har vagt i den, når kanalen oprettes, med i kanalen uden at blive tilkaldt. Vil du kun tilføje personer til nogle hændelsers kanaler, så giv en anden regel de betingelser og de personer, med samme **Præfiks for kanalnavn** som den første: regler, der matcher en hændelse, når dens kanal oprettes, deler den kanal, og hver af dem tilføjer sine egne personer.
 
-Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler, dens regler nævner, så længe deres betingelser passer. Med **Arkiver kanalen, når hændelsen er løst** slået til, eller dens modstykke for advarsler, episoder, begivenheder, monitorer og vagtpolitikker, arkiverer reglen, der oprettede en kanal, den, når posten er løst, fuldført eller slettet, uanset hvad dens betingelser så siger. En hændelse, advarsel eller episode, der blev oprettet allerede løst, får ingen egen kanal; dens oprettelsesbesked går stadig til de kanaler, dine regler nævner. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
+Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler, dens regler nævner, så længe deres betingelser passer, når en regel, der slår op dér, vælger den i sit trin **Opdateringer**. Med **Arkiver kanalen, når hændelsen er løst** slået til, eller dens modstykke for advarsler, episoder, begivenheder, monitorer og vagtpolitikker, arkiverer reglen, der oprettede en kanal, den, når posten er løst, fuldført eller slettet, uanset hvad dens betingelser så siger. En hændelse, advarsel eller episode, der blev oprettet allerede løst, får ingen egen kanal; dens oprettelsesbesked går stadig til de kanaler, dine regler nævner. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 
 En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Slack** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, i Slack-appen eller i browseren. En post med to egne kanaler viser dem begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler, dine regler slår op i, tilbydes ikke.
 
@@ -123,6 +124,29 @@ En kanal forbliver læsbar: hver begivenhed slås op én gang, og postens først
 **Projektindstillinger** > **Arbejdsområde** > **Slack** viser de kanaler, OneUptime kan se, med **Send test** ved siden af hver. OneUptime melder sig selv ind i en offentlig kanal første gang, den slår op der. En privat kanal vises, og kan modtage opslag, først når OneUptime-appen er inviteret ind i den i Slack.
 
 En notifikationsregel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se reglerne, ser den skrivebeskyttet. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+
+### Vagtbeskeder
+
+Ved hvert vagtskifte hører en vagtpolitiks kanaler i én linje, hvem der har vagt:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments linker til politikken i OneUptime. Når politikken tilkalder mere end én tidsplan, nævner linjen også tidsplanen: Payments (Primary).
+- En person nævnes ved sit Slack-navn, når vedkommende har forbundet sin Slack-konto med OneUptime, og ved sit navn i OneUptime indtil da. Tidspunkter vises i hver læsers egen tidszone.
+- Når flere af politikkens eskaleringsregler tilkalder den samme tidsplan, slås hvert vagtskifte op én gang, ikke én gang pr. regel.
+
+En regel slår det op, den valgte i sit trin **Opdateringer**, og en ny regel starter med **Kun vigtige opdateringer**: hvem der har vagt nu, og hvornår ingen har.
+
+| Opdatering | Hvad kanalen hører |
+| --- | --- |
+| **Hvem der har vagt nu** | Linjen ovenfor, ved hvert vagtskifte. |
+| **Hvem der har vagt næste gang** | Hvem der overtager ved næste vagtskifte, og hvornår: sidst i den linje, eller i en linje for sig for en regel, der ikke slår op, hvem der har vagt nu. |
+| **Ingen har vagt** | En tidsplan, der står uden nogen på vagt, så advarsler, der når den, ikke tilkalder nogen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Brugertilsidesættelser** | En tilsidesættelse tilføjet, ændret eller trukket tilbage: hvem der er fraværende, og hvem der dækker. |
+| **Ændringer i politikken** | Tidsplaner, personer og teams, der er tilføjet til dens eskaleringsregler eller fjernet. |
+| **Ejere** | Ejere tilføjet og fjernet. |
+
+En kanal får én besked pr. vagtskifte, også når to regler slår op i den. En vagtregel, der blev gemt, før regler valgte deres opdateringer, slår dem alle op som før.
 
 ## Hvem der er i en posts kanal
 

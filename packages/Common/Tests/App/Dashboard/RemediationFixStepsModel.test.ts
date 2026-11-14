@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  getCommandTargetLabel,
   getRemediationFixFailedCount,
   getRemediationFixSentence,
   getRemediationFixStepKey,
@@ -62,6 +63,28 @@ function command(sequence: number, extra?: JSONObject): JSONObject {
     rollbackCommand: `kubectl rollout undo deployment/web-${sequence} -n web`,
     policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
     ...(extra || {}),
+  };
+}
+
+// A command a resource AI agent runs: on a host, a Docker host, a database server.
+function resourceCommand(
+  sequence: number,
+  resourceType: string,
+  resourceName: string,
+): JSONObject {
+  return {
+    sequence,
+    stepType: RunbookStepType.ResourceCommand,
+    runnerId: "0193c0de-1111-4aaa-8bbb-000000000001",
+    runnerNameSnapshot: "Host AI agent",
+    resourceType,
+    resourceId: "0193c0de-3333-4aaa-8bbb-000000000003",
+    resourceNameSnapshot: resourceName,
+    command: "systemctl restart nginx",
+    timeoutInMs: 60000,
+    rationale: "nginx stopped answering after a config change.",
+    expectedEffect: "nginx answers again.",
+    policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
   };
 }
 
@@ -966,6 +989,42 @@ describe("the plan's sentence and the fix's failures", () => {
     ).toBe("Planned 3 commands on cluster prod-east and cluster prod-west");
   });
 
+  /*
+   * A resource command names its kind as the middle of a sentence says it,
+   * as a kubectl command's "cluster prod-east" does (#7862): never a
+   * label's "Host web-1", nor "Database server web-1".
+   */
+  test("names a resource command's place as a sentence says it", () => {
+    expect(
+      getRemediationFixSentence({
+        plan: plan([
+          resourceCommand(1, "Host", "web-1"),
+          resourceCommand(2, "Host", "web-1"),
+        ]) as never,
+        mcpPlan: null,
+      }),
+    ).toBe("Planned 2 commands on host web-1");
+    expect(
+      getRemediationFixSentence({
+        plan: plan([
+          resourceCommand(1, "Host", "web-1"),
+          resourceCommand(2, "DatabaseServer", "orders-db"),
+          resourceCommand(3, "DockerHost", "build-1"),
+        ]) as never,
+        mcpPlan: null,
+      }),
+    ).toBe(
+      "Planned 3 commands on host web-1, database server orders-db and Docker host build-1",
+    );
+    // A kind this build does not know is a resource.
+    expect(
+      getRemediationFixSentence({
+        plan: plan([resourceCommand(1, "Spaceship", "enterprise")]) as never,
+        mcpPlan: null,
+      }),
+    ).toBe("Planned 1 command on resource enterprise");
+  });
+
   test("nothing to say for a runbook, or a plan or list of changes with nothing in it", () => {
     expect(getRemediationFixSentence({ plan: null, mcpPlan: null })).toBe(null);
     expect(
@@ -1109,6 +1168,76 @@ describe("in the reader's language", () => {
     for (const title of titles) {
       expect(title).not.toMatch(/Planned|Approved|Ran|recover|Rolled/);
     }
+  });
+
+  /*
+   * A resource command's kind in the reader's words, as the middle of a
+   * sentence says it (#7862): "sur hôte web-1", never "sur Hôte web-1", and
+   * a database server never "Database server" in English. German keeps its
+   * nouns' capital.
+   */
+  test.each([
+    [
+      "fr",
+      "2 commandes prévues sur hôte web-1 et serveur de base de données orders-db",
+    ],
+    ["da", "Planlagde 2 kommandoer på vært web-1 og databaseserver orders-db"],
+    ["de", "2 Befehle auf Host web-1 und Datenbankserver orders-db geplant"],
+    [
+      "ru",
+      "Запланировано команд: 2 (хост web-1 и сервер баз данных orders-db)",
+    ],
+  ])(
+    "in %s, a resource command's place reads %s",
+    (language: string, expected: string) => {
+      const { translator } = translatorFor(language);
+
+      expect(
+        withoutIsolateMarks(
+          getRemediationFixSentence({
+            plan: {
+              commands: [
+                resourceCommand(1, "Host", "web-1"),
+                resourceCommand(2, "DatabaseServer", "orders-db"),
+              ],
+            } as never,
+            mcpPlan: null,
+            translator,
+          })!,
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  /*
+   * The kind goes in as a term for the middle of a sentence: worded with a
+   * label's capital, it still reads in lower case in the plan's sentence
+   * and on the command's row.
+   */
+  test("a kind worded with a label's capital reads lower case in the sentence and on the row", () => {
+    const { words } = translatorFor("fr");
+    const asLabel: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return text === "host" ? "Hôte" : words[text];
+      },
+      "fr",
+    );
+
+    expect(
+      withoutIsolateMarks(
+        getRemediationFixSentence({
+          plan: { commands: [resourceCommand(1, "Host", "web-1")] } as never,
+          mcpPlan: null,
+          translator: asLabel,
+        })!,
+      ),
+    ).toBe("1 commande prévue sur hôte web-1");
+    expect(
+      getCommandTargetLabel(
+        resourceCommand(1, "Host", "web-1") as never,
+        asLabel,
+      ),
+    ).toBe("hôte web-1");
   });
 
   test("in Persian, each server is set apart, so the plan's list reads in its order right to left", () => {
