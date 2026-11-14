@@ -176,9 +176,7 @@ describe("the sentences in English", () => {
 
     for (const key of DESCRIPTIONS) {
       expect(english[key]).toBe(key);
-      expect(closingSentence(key)).toBe(
-        closingSentence(DASHBOARD_DESCRIPTION),
-      );
+      expect(closingSentence(key)).toBe(closingSentence(DASHBOARD_DESCRIPTION));
     }
 
     expect(openingSentence(RUNBOOK_DESCRIPTION)).toBe(
@@ -193,9 +191,9 @@ describe("the sentences in English", () => {
     const german: Record<string, string> = readDashboardLocale("de");
 
     expect(german[RUNBOOK_DESCRIPTION]).not.toBe(RUNBOOK_DESCRIPTION);
-    expect(
-      closingSentence("Sie haben Änderungen. Wirklich gehen?"),
-    ).not.toBe(closingSentence(german[DASHBOARD_DESCRIPTION]!));
+    expect(closingSentence("Sie haben Änderungen. Wirklich gehen?")).not.toBe(
+      closingSentence(german[DASHBOARD_DESCRIPTION]!),
+    );
     expect(closingSentence("一つ目。二つ目。")).toBe("二つ目。");
   });
 });
@@ -265,10 +263,7 @@ const AppShell: FunctionComponent = (): ReactElement => {
         />
       </nav>
       <Routes>
-        <RouterRoute
-          path="/dashboard/:projectId/home"
-          element={<p>Home</p>}
-        />
+        <RouterRoute path="/dashboard/:projectId/home" element={<p>Home</p>} />
         <RouterRoute
           path="/dashboard/:projectId/runbooks/:id/steps"
           element={

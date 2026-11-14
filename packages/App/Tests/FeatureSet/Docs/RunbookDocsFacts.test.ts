@@ -1347,7 +1347,9 @@ describe("saving the steps on the authoring page", () => {
     expect(STEPS_PAGE).toContain("useLeaveGuard(hasUnsaved)");
     expect(STEPS_PAGE).toContain("useUnsavedChanges(hasUnsaved)");
     expect(STEPS_PAGE).toContain("<LeaveWithoutSavingQuestion");
-    expect(STEPS_PAGE).toContain('title={isSaving ? "Saving..." : "Save Steps"}');
+    expect(STEPS_PAGE).toContain(
+      'title={isSaving ? "Saving..." : "Save Steps"}',
+    );
     expect(question).toContain('title={"Leave without saving?"}');
     expect(question).toContain('submitButtonText={"Discard Changes"}');
     expect(question).toContain('closeButtonText={"Keep Editing"}');
