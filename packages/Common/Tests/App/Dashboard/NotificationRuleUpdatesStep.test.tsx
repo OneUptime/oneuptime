@@ -323,6 +323,26 @@ describe("the step's words, one entry a kind of rule", () => {
     },
   );
 
+  test("a maintenance event is called by its name on screen, never a scheduled maintenance event", () => {
+    /*
+     * #6817 named the record Maintenance Event and retired "Scheduled
+     * Maintenance Event"; RetiredNamesGuard reads title case only, so the
+     * step's sentences, which say it in lower case, are held here.
+     */
+    const retiredName: RegExp = /scheduled maintenance/i;
+    const retired: Array<string> = everySentence().filter(
+      (sentence: string): boolean => {
+        return retiredName.test(sentence);
+      },
+    );
+
+    expect(retired).toEqual([]);
+    expect(
+      UPDATES_COPY[NotificationRuleEventType.ScheduledMaintenance]
+        .nothingChosenTitle,
+    ).toBe("Only when a maintenance event is created");
+  });
+
   test("the key updates are what Key updates only says they are", () => {
     // Pinned per kind of rule: the step's sentence names them.
     expect(

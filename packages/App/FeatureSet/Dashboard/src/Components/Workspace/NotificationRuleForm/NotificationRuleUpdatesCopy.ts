@@ -358,17 +358,17 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
   },
   [NotificationRuleEventType.ScheduledMaintenance]: {
     sectionDescription: translationKey(
-      "The rule always posts when a scheduled maintenance event is created. Pick the updates it posts after that.",
+      "The rule always posts when a maintenance event is created. Pick the updates it posts after that.",
     ),
     everyUpdateDescription: translationKey(
       "State changes, notes and everything else.",
     ),
     keyUpdatesDescription: translationKey("State changes and public notes."),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only when a scheduled maintenance event is created.",
+      "With none ticked, the rule posts only when a maintenance event is created.",
     ),
     nothingChosenTitle: translationKey(
-      "Only when a scheduled maintenance event is created",
+      "Only when a maintenance event is created",
     ),
     kinds: {
       [NotificationRuleUpdateKind.StateChanges]: {

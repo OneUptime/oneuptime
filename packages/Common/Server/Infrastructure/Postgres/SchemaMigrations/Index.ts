@@ -981,6 +981,7 @@ import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "./1809123900000-A
 import { AddGroupByConnectedServicesToGroupingRules1809124000000 } from "./1809124000000-AddGroupByConnectedServicesToGroupingRules";
 import { AddAIRunRecording1809125000000 } from "./1809125000000-AddAIRunRecording";
 import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "./1809126000000-GlobalConfigCredentialsEncryptedColumns";
+import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
 
 export default [
   InitialMigration,
@@ -1966,4 +1967,5 @@ export default [
   AddGroupByConnectedServicesToGroupingRules1809124000000,
   AddAIRunRecording1809125000000,
   GlobalConfigCredentialsEncryptedColumns1809126000000,
+  AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
 ];

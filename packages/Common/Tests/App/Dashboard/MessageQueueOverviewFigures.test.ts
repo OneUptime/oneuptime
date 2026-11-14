@@ -151,6 +151,77 @@ describe("a broker metric as a count per interval", () => {
     ).toBeGreaterThan(MINUTE_MS);
   });
 
+  /*
+   * Day and week buckets start at the reader's midnight (issue #7277), so a
+   * window that holds a change of the clocks has a day of 23 or 25 hours: a
+   * New York reader's 8 March 2026 starts at 05:00 UTC and 9 March at 04:00.
+   */
+  test("a step of a day or a week across a change of the clocks is a whole day or week", () => {
+    const month: { start: Date; end: Date } = {
+      start: new Date("2026-02-20T05:00:00.000Z"),
+      end: new Date("2026-03-20T04:00:00.000Z"),
+    };
+    const stepOf: (instants: Array<string>) => number = (
+      instants: Array<string>,
+    ): number => {
+      return getMessageQueueSeriesIntervalMs(
+        instants.map((instant: string): MessageQueueTimePoint => {
+          return { x: new Date(instant), y: 1 };
+        }),
+        month,
+      );
+    };
+
+    // New York's 8 March, 23 hours long.
+    expect(
+      stepOf([
+        "2026-03-07T05:00:00.000Z",
+        "2026-03-08T05:00:00.000Z",
+        "2026-03-09T04:00:00.000Z",
+      ]),
+    ).toBe(24 * HOUR_MS);
+    // New York's 1 November, 25 hours long, the only step in its window.
+    expect(
+      stepOf(["2026-11-01T04:00:00.000Z", "2026-11-02T05:00:00.000Z"]),
+    ).toBe(24 * HOUR_MS);
+    // Troll station's 29 March, 22 hours long.
+    expect(
+      stepOf(["2026-03-29T00:00:00.000Z", "2026-03-29T22:00:00.000Z"]),
+    ).toBe(24 * HOUR_MS);
+    // A New York week that holds 8 March: 167 hours.
+    expect(
+      stepOf(["2026-03-02T05:00:00.000Z", "2026-03-09T04:00:00.000Z"]),
+    ).toBe(7 * 24 * HOUR_MS);
+    // Further from a day than a change of the clocks moves it: its own step.
+    for (const hours of [12, 21, 27, 48]) {
+      expect(
+        stepOf([
+          "2026-03-07T05:00:00.000Z",
+          new Date(
+            Date.parse("2026-03-07T05:00:00.000Z") + hours * HOUR_MS,
+          ).toISOString(),
+        ]),
+      ).toBe(hours * HOUR_MS);
+    }
+
+    // A running total's rate over those days is a whole day's count.
+    const offsets: MessageQueueBrokerMetricResult = resultOf(
+      descriptorOf(KAFKA, "kafka.consumer_group.offset_sum"),
+      [
+        { x: new Date("2026-03-07T05:00:00.000Z"), y: 0.5 },
+        { x: new Date("2026-03-08T05:00:00.000Z"), y: 1 },
+        { x: new Date("2026-03-09T04:00:00.000Z"), y: 2 },
+      ],
+    );
+    expect(
+      getMessageQueueBrokerCountSeries(offsets, month)?.series.map(
+        (point: MessageQueueTimePoint): number => {
+          return point.y;
+        },
+      ),
+    ).toEqual([43200, 86400, 172800]);
+  });
+
   test("a per-period count as it is; a running total's rate times its interval, an estimate; a level, nothing", () => {
     expect(
       getMessageQueueBrokerCountSeries(

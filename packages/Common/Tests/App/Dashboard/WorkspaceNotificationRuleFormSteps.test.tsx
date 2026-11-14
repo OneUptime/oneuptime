@@ -1449,7 +1449,7 @@ describe("Choose which updates a rule posts (#7581)", () => {
     ],
     [
       NotificationRuleEventType.ScheduledMaintenance,
-      "The rule always posts when a scheduled maintenance event is created. Pick the updates it posts after that.",
+      "The rule always posts when a maintenance event is created. Pick the updates it posts after that.",
       ["StateChanges", "PublicNotes"],
     ],
   ])(

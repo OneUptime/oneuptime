@@ -1012,7 +1012,7 @@ describe("a rule's updates", () => {
     [
       NotificationRuleEventType.ScheduledMaintenance,
       [],
-      "Only when a scheduled maintenance event is created",
+      "Only when a maintenance event is created",
     ],
     // An on-call policy rule's updates are who is on call (#7549).
     [
