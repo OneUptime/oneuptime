@@ -95,12 +95,19 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
        */
       moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
       moreMenuFooter={moreMenuFooter}
+      /*
+       * Keyed texts, in the reader's words here: drawn as given, never
+       * looked up again (#7682, #7790).
+       */
+      isMoreMenuFooterTranslated={true}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
-      // A keyed text, in the reader's words here: drawn as given (#7682).
       isMoreMenuSearchPlaceholderTranslated={true}
       moreMenuNoResultsText={t("navbar.search.noResults")}
+      isMoreMenuNoResultsTextTranslated={true}
       moreMenuKeyboardHint={t("navbar.search.hint")}
+      isMoreMenuKeyboardHintTranslated={true}
       moreMenuRecentLabel={t("navbar.search.recent")}
+      isMoreMenuRecentLabelTranslated={true}
       /*
        * The products the project hides (#6814): one row at the foot of the
        * menu, found by Search, with a word on why they are there.

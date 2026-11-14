@@ -323,7 +323,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
 
   const moreMenu: ReactElement = (
     <MoreMenu
-      ariaLabel={translator.translateText("More case actions")}
+      ariaLabel="More case actions"
       dataTestId={SECURITY_CASE_HEADER_TEST_IDS.more}
       elementToBeShownInsteadOfButton={
         <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />

@@ -118,9 +118,7 @@ const ResponseTargetDurationField: FunctionComponent<ComponentProps> = (
           value={unitOptions.find((option: DropdownOption): boolean => {
             return option.value === entry.unit;
           })}
-          ariaLabel={translator.translateText(
-            RESPONSE_TARGET_DURATION_COPY.unitLabel,
-          )}
+          ariaLabel={RESPONSE_TARGET_DURATION_COPY.unitLabel}
           dataTestId={RESPONSE_TARGETS_TEST_IDS.durationUnit}
           onChange={(
             value: DropdownValue | Array<DropdownValue> | null,

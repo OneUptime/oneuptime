@@ -321,6 +321,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Twilio Account SID",
               placeholder: t("common.none"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -329,6 +330,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Twilio Primary Phone Number",
               fieldType: FieldType.Phone,
               placeholder: t("common.none"),
+              isPlaceholderTranslated: true,
               // An account used for SMS only makes no calls, from any number.
               showIf: (item: GlobalConfig): boolean => {
                 return TwilioConfigUses.makesCalls(item.twilioUsedFor);
@@ -346,6 +348,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FieldType.Phone,
               // Without them, SMS go out from the numbers calls do.
               placeholder: t("pages.settings.callSms.smsSameAsCalls"),
+              isPlaceholderTranslated: true,
               // An account used for calls only sends no SMS, from any number.
               showIf: (item: GlobalConfig): boolean => {
                 return TwilioConfigUses.sendsSms(item.twilioUsedFor);
@@ -358,6 +361,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Twilio Secondary Phone Numbers",
               fieldType: FieldType.Phone,
               placeholder: t("common.none"),
+              isPlaceholderTranslated: true,
               showIf: (item: GlobalConfig): boolean => {
                 return TwilioConfigUses.makesCalls(item.twilioUsedFor);
               },

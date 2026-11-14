@@ -320,7 +320,7 @@ const DataSecurityIdentityView: FunctionComponent<
         <EventStatBar
           columns={4}
           isLaidOutByOwnWidth={true}
-          ariaLabel={translator.translateText("Identity figures")}
+          ariaLabel="Identity figures"
         >
           <EventStatTile
             variant="segment"

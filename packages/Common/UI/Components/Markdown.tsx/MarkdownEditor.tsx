@@ -2604,6 +2604,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             <MoreMenu
               isMenuPortaled={true}
               ariaLabel={moreFormattingLabel}
+              isAriaLabelTranslated={true}
               elementToBeShownInsteadOfButton={
                 <button
                   type="button"

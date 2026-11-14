@@ -326,6 +326,7 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
                   project: projectName,
                 },
               )}
+              isAriaLabelTranslated={true}
               onClick={() => {
                 setInvitationToDecline(invitation);
               }}
@@ -345,6 +346,7 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
                   project: projectName,
                 },
               )}
+              isAriaLabelTranslated={true}
               onClick={() => {
                 acceptInvitation(invitation).catch(() => {
                   /*

@@ -934,6 +934,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                         traceId: traceId,
                       },
                     )}
+                    isTitleTranslated={true}
                   >
                     <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
                     <span className="font-mono">{shortId}</span>

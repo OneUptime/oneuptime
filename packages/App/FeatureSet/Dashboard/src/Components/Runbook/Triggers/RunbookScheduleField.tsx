@@ -146,7 +146,7 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
         {label(RunbookTriggersCopy.everyLabel, `${id}-every`)}
         <Dropdown
           id={`${id}-every`}
-          ariaLabel={translator.translateText(RunbookTriggersCopy.everyLabel)}
+          ariaLabel={RunbookTriggersCopy.everyLabel}
           options={options}
           value={
             options.find((option: DropdownOption) => {
@@ -177,9 +177,7 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
         {label(RunbookTriggersCopy.atMinuteLabel, `${id}-minute`)}
         <Dropdown
           id={`${id}-minute`}
-          ariaLabel={translator.translateText(
-            RunbookTriggersCopy.atMinuteLabel,
-          )}
+          ariaLabel={RunbookTriggersCopy.atMinuteLabel}
           options={options}
           value={options.find((option: DropdownOption) => {
             return option.value === choice.minute;
@@ -344,9 +342,7 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
           {label(RunbookTriggersCopy.repeatLabel, `${id}-repeat`)}
           <Dropdown
             id={`${id}-repeat`}
-            ariaLabel={translator.translateText(
-              RunbookTriggersCopy.repeatLabel,
-            )}
+            ariaLabel={RunbookTriggersCopy.repeatLabel}
             options={repeatOptions}
             value={repeatOptions.find((option: DropdownOption) => {
               return option.value === choice.repeat;

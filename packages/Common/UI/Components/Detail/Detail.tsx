@@ -187,12 +187,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
     data: string,
     options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
+    isPlaceholderTranslated: boolean | undefined,
   ) => ReactElement;
 
   const getDropdownViewer: GetDropdownViewerFunction = (
     data: string,
     options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
+    isPlaceholderTranslated: boolean | undefined,
   ): ReactElement => {
     const flatOptions: Array<DropdownOption> = (options || []).flatMap(
       (item: DropdownOption | DropdownOptionGroup) => {
@@ -224,7 +226,12 @@ const Detail: DetailFunction = <T extends GenericObject>(
         );
       }
 
-      return <EmptyValue placeholder={placeholder} />;
+      return (
+        <EmptyValue
+          placeholder={placeholder}
+          isPlaceholderTranslated={isPlaceholderTranslated}
+        />
+      );
     }
 
     return (
@@ -240,12 +247,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
     data: Array<string | number | boolean> | string,
     options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
+    isPlaceholderTranslated: boolean | undefined,
   ) => ReactElement;
 
   const getMultiSelectDropdownViewer: GetMultiSelectDropdownViewerFunction = (
     data: Array<string | number | boolean> | string,
     options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
+    isPlaceholderTranslated: boolean | undefined,
   ): ReactElement => {
     const values: Array<string | number | boolean> = Array.isArray(data)
       ? data
@@ -254,7 +263,12 @@ const Detail: DetailFunction = <T extends GenericObject>(
         : [];
 
     if (values.length === 0) {
-      return <EmptyValue placeholder={placeholder} />;
+      return (
+        <EmptyValue
+          placeholder={placeholder}
+          isPlaceholderTranslated={isPlaceholderTranslated}
+        />
+      );
     }
 
     const flatOptions: Array<DropdownOption> = (options || []).flatMap(
@@ -547,7 +561,12 @@ const Detail: DetailFunction = <T extends GenericObject>(
     copyText?: string | undefined,
   ): ReactElement => {
     if (!hasDetailValue(data)) {
-      return <EmptyValue placeholder={field.placeholder} />;
+      return (
+        <EmptyValue
+          placeholder={field.placeholder}
+          isPlaceholderTranslated={field.isPlaceholderTranslated}
+        />
+      );
     }
 
     /*
@@ -899,6 +918,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
         data as string,
         field.dropdownOptions || [],
         field.placeholder as string,
+        field.isPlaceholderTranslated,
       );
     }
 
@@ -907,6 +927,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
         data as Array<string | number | boolean> | string,
         field.dropdownOptions || [],
         field.placeholder as string,
+        field.isPlaceholderTranslated,
       );
     }
 

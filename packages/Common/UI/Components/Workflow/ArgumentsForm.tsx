@@ -867,6 +867,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           number: row.rowIndex + 1,
                         },
                       )}
+                      isAriaLabelTranslated={true}
                       dataTestId={`workflow-argument-${arg.id}-value-${row.rowIndex}`}
                     />
                   );

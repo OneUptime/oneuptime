@@ -665,6 +665,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       ariaLabel={translator.translateTemplate(MANAGE_WORKSPACE_CONNECTION, {
         workspace: "Slack",
       })}
+      isAriaLabelTranslated={true}
       dataTestId="slack-project-actions"
     >
       {[

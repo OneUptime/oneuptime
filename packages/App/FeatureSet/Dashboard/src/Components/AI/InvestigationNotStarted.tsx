@@ -489,7 +489,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
           </div>
           <Button
             title="Retry"
-            ariaLabel={translator.translateText("Retry investigation status")}
+            ariaLabel="Retry investigation status"
             icon={IconProp.Refresh}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}

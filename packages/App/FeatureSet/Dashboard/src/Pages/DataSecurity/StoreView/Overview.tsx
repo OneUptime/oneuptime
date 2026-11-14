@@ -502,7 +502,7 @@ const DataStoreOverview: FunctionComponent<
       <EventStatBar
         columns={4}
         isLaidOutByOwnWidth={true}
-        ariaLabel={translator.translateText("Data store figures")}
+        ariaLabel="Data store figures"
       >
         <EventStatTile
           variant="segment"

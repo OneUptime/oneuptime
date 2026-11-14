@@ -75,6 +75,7 @@ const renderOpenAffordance: (
       title={translator.translateTemplate("Open {{name}} view", {
         name: translatableTerm(filter.displayKey, { inSentence: true }),
       })}
+      isTitleTranslated={true}
     >
       <Icon icon={IconProp.ExternalLink} className="h-2.5 w-2.5" />
     </Link>

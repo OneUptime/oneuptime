@@ -63,6 +63,12 @@ export interface ValueTextFieldProps {
   isPlaceholderTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   error?: string | undefined;
   autoFocus?: boolean | undefined;
   tabIndex?: number | undefined;
@@ -159,7 +165,11 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
               : translator.translateText(props.placeholder)
           }
           ariaLabelledby={props.ariaLabelledby}
-          ariaLabel={translator.translateText(props.ariaLabel)}
+          ariaLabel={
+            props.isAriaLabelTranslated
+              ? props.ariaLabel
+              : translator.translateText(props.ariaLabel)
+          }
           ariaDescribedby={props.error ? errorId : undefined}
           ariaInvalid={Boolean(props.error)}
           ariaControls={isInlineOpen ? inlineListboxId : undefined}

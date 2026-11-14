@@ -52,6 +52,12 @@ export interface ComponentProps {
    */
   ariaLabel?: string | undefined;
   /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
+  /*
    * The switch's id, for a <label htmlFor> the page draws itself. One is
    * generated otherwise.
    */
@@ -276,7 +282,9 @@ const Toggle: FunctionComponent<ComponentProps> = (
   const title: TranslatableValue = translateValue(props.title);
   const description: TranslatableValue = translateValue(props.description);
   const tooltip: string | undefined = translateString(props.tooltip);
-  const ariaLabel: string | undefined = translateString(props.ariaLabel);
+  const ariaLabel: string | undefined = props.isAriaLabelTranslated
+    ? props.ariaLabel
+    : translateString(props.ariaLabel);
 
   const hasTitle: boolean = Boolean(title);
   const hasDescription: boolean = Boolean(description);
@@ -311,10 +319,16 @@ const Toggle: FunctionComponent<ComponentProps> = (
     typeof props.title === "string" && props.title.trim()
       ? props.title
       : props.ariaLabel?.trim() || undefined;
+  // An aria label in the reader's words already goes in as it is.
+  const isHelpSubjectTranslated: boolean = Boolean(
+    props.isAriaLabelTranslated && helpSubject !== props.title,
+  );
 
   const helpButtonName: string = helpSubject
     ? translator.translateTemplate(TOGGLE_HELP_BUTTON_NAME_TEMPLATE, {
-        label: translatableTerm(helpSubject),
+        label: isHelpSubjectTranslated
+          ? helpSubject
+          : translatableTerm(helpSubject),
       })
     : translator.translateText(TOGGLE_HELP_BUTTON_FALLBACK_NAME) ||
       TOGGLE_HELP_BUTTON_FALLBACK_NAME;

@@ -782,7 +782,7 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             <Dropdown
               id="discovered-device-import-role"
               dataTestId="discovered-device-import-role-dropdown"
-              ariaLabel={translator.translateText(DEVICE_ROLE_FIELD_TITLE)}
+              ariaLabel={DEVICE_ROLE_FIELD_TITLE}
               options={roleOptions}
               value={roleOptions.find((option: DropdownOption): boolean => {
                 return option.value === settings.networkDeviceRoleId;
@@ -825,7 +825,7 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             <Dropdown
               id="discovered-device-import-snmp"
               dataTestId="discovered-device-import-snmp-dropdown"
-              ariaLabel={translator.translateText(SNMP_PROFILE_FIELD_TITLE)}
+              ariaLabel={SNMP_PROFILE_FIELD_TITLE}
               options={profileOptions}
               value={profileOptions.find((option: DropdownOption): boolean => {
                 return option.value === settings.snmpCredentialProfileId;

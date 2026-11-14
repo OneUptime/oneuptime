@@ -281,6 +281,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                             "Step {{number}} actions",
                             { number: index + 1 },
                           )}
+                          isAriaLabelTranslated={true}
                           isDisabled={!props.canEdit || isSaving}
                         >
                           {[

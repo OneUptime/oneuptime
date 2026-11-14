@@ -460,6 +460,7 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
           ariaLabel={translator.translateTemplate("More actions for {{oid}}", {
             oid: row.oid,
           })}
+          isAriaLabelTranslated={true}
           menuIcon={IconProp.EllipsisHorizontal}
           isMenuPortaled={true}
           dataTestId="multi-snmp-walk-row-more"

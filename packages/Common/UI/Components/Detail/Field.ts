@@ -39,7 +39,14 @@ export interface FieldBase<T> {
    * a dark page on a dark one, in both of the dashboard's themes.
    */
   imageBackdrop?: DetailImageBackdrop | undefined;
+  // What an empty value says, in English: looked up where it is drawn.
   placeholder?: string;
+  /*
+   * The placeholder is in the reader's words already - a front end's own
+   * keyed text, as the Admin Dashboard's t("common.none") is: drawn as
+   * given, never looked up again (#7791).
+   */
+  isPlaceholderTranslated?: boolean | undefined;
   opts?:
     | {
         isCopyable?: boolean | undefined;

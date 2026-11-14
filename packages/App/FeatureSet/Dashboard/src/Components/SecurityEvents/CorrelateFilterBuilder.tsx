@@ -140,6 +140,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
         <Dropdown
           dataTestId={`correlate-condition-value-${index}`}
           ariaLabel={conditionLabel(index, "value")}
+          isAriaLabelTranslated={true}
           options={valueOptions}
           value={valueOptions.find((option: DropdownOption) => {
             return option.value === condition.value;
@@ -287,6 +288,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
                   dataTestId={`correlate-condition-field-${index}`}
                   isClearable={false}
                   ariaLabel={conditionLabel(index, "field")}
+                  isAriaLabelTranslated={true}
                   options={fieldDropdownOptions}
                   value={fieldDropdownOptions.find((option: DropdownOption) => {
                     return option.value === condition.field;
@@ -324,6 +326,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
                   dataTestId={`correlate-condition-operator-${index}`}
                   isClearable={false}
                   ariaLabel={conditionLabel(index, "operator")}
+                  isAriaLabelTranslated={true}
                   options={operatorOptions}
                   value={operatorOptions.find((option: DropdownOption) => {
                     return option.value === condition.operator;
@@ -347,6 +350,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
               <Button
                 dataTestId={`correlate-condition-delete-${index}`}
                 ariaLabel={`${t("Remove condition")} ${index + 1}`}
+                isAriaLabelTranslated={true}
                 icon={IconProp.Trash}
                 buttonStyle={ButtonStyleType.ICON}
                 buttonSize={ButtonSize.Small}

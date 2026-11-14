@@ -121,6 +121,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 title: "Email Verified",
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
+                isPlaceholderTranslated: true,
               },
               {
                 field: {
@@ -129,6 +130,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 title: "Two Factor Auth Enabled",
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
+                isPlaceholderTranslated: true,
               },
               {
                 field: {

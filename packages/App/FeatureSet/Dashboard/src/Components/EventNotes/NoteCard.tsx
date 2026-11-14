@@ -492,7 +492,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                  */
                 <div className="absolute right-2 top-1.5">
                   <MoreMenu
-                    ariaLabel={tx("Note actions")}
+                    ariaLabel="Note actions"
                     dataTestId="note-actions"
                     elementToBeShownInsteadOfButton={
                       <Icon

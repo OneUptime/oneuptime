@@ -720,6 +720,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
                   MANAGE_WORKSPACE_CONNECTION,
                   { workspace: "Mattermost" },
                 )}
+                isAriaLabelTranslated={true}
                 dataTestId="mattermost-project-actions"
               >
                 {[

@@ -388,6 +388,7 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             id={`${rowId}-value`}
             className="relative w-full"
             ariaLabel={valueAriaLabel}
+            isAriaLabelTranslated={true}
             ariaDescribedby={hint ? hintId : undefined}
             isMultiSelect={true}
             placeholder={RuleCriteriaCopy.selectOneOrMore}
@@ -447,6 +448,7 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             "Criteria for condition {{number}}",
             { number: number },
           )}
+          isAriaLabelTranslated={true}
           isClearable={false}
           options={fieldOptions}
           value={fieldOptions.find((option: DropdownOption): boolean => {
@@ -487,6 +489,7 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             "Operator for condition {{number}}",
             { number: number },
           )}
+          isAriaLabelTranslated={true}
           isClearable={false}
           disabled={!checkOn}
           options={operatorOptions}
@@ -541,6 +544,7 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             "Remove condition {{number}}",
             { number: number },
           )}
+          isAriaLabelTranslated={true}
           dataTestId={`notification-rule-condition-remove-${props.index || 0}`}
           icon={IconProp.Trash}
           buttonSize={ButtonSize.Small}

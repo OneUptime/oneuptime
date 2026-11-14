@@ -167,7 +167,7 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
              */
             outerDivClassName="[&>div:last-child]:ml-0"
             value={isAllSelected}
-            ariaLabel={translate(TABLE_CARDS_HEADER_TEXT.selectAll)}
+            ariaLabel={TABLE_CARDS_HEADER_TEXT.selectAll}
             isIndeterminate={Boolean(
               props.isSomeItemsOnThePageSelected && !isAllSelected,
             )}
@@ -197,6 +197,7 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
       {sortable.length > 0 && !hasBulkSelection ? (
         <MoreMenu
           ariaLabel={sortLabel}
+          isAriaLabelTranslated={true}
           dataTestId={TABLE_CARDS_SORT_TEST_ID}
           isMenuPortaled={true}
           triggerClassName={TABLE_CARDS_SORT_BUTTON_CLASS_NAME}
