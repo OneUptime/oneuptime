@@ -224,8 +224,7 @@ describe("buildReportingDevicesStatement", () => {
  */
 describe("the coarse column each statement narrows by", () => {
   test("due projects: a live device past the cut-off has a coarse value past it too", () => {
-    const sql: string = buildDueProjectsStatement({ now: NOW, limit: 100 })
-      .sql;
+    const sql: string = buildDueProjectsStatement({ now: NOW, limit: 100 }).sql;
 
     expect(sql).toContain(
       `e."coarseLastSeenAt" < $1::timestamptz - make_interval(days => p."discoveredDeviceRetentionInDays")`,
@@ -255,7 +254,10 @@ describe("the coarse column each statement narrows by", () => {
       limit: AGE_OUT_BATCH_SIZE,
       removedAt: NOW,
     }).sql;
-    const due: string = sql.slice(sql.indexOf("due AS"), sql.indexOf("removed AS"));
+    const due: string = sql.slice(
+      sql.indexOf("due AS"),
+      sql.indexOf("removed AS"),
+    );
     const write: string = sql.slice(sql.indexOf("removed AS"));
 
     expect(due).toContain(`e."coarseLastSeenAt" < $2::timestamptz`);
@@ -275,7 +277,11 @@ describe("the coarse column each statement narrows by", () => {
     const cutOff: number = NOW.getTime() - 30 * DAY;
     const since: number = NOW.getTime() - DAY;
 
-    for (let coarse: number = cutOff - 3 * DAY; coarse <= NOW.getTime(); coarse += 37 * 60 * 1000) {
+    for (
+      let coarse: number = cutOff - 3 * DAY;
+      coarse <= NOW.getTime();
+      coarse += 37 * 60 * 1000
+    ) {
       for (let into: number = 0; into < DAY; into += 53 * 60 * 1000) {
         const lastSeenAt: number = coarse + into;
 

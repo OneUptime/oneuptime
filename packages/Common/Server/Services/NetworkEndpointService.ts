@@ -920,8 +920,8 @@ export class Service extends ProjectReferencesService<Model> {
       params.push(data.afterId);
     }
 
-    const rows: Array<Record<string, unknown>> = (await this.getRepository()
-      .manager.query(
+    const rows: Array<Record<string, unknown>> =
+      (await this.getRepository().manager.query(
         `WITH "page" AS (
           SELECT "_id"
           FROM "NetworkEndpoint"

@@ -209,8 +209,12 @@ describe("BackfillNetworkEndpointCoarseLastSeenAt", () => {
 
   describe("a page that fails", () => {
     test("is tried again, from the same cursor, and the walk goes on", async () => {
-      const failure: Error = new Error("canceling statement due to lock timeout");
-      const page: SpyInstance = jest
+      const failure: Error = new Error(
+        "canceling statement due to lock timeout",
+      );
+      const page: SpyInstance<
+        typeof NetworkEndpointService.backfillCoarseLastSeenAtPage
+      > = jest
         .spyOn(NetworkEndpointService, "backfillCoarseLastSeenAtPage")
         .mockRejectedValueOnce(failure)
         .mockResolvedValueOnce({ read: 2, written: 2, lastId: idOf(1) });
@@ -227,7 +231,9 @@ describe("BackfillNetworkEndpointCoarseLastSeenAt", () => {
 
     test(`stops the run after ${PAGE_ATTEMPTS} tries, so it is not recorded as done and the next boot carries on`, async () => {
       const failure: Error = new Error("connection terminated");
-      const page: SpyInstance = jest
+      const page: SpyInstance<
+        typeof NetworkEndpointService.backfillCoarseLastSeenAtPage
+      > = jest
         .spyOn(NetworkEndpointService, "backfillCoarseLastSeenAtPage")
         .mockRejectedValue(failure);
 

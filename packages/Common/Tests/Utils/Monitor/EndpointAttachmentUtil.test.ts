@@ -1193,7 +1193,6 @@ describe("a network controller's report against a walk (#5379)", () => {
   });
 });
 
-
 /*
  * The refresh window of an endpoint the walk finds unchanged
  * (endpointRefreshSlot): 15 minutes, counted on a clock of the endpoint's
@@ -1208,7 +1207,10 @@ describe("endpointRefreshSlot", () => {
   const WINDOW: number = ENDPOINT_LAST_SEEN_REFRESH_MS;
 
   function macOf(n: number): string {
-    return n.toString(16).padStart(12, "0").replace(/(..)(?!$)/g, "$1:");
+    return n
+      .toString(16)
+      .padStart(12, "0")
+      .replace(/(..)(?!$)/g, "$1:");
   }
 
   function slotOf(macAddress: string, time: number): number {
@@ -1292,7 +1294,9 @@ describe("endpointRefreshSlot", () => {
       let due: number = 0;
 
       for (const macAddress of macs) {
-        if (slotOf(macAddress, now) > slotOf(macAddress, written.get(macAddress)!)) {
+        if (
+          slotOf(macAddress, now) > slotOf(macAddress, written.get(macAddress)!)
+        ) {
           due++;
           written.set(macAddress, now);
         }
@@ -1310,9 +1314,11 @@ describe("endpointRefreshSlot", () => {
       expect(due).toBeGreaterThanOrEqual(15);
       expect(due).toBeLessThanOrEqual(18);
     }
-    expect(perPoll.reduce((sum: number, due: number) => sum + due, 0)).toBe(
-      48 * 8,
-    );
+    expect(
+      perPoll.reduce((sum: number, due: number) => {
+        return sum + due;
+      }, 0),
+    ).toBe(48 * 8);
   });
 
   test("the walk window is the map's: an hour, the device staleness window at the default interval", () => {

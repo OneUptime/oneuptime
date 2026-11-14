@@ -88,9 +88,7 @@ describe("AddNetworkEndpointCoarseLastSeenAt1809169000000", () => {
   test("adds the column as the generator wrote it: a nullable timestamptz, no default, so nothing is rewritten", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddNetworkEndpointCoarseLastSeenAt1809169000000().up(
-          runner,
-        );
+        return new AddNetworkEndpointCoarseLastSeenAt1809169000000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "NetworkEndpoint" ADD "coarseLastSeenAt" TIMESTAMP WITH TIME ZONE`,
@@ -128,9 +126,7 @@ describe("SwapNetworkEndpointLastSeenIndexes1809169100000", () => {
   test("builds the coarse index first, then drops both of lastSeenAt's - through OnlineDdl only", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new SwapNetworkEndpointLastSeenIndexes1809169100000().up(
-          runner,
-        );
+        return new SwapNetworkEndpointLastSeenIndexes1809169100000().up(runner);
       }, false),
     ).toEqual([
       `online: CREATE INDEX "${NEW_INDEX}" ON "NetworkEndpoint" ("projectId", "coarseLastSeenAt") WHERE ${LIVE}`,
@@ -257,9 +253,7 @@ describe("the three, registered", () => {
     expect(new SwapNetworkEndpointLastSeenIndexes1809169100000().name).toBe(
       order[1],
     );
-    expect(new SetNetworkEndpointFillfactor1809169200000().name).toBe(
-      order[2],
-    );
+    expect(new SetNetworkEndpointFillfactor1809169200000().name).toBe(order[2]);
   });
 });
 
@@ -303,13 +297,15 @@ describe("the model says the same", () => {
   });
 
   test("coarseLastSeenAt is a nullable timestamptz the server alone reads and writes", () => {
-    const column: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
-      .columns.find((candidate: ColumnMetadataArgs): boolean => {
-        return (
-          candidate.target === NetworkEndpoint &&
-          candidate.propertyName === "coarseLastSeenAt"
-        );
-      });
+    const column: ColumnMetadataArgs | undefined =
+      getMetadataArgsStorage().columns.find(
+        (candidate: ColumnMetadataArgs): boolean => {
+          return (
+            candidate.target === NetworkEndpoint &&
+            candidate.propertyName === "coarseLastSeenAt"
+          );
+        },
+      );
 
     expect(column?.options.nullable).toBe(true);
     expect(column?.options.type).toBe("timestamptz");

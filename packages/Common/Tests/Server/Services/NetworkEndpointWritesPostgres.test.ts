@@ -361,13 +361,11 @@ describePostgres(
 
         expect(indexes.length).toBeGreaterThan(0);
         expect(
-          indexes.some(
-            (index: { columns: Array<string> | null }): boolean => {
-              return (
-                (index.columns || []).join(",") === "projectId,coarseLastSeenAt"
-              );
-            },
-          ),
+          indexes.some((index: { columns: Array<string> | null }): boolean => {
+            return (
+              (index.columns || []).join(",") === "projectId,coarseLastSeenAt"
+            );
+          }),
         ).toBe(true);
 
         for (const index of indexes) {
@@ -474,7 +472,9 @@ describePostgres(
         expect(coarseIndex).toHaveLength(1);
 
         await setFillfactor(null);
-        await database.query(`DROP INDEX "${schema}"."${coarseIndex[0]!.indexname}"`);
+        await database.query(
+          `DROP INDEX "${schema}"."${coarseIndex[0]!.indexname}"`,
+        );
         await database.query(
           `CREATE INDEX "before_last_seen" ON "${schema}"."NetworkEndpoint" ("lastSeenAt")`,
         );
@@ -496,7 +496,11 @@ describePostgres(
                 // Without a context it writes every sighting.
                 return poll % 2 === 0 || !existing
                   ? original(existing, incoming)
-                  : { action: "none", setAttachment: false, setIpAddress: false };
+                  : {
+                      action: "none",
+                      setAttachment: false,
+                      setIpAddress: false,
+                    };
               },
             );
 
@@ -506,10 +510,12 @@ describePostgres(
           let wal: number = 0;
           const indexBytesAtStart: number = await indexBytes();
           for (poll = 1; poll <= 12; poll++) {
+            // This poll's own time: the closures below must not read the counter.
+            const receivedAt: Date = at(poll * 5);
             wal += await walBytesOf(async () => {
               perPoll.push(
                 await writesOf(async () => {
-                  await pollAll(at(poll * 5));
+                  await pollAll(receivedAt);
                 }),
               );
             });
@@ -527,7 +533,9 @@ describePostgres(
           // lastSeenAt changes, and it is in an index: no refresh can be HOT.
           expect(hour.hot).toBe(0);
         } finally {
-          await database.query(`DROP INDEX IF EXISTS "${schema}"."before_last_seen"`);
+          await database.query(
+            `DROP INDEX IF EXISTS "${schema}"."before_last_seen"`,
+          );
           await database.query(
             `DROP INDEX IF EXISTS "${schema}"."before_project_last_seen"`,
           );
