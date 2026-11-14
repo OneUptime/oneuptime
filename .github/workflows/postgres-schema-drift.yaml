@@ -3395,6 +3395,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/TelemetryExceptionActivityPostgres.test.ts --forceExit
 
+      # How many statements a sign-in and a request across someone's
+      # projects cost, pinned: a sign-in reads the person's memberships and
+      # their teams' permission rows once however many projects they are in,
+      # and a request across 300 projects reads their rows in one statement.
+      # Every set a sign-in writes is checked row for row against the
+      # per-project path, and the memberships read is checked to use the
+      # ("userId", "projectId") index. Clones the migrated Project, Team,
+      # TeamMember, TeamPermission and label tables into an isolated schema.
+      - name: Test the statements a sign-in and a request across projects cost on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SIGN_IN_STATEMENTS_TESTS: "true"
+          SIGN_IN_STATEMENTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SIGN_IN_STATEMENTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SIGN_IN_STATEMENTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/SignInStatementsPostgres.test.ts --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when
