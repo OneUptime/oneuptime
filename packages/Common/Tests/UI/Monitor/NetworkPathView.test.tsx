@@ -17,7 +17,9 @@ import ProbeNetworkFailureUtil, {
   ProbeNetworkOperation,
 } from "../../../Utils/ProbeNetworkFailureUtil";
 import {
+  getHopHostParts,
   getHopHostText,
+  splitHopAddress,
   TRACEROUTE_HOP_HOST_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/TracerouteHopsTable";
 import NetworkPathView, {
@@ -275,10 +277,12 @@ describe("Network path card when traceroute recorded hops", () => {
 /*
  * A hop's host on a phone. The host column broke at whatever letter filled
  * the line (break-all): "(198.51.100.4" / "2)", "gw.exampl" / "e.com". It
- * gives way between its words first, then after its own dots before a
- * letter; an address never breaks inside. On an Arabic or Persian page it
- * is a box as wide as its words that starts where the page's lines start,
- * each of its lines drawn from the left.
+ * gives way between its name and its address first, then after the name's
+ * own dots before a letter and the address's dots and colons - never
+ * inside a number or before the closing bracket ("(198.51.100.42" / ")",
+ * which a 390px Persian page drew with the address alone in its cell). On
+ * an Arabic or Persian page it is a box as wide as its words that starts
+ * where the page's lines start, each of its lines drawn from the left.
  */
 describe("a hop's host on a narrow screen", () => {
   const LONG_HOP: TraceRouteHop = {
@@ -292,6 +296,50 @@ describe("a hop's host on a narrow screen", () => {
   const hostCells: () => Array<HTMLElement> = (): Array<HTMLElement> => {
     return screen.getAllByTestId("traceroute-hop-host");
   };
+
+  // The cell's text with a "|" where it may break.
+  const breaksOf: (host: HTMLElement) => string = (
+    host: HTMLElement,
+  ): string => {
+    return Array.from(host.childNodes)
+      .map((node: ChildNode): string => {
+        return node.nodeName === "WBR" ? "|" : node.textContent || "";
+      })
+      .join("");
+  };
+
+  it("an address breaks after its dots and colons, never inside a number or before its bracket", () => {
+    expect(splitHopAddress("(198.51.100.42)")).toEqual([
+      "(198.",
+      "51.",
+      "100.",
+      "42)",
+    ]);
+    expect(splitHopAddress("(2001:db8::1)")).toEqual(["(2001:", "db8::", "1)"]);
+    expect(splitHopAddress("(2001:db8:85a3::8a2e:370:7334)")).toEqual([
+      "(2001:",
+      "db8:",
+      "85a3::",
+      "8a2e:",
+      "370:",
+      "7334)",
+    ]);
+    // Nothing after a last separator to break before.
+    expect(splitHopAddress("a.")).toEqual(["a."]);
+    expect(splitHopAddress("")).toEqual([]);
+  });
+
+  it("the parts join to the host's text", () => {
+    for (const hop of [
+      ...HOPS,
+      LONG_HOP,
+      { ...LONG_HOP, address: undefined },
+      { ...LONG_HOP, hostName: undefined, address: "2001:db8::1" },
+    ]) {
+      expect(getHopHostParts(hop).join("")).toBe(getHopHostText(hop));
+    }
+    expect(getHopHostParts(HOPS[1]!)).toEqual(["* * *"]);
+  });
 
   it("names the host and its address, or three stars when none answered", () => {
     expect(getHopHostText(HOPS[0]!)).toBe("gw.example.com (192.168.1.1)");
@@ -326,7 +374,7 @@ describe("a hop's host on a narrow screen", () => {
     }
   });
 
-  it("a long host breaks after its own dots before a letter, and its address stays whole", () => {
+  it("a long host breaks after its own dots before a letter, and its address after its dots", () => {
     renderPath(buildTraceRoute({ hops: [LONG_HOP], totalHops: 1 }));
 
     const host: HTMLElement = hostCells()[0]!;
@@ -335,20 +383,15 @@ describe("a hop's host on a narrow screen", () => {
     expect(host.textContent).toBe(
       "edge-router-01.lon.example.net (198.51.100.42)",
     );
-    expect(host.querySelectorAll("wbr")).toHaveLength(3);
-    expect(
-      Array.from(host.childNodes).map((node: ChildNode) => {
-        return node.nodeName === "WBR" ? "|" : node.textContent;
-      }),
-    ).toEqual([
-      "edge-router-01.",
-      "|",
-      "lon.",
-      "|",
-      "example.",
-      "|",
-      "net (198.51.100.42)",
-    ]);
+    expect(breaksOf(host)).toBe(
+      "edge-router-01.|lon.|example.|net |(198.|51.|100.|42)",
+    );
+  });
+
+  it("an address alone breaks after its dots, its closing bracket kept with its last number", () => {
+    renderPath(buildTraceRoute({ hops: [HOPS[2]!], totalHops: 1 }));
+
+    expect(breaksOf(hostCells()[0]!)).toBe("(198.|51.|100.|7)");
   });
 
   it("a short host breaks after its dots too: it is alone in its cell", () => {
@@ -356,7 +399,7 @@ describe("a hop's host on a narrow screen", () => {
 
     const hosts: Array<HTMLElement> = hostCells();
 
-    expect(hosts[0]!.querySelectorAll("wbr")).toHaveLength(2);
+    expect(breaksOf(hosts[0]!)).toBe("gw.|example.|com |(192.|168.|1.|1)");
     expect(hosts[0]!.textContent).toBe("gw.example.com (192.168.1.1)");
     // Three stars have nothing to break after.
     expect(hosts[1]!.querySelectorAll("wbr")).toHaveLength(0);

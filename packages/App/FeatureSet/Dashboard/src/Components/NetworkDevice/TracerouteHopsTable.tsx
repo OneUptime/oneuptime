@@ -1,8 +1,8 @@
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import { TraceRouteHop } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
-import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "Common/UI/Utils/LineDirection";
+import { splitAtNameBreaks } from "Common/Utils/NameBreaks";
 import React, { FunctionComponent, ReactElement } from "react";
 import useResizableColumns, {
   ResizableColumns,
@@ -33,13 +33,77 @@ export const getHopHostText: (hop: TraceRouteHop) => string = (
 };
 
 /*
- * The host gives way on a phone, between its words first ("gw.example.com"
- * / "(192.168.1.1)") and then after its own dots and dashes (BreakableName),
- * never at whatever letter fills the line ("(198.51.100.4" / "2)"). It is
- * a box of its own as wide as its words, read left to right: on an Arabic
- * or Persian page it starts where the page's lines start and each of its
+ * Where a hop's address may break when its column is narrower than it:
+ * after each dot ("(198.51.100." / "42)") and after each colon but the
+ * first of a "::" ("(2001:db8::" / "1)"). Never inside a number, and never
+ * before its closing bracket. Linear.
+ */
+export const splitHopAddress: (address: string) => Array<string> = (
+  address: string,
+): Array<string> => {
+  const parts: Array<string> = [];
+  let current: string = "";
+
+  for (let index: number = 0; index < address.length; index++) {
+    const character: string = address.charAt(index);
+    const next: string = address.charAt(index + 1);
+
+    current += character;
+
+    if (
+      next !== "" &&
+      (character === "." || (character === ":" && next !== ":"))
+    ) {
+      parts.push(current);
+      current = "";
+    }
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
+};
+
+/*
+ * The host cell's text in parts, a <wbr> between each: the host's name
+ * broken after its own dots before a letter (splitAtNameBreaks, as
+ * BreakableName breaks a name alone in a narrow box), then its address in
+ * brackets broken after its dots and colons (splitHopAddress). Joined,
+ * they are getHopHostText.
+ */
+export const getHopHostParts: (hop: TraceRouteHop) => Array<string> = (
+  hop: TraceRouteHop,
+): Array<string> => {
+  if (hop.isTimeout) {
+    return ["* * *"];
+  }
+
+  const nameParts: Array<string> = hop.hostName
+    ? splitAtNameBreaks(hop.hostName, 0)
+    : [];
+  const addressParts: Array<string> = hop.address
+    ? splitHopAddress(`(${hop.address})`)
+    : [];
+
+  if (nameParts.length > 0 && addressParts.length > 0) {
+    // The space between the name and its address is the first place to break.
+    nameParts[nameParts.length - 1] += " ";
+  }
+
+  return [...nameParts, ...addressParts];
+};
+
+/*
+ * The host gives way on a phone, between its name and its address first
+ * ("gw.example.com" / "(192.168.1.1)"), then after its own dots and
+ * dashes, and its address after its dots ("(198.51.100." / "42)") - never
+ * at whatever character fills the line ("(198.51.100.42" / ")"). It is a
+ * box of its own as wide as its words, read left to right: on an Arabic or
+ * Persian page it starts where the page's lines start and each of its
  * lines starts on the left, rather than a wrapped last piece ("9)") hanging
- * on the right.
+ * on the right. A part still too long for the line breaks anywhere.
  */
 export const TRACEROUTE_HOP_HOST_CLASS_NAME: string = `block ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME} [overflow-wrap:anywhere]`;
 
@@ -155,10 +219,20 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                     className={TRACEROUTE_HOP_HOST_CLASS_NAME}
                     data-testid="traceroute-hop-host"
                   >
-                    <BreakableName
-                      text={getHopHostText(hop)}
-                      breaksFromLength={0}
-                    />
+                    {getHopHostParts(hop).map(
+                      (
+                        part: string,
+                        index: number,
+                        parts: Array<string>,
+                      ): ReactElement => {
+                        return (
+                          <React.Fragment key={index}>
+                            {part}
+                            {index < parts.length - 1 ? <wbr /> : <></>}
+                          </React.Fragment>
+                        );
+                      },
+                    )}
                   </bdi>
                 </td>
                 {/*
