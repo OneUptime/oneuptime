@@ -557,7 +557,9 @@ export default class MonitorOverviewProbeUtil {
    * after its result is further back than the grace, so a schedule with
    * gaps does not mark every probe late through the gap. `isScheduled`
    * false (monitoring is paused) means no probe is expected to check, so
-   * none is late: each keeps the verdict of its last result.
+   * none is late: each keeps the verdict of its last result, and none has
+   * a next check (nextPingAt, nextCheckAt and latestNextCheckAt are left
+   * out).
    */
   public static summarizeProbes(data: {
     monitorProbes: Array<MonitorProbe>;
@@ -629,7 +631,16 @@ export default class MonitorOverviewProbeUtil {
           ? connectionStatus !== ProbeConnectionStatus.Disconnected
           : null,
         lastPingAt: MonitorCheckScheduleUtil.parseDate(monitorProbe.lastPingAt),
-        nextPingAt: MonitorCheckScheduleUtil.parseDate(monitorProbe.nextPingAt),
+        /*
+         * A paused monitor has no next check to promise, whatever the row
+         * says: the probes' claim sets the rows of a monitor nothing may
+         * probe aside, a quarter of an hour at a time
+         * (Server/Utils/Probe/ClaimSetAside), so their nextPingAt is when
+         * the claim looks at them again, not a check that will happen.
+         */
+        nextPingAt: isScheduled
+          ? MonitorCheckScheduleUtil.parseDate(monitorProbe.nextPingAt)
+          : undefined,
         latestResult: latestResult,
         health: health,
       });

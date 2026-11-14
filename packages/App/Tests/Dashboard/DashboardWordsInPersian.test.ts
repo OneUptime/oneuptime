@@ -1728,3 +1728,172 @@ describe("the strings other apps share with the Dashboard", () => {
     expect(admin.get("Twilio Account SID")).not.toBe("Twilio Account SID");
   });
 });
+
+/*
+ * A PORT IS پورت (#7284).
+ *
+ * Persian names a network port پورت: the Port monitor, a probe's ports, a
+ * receiver's port field. Thirty-five texts said درگاه for one - the word
+ * for a gateway or a portal - ("درگاه TCP یا UDP برای بررسی"), so one page
+ * named the same port both ways. A text whose English says port or ports,
+ * and no gateway, never says درگاه in Persian; a gateway keeps it.
+ */
+describe("a port is پورت, never درگاه (#7284)", () => {
+  const PORT: RegExp = /\bports?\b/i;
+  const GATEWAY: RegExp = /gateway/i;
+  const GATEWAY_WORD: string = "درگاه";
+  const PORT_WORD: string = "پورت";
+
+  // Whether a Persian text names the port its English says as a gateway.
+  function saysPortAsGateway(english: string, persian: string): boolean {
+    return (
+      PORT.test(english) &&
+      !GATEWAY.test(english) &&
+      persian.includes(GATEWAY_WORD)
+    );
+  }
+
+  const PORT_TEXTS: Array<[string, string, string]> = WORDED.filter(
+    ([, english]: [string, string, string]): boolean => {
+      return PORT.test(english) && !GATEWAY.test(english);
+    },
+  );
+
+  test("no Persian Dashboard text about a port says درگاه", () => {
+    expect(findWrong(saysPortAsGateway)).toEqual([]);
+  });
+
+  test("they are hundreds, and almost every one says پورت", () => {
+    expect(PORT_TEXTS.length).toBeGreaterThan(150);
+    expect(
+      PORT_TEXTS.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PORT_WORD);
+      }).length,
+    ).toBeGreaterThan(150);
+  });
+
+  test("a gateway keeps درگاه (control)", () => {
+    const gateways: Array<[string, string, string]> = WORDED.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return GATEWAY.test(english) && !PORT.test(english);
+      },
+    );
+
+    expect(
+      gateways.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(GATEWAY_WORD);
+      }).length,
+    ).toBeGreaterThan(10);
+    expect(PERSIAN.get("How the gateway config works")).toContain(GATEWAY_WORD);
+  });
+
+  test("the check finds a port worded as a gateway, and nothing else (control)", () => {
+    expect(
+      saysPortAsGateway(
+        "The TCP or UDP port to check, like 443.",
+        "درگاه TCP یا UDP برای بررسی، مثلاً 443.",
+      ),
+    ).toBe(true);
+    expect(saysPortAsGateway("Ports", "درگاه‌ها")).toBe(true);
+    // "Report" and "Export" say no port; a gateway's port is the gateway's.
+    expect(saysPortAsGateway("Export the report", "درگاه")).toBe(false);
+    expect(saysPortAsGateway("The gateway's port", "پورت درگاه")).toBe(false);
+  });
+
+  test.each([
+    [
+      "The TCP or UDP port to check, like 443.",
+      "پورت TCP یا UDP برای بررسی، مثلاً 443.",
+    ],
+    [
+      "The host the port is on, like example.com.",
+      "میزبانی که پورت روی آن است، مثلاً example.com.",
+    ],
+    [
+      "Prometheus scrape: {{exporter}}, port {{port}}, path {{path}}",
+      "اسکرپ Prometheus: {{exporter}}، پورت {{port}}، مسیر {{path}}",
+    ],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+  });
+
+  test.each(["AdminDashboard", "Accounts", "StatusPage", "PublicDashboard"])(
+    "%s's Persian file says پورت for a port too",
+    (app: string) => {
+      const english: Map<string, string> = leaves(readTree(app, "en"));
+      const persian: Map<string, string> = leaves(readTree(app, "fa"));
+
+      expect(
+        Array.from(english)
+          .filter(([key, text]: [string, string]): boolean => {
+            return saysPortAsGateway(text, persian.get(key) || "");
+          })
+          .map(([key]: [string, string]): string => {
+            return key;
+          }),
+      ).toEqual([]);
+    },
+  );
+
+  test("the Admin Dashboard's port fields say پورت", () => {
+    const english: Map<string, string> = leaves(
+      readTree("AdminDashboard", "en"),
+    );
+    const persian: Map<string, string> = leaves(
+      readTree("AdminDashboard", "fa"),
+    );
+    const ports: Array<string> = Array.from(english.keys()).filter(
+      (key: string): boolean => {
+        return PORT.test(english.get(key) || "");
+      },
+    );
+
+    expect(ports.length).toBeGreaterThan(5);
+    for (const key of ports) {
+      expect({
+        key,
+        says: (persian.get(key) || "").includes(PORT_WORD),
+      }).toEqual({ key, says: true });
+    }
+  });
+
+  /*
+   * The Persian guides for moving from another tool name each of its
+   * monitors in bold beside the OneUptime monitor it becomes: the Port
+   * monitor, which the Dashboard's monitor picker calls پورت.
+   */
+  test("the Persian guides for moving to OneUptime name the Port monitor as the Dashboard does", () => {
+    const guides: string = path.join(
+      APPS,
+      "Docs/Content/fa/moving-to-oneuptime",
+    );
+    const pages: Array<string> = fs
+      .readdirSync(guides)
+      .filter((file: string): boolean => {
+        return file.endsWith(".md");
+      });
+    const read: (page: string) => string = (page: string): string => {
+      return fs.readFileSync(path.join(guides, page), "utf8");
+    };
+
+    expect(PERSIAN.get("Port")).toBe(PORT_WORD);
+    expect(pages.length).toBeGreaterThan(5);
+    expect(
+      pages.filter((page: string): boolean => {
+        return read(page).includes(GATEWAY_WORD);
+      }),
+    ).toEqual([]);
+    for (const page of [
+      "uptimerobot.md",
+      "uptime-kuma.md",
+      "pingdom.md",
+      "statuscake.md",
+      "better-stack.md",
+    ]) {
+      expect({ page, says: read(page).includes(`${PORT_WORD} `) }).toEqual({
+        page,
+        says: true,
+      });
+    }
+  });
+});

@@ -69,6 +69,12 @@ import {
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import {
+  SET_ASIDE_FOR_MINUTES,
+  SET_ASIDE_PER_CLAIM,
+  SET_ASIDE_ROUNDS_PER_CLAIM,
+  SET_ASIDE_SPREAD_IN_MINUTES,
+} from "../Utils/Probe/ClaimSetAside";
+import {
   isDiscoveredDetailsKey,
   readNetworkDeviceDiscoveredDetails,
   sanitizeDiscoveredDetailsOnWrite,
@@ -2458,6 +2464,27 @@ export class Service extends ProjectReferencesService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     /*
+     * A write that can make a device pollable again - polling turned on, an
+     * address or a probe given - makes it due now: while it could not be
+     * polled the claim may have set it aside (setAsideUnpollable), and
+     * turning polling back on must not wait for that. A new address or
+     * probe is worth polling at once anyway. Its own try: the device is
+     * saved already.
+     */
+    if (
+      updatedItemIds.length > 0 &&
+      Service.mayMakePollable(onUpdate.updateBy.data)
+    ) {
+      try {
+        await this.makeDueNow(updatedItemIds);
+      } catch (error) {
+        logger.error(
+          `Error in NetworkDeviceService.onUpdateSuccess making network devices due after a write that can make them pollable: ${error}`,
+        );
+      }
+    }
+
+    /*
      * Re-stamp before the site maintenance below, and in its own try: the
      * two are independent, and a rollup failure must not cost the device
      * its status (nor the other way round).
@@ -3264,8 +3291,12 @@ export class Service extends ProjectReferencesService<Model> {
    * incomplete_expired, expired, paused).
    *
    * The Probe join is a TENANCY backstop rather than a lookup — nothing from
-   * the probe row is selected. See the predicate for why the write-time
+   * the probe row is selected. See getPollableSql for why the write-time
    * guard is not enough on its own.
+   *
+   * After the claim, the due devices it stepped over - nothing may poll
+   * them now - are set aside (setAsideUnpollable), so the next claim does
+   * not step over them again (Utils/Probe/ClaimSetAside).
    */
   @CaptureSpan()
   public async claimDevicesForPolling(data: {
@@ -3283,30 +3314,8 @@ export class Service extends ProjectReferencesService<Model> {
         INNER JOIN "Project" p ON nd."projectId" = p."_id"
         INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
         WHERE nd."probeId" = $1
-          AND nd."isPollingEnabled" = true
-          AND nd."deletedAt" IS NULL
-          AND nd."hostname" IS NOT NULL
-          -- The tenancy backstop. onBeforeCreate/onBeforeUpdate refuse a
-          -- probe that is not attachable to the device's project, but rows
-          -- written before those guards existed are still on disk, and a
-          -- probe that can CLAIM a device reads its hostname and its SNMP
-          -- credentials. A global probe has no project and may poll anyone;
-          -- anything else must match the device's own project or the row is
-          -- simply never handed out. isGlobalProbe is NOT NULL DEFAULT false,
-          -- so there is no third state here to reason about.
-          AND (pr."isGlobalProbe" = true OR pr."projectId" = nd."projectId")
-          -- Nothing polls a monitor-backed device. NULL is every device
-          -- created before the column existed: those are probe-polled.
-          AND (nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')
           AND nd."nextPollAt" <= $2
-          AND p."deletedAt" IS NULL
-          -- A project a master admin blocked is not polled until it is unblocked.
-          AND p."isBlocked" = false
-          AND p."isSampleProject" = false
-          AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
-          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
+          AND ${Service.getPollableSql("$4")}
         -- Plain ASC, which is the order the (probeId, nextPollAt) btree is
         -- already in, so this is a range scan that stops at LIMIT rather than
         -- a scan-and-sort of the probe's whole slice of the fleet. See the
@@ -3353,13 +3362,222 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     );
 
-    if (!Array.isArray(claimedRows)) {
-      return [];
+    const claimed: Array<ObjectID> = Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }) => {
+          return new ObjectID(row._id);
+        })
+      : [];
+
+    /*
+     * Housekeeping that must never cost the probe the devices it was just
+     * handed: a failure is logged, the devices stay due, and the next claim
+     * tries again.
+     */
+    try {
+      // Another round while a round moved a full batch (Utils/Probe/ClaimSetAside).
+      for (let round: number = 0; round < SET_ASIDE_ROUNDS_PER_CLAIM; round++) {
+        const setAside: number = await this.setAsideUnpollable({
+          probeId: data.probeId,
+          currentDate: currentDate,
+        });
+
+        if (setAside < SET_ASIDE_PER_CLAIM) {
+          break;
+        }
+      }
+    } catch (err) {
+      logger.error(
+        `claimDevicesForPolling: could not set aside the due network devices of probe ${data.probeId.toString()} that nothing may poll now; the next claim tries again.`,
+      );
+      logger.error(err);
     }
 
-    return claimedRows.map((row: { _id: string }) => {
-      return new ObjectID(row._id);
-    });
+    return claimed;
+  }
+
+  /*
+   * Sets aside the probe's due devices that nothing may poll now
+   * (Utils/Probe/ClaimSetAside): polling turned off, no address,
+   * monitor-backed, on a probe of another project, or anything of a
+   * suspended, blocked, sample or deleted project. Their nextPollAt moves
+   * SET_ASIDE_FOR_MINUTES on, plus up to SET_ASIDE_SPREAD_IN_MINUTES, so
+   * the claim stops stepping over them on every cycle.
+   *
+   * Looks at no more than SET_ASIDE_PER_CLAIM of the probe's oldest due
+   * devices - the claim has just moved the ones it handed out, so these
+   * are what it stepped over, and the pollable ones still waiting behind
+   * its limit. Each is judged again here by the claim's own rule
+   * (getPollableSql, IS NOT TRUE), so a device the claim would hand out is
+   * never moved, and one whose polling was turned back on is left due.
+   *
+   * One self-committing statement that locks only the devices it moves,
+   * FOR NO KEY UPDATE SKIP LOCKED (OneUptime issue #7194): a device a poll
+   * result is being written to is left for the next claim.
+   *
+   * Returns how many devices it set aside.
+   */
+  @CaptureSpan()
+  public async setAsideUnpollable(data: {
+    probeId: ObjectID;
+    currentDate: Date;
+  }): Promise<number> {
+    const setAsideQuery: string = `
+      WITH "oldestDue" AS (
+        SELECT nd."_id"
+        FROM "NetworkDevice" nd
+        WHERE nd."probeId" = $1
+          AND nd."nextPollAt" <= $2
+        ORDER BY nd."nextPollAt" ASC
+        LIMIT $3
+      ),
+      "unpollable" AS (
+        SELECT nd."_id"
+        FROM "NetworkDevice" nd
+        LEFT JOIN "Project" p ON nd."projectId" = p."_id"
+        LEFT JOIN "Probe" pr ON nd."probeId" = pr."_id"
+        WHERE nd."_id" IN (SELECT "_id" FROM "oldestDue")
+          AND nd."probeId" = $1
+          AND nd."nextPollAt" <= $2
+          AND (
+            ${Service.getPollableSql("$4")}
+          ) IS NOT TRUE
+        FOR NO KEY UPDATE OF nd SKIP LOCKED
+      ),
+      "setAside" AS (
+        UPDATE "NetworkDevice" AS device
+        SET "nextPollAt" = $2::timestamptz
+          + ($5::double precision + random() * $6::double precision)
+            * INTERVAL '1 minute'
+        FROM "unpollable"
+        WHERE device."_id" = "unpollable"."_id"
+        RETURNING device."_id"
+      )
+      SELECT COUNT(*)::int AS "setAside" FROM "setAside"
+    `;
+
+    const rows: unknown = await this.getRepository().manager.query(
+      setAsideQuery,
+      [
+        data.probeId.toString(),
+        data.currentDate,
+        SET_ASIDE_PER_CLAIM,
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        SET_ASIDE_FOR_MINUTES,
+        SET_ASIDE_SPREAD_IN_MINUTES,
+      ],
+    );
+
+    const setAside: number =
+      Number(
+        Array.isArray(rows)
+          ? (rows[0] as { setAside?: unknown } | undefined)?.setAside
+          : undefined,
+      ) || 0;
+
+    if (setAside > 0) {
+      logger.debug(
+        `claimDevicesForPolling: probe ${data.probeId.toString()} set aside ${setAside} due network device(s) nothing may poll now.`,
+      );
+    }
+
+    return setAside;
+  }
+
+  /*
+   * Whether a network device may be handed to its probe to poll now, as SQL
+   * over the aliases the claim's statements use - `nd` (the NetworkDevice),
+   * `p` (its Project) and `pr` (its Probe) - with the served subscription
+   * statuses bound as `statusesParameter`. The claim hands out the devices
+   * it is true for and the set-aside moves the ones it is not true for: one
+   * definition, so a device the claim would hand out is never one the
+   * set-aside moves. Read through LEFT JOINs, a missing project or probe is
+   * NULL here, never true.
+   *
+   * - Polling on, not deleted, and an address to poll.
+   * - The tenancy backstop. onBeforeCreate/onBeforeUpdate refuse a probe
+   *   that is not attachable to the device's project, but rows written
+   *   before those guards existed are still on disk, and a probe that can
+   *   CLAIM a device reads its hostname and its SNMP credentials. A global
+   *   probe has no project and may poll anyone; anything else must match
+   *   the device's own project or the row is simply never handed out.
+   *   isGlobalProbe is NOT NULL DEFAULT false, so there is no third state
+   *   here to reason about.
+   * - Nothing polls a monitor-backed device. NULL is every device created
+   *   before the column existed: those are probe-polled.
+   * - The project is served (getActiveProjectStatusQuery): not deleted,
+   *   not blocked by a master admin, not a sample, and its subscriptions
+   *   not inactive.
+   */
+  private static getPollableSql(statusesParameter: string): string {
+    return [
+      `nd."isPollingEnabled" = true`,
+      `nd."deletedAt" IS NULL`,
+      `nd."hostname" IS NOT NULL`,
+      `(pr."isGlobalProbe" = true OR pr."projectId" = nd."projectId")`,
+      `(nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')`,
+      `p."deletedAt" IS NULL`,
+      `p."isBlocked" = false`,
+      `p."isSampleProject" = false`,
+      `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+      `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+    ].join("\n          AND ");
+  }
+
+  /*
+   * Whether an update can turn a device the claim set aside into one it
+   * hands out: polling switched on, an address written, or a probe
+   * assigned. A Monitor -> Probe switch makes the device due itself
+   * (onUpdateSuccess); a project served again is picked up when its
+   * devices next come due (Utils/Probe/ClaimSetAside).
+   */
+  public static mayMakePollable(data: unknown): boolean {
+    if (!data || typeof data !== "object") {
+      return false;
+    }
+
+    const written: Record<string, unknown> = data as Record<string, unknown>;
+    const dataKeys: Array<string> = Object.keys(written);
+
+    return (
+      written["isPollingEnabled"] === true ||
+      (dataKeys.includes("hostname") && Boolean(written["hostname"])) ||
+      (RelationIdUtil.isWritten(dataKeys, PROBE_KEYS) &&
+        RelationIdUtil.readConsistent(written, PROBE_KEYS, "Probe") !== null)
+    );
+  }
+
+  /*
+   * Makes these devices due now, unless they are due already: a device that
+   * may be polled again - polling turned back on, an address or a probe
+   * given - may have been set aside by the claim for up to
+   * SET_ASIDE_FOR_MINUTES (setAsideUnpollable), and must not wait for it.
+   * Matches every device it names and moves it with LEAST, so a device a
+   * claim is setting aside at this moment is waited for and moved back as
+   * that claim left it (see MonitorProbeService.makeDueNow for why a
+   * filter on the future would miss it).
+   */
+  private async makeDueNow(deviceIds: Array<ObjectID>): Promise<void> {
+    const ids: Array<string> = deviceIds
+      .map((id: ObjectID): string => {
+        return id.toString();
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      });
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.getRepository().manager.query(
+      `
+        UPDATE "NetworkDevice"
+        SET "nextPollAt" = LEAST("nextPollAt", $2::timestamptz)
+        WHERE "_id" = ANY($1::uuid[])
+          AND "deletedAt" IS NULL
+      `,
+      [ids, OneUptimeDate.getCurrentDate()],
+    );
   }
 
   /*

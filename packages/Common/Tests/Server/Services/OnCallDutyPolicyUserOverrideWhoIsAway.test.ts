@@ -47,6 +47,7 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useUserOverrideTimesInMemory } from "../TestingUtils/UserOverrideTimesInMemory";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
@@ -369,6 +370,16 @@ beforeEach(() => {
         return data;
       },
     } as never);
+
+  // Saved under the project's lock on override times, as overlaps are refused.
+  useUserOverrideTimesInMemory({
+    overrides: (): Array<Record<string, unknown>> => {
+      return db.overrides;
+    },
+    users: (): Array<Record<string, unknown>> => {
+      return db.users;
+    },
+  });
 
   // What a saved override sets off: the policy feed and roster refreshes.
   jest

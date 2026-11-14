@@ -45,6 +45,8 @@ import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
+import Timezone from "../../../Types/Timezone";
+import { INVALID_TIMEZONE_MESSAGE } from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -719,6 +721,74 @@ describe("DashboardAPI public SLO", () => {
         await callSloHistory(body);
 
         expect(getThrownError()).toBeInstanceOf(BadDataException);
+        expectNothingRead();
+      }
+    });
+
+    /*
+     * The viewer's zone (issue #7277): a three-month chart reads days, and
+     * each starts at the viewer's midnight, so the zone the page sends is
+     * passed to the read - checked, and nothing else with it.
+     */
+    it("reads the history's days in the zone the viewer sends", async () => {
+      const slo: BuiltWidget = buildSloChartWidget();
+      setWidgets([slo.widget]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: JSONFunctions.serialize(
+          buildAggregateBy({
+            startTimestamp: new Date("2026-04-01T00:00:00.000Z"),
+            endTimestamp: new Date("2026-07-01T00:00:00.000Z"),
+            timezone: Timezone.AmericaNew_York,
+          } as unknown as JSONObject) as JSONObject,
+        ) as JSONObject,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const aggregateArgs: JSONObject = getAggregateArgs();
+      expect(aggregateArgs["timezone"]).toBe(Timezone.AmericaNew_York);
+      expect(aggregateArgs["aggregationInterval"]).toBe(
+        AggregationInterval.Day,
+      );
+    });
+
+    it("reads UTC's days, as before, when the viewer sends no zone", async () => {
+      const slo: BuiltWidget = buildSloChartWidget();
+      setWidgets([slo.widget]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+
+      expect(getAggregateArgs()["timezone"]).toBeUndefined();
+    });
+
+    it("refuses a zone that is not a name from the Timezone list, before touching ClickHouse", async () => {
+      const slo: BuiltWidget = buildSloChartWidget();
+      setWidgets([slo.widget]);
+
+      for (const notAZone of [
+        "america/new_york",
+        "UTC'), 'UTC') AS bucketStart FROM system.one --",
+        42,
+      ]) {
+        jest.clearAllMocks();
+
+        await callSloHistory({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy({
+            timezone: notAZone,
+          } as unknown as JSONObject),
+        });
+
+        const thrown: unknown = getThrownError();
+        expect(thrown).toBeInstanceOf(BadDataException);
+        expect((thrown as BadDataException).message).toBe(
+          INVALID_TIMEZONE_MESSAGE,
+        );
         expectNothingRead();
       }
     });

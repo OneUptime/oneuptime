@@ -70,7 +70,7 @@ export class Service extends ProjectReferencesService<Model> {
       modelType: Model,
       service: this,
       parentIdColumn: "scheduledMaintenanceId",
-      recordNoun: "scheduled maintenance event",
+      recordNoun: "maintenance event",
     };
   }
 
