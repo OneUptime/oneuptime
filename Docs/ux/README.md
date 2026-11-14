@@ -324,6 +324,14 @@ work out, starts from a default for everything else, and folds what most people 
   card read half in English, and a server failure's reference had no copy button (#7307).
   Enforced by
   [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
+- **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
+  words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
+  `WidgetPlaceholder`, or a view that draws one of them. Each widget drew it its own way: the set
+  sentence in English on every board, pale gray in a 160 or 192px column, or a page's
+  `ErrorMessage` with a page's margins (#7330). A widget hands its error on (`error={error}`),
+  never draws it as it is, and every sentence it sets as its error is worded in every Dashboard
+  language. Enforced by
+  [WidgetErrorLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetErrorLineGuard.test.ts).
 
 ## Lists and empty states
 
@@ -530,6 +538,15 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
   an Arabic or Persian page (#7224). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
+- **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
+  a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
+  it timed out." stayed English on every page, and on an Arabic or Persian page an English message
+  lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
+  its count in the reader's plural forms, is written only by its template
+  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
+  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
+  right-to-left line. Enforced by
+  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
