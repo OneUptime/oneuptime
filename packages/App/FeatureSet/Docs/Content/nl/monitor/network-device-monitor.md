@@ -807,7 +807,7 @@ Om er een te maken vanuit **Monitoren**:
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
 
-Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors elke vijf minuten beoordeeld als een poll die het apparaat niet kon bereiken: een criterium dat past bij **SNMP-apparaat is online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
+Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors één keer, telkens wanneer de polls stoppen, beoordeeld als een poll die het apparaat niet kon bereiken (een controle draait elke vijf minuten): een criterium dat past bij **SNMP-apparaat is online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
 
 ### Incidenten en waarschuwingen van een apparaat
 

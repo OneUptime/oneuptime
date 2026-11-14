@@ -807,7 +807,7 @@ To create one from **Monitors** instead:
 
 A Network Device monitor has no interval of its own: it is evaluated every time the device's poll results arrive, and every time a trap from the device arrives.
 
-When the polls stop, the monitor is still evaluated. Once a device has gone three polling intervals, and at least ten minutes, without a poll, its monitors are evaluated every five minutes as a poll that could not reach it: a criteria that matches **SNMP Device Is Online** being False, such as **Device unreachable**, fires, and the incident says why no poll came, for example that the probe is down or that the device has no probe. A device with polling turned off, or on the [bound-monitor override](#the-bound-monitor-override), is left alone. The next poll evaluates the monitor as usual.
+When the polls stop, the monitor is still evaluated. Once a device has gone three polling intervals, and at least ten minutes, without a poll, its monitors are evaluated as a poll that could not reach it, once each time the polls stop (a check looks every five minutes): a criteria that matches **SNMP Device Is Online** being False, such as **Device unreachable**, fires, and the incident says why no poll came, for example that the probe is down or that the device has no probe. A device with polling turned off, or on the [bound-monitor override](#the-bound-monitor-override), is left alone. The next poll evaluates the monitor as usual.
 
 ### A device's incidents and alerts
 
