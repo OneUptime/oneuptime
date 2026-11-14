@@ -1,7 +1,6 @@
 import {
   CompatibleIngestEndpoint,
-  getFluentBitHost,
-  getHostAndPort,
+  getFluentBitHostAndPort,
 } from "./CompatibleIngestGuide";
 
 /*
@@ -33,7 +32,7 @@ export const FLUENT_BIT_LOGS_URI: string = "/otlp/v1/logs";
 export const FLUENTD_LOGS_PATH: string = "/fluentd/logs";
 
 export function getFluentBitConfig(endpoint: CompatibleIngestEndpoint): string {
-  const { port } = getHostAndPort(endpoint);
+  const { host, port } = getFluentBitHostAndPort(endpoint);
   const isTls: boolean = endpoint.protocol !== "http";
 
   return `# fluent-bit.conf
@@ -50,7 +49,7 @@ export function getFluentBitConfig(endpoint: CompatibleIngestEndpoint): string {
 [OUTPUT]
     Name         opentelemetry
     Match        *
-    Host         ${getFluentBitHost(endpoint)}
+    Host         ${host}
     Port         ${port}
     Tls          ${isTls ? "On" : "Off"}
     Header       x-oneuptime-token ${endpoint.key}

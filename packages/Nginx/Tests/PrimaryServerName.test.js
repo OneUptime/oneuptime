@@ -14,8 +14,14 @@
  * forwards /identity as it is instead of as /api/identity: the sign-up page
  * loaded, and signing up or in answered "Page not found - /identity/signup".
  *
- * These tests run the real script (sh and envsubst), and a real nginx where
- * there is one at least as new as the shipped image's.
+ * An IPv6 address with a port is written in brackets ("[2001:db8::1]:8080"),
+ * and nginx keeps them when it reads such a Host, so the server is named
+ * "[2001:db8::1]". Cut at its first ":", it was named "[2001" (#7889), and
+ * so was run.sh's PRIMARY_DOMAIN, which names the primary's certificate.
+ *
+ * These tests run the real scripts (sh and envsubst, and run.sh's own lines
+ * with bash), and a real nginx where there is one at least as new as the
+ * shipped image's.
  */
 
 const assert = require("node:assert/strict");
@@ -39,6 +45,28 @@ const {
 const template = readTemplate();
 const nginxConf = readNginxConf();
 const SCRIPT_PATH = path.join(NGINX_DIRECTORY, "envsubst-on-templates.sh");
+const RUN_SCRIPT_PATH = path.join(NGINX_DIRECTORY, "run.sh");
+
+/*
+ * HOST as people set it, and the name of the primary server it gives: HOST
+ * without its port. run.sh's PRIMARY_DOMAIN is the same, in lower case.
+ */
+const HOSTS = [
+  ["oneuptime.example.com", "oneuptime.example.com"],
+  ["oneuptime.example.com:8080", "oneuptime.example.com"],
+  ["10.0.0.5", "10.0.0.5"],
+  ["10.0.0.5:8080", "10.0.0.5"],
+  ["localhost", "localhost"],
+  ["localhost:3000", "localhost"],
+  // An IPv6 address keeps its brackets, with a port and without one.
+  ["[::1]:8080", "[::1]"],
+  ["[::1]", "[::1]"],
+  ["[2001:DB8::1]:8443", "[2001:DB8::1]"],
+  ["[2001:db8::1]", "[2001:db8::1]"],
+  // Without brackets an IPv6 address has no port: all its colons are its own.
+  ["2001:db8::1", "2001:db8::1"],
+  ["", ""],
+];
 
 function isOnPath(binary, args = ["--version"]) {
   const probe = spawnSync(binary, args, { encoding: "utf8" });
@@ -50,6 +78,11 @@ const scriptSkipReason =
   isOnPath("sh", ["-c", "exit 0"]) && isOnPath("envsubst")
     ? false
     : "sh or envsubst not on PATH";
+
+// run.sh is a bash script, as the image runs it.
+const bashSkipReason = isOnPath("bash", ["-c", "exit 0"])
+  ? false
+  : "bash not on PATH";
 
 /*
  * Live runs need the shipped image's nginx or newer: the config uses
@@ -182,13 +215,7 @@ test(
   "the script takes the port off HOST, and nothing off a HOST without one",
   { skip: scriptSkipReason },
   () => {
-    for (const [host, serverName] of [
-      ["oneuptime.example.com", "oneuptime.example.com"],
-      ["oneuptime.example.com:8080", "oneuptime.example.com"],
-      ["10.0.0.5:8080", "10.0.0.5"],
-      ["localhost:3000", "localhost"],
-      ["", ""],
-    ]) {
+    for (const [host, serverName] of HOSTS) {
       assert.equal(
         exportedServerName({ HOST: host }),
         `HOST_WITHOUT_PORT=${serverName}`,
@@ -197,6 +224,54 @@ test(
       assert.deepEqual(primaryServerNameEnvironment(host), {
         HOST_WITHOUT_PORT: serverName,
       });
+    }
+  },
+);
+
+/*
+ * run.sh's PRIMARY_DOMAIN for `host`: the lines of run.sh that set it, run
+ * with bash on their own, as the rest of run.sh starts nginx and the sidecar.
+ */
+function primaryDomainOf(host) {
+  const source = fs.readFileSync(RUN_SCRIPT_PATH, "utf8");
+  const start = source.indexOf('\nPRIMARY_DOMAIN=""\n');
+  const end = source.indexOf("\nfi\n", start);
+
+  assert.ok(
+    start !== -1 && end !== -1,
+    'run.sh sets PRIMARY_DOMAIN="" and then sets it from HOST in an if block',
+  );
+
+  const result = spawnSync(
+    "bash",
+    [
+      "-c",
+      `${source.slice(start + 1, end + "\nfi\n".length)}printf '%s' "$PRIMARY_DOMAIN"`,
+    ],
+    { encoding: "utf8", env: { PATH: process.env.PATH, HOST: host } },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  return result.stdout;
+}
+
+/*
+ * PRIMARY_DOMAIN names the primary's certificate files, which the sidecar
+ * writes under the name the app orders the certificate for (CoreSSL): HOST
+ * without its port, in lower case. It takes the port off as the server name
+ * does: cut at its first ":", "[2001:DB8::1]:8443" named it "[2001".
+ */
+test(
+  "run.sh's PRIMARY_DOMAIN is HOST without its port, in lower case, as the server name takes it off",
+  { skip: bashSkipReason },
+  () => {
+    for (const [host, serverName] of HOSTS) {
+      assert.equal(
+        primaryDomainOf(host),
+        serverName.toLowerCase(),
+        `HOST="${host}"`,
+      );
     }
   },
 );
@@ -357,121 +432,219 @@ function signUpThrough(port, hostHeader) {
   });
 }
 
+/**
+ * Render the template with the real script under `host`, run a real nginx on
+ * it, and send the sign-up request under each Host header of `cases`: the
+ * app must receive it at the path that case names (/api/identity/signup from
+ * the primary server, /identity/signup from the status pages').
+ */
+async function expectSignUpPaths(host, cases) {
+  const app = await startApp();
+  const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-name-"));
+  let nginx = null;
+  let output = "";
+
+  try {
+    // The workers may run as another user than the one that made it.
+    fs.chmodSync(prefix, 0o755);
+    fs.mkdirSync(path.join(prefix, "conf.d"));
+    fs.mkdirSync(path.join(prefix, "logs"));
+    fs.writeFileSync(path.join(prefix, "nginx.conf"), mainConfIn(prefix));
+
+    const httpPort = await freePort();
+    const tlsPort = await freePort();
+
+    // Rendered by the real script, then moved onto free loopback ports.
+    const rendered = runScript(
+      template,
+      containerEnvironment({
+        HOST: host,
+        SERVER_APP_HOSTNAME: "127.0.0.1",
+        APP_PORT: String(app.port),
+        SERVER_HOME_HOSTNAME: "127.0.0.1",
+        HOME_PORT: String(app.port),
+        NGINX_RESOLVER: "127.0.0.1",
+      }),
+    )
+      .replace(/^(\s*listen\s+)7849\b/gm, `$1127.0.0.1:${httpPort}`)
+      .replace(/^(\s*listen\s+)7850\b/gm, `$1127.0.0.1:${tlsPort}`)
+      // The template's own access_log lines name the image's log folder too.
+      .replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`);
+
+    fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
+
+    nginx = spawn(
+      "nginx",
+      [
+        "-p",
+        prefix,
+        "-e",
+        path.join(prefix, "logs", "startup-error.log"),
+        "-c",
+        path.join(prefix, "nginx.conf"),
+        "-g",
+        "daemon off;",
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    nginx.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    nginx.stderr.on("data", (chunk) => {
+      output += chunk;
+    });
+
+    const deadline = Date.now() + 15000;
+    let listening = false;
+
+    while (Date.now() < deadline && nginx.exitCode === null) {
+      if (await canConnect(httpPort)) {
+        listening = true;
+        break;
+      }
+
+      await wait(50);
+    }
+
+    assert.ok(listening, `nginx did not start: ${output}`);
+
+    for (const [hostHeader, appPath] of cases) {
+      const response = await signUpThrough(httpPort, hostHeader);
+
+      assert.equal(response.status, 200, `${hostHeader}: ${response.body}`);
+      assert.deepEqual(
+        JSON.parse(response.body),
+        { path: appPath },
+        `Host: ${hostHeader}`,
+      );
+    }
+  } finally {
+    if (nginx && nginx.exitCode === null) {
+      const exited = new Promise((resolve) => {
+        nginx.once("exit", resolve);
+      });
+
+      nginx.kill("SIGTERM");
+
+      const stopped = await Promise.race([
+        exited.then(() => {
+          return true;
+        }),
+        wait(5000).then(() => {
+          return false;
+        }),
+      ]);
+
+      if (!stopped) {
+        nginx.kill("SIGKILL");
+        await exited;
+      }
+    }
+
+    await app.close();
+    fs.rmSync(prefix, { recursive: true, force: true });
+  }
+}
+
 test(
   "a real nginx serves sign-in on the primary server under a HOST with its port, and leaves other names to the status pages",
   { skip: nginxSkipReason, timeout: 60000 },
   async () => {
-    const app = await startApp();
+    await expectSignUpPaths("oneuptime.example.com:8080", [
+      // HOST as people open it, port and all: the primary server.
+      ["oneuptime.example.com:8080", "/api/identity/signup"],
+      ["oneuptime.example.com", "/api/identity/signup"],
+      ["localhost:8080", "/api/identity/signup"],
+      // Any other name is a status page's custom domain, as before.
+      ["status.example.org", "/identity/signup"],
+      ["10.0.0.5:8080", "/identity/signup"],
+    ]);
+  },
+);
+
+/*
+ * A browser names an IPv6 host in brackets, with its port, and nginx
+ * compares the bracketed address with the server names. Named "[", the
+ * primary answered none of these requests (#7889).
+ */
+test(
+  "a real nginx serves sign-in on the primary server under an IPv6 HOST in brackets, and leaves other addresses to the status pages",
+  { skip: nginxSkipReason, timeout: 60000 },
+  async () => {
+    await expectSignUpPaths("[::1]:8080", [
+      ["[::1]:8080", "/api/identity/signup"],
+      ["[::1]", "/api/identity/signup"],
+      ["localhost:8080", "/api/identity/signup"],
+      ["[2001:db8::5]:8080", "/identity/signup"],
+      ["oneuptime.example.com", "/identity/signup"],
+    ]);
+  },
+);
+
+/*
+ * With PROVISION_SSL the script points the primary at the certificate named
+ * by PRIMARY_DOMAIN, and makes a temporary self-signed one there until the
+ * app writes the real one. It writes where the ingress image keeps them
+ * (/etc/nginx/certs/ServerCerts), so this runs only inside that image, when
+ * RUN_NGINX_IMAGE_TESTS=1 says so.
+ */
+const provisionSslSkipReason = (() => {
+  if (nginxSkipReason || bashSkipReason) {
+    return nginxSkipReason || bashSkipReason;
+  }
+
+  if (process.env.RUN_NGINX_IMAGE_TESTS !== "1") {
+    return "writes to /etc/nginx/certs/ServerCerts: set RUN_NGINX_IMAGE_TESTS=1 inside the ingress image";
+  }
+
+  return isOnPath("openssl", ["version"]) ? false : "openssl not on PATH";
+})();
+
+test(
+  "with PROVISION_SSL an IPv6 HOST's certificate is named by its address in brackets, and nginx -t accepts the config",
+  { skip: provisionSslSkipReason },
+  () => {
+    const host = "[2001:DB8::1]:8443";
+    const certificate = "/etc/nginx/certs/ServerCerts/[2001:db8::1].crt";
+    const key = "/etc/nginx/certs/ServerCerts/[2001:db8::1].key";
+    const madeHere = !fs.existsSync(certificate) && !fs.existsSync(key);
     const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-name-"));
-    let nginx = null;
-    let output = "";
 
     try {
-      // The workers may run as another user than the one that made it.
-      fs.chmodSync(prefix, 0o755);
-      fs.mkdirSync(path.join(prefix, "conf.d"));
-      fs.mkdirSync(path.join(prefix, "logs"));
-      fs.writeFileSync(path.join(prefix, "nginx.conf"), mainConfIn(prefix));
-
-      const httpPort = await freePort();
-      const tlsPort = await freePort();
-
-      // Rendered by the real script, then moved onto free loopback ports.
       const rendered = runScript(
         template,
         containerEnvironment({
-          HOST: "oneuptime.example.com:8080",
-          SERVER_APP_HOSTNAME: "127.0.0.1",
-          APP_PORT: String(app.port),
-          SERVER_HOME_HOSTNAME: "127.0.0.1",
-          HOME_PORT: String(app.port),
-          NGINX_RESOLVER: "127.0.0.1",
+          HOST: host,
+          PROVISION_SSL: "true",
+          PRIMARY_DOMAIN: primaryDomainOf(host),
         }),
-      )
-        .replace(/^(\s*listen\s+)7849\b/gm, `$1127.0.0.1:${httpPort}`)
-        .replace(/^(\s*listen\s+)7850\b/gm, `$1127.0.0.1:${tlsPort}`)
-        // The template's own access_log lines name the image's log folder too.
-        .replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`);
+      ).replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`);
 
+      assert.ok(
+        rendered.includes(`ssl_certificate ${certificate};`),
+        "the primary's certificate is named by the address in brackets",
+      );
+      assert.ok(fs.existsSync(certificate), `${certificate} was not made`);
+      assert.ok(fs.existsSync(key), `${key} was not made`);
+
+      fs.mkdirSync(path.join(prefix, "conf.d"));
+      fs.mkdirSync(path.join(prefix, "logs"));
+      fs.writeFileSync(path.join(prefix, "nginx.conf"), mainConfIn(prefix));
       fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
 
-      nginx = spawn(
+      const result = spawnSync(
         "nginx",
-        [
-          "-p",
-          prefix,
-          "-e",
-          path.join(prefix, "logs", "startup-error.log"),
-          "-c",
-          path.join(prefix, "nginx.conf"),
-          "-g",
-          "daemon off;",
-        ],
-        { stdio: ["ignore", "pipe", "pipe"] },
+        ["-t", "-p", prefix, "-c", path.join(prefix, "nginx.conf")],
+        { encoding: "utf8" },
       );
-      nginx.stdout.on("data", (chunk) => {
-        output += chunk;
-      });
-      nginx.stderr.on("data", (chunk) => {
-        output += chunk;
-      });
 
-      const deadline = Date.now() + 15000;
-      let listening = false;
-
-      while (Date.now() < deadline && nginx.exitCode === null) {
-        if (await canConnect(httpPort)) {
-          listening = true;
-          break;
-        }
-
-        await wait(50);
-      }
-
-      assert.ok(listening, `nginx did not start: ${output}`);
-
-      for (const [hostHeader, appPath] of [
-        // HOST as people open it, port and all: the primary server.
-        ["oneuptime.example.com:8080", "/api/identity/signup"],
-        ["oneuptime.example.com", "/api/identity/signup"],
-        ["localhost:8080", "/api/identity/signup"],
-        // Any other name is a status page's custom domain, as before.
-        ["status.example.org", "/identity/signup"],
-        ["10.0.0.5:8080", "/identity/signup"],
-      ]) {
-        const response = await signUpThrough(httpPort, hostHeader);
-
-        assert.equal(response.status, 200, `${hostHeader}: ${response.body}`);
-        assert.deepEqual(
-          JSON.parse(response.body),
-          { path: appPath },
-          `Host: ${hostHeader}`,
-        );
-      }
+      assert.equal(result.status, 0, result.stderr);
     } finally {
-      if (nginx && nginx.exitCode === null) {
-        const exited = new Promise((resolve) => {
-          nginx.once("exit", resolve);
-        });
-
-        nginx.kill("SIGTERM");
-
-        const stopped = await Promise.race([
-          exited.then(() => {
-            return true;
-          }),
-          wait(5000).then(() => {
-            return false;
-          }),
-        ]);
-
-        if (!stopped) {
-          nginx.kill("SIGKILL");
-          await exited;
-        }
+      if (madeHere) {
+        fs.rmSync(certificate, { force: true });
+        fs.rmSync(key, { force: true });
       }
 
-      await app.close();
       fs.rmSync(prefix, { recursive: true, force: true });
     }
   },

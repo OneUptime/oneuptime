@@ -22,6 +22,7 @@ import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsMode
 import ProjectUtil from "../../../UI/Utils/Project";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import ObjectID from "../../../Types/ObjectID";
+import Protocol from "../../../Types/API/Protocol";
 
 /*
  * The setup guide's whole job is to hand someone a command they can paste.
@@ -36,6 +37,35 @@ import ObjectID from "../../../Types/ObjectID";
  * App/Tests/Dashboard/SecurityEventsSetupGuide.test.ts. What is pinned
  * here is what actually reaches the screen.
  */
+
+/*
+ * The server's address, as the guide reads it from Common/UI/Config: the
+ * real one unless a test names another.
+ */
+let mockHost: string | undefined = undefined;
+let mockProtocol: Protocol | undefined = undefined;
+
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "HOST", {
+    get: (): unknown => {
+      return mockHost === undefined ? actual["HOST"] : mockHost;
+    },
+  });
+  Object.defineProperty(mocked, "HTTP_PROTOCOL", {
+    get: (): unknown => {
+      return mockProtocol === undefined
+        ? actual["HTTP_PROTOCOL"]
+        : mockProtocol;
+    },
+  });
+
+  return mocked;
+});
 
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
 
@@ -92,6 +122,8 @@ describe("Security Events setup guide", () => {
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+    mockHost = undefined;
+    mockProtocol = undefined;
   });
 
   test("renders the curl sample against the real ingest path", async () => {
@@ -178,6 +210,69 @@ describe("Security Events setup guide", () => {
       "Header           x-oneuptime-token secret-production",
     );
   });
+
+  /*
+   * Fluent Bit's http output takes the host and the port apart, and cannot
+   * resolve an IPv6 address in brackets. Cut at its first ":", HOST
+   * "[::1]:8080" gave Host "[" and Port 80, not 8080 (#7889).
+   */
+  test.each<[string, Protocol, string, string, string]>([
+    ["an IPv6 address with a port", Protocol.HTTP, "[::1]:8080", "::1", "8080"],
+    [
+      "an IPv6 address without one",
+      Protocol.HTTPS,
+      "[2001:db8::1]",
+      "2001:db8::1",
+      "443",
+    ],
+    ["an IPv4 address", Protocol.HTTP, "10.0.0.5:8080", "10.0.0.5", "8080"],
+    [
+      "a name",
+      Protocol.HTTPS,
+      "oneuptime.example.com",
+      "oneuptime.example.com",
+      "443",
+    ],
+    [
+      "localhost with a port",
+      Protocol.HTTP,
+      "localhost:3000",
+      "localhost",
+      "3000",
+    ],
+    ["localhost without one", Protocol.HTTP, "localhost", "localhost", "80"],
+  ])(
+    "the Fluent Bit output on %s: the address alone, and its port",
+    async (
+      _server: string,
+      protocol: Protocol,
+      host: string,
+      fluentBitHost: string,
+      port: string,
+    ) => {
+      mockHost = host;
+      mockProtocol = protocol;
+
+      const container: HTMLElement = renderGuide();
+
+      await waitFor(() => {
+        expect(container.textContent).toContain("x-oneuptime-token");
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /Fluent Bit/ }));
+
+      await waitFor(() => {
+        expect(container.textContent).toContain("Name             http");
+      });
+
+      expect(container.textContent).toContain(
+        `    Host             ${fluentBitHost}\n    Port             ${port}\n`,
+      );
+      expect(container.textContent).toContain(
+        `    tls              ${protocol === Protocol.HTTPS ? "On" : "Off"}\n`,
+      );
+    },
+  );
 
   test("waits for the first event, then confirms when one arrives", async () => {
     renderGuide();
