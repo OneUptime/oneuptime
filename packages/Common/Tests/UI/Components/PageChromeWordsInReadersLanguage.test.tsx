@@ -324,7 +324,8 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
     case "Click to reveal": {
       inLocale(instance, <HiddenText text="s3cr3t-value" />);
 
-      return screen.getByRole("hidden-text").textContent || "";
+      // The button a keyboard reaches, named by the words it shows.
+      return screen.getByTestId("hidden-text-reveal").textContent || "";
     }
     case "Click to copy": {
       inLocale(instance, <ObjectIDView objectId={RECORD_ID} />);
@@ -347,7 +348,15 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
       inLocale(instance, <HiddenText text="s3cr3t-value" isCopyable={true} />);
       fireEvent.click(screen.getByRole("hidden-text"));
 
-      return tooltipOver(screen.getByTestId("hide-text-icon"));
+      /*
+       * What a screen reader says for the Hide button, and what its tooltip
+       * shows: one word, both in the reader's language.
+       */
+      const hide: HTMLElement = screen.getByTestId("hide-text-icon");
+      const spoken: string = hide.getAttribute("aria-label") || "";
+      const shown: string = await tooltipOver(hide);
+
+      return spoken === shown ? shown : `${spoken} | ${shown}`;
     }
     case "Copied!":
     case "Copy failed": {
