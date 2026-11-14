@@ -4,7 +4,6 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
-import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
   NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
@@ -13,15 +12,8 @@ import logger from "Common/Server/Utils/Logger";
 import ProjectMembership, {
   ProjectUserPair,
 } from "Common/Server/Utils/TeamMember/ProjectMembership";
-import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
-import Alert from "Common/Models/DatabaseModels/Alert";
-import AlertService from "Common/Server/Services/AlertService";
-import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
-import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
-import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import {
@@ -36,6 +28,203 @@ import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import { OnCallRulesTick } from "Common/Server/Utils/OnCall/OnCallSendLag";
+import OnCallRecordStates, {
+  OnCallRecordState,
+  OnCallStateCache,
+} from "Common/Server/Utils/OnCall/OnCallRecordStates";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  forEachKeysetPage,
+  forEachWithConcurrency,
+} from "../../Utils/BatchedWork";
+
+/*
+ * How many logs a page of the worker reads, and how many of them are worked
+ * on at once.
+ */
+export const USER_LOG_PAGE_SIZE: number = 100;
+export const USER_LOG_CONCURRENCY: number = 8;
+
+// What the worker reads of each log still paging.
+export const USER_LOG_SELECT: Select<UserOnCallLog> = {
+  _id: true,
+  projectId: true,
+  createdAt: true,
+  executedNotificationRules: true,
+  userId: true,
+  userNotificationEventType: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+  triggeredByAlertEpisodeId: true,
+  triggeredByIncidentEpisodeId: true,
+  onCallDutyPolicyEscalationRuleId: true,
+  onCallDutyPolicyExecutionLogTimelineId: true,
+  onCallDutyPolicyExecutionLogId: true,
+  onCallDutyPolicyId: true,
+  onCallDutyScheduleId: true,
+  userBelongsToTeamId: true,
+  /*
+   * A page again goes on until the run itself is acknowledged
+   * (OnCallAcknowledgementTimeout): its record was acknowledged all along.
+   * So do a page a person asked for (OnCallPersonPage) and a policy a person
+   * started by hand (OnCallPolicyStartedByHand), told apart by who started
+   * them, the policy and the event type that tells a test page apart, and an
+   * observer's page (OnCallObserverPage).
+   */
+  onCallDutyPolicyExecutionLog: {
+    pageAgainNumber: true,
+    acknowledgedAt: true,
+    onCallDutyPolicyId: true,
+    triggeredByUserId: true,
+    triggeredByWorkflowId: true,
+    isObserverPage: true,
+    userNotificationEventType: true,
+  },
+};
+
+/*
+ * Every log still paging, every minute.
+ *
+ * A page of logs at a time, in _id order (forEachKeysetPage), and a few logs
+ * of the page at a time (forEachWithConcurrency). What every log of a page
+ * needs to know is read for the page at once: whether each person is still a
+ * member (ProjectMembership), where each record stands and its severity
+ * (OnCallRecordStates), and each person's rules - once for all of a page's
+ * logs that page the same person in the same project, for the same kind and
+ * severity of record. Each log used to read its record, its record's state
+ * and its rules for itself, and every log was started at the same moment.
+ *
+ * It stops between pages, and between logs, at its deadline: a log it did
+ * not reach is still paging, and the next minute's run gets to it.
+ */
+export const executePendingUserOnCallLogs: (
+  deadline?: JobDeadline,
+) => Promise<void> = async (
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<void> => {
+  // Each project's states, read once for the whole run.
+  const stateCache: OnCallStateCache = new OnCallStateCache();
+
+  // Whether each person is a member of each project, read once for the run.
+  const membershipRead: ProjectMembershipRead = new ProjectMembershipRead();
+
+  await forEachKeysetPage<UserOnCallLog>({
+    jobName: "UserOnCallLog:ExecutePendingExecutions",
+    pageSize: USER_LOG_PAGE_SIZE,
+    deadline: deadline,
+    readPage: (afterId: ObjectID | null): Promise<Array<UserOnCallLog>> => {
+      return UserOnCallLogService.findBy({
+        query: {
+          status: UserNotificationExecutionStatus.Executing,
+          ...(afterId ? { _id: QueryHelper.greaterThan(afterId) } : {}),
+        },
+        select: USER_LOG_SELECT,
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: USER_LOG_PAGE_SIZE,
+        props: {
+          isRoot: true,
+        },
+      });
+    },
+    getId: (log: UserOnCallLog): ObjectID | null => {
+      return log.id;
+    },
+    onPage: async (
+      pendingNotificationLogs: Array<UserOnCallLog>,
+    ): Promise<void> => {
+      /*
+       * A log keeps running its later rules ("call me after 10 minutes")
+       * for as long as the incident is not acknowledged, so the person it
+       * pages may have left the project since it started. Whether each one
+       * is still a member is read once for the run (ProjectMembershipRead).
+       *
+       * If membership cannot be read, the page runs every log as it did
+       * before this check rather than none of them: a page lost to a failed
+       * read is worse than one more read next minute. That cannot reach
+       * somebody who is not a member: the read of the rules a log runs
+       * carries the membership condition itself.
+       */
+      let memberKeys: Set<string> | null = null;
+
+      try {
+        memberKeys = await membershipRead.getMemberKeys(
+          pendingNotificationLogs
+            .filter((log: UserOnCallLog): boolean => {
+              return Boolean(log.projectId && log.userId);
+            })
+            .map((log: UserOnCallLog): ProjectUserPair => {
+              return {
+                projectId: log.projectId!,
+                userId: log.userId!,
+              };
+            }),
+        );
+      } catch (err) {
+        logger.error(
+          "Could not read project membership for pending on-call logs; running them without the membership check.",
+        );
+        logger.error(err as Error);
+      }
+
+      let recordStates: OnCallRecordStates;
+
+      try {
+        // A test page has no record.
+        recordStates = await OnCallRecordStates.read({
+          rows: pendingNotificationLogs.filter((log: UserOnCallLog) => {
+            return !isOnCallTestPage(log);
+          }),
+          cache: stateCache,
+        });
+      } catch (err) {
+        /*
+         * The page's logs go on paging and are read again next minute: a
+         * read that failed says nothing about any of them.
+         */
+        logger.error(
+          "UserOnCallLog:ExecutePendingExecutions: could not read where a page of logs' records stand; the page waits for the next run.",
+        );
+        logger.error(err);
+        return;
+      }
+
+      // Each person's rules, read once for all the page's logs that share them.
+      const rulesRead: NotificationRulesRead = new NotificationRulesRead();
+
+      await forEachWithConcurrency<UserOnCallLog>({
+        items: pendingNotificationLogs,
+        concurrency: USER_LOG_CONCURRENCY,
+        deadline: deadline,
+        work: (pendingNotificationLog: UserOnCallLog): Promise<void> => {
+          return executePendingNotificationLog(
+            pendingNotificationLog,
+            {
+              isProjectMember:
+                memberKeys === null ||
+                Boolean(
+                  pendingNotificationLog.projectId &&
+                    pendingNotificationLog.userId &&
+                    memberKeys.has(
+                      ProjectMembership.getKey(
+                        pendingNotificationLog.projectId,
+                        pendingNotificationLog.userId,
+                      ),
+                    ),
+                ),
+            },
+            { recordStates, rulesRead },
+          );
+        },
+      });
+    },
+  });
+};
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -43,111 +232,115 @@ RunCron(
     schedule: IsDevelopment ? EVERY_MINUTE : EVERY_MINUTE,
     runOnStartup: false,
   },
-  async () => {
-    const pendingNotificationLogs: Array<UserOnCallLog> =
-      await UserOnCallLogService.findAllBy({
-        query: {
-          status: UserNotificationExecutionStatus.Executing,
-        },
+  executePendingUserOnCallLogs,
+);
+
+/*
+ * Whether each person a run's logs page is a member of the log's project
+ * (ProjectMembership), read once for the run: one read for the people the
+ * first page names, and one more only for a page that names somebody new.
+ */
+export class ProjectMembershipRead {
+  private readonly isMember: Map<string, boolean> = new Map();
+
+  public async getMemberKeys(
+    pairs: Array<ProjectUserPair>,
+  ): Promise<Set<string>> {
+    const unread: Map<string, ProjectUserPair> = new Map();
+
+    for (const pair of pairs) {
+      const key: string = ProjectMembership.getKey(pair.projectId, pair.userId);
+
+      if (!this.isMember.has(key)) {
+        unread.set(key, pair);
+      }
+    }
+
+    if (unread.size > 0) {
+      const members: Set<string> = await ProjectMembership.getMemberKeys([
+        ...unread.values(),
+      ]);
+
+      for (const key of unread.keys()) {
+        this.isMember.set(key, members.has(key));
+      }
+    }
+
+    const memberKeys: Set<string> = new Set();
+
+    for (const pair of pairs) {
+      const key: string = ProjectMembership.getKey(pair.projectId, pair.userId);
+
+      if (this.isMember.get(key)) {
+        memberKeys.add(key);
+      }
+    }
+
+    return memberKeys;
+  }
+}
+
+/*
+ * The rules a page runs for a person (UserOnCallLogService
+ * .getPagingRulesQuery), read once per person, project, kind and severity
+ * of record for all of a page's logs that share them: in an alert storm one
+ * person is paged by many logs at once, for records of the same severity.
+ */
+export class NotificationRulesRead {
+  private readonly reads: Map<string, Promise<Array<UserNotificationRule>>> =
+    new Map();
+
+  public get(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    ruleType: NotificationRuleType;
+    incidentSeverityId?: ObjectID | undefined;
+    alertSeverityId?: ObjectID | undefined;
+  }): Promise<Array<UserNotificationRule>> {
+    const key: string = [
+      data.userId.toString(),
+      data.projectId.toString(),
+      data.ruleType,
+      data.incidentSeverityId?.toString() || "",
+      data.alertSeverityId?.toString() || "",
+    ].join("|");
+
+    let read: Promise<Array<UserNotificationRule>> | undefined =
+      this.reads.get(key);
+
+    if (!read) {
+      read = UserNotificationRuleService.findBy({
+        query: UserOnCallLogService.getPagingRulesQuery({
+          userId: data.userId,
+          projectId: data.projectId,
+          ruleType: data.ruleType,
+          incidentSeverityId: data.incidentSeverityId,
+          alertSeverityId: data.alertSeverityId,
+        }),
         select: {
           _id: true,
-          projectId: true,
-          createdAt: true,
-          executedNotificationRules: true,
-          userId: true,
-          userNotificationEventType: true,
-          triggeredByIncidentId: true,
-          triggeredByAlertId: true,
-          triggeredByAlertEpisodeId: true,
-          triggeredByIncidentEpisodeId: true,
-          onCallDutyPolicyEscalationRuleId: true,
-          onCallDutyPolicyExecutionLogTimelineId: true,
-          onCallDutyPolicyExecutionLogId: true,
-          onCallDutyPolicyId: true,
-          onCallDutyScheduleId: true,
-          userBelongsToTeamId: true,
-          /*
-           * A page again goes on until the run itself is acknowledged
-           * (OnCallAcknowledgementTimeout): its record was acknowledged all
-           * along. So do a page a person asked for (OnCallPersonPage) and a
-           * policy a person started by hand (OnCallPolicyStartedByHand),
-           * told apart by who started them, the policy and the event type
-           * that tells a test page apart, and an observer's page
-           * (OnCallObserverPage).
-           */
-          onCallDutyPolicyExecutionLog: {
-            pageAgainNumber: true,
-            acknowledgedAt: true,
-            onCallDutyPolicyId: true,
-            triggeredByUserId: true,
-            triggeredByWorkflowId: true,
-            isObserverPage: true,
-            userNotificationEventType: true,
-          },
+          notifyAfterMinutes: true,
+          // Whether the rule's push repeats until acknowledged.
+          repeatEveryMinutes: true,
         },
         props: {
           isRoot: true,
         },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
       });
 
-    /*
-     * A log keeps running its later rules ("call me after 10 minutes") for as
-     * long as the incident is not acknowledged, so the person it pages may
-     * have left the project since it started. Whether each one is still a
-     * member is read once for the whole tick (ProjectMembership).
-     *
-     * If membership cannot be read, the tick runs every log as it did before
-     * this check rather than none of them: a page lost to a failed read is
-     * worse than one more read next minute. That cannot reach somebody who
-     * is not a member: the read of the rules a log runs carries the
-     * membership condition itself.
-     */
-    let memberKeys: Set<string> | null = null;
+      // A read that failed is read again by the next log that needs it.
+      read.catch(() => {
+        this.reads.delete(key);
+      });
 
-    try {
-      memberKeys = await ProjectMembership.getMemberKeys(
-        pendingNotificationLogs
-          .filter((log: UserOnCallLog): boolean => {
-            return Boolean(log.projectId && log.userId);
-          })
-          .map((log: UserOnCallLog): ProjectUserPair => {
-            return {
-              projectId: log.projectId!,
-              userId: log.userId!,
-            };
-          }),
-      );
-    } catch (err) {
-      logger.error(
-        "Could not read project membership for pending on-call logs; running them without the membership check.",
-      );
-      logger.error(err as Error);
+      this.reads.set(key, read);
     }
 
-    const promises: Array<Promise<void>> = [];
-
-    for (const pendingNotificationLog of pendingNotificationLogs) {
-      promises.push(
-        executePendingNotificationLog(pendingNotificationLog, {
-          isProjectMember:
-            memberKeys === null ||
-            Boolean(
-              pendingNotificationLog.projectId &&
-                pendingNotificationLog.userId &&
-                memberKeys.has(
-                  ProjectMembership.getKey(
-                    pendingNotificationLog.projectId,
-                    pendingNotificationLog.userId,
-                  ),
-                ),
-            ),
-        }),
-      );
-    }
-
-    await Promise.allSettled(promises);
-  },
-);
+    return read;
+  }
+}
 
 type ExecutePendingNotificationLogFunction = (
   pendingNotificationLog: UserOnCallLog,
@@ -155,14 +348,40 @@ type ExecutePendingNotificationLogFunction = (
     // Whether the person this log pages is a member of its project now.
     isProjectMember: boolean;
   },
+  /*
+   * What the log's page read for all its logs at once. A log run on its own
+   * reads its records and rules for itself.
+   */
+  page?: {
+    // Where the page's records stand, read for the page at once.
+    recordStates: OnCallRecordStates;
+    // The page's people's rules, each read once.
+    rulesRead: NotificationRulesRead;
+  },
 ) => Promise<void>;
 
 const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
   async (
     pendingNotificationLog: UserOnCallLog,
     membership: { isProjectMember: boolean },
+    pageRead?: {
+      recordStates: OnCallRecordStates;
+      rulesRead: NotificationRulesRead;
+    },
   ): Promise<void> => {
     try {
+      const page: {
+        recordStates: OnCallRecordStates;
+        rulesRead: NotificationRulesRead;
+      } = pageRead || {
+        recordStates: await OnCallRecordStates.read({
+          rows: isOnCallTestPage(pendingNotificationLog)
+            ? []
+            : [pendingNotificationLog],
+        }),
+        rulesRead: new NotificationRulesRead(),
+      };
+
       if (!membership.isProjectMember) {
         /*
          * Somebody who has left is not paged again on the project's behalf:
@@ -208,58 +427,41 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           pendingNotificationLog.userNotificationEventType!,
         );
 
-      let incident: Incident | null = null;
-      let alert: Alert | null = null;
-      let alertEpisode: AlertEpisode | null = null;
-      let incidentEpisode: IncidentEpisode | null = null;
+      /*
+       * Its records, as the page read them (OnCallRecordStates): null for
+       * one that is gone, as reading it on its own found nothing.
+       */
+      const incident: OnCallRecordState | null =
+        pendingNotificationLog.triggeredByIncidentId
+          ? await page.recordStates.readRecord(
+              "incident",
+              pendingNotificationLog.triggeredByIncidentId,
+            )
+          : null;
 
-      if (pendingNotificationLog.triggeredByIncidentId) {
-        incident = await IncidentService.findOneById({
-          id: pendingNotificationLog.triggeredByIncidentId!,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            incidentSeverityId: true,
-          },
-        });
-      }
+      const alert: OnCallRecordState | null =
+        pendingNotificationLog.triggeredByAlertId
+          ? await page.recordStates.readRecord(
+              "alert",
+              pendingNotificationLog.triggeredByAlertId,
+            )
+          : null;
 
-      if (pendingNotificationLog.triggeredByAlertId) {
-        alert = await AlertService.findOneById({
-          id: pendingNotificationLog.triggeredByAlertId!,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            alertSeverityId: true,
-          },
-        });
-      }
+      const alertEpisode: OnCallRecordState | null =
+        pendingNotificationLog.triggeredByAlertEpisodeId
+          ? await page.recordStates.readRecord(
+              "alert episode",
+              pendingNotificationLog.triggeredByAlertEpisodeId,
+            )
+          : null;
 
-      if (pendingNotificationLog.triggeredByAlertEpisodeId) {
-        alertEpisode = await AlertEpisodeService.findOneById({
-          id: pendingNotificationLog.triggeredByAlertEpisodeId!,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            alertSeverityId: true,
-          },
-        });
-      }
-
-      if (pendingNotificationLog.triggeredByIncidentEpisodeId) {
-        incidentEpisode = await IncidentEpisodeService.findOneById({
-          id: pendingNotificationLog.triggeredByIncidentEpisodeId!,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            incidentSeverityId: true,
-          },
-        });
-      }
+      const incidentEpisode: OnCallRecordState | null =
+        pendingNotificationLog.triggeredByIncidentEpisodeId
+          ? await page.recordStates.readRecord(
+              "incident episode",
+              pendingNotificationLog.triggeredByIncidentEpisodeId,
+            )
+          : null;
 
       if (!incident && !alert && !alertEpisode && !incidentEpisode) {
         throw new Error(
@@ -322,10 +524,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
 
       if (incident && !endsWhenAnsweredOrResolved) {
         // check if the incident is acknowledged.
-        const isAcknowledged: boolean =
-          await IncidentService.isIncidentAcknowledged({
-            incidentId: pendingNotificationLog.triggeredByIncidentId!,
-          });
+        const isAcknowledged: boolean = await page.recordStates.isAcknowledged(
+          "incident",
+          pendingNotificationLog.triggeredByIncidentId!,
+        );
         if (isAcknowledged) {
           // then mark this policy as executed.
           await UserOnCallLogService.updateOneById({
@@ -345,9 +547,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
 
       if (alert && !endsWhenAnsweredOrResolved) {
         // check if the alert is acknowledged.
-        const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
-          alertId: pendingNotificationLog.triggeredByAlertId!,
-        });
+        const isAcknowledged: boolean = await page.recordStates.isAcknowledged(
+          "alert",
+          pendingNotificationLog.triggeredByAlertId!,
+        );
 
         if (isAcknowledged) {
           // then mark this policy as executed.
@@ -368,10 +571,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
 
       if (alertEpisode && !endsWhenAnsweredOrResolved) {
         // check if the alert episode is acknowledged.
-        const isAcknowledged: boolean =
-          await AlertEpisodeService.isEpisodeAcknowledged({
-            episodeId: pendingNotificationLog.triggeredByAlertEpisodeId!,
-          });
+        const isAcknowledged: boolean = await page.recordStates.isAcknowledged(
+          "alert episode",
+          pendingNotificationLog.triggeredByAlertEpisodeId!,
+        );
 
         if (isAcknowledged) {
           // then mark this policy as executed.
@@ -392,10 +595,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
 
       if (incidentEpisode && !endsWhenAnsweredOrResolved) {
         // check if the incident episode is acknowledged.
-        const isAcknowledged: boolean =
-          await IncidentEpisodeService.isEpisodeAcknowledged({
-            episodeId: pendingNotificationLog.triggeredByIncidentEpisodeId!,
-          });
+        const isAcknowledged: boolean = await page.recordStates.isAcknowledged(
+          "incident episode",
+          pendingNotificationLog.triggeredByIncidentEpisodeId!,
+        );
 
         if (isAcknowledged) {
           // then mark this policy as executed.
@@ -437,31 +640,14 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
        *     every real rule and stop all escalation.
        */
       const notificationRules: Array<UserNotificationRule> =
-        await UserNotificationRuleService.findBy({
-          query: UserOnCallLogService.getPagingRulesQuery({
-            userId: pendingNotificationLog.userId!,
-            projectId: pendingNotificationLog.projectId!,
-            ruleType: ruleType,
-            incidentSeverityId:
-              incident?.incidentSeverityId ||
-              incidentEpisode?.incidentSeverityId ||
-              undefined,
-            alertSeverityId:
-              alert?.alertSeverityId ||
-              alertEpisode?.alertSeverityId ||
-              undefined,
-          }),
-          select: {
-            _id: true,
-            notifyAfterMinutes: true,
-            // Whether the rule's push repeats until acknowledged.
-            repeatEveryMinutes: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
+        await page.rulesRead.get({
+          userId: pendingNotificationLog.userId!,
+          projectId: pendingNotificationLog.projectId!,
+          ruleType: ruleType,
+          incidentSeverityId:
+            incident?.severityId || incidentEpisode?.severityId || undefined,
+          alertSeverityId:
+            alert?.severityId || alertEpisode?.severityId || undefined,
         });
 
       let isAllExecuted: boolean = true;

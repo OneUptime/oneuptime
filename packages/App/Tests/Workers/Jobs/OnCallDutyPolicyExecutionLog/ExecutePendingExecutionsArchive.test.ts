@@ -31,6 +31,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -47,7 +58,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
     },
@@ -120,11 +131,11 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
 };
@@ -187,7 +198,7 @@ beforeEach(() => {
 describe("an execution of an on-call policy that has been archived", () => {
   test("is closed as Completed with the reason, and pages nobody else", async () => {
     const log: OnCallDutyPolicyExecutionLog = escalating(true);
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -208,12 +219,12 @@ describe("an execution of an on-call policy that has been archived", () => {
   });
 
   test("the sweep reads whether each execution's policy is archived", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const select: Record<string, Record<string, unknown>> = (
-      executionLogService.findAllBy.mock.calls[0]![0] as {
+      executionLogService.findBy.mock.calls[0]![0] as {
         select: Record<string, Record<string, unknown>>;
       }
     ).select;
@@ -223,7 +234,7 @@ describe("an execution of an on-call policy that has been archived", () => {
 
   test("an execution of a live policy carries on escalating", async () => {
     const log: OnCallDutyPolicyExecutionLog = escalating(false);
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -240,7 +251,7 @@ describe("an execution of an on-call policy that has been archived", () => {
 
   test("a policy read without the flag counts as live", async () => {
     const log: OnCallDutyPolicyExecutionLog = escalating(undefined);
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -250,7 +261,7 @@ describe("an execution of an on-call policy that has been archived", () => {
   test("one archived policy does not stop another policy's execution", async () => {
     const archived: OnCallDutyPolicyExecutionLog = escalating(true);
     const live: OnCallDutyPolicyExecutionLog = escalating(false);
-    executionLogService.findAllBy.mockResolvedValue([archived, live]);
+    executionLogService.findBy.mockResolvedValue([archived, live]);
 
     await tick();
 

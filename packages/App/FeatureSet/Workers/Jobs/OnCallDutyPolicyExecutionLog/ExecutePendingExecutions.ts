@@ -13,7 +13,6 @@ import { isOnCallPageEndedOnlyByAnAnswer } from "Common/Types/OnCallDutyPolicy/O
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallTestPageRuns from "Common/Server/Utils/OnCall/OnCallTestPageRuns";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import {
   getOnCallPolicyRunEndedWhileWaitingMessage,
@@ -33,15 +32,165 @@ import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDu
 import logger from "Common/Server/Utils/Logger";
 import OnCallEscalationAdvance from "Common/Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
-import IncidentService from "Common/Server/Services/IncidentService";
-import AlertService from "Common/Server/Services/AlertService";
-import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
-import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
-import OnCallAcknowledgementTimeout, {
-  OnCallTimeoutRecordKind,
-  OnCallTimeoutRecordState,
-} from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallRecordStates, {
+  OnCallStateCache,
+} from "Common/Server/Utils/OnCall/OnCallRecordStates";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import Select from "Common/Server/Types/Database/Select";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  forEachKeysetPage,
+  forEachWithConcurrency,
+} from "../../Utils/BatchedWork";
+
+/*
+ * How many runs a page of the worker reads, and how many of them are worked
+ * on at once.
+ */
+export const POLICY_RUN_PAGE_SIZE: number = 100;
+export const POLICY_RUN_CONCURRENCY: number = 8;
+
+// What the worker reads of each run still going.
+export const POLICY_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
+  _id: true,
+  projectId: true,
+  status: true,
+  pagingStartsAt: true,
+  onCallDutyPolicyId: true,
+  lastEscalationRuleExecutedAt: true,
+  lastExecutedEscalationRuleId: true,
+  lastExecutedEscalationRuleOrder: true,
+  executeNextEscalationRuleInMinutes: true,
+  userNotificationEventType: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+  triggeredByAlertEpisodeId: true,
+  triggeredByIncidentEpisodeId: true,
+  createdAt: true,
+  // A page again ends when its record is resolved, not acknowledged.
+  pageAgainNumber: true,
+  /*
+   * So do a page a person asked for (OnCallPersonPage) and a policy a
+   * person started by hand (OnCallPolicyStartedByHand), told apart by who
+   * started them, with the policy and the event type above.
+   */
+  triggeredByUserId: true,
+  triggeredByWorkflowId: true,
+  // And an observer's page (OnCallObserverPage).
+  isObserverPage: true,
+  // A run OneUptime AI holds says how its hold ended.
+  aiHoldOutcome: true,
+  // A test page (OnCallTestPage) walks every level, or waits.
+  testPageWalksEscalation: true,
+  onCallDutyPolicy: {
+    repeatPolicyIfNoOneAcknowledges: true,
+    repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+    isArchived: true,
+  },
+  onCallPolicyExecutionRepeatCount: true,
+};
+
+/*
+ * Every run still going, every minute: the ones paging, and the ones waiting
+ * to page (OnCallDutyPolicyRunWait), which start - or end, unpaged - here.
+ *
+ * A page of runs at a time, in _id order (forEachKeysetPage), and a few
+ * runs of the page at a time (forEachWithConcurrency). Where each page's
+ * records stand - acknowledged, resolved - is read for the whole page at
+ * once (OnCallRecordStates): one query per kind of record and one per list
+ * of states, where each run used to read its record and its project's
+ * states for itself. A run with nothing to do this minute - its record not
+ * handled, its wait not over - is decided from what was read, and costs no
+ * query of its own. The worker used to read every run, then start the work
+ * of all of them at the same moment: in an alert storm, thousands of
+ * queries at once on a pool of fifty connections.
+ *
+ * It stops between pages, and between runs, at its deadline: a run it did
+ * not reach is still going, and the next minute's run gets to it.
+ */
+export const executePendingPolicyRuns: (
+  deadline?: JobDeadline,
+) => Promise<void> = async (
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<void> => {
+  // Each project's states, read once for the whole run.
+  const stateCache: OnCallStateCache = new OnCallStateCache();
+
+  await forEachKeysetPage<OnCallDutyPolicyExecutionLog>({
+    jobName: "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
+    pageSize: POLICY_RUN_PAGE_SIZE,
+    deadline: deadline,
+    readPage: (
+      afterId: ObjectID | null,
+    ): Promise<Array<OnCallDutyPolicyExecutionLog>> => {
+      return OnCallDutyPolicyExecutionLogService.findBy({
+        query: {
+          status: QueryHelper.any([
+            OnCallDutyPolicyStatus.Executing,
+            OnCallDutyPolicyStatus.Waiting,
+          ]),
+          ...(afterId ? { _id: QueryHelper.greaterThan(afterId) } : {}),
+        },
+        select: POLICY_RUN_SELECT,
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: POLICY_RUN_PAGE_SIZE,
+        props: {
+          isRoot: true,
+        },
+      });
+    },
+    getId: (run: OnCallDutyPolicyExecutionLog): ObjectID | null => {
+      return run.id;
+    },
+    onPage: async (
+      runs: Array<OnCallDutyPolicyExecutionLog>,
+    ): Promise<void> => {
+      let recordStates: OnCallRecordStates;
+
+      try {
+        recordStates = await OnCallRecordStates.read({
+          /*
+           * An archived policy's run ends without reading its record, and a
+           * test page has none.
+           */
+          rows: runs.filter((run: OnCallDutyPolicyExecutionLog): boolean => {
+            return (
+              run.onCallDutyPolicy?.isArchived !== true &&
+              !isOnCallTestPage(run)
+            );
+          }),
+          cache: stateCache,
+        });
+      } catch (err) {
+        /*
+         * The page's runs go on as they are and are read again next minute:
+         * a read that failed says nothing about any run, so none is ended
+         * in error for it.
+         */
+        logger.error(
+          "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions: could not read where a page of runs' records stand; the page waits for the next run.",
+        );
+        logger.error(err);
+        return;
+      }
+
+      await forEachWithConcurrency<OnCallDutyPolicyExecutionLog>({
+        items: runs,
+        concurrency: POLICY_RUN_CONCURRENCY,
+        deadline: deadline,
+        work: (executionLog: OnCallDutyPolicyExecutionLog): Promise<void> => {
+          return executionLog.status === OnCallDutyPolicyStatus.Waiting
+            ? startOrEndWaitingRun(executionLog, recordStates)
+            : executeOnCallPolicy(executionLog, recordStates);
+        },
+      });
+    },
+  });
+};
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -49,74 +198,7 @@ RunCron(
     schedule: EVERY_MINUTE,
     runOnStartup: false,
   },
-  async () => {
-    /*
-     * Every run still going: the ones paging, and the ones waiting to page
-     * (OnCallDutyPolicyRunWait), which start - or end, unpaged - here.
-     */
-    const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
-      await OnCallDutyPolicyExecutionLogService.findAllBy({
-        query: {
-          status: QueryHelper.any([
-            OnCallDutyPolicyStatus.Executing,
-            OnCallDutyPolicyStatus.Waiting,
-          ]),
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          status: true,
-          pagingStartsAt: true,
-          onCallDutyPolicyId: true,
-          lastEscalationRuleExecutedAt: true,
-          lastExecutedEscalationRuleId: true,
-          lastExecutedEscalationRuleOrder: true,
-          executeNextEscalationRuleInMinutes: true,
-          userNotificationEventType: true,
-          triggeredByIncidentId: true,
-          triggeredByAlertId: true,
-          triggeredByAlertEpisodeId: true,
-          triggeredByIncidentEpisodeId: true,
-          createdAt: true,
-          // A page again ends when its record is resolved, not acknowledged.
-          pageAgainNumber: true,
-          /*
-           * So do a page a person asked for (OnCallPersonPage) and a policy a
-           * person started by hand (OnCallPolicyStartedByHand), told apart
-           * by who started them, with the policy and the event type above.
-           */
-          triggeredByUserId: true,
-          triggeredByWorkflowId: true,
-          // And an observer's page (OnCallObserverPage).
-          isObserverPage: true,
-          // A run OneUptime AI holds says how its hold ended.
-          aiHoldOutcome: true,
-          // A test page (OnCallTestPage) walks every level, or waits.
-          testPageWalksEscalation: true,
-          onCallDutyPolicy: {
-            repeatPolicyIfNoOneAcknowledges: true,
-            repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
-            isArchived: true,
-          },
-          onCallPolicyExecutionRepeatCount: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const promises: Array<Promise<void>> = [];
-
-    for (const executionLog of pendingExecutions) {
-      promises.push(
-        executionLog.status === OnCallDutyPolicyStatus.Waiting
-          ? startOrEndWaitingRun(executionLog)
-          : executeOnCallPolicy(executionLog),
-      );
-    }
-
-    await Promise.allSettled(promises);
-  },
+  executePendingPolicyRuns,
 );
 
 /*
@@ -135,10 +217,12 @@ const endsWhenAnsweredOrResolved: (
 
 type ExecuteOnCallPolicyFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
+  recordStates: OnCallRecordStates,
 ) => Promise<void>;
 
 const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
+  recordStates: OnCallRecordStates,
 ): Promise<void> => {
   try {
     logger.debug(`Executing on-call policy execution log: ${executionLog.id}`);
@@ -197,7 +281,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
      */
     if (endsWhenAnsweredOrResolved(executionLog)) {
       const resolvedRecordKind: string | null =
-        await getResolvedRecordKind(executionLog);
+        await recordStates.getResolvedRecordKind(executionLog);
 
       if (resolvedRecordKind) {
         await OnCallDutyPolicyExecutionLogService.updateOneById({
@@ -220,7 +304,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
        * the run is over.
        */
       const handledRecordKind: string | null =
-        await getHandledRecordKind(executionLog);
+        await recordStates.getHandledRecordKind(executionLog);
 
       if (handledRecordKind) {
         await OnCallDutyPolicyExecutionLogService.updateOneById({
@@ -312,120 +396,6 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 };
 
 /*
- * The kind of record a run pages about - "alert", "incident", "alert
- * episode", "incident episode" - when that record is acknowledged or
- * resolved; null while it is not, or the run pages about none.
- */
-type GetHandledRecordKindFunction = (
-  executionLog: OnCallDutyPolicyExecutionLog,
-) => Promise<string | null>;
-
-const getHandledRecordKind: GetHandledRecordKindFunction = async (
-  executionLog: OnCallDutyPolicyExecutionLog,
-): Promise<string | null> => {
-  if (executionLog.triggeredByAlertId) {
-    logger.debug(`Triggered by alert: ${executionLog.triggeredByAlertId}`);
-
-    const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
-      alertId: executionLog.triggeredByAlertId,
-    });
-
-    logger.debug(`Alert is acknowledged: ${isAcknowledged}`);
-
-    if (isAcknowledged) {
-      return "alert";
-    }
-  }
-
-  if (executionLog.triggeredByIncidentId) {
-    logger.debug(
-      `Triggered by incident: ${executionLog.triggeredByIncidentId}`,
-    );
-
-    const isAcknowledged: boolean =
-      await IncidentService.isIncidentAcknowledged({
-        incidentId: executionLog.triggeredByIncidentId,
-      });
-
-    logger.debug(`Incident is acknowledged: ${isAcknowledged}`);
-
-    if (isAcknowledged) {
-      return "incident";
-    }
-  }
-
-  if (executionLog.triggeredByAlertEpisodeId) {
-    logger.debug(
-      `Triggered by alert episode: ${executionLog.triggeredByAlertEpisodeId}`,
-    );
-
-    const isAcknowledged: boolean =
-      await AlertEpisodeService.isEpisodeAcknowledged({
-        episodeId: executionLog.triggeredByAlertEpisodeId,
-      });
-
-    logger.debug(`Alert episode is acknowledged: ${isAcknowledged}`);
-
-    if (isAcknowledged) {
-      return "alert episode";
-    }
-  }
-
-  if (executionLog.triggeredByIncidentEpisodeId) {
-    logger.debug(
-      `Triggered by incident episode: ${executionLog.triggeredByIncidentEpisodeId}`,
-    );
-
-    const isAcknowledged: boolean =
-      await IncidentEpisodeService.isEpisodeAcknowledged({
-        episodeId: executionLog.triggeredByIncidentEpisodeId,
-      });
-
-    logger.debug(`Incident episode is acknowledged: ${isAcknowledged}`);
-
-    if (isAcknowledged) {
-      return "incident episode";
-    }
-  }
-
-  return null;
-};
-
-/*
- * The kind of record a page again pages about - "incident", "alert",
- * "incident episode", "alert episode" - when that record is resolved; null
- * while it is not. A record that is gone ends the run with an error, as a
- * run whose record cannot be read always has.
- */
-type GetResolvedRecordKindFunction = (
-  executionLog: OnCallDutyPolicyExecutionLog,
-) => Promise<string | null>;
-
-const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
-  executionLog: OnCallDutyPolicyExecutionLog,
-): Promise<string | null> => {
-  const record: {
-    kind: OnCallTimeoutRecordKind;
-    recordId: ObjectID;
-  } | null = OnCallAcknowledgementTimeout.getRunRecord(executionLog);
-
-  if (!record) {
-    return null;
-  }
-
-  const state: OnCallTimeoutRecordState | null =
-    await OnCallAcknowledgementTimeout.readRecordState(record);
-
-  if (!state) {
-    throw new BadDataException(
-      `The ${record.kind} this page is about is gone.`,
-    );
-  }
-
-  return state.isResolved ? record.kind : null;
-};
-
-/*
  * A RUN THAT WAITS TO PAGE (OnCallDutyPolicyRunWait), each minute until it
  * pages or ends. It pages nobody while it waits; then, in this order:
  *
@@ -448,10 +418,12 @@ const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
  */
 type StartOrEndWaitingRunFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
+  recordStates: OnCallRecordStates,
 ) => Promise<void>;
 
 const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
+  recordStates: OnCallRecordStates,
 ): Promise<void> => {
   try {
     const isAiHeld: boolean =
@@ -475,8 +447,8 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
      * it unpaged.
      */
     const handledRecordKind: string | null = isOnCallObserverPage(executionLog)
-      ? await getResolvedRecordKind(executionLog)
-      : await getHandledRecordKind(executionLog);
+      ? await recordStates.getResolvedRecordKind(executionLog)
+      : await recordStates.getHandledRecordKind(executionLog);
 
     if (handledRecordKind) {
       await OnCallDutyPolicyExecutionLogService.endWaitingRun({

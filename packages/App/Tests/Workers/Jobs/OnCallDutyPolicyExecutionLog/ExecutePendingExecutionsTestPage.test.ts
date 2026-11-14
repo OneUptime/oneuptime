@@ -31,6 +31,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -54,7 +65,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
       endDirectPageIfItsPagesAreOver: jest.fn(),
@@ -130,12 +141,12 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
   endDirectPageIfItsPagesAreOver: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
   endDirectPageIfItsPagesAreOver: jest.Mock;
@@ -211,7 +222,7 @@ describe("a test page that is paging", () => {
     "%s is handed to OnCallTestPageRuns, with the run and now",
     async (_name: string, withPolicy: boolean) => {
       const run: OnCallDutyPolicyExecutionLog = testRun(withPolicy);
-      executionLogService.findAllBy.mockResolvedValue([run]);
+      executionLogService.findBy.mockResolvedValue([run]);
 
       await tick();
 
@@ -222,7 +233,7 @@ describe("a test page that is paging", () => {
   );
 
   test("nothing else is done with it: no record, no direct page's end, no policy's next rule", async () => {
-    executionLogService.findAllBy.mockResolvedValue([
+    executionLogService.findBy.mockResolvedValue([
       testRun(false),
       testRun(true),
     ]);
@@ -240,13 +251,11 @@ describe("a test page that is paging", () => {
   });
 
   test("the job reads whether a test walks every level, and what kind of run each is", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
-    expect(
-      executionLogService.findAllBy.mock.calls[0]![0].select,
-    ).toMatchObject({
+    expect(executionLogService.findBy.mock.calls[0]![0].select).toMatchObject({
       userNotificationEventType: true,
       testPageWalksEscalation: true,
     });
@@ -258,7 +267,7 @@ describe("a real direct page is as it was", () => {
     const run: OnCallDutyPolicyExecutionLog = testRun(false);
     run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
     run.triggeredByIncidentId = ObjectID.generate();
-    executionLogService.findAllBy.mockResolvedValue([run]);
+    executionLogService.findBy.mockResolvedValue([run]);
 
     await tick();
 

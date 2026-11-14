@@ -99,6 +99,18 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   where:
     '"acknowledgementTimeoutStartedAt" IS NOT NULL AND "deletedAt" IS NULL',
 })
+/*
+ * The On-Call Policy Logs list (ExecutionLogsTable): a project's runs, or a
+ * policy's, newest first. Without these the list read every run of the
+ * project or policy and sorted them for each page. Each also serves every
+ * read by its leading column alone - a project's or a policy's runs, and
+ * the ON DELETE CASCADE of either - which bare indexes on projectId and
+ * onCallDutyPolicyId used to. A policy's list filters on its project too;
+ * statistics that say a policy's runs are all in its project let the
+ * planner read it in order (AddOnCallExecutionLogListIndexes1809166000000).
+ */
+@Index(["projectId", "createdAt"])
+@Index(["onCallDutyPolicyId", "createdAt"])
 @TableMetadata({
   tableName: "OnCallDutyPolicyExecutionLog",
   singularName: "On-Call Policy Execution Log",
@@ -175,7 +187,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  // Indexed with createdAt (see the class): the list's order.
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -260,9 +272,9 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
    * Empty for a direct page, which no on-call policy is behind. Not
    * `required`, so OneUptime's own create of one passes DatabaseService
    * .checkRequiredFields; every other create still has to name the policy
-   * it runs (OnCallDutyPolicyExecutionLogService.onBeforeCreate).
+   * it runs (OnCallDutyPolicyExecutionLogService.onBeforeCreate). Indexed
+   * with createdAt (see the class): the policy's list of runs.
    */
-  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
