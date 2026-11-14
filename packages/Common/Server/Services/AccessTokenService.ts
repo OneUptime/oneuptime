@@ -21,24 +21,93 @@ import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+/*
+ * A user's accepted memberships, as the permission sets are built from them:
+ * the projects they name, in the order read, and the teams the user is in
+ * within each.
+ */
+interface UserMemberships {
+  projectIds: Array<ObjectID>;
+  // By project id, lower-cased: the user's teams in it, by lower-cased id.
+  teamIdsByProject: Map<string, Map<string, ObjectID>>;
+}
+
+// How a project's id keys the maps here, whatever case it was written in.
+const keyOf: (id: ObjectID) => string = (id: ObjectID): string => {
+  return id.toString().toLowerCase();
+};
+
 export class AccessTokenService extends BaseService {
   public constructor() {
     super();
   }
 
+  /*
+   * EVERY SIGN-IN REBUILDS THE PERSON'S PERMISSIONS IN EVERY PROJECT, FROM
+   * TWO READS HOWEVER MANY PROJECTS THEY ARE IN.
+   *
+   * Their accepted memberships, read once, give the global permission (the
+   * projects they are in) and the teams they are in within each project;
+   * every permission row of those teams is read once more, and each
+   * project's set is built from its own teams' rows in memory - the set
+   * refreshUserTenantAccessPermission builds, row for row. Every set is
+   * then written to the cache at once, the writes sent together on the one
+   * connection rather than one after another.
+   *
+   * This used to read the memberships again and the permission rows of each
+   * project in turn, and write its set before reading the next: three
+   * statements a project, one after another, each waiting for a connection.
+   * Someone in 300 projects cost 901 statements to sign in, and with the
+   * pool busy their sign-in timed out.
+   */
   @CaptureSpan()
   public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
-    const userGlobalAccessPermission: UserGlobalAccessPermission =
-      await this.refreshUserGlobalAccessPermission(userId, {
-        forgetLiveUpdateReaders: false,
-      });
+    const memberships: UserMemberships = await this.readUserMemberships(userId);
 
-    // every project the user belongs to.
-    for (const projectId of userGlobalAccessPermission.projectIds) {
-      await this.refreshUserTenantAccessPermission(userId, projectId, {
-        forgetLiveUpdateReaders: false,
-      });
-    }
+    const tenantPermissions: Map<string, UserTenantAccessPermission> =
+      await this.buildUserTenantAccessPermissions(memberships);
+
+    const userGlobalAccessPermission: UserGlobalAccessPermission =
+      this.buildUserGlobalAccessPermission(memberships.projectIds);
+
+    await Promise.all([
+      GlobalCache.setJSON(
+        "user",
+        userId.toString(),
+        userGlobalAccessPermission,
+      ),
+      ...memberships.projectIds.map(
+        async (projectId: ObjectID): Promise<void> => {
+          const permission: UserTenantAccessPermission | undefined =
+            tenantPermissions.get(keyOf(projectId));
+
+          const cacheKey: string =
+            UserPermissionUtil.buildTenantPermissionCacheKey(
+              userId,
+              projectId,
+            );
+
+          /*
+           * A project named by a membership with no team in it holds no
+           * permission set: its entry is cleared, as
+           * refreshUserTenantAccessPermission clears a non-member's.
+           */
+          if (!permission) {
+            await GlobalCache.deleteKey(
+              PermissionNamespace.ProjectPermission,
+              cacheKey,
+            );
+            return;
+          }
+
+          await GlobalCache.setJSON(
+            PermissionNamespace.ProjectPermission,
+            cacheKey,
+            permission,
+          );
+        },
+      ),
+    ]);
 
     /*
      * Their open live updates read every project again, on every server:
@@ -49,6 +118,246 @@ export class AccessTokenService extends BaseService {
       kind: RealtimeAccessChangeKind.PermissionsChanged,
       userId: userId.toString(),
     });
+  }
+
+  /*
+   * The user's accepted memberships - in every project, or only in
+   * `projectIds` - read in one statement (pages of LIMIT_MAX rows, as
+   * findAllBy reads; one for anyone in fewer than 10,000 teams).
+   */
+  private async readUserMemberships(
+    userId: ObjectID,
+    projectIds?: Array<ObjectID> | undefined,
+  ): Promise<UserMemberships> {
+    const teamMembers: Array<TeamMember> =
+      (await TeamMemberService.findAllBy({
+        query: {
+          userId: userId,
+          hasAcceptedInvitation: true,
+          ...(projectIds
+            ? {
+                projectId: QueryHelper.any(projectIds),
+              }
+            : {}),
+        },
+        select: {
+          projectId: true,
+          teamId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      })) || [];
+
+    const memberships: UserMemberships = {
+      projectIds: [],
+      teamIdsByProject: new Map<string, Map<string, ObjectID>>(),
+    };
+
+    // One row per team, so a project comes back once for each team in it.
+    for (const teamMember of teamMembers) {
+      const projectId: ObjectID | undefined = teamMember.projectId;
+
+      if (!projectId) {
+        continue;
+      }
+
+      let teamIds: Map<string, ObjectID> | undefined =
+        memberships.teamIdsByProject.get(keyOf(projectId));
+
+      if (!teamIds) {
+        teamIds = new Map<string, ObjectID>();
+        memberships.teamIdsByProject.set(keyOf(projectId), teamIds);
+        memberships.projectIds.push(projectId);
+      }
+
+      if (teamMember.teamId) {
+        teamIds.set(keyOf(teamMember.teamId), teamMember.teamId);
+      }
+    }
+
+    return memberships;
+  }
+
+  /*
+   * The permission set of every project the memberships name a team in, by
+   * lower-cased project id: one read of every permission row of those teams
+   * (page by page, as refreshUserTenantAccessPermission reads one project's),
+   * each row given to the project it is granted in, among those of its team.
+   * Rows come out in the order read, so each project's set holds its rows as
+   * a read of that project alone would.
+   */
+  private async buildUserTenantAccessPermissions(
+    memberships: UserMemberships,
+  ): Promise<Map<string, UserTenantAccessPermission>> {
+    const permissions: Map<string, UserTenantAccessPermission> = new Map<
+      string,
+      UserTenantAccessPermission
+    >();
+
+    // The projects each team is in, as the memberships name it.
+    const projectKeysByTeam: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+    const teamIds: Array<ObjectID> = [];
+    const projectIdsWithTeams: Array<ObjectID> = [];
+
+    for (const projectId of memberships.projectIds) {
+      const projectTeamIds: Map<string, ObjectID> =
+        memberships.teamIdsByProject.get(keyOf(projectId)) ||
+        new Map<string, ObjectID>();
+
+      if (projectTeamIds.size === 0) {
+        continue;
+      }
+
+      projectIdsWithTeams.push(projectId);
+
+      for (const [teamKey, teamId] of projectTeamIds) {
+        const projectKeys: Array<string> | undefined =
+          projectKeysByTeam.get(teamKey);
+
+        if (projectKeys) {
+          projectKeys.push(keyOf(projectId));
+          continue;
+        }
+
+        projectKeysByTeam.set(teamKey, [keyOf(projectId)]);
+        teamIds.push(teamId);
+      }
+    }
+
+    if (teamIds.length === 0) {
+      return permissions;
+    }
+
+    /*
+     * Every permission row of their teams, read page by page: one read
+     * stops at LIMIT_MAX rows, newest first, and a person whose teams were
+     * given a few broad custom roles (each a copy of every permission of
+     * the role) could pass it - losing the oldest rows, often the blocks
+     * set up first.
+     */
+    const teamPermissions: Array<TeamPermission> =
+      await TeamPermissionService.findAllBy({
+        query: {
+          teamId: QueryHelper.any(teamIds),
+          projectId: QueryHelper.any(projectIdsWithTeams),
+        },
+        select: {
+          permission: true,
+          labels: {
+            _id: true,
+          },
+          isBlockPermission: true,
+          scope: true,
+          teamId: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const rowsByProject: Map<string, Array<TeamPermission>> = new Map<
+      string,
+      Array<TeamPermission>
+    >();
+
+    for (const teamPermission of teamPermissions) {
+      if (!teamPermission.teamId) {
+        continue;
+      }
+
+      const grantedIn: string | undefined = teamPermission.projectId
+        ? keyOf(teamPermission.projectId)
+        : undefined;
+
+      for (const projectKey of projectKeysByTeam.get(
+        keyOf(teamPermission.teamId),
+      ) || []) {
+        // A row counts in the project it is granted in, as a read of one project asks.
+        if (grantedIn && grantedIn !== projectKey) {
+          continue;
+        }
+
+        const rows: Array<TeamPermission> = rowsByProject.get(projectKey) || [];
+        rows.push(teamPermission);
+        rowsByProject.set(projectKey, rows);
+      }
+    }
+
+    for (const projectId of projectIdsWithTeams) {
+      permissions.set(
+        keyOf(projectId),
+        this.buildUserTenantAccessPermission(
+          projectId,
+          rowsByProject.get(keyOf(projectId)) || [],
+        ),
+      );
+    }
+
+    return permissions;
+  }
+
+  /*
+   * A member's permission set in a project, from the permission rows of
+   * their teams in it.
+   */
+  private buildUserTenantAccessPermission(
+    projectId: ObjectID,
+    teamPermissions: Array<TeamPermission>,
+  ): UserTenantAccessPermission {
+    const userPermissions: Array<UserPermission> = [];
+
+    for (const teamPermission of teamPermissions) {
+      userPermissions.push({
+        permission: teamPermission.permission!,
+        labelIds: (teamPermission.labels || []).map((label: Label) => {
+          return label.id!;
+        }),
+        isBlockPermission: teamPermission.isBlockPermission,
+        scope: teamPermission.scope,
+        /*
+         * The team the row is granted on: an Owned row reaches what this
+         * team owns, not what the member's other teams own.
+         */
+        teamId: teamPermission.teamId,
+        _type: "UserPermission",
+      });
+    }
+
+    const defaultPermission: UserTenantAccessPermission =
+      UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
+
+    defaultPermission.permissions =
+      defaultPermission.permissions.concat(userPermissions);
+
+    /*
+     * Reaching here means the user holds an accepted membership in at least one
+     * team of this project, so they are a project member whatever roles those
+     * teams carry. `ProjectUser` says exactly that, and shared workspace
+     * resources - saved table views, labels, teams, member rows - are read
+     * through it. Without it a user scoped to a single domain (Monitor Viewer
+     * and nothing else) cannot load the tables that role exists to give them.
+     */
+    return UserPermissionUtil.withProjectUserPermission(defaultPermission);
+  }
+
+  // The global permission of someone who is a member of these projects.
+  private buildUserGlobalAccessPermission(
+    projectIds: Array<ObjectID>,
+  ): UserGlobalAccessPermission {
+    return {
+      projectIds,
+      globalPermissions: [
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+      ],
+      _type: "UserGlobalAccessPermission",
+    };
   }
 
   @CaptureSpan()
@@ -70,45 +379,10 @@ export class AccessTokenService extends BaseService {
      * project on this list, so a project cut off it would have its set rebuilt
      * on every request.
      */
-    let teamMembers: Array<TeamMember> = await TeamMemberService.findAllBy({
-      query: {
-        userId: userId,
-        hasAcceptedInvitation: true,
-      },
-      select: {
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const memberships: UserMemberships = await this.readUserMemberships(userId);
 
-    if (!teamMembers) {
-      teamMembers = [];
-    }
-
-    // One row per team, so a project comes back once for each team in it.
-    const projectIds: Array<ObjectID> = [];
-    const seenProjectIds: Set<string> = new Set<string>();
-
-    for (const teamMember of teamMembers) {
-      const projectId: ObjectID | undefined = teamMember.projectId;
-
-      if (projectId && !seenProjectIds.has(projectId.toString())) {
-        seenProjectIds.add(projectId.toString());
-        projectIds.push(projectId);
-      }
-    }
-
-    const permissionToStore: UserGlobalAccessPermission = {
-      projectIds,
-      globalPermissions: [
-        Permission.Public,
-        Permission.User,
-        Permission.CurrentUser,
-      ],
-      _type: "UserGlobalAccessPermission",
-    };
+    const permissionToStore: UserGlobalAccessPermission =
+      this.buildUserGlobalAccessPermission(memberships.projectIds);
 
     await GlobalCache.setJSON("user", userId.toString(), permissionToStore);
 
@@ -241,46 +515,9 @@ export class AccessTokenService extends BaseService {
         },
       });
 
-    const userPermissions: Array<UserPermission> = [];
-
-    for (const teamPermission of teamPermissions) {
-      if (!teamPermission.labels) {
-        teamPermission.labels = [];
-      }
-
-      userPermissions.push({
-        permission: teamPermission.permission!,
-        labelIds: teamPermission.labels.map((label: Label) => {
-          return label.id!;
-        }),
-        isBlockPermission: teamPermission.isBlockPermission,
-        scope: teamPermission.scope,
-        /*
-         * The team the row is granted on: an Owned row reaches what this
-         * team owns, not what the member's other teams own.
-         */
-        teamId: teamPermission.teamId,
-        _type: "UserPermission",
-      });
-    }
-
-    const defaultPermission: UserTenantAccessPermission =
-      UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
-
-    defaultPermission.permissions =
-      defaultPermission.permissions.concat(userPermissions);
-
-    /*
-     * Reaching here means the user holds an accepted membership in at least one
-     * team of this project, so they are a project member whatever roles those
-     * teams carry - the empty-team case returned above. `ProjectUser` says
-     * exactly that, and shared workspace resources - saved table views, labels,
-     * teams, member rows - are read through it. Without it a user scoped to a
-     * single domain (Monitor Viewer and nothing else) cannot load the tables
-     * that role exists to give them.
-     */
+    // A member, whatever roles their teams carry: the empty-team case returned above.
     const permission: UserTenantAccessPermission =
-      UserPermissionUtil.withProjectUserPermission(defaultPermission);
+      this.buildUserTenantAccessPermission(projectId, teamPermissions);
 
     await GlobalCache.setJSON(
       PermissionNamespace.ProjectPermission,
@@ -400,6 +637,154 @@ export class AccessTokenService extends BaseService {
     }
 
     return permission;
+  }
+
+  /*
+   * getUserTenantAccessPermission for several projects at once - a request
+   * across the person's projects - in a bounded number of reads however
+   * many projects there are: one read of the cache for every project, and,
+   * for the projects it holds no usable set for, one read of their
+   * memberships and one of their teams' permission rows (two statements, as
+   * a sign-in rebuilds them), not three statements for each.
+   *
+   * Each project is answered as getUserTenantAccessPermission answers it: a
+   * cached set the global permission lists is served; one missing is
+   * rebuilt from the memberships, and kept if they are a member; one the
+   * global permission does not list is rebuilt too - cleared if they are
+   * not a member, and if they are, the global permission is rebuilt with it.
+   * Null for a project they are not a member of. Keyed by the project id,
+   * lower-cased.
+   */
+  @CaptureSpan()
+  public async getUserTenantAccessPermissions(
+    userId: ObjectID,
+    projectIds: Array<ObjectID>,
+    options?: {
+      userGlobalAccessPermission?:
+        | UserGlobalAccessPermission
+        | null
+        | Promise<UserGlobalAccessPermission | null>
+        | undefined;
+    },
+  ): Promise<Map<string, UserTenantAccessPermission | null>> {
+    const result: Map<string, UserTenantAccessPermission | null> = new Map<
+      string,
+      UserTenantAccessPermission | null
+    >();
+
+    if (projectIds.length === 0) {
+      return result;
+    }
+
+    const [cached, userGlobalAccessPermission]: [
+      Array<UserTenantAccessPermission | null>,
+      UserGlobalAccessPermission | null,
+    ] = await Promise.all([
+      UserPermissionUtil.getUserTenantAccessPermissionsFromCache(
+        userId,
+        projectIds,
+      ),
+      options?.userGlobalAccessPermission !== undefined
+        ? options.userGlobalAccessPermission
+        : this.getUserGlobalAccessPermission(userId),
+    ]);
+
+    // Not cached, or cached for a project the global permission does not list.
+    const toRebuild: Array<ObjectID> = [];
+    const unlisted: Set<string> = new Set<string>();
+
+    projectIds.forEach((projectId: ObjectID, index: number): void => {
+      const key: string = keyOf(projectId);
+
+      if (result.has(key) || unlisted.has(key)) {
+        return;
+      }
+
+      const json: UserTenantAccessPermission | null = cached[index] || null;
+
+      if (!json) {
+        result.set(key, null);
+        toRebuild.push(projectId);
+        return;
+      }
+
+      if (
+        UserPermissionUtil.isProjectInGlobalAccessPermission(
+          userGlobalAccessPermission,
+          projectId,
+        )
+      ) {
+        result.set(key, json);
+        return;
+      }
+
+      unlisted.add(key);
+      result.set(key, null);
+      toRebuild.push(projectId);
+    });
+
+    if (toRebuild.length === 0) {
+      return result;
+    }
+
+    /*
+     * Rebuilt only to fill or correct the cache as it is read: nothing about
+     * what the person may do changed, so nobody's live updates are told
+     * (see refreshUserTenantAccessPermission's forgetLiveUpdateReaders).
+     */
+    const rebuilt: Map<string, UserTenantAccessPermission> =
+      await this.buildUserTenantAccessPermissions(
+        await this.readUserMemberships(userId, toRebuild),
+      );
+
+    let isUnlistedProjectStillJoined: boolean = false;
+
+    await Promise.all(
+      toRebuild.map(async (projectId: ObjectID): Promise<void> => {
+        const key: string = keyOf(projectId);
+        const permission: UserTenantAccessPermission | undefined =
+          rebuilt.get(key);
+        const cacheKey: string =
+          UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId);
+
+        if (permission) {
+          result.set(key, permission);
+
+          if (unlisted.has(key)) {
+            isUnlistedProjectStillJoined = true;
+          }
+
+          await GlobalCache.setJSON(
+            PermissionNamespace.ProjectPermission,
+            cacheKey,
+            permission,
+          );
+          return;
+        }
+
+        /*
+         * Not a member. A set cached for a project the global permission no
+         * longer lists is left over from a membership since removed, and is
+         * cleared (refreshUserTenantAccessPermission says why); where nothing
+         * was cached, nothing is written.
+         */
+        if (unlisted.has(key)) {
+          await GlobalCache.deleteKey(
+            PermissionNamespace.ProjectPermission,
+            cacheKey,
+          );
+        }
+      }),
+    );
+
+    if (isUnlistedProjectStillJoined) {
+      // Still a member: it was the global list that was out of date.
+      await this.refreshUserGlobalAccessPermission(userId, {
+        forgetLiveUpdateReaders: false,
+      });
+    }
+
+    return result;
   }
 
   /*
