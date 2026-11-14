@@ -30,6 +30,7 @@ import {
   getDefaultsPickerMenuTestId,
 } from "./DashboardDefaultsCopy";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
+import useMenuKeptOnScreen from "./UseMenuKeptOnScreen";
 
 /*
  * A dashboard's defaults, set on purpose while it is edited (issue #5080):
@@ -78,6 +79,9 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
 
   // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
   useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
+
+  // On the screen, wherever a phone's editing row wraps the button to.
+  useMenuKeptOnScreen({ isOpen, menuRef });
 
   // Closes on a click anywhere else.
   useEffect(() => {
@@ -145,7 +149,9 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
          * As wide as its longest choice, so no choice wraps in a long
          * language, and tall enough for every preset at once; it scrolls
          * only on a screen too short for them. It hangs from the button's
-         * start, its left - its right in a right-to-left language.
+         * start, its left - its right in a right-to-left language - and
+         * moves back onto a phone's screen when that runs past its edge
+         * (useMenuKeptOnScreen).
          */
         <div
           ref={menuRef}

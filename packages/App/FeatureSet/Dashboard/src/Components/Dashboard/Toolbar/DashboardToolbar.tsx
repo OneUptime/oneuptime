@@ -29,6 +29,7 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
+import useMenuKeptOnScreen from "./UseMenuKeptOnScreen";
 import {
   AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
   getAutoRefreshDefaultChoiceValue,
@@ -311,6 +312,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
   // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
   useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
 
+  // On the screen, wherever a phone's toolbar wraps the button to.
+  useMenuKeptOnScreen({ isOpen, menuRef });
+
   // A choice made: the menu closes, and the focus goes back to its button.
   const choose: (pick: () => void) => void = (pick: () => void): void => {
     pick();
@@ -386,7 +390,8 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
        * Dropdown: as wide as its longest choice, so none wraps in a long
        * language, and hung from the button's end - its right, its left in
        * a right-to-left language - so it opens over the board, not past
-       * the toolbar's edge.
+       * the toolbar's edge; moved back onto the screen when a phone's
+       * toolbar wraps the button to the other side (useMenuKeptOnScreen).
        */}
       {isOpen && (
         <div
