@@ -93,8 +93,22 @@ describe("MonitorCriteriaMessageFormatter.formatBytes", () => {
     expect(MonitorCriteriaMessageFormatter.formatBytes(NaN)).toBeNull();
   });
 
-  test("handles zero bytes", () => {
-    expect(MonitorCriteriaMessageFormatter.formatBytes(0)).toBe("0.00 B");
+  /*
+   * A count of bytes is whole: a full disk's free space is "0 B", a tiny
+   * reading "5 B" - never "0.00 B" (issue #7417).
+   */
+  test("plain bytes are whole: zero, a few and just under a KB", () => {
+    expect(MonitorCriteriaMessageFormatter.formatBytes(0)).toBe("0 B");
+    expect(MonitorCriteriaMessageFormatter.formatBytes(5)).toBe("5 B");
+    expect(MonitorCriteriaMessageFormatter.formatBytes(42)).toBe("42 B");
+    expect(MonitorCriteriaMessageFormatter.formatBytes(1023)).toBe("1023 B");
+  });
+
+  test("from a KB up, a size under ten keeps its two decimals", () => {
+    expect(MonitorCriteriaMessageFormatter.formatBytes(1024)).toBe("1.00 KB");
+    expect(MonitorCriteriaMessageFormatter.formatBytes(10 * 1024)).toBe(
+      "10.0 KB",
+    );
   });
 });
 
