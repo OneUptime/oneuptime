@@ -97,6 +97,10 @@ jobs:
       # rule read's shape is compiled only with it on (PostgresJitOffPostgres).
       # A schema of its own, dropped after.
       RUN_POSTGRES_JIT_TESTS: "true"
+      # A sign-in still gets a connection while queue jobs and probe
+      # scheduling saturate a pool of 10 (ConnectionSharesUnderLoadPostgres,
+      # #7920). Creates nothing.
+      RUN_POSTGRES_CONNECTION_SHARE_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

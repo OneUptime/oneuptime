@@ -2303,6 +2303,21 @@ app:
   # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
   # for this service. Empty = inherit deployment.databaseMaxOpenConnections.
   databaseMaxOpenConnections:
+  # How each app pod shares that pool, so queue jobs and probes can never take
+  # every connection sign-ins and dashboards need (see "Size the Postgres
+  # connections" in docs/production-checklist.md). Of a pool of 50, by
+  # default: probe scheduling - the monitors, monitor tests and network
+  # devices probes are handed, and their pending counts - runs at most 10
+  # requests at once (a fifth of the pool, half of that for one probe), and
+  # the queue jobs this pod runs while worker.enabled is false hold at most
+  # 30 connections (the pool less a fifth kept for requests and less probe
+  # scheduling's share). Requests always have the other 10, and whatever the
+  # others are not using. Empty = those defaults, scaled to the pool.
+  # Set databaseMaxQueueJobConnections to the pool size for no cap. The
+  # worker pods (worker.enabled) serve no requests: their jobs keep the
+  # whole pool.
+  databaseMaxQueueJobConnections:
+  probeSchedulingMaxConcurrentRequests:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100

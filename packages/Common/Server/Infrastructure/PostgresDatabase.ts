@@ -1,4 +1,15 @@
 import logger from "../Utils/Logger";
+import {
+  DatabaseConnectionShares,
+  DatabaseMaxQueueJobConnections,
+  DisableQueueWorkers,
+  MaxPostgresConnections,
+  PostgresConnectionAcquireTimeoutMs,
+  ProbeSchedulingMaxConcurrentRequests,
+} from "../EnvironmentConfig";
+import QueueJobConnections, {
+  QueueJobConnectionLimits,
+} from "./Postgres/QueueJobConnections";
 import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
 import SchemaMigrationRunner, {
   SchemaMigrationLockTimeoutError,
@@ -172,6 +183,29 @@ export default class Database {
         };
 
       const dataSource: DataSource = await connectToDatabase();
+
+      /*
+       * Queue jobs hold at most their share of this pool, so requests always
+       * have the rest however busy the jobs are (QueueJobConnections). Only
+       * where this process runs the queue workers and the share is less
+       * than the whole pool: the Helm chart's worker pods, which serve no
+       * requests, keep the whole pool for their jobs.
+       */
+      const queueJobConnectionLimits: QueueJobConnectionLimits | null =
+        QueueJobConnections.limitsFor({
+          runsQueueWorkers: !DisableQueueWorkers,
+          poolSize: MaxPostgresConnections,
+          maxQueueJobConnections: DatabaseMaxQueueJobConnections,
+          acquireTimeoutMs: PostgresConnectionAcquireTimeoutMs,
+        });
+
+      if (queueJobConnectionLimits) {
+        QueueJobConnections.install(dataSource, queueJobConnectionLimits);
+
+        logger.info(
+          `Postgres pool: ${MaxPostgresConnections} connections. Queue jobs hold at most ${DatabaseMaxQueueJobConnections} (DATABASE_MAX_QUEUE_JOB_CONNECTIONS) and probe scheduling runs at most ${ProbeSchedulingMaxConcurrentRequests} requests at once (PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS), so requests always have ${DatabaseConnectionShares.connectionsKeptForRequests}.`,
+        );
+      }
 
       /*
        * Drain the pool on shutdown. Registered here (after a successful

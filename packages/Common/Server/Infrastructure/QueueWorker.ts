@@ -1,4 +1,5 @@
 import { QueueJob, QueueName } from "./Queue";
+import QueueJobConnections from "./Postgres/QueueJobConnections";
 import TimeoutException from "../../Types/Exception/TimeoutException";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
@@ -109,7 +110,18 @@ export default class QueueWorker {
               },
               fn: async (span: Span): Promise<void> => {
                 try {
-                  await onJobInQueue(job, token);
+                  /*
+                   * As a job of this queue: the Postgres connections it
+                   * borrows count against the queue jobs' share of the
+                   * pool, so requests always have the rest
+                   * (Postgres/QueueJobConnections).
+                   */
+                  await QueueJobConnections.runAsQueueJob(
+                    queueName,
+                    (): Promise<void> => {
+                      return onJobInQueue(job, token);
+                    },
+                  );
                   span.setStatus({ code: SpanStatusCode.OK });
                 } catch (err) {
                   if (QueueWorker.isMovedBackToQueue(err)) {
