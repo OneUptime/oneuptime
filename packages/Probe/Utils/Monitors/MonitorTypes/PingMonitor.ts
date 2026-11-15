@@ -25,6 +25,10 @@ import ProbeNetworkFailureUtil, {
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
 import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
 
 /*
  * `timeout: false` is how the ping library is told there is to be no
@@ -951,9 +955,10 @@ export default class PingMonitor {
         return {
           isOnline: false,
           isTimeout: false,
-          failureCause:
-            "Request failed with AggregateError (all connection attempts failed). " +
-            (err as any).toString(),
+          failureCause: writeProbeFailureCause(
+            ProbeFailureCause.AllConnectionAttemptsFailed,
+            { error: (err as any).toString() },
+            ),
           probeAttempts: pingOptions.attempts,
           totalAttempts: pingOptions.attempts.length,
         };

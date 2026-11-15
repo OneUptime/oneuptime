@@ -28,6 +28,10 @@ import HttpMonitorRequest, {
 import CertificateRevocationChecker from "../CertificateRevocation/CertificateRevocationChecker";
 import { TlsPeerCertificateRecorder } from "../CertificateRevocation/TlsPeerCertificates";
 import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
 
 // Five attempts, the same as before retries were counted after the first attempt.
 const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
@@ -511,8 +515,10 @@ export default class ApiMonitor {
         API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
       ) {
         apiResponse.failureCause =
-          "Request failed with AggregateError (all connection attempts failed). " +
-          apiResponse.failureCause;
+          writeProbeFailureCause(
+          ProbeFailureCause.AllConnectionAttemptsFailed,
+          { error: apiResponse.failureCause },
+          );
         apiResponse.isOnline = false;
         return apiResponse;
       }

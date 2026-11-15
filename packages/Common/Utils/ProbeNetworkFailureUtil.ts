@@ -1,4 +1,8 @@
 import HostAddressUtil from "./HostAddressUtil";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "./Monitor/ProbeFailureCauses";
 import { withoutTrailingDots } from "./TrailingRuns";
 
 /*
@@ -321,6 +325,9 @@ export default class ProbeNetworkFailureUtil {
    * no IPv6 claim at all.
    *
    * Every sentence opens with PROBE_SIDE_CAUSE_PREFIX; see isProbeSideCause.
+   * Each is written from ProbeFailureCauses' table, word for word as it was
+   * written here by hand, so a monitor summary and a root cause read it
+   * back in the reader's language (#8267).
    */
   public static describe(data: {
     host: string;
@@ -337,14 +344,23 @@ export default class ProbeNetworkFailureUtil {
        * "has no usable IPv6" would be a false reason and a false remedy.
        */
       if (data.failure.isCertain && data.failure.isCauseAmbiguous) {
-        return `This probe could not open an IPv6 connection from its own side (${detail}), so ${host} was never contacted. This usually means the probe has no usable IPv6 address or route (less often, that it has run out of local ports); this says nothing about whether ${host} is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.`;
+        return writeProbeFailureCause(
+          ProbeFailureCause.ProbeCouldNotOpenIPv6Connection,
+          { host: host, detail: detail },
+        );
       }
 
       if (data.failure.isCertain) {
-        return `This probe cannot send IPv6 traffic (${detail}), so ${host} was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether ${host} is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.`;
+        return writeProbeFailureCause(ProbeFailureCause.ProbeCannotSendIPv6, {
+          host: host,
+          detail: detail,
+        });
       }
 
-      return `This probe could not reach ${host} over IPv6 (${detail}). Most likely this probe has no IPv6 route rather than ${host} being down. Monitor IPv6 destinations from a probe that has IPv6 connectivity.`;
+      return writeProbeFailureCause(
+        ProbeFailureCause.ProbeCouldNotReachOverIPv6,
+        { host: host, detail: detail },
+      );
     }
 
     if (ProbeNetworkFailureUtil.isRouteFailure(data.failure.kind)) {
@@ -354,13 +370,22 @@ export default class ProbeNetworkFailureUtil {
        * the host being the one that is down.
        */
       if (!data.failure.isCertain) {
-        return `This probe may have no route to ${host} (${detail}); ${host} itself may also be down.`;
+        return writeProbeFailureCause(ProbeFailureCause.ProbeMayHaveNoRoute, {
+          host: host,
+          detail: detail,
+        });
       }
 
-      return `This probe has no route to ${host}: ${detail}.`;
+      return writeProbeFailureCause(ProbeFailureCause.ProbeHasNoRoute, {
+        host: host,
+        detail: detail,
+      });
     }
 
-    return `This probe could not send traffic to ${host} (${detail}), so ${host} was never contacted. The failure is on the probe, not on ${host}.`;
+    return writeProbeFailureCause(ProbeFailureCause.ProbeCouldNotSendTraffic, {
+      host: host,
+      detail: detail,
+    });
   }
 
   /*
