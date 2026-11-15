@@ -333,7 +333,7 @@ describe("the extensions the dialog names", () => {
     await drawDialog("en", VideoCallProvider.Zoom);
 
     expect(dialogSentences()).toEqual([
-      "or drop it here: .vtt, .srt or .txt, up to 5 MB",
+      "or drop it here: .vtt, .srt or .txt, up to 5\u00A0MB",
       "In Zoom, open Recordings and Transcripts and download the meeting's transcript (.vtt).",
     ]);
   });

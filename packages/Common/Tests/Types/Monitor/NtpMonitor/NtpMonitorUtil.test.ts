@@ -313,41 +313,41 @@ describe("NtpMonitorUtil", () => {
 
   describe("formatMilliseconds", () => {
     test("below 1 ms keeps up to three decimals", () => {
-      expect(NtpMonitorUtil.formatMilliseconds(0.0421)).toBe("0.042 ms");
+      expect(NtpMonitorUtil.formatMilliseconds(0.0421)).toBe("0.042\u00A0ms");
     });
 
     test("1 to 10 ms keeps two decimals", () => {
-      expect(NtpMonitorUtil.formatMilliseconds(3.14159)).toBe("3.14 ms");
+      expect(NtpMonitorUtil.formatMilliseconds(3.14159)).toBe("3.14\u00A0ms");
     });
 
     test("10 to 100 ms keeps one decimal", () => {
-      expect(NtpMonitorUtil.formatMilliseconds(12.34)).toBe("12.3 ms");
+      expect(NtpMonitorUtil.formatMilliseconds(12.34)).toBe("12.3\u00A0ms");
     });
 
     test("100 ms and more are whole, with a thousands separator", () => {
-      expect(NtpMonitorUtil.formatMilliseconds(1532.4)).toBe("1,532 ms");
+      expect(NtpMonitorUtil.formatMilliseconds(1532.4)).toBe("1,532\u00A0ms");
     });
 
     test("drops trailing zeros", () => {
-      expect(NtpMonitorUtil.formatMilliseconds(5)).toBe("5 ms");
-      expect(NtpMonitorUtil.formatMilliseconds(0)).toBe("0 ms");
+      expect(NtpMonitorUtil.formatMilliseconds(5)).toBe("5\u00A0ms");
+      expect(NtpMonitorUtil.formatMilliseconds(0)).toBe("0\u00A0ms");
     });
 
     test("keeps the sign", () => {
-      expect(NtpMonitorUtil.formatMilliseconds(-12.34)).toBe("-12.3 ms");
+      expect(NtpMonitorUtil.formatMilliseconds(-12.34)).toBe("-12.3\u00A0ms");
     });
   });
 
   describe("describeClockOffset", () => {
     test("a positive offset is ahead of the probe", () => {
       expect(NtpMonitorUtil.describeClockOffset(12.34)).toBe(
-        "12.3 ms ahead of the probe",
+        "12.3\u00A0ms ahead of the probe",
       );
     });
 
     test("a negative offset is behind the probe, without a minus sign", () => {
       expect(NtpMonitorUtil.describeClockOffset(-1532)).toBe(
-        "1,532 ms behind the probe",
+        "1,532\u00A0ms behind the probe",
       );
     });
 

@@ -272,10 +272,10 @@ describe("getValueFormatterOptionsForReader", () => {
       getValueFormatterOptionsForReader(translatorFor("fa"));
 
     // A symbol reads alike in every language, never an English word (#8284).
-    expect(ValueFormatter.formatValue(21.5, "Hz", german)).toBe("21,5 Hz");
-    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe("۲۱٫۵ Hz");
-    expect(ValueFormatter.formatValue(230, "V", persian)).toBe("۲۳۰ V");
-    expect(ValueFormatter.formatValue(23.5, "Cel", german)).toBe("23,5 °C");
+    expect(ValueFormatter.formatValue(21.5, "Hz", german)).toBe("21,5\u00A0Hz");
+    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe("۲۱٫۵\u00A0Hz");
+    expect(ValueFormatter.formatValue(230, "V", persian)).toBe("۲۳۰\u00A0V");
+    expect(ValueFormatter.formatValue(23.5, "Cel", german)).toBe("23,5\u00A0°C");
     // A unit with no symbol is named in the reader's words.
     expect(ValueFormatter.formatValue(300, "K", german)).toBe(
       `300 ${String(locale("de")["Kelvin"])}`,
@@ -285,7 +285,7 @@ describe("getValueFormatterOptionsForReader", () => {
     // A rate keeps the slash a chart writes it with (#8049).
     expect(ValueFormatter.formatValue(12.5, "1/s", german)).toBe("12,5/s");
     expect(ValueFormatter.formatValue(12.5, "{request}/s", german)).toBe(
-      "12,5 request/s",
+      "12,5\u00A0request/s",
     );
   });
 

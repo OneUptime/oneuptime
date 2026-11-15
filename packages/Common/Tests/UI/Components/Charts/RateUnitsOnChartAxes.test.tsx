@@ -148,11 +148,11 @@ afterEach(() => {
 
 describe("a rate, written on a chart's axis, legend and tooltip", () => {
   test("the page's own rates keep their slash: 100 req/s, 85.7 resp/s", () => {
-    expect(ValueFormatter.formatValue(100, "req/s")).toBe("100 req/s");
-    expect(ValueFormatter.formatValue(85.7, "req/s")).toBe("85.7 req/s");
-    expect(ValueFormatter.formatValue(12, "resp/s")).toBe("12 resp/s");
+    expect(ValueFormatter.formatValue(100, "req/s")).toBe("100\u00A0req/s");
+    expect(ValueFormatter.formatValue(85.7, "req/s")).toBe("85.7\u00A0req/s");
+    expect(ValueFormatter.formatValue(12, "resp/s")).toBe("12\u00A0resp/s");
     // A thousand and more is shortened as every count is.
-    expect(ValueFormatter.formatValue(1850, "req/s")).toBe("1.85K req/s");
+    expect(ValueFormatter.formatValue(1850, "req/s")).toBe("1.85K\u00A0req/s");
   });
 
   test("regression: the words 'per Second' are never written into a value", () => {
@@ -180,27 +180,27 @@ describe("a rate, written on a chart's axis, legend and tooltip", () => {
   });
 
   test("an exporter's annotation reads as its word, a count per second as /s", () => {
-    expect(ValueFormatter.formatValue(5, "{request}/s")).toBe("5 request/s");
+    expect(ValueFormatter.formatValue(5, "{request}/s")).toBe("5\u00A0request/s");
     expect(ValueFormatter.formatValue(5, "1/s")).toBe("5/s");
-    expect(ValueFormatter.formatValue(12, "ug/m3")).toBe("12 ug/m3");
-    expect(ValueFormatter.formatValue(4, "KiBy/s")).toBe("4 KiB/s");
-    expect(ValueFormatter.formatValue(30, "ops/min")).toBe("30 ops/min");
+    expect(ValueFormatter.formatValue(12, "ug/m3")).toBe("12\u00A0ug/m3");
+    expect(ValueFormatter.formatValue(4, "KiBy/s")).toBe("4\u00A0KiB/s");
+    expect(ValueFormatter.formatValue(30, "ops/min")).toBe("30\u00A0ops/min");
   });
 
   test("what already read well reads as it did: a byte rate is scaled", () => {
-    expect(ValueFormatter.formatValue(1500000, "By/s")).toBe("1.5 MB/s");
-    expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2 KB/s");
-    expect(ValueFormatter.formatValue(1500, "ms/s")).toBe("1.5 sec/s");
+    expect(ValueFormatter.formatValue(1500000, "By/s")).toBe("1.5\u00A0MB/s");
+    expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2\u00A0KB/s");
+    expect(ValueFormatter.formatValue(1500, "ms/s")).toBe("1.5\u00A0sec/s");
     expect(ValueFormatter.formatValue(42, "{thread}")).toBe("42");
     // A unit with a symbol is written by it, never its English name (#8284).
-    expect(ValueFormatter.formatValue(23.5, "Cel")).toBe("23.5 °C");
+    expect(ValueFormatter.formatValue(23.5, "Cel")).toBe("23.5\u00A0°C");
   });
 
   test("the number and the unit, apart: the unit is the rate's symbol", () => {
     expect(ValueFormatter.formatValueInParts(100, "req/s")).toEqual({
       value: "100",
       unit: "req/s",
-      formatted: "100 req/s",
+      formatted: "100\u00A0req/s",
     });
     expect(ValueFormatter.formatValueInParts(5, "1/s")).toEqual({
       value: "5",
@@ -221,10 +221,10 @@ describe("a rate, written on a chart's axis, legend and tooltip", () => {
 
   test("a value tile writes the same symbol", () => {
     expect(ValueFormatter.formatValueCompact(100, "req/s").formatted).toBe(
-      "100 req/s",
+      "100\u00A0req/s",
     );
     expect(ValueFormatter.formatValueCompact(5, "{request}/s").formatted).toBe(
-      "5 request/s",
+      "5\u00A0request/s",
     );
     expect(ValueFormatter.getCompactUnit("{request}/s")).toBe("request/s");
     expect(ValueFormatter.getCompactUnit("1/s")).toBe("/s");
@@ -232,10 +232,10 @@ describe("a rate, written on a chart's axis, legend and tooltip", () => {
 
   test("in German, the figure in German's digits and the unit as written", () => {
     expect(ValueFormatter.formatValue(85.7, "req/s", { language: "de" })).toBe(
-      "85,7 req/s",
+      "85,7\u00A0req/s",
     );
     expect(ValueFormatter.formatValue(100, "req/s", { language: "de" })).toBe(
-      "100 req/s",
+      "100\u00A0req/s",
     );
     expect(ValueFormatter.formatValue(5, "1/s", { language: "de" })).toBe(
       "5/s",
@@ -249,7 +249,7 @@ describe("a rate, written on a chart's axis, legend and tooltip", () => {
 
     expect(written).toMatch(PERSIAN_DIGITS);
     expect(written).not.toMatch(LATIN_DIGITS);
-    expect(written.endsWith(" req/s")).toBe(true);
+    expect(written.endsWith("\u00A0req/s")).toBe(true);
   });
 });
 
@@ -328,7 +328,7 @@ describe("the value axis, as wide as its widest tick (getYAxisWidthInPx)", () =>
       formatter: rate("req/s"),
     });
 
-    expect(width).toBeGreaterThanOrEqual(widthFor("1.85K req/s"));
+    expect(width).toBeGreaterThanOrEqual(widthFor("1.85K\u00A0req/s"));
     // The round tick the axis may step to above the data, too.
     expect(width).toBeGreaterThanOrEqual(widthFor("10K req/s"));
     expect(width).toBeGreaterThan(Y_AXIS_WIDTH_IN_PX);

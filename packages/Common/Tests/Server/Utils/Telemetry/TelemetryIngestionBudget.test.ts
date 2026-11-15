@@ -385,7 +385,7 @@ describe("TelemetryIngestionBudget.admit refusals", () => {
       scope: TelemetryIngestionBudgetScope.Project,
       signal: ProductType.Logs,
       message:
-        "This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is not storing logs from this project until the budget resets at 2026-11-10 00:00 UTC.",
+        "This project's daily logs ingestion budget of 10\u00A0GB is used up, so OneUptime is not storing logs from this project until the budget resets at 2026-11-10 00:00 UTC.",
       retryAfterSeconds: null,
       resetsAt: new Date("2026-11-10T00:00:00.000Z"),
     });
@@ -422,7 +422,7 @@ describe("TelemetryIngestionBudget.admit refusals", () => {
       TelemetryIngestionBudgetScope.IngestionKey,
     );
     expect(admission.refusal?.message).toBe(
-      "This ingestion key's daily logs ingestion budget of 0.5 GB is used up, so OneUptime is not storing logs sent with this key until the budget resets at 2026-11-10 00:00 UTC.",
+      "This ingestion key's daily logs ingestion budget of 0.5\u00A0GB is used up, so OneUptime is not storing logs sent with this key until the budget resets at 2026-11-10 00:00 UTC.",
     );
   });
 
@@ -441,7 +441,7 @@ describe("TelemetryIngestionBudget.admit refusals", () => {
     );
     expect(admission.refusal?.retryAfterSeconds).toBe(3);
     expect(admission.refusal?.message).toBe(
-      "This project is sending logs faster than its ingestion rate limit of 5 MB per second. Retry in 3 seconds.",
+      "This project is sending logs faster than its ingestion rate limit of 5\u00A0MB per second. Retry in 3 seconds.",
     );
   });
 
@@ -456,7 +456,7 @@ describe("TelemetryIngestionBudget.admit refusals", () => {
         retryAfterSeconds: 1,
       }),
     ).toBe(
-      "This ingestion key is sending security events faster than its ingestion rate limit of 0.5 MB per second. Retry in 1 second.",
+      "This ingestion key is sending security events faster than its ingestion rate limit of 0.5\u00A0MB per second. Retry in 1 second.",
     );
   });
 });
