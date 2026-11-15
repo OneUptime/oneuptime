@@ -175,6 +175,7 @@ describe("an invitation to a project", () => {
 
   let existingUser: User | null;
   let isMemberOfProject: boolean;
+  let hasMembershipInProject: boolean;
   let alreadyOnTeam: boolean;
 
   function invitee(): User {
@@ -209,6 +210,7 @@ describe("an invitation to a project", () => {
   beforeEach(() => {
     existingUser = null;
     isMemberOfProject = false;
+    hasMembershipInProject = false;
     alreadyOnTeam = false;
 
     jest.spyOn(TeamService, "findOneBy").mockResolvedValue(new Team(TEAM_ID));
@@ -230,6 +232,16 @@ describe("an invitation to a project", () => {
       .spyOn(TeamMemberService, "isUserMemberOfProject")
       .mockImplementation(async (): Promise<boolean> => {
         return isMemberOfProject;
+      });
+    jest
+      .spyOn(
+        TeamMemberService as unknown as {
+          hasMembershipInProject: (data: unknown) => Promise<boolean>;
+        },
+        "hasMembershipInProject",
+      )
+      .mockImplementation(async (): Promise<boolean> => {
+        return hasMembershipInProject || isMemberOfProject;
       });
     jest
       .spyOn(ProjectService, "findOneById")
@@ -376,18 +388,105 @@ describe("an invitation to a project", () => {
     expect(invitationsCountedFor(ADDRESS)).toBe(0);
   });
 
-  test("an invitation by user id, with no address named, is not counted", async () => {
-    for (let round: number = 0; round < 15; round++) {
-      const member: TeamMember = new TeamMember();
-      member.projectId = PROJECT_ID;
-      member.teamId = TEAM_ID;
-      member.userId = ObjectID.generate();
+  // A membership made for a person picked by id, not named by address.
+  function invitationById(
+    props: DatabaseCommonInteractionProps = ownerProps(),
+  ): CreateBy<TeamMember> {
+    const member: TeamMember = new TeamMember();
+    member.projectId = PROJECT_ID;
+    member.teamId = TEAM_ID;
+    member.userId = ObjectID.generate();
 
-      await onBeforeCreate({ data: member, props: ownerProps() });
+    return { data: member, props: props } as CreateBy<TeamMember>;
+  }
+
+  test("an invitation by user id is emailed, and counted by the account's address as one by address is", async () => {
+    /*
+     * Before #8421 it sent nothing and counted nothing: the person never
+     * heard of it. Now it is the same invitation, held to the same limit.
+     */
+    const refusals: Array<unknown> = [];
+
+    for (let round: number = 0; round < 15; round++) {
+      try {
+        await onBeforeCreate(invitationById());
+      } catch (err) {
+        refusals.push(err);
+      }
+    }
+
+    expect(mailsOf(EmailTemplateType.InviteMember)).toHaveLength(10);
+    expect(refusals).toHaveLength(5);
+    expect(refusals[0]).toBeInstanceOf(PublicMessageRateLimitException);
+    expect((refusals[0] as Error).message).toBe(INVITATION_REFUSAL);
+    // Every one is sent to the account's address.
+    for (const mail of mailsOf(EmailTemplateType.InviteMember)) {
+      expect(mail.toEmail.toString()).toBe(ADDRESS);
+    }
+  });
+
+  test("invitations by id and by address to one address share its ten", async () => {
+    for (let round: number = 0; round < 6; round++) {
+      await onBeforeCreate(invitationById());
+    }
+
+    for (let round: number = 0; round < 4; round++) {
+      await onBeforeCreate(invitation());
+    }
+
+    await expect(onBeforeCreate(invitationById())).rejects.toThrow(
+      INVITATION_REFUSAL,
+    );
+    await expect(onBeforeCreate(invitation())).rejects.toThrow(
+      INVITATION_REFUSAL,
+    );
+    expect(mailsOf(EmailTemplateType.InviteMember)).toHaveLength(10);
+  });
+
+  test("a master admin adding someone by id, accepted already, is told and not counted", async () => {
+    for (let round: number = 0; round < 15; round++) {
+      const create: CreateBy<TeamMember> = invitationById({
+        isMasterAdmin: true,
+        userId: INVITER_ID,
+      } as DatabaseCommonInteractionProps);
+      create.data.hasAcceptedInvitation = true;
+
+      await onBeforeCreate(create);
+    }
+
+    const mails: Array<EmailMessage> = mailsOf(EmailTemplateType.InviteMember);
+
+    expect(mails).toHaveLength(15);
+    expect(mails[0]!.subject).toBe("You have been added to Acme Production");
+    expect(redis.keys()).toEqual([]);
+  });
+
+  test("someone already in the project, added by id to team after team, is neither emailed nor counted", async () => {
+    hasMembershipInProject = true;
+
+    for (let round: number = 0; round < 20; round++) {
+      await onBeforeCreate(invitationById());
     }
 
     expect(sendMail).not.toHaveBeenCalled();
     expect(redis.keys()).toEqual([]);
+  });
+
+  test("an invitation by id refused as already made gives its count back", async () => {
+    /*
+     * The membership is there by the time the duplicate guard looks, though
+     * the first look did not see it: two adds of the same person at once.
+     */
+    alreadyOnTeam = true;
+
+    for (let round: number = 0; round < 20; round++) {
+      await expect(onBeforeCreate(invitationById())).rejects.toThrow(
+        Errors.TeamMemberService.ALREADY_INVITED,
+      );
+    }
+
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(invitationsCountedFor(ADDRESS)).toBe(0);
   });
 
   test("while the counter cannot be reached, invitations go on", async () => {

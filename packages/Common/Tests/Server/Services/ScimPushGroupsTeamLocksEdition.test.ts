@@ -338,6 +338,14 @@ describe("SCIM Push Groups team locks by edition", () => {
         TeamMemberService,
         "isUserMemberOfProject",
       ).mockResolvedValue(false);
+      /*
+       * Whom the membership emails (TeamMemberInvitationEmailById): nobody
+       * here, where only the lock is asked about.
+       */
+      getJestSpyOn(
+        TeamMemberService,
+        "getInviteeToEmailById",
+      ).mockResolvedValue(null);
       memberLookup = getJestSpyOn(
         TeamMemberService,
         "findBy",

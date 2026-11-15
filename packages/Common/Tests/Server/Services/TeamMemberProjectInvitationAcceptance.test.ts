@@ -214,6 +214,7 @@ function membershipRow(data: {
 }
 
 let isMemberSpy: jest.SpyInstance;
+let hasMembershipSpy: jest.SpyInstance;
 let duplicateLookupSpy: jest.SpyInstance;
 let sendMailSpy: jest.SpyInstance;
 let createTokenSpy: jest.SpyInstance;
@@ -245,6 +246,20 @@ beforeEach(() => {
    */
   isMemberSpy = jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
+
+  /*
+   * And so they have a membership in it: a person picked by id is emailed
+   * only with their first membership in a project (getInviteeToEmailById,
+   * #8421), which TeamMemberInvitationEmailById.test.ts covers.
+   */
+  hasMembershipSpy = jest
+    .spyOn(
+      TeamMemberService as unknown as {
+        hasMembershipInProject: (data: unknown) => Promise<boolean>;
+      },
+      "hasMembershipInProject",
+    )
     .mockResolvedValue(true);
 
   jest
@@ -506,6 +521,7 @@ describe("TeamMemberService.onBeforeCreate - adding a member of the project by e
 describe("TeamMemberService.onBeforeCreate - somebody who is not in the project yet is still invited", () => {
   beforeEach(() => {
     isMemberSpy.mockResolvedValue(false);
+    hasMembershipSpy.mockResolvedValue(false);
     stubProjectDirectory({});
   });
 
