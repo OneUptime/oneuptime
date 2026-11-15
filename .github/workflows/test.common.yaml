@@ -120,9 +120,6 @@ jobs:
       # now() lands, a millisecond off is refused (DatabaseServiceTimestamp
       # GuardPostgres, #8173). A schema of its own, dropped after.
       RUN_POSTGRES_TIMESTAMP_GUARD_TESTS: "true"
-      # TEMPORARY (#8403's census run): list every real request instead of
-      # failing on it. Removed before the pull request merges.
-      ONEUPTIME_NETWORK_CENSUS: "1"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

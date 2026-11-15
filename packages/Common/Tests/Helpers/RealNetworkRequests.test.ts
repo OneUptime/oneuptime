@@ -7,6 +7,7 @@ import URL from "../../Types/API/URL";
 import APIException from "../../Types/Exception/ApiException";
 import API from "../../Utils/API";
 import {
+  CENSUS_ENVIRONMENT_VARIABLE,
   RealRequest,
   SUITES_STILL_SENDING_REQUESTS,
   SUITES_THAT_TALK_TO_A_LOCAL_SERVER,
@@ -500,5 +501,24 @@ describe("the lists", () => {
     expect(setup).toContain(
       'refuseRealRequests({\n  census: process.env[CENSUS_ENVIRONMENT_VARIABLE] === "1",\n});',
     );
+  });
+
+  test("no CI workflow runs Common's suites as a census, which would fail no test for a request", () => {
+    const workflows: string = path.join(
+      COMMON_ROOT,
+      "..",
+      "..",
+      ".github",
+      "workflows",
+    );
+
+    for (const file of fs.readdirSync(workflows)) {
+      expect({
+        file,
+        census: fs
+          .readFileSync(path.join(workflows, file), "utf8")
+          .includes(CENSUS_ENVIRONMENT_VARIABLE),
+      }).toEqual({ file, census: false });
+    }
   });
 });
