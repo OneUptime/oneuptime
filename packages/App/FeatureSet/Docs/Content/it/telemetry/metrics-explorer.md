@@ -29,7 +29,7 @@ L'esploratore ha sei schede:
 | --- | --- |
 | **Visualizzatore** | L'elenco delle metriche, ciascuna con un piccolo grafico e il suo ultimo valore. Si apre sull'ultima ora. |
 | **PromQL** | Interrogate le vostre metriche con PromQL, il linguaggio di query di Prometheus, e collegatevi Grafana. Vedete [Interrogare le metriche con PromQL](/docs/telemetry/promql). |
-| **Insight** | Quali servizi riportano metriche, e quante. |
+| **Analisi** | Quali servizi riportano metriche, e quante. |
 | **IA** | I problemi che OneUptime trova nelle vostre metriche (troppi valori, bucket dell'istogramma non adatti, metriche mancanti), e ciò che OneUptime AI ha fatto al riguardo. Vedete [Migliorare le metriche e aggiungere quelle mancanti con l'IA](#migliorare-le-metriche-e-aggiungere-quelle-mancanti-con-lia). |
 | **Guida alla configurazione** | Come inviare metriche con OpenTelemetry, usando una delle vostre chiavi di ingestione. |
 | **Impostazioni** | **Regole pipeline** e **Regole di registrazione**: che cosa succede alle metriche quando arrivano. |
@@ -92,7 +92,7 @@ I pulsanti sopra i grafici lavorano sull'intervallo di tempo che state guardando
 
 | Pulsante | Cosa fa |
 | --- | --- |
-| **Registri** | Apre l'[Esploratore log](/docs/telemetry/logs-explorer) per questo intervallo di tempo e i vostri filtri. |
+| **Log** | Apre l'[Esploratore log](/docs/telemetry/logs-explorer) per questo intervallo di tempo e i vostri filtri. |
 | **Tracce** | Apre l'[Esploratore tracce](/docs/telemetry/traces-explorer) per questo intervallo di tempo e i vostri filtri. |
 | **Indagare** | Apre un pannello laterale con i log, le tracce e le eccezioni di questo intervallo di tempo. |
 | **Eventi** | Segna sui grafici gli incidenti e gli avvisi di questo intervallo di tempo. |
@@ -109,7 +109,7 @@ Trascinate su un grafico per ingrandire un momento, e fate doppio clic per torna
 
 ## Informazioni sulle metriche
 
-La scheda **Insight** conta le metriche di un intervallo di tempo: **Metriche attive**, **Servizi che inviano dati** e la media per servizio. Raggruppa le metriche in categorie ed elenca i servizi che le riportano.
+La scheda **Analisi** conta le metriche di un intervallo di tempo: **Metriche attive**, **Servizi che inviano dati** e la media per servizio. Raggruppa le metriche in categorie ed elenca i servizi che le riportano.
 
 ## Migliorare le metriche e aggiungere quelle mancanti con l'IA
 
@@ -147,7 +147,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Metriche → IA → Insight** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Metriche**, che apre la sua metrica per il suo servizio, dell'ora in cui è stato trovato. Un servizio senza metriche, o senza metriche per le sue richieste, offre invece **Apri in Tracce**: gli span che le sue metriche misurerebbero.
-- **Metriche → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
+- **Metriche → IA → Log** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ### Registrare le metriche delle richieste senza modificare il codice

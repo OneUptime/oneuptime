@@ -168,7 +168,7 @@ Su OneUptime Cloud, queste impostazioni di amministrazione richiedono un piano. 
 | Creare team | Scale |
 | SSO, OIDC e SCIM | Scale |
 | Override della conservazione | Scale |
-| Registri di audit | Enterprise |
+| Log di audit | Enterprise |
 
 ## Disdire il piano
 

@@ -283,7 +283,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 :::steps
 ### 建立 Runner
 
-在 **運行手冊 → Runbook 代理程式** 下建立一個 Runner，然後點選它所在列的 **顯示設定說明**。該命令中嵌有 Runner 的秘密金鑰，只有專案擁有者、專案管理員或操作手冊管理員可以讀取。它看起來像這樣：
+在 **運行手冊 → Runbook 代理程式** 下建立一個 Runner，然後點選它所在列的 **顯示設定說明**。該命令中嵌有 Runner 的秘密金鑰，只有專案擁有者、專案管理員或運行手冊管理員可以讀取。它看起來像這樣：
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

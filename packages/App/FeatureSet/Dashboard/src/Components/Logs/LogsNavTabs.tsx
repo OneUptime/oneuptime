@@ -23,7 +23,7 @@ const LogsNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
     },
     {
       key: "insights",
-      label: "Insights",
+      label: "Insights (explorer analytics)",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.LOGS_INSIGHTS] as Route,

@@ -1,6 +1,6 @@
 # Måttutforskare
 
-Mätvärden är siffrorna som dina tjänster och din infrastruktur rapporterar över tid: antal förfrågningar, latenser, CPU, ködjup. Måttutforskaren visar varje mätvärde som ditt projekt tar emot, visar vilket som helst av dem i ett diagram, kombinerar dem med formler och gör om ett diagram till en monitor eller en widget på en instrumentpanel.
+Mätvärden är siffrorna som dina tjänster och din infrastruktur rapporterar över tid: antal förfrågningar, latenser, CPU, ködjup. Mätvärdesutforskaren visar varje mätvärde som ditt projekt tar emot, visar vilket som helst av dem i ett diagram, kombinerar dem med formler och gör om ett diagram till en monitor eller en widget på en instrumentpanel.
 
 :::cards
 - [Hitta ett mätvärde](#hitta-ett-mätvärde): Sök i listan över namn på mätvärden.
@@ -109,7 +109,7 @@ Dra över ett diagram för att zooma in på ett ögonblick, och dubbelklicka fö
 
 ## Insikter i mätvärden
 
-Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mått**, **Rapporterande tjänster** och genomsnittet per tjänst. Den delar in mätvärdena i kategorier och visar tjänsterna som rapporterar dem.
+Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mätvärden**, **Rapporterande tjänster** och genomsnittet per tjänst. Den delar in mätvärdena i kategorier och visar tjänsterna som rapporterar dem.
 
 ## Förbättra mätvärden och lägg till de som saknas med AI
 
@@ -146,7 +146,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 ### Se vad den gjorde
 
-- **Mätvärden → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden, eller utan mätvärden för sina förfrågningar, erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
+- **Mätvärden → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mätvärden**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden, eller utan mätvärden för sina förfrågningar, erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
 - **Mätvärden → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
@@ -183,7 +183,7 @@ Starta om collectorn. Varje tjänst vars spår passerar genom den skickar då `t
 | --- | --- |
 | Filter (tillåtelselista) | Behåller bara de datapunkter som matchar och kastar resten. |
 | Kassera | Kastar de datapunkter som matchar. |
-| Byt namn på mått | Byter namn på mätvärdet. |
+| Byt namn på mätvärde | Byter namn på mätvärdet. |
 | Byt namn på attribut | Byter namn på ett attributs nyckel i matchande datapunkter. |
 | Lägg till attribut | Lägger till ett attribut i matchande datapunkter. |
 | Ta bort attribut | Tar bort ett attribut, till exempel ett med för många värden för att vara användbart. |

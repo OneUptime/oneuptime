@@ -52,7 +52,7 @@ Angiv under **Værtsnavn eller IP-adresse** det værtsnavn eller den IPv4- eller
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser de rundturstider og det pakketab, sonden så.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser de rundturstider og det pakketab, sonden så.
 
 ### Gennemgå kriterierne
 

@@ -149,7 +149,7 @@ return {
 };
 ```
 
-기록된 메트릭은 Metric Explorer에 `custom.monitor.api.response.time` 같은 이름으로 나타나고, 모니터의 **메트릭** 페이지의 **사용자 정의 메트릭** 에도 나타납니다. OneUptime은 모든 데이터 포인트에 모니터와 프로브를 추가하므로, 이를 차트로 그리고, 알림을 설정하고, 모니터, 프로브 또는 직접 지정한 사용자 정의 속성으로 필터링할 수 있습니다.
+기록된 메트릭은 Metric Explorer에 `custom.monitor.api.response.time` 같은 이름으로 나타나고, 모니터의 **메트릭** 페이지의 **사용자 정의 메트릭** 에도 나타납니다. OneUptime은 모든 데이터 포인트에 모니터와 프로브를 추가하므로, 이를 차트로 그리고, 경고를 설정하고, 모니터, 프로브 또는 직접 지정한 사용자 정의 속성으로 필터링할 수 있습니다.
 
 ### 제한
 
@@ -169,7 +169,7 @@ return {
 - `oneuptime.` 또는 `resource.` 네임스페이스의 모든 것. 여기에는 OneUptime이 수집 시점에 붙이는 식별자가 들어 있습니다.
 - 리소스 식별 속성: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name`, `docker.swarm.cluster.name`.
 
-이 이름들은 단순한 레이블이 아닙니다. OneUptime은 이를 데이터 포인트가 어느 리소스에 속하는지에 대한 주장으로 읽습니다. `service.name: payments-api` 가 붙은 메트릭은 그 서비스의 메트릭 탭에 나타나고, 나중에 `service.name` 으로 그룹화한 메트릭 모니터를 만들면 그 알림은 그 서비스에 연결되고, 서비스 소유자를 호출하며, 그 서비스의 유지 관리 기간에는 울리지 않게 됩니다. 모니터를 서비스나 호스트와 연결하려면 대신 모니터 자체의 레이블을 사용하세요.
+이 이름들은 단순한 레이블이 아닙니다. OneUptime은 이를 데이터 포인트가 어느 리소스에 속하는지에 대한 주장으로 읽습니다. `service.name: payments-api` 가 붙은 메트릭은 그 서비스의 메트릭 탭에 나타나고, 나중에 `service.name` 으로 그룹화한 메트릭 모니터를 만들면 그 경고는 그 서비스에 연결되고, 서비스 소유자를 호출하며, 그 서비스의 유지 관리 기간에는 울리지 않게 됩니다. 모니터를 서비스나 호스트와 연결하려면 대신 모니터 자체의 레이블을 사용하세요.
 
 ## 기준
 
@@ -181,7 +181,7 @@ return {
 | **결과 값** | 스크립트가 반환한 `data`. 숫자이면 숫자로 비교합니다. | 위와 같은 조건과 보다 큼, 보다 작음, 이상, 이하, 참, 거짓 |
 | **실행 시간(ms)** | 스크립트가 실행된 시간. | 숫자 비교 |
 
-기본 기준은 **오류** 가 비어 있으면 모니터를 온라인으로, 비어 있지 않으면 오프라인으로 표시합니다(스크립트가 다시 성공하면 저절로 해결되는 인시던트와 함께). 인시던트와 알림 템플릿에서는 실행 내용을 `{{result}}`, `{{scriptError}}`, `{{logMessages}}`, `{{executionTimeInMs}}` 로 사용할 수 있습니다. [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+기본 기준은 **오류** 가 비어 있으면 모니터를 온라인으로, 비어 있지 않으면 오프라인으로 표시합니다(스크립트가 다시 성공하면 저절로 해결되는 인시던트와 함께). 인시던트와 경고 템플릿에서는 실행 내용을 `{{result}}`, `{{scriptError}}`, `{{logMessages}}`, `{{executionTimeInMs}}` 로 사용할 수 있습니다. [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
 ### 반환된 데이터로 알림 받기
 

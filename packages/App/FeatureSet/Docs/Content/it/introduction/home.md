@@ -65,7 +65,7 @@ Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un r
 | **Importa dal tuo strumento attuale** | Un'importazione da un altro strumento termina. | **Importa da un altro strumento** |
 | **Crea il tuo primo monitor** | Arriva il suo primo controllo. | La configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, o l'elenco **Monitor** per chi non può creare monitor. |
 | **Collega un server o un cluster** | Arrivano le sue prime metriche. | **Host** |
-| **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | La configurazione guidata **Invia registri, metriche e tracce, poi ricevi avvisi** |
+| **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | La configurazione guidata **Invia log, metriche e tracce, poi ricevi avvisi** |
 | **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità esegue una policy che può raggiungere qualcuno. | La configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta** |
 | **Pubblica una pagina di stato** | Una pagina di stato mostra un monitor. | La configurazione guidata **Pubblica una pagina di stato**, o l'elenco **Pagine di stato** per chi non può creare pagine di stato. |
 | **Invita il tuo team** | Qualcuno accetta il tuo invito. | **Utenti** |
@@ -189,7 +189,7 @@ Premi `g` e poi una lettera per andare direttamente a un prodotto. Premi la lett
 | `g` poi `s` | Pagine di stato |
 | `g` poi `e` | Manutenzione programmata |
 | `g` poi `d` | Dashboard |
-| `g` poi `l` | Registri |
+| `g` poi `l` | Log |
 | `g` poi `t` | Tracce |
 
 Le scorciatoie non ti intralciano. `?`, `/` e `g` non fanno nulla mentre digiti in un campo, e nulla ti porta via dalla pagina mentre una finestra di dialogo è aperta, così un tasto premuto per sbaglio non può farti perdere un modulo compilato a metà. Ogni altro prodotto è a una ricerca di distanza con `Mod` + `K`.
