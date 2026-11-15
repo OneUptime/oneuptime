@@ -694,10 +694,21 @@ work out, starts from a default for everything else, and folds what most people 
   pieces. The same goes for JSX: `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in
   English's order in Japanese, and a status page's "posted on" sat before its date in every
   language (#8290). A label whose colon the code wrote (`{t("Capabilities")}:`) takes it from a key
-  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). Enforced by
+  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). A sentence
+  around an element is one too: a pill, a name, a date, a bold count, or a link around a phrase
+  (`{t("Read the")} <Link>{t("docs")}</Link>`) goes in a `TranslatedSentence` slot, and so do words
+  only a screen reader reads ("Connect" before a product's name, "AWS Security Hub verbinden" in
+  German). The status page's "Incident state changed to" and its state's pill kept English's
+  order until #8290, and the schedule timeline's bold counts sat before "covered now" (#8483). An
+  icon, a badge after its word, a block, a link to act on after a sentence ("Read the guide") and
+  what is drawn for the eye only are no word of a sentence. Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
-  which reads template literals, `+`, `join()` and an element's children, and follows a name that
-  holds a translation (`const label = t("Key")`).
+  which reads template literals, `+`, `join()` and an element's children, each child element as
+  what it draws, and follows a name that holds a translation (`const label = t("Key")`), a page's
+  own translation helper (`text(COPY.openSettings)`), a lookup in a constant table and a nested
+  key's English. A colon written after an element that holds a label
+  (`<span>{t("Logo Alt Text")}</span>{": "}`) is English's too, and comes from `LABEL_WITH_COLON`
+  (#8571); an element's key or id is never read, and is no sentence.
 
 ### In every language
 
@@ -779,13 +790,16 @@ then `npm run i18n:validate` from the root.
   [ScopedChartsLineFollowsTheLanguage](../../packages/Common/Tests/App/Dashboard/ScopedChartsLineFollowsTheLanguage.test.tsx).
 - **A metric's description reads in the reader's language, its code and names as written.** Every
   monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
-  glued together at run time is no key, and read English in every language (#8014). Each place that
-  draws one looks it up once: a metric picker's line, a Database Health criteria's line, a Database
-  monitor's charts and summary, a metric a monitor stored. A translation keeps each piece of code
-  between backticks exactly and as often, since the picker draws it as code, and the metric,
-  attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
-  by
-  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+  glued together at run time is no key, and read English in every language (#8014). So are the
+  descriptions the server stores with a monitor's series, the SLO Burn Rate's among them, written
+  out whole for the window they name (#8356). Each place that draws one looks it up once: a metric
+  picker's line, a Database Health criteria's line, a Database monitor's charts and summary, a
+  metric a monitor stored. A translation keeps each piece of code between backticks exactly and as
+  often, since the picker draws it as code, and the metric, attribute and product names, unit
+  symbols, printed values and numbers the English gives. Enforced by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts)
+  and
+  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts).
 - **A product's Help > Documentation page reads in the reader's language, its code as written.** A
   page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
   Observability's does, #7531). A page that is a setup guide holds each language's words for every

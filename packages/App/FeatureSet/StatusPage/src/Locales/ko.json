@@ -275,6 +275,7 @@
       "channelSlack": "Slack 워크스페이스",
       "channelMicrosoftTeams": "Microsoft Teams 워크스페이스",
       "channelWebhook": "웹훅",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "이 구독은 이 상태 페이지를 운영하는 팀이 추가했습니다. 메일링 리스트와 같은 공유 주소라면 구독을 취소할 때 이 알림을 받는 모든 사람에게 알림이 중단되며, 팀에도 이 사실이 알려집니다.",
       "confirmButton": "구독 취소",
       "manageInstead": "대신 받을 알림 선택하기",
