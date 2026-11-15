@@ -1793,8 +1793,14 @@ describe("personal on-call rules", () => {
     expect(backfill).toContain('methodColumn: "userEmailId",');
     expect(backfill).toContain("notifyAfterMinutes: 0,");
     expect(backfill).toContain("if (intent.hasOptOut) {");
+    // A push rule sounds and repeats as the person's other cards do (#7452).
+    expect(backfill).toContain("getPagingLadderStepsForNewCell");
+    expect(backfill).toContain("rule.pushNotificationLevel =");
+    expect(backfill).toContain(
+      "rule.repeatEveryMinutes = getRepeatEveryMinutes(",
+    );
     expect(rules).toContain(
-      "A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays. If you had no rules on that tab, it gets your verified email, at once.",
+      "A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once.",
     );
   });
 

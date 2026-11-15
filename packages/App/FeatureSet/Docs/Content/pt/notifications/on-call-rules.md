@@ -121,7 +121,7 @@ Uma regra de push, para um telefone ou um navegador, também pode reenviar o pus
 
 ## Quando uma gravidade não tem regra
 
-Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos, feitas a partir do que você já escolheu nessa aba: os mesmos métodos, após os mesmos atrasos. Se você não tinha regras nessa aba, ela recebe o seu e-mail verificado, na hora.
+Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos, feitas a partir do que você já escolheu nessa aba: os mesmos métodos, após os mesmos atrasos, e um push que toca e se repete do mesmo jeito. Se você não tinha regras nessa aba, ela recebe o seu e-mail verificado, na hora.
 
 Um acionamento que mesmo assim não encontra regra é enviado aos seus métodos verificados de qualquer forma, e você recebe um e-mail sobre isso; veja [Quando nenhuma regra corresponde](/docs/notifications/index#quando-nenhuma-regra-corresponde).
 
