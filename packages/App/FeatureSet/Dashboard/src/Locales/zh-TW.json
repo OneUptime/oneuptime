@@ -50658,8 +50658,6 @@
   "Searched the docs": "已搜尋文件",
   "Searching the docs": "正在搜尋文件",
   "A rule you can't see": "您無法檢視的規則",
-  "A {{severity}} alert": "嚴重程度為 {{severity}} 的警示",
-  "A {{severity}} incident": "嚴重程度為 {{severity}} 的事件",
   "An on-call policy has no escalation rules, so it pages nobody.": "某個待命策略沒有上報規則，因此不會呼叫任何人。",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "某個待命策略目前無法聯絡到任何人：其第一條上報規則中無人待命。",
   "An on-call policy you can't see pages the people on call.": "一個您無法檢視的待命策略會呼叫待命人員。",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "沒有任何因素會中斷通知鏈。",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "待命策略 {{policy}} 沒有上報規則，因此不會呼叫任何人。",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "待命策略 {{policy}} 目前無法聯絡到任何人：其第一條上報規則中沒有人待命。",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime 將其標記為 {{status}}，並開啟一個嚴重程度為 {{severity}} 的警示。",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime 將其標記為 {{status}}，並開啟一個嚴重程度為 {{severity}} 的事件。",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime 將其標記為 {{status}}。它不會開啟事件或警示，因此不會呼叫任何人。",
-  "OneUptime opens a {{severity}} alert.": "OneUptime 開啟一個嚴重程度為 {{severity}} 的警示。",
-  "OneUptime opens a {{severity}} incident.": "OneUptime 開啟一個嚴重程度為 {{severity}} 的事件。",
   "Open Admin Dashboard": "開啟管理員儀表板",
   "Open Criteria": "開啟條件",
   "Open On-Call Policy": "開啟待命策略",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "變更內容",
   "Table (database object)": "資料表",
   "View (database object)": "檢視表",
-  "{{wait}}. Change when this step is sent.": "{{wait}}。變更此步驟的傳送時間。"
+  "{{wait}}. Change when this step is sent.": "{{wait}}。變更此步驟的傳送時間。",
+  "An alert ({{severity}})": "警示（{{severity}}）",
+  "An incident ({{severity}})": "事件（{{severity}}）",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime 將其標記為 {{status}}，並開啟一個警示（{{severity}}）。",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime 將其標記為 {{status}}，並開啟一個事件（{{severity}}）。",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime 開啟一個警示（{{severity}}）。",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime 開啟一個事件（{{severity}}）。"
 }

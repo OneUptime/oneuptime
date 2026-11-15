@@ -50658,8 +50658,6 @@
   "Searched the docs": "Documentación consultada",
   "Searching the docs": "Buscando en la documentación",
   "A rule you can't see": "Una regla que no puedes ver",
-  "A {{severity}} alert": "Una alerta de gravedad {{severity}}",
-  "A {{severity}} incident": "Un incidente de gravedad {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "Una política de guardia no tiene reglas de escalado, así que no avisa a nadie.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "Una política de guardia no llega a nadie ahora mismo: nadie está de guardia en su primera regla de escalado.",
   "An on-call policy you can't see pages the people on call.": "Una política de guardia que no puedes ver avisa a las personas de guardia.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "Nada detiene la cadena.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "La política de guardia {{policy}} no tiene reglas de escalado, así que no avisa a nadie.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "La política de guardia {{policy}} no llega a nadie ahora mismo: no hay nadie de guardia en su primera regla de escalado.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime lo marca como {{status}} y abre una alerta de gravedad {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime lo marca como {{status}} y abre un incidente de gravedad {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime lo marca como {{status}}. No abre ningún incidente ni alerta, así que no se avisa a nadie.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime abre una alerta de gravedad {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime abre un incidente de gravedad {{severity}}.",
   "Open Admin Dashboard": "Abrir el Panel de administración",
   "Open Criteria": "Abrir criterios",
   "Open On-Call Policy": "Abrir política de guardia",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "Cambio",
   "Table (database object)": "Tabla",
   "View (database object)": "Vista",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Cambiar cuándo se envía este paso."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Cambiar cuándo se envía este paso.",
+  "An alert ({{severity}})": "Una alerta ({{severity}})",
+  "An incident ({{severity}})": "Un incidente ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime lo marca como {{status}} y abre una alerta ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime lo marca como {{status}} y abre un incidente ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime abre una alerta ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime abre un incidente ({{severity}})."
 }

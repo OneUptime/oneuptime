@@ -28,9 +28,12 @@ import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteCon
 import {
   composedValue,
   PluralTemplate,
+  TemplateValue,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * "WHEN THIS GOES DOWN" IN THE READER'S WORDS (Types/Monitor/WhoIsTold).
@@ -45,19 +48,57 @@ import {
 // The most people named in a sentence; more are counted.
 export const WHO_IS_TOLD_MAX_NAMED_PEOPLE: number = 3;
 
-// What happens first: the status it sets, and what it opens.
-const OPENS_SENTENCES: Readonly<
+/*
+ * What happens first: the status it sets, and what it opens, its severity
+ * in brackets - a new project's severities are named "Critical Incident"
+ * and the rest, so "opens a {{severity}} incident" read "opens a Critical
+ * Incident incident" on every monitor's page (#7368), as the Website down
+ * summary had read before it took the brackets.
+ */
+export const OPENS_SENTENCES: Readonly<
   Record<"statusAndIncident" | "statusAndAlert" | "incident" | "alert", string>
 > = {
   statusAndIncident: translationKey(
-    "OneUptime marks it {{status}} and opens a {{severity}} incident.",
+    "OneUptime marks it {{status}} and opens an incident ({{severity}}).",
   ),
   statusAndAlert: translationKey(
-    "OneUptime marks it {{status}} and opens a {{severity}} alert.",
+    "OneUptime marks it {{status}} and opens an alert ({{severity}}).",
   ),
-  incident: translationKey("OneUptime opens a {{severity}} incident."),
-  alert: translationKey("OneUptime opens a {{severity}} alert."),
+  incident: translationKey("OneUptime opens an incident ({{severity}})."),
+  alert: translationKey("OneUptime opens an alert ({{severity}})."),
 };
+
+// The chain's Opens row: what the criteria opens, its severity in brackets.
+export const OPENS_CHAIN_LINES: Readonly<Record<"incident" | "alert", string>> =
+  {
+    incident: translationKey("An incident ({{severity}})"),
+    alert: translationKey("An alert ({{severity}})"),
+  };
+
+/*
+ * An event's severity as a value of these sentences, by its kind's list
+ * (Common/Utils/DefaultRecordNames): a severity a project starts with -
+ * "Critical Incident", "High" - in the reader's words, one the project
+ * named itself as written.
+ */
+export function getWhoIsToldSeverityValue(
+  event: Pick<WhoIsToldEvent, "kind" | "severityName">,
+): TemplateValue {
+  return recordNameInSentence(
+    event.kind === OnCallTestPageRecordKind.Alert
+      ? StateListType.AlertSeverity
+      : StateListType.IncidentSeverity,
+    event.severityName,
+  );
+}
+
+/*
+ * The status a criteria sets, as a value of these sentences: "Offline" in
+ * the reader's words, a status the project named itself as written.
+ */
+export function getWhoIsToldStatusValue(statusName: string): TemplateValue {
+  return recordNameInSentence(StateListType.MonitorStatus, statusName);
+}
 
 // Who it emails as owners.
 const OWNER_SENTENCES: Readonly<
@@ -458,9 +499,11 @@ export function getWhoIsToldSentences(
     }
 
     const sentences: Array<string> = [
-      translator.translateTemplate(STATUS_ONLY_SENTENCE, {
-        status: statusOnly.statusName,
-      }),
+      translator.translateTemplate(
+        STATUS_ONLY_SENTENCE,
+        { status: getWhoIsToldStatusValue(statusOnly.statusName) },
+        { setsValuesApart: true },
+      ),
     ];
 
     if (statusOnly.statusOwners) {
@@ -485,10 +528,15 @@ export function getWhoIsToldSentences(
   }
 
   const sentences: Array<string> = [
-    translator.translateTemplate(opens, {
-      severity: event.severityName,
-      ...(status ? { status: status } : {}),
-    }),
+    translator.translateTemplate(
+      opens,
+      {
+        severity: getWhoIsToldSeverityValue(event),
+        ...(status ? { status: getWhoIsToldStatusValue(status) } : {}),
+      },
+      // A Latin name stays in order on a right-to-left page.
+      { setsValuesApart: true },
+    ),
     getOwnersSentence(event.owners, translator),
     getPagingSentence(event, translator),
   ];

@@ -50658,8 +50658,6 @@
   "Searched the docs": "Documentação pesquisada",
   "Searching the docs": "A pesquisar na documentação",
   "A rule you can't see": "Uma regra que você não pode ver",
-  "A {{severity}} alert": "Um alerta de gravidade {{severity}}",
-  "A {{severity}} incident": "Um incidente de gravidade {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "Uma política de plantão não tem regras de escalonamento, então não aciona ninguém.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "Uma política de plantão não alcança ninguém agora: ninguém está de plantão na primeira regra de escalonamento.",
   "An on-call policy you can't see pages the people on call.": "Uma política de plantão que você não pode ver aciona as pessoas de plantão.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "Nada interrompe a cadeia.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "A política de plantão {{policy}} não tem regras de escalonamento, então não aciona ninguém.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "A política de plantão {{policy}} não alcança ninguém agora: não há ninguém de plantão na primeira regra de escalonamento.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "O OneUptime o marca como {{status}} e abre um alerta de gravidade {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "O OneUptime o marca como {{status}} e abre um incidente de gravidade {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "O OneUptime o marca como {{status}}. Não abre nenhum incidente nem alerta, então ninguém é acionado.",
-  "OneUptime opens a {{severity}} alert.": "O OneUptime abre um alerta de gravidade {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "O OneUptime abre um incidente de gravidade {{severity}}.",
   "Open Admin Dashboard": "Abrir o Painel do administrador",
   "Open Criteria": "Abrir critérios",
   "Open On-Call Policy": "Abrir política de plantão",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "Alteração",
   "Table (database object)": "Tabela",
   "View (database object)": "Visão",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Alterar quando esta etapa é enviada."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Alterar quando esta etapa é enviada.",
+  "An alert ({{severity}})": "Um alerta ({{severity}})",
+  "An incident ({{severity}})": "Um incidente ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "O OneUptime o marca como {{status}} e abre um alerta ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "O OneUptime o marca como {{status}} e abre um incidente ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "O OneUptime abre um alerta ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "O OneUptime abre um incidente ({{severity}})."
 }

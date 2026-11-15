@@ -50658,8 +50658,6 @@
   "Searched the docs": "Documentazione consultata",
   "Searching the docs": "Ricerca nella documentazione",
   "A rule you can't see": "Una regola che non puoi vedere",
-  "A {{severity}} alert": "Un avviso di gravità {{severity}}",
-  "A {{severity}} incident": "Un incidente di gravità {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "Una policy di reperibilità non ha regole di escalation, quindi non avvisa nessuno.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "Una policy di reperibilità non raggiunge nessuno in questo momento: nessuno è reperibile nella sua prima regola di escalation.",
   "An on-call policy you can't see pages the people on call.": "Una policy di reperibilità che non puoi vedere avvisa le persone reperibili.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "Niente interrompe la catena.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "La policy di reperibilità {{policy}} non ha regole di escalation, quindi non avvisa nessuno.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "La policy di reperibilità {{policy}} non raggiunge nessuno in questo momento: nessuno è reperibile nella sua prima regola di escalation.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime lo imposta su {{status}} e apre un avviso di gravità {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime lo imposta su {{status}} e apre un incidente di gravità {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime lo imposta su {{status}}. Non apre alcun incidente né avviso, quindi nessuno viene avvisato.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime apre un avviso di gravità {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime apre un incidente di gravità {{severity}}.",
   "Open Admin Dashboard": "Apri il Pannello amministratore",
   "Open Criteria": "Apri criteri",
   "Open On-Call Policy": "Apri policy di reperibilità",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "Cambiamento",
   "Table (database object)": "Tabella",
   "View (database object)": "Vista",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Modifica quando viene inviato questo passaggio."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Modifica quando viene inviato questo passaggio.",
+  "An alert ({{severity}})": "Un avviso ({{severity}})",
+  "An incident ({{severity}})": "Un incidente ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime lo imposta su {{status}} e apre un avviso ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime lo imposta su {{status}} e apre un incidente ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime apre un avviso ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime apre un incidente ({{severity}})."
 }

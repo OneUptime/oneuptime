@@ -50658,8 +50658,6 @@
   "Searched the docs": "تم البحث في الوثائق",
   "Searching the docs": "جارٍ البحث في الوثائق",
   "A rule you can't see": "قاعدة لا يمكنك رؤيتها",
-  "A {{severity}} alert": "تنبيه بخطورة {{severity}}",
-  "A {{severity}} incident": "حادثة بخطورة {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "سياسة مناوبة ليس لها قواعد تصعيد، لذا لا تستدعي أحدًا.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "سياسة مناوبة لا تصل إلى أحد الآن: لا أحد في المناوبة في قاعدة التصعيد الأولى لها.",
   "An on-call policy you can't see pages the people on call.": "سياسة مناوبة لا يمكنك رؤيتها تستدعي المناوبين.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "لا شيء يوقف السلسلة.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "سياسة المناوبة {{policy}} ليس لها قواعد تصعيد، لذا لا تستدعي أحدًا.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "سياسة المناوبة {{policy}} لا تصل إلى أحد الآن: لا أحد في المناوبة في قاعدة التصعيد الأولى لها.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "يضع OneUptime حالتها {{status}} ويفتح تنبيهًا بخطورة {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "يضع OneUptime حالتها {{status}} ويفتح حادثة بخطورة {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "يضع OneUptime حالتها {{status}}. لا يفتح حادثة ولا تنبيهًا، لذا لا يُستدعى أحد.",
-  "OneUptime opens a {{severity}} alert.": "يفتح OneUptime تنبيهًا بخطورة {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "يفتح OneUptime حادثة بخطورة {{severity}}.",
   "Open Admin Dashboard": "فتح لوحة الإدارة",
   "Open Criteria": "فتح المعايير",
   "Open On-Call Policy": "فتح سياسة المناوبة",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "التغيير",
   "Table (database object)": "جدول",
   "View (database object)": "طريقة عرض",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة.",
+  "An alert ({{severity}})": "تنبيه ({{severity}})",
+  "An incident ({{severity}})": "حادثة ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "يضع OneUptime حالتها {{status}} ويفتح تنبيهًا ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "يضع OneUptime حالتها {{status}} ويفتح حادثة ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "يفتح OneUptime تنبيهًا ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "يفتح OneUptime حادثة ({{severity}})."
 }

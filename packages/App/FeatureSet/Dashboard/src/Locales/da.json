@@ -50658,8 +50658,6 @@
   "Searched the docs": "Søgte i dokumentationen",
   "Searching the docs": "Søger i dokumentationen",
   "A rule you can't see": "En regel, du ikke kan se",
-  "A {{severity}} alert": "En advarsel med alvorlighed {{severity}}",
-  "A {{severity}} incident": "En hændelse med alvorlighed {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "En vagtpolitik har ingen eskaleringsregler, så den tilkalder ingen.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "En vagtpolitik når ingen lige nu: ingen har vagt i dens første eskaleringsregel.",
   "An on-call policy you can't see pages the people on call.": "En vagtpolitik, du ikke kan se, tilkalder dem, der har vagt.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "Intet stopper kæden.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "Vagtpolitikken {{policy}} har ingen eskaleringsregler, så den tilkalder ingen.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "Vagtpolitikken {{policy}} når ingen lige nu: ingen har vagt i dens første eskaleringsregel.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime sætter status til {{status}} og åbner en advarsel med alvorlighed {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime sætter status til {{status}} og åbner en hændelse med alvorlighed {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime sætter status til {{status}}. Der åbnes ingen hændelse eller advarsel, så ingen tilkaldes.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime åbner en advarsel med alvorlighed {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime åbner en hændelse med alvorlighed {{severity}}.",
   "Open Admin Dashboard": "Åbn Admin-dashboardet",
   "Open Criteria": "Åbn kriterier",
   "Open On-Call Policy": "Åbn vagtpolitik",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "Ændring",
   "Table (database object)": "Tabel",
   "View (database object)": "Visning",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Skift, hvornår dette trin sendes."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Skift, hvornår dette trin sendes.",
+  "An alert ({{severity}})": "En advarsel ({{severity}})",
+  "An incident ({{severity}})": "En hændelse ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime sætter status til {{status}} og åbner en advarsel ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime sætter status til {{status}} og åbner en hændelse ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime åbner en advarsel ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime åbner en hændelse ({{severity}})."
 }

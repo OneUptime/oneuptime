@@ -231,7 +231,7 @@ function result(
 describe("the card's first words", () => {
   test("says what happens, who is emailed and who is paged, as the issue words it", () => {
     expect(getWhoIsToldSentences(result([offline()]), translator)).toEqual([
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
       "It emails the project's owners (Owner One).",
       "It pages Ana Lopez through Primary.",
     ]);
@@ -268,7 +268,7 @@ describe("the card's first words", () => {
         translator,
       ).slice(0, 2),
     ).toEqual([
-      "OneUptime opens a Warning alert.",
+      "OneUptime opens an alert (Warning).",
       "It emails its owners (Ana Lopez and Platform).",
     ]);
   });
@@ -434,7 +434,7 @@ describe("the card's first words", () => {
 
     test("English: a space after each sentence", () => {
       expect(getWhoIsToldSummary(owned, translator)).toBe(
-        "OneUptime marks it Offline and opens a Critical incident. It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
+        "OneUptime marks it Offline and opens an incident (Critical). It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
       );
     });
 
@@ -680,7 +680,7 @@ describe("MonitorWhoIsToldCard", () => {
 
     expect(screen.getByTestId("who-is-told-loading")).toBeInTheDocument();
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens a Critical incident. It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
     );
     expect(screen.getByTestId("who-is-told-no-breaks")).toBeInTheDocument();
     expect(screen.getByText("When this goes down")).toBeInTheDocument();
@@ -733,7 +733,7 @@ describe("MonitorWhoIsToldCard", () => {
     const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
 
     expect(chain).toHaveTextContent("When Offline matches");
-    expect(chain).toHaveTextContent("A Critical incident");
+    expect(chain).toHaveTextContent("An incident (Critical)");
     expect(chain).toHaveTextContent("Every incident");
     expect(chain).toHaveTextContent("Public status");
     expect(
@@ -849,7 +849,7 @@ describe("MonitorWhoIsToldCard", () => {
     fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
 
     expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
-      "A Critical incident",
+      "An incident (Critical)",
     );
     expect(screen.queryByTestId("who-is-told-title")).toBeNull();
     expect(screen.queryByTestId("who-is-told-owner-rules")).toBeNull();
@@ -1519,7 +1519,7 @@ describe("MonitorWhoIsToldCard", () => {
     });
 
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
     );
     expect(screen.queryByTestId("who-is-told-try-again")).toBeNull();
   });

@@ -13,7 +13,9 @@ import {
   getBreakSentence,
   getChannelName,
   getFixLink,
+  getWhoIsToldSeverityValue,
   getWhoIsToldSummary,
+  OPENS_CHAIN_LINES,
 } from "./WhoIsToldWords";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -48,6 +50,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -330,9 +334,14 @@ const EventBlock: FunctionComponent<{
     >
       <ChainRow label={translator.translateText("Opens") || "Opens"}>
         <span>
+          {/*
+           * Its severity in brackets, by its list: "An incident (Critical
+           * Incident)", never "A Critical Incident incident" (#7368).
+           */}
           {translator.translateTemplate(
-            isAlert ? "A {{severity}} alert" : "A {{severity}} incident",
-            { severity: event.severityName },
+            isAlert ? OPENS_CHAIN_LINES.alert : OPENS_CHAIN_LINES.incident,
+            { severity: getWhoIsToldSeverityValue(event) },
+            { setsValuesApart: true },
           )}
         </span>
         {event.title ? (
@@ -441,7 +450,17 @@ const Chain: FunctionComponent<{ result: WhoIsToldResult }> = (props: {
                     className="inline-block h-2 w-2 rounded-full"
                     style={{ backgroundColor: item.statusColor || "#9ca3af" }}
                   />
-                  <span dir="auto">{item.statusName}</span>
+                  {/*
+                   * By its list: the default "Offline" in the reader's
+                   * words, a status the project named itself as written.
+                   */}
+                  <span dir="auto">
+                    {translateRecordName(
+                      translator,
+                      StateListType.MonitorStatus,
+                      item.statusName,
+                    )}
+                  </span>
                 </span>
               </ChainRow>
             ) : (

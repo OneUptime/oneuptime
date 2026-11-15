@@ -50658,8 +50658,6 @@
   "Searched the docs": "Поиск по документации выполнен",
   "Searching the docs": "Поиск по документации",
   "A rule you can't see": "Правило, которое вам не видно",
-  "A {{severity}} alert": "Оповещение с серьёзностью {{severity}}",
-  "A {{severity}} incident": "Инцидент с серьёзностью {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "У политики дежурства нет правил эскалации, поэтому она никого не оповещает.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "Политика дежурства сейчас ни до кого не доходит: в её первом правиле эскалации никто не дежурит.",
   "An on-call policy you can't see pages the people on call.": "Политика дежурства, которая вам не видна, оповещает дежурных.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "Цепочку ничто не прерывает.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "У политики дежурств {{policy}} нет правил эскалации, поэтому она никого не вызывает.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "Политика дежурств {{policy}} сейчас ни до кого не доходит: в её первом правиле эскалации никто не дежурит.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime ставит статус {{status}} и открывает оповещение с серьёзностью {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime ставит статус {{status}} и открывает инцидент с серьёзностью {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime ставит статус {{status}}. Инцидент или оповещение не открываются, поэтому никого не оповещают.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime открывает оповещение с серьёзностью {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime открывает инцидент с серьёзностью {{severity}}.",
   "Open Admin Dashboard": "Открыть панель администратора",
   "Open Criteria": "Открыть критерии",
   "Open On-Call Policy": "Открыть политику дежурств",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "Изменение",
   "Table (database object)": "Таблица",
   "View (database object)": "Представление",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Изменить, когда отправляется этот шаг."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Изменить, когда отправляется этот шаг.",
+  "An alert ({{severity}})": "Оповещение ({{severity}})",
+  "An incident ({{severity}})": "Инцидент ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime ставит статус {{status}} и открывает оповещение ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime ставит статус {{status}} и открывает инцидент ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime открывает оповещение ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime открывает инцидент ({{severity}})."
 }

@@ -50658,8 +50658,6 @@
   "Searched the docs": "Documentatie doorzocht",
   "Searching the docs": "Documentatie doorzoeken",
   "A rule you can't see": "Een regel die u niet kunt zien",
-  "A {{severity}} alert": "Een waarschuwing met ernst {{severity}}",
-  "A {{severity}} incident": "Een incident met ernst {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "Een bereikbaarheidsbeleid heeft geen escalatieregels en roept dus niemand op.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "Een bereikbaarheidsbeleid bereikt op dit moment niemand: niemand is bereikbaar in de eerste escalatieregel.",
   "An on-call policy you can't see pages the people on call.": "Een bereikbaarheidsbeleid dat u niet kunt zien, roept de mensen op die dienst hebben.",
@@ -50689,11 +50687,7 @@
   "Nothing stops the chain.": "Niets houdt de keten tegen.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "Bereikbaarheidsbeleid {{policy}} heeft geen escalatieregels, dus het roept niemand op.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "Bereikbaarheidsbeleid {{policy}} bereikt op dit moment niemand: er is niemand bereikbaar in de eerste escalatieregel.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime zet de status op {{status}} en opent een waarschuwing met ernst {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime zet de status op {{status}} en opent een incident met ernst {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime zet de status op {{status}}. Er wordt geen incident of waarschuwing geopend, dus niemand wordt opgeroepen.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime opent een waarschuwing met ernst {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime opent een incident met ernst {{severity}}.",
   "Open Admin Dashboard": "Admin-dashboard openen",
   "Open Criteria": "Criteria openen",
   "Open On-Call Policy": "Bereikbaarheidsbeleid openen",
@@ -52398,5 +52392,11 @@
   "Change (schema change)": "Wijziging",
   "Table (database object)": "Tabel",
   "View (database object)": "Weergave",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Wijzig wanneer deze stap wordt verzonden."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Wijzig wanneer deze stap wordt verzonden.",
+  "An alert ({{severity}})": "Een waarschuwing ({{severity}})",
+  "An incident ({{severity}})": "Een incident ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime zet de status op {{status}} en opent een waarschuwing ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime zet de status op {{status}} en opent een incident ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime opent een waarschuwing ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime opent een incident ({{severity}})."
 }
