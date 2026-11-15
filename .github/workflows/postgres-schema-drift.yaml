@@ -126,6 +126,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/CreatedNotificationHoldPostgres.test.ts --forceExit
 
+      # #8199: whom each owner notification of an incident or alert is to
+      # tell is written before the job takes its record, one row per owner.
+      # The real service runs its statements on a copy of the migrated
+      # OwnerNotificationDelivery table: one row per notification and owner
+      # however many runs write it at once, one run alone telling an owner,
+      # one run alone taking up what a stopped run left; then the real
+      # OwnerNotificationDeliveries is stopped part way and started again.
+      - name: Test who each owner notification tells, on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OWNER_NOTIFICATION_DELIVERY_TESTS: "true"
+          OWNER_NOTIFICATION_DELIVERY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OWNER_NOTIFICATION_DELIVERY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OWNER_NOTIFICATION_DELIVERY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OwnerNotificationDeliveryPostgres.test.ts --forceExit
+
       # #6356: exceptions are shown apart from the traces they are billed
       # with. Metering and billing write the exceptions' part beside a traces
       # row's whole, billing prices the whole exactly as before, and the usage
@@ -3381,6 +3400,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
+
+      # #8199: the incident owner jobs - Created, a state change, a reminder -
+      # stopped before an owner's send, during it and before the take, then
+      # started again, and two of them at once on connections of their own,
+      # on the real delivery service and a copy of the migrated
+      # OwnerNotificationDelivery table: each owner is told once.
+      - name: Test the owner notification jobs stopped and started again on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_OWNER_NOTIFICATION_JOB_TESTS: "true"
+          OWNER_NOTIFICATION_JOB_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OWNER_NOTIFICATION_JOB_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OWNER_NOTIFICATION_JOB_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts --forceExit
 
       # A bundled global probe upgraded from the key the repository ships, end
       # to end: HTTP requests to the probe registration, heartbeat and

@@ -94,11 +94,21 @@ export class Service extends DatabaseService<Model> {
       owners.push({ userId: userId, isProjectOwner: owner.isProjectOwner });
     }
 
+    /*
+     * Written in one order, by owner, whoever writes them: two runs writing
+     * the same owners at once in different orders would each wait on a row
+     * the other had written first, and one of them would fail (a deadlock).
+     */
+    owners.sort((a: { userId: string }, b: { userId: string }): number => {
+      return a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0;
+    });
+
     if (owners.length > 0) {
       await this.getRepository().manager.query(
         `INSERT INTO ${TABLE} ("projectId", "kind", "resourceId", "eventId", "occurrence", "userId", "isProjectOwner", "status", "attempts", "attemptedAt", "version")
          SELECT $1::uuid, $2, $3::uuid, $4::uuid, $5::integer, owner."userId"::uuid, owner."isProjectOwner", '${OwnerNotificationDeliveryStatus.Pending}', 1, $6::timestamptz, 1
          FROM jsonb_to_recordset($7::jsonb) AS owner("userId" text, "isProjectOwner" boolean)
+         ORDER BY owner."userId"::uuid
          ON CONFLICT ("kind", "eventId", "occurrence", "userId") DO NOTHING`,
         [
           data.event.projectId.toString(),
