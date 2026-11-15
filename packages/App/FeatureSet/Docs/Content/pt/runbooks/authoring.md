@@ -198,7 +198,7 @@ Peça à IA para analisar, resumir ou decidir algo no meio da execução. A resp
 | **Prompt** | O que a IA deve fazer. Por exemplo: "Revise a saída das etapas anteriores e diga se é seguro prosseguir com a remediação." |
 | **Provedor de LLM** | Opcional. **Padrão do projeto** usa o provedor padrão do projeto. Fixe um provedor quando a etapa precisar de um modelo específico, como um auto-hospedado para dados que não podem sair da sua rede. Consulte [Provedores de LLM](/docs/ai/llm-provider). |
 | **Incluir o contexto da etapa anterior** | Se ligado, a IA vê tudo sobre as etapas que rodaram antes desta: título, tipo, status, saída e mensagens de erro. Ela recebe até 4.000 caracteres da saída de cada etapa. |
-| **Incluir o contexto do gatilho** | Se ligado, a IA vê o que iniciou a execução: o incidente, alerta ou evento de manutenção programada vinculado (descrição, severidade, estado atual, monitores afetados, causa raiz, histórico de estados e notas públicas), ou quem executou o runbook manualmente. |
+| **Incluir o contexto do gatilho** | Se ligado, a IA vê o que iniciou a execução: o incidente, alerta ou evento de manutenção vinculado (descrição, severidade, estado atual, monitores afetados, causa raiz, histórico de estados e notas públicas), ou quem executou o runbook manualmente. |
 
 Para manter uma pessoa no circuito, ligue **Exigir aprovação** na etapa que vem depois de uma etapa de IA: a IA analisa, alguém lê a resposta, e a etapa de remediação só roda depois que essa pessoa a aprova.
 

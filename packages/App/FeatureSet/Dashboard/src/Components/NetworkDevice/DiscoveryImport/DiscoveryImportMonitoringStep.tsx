@@ -747,7 +747,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
         <Dropdown
           id="discovery-import-template"
           dataTestId="discovery-import-template"
-          ariaLabel={translator.translateText("Monitor template")}
+          ariaLabel="Monitor template"
           options={groupedTemplateOptions}
           value={selectedTemplateOption}
           isClearable={false}
@@ -815,7 +815,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
             <Dropdown
               id="discovery-import-interval"
               dataTestId="discovery-import-interval"
-              ariaLabel={translator.translateText("Check every")}
+              ariaLabel="Check every"
               isClearable={false}
               disabled={props.isDisabled}
               options={getPollingIntervalOptions()}

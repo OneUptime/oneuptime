@@ -123,6 +123,12 @@ export interface ComponentProps {
   emptyText?: string | undefined;
   // The dialog's name, e.g. "Add owner".
   ariaLabel: string;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
 }
 
 interface RowGroup {
@@ -135,6 +141,10 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const { translateString } = useTranslateValue();
+  // The dialog's name, and its list's.
+  const ariaLabel: string = props.isAriaLabelTranslated
+    ? props.ariaLabel
+    : translateString(props.ariaLabel) || props.ariaLabel;
   const { popup } = props;
   const isOpen: boolean = popup.isPopupOpen;
 
@@ -436,7 +446,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       id={popup.popupId}
       data-testid="people-search-popup"
       role="dialog"
-      aria-label={translateString(props.ariaLabel) || props.ariaLabel}
+      aria-label={ariaLabel}
       tabIndex={-1}
       className="fixed flex flex-col overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-gray-200"
       style={{
@@ -492,7 +502,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       <div
         id={listboxId}
         role="listbox"
-        aria-label={translateString(props.ariaLabel) || props.ariaLabel}
+        aria-label={ariaLabel}
         aria-multiselectable={
           props.selectionMode === "toggle" ? true : undefined
         }

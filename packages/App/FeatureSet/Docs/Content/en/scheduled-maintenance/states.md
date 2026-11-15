@@ -1,6 +1,6 @@
 # Maintenance States
 
-Every scheduled maintenance event is in one **state**: where the work is, from planned to signed off. States decide what OneUptime does with the event: when its monitors stop being checked, what your status pages show, when its reminders stop. This page covers the four states every project starts with, what moves an event between them, and how to add steps of your own.
+Every maintenance event is in one **state**: where the work is, from planned to signed off. States decide what OneUptime does with the event: when its monitors stop being checked, what your status pages show, when its reminders stop. This page covers the four states every project starts with, what moves an event between them, and how to add steps of your own.
 
 :::cards
 - [The seeded states](#the-seeded-states): Scheduled, Ongoing, Ended and Completed.

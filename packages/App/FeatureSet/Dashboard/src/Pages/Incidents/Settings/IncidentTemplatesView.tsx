@@ -2,6 +2,8 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
 import ArchivableValuePill from "../../../Components/ArchivableValue/ArchivableValuePill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
@@ -270,6 +272,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <ArchivableValuePill
                     color={item.incidentSeverity.color || Black}
                     name={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                     isArchived={item.incidentSeverity.isArchived}
                   />
                 );
@@ -300,6 +306,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <ArchivableValuePill
                     color={item.initialIncidentState.color || Black}
                     name={item.initialIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.initialIncidentState.name,
+                    )}
                     isArchived={item.initialIncidentState.isArchived}
                   />
                 );

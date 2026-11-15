@@ -1,5 +1,6 @@
 import LinearRegExp from "../LinearRegExp/LinearRegExp";
 import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+import lookupTable from "../LookupTable";
 
 /*
  * PromQL's regular expressions, read in JavaScript.
@@ -17,7 +18,12 @@ import { getLinearRegExp } from "../LinearRegExp/PatternCache";
  * every series compiles it once.
  */
 
-const POSIX_CLASSES: Record<string, string> = {
+/*
+ * Read by the name a pattern writes between `[:` and `:]`, so a Map: a
+ * plain object would read `[[:constructor:]]` as the source text of the
+ * function every object inherits, not as a name no class has.
+ */
+const POSIX_CLASSES: ReadonlyMap<string, string> = lookupTable<string>({
   alnum: "0-9A-Za-z",
   alpha: "A-Za-z",
   ascii: "\\x00-\\x7F",
@@ -32,7 +38,7 @@ const POSIX_CLASSES: Record<string, string> = {
   upper: "A-Z",
   word: "0-9A-Za-z_",
   xdigit: "0-9A-Fa-f",
-};
+});
 
 const POSIX_CLASS_REGEX: RegExp = /\[:(\^?)([a-z]+):\]/g;
 
@@ -88,7 +94,7 @@ export const compilePromQLRegex: (
   body = body.replace(
     POSIX_CLASS_REGEX,
     (whole: string, negated: string, name: string): string => {
-      const members: string | undefined = POSIX_CLASSES[name];
+      const members: string | undefined = POSIX_CLASSES.get(name);
 
       // A negated POSIX class only reads inside its own bracket: `[^[:digit:]]`.
       if (!members || negated) {

@@ -183,7 +183,7 @@ De fleste projekter har brug for ét trin. Tilføj endnu et, når en note har br
 - **Ændringer gælder med det samme.** Hvem der må godkende, læses, når nogen tager stilling, og noter, der allerede venter, følger dine ændringer. Når du tilføjer, sletter eller flytter trin, eller ændrer, hvem et trin nævner, bliver alle, der nu kan godkende en ventende note og endnu ikke er blevet spurgt om den, spurgt gennem deres notifikationsindstillinger, og det samme gælder den, der kommer med i et team, som det trin, en note venter på, nævner. Ingen bliver spurgt to gange om det samme trin af en note. Den, der fjernes fra trinnet eller fra dets team, kan ikke længere tage stilling til noten, og vedkommendes besked om den i Slack, Microsoft Teams eller Mattermost siger det. En note beholder de godkendelser, den har.
 - **Ingen godkender deres egen note eller to trin af én note.** Den, der sendte en note til godkendelse, kan hverken godkende eller afvise den, og den, der godkendte et af dens trin, kan ikke godkende et andet.
 
-Kun projektejere og -administratorer kan ændre disse indstillinger, og alle, der læser noterne, kan se, hvem der godkender dem. **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** er den samme side for planlagte vedligeholdelsesbegivenheder, med sin egen kontakt og sine egne trin. Hvad en note gør, mens den venter, og hvordan godkendere tager stilling, står under [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
+Kun projektejere og -administratorer kan ændre disse indstillinger, og alle, der læser noterne, kan se, hvem der godkender dem. **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** er den samme side for vedligeholdelseshændelser, med sin egen kontakt og sine egne trin. Hvad en note gør, mens den venter, og hvordan godkendere tager stilling, står under [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
 
 ## Notifikationer til abonnenter
 
@@ -236,7 +236,7 @@ Hver definition har:
 - **Medtag i abonnentnotifikationer** — under **Flere felter**. Sender feltet og dets værdi til statussidens abonnenter med hændelsens beskeder: standardbeskederne pr. e-mail, i Slack og i Microsoft Teams og webhooks, men ikke SMS. Abonnenter er som regel uden for dit team, så slå det kun til for felter, der trygt kan deles. Se [Abonnenter og meddelelser](/docs/status-pages/subscribers#hændelser).
 - **Skabelonvariabel** — den nøgle, en skabelon når feltet med, `{{incident.customFields.<key>}}`, i noteskabeloner og brugerdefinerede skabeloner til abonnentnotifikationer. Den dannes ud fra feltets navn, når feltet oprettes — små bogstaver, cifre og understregninger, så `Expected Resolution` bliver til `expected_resolution`, med `_2`, `_3` og så videre tilføjet, når et andet felt allerede har nøglen — og den ændres ikke, når feltet omdøbes. Ingen sætter den i hånden: API'et ignorerer en værdi, der sendes for den. Skabeloner, der er skrevet med det ældre `{{customFields.<key>}}`, virker fortsat. Du behøver aldrig slå den op: de editorer, der indsætter den — en noteskabelons **Note** og en statussides brugerdefinerede skabeloner til abonnentnotifikationer for hændelsesbegivenheder — viser hvert felts variabel under **Skabelonvariabler** ved feltets navn. Et felts formular **Rediger** viser den også, skrivebeskyttet, nederst i **Flere felter**, med en knap, der kopierer den.
 
-**Rækkefølge**, **Vis ved oprettelse**, **Påkrævet ved oprettelse**, **Medtag i abonnentnotifikationer** og **Skabelonvariabel** findes kun på brugerdefinerede hændelsesfelter. De brugerdefinerede felter på monitorer, advarsler, planlagte vedligeholdelseshændelser og de andre ressourcer har dem ikke.
+**Rækkefølge**, **Vis ved oprettelse**, **Påkrævet ved oprettelse**, **Medtag i abonnentnotifikationer** og **Skabelonvariabel** findes kun på brugerdefinerede hændelsesfelter. De brugerdefinerede felter på monitorer, advarsler, vedligeholdelseshændelser og de andre ressourcer har dem ikke.
 
 Definitionerne ligger i deres egen model; værdierne ligger på selve hændelsen i kolonnen `customFields`. På en enkelt hændelse udfylder du dem fra **Brugerdefinerede felter** i hændelsens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), hvor felterne står i deres **Rækkefølge**. Hændelsesskabeloner gemmer værdier til de samme felter i deres egne `customFields`.
 
@@ -362,7 +362,7 @@ Når du gemmer, flyttes en omdøbt mulighed og en værdi, du vælger en mulighed
 
 En hændelse, hvis værdi dens felt ikke længere tilbyder, viser værdien, markeret som _ikke længere en mulighed_, på sin side **Brugerdefinerede felter** og i listen over hændelser. At redigere dens andre felter beholder den; vælg en anden mulighed for at ændre den.
 
-De brugerdefinerede felter på alle andre ressourcer virker på samme måde: monitorer, advarsler, planlagte vedligeholdelseshændelser, statussider, vagtpolitikker, teams, teammedlemmer og lagerelementer. At omdøbe en mulighed i et monitorfelt, eller tilføje en, gør det samme ved de hændelses-, advarsels- og vedligeholdelsesfelter, der kopierer det (se [Felter, der kopieres fra en monitor](#felter-der-kopieres-fra-en-monitor)), så de bliver ved med at tilbyde hver værdi, de kopierer.
+De brugerdefinerede felter på alle andre ressourcer virker på samme måde: monitorer, advarsler, vedligeholdelseshændelser, statussider, vagtpolitikker, teams, teammedlemmer og lagerelementer. At omdøbe en mulighed i et monitorfelt, eller tilføje en, gør det samme ved de hændelses-, advarsels- og vedligeholdelsesfelter, der kopierer det (se [Felter, der kopieres fra en monitor](#felter-der-kopieres-fra-en-monitor)), så de bliver ved med at tilbyde hver værdi, de kopierer.
 
 Via API'et sender du den nye liste som `dropdownOptions` og omdøbningerne i `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Tid til postmortem"| postmortem["Postmortem bliver offentliggjort"]
 ```
 
-Advarsler og planlagte vedligeholdelseshændelser har den samme funktion under **Advarsler → Indstillinger → Målinger** og **Planlagt vedligeholdelse → Indstillinger → Målinger**. Alt nedenfor gælder for alle tre, hver med sine egne øjeblikke.
+Advarsler og vedligeholdelseshændelser har den samme funktion under **Advarsler → Indstillinger → Målinger** og **Planlagt vedligeholdelse → Indstillinger → Målinger**. Alt nedenfor gælder for alle tre, hver med sine egne øjeblikke.
 
 ### Færdige målinger
 
@@ -477,7 +477,7 @@ Hver hændelses side viser sine egne målinger på et kort **Målinger** lige un
 
 En måling, hvis start eller slutning du ændrer, bliver ved med at vise sin gamle værdi på hver hændelse, indtil OneUptime har beregnet den igen, ligesom dens diagram. Lige efter en tilstandsændring fra hændelsens hoved viser kortet de nye værdier, så snart OneUptime har beregnet dem, som regel med det samme.
 
-Advarsler og planlagte vedligeholdelseshændelser har det samme kort på deres sider. For en vedligeholdelseshændelse kommer **Ikke nået**, når hændelsen er afsluttet: når den er i den afsluttede eller den fuldførte tilstand eller i en af dine egne tilstande efter den afsluttede tilstand. Dens øjeblikke følger de samme placeringer: **Vedligeholdelsen starter**, **Vedligeholdelsen slutter** og **Vedligeholdelsen bliver fuldført** er skiftene til en tilstand, hvor hændelsen står på, er overstået eller er fuldført, fra en, hvor den ikke var det — så en hændelse, der fuldføres direkte fra den igangværende tilstand, slutter dér, en hændelse, der flyttes fra den afsluttede tilstand direkte til en af dine egne tilstande efter den fuldførte tilstand, bliver fuldført dér, og at gå videre fra den fuldførte tilstand til sådan en tilstand fuldfører intet igen. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder). Kortet udelades, når ingen aktiveret måling har **Vis på hændelsessider** slået til, og for en, der ikke må læse målinger.
+Advarsler og vedligeholdelseshændelser har det samme kort på deres sider. For en vedligeholdelseshændelse kommer **Ikke nået**, når hændelsen er afsluttet: når den er i den afsluttede eller den fuldførte tilstand eller i en af dine egne tilstande efter den afsluttede tilstand. Dens øjeblikke følger de samme placeringer: **Vedligeholdelsen starter**, **Vedligeholdelsen slutter** og **Vedligeholdelsen bliver fuldført** er skiftene til en tilstand, hvor hændelsen står på, er overstået eller er fuldført, fra en, hvor den ikke var det — så en hændelse, der fuldføres direkte fra den igangværende tilstand, slutter dér, en hændelse, der flyttes fra den afsluttede tilstand direkte til en af dine egne tilstande efter den fuldførte tilstand, bliver fuldført dér, og at gå videre fra den fuldførte tilstand til sådan en tilstand fuldfører intet igen. Se [Vedligeholdelseshændelser](/docs/status-pages/subscribers#vedligeholdelseshændelser). Kortet udelades, når ingen aktiveret måling har **Vis på hændelsessider** slået til, og for en, der ikke må læse målinger.
 
 ### Påvirkning startede, og hvorfor det er tomt
 
@@ -563,7 +563,7 @@ Dialogen siger, hvad der er galt, før du gemmer, og API'et afviser de samme pr�
 
 Project Owners, Project Admins og alle med **Edit Project** kan ændre præfikserne. Alle andre ser dem med knappen **Opdater** låst.
 
-Advarsler og planlagte vedligeholdelseshændelser har den samme side: **Advarsler → Indstillinger → Nummerering** til numre på advarsler og advarselsepisoder (`ALT-` og `AE-` i nye projekter) og **Planlagt vedligeholdelse → Indstillinger → Nummerering** til numre på hændelser (`SM-`). I alle tre virker sidens gamle adresser stadig og åbner **Nummerering**: **Flere indstillinger** (`…/settings/more`) og **Nummerpræfiks** (`…/settings/number-prefix`).
+Advarsler og vedligeholdelseshændelser har den samme side: **Advarsler → Indstillinger → Nummerering** til numre på advarsler og advarselsepisoder (`ALT-` og `AE-` i nye projekter) og **Planlagt vedligeholdelse → Indstillinger → Nummerering** til numre på hændelser (`SM-`). I alle tre virker sidens gamle adresser stadig og åbner **Nummerering**: **Flere indstillinger** (`…/settings/more`) og **Nummerpræfiks** (`…/settings/number-prefix`).
 
 ## Næste numre
 
@@ -589,7 +589,7 @@ Dialogen siger, hvad der er galt, før du gemmer, og kun de numre, du har ændre
 
 Project Owners, Project Admins og alle med **Edit Project** kan ændre de næste numre, ligesom præfikserne. Alle andre ser dem med knappen **Opdater** låst.
 
-Advarsler og planlagte vedligeholdelseshændelser har det samme kort på deres sider **Nummerering**: **Næste advarselsnummer** og **Næste nummer for advarselsepisode** samt **Næste nummer for planlagt vedligeholdelse**. [Importér fra et andet værktøj](/docs/moving-to-oneuptime/incident-io) henter din opsætning, ikke dine tidligere hændelser, og lader derfor numrene være: Sæt de næste numre, før den første hændelse erklæres i OneUptime.
+Advarsler og vedligeholdelseshændelser har det samme kort på deres sider **Nummerering**: **Næste advarselsnummer** og **Næste nummer for advarselsepisode** samt **Næste nummer for planlagt vedligeholdelse**. [Importér fra et andet værktøj](/docs/moving-to-oneuptime/incident-io) henter din opsætning, ikke dine tidligere hændelser, og lader derfor numrene være: Sæt de næste numre, før den første hændelse erklæres i OneUptime.
 
 ## Kontakter for tilknyttede advarsler
 

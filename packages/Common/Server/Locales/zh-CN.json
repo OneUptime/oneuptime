@@ -156,7 +156,7 @@
   "Incidents and outages": "事件和服务中断",
   "Incidents in this Episode ({{count}})": "此片段中的事件（{{count}}）",
   "Low": "低",
-  "Maintenance Event": "维护",
+  "Maintenance Event": "维护事件",
   "Maintenance Event: {{title}}": "维护事件：{{title}}",
   "Maintenance State": "维护状态",
   "Maintenance events": "维护事件",

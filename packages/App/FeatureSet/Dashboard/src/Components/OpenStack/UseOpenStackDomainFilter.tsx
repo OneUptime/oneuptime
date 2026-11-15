@@ -133,7 +133,7 @@ export default function useOpenStackDomainFilter(data: {
         </span>
         <div className="w-48 text-left">
           <Dropdown
-            ariaLabel={translator.translateText("Domain")}
+            ariaLabel="Domain"
             placeholder="Any domain"
             options={options}
             value={options.find((option: DropdownOption): boolean => {

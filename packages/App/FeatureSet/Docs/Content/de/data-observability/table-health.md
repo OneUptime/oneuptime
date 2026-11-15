@@ -41,7 +41,7 @@ Wählen Sie unter **Datenbanken** für eine Datenbank **Empfohlene Warnungen**. 
 
 Wählen Sie beim Anlegen Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen. Danach sind es gewöhnliche Monitore: Bearbeiten Sie sie, schalten Sie sie stumm oder setzen Sie sie wie jeden anderen auf eine Statusseite.
 
-Ein Backfill oder eine Migration sollte niemanden alarmieren. Nennen Sie die Datenbank unter **Data Observability Datenbanken** in einem [geplanten Wartungsereignis](/docs/scheduled-maintenance/index), oder setzen Sie ihren Datenbankserver hinein, und ihre Datenwarnungen bleiben still, solange das Ereignis läuft.
+Ein Backfill oder eine Migration sollte niemanden alarmieren. Nennen Sie die Datenbank unter **Data Observability Datenbanken** in einem [Wartungsereignis](/docs/scheduled-maintenance/index), oder setzen Sie ihren Datenbankserver hinein, und ihre Datenwarnungen bleiben still, solange das Ereignis läuft.
 
 ## Metriken, die jede Tabelle schreibt
 

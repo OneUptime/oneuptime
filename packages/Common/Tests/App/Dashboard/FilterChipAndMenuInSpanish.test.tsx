@@ -195,6 +195,11 @@ const ALERT_STATES: Array<AlertState> = [
   ["76900000-0000-4000-8000-000000000061", "Identified"],
   ["76900000-0000-4000-8000-000000000062", "Resolved"],
   ["76900000-0000-4000-8000-000000000063", "Network"],
+  /*
+   * A monitor status's default name, given an alert state: the project's
+   * own, since a name is OneUptime's only in its own list (#7780).
+   */
+  ["76900000-0000-4000-8000-000000000064", "Operational"],
 ].map(([id, name]: Array<string>): AlertState => {
   return Object.assign(new AlertState(), { _id: id, name });
 });
@@ -625,6 +630,7 @@ describe("a Spanish alert list's filters of severities, states and monitors", ()
       spanish("Identified"),
       spanish("Resolved"),
       "Network",
+      "Operational",
     ]);
 
     // A monitor is the project's, whatever its name: "Resolved", never "Resuelto".

@@ -25,6 +25,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import AlertElement from "../../../Components/Alert/Alert";
 import UserElement from "../../../Components/User/User";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Black } from "Common/Types/BrandColors";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -282,6 +284,10 @@ const EpisodeAlerts: FunctionComponent<
                   isMinimal={true}
                   color={state.color || Black}
                   text={state.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.AlertState,
+                    state.name,
+                  )}
                 />
               );
             },

@@ -227,7 +227,7 @@ Varje sida som incidenten når får samma värden: de tillhör incidenten, inte 
 
 ## Så skiljer sig det från schemalagt underhåll
 
-Schemalagda underhållshändelser har också en lista **Statussidor**, men den fungerar annorlunda:
+Underhållshändelser har också en lista **Statussidor**, men den fungerar annorlunda:
 
 - **Schemalagt underhåll ersätter.** Händelsen visas på exakt sidorna i dess lista, oavsett om de listar dess monitorer.
 - **En incident begränsar.** Dess lista väljer bara bland de sidor som redan listar dess monitorer. Att välja en sida som inte listar någon av dem gör ingenting, och formuläret säger det. Lägg monitorn på den sidan först.

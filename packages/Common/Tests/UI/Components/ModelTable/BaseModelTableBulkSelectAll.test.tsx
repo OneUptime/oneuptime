@@ -135,6 +135,16 @@ const COLUMNS: Array<unknown> = [
   },
 ];
 
+// A column that shows a related record, sorted by its place (#8134).
+const MONITOR_STATUS_COLUMN: unknown = {
+  field: { currentMonitorStatus: { name: true, color: true } },
+  title: "Monitor Status",
+  type: FieldType.Entity,
+  getElement: (): React.ReactElement => {
+    return <span>Operational</span>;
+  },
+};
+
 type CallPredicate = (call: GetListCall) => boolean;
 
 type RenderOptions = {
@@ -161,6 +171,8 @@ type RenderOptions = {
   query?: Query<Monitor> | undefined;
   // Renders the search box, which is otherwise hidden.
   searchableFields?: Array<string> | undefined;
+  // The table's columns, when not the Name and Description ones.
+  columns?: Array<unknown> | undefined;
 };
 
 /*
@@ -287,7 +299,7 @@ describe("BaseModelTable bulk Select All", () => {
       pluralName: "Monitors",
       userPreferencesKey: "monitors-bulk-table",
       urlStateKey: "monitors-bulk-table",
-      columns: COLUMNS,
+      columns: options.columns || COLUMNS,
       filters: [],
       isDeleteable: false,
       isCreateable: false,
@@ -702,6 +714,53 @@ describe("BaseModelTable bulk Select All", () => {
     expect(bulkCalls()[0]!.sort).toEqual({
       name: SortOrder.Descending,
       _id: SortOrder.Ascending,
+    });
+  });
+
+  /*
+   * Sorted by a column that shows a related record (#8134), every match is
+   * selected - and exported - in the order on screen: the monitor status's
+   * place, worst first, the place selected so the database can order by it.
+   */
+  test("a relation column's sort is kept - a monitor's status, worst first - and the place it orders by is selected", async () => {
+    const { container, getByText } = renderTable({
+      rows: makeRows(25),
+      columns: [...COLUMNS, MONITOR_STATUS_COLUMN],
+    });
+
+    await waitFor(() => {
+      expect(calls.length).toBeGreaterThan(0);
+    });
+
+    // A status's first click is worst first: the highest priority.
+    fireEvent.click(getByText("Monitor Status"));
+
+    const worstFirst: JSONObject = {
+      currentMonitorStatus: {
+        priority: { direction: SortOrder.Descending, nulls: "LAST" },
+      },
+    };
+
+    await waitFor(() => {
+      expect(calls[calls.length - 1]!.sort).toEqual(worstFirst);
+    });
+
+    await selectCurrentPage(container);
+
+    fireEvent.click(getByText("Select All Monitors"));
+
+    await waitFor(() => {
+      expect(bulkCalls().length).toBe(1);
+    });
+
+    expect(bulkCalls()[0]!.sort).toEqual({
+      ...worstFirst,
+      _id: SortOrder.Ascending,
+    });
+    expect(bulkCalls()[0]!.select["currentMonitorStatus"]).toEqual({
+      name: true,
+      color: true,
+      priority: true,
     });
   });
 

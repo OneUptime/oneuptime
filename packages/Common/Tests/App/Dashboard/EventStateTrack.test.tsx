@@ -8,12 +8,18 @@ import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import Color from "../../../Types/Color";
+import { StateListType } from "../../../Utils/StateOrder";
 
 /*
  * The track under an event header's title: every state of the record's list
  * in order, each over a segment, the segments filled in the current state's
  * colour up to and including it. It replaced a row of dots so faint it read
  * as the card's footer.
+ *
+ * A state's name reads as its badge reads it (Common/Utils/DefaultRecordNames):
+ * OneUptime's default names in the reader's language, a state the project
+ * named itself as written - even where the reader's language has a word
+ * for it, as German has "Erstellt" for "Created" (#7780).
  */
 
 jest.mock("react-i18next", () => {
@@ -23,6 +29,10 @@ jest.mock("react-i18next", () => {
         t: (key: string, options?: { defaultValue?: string }): string => {
           if (key === "Created") {
             return "Erstellt";
+          }
+
+          if (key === "Acknowledged") {
+            return "Bestätigt";
           }
 
           if (key === "State progress") {
@@ -75,7 +85,13 @@ describe("getEventStateTrackStep", () => {
 
 describe("EventStateTrack", () => {
   test("is a list named for what it shows, one item per state, in order", () => {
-    render(<EventStateTrack states={STATES} currentStateId="acknowledged" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="acknowledged"
+      />,
+    );
 
     const track: HTMLElement = screen.getByRole("list", {
       name: "Statusverlauf",
@@ -86,11 +102,17 @@ describe("EventStateTrack", () => {
       steps().map((step: HTMLElement): string => {
         return step.textContent || "";
       }),
-    ).toEqual(["Erstellt", "Acknowledged", "Resolved"]);
+    ).toEqual(["Created", "Bestätigt", "Resolved"]);
   });
 
   test("marks the current state as the step a screen reader hears", () => {
-    render(<EventStateTrack states={STATES} currentStateId="acknowledged" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="acknowledged"
+      />,
+    );
 
     expect(
       steps().map((step: HTMLElement): string | null => {
@@ -100,7 +122,13 @@ describe("EventStateTrack", () => {
   });
 
   test("fills every segment up to the current state in that state's colour", () => {
-    render(<EventStateTrack states={STATES} currentStateId="acknowledged" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="acknowledged"
+      />,
+    );
 
     expect(segments()[0]).toHaveStyle({ backgroundColor: "#f59e0b" });
     expect(segments()[1]).toHaveStyle({ backgroundColor: "#f59e0b" });
@@ -109,7 +137,13 @@ describe("EventStateTrack", () => {
   });
 
   test("a resolved record is a full track in the resolved colour", () => {
-    render(<EventStateTrack states={STATES} currentStateId="resolved" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="resolved"
+      />,
+    );
 
     for (const segment of segments()) {
       expect(segment).toHaveStyle({ backgroundColor: "#10b981" });
@@ -118,7 +152,13 @@ describe("EventStateTrack", () => {
   });
 
   test("a new record fills only its first segment", () => {
-    render(<EventStateTrack states={STATES} currentStateId="created" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="created"
+      />,
+    );
 
     expect(segments()[0]).toHaveStyle({ backgroundColor: "#ef4444" });
     expect(segments()[1]).toHaveClass("bg-gray-200");
@@ -126,7 +166,13 @@ describe("EventStateTrack", () => {
   });
 
   test("draws the current name strongest, the reached ones quieter and the upcoming ones quietest - each readable", () => {
-    render(<EventStateTrack states={STATES} currentStateId="acknowledged" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="acknowledged"
+      />,
+    );
 
     const labels: Array<HTMLElement> = steps().map(
       (step: HTMLElement): HTMLElement => {
@@ -147,6 +193,7 @@ describe("EventStateTrack", () => {
   test("gives every state an equal share of the width, the current one at least its name's", () => {
     render(
       <EventStateTrack
+        stateList={StateListType.IncidentState}
         states={[
           ...STATES,
           { id: "postmortem", name: "Postmortem done", color: GREEN },
@@ -179,7 +226,13 @@ describe("EventStateTrack", () => {
   });
 
   test("the current state's name takes at most half the header, so the others keep a share", () => {
-    render(<EventStateTrack states={STATES} currentStateId="acknowledged" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="acknowledged"
+      />,
+    );
 
     const labels: Array<HTMLElement> = steps().map(
       (step: HTMLElement): HTMLElement => {
@@ -195,6 +248,7 @@ describe("EventStateTrack", () => {
   test("names each state in full under the pointer, so a cut name can still be read", () => {
     render(
       <EventStateTrack
+        stateList={StateListType.IncidentState}
         states={[
           STATES[0]!,
           {
@@ -215,7 +269,13 @@ describe("EventStateTrack", () => {
   });
 
   test("its segments are decoration: the names say it", () => {
-    render(<EventStateTrack states={STATES} currentStateId="acknowledged" />);
+    render(
+      <EventStateTrack
+        stateList={StateListType.IncidentState}
+        states={STATES}
+        currentStateId="acknowledged"
+      />,
+    );
 
     for (const segment of segments()) {
       expect(segment).toHaveAttribute("aria-hidden", "true");
@@ -226,6 +286,7 @@ describe("EventStateTrack", () => {
   test("a state with no colour fills its segments in black rather than nothing", () => {
     render(
       <EventStateTrack
+        stateList={StateListType.IncidentState}
         states={[
           { id: "a", name: "Open", color: undefined as unknown as Color },
           { id: "b", name: "Closed", color: GREEN },

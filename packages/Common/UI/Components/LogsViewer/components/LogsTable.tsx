@@ -392,6 +392,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
           title={translator.translateTemplate("View trace {{id}}", {
             id: traceId,
           })}
+          isTitleTranslated={true}
         >
           {traceId}
         </Link>
@@ -425,6 +426,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
             title={translator.translateTemplate("View span {{id}}", {
               id: spanId,
             })}
+            isTitleTranslated={true}
           >
             {spanId}
           </Link>
@@ -447,6 +449,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
             title={translator.translateTemplate("View span {{id}}", {
               id: spanId,
             })}
+            isTitleTranslated={true}
           >
             {spanId}
           </Link>
