@@ -1643,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### 來自工作流程的修正
 
-工作流程可以從 OpenStack 警示開始並提出修正：**Propose an OpenStack fix** 步驟接收警示或事件，以及命令。它與 OneUptime AI 提出的修正走同樣的政策、同樣的寫入範圍，以及同樣對變更所碰觸對象的讀取，它不需要 AI 模型，並且由人在警示上核准。無論雲端的修正模式為何，工作流程都無法自行進行變更，也無法核准它所提出的內容。**Propose taking a failing OpenStack compute service out of scheduling** 範本是一個起點。
+工作流程可以從 OpenStack 警示開始並提出修正：**提出 OpenStack 修正** 步驟接收警示或事件，以及命令。它與 OneUptime AI 提出的修正走同樣的政策、同樣的寫入範圍，以及同樣對變更所碰觸對象的讀取，它不需要 AI 模型，並且由人在警示上核准。無論雲端的修正模式為何，工作流程都無法自行進行變更，也無法核准它所提出的內容。**Propose taking a failing OpenStack compute service out of scheduling** 範本是一個起點。
 
 ## 以 systemd 服務執行
 

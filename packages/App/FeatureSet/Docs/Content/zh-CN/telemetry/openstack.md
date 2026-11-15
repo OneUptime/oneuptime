@@ -1643,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### 来自工作流的修复
 
-工作流可以从 OpenStack 警报开始并提出修复：**Propose an OpenStack fix** 步骤接收警报或事件以及命令。它经过与 OneUptime AI 提出的修复相同的策略、相同的写入范围，以及对更改所触碰内容的相同读取，它不需要 AI 模型，并由人在警报上批准。无论云的修复模式如何，工作流都不能自己进行更改，也不能批准它所提出的内容。**Propose taking a failing OpenStack compute service out of scheduling** 模板是一个起点。
+工作流可以从 OpenStack 警报开始并提出修复：**提出 OpenStack 修复** 步骤接收警报或事件以及命令。它经过与 OneUptime AI 提出的修复相同的策略、相同的写入范围，以及对更改所触碰内容的相同读取，它不需要 AI 模型，并由人在警报上批准。无论云的修复模式如何，工作流都不能自己进行更改，也不能批准它所提出的内容。**Propose taking a failing OpenStack compute service out of scheduling** 模板是一个起点。
 
 ## 作为 systemd 服务运行
 

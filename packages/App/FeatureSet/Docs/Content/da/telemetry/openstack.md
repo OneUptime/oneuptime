@@ -1643,7 +1643,7 @@ Cloudens side **AI-agent** tilbyder en runbook for hver af disse, som du kan til
 
 ### Rettelser fra en arbejdsgang
 
-En arbejdsgang kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Propose an OpenStack fix** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En arbejdsgang kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
+En arbejdsgang kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Foreslå en OpenStack-rettelse** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En arbejdsgang kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
 
 ## Kør som en systemd-tjeneste
 

@@ -1643,7 +1643,7 @@ La página **Agente de IA** de la nube ofrece un runbook para cada uno de estos,
 
 ### Correcciones desde un workflow
 
-Un workflow puede empezar desde una alerta de OpenStack y proponer una corrección: el paso **Propose an OpenStack fix** toma la alerta o el incidente, y el comando. Pasa por la misma política, el mismo alcance de escritura y la misma lectura de lo que toca un cambio que una corrección que propone la IA de OneUptime, no necesita ningún modelo de IA, y una persona lo aprueba en la alerta. Un workflow no puede hacer el cambio por sí mismo ni aprobar lo que propone, sea cual sea el modo de corrección de la nube. La plantilla **Propose taking a failing OpenStack compute service out of scheduling** es un lugar donde empezar.
+Un workflow puede empezar desde una alerta de OpenStack y proponer una corrección: el paso **Proponer una corrección de OpenStack** toma la alerta o el incidente, y el comando. Pasa por la misma política, el mismo alcance de escritura y la misma lectura de lo que toca un cambio que una corrección que propone la IA de OneUptime, no necesita ningún modelo de IA, y una persona lo aprueba en la alerta. Un workflow no puede hacer el cambio por sí mismo ni aprobar lo que propone, sea cual sea el modo de corrección de la nube. La plantilla **Propose taking a failing OpenStack compute service out of scheduling** es un lugar donde empezar.
 
 ## Ejecutar como servicio de systemd
 

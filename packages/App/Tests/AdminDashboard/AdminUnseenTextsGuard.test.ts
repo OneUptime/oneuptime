@@ -140,16 +140,12 @@ const ENTERPRISE_NOT_A_PERSONS_WORDS: Readonly<
 
 /*
  * Long-form copy still read in English, being translated as documents of
- * their own (#8677): the Telegram and WhatsApp setup guides and the health
- * tooltips' explanations. The list only shrinks.
+ * their own (#8677): the Telegram and WhatsApp setup guides. The health
+ * tooltips' explanations are keys now. The list only shrinks.
  */
 const LONG_FORM_COPY_LEFT: ReadonlyArray<string> = [
   "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/Telegram/TelegramSetupGuide.ts",
   "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/WhatsApp/Index.tsx",
-  "ee/AdminDashboard/Health/PostgresCluster.tsx#METRIC_INFO",
-  "ee/AdminDashboard/Health/ClickhouseCluster.tsx#METRIC_INFO",
-  "ee/AdminDashboard/Health/RedisHealth.tsx#METRIC_INFO",
-  "ee/AdminDashboard/Health/QueryConsole.tsx#METRIC_INFO",
 ];
 
 const describeText: (text: UnseenText) => string = (

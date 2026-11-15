@@ -85,15 +85,15 @@ flowchart TB
 
 | 범주 | 메트릭 |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| 컨테이너 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| 파드 | Pod CPU 사용량, Pod 메모리 사용량, Pod 단계(코드), Pod 파일 시스템 사용량, Pod 메모리 제한 사용률, Pod CPU 제한 사용률, Pod 네트워크 I/O(누적, 양방향) |
+| 노드 | 노드 CPU 사용량, 노드 할당 가능 CPU, 노드 메모리 사용량, 노드 메모리 작업 집합, 노드 파일 시스템 사용량, 노드 할당 가능 메모리, 노드 Ready 조건, 노드 MemoryPressure 조건, 노드 DiskPressure 조건, 노드 PIDPressure 조건, 노드 파일 시스템 사용 가능 공간 |
+| 컨테이너 | 컨테이너 재시작, 컨테이너 재시작(증가분), 컨테이너 CPU 제한, 컨테이너 CPU 요청, 컨테이너 메모리 제한, 컨테이너 메모리 요청, 컨테이너 준비됨 |
+| 워크로드 | Deployment 사용 가능 레플리카, Deployment 원하는 레플리카, DaemonSet 원하는 노드, DaemonSet 잘못 예약된 노드, DaemonSet 준비된 노드, StatefulSet 원하는 레플리카, StatefulSet 준비된 레플리카, Job 실패한 Pod, Job 실패한 Pod(증가분), Job 성공한 Pod |
+| HPA | HPA 현재 레플리카, HPA 원하는 레플리카, HPA 최대 레플리카, HPA 최소 레플리카 |
+| 컨트롤 플레인 | etcd 리더 있음, API 서버 진행 중인 요청, 스케줄러 대기 중인 Pod |
 
 > [!NOTE]
-> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 경고를 받으세요. **Container Restarts**는 컨테이너의 누적 재시작 수이고, **Container Restarts (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **Container Restarts**가 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job Failed Pods**는 Job의 누적 실패 Pod 수이고, **Job Failed Pods (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job Failed Pods**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
+> **Pod CPU 사용량**과 **노드 CPU 사용량**의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod 단계(코드)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **노드 Ready 조건**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 경고를 받으세요. **컨테이너 재시작**은 컨테이너의 누적 재시작 수이고, **컨테이너 재시작(증가분)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **컨테이너 재시작**이 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job 실패한 Pod**는 Job의 누적 실패 Pod 수이고, **Job 실패한 Pod(증가분)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job 실패한 Pod**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
 
 ## 모니터링 기준
 
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details CPU 임계값이 작동하지 않음
-**Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어이므로, 임계값 `80`은 80코어를 뜻합니다. 임계값을 코어 단위로 정하거나, 퍼센트를 비교하는 **High Node CPU Utilization** 또는 **Pod CPU Saturating Container Limit** 에서 시작하세요.
+**Pod CPU 사용량**과 **노드 CPU 사용량**의 단위는 퍼센트가 아니라 코어이므로, 임계값 `80`은 80코어를 뜻합니다. 임계값을 코어 단위로 정하거나, 퍼센트를 비교하는 **High Node CPU Utilization** 또는 **Pod CPU Saturating Container Limit** 에서 시작하세요.
 :::
 
 :::details 재시작에 CrashLoopBackOff Detection이 발생하지 않음

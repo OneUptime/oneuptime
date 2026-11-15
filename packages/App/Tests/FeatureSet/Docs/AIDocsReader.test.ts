@@ -109,6 +109,39 @@ const NAMED_FOR_THE_QUESTION: Array<[string, string, string]> = [
   ["hi", "मैं मॉनिटर कैसे बनाऊँ?", "monitor/create-monitor"],
   ["fa", "چطور یک صفحه وضعیت بسازم؟", "status-pages/index"],
   ["fa", "چطور یک حادثه اعلام کنم؟", "incidents/declaring-incidents"],
+  /*
+   * Named for the question once the forms its verb is asked in meet the
+   * name's (#8335): Persian "بسازم" is "ساخت" (making), "بنویسم"
+   * "نوشتن" (writing), "بگیرم" the "گیری" of "پشتیبان‌گیری" (backing
+   * up); Korean "만드나요" is "만들기", "가져오나요" "가져오기",
+   * "내보내나요" "내보내기"; Danish and Norwegian "inviterer" is
+   * "Inviter"; Dutch "nodig ... uit" is "uitnodigen"; Russian
+   * "пригласить" is "Приглашение".
+   */
+  ["fa", "چطور یک مانیتور بسازم؟", "monitor/create-monitor"],
+  ["fa", "چطور می‌توانم یک مانیتور بسازم؟", "monitor/create-monitor"],
+  ["fa", "چطور یک رانبوک بنویسم؟", "runbooks/authoring"],
+  ["fa", "چطور از OneUptime پشتیبان بگیرم؟", "installation/backups"],
+  ["fa", "چطور یک داشبورد بسازم؟", "dashboards/authoring"],
+  ["ko", "모니터를 어떻게 만드나요?", "monitor/create-monitor"],
+  ["ko", "리소스를 어떻게 가져오나요?", "terraform/importing-resources"],
+  ["ko", "감사 로그를 어떻게 내보내나요?", "configuration/audit-log-export"],
+  [
+    "da",
+    "Hvordan inviterer jeg en kollega til mit projekt?",
+    "permissions/inviting-people",
+  ],
+  [
+    "no",
+    "Hvordan inviterer jeg en kollega til prosjektet mitt?",
+    "permissions/inviting-people",
+  ],
+  [
+    "nl",
+    "Hoe nodig ik een collega uit voor mijn project?",
+    "permissions/inviting-people",
+  ],
+  ["ru", "Как пригласить коллегу в проект?", "permissions/inviting-people"],
   ...ASK_AI_WEBSITE_QUESTIONS.map(
     (entry: AskAiHowDoIQuestionTranslated): [string, string, string] => {
       return [entry.language, entry.question, entry.docsPage];
@@ -215,6 +248,92 @@ describe("the words a question and a page are compared by", () => {
     // A verb's forms, and a plural before a postposition.
     ["hi", ["बनाना", "बनाऊँ", "बनाएँ", "बनाने"]],
     ["hi", ["घटना", "घटनाएँ", "घटनाओं"]],
+    /*
+     * The forms no ending met before (#8335). A Hindi noun in "-इ" or
+     * "-ई" and its "-इयाँ" plural: policy and policies, key and keys.
+     */
+    ["hi", ["नीति", "नीतियाँ", "नीतियां", "नीतियों"]],
+    ["hi", ["कुंजी", "कुंजियाँ", "कुंजियां", "कुंजियों"]],
+    ["hi", ["अनुमति", "अनुमतियाँ", "अनुमतियों"]],
+    ["hi", ["सूची", "सूचियाँ", "सूचियों"]],
+    // A Persian verb's present stem and its past one, with its prefixes and person endings.
+    [
+      "fa",
+      [
+        "ساخت",
+        "ساختن",
+        "ساخته",
+        "بسازم",
+        "بسازید",
+        "سازد",
+        "میسازم",
+        "نمیسازد",
+        "سازی",
+      ],
+    ],
+    ["fa", ["گرفتن", "گرفته", "بگیرم", "بگیرید", "گیری"]],
+    ["fa", ["نوشتن", "نوشته", "بنویسم", "بنویسید", "نویسی"]],
+    ["fa", ["گذاشتن", "بگذارم", "گذاری"]],
+    ["fa", ["فرستادن", "بفرستم", "فرستاده"]],
+    // A plural written onto its noun without a half-space, and the Arabic plural.
+    ["fa", ["مانیتور", "مانیتورها", "مانیتورهای", "مانیتورهایی", "مانیتورم"]],
+    ["fa", ["تنظیم", "تنظیمات"]],
+    ["fa", ["کاربر", "کاربران"]],
+    ["fa", ["مشترک", "مشترکان"]],
+    // A Korean irregular verb: 만들다 drops its ㄹ, 끄다 its ㅡ; 가져오다 contracts.
+    [
+      "ko",
+      [
+        "만들기",
+        "만드나요",
+        "만드세요",
+        "만드는",
+        "만든",
+        "만듭니다",
+        "만들어",
+        "만들려면",
+        "만들고",
+        "만들어진",
+      ],
+    ],
+    ["ko", ["끄기", "끄나요", "끄세요", "꺼져", "꺼짐"]],
+    ["ko", ["켜기", "켜나요", "켜세요", "켜져", "켜짐"]],
+    ["ko", ["가져오기", "가져오나요", "가져와", "가져온", "가져오기가"]],
+    ["ko", ["내보내기", "내보내나요", "내보낸", "내보냅니다"]],
+    ["ko", ["받기", "받나요", "받습니다", "받으려면"]],
+    // A Korean particle written onto a Latin name.
+    ["ko", ["slack", "slack을", "slack에서", "slack의"]],
+    ["ko", ["api", "api를", "api가"]],
+    // A Russian noun made from a verb, and the imperative a step is written in.
+    [
+      "ru",
+      [
+        "настроить",
+        "настройка",
+        "настройки",
+        "настроек",
+        "настройками",
+        "настройте",
+        "настраивать",
+      ],
+    ],
+    ["ru", ["установить", "установка", "установки", "установите"]],
+    ["ru", ["проверить", "проверка", "проверок", "проверьте"]],
+    ["ru", ["создать", "создайте"]],
+    ["ru", ["включить", "включите"]],
+    ["ru", ["пригласить", "приглашение", "приглашения"]],
+    ["ru", ["подписаться", "подписка", "подписчики", "подписчиков"]],
+    // Swedish loanwords in "-or" keep it; their definite forms meet them.
+    ["sv", ["monitor", "monitorer", "monitorn", "monitorns", "monitorerna"]],
+    ["sv", ["villkor", "villkoret", "villkoren"]],
+    ["sv", ["administratör", "administratörer", "administratören"]],
+    ["sv", ["lista", "listor", "listorna"]],
+    // A French verb in "-ier" in its other forms.
+    ["fr", ["planifier", "planifiée", "planifie", "planification"]],
+    ["fr", ["notifier", "notifié", "notifie", "notification"]],
+    ["fr", ["vérifier", "vérifiez", "vérifiées", "vérification"]],
+    // ... but a "-yer" verb keeps its "-ie": "envoie" (sends) is "envoi" (sending).
+    ["fr", ["envoi", "envoie"]],
   ] as Array<[string, Array<string>]>)(
     "%s: %p are one word (#7875)",
     (language: string, forms: Array<string>) => {
@@ -233,6 +352,22 @@ describe("the words a question and a page are compared by", () => {
     ["ko", "추가", "추"],
     ["no", "nettsted", "nettst"],
     ["pt", "estado", "este"],
+    // A list is not a notification: "सूची" keeps its vowel apart from "सूचना" (#8335).
+    ["hi", "सूची", "सूचना"],
+    // Persian "داده" (data) is not "داد" (gave); a host is not a desk, nor a guest important.
+    ["fa", "داده", "داد"],
+    ["fa", "میزبان", "میز"],
+    ["fa", "مهمان", "مهم"],
+    ["fa", "کاربرد", "کاربر"],
+    // A character is not writing; an explorer is not exploring.
+    ["fa", "نویسه", "نوشتن"],
+    ["ko", "탐색기", "탐색"],
+    ["ko", "수집기", "수집"],
+    // A Swedish condition and a word that merely starts like it.
+    ["sv", "villkor", "villk"],
+    // French nouns in "-ie" stay theirs: a part is not "you leave", a series not "you will be".
+    ["fr", "partie", "partez"],
+    ["fr", "série", "serez"],
   ] as Array<[string, string, string]>)(
     "%s: %s and %s stay apart",
     (language: string, one: string, other: string) => {
@@ -303,8 +438,23 @@ describe("the words a question and a page are compared by", () => {
       "웹사이트를 모니터링하려면 어떻게 해야 하나요?",
       ["웹사이트", "모니터링"],
     ],
-    ["hi", "मैं अपनी वेबसाइट की निगरानी कैसे करूँ?", ["वेबसाइट", "निगरानी"]],
+    // "निगरानी" (monitoring) ends in the long "ी" its plural shortens: read as "निगरानि" (#8335).
+    ["hi", "मैं अपनी वेबसाइट की निगरानी कैसे करूँ?", ["वेबसाइट", "निगरानि"]],
     ["fa", "چطور وب‌سایتم را پایش کنم؟", ["وب", "سایت", "پایش"]],
+    // As people type it: "چطوری", "میشه" and "یه" are spoken Persian's how, can and a (#8335).
+    ["fa", "چطوری میشه یه مانیتور ساخت؟", ["مانیتور", "ساخت"]],
+    ["fa", "چطور یک مانیتور بسازم؟", ["مانیتور", "ساخت"]],
+    [
+      "fa",
+      "آیا می‌توانم مانیتورها را گروه‌بندی کنم؟",
+      ["مانیتور", "گروه", "بندی"],
+    ],
+    // A particle on a Latin name, and a verb that drops its ㄹ (#8335).
+    ["ko", "Slack을 어떻게 연결하나요?", ["slack", "연결"]],
+    ["ko", "모니터를 어떻게 만드나요?", ["모니터", "만들"]],
+    // A step's imperative and a question's infinitive meet (#8335).
+    ["ru", "Как установить агент?", ["установ", "агент"]],
+    ["hi", "मैं OneUptime का बैकअप कैसे लूँ?", ["oneuptim", "बैकअप"]],
     // Written without spaces: the question's words are cut out where they stand.
     ["zh-CN", "如何监控我的网站？", ["监控", "网站"]],
     ["zh-TW", "如何監控我的網站？", ["監控", "網站"]],
@@ -457,6 +607,41 @@ describe("DocsAIReader.compoundsOf (#7875)", () => {
         ["monitor", "nettstedet"],
       ),
     ).toEqual(["nettstedsmonitor"]);
+  });
+
+  test("reads a Dutch verb a question writes in two parts as the one word the docs write (#8335)", () => {
+    const dutch: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "permissions/inviting-people",
+          title: "Mensen uitnodigen",
+          summary: "Nodig een collega uit voor je project.",
+        },
+        {
+          page: "api-reference/api-reference",
+          title: "API-referentie",
+          summary: "Een API-sleutel aanmaken en een verzoek sturen.",
+        },
+      ],
+      "nl",
+    );
+
+    // "nodig ... uit" is "uitnodigen", "maak ... aan" is "aanmaken".
+    expect(
+      DocsAIReader.compoundsOf(dutch, ["nodig", "collega", "uit"]),
+    ).toEqual(["uitnodig"]);
+    expect(
+      DocsAIReader.compoundsOf(dutch, ["maak", "api-sleutel", "aan"]),
+    ).toEqual(["aanmak"]);
+    expect(
+      DocsAIReader.rank(
+        dutch,
+        "Hoe nodig ik een collega uit voor mijn project?",
+        2,
+      ).map((hit: AIDocsSearchHit): string => {
+        return hit.page;
+      })[0],
+    ).toBe("permissions/inviting-people");
   });
 
   test("reads only words the docs hold, and only where a language writes them as one", () => {

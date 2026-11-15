@@ -2,17 +2,20 @@ import {
   DOCS_SEARCH_ASKING_WORDS,
   DOCS_SEARCH_COMPOUNDING_LANGUAGES,
   DOCS_SEARCH_QUESTION_WORDS,
+  DOCS_SEARCH_SEPARABLE_PARTICLES,
   DOCS_SEARCH_SYNONYMS,
   DOCS_SEARCH_WORD_ENDINGS,
   DocsSearchSynonym,
   DocsVocabulary,
   DocsVocabularyMatch,
   DocsWordEndings,
+  DocsWordForms,
   ENGLISH_ENDINGS,
   foldDocsSearchWord,
   getDocsSearchAskingWords,
   getDocsSearchQuestionPhrases,
   getDocsSearchQuestionWords,
+  getDocsSearchSeparableParticles,
   getDocsSearchSynonyms,
   getDocsWordEndings,
   getTypoAllowance,
@@ -107,6 +110,98 @@ describe("the word endings", () => {
     }
     // German's results are as they were (#7875).
     expect(DOCS_SEARCH_COMPOUNDING_LANGUAGES.has("de")).toBe(false);
+    /*
+     * Dutch writes its names and its separable verbs so (#8335).
+     * Dutch joins only the first part of a verb to it (#8335): DOCS_SEARCH_SEPARABLE_PARTICLES.
+     */
+    expect(DOCS_SEARCH_COMPOUNDING_LANGUAGES.has("nl")).toBe(false);
+  });
+
+  /*
+   * The forms no ending meets (#8335): an ending read as another, one
+   * kept after some letters, and the verbs and nouns whose stems differ.
+   */
+  it("read an ending as another only where it is no ending of their own, and keep only endings they have", () => {
+    for (const [language, forms] of Object.entries(DOCS_SEARCH_WORD_ENDINGS)) {
+      for (const ending of Object.keys(forms.rewrites || {})) {
+        expect({
+          language,
+          ending,
+          both: forms.endings.includes(ending),
+        }).toEqual({ language, ending, both: false });
+      }
+
+      const endings: Array<string> = [
+        ...forms.endings,
+        ...Object.keys(forms.rewrites || {}),
+      ];
+
+      for (const ending of Object.keys(forms.keptAfter || {})) {
+        expect({ language, ending, has: endings.includes(ending) }).toEqual({
+          language,
+          ending,
+          has: true,
+        });
+      }
+    }
+  });
+
+  it("list each form once, written in its language's script", () => {
+    for (const [language, endings] of Object.entries(
+      DOCS_SEARCH_WORD_ENDINGS,
+    )) {
+      const forms: DocsWordForms | undefined = endings.forms;
+
+      if (!forms) {
+        continue;
+      }
+
+      expect(new Set<string>(forms.endings).size).toBe(forms.endings.length);
+      expect(new Set<string>(forms.prefixes).size).toBe(forms.prefixes.length);
+
+      for (const [stem, readAs] of Object.entries(forms.stems)) {
+        expect({ language, stem, written: endings.script.test(stem) }).toEqual({
+          language,
+          stem,
+          written: true,
+        });
+        expect({
+          language,
+          readAs,
+          written: endings.script.test(readAs),
+        }).toEqual({ language, readAs, written: true });
+      }
+    }
+  });
+
+  it("are given to Persian, Korean and Russian verbs, Hindi and Swedish plurals, and Korean's particles on a Latin name", () => {
+    expect(DOCS_SEARCH_WORD_ENDINGS["fa"]!.forms!.stems["ساز"]).toBe("ساخت");
+    expect(DOCS_SEARCH_WORD_ENDINGS["fa"]!.stacksEndings).toBe(true);
+    expect(DOCS_SEARCH_WORD_ENDINGS["ko"]!.forms!.stems["만드"]).toBe("만들");
+    expect(DOCS_SEARCH_WORD_ENDINGS["ru"]!.forms!.stems["настройк"]).toBe(
+      "настро",
+    );
+    expect(DOCS_SEARCH_WORD_ENDINGS["hi"]!.rewrites!["ियाँ"]).toBe("ि");
+    expect(
+      DOCS_SEARCH_WORD_ENDINGS["sv"]!.keptAfter!["or"]!.test("monit"),
+    ).toBe(true);
+    expect(
+      DOCS_SEARCH_WORD_ENDINGS["sv"]!.keptAfter!["or"]!.test("statussid"),
+    ).toBe(false);
+    expect(DOCS_SEARCH_WORD_ENDINGS["ko"]!.writtenOnto!.test("slack을")).toBe(
+      true,
+    );
+    // Only a Latin name: a Korean word with its particle is its own script's.
+    expect(DOCS_SEARCH_WORD_ENDINGS["ko"]!.writtenOnto!.test("모니터를")).toBe(
+      false,
+    );
+    // Persian does not read "دادن" (give): its "داده" (given) is the docs' "داده" (data).
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        DOCS_SEARCH_WORD_ENDINGS["fa"]!.forms!.stems,
+        "داد",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -361,6 +456,69 @@ describe("the question words", () => {
       ).toEqual([]);
     },
   );
+
+  /*
+   * What a review of each list added (#8335): "how much/many", "I want",
+   * "should", the rest of a verb a question writes apart where the docs
+   * write the verb some other way, and spoken Persian's "یه" (a).
+   */
+  it.each([
+    ["de", ["an", "aus", "ab", "muss", "möchte"]],
+    ["fr", ["combien", "veux", "voudrais"]],
+    ["es", ["cuanto", "cuantos", "quiero", "necesito"]],
+    ["it", ["quanto", "voglio", "vorrei"]],
+    ["pt", ["quanto", "quero", "gostaria", "preciso"]],
+    ["nl", ["hoeveel", "wil", "zou"]],
+    ["da", ["op"]],
+    ["no", ["opp"]],
+    ["sv", ["upp"]],
+    ["ru", ["могут", "можете", "хочу"]],
+    ["ja", ["ばいいですか", "いいですか"]],
+    ["zh-CN", ["怎么办", "能不能"]],
+    ["zh-TW", ["怎麼辦", "能不能"]],
+    ["hi", ["लूँ", "लें", "दूँ", "चाहता", "मिलेगा"]],
+    ["fa", ["آیا", "چقدر", "یه", "نمی", "کنید", "میتوانم", "خواهم", "شوند"]],
+  ] as Array<[string, Array<string>]>)(
+    "%s: a review added %p (#8335)",
+    (language: string, words: Array<string>) => {
+      const listed: ReadonlySet<string> = getDocsSearchQuestionWords(language);
+
+      expect(
+        words.filter((word: string): boolean => {
+          return !listed.has(foldDocsSearchWord(word));
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it("leave Dutch 'aan' and 'in' to be read with the verb a question writes them after (#8335)", () => {
+    const dutch: ReadonlySet<string> = getDocsSearchQuestionWords("nl");
+
+    // "maak ... aan" is "aanmaken", "stel ... in" is "instellen".
+    expect(dutch.has("aan")).toBe(false);
+    expect(dutch.has("in")).toBe(false);
+
+    const particles: ReadonlySet<string> =
+      getDocsSearchSeparableParticles("nl");
+
+    for (const particle of ["aan", "in", "uit", "af", "toe"]) {
+      expect({ particle, has: particles.has(particle) }).toEqual({
+        particle,
+        has: true,
+      });
+    }
+
+    // Every particle is there to join: none is a question word, which a question leaves out first.
+    expect(
+      Array.from(particles).filter((particle: string): boolean => {
+        return dutch.has(particle);
+      }),
+    ).toEqual([]);
+    // Only Dutch has them; Danish, Norwegian and Swedish join any two words.
+    expect(Object.keys(DOCS_SEARCH_SEPARABLE_PARTICLES)).toEqual(["nl"]);
+    expect(getDocsSearchSeparableParticles("de").size).toBe(0);
+    expect(getDocsSearchSeparableParticles("constructor").size).toBe(0);
+  });
 
   it("never hold a word a page is named for", () => {
     // "Website", "monitor" and "site" are what is asked, in any language.
