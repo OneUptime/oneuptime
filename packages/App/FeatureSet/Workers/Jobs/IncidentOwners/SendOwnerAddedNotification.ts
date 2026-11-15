@@ -317,6 +317,7 @@ async function planOwnersAdded(data: {
         },
         owners: owners,
         isProjectOwners: false,
+        writesFeedItem: false,
       }),
     );
   }

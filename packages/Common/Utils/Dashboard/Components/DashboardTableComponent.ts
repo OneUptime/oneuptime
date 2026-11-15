@@ -112,7 +112,11 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
       required: false,
       type: ComponentInputType.Dropdown,
       id: "reduce",
-      placeholder: TableReduce.Last,
+      /*
+       * The default option as the menu names it: the enum's own value
+       * ("Last") read as no option, and was never a word to translate.
+       */
+      placeholder: "Last value",
       section: DisplaySection,
       dropdownOptions: [
         { label: "Last value", value: TableReduce.Last },

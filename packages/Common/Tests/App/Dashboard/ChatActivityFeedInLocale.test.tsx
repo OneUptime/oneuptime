@@ -314,18 +314,17 @@ describe("a step's duration", () => {
     expect(formatStepDuration(640, "fa")).toContain("۰٫۶");
   });
 
-  test("an engine that cannot write the unit falls back to the English", () => {
-    const spy: jest.SpyInstance = jest
-      .spyOn(Intl, "NumberFormat")
-      .mockImplementation((): Intl.NumberFormat => {
-        throw new RangeError("no unit style");
-      });
-
-    try {
-      expect(formatStepDuration(640, "de")).toBe("0.6s");
-    } finally {
-      spy.mockRestore();
-    }
+  /*
+   * The Dashboard's seconds, as every other step and span writes them
+   * (formatDurationInUnit, #8455): the language's short unit after its own
+   * figure, held to it, in German, Arabic and Persian alike.
+   */
+  test("is the Dashboard's seconds in every language: its short unit, held to its figure", () => {
+    expect(formatStepDuration(640, "de")).toBe("0,6\u00A0Sek.");
+    expect(formatStepDuration(640, "ar")).toBe("0.6\u00A0ث");
+    expect(formatStepDuration(640, "fa")).toBe("۰٫۶\u00A0ثانیه");
+    expect(formatStepDuration(1250, "fr")).toMatch(/^1,3[\u00A0\u202F]s$/);
+    expect(formatStepDuration(640, "fa")).not.toMatch(/[0-9A-Za-z]/);
   });
 
   test("the feed writes a step's rows and its time alike, in German", async () => {

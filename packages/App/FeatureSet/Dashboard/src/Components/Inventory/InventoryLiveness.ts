@@ -7,6 +7,7 @@ import {
   getGlobalTranslator,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDurationAgo } from "../../Utils/Milliseconds";
 
 export {
   InventoryLiveness,
@@ -141,6 +142,7 @@ export type FormatMinutesAgoFunction = (
 /**
  * "4m ago" / "3h ago" / "6d ago". Coarse on purpose — the exact timestamp is
  * one hover away, and a table full of "2 hours, 14 minutes ago" is noise.
+ * In the reader's language and digits ("۴ دقیقه پیش"; #8455).
  */
 export const formatMinutesAgo: FormatMinutesAgoFunction = (
   minutes: number,
@@ -151,29 +153,29 @@ export const formatMinutesAgo: FormatMinutesAgoFunction = (
   }
 
   if (minutes < 60) {
-    return translator.translateTemplate("{{count}}m ago", { count: minutes });
+    return formatCompactDurationAgo(translator, { minutes });
   }
 
   const hours: number = Math.floor(minutes / 60);
 
   if (hours < 24) {
-    return translator.translateTemplate("{{count}}h ago", { count: hours });
+    return formatCompactDurationAgo(translator, { hours });
   }
 
   const days: number = Math.floor(hours / 24);
 
   if (days < 30) {
-    return translator.translateTemplate("{{count}}d ago", { count: days });
+    return formatCompactDurationAgo(translator, { days });
   }
 
   const months: number = Math.floor(days / 30);
 
   if (months < 12) {
-    return translator.translateTemplate("{{count}}mo ago", { count: months });
+    return formatCompactDurationAgo(translator, { months });
   }
 
-  return translator.translateTemplate("{{count}}y ago", {
-    count: Math.floor(months / 12),
+  return formatCompactDurationAgo(translator, {
+    years: Math.floor(months / 12),
   });
 };
 

@@ -19,6 +19,19 @@ import {
   sectionTitlesInOrder,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/alert-state/get-list",
+  "/alert/count",
+  "/incident-state/get-list",
+  "/incident/count",
+]);
 
 /*
  * The App Platforms menus. App Platforms holds the apps managed app and

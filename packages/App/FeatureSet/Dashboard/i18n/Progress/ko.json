@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54234,
-    "untranslated": 8472
+    "keys": 54285,
+    "untranslated": 8420
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -99,6 +99,7 @@
     "OpenStack ID",
     "OpenStack-Ansible",
     "OpenStack-Helm",
+    "OpenTelemetry SDK",
     "PR #{{number}}",
     "PV",
     "PVC",

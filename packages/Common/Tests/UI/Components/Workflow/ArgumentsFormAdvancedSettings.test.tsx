@@ -47,6 +47,20 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { refuseRequestsTo } from "../../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/alert-severity/get-list",
+  "/incident-severity/get-list",
+  "/model-schema/Alert",
+  "/model-schema/Incident",
+  "/workflow-variable/get-list",
+]);
 
 function step(
   metadata: ComponentMetadata,
