@@ -343,7 +343,7 @@ import "../../../FeatureSet/Workers/Jobs/AlertOwners/SendNotePostedNotification"
 import "../../../FeatureSet/Workers/Jobs/AlertOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/AlertOwners/SendUnresolvedReminderNotification";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = jest.Mock;
 
 function asMock(fn: unknown): AnyMock {
   return fn as AnyMock;
@@ -395,6 +395,8 @@ interface World {
   isTaken: boolean;
   takes: number;
   isResolved: boolean;
+  // A public note is published; one taken back for approval is not.
+  isPublished: boolean;
   // The next take never answers: the worker stops there.
   takeStops: boolean;
   // That owner's next send starts and never returns, or returns when `sendGate` does.
@@ -705,9 +707,14 @@ const CASES: Array<JobCase> = [
       asMock(IncidentPublicNoteService.findAllBy).mockImplementation(
         dueWhileNotTaken(note),
       );
-      asMock(IncidentPublicNoteService.findOneById).mockImplementation(
-        async () => {
-          return world.exists ? note() : null;
+      // Read again only while it is published, as the job asks.
+      asMock(IncidentPublicNoteService.findOneBy).mockImplementation(
+        async (data: { query: JSONObject }) => {
+          return world.exists &&
+            world.isPublished &&
+            data.query["isPublished"] === true
+            ? note()
+            : null;
         },
       );
       asMock(IncidentPublicNoteService.updateOneById).mockImplementation(
@@ -964,6 +971,7 @@ describe.each(CASES)("$title", (jobCase: JobCase) => {
       isTaken: false,
       takes: 0,
       isResolved: false,
+      isPublished: true,
       takeStops: false,
       sendStopsFor: null,
       sendGate: null,
@@ -1419,6 +1427,26 @@ describe.each(CASES)("$title", (jobCase: JobCase) => {
       [idOf(OWNER_3)]: OwnerNotificationDeliveryStatus.Failed,
     });
   });
+
+  if (jobCase.kind === OwnerNotificationKind.IncidentPublicNotePosted) {
+    test("a public note taken back for approval before the next run takes its owners up: nobody else is told", async () => {
+      table.stopAt({ statement: "startTelling", userId: idOf(OWNER_2) });
+      void runJob();
+      await untilStopped();
+
+      world.isPublished = false;
+      await restartedMinutesLater(
+        OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+      );
+
+      expect(world.sent).toEqual([idOf(OWNER_1)]);
+      expect(statuses()).toEqual({
+        [idOf(OWNER_1)]: OwnerNotificationDeliveryStatus.Sent,
+        [idOf(OWNER_2)]: OwnerNotificationDeliveryStatus.Failed,
+        [idOf(OWNER_3)]: OwnerNotificationDeliveryStatus.Failed,
+      });
+    });
+  }
 
   if (
     jobCase.kind === OwnerNotificationKind.IncidentReminder ||

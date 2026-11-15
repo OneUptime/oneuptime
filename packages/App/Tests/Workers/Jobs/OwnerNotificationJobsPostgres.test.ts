@@ -49,7 +49,7 @@ import { DataSource } from "Common/node_modules/typeorm";
  * DATABASE_USERNAME, DATABASE_PASSWORD). Every write is to a schema of its
  * own; only the table's structure is copied, never its rows.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_OWNER_NOTIFICATION_JOB_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -228,7 +228,7 @@ import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotif
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendStateChangeNotification";
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendUnresolvedReminderNotification";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = jest.Mock;
 
 function asMock(fn: unknown): AnyMock {
   return fn as AnyMock;

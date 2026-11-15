@@ -99,8 +99,16 @@ RunCron(
                 isRoot: true,
               },
             })
-          : await IncidentPublicNoteService.findOneById({
-              id: delivery.notification.eventId,
+          : await IncidentPublicNoteService.findOneBy({
+              query: {
+                _id: delivery.notification.eventId,
+                /*
+                 * Published notes only, as the job's own read
+                 * (PublicNotePublishedGateGuard): owners are never told of
+                 * a note that is not published.
+                 */
+                isPublished: true,
+              },
               select: PUBLIC_NOTE_SELECT,
               props: {
                 isRoot: true,
@@ -112,7 +120,9 @@ RunCron(
           : null;
 
         if (!note || !incident) {
-          await delivery.giveUp("the incident or its note is gone");
+          await delivery.giveUp(
+            "the incident or its note is gone, or the note is no longer published",
+          );
           return;
         }
 

@@ -29,6 +29,9 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
+
+type Notify = (delivery: OwnerNotificationDelivery) => Promise<void>;
 
 /*
  * EVERY OWNER TOLD ONCE, HOWEVER THE WORKER STOPS (issue #8199).
@@ -524,9 +527,7 @@ describe("OwnerNotificationDeliveries", () => {
       table.failWith("finishTelling", null);
       now = minutesLater(10);
 
-      const notify: jest.Mock<
-        (delivery: OwnerNotificationDelivery) => Promise<void>
-      > = jest.fn(async (): Promise<void> => {
+      const notify: Mock<Notify> = jest.fn<Notify>(async (): Promise<void> => {
         // nobody is left to tell
       });
 
@@ -606,14 +607,14 @@ describe("OwnerNotificationDeliveries", () => {
     }
 
     function notifier(sent: Array<string>): {
-      notify: jest.Mock<(delivery: OwnerNotificationDelivery) => Promise<void>>;
+      notify: Mock<Notify>;
       deliveries: Array<OwnerNotificationDelivery>;
     } {
       const deliveries: Array<OwnerNotificationDelivery> = [];
 
       return {
         deliveries: deliveries,
-        notify: jest.fn(
+        notify: jest.fn<Notify>(
           async (delivery: OwnerNotificationDelivery): Promise<void> => {
             deliveries.push(delivery);
             await tellEveryone(delivery, sent);
@@ -824,11 +825,11 @@ describe("OwnerNotificationDeliveries", () => {
       await stoppedAfterTelling([ALICE, BOB], []);
 
       // Every run that takes them up stops before it tells anyone.
-      const stopsBeforeTelling: jest.Mock<
-        (delivery: OwnerNotificationDelivery) => Promise<void>
-      > = jest.fn(async (): Promise<void> => {
-        // the worker is killed while it builds the notification
-      });
+      const stopsBeforeTelling: Mock<Notify> = jest.fn<Notify>(
+        async (): Promise<void> => {
+          // the worker is killed while it builds the notification
+        },
+      );
 
       for (
         let attempt: number = 2;
@@ -988,7 +989,7 @@ describe("OwnerNotificationDeliveries", () => {
           OwnerNotificationKind.IncidentCreated,
           OwnerNotificationKind.IncidentReminder,
         ],
-        notify: jest.fn(async (): Promise<void> => {
+        notify: jest.fn<Notify>(async (): Promise<void> => {
           // nothing
         }),
       });
