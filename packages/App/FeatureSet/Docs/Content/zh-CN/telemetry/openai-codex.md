@@ -1,6 +1,6 @@
 # OpenAI Codex
 
-Codex CLI 内置三个 OpenTelemetry 导出器，分别用于日志、跟踪和指标。在 `~/.codex/config.toml` 中把它们指向 OneUptime，Codex 的每一轮都会带着 token 和成本到达，中间不需要任何包装器或代理。
+Codex CLI 内置三个 OpenTelemetry 导出器，分别用于日志、追踪和指标。在 `~/.codex/config.toml` 中把它们指向 OneUptime，Codex 的每一轮都会带着 token 和成本到达，中间不需要任何包装器或代理。
 
 :::cards
 - [配置 Codex](#配置-codex): 一个 `[otel]` 块，每种信号一个完整 URL。
@@ -11,7 +11,7 @@ Codex CLI 内置三个 OpenTelemetry 导出器，分别用于日志、跟踪和�
 
 ## 工作原理
 
-每个导出器把一种信号发送到它自己的 URL。跟踪和日志在你配置之前是关闭的；指标则不是。
+每个导出器把一种信号发送到它自己的 URL。追踪和日志在你配置之前是关闭的；指标则不是。
 
 ```mermaid title="Codex 的三个导出器"
 flowchart TB
@@ -76,7 +76,7 @@ Codex 会按原样使用每个 `endpoint`：它不像大多数 SDK 那样追加 
 :::
 
 > [!IMPORTANT]
-> Codex 会忽略 `[otel]` 下它不认识的键，而且不给出警告。它的键使用下划线命名（`trace_exporter`、`metrics_exporter`、`span_attributes`），但导出器名称和 TLS 字段使用连字符命名（`otlp-http`、`ca-certificate`）。写成 `trace-exporter` 会直接关闭跟踪，且不报任何错误。
+> Codex 会忽略 `[otel]` 下它不认识的键，而且不给出警告。它的键使用下划线命名（`trace_exporter`、`metrics_exporter`、`span_attributes`），但导出器名称和 TLS 字段使用连字符命名（`otlp-http`、`ca-certificate`）。写成 `trace-exporter` 会直接关闭追踪，且不报任何错误。
 
 ## 配置键
 
@@ -86,7 +86,7 @@ Codex 会按原样使用每个 `endpoint`：它不像大多数 SDK 那样追加 
 | `log_user_prompt` | `false` | 在 `codex.user_prompt` 上发送提示词文本；否则显示为 `[REDACTED]` |
 | `log_agent_responses` | `false` | 把代理的最终回答发送到日志导出器 |
 | `exporter` | `none` | 日志导出器 |
-| `trace_exporter` | `none` | 跟踪导出器 |
+| `trace_exporter` | `none` | 追踪导出器 |
 | `metrics_exporter` | `statsig` | 指标导出器：请务必设置 |
 | `span_attributes` | — | 添加到每个导出的 span 上的属性 |
 | `tracestate` | — | W3C `tracestate` 成员 |
@@ -99,7 +99,7 @@ Codex 会按原样使用每个 `endpoint`：它不像大多数 SDK 那样追加 
 Codex 只在一个地方指明开发者：
 
 - **日志记录** 带有 `user.account_id` 和 `user.email`。
-- **span** 不带：Codex 有意把两者都排除在跟踪之外。
+- **span** 不带：Codex 有意把两者都排除在追踪之外。
 - **指标** 也不带：它们带有 `auth_mode`、`session_source`、`originator`、`service_name`、`model` 和 `app.version`，但没有人员。
 
 OneUptime 从 span 和指标数据点读取人员，从不从日志记录读取。因此请在 `[otel.span_attributes]` 中自行为每个 span 标注身份：
@@ -118,7 +118,7 @@ OneUptime 从 span 和指标数据点读取人员，从不从日志记录读取�
 
 | 信号 | Codex 发送什么 | OneUptime 如何处理 |
 | --- | --- | --- |
-| 跟踪 | `gen_ai.usage.input_tokens`、`gen_ai.usage.output_tokens` 和缓存 token，但没有模型 | 按人员统计 token；无法为其计价 |
+| 追踪 | `gen_ai.usage.input_tokens`、`gen_ai.usage.output_tokens` 和缓存 token，但没有模型 | 按人员统计 token；无法为其计价 |
 | 指标 | 按 `token_type` 划分的 `codex.turn.token_usage`，以及以百万分之一美元计的 `codex.turn.cost_microusd` | 把成本换算为 USD；只在 span 没有报告的地方读取指标 |
 | 日志 | 带有 `usage.estimated_usd` 和人员的 `codex.turn_cost` | 存储在 **日志** 浏览器中；不与支出关联 |
 
@@ -127,7 +127,7 @@ OneUptime 从 span 和指标数据点读取人员，从不从日志记录读取�
 - token 来自 span，按人员划分，`codex.turn.token_usage` 不会再叠加上去：两者从不相加（ [原因](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数) ）。
 - Codex 的 span 不指明模型，因此 OneUptime 无法为其计价，它们的成本为 0。于是成本总数会从 `codex.turn.cost_microusd` 中取 Codex 的成本，并为你换算为 USD。
 - **员工** 和 **团队** 表按人员显示 span 的 token，并把 Codex 的成本显示在一个 **未归属** 行中，因为它的指标不指明任何人。 **模型** 表正好相反：成本按模型显示，token 归入 **未归属** 。
-- 没有跟踪时，由指标计数 Codex 的 token 和成本：在 **员工** 和 **团队** 表中归入 **未归属** ，在 **模型** 表中按模型显示。
+- 没有追踪时，由指标计数 Codex 的 token 和成本：在 **员工** 和 **团队** 表中归入 **未归属** ，在 **模型** 表中按模型显示。
 
 最精确的每轮成本（并带有人员信息）是日志记录 `codex.turn_cost`。OneUptime 目前还不会把日志记录与支出关联，但请保持日志导出器开启：等到支持时，历史数据已经在那里了。
 
@@ -139,7 +139,7 @@ OneUptime 从 span 和指标数据点读取人员，从不从日志记录读取�
 
 `log_user_prompt` 和 `log_agent_responses` 默认为 `false`：请保持关闭。`codex.user_prompt` 事件仍会到达，但提示词被替换为 `[REDACTED]`，因此你保留了这一轮、它的 token 和成本，却没有提示词文本。无论这些开关如何设置，人员（`user.email`、`user.account_id`）都在日志记录上。
 
-如果为了调查而开启内容， **追踪 → 设置** 下跟踪的 **清理规则** 和 **丢弃过滤器** 会在存储前将其屏蔽或丢弃。
+如果为了调查而开启内容， **追踪 → 设置** 下追踪的 **清理规则** 和 **丢弃过滤器** 会在存储前将其屏蔽或丢弃。
 
 ## 使用 OpenAI API 代替 Codex
 
@@ -151,7 +151,7 @@ OpenAI 的平台 API 本身不发送 OpenTelemetry：每个 span 都来自对你
 
 按照 [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability) 中的说明，把其中任意一种指向 OneUptime。它们都不知道你的员工是谁：请自行设置 `user.id`。
 
-**OpenAI Agents SDK** 把跟踪发送到 OpenAI 自己的端点，而不是通过 OTLP。请用 `opentelemetry-instrumentation-openai-agents-v2` 或 `openinference-instrumentation-openai-agents` 进行桥接，它们会把 SDK 的 span 交给 OTLP 导出器。
+**OpenAI Agents SDK** 把追踪发送到 OpenAI 自己的端点，而不是通过 OTLP。请用 `opentelemetry-instrumentation-openai-agents-v2` 或 `openinference-instrumentation-openai-agents` 进行桥接，它们会把 SDK 的 span 交给 OTLP 导出器。
 
 ## 故障排除
 
@@ -159,7 +159,7 @@ OpenAI 的平台 API 本身不发送 OpenTelemetry：每个 span 都来自对你
 先检查三个 `endpoint` 值：每个都必须以 `/v1/logs`、`/v1/traces` 或 `/v1/metrics` 结尾。然后检查 `x-oneuptime-token` 请求头：OneUptime 会拒绝错误的密钥。
 :::
 
-:::details 日志到达了，但跟踪始终没有到达
+:::details 日志到达了，但追踪始终没有到达
 查找 `[otel]` 下拼写错误的键：Codex 会悄悄忽略它。最常见的是把 `trace_exporter` 写成了 `trace-exporter`。
 :::
 
@@ -176,5 +176,5 @@ OpenAI 的平台 API 本身不发送 OpenTelemetry：每个 span 都来自对你
 :::cards
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): 支出如何在所有编程助手之间归属。
 - [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability): 你自己的 AI 调用的对话、警报、成本和预算。
-- [AI 网关](/docs/telemetry/ai-gateways): 一个为每次模型调用提供跟踪和计价的网关。
+- [AI 网关](/docs/telemetry/ai-gateways): 一个为每次模型调用提供追踪和计价的网关。
 :::

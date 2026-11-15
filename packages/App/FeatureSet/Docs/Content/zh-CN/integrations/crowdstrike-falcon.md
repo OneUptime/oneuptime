@@ -1,6 +1,6 @@
 # CrowdStrike Falcon
 
-把 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 警报（来自终结点、身份和云检测）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的 API 客户端，经由 Falcon Alerts API 读取它们，从不向 Falcon 写入任何内容。
+把 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 警报（来自终结点、身份和云检测）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的 API 客户端，经由 Falcon Alerts API 读取它们，从不向 Falcon 写入任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个只有一个范围的 API 客户端，以及连接的表单。

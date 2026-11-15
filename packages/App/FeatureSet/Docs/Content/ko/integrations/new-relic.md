@@ -30,7 +30,7 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 
 ## 템플릿으로 시작하기
 
-먼저 OneUptime을 설정하세요. 그러면 New Relic이 보낼 URL을 얻습니다. **워크플로 만들기** 대화 상자의 카테고리 목록에서 **New Relic** 아래에 New Relic 템플릿 2개가 있습니다. **Declare an incident for each New Relic issue**는 인시던트용이고, **Create an alert for each New Relic issue**는 알림용입니다. 둘은 같은 일을 하며, 각각 자기 종류의 기록을 만듭니다.
+먼저 OneUptime을 설정하세요. 그러면 New Relic이 보낼 URL을 얻습니다. **워크플로 만들기** 대화 상자의 카테고리 목록에서 **New Relic** 아래에 New Relic 템플릿 2개가 있습니다. **Declare an incident for each New Relic issue**는 인시던트용이고, **Create an alert for each New Relic issue**는 경고용입니다. 둘은 같은 일을 하며, 각각 자기 종류의 기록을 만듭니다.
 
 :::steps
 1. **워크플로**로 이동해 **워크플로 생성**을 클릭합니다. **또는 템플릿에서 시작**에서 카테고리 목록의 **New Relic**을 고르고, **Declare an incident for each New Relic issue**를 클릭하거나, **Create an alert for each New Relic issue**를 클릭한 다음 **이 템플릿 사용**을 클릭합니다.
@@ -43,7 +43,7 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 
 ### 워크플로가 하는 일
 
-**웹훅** 트리거 다음에는 **JavaScript로 확인** 단계 `read-event-1`이 New Relic이 보내는 `state`를 읽고, **다른 도구의 인시던트**(알림 템플릿에서는 **다른 도구의 경고**)이 이슈의 ID로 그 뜻대로 처리합니다. 인시던트는 ID를 사용자 지정 필드 `newRelicIssueId`에 보관합니다.
+**웹훅** 트리거 다음에는 **JavaScript로 확인** 단계 `read-event-1`이 New Relic이 보내는 `state`를 읽고, **다른 도구의 인시던트**(경고 템플릿에서는 **다른 도구의 경고**)이 이슈의 ID로 그 뜻대로 처리합니다. 인시던트는 ID를 사용자 지정 필드 `newRelicIssueId`에 보관합니다.
 
 | New Relic이 보내는 것 | 워크플로가 하는 일 |
 | --- | --- |
@@ -55,9 +55,9 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 
 ### 우선순위와 호출
 
-새 이슈는 우선순위와 상관없이 모두 선택한 온콜 정책을 호출합니다. New Relic은 같은 이슈 안에서 HIGH를 CRITICAL로 올리므로, CRITICAL을 기다리면 HIGH로 열렸다가 악화된 이슈는 절대 호출하지 못합니다. 호출을 줄이려면 New Relic에서 워크플로의 필터를 좁히세요. 필터를 통과한 것만 OneUptime에 도달합니다. 새 프로젝트에서 우선순위는 다음 인시던트 및 알림 심각도에 매핑됩니다:
+새 이슈는 우선순위와 상관없이 모두 선택한 온콜 정책을 호출합니다. New Relic은 같은 이슈 안에서 HIGH를 CRITICAL로 올리므로, CRITICAL을 기다리면 HIGH로 열렸다가 악화된 이슈는 절대 호출하지 못합니다. 호출을 줄이려면 New Relic에서 워크플로의 필터를 좁히세요. 필터를 통과한 것만 OneUptime에 도달합니다. 새 프로젝트에서 우선순위는 다음 인시던트 및 경고 심각도에 매핑됩니다:
 
-| New Relic 우선순위 | 인시던트 | 알림 | 온콜 |
+| New Relic 우선순위 | 인시던트 | 경고 | 온콜 |
 | --- | --- | --- | --- |
 | CRITICAL | Critical Incident | High | 호출함 |
 | HIGH | Major Incident | Low | 호출함 |

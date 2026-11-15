@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import DashboardAlertListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
@@ -392,7 +393,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
           className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
           title={created.title}
         >
-          {created.label}
+          {getValueOrQuietDash(created.label, { isSmall: true })}
         </td>
       </tr>
     );

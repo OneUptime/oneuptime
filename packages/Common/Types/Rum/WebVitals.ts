@@ -99,7 +99,11 @@ export const WebVitalRouteAttributeKeys: Array<string> = [
   "url.template",
 ];
 
-// A threshold the way a person would say it: "2.5 s", "800 ms", "0.1".
+/*
+ * A threshold the way a person would say it: "2.5 s", "800 ms", "0.1", the
+ * figure held to its unit by a no-break space, as the tooltip that draws it
+ * wraps (#8457).
+ */
 export function formatWebVitalThreshold(
   value: number,
   unit: WebVitalDefinition["unit"],
@@ -109,10 +113,10 @@ export function formatWebVitalThreshold(
   }
 
   if (value < 1000) {
-    return `${value} ms`;
+    return `${value}\u00A0ms`;
   }
 
-  return `${Number((value / 1000).toFixed(2))} s`;
+  return `${Number((value / 1000).toFixed(2))}\u00A0s`;
 }
 
 /*

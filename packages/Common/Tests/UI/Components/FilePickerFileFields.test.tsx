@@ -861,7 +861,7 @@ describe("each file it lists", () => {
         .map((element: HTMLElement): string => {
           return element.textContent || "";
         }),
-    ).toContain("PCAP · 2 KB");
+    ).toContain("PCAP · 2\u00A0KB");
     expect(screen.queryByText(MimeType.docx)).not.toBeInTheDocument();
     expect(
       screen.queryByText(MimeType.pcap, { exact: false }),

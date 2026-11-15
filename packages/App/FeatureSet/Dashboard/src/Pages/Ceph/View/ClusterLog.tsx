@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -365,7 +366,11 @@ const CephClusterClusterLog: FunctionComponent<
       type: FieldType.Element,
       key: "daemon",
       getElement: (row: CephLogRow): ReactElement => {
-        return <span className="font-medium text-gray-900">{row.daemon}</span>;
+        return (
+          <span className="font-medium text-gray-900">
+            {getValueOrQuietDash(row.daemon)}
+          </span>
+        );
       },
     },
     {

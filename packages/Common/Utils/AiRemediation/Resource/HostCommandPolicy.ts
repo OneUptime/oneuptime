@@ -1279,14 +1279,14 @@ function evaluateSystemctlWrite(
       return deniedResult(argv, describeUnitProblem(operand, verb));
     }
 
-    const unit: string = canonicalSystemdUnitName(operand);
-    const stem: string = unitStem(unit);
-    const type: string = unitType(unit);
+    const unitName: string = canonicalSystemdUnitName(operand);
+    const stem: string = unitStem(unitName);
+    const type: string = unitType(unitName);
 
     if (!stem || stem.startsWith(".") || stem.endsWith("@")) {
       return deniedResult(
         argv,
-        `systemctl ${verb} ${operand} does not name one unit instance (${unit}); name the instance, as in getty@tty1.service; ${SYSTEMCTL_ALLOWED}`,
+        `systemctl ${verb} ${operand} does not name one unit instance (${unitName}); name the instance, as in getty@tty1.service; ${SYSTEMCTL_ALLOWED}`,
       );
     }
 
@@ -1298,7 +1298,7 @@ function evaluateSystemctlWrite(
     if (stateUnit !== undefined) {
       return deniedResult(
         argv,
-        `systemctl ${verb} ${unit} is never allowed: it is a power or run-state unit (${stateUnit}), and ${HOST_STATE_REASON}; ${SYSTEMCTL_ALLOWED}`,
+        `systemctl ${verb} ${unitName} is never allowed: it is a power or run-state unit (${stateUnit}), and ${HOST_STATE_REASON}; ${SYSTEMCTL_ALLOWED}`,
       );
     }
 
@@ -1310,7 +1310,7 @@ function evaluateSystemctlWrite(
     if (rootShellUnit !== undefined && verb !== "reset-failed") {
       return deniedResult(
         argv,
-        `systemctl ${verb} ${unit} is never allowed: ${ROOT_SHELL_REASON}; ${SYSTEMCTL_ALLOWED}`,
+        `systemctl ${verb} ${unitName} is never allowed: ${ROOT_SHELL_REASON}; ${SYSTEMCTL_ALLOWED}`,
       );
     }
 
@@ -1318,12 +1318,12 @@ function evaluateSystemctlWrite(
       if (UNWRITABLE_UNIT_TYPES.includes(type)) {
         return deniedResult(
           argv,
-          `systemctl ${verb} ${unit} is never allowed: a ${type} unit groups other processes or hardware, so the change would reach everything under it — act on the one service instead; ${SYSTEMCTL_ALLOWED}`,
+          `systemctl ${verb} ${unitName} is never allowed: a ${type} unit groups other processes or hardware, so the change would reach everything under it — act on the one service instead; ${SYSTEMCTL_ALLOWED}`,
         );
       }
 
       if (humanReason === null && FAN_OUT_UNIT_TYPES.includes(type)) {
-        humanReason = `${unit} is a ${type} unit, so the change reaches ${
+        humanReason = `${unitName} is a ${type} unit, so the change reaches ${
           type === "target"
             ? "every unit the target pulls in"
             : "a filesystem or swap area and everything using it"
@@ -1337,11 +1337,11 @@ function evaluateSystemctlWrite(
     );
 
     if (humanReason === null && protectedPattern !== undefined) {
-      humanReason = `${unit} is a protected unit (${protectedPattern}): remote access, the service manager, the network, consoles, the firewall, the container runtimes and package upgrades are only ever changed with a human's approval`;
+      humanReason = `${unitName} is a protected unit (${protectedPattern}): remote access, the service manager, the network, consoles, the firewall, the container runtimes and package upgrades are only ever changed with a human's approval`;
     }
 
-    if (!targets.includes(unit)) {
-      targets.push(unit);
+    if (!targets.includes(unitName)) {
+      targets.push(unitName);
     }
   }
 

@@ -2211,11 +2211,16 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
       "%s names each byte threshold as the alert text renders it",
       (_id: string, template: DatabaseAlertTemplate) => {
         for (const comparison of byteComparisons(template)) {
+          /*
+           * The same figure and unit. The alert text holds them with a
+           * no-break space (#8457); the label is stored on the monitor as
+           * the criteria's name and keeps the space it was written with.
+           */
           expect(comparison.label).toContain(
             MetricValueFormatter.format({
               value: comparison.threshold,
               unit: "By",
-            }),
+            }).replace(/\u00A0/g, " "),
           );
         }
       },
@@ -2233,7 +2238,8 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
         }),
       );
 
-      expect(rootCause).toContain("1 GB");
+      expect(rootCause).toContain("1\u00A0GB");
+      expect(rootCause).not.toContain("1.07\u00A0GB");
       expect(rootCause).not.toContain("1.07 GB");
     });
   });

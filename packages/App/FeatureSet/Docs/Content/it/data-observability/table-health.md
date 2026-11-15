@@ -77,7 +77,7 @@ La scheda **Servizi** di una tabella elenca i servizi visti scriverla e leggerla
 
 Uno span viene collegato a una tabella solo quando il suo database è uno di quelli letti da una raccolta e, quando due database hanno lo stesso nome, solo quando il suo `server.address` è quello di uno dei due.
 
-Ogni servizio mostra anche gli endpoint che effettuano le sue chiamate, dallo span server nello stesso trace, ed è contrassegnato come **App AI** quando chiama anche un modello. **Errori che citano questa tabella** elenca le eccezioni aperte e i registri di errore dell'ultimo giorno dei servizi che scrivono la tabella, quando la menzionano per nome.
+Ogni servizio mostra anche gli endpoint che effettuano le sue chiamate, dallo span server nello stesso trace, ed è contrassegnato come **App AI** quando chiama anche un modello. **Errori che citano questa tabella** elenca le eccezioni aperte e i log di errore dell'ultimo giorno dei servizi che scrivono la tabella, quando la menzionano per nome.
 
 ## Proprietari ed etichette
 

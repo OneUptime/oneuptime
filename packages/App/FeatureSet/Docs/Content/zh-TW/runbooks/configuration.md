@@ -49,7 +49,7 @@ JavaScript、Bash、SSH 和 kubectl 步驟 **絕不在 OneUptime Worker 上執�
 3. 正是這個 Runner（而且只有它）以不可分割的方式認領工作，在本機執行——Bash 和 kubectl 透過 `bash -c <script>`，JavaScript 在 `isolated-vm` 沙箱中，SSH 透過到機器的連線，每種都填入其引用的變數——並傳回結果。 任何全域 Runner 都可以認領帶有 `runsOnGlobalRunner` 的工作。
 4. Worker 以該結果繼續執行 Runbook。
 
-不再有 `RUNBOOK_BASH_ENABLED` 環境旗標。這些步驟在某個部署中能否運作，完全取決於專案中是否有已連線且開啟了 **執行操作手冊** 的 Runner。 JavaScript 步驟也可以在全域 Runner 上執行。
+不再有 `RUNBOOK_BASH_ENABLED` 環境旗標。這些步驟在某個部署中能否運作，完全取決於專案中是否有已連線且開啟了 **執行運行手冊** 的 Runner。 JavaScript 步驟也可以在全域 Runner 上執行。
 
 ## 輸出上限與逾時
 

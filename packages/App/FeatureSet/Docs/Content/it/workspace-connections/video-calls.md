@@ -44,7 +44,7 @@ Una chiamata viene avviata una volta per incidente per ogni luogo in cui si tien
 
 Dichiarare un incidente non aspetta mai un provider di videochiamate. La chiamata viene avviata dopo la creazione dell'incidente, quindi un provider lento o in errore non ritarda mai l'incidente né le sue notifiche di reperibilità.
 
-Se il provider rifiuta (un segreto scaduto, un permesso mancante, un host eliminato), il feed dell'incidente dice che la chiamata della regola non è potuta partire, con il motivo del provider, così i responder sanno di avviarne una dalla pagina dell'incidente. L'esecuzione della regola compare nei registri di notifica del workspace come **Avvia videochiamata**, e la riga della connessione in **Impostazioni del progetto** > **Area di lavoro** > **Videochiamate** mostra l'errore finché una chiamata non riparte.
+Se il provider rifiuta (un segreto scaduto, un permesso mancante, un host eliminato), il feed dell'incidente dice che la chiamata della regola non è potuta partire, con il motivo del provider, così i responder sanno di avviarne una dalla pagina dell'incidente. L'esecuzione della regola compare nei log di notifica del workspace come **Avvia videochiamata**, e la riga della connessione in **Impostazioni del progetto** > **Area di lavoro** > **Videochiamate** mostra l'errore finché una chiamata non riparte.
 
 ### Incidenti privati
 

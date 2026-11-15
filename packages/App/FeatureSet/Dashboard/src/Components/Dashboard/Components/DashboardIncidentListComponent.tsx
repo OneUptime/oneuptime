@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import DashboardIncidentListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardIncidentListComponent";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
@@ -395,7 +396,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
             className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
             title={declared.title}
           >
-            {declared.label}
+            {getValueOrQuietDash(declared.label, { isSmall: true })}
           </td>
         </tr>
       );

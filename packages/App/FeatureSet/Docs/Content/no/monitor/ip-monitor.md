@@ -59,7 +59,7 @@ Angi under **IP-adresse** IPv4- eller IPv6-adressen som skal sjekkes, som `192.1
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser tur-retur-tidene og pakketapet sonden så.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser tur-retur-tidene og pakketapet sonden så.
 
 ### Gå gjennom kriteriene
 

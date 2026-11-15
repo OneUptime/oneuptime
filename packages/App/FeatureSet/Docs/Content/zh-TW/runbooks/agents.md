@@ -88,7 +88,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 ## 開始之前
 
 - 您基礎架構中 **一台安裝了 Docker 的主機** ，能透過 HTTPS 連到您的 OneUptime URL，並能連到步驟要操作的系統。
-- **能建立 Runner 的角色。** 專案擁有者、專案管理員、專案成員和操作手冊管理員可以建立 Runner。只有專案擁有者、專案管理員或操作手冊管理員能看到 Runner 的金鑰，而安裝指令中包含這把金鑰。
+- **能建立 Runner 的角色。** 專案擁有者、專案管理員、專案成員和運行手冊管理員可以建立 Runner。只有專案擁有者、專案管理員或運行手冊管理員能看到 Runner 的金鑰，而安裝指令中包含這把金鑰。
 
 ## 安裝 Runner
 
@@ -100,7 +100,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | --- | --- | --- |
 | **名稱** | 頁面上 | 易讀的名稱，通常寫明它在哪裡執行、能連到什麼，例如 `prod-eu-west-1`。撰寫步驟時您選擇的就是這個名稱。 |
 | **描述** | 頁面上 | 選用。用一句話說明這台主機能連到什麼。 |
-| **執行操作手冊** | **更多欄位** 下 | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
+| **執行運行手冊** | **更多欄位** 下 | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
 | **標籤** | **更多欄位** 下 | 選用。 |
 
 Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 不是一項功能。程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。AI 規則選擇 OneUptime AI 執行其指令所用的 Runner：正是在那裡選擇 Runner，才讓 OneUptime AI 的指令可以在其上執行。Runner 的頁面也會列出選擇了它的 AI 規則。
@@ -109,7 +109,7 @@ Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。A
 
 在 Runner 所在列點選 **顯示設定說明** 。 **操作手冊代理程式設定** 對話方塊會顯示一個 `docker run` 指令，其中已包含該 Runner 的 ID 和金鑰。同樣的指令也位於 Runner 本身頁面的 **設定說明** 下。
 
-只有專案擁有者、專案管理員或操作手冊管理員能讀取金鑰。其他人看到的不是指令，而是「您沒有檢視此操作手冊代理程式金鑰的權限」。
+只有專案擁有者、專案管理員或運行手冊管理員能讀取金鑰。其他人看到的不是指令，而是「您沒有檢視此操作手冊代理程式金鑰的權限」。
 
 ### 3. 在您基礎架構中的主機上執行
 
@@ -175,7 +175,7 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 
 選擇了 Runner 的步驟無論預設是什麼都會保留它，JavaScript 步驟仍然可以自己選擇 **全域 Runner** 。設定預設 Runner 不會變更任何已儲存的步驟。
 
-預設 Runner 必須是專案自己的、執行運行手冊步驟的 Runner：不能是全域 Runner，不能是 Kubernetes 代理程式安裝的叢集內 Runner，也不能是關閉了 **執行操作手冊** 的 Runner。只要某個 Runner 是預設 Runner，它的 **執行操作手冊** 就保持開啟。預設 Runner 未連線時，步驟的下拉式清單會提示這一點，在它上面的步驟會像對待任何 Runner 一樣等待它，直到 claim timeout 結束。
+預設 Runner 必須是專案自己的、執行運行手冊步驟的 Runner：不能是全域 Runner，不能是 Kubernetes 代理程式安裝的叢集內 Runner，也不能是關閉了 **執行運行手冊** 的 Runner。只要某個 Runner 是預設 Runner，它的 **執行運行手冊** 就保持開啟。預設 Runner 未連線時，步驟的下拉式清單會提示這一點，在它上面的步驟會像對待任何 Runner 一樣等待它，直到 claim timeout 結束。
 
 未選擇 Runner 的運行手冊步驟和程式碼儲存庫使用預設 Runner，並在另一個 Runner 成為預設時隨之轉移。AI 規則選擇自己的 Runner，新規則從預設 Runner 開始。
 
@@ -293,7 +293,7 @@ docker rm -f oneuptime-runner
 
 觸發 Runbook（從而把其步驟傳送給 Runner）需要一個執行 Runbook 的角色——`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin` 或 `RunbookMember`——或 `CreateRunbookExecution`；完成、略過或取消執行時也接受 `EditRunbookExecution`。角色只會執行其範圍所及的 Runbook。
 
-只有專案擁有者、專案管理員和操作手冊管理員能讀取 Runner 的金鑰。
+只有專案擁有者、專案管理員和運行手冊管理員能讀取 Runner 的金鑰。
 
 ## 供代理程式使用的 API
 
@@ -320,7 +320,7 @@ docker rm -f oneuptime-runner
 :::
 
 :::details 步驟失敗，顯示「No runbook agent picked up this step before the wait window expired.」
-步驟的 Runner 沒有在其 claim timeout 內認領工作。請確認 Runner 為 **已連線** 、已為它開啟 **執行操作手冊** ，以及它沒有被長步驟佔用：除非您調高 `ONEUPTIME_RUNNER_CONCURRENCY`，否則它一次只執行一項工作。短於輪詢間隔的 claim timeout 也會以同樣方式失敗。
+步驟的 Runner 沒有在其 claim timeout 內認領工作。請確認 Runner 為 **已連線** 、已為它開啟 **執行運行手冊** ，以及它沒有被長步驟佔用：除非您調高 `ONEUPTIME_RUNNER_CONCURRENCY`，否則它一次只執行一項工作。短於輪詢間隔的 claim timeout 也會以同樣方式失敗。
 :::
 
 :::details 步驟失敗，顯示「The runbook agent stopped responding while this step was running.」
@@ -328,7 +328,7 @@ Runner 認領了工作，然後停止續約：它當機了、重新啟動了或�
 :::
 
 :::details Runner 記錄顯示「No capability is enabled」
-此 Runner 的所有功能都已關閉。請在 OneUptime 中 Runner 的頁面上開啟 **執行操作手冊** 。它會在下一次心跳時取得此變更。
+此 Runner 的所有功能都已關閉。請在 OneUptime 中 Runner 的頁面上開啟 **執行運行手冊** 。它會在下一次心跳時取得此變更。
 :::
 
 :::details 步驟失敗，因為其 Runner 不能使用某個機密變數

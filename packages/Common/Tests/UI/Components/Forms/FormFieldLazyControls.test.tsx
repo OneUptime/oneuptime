@@ -994,7 +994,7 @@ describe("a file field, before and after its picker arrives", () => {
     ).textContent;
 
     expect(words).toContain(
-      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      "Up to 3 files of 10\u00A0MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     );
 
     await arrive();

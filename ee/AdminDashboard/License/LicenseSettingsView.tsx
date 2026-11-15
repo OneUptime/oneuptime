@@ -2,6 +2,7 @@ import LicenseActivationForm, {
   ActivationInputMode,
 } from "./LicenseActivationForm";
 import LicenseDetails from "./LicenseDetails";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { LicenseSettingsCopy } from "./LicenseSettingsCopy";
 import {
@@ -577,7 +578,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
                       dir={fact.dir}
                       title={fact.title}
                     >
-                      {fact.value}
+                      {getValueOrQuietDash(fact.value)}
                     </dd>
                   </div>
                 );

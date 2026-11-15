@@ -1,6 +1,6 @@
 # Okta 系统日志
 
-把 [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) 导入 OneUptime 的安全事件：登录、MFA 质询、账户和组的变更，以及 Okta 自己的威胁检测。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 使用你创建的 API 令牌读取它们，不会在 Okta 中更改任何内容。
+把 [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) 导入 OneUptime 的安全事件：登录、MFA 质询、账户和组的变更，以及 Okta 自己的威胁检测。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 使用你创建的 API 令牌读取它们，不会在 Okta 中更改任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个 API 令牌，以及连接的表单。

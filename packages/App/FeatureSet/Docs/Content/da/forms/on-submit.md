@@ -65,7 +65,7 @@ Kortet viser hvert felt på den nye hændelse, og hvor dets værdi kommer fra:
 Vælg en **Hændelsesskabelon** i indstillingerne, så oprettes hver hændelse, formularen opretter, ud fra den, på samme måde som serveren anvender en skabelon overalt — se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon). Svarene og formularens indstillinger kommer først, og skabelonen udfylder alt andet: den indledende tilstand, beskrivelsen, alvorligheden, de berørte ressourcer, vagtpolitikkerne, ejerne, etiketterne, værdierne i brugerdefinerede felter og en ændring af monitorstatus.
 
 > [!WARNING]
-> **Pas på monitorerne.** At oprette en hændelse på en monitor via en formular påvirker monitoren præcis som at oprette en hændelse på den manuelt: den aktive overvågning af monitoren sættes på pause, indtil hændelsen er løst, og en skabelons **Skift overvågningsstatus til** ændrer monitorens status med det samme — på hver statusside, der viser monitoren, selv mens selve hændelsen er skjult. Med en formular kan alle med linket gøre dette. Tilknyt kun monitorer via en formular, når hver indsendelse skal sætte dem på pause.
+> **Pas på monitorerne.** At oprette en hændelse på en monitor via en formular påvirker monitoren præcis som at oprette en hændelse på den manuelt: den aktive overvågning af monitoren sættes på pause, indtil hændelsen er løst, og en skabelons **Skift monitorstatus til** ændrer monitorens status med det samme — på hver statusside, der viser monitoren, selv mens selve hændelsen er skjult. Med en formular kan alle med linket gøre dette. Tilknyt kun monitorer via en formular, når hver indsendelse skal sætte dem på pause.
 
 ### Sådan ser hændelsen ud
 

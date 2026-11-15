@@ -1574,7 +1574,7 @@ describe("PlatformMetricUnitUtil — the storage array catalog reads the query's
         }),
         metricName: "purefa_volume_performance_latency_usec",
       }),
-    ).toBe("7.2 ms");
+    ).toBe("7.2\u00A0ms");
   });
 });
 
@@ -1995,7 +1995,7 @@ describe("PlatformMetricUnitUtil × MetricValueFormatter over every catalog entr
           }),
           metricName: entry.metricName,
         }),
-      ).toBe("258 GB");
+      ).toBe("258\u00A0GB");
     }
   });
 });

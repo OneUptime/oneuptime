@@ -50,7 +50,7 @@ Angi nettstedet som skal få sertifikatet sitt sjekket, i **Nettsted-URL**, som 
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser sertifikatet sonden fikk, med utstederen og utløpsdatoen.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser sertifikatet sonden fikk, med utstederen og utløpsdatoen.
 
 ### Gå gjennom kriteriene
 
@@ -108,7 +108,7 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 
 1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger kriterier**.
 2. Klikk på **Legg til kriterier**. Sett filteret til **Er gyldig sertifikat** / **Sann**, klikk på **Legg til filter**, og sett det andre til **Dager til utløp** / **Mindre enn eller lik** / `14`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
-3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
+3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre monitorstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.
 :::
 

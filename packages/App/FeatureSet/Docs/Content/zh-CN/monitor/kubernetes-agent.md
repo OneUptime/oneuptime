@@ -1,6 +1,6 @@
 # Kubernetes 代理(Helm 安装)
 
-OneUptime Kubernetes 代理是一个 Helm Chart，它采集集群的指标、事件和 Pod 日志、通过 eBPF 捕获的应用跟踪，以及每个节点的操作系统指标，并发送到 OneUptime。只需一次 `helm install` 即可部署，无需修改应用代码。[Kubernetes 监视器](/docs/monitor/kubernetes-monitor) 根据它发送的数据发出告警。
+OneUptime Kubernetes 代理是一个 Helm Chart，它采集集群的指标、事件和 Pod 日志、通过 eBPF 捕获的应用追踪，以及每个节点的操作系统指标，并发送到 OneUptime。只需一次 `helm install` 即可部署，无需修改应用代码。[Kubernetes 监视器](/docs/monitor/kubernetes-monitor) 根据它发送的数据发出告警。
 
 > [!NOTE]
 > 本页使用 Helm 逐步安装代理，并提供适用于你的平台的预设。所有选项、Amazon EKS 附加组件、OpenShift 和 Kubernetes AI 代理都在它的完整参考 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 中。
@@ -33,7 +33,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | 集群采集器 | Deployment | 从 Kubernetes API 采集集群指标、Kubernetes 事件，以及 Pod、节点和工作负载的完整规格。 | 是 |
 | 节点采集器 | DaemonSet | 来自 `/var/log/pods` 的 Pod 日志、kubelet 和 cAdvisor 指标，以及节点的操作系统指标。 | 是 |
-| eBPF 插桩(OBI) | DaemonSet | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis 跟踪与请求指标，以及服务地图。 | 是 |
+| eBPF 插桩(OBI) | DaemonSet | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis 追踪与请求指标，以及服务地图。 | 是 |
 | Kubernetes AI 代理 | Deployment | 让 OneUptime AI 在调查此集群上的事件或告警时运行只读的 `kubectl`。 | 是 |
 | 日志跟随器 | Deployment | 在节点采集器无法读取的地方，通过 Kubernetes API 获取 Pod 日志。 | 在 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 预设中 |
 | eBPF 性能分析器 | DaemonSet | 每个进程的持续 CPU 火焰图。 | 否 |
@@ -179,7 +179,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   -f values.yaml
 ```
 
-这样，此代理发送的每条记录——日志、指标、跟踪和性能分析数据——都会带有 `team:payments`、`env:production` 和 `region:us-east-1`。每个标签都是一个 `oneuptime.label.<key>=<value>` 资源属性，OneUptime 会把每个以 `oneuptime.label.` 开头的属性变成标签。标签匹配时不区分大小写，因此已有的 `Production` 标签会被复用，而不会重复创建。代理从不删除你在 OneUptime 中添加的标签。
+这样，此代理发送的每条记录——日志、指标、追踪和性能分析数据——都会带有 `team:payments`、`env:production` 和 `region:us-east-1`。每个标签都是一个 `oneuptime.label.<key>=<value>` 资源属性，OneUptime 会把每个以 `oneuptime.label.` 开头的属性变成标签。标签匹配时不区分大小写，因此已有的 `Production` 标签会被复用，而不会重复创建。代理从不删除你在 OneUptime 中添加的标签。
 
 ## Pod 日志
 
@@ -195,7 +195,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 混合操作系统集群(Windows 节点池)
 
-Windows 节点上从不运行代理 Pod。关于这些节点及其 Pod 的集群级数据仍会到达，因为它们来自 Kubernetes API：节点状况、Pod 阶段、Kubernetes 事件和 kube-state-metrics。Windows 节点缺少的是在节点上采集的数据：操作系统指标、kubelet 和 cAdvisor 指标、eBPF 跟踪、性能分析数据，以及在 `daemonset` 日志模式下的 Pod 日志。
+Windows 节点上从不运行代理 Pod。关于这些节点及其 Pod 的集群级数据仍会到达，因为它们来自 Kubernetes API：节点状况、Pod 阶段、Kubernetes 事件和 kube-state-metrics。Windows 节点缺少的是在节点上采集的数据：操作系统指标、kubelet 和 cAdvisor 指标、eBPF 追踪、性能分析数据，以及在 `daemonset` 日志模式下的 Pod 日志。
 
 要同时采集 Windows 节点上 Pod 的日志，请开启混合模式：
 
@@ -212,7 +212,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ## 使用 eBPF 的应用跟踪
 
-Chart 会在每个节点上运行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 把 eBPF 程序加载到 Linux 内核中并观察每个 Pod 的网络流量，因此无需对应用做任何改动(没有 SDK，也没有 sidecar)就能重建 HTTP 和 HTTPS、gRPC 以及 SQL 和 Redis 调用。它把这些作为跟踪和请求指标发送到 OneUptime。
+Chart 会在每个节点上运行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 把 eBPF 程序加载到 Linux 内核中并观察每个 Pod 的网络流量，因此无需对应用做任何改动(没有 SDK，也没有 sidecar)就能重建 HTTP 和 HTTPS、gRPC 以及 SQL 和 Redis 调用。它把这些作为追踪和请求指标发送到 OneUptime。
 
 一两分钟内，你的服务会出现在 **产品 → 追踪** 下和服务地图上，`k8s.cluster.name` 设置为集群的名称，因此可以按集群过滤。
 
@@ -222,7 +222,7 @@ eBPF 默认开启。在以下情况下，请用 `--set ebpf.enabled=false` 关�
 
 - 集群是 **GKE Autopilot** 或 **EKS Fargate**。它们的预设会替你关闭：这两个平台会拒绝特权 Pod，而 OBI 必须拥有特权才能加载其程序。
 - 节点运行的内核早于 **Linux 5.8** 且没有 BTF。Debian 11、Ubuntu 20.10、Fedora 34、RHEL 9 及更高版本都没有问题。
-- 你的应用已经通过 OpenTelemetry SDK 发送跟踪，而你不想要重复的数据。
+- 你的应用已经通过 OpenTelemetry SDK 发送追踪，而你不想要重复的数据。
 
 ### eBPF 发送的内容
 
@@ -239,7 +239,7 @@ OBI 会发送几种信号。每一种都可以用 `--set ebpf.features.<key>=fal
 
 ### 跨服务关联跟踪
 
-OBI 还会让跟踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gRPC 调用 Pod B 时，B 端的 Span 会加入 A 的跟踪，两个应用中都不需要 SDK。**此功能默认开启。** 没有它时，对另一节点上 Pod 的调用会开始一条独立的跟踪；在同一节点上，OBI 会自行把两端关联起来。如果遇到下面警告中所述的问题，请用 `--set ebpf.contextPropagation=false` 关闭它。
+OBI 还会让追踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gRPC 调用 Pod B 时，B 端的 Span 会加入 A 的追踪，两个应用中都不需要 SDK。**此功能默认开启。** 没有它时，对另一节点上 Pod 的调用会开始一条独立的追踪；在同一节点上，OBI 会自行把两端关联起来。如果遇到下面警告中所述的问题，请用 `--set ebpf.contextPropagation=false` 关闭它。
 
 | 选项 | 默认值 | 作用 |
 | --- | --- | --- |
@@ -248,13 +248,13 @@ OBI 还会让跟踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gR
 | `ebpf.trackRequestHeaders` | 开启 | 在内核中跟踪请求标头，使接收端在普通 HTTP 服务器上也能找到 `traceparent`。仅在 `contextPropagation` 开启时生效。 |
 
 > [!WARNING]
-> 每种传播模式都会修改已经在传输中的流量。对于普通 HTTP，OBI 会在内核中扩大出站请求以容纳标头；对于 TLS 和原始 TCP，它会从 Traffic Control 钩子添加一个 TCP 选项，重写数据包及其校验和。如果随后连接的字节计数没有被精确修正，数据流就会 **失去同步**：经过 nginx 这类代理的传输一旦响应超过约 64 KB 就会中途卡住，直到连接超时。小请求仍能正常工作，因此看起来像是应用或代理的缺陷。没有哪个内核版本能让这种重写消失。如果在安装 Kubernetes 代理之后，经过代理服务器的大文件传输卡住，或者服务网格或 eBPF 网络插件开始导致 Pod 失败，请关闭上下文传播：跟踪、请求指标和服务地图在没有它的情况下都能工作，而服务中的 OpenTelemetry SDK 完全不需要内核重写就能关联跟踪。使用 `--reuse-values` 升级的代理会保留原来的值，而早期的 Chart 默认关闭此功能：请使用 `--reset-then-reuse-values` 升级，以采用新的默认值。
+> 每种传播模式都会修改已经在传输中的流量。对于普通 HTTP，OBI 会在内核中扩大出站请求以容纳标头；对于 TLS 和原始 TCP，它会从 Traffic Control 钩子添加一个 TCP 选项，重写数据包及其校验和。如果随后连接的字节计数没有被精确修正，数据流就会 **失去同步**：经过 nginx 这类代理的传输一旦响应超过约 64 KB 就会中途卡住，直到连接超时。小请求仍能正常工作，因此看起来像是应用或代理的缺陷。没有哪个内核版本能让这种重写消失。如果在安装 Kubernetes 代理之后，经过代理服务器的大文件传输卡住，或者服务网格或 eBPF 网络插件开始导致 Pod 失败，请关闭上下文传播：追踪、请求指标和服务地图在没有它的情况下都能工作，而服务中的 OpenTelemetry SDK 完全不需要内核重写就能关联追踪。使用 `--reuse-values` 升级的代理会保留原来的值，而早期的 Chart 默认关闭此功能：请使用 `--reset-then-reuse-values` 升级，以采用新的默认值。
 
 ### 将日志关联到跟踪
 
 **默认关闭。** 开启后，OBI 会在它插桩的每个进程的 `write()` 系统调用上挂载一个探针，并且：
 
-- **JSON 日志行** 会获得 `trace_id` 和 `span_id` 字段(行中已有的字段会保留)。节点采集器会把它们移到日志记录自身的跟踪字段上，因此在 OneUptime 中，一个 Span 的日志只需一次点击就能看到，日志行的跟踪也是如此。
+- **JSON 日志行** 会获得 `trace_id` 和 `span_id` 字段(行中已有的字段会保留)。节点采集器会把它们移到日志记录自身的追踪字段上，因此在 OneUptime 中，一个 Span 的日志只需一次点击就能看到，日志行的追踪也是如此。
 - **其他任何日志行** 都会原样采集，不带关联，除非你同时设置 `ebpf.logEnricher.plainText=true`。此时 OBI 会在该行末尾追加 ` trace_id=… span_id=…`，节点采集器会把这些 ID 移到日志记录上并从该行中去除，因此 OneUptime 显示的就是你的应用写下的原样。容器日志文件中的该行(即 `kubectl logs` 打印的内容)仍保留附加内容。
 
 ```bash
@@ -334,11 +334,11 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## 持续 CPU 性能分析
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每个节点上运行，使用 `otel/opentelemetry-collector-ebpf-profiler` 镜像。它以每秒 19 次的频率对每个进程正在运行的内容采样，支持 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，并把性能分析数据发送到 OneUptime。这些数据显示在 **产品 → 性能剖析** 下，也会作为火焰图显示在每个跟踪 Span 上。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每个节点上运行，使用 `otel/opentelemetry-collector-ebpf-profiler` 镜像。它以每秒 19 次的频率对每个进程正在运行的内容采样，支持 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，并把性能分析数据发送到 OneUptime。这些数据显示在 **产品 → 性能剖析** 下，也会作为火焰图显示在每个追踪 Span 上。
 
 **性能分析默认关闭：** 它每个节点消耗的 CPU 和内存比 eBPF 插桩更多。用 `--set profiling.enabled=true` 开启它。
 
-如果同时开启了 eBPF 插桩(默认)，每个样本都会带有它所属的跟踪，因此每个 Span 都有自己的火焰图。为此，Chart 会要求 OBI 保持当前的跟踪上下文可用(`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`)，这会让被插桩的应用在每次异步上下文切换时付出少许开销。设置 `profiling.obiProcessContext=false` 可得到不关联 Span 的火焰图。
+如果同时开启了 eBPF 插桩(默认)，每个样本都会带有它所属的追踪，因此每个 Span 都有自己的火焰图。为此，Chart 会要求 OBI 保持当前的追踪上下文可用(`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`)，这会让被插桩的应用在每次异步上下文切换时付出少许开销。设置 `profiling.obiProcessContext=false` 可得到不关联 Span 的火焰图。
 
 性能分析需要 **Linux 5.10** 或更高版本，以及一个拥有节点进程 ID 的特权 Pod：它无法在 GKE Autopilot 或 EKS Fargate 上运行，它们的预设会让它保持关闭。在本身就是容器的节点上(例如 kind 或 k3d)，它无法区分进程，几乎没有样本能关联到 Span。
 
@@ -349,7 +349,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `profiling.samplesPerSecond` | `19` | 每秒采样多少次。19 可以避免与常见的定时器频率对齐。 |
 | `profiling.offCpuThreshold` | `0` | 大于 0 且不超过 1 的值还会分析 CPU 之外花费的时间，从而显示锁竞争和阻塞 I/O，但会带来一些额外开销。 |
 | `profiling.tracers` | `""`(每种运行时) | 要加载的语言跟踪器，以逗号分隔，例如 `go,python`。 |
-| `profiling.obiProcessContext` | `true` | 把样本关联到 OBI 的跟踪，并让 OBI 为此保持跟踪上下文可用。 |
+| `profiling.obiProcessContext` | `true` | 把样本关联到 OBI 的追踪，并让 OBI 为此保持追踪上下文可用。 |
 
 ## 其他数据采集
 
@@ -378,12 +378,12 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `namespaceFilters.rules` | 把 `kube-system` 排除在 `podLogs` 和 `ebpfDiscovery` 之外 | 针对 `podLogs`、`ebpfDiscovery`、`metrics` 和 `traces` 包含或排除命名空间的规则。模式可以使用 `*`，排除始终优先。 |
 | `filters.logs.minSeverity` | `""` | 丢弃低于此级别的 Pod 日志行：`TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR` 或 `FATAL`。 |
 | `filters.metrics.exclude` | `[]` | 要丢弃的指标名称。 |
-| `sampling.traces.percentage` | `100` | 要保留的跟踪比例，从 0 到 100。跟踪整体保留或丢弃。 |
+| `sampling.traces.percentage` | `100` | 要保留的追踪比例，从 0 到 100。追踪整体保留或丢弃。 |
 | `logs.enabled` | `true` | 采集 Pod 日志。 |
 | `logs.mode` | (来自 `preset`) | `daemonset`、`api` 或 `disabled`。覆盖预设。 |
 | `logs.windowsPods.enabled` | `false` | 同时跟随 Windows 节点上的 Pod。请参阅 [混合操作系统集群](#混合操作系统集群windows-节点池)。 |
 | `logs.api.replicas` | `1` | 在 `api` 模式下日志跟随器的副本数。 |
-| `ebpf.enabled` | `true` | eBPF 跟踪和请求指标。请参阅 [使用 eBPF 的应用跟踪](#使用-ebpf-的应用跟踪)。 |
+| `ebpf.enabled` | `true` | eBPF 追踪和请求指标。请参阅 [使用 eBPF 的应用跟踪](#使用-ebpf-的应用跟踪)。 |
 | `profiling.enabled` | `false` | CPU 火焰图。请参阅 [持续 CPU 性能分析](#持续-cpu-性能分析)。 |
 | `kubeStateMetrics.enabled` | `false` | 来自 kube-state-metrics 的集群状态。 |
 | `aiAgent.enabled` | `true` | Kubernetes AI 代理。它可以做什么，请参阅 [Kubernetes AI 代理](/docs/telemetry/kubernetes-agent#kubernetes-ai-代理)。 |
@@ -503,5 +503,5 @@ helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
 - [Kubernetes 监控](/docs/monitor/kubernetes-monitor): 根据代理发送的数据发出告警。
 - [Kubernetes 代理](/docs/telemetry/kubernetes-agent): 过滤、采样、AI 代理，以及如何控制数据量。
 - [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost): 查看每个工作负载的成本。
-- [跟踪监控](/docs/monitor/traces-monitor): 根据 eBPF 捕获的跟踪发出告警。
+- [跟踪监控](/docs/monitor/traces-monitor): 根据 eBPF 捕获的追踪发出告警。
 :::

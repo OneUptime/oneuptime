@@ -926,9 +926,9 @@ describe("DatabaseHealth - PostgreSQL", () => {
     expect(reasonsOf(assessment)).toEqual([
       {
         text: "A replica {{size}} of WAL behind",
-        values: { size: "1.2 GB" },
+        values: { size: "1.2\u00A0GB" },
       },
-      { text: "Largest database {{size}}", values: { size: "512.4 GB" } },
+      { text: "Largest database {{size}}", values: { size: "512.4\u00A0GB" } },
     ]);
   });
 });
@@ -1479,13 +1479,13 @@ describe("DatabaseHealth - values as reasons write them", () => {
   });
 
   test.each([
-    [1_250_000_000, "1.2 GB"],
-    [1_000_000_000, "1 GB"],
-    [512_000_000_000, "512 GB"],
-    [2_400_000_000_000, "2.4 TB"],
-    [310_000_000, "310 MB"],
-    [4_500, "4.5 kB"],
-    [512, "512 B"],
+    [1_250_000_000, "1.2\u00A0GB"],
+    [1_000_000_000, "1\u00A0GB"],
+    [512_000_000_000, "512\u00A0GB"],
+    [2_400_000_000_000, "2.4\u00A0TB"],
+    [310_000_000, "310\u00A0MB"],
+    [4_500, "4.5\u00A0kB"],
+    [512, "512\u00A0B"],
   ])("bytes %s -> %s", (value: number, expected: string) => {
     expect(formatDatabaseHealthBytes(value)).toBe(expected);
   });

@@ -309,7 +309,7 @@ Ogni evento è anche un log. Un'avvertenza viene salvata con la gravità **Avvis
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Cercali in **Registri**, oppure scarta quelli che non vuoi con un filtro di scarto. Per ricevere un avviso quando ne accade uno, attiva **Warning Events** nella pagina **Raccomandazioni** del cluster, oppure seleziona **Attiva gli avvisi per le avvertenze** in fondo alla sua pagina **Eventi**: un [monitor dei log](/docs/monitor/logs-monitor) sulle avvertenze del cluster, che genera un avviso per oggetto e motivo e lo risolve dopo 5 minuti senza una nuova avvertenza su di esso. Per ricevere avvisi solo per alcuni motivi, aggiungi `k8s.event.reason` al suo filtro.
+Cercali in **Log**, oppure scarta quelli che non vuoi con un filtro di scarto. Per ricevere un avviso quando ne accade uno, attiva **Warning Events** nella pagina **Raccomandazioni** del cluster, oppure seleziona **Attiva gli avvisi per le avvertenze** in fondo alla sua pagina **Eventi**: un [monitor dei log](/docs/monitor/logs-monitor) sulle avvertenze del cluster, che genera un avviso per oggetto e motivo e lo risolve dopo 5 minuti senza una nuova avvertenza su di esso. Per ricevere avvisi solo per alcuni motivi, aggiungi `k8s.event.reason` al suo filtro.
 
 ## Opzioni di configurazione
 
@@ -376,7 +376,7 @@ Aggiungi questi ambiti a una regola per filtrare anche le metriche o gli span co
 > [!NOTE]
 > Le metriche a livello di nodo e di cluster vengono sempre mantenute. Un namespace appartiene a un pod, non a un nodo, quindi serie come la CPU del nodo, la memoria del nodo e l'utilizzo del file system non hanno nulla con cui corrispondere e non vengono mai scartate: una regola limitata a `metrics` riduce le serie per pod senza nascondere un nodo che si sta guastando.
 
-Gli eventi Kubernetes non vengono filtrati per namespace nell'agent: li invia tutti, compresi quelli dei namespace di sistema. Per scartarne alcuni, usa **Registri → Impostazioni → Filtri di scarto** in OneUptime, che possono confrontare il `k8s.namespace.name` di un evento.
+Gli eventi Kubernetes non vengono filtrati per namespace nell'agent: li invia tutti, compresi quelli dei namespace di sistema. Per scartarne alcuni, usa **Log → Impostazioni → Filtri di scarto** in OneUptime, che possono confrontare il `k8s.namespace.name` di un evento.
 
 ### Filtraggio per severità dei log
 
@@ -400,7 +400,7 @@ La modalità `api` scarta quindi, di proposito, strettamente meno della modalit�
 In entrambe le modalità gli eventi su più righe vengono ricomposti prima del filtraggio, quindi uno stack trace Java viene giudicato in base alla sua prima riga e mantenuto o scartato per intero.
 
 > [!IMPORTANT]
-> Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questa impostazione. Arrivano dall'API di Kubernetes senza una severità propria, quindi una soglia cancellerebbe l'intero feed, compresi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti servono. Sono pochi e preziosi, quindi l'agent li invia sempre; per sfoltirli, usa **Registri → Impostazioni → Filtri di scarto** in OneUptime.
+> Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questa impostazione. Arrivano dall'API di Kubernetes senza una severità propria, quindi una soglia cancellerebbe l'intero feed, compresi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti servono. Sono pochi e preziosi, quindi l'agent li invia sempre; per sfoltirli, usa **Log → Impostazioni → Filtri di scarto** in OneUptime.
 
 ### Includere o escludere metriche per nome
 
@@ -706,7 +706,7 @@ Inserire l'header significa riscrivere traffico già in transito: le richieste H
 
 Quando su questo cluster si verifica un incidente o un avviso, OneUptime AI indaga. L'**Agente IA Kubernetes** del chart le fornisce un terminale: esegue `kubectl` in sola lettura come farebbe un ingegnere reperibile (descrive il pod in errore, legge i suoi eventi, segue i log del container che va in crash, controlla la capacità dei nodi) e cita ogni comando nella pagina dell'incidente.
 
-L'agent è **attivo per impostazione predefinita** e **in sola lettura**: un piccolo Deployment (`kubernetes-agent-ai-agent`, etichetta del pod `component=ai-agent`, immagine `oneuptime/kubernetes-ai-agent`) il cui ServiceAccount può solo leggere. Si registra con gli stessi `oneuptime.apiKey` e `clusterName` usati dal collector, quindi non c'è nulla da configurare nel dashboard: la pagina **Agente IA** del cluster (Kubernetes → cluster → IA → Agente) lo mostra come connesso entro un minuto, e **Testa la connessione**, nel menu **⋯** accanto a quello stato, esegue `kubectl version` e `kubectl auth can-i --list` tramite l'agent. Tutto ciò che l'IA ha fatto con esso è nella pagina **Registri IA** del cluster (IA → Registri), e ciò che vale la pena sapere sul cluster — i problemi che continuano a ripresentarsi e perché, il nodo o il carico di lavoro dietro la maggior parte di essi, ciò che l'IA ha corretto — nella pagina **Insight IA** (IA → Insights). L'agent include un kubectl fissato (v1.36.6). Non è un Runner e non compare mai in Runbooks → Runners: OneUptime non gli consegna mai credenziali, non esegue mai runbook su di esso, e non viene mai accettato come Runner dei comandi di una regola IA.
+L'agent è **attivo per impostazione predefinita** e **in sola lettura**: un piccolo Deployment (`kubernetes-agent-ai-agent`, etichetta del pod `component=ai-agent`, immagine `oneuptime/kubernetes-ai-agent`) il cui ServiceAccount può solo leggere. Si registra con gli stessi `oneuptime.apiKey` e `clusterName` usati dal collector, quindi non c'è nulla da configurare nel dashboard: la pagina **Agente IA** del cluster (Kubernetes → cluster → IA → Agente) lo mostra come connesso entro un minuto, e **Testa la connessione**, nel menu **⋯** accanto a quello stato, esegue `kubectl version` e `kubectl auth can-i --list` tramite l'agent. Tutto ciò che l'IA ha fatto con esso è nella pagina **Log IA** del cluster (IA → Log), e ciò che vale la pena sapere sul cluster — i problemi che continuano a ripresentarsi e perché, il nodo o il carico di lavoro dietro la maggior parte di essi, ciò che l'IA ha corretto — nella pagina **Insight IA** (IA → Insights). L'agent include un kubectl fissato (v1.36.6). Non è un Runner e non compare mai in Runbooks → Runners: OneUptime non gli consegna mai credenziali, non esegue mai runbook su di esso, e non viene mai accettato come Runner dei comandi di una regola IA.
 
 Su un agent installato prima che esistesse l'agente IA, aggiorna prima l'indice dei chart, poi esegui l'aggiornamento (su un OneUptime self-hosted, aggiorna prima OneUptime — vedi [Aggiornare l'agent](#aggiornare-lagent)):
 
@@ -873,7 +873,7 @@ Ci sono tre modi per ridurre il volume, e conviene sapere quale stai usando:
 - **Nel processor filter**: i dati vengono raccolti e poi scartati prima dell'invio. `filters.logs.minSeverity`, `filters.metrics.*` e `namespaceFilters.rules` limitato a `metrics` o `traces`. Un po' più di CPU nel collector, ma funziona su tutti i receiver e può esprimere ciò che un receiver non può.
 - **Nel campionatore**: i dati vengono raccolti e poi se ne mantiene una quota rappresentativa. `sampling.traces.percentage`. Gli altri due rimuovono un'intera categoria di telemetria; il campionamento mantiene ogni categoria e la dirada, quindi ciò che resta è ancora completo e rappresentativo.
 
-Tutti e tre sono irreversibili: ciò che scarti non raggiunge mai OneUptime, e tutti e tre possono far tacere un monitor. I primi due fanno tacere un monitor rimuovendo ciò che osserva. Il campionamento è più circoscritto: le metriche RED eBPF vengono calcolate prima del campionatore, quindi i monitor delle metriche restano esatti, ma i monitor che contano gli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`) ne vedono proporzionalmente meno e richiedono soglie ricalibrate. Per decidere più avanti, scarta invece i dati in OneUptime (**Registri → Impostazioni → Filtri di scarto**, **Metriche → Impostazioni → Regole pipeline**): costa comunque traffico in uscita, ma lo modifichi senza un nuovo deploy.
+Tutti e tre sono irreversibili: ciò che scarti non raggiunge mai OneUptime, e tutti e tre possono far tacere un monitor. I primi due fanno tacere un monitor rimuovendo ciò che osserva. Il campionamento è più circoscritto: le metriche RED eBPF vengono calcolate prima del campionatore, quindi i monitor delle metriche restano esatti, ma i monitor che contano gli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`) ne vedono proporzionalmente meno e richiedono soglie ricalibrate. Per decidere più avanti, scarta invece i dati in OneUptime (**Log → Impostazioni → Filtri di scarto**, **Metriche → Impostazioni → Regole pipeline**): costa comunque traffico in uscita, ma lo modifichi senza un nuovo deploy.
 
 ### Riduci prima i log dei pod
 
@@ -1131,7 +1131,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 :::details Le avvertenze Kubernetes non compaiono
 1. Verifica che Kubernetes le abbia segnalate: `kubectl get events -A --field-selector type=Warning`. Kubernetes conserva un evento per circa un'ora, e l'agent invia gli eventi che accadono o si ripetono mentre è in esecuzione, non quelli di prima del suo avvio.
 2. Nella pagina **Eventi** del cluster, scegli **Avvertenze** o **Tutti**, e un intervallo di tempo che copra il momento dell'evento.
-3. Controlla **Registri → Impostazioni → Filtri di scarto**: un evento che corrisponde a un filtro di scarto viene scartato prima di essere salvato.
+3. Controlla **Log → Impostazioni → Filtri di scarto**: un evento che corrisponde a un filtro di scarto viene scartato prima di essere salvato.
 4. Leggi i log del collector delle metriche per cercare errori di esportazione: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 

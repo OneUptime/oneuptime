@@ -126,7 +126,7 @@ Controllate dove è stata aggiunta la sostituzione. Una sulla pagina **Sostituzi
 :::
 
 :::details Neanche il sostituto è stato avvisato
-Viene raggiunto tramite le sue regole di reperibilità personali e i suoi metodi verificati. Cercatelo in **Reperibilità → Prontezza** e controllate l'esecuzione nei **Registri di esecuzione** della policy.
+Viene raggiunto tramite le sue regole di reperibilità personali e i suoi metodi verificati. Cercatelo in **Reperibilità → Prontezza** e controllate l'esecuzione nei **Log di esecuzione** della policy.
 :::
 
 :::details Non riesco ad aggiungere una sostituzione
