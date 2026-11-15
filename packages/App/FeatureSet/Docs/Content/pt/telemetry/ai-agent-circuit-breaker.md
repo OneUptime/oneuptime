@@ -15,7 +15,7 @@ Um agente de IA raramente falha travando. Ele falha continuando: tenta de novo u
 flowchart TB
     agent["Seu agente envia<br/>spans gen_ai.*"] --> ingest["OneUptime"]
     ingest --> wire{"Gatilho: alerta de<br/>orçamento ou de loop"}
-    wire -->|"Alerta criado"| workflow["Fluxo de trabalho:<br/>On Create Alert"]
+    wire -->|"Alerta criado"| workflow["Fluxo de trabalho:<br/>Ao criar: Alerta"]
     workflow -->|"API Post (JSON)"| endpoint["Seu endpoint de parada"]
     endpoint --> runner["O executor pausa<br/>ou para o agente"]
 ```
@@ -125,7 +125,7 @@ Abra **Produtos → Fluxos de trabalho** e clique em **Criar fluxo de trabalho**
 
 ### Adicione o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Alert** no painel **Adicionar gatilho**. Clique no gatilho: **Campos a repassar** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Alerta** no painel **Adicionar gatilho**. Clique no gatilho: **Campos a repassar** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
 
 ### Verifique o título
 

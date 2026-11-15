@@ -107,7 +107,7 @@ OneUptime 全体で使われる言葉は [用語集](/docs/introduction/glossary
 
 ```mermaid title="完成した例"
 flowchart TB
-    trigger["On Create Incident"] -->|"成功"| post["API 呼び出し POST (JSON)"]
+    trigger["インシデントの作成時"] -->|"成功"| post["API 呼び出し POST (JSON)"]
     post -->|"エラー"| log["ログ"]
     post -->|"成功"| done["実行が終わる"]
 ```
@@ -124,7 +124,7 @@ flowchart TB
 
 ### トリガーを追加する
 
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**トリガーを追加** パネルの **人気** の下にある **On Create Incident** をクリックします。
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**トリガーを追加** パネルの **人気** の下にある **インシデントの作成時** をクリックします。
 
 トリガーが点線のブロックの位置に置かれます。そこに表示される ID `incident-on-create-1` が、後続のブロックがこのトリガーを参照するときに使うものです。
 

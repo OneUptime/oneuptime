@@ -13,9 +13,9 @@ OneUptime 인시던트마다 [ServiceNow](https://www.servicenow.com) 인시던�
 
 ```mermaid title="워크플로 두 개, ServiceNow 인시던트 하나"
 flowchart TB
-    declared["인시던트 선언"] --> create["워크플로 1:<br/>On Create Incident"]
+    declared["인시던트 선언"] --> create["워크플로 1:<br/>인시던트 생성 시"]
     create -->|"POST incident"| sn["ServiceNow 인시던트"]
-    resolved["인시던트 해결"] --> update["워크플로 2:<br/>On Update Incident"]
+    resolved["인시던트 해결"] --> update["워크플로 2:<br/>인시던트 업데이트 시"]
     update --> find["correlation_id로<br/>레코드 찾기"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,7 +54,7 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 
 ### 트리거 추가하기
 
-점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **인시던트 생성 시**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
 ### 레코드 만들기
 
@@ -91,9 +91,9 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 워크플로에는 트리거가 하나뿐이므로, 해결에는 인시던트 상태가 바뀔 때 시작되는 두 번째 워크플로가 필요합니다.
 
 :::steps
-### On Update Incident 트리거 추가하기
+### "인시던트 업데이트 시" 트리거 추가하기
 
-`Resolve ServiceNow incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **넘겨줄 필드**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
+`Resolve ServiceNow incidents`라는 워크플로를 만들고 트리거로 **인시던트 업데이트 시**를 고릅니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **넘겨줄 필드**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

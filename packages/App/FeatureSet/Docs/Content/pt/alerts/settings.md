@@ -178,7 +178,7 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ## Workflows
 
-Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **Ao criar: Alerta**, **Ao atualizar: Alerta**, **Ao criar ou atualizar: Alerta** e **Ao excluir: Alerta**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Criar: Alerta (um registro)** e **Atualizar: Alerta (um registro)**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterar isso
 

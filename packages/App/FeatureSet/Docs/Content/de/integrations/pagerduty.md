@@ -16,9 +16,9 @@ Senden Sie OneUptime-Vorfälle an [PagerDuty](https://www.pagerduty.com). Ein Wo
 
 ```mermaid title="Zwei Workflows, ein PagerDuty-Vorfall"
 flowchart TB
-    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>Bei Erstellung:<br/>Vorfall"]
     create -->|"trigger"| pd["PagerDuty-Vorfall"]
-    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>Bei Aktualisierung:<br/>Vorfall"]
     update -->|"resolve"| pd
 ```
 
@@ -48,7 +48,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
 
 ### Das Auslöseereignis senden
 
@@ -82,9 +82,9 @@ Der Baustein sendet JSON, er braucht also keinen `Content-Type`-Header. Der `sev
 Ein Workflow hat einen Trigger, das Beheben braucht also einen zweiten Workflow, der startet, wenn sich der Status eines Vorfalls ändert.
 
 :::steps
-### Den Trigger On Update Incident hinzufügen
+### Den Trigger „Bei Aktualisierung: Vorfall“ hinzufügen
 
-Legen Sie einen Workflow namens `Resolve PagerDuty incidents` an und wählen Sie **On Update Incident** als Trigger. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Weiterzugebende Felder** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
+Legen Sie einen Workflow namens `Resolve PagerDuty incidents` an und wählen Sie **Bei Aktualisierung: Vorfall** als Trigger. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Weiterzugebende Felder** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

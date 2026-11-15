@@ -48,7 +48,7 @@ flowchart TB
 - **SLO 的消耗率。** 当 SLO 过快地花掉其错误预算时，消耗率规则可以创建警报。参见 [消耗率警报与事件](/docs/slo/burn-rate-alerts)。
 - **网络站点和安全事件。** 设置为在不健康时发出警报的网络站点，会在其汇总状态不再正常运行时打开一个警报；你的安全检测规则也会打开警报。参见 [网络站点(健康汇总与正常运行时间)](/docs/monitor/network-sites) 和 [安全事件(SIEM)](/docs/telemetry/security-events)。
 - **呼叫。** Slack 或 Microsoft Teams 中的 `/oneuptime page`，在事件或警报的专属频道之外的任何地方，会打开一个以你的消息为标题的警报，并呼叫你点名的人。工作流的呼叫块会用你提供的标题和消息做同样的事。参见 [从 Slack 呼叫他人](/docs/workspace-connections/slack#从-slack-呼叫他人) 和 [Paging](/docs/workflows/components#paging)。
-- **API、Terraform 和工作流。** 警报是一种普通资源：`/api/alert`、Terraform 资源 `oneuptime_alert`，以及工作流的 **Create One Alert** 步骤。
+- **API、Terraform 和工作流。** 警报是一种普通资源：`/api/alert`、Terraform 资源 `oneuptime_alert`，以及工作流的 **创建单个警报** 步骤。
 
 ## 警报在仪表板中的位置
 
@@ -104,9 +104,9 @@ flowchart TB
 7. **分组规则把它放进一个片段**，前提是有规则匹配。参见 [警报片段与分组规则](/docs/alerts/episodes)。
 8. **安排提醒**，前提是有提醒规则匹配；当 **警报 → 人工智能 → 设置** 中的 **调查新警报** 开启时，**OneUptime AI** 会调查该警报，当 **自动修复新警报** 开启时还会修复它。参见 [AI SRE](/docs/ai/ai-sre)。
 
-后台作业会在警报创建约一分钟后通知它届时的所有所有者，**On Create Alert** 工作流触发器则会启动所有基于它构建的工作流。
+后台作业会在警报创建约一分钟后通知它届时的所有所有者，**创建警报时** 工作流触发器则会启动所有基于它构建的工作流。
 
-要让人员和团队在警报创建时就成为它的所有者，使这条通知送达他们而不是项目所有者，请随创建一起交出他们：通过 API，在 `POST /api/alert` 的 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式发送他们的 ID；在工作流中，在 **Create One Alert** 的 **所有者用户** 和 **所有者团队** 下选择他们；通过 MCP，把 `ownerUsers` 和 `ownerTeams` 传给 `create_alert`。如果调用方无权添加这些所有者，请求会在保存任何内容之前被拒绝。创建之后由单独请求添加的所有者，只有在那一分钟内加入才会收到通知。
+要让人员和团队在警报创建时就成为它的所有者，使这条通知送达他们而不是项目所有者，请随创建一起交出他们：通过 API，在 `POST /api/alert` 的 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式发送他们的 ID；在工作流中，在 **创建单个警报** 的 **所有者用户** 和 **所有者团队** 下选择他们；通过 MCP，把 `ownerUsers` 和 `ownerTeams` 传给 `create_alert`。如果调用方无权添加这些所有者，请求会在保存任何内容之前被拒绝。创建之后由单独请求添加的所有者，只有在那一分钟内加入才会收到通知。
 
 ### 创建时即已确认或已解决
 

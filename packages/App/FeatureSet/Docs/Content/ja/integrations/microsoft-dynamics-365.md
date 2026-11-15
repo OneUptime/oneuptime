@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### インシデントごとにサポート案件を作成する
 
 :::steps
-1. `Incidents to Dynamics 365` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **引き渡すフィールド** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。
+1. `Incidents to Dynamics 365` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**インシデントの作成時** トリガーを追加します。その **引き渡すフィールド** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。
 2. **コンポーネントを追加** をクリックし、**API 呼び出し POST (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**識別子** を `create-case`、**URL** を `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` に設定します。
 3. **その他の項目** で、**リクエストヘッダー** を次のように設定します:
 
@@ -323,7 +323,7 @@ Dynamics 365 の `severitycode` には選択肢が 1 つしかないため、代
 これは 2 つ目のワークフローとして構築し、ここでの失敗がサポート案件の作成を妨げないようにします。
 
 :::steps
-1. **On Update Incident** トリガーを持つ `Close Dynamics 365 cases` という名前のワークフローを作成します。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**引き渡すフィールド** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。
+1. **インシデントの更新時** トリガーを持つ `Close Dynamics 365 cases` という名前のワークフローを作成します。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**引き渡すフィールド** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。
 2. **条件分岐** ブロックを追加します: **確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** にします。
 3. その **はい** 側の後に、**識別子** が `find-case` で、`Prefer` を除いた同じヘッダーと次の **URL** を持つ **API 呼び出し GET (JSON)** ブロックを追加します:
 
@@ -363,7 +363,7 @@ URL は書かれたとおりに送信されるため、`$filter` のスペース
    セルフホストのインストールでは、URL に独自のホストが入ります。URL はパスワードと同じように扱ってください。URL を持つ人は誰でもワークフローを開始できます。漏れた場合は、同じ場所で **URL をリセット** をクリックすると、古い URL はすぐに使えなくなります。
 
 3. ほかの何よりも先に共有シークレットを確認する **条件分岐** ブロックを追加します: **確認する値** に `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`、**比較** に **と等しい**、**比較対象** にシークレットのグローバル変数に保存した自分で決めた値を設定します。
-4. その **はい** 側の後に、**Update One Incident** ブロックを追加します。**クエリ** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**データ (JSON オブジェクト)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **Find One Incident State** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
+4. その **はい** 側の後に、**インシデントを更新（1 件）** ブロックを追加します。**クエリ** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**データ (JSON オブジェクト)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **インシデントの状態を検索（1 件）** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
 
 オンにしてから、Dynamics 365 から呼び出されるようにします:
 
@@ -389,11 +389,11 @@ Dataverse が呼び出すのはポート 80 と 443 だけで、応答を 60 秒
 
 | インシデント | アラート |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **インシデントの作成時** (`incident-on-create-1`) | **アラートの作成時** (`alert-on-create-1`) |
+| **インシデントの更新時** (`incident-on-update-1`) | **アラートの更新時** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **インシデントの状態を検索（1 件）** | **アラートの状態を検索（1 件）** |
+| **インシデントを更新（1 件）** | **アラートを更新（1 件）** |
 
 ワークフローのトリガーはちょうど 1 つなので、インシデントとアラートにはそれぞれ別のワークフローが必要です。両方に同じ Dynamics 365 の処理を行うには、**手動** トリガーを持つワークフローで一度だけ構築し、両方から **別のワークフローを実行** ブロックで開始します。
 
@@ -438,7 +438,7 @@ Dataverse のサービス保護の制限では、任意の 5 分間にユーザ�
 :::
 
 :::details ワークフローは実行されるのに、インシデントが変わらない
-**Update One Incident** ブロックは、クエリに一致するものがないと `Items Updated: 0` を報告します。これはエラーではなく成功です。リクエストの ID が本当に OneUptime のインシデントのものか、`_id` でクエリしているかを確認してください。
+**インシデントを更新（1 件）** ブロックは、クエリに一致するものがないと `Items Updated: 0` を報告します。これはエラーではなく成功です。リクエストの ID が本当に OneUptime のインシデントのものか、`_id` でクエリしているかを確認してください。
 :::
 
 ## 次のステップ

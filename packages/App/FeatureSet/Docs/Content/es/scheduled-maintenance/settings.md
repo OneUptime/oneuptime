@@ -117,7 +117,7 @@ La tarjeta **Próximo número** de debajo fija el número que recibe el próximo
 
 ## Flujos de trabajo
 
-Cada modelo de mantenimiento tiene disparadores y acciones de flujo de trabajo con su nombre: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** y **On Delete Maintenance Event**, lo mismo para **Scheduled Maintenance State Timeline** y los demás, y acciones como **Create One Maintenance Event** y **Update One Maintenance Event**. Las definiciones de campos personalizados y los valores de las mediciones son las excepciones: no tienen pasos de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
+Cada modelo de mantenimiento tiene disparadores y acciones de flujo de trabajo con su nombre: **Al crear Evento de mantenimiento**, **Al actualizar Evento de mantenimiento**, **Al crear o actualizar Evento de mantenimiento** y **Al eliminar Evento de mantenimiento**, lo mismo para **Scheduled Maintenance State Timeline** y los demás, y acciones como **Crear Evento de mantenimiento (individual)** y **Actualizar Evento de mantenimiento (individual)**. Las definiciones de campos personalizados y los valores de las mediciones son las excepciones: no tienen pasos de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
 ## Quién puede cambiarlos
 

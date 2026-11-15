@@ -15,7 +15,7 @@ En AI-agent fallerar sällan genom att krascha. Den fallerar genom att fortsätt
 flowchart TB
     agent["Din agent skickar<br/>gen_ai.*-spans"] --> ingest["OneUptime"]
     ingest --> wire{"Snubbeltråd: budget-<br/>eller slingelarm"}
-    wire -->|"Larm skapat"| workflow["Arbetsflöde:<br/>On Create Alert"]
+    wire -->|"Larm skapat"| workflow["Arbetsflöde:<br/>Vid skapande: Larm"]
     workflow -->|"API Post (JSON)"| endpoint["Din stoppslutpunkt"]
     endpoint --> runner["Runnern pausar<br/>eller stoppar agenten"]
 ```
@@ -125,7 +125,7 @@ Spara först slutpunktens token där arbetsflödet kan använda den utan att vis
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Alert** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fält att skicka vidare** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Larm** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fält att skicka vidare** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
 
 ### Kontrollera titeln
 

@@ -257,7 +257,7 @@ La risposta a una domanda di file sono i file così come sono stati salvati, cia
 
 ### Flussi di lavoro
 
-I moduli hanno i componenti dei flussi di lavoro generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Maintenance Event**.
+I moduli hanno i componenti dei flussi di lavoro generati: **Alla creazione: Modulo**, **All'aggiornamento: Modulo** e così via. Per agire su ciò che un modulo ha creato, usa **Alla creazione: Incidente** o **Alla creazione: Evento di manutenzione**.
 
 ### Gli endpoint propri della pagina pubblica
 

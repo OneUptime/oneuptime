@@ -46,7 +46,7 @@ Os comunicados são tratados em [Assinantes e comunicados](/docs/status-pages/su
 - **Um agendamento.** Um modelo recorrente cria um evento novo seguindo um agendamento, por exemplo toda semana ou todo mês, sem que ninguém abra o formulário.
 - **Um formulário.** Um formulário cujos envios criam eventos de manutenção transforma um pedido de mudança em um evento. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-evento-de-manutenção).
 - **O chat.** `/oneuptime maintenance` no Slack, ou `maintenance` escrito para o bot do OneUptime no Microsoft Teams, abre o formulário na sua ferramenta de chat. Veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
-- **O código.** A API em `/api/scheduled-maintenance`, o recurso do Terraform `oneuptime_scheduled_maintenance_event` e a etapa **Create One Maintenance Event** de um workflow.
+- **O código.** A API em `/api/scheduled-maintenance`, o recurso do Terraform `oneuptime_scheduled_maintenance_event` e a etapa **Criar: Evento de manutenção (um registro)** de um workflow.
 
 ## Onde fica a manutenção no painel
 

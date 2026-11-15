@@ -117,7 +117,7 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevra le prochain
 
 ## Flux de travail
 
-Chaque modèle de maintenance a des déclencheurs et des actions de flux de travail, nommés d'après lui : **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** et **On Delete Maintenance Event**, de même pour **Scheduled Maintenance State Timeline** et les autres, et des actions comme **Create One Maintenance Event** et **Update One Maintenance Event**. Les définitions de champs personnalisés et les valeurs de mesure sont les exceptions : elles n'ont aucune étape de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
+Chaque modèle de maintenance a des déclencheurs et des actions de flux de travail, nommés d'après lui : **À la création : Événement de maintenance**, **À la mise à jour : Événement de maintenance**, **À la création ou à la mise à jour : Événement de maintenance** et **À la suppression : Événement de maintenance**, de même pour **Scheduled Maintenance State Timeline** et les autres, et des actions comme **Créer : Événement de maintenance (un seul)** et **Mettre à jour : Événement de maintenance (un seul)**. Les définitions de champs personnalisés et les valeurs de mesure sont les exceptions : elles n'ont aucune étape de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ## Qui peut les modifier
 

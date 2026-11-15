@@ -15,7 +15,7 @@ En AI-agent feiler sjelden ved å krasje. Den feiler ved å fortsette: den prøv
 flowchart TB
     agent["Agenten din sender<br/>gen_ai.*-spans"] --> ingest["OneUptime"]
     ingest --> wire{"Snubletråd: budsjett-<br/>eller løkkevarsel"}
-    wire -->|"Varsel opprettet"| workflow["Arbeidsflyt:<br/>On Create Alert"]
+    wire -->|"Varsel opprettet"| workflow["Arbeidsflyt:<br/>Ved oppretting: Varsel"]
     workflow -->|"API Post (JSON)"| endpoint["Stoppendepunktet ditt"]
     endpoint --> runner["Runneren pauser<br/>eller stopper agenten"]
 ```
@@ -125,7 +125,7 @@ Lagre først endepunktets token et sted der arbeidsflyten kan bruke det uten å 
 
 ### Legg til utløseren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Alert** i panelet **Legg til utløser**. Klikk på utløseren: **Felt som sendes videre** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Ved oppretting: Varsel** i panelet **Legg til utløser**. Klikk på utløseren: **Felt som sendes videre** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
 
 ### Sjekk tittelen
 

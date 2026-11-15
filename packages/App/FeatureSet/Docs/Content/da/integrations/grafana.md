@@ -129,7 +129,7 @@ Klik på **Tilføj komponent**, tilføj en blok **Hvis / Ellers**, og forbind tr
 
 ### Erklær hændelsen
 
-Tilføj en blok **Create One Incident**, og forbind siden **Ja** af blokken **Hvis / Ellers** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON-objekt**, hvad der kommer fra Grafana:
+Tilføj en blok **Opret Hændelse (én post)**, og forbind siden **Ja** af blokken **Hvis / Ellers** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON-objekt**, hvad der kommer fra Grafana:
 
 ```json
 {

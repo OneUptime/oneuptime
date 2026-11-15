@@ -197,7 +197,7 @@ amtool alert add test_alert severity=warning \
 
 ### 宣告事件
 
-新增一個 **Create One Incident** 區塊，並把 **如果 / 否則** 區塊的 **是** 一側連接到它。在 **事件範本** 中選擇一個設定了嚴重程度和要呼叫的待命策略的範本（請參閱 [事件範本](/docs/incidents/settings#事件範本)）。在 **JSON 物件** 中設定來自 Alertmanager 的內容：
+新增一個 **建立單個事件** 區塊，並把 **如果 / 否則** 區塊的 **是** 一側連接到它。在 **事件範本** 中選擇一個設定了嚴重程度和要呼叫的待命策略的範本（請參閱 [事件範本](/docs/incidents/settings#事件範本)）。在 **JSON 物件** 中設定來自 Alertmanager 的內容：
 
 ```json
 {

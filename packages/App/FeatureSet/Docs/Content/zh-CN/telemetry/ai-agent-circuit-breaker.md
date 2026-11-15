@@ -15,7 +15,7 @@ AI 代理很少因为崩溃而失败。它失败的方式是停不下来：反�
 flowchart TB
     agent["代理发送<br/>gen_ai.* span"] --> ingest["OneUptime"]
     ingest --> wire{"触发条件：<br/>预算警报或循环警报"}
-    wire -->|"已创建警报"| workflow["工作流：<br/>On Create Alert"]
+    wire -->|"已创建警报"| workflow["工作流：<br/>创建警报时"]
     workflow -->|"API Post (JSON)"| endpoint["你的停止端点"]
     endpoint --> runner["运行器暂停<br/>或停止代理"]
 ```
@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 添加触发器
 
-点击虚线框 **选择启动此工作流的方式** ，在 **添加触发器** 面板中选择 **On Create Alert** 。点击触发器： **要传递的字段** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
+点击虚线框 **选择启动此工作流的方式** ，在 **添加触发器** 面板中选择 **创建警报时** 。点击触发器： **要传递的字段** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
 
 ### 检查标题
 

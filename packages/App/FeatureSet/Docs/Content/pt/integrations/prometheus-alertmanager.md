@@ -197,7 +197,7 @@ Clique em **Adicionar componente**, adicione um bloco **Se / Senão** e ligue a 
 
 ### Declarar o incidente
 
-Adicione um bloco **Create One Incident** e ligue a ele o lado **Sim** do bloco **Se / Senão**. Em **Modelo de incidente**, escolha um modelo que defina a gravidade e as políticas de plantão a acionar (veja [Modelos de incidentes](/docs/incidents/settings#modelos-de-incidentes)). Em **Objeto JSON**, defina o que vem do Alertmanager:
+Adicione um bloco **Criar: Incidente (um registro)** e ligue a ele o lado **Sim** do bloco **Se / Senão**. Em **Modelo de incidente**, escolha um modelo que defina a gravidade e as políticas de plantão a acionar (veja [Modelos de incidentes](/docs/incidents/settings#modelos-de-incidentes)). Em **Objeto JSON**, defina o que vem do Alertmanager:
 
 ```json
 {

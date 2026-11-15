@@ -306,7 +306,7 @@ Los tokens caducan al cabo de un año por defecto y no se renuevan. Para no tene
 ### Abrir una incidencia de Jira por cada incidente
 
 :::steps
-1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. Sus **Campos que pasar** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite. Deja su **Identificador** como `incident-on-create-1`.
+1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **Al crear Incidente**. Sus **Campos que pasar** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite. Deja su **Identificador** como `incident-on-create-1`.
 2. Haz clic en **Añadir componente**, añade un bloque **Llamada a API POST (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **Identificador** en `create-issue`, su **URL** en `{{global.variables.JIRA_URL}}/rest/api/3/issue` y, en **Más campos**, sus **Encabezados de la solicitud** en `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Pon su **Cuerpo de la solicitud** en la incidencia, y sustituye `OPS` y `Bug` por la clave de tu proyecto y un tipo de incidencia de ese proyecto:
 
@@ -390,7 +390,7 @@ Para esto, en los **Campos que pasar** del disparador, haz clic en **Añadir cam
 Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca impida abrir incidencias.
 
 :::steps
-1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **On Update Incident**. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Campos que pasar**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Nombre**.
+1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **Al actualizar Incidente**. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Campos que pasar**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Nombre**.
 2. Añade un bloque **Si / Si no**: **Valor que comprobar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparación** **es igual a**, **Comparar con** `Resolved`, o el nombre de tu estado resuelto.
 3. Después de su lado **Sí**, encuentra la incidencia con un bloque **Llamada a API POST (JSON)** cuyo **Identificador** sea `find-issue`, que publique en `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ Primero construye el flujo de trabajo que recibe:
 
    Una instalación autoalojada usa su propio host. Trata la URL como una contraseña: quien la tenga puede iniciar el flujo de trabajo. Si se filtra, haz clic en **Restablecer URL** en el mismo lugar, y la URL antigua deja de funcionar al instante.
 
-3. Desde el disparador, añade un bloque **Update One Incident**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Datos (objeto JSON)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Find One Incident State** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Desde el disparador, añade un bloque **Actualizar Incidente (individual)**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Datos (objeto JSON)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Buscar Estado del incidente (individual)** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Actívalo y luego haz que Jira lo llame, desde una regla de automatización o desde un webhook:
 
@@ -466,13 +466,13 @@ Empieza con las plantillas para alertas de [Empezar con una plantilla](#empezar-
 
 | Incidente | Alerta |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Ninguno: las alertas no tienen notas públicas |
+| **Al crear Incidente** (`incident-on-create-1`) | **Al crear Alerta** (`alert-on-create-1`) |
+| **Al actualizar Incidente** (`incident-on-update-1`) | **Al actualizar Alerta** (`alert-on-update-1`) |
+| **Al crear Nota interna del incidente** | **Al crear Nota interna de la alerta** |
+| **Al crear Nota pública del incidente** | Ninguno: las alertas no tienen notas públicas |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Buscar Estado del incidente (individual)** | **Buscar Estado de la alerta (individual)** |
+| **Actualizar Incidente (individual)** | **Actualizar Alerta (individual)** |
 | Etiqueta `oneuptime-incident-<incident id>` | Etiqueta `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Comprueba primero el puerto: Jira solo llama a sus puertos permitidos. Después 
 :::
 
 :::details El flujo de trabajo se ejecuta, pero el incidente no cambia
-Un bloque **Update One Incident** informa `Items Updated: 0` cuando su consulta no encontró nada, y eso es un éxito, no un error. Comprueba que el ID de la solicitud es de verdad el del incidente de OneUptime, y que consultas `_id`.
+Un bloque **Actualizar Incidente (individual)** informa `Items Updated: 0` cuando su consulta no encontró nada, y eso es un éxito, no un error. Comprueba que el ID de la solicitud es de verdad el del incidente de OneUptime, y que consultas `_id`.
 :::
 
 :::details Una referencia aparece tal cual en una incidencia de Jira

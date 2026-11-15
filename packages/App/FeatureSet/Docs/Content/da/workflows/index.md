@@ -107,7 +107,7 @@ Denne arbejdsgang sender et JSON-resumé af hver ny hændelse til en URL, du væ
 
 ```mermaid title="Det færdige eksempel"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API-kald POST (JSON)"]
+    trigger["Ved oprettelse: Hændelse"] -->|"Succes"| post["API-kald POST (JSON)"]
     post -->|"Fejl"| log["Log"]
     post -->|"Succes"| done["Kørslen slutter"]
 ```
@@ -124,7 +124,7 @@ Den nye arbejdsgang åbner i **Bygger**, slået fra.
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og klik så på **On Create Incident** under **Populære** i panelet **Tilføj udløser**.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og klik så på **Ved oprettelse: Hændelse** under **Populære** i panelet **Tilføj udløser**.
 
 Triggeren tager den stiplede bloks plads. ID'et på den, `incident-on-create-1`, er det, senere blokke henviser til den med.
 

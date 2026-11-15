@@ -13,8 +13,8 @@ Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://t
 
 ```mermaid title="D'une alerte à un message Telegram"
 flowchart TB
-    fired["Alerte levée"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Alerte levée"] --> trigger["À la création :<br/>Alerte"]
+    trigger --> step["Envoyer un<br/>message à Telegram"]
     step -->|"Succès"| chat["Message dans<br/>votre discussion"]
     step -->|"Erreur"| failed["L'exécution échoue<br/>et dit pourquoi"]
 ```
@@ -53,11 +53,11 @@ Partez du modèle, qui construit tout le flux de travail pour les alertes, ou de
 3. Gardez le nom **Notify Telegram on new alert** ou changez-le, et cliquez sur **Suivant**.
 4. Collez le jeton dans **Jeton du bot Telegram** et l'ID dans **Telegram Chat ID**, et cliquez sur **Créer un flux de travail**.
 
-Le flux de travail s'ouvre dans le **Constructeur** avec deux étapes : **On Create Alert**, et **Envoyer un message à Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du flux de travail, et l'ID comme `telegramChatId`.
+Le flux de travail s'ouvre dans le **Constructeur** avec deux étapes : **À la création : Alerte**, et **Envoyer un message à Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du flux de travail, et l'ID comme `telegramChatId`.
 @tab De zéro
 1. Enregistrez le jeton comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `TELEGRAM_BOT_TOKEN`, et cliquez sur **Suivant**. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le flux de travail, et cliquez sur **Créer un flux de travail**.
-3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** sous **Populaires**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'alerte avec préfixe**.
+3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Alerte** sous **Populaires**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'alerte avec préfixe**.
 4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Envoyer un message à Telegram**. Reliez la sortie **Succès** du déclencheur à cette étape.
 5. Cliquez sur la nouvelle étape. Dans **Jeton du bot Telegram**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **ID du chat**, écrivez le message dans **Texte du message**, et insérez les champs de l'alerte avec **{ }**.
 :::
@@ -80,7 +80,7 @@ Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et
 
 - **Texte brut.** L'étape envoie le texte tel qu'il est saisi, sans la mise en forme de Telegram : `*` et `_` s'affichent donc tels quels.
 - **Tenir compte de la limite de 4 096 caractères.** Telegram accepte les messages de 4 096 caractères au plus. Un message plus long est coupé, et se termine par "… (truncated — see OneUptime for the full text)", au lieu d'être refusé.
-- **Les incidents aussi.** Construisez le même flux de travail sur **On Create Incident**, ou sur **On Update Incident** pour les changements d'état. Pour n'envoyer que certaines alertes, placez un bloc **Si / Sinon** avant l'étape.
+- **Les incidents aussi.** Construisez le même flux de travail sur **À la création : Incident**, ou sur **À la mise à jour : Incident** pour les changements d'état. Pour n'envoyer que certaines alertes, placez un bloc **Si / Sinon** avant l'étape.
 - **La forme du jeton est vérifiée.** Un jeton qui n'a pas la forme `123456789:ABCdef…` arrête l'exécution avant tout envoi, et le jeton n'est jamais écrit dans le journal.
 
 ## Dépannage

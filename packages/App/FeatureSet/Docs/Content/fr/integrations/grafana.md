@@ -129,7 +129,7 @@ Cliquez sur **Ajouter un composant**, ajoutez un bloc **Si / Sinon** et reliez-y
 
 ### Déclarer l'incident
 
-Ajoutez un bloc **Create One Incident** et reliez-y le côté **Oui** du bloc **Si / Sinon**. Dans **Modèle d'incident**, choisissez un modèle qui fixe la gravité et les politiques d'astreinte à prévenir (voir [Modèles d'incident](/docs/incidents/settings#modèles-dincident)). Dans **Objet JSON**, indiquez ce qui vient de Grafana :
+Ajoutez un bloc **Créer : Incident (un seul)** et reliez-y le côté **Oui** du bloc **Si / Sinon**. Dans **Modèle d'incident**, choisissez un modèle qui fixe la gravité et les politiques d'astreinte à prévenir (voir [Modèles d'incident](/docs/incidents/settings#modèles-dincident)). Dans **Objet JSON**, indiquez ce qui vient de Grafana :
 
 ```json
 {

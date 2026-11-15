@@ -107,7 +107,7 @@ Este flujo de trabajo envía un resumen JSON de cada incidente nuevo a una URL t
 
 ```mermaid title="El ejemplo terminado"
 flowchart TB
-    trigger["On Create Incident"] -->|"Éxito"| post["Llamada a API POST (JSON)"]
+    trigger["Al crear Incidente"] -->|"Éxito"| post["Llamada a API POST (JSON)"]
     post -->|"Error"| log["Registro"]
     post -->|"Éxito"| done["La ejecución termina"]
 ```
@@ -124,7 +124,7 @@ El flujo de trabajo nuevo se abre en el **Constructor**, desactivado.
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y, luego, en **On Create Incident**, en **Populares**, dentro del panel **Añadir desencadenante**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y, luego, en **Al crear Incidente**, en **Populares**, dentro del panel **Añadir desencadenante**.
 
 El disparador ocupa el lugar del bloque discontinuo. El ID que aparece en él, `incident-on-create-1`, es como los bloques posteriores se refieren a él.
 

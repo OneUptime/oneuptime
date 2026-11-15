@@ -117,7 +117,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende gebeurte
 
 ## Workflows
 
-Elk onderhoudsmodel heeft workflowtriggers en -acties, naar het model genoemd: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** en **On Delete Maintenance Event**, hetzelfde voor **Scheduled Maintenance State Timeline** en de andere, en acties zoals **Create One Maintenance Event** en **Update One Maintenance Event**. Definities van aangepaste velden en meetwaarden zijn de uitzonderingen: ze hebben geen workflowstappen. Zie [Workflows – Overzicht](/docs/workflows/index).
+Elk onderhoudsmodel heeft workflowtriggers en -acties, naar het model genoemd: **Bij aanmaken: Onderhoudsgebeurtenis**, **Bij bijwerken: Onderhoudsgebeurtenis**, **Bij aanmaken of bijwerken: Onderhoudsgebeurtenis** en **Bij verwijderen: Onderhoudsgebeurtenis**, hetzelfde voor **Scheduled Maintenance State Timeline** en de andere, en acties zoals **Onderhoudsgebeurtenis aanmaken (één record)** en **Onderhoudsgebeurtenis bijwerken (één record)**. Definities van aangepaste velden en meetwaarden zijn de uitzonderingen: ze hebben geen workflowstappen. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Wie ze mag wijzigen
 

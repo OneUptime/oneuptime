@@ -76,7 +76,7 @@ Un incidente dichiarato tramite un modulo è un incidente normale, con alcune im
 - **I suoi proprietari vengono avvisati.** I proprietari indicati dalle impostazioni e dal modello vengono aggiunti non appena esistono i canali Slack e Microsoft Teams dell'incidente, e ricevono la notifica — la notifica **Incidente creato** dell'incidente aspetta che siano i suoi proprietari, così arriva a loro invece che ai Proprietari del progetto.
 - **Una nota privata registra l'invio** — vedi [La nota privata](#la-nota-privata).
 
-Tutto ciò che viene eseguito per un nuovo incidente viene eseguito anche per questi: le regole di privacy, di proprietari, di etichette, di reperibilità e di runbook, le policy di reperibilità e i flussi di lavoro **On Create Incident**. Le regole di reperibilità corrispondono agli incidenti di un modulo come a qualsiasi altro — anche sul loro titolo e sulla loro descrizione, scritti dal mittente.
+Tutto ciò che viene eseguito per un nuovo incidente viene eseguito anche per questi: le regole di privacy, di proprietari, di etichette, di reperibilità e di runbook, le policy di reperibilità e i flussi di lavoro **Alla creazione: Incidente**. Le regole di reperibilità corrispondono agli incidenti di un modulo come a qualsiasi altro — anche sul loro titolo e sulla loro descrizione, scritti dal mittente.
 
 :::steps
 #### Leggi cosa ha scritto il mittente

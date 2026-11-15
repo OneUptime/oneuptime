@@ -178,7 +178,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste advarsel og d
 
 ## Arbejdsgange
 
-Hver advarselsmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen arbejdsgangsudløsere. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
+Hver advarselsmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **Ved oprettelse: Advarsel**, **Ved opdatering: Advarsel**, **Ved oprettelse eller opdatering: Advarsel** og **Ved sletning: Advarsel**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Opret Advarsel (én post)** og **Opdater Advarsel (én post)**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen arbejdsgangsudløsere. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

@@ -269,7 +269,7 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
 ### Opret en sag for hver hændelse
 
 :::steps
-1. Opret en arbejdsgang fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Felter, der sendes videre** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
+1. Opret en arbejdsgang fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **Ved oprettelse: Hændelse**. Dens **Felter, der sendes videre** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
 2. Klik på **Tilføj komponent**, tilføj en **API-kald POST (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
@@ -323,7 +323,7 @@ Dynamics 365 leveres med `severitycode` med en enkelt mulighed, så sæt i stede
 Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret en arbejdsgang med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Felter, der sendes videre**, åbn **Current Incident State**, og vælg **Is Resolved State**.
+1. Opret en arbejdsgang med navnet `Close Dynamics 365 cases`, med triggeren **Ved opdatering: Hændelse**. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Felter, der sendes videre**, åbn **Current Incident State**, og vælg **Is Resolved State**.
 2. Tilføj en **Hvis / Ellers**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Sammenligning** **er sand**.
 3. Tilføj efter dens **Ja**-side en **API-kald GET (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
 
@@ -363,7 +363,7 @@ Byg først den modtagende arbejdsgang:
    På en selvhostet installation har URL'en din egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte arbejdsgangen. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
 
 3. Tilføj en **Hvis / Ellers**-blok, der tjekker en delt hemmelighed før alt andet: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med**, **Sammenlign med** en værdi, du selv finder på, gemt i en hemmelig global variabel.
-4. Tilføj efter dens **Ja**-side en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON-objekt)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Tilføj efter dens **Ja**-side en **Opdater Hændelse (én post)**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON-objekt)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find Hændelsesstatus (én post)**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå det til, og få derefter Dynamics 365 til at kalde det:
 
@@ -389,11 +389,11 @@ Advarsler fungerer på samme måde. Skift posttypen, og intet andet ændrer sig:
 
 | Hændelse | Advarsel |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **Ved oprettelse: Hændelse** (`incident-on-create-1`) | **Ved oprettelse: Advarsel** (`alert-on-create-1`) |
+| **Ved opdatering: Hændelse** (`incident-on-update-1`) | **Ved opdatering: Advarsel** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Find Hændelsesstatus (én post)** | **Find Advarselsstatus (én post)** |
+| **Opdater Hændelse (én post)** | **Opdater Advarsel (én post)** |
 
 En arbejdsgang har præcis én trigger, så hændelser og advarsler skal have én arbejdsgang hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i en arbejdsgang med en **Manuel**-trigger og starter det fra begge med en **Kør en anden arbejdsgang**-blok.
 
@@ -438,7 +438,7 @@ Send selv en anmodning til webhook-URL'en med `curl`, og find den i **Protokolle
 :::
 
 :::details Arbejdsgangen kører, men hændelsen ændrer sig ikke
-En **Update One Incident**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
+En **Opdater Hændelse (én post)**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
 :::
 
 ## Næste trin

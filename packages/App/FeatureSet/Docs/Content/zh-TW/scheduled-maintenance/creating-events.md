@@ -90,7 +90,7 @@ flowchart TB
 5. **Runbook 規則啟動** 與該事件相符的運行手冊。
 6. **排定提醒**：當某條提醒規則相符時，為它的擁有者排定提醒。
 
-發布後一分鐘內（除非你選擇了 **發布時間** ，否則會立即發布），它的狀態頁面的訂閱者會收到事件已排定的通知，除非你關閉了 **事件排定時** 。工作流程觸發器 **On Create Maintenance Event** 會啟動以它為基礎建立的所有工作流程；若擁有者開啟了相應通知，他們也會收到訊息：請參閱 [通知設定](/docs/notifications/notification-settings)。
+發布後一分鐘內（除非你選擇了 **發布時間** ，否則會立即發布），它的狀態頁面的訂閱者會收到事件已排定的通知，除非你關閉了 **事件排定時** 。工作流程觸發器 **建立維護事件時** 會啟動以它為基礎建立的所有工作流程；若擁有者開啟了相應通知，他們也會收到訊息：請參閱 [通知設定](/docs/notifications/notification-settings)。
 
 ## 稍後發布
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **事件排定時** 開關。另外兩個時間點各有自己的欄位。                                       |
 | `publishOnStatusPageAt`                               | 事件在其狀態頁面上發布、其訂閱者收到事件已排定通知的時間。省略時立即發布。               |
 
-以程式碼表示的同一個事件是 Terraform 資源 `oneuptime_scheduled_maintenance_event` ：請參閱 [範例](/docs/terraform/examples#排定維護)。工作流程透過其 **Create One Maintenance Event** 步驟建立事件， `/oneuptime maintenance` 會在 Slack 中開啟表單：請參閱 [Slack](/docs/workspace-connections/slack#從-slack-建立事件和維護)。
+以程式碼表示的同一個事件是 Terraform 資源 `oneuptime_scheduled_maintenance_event` ：請參閱 [範例](/docs/terraform/examples#排定維護)。工作流程透過其 **建立單個維護事件** 步驟建立事件， `/oneuptime maintenance` 會在 Slack 中開啟表單：請參閱 [Slack](/docs/workspace-connections/slack#從-slack-建立事件和維護)。
 
 ## 疑難排解
 
