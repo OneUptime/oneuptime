@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9311
+    "keys": 52447,
+    "untranslated": 9289
   },
   "sameAsEnglish": [
     " is",
@@ -116,6 +116,7 @@
     "DE",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Daemons",
     "Dashboard",
@@ -403,6 +404,7 @@
     "Script",
     "Selector",
     "Server",
+    "Server / VM",
     "Serverless",
     "Servers",
     "Service",

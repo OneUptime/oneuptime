@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9061
+    "keys": 52447,
+    "untranslated": 9039
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -36,6 +36,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Datadog URL",
     "Deployment",
     "DeploymentConfigs",
@@ -73,6 +74,7 @@
     "Keystone",
     "Kibana URL",
     "Kolla-Ansible",
+    "Kubernetes Deployment",
     "LXC 201 · pve3",
     "Log4Shell",
     "MCP",

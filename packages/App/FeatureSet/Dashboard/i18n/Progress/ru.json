@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9256
+    "keys": 52447,
+    "untranslated": 9234
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -37,6 +37,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "DeploymentConfigs",
     "Docker Compose",
     "Down + In",
