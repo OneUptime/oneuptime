@@ -392,7 +392,7 @@ OneUptime 的 AI 站点可靠性工程师：它在你的遥测中调查每个新
 
 ### 基础设施代理
 
-Server / VM 监视器背后的 `oneuptime-infrastructure-agent` 服务：它每 30 秒报告一次一台机器的 CPU、内存、磁盘和进程，并用该监视器的密钥签名。
+服务器 / 虚拟机 监视器背后的 `oneuptime-infrastructure-agent` 服务：它每 30 秒报告一次一台机器的 CPU、内存、磁盘和进程，并用该监视器的密钥签名。
 
 参见 [服务器 / 虚拟机监控](/docs/monitor/server-monitor)。
 

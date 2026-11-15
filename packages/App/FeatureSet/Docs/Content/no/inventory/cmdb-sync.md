@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Hver nettverksenhets `descriptiveAttributes` inneholder vertsnavn, IP-adresse, serienummer, MAC-adresse, merke, modell, fastvare, operativsystem, rolle, sted og plassering: se [Eiendelsattributter for nettverksenheter](#eiendelsattributter-for-nettverksenheter) nedenfor. Det polleren ellers vet, som grensesnitt og naboer, ligger på selve Network Device-posten: følg `resourceId` til `/api/network-device/:id/get-item`, eller hent `/api/network-device/get-list` direkte.
+Hver nettverksenhets `descriptiveAttributes` inneholder vertsnavn, IP-adresse, serienummer, MAC-adresse, merke, modell, fastvare, operativsystem, rolle, sted og plassering: se [Eiendelsattributter for nettverksenheter](#eiendelsattributter-for-nettverksenheter) nedenfor. Det polleren ellers vet, som grensesnitt og naboer, ligger på selve Nettverksenhet-posten: følg `resourceId` til `/api/network-device/:id/get-item`, eller hent `/api/network-device/get-list` direkte.
 
 ### Som CSV
 
@@ -184,7 +184,7 @@ Attributter legges til og tømmes aldri: en attributt som slutter å bli rapport
 
 ## Eiendelsattributter for nettverksenheter
 
-En nettverksenhet (`entityType: network.device`) speiles fra Network Device-posten sin, og `descriptiveAttributes` bruker de samme nøklene en vert bruker for de samme opplysningene, så én CMDB-kolonne inneholder serienummeret enten raden er en server eller en svitsj:
+En nettverksenhet (`entityType: network.device`) speiles fra Nettverksenhet-posten sin, og `descriptiveAttributes` bruker de samme nøklene en vert bruker for de samme opplysningene, så én CMDB-kolonne inneholder serienummeret enten raden er en server eller en svitsj:
 
 | Felt | Nøkkel | Hvor det kommer fra |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ En verdi som er lagret på enheten, skrevet inn eller satt via API-et, erstattes
 
 Vertsnavnet er aldri IP-adressen. En enhet som bare adressen navngir, har `host.ip` og ikke noe `host.name`. Når SNMP-walken rapporterer et systemnavn, følger `host.name` ved neste gjennomgang.
 
-Disse verdiene kopieres fra Network Device-posten hvert femtende minutt, og de **erstatter** de forrige verdiene i stedet for å legge seg til dem, så en verdi som fjernes på enheten (en fjernet MAC-adresse, for eksempel), også forsvinner fra inventarelementet.
+Disse verdiene kopieres fra Nettverksenhet-posten hvert femtende minutt, og de **erstatter** de forrige verdiene i stedet for å legge seg til dem, så en verdi som fjernes på enheten (en fjernet MAC-adresse, for eksempel), også forsvinner fra inventarelementet.
 
 Det finnes ingen versjon for en *tilgjengelig oppgradering*: SNMP har ikke noe standardobjekt for det, så OneUptime registrerer versjonen enheten kjører.
 

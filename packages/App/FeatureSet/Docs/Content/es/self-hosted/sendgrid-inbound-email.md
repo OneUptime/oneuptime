@@ -118,7 +118,7 @@ inboundEmail:
 
 Después aplícalas: ejecuta `npm run start` en Docker Compose, que vuelve a crear los contenedores con los nuevos valores, o actualiza la release de Helm en Kubernetes.
 
-### Crea un monitor Incoming Email
+### Crea un monitor Correo entrante
 
 [Crea un monitor Incoming Email](/docs/monitor/incoming-email-monitor#crear-un-monitor-de-correos-entrantes). Su página **Vista general** muestra su dirección, como `monitor-abc123def456@inbound.yourdomain.com`, y sus criterios deciden qué correos crean una alerta y cuáles la resuelven.
 
@@ -137,7 +137,7 @@ Envía un correo a la dirección del monitor, con un asunto que coincida con sus
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | El subdominio configurado para el correo entrante. El correo entrante está desactivado hasta que se define. | Sí | Vacío |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secreto con el que debe coincidir el último segmento de la URL del webhook: `/incoming-email/sendgrid/YOUR_SECRET`. Todo correo se rechaza mientras esté vacío o sea un marcador. | Sí | Vacío |
 
-En qué puede fijarse un monitor Incoming Email – el asunto, el remitente, el cuerpo, el destinatario y si un correo llegó a tiempo – se explica en [Tipos de filtro disponibles](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponibles).
+En qué puede fijarse un monitor Correo entrante – el asunto, el remitente, el cuerpo, el destinatario y si un correo llegó a tiempo – se explica en [Tipos de filtro disponibles](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponibles).
 
 ## Solución de problemas
 
@@ -156,7 +156,7 @@ En qué puede fijarse un monitor Incoming Email – el asunto, el remitente, el 
 
 :::details El monitor no crea alertas
 1. **Verifica los criterios:** comprueba que tus criterios de creación de alertas coinciden con el contenido del correo, y prueba primero con cadenas exactas antes de usar patrones.
-2. **Revisa el monitor:** asegúrate de que no está desactivado y de que su tipo es Incoming Email.
+2. **Revisa el monitor:** asegúrate de que no está desactivado y de que su tipo es Correo entrante.
 3. **Revisa el resumen del monitor:** comprueba si el correo se recibió y se procesó, y lee los logs de evaluación para ver cómo coincidieron los criterios.
 :::
 

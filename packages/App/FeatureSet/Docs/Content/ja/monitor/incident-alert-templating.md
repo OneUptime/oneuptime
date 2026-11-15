@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### メトリクスとインフラストラクチャのモニター
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array、IoT Device の各モニターには、固有の変数が 1 つあります。
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、ストレージアレイ、IoT デバイス の各モニターには、固有の変数が 1 つあります。
 
 | 変数 | 内容 | 型 |
 | --- | --- | --- |
 | `metricName` | モニターの最初のクエリが読むメトリクスの名前 (`container.cpu.time` など)。 | `string` |
 
-グループ化されている場合は、各 **グループ化** 属性の値と `seriesLabels` もあります。[グループ化されたモニターの値](#グループ化されたモニターの値) を参照してください。IoT Device モニターのテンプレートはデバイスごとにグループ化するため、テンプレートから作成したモニターには `{{device.id}}` もあります。
+グループ化されている場合は、各 **グループ化** 属性の値と `seriesLabels` もあります。[グループ化されたモニターの値](#グループ化されたモニターの値) を参照してください。IoT デバイス モニターのテンプレートはデバイスごとにグループ化するため、テンプレートから作成したモニターには `{{device.id}}` もあります。
 
 ### その他のモニターの種類
 
-Logs、Traces、Exceptions、Security Events、AI / LLM、SQL Query の各モニターには、固有の変数はありません。[すべてのモニターにある変数](#すべてのモニターにある変数) を使い、グループ化された Logs モニターでは [グループの値](#グループ化されたモニターの値) を使ってください。
+Logs、Traces、Exceptions、セキュリティイベント、AI / LLM、SQL クエリ の各モニターには、固有の変数はありません。[すべてのモニターにある変数](#すべてのモニターにある変数) を使い、グループ化された Logs モニターでは [グループの値](#グループ化されたモニターの値) を使ってください。
 
 ## 例
 

@@ -172,7 +172,7 @@ Jedes Element von `monitor_steps` ist eine Sache, die geprüft wird:
 | `tls_client_key_passphrase` | string (sensibel) | Website, API | Die Passphrase des privaten Schlüssels. |
 | `request_timeout_in_ms` | number | Prüfungen einer Sonde | Wie lange ein Versuch dauern darf, in Millisekunden. Die Sonde senkt alles über 60000 auf 60000. |
 | `retry_count` | number | Prüfungen einer Sonde | Wiederholungen nach einem gescheiterten ersten Versuch: `0` prüft einmal, `3` bis zu viermal. Die Sonde senkt alles über 3 auf 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Das Skript, das der Schritt ausführt. |
+| `custom_code` | string | Benutzerdefinierter JavaScript-Code, Synthetic | Das Skript, das der Schritt ausführt. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` und `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` und `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Wiederholungen, wenn das Skript scheitert: `0` führt es einmal aus. |

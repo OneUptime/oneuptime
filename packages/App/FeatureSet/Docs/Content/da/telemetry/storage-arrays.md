@@ -1,6 +1,6 @@
 # Lagerarray-agent
 
-OneUptimes Storage Array-agent overvåger lagerarrays: kapacitet og datareduktion, latens, IOPS og båndbredde, volumes, værter, pods og replikering, hardwaretilstand, filsystemer og buckets. Den er en almindelig OpenTelemetry Collector, der scraper arrayets OpenMetrics-endpoints med en skrivebeskyttet brugers API-token, stempler hver metrik med dit arrays identitet og sender den til OneUptime. [Lagerarray-monitorer](/docs/monitor/storage-array-monitor) advarer ud fra det, der ankommer.
+OneUptimes Lagerarray-agent overvåger lagerarrays: kapacitet og datareduktion, latens, IOPS og båndbredde, volumes, værter, pods og replikering, hardwaretilstand, filsystemer og buckets. Den er en almindelig OpenTelemetry Collector, der scraper arrayets OpenMetrics-endpoints med en skrivebeskyttet brugers API-token, stempler hver metrik med dit arrays identitet og sender den til OneUptime. [Lagerarray-monitorer](/docs/monitor/storage-array-monitor) advarer ud fra det, der ankommer.
 
 :::cards
 - [Installér agenten](#installer-agenten): En skrivebeskyttet bruger, derefter installationsscriptet eller Docker Compose.

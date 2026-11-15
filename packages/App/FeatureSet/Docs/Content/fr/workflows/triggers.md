@@ -117,7 +117,7 @@ OneUptime donne au flux de travail une adresse e-mail qui lui est propre. Chaque
 
 Idéal pour : agir sur les e-mails de systèmes qui ne savent pas appeler un webhook — les alertes d'anciens outils de supervision, les avis d'état d'un fournisseur, le rapport qu'une tâche nocturne envoie par e-mail.
 
-Pour obtenir l'adresse, cliquez sur le déclencheur Incoming Email sur le canevas. L'adresse figure en haut de ses paramètres, avec un bouton **Copier l'adresse**. Donnez-la à ce qui doit démarrer le flux de travail : un outil qui ne sait qu'envoyer des e-mails, les paramètres de notification d'un fournisseur, ou une règle de transfert dans votre propre boîte aux lettres.
+Pour obtenir l'adresse, cliquez sur le déclencheur E-mail entrant sur le canevas. L'adresse figure en haut de ses paramètres, avec un bouton **Copier l'adresse**. Donnez-la à ce qui doit démarrer le flux de travail : un outil qui ne sait qu'envoyer des e-mails, les paramètres de notification d'un fournisseur, ou une règle de transfert dans votre propre boîte aux lettres.
 
 Chaque e-mail lance sa propre exécution. L'e-mail atteint le flux de travail que l'adresse figure en À ou en Cc, en copie cachée, ou qu'il passe par une règle de transfert. Un e-mail qui nomme l'adresse deux fois lance une seule exécution.
 
@@ -139,7 +139,7 @@ Une fois qu'un e-mail est arrivé, le sélecteur de valeurs de chaque bloc qui s
 
 Pour essayer le flux de travail sans envoyer d'e-mail, cliquez sur **Exécuter le flux de travail** sur la page **Constructeur** et renseignez un expéditeur, un objet et un corps. Les valeurs que vous laissez de côté arrivent vides.
 
-Les e-mails ne démarrent le flux de travail que s'il est activé. Un e-mail adressé à un flux de travail désactivé est ignoré, de même qu'un e-mail adressé à un flux de travail dont le déclencheur n'est plus Incoming Email.
+Les e-mails ne démarrent le flux de travail que s'il est activé. Un e-mail adressé à un flux de travail désactivé est ignoré, de même qu'un e-mail adressé à un flux de travail dont le déclencheur n'est plus E-mail entrant.
 
 ### Gardez l'adresse privée
 

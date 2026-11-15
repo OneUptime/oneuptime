@@ -231,7 +231,7 @@ Voeg criteria toe om te bepalen wanneer de monitor als online, verminderd of off
 | **SQL-queryfout** | De foutmelding van de query. Waarschuw als die (niet) leeg is, of overeenkomt met een bepaalde tekenreeks. |
 | **JavaScript-expressie** | Een eigen JavaScript-expressie evalueren over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` en `isOnline`. Zie [JavaScript-expressies](/docs/monitor/javascript-expression#sql-querymonitoren). |
 
-Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL Query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
+Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL-query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
 
 Een nieuwe SQL-query-monitor begint met twee criteria: **SQL is online** is onwaar (de monitor gaat offline en verklaart een incident dat zichzelf oplost) en **SQL is online** is waar, wat hem als online markeert. **Criteria toevoegen** voegt er een onderaan toe; sleep het boven het online-criterium, want criteria worden van boven af gecontroleerd en het eerste dat overeenkomt, beslist.
 

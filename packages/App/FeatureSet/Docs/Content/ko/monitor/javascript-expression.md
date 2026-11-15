@@ -46,7 +46,7 @@ flowchart TB
 
 ## 모니터 유형별 변수
 
-JavaScript 표현식은 Website, API, 수신 요청, Incoming Email, SQL Query, Database Health 모니터에서 사용할 수 있습니다.
+JavaScript 표현식은 Website, API, 수신 요청, 수신 이메일, SQL 쿼리, 데이터베이스 상태 모니터에서 사용할 수 있습니다.
 
 ### 웹사이트 및 API 모니터
 

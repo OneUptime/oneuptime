@@ -41,11 +41,11 @@
 :::steps
 ### 建立監控
 
-依照 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用監測器接收警示) 的說明建立一個 Incoming Request 監控，並複製它的 **Heartbeat URL**。這就是下面各工具的接收器中 `<secret key>` 所在的位址。
+依照 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用監測器接收警示) 的說明建立一個 傳入請求 監控，並複製它的 **Heartbeat URL**。這就是下面各工具的接收器中 `<secret key>` 所在的位址。
 
 ### 放到雲端上
 
-開啟監控的 **概覽 → 已連結的資源**，並新增該 OpenStack 雲端。之後每個事件都會出現在該雲端的 **事件** 頁面：Incoming Request 監控自己的設定不會指定任何雲端，所以每個雲端的 Alertmanager 都需要自己的監控。雲端要等到第一批資料送達後才會出現在該清單中，因此請在完成下面的步驟之後再做這件事，或先在 **OpenStack → 所有雲端** 下新增該雲端。
+開啟監控的 **概覽 → 已連結的資源**，並新增該 OpenStack 雲端。之後每個事件都會出現在該雲端的 **事件** 頁面：傳入請求 監控自己的設定不會指定任何雲端，所以每個雲端的 Alertmanager 都需要自己的監控。雲端要等到第一批資料送達後才會出現在該清單中，因此請在完成下面的步驟之後再做這件事，或先在 **OpenStack → 所有雲端** 下新增該雲端。
 :::
 
 版本與 Kolla-Ansible 固定的相同的 Alertmanager，已錄製到以這個確切格式送出，而它送出的內容在運行中的 OneUptime 上開啟了一個事件，並由其自己的 `resolved` 狀態解決。
@@ -424,7 +424,7 @@ bash install.sh
 
 ### Sunbeam 上的誰做了什麼
 
-目前還不行。Sunbeam 的 charm 以自己的範本寫入每個服務的設定，而它的 Keystone charm 沒有設定通知送往何處的選項。因此無法從 charm 外部開啟 Keystone 的稽核軌跡或稽核篩選器，這裡的任何東西都不會進入 Security Events。
+目前還不行。Sunbeam 的 charm 以自己的範本寫入每個服務的設定，而它的 Keystone charm 沒有設定通知送往何處的選項。因此無法從 charm 外部開啟 Keystone 的稽核軌跡或稽核篩選器，這裡的任何東西都不會進入 安全事件。
 
 ## OpenShift 上的 Red Hat OpenStack
 

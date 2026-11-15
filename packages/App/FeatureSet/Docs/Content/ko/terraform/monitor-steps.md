@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string (민감) | 웹사이트, API | 개인 키의 암호 문구. |
 | `request_timeout_in_ms` | number | 프로브가 하는 확인 | 시도 한 번에 걸릴 수 있는 시간(밀리초). 프로브는 60000을 넘는 값을 60000으로 낮춥니다. |
 | `retry_count` | number | 프로브가 하는 확인 | 첫 시도가 실패한 뒤의 재시도 횟수. `0`이면 한 번만, `3`이면 최대 네 번 확인합니다. 프로브는 3을 넘는 값을 3으로 낮춥니다. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | 단계가 실행하는 스크립트. |
+| `custom_code` | string | 사용자 지정 JavaScript 코드, Synthetic | 단계가 실행하는 스크립트. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet`, `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium`과 `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | 스크립트가 실패할 때의 재시도 횟수. `0`이면 한 번만 실행합니다. |

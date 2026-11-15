@@ -1,6 +1,6 @@
 # Segnali collegati
 
-Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, cloud OpenStack, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi log, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Li cerca anche nei tuoi log e nelle tue tracce: l'indirizzo di un attaccante nel log degli accessi di un server web, un'email trapelata nell'errore di un'applicazione. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Security Events su di esso.
+Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, cloud OpenStack, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi log, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Li cerca anche nei tuoi log e nelle tue tracce: l'indirizzo di un attaccante nel log degli accessi di un server web, un'email trapelata nell'errore di un'applicazione. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Eventi di sicurezza su di esso.
 
 :::cards
 - [Dove lo vedi](#dove-lo-vedi): La pagina di un caso, la scheda di un evento, la pagina di un'entità e le pagine di ciò che nominano.
@@ -90,7 +90,7 @@ Sotto i record, Segnali collegati cerca nei tuoi log e nelle tue tracce, sulla s
 - Segnali collegati e la scheda **Sicurezza** di un record richiedono un ruolo che può leggere gli eventi di sicurezza: Amministratore della sicurezza, Membro della sicurezza, Visualizzatore della sicurezza, Proprietario del progetto o Amministratore del progetto. Nessun altro vede dati di sicurezza in alcuna pagina. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 - La scheda **Sicurezza** di un incidente richiede un ruolo che può leggere i casi di sicurezza.
 - Ogni record viene letto con il tuo ruolo, e così ciò che contiene: un ruolo che non può leggere le pianificazioni di reperibilità non vede quelle di un membro. Un tipo di record che il tuo ruolo non può leggere viene omesso, e la pagina lo dice; uno che non è stato possibile leggere al momento lo dice anch'esso, con **Riprova**.
-- La pagina di un record mostra la sua scheda **Sicurezza** solo in un progetto che usa Security Events: uno che ha ricevuto un evento di sicurezza negli ultimi 7 giorni.
+- La pagina di un record mostra la sua scheda **Sicurezza** solo in un progetto che usa Eventi di sicurezza: uno che ha ricevuto un evento di sicurezza negli ultimi 7 giorni.
 
 ## Incidenti che un caso dichiara
 

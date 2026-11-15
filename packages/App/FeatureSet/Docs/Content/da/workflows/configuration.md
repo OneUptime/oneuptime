@@ -81,7 +81,7 @@ Klik på **Importér JSON** i listen **Arbejdsgange**, og vælg en fil, der er e
 Filen indeholder arbejdsgangens navn, beskrivelse, aktiveringstilstand og graf. Den indeholder bevidst ikke:
 
 - **Webhookens hemmelige nøgle.** Der genereres en ny, når arbejdsgangen oprettes, så en importeret arbejdsgang har en anden webhook-URL — kopiér den fra den nye arbejdsgangs Webhook-trigger. Alt, der kaldte den oprindelige, skal peges om.
-- **Adressen til indgående e-mail.** En importeret arbejdsgang med en Incoming Email-trigger får sin egen adresse — kopiér den fra den nye arbejdsgangs trigger. Alt, der sendte e-mail til den oprindelige, skal have den nye adresse.
+- **Adressen til indgående e-mail.** En importeret arbejdsgang med en Indgående e-mail-trigger får sin egen adresse — kopiér den fra den nye arbejdsgangs trigger. Alt, der sendte e-mail til den oprindelige, skal have den nye adresse.
 - **Globale variabler.** En blok, der læser `{{global.variables.MY_SECRET}}`, beholder referencen, men værdien er ikke i filen. Opret variablerne i modtagerprojektet, før du kører den importerede arbejdsgang.
 - **Ejere og etiketter.** Dit projekts egne etiket- og ejerregler kører mod den importerede arbejdsgang, præcis som hvis du havde oprettet den manuelt.
 
@@ -103,10 +103,10 @@ Kun folk, der kan redigere arbejdsgangen — **Projektejer**, **Projektadministr
 
 ## Sikkerhed for indgående e-mail
 
-Incoming Email-triggeren giver arbejdsgangen sin egen adresse, og alle, der kender adressen, kan sende e-mail til den. Delen før `@` er arbejdsgangens hemmelige nøgle, så behandl adressen som en adgangskode:
+Indgående e-mail-triggeren giver arbejdsgangen sin egen adresse, og alle, der kender adressen, kan sende e-mail til den. Delen før `@` er arbejdsgangens hemmelige nøgle, så behandl adressen som en adgangskode:
 
 - Offentliggør den ikke, og læg den ikke i et offentligt repo. Triggeren skjuler nøglen, indtil du klikker på **Vis**, og **Kopiér adresse** kopierer adressen uden at vise den.
-- Lækker adressen, så klik på Incoming Email-triggeren i **Bygger**, og klik på **Nulstil adresse**. Arbejdsgangen får en ny adresse, og e-mail til den gamle ignoreres fra da af.
+- Lækker adressen, så klik på Indgående e-mail-triggeren i **Bygger**, og klik på **Nulstil adresse**. Arbejdsgangen får en ny adresse, og e-mail til den gamle ignoreres fra da af.
 - Alle kan sætte en hvilken som helst afsender på en e-mail, så **Fra** beviser ikke, hvem der sendte den. Før en arbejdsgang gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **Hvis / Ellers**-blok. Gem det forventede token som en hemmelig variabel.
 - Nøglen skjules i alt, hvad kørslen modtager — **Til**, **CC**, headerne og brødteksterne — fordi kørslens log er synlig for alle, der kan læse arbejdsgangens kørsler.
 

@@ -41,11 +41,11 @@ Elke tool met een Alertmanager kan vandaag incidenten krijgen: een alert die afg
 :::steps
 ### De monitor maken
 
-Maak een monitor van het type Incoming Request zoals [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#waarschuwingen-ontvangen-met-een-monitor) beschrijft, en kopieer zijn **Heartbeat URL**. Dat is het adres `<secret key>` in de receiver van elke tool hieronder.
+Maak een monitor van het type Inkomende aanvraag zoals [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#waarschuwingen-ontvangen-met-een-monitor) beschrijft, en kopieer zijn **Heartbeat URL**. Dat is het adres `<secret key>` in de receiver van elke tool hieronder.
 
 ### Aan de cloud koppelen
 
-Open **Overzicht → Gekoppelde resources** van de monitor en voeg de OpenStack-cloud toe. Elk incident staat dan op de pagina **Incidenten** van die cloud: de eigen instellingen van een Incoming Request-monitor noemen geen cloud, dus de Alertmanager van elke cloud heeft een eigen monitor nodig. De cloud verschijnt in die lijst zodra zijn eerste gegevens binnenkomen, dus doe dit na de stappen hieronder, of voeg de cloud eerst toe onder **OpenStack → Alle clouds**.
+Open **Overzicht → Gekoppelde resources** van de monitor en voeg de OpenStack-cloud toe. Elk incident staat dan op de pagina **Incidenten** van die cloud: de eigen instellingen van een Inkomende aanvraag-monitor noemen geen cloud, dus de Alertmanager van elke cloud heeft een eigen monitor nodig. De cloud verschijnt in die lijst zodra zijn eerste gegevens binnenkomen, dus doe dit na de stappen hieronder, of voeg de cloud eerst toe onder **OpenStack → Alle clouds**.
 :::
 
 Alertmanager is, in de versie die Kolla-Ansible vastzet, opgenomen terwijl hij in precies deze vorm postte, en wat hij postte opende één incident op een draaiende OneUptime, dat zijn eigen status `resolved` oploste.

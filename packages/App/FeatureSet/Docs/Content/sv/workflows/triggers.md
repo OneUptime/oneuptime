@@ -117,7 +117,7 @@ OneUptime ger arbetsflödet en egen e-postadress. Varje e-postmeddelande som ski
 
 Bra för: att agera på e-post från system som inte kan anropa en webhook — larm från äldre övervakningsverktyg, en leverantörs statusmeddelanden, rapporten ett nattligt jobb skickar ut.
 
-För att få adressen klickar du på Incoming Email-utlösaren på arbetsytan. Adressen står högst upp i dess inställningar, med en knapp **Kopiera adress**. Ge den till det som ska starta arbetsflödet: ett verktyg som bara kan skicka e-post, en leverantörs aviseringsinställningar eller en vidarebefordringsregel i din egen brevlåda.
+För att få adressen klickar du på Inkommande e-post-utlösaren på arbetsytan. Adressen står högst upp i dess inställningar, med en knapp **Kopiera adress**. Ge den till det som ska starta arbetsflödet: ett verktyg som bara kan skicka e-post, en leverantörs aviseringsinställningar eller en vidarebefordringsregel i din egen brevlåda.
 
 Varje e-postmeddelande startar en egen körning. Meddelandet når arbetsflödet oavsett om adressen står i Till eller Kopia, är en hemlig kopia eller nås via en vidarebefordringsregel. Ett meddelande som nämner adressen två gånger startar en körning.
 

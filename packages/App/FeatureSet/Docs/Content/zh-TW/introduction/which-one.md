@@ -55,7 +55,7 @@ OneUptime 的大部分功能都不需要安裝任何東西：只有在需要連�
 | 安裝項目 | 做什麼 | 何時安裝 | 使用的金鑰 |
 | --- | --- | --- | --- |
 | [自訂探測器](/docs/probe/custom-probe) | 在你的網路內部執行監測器的檢查。 | 你要檢查的內容位於防火牆後方。OneUptime 自己的探測器檢查公開的內容。 | 它自己的探測器 ID 和金鑰 |
-| [基礎設施代理程式](/docs/monitor/server-monitor) | 向 Server / VM 監測器回報一台機器的 CPU、記憶體、磁碟和處理程序。 | 你想為一台伺服器設定一個監測器，並針對它的數值設定條件。 | 該監測器的秘密金鑰 |
+| [基礎設施代理程式](/docs/monitor/server-monitor) | 向 伺服器 / 虛擬機器 監測器回報一台機器的 CPU、記憶體、磁碟和處理程序。 | 你想為一台伺服器設定一個監測器，並針對它的數值設定條件。 | 該監測器的秘密金鑰 |
 | [OpenTelemetry Collector](/docs/telemetry/hosts) | 傳送機器的指標、日誌和處理程序。**新增主機** 用一個指令安裝它。 | 你想讓一台機器連同它的遙測出現在 **主機** 下。 | 擷取金鑰 |
 | [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent) | 收集叢集的指標、事件、日誌和追蹤。你用 Helm 安裝它。 | 你在執行 Kubernetes。 | 擷取金鑰 |
 | [Runner](/docs/runbooks/agents) | 在你的基礎設施內部執行運行手冊步驟，例如 Bash、SSH 和 kubectl。 | 你的運行手冊需要連到你自己的主機和叢集。 | 它自己的 Runner ID 和金鑰 |

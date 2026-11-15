@@ -46,7 +46,7 @@ Speichern Sie den Monitor. Der Filter wird bei der nächsten Prüfung des Monito
 
 ## Variablen nach Monitortyp
 
-JavaScript-Ausdrücke werden für Monitore der Typen Website, API, Eingehende Anfrage, Incoming Email, SQL-Abfrage und Datenbank-Integrität angeboten.
+JavaScript-Ausdrücke werden für Monitore der Typen Website, API, Eingehende Anfrage, Eingehende E-Mail, SQL-Abfrage und Datenbank-Integrität angeboten.
 
 ### Website- und API-Monitore
 

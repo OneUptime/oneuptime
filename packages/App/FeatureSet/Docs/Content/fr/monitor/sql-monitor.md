@@ -231,7 +231,7 @@ Ajoutez des critères pour décider quand le moniteur est considéré comme en l
 | **Erreur de requête SQL** | Le message d'erreur de la requête. Alertez quand il est vide (ou non), ou quand il correspond à une chaîne précise. |
 | **Expression JavaScript** | Évaluer une expression JavaScript personnalisée sur `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` et `isOnline`. Voir [Expressions JavaScript](/docs/monitor/javascript-expression#moniteurs-de-requêtes-sql). |
 
-Les seuils numériques sont des nombres entiers : écrivez `10`, pas `10.5`. Les filtres SQL Query ne peuvent pas être évalués sur une période ; chaque vérification est indépendante.
+Les seuils numériques sont des nombres entiers : écrivez `10`, pas `10.5`. Les filtres Requête SQL ne peuvent pas être évalués sur une période ; chaque vérification est indépendante.
 
 Un nouveau moniteur de requête SQL commence avec deux critères : **SQL en ligne** est faux — le moniteur passe hors ligne et déclare un incident qui se résout de lui-même — et **SQL en ligne** est vrai, ce qui le marque en ligne. **Ajouter un critère** en ajoute un en bas de la liste ; faites-le glisser au-dessus du critère en ligne, car les critères sont vérifiés depuis le haut et le premier qui correspond décide.
 

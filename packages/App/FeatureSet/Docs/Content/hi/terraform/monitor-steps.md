@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string (संवेदनशील) | वेबसाइट, API | निजी कुंजी का पासफ़्रेज़। |
 | `request_timeout_in_ms` | number | प्रोब द्वारा की जाने वाली जाँचें | एक प्रयास कितनी देर ले सकता है, मिलीसेकंड में। प्रोब 60000 से ऊपर के किसी भी मान को घटाकर 60000 कर देता है। |
 | `retry_count` | number | प्रोब द्वारा की जाने वाली जाँचें | पहला प्रयास विफल होने के बाद के पुनःप्रयास: `0` एक बार जाँचता है, `3` अधिकतम चार बार। प्रोब 3 से ऊपर के किसी भी मान को घटाकर 3 कर देता है। |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | वह स्क्रिप्ट जिसे चरण चलाता है। |
+| `custom_code` | string | कस्टम JavaScript कोड, Synthetic | वह स्क्रिप्ट जिसे चरण चलाता है। |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` और `Desktop`। |
 | `browser_types` | list(string) | Synthetic | `Chromium` और `Firefox`। |
 | `retry_count_on_error` | number | Synthetic | स्क्रिप्ट विफल होने पर पुनःप्रयास: `0` इसे एक बार चलाता है। |

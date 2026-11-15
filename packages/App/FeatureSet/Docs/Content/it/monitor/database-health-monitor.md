@@ -1,21 +1,21 @@
 # Monitor stato database
 
-Il monitor Database Health si connette a PostgreSQL, MySQL o Microsoft SQL Server a intervalli regolari e riporta i segnali di salute del server stesso — margine di connessioni, sessioni bloccate, ritardo di replica, cache hit ratio, dimensione del database, wraparound degli ID di transazione e una trentina di altri — così puoi impostare avvisi su di essi come li imposti quando un sito web non risponde.
+Il monitor Integrità del database si connette a PostgreSQL, MySQL o Microsoft SQL Server a intervalli regolari e riporta i segnali di salute del server stesso — margine di connessioni, sessioni bloccate, ritardo di replica, cache hit ratio, dimensione del database, wraparound degli ID di transazione e una trentina di altri — così puoi impostare avvisi su di essi come li imposti quando un sito web non risponde.
 
 Non scrivi SQL. La sonda esegue un insieme fisso di query di catalogo in sola lettura, scelto in base al motore, e riporta un piccolo insieme di numeri con un nome.
 
 :::cards
 - [Crea un utente di monitoraggio](#crea-un-utente-di-monitoraggio): I permessi di cui ha bisogno ogni motore. È il passaggio che conta di più.
-- [Crea il monitor](#crea-un-monitor-database-health): Punta una sonda al database e scegli cosa raccogliere.
+- [Crea il monitor](#crea-un-monitor-integrità-del-database): Punta una sonda al database e scegli cosa raccogliere.
 - [Metriche raccolte](#metriche-raccolte): Ogni serie, con i motori che la riportano.
 - [Imposta i criteri](#imposta-i-criteri): Avvisi su connessioni, blocchi, ritardo e wraparound.
 :::
 
-## Database Health o SQL Query?
+## Database Health o Query SQL?
 
 I due tipi di monitor per database rispondono a domande diverse e sono pensati per essere usati insieme.
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | Integrità del database | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | Domanda a cui risponde | "Il database in sé è in salute?" | "I miei dati sono quelli che mi aspetto?" |
 | Query | Integrata, per motore, in sola lettura | La tua |
@@ -23,7 +23,7 @@ I due tipi di monitor per database rispondono a domande diverse e sono pensati p
 | Avviso tipico | Connessioni usate oltre il 90% | Più di 50 ordini annullati negli ultimi cinque minuti |
 | Permessi necessari | Lettura di statistiche/DMV — vedi [Crea un utente di monitoraggio](#crea-un-utente-di-monitoraggio) | `SELECT` sulle tabelle toccate dalla tua query |
 
-Se vuoi un avviso su una condizione di business, usa il monitor SQL Query. Se vuoi sapere che il server sta esaurendo le connessioni prima ancora che la condizione di business possa fallire, usa questo.
+Se vuoi un avviso su una condizione di business, usa il monitor Query SQL. Se vuoi sapere che il server sta esaurendo le connessioni prima ancora che la condizione di business possa fallire, usa questo.
 
 ## Database supportati
 
@@ -37,7 +37,7 @@ Azure SQL Database e Azure SQL Managed Instance si connettono come **Microsoft S
 
 I motori compatibili con PostgreSQL e MySQL che parlano lo stesso protocollo di rete di solito funzionano, ma possono esporre meno viste di statistiche; in quel caso le metriche interessate vengono segnalate come non disponibili invece di essere raccolte. Solo i tre motori qui sopra sono testati ufficialmente.
 
-Ogni database usato dalle tue applicazioni, dai tuoi cluster e dai tuoi host — questi tre motori e molti altri — ha anche una propria pagina con le metriche del motore, i log e i servizi che lo chiamano: vedi [Database](/docs/telemetry/databases). Quando host e porta a cui si connette un monitor Database Health sono uno degli endpoint di un database, gli avvisi e gli incidenti del monitor compaiono anche nella pagina di quel database (vedi [Avvisi su un database](/docs/telemetry/databases#avvisi-su-un-database)).
+Ogni database usato dalle tue applicazioni, dai tuoi cluster e dai tuoi host — questi tre motori e molti altri — ha anche una propria pagina con le metriche del motore, i log e i servizi che lo chiamano: vedi [Database](/docs/telemetry/databases). Quando host e porta a cui si connette un monitor Integrità del database sono uno degli endpoint di un database, gli avvisi e gli incidenti del monitor compaiono anche nella pagina di quel database (vedi [Avvisi su un database](/docs/telemetry/databases#avvisi-su-un-database)).
 
 ## Come funziona
 
@@ -155,7 +155,7 @@ La sonda riconosce Azure SQL Database da `SERVERPROPERTY('EngineEdition')` e non
 - **Le connessioni sono per database.** Con `VIEW DATABASE STATE`, Azure SQL Database mostra solo le sessioni del database monitorato, quindi **Connessioni** conta quel database e non il server logico. Monitora ogni database che ti interessa.
 - **In un pool elastico, "Spazio libero di TempDB" è quello del pool.** I database di un pool condividono un'unica tempdb.
 
-## Crea un monitor Database Health
+## Crea un monitor Integrità del database
 
 :::steps
 ### Inizia un nuovo monitor
@@ -191,7 +191,7 @@ Seleziona le **Sonde** che raggiungono il database e un **Intervallo di monitora
 | **Host** | L'host del database raggiungibile dalla sonda (ad esempio `db.internal`). |
 | **Porta** | La porta del database. |
 | **Nome del database** | Il database a cui connettersi. Le metriche a livello di database (dimensione, cache hit ratio, scritture su file temporanei) vengono riportate per questo database; quelle a livello di server (connessioni, uptime, replica) per l'intero server, tranne su Azure SQL Database, dove le connessioni vengono contate solo per il database monitorato. |
-| **Autenticazione** | Solo Microsoft SQL Server: **Nome utente e password**, l'impostazione predefinita, oppure **Windows Integrated Authentication**, che accede come il processo della sonda. Vedi [Autenticazione integrata di Windows](/docs/monitor/sql-monitor#autenticazione-integrata-di-windows) nella pagina del monitor SQL Query: la configurazione è identica. |
+| **Autenticazione** | Solo Microsoft SQL Server: **Nome utente e password**, l'impostazione predefinita, oppure **Windows Integrated Authentication**, che accede come il processo della sonda. Vedi [Autenticazione integrata di Windows](/docs/monitor/sql-monitor#autenticazione-integrata-di-windows) nella pagina del monitor Query SQL: la configurazione è identica. |
 | **Nome utente** | L'utente di monitoraggio. Obbligatorio, a meno che tu non usi l'autenticazione integrata di Windows. |
 | **Password** | La password. Fai riferimento a un [segreto del monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` invece di digitarla in chiaro (vedi [Usare un segreto del monitor](#usare-un-segreto-del-monitor-per-la-password)). |
 | **Use SSL/TLS** | Connessione tramite TLS. Quando è attivo puoi disattivare **Verify server certificate** per un certificato autofirmato. |
@@ -205,7 +205,7 @@ Seleziona le **Sonde** che raggiungono il database e un **Intervallo di monitora
 | **Connection Timeout (ms)** | `10000` | `30000` | Quanto attendere per stabilire una connessione. |
 | **Statement Timeout (ms)** | `10000` | `60000` | Il limite di ogni singola query di catalogo. |
 
-Il timeout di istruzione predefinito è volutamente più stretto di quello del monitor SQL Query: queste query rispondono in millisecondi su un server sano, quindi se `pg_stat_activity` impiega dieci secondi il segnale utile è "questo server è in difficoltà", non un'attesa più lunga. Un valore oltre il massimo viene ridotto al massimo.
+Il timeout di istruzione predefinito è volutamente più stretto di quello del monitor Query SQL: queste query rispondono in millisecondi su un server sano, quindi se `pg_stat_activity` impiega dieci secondi il segnale utile è "questo server è in difficoltà", non un'attesa più lunga. Un valore oltre il massimo viene ridotto al massimo.
 
 ## Usare un segreto del monitor per la password
 
@@ -381,7 +381,7 @@ Le soglie sono numeri interi. Scrivi `90`, non `90.5`: percentuali e secondi ven
 
 ### Variabili delle espressioni JavaScript
 
-Per un monitor Database Health, l'espressione ha accesso a:
+Per un monitor Integrità del database, l'espressione ha accesso a:
 
 | Variabile | Tipo | Descrizione |
 |---|---|---|

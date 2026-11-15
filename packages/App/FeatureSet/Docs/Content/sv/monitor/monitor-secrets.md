@@ -69,16 +69,16 @@ De här monitortyperna och fälten tar emot hemligheter:
 | --- | --- |
 | API | URL:en, begärans huvuden och kropp, samt klientcertifikatet, den privata nyckeln och lösenfrasen (mTLS) |
 | Webbplats | URL:en, samt klientcertifikatet, den privata nyckeln och lösenfrasen (mTLS) |
-| Ping, IP, Port, NTP, SSL Certificate | Värden eller URL:en som kontrolleras |
+| Ping, IP, Port, NTP, SSL-certifikat | Värden eller URL:en som kontrolleras |
 | DNS | Domännamnet och DNS-servern |
 | DNSSEC, Domän | Domännamnet |
-| SQL Query | Värden, databasnamnet, användarnamnet, lösenordet och frågan |
-| Database Health | Värden, databasnamnet, användarnamnet och lösenordet |
-| External Status Page | Statussidans URL |
-| Synthetic Monitor, Custom JavaScript Code | Skriptet |
-| Network Device | SNMP-communitysträngen, samt autentiserings- och sekretessnycklarna för SNMPv3 |
+| SQL-fråga | Värden, databasnamnet, användarnamnet, lösenordet och frågan |
+| Databashälsa | Värden, databasnamnet, användarnamnet och lösenordet |
+| Extern statussida | Statussidans URL |
+| Syntetisk monitor, Anpassad JavaScript-kod | Skriptet |
+| Nätverksenhet | SNMP-communitysträngen, samt autentiserings- och sekretessnycklarna för SNMPv3 |
 
-Hemligheter fylls i innan skriptet i en monitor av typen Synthetic Monitor eller Custom JavaScript Code körs, så en hänvisning som `{{monitorSecrets.ApiKey}}` i skriptet är det dekrypterade värdet när det körs.
+Hemligheter fylls i innan skriptet i en monitor av typen Syntetisk monitor eller Anpassad JavaScript-kod körs, så en hänvisning som `{{monitorSecrets.ApiKey}}` i skriptet är det dekrypterade värdet när det körs.
 
 Om en monitor hänvisar till en hemlighet som den inte får använda står hänvisningen kvar som den är och ersätts inte med värdet.
 
