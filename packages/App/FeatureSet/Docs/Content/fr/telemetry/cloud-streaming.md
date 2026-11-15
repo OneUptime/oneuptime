@@ -30,7 +30,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Un compte AWS connecté.** Connectez-le d'abord dans **Cloud → Connecter** : voir [Connecter un compte cloud](/docs/telemetry/cloud-accounts).
-- **Un propriétaire ou un administrateur du projet.** Eux seuls peuvent créer une clé de flux et arrêter la diffusion.
+- **Un Propriétaire du projet ou un Administrateur du projet.** Eux seuls peuvent créer une clé de flux et arrêter la diffusion.
 - **AWS CloudShell dans ce compte**, connecté en tant que personne autorisée à créer des piles CloudFormation et des rôles IAM.
 - **Une adresse HTTPS, pour un OneUptime auto-hébergé.** Firehose ne livre qu'à des adresses `https://` sur le port 443, avec un certificat reconnu par AWS, et l'adresse doit être joignable depuis AWS.
 

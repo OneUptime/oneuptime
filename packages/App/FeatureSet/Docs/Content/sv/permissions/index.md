@@ -338,7 +338,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 ### Privata incidenter, larm och episoder
 
-En incident, ett larm eller en episod som är markerad som privat kan bara ses av sina ägare — de personer som anges som ägare och medlemmarna i ägarteamen som har accepterat sin inbjudan — och av projektets ägare och administratörer.
+En incident, ett larm eller en episod som är markerad som privat kan bara ses av sina ägare — de personer som anges som ägare och medlemmarna i ägarteamen som har accepterat sin inbjudan — och av Projektägare och Projektadministratörer.
 
 En sådan post ändras bara med behörigheterna för de team som äger den och för de personer som anges som dess ägare. Den som anges som ägare agerar på den med alla behörigheter hen har. Alla andra agerar bara på den med behörigheterna för sina team som äger den, var och en med sin egen omfattning och sina egna etiketter: ett annat teams behörighet når ingen privat post som det teamet inte äger. Det gäller allt som görs med posten och det som hör till den — att redigera den, ändra dess tillstånd, dess anteckningar, ägare, roller, etiketter, länkade larm, episodmedlemmar och samtal, och att ta bort den — från instrumentpanelen, API:et, massåtgärder, Slack, Microsoft Teams eller OneUptime AI. Projektägare och Projektadministratörer ändrar varje privat post, och det gör även arbetsflödessteg, som agerar som Projektadministratör; en API-nyckel gör det bara med `ProjectOwner` eller `ProjectAdmin`.
 
@@ -352,7 +352,7 @@ Ett team som äger privata poster men inte har några behörigheter, ett team so
 
 ### Regler som tillhör team
 
-En jourregel för incidenter eller larm, en jourregel för episoder, en ägarregel för incidenter och en aviseringsregel för Slack eller Microsoft Teams kan tillhöra team. En regel som inget team äger tillhör projektet: alla vars behörigheter låter dem ändra regler av det slaget kan ändra den. En regel som team äger ändras och tas bort bara med behörigheterna för de team som äger den, och av projektets ägare och administratörer. Alla som får läsa regler läser den fortfarande och ser vilka team som äger den.
+En jourregel för incidenter eller larm, en jourregel för episoder, en ägarregel för incidenter och en aviseringsregel för Slack eller Microsoft Teams kan tillhöra team. En regel som inget team äger tillhör projektet: alla vars behörigheter låter dem ändra regler av det slaget kan ändra den. En regel som team äger ändras och tas bort bara med behörigheterna för de team som äger den, och av Projektägare och Projektadministratörer. Alla som får läsa regler läser den fortfarande och ser vilka team som äger den.
 
 Välj teamen i regelns formulär, i **Ansvariga team** under **Fler fält**. Det kräver regeltypens behörighet för ansvariga team, till exempel `CreateIncidentOnCallRuleOwningTeam`, som Projektägare och Projektadministratörer har. Att lägga till eller ta bort en regels team ändrar regeln, så när team äger en regel är det bara de teamen och Projektägare och Projektadministratörer som ändrar vem som äger den. I en lista över regler är en regel som bara andra team äger skrivskyddad för dig: dess åtgärder för att redigera och ta bort är låsta och nämner de team som äger den.
 

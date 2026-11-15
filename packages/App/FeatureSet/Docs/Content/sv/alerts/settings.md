@@ -123,7 +123,7 @@ Incidenten får larmets titel, beskrivning, monitor, berörda resurser och etike
 
 ## Sekretess- och runbook-regler
 
-**Sekretessregler** gör nya larm som matchar privata innan något annat körs: Bara deras ägare och projektets administratörer och ägare kan se dem. En regel har två steg: **Matcha**, larmen den gör privata, och sedan **Namn**, redan ifyllt som "Gör larm privata". Se [Privata larm](/docs/alerts/index#privata-larm).
+**Sekretessregler** gör nya larm som matchar privata innan något annat körs: Bara deras ägare och Projektadministratörer och Projektägare kan se dem. En regel har två steg: **Matcha**, larmen den gör privata, och sedan **Namn**, redan ifyllt som "Gör larm privata". Se [Privata larm](/docs/alerts/index#privata-larm).
 
 **Runbook-regler** startar en runbook när ett nytt larm matchar, om inte larmet skapades löst. Se [Runbook-regler](/docs/runbooks/rules).
 

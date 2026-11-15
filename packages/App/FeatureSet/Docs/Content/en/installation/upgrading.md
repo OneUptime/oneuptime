@@ -669,7 +669,7 @@ working mail server.
   in the SCIM error format. SCIM still deactivates, deletes and removes
   people on every plan, so anyone who leaves still loses their access.
   Nothing is deleted: they work fully again as they are as soon as the
-  project is back on the plan, within a minute. The project's owners get
+  project is back on the plan, within a minute. Project Owners get
   an email when a plan change stops them, and the
   owners of projects that were already below these plans get one email
   after this upgrade saying what stopped and how to turn it back on.
@@ -845,7 +845,7 @@ working mail server.
   is refused as if it did not exist, with the `400` that names the field
   and the ID, and nothing is written. A private incident, alert or episode
   takes them only from its owners, directly or through a team, and from
-  project owners and admins. An announcement is created only on status
+  Project Owners and Project Admins. An announcement is created only on status
   pages the caller may read, each of them, and a caller whose
   permission to read status pages reaches only some of them names at least
   one. The roles OneUptime ships work as before, and so does a custom role
@@ -1099,7 +1099,7 @@ working mail server.
   Changing the plan, payment methods or balances, and paying invoices,
   still takes `ProjectOwner` or **Manage Billing**: those buttons are
   locked for everyone else, saying who may.
-- **The owners' emails follow team blocks.** The emails a project's owners
+- **The owners' emails follow team blocks.** The emails Project Owners
   get - plan changes, the plan cut-off, AI limits and credits, low
   balances - go to the members who hold `ProjectOwner`, and no longer to
   someone a team blocks from it. A pending invitation is not membership.
@@ -1276,7 +1276,7 @@ working mail server.
   and its Base URL is changed only by those who may read them.** A
   provider's **Additional Parameters** are sent to the provider with every
   request and can carry a token or a header, so they are now read only by
-  project owners and admins (`ProjectOwner`, `ProjectAdmin`), as the **API
+  Project Owners and Project Admins (`ProjectOwner`, `ProjectAdmin`), as the **API
   Key** already was. Other members, and API keys holding their roles, get a
   `422` when they ask for `additionalParams`; they can read the new
   read-only `hasAdditionalParams` field instead, which says whether any
@@ -1299,7 +1299,7 @@ working mail server.
   discovery scans or network sites reads what a probe picker shows of the
   project's probes - name, description, icon, status and whether new
   monitors start with it - but not a probe's key, version, labels or packet
-  capture report. A probe's key stays with project owners and admins. The
+  capture report. A probe's key stays with Project Owners and Project Admins. The
   list of global probes answers signed-in users only.
 - **An update or a delete names its project.** A signed-in user's update
   or delete of a project's records that names no project (no `tenantid`
@@ -1718,7 +1718,7 @@ working mail server.
   goes for its notes, owners, state history, roles, links, episode members
   and calls. Its state history, public notes, roles, SLA and measurements
   are now read, like its other parts, only by those who may read it.
-  Project owners and admins, and workflow steps, change every private
+  Project Owners and Project Admins, and workflow steps, change every private
   record as before. A team that owns private records but holds no
   permissions lets its members see them and change none of them, and a
   pending invitation no longer shows a team's private records. Give the

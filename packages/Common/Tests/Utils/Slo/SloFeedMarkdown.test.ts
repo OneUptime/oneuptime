@@ -465,6 +465,28 @@ describe("SloFeedMarkdown - which columns a payload writes", () => {
     }
   });
 
+  /*
+   * A change is posted under the name the form gives the field: a rule's
+   * Minimum Requests (#8442), an SLO's Request Filter (#8444), with what
+   * an empty filter means.
+   */
+  test("names a rule's minimum and an SLO's request filter as their forms do", () => {
+    expect(
+      SLO_BURN_RATE_RULE_FEED_COLUMNS.find((column: SloFeedColumn) => {
+        return column.column === "minimumSampleCount";
+      }),
+    ).toMatchObject({ title: "Minimum requests" });
+
+    const filter: SloFeedColumn | undefined = SLO_FEED_UPDATE_COLUMNS.find(
+      (column: SloFeedColumn) => {
+        return column.column === "requestFilter";
+      },
+    );
+
+    expect(filter).toMatchObject({ title: "Request filter" });
+    expect(String(filter?.emptyText)).toContain("every request");
+  });
+
   test("no burn rate rule lifecycle stamp can ever be watched", () => {
     const watched: Array<string> = SLO_BURN_RATE_RULE_FEED_COLUMNS.map(
       (column: SloFeedColumn): string => {

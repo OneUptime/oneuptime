@@ -267,7 +267,7 @@ export default class OwnerNotificationDelivery extends BaseModel {
     required: true,
     title: "Is Project Owner",
     description:
-      "Whether the owner was told as one of the project's owners, because the incident or alert had no owners of its own.",
+      "Whether the owner was told as one of the Project Owners, because the incident or alert had no owners of its own.",
   })
   @Column({
     type: ColumnType.Boolean,

@@ -73,6 +73,12 @@ import {
 } from "Common/Utils/Slo/SloHealth";
 import { getSloBudgetRemainingText } from "Common/Utils/Slo/SloOverviewText";
 import {
+  SLO_REQUEST_FILTER_EXPLORER_FIELDS,
+  SLO_REQUEST_FILTER_MAX_LENGTH,
+  SLO_REQUEST_FILTER_MAX_TERMS,
+  parseSloRequestFilter,
+} from "Common/Utils/Slo/SloRequestFilter";
+import {
   SloBudgetRunway,
   SloBudgetRunwayKind,
   SloProjectionTone,
@@ -516,16 +522,18 @@ describe("SLOs Overview, against the product", () => {
      * What it measures (with a request SLO's services and threshold), the
      * open fields, then the folded ones, then the shared Labels field.
      */
-    expect(titles.slice(0, 5)).toEqual([
+    expect(titles.slice(0, 6)).toEqual([
       "What It Measures",
       "Services",
       "Latency Threshold (ms)",
+      // Which of the services' requests count (#8444).
+      "Request Filter",
       "Name",
       "Target (%)",
     ]);
     expect(fields).toContain("getLabelsFormField<ServiceLevelObjective>({");
 
-    const folded: Array<string> = [...titles.slice(5), "Labels"];
+    const folded: Array<string> = [...titles.slice(6), "Labels"];
     const table: string = page.slice(
       page.indexOf("The fields under **More fields**:"),
     );
@@ -933,9 +941,9 @@ describe("SLOs Overview, against the product", () => {
       "Edit Period",
       "Edit Downtime Calculation",
     ]);
-    // What It Measures edits the create form's own three fields.
+    // What It Measures edits the create form's own four fields.
     expect(settings).toContain(
-      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",',
+      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",\n  // Which of the services\' requests count (#8444).\n  "requestFilter",\n];',
     );
     expect(settings).toContain(
       "return pickSloFormFields(SLO_MEASURES_COLUMNS);",
@@ -973,7 +981,7 @@ describe("SLOs Overview, against the product", () => {
       "**Archive SLO**",
     ]);
     expect(table).toContain(
-      "**What It Measures**, **Services** and **Latency Threshold (ms)**, with **Edit What It Measures**",
+      "**What It Measures**, **Services**, **Latency Threshold (ms)** and **Request Filter**, with **Edit What It Measures**",
     );
     expect(table).toContain(
       "**Target (%)** and **At-Risk Threshold (%)**, with **Edit Objective**",
@@ -2054,6 +2062,8 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "Long Window (Minutes)",
       "Short Window (Minutes)",
       "Re-fire Suppression (Minutes)",
+      // A request SLO's rule only (#8442).
+      "Minimum Requests",
       "Add SLO Owners as Owners",
     ]) {
       expect({ field, onForm: form.includes(`title: "${field}",`) }).toEqual({
@@ -2135,7 +2145,55 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
         "**Re-fire Suppression (Minutes)**",
         "0 or more. Empty means the length of the long window.",
       ],
+      [
+        "**Minimum Requests**",
+        "A whole number, 0 or more. Empty means no minimum.",
+      ],
     ]);
+
+    // Minimum Requests is checked whole by the form and the API alike (#8442).
+    expect(service).toContain(
+      '"Minimum sample count must be a whole number greater than or equal to 0."',
+    );
+    expect(readSource("burnRuleForm")).toContain(
+      '"Minimum Requests must be a whole number of requests, 0 or more."',
+    );
+  });
+
+  it("asks a request SLO's rule for its minimum, and only a request SLO's (#8442)", () => {
+    const form: string = readSource("burnRuleForm");
+    const rulesPage: string = readSource("burnRulesPage");
+    const worker: string = readSource("worker");
+
+    // The form asks for it on Burn Window, the page builds it per SLO.
+    expect(
+      blockFrom(
+        form,
+        "export const BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD",
+        "};",
+      ),
+    ).toContain('stepId: "burn-window",');
+    expect(rulesPage).toContain(
+      "formFields={getBurnRateRuleFormFields({ isRequestSlo: isRequestSlo })}",
+    );
+    // The worker skips a long window with fewer requests than the minimum.
+    expect(worker).toContain("return data.sampleCount >= minimumSampleCount;");
+
+    const create: string = section(page, "Create or edit a rule");
+
+    expect(create).toContain(
+      "A request SLO's rule also takes **Minimum Requests**, for example `100`: the rule skips a long window that holds fewer requests than that.",
+    );
+    expect(form).toContain('placeholder: "100",');
+    expect(page).toContain(
+      "For a request SLO, it also says each rule's minimum under its windows.",
+    );
+    expect(rulesPage).toContain(
+      'data-testid="burn-rate-rule-minimum-requests"',
+    );
+    expect(page).toContain(
+      "A request SLO's rule has one: set its **Minimum Requests**, and the rule skips a long window with fewer requests than that",
+    );
   });
 
   it("states each output's defaults as the model sets them", () => {
@@ -3864,15 +3922,90 @@ describe("Request and Latency SLOs, against the product", () => {
     expect(readSource("worker")).toContain("ErrorBudgetRemainingSeconds");
   });
 
-  it("names the burn rate rule's minimum sample count by its API field", () => {
+  it("names the burn rate rule's minimum as the rule form draws it (#8442)", () => {
     const rule: string = readSource("burnRuleModel");
 
     expect(rule).toContain("public minimumSampleCount?: number");
     expect(rule).toContain(
       "skip this rule when the long window has fewer than this many total events",
     );
+    expect(readSource("burnRuleForm")).toContain('title: "Minimum Requests",');
+    expect(page).toContain("set the rule's **Minimum Requests**");
+    expect(page).not.toContain("minimumSampleCount");
+  });
+
+  /*
+   * A request filter (#8444): every example the page gives is one the
+   * create form and the API take, and counts what the page says it does;
+   * the limits and the fields it refuses are the reader's own.
+   */
+  it("gives request filters the form and the API take, with their limits", () => {
+    const filters: string = section(page, "Count only some requests");
+    const examples: Array<string> = firstCells(filters).map(
+      (cell: string): string => {
+        return cell.replace(/^`|`$/g, "");
+      },
+    );
+
+    expect(examples).toEqual([
+      "@http.route:/checkout*",
+      "-@http.route:/health",
+      "@http.request.method:[POST, PUT]",
+      'name:"POST /checkout"',
+    ]);
+
+    for (const example of [
+      ...examples,
+      "@http.route:/checkout* -@http.route:/checkout/health",
+    ]) {
+      expect({ example, error: parseSloRequestFilter(example).error }).toEqual({
+        example,
+        error: null,
+      });
+      expect(filters).toContain(`\`${example}\``);
+    }
+
+    // What each one reads as.
+    expect(
+      parseSloRequestFilter("-@http.route:/health").terms[0],
+    ).toMatchObject({ key: "http.route", isAttribute: true });
+    expect(
+      parseSloRequestFilter('name:"POST /checkout"').terms[0],
+    ).toMatchObject({ key: "name", isAttribute: false });
+
+    // The explorer's fields it names are refused.
+    for (const field of ["status", "duration"]) {
+      expect(SLO_REQUEST_FILTER_EXPLORER_FIELDS).toContain(field);
+      expect(filters).toContain(`\`${field}:\``);
+      expect(parseSloRequestFilter(`${field}:x`).error).not.toBeNull();
+    }
+
+    expect(filters).toContain(
+      `A filter holds up to ${SLO_REQUEST_FILTER_MAX_TERMS} terms in ${SLO_REQUEST_FILTER_MAX_LENGTH} characters.`,
+    );
+    expect(ColumnLength.LongText).toBe(SLO_REQUEST_FILTER_MAX_LENGTH);
+  });
+
+  it("says where a filter shows, and that changing it counts again (#8444)", () => {
+    const filters: string = section(page, "Count only some requests");
+
+    expect(readSource("hero")).toContain(
+      'data-testid="slo-overview-chip-request-filter"',
+    );
+    expect(readSource("settings")).toContain('"requestFilter",');
+    expect(filters).toContain(
+      "The **Overview** shows the filter under the SLO's services, and **Settings** shows it under **What It Measures**.",
+    );
+
+    // The counting's fingerprint holds the filter, so a new one counts anew.
+    expect(readSource("requestCounting")).toContain(
+      "...(requestFilter ? { requestFilter: requestFilter } : {}),",
+    );
+    expect(filters).toContain(
+      "Changing it counts the SLO's requests again from the start.",
+    );
     expect(page).toContain(
-      "set the rule's `minimumSampleCount` through the API",
+      "Changing what the SLO measures, its services, its latency threshold or its request filter counts its requests again from the start.",
     );
   });
 

@@ -79,6 +79,9 @@ const MAY_READ_AS_ENGLISH: ReadonlySet<string> = new Set<string>([
 
 const PLACEHOLDER: RegExp = /\{\{\w+\}\}/g;
 
+// The 15 of "every 15 minutes", in Latin or Persian digits, and not part of a version.
+const FIFTEEN_MINUTES: RegExp = /(^|[^\d.])(15|۱۵)([^\d]|$)/;
+
 function placeholdersOf(text: string): Array<string> {
   return (text.match(PLACEHOLDER) || []).sort();
 }
@@ -135,6 +138,39 @@ function readLocale(locale: string): Record<string, unknown> {
 }
 
 describe("the Session Length page's words", () => {
+  /*
+   * The shortest idle timeout's sentence names the mobile app version it
+   * needs (issue #8593): every locale, Arabic too, names the same version
+   * and the same 15 minutes, in its own digits for the minutes.
+   */
+  test("the shortest idle timeout's sentence names the same version and minutes in every language", () => {
+    const key: string = SessionLengthCopy.idleShortestDescription;
+
+    for (const locale of ["en", "ar", ...LOCALES]) {
+      const said: unknown = readLocale(locale)[key];
+
+      expect({ locale, isSaid: typeof said === "string" }).toEqual({
+        locale,
+        isSaid: true,
+      });
+      expect({ locale, version: String(said).includes("1.6.0") }).toEqual({
+        locale,
+        version: true,
+      });
+      expect({
+        locale,
+        minutes: FIFTEEN_MINUTES.test(String(said)),
+      }).toEqual({ locale, minutes: true });
+      // It says what every idle timeout says first.
+      expect({
+        locale,
+        startsWithTheGeneralSentence: String(said).startsWith(
+          String(readLocale(locale)[SessionLengthCopy.idleSetDescription]),
+        ),
+      }).toEqual({ locale, startsWithTheGeneralSentence: true });
+    }
+  });
+
   test("are read from the copy (the scan is not empty)", () => {
     expect(pageStrings().length).toBeGreaterThan(25);
     expect(pageStrings()).toEqual(

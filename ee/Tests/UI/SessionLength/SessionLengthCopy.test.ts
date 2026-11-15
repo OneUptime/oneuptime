@@ -25,8 +25,12 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import {
   DEFAULT_SESSION_IDLE_TIMEOUT_IN_MINUTES,
+  MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES,
+  SESSION_IDLE_TIMEOUT_CHOICES_IN_MINUTES,
   SessionLengthSettings,
 } from "Common/Types/UserSession/SessionLength";
+import fs from "fs";
+import path from "path";
 import { FOLDED_SECTION_ON } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import API from "Common/UI/Utils/API/API";
 import {
@@ -41,6 +45,8 @@ import {
  * preview is asked and how its answer is read. The page itself is driven in
  * SessionLengthSettingsPage.test.tsx.
  */
+
+const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 const SETTINGS: SessionLengthSettings = {
   sessionLengthInMinutes: 480,
@@ -206,7 +212,84 @@ describe("what the page says of each", () => {
     expect(getIdleDescription(DEFAULT_SESSION_IDLE_TIMEOUT_IN_MINUTES)).toBe(
       SessionLengthCopy.idleDefaultDescription,
     );
-    expect(getIdleDescription(15)).toBe(SessionLengthCopy.idleSetDescription);
+    expect(getIdleDescription(30)).toBe(SessionLengthCopy.idleSetDescription);
+  });
+
+  /*
+   * Under the shortest idle timeout the mobile app up to 1.6.0 is signed
+   * out at every renewal, however much it is used (issues #8187, #8593):
+   * the page says so where a master admin chooses it, and only there.
+   */
+  test("the shortest idle timeout says which mobile app it needs; no other does", () => {
+    expect(MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES).toBe(15);
+    expect(getIdleDescription(MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES)).toBe(
+      SessionLengthCopy.idleShortestDescription,
+    );
+
+    for (const minutes of SESSION_IDLE_TIMEOUT_CHOICES_IN_MINUTES) {
+      if (minutes === MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES) {
+        continue;
+      }
+
+      expect({ minutes, said: getIdleDescription(minutes) }).toEqual({
+        minutes,
+        said: SessionLengthCopy.idleSetDescription,
+      });
+    }
+
+    expect(getIdleDescription(null)).toBe(
+      SessionLengthCopy.idleDefaultDescription,
+    );
+  });
+
+  test("it is the shortest the dropdown offers", () => {
+    const offered: Array<number> = getIdleChoices(null)
+      .map((choice: SessionLengthChoice): number => {
+        return choice.value;
+      })
+      .filter((value: number): boolean => {
+        return value !== DEFAULT_CHOICE_VALUE;
+      });
+
+    expect(Math.min(...offered)).toBe(MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES);
+  });
+
+  test("it says what every idle timeout says, then the version, as the docs name it", () => {
+    expect(
+      SessionLengthCopy.idleShortestDescription.startsWith(
+        `${SessionLengthCopy.idleSetDescription} `,
+      ),
+    ).toBe(true);
+    expect(SessionLengthCopy.idleShortestDescription).toContain(
+      "The mobile app needs a version newer than 1.6.0: earlier versions are signed out every 15 minutes.",
+    );
+
+    // The version Self Hosted > Session Length names, in the same words.
+    expect(
+      fs.readFileSync(
+        path.join(
+          REPOSITORY_ROOT,
+          "packages/App/FeatureSet/Docs/Content/en/self-hosted/session-length.md",
+        ),
+        "utf8",
+      ),
+    ).toContain("the app needs a version newer than 1.6.0");
+
+    // A version that has shipped: the app's own is it or later.
+    const appVersion: string = (
+      JSON.parse(
+        fs.readFileSync(
+          path.join(REPOSITORY_ROOT, "packages/MobileApp/app.json"),
+          "utf8",
+        ),
+      ) as { expo: { version: string } }
+    ).expo.version;
+    const asNumber: (version: string) => number = (version: string): number => {
+      const [major, minor, patch] = version.split(".").map(Number);
+      return (major || 0) * 1000000 + (minor || 0) * 1000 + (patch || 0);
+    };
+
+    expect(asNumber(appVersion)).toBeGreaterThanOrEqual(asNumber("1.6.0"));
   });
 
   test("the SSO switch, and More settings' header", () => {

@@ -139,7 +139,7 @@ Per Copilot, concedi il consenso amministratore per le autorizzazioni Graph dell
 :::
 
 :::details Qualcuno non vede le conversazioni
-**Chi può leggere le conversazioni** è impostato su **Proprietari del progetto e Amministratori del progetto**. Un proprietario o un amministratore può cambiarlo con **Modifica** nella riga della connessione.
+**Chi può leggere le conversazioni** è impostato su **Proprietari del progetto e Amministratori del progetto**. Un Proprietario del progetto o un Amministratore del progetto può cambiarlo con **Modifica** nella riga della connessione.
 :::
 
 :::details Le conversazioni mostrano chi ha chiesto, ma non le parole
