@@ -160,7 +160,7 @@ En regel ringer til en person på det nummer, personen har bekræftet til indgå
 
 Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
-Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
+Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En Projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
 
 ## Talebeskeder og politikindstillinger
 
@@ -198,7 +198,7 @@ Et opkald er ubesvaret, når det slutter uden at nå nogen: dets status er **Int
 
 ### Hvem der får besked
 
-Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får projektets ejere besked i stedet.
+Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får Projektejere besked i stedet.
 
 Notifikationen siger, hvem der ringede, hvilket nummer der blev ringet til, hvorfor ingen svarede, og hvem der blev ringet til, og hvordan hvert forsøg endte. Den linker til opkaldet i opkaldsloggen.
 

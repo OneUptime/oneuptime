@@ -163,7 +163,7 @@ describe("the SCIM guide", () => {
 
   it("keeps the bearer token owner-only", () => {
     expect(section).toContain(
-      "The list does not show bearer tokens, and only project owners can read a token, on every plan.",
+      "The list does not show bearer tokens, and only Project Owners can read a token, on every plan.",
     );
   });
 });

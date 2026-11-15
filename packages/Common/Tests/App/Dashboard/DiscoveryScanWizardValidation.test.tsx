@@ -1707,7 +1707,7 @@ describe("Name identifies the scan in the list", () => {
       nextScanAt: new Date(Date.now() + 30 * 60000),
     });
 
-    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("Every 60\u00A0min");
     expect(cell).toContain("Next scan");
   });
 
@@ -1727,7 +1727,7 @@ describe("Name identifies the scan in the list", () => {
       status: "Completed",
     });
 
-    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("Every 60\u00A0min");
     expect(cell).toContain("No next scan is scheduled");
   });
 
@@ -3792,7 +3792,10 @@ describe("the Scan cell's status message (issue #3842)", () => {
     await renderPage();
     installLayout();
     const { container } = renderScanCell(REPORTED_SWITCH_SCAN);
-    const text: string = container.textContent || "";
+    // The scan's interval holds its figure to its unit (#8302): read as words.
+    const text: string = (container.textContent || "")
+      .split("\u00A0")
+      .join(" ");
 
     expect(text.indexOf("Switch Discovery - WBHQ Unit/Core Switches")).toBe(0);
     expect(text.indexOf("10.240-249.0-255.220-225")).toBeLessThan(

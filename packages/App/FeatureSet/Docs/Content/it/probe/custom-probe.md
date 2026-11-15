@@ -30,7 +30,7 @@ sequenceDiagram
 ## Prima di iniziare
 
 - **Il piano Growth, su OneUptime Cloud.** Serve per creare una sonda. Un'installazione self-hosted non ha limiti di piano.
-- **Il permesso di creare sonde.** Ce l'hanno i proprietari, gli amministratori e i membri del progetto, e anche chiunque abbia un ruolo che permette di creare sonde.
+- **Il permesso di creare sonde.** Ce l'hanno i Proprietari del progetto, gli Amministratori del progetto e i Membri del progetto, e anche chiunque abbia un ruolo che permette di creare sonde.
 - **Una macchina nella rete da monitorare.** Le servono Docker, Docker Compose o Kubernetes, un percorso verso i servizi che la sonda controllerà e HTTPS in uscita verso `ONEUPTIME_URL`.
 
 ## Installare una sonda
@@ -42,9 +42,9 @@ Apri **Monitor → Impostazioni → Sonde** e fai clic su **Crea: Sonda**. Dalle
 
 ### Copiare ID e chiave
 
-La sonda ha bisogno del suo ID e della sua chiave per connettersi. Per copiarli, apri il menu della sonda nella tabella **Sonde personalizzate** e scegli **Mostra ID e chiave**. Chiunque veda la tabella può copiare l'ID di una sonda; la chiave viene mostrata solo ai proprietari e agli amministratori del progetto, che vedono **Mostra ID e chiave** dove gli altri vedono **Mostra ID**.
+La sonda ha bisogno del suo ID e della sua chiave per connettersi. Per copiarli, apri il menu della sonda nella tabella **Sonde personalizzate** e scegli **Mostra ID e chiave**. Chiunque veda la tabella può copiare l'ID di una sonda; la chiave viene mostrata solo ai Proprietari del progetto e agli Amministratori del progetto, che vedono **Mostra ID e chiave** dove gli altri vedono **Mostra ID**.
 
-I proprietari e gli amministratori del progetto possono anche fare clic sulla sonda: la scheda **Set up your Custom Probe** della sua pagina mostra il comando Docker con ID e chiave già inseriti.
+I Proprietari del progetto e gli Amministratori del progetto possono anche fare clic sulla sonda: la scheda **Set up your Custom Probe** della sua pagina mostra il comando Docker con ID e chiave già inseriti.
 
 ### Avviare la sonda
 

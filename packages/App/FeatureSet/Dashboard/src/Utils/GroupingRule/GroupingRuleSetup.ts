@@ -1,6 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { Translator } from "Common/Types/Translator";
 import {
   DEFAULT_RECORDS_TO_OPEN_EPISODE,
   MAX_RECORDS_TO_OPEN_EPISODE,
@@ -83,6 +84,56 @@ export type GroupingRuleTranslateFunction = (
   text: string,
   values?: Record<string, string | number> | undefined,
 ) => string;
+
+/*
+ * A sentence's values as the reader's language writes them: each number in
+ * the reader's digits and grouping - "۳۰ دقیقه" in Persian, never "30
+ * دقیقه" beside the page's Persian digits (#8317). Every number these pages
+ * put in a sentence is a count - of minutes, hours or days, of incidents or
+ * alerts to wait for, of on-call policies - so each reads as a count does.
+ * A text value goes in as it is.
+ */
+export const toGroupingRuleValues: (
+  values: Record<string, string | number>,
+  translator: Pick<Translator, "formatNumber">,
+) => Record<string, string> = (
+  values: Record<string, string | number>,
+  translator: Pick<Translator, "formatNumber">,
+): Record<string, string> => {
+  const written: Record<string, string> = {};
+
+  for (const [name, value] of Object.entries(values)) {
+    written[name] =
+      typeof value === "number" && Number.isFinite(value)
+        ? translator.formatNumber(value)
+        : String(value);
+  }
+
+  return written;
+};
+
+/*
+ * The grouping rule pages' translate through `translator`: a sentence
+ * translated whole, its counts written the reader's way
+ * (toGroupingRuleValues). The form's callbacks read the global translator
+ * through it (translateGroupingRuleText), and so does every test that
+ * quotes these pages.
+ */
+export const createGroupingRuleTranslate: (
+  translator: Translator,
+) => GroupingRuleTranslateFunction = (
+  translator: Translator,
+): GroupingRuleTranslateFunction => {
+  return (
+    text: string,
+    values?: Record<string, string | number> | undefined,
+  ): string => {
+    return translator.translateTemplate(
+      text,
+      toGroupingRuleValues(values || {}, translator),
+    );
+  };
+};
 
 // A rule, or a form's values for one. Read loosely: either may be partial.
 export type GroupingRuleValues = Record<string, unknown>;

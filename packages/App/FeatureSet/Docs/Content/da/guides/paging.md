@@ -83,7 +83,7 @@ Tilkalder politikken en anden, kan du også se eskaleringen: klik på **Åbn vag
 ## Hvad der kan gå galt
 
 :::details Knappen Send mig en kode på sms mangler
-Sms er slået fra eller kan ikke sendes, og trinnet siger hvorfor. Kun en projektejer eller en person, der administrerer fakturering, ser **Slå sms og opkald til**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvhostet server, der ikke kan sende sms, ser masteradministratoren **Sæt sms og opkald op**, der åbner Admin Dashboard, så Twilio kan tilføjes, sådan som [Twilio-integration](/docs/self-hosted/twilio-integration) viser.
+Sms er slået fra eller kan ikke sendes, og trinnet siger hvorfor. Kun en Projektejer eller en person, der administrerer fakturering, ser **Slå sms og opkald til**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvhostet server, der ikke kan sende sms, ser masteradministratoren **Sæt sms og opkald op**, der åbner Admin Dashboard, så Twilio kan tilføjes, sådan som [Twilio-integration](/docs/self-hosted/twilio-integration) viser.
 :::
 
 :::details Tilføj saldo siger, at der ikke blev fundet nogen betalingsmetode

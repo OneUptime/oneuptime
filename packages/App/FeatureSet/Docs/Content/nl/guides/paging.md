@@ -83,7 +83,7 @@ Roept het beleid nog iemand anders op, dan kunt u de escalatie ook zien gebeuren
 ## Wat er mis kan gaan
 
 :::details Er is geen knop "Stuur me een code per sms"
-Sms staat uit of kan niet worden verstuurd, en de stap zegt waarom. Alleen een projecteigenaar, of iemand die de facturering beheert, ziet **Sms en oproepen aanzetten**. Bij OneUptime Cloud verbergt een saldo van 1.00 USD of minder het veld. Op een zelf gehoste server die geen sms kan versturen, ziet de hoofdbeheerder **Sms en oproepen inrichten**; dat opent het Admin Dashboard om Twilio toe te voegen, zoals [Twilio-integratie](/docs/self-hosted/twilio-integration) laat zien.
+Sms staat uit of kan niet worden verstuurd, en de stap zegt waarom. Alleen een Projecteigenaar, of iemand die de facturering beheert, ziet **Sms en oproepen aanzetten**. Bij OneUptime Cloud verbergt een saldo van 1.00 USD of minder het veld. Op een zelf gehoste server die geen sms kan versturen, ziet de hoofdbeheerder **Sms en oproepen inrichten**; dat opent het Admin Dashboard om Twilio toe te voegen, zoals [Twilio-integratie](/docs/self-hosted/twilio-integration) laat zien.
 :::
 
 :::details "Tegoed toevoegen" meldt dat er geen betaalmethode is gevonden

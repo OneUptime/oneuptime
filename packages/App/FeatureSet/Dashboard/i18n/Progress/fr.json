@@ -784,6 +784,7 @@
     "{{count}}+ traces",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{protocol}} port {{port}}",
     "{{rate}}/min",
     "{{rate}}/s",

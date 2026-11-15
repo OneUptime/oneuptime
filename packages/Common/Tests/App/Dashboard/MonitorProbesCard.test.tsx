@@ -315,7 +315,7 @@ describe("MonitorProbesCard", () => {
       ["Disconnected", "text-red-700"],
       ["Late", "text-amber-700"],
       ["No result yet", "text-gray-500"],
-      ["Up · 119 ms", "text-emerald-700"],
+      ["Up · 119\u00A0ms", "text-emerald-700"],
       ["Reported", "text-gray-700"],
       ["Turned off for this monitor", "text-gray-500"],
     ]);
@@ -550,7 +550,7 @@ describe("MonitorProbesCard", () => {
     expect(figure).toHaveClass(PROBE_HEALTH_FIGURE_CLASS_NAME);
     expect(PROBE_HEALTH_FIGURE_CLASS_NAME).toBe("whitespace-nowrap");
     // "Up" and its separator are not inside the kept-whole part.
-    expect(figure!.textContent).toBe("119 ms");
+    expect(figure!.textContent).toBe("119\u00A0ms");
 
     // A state with no time has no part kept whole.
     for (const index of [0, 1, 2, 3, 5, 6]) {
@@ -959,7 +959,7 @@ describe("MonitorProbesCard in the reader's language", () => {
       "Disconnected",
       "Late",
       "No result yet",
-      "Up · 119 ms",
+      "Up · 119\u00A0ms",
       "Reported",
       "Turned off for this monitor",
     ]);
@@ -974,7 +974,7 @@ describe("MonitorProbesCard in the reader's language", () => {
       "Verspätet",
       "Noch kein Ergebnis",
       // "Up" is drawn as the German network pages and docs draw it.
-      "Up · 119 ms",
+      "Up · 119\u00A0ms",
       "Gemeldet",
       "Für diesen Monitor ausgeschaltet",
     ]);
@@ -997,7 +997,7 @@ describe("MonitorProbesCard in the reader's language", () => {
 
     const texts: Array<string> = healthTexts();
 
-    expect(texts[4]).toBe("يعمل · 119\u00A0ملي ث");
+    expect(texts[4]).toBe("يعمل · 119\u00A0ملي\u00A0ث");
     expect(texts[6]).toBe("معطّل لهذه المراقبة");
     for (const text of texts) {
       expect(text).not.toMatch(/[A-Za-z]/);
@@ -1214,7 +1214,7 @@ describe("getProbeHealthText and getProbeAgreementText write in the translator's
 
     expect(
       getProbeHealthParts(row(MonitorOverviewProbeHealth.Up, 182.4), english),
-    ).toEqual(["Up", "182 ms"]);
+    ).toEqual(["Up", "182\u00A0ms"]);
     expect(
       getProbeHealthParts(row(MonitorOverviewProbeHealth.Up, 182.4), persian),
     ).toEqual([persian.translateTemplate("Up"), "۱۸۲\u00A0میلی\u200cثانیه"]);
@@ -1244,7 +1244,7 @@ describe("getProbeHealthText and getProbeAgreementText write in the translator's
 
     expect(
       getProbeHealthText(row(MonitorOverviewProbeHealth.Up, 2410.4), german),
-    ).toBe("Up · 2.410 ms");
+    ).toBe("Up · 2.410\u00A0ms");
     expect(
       getProbeHealthText(row(MonitorOverviewProbeHealth.Late, 2410.4), german),
     ).toBe("Verspätet");

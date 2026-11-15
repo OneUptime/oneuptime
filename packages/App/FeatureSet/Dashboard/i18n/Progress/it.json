@@ -546,6 +546,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
     "{{observation}} in {{readings}}",
     "{{rate}}/min",

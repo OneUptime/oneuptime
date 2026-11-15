@@ -30,7 +30,7 @@ sequenceDiagram
 ## Antes de começar
 
 - **O plano Growth, no OneUptime Cloud.** Criar uma sonda exige esse plano. Uma instalação auto-hospedada não tem limites de plano.
-- **Permissão para criar sondas.** Os proprietários, administradores e membros do projeto têm, assim como qualquer pessoa cuja função permita criar sondas.
+- **Permissão para criar sondas.** Os Proprietários do projeto, Administradores do projeto e Membros do projeto têm, assim como qualquer pessoa cuja função permita criar sondas.
 - **Uma máquina na rede que você quer monitorar.** Ela precisa de Docker, Docker Compose ou Kubernetes, de uma rota até os serviços que a sonda vai verificar e de HTTPS de saída para `ONEUPTIME_URL`.
 
 ## Instalar uma sonda
@@ -42,9 +42,9 @@ Abra **Monitores → Configurações → Sondas** e clique em **Criar: Sonda**. 
 
 ### Copiar o ID e a chave
 
-A sonda precisa do seu ID e da sua chave para se conectar. Para copiá-los, abra o menu da sonda na tabela **Sondas personalizadas** e escolha **Mostrar ID e chave**. Qualquer pessoa que vê a tabela pode copiar o ID de uma sonda; a chave só é mostrada aos proprietários e administradores do projeto, que veem **Mostrar ID e chave** onde os demais veem **Mostrar ID**.
+A sonda precisa do seu ID e da sua chave para se conectar. Para copiá-los, abra o menu da sonda na tabela **Sondas personalizadas** e escolha **Mostrar ID e chave**. Qualquer pessoa que vê a tabela pode copiar o ID de uma sonda; a chave só é mostrada aos Proprietários do projeto e Administradores do projeto, que veem **Mostrar ID e chave** onde os demais veem **Mostrar ID**.
 
-Os proprietários e administradores do projeto também podem clicar na sonda: o cartão **Set up your Custom Probe** da página dela mostra o comando Docker com o ID e a chave já preenchidos.
+Os Proprietários do projeto e Administradores do projeto também podem clicar na sonda: o cartão **Set up your Custom Probe** da página dela mostra o comando Docker com o ID e a chave já preenchidos.
 
 ### Executar a sonda
 

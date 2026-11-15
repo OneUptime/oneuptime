@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynner
 
 - **Et abonnement som inkluderer det.** På OneUptime Cloud krever oppretting og endring av datakilder abonnementet **Growth**. Sletting av en fungerer på alle abonnementer.
-- **En tillatelse til å legge dem til.** Prosjekteiere og -administratorer kan legge til datakilder; alle andre trenger `CreateDataSource`, med `EditDataSource` og `DeleteDataSource` for å endre og fjerne dem. Alle som kan lese prosjektets datakilder, også medlemmer og seere, ser dataene i widgetene deres.
+- **En tillatelse til å legge dem til.** Prosjekteiere og Prosjektadministratorer kan legge til datakilder; alle andre trenger `CreateDataSource`, med `EditDataSource` og `DeleteDataSource` for å endre og fjerne dem. Alle som kan lese prosjektets datakilder, også medlemmer og seere, ser dataene i widgetene deres.
 - **En skrivebeskyttet konto.** Dashbord leser bare. Koble til databaser med en konto som bare kan lese, og HTTP-kilder med et token som bare kan spørre.
 - **En vei inn.** Det er OneUptimes API-server som kobler til systemet ditt, så den må kunne nå det: se [Sikkerhet](#sikkerhet) for adressene som avvises.
 

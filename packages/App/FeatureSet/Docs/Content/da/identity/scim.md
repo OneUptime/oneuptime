@@ -41,7 +41,7 @@ Med projekt-SCIM styrer identitetsudbydere teammedlemmerne i OneUptime-projekter
 
 ### Opsætning af projekt-SCIM
 
-Kun en projektejer kan tilføje eller ændre et projekts SCIM-forbindelse eller se eller nulstille dens bearer-token: via SCIM kan din identitetsudbyder føje personer til ethvert team i projektet.
+Kun en Projektejer kan tilføje eller ændre et projekts SCIM-forbindelse eller se eller nulstille dens bearer-token: via SCIM kan din identitetsudbyder føje personer til ethvert team i projektet.
 :::steps
 1. **Gå til projektindstillinger**
 
@@ -88,7 +88,7 @@ Nogle identitetsudbydere gemmer ikke et bearer-token og beder i stedet om OAuth 
 
 Din identitetsudbyder sender klient-ID'et og hemmeligheden til tokenendepunktet og får et adgangstoken, der gælder i en time. Forbindelsens bearer-token virker fortsat ved siden af.
 
-Klik på **Make New Client Secret** for at erstatte en hemmelighed. Den forrige hemmelighed virker fortsat, indtil den udløber, eller du klikker på **Delete Previous Secret**, så din identitetsudbyder kan få den nye uden afbrydelse af klargøringen: slet den gamle, når din identitetsudbyder bruger den nye. En hemmelighed, der udløber eller slettes, afslutter straks de adgangstokens, der er udstedt med den. De, der må ændre en forbindelses bearer-token, må oprette og slette dens hemmeligheder: en projektejer eller, for en statusside, den, der må redigere statussidens single sign-on.
+Klik på **Make New Client Secret** for at erstatte en hemmelighed. Den forrige hemmelighed virker fortsat, indtil den udløber, eller du klikker på **Delete Previous Secret**, så din identitetsudbyder kan få den nye uden afbrydelse af klargøringen: slet den gamle, når din identitetsudbyder bruger den nye. En hemmelighed, der udløber eller slettes, afslutter straks de adgangstokens, der er udstedt med den. De, der må ændre en forbindelses bearer-token, må oprette og slette dens hemmeligheder: en Projektejer eller, for en statusside, den, der må redigere statussidens single sign-on.
 
 ## SCIM til statussider
 
@@ -394,7 +394,7 @@ På OneUptime Cloud virker SCIM-klargøring kun fuldt ud, så længe projektet e
 
 Intet slettes. Opgrader til **Scale**, og forbindelserne virker fuldt ud igen, som de er, med det samme bearer-token og intet at opsætte igen i din identitetsudbyder; en planændring træder i kraft inden for et minut. Identitetsudbydere bliver ved med at kalde efter deres egen tidsplan: Okta viser afvisningerne blandt sine klargøringsfejl, og Entra ID viser dem i sine klargøringslogge og kan sætte et job, der bliver ved med at fejle, i karantæne, hvilket sænker dets synkroniseringer — også fjernelser — til omkring én om dagen. Genstart klargøringen der efter opgraderingen, så de personer, der er tilføjet i mellemtiden, bliver klargjort.
 
-Under **Scale** viser **Projektindstillinger** > **Sikkerhed** > **SCIM** og en statussides side **SCIM** forbindelserne under planens opgraderingstilbud (**SCIM-forbindelser, der stadig er sat op**) og fortæller, at de kun fjerner personer. Slet en forbindelse for at fjerne den. At tilføje en forbindelse, ændre en eller erstatte dens bearer-token kræver **Scale**. Listen viser ikke bearer-tokens, og kun projektejere kan læse et token, på alle planer.
+Under **Scale** viser **Projektindstillinger** > **Sikkerhed** > **SCIM** og en statussides side **SCIM** forbindelserne under planens opgraderingstilbud (**SCIM-forbindelser, der stadig er sat op**) og fortæller, at de kun fjerner personer. Slet en forbindelse for at fjerne den. At tilføje en forbindelse, ændre en eller erstatte dens bearer-token kræver **Scale**. Listen viser ikke bearer-tokens, og kun Projektejere kan læse et token, på alle planer.
 
 ## Fejlfinding
 

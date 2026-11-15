@@ -145,7 +145,7 @@ Per eliminare i dati di una persona anziché un'intera applicazione, presenta un
 
 ## Autorizzazioni
 
-Chiunque abbia il ruolo Visualizzatore del progetto può vedere le applicazioni RUM e la loro telemetria. La riproduzione delle sessioni è esclusa da quel ruolo di proposito: elencare le registrazioni, guardarne una e leggere chi l'ha guardata sono autorizzazioni separate. I proprietari e gli amministratori del progetto le hanno tutte. I selettori delle autorizzazioni mostrano ogni autorizzazione con il suo titolo, qui in corsivo.
+Chiunque abbia il ruolo Visualizzatore del progetto può vedere le applicazioni RUM e la loro telemetria. La riproduzione delle sessioni è esclusa da quel ruolo di proposito: elencare le registrazioni, guardarne una e leggere chi l'ha guardata sono autorizzazioni separate. I Proprietari del progetto e gli Amministratori del progetto le hanno tutte. I selettori delle autorizzazioni mostrano ogni autorizzazione con il suo titolo, qui in corsivo.
 
 | Autorizzazione | Consente a un membro di |
 | --- | --- |

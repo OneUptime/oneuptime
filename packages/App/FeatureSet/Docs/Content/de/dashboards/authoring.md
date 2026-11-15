@@ -11,7 +11,7 @@ Um ein Dashboard zu erstellen, öffnen Sie **Produkte → Dashboards** und klick
 
 ## Bevor Sie beginnen
 
-Projektinhaber und -administratoren können jedes Dashboard erstellen und bearbeiten. Alle anderen brauchen eine Teamberechtigung: `CreateDashboard`, um Dashboards zu erstellen, und `EditDashboard`, um sie zu ändern. Projektmitglieder und Betrachter können Dashboards ohne beides lesen. Wer ein Dashboard nicht bearbeiten darf, öffnet trotzdem sein Menü **⋯**, in dem **Dashboard bearbeiten** gesperrt ist und sagt, welche Berechtigung fehlt.
+Projektinhaber und Projektadministratoren können jedes Dashboard erstellen und bearbeiten. Alle anderen brauchen eine Teamberechtigung: `CreateDashboard`, um Dashboards zu erstellen, und `EditDashboard`, um sie zu ändern. Projektmitglieder und Betrachter können Dashboards ohne beides lesen. Wer ein Dashboard nicht bearbeiten darf, öffnet trotzdem sein Menü **⋯**, in dem **Dashboard bearbeiten** gesperrt ist und sagt, welche Berechtigung fehlt.
 
 ## Ein Dashboard anlegen
 

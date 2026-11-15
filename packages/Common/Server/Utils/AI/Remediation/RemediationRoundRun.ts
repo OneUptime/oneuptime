@@ -11,6 +11,8 @@ import {
 import type { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
 import type { ToolCallOutcome } from "../Toolbox/Index";
 
+import { AI_TOOLKIT_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "../Toolbox/ReadTableWords";
 /*
  * What every run of an AI fix shares about its round (issues #6436, #6487):
  * whose run it is, and the tool it explains a round without a fix with.
@@ -119,7 +121,8 @@ export function buildExplainNoFixTool(): ObservabilityAssistantExtraTool {
         result: {
           dataForLlm: "Recorded the explanation.",
           rowCount: fixCount,
-          citationLabel: "Why there is no fix",
+          // In the reader's language (#8511).
+          ...citationSentence(AI_TOOLKIT_CITATIONS.noFixReason),
           redactionCount: 0,
           isTruncated: false,
         },

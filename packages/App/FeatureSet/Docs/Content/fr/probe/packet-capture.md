@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **Une sonde propre à votre projet.** Les sondes globales transportent le trafic d'autres projets : elles ne capturent donc jamais. Pour installer votre propre sonde, voir [Sondes personnalisées](/docs/probe/custom-probe).
 - **Une sonde de cette version ou d'une version ultérieure.** Les sondes plus anciennes ne signalent pas les interfaces sur lesquelles elles peuvent capturer.
-- **Les bonnes autorisations.** Démarrer et arrêter une capture demande **Start Packet Capture**, et télécharger un fichier **Download Packet Capture**. Les propriétaires et administrateurs du projet ont les deux. Voir [Autorisations](#autorisations).
+- **Les bonnes autorisations.** Démarrer et arrêter une capture demande **Start Packet Capture**, et télécharger un fichier **Download Packet Capture**. Les Propriétaires du projet et Administrateurs du projet ont les deux. Voir [Autorisations](#autorisations).
 - **Un port dupliqué, pour le trafic qui n'atteint pas la sonde.** Une sonde ne voit que le trafic des interfaces de son propre hôte. Pour capturer le trafic entre d'autres équipements, dupliquez leur port de commutateur (SPAN) vers une interface libre de l'hôte de la sonde.
 
 ## Activer la capture de paquets

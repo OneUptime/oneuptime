@@ -917,7 +917,7 @@ describe("the other AI pages", () => {
       "A budget whose **Count spend from** is **Provider accounts** counts what your connected accounts were billed instead",
     );
     expect(page).toContain(
-      "The conversations of a company AI tool are the exception: only project owners and admins can read them",
+      "The conversations of a company AI tool are the exception: only Project Owners and Project Admins can read them",
     );
   });
 

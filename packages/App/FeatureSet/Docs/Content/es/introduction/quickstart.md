@@ -96,7 +96,7 @@ En **Enviar un aviso de prueba**, haz clic en **Probar esta política**, elige u
 :::
 
 > [!NOTE]
-> Los SMS y las llamadas están desactivados en un proyecto nuevo. Un propietario del proyecto, un Administrador de facturación o alguien con Manage Billing los activa en la tarjeta **Canales de notificación**, en **Ajustes del proyecto → Notificaciones → Canales de notificación**.
+> Los SMS y las llamadas están desactivados en un proyecto nuevo. Un Propietario del proyecto, un Administrador de facturación o alguien con Manage Billing los activa en la tarjeta **Canales de notificación**, en **Ajustes del proyecto → Notificaciones → Canales de notificación**.
 
 Dos reglas de guardia activan la política: una con cada nuevo incidente y otra con cada nueva alerta. Para ver la primera, abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**: coincide con **Todos los incidentes**. Para activar la política solo con algunos incidentes, como los críticos, edita ahí la regla, o haz clic en **Crear Regla de guardia de incidentes** para añadir una propia.
 

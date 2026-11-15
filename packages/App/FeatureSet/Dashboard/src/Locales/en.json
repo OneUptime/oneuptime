@@ -53944,5 +53944,21 @@
   "{{order}}. {{name}}: {{targets}} (escalates after {{minutes}}m)": "{{order}}. {{name}}: {{targets}} (escalates after {{minutes}}m)",
   "{{sensitivity}} or above": "{{sensitivity}} or above",
   "{{state}} alert {{alert}}": "{{state}} alert {{alert}}",
-  "{{state}} incident {{incident}}": "{{state}} incident {{incident}}"
+  "{{state}} incident {{incident}}": "{{state}} incident {{incident}}",
+  "Available command targets": "Available command targets",
+  "Clusters OneUptime AI can inspect": "Clusters OneUptime AI can inspect",
+  "Executed on Runner \"{{runner}}\": {{command}}": "Executed on Runner \"{{runner}}\": {{command}}",
+  "Executed on cluster \"{{cluster}}\": {{command}}": "Executed on cluster \"{{cluster}}\": {{command}}",
+  "Executed on {{resource}}: {{command}}": "Executed on {{resource}}: {{command}}",
+  "Infrastructure OneUptime AI can inspect": "Infrastructure OneUptime AI can inspect",
+  "Proposed a {{count}}-command remediation plan": "Proposed a {{count}}-command remediation plan",
+  "Proposed rolling back {{deployment}}": "Proposed rolling back {{deployment}}",
+  "Sent to cluster \"{{cluster}}\", result unknown: {{command}}": "Sent to cluster \"{{cluster}}\", result unknown: {{command}}",
+  "Sent to {{resource}}, result unknown: {{command}}": "Sent to {{resource}}, result unknown: {{command}}",
+  "Tools of MCP server {{server}}": "Tools of MCP server {{server}}",
+  "Tools of the external MCP servers": "Tools of the external MCP servers",
+  "Why there is no fix": "Why there is no fix",
+  "{{command}} on cluster \"{{cluster}}\"": "{{command}} on cluster \"{{cluster}}\"",
+  "{{command}} on {{resource}}": "{{command}} on {{resource}}",
+  "{{server}} · {{tool}} (not run)": "{{server}} · {{tool}} (not run)"
 }

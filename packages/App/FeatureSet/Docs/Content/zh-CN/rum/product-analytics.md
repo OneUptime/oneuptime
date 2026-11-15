@@ -144,11 +144,11 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 谁可以查看
 
-读取这些页面所需的权限与读取会话列表相同： `ReadRumSessionReplay` (_List Session Replays_) 或 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，项目所有者和管理员拥有这些权限。要查看已登录用户是谁，以及按姓名搜索人，需要 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，如 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 中所述。
+读取这些页面所需的权限与读取会话列表相同： `ReadRumSessionReplay` (_List Session Replays_) 或 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，项目所有者和项目管理员拥有这些权限。要查看已登录用户是谁，以及按姓名搜索人，需要 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，如 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 中所述。
 
 保存、重命名和删除已保存的漏斗和留存表需要与读取这些页面相同的权限，仪表板小部件只会向拥有这些权限的读者显示它们。
 
-开启或关闭事件需要 `EditRumApplication` (_Edit RUM Application_) 或项目所有者、管理员或成员的角色。列出用户属性需要 `EditRumApplication` 或所有者或管理员的角色，因为这决定了会保留已登录者的哪些信息。
+开启或关闭事件需要 `EditRumApplication` (_Edit RUM Application_) 或项目所有者、项目管理员或项目成员的角色。列出用户属性需要 `EditRumApplication` 或所有者或管理员的角色，因为这决定了会保留已登录者的哪些信息。
 
 ## 后续步骤
 

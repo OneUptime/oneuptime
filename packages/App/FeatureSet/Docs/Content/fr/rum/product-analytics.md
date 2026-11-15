@@ -144,11 +144,11 @@ Un entonnoir ou un tableau de rétention enregistré va aussi sur un tableau de 
 
 ## Qui peut la voir
 
-Lire ces pages demande ce que demande la liste des sessions : `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que les propriétaires et les administrateurs du projet détiennent. Voir qui est un utilisateur connecté, et rechercher des personnes par leur nom, demande `ReadRumSessionReplayPayload` (_Watch Session Replays_), comme le décrit [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement).
+Lire ces pages demande ce que demande la liste des sessions : `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que les Propriétaires du projet et les Administrateurs du projet détiennent. Voir qui est un utilisateur connecté, et rechercher des personnes par leur nom, demande `ReadRumSessionReplayPayload` (_Watch Session Replays_), comme le décrit [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement).
 
 Enregistrer, renommer et supprimer des entonnoirs et des tableaux de rétention enregistrés demande les mêmes permissions que lire ces pages, et un widget de tableau de bord n'en montre un qu'à un lecteur qui les détient.
 
-Activer ou désactiver les événements demande `EditRumApplication` (_Edit RUM Application_) ou le rôle de propriétaire, d'administrateur ou de membre du projet. Lister des propriétés utilisateur demande `EditRumApplication` ou le rôle de propriétaire ou d'administrateur, car cela décide de ce qui est conservé sur les personnes connectées.
+Activer ou désactiver les événements demande `EditRumApplication` (_Edit RUM Application_) ou le rôle Propriétaire du projet, Administrateur du projet ou Membre du projet. Lister des propriétés utilisateur demande `EditRumApplication` ou le rôle de propriétaire ou d'administrateur, car cela décide de ce qui est conservé sur les personnes connectées.
 
 ## Prochaines étapes
 

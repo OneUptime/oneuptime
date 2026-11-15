@@ -146,7 +146,7 @@ Ask AI says why before you type: the project's plan does not include AI, **Enabl
 :::
 
 :::details An action was refused
-Ask AI says which permission the action needs, or which team blocks it. Ask someone who may make the change, or ask a project owner to give your role the permission. Nothing was changed.
+Ask AI says which permission the action needs, or which team blocks it. Ask someone who may make the change, or ask a Project Owner to give your role the permission. Nothing was changed.
 :::
 
 :::details Answers are vague or never use any data

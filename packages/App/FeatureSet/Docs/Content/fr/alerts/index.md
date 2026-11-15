@@ -175,7 +175,7 @@ Un critère garde une seule alerte ouverte à la fois. Tant que cette alerte n'e
 :::
 
 :::details Un collègue peut ouvrir une alerte que je ne trouve pas
-L'alerte est probablement privée. Demandez à un administrateur du projet de vous ajouter comme propriétaire, ou de désactiver **Alerte privée** sur la page **Paramètres** de l'alerte.
+L'alerte est probablement privée. Demandez à un Administrateur du projet de vous ajouter comme propriétaire, ou de désactiver **Alerte privée** sur la page **Paramètres** de l'alerte.
 :::
 
 ## Étapes suivantes
