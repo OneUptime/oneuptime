@@ -29,7 +29,7 @@ Sandkassen er ikke Node.js: der er ingen `require`, `process`, `fetch` eller fil
 
 ## Før du begynder
 
-- En **probe**, der kan nå alle de endpoints, scriptet kalder. Brug en [brugerdefineret sonde](/docs/probe/custom-probe) til endpoints inde i dit netværk.
+- En **sonde**, der kan nå alle de endpoints, scriptet kalder. Brug en [brugerdefineret sonde](/docs/probe/custom-probe) til endpoints inde i dit netværk.
 - For at kalde en privat adresse (som `10.0.0.5`) skal sonden tillade det: sæt `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonde. Loopback-, link-local- og cloudmetadata-adresser afvises altid. Se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 - Alle de adgangskoder, API-nøgler og tokens, scriptet har brug for, gemt som [monitorhemmeligheder](/docs/monitor/monitor-secrets).
 
@@ -38,7 +38,7 @@ Sandkassen er ikke Node.js: der er ingen `require`, `process`, `fetch` eller fil
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Custom JavaScript Code** under **Syntetisk overvågning** eller skrive `script` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Brugerdefineret JavaScript-kode** under **Syntetisk overvågning** eller skrive `script` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Tilføj scriptet
 

@@ -32,7 +32,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 | --- | --- |
 | En hendelse er åpen | Hvor mange hendelser som er aktive, i rødt |
 | Ingen hendelse er åpen, men det finnes åpne varsler, monitorer som ikke er i drift, eller SLO-er i faresonen | Hvor mange problemer som krever oppmerksomhet, i gult |
-| Ingenting er galt, og vedlikehold pågår | Hvor mange vedlikehold som pågår |
+| Ingenting er galt, og vedlikehold pågår | Hvor mange vedlikeholdshendelser som pågår |
 | Monitorer kjører, og ingenting er åpent | **Alle systemer er i drift** |
 | Prosjektet har ingen monitorer ennå | **Ingenting overvåkes ennå** |
 
@@ -95,7 +95,7 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 
 ### Oppsettets helse
 
-Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som viser hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor. Hvert funn sier i én setning hva som er galt, med knappen som åpner rettingen, og funnene for en monitor er bruddene som kortet **Når den går ned** nevner. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
+Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som begynner med én linje i fargen til det alvorligste funnet: hvor mange problemer som ville hindre at folk blir varslet, hvor mange ting som er verdt å rette, eller **Ingenting å rette**. Under den viser siden hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor. Hvert funn sier i én setning hva som er galt, med navnene på monitorene, policyene og personene dine i fet skrift, monitorene eller policyene funnet rammer etter **Gjelder**, og rett under det knappen som åpner rettingen. Funnene for en monitor er bruddene som kortet **Når den går ned** nevner. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
 
 ### Prosjektet ditt
 

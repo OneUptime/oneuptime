@@ -39,12 +39,18 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import { isTopologyInfrastructureType } from "Common/Types/Topology/TopologyTypeRules";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
+  PluralTemplate,
   Translator,
   composedValue,
   formatInline,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  getReadingDirection,
+  setApartInSentence,
+} from "Common/Types/ReadingDirection";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -96,6 +102,7 @@ import {
   formatErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Service Map: the project's services and everything they call — other
@@ -194,20 +201,134 @@ export function statusColorForEntry(entry: ServiceMapEntry): string {
   return STATUS_COLORS[entry.status];
 }
 
-export function statusLabelForEntry(entry: ServiceMapEntry): string {
-  if (entry.incidentCount > 0) {
-    return `${entry.incidentCount} active incident${entry.incidentCount === 1 ? "" : "s"}`;
-  }
-  if (entry.alertCount > 0) {
-    return `${entry.alertCount} active alert${entry.alertCount === 1 ? "" : "s"}`;
-  }
-  return SERVICE_STATUS_LABELS[entry.status];
+/*
+ * EVERY WORD OF THE SERVICE MAP IN THE READER'S LANGUAGE (#7725).
+ *
+ * A card's status line ("3 active incidents"), its subtitle ("Service ·
+ * Node.js"), its stats ("600/min in") and a connection's label ("10.0%
+ * errors") were built in English at run time and then looked up whole as
+ * a key. A string with a number or a name in it is no key, so every
+ * language read them in English, with English plurals. Each is now a
+ * sentence or a word of the locale, filled with figures written the
+ * reader's way, in the form the reader's language takes for the count.
+ */
+const ACTIVE_INCIDENTS: PluralTemplate = {
+  one: "{{count}} active incident",
+  other: "{{count}} active incidents",
+};
+
+const ACTIVE_ALERTS: PluralTemplate = {
+  one: "{{count}} active alert",
+  other: "{{count}} active alerts",
+};
+
+const CALLERS: PluralTemplate = {
+  one: "{{count}} caller",
+  other: "{{count}} callers",
+};
+
+const DEPENDENCIES: PluralTemplate = {
+  one: "{{count}} dependency",
+  other: "{{count}} dependencies",
+};
+
+const SHOWN_OF_ITEMS: PluralTemplate = {
+  one: "{{shown}} of {{count}} item",
+  other: "{{shown}} of {{count}} items",
+};
+
+const CONNECTED_FOR_CONTEXT: PluralTemplate = {
+  one: "{{count}} connected for context",
+  other: "{{count}} connected for context",
+};
+
+const INACTIVE_NOT_SHOWN: PluralTemplate = {
+  one: "{{count}} inactive not shown",
+  other: "{{count}} inactive not shown",
+};
+
+// A card's stats: what its traffic is, beside each figure.
+export const STAT_INBOUND: string = translationKey("in");
+export const STAT_OUTBOUND: string = translationKey("out");
+export const STAT_ERRORS: string = translationKey("errors");
+export const STAT_AVERAGE: string = translationKey("avg");
+
+const ERROR_RATE_LABEL: string = translationKey("{{rate}} errors");
+
+// A word of the locale, or the English word where it has none.
+function wordOf(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
 }
 
-export function subtitleForEntry(entry: ServiceMapEntry): string {
-  return entry.detailLabel
-    ? `${entry.typeLabel} · ${entry.detailLabel}`
-    : entry.typeLabel;
+export function statusLabelForEntry(
+  entry: ServiceMapEntry,
+  translator: Translator,
+): string {
+  if (entry.incidentCount > 0) {
+    return translator.translatePlural(ACTIVE_INCIDENTS, entry.incidentCount);
+  }
+  if (entry.alertCount > 0) {
+    return translator.translatePlural(ACTIVE_ALERTS, entry.alertCount);
+  }
+  return wordOf(SERVICE_STATUS_LABELS[entry.status], translator);
+}
+
+/*
+ * What a node is, and the language or engine it reports when it does:
+ * "Service · Node.js", "Datenbank · PostgreSQL". On a page read from the
+ * right the name is set apart, so a name in Latin letters never takes the
+ * separator into its run.
+ */
+export function subtitleForEntry(
+  entry: ServiceMapEntry,
+  translator: Translator,
+): string {
+  const typeText: string = wordOf(entry.typeLabel, translator);
+  if (!entry.detailLabel) {
+    return typeText;
+  }
+  return formatInline(
+    [
+      typeText,
+      setApartInSentence(
+        entry.detailLabel,
+        getReadingDirection(translator.language),
+      ),
+    ],
+    translator,
+  );
+}
+
+// "3 callers · 1 dependency", each count in the form the language takes for it.
+export function connectionsForEntry(
+  entry: ServiceMapEntry,
+  translator: Translator,
+): string {
+  return formatInline(
+    [
+      translator.translatePlural(CALLERS, entry.callers),
+      translator.translatePlural(DEPENDENCIES, entry.dependencies),
+    ],
+    translator,
+  );
+}
+
+// A connection's label: its rate, its share of errors or its latency.
+export function edgeLabelForMetric(
+  metric: "calls" | "errors" | "latency",
+  edge: ServiceMapEdge,
+  windowSeconds: number,
+  translator: Translator,
+): string {
+  if (metric === "calls") {
+    return formatCallRate(edge.calls, windowSeconds, translator);
+  }
+  if (metric === "errors") {
+    return translator.translateTemplate(ERROR_RATE_LABEL, {
+      rate: formatErrorRate(edge.calls, edge.errors, translator),
+    });
+  }
+  return formatDurationMs(edge.avgDurationMs ?? undefined, translator);
 }
 
 /*
@@ -237,9 +358,12 @@ export function footerForEntry(
   });
 }
 
+/* A card, every line of it already in the reader's language. */
 interface ServiceNodeData {
   entry: ServiceMapEntry;
   label: string;
+  subtitle: string;
+  statusLabel: string;
   stats: Array<TopologyNodeStat>;
   footer: string | undefined;
   dimmed: boolean;
@@ -249,17 +373,16 @@ interface ServiceNodeData {
 const ServiceMapCanvasNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
   props: NodeProps<ServiceNodeData>,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
   const entry: ServiceMapEntry = props.data.entry;
   return (
     <TopologyNodeCard
       testId={`service-map-node-${entry.key}`}
       title={entry.label}
-      subtitle={translateString(subtitleForEntry(entry)) || ""}
+      subtitle={props.data.subtitle}
       icon={KIND_ICONS[entry.kind]}
       color={metaForEntityType(entry.entity.entityType).color}
       statusColor={statusColorForEntry(entry)}
-      statusLabel={translateString(statusLabelForEntry(entry)) || ""}
+      statusLabel={props.data.statusLabel}
       stats={props.data.stats}
       footer={props.data.footer}
       dimmed={props.data.dimmed}
@@ -275,9 +398,15 @@ const NODE_TYPES: Record<
   serviceMapNode: ServiceMapCanvasNode,
 };
 
+/*
+ * A card's stats, worded and written for the reader where they are built:
+ * TopologyNodeCard draws a stat as it is given, for every map that draws
+ * one (the message queue topology words its own).
+ */
 export function statsForEntry(
   entry: ServiceMapEntry,
   windowSeconds: number,
+  translator: Translator,
 ): Array<TopologyNodeStat> {
   const served: boolean = entry.inbound.calls > 0;
   const traffic: ServiceMapEntry["inbound"] = served
@@ -289,12 +418,12 @@ export function statsForEntry(
   const errorRate: number = traffic.errors / traffic.calls;
   return [
     {
-      label: served ? "in" : "out",
-      value: formatCallRate(traffic.calls, windowSeconds),
+      label: wordOf(served ? STAT_INBOUND : STAT_OUTBOUND, translator),
+      value: formatCallRate(traffic.calls, windowSeconds, translator),
     },
     {
-      label: "errors",
-      value: formatErrorRate(traffic.calls, traffic.errors),
+      label: wordOf(STAT_ERRORS, translator),
+      value: formatErrorRate(traffic.calls, traffic.errors, translator),
       color:
         errorRate >= 0.05
           ? HEALTH_COLORS.critical
@@ -303,11 +432,11 @@ export function statsForEntry(
             : undefined,
     },
     {
-      label: "avg",
+      label: wordOf(STAT_AVERAGE, translator),
       value:
         traffic.avgDurationMs === null
           ? "—"
-          : formatDurationMs(traffic.avgDurationMs),
+          : formatDurationMs(traffic.avgDurationMs, translator),
     },
   ];
 }
@@ -680,7 +809,9 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         data: {
           entry,
           label: entry.label,
-          stats: statsForEntry(entry, props.metricsWindowSeconds),
+          subtitle: subtitleForEntry(entry, translator),
+          statusLabel: statusLabelForEntry(entry, translator),
+          stats: statsForEntry(entry, props.metricsWindowSeconds, translator),
           footer: footerForEntry(entry, translator),
           dimmed: visibility.contextKeys.has(key),
           selected: selectedKey === key,
@@ -718,11 +849,12 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               : "none";
         const label: string | undefined =
           hasMetrics && metric !== "none"
-            ? metric === "calls"
-              ? formatCallRate(edge.calls, props.metricsWindowSeconds)
-              : metric === "errors"
-                ? `${formatErrorRate(edge.calls, edge.errors)} errors`
-                : formatDurationMs(edge.avgDurationMs ?? undefined)
+            ? edgeLabelForMetric(
+                metric,
+                edge,
+                props.metricsWindowSeconds,
+                translator,
+              )
             : undefined;
         return {
           id: edge.id,
@@ -766,6 +898,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         };
       });
   }, [
+    translator.language,
     layout,
     model,
     visibility,
@@ -1027,7 +1160,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               : "Not connected to anything in this view",
           )}{" "}
           <span className="font-normal normal-case text-gray-400">
-            ({unconnectedEntries.length})
+            ({translator.formatNumber(unconnectedEntries.length)})
           </span>
         </h4>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1062,10 +1195,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                   <span className="block truncate text-xs text-gray-500">
                     {runsOn
                       ? formatInline(
-                          [t(subtitleForEntry(entry)), runsOn],
+                          [subtitleForEntry(entry, translator), runsOn],
                           translator,
                         )
-                      : t(subtitleForEntry(entry))}
+                      : subtitleForEntry(entry, translator)}
                   </span>
                 </span>
                 <span
@@ -1215,10 +1348,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                           >
                             {runsOn
                               ? formatInline(
-                                  [t(subtitleForEntry(entry)), runsOn],
+                                  [subtitleForEntry(entry, translator), runsOn],
                                   translator,
                                 )
-                              : t(subtitleForEntry(entry))}
+                              : subtitleForEntry(entry, translator)}
                           </span>
                         </span>
                       </div>
@@ -1230,43 +1363,48 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                           style={{ backgroundColor: color }}
                           aria-hidden={true}
                         />
-                        {t(statusLabelForEntry(entry))}
+                        {statusLabelForEntry(entry, translator)}
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {entry.inbound.calls > 0
-                        ? formatCallRate(
-                            entry.inbound.calls,
-                            props.metricsWindowSeconds,
-                          )
-                        : "—"}
+                      {entry.inbound.calls > 0 ? (
+                        formatCallRate(
+                          entry.inbound.calls,
+                          props.metricsWindowSeconds,
+                          translator,
+                        )
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                       {formatErrorRate(
                         entry.inbound.calls,
                         entry.inbound.errors,
+                        translator,
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {entry.inbound.avgDurationMs === null
-                        ? "—"
-                        : formatDurationMs(entry.inbound.avgDurationMs)}
+                      {entry.inbound.avgDurationMs === null ? (
+                        <TableEmptyValue />
+                      ) : (
+                        formatDurationMs(
+                          entry.inbound.avgDurationMs,
+                          translator,
+                        )
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
-                      {entry.callers}{" "}
-                      {t(entry.callers === 1 ? "caller" : "callers")} ·{" "}
-                      {entry.dependencies}{" "}
-                      {t(
-                        entry.dependencies === 1
-                          ? "dependency"
-                          : "dependencies",
-                      )}
+                      {connectionsForEntry(entry, translator)}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <button
                         type="button"
                         className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        aria-label={`${t("Show on map")} ${entry.label}`}
+                        aria-label={translator.translateTemplate(
+                          "Show on map {{name}}",
+                          { name: entry.label },
+                        )}
                         onClick={() => {
                           focusOn(entry.key);
                         }}
@@ -1287,12 +1425,21 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             data-testid="service-map-pagination"
           >
             <p>
-              {t("Showing")} {currentPage * ROWS_PER_PAGE + 1}–
-              {Math.min(
-                (currentPage + 1) * ROWS_PER_PAGE,
-                matchedEntries.length,
-              )}{" "}
-              {t("of")} {matchedEntries.length}
+              {translator.translateTemplate(
+                "Showing {{first}}–{{last}} of {{total}}",
+                {
+                  first: translator.formatNumber(
+                    currentPage * ROWS_PER_PAGE + 1,
+                  ),
+                  last: translator.formatNumber(
+                    Math.min(
+                      (currentPage + 1) * ROWS_PER_PAGE,
+                      matchedEntries.length,
+                    ),
+                  ),
+                  total: translator.formatNumber(matchedEntries.length),
+                },
+              )}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -1312,7 +1459,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 {t("Previous")}
               </button>
               <span>
-                {t("Page")} {currentPage + 1} {t("of")} {pageCount}
+                {translator.translateTemplate("Page {{current}} of {{total}}", {
+                  current: translator.formatNumber(currentPage + 1),
+                  total: translator.formatNumber(pageCount),
+                })}
               </span>
               <button
                 type="button"
@@ -1567,11 +1717,54 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     return {
       inbound: entry.inbound,
       outbound: entry.outbound,
-      statusLabel: statusLabelForEntry(entry),
+      statusLabel: statusLabelForEntry(entry, translator),
       statusColor: statusColorForEntry(entry),
-      subtitle: subtitleForEntry(entry),
+      subtitle: subtitleForEntry(entry, translator),
     };
   };
+
+  const summaryTiles: Array<{
+    label: string;
+    value: number;
+    detail: string;
+    icon: IconProp;
+    warnsWhenAny: boolean;
+  }> = [
+    {
+      label: translationKey("Services"),
+      value: serviceCount,
+      detail:
+        baseModel.inactiveServiceCount > 0 && !props.includeInactive
+          ? translator.translatePlural(
+              INACTIVE_NOT_SHOWN,
+              baseModel.inactiveServiceCount,
+            )
+          : t("Reporting in this time range"),
+      icon: IconProp.SquareStack,
+      warnsWhenAny: false,
+    },
+    {
+      label: translationKey("Dependencies"),
+      value: dependencyCount,
+      detail: t("Databases and APIs your services call"),
+      icon: IconProp.Database,
+      warnsWhenAny: false,
+    },
+    {
+      label: translationKey("Connections"),
+      value: model.edges.length,
+      detail: t("Distinct caller → callee pairs"),
+      icon: IconProp.FlowDiagram,
+      warnsWhenAny: false,
+    },
+    {
+      label: translationKey("Need attention"),
+      value: attentionCount,
+      detail: t("Errors, incidents or alerts"),
+      icon: IconProp.Alert,
+      warnsWhenAny: true,
+    },
+  ];
 
   return (
     <div
@@ -1582,43 +1775,15 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         className="mb-5 grid min-w-0 w-full max-w-full grid-cols-2 gap-3 xl:grid-cols-4"
         data-testid="service-map-summary"
       >
-        {[
-          {
-            label: "Services",
-            value: serviceCount,
-            detail:
-              baseModel.inactiveServiceCount > 0 && !props.includeInactive
-                ? `${baseModel.inactiveServiceCount} inactive not shown`
-                : "Reporting in this time range",
-            icon: IconProp.SquareStack,
-          },
-          {
-            label: "Dependencies",
-            value: dependencyCount,
-            detail: "Databases and APIs your services call",
-            icon: IconProp.Database,
-          },
-          {
-            label: "Connections",
-            value: model.edges.length,
-            detail: "Distinct caller → callee pairs",
-            icon: IconProp.FlowDiagram,
-          },
-          {
-            label: "Need attention",
-            value: attentionCount,
-            detail: "Errors, incidents or alerts",
-            icon: IconProp.Alert,
-          },
-        ].map(
+        {summaryTiles.map(
           (stat: {
             label: string;
             value: number;
             detail: string;
             icon: IconProp;
+            warnsWhenAny: boolean;
           }): ReactElement => {
-            const warn: boolean =
-              stat.label === "Need attention" && stat.value > 0;
+            const warn: boolean = stat.warnsWhenAny && stat.value > 0;
             return (
               <div
                 key={stat.label}
@@ -1636,10 +1801,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 <p
                   className={`mt-2 text-3xl font-semibold tracking-tight ${warn ? "text-amber-600" : "text-gray-900"}`}
                 >
-                  {stat.value}
+                  {translator.formatNumber(stat.value)}
                 </p>
                 <p className="mt-1 truncate text-xs text-gray-500">
-                  {t(stat.detail)}
+                  {stat.detail}
                 </p>
               </div>
             );
@@ -1721,7 +1886,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             />
             {t("Needs attention")}
             <span className="rounded bg-gray-100 px-1.5 text-xs text-gray-600">
-              {attentionCount}
+              {translator.formatNumber(attentionCount)}
             </span>
           </button>
           {(searchText.trim() || effectiveFocusKey || attentionOnly) && (
@@ -1740,25 +1905,41 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             aria-live="polite"
             data-testid="service-map-result-count"
           >
-            {matchedEntries.length} {t("of")} {model.entries.length}{" "}
-            {t(model.entries.length === 1 ? "item" : "items")}
-            {view === "map" && visibility.contextKeys.size > 0 && (
-              <span>
-                {" "}
-                · {visibility.contextKeys.size} {t("connected for context")}
-              </span>
+            {formatInline(
+              [
+                translator.translatePlural(
+                  SHOWN_OF_ITEMS,
+                  model.entries.length,
+                  { shown: translator.formatNumber(matchedEntries.length) },
+                ),
+                ...(view === "map" && visibility.contextKeys.size > 0
+                  ? [
+                      translator.translatePlural(
+                        CONNECTED_FOR_CONTEXT,
+                        visibility.contextKeys.size,
+                      ),
+                    ]
+                  : []),
+              ],
+              translator,
             )}
           </p>
         </div>
 
         {effectiveFocusKey && (
           <div className="flex flex-wrap items-center gap-2 border-b border-indigo-100 bg-indigo-50 px-5 py-3 text-sm text-indigo-800">
-            <span>
-              {t("Direct connections of")}{" "}
-              <strong>
-                {model.entryByKey.get(effectiveFocusKey)?.label ||
-                  effectiveFocusKey}
-              </strong>
+            <span data-testid="service-map-focus-sentence">
+              <TranslatedSentence
+                template="Direct connections of {{name}}"
+                slots={{
+                  name: (
+                    <strong>
+                      {model.entryByKey.get(effectiveFocusKey)?.label ||
+                        effectiveFocusKey}
+                    </strong>
+                  ),
+                }}
+              />
             </span>
             <button
               type="button"

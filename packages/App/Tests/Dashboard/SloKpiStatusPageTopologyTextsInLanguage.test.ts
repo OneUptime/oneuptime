@@ -498,7 +498,7 @@ describe("the KPI strip's words in the reader's language", () => {
       DE,
     );
 
-    expect(sliver).toBe("Noch unter 1 Sek. von 43 Min., 12 Sek.");
+    expect(sliver).toBe("Noch unter 1\u00A0Sek. von 43 Min., 12 Sek.");
 
     const arabic: string = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: 750, totalSeconds: 2592 },
@@ -526,12 +526,12 @@ describe("the KPI strip's words in the reader's language", () => {
     })!;
 
     expect(getRollingWindowFillTextInLanguage(fill, DE)).toBe(
-      "Fenster zu 25 % gefüllt",
+      "Fenster zu 25\u00A0% gefüllt",
     );
     // German keeps its noun's capital after other words; English does not.
     expect(
       getRollingWindowFillTextInLanguage(fill, DE, { afterOtherWords: true }),
-    ).toBe("Fenster zu 25 % gefüllt");
+    ).toBe("Fenster zu 25\u00A0% gefüllt");
     expect(getRollingWindowFillTextInLanguage(fill, AR)).toBe(
       "امتلأ 25% من النافذة",
     );
@@ -569,7 +569,9 @@ describe("the KPI strip's words in the reader's language", () => {
     expect(runwayText(RUNWAY_INPUTS[12]!, DE).text.description).toBe(
       "Bis zur Erschöpfung, bei der Verbrauchsrate der letzten 1 Std.",
     );
-    expect(runwayText(RUNWAY_INPUTS[14]!, DE).text.value).toBe("Unter 1 Min.");
+    expect(runwayText(RUNWAY_INPUTS[14]!, DE).text.value).toBe(
+      "Unter 1\u00A0Min.",
+    );
     expect(runwayText(RUNWAY_INPUTS[12]!, DE).text.value).toMatch(/^~\d/);
     expect(runwayText(RUNWAY_INPUTS[10]!, DE).text.description).toBe(
       "Reicht über das 30-Tage-Fenster hinaus, bei der Verbrauchsrate der letzten 1 Std.",

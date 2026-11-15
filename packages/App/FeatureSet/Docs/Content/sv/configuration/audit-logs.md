@@ -78,7 +78,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 
 ## Vad som registreras
 
-Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: övervakare, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
+Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: monitorer, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
 
 | Registreras inte | Varför |
 | --- | --- |
@@ -120,7 +120,7 @@ Varje gång en medlem i projektet loggar in i OneUptime registrerar granskningsl
 
 En posts **Resurs** är sessionen, som får namn efter enheten den loggade in från, till exempel `Chrome 130 on macOS`. Dess **Aktör** är personen som sessionen tillhör, så om du filtrerar efter **Användares e-post** hittar du alla personens inloggningar och sessioner. Detaljerna anger hur personen loggade in och med vilken andra faktor, IP-adressen och platsen, och för en session som har slutat när den loggade in, när den senast användes och när tiden gick ut. Ett projekts egen SSO-leverantör namnges bara i det projektets granskningslogg.
 
-Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid registreras när personens öppna flik eller mobilappen nästa gång når OneUptime.
+Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid registreras när personens webbläsare eller mobilappen nästa gång når OneUptime: från en flik som står öppen, eller när personen öppnar OneUptime igen.
 
 ## Hur länge poster behålls
 

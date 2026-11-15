@@ -202,10 +202,14 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     ).toContain(
       "export const WEBSITE_DOWN_POLICY_NAME: string = GUIDED_SETUP_POLICY_NAME;",
     );
+    /*
+     * Its English name, which the docs quote; a reader of another language
+     * gets it in theirs (getFirstOnCallPolicyName, #7995).
+     */
     expect(
       repoFile("packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts"),
     ).toContain(
-      'export const GUIDED_SETUP_POLICY_NAME: string = "Default on-call policy";',
+      'export const GUIDED_SETUP_POLICY_NAME: string = translationKey(\n  "Default on-call policy",\n);',
     );
     expect(PAGING).toContain("`Default on-call policy`");
     expect(copyValue(ON_CALL_SETUP, "whoPeopleLabel")).toBe("Paged first");
@@ -652,12 +656,63 @@ describe("Know When Your Website or API Is Down, against the product", () => {
     expect(WEBSITE_DOWN).toContain("click **Send me a test page**");
   });
 
-  it("says the master admin is not made the owner of what they create", () => {
+  /*
+   * The server never makes a master admin the owner of what they create, so
+   * the guide told one to add themselves on the monitor's Owners page. The
+   * setup makes the person setting it up the owner now (#7409), so no
+   * reader has a workaround to follow.
+   */
+  it("gives the master admin no workaround: the setup makes whoever sets it up the monitor's owner", () => {
+    const api: string = dashboardFile(
+      "Components/GuidedSetup/WebsiteDown/WebsiteDownApi.ts",
+    );
+
     expect(
       repoFile("packages/Common/Server/Services/DatabaseService.ts"),
     ).toContain("if (props.isRoot || props.isMasterAdmin || !props.userId) {");
+    expect(api).toContain("public static async ensureMonitorOwner(data: {");
+    expect(WEBSITE_DOWN_PAGE).toContain(
+      "await WebsiteDownApi.ensureMonitorOwner({",
+    );
+    expect(WEBSITE_DOWN).not.toContain(
+      "The master admin is not made the owner",
+    );
+    expect(WEBSITE_DOWN).not.toContain("**Owners**");
+  });
+
+  /*
+   * On Cloud's Free plan a project with no card on file may not make a
+   * monitor that runs checks (PayAsYouGoBillingService.requirePayAsYouGo);
+   * the step says so before Start checking (#7367), and the guide says it
+   * does.
+   */
+  it("says a Free plan project needs a payment method first, as the step says before Start checking", () => {
+    expect(copyValue(WEBSITE_DOWN_SETUP, "addPaymentMethod")).toBe(
+      "Add Payment Method",
+    );
+    expect(copyValue(WEBSITE_DOWN_SETUP, "paymentNeeded")).toContain(
+      "Add a payment method before you start checking.",
+    );
+    expect(WEBSITE_DOWN_PAGE).toContain("WebsiteDownApi.needsPaymentMethod()");
     expect(WEBSITE_DOWN).toContain(
-      "The master admin is not made the owner of what they create",
+      "They are billed as they are used, so the project needs a payment method first: without one, the first step says so, with **Add Payment Method**.",
+    );
+  });
+
+  /*
+   * A new monitor's probes must all agree before its status changes
+   * (minimumProbeAgreement unset: ProbeAgreementRule), and the step's help
+   * says so (#7410).
+   */
+  it("says an incident opens only when all of the probes find it down", () => {
+    expect(copyValue(WEBSITE_DOWN_SETUP, "checkHelp")).toContain(
+      "An incident opens when every location that checks it finds it down",
+    );
+    expect(
+      repoFile("packages/Common/Utils/Monitor/ProbeAgreementRule.ts"),
+    ).toContain("isSet ? minimum : data.activeProbeCount");
+    expect(WEBSITE_DOWN).toContain(
+      "an incident opens only when all of them find it down.",
     );
   });
 

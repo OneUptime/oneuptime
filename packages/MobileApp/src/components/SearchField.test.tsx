@@ -1,8 +1,17 @@
 import React, { useState } from "react";
 import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { Ionicons } from "@expo/vector-icons";
 import SearchField from "./SearchField";
+import {
+  listenForUserActivity,
+  type HeardUserActivity,
+} from "../__tests__/userActivityHeard";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { radius, typography } from "../theme/tokens";
 
@@ -63,6 +72,25 @@ test("search is named, accepts text and clears without losing the input", async 
   await fireEvent.press(screen.getByRole("button", { name: "Clear search" }));
   expect(input).toHaveProp("value", "");
   expect(screen.queryByRole("button", { name: "Clear search" })).toBeNull();
+});
+
+test("typing a search counts as using the app, which the idle timeout counts from", async () => {
+  const activity: HeardUserActivity = listenForUserActivity();
+
+  try {
+    await render(<Search />);
+    const input: ReturnType<typeof screen.getByLabelText> =
+      screen.getByLabelText("Search incidents");
+
+    await fireEvent.changeText(input, "checkout");
+
+    await waitFor((): void => {
+      expect(activity.heard.length).toBeGreaterThan(0);
+    });
+    expect(input).toHaveProp("value", "checkout");
+  } finally {
+    activity.stop();
+  }
 });
 
 test("an explicit accessible label describes what is searched", async () => {

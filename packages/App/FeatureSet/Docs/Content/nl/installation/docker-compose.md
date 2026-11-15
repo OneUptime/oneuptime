@@ -11,7 +11,7 @@ Draai een volledige, gratis OneUptime-instantie op één Linux-server met Docker
 
 ## Hoe het werkt
 
-Docker Compose draait elk onderdeel van OneUptime als container op uw server. Al het verkeer komt binnen via de container `ingress`, die het naar de `app` doorstuurt. De app bewaart zijn gegevens in PostgreSQL, ClickHouse en Valkey. Een meegeleverde probe voert de controles van uw monitors uit en meldt de resultaten terug via de ingress.
+Docker Compose draait elk onderdeel van OneUptime als container op uw server. Al het verkeer komt binnen via de container `ingress`, die het naar de `app` doorstuurt. De app bewaart zijn gegevens in PostgreSQL, ClickHouse en Valkey. Een meegeleverde sonde voert de controles van uw monitors uit en meldt de resultaten terug via de ingress.
 
 ```mermaid title="De Docker Compose-installatie"
 flowchart TB
@@ -48,7 +48,7 @@ flowchart TB
 | --- | --- | --- |
 | `ingress` | `oneuptime/nginx` | Ontvangt al het verkeer op poort 80 en 443 en stuurt het door naar de app. Levert HTTPS als OneUptime het certificaat beheert. |
 | `app` | `oneuptime/app` | Het dashboard, de API, statuspagina's, de opname van telemetrie en de achtergrondworkers. |
-| `probe-1` | `oneuptime/probe` | Een globale probe die de controles van uw monitors uitvoert. Hij gebruikt het netwerk van de host. |
+| `probe-1` | `oneuptime/probe` | Een globale sonde die de controles van uw monitors uitvoert. Hij gebruikt het netwerk van de host. |
 | `global-runner` | `oneuptime/runner` | De meegeleverde globale Runner, die de JavaScript-stappen van runbooks en de codecorrecties van OneUptime AI voor elk project uitvoert. |
 | `postgres` | `postgres:15` | Configuratie en status: monitors, incidenten, gebruikers. Opgeslagen in het volume `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetrie: logs, metrics, traces en exceptions. Opgeslagen in het volume `clickhouse`. |
@@ -85,7 +85,7 @@ U hebt ook nodig:
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Het dashboard, de API, de opname van telemetrie en de validatie door Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS voor uw instantie als OneUptime het certificaat beheert, en voor statuspagina's en dashboards op eigen domeinen. |
 | 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Laat `npm run backup` en `restore.sh` PostgreSQL bereiken vanaf de server zelf. Hij is alleen op `127.0.0.1` gepubliceerd. |
-| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | De eigen server van de probe. Niets buiten de server heeft hem nodig. |
+| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | De eigen server van de sonde. Niets buiten de server heeft hem nodig. |
 
 Er is ook een [video-uitleg](https://youtu.be/j1SWmMW2oL4) van de installatie.
 
@@ -157,8 +157,8 @@ Maak daarna de server af op `/admin/setup`, waar e-mail, sms en oproepen worden 
 | `ONEUPTIME_SECRET` | Aanroepen tussen de eigen services van OneUptime. |
 | `ENCRYPTION_SECRET` | De geheimen die OneUptime opslaat, zoals integratietokens en SMTP-wachtwoorden, en de aanmeldtokens die het uitgeeft. |
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | De drie gegevensopslagen. |
-| `REGISTER_PROBE_KEY` | Het registreren van probes bij uw instantie. |
-| `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale probes die Docker Compose kan draaien (`probe-1` draait standaard). |
+| `REGISTER_PROBE_KEY` | Het registreren van sondes bij uw instantie. |
+| `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale sondes die Docker Compose kan draaien (`probe-1` draait standaard). |
 | `GLOBAL_RUNNER_KEY` | De meegeleverde globale Runner, die de JavaScript-stappen en AI-codefixes van alle projecten uitvoert. |
 
 > [!IMPORTANT]
@@ -234,7 +234,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-De probe gebruikt het netwerk van de host en bereikt OneUptime via `http://localhost`. `npm start` verplaatst hem naar de nieuwe poort van de ingress, `http://localhost:8080`, en meldt dat.
+De sonde gebruikt het netwerk van de host en bereikt OneUptime via `http://localhost`. `npm start` verplaatst hem naar de nieuwe poort van de ingress, `http://localhost:8080`, en meldt dat.
 
 #### Vertel OneUptime dat het achter een proxy staat
 
@@ -448,7 +448,7 @@ Om PostgreSQL te herstellen, stelt u de waarden `DATABASE_RESTORE_*` in `config.
 
 Veel servers draaien OneUptime voor één taak, zoals websites bewaken en een statuspagina publiceren. Een hoofdbeheerder kan de producten die niemand gebruikt uitschakelen, voor alle projecten op de server tegelijk, onder **Instellingen > Producten** in het Admin Dashboard.
 
-- **Voorinstellingen** zetten elke schakelaar met één klik: **Monitoring en statuspagina's** houdt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Geplande onderhoud; **Incidentrespons** voegt Waarschuwingen, SLOs, Workflows en Runbooks toe; **Alles** houdt elk product. **Producten een voor een kiezen** zet één product om. Gebruikers, Teams en Projectinstellingen staan altijd aan.
+- **Voorinstellingen** zetten elke schakelaar met één klik: **Monitoring en statuspagina's** houdt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Gepland onderhoud; **Incidentrespons** voegt Waarschuwingen, SLOs, Workflows en Runbooks toe; **Alles** houdt elk product. **Producten een voor een kiezen** zet één product om. Gebruikers, Teams en Projectinstellingen staan altijd aan.
 - Een product dat uit staat, verdwijnt uit het menu **Producten** van elk project, van Start en uit Zoeken, en **Projectinstellingen > Producten** toont het als uitgeschakeld. Een link naar een van zijn pagina's zegt dat het product op deze server is uitgeschakeld en wie het kan inschakelen.
 - De API weigert records van het product aan te maken, te wijzigen of te verwijderen, en AI vragen laat het weg. Lezen werkt nog steeds, omdat producten die aan blijven records van andere tonen: een incident noemt zijn monitors.
 - Er wordt niets verwijderd, en wat al draait, blijft draaien: monitors blijven controleren, gepubliceerde statuspagina's blijven online en telemetrie blijft binnenkomen, tenzij u ook de opname stopt. Een product dat weer wordt ingeschakeld, komt terug zoals het was.
@@ -468,7 +468,7 @@ MQTT_INGEST_ENABLED=false
 
 | Instelling | Wat ze doet |
 | --- | --- |
-| `SERVER_PRODUCTS=monitoring-and-status-pages` | Elk project biedt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Geplande onderhoud. |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Elk project biedt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Gepland onderhoud. |
 | `DISABLE_TELEMETRY_INGESTION=true` | OneUptime bewaart niets van de logs, metrics, traces of profielen die het krijgt. Logboeken, Metrieken, Traces, Prestatieprofielen en Uitzonderingen staan als uitgeschakeld. |
 | `GLOBAL_RUNNER_REPLICAS=0` | De service `global-runner` start niet. Alleen runbooks en de codecorrecties van OneUptime AI gebruiken hem. |
 | `MQTT_INGEST_ENABLED=false` | De MQTT-listeners waar IoT-apparaten naar sturen, staan uit. |
@@ -518,7 +518,7 @@ Als iets niet werkt, voer dan de doctor uit in de map `oneuptime`:
 npm run doctor
 ```
 
-Hij somt op wat er mis is, het ernstigste eerst, elke regel met de precieze oplossing, en eindigt met **Everything looks right.** of met het aantal dingen dat u moet oplossen. Hij controleert elke container en toont de laatste regels van het log van elke container die niet draait, `config.env`, of `HOST` deze server bereikt, het certificaat als `PROVISION_SSL` aan staat, en de vrije schijfruimte. Hij vraagt ook aan OneUptime wat het van zichzelf ziet: PostgreSQL, ClickHouse en Valkey, de migraties, de wachtrijen, de versie en de installatiestappen van de server, zoals e-mail en probes. `npm start` eindigt met dezelfde controles en noemt alleen wat aandacht nodig heeft.
+Hij somt op wat er mis is, het ernstigste eerst, elke regel met de precieze oplossing, en eindigt met **Everything looks right.** of met het aantal dingen dat u moet oplossen. Hij controleert elke container en toont de laatste regels van het log van elke container die niet draait, `config.env`, of `HOST` deze server bereikt, het certificaat als `PROVISION_SSL` aan staat, en de vrije schijfruimte. Hij vraagt ook aan OneUptime wat het van zichzelf ziet: PostgreSQL, ClickHouse en Valkey, de migraties, de wachtrijen, de versie en de installatiestappen van de server, zoals e-mail en sondes. `npm start` eindigt met dezelfde controles en noemt alleen wat aandacht nodig heeft.
 
 Om ook de recente fouten van elke dienst te zien, elk met de naam van de dienst:
 
@@ -592,8 +592,8 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
-:::details De meegeleverde probe toont Verbinding verbroken nadat u de poort van de ingress hebt verplaatst
-Het Admin Dashboard toont de probe onder **Instellingen > Bewaking > Globale probes**. Hij bereikt OneUptime op `GLOBAL_PROBE_1_ONEUPTIME_URL`, standaard `http://localhost` (poort 80). `npm start` verplaatst die naar de poort van de ingress zolang hij naar `localhost` wijst. Hebt u hem op een ander adres ingesteld, of OneUptime met de Docker CLI gestart, stel hem dan in op de nieuwe poort van de ingress, bijvoorbeeld `http://localhost:8080`, en herstart OneUptime.
+:::details De meegeleverde sonde toont Verbinding verbroken nadat u de poort van de ingress hebt verplaatst
+Het Admin Dashboard toont de sonde onder **Instellingen > Bewaking > Globale sondes**. Hij bereikt OneUptime op `GLOBAL_PROBE_1_ONEUPTIME_URL`, standaard `http://localhost` (poort 80). `npm start` verplaatst die naar de poort van de ingress zolang hij naar `localhost` wijst. Hebt u hem op een ander adres ingesteld, of OneUptime met de Docker CLI gestart, stel hem dan in op de nieuwe poort van de ingress, bijvoorbeeld `http://localhost:8080`, en herstart OneUptime.
 :::
 
 ## Volgende stappen

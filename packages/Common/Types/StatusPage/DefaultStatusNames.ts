@@ -1,4 +1,5 @@
-import { translationKey, Translator } from "../Translator";
+import { StateListType } from "../../Utils/StateOrder";
+import { translationKey } from "../Translator";
 
 /*
  * THE NAMES ONEUPTIME GIVES EVERY NEW PROJECT'S STATES, SEVERITIES AND
@@ -53,11 +54,61 @@ export const DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES: ReadonlyArray<string> =
   ];
 
 /*
- * The default names a status page shows: incident states, incident
- * severities, monitor statuses and scheduled maintenance states. A status
- * page shows these in its reader's language
+ * The names of its postmortem statuses (DEFAULT_POSTMORTEM_STATUSES,
+ * Utils/Incident/PostmortemStatus) and of its security case statuses and
+ * priorities (DEFAULT_SECURITY_CASE_STATUSES and _PRIORITIES, in
+ * Utils/SecurityCase), and nothing else of them: DefaultRecordNames reads a
+ * record's name against them on every form, and loading those lists'
+ * colours, descriptions and rules would load them on every page that has
+ * one (packages/Common/Scripts/first-load-budgets.js). Tests/Utils/
+ * DefaultRecordNames holds each to its list's names. Written as those lists
+ * write them, not as lookups: no message the server sends names one.
+ */
+export const DEFAULT_POSTMORTEM_STATUS_NAMES: ReadonlyArray<string> = [
+  "Not Started",
+  "Draft",
+  "Completed",
+  "Not Needed",
+];
+
+export const DEFAULT_SECURITY_CASE_STATUS_NAMES: ReadonlyArray<string> = [
+  "New",
+  "Investigating",
+  "Contained",
+  "Closed",
+];
+
+export const DEFAULT_SECURITY_CASE_PRIORITY_NAMES: ReadonlyArray<string> = [
+  "Critical",
+  "High",
+  "Medium",
+  "Low",
+  "Informational",
+];
+
+/*
+ * The lists whose records a status page names - and its notifications to
+ * its subscribers: incident states, incident severities, monitor statuses
+ * and scheduled maintenance states. It shows no alert.
+ */
+export type StatusPageNameList =
+  | StateListType.IncidentState
+  | StateListType.IncidentSeverity
+  | StateListType.MonitorStatus
+  | StateListType.ScheduledMaintenanceState;
+
+/*
+ * The default names a status page shows, of all four lists. A status page
+ * shows these in its reader's language
  * (StatusPage/src/Utils/StatusTranslation), and so do its notifications to
  * its subscribers (Server/Utils/StatusPage/SubscriberMessageText).
+ *
+ * Whether a record's name is one of them is never decided against this
+ * union: an incident state a project named "Degraded" is the project's own,
+ * though Degraded is a default monitor status. It goes by the record's own
+ * list (Utils/DefaultRecordNames: isDefaultRecordName, translateRecordName),
+ * on the Dashboard, a status page, an on-call page and in every message
+ * (#8066).
  */
 export const DEFAULT_STATUS_NAMES: ReadonlyArray<string> = [
   ...DEFAULT_INCIDENT_STATE_NAMES,
@@ -65,35 +116,3 @@ export const DEFAULT_STATUS_NAMES: ReadonlyArray<string> = [
   ...DEFAULT_MONITOR_STATUS_NAMES,
   ...DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
 ];
-
-// Whether `name` is one of OneUptime's default names, as it gave it.
-export const isDefaultStatusName: (
-  name: string | null | undefined,
-) => boolean = (name: string | null | undefined): boolean => {
-  return typeof name === "string" && DEFAULT_STATUS_NAMES.includes(name.trim());
-};
-
-/*
- * A state's, a severity's or a status's name as `translator`'s reader reads
- * it: OneUptime's own default names in their language, any other name as
- * written.
- */
-export const translateStateName: (
-  translator: Translator,
-  name: string | null | undefined,
-) => string = (
-  translator: Translator,
-  name: string | null | undefined,
-): string => {
-  if (!name) {
-    return "";
-  }
-
-  if (!isDefaultStatusName(name)) {
-    return name;
-  }
-
-  const trimmed: string = name.trim();
-
-  return translator.translateText(trimmed) || name;
-};

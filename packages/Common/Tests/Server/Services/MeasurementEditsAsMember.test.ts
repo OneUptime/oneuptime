@@ -196,6 +196,7 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
       expect(stored("backfillRequestedAt")).toBeInstanceOf(Date);
       // Cleared, or the restarted backfill would resume mid-way through.
       expect(stored("backfillCursorCreatedAt")).toBeNull();
+      expect(stored("backfillCursorId")).toBeNull();
       expect(stored("backfillCompletedAt")).toBeNull();
     },
   );
@@ -285,6 +286,7 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
       for (const column of [
         "backfillRequestedAt",
         "backfillCursorCreatedAt",
+        "backfillCursorId",
         "backfillCompletedAt",
       ]) {
         expect([column, data[column]]).toEqual([column, undefined]);

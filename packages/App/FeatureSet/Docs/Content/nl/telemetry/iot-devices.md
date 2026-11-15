@@ -179,7 +179,7 @@ OneUptime heeft een eigen MQTT-endpoint, dus apparaten die MQTT spreken, publice
 
 De inloggegevens van een apparaat kunnen alleen publiceren onder de eigen topics `oneuptime/<fleet>/<device>/`. Je kunt één apparaat intrekken zonder de rest van de vloot aan te raken: zet de schakelaar **Ingeschakeld** uit, of verwijder het apparaat, en een verbonden apparaat wordt binnen ongeveer een minuut afgesloten. Een geregistreerd apparaat dat stil valt, blijft als offline in de inventaris staan, en het waarschuwingssjabloon Device Offline gaat ervoor af, ook als het zonder Last Will uitvalt.
 
-OneUptime weigert onjuiste inloggegevens bij CONNECT met returncode 4 (onjuiste gebruikersnaam of wachtwoord), dus een verkeerd geconfigureerd apparaat faalt zichtbaar. Browsersleutels worden via MQTT geweigerd.
+OneUptime weigert onjuiste inloggegevens bij CONNECT met returncode 4 (onjuiste gebruikersnaam of wachtwoord), dus een verkeerd geconfigureerd apparaat faalt zichtbaar. Browsersleutels worden via MQTT geweigerd. Een client die met de ingestiesleutel verbonden is, wordt binnen een paar seconden afgesloten zodra de sleutel wordt uitgeschakeld, verloopt, een nieuw geheim krijgt of wordt verwijderd, en wordt geweigerd als hij opnieuw verbinding maakt.
 
 ### Topics en payloads
 

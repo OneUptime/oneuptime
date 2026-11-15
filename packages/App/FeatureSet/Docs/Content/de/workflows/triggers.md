@@ -20,7 +20,7 @@ Um den Trigger hinzuzufügen, klicken Sie auf der Arbeitsfläche eines neuen Wor
 | Den Workflow per Klick ausführen möchten        | **Manuell**           |
 | Nach einem wiederkehrenden Zeitplan ausführen möchten | **Zeitplan**    |
 | Ein anderes System Daten senden lassen möchten  | **Webhook**           |
-| Mit einer E-Mail starten möchten                | **Incoming Email**    |
+| Mit einer E-Mail starten möchten                | **Eingehende E-Mail**    |
 | Auf Huntress-Vorfallsmeldungen reagieren möchten | **Huntress Incident Report** |
 | Auf etwas in OneUptime reagieren möchten        | **OneUptime-Ereignis** |
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Wert                     | Was er enthält                                                                                                       |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Jeden Header der Anfrage, nach Namen in Kleinbuchstaben, etwa `content-type`.                                        |
+| **Anfrage-Header**      | Jeden Header der Anfrage, nach Namen in Kleinbuchstaben, etwa `content-type`.                                        |
 | **Request Query Params** | Die Abfrageparameter in der URL, nach Namen.                                                                         |
-| **Request Body**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen, ebenso JSON, das als reiner Text gesendet wird, wie Amazon SNS es sendet. |
+| **Anfragetext**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen, ebenso JSON, das als reiner Text gesendet wird, wie Amazon SNS es sendet. |
 
 Lesen Sie ein Feld, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Jede E-Mail startet ihre eigene Ausführung. Eine E-Mail erreicht den Workflow, 
 
 | Wert            | Was er enthält                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **From**        | Die Adresse des Absenders.                                                                                       |
-| **To**          | Alle, an die die E-Mail adressiert war, als eine Zeile, etwa `ops@example.com, oncall@example.com`.              |
+| **Von**        | Die Adresse des Absenders.                                                                                       |
+| **An**          | Alle, an die die E-Mail adressiert war, als eine Zeile, etwa `ops@example.com, oncall@example.com`.              |
 | **CC**          | Alle, die eine Kopie bekommen haben, als eine Zeile.                                                              |
-| **Subject**     | Die Betreffzeile.                                                                                                |
+| **Betreff**     | Die Betreffzeile.                                                                                                |
 | **Body**        | Den reinen Text der E-Mail.                                                                                      |
 | **HTML Body**   | Das HTML der E-Mail, sofern sie welches hat. Body und HTML Body werden jeweils bei 1 MB abgeschnitten.            |
 | **Headers**     | Jeden Header der E-Mail, nach seinem Namen in Kleinbuchstaben, etwa `message-id`.                                |
-| **Attachments** | Name, Typ und Größe jeder angehängten Datei. Die Dateien selbst werden nicht aufbewahrt.                         |
+| **Anhänge** | Name, Typ und Größe jeder angehängten Datei. Die Dateien selbst werden nicht aufbewahrt.                         |
 | **Received At** | Wann OneUptime die E-Mail empfangen hat.                                                                         |
 
 Ist eine E-Mail eingetroffen, weiß die Werteauswahl in jedem Baustein nach dem Trigger, was darin war: Sie listet jeden Header und jeden Anhang der E-Mail mit seinem Inhalt auf, sodass Sie `headers.message-id` wählen können, statt einen Pfad zu tippen. Bis dahin sagt sie, dass noch keine E-Mail an der Adresse angekommen ist. Siehe [Werte aus früheren Bausteinen verwenden](/docs/workflows/authoring#werte-aus-früheren-bausteinen-verwenden).
@@ -148,7 +148,7 @@ Der Teil der Adresse vor dem `@` enthält den geheimen Schlüssel des Workflows,
 Gelangt die Adresse nach außen, klicken Sie an derselben Stelle auf **Adresse zurücksetzen**: Der Workflow bekommt eine neue Adresse, und E-Mails an die alte werden ab dann ignoriert; geben Sie die neue also allem, was dem Workflow E-Mails sendet. Nur Personen, die den Workflow bearbeiten dürfen, können seine Adresse sehen oder zurücksetzen – siehe [Sicherheit eingehender E-Mails](/docs/workflows/configuration#sicherheit-eingehender-e-mails).
 
 > [!WARNING]
-> Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **From** nicht, wer sie gesendet hat. Prüfen Sie etwas, das nur der echte Absender weiß, bevor ein Schritt etwas Wichtiges tut.
+> Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **Von** nicht, wer sie gesendet hat. Prüfen Sie etwas, das nur der echte Absender weiß, bevor ein Schritt etwas Wichtiges tut.
 
 > [!NOTE]
 > Auf einer selbst gehosteten Installation empfängt OneUptime E-Mails über einen Anbieter für eingehende E-Mails, den Ihr Administrator einrichtet – siehe [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Bis dahin hat der Trigger keine Adresse, und seine Einstellungen sagen das.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** und **On Create or Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an. Ebenso ein Feld, in dem der Datensatz nichts hat, etwa der Monitor einer Warnung, die kein Monitor ausgelöst hat.
 
-**On Create or Update** reicht außerdem **What Happened** weiter: `created`, wenn ein neuer Datensatz den Lauf gestartet hat, und `updated`, wenn es eine Änderung war, wie in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Um beides unterschiedlich zu behandeln, vergleichen Sie es in einem **If / Else**-Baustein oder nehmen mit **Switch / Case** für jedes einen eigenen Pfad.
+**On Create or Update** reicht außerdem **Was ist passiert** weiter: `created`, wenn ein neuer Datensatz den Lauf gestartet hat, und `updated`, wenn es eine Änderung war, wie in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Um beides unterschiedlich zu behandeln, vergleichen Sie es in einem **If / Else**-Baustein oder nehmen mit **Switch / Case** für jedes einen eigenen Pfad.
 
 Ein Speichern löst ihn einmal aus. Was OneUptime beim Erstellen eines Datensatzes noch ausfüllt, gehört zum Erstellen, daher löst ein neuer Datensatz ihn einmal aus, als `created`. Änderungen, die OneUptime später vornimmt, etwa das Verknüpfen des Slack-Kanals eines Vorfalls, sind Änderungen wie jede andere: Um sie auszulassen, nehmen Sie nur die Felder in **Fields to watch** auf, die Ihnen wichtig sind.
 

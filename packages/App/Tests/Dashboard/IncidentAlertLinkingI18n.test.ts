@@ -704,9 +704,18 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "SideMenu", "SideMenuItem.tsx"],
         "translateString(props.link.title)",
       ],
+      /*
+       * The trail hands a crumb's title to getCrumbTitle, which looks it up
+       * once - unless it is a record's name or already in the reader's
+       * words (#8075) - for the trail, the browser tab and the phone's menu.
+       */
       [
         ["UI", "Components", "Breadcrumbs", "Breadcrumbs.tsx"],
-        "translateString(link.title)",
+        "getCrumbTitle( link, translateString, )",
+      ],
+      [
+        ["UI", "Components", "Page", "RecordNameInTrail.ts"],
+        "return translateString(link.title) || link.title;",
       ],
       [
         ["UI", "Components", "Card", "Card.tsx"],
@@ -744,9 +753,13 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "ErrorMessage", "ErrorMessage.tsx"],
         "<ErrorMessageText message={props.message}",
       ],
+      /*
+       * It says a message the way ErrorLine and ErrorInSentence do: looked
+       * up, and a refusal with a value said around its value (#8280).
+       */
       [
         ["UI", "Components", "ErrorMessage", "ErrorMessageText.tsx"],
-        "translateValue(props.message)",
+        "sayErrorMessage(props.message, translator)",
       ],
       [
         ["UI", "Components", "Alerts", "Alert.tsx"],

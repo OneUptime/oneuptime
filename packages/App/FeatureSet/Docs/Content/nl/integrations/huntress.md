@@ -13,7 +13,7 @@ Deze integratie is **inkomend**: Huntress stuurt elke gebeurtenis van een incide
 
 ## Hoe het werkt
 
-Huntress stuurt een gebeurtenis over een incidentmelding wanneer de melding wordt verstuurd, wanneer iemand er een opmerking bij plaatst en wanneer ze wordt gesloten. De trigger **Huntress Incident Report** start de workflow één keer voor elke gebeurtenis, en zijn **Event** zegt welke het was: `created`, `comment-added` of `closed`.
+Huntress stuurt een gebeurtenis over een incidentmelding wanneer de melding wordt verstuurd, wanneer iemand er een opmerking bij plaatst en wanneer ze wordt gesloten. De trigger **Huntress Incident Report** start de workflow één keer voor elke gebeurtenis, en zijn **Gebeurtenis** zegt welke het was: `created`, `comment-added` of `closed`.
 
 ```mermaid title="Eén Huntress-incidentmelding in een workflow"
 sequenceDiagram
@@ -79,19 +79,19 @@ Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Open in Huntress het menu van h
 
 ## Wat de workflow doet
 
-Na de trigger doet **Incident From Another Tool** wat elk **Event** vraagt, via het nummer van de melding:
+Na de trigger doet **Incident From Another Tool** wat elk **Gebeurtenis** vraagt, via het nummer van de melding:
 
 | Event | Wat de workflow doet |
 | --- | --- |
-| `created` | Opent een incident met de **Incident Severity ID** van de trigger, met het label van zijn **Organization Label ID**. Bij een hoge of kritieke melding roept **Page an On-Call Policy** uw beleid op; een lage melding roept niemand op. Een melding die al een incident heeft, opent er geen tweede. |
+| `created` | Opent een incident met de **ID van incidentenernst** van de trigger, met het label van zijn **Organization Label ID**. Bij een hoge of kritieke melding roept **Page an On-Call Policy** uw beleid op; een lage melding roept niemand op. Een melding die al een incident heeft, opent er geen tweede. |
 | `comment-added` | Zoekt het incident van de melding en voegt de opmerking eraan toe als privénotitie. |
 | `closed` | Zoekt het incident van de melding en lost het op, tenzij het al is opgelost. De reden staat op de tijdlijn: Huntress sloot de melding. |
 
-Het is een workflow zoals elke andere, dus u kunt aanpassen wat hij doet: alleen voor kritieke meldingen oproepen door te wijzigen wat de **If / Else** na **Incident From Another Tool** vergelijkt, elke melding in een chatkanaal plaatsen met een Slack- of Microsoft Teams-stap, of elke organisatie naar haar eigen bereikbaarheidsbeleid sturen met een **Switch / Case** op **Organization**. Elke uitvoering staat bij de uitvoeringen van de workflow, met wat elke stap deed.
+Het is een workflow zoals elke andere, dus u kunt aanpassen wat hij doet: alleen voor kritieke meldingen oproepen door te wijzigen wat de **If / Else** na **Incident From Another Tool** vergelijkt, elke melding in een chatkanaal plaatsen met een Slack- of Microsoft Teams-stap, of elke organisatie naar haar eigen bereikbaarheidsbeleid sturen met een **Switch / Case** op **Organisatie**. Elke uitvoering staat bij de uitvoeringen van de workflow, met wat elke stap deed.
 
 ### Ernst
 
-Huntress geeft elke incidentmelding een van drie ernstniveaus. De **Incident Severity ID** van de trigger is de incidenternst waarmee de melding opent: de ernst die de instelling ervoor kiest, of anders de volgorde van uw incidentniveaus, zoals **Incidenten → Instellingen → Ernst van incident** ze toont:
+Huntress geeft elke incidentmelding een van drie ernstniveaus. De **ID van incidentenernst** van de trigger is de incidenternst waarmee de melding opent: de ernst die de instelling ervoor kiest, of anders de volgorde van uw incidentniveaus, zoals **Incidenten → Instellingen → Ernst van incident** ze toont:
 
 | Ernst in Huntress | Wat Huntress ermee bedoelt | Instelling | Incidenternst als de instelling leeg is |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ De trigger opent op Huntress: zijn URL, een vinkje naast elke afgeronde stap van
 
 | Waarde | Wat ze bevat |
 | --- | --- |
-| **Event** | `created`, `comment-added` of `closed`. Een melding die al gesloten of afgewezen is, is `closed`, welke gebeurtenis haar ook bracht. |
+| **Gebeurtenis** | `created`, `comment-added` of `closed`. Een melding die al gesloten of afgewezen is, is `closed`, welke gebeurtenis haar ook bracht. |
 | **Report ID** | Het nummer van de melding in Huntress. |
-| **Severity** | `critical`, `high` of `low`. |
+| **Ernst** | `critical`, `high` of `low`. |
 | **Status** | De status van de melding in Huntress, zoals `sent`, `closed` of `dismissed`. |
-| **Subject** | Het onderwerp van de melding, zoals Huntress het schrijft. |
-| **Summary** | Wat de SOC-analist schreef. |
-| **Organization**, **Organization ID** | De Huntress-organisatie waarover de melding gaat. |
-| **Affected** | De host of identiteit waarover de melding gaat. |
-| **Platform**, **Indicators** | Waar Huntress het vond, en wat het vond. |
-| **Comment** | De opmerking die iemand toevoegde, bij `comment-added`. |
+| **Onderwerp** | Het onderwerp van de melding, zoals Huntress het schrijft. |
+| **Samenvatting** | Wat de SOC-analist schreef. |
+| **Organisatie**, **Organisatie-ID** | De Huntress-organisatie waarover de melding gaat. |
+| **Getroffen** | De host of identiteit waarover de melding gaat. |
+| **Platform**, **Indicatoren** | Waar Huntress het vond, en wat het vond. |
+| **Opmerking** | De opmerking die iemand toevoegde, bij `comment-added`. |
 | **Report URL** | Waar de melding in Huntress opent. |
-| **Incident Title**, **Incident Description** | Een titel en een Markdown-beschrijving voor een incident over de melding. |
-| **Note** | Markdown voor een notitie over de gebeurtenis: de opmerking, of dat Huntress de melding sloot. |
-| **Incident Severity ID**, **Organization Label ID** | De incidenternst en het label, zoals hierboven. |
+| **Incidenttitel**, **Incidentbeschrijving** | Een titel en een Markdown-beschrijving voor een incident over de melding. |
+| **Notitie** | Markdown voor een notitie over de gebeurtenis: de opmerking, of dat Huntress de melding sloot. |
+| **ID van incidentenernst**, **Organization Label ID** | De incidenternst en het label, zoals hierboven. |
 | **Received At** | Wanneer OneUptime de gebeurtenis ontving. |
 
-**Summary** en **Comment** zijn tekst die de analisten van Huntress schreven. Gebruik **Incident Description** en **Note** om ze in een incident of een notitie te zetten: die behouden de opmaak, en niets erin laadt een afbeelding of noemt iemand.
+**Samenvatting** en **Opmerking** zijn tekst die de analisten van Huntress schreven. Gebruik **Incidentbeschrijving** en **Notitie** om ze in een incident of een notitie te zetten: die behouden de opmaak, en niets erin laadt een afbeelding of noemt iemand.
 
-Om de workflow zonder Huntress te proberen, klikt u op **Workflow uitvoeren** in de **Bouwer** en typt u een **Event**, een **Report ID** en de velden die u nodig hebt. Gebruik hetzelfde **Report ID** om één melding van `created` tot `closed` te volgen.
+Om de workflow zonder Huntress te proberen, klikt u op **Workflow uitvoeren** in de **Bouwer** en typt u een **Gebeurtenis**, een **Report ID** en de velden die u nodig hebt. Gebruik hetzelfde **Report ID** om één melding van `created` tot `closed` te volgen.
 
 ## Eerder gemaakte Huntress-koppelingen
 

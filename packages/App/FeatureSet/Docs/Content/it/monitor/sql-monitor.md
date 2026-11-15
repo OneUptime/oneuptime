@@ -33,8 +33,8 @@ La sonda riporta solo:
 |---|---|
 | **Numero di righe** | Il numero di righe restituite dalla query (limitato dal limite Max Rows). |
 | **Valore scalare** | La prima colonna della prima riga. È il valore naturale di una query in stile `SELECT COUNT(*)`. |
-| **First Row** | La prima riga come coppie colonna/valore, mostrata nel riepilogo del controllo come contesto. |
-| **Execution Time** | Quanto è durato il controllo, in millisecondi, compresa la connessione e non solo la query. |
+| **Prima riga** | La prima riga come coppie colonna/valore, mostrata nel riepilogo del controllo come contesto. |
+| **Tempo di esecuzione** | Quanto è durato il controllo, in millisecondi, compresa la connessione e non solo la query. |
 | **Errore della query** | Un messaggio d'errore ripulito se la query è fallita. |
 
 L'insieme completo dei risultati non viene mai inviato a OneUptime, quindi i dati dei vostri clienti non vengono replicati nell'archivio di OneUptime.
@@ -108,7 +108,7 @@ Per un permesso più ristretto, date all'utente `SELECT` solo sulle tabelle che 
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **SQL Query** sotto **Monitoraggio dei database**, oppure digitate `query` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Query SQL** sotto **Monitoraggio dei database**, oppure digitate `query` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Inserire i dati di connessione
 
@@ -116,7 +116,7 @@ Scegliete il **Database Type** (la porta passa a quella predefinita del motore),
 
 ### Inserire la query
 
-Scrivete una singola istruzione in sola lettura in **SQL Query** (consultate [Scrivere la query](#scrivere-la-query)).
+Scrivete una singola istruzione in sola lettura in **Query SQL** (consultate [Scrivere la query](#scrivere-la-query)).
 
 ### Testarlo
 
@@ -142,7 +142,7 @@ Selezionate le **Sonde** che raggiungono il database e un **Intervallo di monito
 | **Autenticazione** | Solo Microsoft SQL Server: **Nome utente e password**, l'impostazione predefinita, oppure **Windows Integrated Authentication**, che accede con l'account che esegue la sonda. Consultate [Autenticazione integrata di Windows](#autenticazione-integrata-di-windows). |
 | **Nome utente** | Un utente del database in sola lettura, con privilegi minimi. |
 | **Password** | La password del database. Consigliamo vivamente di fare riferimento a un [segreto del monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` invece di digitare la password in chiaro (consultate [Usare un segreto del monitor per la password](#usare-un-segreto-del-monitor-per-la-password)). |
-| **SQL Query** | La query in sola lettura da eseguire (consultate [Scrivere la query](#scrivere-la-query)). |
+| **Query SQL** | La query in sola lettura da eseguire (consultate [Scrivere la query](#scrivere-la-query)). |
 | **Use SSL/TLS** | Attivatelo per connettervi tramite TLS. Quando è attivo, potete disattivare **Verify server certificate** se il database usa un certificato autofirmato. |
 
 ### Altri campi
@@ -216,7 +216,7 @@ Perché la password del database non venga mai salvata in chiaro sul monitor, cr
 3. Nel campo **Password** del monitor, inserite `{{monitorSecrets.dbPassword}}`.
 :::
 
-OneUptime risolve il segreto lato server prima di passare la configurazione alla sonda. OneUptime non crea mai questi segreti al posto vostro: farvi riferimento è una vostra scelta. Anche i campi **Nome utente**, **Host**, **Nome del database** e **SQL Query** accettano riferimenti a segreti; **Porta** no.
+OneUptime risolve il segreto lato server prima di passare la configurazione alla sonda. OneUptime non crea mai questi segreti al posto vostro: farvi riferimento è una vostra scelta. Anche i campi **Nome utente**, **Host**, **Nome del database** e **Query SQL** accettano riferimenti a segreti; **Porta** no.
 
 ## Impostare i criteri
 
@@ -250,7 +250,7 @@ Collegate una policy di reperibilità al criterio, così vengono avvisate le per
 
 - La query viene eseguita a ogni controllo, quindi tenetela economica. Usate indici e finestre temporali strette, e contate sullo Statement Timeout come rete di sicurezza.
 - Vengono riportati solo il numero di righe, la prima cella (scalare) e la prima riga: progettate la query in modo che il valore su cui volete gli avvisi sia nella prima colonna.
-- Se il risultato viene troncato perché superava Max Rows, il riepilogo del controllo mostra **Rows Truncated**: "Yes (result capped)". Aumentate Max Rows solo se serve; insiemi di risultati più grandi costano più memoria sulla sonda.
+- Se il risultato viene troncato perché superava Max Rows, il riepilogo del controllo mostra **Righe troncate**: "Sì (risultato limitato)". Aumentate Max Rows solo se serve; insiemi di risultati più grandi costano più memoria sulla sonda.
 - Scritture e DDL vengono sempre rifiutati. Se dovete testare un percorso di scrittura, questo monitor non fa al caso vostro.
 - Preferite un segreto del monitor a una password in chiaro, così la credenziale resta cifrata a riposo.
 - Un controllo la cui query fallisce viene ritentato un secondo dopo, fino a tre volte in più, prima di riportare l'errore, così una breve interruzione della connessione non porta il monitor offline. Su una sonda self-hosted, `PROBE_MONITOR_RETRY_LIMIT` stabilisce quante volte.

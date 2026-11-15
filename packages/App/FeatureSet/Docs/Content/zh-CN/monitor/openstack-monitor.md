@@ -5,7 +5,7 @@ OpenStack 监视器负责监视一套云：它的 API、API 背后的工作进�
 :::cards
 - [创建监视器](#创建-openstack-监视器): 在 Dashboard 中分六步完成。
 - [模板](#预置警报模板): 现成的警报，每个工作进程、实例、网络或区域各对应一个事件。
-- [从外部检查](#从外部检查): 通过云外部的探测点，检查是否真的有人能启动实例。
+- [从外部检查](#从外部检查): 通过云外部的探测器，检查是否真的有人能启动实例。
 - [身份属性](#身份属性): 如何锁定某个区域、主机或项目。
 - [指标](#收集的指标): 监视器可以据以告警的所有指标系列。
 :::
@@ -106,7 +106,7 @@ flowchart TB
 
 ## 预置警报模板
 
-OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容**列表中会列出它们。云的“建议”页面只会向运行了 Heat、Magnum、Ironic、Manila、Octavia、Trove、Designate、Gnocchi 或 Swift 的云提供对应的模板；只由探测点发送的指标系列上的模板，只提供给由探测点收集的云；基于[从外部检查](#从外部检查)的模板，只提供给开启了该检查的云：在其他云上，这些指标系列并不存在，模板永远不会触发。每个模板都会构建一个完整的监视器：指标查询、属性过滤器、按一个事件所针对的对象进行的分组、一条触发条件和一条恢复条件。阈值与云自己的页面所画的线一致，是可以修改的起点。
+OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容**列表中会列出它们。云的“建议”页面只会向运行了 Heat、Magnum、Ironic、Manila、Octavia、Trove、Designate、Gnocchi 或 Swift 的云提供对应的模板；只由探测器发送的指标系列上的模板，只提供给由探测器收集的云；基于[从外部检查](#从外部检查)的模板，只提供给开启了该检查的云：在其他云上，这些指标系列并不存在，模板永远不会触发。每个模板都会构建一个完整的监视器：指标查询、属性过滤器、按一个事件所针对的对象进行的分组、一条触发条件和一条恢复条件。阈值与云自己的页面所画的线一致，是可以修改的起点。
 
 每个模板都至少读取所监视对象的三次收集，并且只有在条件在整个窗口内都成立时才会触发。针对占比的阈值会在越过阈值线 10% 后恢复，因此徘徊在阈值附近的值不会反复抖动。
 
@@ -149,15 +149,15 @@ OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容*
 | Image Stuck | 存储 | 警告 | 针对每个过渡状态词的 `openstack_glance_image_created_at`，按镜像取最大值，**过去 1 小时** | 一小时内每次收集都处于该状态 | 已离开该状态，或已被删除 |
 | Orchestration API Down | 可用性 | 严重 | `orchestration` 的 `openstack_heat_up` 和 `up`，按区域取最小值，**过去 15 分钟** | 所有调用都失败（已停止的 `heat-engine` 读出来也是这样），或 exporter 没有应答 | 两者都为 1 |
 | Kubernetes Clusters API Down | 可用性 | 严重 | `container-infra` 的 `openstack_container_infra_up` 和 `up`，按区域取最小值，**过去 15 分钟** | 所有调用都失败，或 exporter 没有应答 | 两者都为 1 |
-| Rating API Down | 可用性 | 严重 | `rating` 的 `openstack_cloudkitty_up` 和 `up`，按区域取最小值，**过去 15 分钟**。只有探测点会发送它 | CloudKitty 的 API 没有应答，因此各项目的计费评级不再更新 | 两者都为 1 |
-| Heat Engine Down | 控制平面 | 警告 | `openstack_heat_agent_state`，按主机取最小值，**过去 15 分钟**。只有探测点会发送它 | Heat 把某个 `heat-engine` 列为 down。所有 engine 都停止时，Heat 无法列出它们，此时触发的是 Orchestration API Down | 它读为 1，或 Heat 删除了它的记录 |
-| Magnum Conductor Down | 控制平面 | 严重 | `openstack_container_infra_agent_state`，带 `adminState=enabled`，按主机取最小值，**过去 15 分钟**。只有探测点会发送它 | Magnum 把某个已启用的 `magnum-conductor` 列为 down。Magnum 的 API 会继续应答，因此没有其他信号会说明这一点 | 它读为 1，或有人将其禁用 |
+| Rating API Down | 可用性 | 严重 | `rating` 的 `openstack_cloudkitty_up` 和 `up`，按区域取最小值，**过去 15 分钟**。只有探测器会发送它 | CloudKitty 的 API 没有应答，因此各项目的计费评级不再更新 | 两者都为 1 |
+| Heat Engine Down | 控制平面 | 警告 | `openstack_heat_agent_state`，按主机取最小值，**过去 15 分钟**。只有探测器会发送它 | Heat 把某个 `heat-engine` 列为 down。所有 engine 都停止时，Heat 无法列出它们，此时触发的是 Orchestration API Down | 它读为 1，或 Heat 删除了它的记录 |
+| Magnum Conductor Down | 控制平面 | 严重 | `openstack_container_infra_agent_state`，带 `adminState=enabled`，按主机取最小值，**过去 15 分钟**。只有探测器会发送它 | Magnum 把某个已启用的 `magnum-conductor` 列为 down。Magnum 的 API 会继续应答，因此没有其他信号会说明这一点 | 它读为 1，或有人将其禁用 |
 | Stack Failed | 编排 | 警告 | `openstack_heat_stack_status`，针对每个 `*_FAILED` 状态，按 stack，**过去 15 分钟** | 某个 stack 在整个窗口内都处于失败状态 | 它被更新或被删除 |
 | Stack Stuck In Progress | 编排 | 警告 | `openstack_heat_stack_status`，针对每个 `*_IN_PROGRESS` 状态，按 stack，**过去 2 小时** | 某个 stack 在整个窗口内都处于进行中状态，超过了 Heat 给定的一小时（除非有人选择了更长的时间） | 它到达下一个状态，或被删除 |
 | Kubernetes Cluster Failed | 编排 | 警告 | `openstack_container_infra_cluster_status`，针对每个 `*_FAILED` 状态，按集群，**过去 15 分钟** | 某个集群在整个窗口内都处于失败状态 | 它被更新或被删除 |
 | Kubernetes Cluster Stuck | 编排 | 警告 | `openstack_container_infra_cluster_status`，针对每个 `*_IN_PROGRESS` 状态，按集群，**过去 2 小时** | 某个集群在整个窗口内都处于进行中状态。只有 Magnum 的 conductor 才能让它继续推进 | 它到达下一个状态，或被删除 |
 | Shared File Systems API Down | 可用性 | 严重 | `sharev2` 的 `openstack_sharev2_up` 和 `up`，按区域取最小值，**过去 15 分钟** | 所有调用都失败，或 exporter 没有应答。任何能够登录的凭据读出来都是 1，因此这不可能是凭据被拒绝 | 两者都为 1 |
-| Manila Service Down | 控制平面 | 警告 | `openstack_sharev2_agent_state`，带 `adminState=enabled`，按主机和服务取最小值，**过去 15 分钟**。只有探测点会发送它 | Manila 把某个已启用的服务列为已停止或 down。它的 API 会继续应答，因此没有其他信号会说明这一点 | 它读为 1，或有人将其禁用 |
+| Manila Service Down | 控制平面 | 警告 | `openstack_sharev2_agent_state`，带 `adminState=enabled`，按主机和服务取最小值，**过去 15 分钟**。只有探测器会发送它 | Manila 把某个已启用的服务列为已停止或 down。它的 API 会继续应答，因此没有其他信号会说明这一点 | 它读为 1，或有人将其禁用 |
 | Share in Error | 存储 | 警告 | `openstack_sharev2_share_gb`，针对每个错误状态，按共享，**过去 15 分钟** | 某个共享在整个窗口内都处于错误状态 | 它被修复或被删除 |
 | Share Stuck | 存储 | 警告 | `openstack_sharev2_share_gb`，针对每个过渡状态，按共享，**过去 1 小时** | 某个共享在整个窗口内都处于过渡状态。Manila 对缓慢的后端没有自己的超时。正在迁移或正在备份的共享不在监视范围内 | 它到达下一个状态，或被删除 |
 | Load Balancers API Down | 负载均衡器 | 严重 | `openstack_loadbalancer_up`，按区域取最小值，**过去 15 分钟** | 低于 1。已停止的 Octavia API 会让 Agent 的 exporter 得到空的应答而不是 0，与没有 Octavia 的云一样，因此在由 Agent 收集的云上它保持静默，由云的页面说明最后一次收到 Octavia 数据的时间 | 读为 1，或已消失 |
@@ -166,7 +166,7 @@ OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容*
 | Load Balancer With Two Masters | 负载均衡器 | 严重 | `openstack_loadbalancer_amphora_status`，带 `role=MASTER` 且 `status=ALLOCATED`，按负载均衡器计数，**过去 15 分钟**。需要有权列出 amphora 的凭据 | 同一个负载均衡器有多个已分配的 amphora 为 MASTER | 只有一个为 MASTER |
 | Amphora in Error | 负载均衡器 | 严重 | `openstack_loadbalancer_amphora_status`，带 `status=ERROR`，按 amphora 计数，**过去 15 分钟**。需要有权列出 amphora 的凭据 | 某个 amphora 在整个窗口内都保持 ERROR：健康管理器无法替换它 | 它被替换 |
 | Pool Has No Healthy Members | 负载均衡器 | 严重 | `openstack_loadbalancer_pool_status`，带 `operating_status=ERROR`，按池计数，**过去 15 分钟** | 某个池的所有成员都未通过健康检查，而该池及其负载均衡器的 provisioning 仍为 ACTIVE | 有成员恢复健康 |
-| DNS API Down | 可用性 | 严重 | `openstack_designate_up`，按区域取最小值，**过去 15 分钟**。只有探测点提供它 | 低于 1。已停止的 Designate 会让 Agent 的 exporter 得到空的应答，与没有 Designate 的云一样，因此由 Agent 收集的云只能说明数据停止了 | 读为 1 |
+| DNS API Down | 可用性 | 严重 | `openstack_designate_up`，按区域取最小值，**过去 15 分钟**。只有探测器提供它 | 低于 1。已停止的 Designate 会让 Agent 的 exporter 得到空的应答，与没有 Designate 的云一样，因此由 Agent 收集的云只能说明数据停止了 | 读为 1 |
 | DNS Zone in Error | 网络 | 警告 | 带 `status=ERROR` 的 `openstack_designate_zone_status` 的计数，按区域，**过去 15 分钟** | 某个区域在整个窗口内都读为 `ERROR`：它的 worker 放弃了把它写入 DNS 服务器 | 它读为其他值 |
 | DNS Zone Stuck Pending | 网络 | 警告 | 带 `status=PENDING` 的 `openstack_designate_zone_status` 的计数，按区域，**过去 30 分钟** | 某个区域在整个窗口内都读为 `PENDING`。它的 worker 几分钟后就会放弃，因此没有任何进程在处理它 | 它读为其他值 |
 | DNS Recordset in Error | 网络 | 警告 | 带 `status=ERROR` 以及每个指定类型的 `openstack_designate_recordsets_status` 的计数，按区域，**过去 15 分钟** | 区域自身的 SOA 和 NS 以外的记录集读为 `ERROR`。这两者会随其区域一起读为 `ERROR`，因此由 DNS Zone in Error 来说明 | 它读为其他值 |
@@ -175,22 +175,22 @@ OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容*
 | Gnocchi Backlog Growing | 指标 | 警告 | `openstack_gnocchi_status_measures_to_process`，对**过去 2 小时**拟合的一条线 | 这条线在未来一小时内超过 10,000 个度量。超过该值但正在下降的积压不会触发 | 这条线不再达到 9,000 |
 | Object Storage API Down | 可用性 | 严重 | `object-store` 的 `openstack_object_store_up` 和 `up`，按区域取最小值，**过去 15 分钟** | exporter 读取 Swift 失败，或 exporter 没有应答。被 Swift 拒绝的凭据读出来也一样，因此凭据从未读过 Swift 的云不会提供此模板 | 两者都为 1 |
 | Object Container Growth Forecast | 存储 | 警告 | `openstack_object_store_bytes`，对**过去 7 天**拟合的一条线，按容器 | 这条线在未来一周内超过 1 TiB。请改成你的云应当关注的值 | 这条线不再达到该值的 90% |
-| Key Manager API Down | 可用性 | 严重 | `openstack_barbican_up`，按区域取最小值，**过去 15 分钟**。只有探测点提供它 | 低于 1。exporter 根本没有读取 Barbican 的组件 | 读为 1 |
-| Swift Storage Server Not Answering | 存储 | 警告 | `openstack_object_store_recon_up`，按服务器取最小值，**过去 15 分钟**。只有探测点提供它，且需要云的设置中列出其存储服务器 | 该服务器不应答 `/recon`。Swift 的 proxy 在没有它的情况下仍会继续应答 | 它应答 |
-| Swift Rings Differ | 存储 | 警告 | `openstack_object_store_recon_rings_differ`，按 ring 取最小值，**过去 15 分钟**。只有探测点提供它 | 所列服务器报告的某个 ring 的校验和不同 | 它们一致 |
-| Swift Replication Stale | 存储 | 警告 | `openstack_object_store_recon_replication_age_seconds`，按服务器和 ring 取最小值，**过去 15 分钟**。只有探测点提供它 | 某台服务器上一次完成一轮复制已是 6 小时以前 | 有一台完成 |
+| Key Manager API Down | 可用性 | 严重 | `openstack_barbican_up`，按区域取最小值，**过去 15 分钟**。只有探测器提供它 | 低于 1。exporter 根本没有读取 Barbican 的组件 | 读为 1 |
+| Swift Storage Server Not Answering | 存储 | 警告 | `openstack_object_store_recon_up`，按服务器取最小值，**过去 15 分钟**。只有探测器提供它，且需要云的设置中列出其存储服务器 | 该服务器不应答 `/recon`。Swift 的 proxy 在没有它的情况下仍会继续应答 | 它应答 |
+| Swift Rings Differ | 存储 | 警告 | `openstack_object_store_recon_rings_differ`，按 ring 取最小值，**过去 15 分钟**。只有探测器提供它 | 所列服务器报告的某个 ring 的校验和不同 | 它们一致 |
+| Swift Replication Stale | 存储 | 警告 | `openstack_object_store_recon_replication_age_seconds`，按服务器和 ring 取最小值，**过去 15 分钟**。只有探测器提供它 | 某台服务器上一次完成一轮复制已是 6 小时以前 | 有一台完成 |
 | Databases API Down | 可用性 | 严重 | `database` 的 `openstack_trove_up` 和 `up`，按区域取最小值，**过去 15 分钟** | exporter 读取 Trove 失败，或 exporter 没有应答。它读取的是 Trove 的 mgmt API，因此被拒绝的凭据读出来与已停止的 API 一样，凭据从未读过 Trove 的云不会提供此模板 | 两者都为 1 |
 | Database Instance in Error | 数据库 | 警告 | 针对每个错误状态的 `openstack_trove_instance_status` 的计数，按实例，**过去 15 分钟** | 某个实例在整个窗口内都处于错误状态 | 它被修复或被删除 |
 | Database Instance Stuck | 数据库 | 警告 | 针对每个过渡状态的 `openstack_trove_instance_status` 的计数，按实例，**过去 1 小时** | 某个实例在整个窗口内都处于过渡状态。Trove 没有其 worker 的列表，所以靠它才能发现 `trove-taskmanager` 已停止 | 它到达下一个状态，或被删除 |
 | Database Volume Nearly Full | 数据库 | 警告 | `openstack_trove_instance_volume_used_gb` 除以 `openstack_trove_instance_volume_size_gb`，按实例，**过去 15 分钟** | 达到或超过 85%。未运行的实例已用量读为 0。没有任何记录能表明某个实例正在运行 | 它被扩容，或用量减少 |
-| Bare Metal API Down | 裸金属 | 严重 | `openstack_ironic_up`，按区域取最小值，**过去 15 分钟** | 低于 1。只有在对 Ironic 的读取能够说明问题时才会触发：探测点，或 exporter 1.7.0。已停止的 Ironic 不会给 Agent 的 exporter 留下可读取的内容，与没有 Ironic 的云一样，因此在那里它保持静默，由云的页面说明最后一次收到 Ironic 数据的时间 | 读为 1，或已消失 |
-| Bare Metal Conductor Down | 裸金属 | 警告 | `openstack_ironic_agent_state`，按主机取最小值，**过去 15 分钟**。只有探测点会发送它，并且只有云的策略允许其凭据读取 Ironic 的 conductor 时才有：默认情况下它会拒绝项目级凭据 | Ironic 把某个 conductor 列为未存活。它的 API 会继续应答，每个节点的读数也和原来一样，因此没有其他信号会说明这一点 | 它读为 1，或 Ironic 删除了它的记录 |
+| Bare Metal API Down | 裸金属 | 严重 | `openstack_ironic_up`，按区域取最小值，**过去 15 分钟** | 低于 1。只有在对 Ironic 的读取能够说明问题时才会触发：探测器，或 exporter 1.7.0。已停止的 Ironic 不会给 Agent 的 exporter 留下可读取的内容，与没有 Ironic 的云一样，因此在那里它保持静默，由云的页面说明最后一次收到 Ironic 数据的时间 | 读为 1，或已消失 |
+| Bare Metal Conductor Down | 裸金属 | 警告 | `openstack_ironic_agent_state`，按主机取最小值，**过去 15 分钟**。只有探测器会发送它，并且只有云的策略允许其凭据读取 Ironic 的 conductor 时才有：默认情况下它会拒绝项目级凭据 | Ironic 把某个 conductor 列为未存活。它的 API 会继续应答，每个节点的读数也和原来一样，因此没有其他信号会说明这一点 | 它读为 1，或 Ironic 删除了它的记录 |
 | Bare Metal Node in Error | 裸金属 | 警告 | 针对每个失败的 `provision_state` 的 `openstack_ironic_node`，按节点取最大值，**过去 15 分钟** | 15 分钟内每次收集都处于该状态，无论是否处于维护中 | 已离开该状态，或已被删除 |
 | Bare Metal Node Stuck Transitioning | 裸金属 | 警告 | 针对每个过渡中的 `provision_state` 且 `maintenance = false` 的 `openstack_ironic_node`，按节点取最大值，**过去 2 小时** | 2 小时内每次收集都处于该状态。较长的磁盘擦除确实可能耗费这么久，节点的页面能分辨这一点，而此模板不能 | 已离开该状态，或已被删除 |
 | Bare Metal Node in Maintenance Too Long | 裸金属 | 警告 | `maintenance = true` 的 `openstack_ironic_node`，按节点取最大值，**过去 7 天** | 7 天内每次收集都处于维护中。需要你的指标保留那么久 | 已退出维护，或已被删除 |
 | Bare Metal Power State Unexpected | 裸金属 | 警告 | `provision_state = active`、`power_state = power off` 且 `maintenance = false` 的 `openstack_ironic_node`，按节点取最大值，**过去 15 分钟** | 15 分钟内每次收集都如此。由所有者停止的实例读出来也一样，节点的页面能分辨这一点，而此模板不能 | 已开机，或不再处于已部署状态 |
 | Project Quota Nearly Reached | 项目 | 警告 | `openstack_nova_limits_*` 和 `openstack_cinder_limits_volume_*`，已用 / 最大值，按项目，**过去 3 小时** | 高于其 vCPU、内存、实例或卷配额的 90%。需要[开启 limits 指标系列](#开启-limits-指标系列) | 等于或低于 81% |
-| Token Issue Failing | 可用性 | 严重 | `openstack_check_token_success`，按区域取最小值，**过去 5 分钟**。需要开启 API 检查 | 低于 1：Keystone 没有给探测点签发令牌 | 签发了令牌 |
+| Token Issue Failing | 可用性 | 严重 | `openstack_check_token_success`，按区域取最小值，**过去 5 分钟**。需要开启 API 检查 | 低于 1：Keystone 没有给探测器签发令牌 | 签发了令牌 |
 | Service API Check Failing | 可用性 | 严重 | `openstack_check_api_success`，按区域和 `service_type` 取最小值，**过去 5 分钟**。需要开启 API 检查 | 低于 1：该服务没有应答，目录中的任何服务都适用 | 它应答，或从目录中消失 |
 | Public Certificate Expiring in 30 Days | 可用性 | 警告 | `openstack_check_certificate_expiry_days`，按区域、主机和端口取最小值，**过去 5 分钟**。需要开启 API 检查 | 剩余不足 30 天 | 剩余 33 天或更多，或端点从目录中消失 |
 | Public Certificate Expiring in 7 Days | 可用性 | 严重 | 同上 | 剩余不足 7 天 | 剩余 7.7 天或更多，或端点从目录中消失 |
@@ -233,7 +233,7 @@ OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容*
 | Database Connection Lost | 服务日志 | 严重 | `DBConnectionError`、`SQL connection failed`，或 MySQL 的 `Lost connection` 和 `Can't connect`，**过去 5 分钟** | 5 条或更多 | 少于 5 条 |
 | Too Many Errors from a Service | 服务日志 | 警告 | `ERROR` 和 `CRITICAL` 行，按服务和机器，**过去 5 分钟** | 50 条或更多 | 少于 50 条 |
 | Token Validation Failing | 服务日志 | 严重 | 服务的 `Authorization failed for token`，**过去 5 分钟** | 10 条或更多。一条只是某人的过期会话。Fernet 密钥与其他控制器不同的控制器读出来就是这样，日志里不会有更多线索，因此请比较每台机器上的 `/etc/keystone/fernet-keys` | 少于 10 条 |
-| Instance Action Failed | 事件 | 警告 | `compute.exception` 和任何 `instance.*.error`，按实例、事件和原因，**过去 15 分钟**。需要[通知](/docs/telemetry/openstack#开启通知)或探测点 | 一条或更多 | 窗口内一条也没有 |
+| Instance Action Failed | 事件 | 警告 | `compute.exception` 和任何 `instance.*.error`，按实例、事件和原因，**过去 15 分钟**。需要[通知](/docs/telemetry/openstack#开启通知)或探测器 | 一条或更多 | 窗口内一条也没有 |
 | Scheduling Failed | 事件 | 警告 | 计算任务中包含 `NoValidHost` 的错误，例如 Nova 发送的 `compute_task.build_instances.error`。还有 Cinder 的 `scheduler.create_volume`，以及 Nova 文档中提到但我们的测试云从未发送过的 `scheduler.select_destinations.error`。按实例、事件和原因，**过去 15 分钟**。需要同样的条件 | 一条或更多 | 窗口内一条也没有 |
 
 ### 云所依赖的底层组件
@@ -292,7 +292,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 三个**容量**模板读取的是 OneUptime 根据云的清单自行写入的指标系列，云在上报期间每两分钟写一次。exporter 的指标系列中没有可用区，也没有某个规格的数量。它们的含义见[容量](/docs/telemetry/openstack#容量)。这三个模板针对的都是分配量，即已经承诺出去的部分，没有一个针对负载。
 
-**Project Quota Nearly Reached** 读取 `openstack_nova_limits_*` 和 `openstack_cinder_limits_*`，它们默认关闭，因为每个项目都要消耗 API 调用。在你开启它们之前，该模板保持静默：请用 `OPENSTACK_COLLECT_QUOTAS=true` 再次运行 Agent 的 `install.sh`。随后会有第二个 exporter 每小时读取一次，而模板要等到收到其中三次读数。对于由探测点读取的云，请在其**设置**页面的**数据收集**下开启**项目限额**。
+**Project Quota Nearly Reached** 读取 `openstack_nova_limits_*` 和 `openstack_cinder_limits_*`，它们默认关闭，因为每个项目都要消耗 API 调用。在你开启它们之前，该模板保持静默：请用 `OPENSTACK_COLLECT_QUOTAS=true` 再次运行 Agent 的 `install.sh`。随后会有第二个 exporter 每小时读取一次，而模板要等到收到其中三次读数。对于由探测器读取的云，请在其**设置**页面的**数据收集**下开启**项目限额**。
 
 ### 接下来要运行的命令
 
@@ -331,8 +331,8 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 | 指标 | 单位 | 读取方式 | 说明 |
 | --- | --- | --- | --- |
-| `openstack_nova_agent_state` | - | 最小值 | Nova 工作进程（nova-compute、nova-scheduler、nova-conductor）是 up（1）还是 down（0），每个工作进程一个指标系列。adminState 表示已启用或已禁用，被禁用的属于计划内的操作，原因记录在 disabledReason 中。hostname 是 Nova 使用的短主机名，而 hypervisor 和 Placement 的指标系列使用完整名称。forced_down 表示运维人员告诉 Nova 它已宕机：只有探测点会发送它。 |
-| `openstack_neutron_agent_state` | - | 最小值 | Neutron agent 是否存活（1）或没有（0），每个主机和二进制文件一个指标系列。adminState 表示 up 或 down，被设为 down 的属于计划内的操作。dhcp_network_count 表示一个 DHCP agent 服务多少个网络：只有探测点会发送它。 |
+| `openstack_nova_agent_state` | - | 最小值 | Nova 工作进程（nova-compute、nova-scheduler、nova-conductor）是 up（1）还是 down（0），每个工作进程一个指标系列。adminState 表示已启用或已禁用，被禁用的属于计划内的操作，原因记录在 disabledReason 中。hostname 是 Nova 使用的短主机名，而 hypervisor 和 Placement 的指标系列使用完整名称。forced_down 表示运维人员告诉 Nova 它已宕机：只有探测器会发送它。 |
+| `openstack_neutron_agent_state` | - | 最小值 | Neutron agent 是否存活（1）或没有（0），每个主机和二进制文件一个指标系列。adminState 表示 up 或 down，被设为 down 的属于计划内的操作。dhcp_network_count 表示一个 DHCP agent 服务多少个网络：只有探测器会发送它。 |
 | `openstack_cinder_agent_state` | - | 最小值 | Cinder 服务（cinder-volume、cinder-scheduler、cinder-backup）是 up（1）还是 down（0），每个主机和二进制文件一个指标系列。adminState 表示已启用或已禁用，被禁用的属于计划内的操作。uuid 标签在每次收集时都会重新生成，所以切勿按它分组。 |
 
 ### RabbitMQ
@@ -411,7 +411,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_placement_resource_usage` | - | 最大值 | Placement 已向一台 hypervisor 上的实例承诺了多少某种资源。这是分配量，而不是负载：空闲的实例也占着全部分配量。 |
 | `openstack_placement_resource_generation` | `count` | 最大值 | 按 Placement 的计数方式，一台 hypervisor 的清单变更过多少次。每次变更都会增加，所以它只说明发生了变更，而不说明变更了什么。 |
 | `openstack_placement_resource_provider_allocations` | - | 最大值 | 一个消费者（其 uuid）在一台 hypervisor 上占用了多少某种资源。 |
-| `openstack_placement_flavor_fits` | `count` | 最大值 | Placement 认为还能再放下多少个某规格的实例，逐主机统计，来自 `GET /allocation_candidates`：区域一个指标系列，每个可用区和聚合各一个。轮流读取，每次收集读几个规格，其间按上次读到的值发送。只有探测点会请求它。 |
+| `openstack_placement_flavor_fits` | `count` | 最大值 | Placement 认为还能再放下多少个某规格的实例，逐主机统计，来自 `GET /allocation_candidates`：区域一个指标系列，每个可用区和聚合各一个。轮流读取，每次收集读几个规格，其间按上次读到的值发送。只有探测器会请求它。 |
 | `openstack_nova_vcpus_available` | `count` | 最大值 | hypervisor 拥有的 vCPU，无论名称怎么说，不含任何分配比。Nova 从 microversion 2.88 起不再上报它，因此应以 Placement 的指标系列为准。 |
 | `openstack_nova_vcpus_used` | `count` | 最大值 | Nova 已向一台 hypervisor 上的实例承诺的 vCPU。是分配量，而不是负载。 |
 | `openstack_nova_memory_available_bytes` | `bytes` | 最大值 | hypervisor 拥有的内存，无论名称怎么说，不含任何分配比。 |
@@ -421,7 +421,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_nova_free_disk_bytes` | `bytes` | 最小值 | Nova 认为一台 hypervisor 上空闲的本地磁盘。当 hypervisor 承诺的超过它所拥有的时，它可能变为负数。 |
 | `openstack_nova_current_workload` | `count` | 最大值 | 一台 hypervisor 上正在运行多少个构建、调整大小、快照、迁移和救援操作。它不是 CPU 负载。 |
 | `openstack_nova_running_vms` | `count` | 最大值 | 一台 hypervisor 上有多少个 ACTIVE 实例。hostname 是 hypervisor 的完整名称。 |
-| `openstack_nova_server_status` | - | 最大值 | 每个实例一个指标系列，其值是该实例状态的数字代码：ACTIVE 为 0，BUILD 为 1，ERROR 为 4。请从 status 标签读取状态词并按它过滤：这个代码既不是计数，也不是严重程度。在真实的云上，Agent 的 exporter 会把 address_ipv4 和 address_ipv6 留空，探测点则根据 Nova 列出的地址填入。hypervisor_hostname、host_id 和 availability_zone 在实例被调度之前为空。image_id 是它所启动的镜像：只有探测点会发送它，且从卷启动的实例没有。network_names 以 JSON 数组列出它拥有地址的网络的名称：只有探测点会发送它。 |
+| `openstack_nova_server_status` | - | 最大值 | 每个实例一个指标系列，其值是该实例状态的数字代码：ACTIVE 为 0，BUILD 为 1，ERROR 为 4。请从 status 标签读取状态词并按它过滤：这个代码既不是计数，也不是严重程度。在真实的云上，Agent 的 exporter 会把 address_ipv4 和 address_ipv6 留空，探测器则根据 Nova 列出的地址填入。hypervisor_hostname、host_id 和 availability_zone 在实例被调度之前为空。image_id 是它所启动的镜像：只有探测器会发送它，且从卷启动的实例没有。network_names 以 JSON 数组列出它拥有地址的网络的名称：只有探测器会发送它。 |
 | `openstack_nova_server_local_gb` | `GiB` | 最大值 | 一个实例占用的本地磁盘。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-server_local_gb`。 |
 | `openstack_nova_total_vms` | `count` | 最大值 | 区域内有多少个实例，无论处于什么状态。 |
 | `openstack_nova_instances_by_status` | `count` | 最大值 | 每种状态下有多少个实例，每个区域中每种状态一个指标系列。超过汇总规模的云保留它，以取代每个实例一个指标系列。其他云不会发送它。 |
@@ -489,12 +489,12 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_cinder_pool_capacity_total_gb` | `GiB` | 最大值 | Cinder 存储池的总量，按其后端所报告的值。 |
 | `openstack_cinder_pool_capacity_free_gb` | `GiB` | 最小值 | Cinder 存储池的空闲量，按其后端所报告的值。 |
 | `openstack_cinder_volume_status_counter` | `count` | 最大值 | 每种状态下有多少个卷，每个状态词一个指标系列，状态词在 status 标签中。没有卷的已知状态读为 0。 |
-| `openstack_cinder_volume_gb` | `GiB` | 最大值 | 每个卷一个指标系列，其值是卷的大小，状态词在 status 标签中。在由探测点收集的云上，对于 Cinder 视为管理员的凭据，pool 标签会说明卷位于哪个存储池。 |
+| `openstack_cinder_volume_gb` | `GiB` | 最大值 | 每个卷一个指标系列，其值是卷的大小，状态词在 status 标签中。在由探测器收集的云上，对于 Cinder 视为管理员的凭据，pool 标签会说明卷位于哪个存储池。 |
 | `openstack_cinder_volume_status` | - | 最大值 | 每个卷一个指标系列，其值是该卷状态的数字代码。exporter 已将其弃用：请读取 Volume Size 的 status 标签，或 Volumes by Status。 |
 | `openstack_cinder_volumes` | `count` | 最大值 | 区域内有多少个卷。 |
 | `openstack_cinder_snapshots` | `count` | 最大值 | 区域内有多少个卷快照。 |
-| `openstack_cinder_snapshot_gb` | `GiB` | 最大值 | 每个卷快照一个指标系列，其值是快照的大小，状态词在 status 标签中。只有探测点会发送它：Agent 的 exporter 只统计快照的数量。 |
-| `openstack_cinder_backup_gb` | `GiB` | 最大值 | 每个卷备份一个指标系列，其值是备份的大小，状态词在 status 标签中，这样就能看到反复失败的备份。只有探测点会发送它：Agent 的 exporter 不读取备份。 |
+| `openstack_cinder_snapshot_gb` | `GiB` | 最大值 | 每个卷快照一个指标系列，其值是快照的大小，状态词在 status 标签中。只有探测器会发送它：Agent 的 exporter 只统计快照的数量。 |
+| `openstack_cinder_backup_gb` | `GiB` | 最大值 | 每个卷备份一个指标系列，其值是备份的大小，状态词在 status 标签中，这样就能看到反复失败的备份。只有探测器会发送它：Agent 的 exporter 不读取备份。 |
 
 ### 容量
 
@@ -537,15 +537,15 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_heat_up` | | 最小值 | Heat 的 API 是否应答。已停止的 `heat-engine` 也读为 0，因为 Heat 的 API 会向 engine 请求其列表。 |
 | `openstack_heat_stack_status` | | 最大值 | 每个 stack 一个指标系列，带有 `id`、`name`、`project_id` 和 `status`。其值是一个代码，所以请读取它的 `status` 标签。对于管理员以下的权限，`project_id` 为空。 |
 | `openstack_heat_stack_status_counter` | `count` | 最大值 | 每个区域内处于各状态的 stack 有多少个。 |
-| `openstack_heat_agent_state` | | 最小值 | Heat 是否把每个 `heat-engine` 列为 up。只有探测点会发送它。 |
+| `openstack_heat_agent_state` | | 最小值 | Heat 是否把每个 `heat-engine` 列为 up。只有探测器会发送它。 |
 | `openstack_container_infra_up` | | 最小值 | Magnum 的 API 是否应答。已停止的 `magnum-conductor` 不会改变它，它仍为 1。 |
-| `openstack_cloudkitty_up` | | 最小值 | 在运行了 CloudKitty 的云上，CloudKitty 的 API 是否应答。只有探测点会发送它。 |
-| `openstack_cloudkitty_rated` | | 最大值 | CloudKitty 对一个项目某个月的计费评级，每小时一次，按项目和月份。是一个数字，单位取决于所用的费率。只有探测点会发送它。 |
+| `openstack_cloudkitty_up` | | 最小值 | 在运行了 CloudKitty 的云上，CloudKitty 的 API 是否应答。只有探测器会发送它。 |
+| `openstack_cloudkitty_rated` | | 最大值 | CloudKitty 对一个项目某个月的计费评级，每小时一次，按项目和月份。是一个数字，单位取决于所用的费率。只有探测器会发送它。 |
 | `openstack_container_infra_total_clusters` | `count` | 最大值 | Magnum 为此凭据列出了多少个集群。 |
 | `openstack_container_infra_cluster_status` | | 最大值 | 每个集群一个指标系列，带有 `uuid`、`name`、`stack_id`、`status`、`node_count`、`master_count` 和 `project_id`。其值是一个代码，所以请读取它的 `status` 标签。来自 exporter 的 `project_id` 为空。 |
 | `openstack_container_infra_cluster_masters` | `count` | 最大值 | 每个集群被要求创建多少个控制平面节点。 |
 | `openstack_container_infra_cluster_nodes` | `count` | 最大值 | 每个集群被要求创建多少个工作节点。 |
-| `openstack_container_infra_agent_state` | | 最小值 | Magnum 是否把每个 `magnum-conductor` 列为 up。只有探测点会发送它。 |
+| `openstack_container_infra_agent_state` | | 最小值 | Magnum 是否把每个 `magnum-conductor` 列为 up。只有探测器会发送它。 |
 
 ### 共享文件系统
 
@@ -558,7 +558,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_sharev2_share_status` | | 最大值 | 每个共享一个指标系列。其值是一个代码，而 `creating` 的代码是 0，所以请读取它的 `status` 标签。 |
 | `openstack_sharev2_share_status_counter` | `count` | 最大值 | 每个区域内处于各状态的共享有多少个。 |
 | `openstack_sharev2_shares_counter` | `count` | 最大值 | Manila 为此凭据列出了多少个共享，按区域。 |
-| `openstack_sharev2_agent_state` | | 最小值 | Manila 是否把每个服务列为 up，其中 `state` 对正常关闭的服务为 `stopped`，对异常终止的服务为 `down`。只有探测点会发送它。 |
+| `openstack_sharev2_agent_state` | | 最小值 | Manila 是否把每个服务列为 up，其中 `state` 对正常关闭的服务为 `stopped`，对异常终止的服务为 `down`。只有探测器会发送它。 |
 
 ### 负载均衡器
 
@@ -570,18 +570,18 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_loadbalancer_loadbalancer_status` | | 最大值 | 每个负载均衡器一个指标系列，带有 `provisioning_status`、`operating_status`、`provider`、`vip_address` 和 `project_id`。其值是运行状态的代码：请读取文字。 |
 | `openstack_loadbalancer_pool_status` | | 最大值 | 每个池一个指标系列，带有 `provisioning_status`、`operating_status`、`protocol` 和 `lb_algorithm`。成员全部 down 的池仍然读为 0：请读取 `operating_status`。 |
 | `openstack_loadbalancer_amphora_status` | | 最大值 | 每个 amphora 一个指标系列，带有 `status`、`role`、`compute_id`、`loadbalancer_id` 和 `cert_expiration`（是文本而不是数字）。只有管理员才能列出 amphora。 |
-| `openstack_loadbalancer_listener_status` | | 最大值 | 每个监听器一个指标系列，值始终为 1，带有 `provisioning_status`、`operating_status`、`protocol`、`protocol_port` 和 `loadbalancer_id`。只有探测点会发送它。 |
-| `openstack_loadbalancer_member_status` | | 最大值 | 每个池成员一个指标系列，值始终为 1，带有最重要的 `operating_status`，以及 `pool_id`、`address`、`protocol_port` 和 `weight`。只有探测点会发送它。 |
-| `openstack_loadbalancer_stats_active_connections` | `{connection}` | 最大值 | 读数时刻打开的连接数，按负载均衡器。只有探测点会发送它：它读取的是 Octavia 的 API。 |
-| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | 最大值 | 两次读数之间每秒打开的连接数，按负载均衡器。只有探测点会发送它。 |
-| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | 最大值 | 每秒到达的字节数，按负载均衡器。只有探测点会发送它。 |
-| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | 最大值 | 每秒发出的字节数，按负载均衡器。只有探测点会发送它。 |
-| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | 最大值 | 每秒失败的请求数，按负载均衡器。只有探测点会发送它。 |
-| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | 最大值 | 同上，按监听器。只有探测点会发送它。 |
-| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | 最大值 | 同上，按监听器。只有探测点会发送它。 |
-| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | 最大值 | 同上，按监听器。只有探测点会发送它。 |
-| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | 最大值 | 同上，按监听器。只有探测点会发送它。 |
-| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | 最大值 | 同上，按监听器。只有探测点会发送它。 |
+| `openstack_loadbalancer_listener_status` | | 最大值 | 每个监听器一个指标系列，值始终为 1，带有 `provisioning_status`、`operating_status`、`protocol`、`protocol_port` 和 `loadbalancer_id`。只有探测器会发送它。 |
+| `openstack_loadbalancer_member_status` | | 最大值 | 每个池成员一个指标系列，值始终为 1，带有最重要的 `operating_status`，以及 `pool_id`、`address`、`protocol_port` 和 `weight`。只有探测器会发送它。 |
+| `openstack_loadbalancer_stats_active_connections` | `{connection}` | 最大值 | 读数时刻打开的连接数，按负载均衡器。只有探测器会发送它：它读取的是 Octavia 的 API。 |
+| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | 最大值 | 两次读数之间每秒打开的连接数，按负载均衡器。只有探测器会发送它。 |
+| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | 最大值 | 每秒到达的字节数，按负载均衡器。只有探测器会发送它。 |
+| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | 最大值 | 每秒发出的字节数，按负载均衡器。只有探测器会发送它。 |
+| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | 最大值 | 每秒失败的请求数，按负载均衡器。只有探测器会发送它。 |
+| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | 最大值 | 同上，按监听器。只有探测器会发送它。 |
+| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | 最大值 | 同上，按监听器。只有探测器会发送它。 |
+| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | 最大值 | 同上，按监听器。只有探测器会发送它。 |
+| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | 最大值 | 同上，按监听器。只有探测器会发送它。 |
+| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | 最大值 | 同上，按监听器。只有探测器会发送它。 |
 | `openstack_loadbalancer_total_loadbalancers` | `count` | 最大值 | Octavia 为此凭据列出了多少个负载均衡器，按区域。 |
 | `openstack_loadbalancer_total_pools` | `count` | 最大值 | Octavia 为此凭据列出了多少个池，按区域。 |
 | `openstack_loadbalancer_total_amphorae` | `count` | 最大值 | Octavia 为此凭据列出了多少个 amphora，按区域。 |
@@ -597,7 +597,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_designate_zone_status` | | 最大值 | 每个区域（zone）一个指标系列，带有 `id`、`name`、`tenant_id`、`type` 和 `status`。其值是一个代码，而 `PENDING` 的代码是 0，所以请读取它的 `status` 标签。 |
 | `openstack_designate_recordsets` | `count` | 最大值 | 每个区域持有多少个记录集。exporter 在每次抓取时都要为每个区域发起一次调用来获取这个数。 |
 | `openstack_designate_recordsets_status` | | 最大值 | 每个记录集一个指标系列，带有 `id`、`name`、`type`、`zone_id`、`zone_name` 和 `status`。其值是一个代码，而 `PENDING` 的代码是 0，所以请读取它的 `status` 标签。 |
-| `openstack_designate_agent_state` | | 最小值 | Designate 是否把它的每个服务列为 up。只有探测点会发送它。 |
+| `openstack_designate_agent_state` | | 最小值 | Designate 是否把它的每个服务列为 up。只有探测器会发送它。 |
 
 ### 指标
 
@@ -618,27 +618,27 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | --- | --- | --- | --- |
 | `openstack_object_store_up` | | 最小值 | exporter 对 Swift 的读取是否得到应答。被 Swift 拒绝的凭据读出来是 0，与 proxy 已停止时一样。 |
 | `openstack_object_store_bytes` | `bytes` | 最大值 | 一个容器占用多少空间，带有 `container_name`。仅限该凭据所属项目的容器，且没有项目标签。 |
-| `openstack_object_store_recon_servers` | `count` | 最大值 | 云的设置中为 `/recon` 指定了多少台 Swift 存储服务器。只有探测点会发送它。 |
-| `openstack_object_store_recon_up` | | 最小值 | 某台指定的服务器是否应答了 `/recon`，带有 `address`。只有探测点会发送它。 |
-| `openstack_object_store_recon_servers_not_answering` | `count` | 最大值 | 指定的服务器中有多少台没有应答。只有探测点会发送它。 |
-| `openstack_object_store_recon_replication_age_seconds` | `s` | 最小值 | 某台服务器上一次完成一轮复制是多久以前，带有 `address` 和 `ring`。只有探测点会发送它。 |
-| `openstack_object_store_recon_replication_failures` | `count` | 最大值 | 那一轮复制中有多少次尝试失败，带有 `address` 和 `ring`。只有探测点会发送它。 |
-| `openstack_object_store_recon_oldest_replication_seconds` | `s` | 最大值 | 其中等待最久的那一个。只有探测点会发送它。 |
-| `openstack_object_store_recon_unmounted_drives` | `count` | 最大值 | 某台服务器报告有多少块驱动器未挂载，带有 `address`。只有探测点会发送它。 |
-| `openstack_object_store_recon_rings_differ` | | 最小值 | 指定的服务器报告的某个 ring 的校验和是否不同，带有 `ring`。只有探测点会发送它。 |
-| `openstack_object_store_recon_rings_differing` | `count` | 最大值 | 有多少个 ring 出现这种情况。只有探测点会发送它。 |
+| `openstack_object_store_recon_servers` | `count` | 最大值 | 云的设置中为 `/recon` 指定了多少台 Swift 存储服务器。只有探测器会发送它。 |
+| `openstack_object_store_recon_up` | | 最小值 | 某台指定的服务器是否应答了 `/recon`，带有 `address`。只有探测器会发送它。 |
+| `openstack_object_store_recon_servers_not_answering` | `count` | 最大值 | 指定的服务器中有多少台没有应答。只有探测器会发送它。 |
+| `openstack_object_store_recon_replication_age_seconds` | `s` | 最小值 | 某台服务器上一次完成一轮复制是多久以前，带有 `address` 和 `ring`。只有探测器会发送它。 |
+| `openstack_object_store_recon_replication_failures` | `count` | 最大值 | 那一轮复制中有多少次尝试失败，带有 `address` 和 `ring`。只有探测器会发送它。 |
+| `openstack_object_store_recon_oldest_replication_seconds` | `s` | 最大值 | 其中等待最久的那一个。只有探测器会发送它。 |
+| `openstack_object_store_recon_unmounted_drives` | `count` | 最大值 | 某台服务器报告有多少块驱动器未挂载，带有 `address`。只有探测器会发送它。 |
+| `openstack_object_store_recon_rings_differ` | | 最小值 | 指定的服务器报告的某个 ring 的校验和是否不同，带有 `ring`。只有探测器会发送它。 |
+| `openstack_object_store_recon_rings_differing` | `count` | 最大值 | 有多少个 ring 出现这种情况。只有探测器会发送它。 |
 | `openstack_object_store_objects` | `count` | 最大值 | 一个容器中有多少个对象，带有 `container_name`。仅限该凭据所属项目的容器，且没有项目标签。 |
 
 ### 密钥管理
 
-只有探测点会发送这些指标，且仅限目录中列出了 Barbican 的云：exporter 没有读取它的组件。没有 Barbican 的云看不到它们的任何痕迹，由 Agent 收集的云也一样。
+只有探测器会发送这些指标，且仅限目录中列出了 Barbican 的云：exporter 没有读取它的组件。没有 Barbican 的云看不到它们的任何痕迹，由 Agent 收集的云也一样。
 
 | 指标 | 单位 | 读取方式 | 说明 |
 | --- | --- | --- | --- |
-| `openstack_barbican_up` | | 最小值 | Barbican 的 API 是否应答。被它拒绝的凭据读为 1，因为它作了应答。只有探测点会发送它。 |
-| `openstack_barbican_secrets` | `count` | 最大值 | 此凭据所属项目持有多少个密钥（secret）。只有探测点会发送它。 |
-| `openstack_barbican_orders` | `count` | 最大值 | 此凭据所属项目持有多少个订单（order）。只有探测点会发送它。 |
-| `openstack_barbican_containers` | `count` | 最大值 | 此凭据所属项目持有多少个密钥容器。只有探测点会发送它。 |
+| `openstack_barbican_up` | | 最小值 | Barbican 的 API 是否应答。被它拒绝的凭据读为 1，因为它作了应答。只有探测器会发送它。 |
+| `openstack_barbican_secrets` | `count` | 最大值 | 此凭据所属项目持有多少个密钥（secret）。只有探测器会发送它。 |
+| `openstack_barbican_orders` | `count` | 最大值 | 此凭据所属项目持有多少个订单（order）。只有探测器会发送它。 |
+| `openstack_barbican_containers` | `count` | 最大值 | 此凭据所属项目持有多少个密钥容器。只有探测器会发送它。 |
 
 ### 数据库
 
@@ -658,11 +658,11 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 | 指标 | 单位 | 读取方式 | 说明 |
 | --- | --- | --- | --- |
-| `openstack_ironic_up` | | 最小值 | 对 Ironic 的读取进行到足以得出结论时为 1。Ironic 停止后，OpenStack Agent 运行的 exporter 会返回空的 200，与没有 Ironic 的云一样，所以这个指标会沉默，而不是读为 0：探测点和 1.7.0 版的 exporter 可以给出 0。 |
+| `openstack_ironic_up` | | 最小值 | 对 Ironic 的读取进行到足以得出结论时为 1。Ironic 停止后，OpenStack Agent 运行的 exporter 会返回空的 200，与没有 Ironic 的云一样，所以这个指标会沉默，而不是读为 0：探测器和 1.7.0 版的 exporter 可以给出 0。 |
 | `openstack_ironic_node` | | 最大值 | Ironic 向此凭据显示的每个节点一个指标系列，值始终为 1：它要表达的内容在标签里，即节点的 provision 状态、电源状态以及是否处于维护中。Ironic 只向项目显示它所拥有的节点。 |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | 最大值 | Ironic 上一次看到该节点的 provision 状态发生变化的时间，以 Unix 时间表示。部署 agent 的心跳也会使它变化，所以长时间的擦除并不代表节点卡住了。从未变化过的节点没有该指标系列。 |
 | `openstack_ironic_node_updated_at` | `seconds` | 最大值 | 该节点的记录上一次发生变更的时间，以 Unix 时间表示。从未变更过的节点没有该指标系列。 |
-| `openstack_ironic_agent_state` | | 最小值 | Ironic 认为 conductor 存活时为 1，其心跳过期后为 0。只有探测点会发送它：exporter 没有这个指标系列，并且限定到某个项目的凭据会被拒绝列出它。 |
+| `openstack_ironic_agent_state` | | 最小值 | Ironic 认为 conductor 存活时为 1，其心跳过期后为 0。只有探测器会发送它：exporter 没有这个指标系列，并且限定到某个项目的凭据会被拒绝列出它。 |
 
 ### 项目
 
@@ -705,11 +705,11 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 ### 检查
 
-探测点从云外部发现的内容：参见[从外部检查](#从外部检查)。没有任何组件收集这些指标，所以在有人开启检查之前它们都是空的。每个指标都带有 `openstack.region.name`。
+探测器从云外部发现的内容：参见[从外部检查](#从外部检查)。没有任何组件收集这些指标，所以在有人开启检查之前它们都是空的。每个指标都带有 `openstack.region.name`。
 
 | 指标 | 单位 | 读取方式 | 说明 |
 | --- | --- | --- | --- |
-| `openstack_check_token_success` | - | 最小值 | Keystone 是否向从外部检查这个云的探测点签发了令牌：签发了为 1，没有为 0。 |
+| `openstack_check_token_success` | - | 最小值 | Keystone 是否向从外部检查这个云的探测器签发了令牌：签发了为 1，没有为 0。 |
 | `openstack_check_token_duration_seconds` | `s` | 最大值 | Keystone 签发该令牌花了多长时间。 |
 | `openstack_check_api_success` | - | 最小值 | 目录中的某个服务是否应答了一次单行读取：应答了，或拒绝了这个凭据（因为这说明它的 API 在正常工作），为 1；失败、超时或无法连接则为 0。标签有 `service_type`、`service_name`、`outcome`。 |
 | `openstack_check_api_duration_seconds` | `s` | 最大值 | 该服务应答花了多长时间。标签有 `service_type`、`service_name`。 |
@@ -726,7 +726,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 ## 从外部检查
 
-每个服务都可能报告健康，而没有人能启动实例。`oslo.middleware` 的 `/healthcheck` 只能说明服务可以访问，所以最可靠的测试就是做用户所做的事。探测点从云外部来做这件事，因为故障云内部的检查什么也说明不了。请从云的**检查**页面开启它们。[指南](/docs/telemetry/openstack#从外部检查云)说明了如何开启，以及生命周期检查具体会创建什么、可能触碰什么。
+每个服务都可能报告健康，而没有人能启动实例。`oslo.middleware` 的 `/healthcheck` 只能说明服务可以访问，所以最可靠的测试就是做用户所做的事。探测器从云外部来做这件事，因为故障云内部的检查什么也说明不了。请从云的**检查**页面开启它们。[指南](/docs/telemetry/openstack#从外部检查云)说明了如何开启，以及生命周期检查具体会创建什么、可能触碰什么。
 
 - **API 检查**默认每分钟运行一次，且只读。Keystone 签发一个令牌，目录中的每个服务应答一次经过认证的单行读取，并读取每个端点证书的到期时间。无需维护列表：有人新加入目录的服务，从那时起就会被检查。
 - **生命周期检查**默认每 30 分钟运行一次，且仅当你选择启用时才运行。它在一个自己独占的项目中：创建服务器，等待 `ACTIVE`，可选地绑定浮动 IP 并 ping 它，可选地创建并挂载卷，然后删除所有东西。每一步的耗时都是一个指标系列。
@@ -735,7 +735,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 生命周期检查每 30 分钟报告一次，而模板读取多次收集。因此，最近一次运行的发现，会随着每分钟的 API 检查被重复报告，直到出现新的一次运行。事件在一次运行失败后的几分钟内打开，并在下一次通过的运行后的几分钟内关闭，无论间隔是多少。失败运行的事件会写明出错的步骤，以及 Nova 或 Cinder 给出的故障信息，内容读取自运行所报告的数据。故障信息是自由文本，所以不是标签：下一次以不同方式失败的启动，仍属于同一个事件。
 
-沉默不等于恢复。早于两个半间隔的结论不再被重复报告，探测点停止后也不再报告任何内容，所以打开的事件会保持打开，而不是被判定为已解决。
+沉默不等于恢复。早于两个半间隔的结论不再被重复报告，探测器停止后也不再报告任何内容，所以打开的事件会保持打开，而不是被判定为已解决。
 
 ### 基于这些指标系列构建
 

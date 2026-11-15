@@ -58,7 +58,7 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Créer l'enregistrement
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://your-instance.service-now.com/api/now/table/incident`. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://your-instance.service-now.com/api/now/table/incident`. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -67,7 +67,7 @@ Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et rel
 }
 ```
 
-Et son **Request Body** sur :
+Et son **Corps de la requête** sur :
 
 ```json
 {
@@ -101,11 +101,11 @@ Créez un workflow nommé `Resolve ServiceNow incidents` et choisissez **On Upda
 
 ### Vérifier que l'incident est résolu
 
-Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Value to check** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparison** sur **is true**.
+Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
 
 ### Trouver l'enregistrement
 
-Ajoutez un bloc **API Get (JSON)** après le côté **Yes**, avec les mêmes **Request Headers**, et cette **URL** :
+Ajoutez un bloc **API Get (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Résoudre l'enregistrement
 
-Ajoutez un bloc **API Patch (JSON)** après le **Success** du bloc de recherche, avec les mêmes **Request Headers**, et cette **URL** :
+Ajoutez un bloc **API Patch (JSON)** après le **Succès** du bloc de recherche, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Réglez son **Request Body** sur :
+Réglez son **Corps de la requête** sur :
 
 ```json
 {

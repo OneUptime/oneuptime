@@ -397,6 +397,114 @@ export const fitViewToBounds: (
   };
 };
 
+/**
+ * Frame `bounds`, but never closer than `maxScale` (issue #6606).
+ *
+ * What the map does when a search finds something: one match fitted the
+ * way fitViewToBounds fits it would fill the frame with a single device at
+ * four times its size, which tells the reader nothing about where it is.
+ * Capped, a lone match sits in the middle at a size its name can be read
+ * at, with its neighbours around it.
+ */
+export const fitViewToBoundsWithin: (
+  bounds: WorldBounds | null,
+  viewBox: ViewBoxSize,
+  maxScale: number,
+) => ViewTransform = (
+  bounds: WorldBounds | null,
+  viewBox: ViewBoxSize,
+  maxScale: number,
+): ViewTransform => {
+  const fitted: ViewTransform = fitViewToBounds(bounds, viewBox);
+  if (
+    !bounds ||
+    !Number.isFinite(maxScale) ||
+    maxScale <= 0 ||
+    fitted.scale <= maxScale
+  ) {
+    return fitted;
+  }
+  return viewCenteredOn(
+    {
+      x: (bounds.minX + bounds.maxX) / 2,
+      y: (bounds.minY + bounds.maxY) / 2,
+    },
+    maxScale,
+    viewBox,
+  );
+};
+
+/**
+ * The view with `point` in the middle of the frame, at `scale` (clamped to
+ * the zoom limits). What "next match" moves to (issue #6606).
+ */
+export const viewCenteredOn: (
+  point: WorldPoint,
+  scale: number,
+  viewBox: ViewBoxSize,
+) => ViewTransform = (
+  point: WorldPoint,
+  scale: number,
+  viewBox: ViewBoxSize,
+): ViewTransform => {
+  if (
+    !point ||
+    !Number.isFinite(point.x) ||
+    !Number.isFinite(point.y) ||
+    !Number.isFinite(viewBox.width) ||
+    !Number.isFinite(viewBox.height)
+  ) {
+    return IDENTITY_VIEW;
+  }
+  const safeScale: number = clamp(
+    Number.isFinite(scale) && scale > 0 ? scale : 1,
+    MIN_ZOOM,
+    MAX_ZOOM,
+  );
+  return {
+    scale: safeScale,
+    tx: viewBox.width / 2 - point.x * safeScale,
+    ty: viewBox.height / 2 - point.y * safeScale,
+  };
+};
+
+/**
+ * The view moved so that a node now at `after` is drawn exactly where it
+ * was drawn when it was at `before` (issue #6606).
+ *
+ * Folding a branch away gives its room back to its neighbours, and the
+ * tree re-flows: the switch the reader just clicked would slide off under
+ * the cursor. Moving the camera by the same amount keeps it still, so the
+ * map changes around what the reader is looking at rather than out from
+ * under it.
+ */
+export const viewKeepingPointFixed: (
+  view: ViewTransform,
+  before: WorldPoint,
+  after: WorldPoint,
+) => ViewTransform = (
+  view: ViewTransform,
+  before: WorldPoint,
+  after: WorldPoint,
+): ViewTransform => {
+  if (
+    !before ||
+    !after ||
+    !Number.isFinite(before.x) ||
+    !Number.isFinite(before.y) ||
+    !Number.isFinite(after.x) ||
+    !Number.isFinite(after.y)
+  ) {
+    return view;
+  }
+  const dx: number = (before.x - after.x) * view.scale;
+  const dy: number = (before.y - after.y) * view.scale;
+  if (dx === 0 && dy === 0) {
+    return view;
+  }
+  return { scale: view.scale, tx: view.tx + dx, ty: view.ty + dy };
+};
+
 /** True once a press has travelled far enough to count as a drag. */
 export const dragThresholdExceeded: (
   origin: ScreenPoint,

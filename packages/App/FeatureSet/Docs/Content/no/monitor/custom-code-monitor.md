@@ -38,7 +38,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Custom JavaScript Code** under **Syntetisk overvåking**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Egendefinert JavaScript-kode** under **Syntetisk overvåking**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 
@@ -149,7 +149,7 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte metrikker**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
+Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
 
 ### Grenser
 

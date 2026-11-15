@@ -24,11 +24,17 @@ import ObjectID from "../../../Types/ObjectID";
 import { getOnCallPageStateName } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  getOnCallCustomChannelSendFailedMessage,
+  getOnCallSendFailedMessage,
+  getOnCallWorkspaceSendFailedMessage,
+} from "../../../Types/OnCallDutyPolicy/OnCallSendFailureLine";
+import {
   getOnCallTestPageCustomChannelOffMessage,
   getOnCallTestPageNotVerifiedMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 import {
   OnCallTestPageRecordKind,
+  getOnCallTestPageSeverityList,
   isOnCallTestPageRecordKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
@@ -203,7 +209,9 @@ export default class OnCallTestPageDelivery {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: row.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       } else {
@@ -260,7 +268,9 @@ export default class OnCallTestPageDelivery {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: row.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       } else {
@@ -310,7 +320,9 @@ export default class OnCallTestPageDelivery {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: row.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       } else {
@@ -361,7 +373,9 @@ export default class OnCallTestPageDelivery {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: row.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       } else {
@@ -471,7 +485,8 @@ export default class OnCallTestPageDelivery {
       }).catch(
         whenSendFails({
           userOnCallLogTimelineId: row.id!,
-          fallbackStatusMessage: `Error sending ${displayName} message.`,
+          fallbackStatusMessage:
+            getOnCallWorkspaceSendFailedMessage(displayName),
         }),
       );
     }
@@ -514,7 +529,9 @@ export default class OnCallTestPageDelivery {
         .catch(
           whenNotificationRequestFails({
             userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error sending webhook.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Webhook,
+            ),
           }),
         );
     }
@@ -557,7 +574,9 @@ export default class OnCallTestPageDelivery {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: row.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       } else {
@@ -623,7 +642,8 @@ export default class OnCallTestPageDelivery {
         }).catch(
           whenNotificationRequestFails({
             userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: `Error sending to ${channelName}.`,
+            fallbackStatusMessage:
+              getOnCallCustomChannelSendFailedMessage(channelName),
           }),
         );
       } else if (rule.customNotificationChannel) {
@@ -684,7 +704,9 @@ export default class OnCallTestPageDelivery {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       } else {
@@ -747,6 +769,7 @@ export default class OnCallTestPageDelivery {
       if (run?.testPageSeverityId) {
         context.severityName = getOnCallPageStateName(
           data.translator,
+          getOnCallTestPageSeverityList(context.recordKind),
           await this.readSeverityName({
             recordKind: context.recordKind,
             severityId: run.testPageSeverityId,

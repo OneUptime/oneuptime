@@ -31,6 +31,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What a walk of a device read (issue #5184), one OID a row: its name from
@@ -213,8 +214,8 @@ export const SnmpWalkRowValue: FunctionComponent<PartProps> = (
 
   if (view.isNull) {
     return (
-      <span className="text-sm text-gray-400" data-testid="snmp-walk-row-value">
-        —
+      <span data-testid="snmp-walk-row-value">
+        <TableEmptyValue />
       </span>
     );
   }
@@ -344,6 +345,8 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
             ? translator.translateText("Copy failed")!
             : translator.translateText("Copy OID")!
       }
+      // Translated here: drawn as given, never looked up again (#8067).
+      isUserContent={true}
       onClick={() => {
         clipboard.copy(view.oid).catch(() => {
           // useClipboardCopy says itself when the browser refused.
@@ -358,6 +361,7 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
         key="compare-with-other-devices"
         icon={IconProp.Search}
         text={translator.translateText("Compare with other devices")!}
+        isUserContent={true}
         onClick={() => {
           actions.onCompareWithOtherDevices?.(row);
         }}
@@ -374,6 +378,8 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
           "Collect on every device using {{template}}",
           { template: actions.templateName },
         )}
+        // In the reader's words already, the template's name as written.
+        isUserContent={true}
         isDisabled={Boolean(actions.collectingOid)}
         onClick={() => {
           actions.onCollectOnTemplate(row);

@@ -1,5 +1,6 @@
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
+import { isSamePlanChoice } from "../../Types/Billing/SubscriptionPlanPricing";
 import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
@@ -21,6 +22,7 @@ import {
 import JSONWebToken from "../Utils/JsonWebToken";
 import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import Response from "../Utils/Response";
+import logger from "../Utils/Logger";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import BillingService from "../Services/BillingService";
@@ -64,6 +66,39 @@ export function getNumberingReadPermissions(): Array<Permission> {
       NUMBERED_RECORD_KINDS[0]!.startsAtColumn,
     )?.read || []
   );
+}
+
+/*
+ * What a master admin is told when the project they are moving to another
+ * plan has no payment method. The payment provider refuses any plan change
+ * without one (BillingService.changePlan), and its own words speak to the
+ * customer ("Please go to Project Settings..."), not to the OneUptime staff
+ * acting on the project from the Admin Dashboard.
+ */
+export const ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE: string =
+  "This project has no payment method, and its plan cannot change without one. Ask the project's owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
+
+/*
+ * The master admin a request comes from, for the audit line a master-admin
+ * route writes, or undefined when it cannot be read. The master admin
+ * middleware checks the session but does not put it on the request, so the
+ * token is read again here. Only the log line uses it, so a failure to read
+ * it never blocks the action.
+ */
+function readMasterAdminUserId(req: ExpressRequest): ObjectID | undefined {
+  try {
+    const accessToken: string | undefined =
+      UserMiddleware.getAccessTokenFromExpressRequest(req);
+
+    if (!accessToken) {
+      return undefined;
+    }
+
+    return JSONWebToken.decode(accessToken, JsonWebTokenPurpose.UserSession)
+      .userId;
+  } catch {
+    return undefined;
+  }
 }
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
@@ -380,32 +415,146 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             throw new BadDataException("Trial end date is not a valid date");
           }
 
-          /*
-           * The master admin middleware verifies the token but does not put
-           * the decoded payload on the request, so read it again here - who
-           * granted the extension is the only audit trail this action has.
-           */
-          let extendedByUserId: ObjectID | undefined = undefined;
-
-          try {
-            const accessToken: string | undefined =
-              UserMiddleware.getAccessTokenFromExpressRequest(req);
-
-            if (accessToken) {
-              extendedByUserId = JSONWebToken.decode(
-                accessToken,
-                JsonWebTokenPurpose.UserSession,
-              ).userId;
-            }
-          } catch {
-            // Only used for the log line - never block the extension on it.
-          }
+          // Who granted the extension is the only audit trail this action has.
+          const extendedByUserId: ObjectID | undefined =
+            readMasterAdminUserId(req);
 
           await ProjectService.extendTrial({
             projectId: projectId,
             trialEndsAt: trialEndsAt,
             extendedByUserId: extendedByUserId,
           });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Moves a project to another plan, from the Admin Dashboard (issue
+     * #6771). Master-admin only, like extend-trial: OneUptime staff act on a
+     * project they are not a member of, so change-plan's checks - the
+     * caller's own project, a billing permission in it - cannot apply, and
+     * the master admin middleware is the whole check.
+     *
+     * The move itself is the one the customer makes
+     * (ProjectService.changePlan): the payment provider is changed first, a
+     * running trial carries over, and a project a cloud marketplace bills
+     * moves without a card. A custom-priced plan (Enterprise) can be picked
+     * here, as change-plan lets a master admin pick it.
+     */
+    this.router.put(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/admin-change-plan`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(
+              "Billing is not enabled on this server, so projects have no plan to change.",
+            );
+          }
+
+          const idParam: string = String(req.params["id"] || "");
+
+          if (!ObjectID.isValidUUID(idParam)) {
+            throw new BadDataException(
+              "The project ID in the address is not valid. Open the project from the Projects list, then try again.",
+            );
+          }
+
+          const projectId: ObjectID = new ObjectID(idParam);
+
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const data: JSONObject = (body["data"] as JSONObject) || {};
+          const planIdValue: JSONValue = data["paymentProviderPlanId"];
+
+          const paymentProviderPlanId: string =
+            typeof planIdValue === "string" ? planIdValue.trim() : "";
+
+          if (!paymentProviderPlanId) {
+            throw new BadDataException(
+              "Choose the plan to move this project to.",
+            );
+          }
+
+          const plans: Array<SubscriptionPlan> =
+            SubscriptionPlan.getSubscriptionPlans(getAllEnvVars());
+
+          if (
+            !SubscriptionPlan.isValidPlanId(
+              paymentProviderPlanId,
+              getAllEnvVars(),
+            )
+          ) {
+            throw new BadDataException(
+              "That plan is not one this server offers. Choose one of the plans shown, then try again.",
+            );
+          }
+
+          const project: Project | null = await ProjectService.findOneById({
+            id: projectId,
+            select: {
+              paymentProviderPlanId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!project) {
+            throw new BadDataException(
+              "This project no longer exists. It may have been deleted.",
+            );
+          }
+
+          /*
+           * The dialog opens on the plan the project is on. A submit that
+           * changes nothing would still swap the price for itself at the
+           * payment provider and report a plan change, so it is refused.
+           */
+          if (
+            isSamePlanChoice(
+              plans,
+              project.paymentProviderPlanId,
+              paymentProviderPlanId,
+            )
+          ) {
+            throw new BadDataException(
+              "This project is already on that plan. Choose another plan to move it to.",
+            );
+          }
+
+          // Who moved the project is the only audit trail this action has.
+          const changedByUserId: ObjectID | undefined =
+            readMasterAdminUserId(req);
+
+          try {
+            await ProjectService.changePlan({
+              projectId: projectId,
+              paymentProviderPlanId: paymentProviderPlanId,
+            });
+          } catch (err) {
+            if (
+              err instanceof BadDataException &&
+              err.message === Errors.BillingService.NO_PAYMENTS_METHODS
+            ) {
+              throw new BadDataException(
+                ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE,
+              );
+            }
+
+            throw err;
+          }
+
+          logger.info(
+            `Plan for project ${projectId.toString()} changed from ${
+              project.paymentProviderPlanId || "none"
+            } to ${paymentProviderPlanId} by master admin ${
+              changedByUserId?.toString() || "unknown"
+            }`,
+          );
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
@@ -510,26 +659,9 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
            */
           const amountInUSDCents: number = Math.round(amountInUSD * 100);
 
-          /*
-           * The master admin middleware verifies the token but does not put
-           * the decoded payload on the request, so read it again here - who
-           * moved the balance is the only audit trail this action has.
-           */
-          let adjustedByUserId: ObjectID | undefined = undefined;
-
-          try {
-            const accessToken: string | undefined =
-              UserMiddleware.getAccessTokenFromExpressRequest(req);
-
-            if (accessToken) {
-              adjustedByUserId = JSONWebToken.decode(
-                accessToken,
-                JsonWebTokenPurpose.UserSession,
-              ).userId;
-            }
-          } catch {
-            // Only used for the log line - never block the adjustment on it.
-          }
+          // Who moved the balance is the only audit trail this action has.
+          const adjustedByUserId: ObjectID | undefined =
+            readMasterAdminUserId(req);
 
           const result: ProjectBalanceAdjustmentResult =
             await ProjectService.adjustBalance({

@@ -14,7 +14,7 @@ Hij leest ook statuspagina's die met OneUptime zijn gemaakt, resource voor resou
 
 ## Zo werkt het
 
-Bij elke controle haalt een probe de statuspagina op, stelt vast welk formaat die gebruikt, en leest de algemene status, de componenten en de actieve incidenten. Hebt u componenten of een componentgroep gekozen, dan tellen alleen die mee. Daarna beslissen de criteria of de monitor online of offline is.
+Bij elke controle haalt een sonde de statuspagina op, stelt vast welk formaat die gebruikt, en leest de algemene status, de componenten en de actieve incidenten. Hebt u componenten of een componentgroep gekozen, dan tellen alleen die mee. Daarna beslissen de criteria of de monitor online of offline is.
 
 ```mermaid title="Eén controle van een externe statuspagina"
 flowchart TB
@@ -66,7 +66,7 @@ De controle op bereikbaarheid is ook de terugvaloptie als een provider die u uit
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **External Status Page** onder **Basisbewaking**, of typ `statuspage` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Externe statuspagina** onder **Basisbewaking**, of typ `statuspage` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
 
 ### De URL van de statuspagina invoeren
 
@@ -84,7 +84,7 @@ Klik op **Monitor testen** om de pagina één keer op te halen, en controleer de
 
 De criteriastap begint met [de standaardcriteria](#standaardcriteria), die de monitor als offline markeren als de provider een actief incident of een storing binnen de afbakening meldt. Wijzig ze als dat nodig is, en klik daarna op **Volgende**.
 
-### Probes kiezen en maken
+### Sondes kiezen en maken
 
 Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 minuten** — en klik daarna op **Monitor maken**.
 :::
@@ -194,7 +194,7 @@ Klik op **Monitor testen** terwijl er bij het andere project onderhoud loopt: de
 
 ### Wat een OneUptime-statuspagina de monitor laat lezen
 
-Een pagina die iedereen kan openen, wordt gelezen zoals haar bezoekers haar zien. Een privépagina, die om een aanmelding, SSO of een wachtwoord vraagt, kan niet worden gelezen: met **OneUptime Status Page** gekozen mislukt de controle en zegt ze waarom. Een pagina met een IP-toelatingslijst moet het adres van de probe toelaten: volg haar vanaf een probe binnen dat netwerk.
+Een pagina die iedereen kan openen, wordt gelezen zoals haar bezoekers haar zien. Een privépagina, die om een aanmelding, SSO of een wachtwoord vraagt, kan niet worden gelezen: met **OneUptime Status Page** gekozen mislukt de controle en zegt ze waarom. Een pagina met een IP-toelatingslijst moet het adres van de sonde toelaten: volg haar vanaf een sonde binnen dat netwerk.
 
 ## Sjabloonvariabelen
 
@@ -264,15 +264,15 @@ Zet de **Provider** op de provider waarvan u weet dat de pagina hem gebruikt. Vo
 :::
 
 :::details De lijst bij Componenten laadt niet
-Uw browser leest de lijst rechtstreeks van de statuspagina. Een interne pagina die uw browser niet bereikt, een pagina die haar lijst niet met andere sites deelt, en een RSS- of Atom-feed hebben geen lijst om uit te kiezen: typ de naam van elk component zoals de pagina die toont, en druk op Enter. De probes lezen de pagina zoals voorheen.
+Uw browser leest de lijst rechtstreeks van de statuspagina. Een interne pagina die uw browser niet bereikt, een pagina die haar lijst niet met andere sites deelt, en een RSS- of Atom-feed hebben geen lijst om uit te kiezen: typ de naam van elk component zoals de pagina die toont, en druk op Enter. De sondes lezen de pagina zoals voorheen.
 :::
 
 :::details Een OneUptime-statuspagina toont geen componenten
-Kies **OneUptime Status Page** als **Provider** en klik op **Monitor testen**: het resultaat zegt of de pagina privé is, of dat haar IP-toelatingslijst de probe buitensluit. Een zelf gehoste OneUptime die al een tijd niet is bijgewerkt, levert nog geen samenvatting: tot dan krijgt de pagina de controle op bereikbaarheid, of wordt ze als feed gelezen.
+Kies **OneUptime Status Page** als **Provider** en klik op **Monitor testen**: het resultaat zegt of de pagina privé is, of dat haar IP-toelatingslijst de sonde buitensluit. Een zelf gehoste OneUptime die al een tijd niet is bijgewerkt, levert nog geen samenvatting: tot dan krijgt de pagina de controle op bereikbaarheid, of wordt ze als feed gelezen.
 :::
 
 :::details Een interne statuspagina is niet bereikbaar
-Een probe weigert privénetwerkadressen, tenzij hij ze mag bereiken. Zet `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` op een probe binnen uw netwerk — zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
+Een sonde weigert privénetwerkadressen, tenzij hij ze mag bereiken. Zet `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` op een sonde binnen uw netwerk — zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 :::
 
 ## Volgende stappen

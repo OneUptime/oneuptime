@@ -20,6 +20,7 @@ import AppLink from "../AppLink/AppLink";
 import { fetchLlmAnswerStats } from "../LlmConversations/LlmConversationsApi";
 import { formatLlmCount } from "../LlmConversations/LlmConversationFormat";
 import { getLlmMonitorWindowLabel } from "./LlmMonitorWindow";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * What an AI / LLM monitor with these settings would count right now: the
@@ -178,7 +179,7 @@ const LlmMonitorPreview: FunctionComponent<ComponentProps> = (
           className="mt-2 text-sm text-red-700"
           data-testid="llm-monitor-preview-error"
         >
-          {state.message}
+          <ErrorInSentence message={state.message} showWhereToLook={true} />
         </div>
       ) : (
         <></>

@@ -13,7 +13,7 @@
 
 ## 運作方式
 
-Huntress 會在報告送出時、有人留言時以及報告關閉時傳送事件報告的事件。**Huntress Incident Report** 觸發器會為每個事件啟動一次工作流程，它的 **Event** 說明是哪種事件：`created`、`comment-added` 或 `closed`。
+Huntress 會在報告送出時、有人留言時以及報告關閉時傳送事件報告的事件。**Huntress Incident Report** 觸發器會為每個事件啟動一次工作流程，它的 **事件** 說明是哪種事件：`created`、`comment-added` 或 `closed`。
 
 ```mermaid title="一份 Huntress 事件報告在工作流程中"
 sequenceDiagram
@@ -79,19 +79,19 @@ sequenceDiagram
 
 ## 工作流程做什麼
 
-在觸發器之後， **Incident From Another Tool** 依報告的編號執行每種 **Event** 要求的操作：
+在觸發器之後， **Incident From Another Tool** 依報告的編號執行每種 **事件** 要求的操作：
 
 | Event | 工作流程做什麼 |
 | --- | --- |
-| `created` | 以觸發器的 **Incident Severity ID** 建立事件，並帶上其 **Organization Label ID** 標籤。對於高或嚴重的報告，**Page an On-Call Policy** 會呼叫你的策略；低報告不呼叫任何人。已有事件的報告不會再建立另一個事件。 |
+| `created` | 以觸發器的 **事件嚴重程度 ID** 建立事件，並帶上其 **Organization Label ID** 標籤。對於高或嚴重的報告，**Page an On-Call Policy** 會呼叫你的策略；低報告不呼叫任何人。已有事件的報告不會再建立另一個事件。 |
 | `comment-added` | 找到報告的事件，把留言作為私人備註加到事件上。 |
 | `closed` | 找到報告的事件並解決它，除非它已經解決。原因記錄在它的時間軸上：Huntress 關閉了該報告。 |
 
-它和其他工作流程一樣，所以你可以修改它做的事：修改 **Incident From Another Tool** 之後的 **If / Else** 比較的內容，只為嚴重報告呼叫；用 Slack 或 Microsoft Teams 步驟把每份報告貼到聊天頻道；或用依 **Organization** 判斷的 **Switch / Case** 把每個組織送給它自己的待命策略。每次執行都會列在工作流程的執行記錄中，並顯示每個步驟做了什麼。
+它和其他工作流程一樣，所以你可以修改它做的事：修改 **Incident From Another Tool** 之後的 **If / Else** 比較的內容，只為嚴重報告呼叫；用 Slack 或 Microsoft Teams 步驟把每份報告貼到聊天頻道；或用依 **組織** 判斷的 **Switch / Case** 把每個組織送給它自己的待命策略。每次執行都會列在工作流程的執行記錄中，並顯示每個步驟做了什麼。
 
 ### 嚴重性
 
-Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **Incident Severity ID** 是報告建立事件時使用的事件嚴重性：由對應設定選擇，否則依**事件 → 設定 → 事件嚴重性**中列出的事件嚴重性順序決定：
+Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **事件嚴重程度 ID** 是報告建立事件時使用的事件嚴重性：由對應設定選擇，否則依**事件 → 設定 → 事件嚴重性**中列出的事件嚴重性順序決定：
 
 | Huntress 嚴重性 | Huntress 的意思 | 設定 | 設定為空時的事件嚴重性 |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **Incident
 
 | 值 | 內容 |
 | --- | --- |
-| **Event** | `created`、`comment-added` 或 `closed`。已經關閉或駁回的報告，無論由哪個事件帶來，都是 `closed`。 |
+| **事件** | `created`、`comment-added` 或 `closed`。已經關閉或駁回的報告，無論由哪個事件帶來，都是 `closed`。 |
 | **Report ID** | 報告在 Huntress 中的編號。 |
-| **Severity** | `critical`、`high` 或 `low`。 |
-| **Status** | 報告在 Huntress 中的狀態，例如 `sent`、`closed` 或 `dismissed`。 |
-| **Subject** | 報告的主旨，即 Huntress 所寫的原文。 |
-| **Summary** | SOC 分析師寫的內容。 |
-| **Organization**、**Organization ID** | 報告涉及的 Huntress 組織。 |
-| **Affected** | 報告涉及的主機或身分。 |
-| **Platform**、**Indicators** | Huntress 在哪裡發現，以及發現了什麼。 |
-| **Comment** | 對於 `comment-added`，某人新增的留言。 |
+| **嚴重程度** | `critical`、`high` 或 `low`。 |
+| **狀態** | 報告在 Huntress 中的狀態，例如 `sent`、`closed` 或 `dismissed`。 |
+| **主旨** | 報告的主旨，即 Huntress 所寫的原文。 |
+| **摘要** | SOC 分析師寫的內容。 |
+| **組織**、**組織 ID** | 報告涉及的 Huntress 組織。 |
+| **受影響對象** | 報告涉及的主機或身分。 |
+| **平台**、**指標** | Huntress 在哪裡發現，以及發現了什麼。 |
+| **評論** | 對於 `comment-added`，某人新增的留言。 |
 | **Report URL** | 報告在 Huntress 中開啟的位置。 |
-| **Incident Title**、**Incident Description** | 關於該報告的事件的標題與 Markdown 描述。 |
-| **Note** | 關於該事件的備註 Markdown：留言內容，或 Huntress 關閉了該報告。 |
-| **Incident Severity ID**、**Organization Label ID** | 上文所述的事件嚴重性與標籤。 |
+| **事件標題**、**事件描述** | 關於該報告的事件的標題與 Markdown 描述。 |
+| **備註** | 關於該事件的備註 Markdown：留言內容，或 Huntress 關閉了該報告。 |
+| **事件嚴重程度 ID**、**Organization Label ID** | 上文所述的事件嚴重性與標籤。 |
 | **Received At** | OneUptime 收到該事件的時間。 |
 
-**Summary** 與 **Comment** 是 Huntress 分析師寫的文字。要把它們放進事件或備註，請使用 **Incident Description** 與 **Note**：它們會保留格式，而且其中的內容不會載入圖片，也不會提及任何人。
+**摘要** 與 **評論** 是 Huntress 分析師寫的文字。要把它們放進事件或備註，請使用 **事件描述** 與 **備註**：它們會保留格式，而且其中的內容不會載入圖片，也不會提及任何人。
 
-要在沒有 Huntress 的情況下試用工作流程，請在**建構器**中點選**執行工作流程**，輸入 **Event**、**Report ID** 與你需要的欄位。使用同一個 **Report ID** 可以把一份報告從 `created` 追到 `closed`。
+要在沒有 Huntress 的情況下試用工作流程，請在**建構器**中點選**執行工作流程**，輸入 **事件**、**Report ID** 與你需要的欄位。使用同一個 **Report ID** 可以把一份報告從 `created` 追到 `closed`。
 
 ## 之前建立的 Huntress 連線
 

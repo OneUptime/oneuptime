@@ -41,6 +41,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * THE SLO FIGURES AS THE READER'S LANGUAGE WRITES THEM (#6695, #6778).
@@ -285,30 +286,48 @@ describe("formatErrorBudgetRemainingSeconds: the line under the error budget", (
 
   test("German: each case is a German sentence, with German figures", () => {
     expect(formatErrorBudgetRemainingSeconds(2580, GERMAN)).toBe(
-      "Noch 43 Min.",
+      "Noch 43\u00A0Min.",
     );
-    expect(formatErrorBudgetRemainingSeconds(60, GERMAN)).toBe("Noch 1 Min.");
-    expect(formatErrorBudgetRemainingSeconds(0, GERMAN)).toBe("Noch 0 Min.");
+    expect(formatErrorBudgetRemainingSeconds(60, GERMAN)).toBe(
+      "Noch 1\u00A0Min.",
+    );
+    expect(formatErrorBudgetRemainingSeconds(0, GERMAN)).toBe(
+      "Noch 0\u00A0Min.",
+    );
     expect(formatErrorBudgetRemainingSeconds(20, GERMAN)).toBe(
-      DE["under 1 min remaining"],
+      // "1 Min." held together, as drawn (NoBreakSpaces).
+      withNoBreakSpaces(
+        DE["under 1 min remaining"] as string,
+        "under 1 min remaining",
+        "de",
+      ),
     );
     expect(formatErrorBudgetRemainingSeconds(-2520, GERMAN)).toBe(
-      "42 Min. über dem Budget",
+      "42\u00A0Min. über dem Budget",
     );
     expect(formatErrorBudgetRemainingSeconds(-20, GERMAN)).toBe(
-      DE["under 1 min over budget"],
+      // "1 Min." held together, as drawn (NoBreakSpaces).
+      withNoBreakSpaces(
+        DE["under 1 min over budget"] as string,
+        "under 1 min over budget",
+        "de",
+      ),
     );
     // German writes a thousands mark.
     expect(formatErrorBudgetRemainingSeconds(86400, GERMAN)).toBe(
-      "Noch 1.440 Min.",
+      "Noch 1.440\u00A0Min.",
     );
   });
 
   test("Arabic: a short unit the same for every count, and an overage said in words", () => {
-    expect(formatErrorBudgetRemainingSeconds(2580, ARABIC)).toBe("يتبقى 43 د");
-    expect(formatErrorBudgetRemainingSeconds(60, ARABIC)).toBe("يتبقى 1 د");
+    expect(formatErrorBudgetRemainingSeconds(2580, ARABIC)).toBe(
+      "يتبقى 43\u00A0د",
+    );
+    expect(formatErrorBudgetRemainingSeconds(60, ARABIC)).toBe(
+      "يتبقى 1\u00A0د",
+    );
     expect(formatErrorBudgetRemainingSeconds(-2520, ARABIC)).toBe(
-      "تجاوز الميزانية بمقدار 42 د",
+      "تجاوز الميزانية بمقدار 42\u00A0د",
     );
     // A negative figure is written out in words, never with a minus.
     expect(formatErrorBudgetRemainingSeconds(-2520, ARABIC)).not.toContain(
@@ -318,25 +337,25 @@ describe("formatErrorBudgetRemainingSeconds: the line under the error budget", (
 
   test("Persian writes the minutes in its own digits", () => {
     expect(formatErrorBudgetRemainingSeconds(2580, PERSIAN)).toBe(
-      "۴۳ دقیقه مانده",
+      "۴۳\u00A0دقیقه مانده",
     );
     expect(formatErrorBudgetRemainingSeconds(-2520, PERSIAN)).toBe(
-      "۴۲ دقیقه بیش از بودجه",
+      "۴۲\u00A0دقیقه بیش از بودجه",
     );
   });
 
   test("Russian takes its own form for one, 21 and 31, and the general one for the rest", () => {
     expect(formatErrorBudgetRemainingSeconds(60, RUSSIAN)).toBe(
-      "Осталась 1 мин",
+      "Осталась 1\u00A0мин",
     );
     expect(formatErrorBudgetRemainingSeconds(21 * 60, RUSSIAN)).toBe(
-      "Осталась 21 мин",
+      "Осталась 21\u00A0мин",
     );
     expect(formatErrorBudgetRemainingSeconds(3 * 60, RUSSIAN)).toBe(
-      "Осталось 3 мин",
+      "Осталось 3\u00A0мин",
     );
     expect(formatErrorBudgetRemainingSeconds(5 * 60, RUSSIAN)).toBe(
-      "Осталось 5 мин",
+      "Осталось 5\u00A0мин",
     );
   });
 
@@ -533,7 +552,7 @@ describe("the tile's figure and the line under it, per metric", () => {
     ).toEqual({
       isEvaluated: true,
       value: `42,5${NO_BREAK_SPACE}%`,
-      subline: "Noch 43 Min.",
+      subline: "Noch 43\u00A0Min.",
     });
     expect(
       getSloWidgetTileDisplay({
@@ -547,7 +566,7 @@ describe("the tile's figure and the line under it, per metric", () => {
     ).toEqual({
       isEvaluated: true,
       value: `-12,5${NO_BREAK_SPACE}%`,
-      subline: "42 Min. über dem Budget",
+      subline: "42\u00A0Min. über dem Budget",
     });
     expect(
       getSloWidgetTileDisplay({
@@ -667,7 +686,7 @@ describe("the SLO list widget's row in the reader's language", () => {
     expect(display.sli).toBe(`99,874${NO_BREAK_SPACE}%`);
     expect(display.target).toBe(`Ziel 99,9${NO_BREAK_SPACE}%`);
     expect(display.budget).toBe(`42,5${NO_BREAK_SPACE}%`);
-    expect(display.budgetTime).toBe("Noch 43 Min.");
+    expect(display.budgetTime).toBe("Noch 43\u00A0Min.");
     expect(display.burnRate).toBe("14,4×");
     // The status stays a key the widget looks up where it draws it.
     expect(display.statusText).toBe(SloStatus.AtRisk);
@@ -693,7 +712,7 @@ describe("the SLO list widget's row in the reader's language", () => {
 
     expect(disabled.statusText).toBe(SLO_DISABLED_STATUS_LABEL);
     expect(disabled.target).toBe(`Ziel 99,9${NO_BREAK_SPACE}%`);
-    expect(disabled.budgetTime).toBe("Noch 43 Min.");
+    expect(disabled.budgetTime).toBe("Noch 43\u00A0Min.");
 
     const notEvaluated: SloListRowDisplay = getSloListRowDisplay(
       { ...ROW, sloStatus: null } as SloListRowData,

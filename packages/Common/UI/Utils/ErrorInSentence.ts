@@ -18,6 +18,7 @@ import {
   RefusalWithValues,
 } from "../../Types/Exception/RefusalWithValues";
 import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
+import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/DataCheckRefusals";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -55,10 +56,11 @@ import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTempla
  *
  * Where to look (npm run doctor) is said only for a server failure, to a
  * master admin of a self-hosted server, and only where the card's sentence
- * is drawn (ErrorSentence). A gateway's error inside a page that loaded
- * means the server answered a moment ago and is restarting: the card says
- * to try again in a few minutes, and leaves the doctor to the page that did
- * not load.
+ * is drawn (ErrorSentence); so is the limit of the proxy in front of
+ * OneUptime, for what was too large (#8278). A gateway's error inside a
+ * page that loaded means the server answered a moment ago and is
+ * restarting: the card says to try again in a few minutes, and leaves the
+ * doctor to the page that did not load.
  *
  * React-free and window-free: the Dashboard's React-free modules use
  * errorInSentence and are read by tests in plain Node. Who reads the page
@@ -112,17 +114,20 @@ export type ErrorInSentenceWords =
  */
 const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
   MONITOR_TYPE_MISMATCH_REFUSAL,
+  // Why a data check could not be written from a sentence (#7530).
+  ...DATA_CHECK_REFUSALS_WITH_VALUES,
 ];
 
 /*
  * A message somebody put into words, in `translator`'s language: a refusal
  * with values said with them, any other message looked up, or as written
- * where the language has no wording of it.
+ * where the language has no wording of it. ErrorLine says a message drawn
+ * on its own line this way too.
  */
-const sayMessage: (message: string, translator: Translator) => string = (
+export const sayErrorMessage: (
   message: string,
   translator: Translator,
-): string => {
+) => string = (message: string, translator: Translator): string => {
   for (const refusal of REFUSALS_WITH_VALUES) {
     const values: TemplateValues | null = readRefusalValues(refusal, message);
 
@@ -132,6 +137,20 @@ const sayMessage: (message: string, translator: Translator) => string = (
   }
 
   return translator.translateText(message) || message;
+};
+
+/*
+ * Whether the server failed in a way it could not explain, with or without
+ * its reference: the errors whose where-to-look is the server's logs, with
+ * OneUptime Health beside it (ErrorWhereToLook).
+ */
+export const isServerFailureKind: (kind: UnexplainedErrorKind) => boolean = (
+  kind: UnexplainedErrorKind,
+): boolean => {
+  return (
+    kind === UnexplainedErrorKind.ServerWithReference ||
+    kind === UnexplainedErrorKind.Server
+  );
 };
 
 // A member of a server somebody runs: the reader until the page says.
@@ -191,7 +210,7 @@ export const getErrorInSentenceWords: (data: {
   if (!error) {
     return {
       isUnexplained: false,
-      text: sayMessage(message, data.translator),
+      text: sayErrorMessage(message, data.translator),
     };
   }
 
@@ -200,9 +219,15 @@ export const getErrorInSentenceWords: (data: {
     ...(data.reader || getPageErrorReader()),
   });
 
-  const isServerFailure: boolean =
-    error.kind === UnexplainedErrorKind.ServerWithReference ||
-    error.kind === UnexplainedErrorKind.Server;
+  /*
+   * Where to look is said for a server failure (the logs) and for what was
+   * too large (the proxy's limit, #8278): both are the server's to look
+   * into while it answers. A gateway's error is left to the page that did
+   * not load, as above.
+   */
+  const saysWhereToLook: boolean =
+    isServerFailureKind(error.kind) ||
+    error.kind === UnexplainedErrorKind.TooLarge;
 
   const why: string = say(explanation.why);
 
@@ -212,7 +237,7 @@ export const getErrorInSentenceWords: (data: {
     text: joinSentences([why, say(explanation.next)]),
     reference: error.reference,
     whereToLook:
-      isServerFailure && explanation.whereToLook
+      saysWhereToLook && explanation.whereToLook
         ? say(explanation.whereToLook)
         : null,
     fullStop: fullStopOf(why),

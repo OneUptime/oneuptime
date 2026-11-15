@@ -35,18 +35,19 @@
     "overview": "Overzicht",
     "incidents": "Incidenten",
     "announcements": "Aankondigingen",
-    "scheduledEvents": "Geplande onderhoud",
+    "scheduledEvents": "Gepland onderhoud",
     "subscribe": "Abonneren",
     "login": "Inloggen",
     "logout": "Uitloggen"
   },
   "overview": {
     "uptimeSuffix": "% uptime",
+    "uptimePercent": "{{percent}}% beschikbaarheid",
     "operational": "Operationeel",
     "notMonitored": "Niet bewaakt",
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
     "activeIncidents": "Actieve incidenten",
-    "scheduledMaintenanceEvents": "Geplande onderhoud",
+    "scheduledMaintenanceEvents": "Gepland onderhoud",
     "allClearTitle": "Alles ziet er goed uit",
     "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
     "allResourcesAre": "Alle bronnen zijn {{status}}",
@@ -114,6 +115,7 @@
     "noneDescription": "Geen incidenten geplaatst op deze statuspagina.",
     "postmortem": "Post-mortem incident",
     "declaredAt": "Gemeld op ",
+    "declaredAtTime": "Gemeld op {{time}}",
     "report": "Incidentrapport",
     "notFound": "Incident niet gevonden op deze statuspagina."
   },
@@ -130,10 +132,11 @@
     "none": "Geen aankondigingen",
     "noneDescription": "Er zijn nog geen aankondigingen geplaatst op deze pagina.",
     "announcedAt": "Aangekondigd op ",
+    "announcedAtTime": "Aangekondigd op {{time}}",
     "notFound": "Aankondiging niet gevonden op deze statuspagina."
   },
   "scheduledEvents": {
-    "title": "Geplande onderhoud",
+    "title": "Gepland onderhoud",
     "singular": "Onderhoudsgebeurtenis",
     "scheduledMaintenance": "Gepland onderhoud",
     "ongoing": "Lopend onderhoud",
@@ -142,6 +145,7 @@
     "none": "Geen gepland onderhoud",
     "noneDescription": "Er is geen gepland onderhoud gepubliceerd voor deze statuspagina.",
     "scheduledAt": "Gepland voor ",
+    "scheduledAtTime": "Gepland voor {{time}}",
     "report": "Rapport van onderhoudsgebeurtenis",
     "notFound": "Geen onderhoudsgebeurtenis gevonden voor deze statuspagina.",
     "calendar": {
@@ -149,7 +153,7 @@
       "subscribeTitle": "Abonneren op gepland onderhoud",
       "subscribeDescription": "Krijg het geplande onderhoud van deze pagina in uw agenda-app. Het blijft vanzelf up-to-date.",
       "eventTitle": "Toevoegen aan agenda",
-      "eventDescription": "Voeg dit onderhoud toe aan uw agenda-app.",
+      "eventDescription": "Voeg deze onderhoudsgebeurtenis toe aan uw agenda-app.",
       "addToCalendar": "Toevoegen aan agenda",
       "addHeading": "Toevoegen aan uw agenda",
       "google": "Google Agenda",
@@ -467,5 +471,7 @@
     "note": "Opmerking",
     "tip": "Tip",
     "warning": "Waarschuwing"
-  }
+  },
+  "No options available": "Geen opties beschikbaar",
+  "No matches found": "Geen overeenkomsten gevonden"
 }

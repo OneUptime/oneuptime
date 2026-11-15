@@ -121,7 +121,7 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
 
   const options: Array<DropdownOption> = read.data.clusters.map(
     (cluster: { id: string; name: string }): DropdownOption => {
-      return { label: cluster.name, value: cluster.id };
+      return { label: cluster.name, isUserContent: true, value: cluster.id };
     },
   );
 

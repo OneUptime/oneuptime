@@ -25,6 +25,8 @@ import Permission, {
 import {
   getPermissionTitleForSentence,
   getRoleCopyChangeRefusedMessage,
+  getTenantPermissionProblem,
+  PermissionHolder,
 } from "../../Types/Team/CustomRole";
 import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
@@ -208,6 +210,36 @@ export class Service extends ProjectReferencesService<Model> {
           permission: copy.permission!,
         }),
       );
+    }
+  }
+
+  /*
+   * A team is given only what the permission pickers offer
+   * (getTenantPermissionProblem), allow or block, by everyone - a project
+   * owner and a master admin too, whom the grant ceiling lets give
+   * anything. The rest are OneUptime's own to give (Customer Support opens
+   * a person's isDisabled and isBlocked to them), retired, or no permission
+   * at all. Only OneUptime's own writes (root: the project's first teams,
+   * data migrations) are trusted with what they write; the copies of a
+   * custom role's rows are written without hooks (CustomRoleSync), and a
+   * role holds only what a team may be given. A row already stored is still
+   * deleted as any other.
+   */
+  private assertTeamMayBeGiven(
+    permission: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const problem: string | null = getTenantPermissionProblem({
+      permission: permission,
+      holder: PermissionHolder.Team,
+    });
+
+    if (problem) {
+      throw new BadDataException(problem);
     }
   }
 
@@ -583,6 +615,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.assertProjectMatchesTenant(createBy.data.projectId, createBy.props);
 
+    // Refused before anything is read: whatever the team, it may not hold it.
+    this.assertTeamMayBeGiven(createBy.data.permission, createBy.props);
+
     /*
      * Resolve the team and project together. A globally valid team ID from a
      * different tenant must never be enough to attach a permission row.
@@ -784,9 +819,17 @@ export class Service extends ProjectReferencesService<Model> {
         labels?: unknown;
         scope?: unknown;
       };
+      // What the row holds once the change is written, whatever it changes.
+      const requestedValue: unknown =
+        rawUpdateData.permission === undefined
+          ? permission.permission
+          : rawUpdateData.permission;
+
+      this.assertTeamMayBeGiven(requestedValue, updateBy.props);
+
       const requestedPermission: Permission =
-        typeof rawUpdateData.permission === "string"
-          ? (rawUpdateData.permission as Permission)
+        typeof requestedValue === "string"
+          ? (requestedValue as Permission)
           : permission.permission!;
       const requestedLabels: Array<Label> =
         rawUpdateData.labels === null

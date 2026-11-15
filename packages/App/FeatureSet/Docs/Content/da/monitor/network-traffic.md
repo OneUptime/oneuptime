@@ -241,7 +241,7 @@ Et navn kommer fra den første af disse kilder, der navngiver adressen:
 | 3 | Værter | En vært, hvis agent rapporterer adressen |
 | 4 | Cloud-ressourcer | En cloud-ressource, som jeres cloud-konto angiver adressen for |
 | 5 | Kubernetes | En node med adressen, derefter en pod (en pod på sin nodes eget netværk har nodens adresse) |
-| 6 | DNS | Adressens reverse DNS-navn, slået op af den probe, der modtog flowene |
+| 6 | DNS | Adressens reverse DNS-navn, slået op af den sonde, der modtog flowene |
 
 En post navngiver kun trafikken fra en tid, hvor den fandtes: en vært, der først blev set efter tidsrummet, eller en pod, der forsvandt før det, navngiver ikke trafikken i det tidsrum. Et navn, som nogen gav et undernet - `10.18.167.0/24` er »Kontoret i Mumbai« - vises ved siden af hver adresse i det, aldrig i stedet for adressens eget navn; hvor navngivne undernet overlapper, vises det smalleste.
 
@@ -259,11 +259,11 @@ Klik på en adresse, eller find den, så indsnævres siden til den med et kort o
 
 **Netværk** -> **Indstillinger** -> **Adressenavne** viser de navne, folk har givet adresser og undernet, som intet andet navngiver: en partners VPN-gateway, et SaaS-endpoint, gæste-wi-fi'et. **Opret Adressenavn** beder om navnet og om én IP-adresse (`10.0.0.5`, `2001:db8::5`) eller et undernet (`10.18.167.0/24`). Et undernet gemmes som sin første adresse og sin længde, så `10.18.167.35/24` gemmes som `10.18.167.0/24`. Hver adresse eller hvert undernet har ét navn.
 
-### DNS-navne fra proben
+### DNS-navne fra sonden
 
-DNS-navne slås op af den probe, der modtog flowene, med den resolver, dens vært bruger: inde i jeres netværk, hvor private adresser har navne. Proben beholder kun et navn, når navnets egne A- eller AAAA-poster peger tilbage på adressen, så en forældet eller forfalsket reverse-post navngiver intet, og et navn i probeværtens hosts-fil bruges, som det er. Den sender navnene med flowene, og de gemmes sammen med dem: et tidsrum viser de navne, dets adresser havde dengang.
+DNS-navne slås op af den sonde, der modtog flowene, med den resolver, dens vært bruger: inde i jeres netværk, hvor private adresser har navne. Sonden beholder kun et navn, når navnets egne A- eller AAAA-poster peger tilbage på adressen, så en forældet eller forfalsket reverse-post navngiver intet, og et navn i sondeværtens hosts-fil bruges, som det er. Den sender navnene med flowene, og de gemmes sammen med dem: et tidsrum viser de navne, dets adresser havde dengang.
 
-Opslagene holder aldrig flowene tilbage. De travleste adresser slås op først, højst 300 i minuttet og otte ad gangen; et navn huskes i en time, en adresse uden navn i 30 minutter, og et opslag, der mislykkedes, prøves igen efter 5 minutter. Loopback-, link-local-, multicast- og broadcast-adresser slås aldrig op. De globale prober i en hostet OneUptime, som alle konti deler, slår kun offentlige adresser op; jeres egne prober, og proberne i jeres egen OneUptime-installation, slår også private adresser op.
+Opslagene holder aldrig flowene tilbage. De travleste adresser slås op først, højst 300 i minuttet og otte ad gangen; et navn huskes i en time, en adresse uden navn i 30 minutter, og et opslag, der mislykkedes, prøves igen efter 5 minutter. Loopback-, link-local-, multicast- og broadcast-adresser slås aldrig op. De globale sonder i en hostet OneUptime, som alle konti deler, slår kun offentlige adresser op; jeres egne sonder, og sonderne i jeres egen OneUptime-installation, slår også private adresser op.
 
 | Variabel                            | Hvad den gør                                                        | Standard |
 | ----------------------------------- | ------------------------------------------------------------------- | -------- |
@@ -302,7 +302,7 @@ Hvis en adresse ikke viser noget navn:
 
 - **Giv den et.** Klik på adressen og derefter på **Giv adressen et navn** på kortet over tallene.
 - **Dens DNS-navne.** Navnets egen A- eller AAAA-post skal pege tilbage på adressen; en reverse-post alene er ikke nok. Et navn, der tilføjes i DNS, navngiver de flows, der kommer efter det.
-- **Probens resolver.** Hvis probens vært ikke kan se jeres interne DNS, så sæt `PROBE_FLOW_NAME_DNS_SERVERS` til en DNS-server, der har jeres reverse-zoner.
+- **Sondens resolver.** Hvis sondens vært ikke kan se jeres interne DNS, så sæt `PROBE_FLOW_NAME_DNS_SERVERS` til en DNS-server, der har jeres reverse-zoner.
 
 Hvis en Meraki-forbindelse siger, at den ikke kan læse:
 

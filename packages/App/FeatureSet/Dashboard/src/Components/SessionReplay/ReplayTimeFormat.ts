@@ -10,9 +10,26 @@
  * through these helpers, and every one of them FLOORS: a viewer looking
  * at 0:02.9 is still inside second two, and a link to "?t=2" must land
  * before the event, never after it.
+ *
+ * WHAT IS DRAWN IS IN THE READER'S DIGITS (#7098, #7318). Each helper that
+ * writes a figure the player draws has an InLanguage twin that writes the
+ * same text in the digits the reader's language writes, through
+ * DateLanguage's writeDigitsInLocale: "۱:۰۲" in Persian, Latin digits in
+ * every other language (Arabic among them: OneUptime writes Arabic in Latin
+ * digits, DateLanguage's LATIN_DIGIT_LANGUAGES). Only the digits change,
+ * and - in a language that writes digits of its own - the decimal point,
+ * which beside Persian's zero ("۰", a dot) read as one more digit:
+ * "۱:۰۲٫۳". The shape (m:ss, h:mm:ss, HH:MM:SS) and the floor are the
+ * English helper's. What is copied or put in a URL (the ?t= value, a
+ * copied timestamp) is never written in them: machines read it and other
+ * tools take it pasted, so it keeps ASCII digits.
  */
 
-import { writeDigitsInLocale } from "Common/Types/DateLanguage";
+import {
+  getDigitsOf,
+  getNumberLocale,
+  writeDigitsInLocale,
+} from "Common/Types/DateLanguage";
 
 const MS_PER_SECOND: number = 1000;
 const SECONDS_PER_MINUTE: number = 60;
@@ -28,6 +45,67 @@ function toWholeSeconds(offsetMs: number): number {
 
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
+}
+
+const decimalSignCache: Map<string, string> = new Map<string, string>();
+
+/*
+ * The decimal sign a figure the player wrote takes in `language`: the
+ * point it has always written wherever the digits are Latin, and the
+ * language's own sign (Intl's) where the digits are the language's own -
+ * Persian's "٫", since a point beside Persian's "۰" reads as a zero.
+ */
+function getDecimalSignOf(language: string): string {
+  const cached: string | undefined = decimalSignCache.get(language);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let sign: string = ".";
+
+  if (getDigitsOf(language)[0] !== "0") {
+    try {
+      sign =
+        new Intl.NumberFormat(getNumberLocale(language))
+          .formatToParts(0.5)
+          .find((part: Intl.NumberFormatPart): boolean => {
+            return part.type === "decimal";
+          })?.value || ".";
+    } catch {
+      sign = ".";
+    }
+  }
+
+  decimalSignCache.set(language, sign);
+
+  return sign;
+}
+
+/*
+ * A figure the player wrote itself - a clock, a size - in the digits
+ * `language` writes, its decimal point as getDecimalSignOf says: "۱:۰۲٫۳"
+ * and "۱۲۰۰x۷۶۰" in Persian, unchanged in a language that writes Latin
+ * digits, and unchanged with no language. Never for text someone else
+ * wrote (a page's address, a log line): its digits are theirs.
+ */
+export function writeReplayFigureInLanguage(
+  figure: string,
+  language: string | undefined,
+): string {
+  if (!language) {
+    return figure;
+  }
+
+  const written: string = writeDigitsInLocale(figure, language);
+
+  if (written === figure) {
+    return figure;
+  }
+
+  const sign: string = getDecimalSignOf(language);
+
+  return sign === "." ? written : written.split(".").join(sign);
 }
 
 /*
@@ -61,9 +139,7 @@ export function formatReplayOffsetInLanguage(
   offsetMs: number,
   language: string | undefined,
 ): string {
-  const offset: string = formatReplayOffset(offsetMs);
-
-  return language ? writeDigitsInLocale(offset, language) : offset;
+  return writeReplayFigureInLanguage(formatReplayOffset(offsetMs), language);
 }
 
 /*
@@ -77,6 +153,20 @@ export function formatReplayOffsetPrecise(offsetMs: number): string {
   const tenths: number = Math.floor((safeMs % MS_PER_SECOND) / 100);
 
   return `${formatReplayOffset(safeMs)}.${tenths}`;
+}
+
+/*
+ * The same, in the digits `language` writes: "۱:۰۲٫۳" in Persian, "1:02.3"
+ * in every language that writes Latin digits and with no language.
+ */
+export function formatReplayOffsetPreciseInLanguage(
+  offsetMs: number,
+  language: string | undefined,
+): string {
+  return writeReplayFigureInLanguage(
+    formatReplayOffsetPrecise(offsetMs),
+    language,
+  );
 }
 
 /*
@@ -119,6 +209,49 @@ export function splitReplayClock(
       : formatReplayOffset(currentTimeMs),
     total: formatReplayOffset(durationMs),
   };
+}
+
+/*
+ * The two halves in the digits `language` writes: "۰:۰۰٫۷" and "۰:۳۰" in
+ * Persian. The tenths rule is splitReplayClock's.
+ */
+export function splitReplayClockInLanguage(
+  currentTimeMs: number,
+  durationMs: number,
+  isPaused: boolean,
+  language: string | undefined,
+): ReplayClockParts {
+  const parts: ReplayClockParts = splitReplayClock(
+    currentTimeMs,
+    durationMs,
+    isPaused,
+  );
+
+  return {
+    current: writeReplayFigureInLanguage(parts.current, language),
+    total: writeReplayFigureInLanguage(parts.total, language),
+  };
+}
+
+/*
+ * The joined clock in the digits `language` writes: "۰:۰۰٫۷ / ۰:۳۰" in
+ * Persian. Drawn left to right on every page (ReplayClock), or its halves
+ * swap places on a page read from the right.
+ */
+export function formatReplayClockInLanguage(
+  currentTimeMs: number,
+  durationMs: number,
+  isPaused: boolean,
+  language: string | undefined,
+): string {
+  const parts: ReplayClockParts = splitReplayClockInLanguage(
+    currentTimeMs,
+    durationMs,
+    isPaused,
+    language,
+  );
+
+  return `${parts.current} / ${parts.total}`;
 }
 
 /*
@@ -199,6 +332,26 @@ export function formatReplayWallClock(
   return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(
     date.getSeconds(),
   )}`;
+}
+
+/*
+ * The wall clock in the digits `language` writes: "۱۳:۴۷:۵۳" in Persian.
+ * Still 24-hour HH:MM:SS in every language, so it matches the logs and
+ * traces pages by eye. Null where formatReplayWallClock is.
+ */
+export function formatReplayWallClockInLanguage(
+  startTimeUnixMs: number | null | undefined,
+  offsetMs: number,
+  language: string | undefined,
+): string | null {
+  const wallClock: string | null = formatReplayWallClock(
+    startTimeUnixMs,
+    offsetMs,
+  );
+
+  return wallClock === null
+    ? null
+    : writeReplayFigureInLanguage(wallClock, language);
 }
 
 /*

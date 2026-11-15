@@ -152,7 +152,7 @@ describe("describeWhoIsToldForModel", () => {
       "  - opens an incident (Critical Incident); emails the project's owners (Me Myself)",
     );
     expect(text).toContain(
-      '    - pages on-call policy "Default on-call policy" (1 escalation level), whose first level pages: Me Myself: by email, SMS (their verified methods, as no rule of theirs covers this severity); Ana Lopez (Team Platform): cannot be reached by this page (NoVerifiedMethod)',
+      '    - pages on-call policy "Default on-call policy" (1 escalation level), whose first level pages: Me Myself: by email, SMS (what the fallback picks of their verified methods, as no rule of theirs covers this severity); Ana Lopez (Team Platform): cannot be reached by this page (NoVerifiedMethod)',
     );
     expect(text).toContain('    - shows on status pages: "Acme Status"');
     expect(text).toContain(

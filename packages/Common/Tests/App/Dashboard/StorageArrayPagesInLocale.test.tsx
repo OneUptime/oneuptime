@@ -268,6 +268,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -528,10 +529,15 @@ describe("a storage array's Overview in German", () => {
         "How long a read and a write take on average, per operation, as hosts see them.",
       ),
     );
+    // Each share keeps its percent sign on its line (NoBreakSpaces).
     expect(descriptions[6]).toBe(
-      worded(
-        DE,
+      withNoBreakSpaces(
+        worded(
+          DE,
+          "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
+        ),
         "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
+        "de",
       ),
     );
     expect(texts("metric-card-chart-legend")).toEqual([

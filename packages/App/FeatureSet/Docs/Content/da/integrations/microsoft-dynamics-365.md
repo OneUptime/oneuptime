@@ -104,7 +104,7 @@ Skabelonerne til advarsler gør det samme arbejde for advarsler. Der er én mind
 
 Ingen af skabelonerne OneUptime → Dynamics 365 sender en hændelse markeret som **Privat hændelse** eller en advarsel markeret som **Privat advarsel** til Dynamics 365: hverken posten, dens tilstand eller dens noter, medmindre du slår det til. Se [Ændr, hvad en skabelon gør](#ændr-hvad-en-skabelon-gør).
 
-**Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Dynamics 365 case when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en **If / Else**-blok mellem triggeren og resten af workflowet, f.eks. på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og forbind kun dens **Yes**-side videre.
+**Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Dynamics 365 case when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en **If / Else**-blok mellem triggeren og resten af workflowet, f.eks. på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og forbind kun dens **Ja**-side videre.
 
 ### Hvad skabelonerne beder om
 
@@ -133,7 +133,7 @@ Hvert workflow har sin egen kopi. Når du udskifter klienthemmeligheden, åbner 
 4. Klik på **Opret arbejdsgang**. Hvert workflow oprettes slået fra: slå **Aktiveret** til øverst i dets **Bygger**.
 :::
 
-Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Response Body** i dens sidste trin, `create-case-1`, indeholder den nye sags `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
+Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Svarets brødtekst** i dens sidste trin, `create-case-1`, indeholder den nye sags `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
 
 ### Forbind skabelonerne Dynamics 365 → OneUptime
 
@@ -184,7 +184,7 @@ Før du stoler på en af dem:
 Hver kørsels **Trin** siger, hvad skabelonen gjorde, så åbn kørslen i **Protokoller → Kørsler** og se, hvordan den sluttede:
 
 - **Udført**: den gjorde sit arbejde, og dens sidste trin nævner sagen, hændelsen eller advarslen.
-- **Udført**, med trinnet **Check With JavaScript** på **No**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra den anden side, posten er privat, eller den nye tilstand lukker ikke sagen.
+- **Udført**, med trinnet **Check With JavaScript** på **Nej**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra den anden side, posten er privat, eller den nye tilstand lukker ikke sagen.
 - **Fejl**: et trin mislykkedes, og dets post under **Trin** siger hvorfor. Ved et Dynamics 365-kald indeholder den Dynamics 365's svar.
 - **Fejl** ved `link-case-1`: en skabelon, der opretter en post ud fra en sag, oprettede den, men Dynamics 365 tog ikke imod forbindelsen, så de andre skabeloner kan ikke finde den endnu. Skriv forbindelsen i sagens kolonne i hånden.
 
@@ -221,7 +221,7 @@ Behold markørerne, når du redigerer skabelonerne. De er konstanterne `FROM_ONE
 
 ### Ændr, hvad en skabelon gør
 
-Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript Code** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
+Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
 
 | Konstant | Skabelon og blok | Hvad den styrer |
 | --- | --- | --- |
@@ -258,7 +258,7 @@ Skabelonerne dækker de almindelige tilfælde. For at bygge en retning selv bygg
 
 Opret tokenet én gang, til alle workflows, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv):
 
-1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel**, og vælg **Opret OAuth 2.0-variabel**. Giv den navnet `DYNAMICS_TOKEN`.
+1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Arbejdsgangsvariabel**, og vælg **Opret OAuth 2.0-variabel**. Giv den navnet `DYNAMICS_TOKEN`.
 2. Vælg **Microsoft Entra ID** under **Udbyder**, erstat `{tenant-id}` i **Token-URL** med dit Directory (tenant) ID, og vælg **Client Credentials**.
 3. Indtast **Klient-ID** og **Klienthemmelighed** under **Loginoplysninger**. Sæt under **Avanceret** scopet til `https://yourorg.crm.dynamics.com/.default`, og opret derefter variablen.
 
@@ -270,8 +270,8 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
 
 :::steps
 1. Opret et workflow fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Fields to pass on** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
-2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Success**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Sæt under **Flere felter** dens **Request Headers** til:
+2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
    ```json
    {
@@ -284,7 +284,7 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
    }
    ```
 
-4. Sæt dens **Request Body** til sagen, med GUID'en for den konto, dine sager hører til:
+4. Sæt dens **Anmodningsbrødtekst** til sagen, med GUID'en for den konto, dine sager hører til:
 
    ```json
    {
@@ -324,8 +324,8 @@ Byg dette som et andet workflow, så en fejl her aldrig forhindrer, at der opret
 
 :::steps
 1. Opret et workflow med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Fields to pass on**, åbn **Current Incident State**, og vælg **Is Resolved State**.
-2. Tilføj en **If / Else**-blok: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Tilføj efter dens **Yes**-side en **API Get (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
+2. Tilføj en **If / Else**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Sammenligning** **er sand**.
+3. Tilføj efter dens **Ja**-side en **API Get (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ Byg først det modtagende workflow:
 
    På en selvhostet installation har URL'en din egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte workflowet. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
 
-3. Tilføj en **If / Else**-blok, der tjekker en delt hemmelighed før alt andet: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** en værdi, du selv finder på, gemt i en hemmelig global variabel.
-4. Tilføj efter dens **Yes**-side en **Update One Incident**-blok. Sæt dens **Query** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON Object)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Tilføj en **If / Else**-blok, der tjekker en delt hemmelighed før alt andet: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med**, **Sammenlign med** en værdi, du selv finder på, gemt i en hemmelig global variabel.
+4. Tilføj efter dens **Ja**-side en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON Object)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå det til, og få derefter Dynamics 365 til at kalde det:
 
@@ -395,7 +395,7 @@ Advarsler fungerer på samme måde. Skift posttypen, og intet andet ændrer sig:
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-Et workflow har præcis én trigger, så hændelser og advarsler skal have ét workflow hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i et workflow med en **Manual**-trigger og starter det fra begge med en **Execute Workflow**-blok.
+Et workflow har præcis én trigger, så hændelser og advarsler skal have ét workflow hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i et workflow med en **Manuel**-trigger og starter det fra begge med en **Execute Workflow**-blok.
 
 ## Fejlfinding
 

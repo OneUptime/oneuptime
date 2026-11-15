@@ -107,8 +107,8 @@ Incoming Email-triggeren gir arbeidsflyten sin egen adresse, og alle som kjenner
 
 - Ikke publiser den, og ikke legg den i et offentlig repo. Triggeren skjuler nøkkelen til du klikker på **Vis**, og **Kopier adresse** kopierer adressen uten å vise den.
 - Lekker adressen, klikker du på Incoming Email-triggeren i **Bygger** og deretter på **Tilbakestill adresse**. Arbeidsflyten får en ny adresse, og e-post til den gamle ignoreres fra da av.
-- Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **From** beviser ikke hvem som sendte den. Før en arbeidsflyt gjør noe viktig, sjekker du noe bare den ekte avsenderen vet — et token i emnet eller i en header — med en **If / Else**-blokk. Lagre det forventede tokenet som en hemmelig variabel.
-- Nøkkelen skjules i alt kjøringen mottar — **To**, **CC**, headerne og innholdet — fordi loggen til kjøringen er synlig for alle som kan lese kjøringene til arbeidsflyten.
+- Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **Fra** beviser ikke hvem som sendte den. Før en arbeidsflyt gjør noe viktig, sjekker du noe bare den ekte avsenderen vet — et token i emnet eller i en header — med en **If / Else**-blokk. Lagre det forventede tokenet som en hemmelig variabel.
+- Nøkkelen skjules i alt kjøringen mottar — **Til**, **CC**, headerne og innholdet — fordi loggen til kjøringen er synlig for alle som kan lese kjøringene til arbeidsflyten.
 
 Bare personer som kan redigere arbeidsflyten — **Prosjekteier**, **Prosjektadministrator**, **Arbeidsflytadministrator** eller **Edit Workflow** — kan se eller tilbakestille adressen. Alle andre ser en merknad om hvem de kan spørre.
 
@@ -132,14 +132,14 @@ Se [Tilgang til private nettverk](/docs/self-hosted/private-network-access) for 
 
 Hva leverandøren mottar, og hva modellen kan gjøre med det:
 
-- **Bare det du legger i blokken.** OneUptime sender en fast sikkerhetsinstruksjon og deretter blokkens **System Instructions**, **Prompt** og **Context**, med referansene fylt ut. **Context** kommer sist, etter en markør, og sikkerhetsinstruksjonen forteller modellen at alt etter markøren er upålitelige data, også tekst som ser ut som instruksjoner.
+- **Bare det du legger i blokken.** OneUptime sender en fast sikkerhetsinstruksjon og deretter blokkens **System Instructions**, **Prompt** og **Kontekst**, med referansene fylt ut. **Kontekst** kommer sist, etter en markør, og sikkerhetsinstruksjonen forteller modellen at alt etter markøren er upålitelige data, også tekst som ser ut som instruksjoner.
 - **Ingenting annet.** Dataene fra triggeren, historikken til arbeidsflyten, utdata fra andre blokker, prosjektposter, telemetri og hemmeligheter legges aldri ved. De forlater bare OneUptime når du viser til dem i en av de tre innstillingene.
 - **Tekst, og ingen verktøy.** Modellen kan ikke spørre OneUptime, gjøre HTTP-forespørsler eller endre data. Ekstra parametere fra en leverandør slipper bare gjennom en tillatelsesliste med felt som kun justerer genereringen: de kan ikke erstatte meldingene, legge til verktøy, nettsøk eller andre datakilder, be om noe annet enn tekst eller om flere svar, strømme, la leverandøren beholde forespørselen eller heve grensen for utdata i blokken. Felt OneUptime ikke kjenner, forkastes.
 - **Modellen er administratorens valg.** Må genereringen holde seg frakoblet, velger du en modell som ikke henter noe på egen hånd hos leverandøren.
 
 Hva som logges:
 
-- Loggen til kjøringen skjuler blokkens **System Instructions**, **Prompt**, **Context** og **Response**. Senere blokker kan fortsatt bruke dem under kjøringen, og en blokk du setter en av dem inn i, logger den etter sine egne regler, så å sette en inn er et valg om å vise den.
+- Loggen til kjøringen skjuler blokkens **System Instructions**, **Prompt**, **Kontekst** og **Svar**. Senere blokker kan fortsatt bruke dem under kjøringen, og en blokk du setter en av dem inn i, logger den etter sine egne regler, så å sette en inn er et valg om å vise den.
 - Leverandøren, modellen, antall tokener, **LLM Log ID** og en trygg feilmelding forblir synlige, for drift og fakturering. Den rå feilen fra en leverandør holdes utenfor alle logger, fordi en leverandør kan gjenta forespørselen i den.
 - Hvert kall står under **Prosjektinnstillinger → KI → AI-logger** med leverandør, modell, status, tokener, kostnad og fakturering, uten prompten, svaret eller den rå feilen.
 
@@ -147,17 +147,17 @@ Hva blokken krever, og hva den koster:
 
 - **Aktiver AI** må være slått på under **Prosjektinnstillinger → KI → AI-funksjoner**. I OneUptime Cloud må prosjektet også ha planen Growth eller høyere og et betalt abonnement. Selvhostede installasjoner uten fakturering har ikke noe plankrav.
 - Kall gjennom en global leverandør med kostnad bruker prosjektets AI-kreditter.
-- Hvert kall teller mot [prosjektets egne daglige AI-grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser), når en prosjekteier setter dem. Når en grense er nådd, tar blokken **Error** uten å kontakte modellen, frem til midnatt UTC.
+- Hvert kall teller mot [prosjektets egne daglige AI-grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser), når en prosjekteier setter dem. Når en grense er nådd, tar blokken **Feil** uten å kontakte modellen, frem til midnatt UTC.
 
 | Grense                                                        | Verdi                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** og **Context** til sammen | 50 000 tegn                                                              |
-| **Temperature**                                               | Fra `0` til `1`                                                          |
+| **System Instructions**, **Prompt** og **Kontekst** til sammen | 50 000 tegn                                                              |
+| **Temperatur**                                               | Fra `0` til `1`                                                          |
 | **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
 | Én forespørsel                                                | Forsøkes én gang, i høyst 60 sekunder                                    |
-| Kall samtidig                                                 | 3 per prosjekt. Flere tar **Error**, og en senere kjøring kan prøve igjen. |
+| Kall samtidig                                                 | 3 per prosjekt. Flere tar **Feil**, og en senere kjøring kan prøve igjen. |
 
-Feil i validering, konfigurasjon, tilgang, grenser, kreditt, samtidighet, leverandør og tidsavbrudd tar alle veien **Error**, med årsaken i **Error**. Koble til den veien før arbeidsflyten går live.
+Feil i validering, konfigurasjon, tilgang, grenser, kreditt, samtidighet, leverandør og tidsavbrudd tar alle veien **Feil**, med årsaken i **Feil**. Koble til den veien før arbeidsflyten går live.
 
 > [!WARNING]
 > Hver verdi du viser til, er data du sender til leverandøren. Ikke legg en hemmelig variabel i prompten eller konteksten med mindre leverandøren er godkjent for å motta den. En selvhostet lokal leverandør som Ollama holder forespørsler innenfor din egen infrastruktur; en hostet leverandør mottar dem under sine egne vilkår for databehandling.
@@ -195,12 +195,12 @@ Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Upd
 - **Ingenting OneUptime holder for seg selv.** Dette avvises for alle, arbeidsflyter inkludert:
   - å redigere eller slette en feedoppføring (feedene til hendelser, varsler, episoder, monitorer, vaktpolicyer og planlagt vedlikehold);
   - å skrive en varslingslogg (loggene for SMS, anrop, e-post, WhatsApp, Telegram, push, webhooker og arbeidsområdemeldinger);
-  - verdier OneUptime setter etter hvert som ting skjer: om CNAME-en til et egendefinert domene er verifisert, beskyttelsesbryterne til et team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), hvilken hendelsesrolle som er den primære, og om den kan slettes, om en eier eller et medlem har fått varsel, tidspunkter og antall for påminnelser, hvem som har vakt i en vaktplan nå og som neste, fremdriften i en vaktkjøring, den nåværende burn raten og error budgeten til en SLO, en monitor som er satt på pause av en hendelse eller et vedlikehold, tokenet for tilbakestilling av passord og siste pålogging for en privat statussidebruker, opplysningene en tjeneste rapporterer om seg selv (versjon, runtime, sky), og siste kjøring av en deteksjonsregel eller en trusselfeed;
-  - å erklære en hendelse ut fra en mal ved å sende `createdIncidentTemplateId` til **Create One Incident** — velg i stedet malen under trinnets innstilling **Incident Template**: trinnet erklærer da hendelsen ut fra den, som Project Admin, og registrerer malen;
+  - verdier OneUptime setter etter hvert som ting skjer: om CNAME-en til et egendefinert domene er verifisert, beskyttelsesbryterne til et team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), hvilken hendelsesrolle som er den primære, og om den kan slettes, om en eier eller et medlem har fått varsel, tidspunkter og antall for påminnelser, hvem som har vakt i en vaktplan nå og som neste, fremdriften i en vaktkjøring, den nåværende burn raten og error budgeten til en SLO, en monitor som er satt på pause av en hendelse eller en vedlikeholdshendelse, tokenet for tilbakestilling av passord og siste pålogging for en privat statussidebruker, opplysningene en tjeneste rapporterer om seg selv (versjon, runtime, sky), og siste kjøring av en deteksjonsregel eller en trusselfeed;
+  - å erklære en hendelse ut fra en mal ved å sende `createdIncidentTemplateId` til **Create One Incident** — velg i stedet malen under trinnets innstilling **Hendelsesmal**: trinnet erklærer da hendelsen ut fra den, som Project Admin, og registrerer malen;
   - å endre hvilken post en post hører til etter at den er opprettet, som monitoren en eierrad gjelder, eller hendelsen et notat står på.
 - **Som ingen person.** En post som en arbeidsflyt oppretter, har ingen oppretter, og revisjonsloggen oppgir arbeidsflyten, med navnet den hadde da, som den som gjorde endringen.
 
-Når en kontroll avviser et trinn, tar trinnet utgangen **Error** uten å gjøre den avviste endringen, og loggen til kjøringen nevner trinnet og årsaken med vanlige ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Les den under [Kjøringer](/docs/workflows/runs-and-logs) for arbeidsflyten. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den første som avvises: postene det opprettet før den, beholdes.
+Når en kontroll avviser et trinn, tar trinnet utgangen **Feil** uten å gjøre den avviste endringen, og loggen til kjøringen nevner trinnet og årsaken med vanlige ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Les den under [Kjøringer](/docs/workflows/runs-and-logs) for arbeidsflyten. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den første som avvises: postene det opprettet før den, beholdes.
 
 Trinn som snakker med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — leser eller endrer ikke OneUptime-poster, så ingenting av dette endrer noe for dem.
 
@@ -214,7 +214,7 @@ I OneUptime Cloud krever arbeidsflyter planen Growth eller høyere, og hver plan
 | Scale      | 2000                         |
 | Enterprise | Ingen praktisk grense        |
 
-Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger, teller i 30 dager. På planene Growth og Scale viser siden **Arbeidsflyter** et kort **Arbeidsflytkjøringer** med hvor mange prosjektet har brukt. Når grensen er nådd, registreres nye kjøringer med statusen **Execution Exceeded Current Plan** og utføres ikke, og det samme skjer mens abonnementet er ubetalt. Selvhostede installasjoner uten fakturering har ingen grense. På en plan som ikke kjører arbeidsflyter, sier **Bygger** og siden **Arbeidsflyter** det, med en lenke for å oppgradere.
+Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger, teller i 30 dager. På planene Growth og Scale viser siden **Arbeidsflyter** et kort **Arbeidsflytkjøringer** med hvor mange prosjektet har brukt. Når grensen er nådd, registreres nye kjøringer med statusen **Utførelse overskred gjeldende abonnement** og utføres ikke, og det samme skjer mens abonnementet er ubetalt. Selvhostede installasjoner uten fakturering har ingen grense. På en plan som ikke kjører arbeidsflyter, sier **Bygger** og siden **Arbeidsflyter** det, med en lenke for å oppgradere.
 
 ## Hvor lenge en kjøring kan vare
 
@@ -224,11 +224,11 @@ Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger
 | En **Run Custom JavaScript**-blokk                                | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | En **Sleep**-blokk                                                | Høyst 30 dager | —                               |
 
-Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Timeout** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Sleep**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
+Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Tidsavbrudd** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Sleep**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
 
 ## Grense for å kalle andre arbeidsflyter
 
-Komponenten **Execute Workflow** lar én arbeidsflyt starte en annen. For å hindre løkker der arbeidsflyt A starter B, som starter A igjen, avvises en kjede av arbeidsflyter som starter hverandre, når den ville gått tilbake til en arbeidsflyt som allerede er i den, eller gått dypere enn 10 arbeidsflyter. Blokken **Execute Workflow** tar da utgangen **Error**, og feilen viser kjeden.
+Komponenten **Execute Workflow** lar én arbeidsflyt starte en annen. For å hindre løkker der arbeidsflyt A starter B, som starter A igjen, avvises en kjede av arbeidsflyter som starter hverandre, når den ville gått tilbake til en arbeidsflyt som allerede er i den, eller gått dypere enn 10 arbeidsflyter. Blokken **Execute Workflow** tar da utgangen **Feil**, og feilen viser kjeden.
 
 Har du et reelt behov for en lang kjede (som en jobb som behandler ett element per kjøring), er det vanligvis enklere å gå i løkke inne i én enkelt arbeidsflyt med **Run Custom JavaScript**.
 

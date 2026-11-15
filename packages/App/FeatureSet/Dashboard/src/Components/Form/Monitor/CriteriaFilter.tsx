@@ -505,6 +505,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                           { oid: oidLabel, template: entry.templateName },
                         )
                       : oidLabel,
+                    /*
+                     * The OID's name as its MIB writes it, or a sentence in
+                     * the reader's words already: never looked up again.
+                     */
+                    isUserContent: true,
                   };
                 },
               );
@@ -670,6 +675,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   return {
                     value: interfaceName,
                     label: interfaceName,
+                    // The device's own name for its interface, as written.
+                    isUserContent: true,
                   };
                 },
               ),
@@ -705,6 +712,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       { interface: savedInterfaceName },
                     )
                   : savedInterfaceName,
+                // A name, or a sentence in the reader's words already.
+                isUserContent: true,
               };
             }
 
@@ -767,6 +776,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   return {
                     value: entry.definition.key,
                     label: entry.definition.name,
+                    // A table's name, as its template names it.
+                    isUserContent: true,
                   };
                 },
               );
@@ -803,6 +814,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               return {
                 value: SnmpOidListUtil.normalizeOid(column.oid),
                 label: `${column.name} (${SnmpOidListUtil.normalizeOid(column.oid)})`,
+                // A column's name and its OID, as the table writes them.
+                isUserContent: true,
               };
             });
 
@@ -828,7 +841,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               },
               ...(selectedTable?.rowNames || []).map(
                 (rowName: string): DropdownOption => {
-                  return { value: rowName, label: rowName };
+                  // A row's name, as the device reports it.
+                  return {
+                    value: rowName,
+                    label: rowName,
+                    isUserContent: true,
+                  };
                 },
               ),
             ];
@@ -1006,11 +1024,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 },
               )
               .map((metric: DatabaseMetricDefinition): DropdownOption => {
+                /*
+                 * The metric's name in the reader's words, as the other
+                 * metric pickers write it, and its unit: put together
+                 * here, so never looked up again.
+                 */
+                const name: string =
+                  translator.translateText(metric.friendlyName) ||
+                  metric.friendlyName;
+
                 return {
                   value: metric.metricType,
-                  label: metric.unit
-                    ? `${metric.friendlyName} (${metric.unit})`
-                    : metric.friendlyName,
+                  label: metric.unit ? `${name} (${metric.unit})` : name,
+                  isUserContent: true,
+                  isInPageDirection: true,
                 };
               });
 
@@ -1046,6 +1073,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       },
                     )
                   : savedMetricType.toString(),
+                // A sentence in the reader's words already, or a stored value.
+                isUserContent: true,
               };
 
               metricOptions.push(selectedMetricOption);
@@ -1077,9 +1106,17 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     });
                   }}
                 />
+                {/*
+                 * What the metric is, in the reader's language: the
+                 * catalog's description is a key, looked up here once
+                 * (#8014).
+                 */}
                 {selectedMetric ? (
-                  <p className="text-xs text-gray-500 mt-2">
-                    {selectedMetric.description}
+                  <p
+                    className="text-xs text-gray-500 mt-2"
+                    data-testid="database-metric-description"
+                  >
+                    {translator.translateText(selectedMetric.description)}
                   </p>
                 ) : (
                   <></>

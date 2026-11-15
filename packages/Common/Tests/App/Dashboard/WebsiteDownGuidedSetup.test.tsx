@@ -39,8 +39,11 @@ const api: Record<string, MockFunction> = {
   loadPolicy: getJestMockFunction(),
   loadIncidentSeverityName: getJestMockFunction(),
   isMonitorOwner: getJestMockFunction(),
+  ensureMonitorOwner: getJestMockFunction(),
+  needsPaymentMethod: getJestMockFunction(),
 };
 let mayCreateMonitor: boolean = true;
+let mayAddPaymentMethod: boolean = true;
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
@@ -58,11 +61,18 @@ jest.mock(
       "loadPolicy",
       "loadIncidentSeverityName",
       "isMonitorOwner",
+      "ensureMonitorOwner",
+      "needsPaymentMethod",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
       };
     }
+
+    // What a refusal for want of a payment method is, as the page reads it.
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
+    ) as Record<string, unknown>;
 
     return {
       __esModule: true,
@@ -70,6 +80,10 @@ jest.mock(
       mayCreateMonitor: (): boolean => {
         return mayCreateMonitor;
       },
+      mayAddPaymentMethod: (): boolean => {
+        return mayAddPaymentMethod;
+      },
+      isPaymentRequired: actual["isPaymentRequired"],
     };
   },
 );
@@ -238,6 +252,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import { WebsiteDownMonitorRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -392,6 +407,7 @@ const press: (testId: string) => Promise<void> = async (
 beforeEach(() => {
   window.localStorage.clear();
   mayCreateMonitor = true;
+  mayAddPaymentMethod = true;
   canSendEmail = true;
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -405,6 +421,7 @@ beforeEach(() => {
   api["loadMonitor"]!.mockResolvedValue(MONITOR);
   api["loadFirstCheck"]!.mockResolvedValue({
     locationCount: 2,
+    activeLocationCount: 2,
     answers: [
       { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
       { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
@@ -426,6 +443,9 @@ beforeEach(() => {
   });
   api["loadIncidentSeverityName"]!.mockResolvedValue("Critical");
   api["isMonitorOwner"]!.mockResolvedValue(true);
+  api["ensureMonitorOwner"]!.mockResolvedValue(true);
+  // Not Cloud's Free plan without a card, as most projects are not.
+  api["needsPaymentMethod"]!.mockResolvedValue(false);
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
 });
 
@@ -564,9 +584,11 @@ describe("1. What should we check?", () => {
   test("says what the first check found, in a sentence, once a probe answers", async () => {
     api["loadFirstCheck"]!.mockResolvedValueOnce({
       locationCount: 2,
+      activeLocationCount: 2,
       answers: [],
     }).mockResolvedValue({
       locationCount: 2,
+      activeLocationCount: 2,
       answers: [
         { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
         { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
@@ -583,7 +605,7 @@ describe("1. What should we check?", () => {
       );
     });
     expect(api["loadFirstCheck"]).toHaveBeenCalledWith(MONITOR_ID);
-    // It stops asking once a probe has answered.
+    // It stops asking once every location has answered.
     const asked: number = api["loadFirstCheck"]!.mock.calls.length;
     await act(async () => {
       await new Promise((resolve: (value: unknown) => void) => {
@@ -594,7 +616,11 @@ describe("1. What should we check?", () => {
   });
 
   test("while no probe has answered, says it is checking", async () => {
-    api["loadFirstCheck"]!.mockResolvedValue({ locationCount: 2, answers: [] });
+    api["loadFirstCheck"]!.mockResolvedValue({
+      locationCount: 2,
+      activeLocationCount: 2,
+      answers: [],
+    });
 
     await renderSetup();
     typeAddress("acme.example");
@@ -668,6 +694,8 @@ describe("2. Who should be told?", () => {
     expect(api["createPolicy"]).toHaveBeenCalledWith({
       userIds: [USER_ID],
       teamIds: [],
+      // The reader's translator: the policy and its rules are named in their language (#7995).
+      translator: expect.anything(),
     });
     expect(storedRun()).toEqual({ monitorId: MONITOR_ID, policyId: POLICY_ID });
     expect(stepState("who_is_told")).toBe("done");
@@ -687,6 +715,7 @@ describe("2. Who should be told?", () => {
     expect(api["createPolicy"]).toHaveBeenCalledWith({
       userIds: [USER_ID, "user-grace"],
       teamIds: ["team-platform"],
+      translator: expect.anything(),
     });
   });
 
@@ -1689,5 +1718,505 @@ describe("a policy made meanwhile, in another tab or on another device (#7059)",
     expect(
       screen.queryByTestId("guided-setup-policy-made-elsewhere"),
     ).toBeNull();
+  });
+});
+
+/*
+ * THE FIRST CHECK, AS THE SERVER JUDGES IT (#7410): nothing said about
+ * locations before the first read returns, and "an incident opens" only
+ * when the answers carry the monitor's probe agreement.
+ */
+describe("the first check, read as the server judges it (#7410)", () => {
+  test("before the first read returns: checking, never no location", async () => {
+    let answer: (state: unknown) => void = () => {};
+    api["loadFirstCheck"]!.mockImplementation(() => {
+      return new Promise((resolve: (state: unknown) => void) => {
+        answer = resolve;
+      });
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+      "Checking acme.example...",
+    );
+    expect(
+      screen.getByTestId("guided-setup-first-check").textContent,
+    ).not.toContain("No location");
+    expect(screen.queryByTestId("guided-setup-first-check-verdict")).toBeNull();
+
+    await act(async () => {
+      answer({ locationCount: 2, activeLocationCount: 2, answers: [] });
+    });
+
+    expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+      "Checking acme.example from 2 locations...",
+    );
+  });
+
+  test("a monitor with no location, once read, says so", async () => {
+    api["loadFirstCheck"]!.mockResolvedValue({
+      locationCount: 0,
+      activeLocationCount: 0,
+      answers: [],
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+        "No location checks acme.example yet.",
+      );
+    });
+  });
+
+  test("one location of three fails, the others answer: says so, and that no incident opens", async () => {
+    api["loadFirstCheck"]!.mockResolvedValue({
+      locationCount: 3,
+      activeLocationCount: 3,
+      answers: [
+        { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
+        { isOnline: true, responseCode: 503, responseTimeInMs: 40 },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
+      ],
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-first-check-verdict"),
+      ).toHaveTextContent(
+        "acme.example was up from 2 locations, so no incident opens.",
+      );
+    });
+    expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+      "acme.example answered 503 from 1 location.",
+    );
+    expect(screen.getByTestId("guided-setup")).not.toHaveTextContent(
+      "so an incident opens",
+    );
+  });
+
+  test("every location fails: an incident opens, said on a line of its own", async () => {
+    api["loadFirstCheck"]!.mockResolvedValue({
+      locationCount: 2,
+      activeLocationCount: 2,
+      answers: [
+        { isOnline: false, failureCause: "Connection refused" },
+        { isOnline: false, failureCause: "Connection refused" },
+      ],
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-first-check-verdict"),
+      ).toHaveTextContent("That counts as down, so an incident opens.");
+    });
+    expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+      "acme.example did not answer from 2 locations: Connection refused",
+    );
+
+    // The step's done line is what was found, the probe's reason last.
+    await press("guided-setup-check-continue");
+    expect(
+      screen.getByTestId("guided-setup-step-check-done-line"),
+    ).toHaveTextContent(
+      "acme.example did not answer from 2 locations: Connection refused",
+    );
+  });
+
+  test("a minimum the monitor sets is the one the words follow", async () => {
+    api["loadMonitor"]!.mockResolvedValue({
+      ...MONITOR,
+      minimumProbeAgreement: 2,
+    });
+    api["loadFirstCheck"]!.mockResolvedValue({
+      locationCount: 3,
+      activeLocationCount: 3,
+      answers: [
+        { isOnline: false },
+        { isOnline: false },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+      ],
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-first-check-verdict"),
+      ).toHaveTextContent("That counts as down, so an incident opens.");
+    });
+  });
+
+  test("asks again until every location has answered, then stops", async () => {
+    api["loadFirstCheck"]!.mockResolvedValueOnce({
+      locationCount: 2,
+      activeLocationCount: 2,
+      answers: [{ isOnline: false, failureCause: "Connection refused" }],
+    }).mockResolvedValue({
+      locationCount: 2,
+      activeLocationCount: 2,
+      answers: [
+        { isOnline: false, failureCause: "Connection refused" },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+      ],
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    // One answer in, one to come: nothing claimed yet.
+    expect(
+      screen.getByTestId("guided-setup-first-check-verdict"),
+    ).toHaveTextContent("Waiting for 1 more location...");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-first-check-verdict"),
+      ).toHaveTextContent(
+        "acme.example was up from 1 location, so no incident opens.",
+      );
+    });
+
+    const asked: number = api["loadFirstCheck"]!.mock.calls.length;
+    expect(asked).toBeGreaterThanOrEqual(2);
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 40);
+      });
+    });
+    expect(api["loadFirstCheck"]!.mock.calls.length).toBe(asked);
+  });
+
+  test("the summary says how many locations must agree", async () => {
+    api["loadFirstCheck"]!.mockResolvedValue({
+      locationCount: 3,
+      activeLocationCount: 3,
+      answers: [
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+      ],
+    });
+    keepRun({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+      testExecutionLogId: "log-1",
+    });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-when_down"),
+      ).toHaveTextContent(
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical). A status change needs all 3 connected probes to agree.",
+      );
+    });
+  });
+});
+
+/*
+ * WHO OWNS THE MONITOR (#7409): a self-hosted master admin is never made
+ * the owner of what they create, and was told "You own this monitor, so you
+ * are emailed when it goes down". The setup makes the person setting it up
+ * the owner, and the step says so only when the records say they are.
+ */
+describe("the person setting it up owns the monitor (#7409)", () => {
+  test("a new monitor: its owner is made sure of before the next step opens", async () => {
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["ensureMonitorOwner"]).toHaveBeenCalledTimes(1);
+    expect(api["ensureMonitorOwner"]).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      userId: USER_ID,
+    });
+    expect(api["createMonitor"]!.mock.invocationCallOrder[0]!).toBeLessThan(
+      api["ensureMonitorOwner"]!.mock.invocationCallOrder[0]!,
+    );
+
+    await press("guided-setup-check-continue");
+
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+  });
+
+  test("a monitor this person had already: made theirs too", async () => {
+    api["findOwnMonitor"]!.mockResolvedValue(MONITOR);
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(api["ensureMonitorOwner"]).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      userId: USER_ID,
+    });
+  });
+
+  test("not made the owner: the step promises no email, and says how to get one", async () => {
+    api["ensureMonitorOwner"]!.mockResolvedValue(false);
+    api["loadWhoIsToldFacts"]!.mockResolvedValue({
+      policyCount: 0,
+      incidentRuleCount: 0,
+      alertRuleCount: 0,
+      mayCreatePolicy: false,
+      mayAddEscalationRules: false,
+      mayAddRules: false,
+    });
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+    await press("guided-setup-check-continue");
+
+    const help: HTMLElement = screen.getByTestId("guided-setup-who-help");
+
+    expect(help).toHaveTextContent(WEBSITE_DOWN_COPY.whoOwnerOnlyHelpNotOwner);
+    expect(help).not.toHaveTextContent("You own this monitor");
+
+    await press("guided-setup-who-continue");
+
+    expect(
+      screen.getByTestId("guided-setup-step-who_is_told-done-line"),
+    ).toHaveTextContent(
+      "The project's owners are emailed about incidents nobody owns.",
+    );
+  });
+
+  test("a project whose policies decide, someone not made the owner: no email promised", async () => {
+    api["ensureMonitorOwner"]!.mockResolvedValue(false);
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+    await press("guided-setup-check-continue");
+
+    const help: HTMLElement = screen.getByTestId("guided-setup-who-help");
+
+    expect(help.textContent).toBe(WEBSITE_DOWN_COPY.whoExistingHelpNotOwner);
+    expect(help).not.toHaveTextContent("emailed");
+  });
+
+  test("coming back to a run: ownership is read from the records, nothing is written", async () => {
+    api["isMonitorOwner"]!.mockResolvedValue(false);
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    keepRun({ monitorId: MONITOR_ID });
+
+    await renderSetup();
+
+    expect(api["isMonitorOwner"]).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      userId: USER_ID,
+    });
+    expect(api["ensureMonitorOwner"]).not.toHaveBeenCalled();
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.getByTestId("guided-setup-who-help").textContent).toBe(
+      WEBSITE_DOWN_COPY.whoExistingHelpNotOwner,
+    );
+  });
+
+  test("the summary leaves the owner's email out for someone who does not own it", async () => {
+    api["isMonitorOwner"]!.mockResolvedValue(false);
+    keepRun({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+      testExecutionLogId: "log-1",
+    });
+
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who_is_told"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId("guided-setup-summary-who_is_told"),
+    ).not.toHaveTextContent("You own this monitor");
+  });
+});
+
+/*
+ * A PAYMENT METHOD, BEFORE START CHECKING (#7367): on Cloud's Free plan a
+ * project with no card on file may not make a monitor that runs checks. The
+ * step said nothing until Start checking was refused, in red, with no link.
+ */
+describe("a payment method first, on Cloud's Free plan (#7367)", () => {
+  const paymentRequired: () => HTTPErrorResponse = (): HTTPErrorResponse => {
+    return new HTTPErrorResponse(
+      402,
+      {
+        message:
+          "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan. Manual monitors remain free.",
+      },
+      {},
+    );
+  };
+
+  test("says so before Start checking, with the price and the billing page", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+
+    await renderSetup();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "guided-setup-payment-needed",
+    );
+
+    expect(notice).toHaveTextContent(
+      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Add a payment method before you start checking.",
+    );
+    // Before the button it is about.
+    expect(
+      notice.compareDocumentPosition(
+        screen.getByTestId("guided-setup-start-checking"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const link: HTMLElement = screen.getByTestId(
+      "guided-setup-add-payment-method",
+    );
+
+    expect(link).toHaveTextContent("Add Payment Method");
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/billing`,
+    );
+    // In a new tab: the address typed here stays.
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+  });
+
+  test("someone who may not add one is told who can, with no link", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+    mayAddPaymentMethod = false;
+
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-payment-needed")).toHaveTextContent(
+      "Ask a project owner to add a payment method before you start checking.",
+    );
+    expect(screen.queryByTestId("guided-setup-add-payment-method")).toBeNull();
+  });
+
+  test("a project that has one, or no plan to pay for: nothing is said", async () => {
+    await renderSetup();
+
+    expect(api["needsPaymentMethod"]).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("guided-setup-payment-needed")).toBeNull();
+  });
+
+  test("a run already past the first step does not ask", async () => {
+    keepRun({ monitorId: MONITOR_ID });
+
+    await renderSetup();
+
+    expect(api["needsPaymentMethod"]).not.toHaveBeenCalled();
+  });
+
+  test("Start checking refused for want of one: the notice, not the server's line in red", async () => {
+    api["createMonitor"]!.mockRejectedValue(paymentRequired());
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(screen.getByTestId("guided-setup-payment-needed")).toHaveTextContent(
+      "Add a payment method before you start checking.",
+    );
+    expect(
+      screen.getByTestId("guided-setup-add-payment-method"),
+    ).toBeInTheDocument();
+    // The one alert is the notice: no red line beside it.
+    const notice: HTMLElement = screen.getByTestId(
+      "guided-setup-payment-needed",
+    );
+    for (const alert of screen.queryAllByRole("alert")) {
+      expect(notice.contains(alert)).toBe(true);
+    }
+    expect(screen.getByTestId("guided-setup")).not.toHaveTextContent(
+      "Project Settings > Billing and Invoices > Billing",
+    );
+    expect(stepState("check")).toBe("open");
+    expect(storedRun()).toEqual({});
+    // What was typed stays, to try again.
+    expect(screen.getByTestId("guided-setup-address")).toHaveValue(
+      "acme.example",
+    );
+  });
+
+  test("Check again: once the project has one, the notice goes, and Start checking works", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+
+    await renderSetup();
+    expect(
+      screen.getByTestId("guided-setup-payment-needed"),
+    ).toBeInTheDocument();
+
+    api["needsPaymentMethod"]!.mockResolvedValue(false);
+    await press("guided-setup-check-payment-again");
+
+    expect(screen.queryByTestId("guided-setup-payment-needed")).toBeNull();
+
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+  });
+
+  test("back from the billing page in another tab: asked again, and the notice goes", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+
+    await renderSetup();
+    expect(api["needsPaymentMethod"]).toHaveBeenCalledTimes(1);
+
+    api["needsPaymentMethod"]!.mockResolvedValue(false);
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    expect(api["needsPaymentMethod"]).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId("guided-setup-payment-needed")).toBeNull();
+  });
+
+  test("any other refusal still says why, in red", async () => {
+    api["createMonitor"]!.mockRejectedValue(
+      new HTTPErrorResponse(
+        400,
+        { message: "You have reached the active monitor limit of your plan." },
+        {},
+      ),
+    );
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "You have reached the active monitor limit of your plan.",
+    );
+    expect(screen.queryByTestId("guided-setup-payment-needed")).toBeNull();
   });
 });

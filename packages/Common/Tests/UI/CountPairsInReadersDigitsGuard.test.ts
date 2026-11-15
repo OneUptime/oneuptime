@@ -152,8 +152,6 @@ const LEFT_TO_WRITE: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Readiness.tsx {{covered}}",
   "packages/App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Readiness.tsx {{total}}",
   "packages/Common/UI/Components/CSVFileUpload/CSVFileUpload.tsx {{shown}}",
-  "packages/Common/UI/Components/Forms/BasicForm.tsx {{current}}",
-  "packages/Common/UI/Components/Forms/BasicForm.tsx {{total}}",
   "packages/Common/UI/Components/LabelRule/ImportLabelRulesModal.tsx {{page}}",
   "packages/Common/UI/Components/LabelRule/ImportLabelRulesModal.tsx {{pages}}",
 ];

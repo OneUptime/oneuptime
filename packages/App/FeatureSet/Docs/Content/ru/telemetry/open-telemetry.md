@@ -52,7 +52,7 @@ flowchart TB
 2. В боковом меню откройте **Телеметрия и APM** и выберите **Ключи приема**.
 3. Нажмите **Создать ключ приёма**. Окно заполняет имя и выбирает тип ключа **Сервер** — именно с ним отправляют данные приложение или коллектор. При желании переименуйте ключ, затем нажмите **Создать ключ приёма**.
 
-![Страница ключей приёма телеметрии в настройках проекта](/docs/static/images/TelemetryIngestionKeys.png)
+![Список «Ключи приема», кнопка «Создать ключ приёма» обведена](screen:ingestion-keys)
 
 Новый ключ открывается на отдельной странице. Скопируйте его **Секретный ключ** — это токен, который вы отправляете в `x-oneuptime-token`.
 
@@ -89,9 +89,9 @@ export OTEL_SERVICE_NAME="my-service"
 Установите SDK, автоматические инструментации и экспортёры OTLP/HTTP:
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 Создайте SDK в отдельном файле:
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

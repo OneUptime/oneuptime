@@ -1024,12 +1024,12 @@ describe("the AI / LLM Observability page", () => {
       expect(page).toContain(`**${words}**`);
     }
 
-    // A row with no AI call counted none: "—", never a 0.
+    // A row with no AI call counted none: the quiet dash "—", never a 0.
     expect(breakdown).toContain(
       "return unknown ? notCounted : formatLlmCount(value);",
     );
     expect(breakdown).toMatch(
-      /const notCounted: ReactElement = \(\s*<span[^>]*>\s*—\s*<\/span>/,
+      /const notCounted: ReactElement = \(\s*<span[^>]*>\s*<TableEmptyValue \/>\s*<\/span>/,
     );
     expect(breakdown).toContain(
       '"Services counted from usage metrics: {{services}}"',

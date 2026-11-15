@@ -46,7 +46,7 @@ De **criteria** van een monitor bepalen wat elk resultaat betekent. Ze worden op
 
 :::cards
 - [Een monitor maken](/docs/monitor/create-monitor): Een type kiezen, zeggen wat er gecontroleerd wordt en hoe vaak.
-- [Aangepaste probes](/docs/probe/custom-probe): Controleren wat alleen uw eigen netwerk bereikt.
+- [Aangepaste sondes](/docs/probe/custom-probe): Controleren wat alleen uw eigen netwerk bereikt.
 :::
 
 ## Wat u bewaakt
@@ -127,7 +127,7 @@ Een **statuspagina** laat uw klanten zien of uw services werken. U kiest welke m
 :::cards
 - [Statuspagina's – Overzicht](/docs/status-pages/index): Een statuspagina aanmaken en bepalen wat ze toont.
 - [Abonnees en aankondigingen](/docs/status-pages/subscribers): Wie bericht krijgt, en wanneer.
-- [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index): Hoe een gebeurtenis verloopt, en wat ze pauzeert.
+- [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index): Hoe een gebeurtenis verloopt, en wat ze pauzeert.
 :::
 
 ## Telemetrie

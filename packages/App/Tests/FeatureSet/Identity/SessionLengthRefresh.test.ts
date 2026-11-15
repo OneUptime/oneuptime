@@ -26,6 +26,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
+  LONGEST_INACTIVITY_FIELD,
   SessionEndReason,
   SessionLengths,
 } from "Common/Types/UserSession/SessionLength";
@@ -437,7 +438,30 @@ describe("a session past its idle timeout", () => {
     expect(endSessionByLength.mock.calls[0]![1]).toBe(
       SessionEndReason.Inactive,
     );
+    // Recorded with the last activity the session knew: nothing said otherwise.
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - 45 * MINUTE_IN_MS),
+    });
     expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+  });
+
+  it("a tab that says how long it has been ends it as of the last activity it saw", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 3 * HOUR_IN_MS,
+        lastActiveAgoMs: 50 * MINUTE_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renew({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 40 * 60,
+    });
+
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - 40 * MINUTE_IN_MS),
+    });
   });
 
   it("a background renewal is no activity: the session keeps its person's own last activity", async () => {
@@ -515,6 +539,236 @@ describe("a session past its idle timeout", () => {
   });
 });
 
+/*
+ * Issue #6789: someone who closed the browser, or whose computer slept,
+ * opens the Dashboard again after the idle timeout. Opening the page is
+ * activity, so its renewal says its person is here
+ * (inactiveForInSeconds: 0) - and also the longest time they were not,
+ * since the last renewal (longestInactivity), which ends the session.
+ */
+describe("a browser opened again after its idle timeout", () => {
+  // The session was last renewed as its person stopped, `awayMs` ago.
+  const awayFor: (awayMs: number, signedInAgoMs?: number) => void = (
+    awayMs: number,
+    signedInAgoMs: number = 9 * HOUR_IN_MS,
+  ): void => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: Math.max(signedInAgoMs, awayMs),
+        lastActiveAgoMs: awayMs,
+      }),
+    );
+  };
+
+  // What the page opened again says: here now, and away for `awayMs` until a moment ago.
+  const reopenedAfter: (awayMs: number) => JSONObject = (
+    awayMs: number,
+  ): JSONObject => {
+    return {
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+      [LONGEST_INACTIVITY_FIELD]: {
+        forSeconds: awayMs / 1000,
+        endedSecondsAgo: 0,
+      },
+    };
+  };
+
+  it("is ended for the inactivity, though the page says its person is here: revoked as of when they left, its cookies cleared, no token", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    awayFor(2 * HOUR_IN_MS);
+
+    const outcome: Outcome = await renew(reopenedAfter(2 * HOUR_IN_MS));
+
+    expect(outcome.nextError).toBeNull();
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(outcome.refused!.message).toBe(
+      SESSION_ENDED_MESSAGES[SessionEndReason.Inactive],
+    );
+    expect(endSessionByLength).toHaveBeenCalledTimes(1);
+    expect(endSessionByLength.mock.calls[0]![0].toString()).toBe(SESSION_ID);
+    expect(endSessionByLength.mock.calls[0]![1]).toBe(
+      SessionEndReason.Inactive,
+    );
+    // The audit log counts the timeout from when they left, not from now.
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - 2 * HOUR_IN_MS),
+    });
+    expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+    expect(outcome.cleared).toContain(CookieUtil.getRefreshTokenKey());
+    expect(outcome.bodyAccessToken).toBeNull();
+  });
+
+  it("a page that says only how long it has been now (one from before) is renewed, as before", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    awayFor(2 * HOUR_IN_MS);
+
+    const outcome: Outcome = await renew({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+    });
+
+    expect(outcome.refused).toBeNull();
+    expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime());
+  });
+
+  it.each([
+    ["a second short of the idle timeout: renewed, as of now", -1000, false],
+    ["the idle timeout exactly: ended", 0, true],
+    ["a second past it: ended", 1000, true],
+  ])(
+    "away for %s",
+    async (_label: string, pastTimeoutMs: number, hasEnded: boolean) => {
+      fake.userSessionLengths = lengthsOf({ idle: 15 });
+      const awayMs: number = 15 * MINUTE_IN_MS + pastTimeoutMs;
+      awayFor(awayMs);
+
+      const outcome: Outcome = await renew(reopenedAfter(awayMs));
+
+      if (hasEnded) {
+        expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+        expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+          lastActiveAt: new Date(NOW.getTime() - awayMs),
+        });
+        expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+      } else {
+        expect(outcome.refused).toBeNull();
+        expect(endSessionByLength).not.toHaveBeenCalled();
+        expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime());
+      }
+    },
+  );
+
+  it("away a while, and back for the last minutes on a page that asked nothing: ended all the same", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    awayFor(70 * MINUTE_IN_MS);
+
+    const outcome: Outcome = await renew({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 3,
+      [LONGEST_INACTIVITY_FIELD]: {
+        forSeconds: 60 * 60,
+        endedSecondsAgo: 10 * 60,
+      },
+    });
+
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - 70 * MINUTE_IN_MS),
+    });
+  });
+
+  it("activity another tab's renewal told the server of cuts it short: someone working in another tab stays", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    awayFor(10 * MINUTE_IN_MS);
+
+    const outcome: Outcome = await renew(reopenedAfter(2 * HOUR_IN_MS));
+
+    expect(outcome.refused).toBeNull();
+    expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime());
+  });
+
+  it("without an idle timeout set, it is not asked: renewed, however long the browser stood closed", async () => {
+    fake.userSessionLengths = lengthsOf({ length: 90 * 24 * 60 });
+    awayFor(20 * 24 * HOUR_IN_MS, 21 * 24 * HOUR_IN_MS);
+
+    const outcome: Outcome = await renew(reopenedAfter(20 * 24 * HOUR_IN_MS));
+
+    expect(outcome.refused).toBeNull();
+    expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime());
+  });
+
+  it("on the Community Edition, it is not asked either", async () => {
+    uninstallEnterpriseModule();
+    awayFor(20 * 24 * HOUR_IN_MS, 21 * 24 * HOUR_IN_MS);
+
+    const outcome: Outcome = await renew(reopenedAfter(20 * 24 * HOUR_IN_MS));
+
+    expect(outcome.refused).toBeNull();
+    expect(renewedWith().lengths).toBeNull();
+  });
+
+  it("beside a session length, whichever ran out first says why", async () => {
+    fake.userSessionLengths = lengthsOf({ length: 8 * 60, idle: 60 });
+
+    // Signed in 9 hours ago, away the last 2: the length ran out an hour ago, as the idle timeout did.
+    awayFor(2 * HOUR_IN_MS);
+
+    const lengthFirst: Outcome = await renew(reopenedAfter(2 * HOUR_IN_MS));
+
+    expect(lengthFirst.refused!.message).toBe(
+      SESSION_ENDED_MESSAGES[SessionEndReason.LengthReached],
+    );
+    expect(endSessionByLength.mock.calls[0]![1]).toBe(
+      SessionEndReason.LengthReached,
+    );
+
+    jest.clearAllMocks();
+
+    // Signed in 7 hours ago, away the last 3: the idle timeout ran out 2 hours ago, before the length.
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 7 * HOUR_IN_MS,
+        lastActiveAgoMs: 3 * HOUR_IN_MS,
+      }),
+    );
+
+    const idleFirst: Outcome = await renew(reopenedAfter(3 * HOUR_IN_MS));
+
+    expect(idleFirst.refused!.message).toBe(
+      SESSION_ENDED_MESSAGES[SessionEndReason.Inactive],
+    );
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - 3 * HOUR_IN_MS),
+    });
+  });
+
+  it("an SSO sign-in is held to the SSO idle timeout", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 8 * 60 }, { idle: 30 });
+
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 3 * HOUR_IN_MS,
+        lastActiveAgoMs: HOUR_IN_MS,
+        isSsoSignIn: true,
+      }),
+    );
+
+    const sso: Outcome = await renew(reopenedAfter(HOUR_IN_MS));
+
+    expect(sso.refused).toBeInstanceOf(SessionEndedException);
+
+    jest.clearAllMocks();
+    awayFor(HOUR_IN_MS);
+
+    const password: Outcome = await renew(reopenedAfter(HOUR_IN_MS));
+
+    expect(password.refused).toBeNull();
+  });
+
+  it("a time without use it cannot read is no report: the renewal goes as the rest of it says", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    awayFor(2 * HOUR_IN_MS);
+
+    for (const value of [
+      "7200",
+      [7200, 0],
+      { forSeconds: "7200", endedSecondsAgo: 0 },
+      { forSeconds: 7200 },
+      { forSeconds: -1, endedSecondsAgo: 0 },
+      { forSeconds: 7200, endedSecondsAgo: Number.NaN },
+      null,
+    ]) {
+      renewSessionWithNewRefreshToken.mockClear();
+
+      const outcome: Outcome = await renew({
+        [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+        [LONGEST_INACTIVITY_FIELD]: value as JSONObject,
+      });
+
+      expect(outcome.refused).toBeNull();
+      expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime());
+    }
+  });
+});
+
 describe("a session within the lengths", () => {
   it("is renewed under the lengths it was decided by, and its new token says when it signed in", async () => {
     const lengths: SessionLengths = lengthsOf({ length: 8 * 60, idle: 60 });
@@ -568,6 +822,229 @@ describe("SSO sign-ins", () => {
 
     expect(password.refused).toBeNull();
     expect(renewSessionWithNewRefreshToken).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The mobile app renews without cookies: its refresh token in the body,
+ * beside what it says of its person's use of it - how long since they last
+ * touched it, and the longest time they went without since the last
+ * renewal (MobileApp/src/auth/userActivity.ts). Under the 15-minute idle
+ * timeout an app that said nothing was signed out at every renewal,
+ * however much it was used (issue #8187): its token runs out at the idle
+ * end of the renewal before, and nothing said it had been used since.
+ */
+async function renewFromApp(report: JSONObject): Promise<Outcome> {
+  const handler: RouteHandler = mockRouter.match("post", "/refresh-token");
+  const req: ExpressRequest = buildRequest({
+    refreshToken: "app-refresh-token",
+    ...report,
+  });
+  (req as unknown as { cookies: Dictionary<string> }).cookies = {};
+  const res: ExpressResponse = buildResponse();
+
+  let nextError: unknown = null;
+
+  await handler(req, res, ((err?: unknown): void => {
+    if (err) {
+      nextError = err;
+    }
+  }) as unknown as NextFunction);
+
+  expect(findActiveSessionByRefreshToken).toHaveBeenCalledWith(
+    "app-refresh-token",
+  );
+
+  return {
+    refused:
+      sendErrorResponse.mock.calls.length > 0
+        ? (sendErrorResponse.mock.calls[0]![2] as Exception)
+        : null,
+    nextError,
+    cleared: [],
+    bodyAccessToken:
+      sendJsonObjectResponse.mock.calls.length > 0
+        ? ((sendJsonObjectResponse.mock.calls[0]![2] as JSONObject)[
+            "accessToken"
+          ] as string)
+        : null,
+  };
+}
+
+const SECOND_IN_MS: number = 1000;
+
+describe("the mobile app's renewal, under the 15-minute idle timeout (issue #8187)", () => {
+  beforeEach(() => {
+    fake.userSessionLengths = lengthsOf({ idle: 15 });
+  });
+
+  it("in use: ten seconds after its token ran out, used ten seconds ago - renewed, with a new access token in the body", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 2 * HOUR_IN_MS,
+        lastActiveAgoMs: 15 * MINUTE_IN_MS + 10 * SECOND_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 10,
+    });
+
+    expect(outcome.refused).toBeNull();
+    expect(outcome.bodyAccessToken).toEqual(expect.any(String));
+    expect(renewedWith().lastActiveAt).toEqual(
+      new Date(NOW.getTime() - 10 * SECOND_IN_MS),
+    );
+    expect(endSessionByLength).not.toHaveBeenCalled();
+  });
+
+  it("the same renewal saying nothing - an app from before - is ended for inactivity, as it always was", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 2 * HOUR_IN_MS,
+        lastActiveAgoMs: 15 * MINUTE_IN_MS + 10 * SECOND_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({});
+
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(outcome.refused!.message).toBe(
+      SESSION_ENDED_MESSAGES[SessionEndReason.Inactive],
+    );
+    expect(outcome.bodyAccessToken).toBeNull();
+  });
+
+  it("renewed a little before its token runs out, while in use: renewed, the person's activity now", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 2 * HOUR_IN_MS,
+        lastActiveAgoMs: 14 * MINUTE_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+    });
+
+    expect(outcome.refused).toBeNull();
+    expect(renewedWith().lastActiveAt).toEqual(NOW);
+  });
+
+  it.each([
+    [
+      "a second short of the idle timeout: renewed",
+      15 * MINUTE_IN_MS - SECOND_IN_MS,
+      false,
+    ],
+    ["the idle timeout exactly: ended", 15 * MINUTE_IN_MS, true],
+    ["a second past it: ended", 15 * MINUTE_IN_MS + SECOND_IN_MS, true],
+  ])(
+    "in the background, then back on the screen - %s",
+    async (_label: string, awayMs: number, hasEnded: boolean) => {
+      findActiveSessionByRefreshToken.mockResolvedValue(
+        sessionRow({
+          signedInAgoMs: 2 * HOUR_IN_MS,
+          lastActiveAgoMs: awayMs + 2 * MINUTE_IN_MS,
+        }),
+      );
+
+      const outcome: Outcome = await renewFromApp({
+        [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+        [LONGEST_INACTIVITY_FIELD]: {
+          forSeconds: awayMs / SECOND_IN_MS,
+          endedSecondsAgo: 0,
+        },
+      });
+
+      if (!hasEnded) {
+        expect(outcome.refused).toBeNull();
+        expect(renewedWith().lastActiveAt).toEqual(NOW);
+        return;
+      }
+
+      expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+      expect(outcome.refused!.message).toBe(
+        SESSION_ENDED_MESSAGES[SessionEndReason.Inactive],
+      );
+      // Recorded as last active when the app was put away.
+      expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+        lastActiveAt: new Date(NOW.getTime() - awayMs),
+      });
+      expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+    },
+  );
+
+  it("ended by the system and opened again an hour later, its first request five seconds after: ended", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 3 * HOUR_IN_MS,
+        lastActiveAgoMs: HOUR_IN_MS + 10 * MINUTE_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 5,
+      [LONGEST_INACTIVITY_FIELD]: { forSeconds: 3600, endedSecondsAgo: 5 },
+    });
+
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - HOUR_IN_MS - 5 * SECOND_IN_MS),
+    });
+  });
+
+  it("left on the screen untouched past the idle timeout: ended, as last active at its last touch", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: HOUR_IN_MS,
+        lastActiveAgoMs: 20 * MINUTE_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 15 * 60 + 30,
+    });
+
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(endSessionByLength.mock.calls[0]![2]).toEqual({
+      lastActiveAt: new Date(NOW.getTime() - (15 * 60 + 30) * SECOND_IN_MS),
+    });
+  });
+
+  it("what the app says is read as the browser's is: a report it cannot read is no report", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: HOUR_IN_MS,
+        lastActiveAgoMs: 20 * MINUTE_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: "0",
+      [LONGEST_INACTIVITY_FIELD]: "none",
+    });
+
+    // Decided from the session alone: twenty minutes since its last activity.
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+  });
+
+  it("without an idle timeout set, the app's word is not asked: hours away end nothing", async () => {
+    fake.userSessionLengths = lengthsOf({ length: 24 * 60 });
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 10 * HOUR_IN_MS,
+        lastActiveAgoMs: 9 * HOUR_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renewFromApp({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+      [LONGEST_INACTIVITY_FIELD]: { forSeconds: 9 * 3600, endedSecondsAgo: 0 },
+    });
+
+    expect(outcome.refused).toBeNull();
+    expect(renewedWith().lastActiveAt).toEqual(NOW);
   });
 });
 

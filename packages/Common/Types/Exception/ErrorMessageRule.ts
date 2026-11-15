@@ -11,7 +11,9 @@
  *
  * The UI uses the first to treat an empty answer from the server as one the
  * server did not explain (API.getFriendlyMessage), and ErrorMessagesGuard
- * holds every message the code throws to both. React-free and server-safe.
+ * holds every message the code throws to both. Both read a message in any
+ * script: a message in Persian, Japanese or Hindi says something (#7536).
+ * React-free and server-safe.
  */
 
 /*
@@ -48,23 +50,51 @@ const TRAILING_TRY_AGAIN: ReadonlyArray<string> = [
   "try again",
 ];
 
+/*
+ * A letter of any script (#7536). It used to be a character whose upper and
+ * lower case differ, which only Latin, Greek, Cyrillic and a few other
+ * scripts have: a message written in Arabic, Persian, Hebrew, Chinese,
+ * Japanese, Korean, Hindi or Thai had no letters at all, so it read as an
+ * empty message and was replaced with the English sentence for a failure
+ * nobody explained. Each test reads one character, in linear time.
+ */
+const LETTER: RegExp = /^\p{L}$/u;
+
+// A digit of any script: "404", Arabic-Indic "٤٠٤", full-width "５０３".
+const DIGIT: RegExp = /^\p{Nd}$/u;
+
+/*
+ * What else a word is written with: any other number ("½", "Ⅻ") and the
+ * marks a letter carries (Hindi's and Thai's vowel signs, Arabic's
+ * harakat), so a word in those scripts is not cut in pieces.
+ */
+const NUMBER_OR_MARK: RegExp = /^[\p{N}\p{M}]$/u;
+
 const isLetter: (character: string) => boolean = (
   character: string,
 ): boolean => {
-  return character.toLowerCase() !== character.toUpperCase();
+  return LETTER.test(character);
+};
+
+const isDigit: (character: string) => boolean = (
+  character: string,
+): boolean => {
+  return DIGIT.test(character);
 };
 
 /*
  * The words of a message, lower case, with everything that is not a letter,
- * a digit or a space turned into a space and the spaces squeezed: "Oops,
- * something went wrong." reads "oops something went wrong".
+ * a number, a mark or a space turned into a space and the spaces squeezed:
+ * "Oops, something went wrong." reads "oops something went wrong". A message
+ * of punctuation and symbols alone ("...", "—", "❌") has no words, so it
+ * says nothing in any language.
  */
 const toWords: (message: string) => string = (message: string): string => {
   let words: string = "";
 
   for (const character of message.toLowerCase()) {
     const isWordCharacter: boolean =
-      isLetter(character) || (character >= "0" && character <= "9");
+      isLetter(character) || NUMBER_OR_MARK.test(character);
 
     words += isWordCharacter ? character : " ";
   }
@@ -96,14 +126,100 @@ export const isEmptyErrorPhrase: (
   return words.length === 0 || EMPTY_ERROR_PHRASES.includes(words);
 };
 
+/*
+ * What a proxy, a gateway or a web server says on its own for a 413, when
+ * it says anything but a page: its status, in the words of whichever RFC or
+ * product it follows - nginx's and HAProxy's "Request Entity Too Large",
+ * RFC 7231's "Payload Too Large", RFC 9110's "Content Too Large", Amazon
+ * API Gateway's "Request Too Long", Go's "http: request body too large",
+ * Kong's "Request size limit exceeded". Compared as isEmptyErrorPhrase
+ * compares, after a leading "413" or "Error 413".
+ */
+export const TOO_LARGE_PHRASES: ReadonlyArray<string> = [
+  "request entity too large",
+  "payload too large",
+  "content too large",
+  "entity too large",
+  "request too large",
+  "request too long",
+  "request body too large",
+  "http request body too large",
+  "body too large",
+  "request size limit exceeded",
+  "request body size limit exceeded",
+  "request content length exceeded",
+];
+
+// What may come before a 413's own phrase: "413", "Error 413", "HTTP 413".
+const TOO_LARGE_STATUS_PREFIXES: ReadonlyArray<string> = [
+  "error 413 ",
+  "http 413 ",
+  "status 413 ",
+  "413 ",
+];
+
+/*
+ * Whether the message is only what a proxy says for a 413 (TOO_LARGE_PHRASES),
+ * which says that it was too large and nothing about what to do. A message
+ * OneUptime wrote for a 413 is a sentence that says more ("Request body too
+ * large. The gzip body of a gzip-encoded request may not exceed 4194304
+ * bytes.") and is not one.
+ */
+export const isTooLargePhrase: (
+  message: string | undefined | null,
+) => boolean = (message: string | undefined | null): boolean => {
+  let words: string = toWords(message || "");
+
+  for (const prefix of TOO_LARGE_STATUS_PREFIXES) {
+    if (words.startsWith(prefix)) {
+      words = words.substring(prefix.length);
+      break;
+    }
+  }
+
+  return TOO_LARGE_PHRASES.includes(words);
+};
+
+/*
+ * Whether the "message" is a page rather than a message: the HTML (or XML)
+ * a gateway, a proxy or a web server answers with - nginx's "<html><head>
+ * <title>502 Bad Gateway</title>...", a load balancer's 503, a CDN's error
+ * page, the app's own index.html on a route that is not the API's. It
+ * starts with a tag or a doctype and ends with a tag. Its words are markup
+ * and a server's name, nothing a person can act on, so the UI says what
+ * happened instead (API.getFriendlyMessage). A message that only starts
+ * with a tag ("<script> is not allowed in a name.") is a message.
+ */
+export const isErrorPage: (message: string | undefined | null) => boolean = (
+  message: string | undefined | null,
+): boolean => {
+  const text: string = (message || "").trim();
+
+  if (!text.startsWith("<") || !text.endsWith(">")) {
+    return false;
+  }
+
+  const second: string = text.charAt(1);
+
+  return (
+    second === "!" ||
+    second === "?" ||
+    (second.toLowerCase() >= "a" && second.toLowerCase() <= "z")
+  );
+};
+
 // What may close a sentence after its full stop: a quote or a bracket.
-const CLOSING_MARKS: string = `"'”’)]»`;
+const CLOSING_MARKS: string = `"'”’)]»」』`;
 
 // What may open a sentence before its first word.
-const OPENING_MARKS: string = `"'“‘([«¿¡`;
+const OPENING_MARKS: string = `"'“‘„([«¿¡「『`;
 
-// The marks a sentence may end with.
-const SENTENCE_ENDS: string = ".!?…。！？";
+/*
+ * The marks a sentence may end with, in the scripts OneUptime is read in:
+ * also Japanese's and Chinese's full stops, Arabic's and Persian's question
+ * mark, Urdu's full stop and Hindi's danda.
+ */
+const SENTENCE_ENDS: string = ".!?…。！？．｡؟۔।॥";
 
 /*
  * Whether the message is a sentence: it starts with a capital letter, a
@@ -111,7 +227,10 @@ const SENTENCE_ENDS: string = ".!?…。！？";
  * exclamation mark (a closing quote or bracket may follow it). A value is
  * written as {{name}} or ${...}: "{{name}} is already taken." is a sentence.
  * A message that is several sentences counts as one when its first starts
- * and its last ends that way.
+ * and its last ends that way. A letter of a script with no capitals (Arabic,
+ * Chinese, Hindi) starts a sentence as a capital does (#7536):
+ * ErrorMessagesGuard still holds OneUptime's own English messages to a
+ * capital, since a lower-case Latin letter is not one.
  */
 export const isErrorSentence: (
   message: string | undefined | null,
@@ -134,11 +253,15 @@ export const isErrorSentence: (
   const startsWithValue: boolean =
     rest.startsWith("{{") || rest.startsWith("${");
 
-  const first: string = rest.charAt(0);
+  // The whole first character, also one outside the Basic Multilingual Plane.
+  const firstCodePoint: number | undefined = rest.codePointAt(0);
+
+  const first: string =
+    firstCodePoint === undefined ? "" : String.fromCodePoint(firstCodePoint);
 
   const startsRight: boolean =
     startsWithValue ||
-    (first >= "0" && first <= "9") ||
+    isDigit(first) ||
     (isLetter(first) && first === first.toUpperCase());
 
   if (!startsRight) {

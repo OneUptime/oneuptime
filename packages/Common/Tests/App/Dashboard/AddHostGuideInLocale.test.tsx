@@ -26,6 +26,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import { HostCollectorOsType } from "../../../Types/HostCollector/HostCollector";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -180,7 +181,12 @@ describe("Add Host in every language", () => {
       const text: string = container.textContent || "";
 
       for (const key of DRAWN_KEYS) {
-        expect({ key, shown: text.includes(locale[key] as string) }).toEqual({
+        const worded: string = locale[key] as string;
+        // As the guide draws it: French's marks kept with their words.
+        const drawn: string =
+          worded === key ? worded : withNoBreakSpaces(worded, key, language);
+
+        expect({ key, shown: text.includes(drawn) }).toEqual({
           key,
           shown: true,
         });

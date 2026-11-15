@@ -104,7 +104,7 @@ Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 :::steps
 ### 打开列表的 Terraform 页面
 
-打开列表，然后在它的侧边菜单中依次打开 **开发者** 和 **Terraform**，例如 **监控 → 开发者 → Terraform**。
+打开列表，然后在它的侧边菜单中依次打开 **开发者** 和 **Terraform**，例如 **监视器 → 开发者 → Terraform**。
 
 ### 复制 import 块
 

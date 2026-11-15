@@ -11,6 +11,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
 import { Green, Red, Yellow, Grey } from "Common/Types/BrandColors";
 import UserElement from "../../../Components/User/User";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const IncomingCallPolicyLogViewPage: FunctionComponent<
   PageComponentProps
@@ -87,7 +88,7 @@ const IncomingCallPolicyLogViewPage: FunctionComponent<
               if (item.user) {
                 return <UserElement user={item.user} />;
               }
-              return <span className="text-gray-400">-</span>;
+              return <TableEmptyValue />;
             },
           },
           {
@@ -138,7 +139,7 @@ const IncomingCallPolicyLogViewPage: FunctionComponent<
                   </span>
                 );
               }
-              return <span>-</span>;
+              return <TableEmptyValue />;
             },
           },
           {

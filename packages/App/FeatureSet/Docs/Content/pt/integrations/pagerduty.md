@@ -52,7 +52,7 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Enviar o evento de disparo
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina a **URL** dele como `https://events.pagerduty.com/v2/enqueue` e o **Request Body** como:
+Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://events.pagerduty.com/v2/enqueue` e o **Corpo da Requisição** como:
 
 ```json
 {
@@ -92,11 +92,11 @@ Crie um workflow chamado `Resolve PagerDuty incidents` e escolha **On Update Inc
 
 ### Verificar que o incidente está resolvido
 
-Adicione um bloco **If / Else** depois do gatilho. Defina **Value to check** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** como **is true**.
+Adicione um bloco **If / Else** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
 
 ### Enviar o evento de resolução
 
-Adicione um bloco **API Post (JSON)** depois do lado **Yes**, com a mesma **URL** e este **Request Body**:
+Adicione um bloco **API Post (JSON)** depois do lado **Sim**, com a mesma **URL** e este **Corpo da Requisição**:
 
 ```json
 {
@@ -118,7 +118,7 @@ Verificar `isResolvedState` em vez do nome de um estado continua funcionando qua
 Para enviar a gravidade de cada incidente, adicione um bloco **Run Custom JavaScript** entre o gatilho e o bloco **API Post (JSON)**, e leia a resposta dele no corpo.
 
 1. Em **Fields to pass on** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
-2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **JavaScript Code** dele como:
+2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **Código JavaScript** dele como:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ Os dois eventos precisam levar exatamente a mesma `dedup_key`. Verifique se os d
 :::
 
 :::details O workflow nunca roda
-Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **No** do bloco **If / Else** é uma atualização que não era uma resolução.
+Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **If / Else** é uma atualização que não era uma resolução.
 :::
 
 :::details O PagerDuty mostra uma referência em vez de um valor

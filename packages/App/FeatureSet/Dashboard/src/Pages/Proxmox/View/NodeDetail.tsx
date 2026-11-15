@@ -294,12 +294,12 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_cpu",
-      title: "CPU Utilization",
+      title: translator.translateText("CPU Utilization"),
       description: translator.translateTemplate(
         "CPU usage percent for node {{nodeName}} (pve_cpu_usage_ratio × 100 — already a true ratio).",
         { nodeName: nodeName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -321,12 +321,12 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_memory",
-      title: "Memory Usage",
+      title: translator.translateText("Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for node {{nodeName}}",
         { nodeName: nodeName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -346,12 +346,12 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   const rootDiskQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_root_disk",
-      title: "Root Filesystem Usage",
+      title: translator.translateText("Root Filesystem Usage"),
       description: translator.translateTemplate(
         "Root filesystem usage for node {{nodeName}}",
         { nodeName: nodeName },
       ),
-      legend: "Disk",
+      legend: translator.translateText("Disk"),
       legendUnit: "",
     },
     metricQueryData: {

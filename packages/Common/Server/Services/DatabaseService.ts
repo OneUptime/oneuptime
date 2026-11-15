@@ -202,6 +202,7 @@ import RelatedFileAccess, {
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
+import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -6305,6 +6306,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         },
       });
 
+      /*
+       * A product's first record: the products menu stops saying "Not set
+       * up" on it at once, on every server (#7465). See ProjectUsageCache.
+       */
+      await ProjectUsageCache.afterCreate({
+        tableName: this.model.tableName,
+        row: createBy.data,
+      });
+
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(onCreate, createBy.data);
       }
@@ -7807,6 +7817,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rows: items,
         });
 
+        // A product's last record gone: "Not set up" again. See ProjectUsageCache.
+        await ProjectUsageCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
         /*
          * The files their custom fields held go with them - a retention
          * purge included - unless something still holds them. See
@@ -7844,9 +7860,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * own columns stay. A key that is no column at all - a filter by owners
    * (OwnedBy), a multi-field search - is left to the lookup too: the DELETE
    * would name a column the table does not have.
+   *
+   * A filter written with one of OneUptime's operators (LessThan, Includes,
+   * NotEqual, ...) is written as a read writes it (QueryUtil.serializeQuery):
+   * TypeORM does not know those classes and bound the object itself, which
+   * Postgres refused ("invalid input syntax for type timestamp with time
+   * zone: {"_type":"LessThan",...}"), so such a delete failed whenever it
+   * found rows (#8200). Its other filters - an id, a value, TypeORM's own
+   * operators - are handed to TypeORM as they are, as before.
    */
   private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
     const filters: Dictionary<unknown> = {};
+    const operators: Dictionary<unknown> = {};
 
     for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {
       const type: TableColumnType | undefined =
@@ -7860,10 +7885,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
+      if (value instanceof QueryOperator) {
+        operators[key] = value;
+        continue;
+      }
+
       filters[key] = value;
     }
 
-    return filters as Query<TBaseModel>;
+    return {
+      ...filters,
+      ...QueryUtil.serializeQuery(
+        this.modelType,
+        operators as Query<TBaseModel>,
+      ),
+    } as Query<TBaseModel>;
   }
 
   /*
@@ -8150,6 +8186,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * still arrives comes back. See DiscoveredResourceIdCache.
          */
         await DiscoveredResourceIdCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
+        // A product's last record gone: "Not set up" again. See ProjectUsageCache.
+        await ProjectUsageCache.afterDelete({
           tableName: this.model.tableName,
           rows: items,
         });

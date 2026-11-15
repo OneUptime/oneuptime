@@ -499,6 +499,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       return {
         value: service.id?.toString() || "",
         label: service.name?.toString() || "Unknown Service",
+        // "Unknown Service" in its place is the product's word, looked up.
+        isUserContent: Boolean(service.name),
       };
     });
   }, [services]);
@@ -543,6 +545,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             id: serviceId,
             nameMap: selectedEntityNames,
           }),
+          // The entity's name, or its id: drawn as written.
+          isUserContent: true,
         }
       );
     });
@@ -930,11 +934,14 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           value={reportingServices}
           subtext={
             scopedServiceCount > 0
-              ? translator.translateTemplate(
-                  "{{reporting}} of {{count}} services",
+              ? translator.translatePlural(
+                  {
+                    one: "{{reporting}} of {{count}} service",
+                    other: "{{reporting}} of {{count}} services",
+                  },
+                  scopedServiceCount,
                   {
                     reporting: translator.formatNumber(reportingServices),
-                    count: translator.formatNumber(scopedServiceCount),
                   },
                 )
               : translator.translateTemplate("actively sending data")

@@ -65,7 +65,7 @@ La liste affiche le nom et la description de chaque variable. Cliquez sur **Voir
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Modifier la variable**                     | Change le nom, la description et — pour une variable statique qui n'est pas encore secrète — l'indicateur secret. Une fois secrète, une variable le reste. |
 | **Mettre à jour le contenu**                 | Remplace une valeur statique. Le contenu enregistré ne peut pas être relu : vous tapez donc la nouvelle valeur en entier.                           |
-| **Utiliser dans les workflows**              | Affiche la référence exacte à coller dans vos blocs, avec un bouton de copie.                                                                      |
+| **Utiliser dans les flux de travail**        | Affiche la référence exacte à coller dans vos blocs, avec un bouton de copie.                                                                      |
 | **Supprimer : Variable de flux de travail**  | La supprime, après vous avoir demandé confirmation. La confirmation nomme la variable, pour que vous puissiez vérifier que c'est bien celle-là.     |
 
 Pour créer plutôt une variable **jeton d'accès OAuth 2.0**, ouvrez le menu **Plus** (**⋯**) à côté de **Créer : Variable de flux de travail** et choisissez **Créer une variable OAuth 2.0**. Les variables OAuth 2.0 ont [leur propre section](#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls) plus bas. Le type d'une variable ne peut pas être changé une fois enregistrée.
@@ -142,7 +142,7 @@ sequenceDiagram
    - **Paramètres supplémentaires** : des champs de formulaire supplémentaires pour la demande de jeton, comme `audience` pour Auth0 (nécessaire pour Client Credentials) ou `resource` pour Azure AD v1. Toute personne qui peut lire la variable peut les lire : n'y mettez donc pas de secrets.
    - **Authentification du client** : si l'ID et le secret client partent dans un en-tête HTTP Basic (par défaut) ou dans le corps de la requête. Si votre fournisseur répond `invalid_client`, essayez l'autre option.
 
-Sous certains champs, le formulaire ajoute une ligne d'aide pour le fournisseur choisi, par exemple l'endroit où Microsoft Entra ID affiche votre ID de locataire, et le fait que son secret client est la **Value** du secret, pas son **Secret ID**.
+Sous certains champs, le formulaire ajoute une ligne d'aide pour le fournisseur choisi, par exemple l'endroit où Microsoft Entra ID affiche votre ID de locataire, et le fait que son secret client est la **Valeur** du secret, pas son **Secret ID**.
 
 Quand vous enregistrez une nouvelle variable OAuth 2.0, OneUptime récupère aussitôt son premier jeton et vous dit ce que le fournisseur a répondu. Une faute de frappe dans le secret ou dans l'URL se voit à ce moment-là, pas des heures plus tard dans une exécution en échec. Récupérer un jeton écrit dans la variable : cela demande donc l'autorisation de modifier les variables de workflow ; si vous pouvez créer des variables mais pas les modifier, c'est la première exécution de workflow qui utilise la variable qui récupère son jeton.
 
@@ -210,7 +210,7 @@ Presque tous les champs de texte acceptent des variables :
 - Les en-têtes et les champs du corps (à l'intérieur des valeurs de chaîne).
 - Les deux côtés d'un bloc **If / Else**.
 
-Dans les champs JSON — **Data (JSON Object)** et **Query** sur les composants d'enregistrement, le **Request Body** d'un bloc API, les **Arguments** de **Run Custom JavaScript** — une référence est remplie selon l'endroit où elle se trouve :
+Dans les champs JSON — **Data (JSON Object)** et **Requête** sur les composants d'enregistrement, le **Corps de la requête** d'un bloc API, les **Arguments** de **Run Custom JavaScript** — une référence est remplie selon l'endroit où elle se trouve :
 
 - **Entre guillemets, c'est du texte.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` place la valeur dans la chaîne. Les guillemets, les barres obliques inverses et les sauts de ligne de la valeur sont échappés : le JSON reste valide et la valeur reste une seule chaîne.
 - **Seule, c'est la valeur elle-même.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` insère l'objet entier, une liste reste une liste et un nombre reste un nombre. Un texte qui est lui-même du JSON — `5`, `true`, ou un objet qu'un bloc a renvoyé sous forme de texte JSON — est inséré comme cette valeur. Tout autre texte est inséré comme une chaîne.
@@ -223,7 +223,7 @@ Le bloc **Run Custom JavaScript** ne reçoit pas les variables automatiquement �
 
 Dans un champ de texte, vous pouvez répéter un morceau de texte pour chaque élément d'une liste avec `{{#each path}}…{{/each}}`. À l'intérieur du bloc, `{{property}}` lit dans l'élément courant, `{{@index}}` est sa position à partir de 0, et `{{this}}` est l'élément lui-même pour les listes de valeurs simples. Les noms à l'intérieur d'un bloc `{{#each}}` sont nettoyés de leurs espaces : les espaces parasites y sont donc sans effet — contrairement à partout ailleurs.
 
-Par exemple, ce **Message Text** liste chaque alerte envoyée par un webhook :
+Par exemple, ce **Texte du message** liste chaque alerte envoyée par un webhook :
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -239,7 +239,7 @@ Un webhook arrive avec un corps comme `{ "service": "checkout", "status": "faile
 
 1. Un déclencheur **Webhook** avec l'ID `ci-webhook`.
 2. Un bloc **If / Else** : **Valeur à vérifier** est le champ `status` du Request Body du webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparaison** est **est égal à**, et **Comparer avec** est `failed`.
-3. Depuis la branche **Yes**, un bloc **Create One Incident** avec :
+3. Depuis la branche **Oui**, un bloc **Create One Incident** avec :
    - Titre : `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description : `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ Le premier appel vous donne un ID dont le second a besoin :
 1. Composant **API** `lookup-order` : dans son **URL**, après `/orders?email=`, utilisez **{ }** pour insérer le JSON du déclencheur manuel avec le chemin `email`.
 2. Composant **API** `cancel-order` : `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Si `lookup-order` échoue, c'est sa sortie **Error** qui se produit au lieu de **Success**. Reliez-la à un bloc Email ou Slack pour que les échecs ne passent pas inaperçus.
+Si `lookup-order` échoue, c'est sa sortie **Erreur** qui se produit au lieu de **Succès**. Reliez-la à un bloc Email ou Slack pour que les échecs ne passent pas inaperçus.
 
 ## Mettre à jour une variable depuis un workflow
 
@@ -290,7 +290,7 @@ Deux points à surveiller :
 
 - **Utilisez { } (ou tapez `{{`).** Cela insère les ID exacts de composant, de valeur de retour et de variable qu'attend le moteur d'exécution, et ne propose que des valeurs qui existent quand le bloc s'exécute.
 - **Les noms de variables sont sensibles à la casse.** `{{global.variables.MyKey}}` et `{{global.variables.mykey}}` sont différents.
-- **Une référence qui ne se résout pas est laissée telle quelle, pas vidée.** Faire référence à quelque chose qui n'existe pas n'est pas une erreur, et ne donne pas non plus une chaîne vide : les accolades passent telles quelles, si bien que `{{local.components.api-get-1.returnValues.body}}` avec un ID d'étape mal tapé se retrouve mot pour mot dans votre message Slack, votre URL ou le corps de votre requête, et l'exécution indique quand même **Exécuté**. L'onglet **Étapes** de l'exécution affiche sur l'étape un avertissement qui nomme toute référence passée telle quelle, et marque le paramètre où elle se trouvait **Non résolu** ; le journal de l'exécution contient la même ligne d'avertissement. L'exception est un identifiant qu'un composant de données lit ou écrit, comme `_id` dans sa **Query** : là, l'étape s'arrête avant de lire ou d'écrire quoi que ce soit, prend sa sortie **Error** et indique quelle référence ne s'est pas résolue et quoi vérifier.
+- **Une référence qui ne se résout pas est laissée telle quelle, pas vidée.** Faire référence à quelque chose qui n'existe pas n'est pas une erreur, et ne donne pas non plus une chaîne vide : les accolades passent telles quelles, si bien que `{{local.components.api-get-1.returnValues.body}}` avec un ID d'étape mal tapé se retrouve mot pour mot dans votre message Slack, votre URL ou le corps de votre requête, et l'exécution indique quand même **Exécuté**. L'onglet **Étapes** de l'exécution affiche sur l'étape un avertissement qui nomme toute référence passée telle quelle, et marque le paramètre où elle se trouvait **Non résolu** ; le journal de l'exécution contient la même ligne d'avertissement. L'exception est un identifiant qu'un composant de données lit ou écrit, comme `_id` dans sa **Requête** : là, l'étape s'arrête avant de lire ou d'écrire quoi que ce soit, prend sa sortie **Erreur** et indique quelle référence ne s'est pas résolue et quoi vérifier.
 - **Un champ sans contenu arrive vide.** Tous les enregistrements n'ont pas tous les champs. Une alerte qu'aucun moniteur n'a déclenchée, par exemple issue d'un SLO ou créée à la main, n'a pas de moniteur, donc `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` n'a rien à donner : dans un message il n'y a rien à cet endroit, et seul en JSON il vaut `null`. Il en va de même pour une description que personne n'a écrite, un champ personnalisé que l'enregistrement ne contient pas, un **Find One** qui n'a trouvé aucun enregistrement, une liste sans cet élément et un champ que le bloc ne transmet pas, ce qui ajoute aussi sur l'étape un avertissement indiquant quoi ajouter à ses **Fields to pass on**. Une URL et un bloc qui lit ou écrit des enregistrements font exception, car un vide changerait ce sur quoi le bloc agit : la référence y reste telle quelle, et un ID arrête le bloc. Pour prendre un autre chemin, vérifiez la valeur avec **est vide** dans un **If / Else**. Pour nommer le SLO à l'origine d'une alerte, transmettez son nom et utilisez `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Le panneau des problèmes ne peut pas vérifier les noms de variables.** Il signale les références de composant qu'il ne peut pas associer — un ID d'étape inconnu, une valeur de retour inconnue, une racine mal formée — avant l'enregistrement. Il ne peut pas savoir si une variable existe. Les paramètres d'un bloc, eux, le peuvent : une référence à une variable manquante y apparaît comme une puce orange. Sinon, une variable renommée n'est repérée que par le journal de l'exécution.
 - **Les espaces à l'intérieur des accolades ne sont pas supprimés.** `{{ local.variables.NAME }}` est une recherche différente de `{{local.variables.NAME}}` et ne se résout jamais. La seule exception est l'intérieur d'un bloc `{{#each}}`, où les noms sont nettoyés.

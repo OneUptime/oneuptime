@@ -337,7 +337,7 @@
       "failedJobsDesc": "De nyeste mislykkede jobbene for én enkelt kø (opptil 25), hver med sin jobbtekst, sine alternativer, returverdi, stakksporing og jobbspesifikke logger.",
       "clickhouseCapacityDesc": "ClickHouse-lagringskapasitet: total datastørrelse, diskbruk per node, de største tabellene og lokale tabellstørrelser per shard.",
       "clickhouseClusterDesc": "Helsen til ClickHouse-klyngen: tilgjengeligheten til shards, den distribuerte DDL-køen, tilstanden til replikaer og replikeringskøen, og Keeper-tilkoblingen. Dette er det som avslører en fastlåst ON CLUSTER-skjemasynkronisering.",
-      "clickhouseTelemetryIngestionDesc": "Gjennomstrømning for telemetri-inntak — hvor mange logg-, metrikk- og sporingsrader som havnet i ClickHouse det siste minuttet, den siste timen og det siste døgnet. Nyttig for å oppdage en pipeline som har stanset eller flommer over.",
+      "clickhouseTelemetryIngestionDesc": "Gjennomstrømning for telemetri-inntak — hvor mange logg-, målings- og sporingsrader som havnet i ClickHouse det siste minuttet, den siste timen og det siste døgnet. Nyttig for å oppdage en pipeline som har stanset eller flommer over.",
       "postgresClusterDesc": "Helsen til Postgres-klyngen: replikeringsforsinkelse, slot-helse, tilkoblingsmetning, låse- og blokkeringspress, cache-treffrate og margin til transaksjons-ID-wraparound.",
       "redisDesc": "Valkey-tilkoblingstilstand og brukt / maksimalt minne.",
       "instanceHealthLogsDesc": "De 50 nyeste hendelsene for instanshelse, nyeste først — for eksempel kjøringer av ClickHouse-kapasitetsevaluering og -gjenvinning.",

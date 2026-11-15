@@ -284,7 +284,7 @@
     "accessWriteTitle": "Läs- och skrivåtkomst",
     "accessWriteDescription": "Visa data och göra ändringar: bekräfta och lösa incidenter och larm, lägga till anteckningar samt skapa, uppdatera eller ta bort resurser.",
     "accessReadTitle": "Endast läsåtkomst",
-    "accessReadDescription": "Visa incidenter, larm, övervakare, statussidor och telemetri. Kan inte ändra något.",
+    "accessReadDescription": "Visa incidenter, larm, monitorer, statussidor och telemetri. Kan inte ändra något.",
     "permissionsNote": "Klienten agerar i ditt namn och kan aldrig göra mer än vad dina egna behörigheter i det här projektet tillåter. Du kan när som helst koppla från den under Projektinställningar > AI > MCP-server.",
     "authorizeButton": "Godkänn",
     "denyButton": "Avbryt",
@@ -631,5 +631,9 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som skickades var för stort för att servern skulle ta emot det, så åtgärden slutfördes inte. Försök igen med mindre åt gången, till exempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det som skickades var för stort för att servern skulle ta emot det.",
+  "Try again with less at once, such as a smaller file.": "Försök igen med mindre åt gången, till exempel en mindre fil.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Om en proxy framför OneUptime avvisade det, höj proxyns gräns för en begärans storlek till 50 MB, lika mycket som OneUptime självt tar emot (i nginx, client_max_body_size 50M)."
 }

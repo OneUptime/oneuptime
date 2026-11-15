@@ -502,6 +502,8 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
                     ""
                   } (${telemetryEntity.entityType || ""})`,
                   value: telemetryEntity.entityKey || "",
+                  // What the resource is called in its telemetry: as written.
+                  isUserContent: true,
                 };
               },
             ),

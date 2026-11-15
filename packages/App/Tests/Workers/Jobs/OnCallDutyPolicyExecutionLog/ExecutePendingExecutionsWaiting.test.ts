@@ -1,4 +1,5 @@
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import ObjectID from "Common/Types/ObjectID";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
@@ -412,13 +413,37 @@ describe("a run that waits for working hours", () => {
     expect(alertService.isAlertAcknowledged).not.toHaveBeenCalled();
   });
 
-  test("that fails to start says why, as a paging run that fails does", async () => {
+  /*
+   * A start that fails for a reason a retry can outlast is tried again, as
+   * any run's failed step is (issue #8167): the run used to end in Error at
+   * once, with the error's words, having paged nobody.
+   */
+  test("that fails to start is tried again, as a paging run that fails is", async () => {
+    const log: OnCallDutyPolicyExecutionLog = waiting({
+      pagingStartsAt: new Date(Date.now() - 1000),
+    });
+    executionLogService.findBy.mockResolvedValue([log]);
+    executionLogService.startWaitingRun.mockRejectedValueOnce(
+      new Error("Database is down"),
+    );
+
+    await tick();
+
+    expect(executionLogService.updateOneById).not.toHaveBeenCalled();
+
+    await tick();
+
+    expect(executionLogService.startWaitingRun).toHaveBeenCalledTimes(2);
+    expect(executionLogService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("that fails to start for a reason a retry cannot fix ends, saying why", async () => {
     const log: OnCallDutyPolicyExecutionLog = waiting({
       pagingStartsAt: new Date(Date.now() - 1000),
     });
     executionLogService.findBy.mockResolvedValue([log]);
     executionLogService.startWaitingRun.mockRejectedValue(
-      new Error("Database is down"),
+      new BadDataException("Invalid userNotificationEventType"),
     );
 
     await tick();
@@ -427,7 +452,7 @@ describe("a run that waits for working hours", () => {
       id: log.id,
       data: {
         status: OnCallDutyPolicyStatus.Error,
-        statusMessage: "Database is down",
+        statusMessage: "Invalid userNotificationEventType",
       },
       props: { isRoot: true },
     });

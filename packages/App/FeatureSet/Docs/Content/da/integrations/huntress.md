@@ -13,7 +13,7 @@ Denne integration er **indgående**: Huntress sender hver begivenhed om en hænd
 
 ## Sådan virker det
 
-Huntress sender en begivenhed om en hændelsesrapport, når rapporten sendes, når nogen kommenterer den, og når den lukkes. Triggeren **Huntress Incident Report** starter workflowet én gang for hver begivenhed, og dens **Event** siger, hvilken det var: `created`, `comment-added` eller `closed`.
+Huntress sender en begivenhed om en hændelsesrapport, når rapporten sendes, når nogen kommenterer den, og når den lukkes. Triggeren **Huntress Incident Report** starter workflowet én gang for hver begivenhed, og dens **Begivenhed** siger, hvilken det var: `created`, `comment-added` eller `closed`.
 
 ```mermaid title="Én Huntress-hændelsesrapport i et workflow"
 sequenceDiagram
@@ -79,19 +79,19 @@ Slå **Aktiveret** til øverst i **Bygger**. Åbn endpointets menu (⋯) i Huntr
 
 ## Hvad workflowet gør
 
-Efter triggeren gør **Incident From Another Tool** det, hver **Event** beder om, ud fra rapportens nummer:
+Efter triggeren gør **Incident From Another Tool** det, hver **Begivenhed** beder om, ud fra rapportens nummer:
 
 | Event | Hvad workflowet gør |
 | --- | --- |
-| `created` | Åbner en hændelse med triggerens **Incident Severity ID**, med etiketten fra dens **Organization Label ID**. Ved en høj eller kritisk rapport tilkalder **Page an On-Call Policy** din politik; en lav rapport tilkalder ingen. En rapport, der allerede har en hændelse, åbner ikke en til. |
+| `created` | Åbner en hændelse med triggerens **Id for hændelsesalvorlighed**, med etiketten fra dens **Organization Label ID**. Ved en høj eller kritisk rapport tilkalder **Page an On-Call Policy** din politik; en lav rapport tilkalder ingen. En rapport, der allerede har en hændelse, åbner ikke en til. |
 | `comment-added` | Finder rapportens hændelse og tilføjer kommentaren til den som en privat note. |
 | `closed` | Finder rapportens hændelse og løser den, medmindre den allerede er løst. Årsagen står på dens tidslinje: Huntress lukkede rapporten. |
 
-Det er et workflow som alle andre, så du kan ændre, hvad det gør: tilkald kun ved kritiske rapporter ved at ændre, hvad **If / Else** efter **Incident From Another Tool** sammenligner, post hver rapport i en chatkanal med et Slack- eller Microsoft Teams-trin, eller send hver organisation til dens egen vagtpolitik med en **Switch / Case** på **Organization**. Hver kørsel står blandt workflowets kørsler, med hvad hvert trin gjorde.
+Det er et workflow som alle andre, så du kan ændre, hvad det gør: tilkald kun ved kritiske rapporter ved at ændre, hvad **If / Else** efter **Incident From Another Tool** sammenligner, post hver rapport i en chatkanal med et Slack- eller Microsoft Teams-trin, eller send hver organisation til dens egen vagtpolitik med en **Switch / Case** på **Organisation**. Hver kørsel står blandt workflowets kørsler, med hvad hvert trin gjorde.
 
 ### Alvorligheder
 
-Huntress giver hver hændelsesrapport én af tre alvorligheder. Triggerens **Incident Severity ID** er den hændelsesalvorlighed, rapporten åbner med: den, dens indstilling vælger, eller ellers rækkefølgen af dine hændelsesalvorligheder, som **Hændelser → Indstillinger → Hændelsesalvor** viser dem:
+Huntress giver hver hændelsesrapport én af tre alvorligheder. Triggerens **Id for hændelsesalvorlighed** er den hændelsesalvorlighed, rapporten åbner med: den, dens indstilling vælger, eller ellers rækkefølgen af dine hændelsesalvorligheder, som **Hændelser → Indstillinger → Hændelsesalvor** viser dem:
 
 | Alvorlighed i Huntress | Hvad Huntress mener med den | Indstilling | Hændelsesalvorlighed, når indstillingen er tom |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ Triggeren åbner på Huntress: dens URL, et flueben ved hvert opsætningstrin, d
 
 | Værdi | Hvad den indeholder |
 | --- | --- |
-| **Event** | `created`, `comment-added` eller `closed`. En rapport, der allerede er lukket eller afvist, er `closed`, uanset hvilken begivenhed der bragte den. |
+| **Begivenhed** | `created`, `comment-added` eller `closed`. En rapport, der allerede er lukket eller afvist, er `closed`, uanset hvilken begivenhed der bragte den. |
 | **Report ID** | Rapportens nummer i Huntress. |
-| **Severity** | `critical`, `high` eller `low`. |
+| **Alvorlighed** | `critical`, `high` eller `low`. |
 | **Status** | Rapportens status i Huntress, f.eks. `sent`, `closed` eller `dismissed`. |
-| **Subject** | Rapportens emne, som Huntress skriver det. |
-| **Summary** | Hvad SOC-analytikeren skrev. |
-| **Organization**, **Organization ID** | Den Huntress-organisation, rapporten handler om. |
-| **Affected** | Den vært eller identitet, rapporten handler om. |
-| **Platform**, **Indicators** | Hvor Huntress fandt det, og hvad den fandt. |
-| **Comment** | Den kommentar, nogen tilføjede, ved `comment-added`. |
+| **Emne** | Rapportens emne, som Huntress skriver det. |
+| **Oversigt** | Hvad SOC-analytikeren skrev. |
+| **Organisation**, **Organisations-id** | Den Huntress-organisation, rapporten handler om. |
+| **Berørt** | Den vært eller identitet, rapporten handler om. |
+| **Platform**, **Indikatorer** | Hvor Huntress fandt det, og hvad den fandt. |
+| **Kommentar** | Den kommentar, nogen tilføjede, ved `comment-added`. |
 | **Report URL** | Hvor rapporten åbner i Huntress. |
-| **Incident Title**, **Incident Description** | En titel og en Markdown-beskrivelse til en hændelse om rapporten. |
+| **Hændelsestitel**, **Hændelsesbeskrivelse** | En titel og en Markdown-beskrivelse til en hændelse om rapporten. |
 | **Note** | Markdown til en note om begivenheden: kommentaren, eller at Huntress lukkede rapporten. |
-| **Incident Severity ID**, **Organization Label ID** | Hændelsesalvorligheden og etiketten, som ovenfor. |
+| **Id for hændelsesalvorlighed**, **Organization Label ID** | Hændelsesalvorligheden og etiketten, som ovenfor. |
 | **Received At** | Hvornår OneUptime modtog begivenheden. |
 
-**Summary** og **Comment** er tekst, som Huntress' analytikere har skrevet. Brug **Incident Description** og **Note** for at sætte dem i en hændelse eller en note: De bevarer formateringen, og intet i dem henter et billede eller nævner nogen.
+**Oversigt** og **Kommentar** er tekst, som Huntress' analytikere har skrevet. Brug **Hændelsesbeskrivelse** og **Note** for at sætte dem i en hændelse eller en note: De bevarer formateringen, og intet i dem henter et billede eller nævner nogen.
 
-For at prøve workflowet uden Huntress skal du klikke på **Kør arbejdsgang** i **Bygger** og skrive en **Event**, et **Report ID** og de felter, du har brug for. Brug det samme **Report ID** for at følge én rapport fra `created` til `closed`.
+For at prøve workflowet uden Huntress skal du klikke på **Kør arbejdsgang** i **Bygger** og skrive en **Begivenhed**, et **Report ID** og de felter, du har brug for. Brug det samme **Report ID** for at følge én rapport fra `created` til `closed`.
 
 ## Huntress-forbindelser oprettet tidligere
 

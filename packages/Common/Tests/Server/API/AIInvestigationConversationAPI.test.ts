@@ -426,6 +426,71 @@ describe.each(["incident", "alert"] as const)(
       },
     );
 
+    /*
+     * The asker's time zone reaches the turn too, so a chart it draws over
+     * more than a week cuts its days at their midnight (#7922) - with the
+     * question, and with the approval that resumes the answer. Only a zone
+     * the Timezone list names goes through, by its current name.
+     */
+    test.each([
+      { sent: "America/New_York", reaches: "America/New_York" },
+      { sent: "Asia/Kathmandu", reaches: "Asia/Kathmandu" },
+      { sent: "Asia/Calcutta", reaches: "Asia/Kolkata" },
+      { sent: "Mars/Olympus_Mons", reaches: undefined },
+      { sent: "america/new_york", reaches: undefined },
+      { sent: "UTC'); DROP TABLE Metric; --", reaches: undefined },
+      { sent: -300, reaches: undefined },
+      { sent: undefined, reaches: undefined },
+    ])(
+      "the question carries the time zone $sent as $reaches",
+      async ({ sent, reaches }: { sent: unknown; reaches: unknown }) => {
+        const body: JSONObject = bodyFor(
+          "/ai-investigation/conversation/send-message",
+          subjectType,
+        );
+        if (sent !== undefined) {
+          body["timezone"] = sent as JSONObject;
+        }
+
+        const next: jest.Mock = await call(
+          "/ai-investigation/conversation/send-message",
+          body,
+        );
+
+        expect(next).not.toHaveBeenCalled();
+        const args: JSONObject = (
+          InvestigationThreadService.sendMessage as unknown as jest.SpyInstance
+        ).mock.calls[0]![0] as JSONObject;
+        expect(args["timezone"]).toBe(reaches);
+      },
+    );
+
+    test.each([
+      { sent: "Europe/London", reaches: "Europe/London" },
+      { sent: "Not/A_Zone", reaches: undefined },
+      { sent: null, reaches: undefined },
+    ])(
+      "the approval carries the time zone $sent as $reaches",
+      async ({ sent, reaches }: { sent: unknown; reaches: unknown }) => {
+        const next: jest.Mock = await call(
+          "/ai-investigation/conversation/respond-to-approval",
+          {
+            subjectType,
+            subjectId: SUBJECT_ID.toString(),
+            assistantMessageId: MESSAGE_ID.toString(),
+            decisions: [{ toolCallId: "call-1", approved: true }],
+            timezone: sent as JSONObject,
+          },
+        );
+
+        expect(next).not.toHaveBeenCalled();
+        const args: JSONObject = (
+          InvestigationThreadService.respondToApproval as unknown as jest.SpyInstance
+        ).mock.calls[0]![0] as JSONObject;
+        expect(args["timezone"]).toBe(reaches);
+      },
+    );
+
     test("refuses an approval without a valid message id", async () => {
       const next: jest.Mock = await call(
         "/ai-investigation/conversation/respond-to-approval",

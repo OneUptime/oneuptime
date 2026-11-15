@@ -21,7 +21,7 @@
 | 從你自己的程式碼、指令碼或其他工具建立                       | `POST /api/incident`                                                        |
 | 讓團隊外部的人透過連結回報問題                               | [表單](/docs/forms/index)                                                   |
 
-五種方式寫入的是同一個模型，因此探針建立的事件和應變人員手動建立的事件看起來完全一樣——只是伺服器會在自動建立的事件上設定幾個記帳用的欄。工作流程也會寫入它：[Huntress](/docs/integrations/huntress) 工作流程會為其 SOC 送來的每份事件報告建立一個事件。
+五種方式寫入的是同一個模型，因此探測器建立的事件和應變人員手動建立的事件看起來完全一樣——只是伺服器會在自動建立的事件上設定幾個記帳用的欄。工作流程也會寫入它：[Huntress](/docs/integrations/huntress) 工作流程會為其 SOC 送來的每份事件報告建立一個事件。
 
 > [!TIP]
 > 你也可以從警示宣告事件：在警示清單、警示的頁首或警示的 **已連結的事件** 頁面上使用 **宣告事件**，會開啟同一個精靈，依警示預先填好，並把它們連結到新事件。表單上預設勾選的核取方塊還會確認這些警示，讓它們停止升級。請參閱 [已連結的警示](/docs/incidents/linked-alerts)。
@@ -195,7 +195,7 @@
 
 標題、描述和補救備註中可用的 `{{variable}}` 預留位置完整清單，請參閱 [事件與警示範本](/docs/monitor/incident-alert-templating)。
 
-以這種方式建立的事件會被伺服器加上標記：設定 `isCreatedAutomatically`，`createdCriteriaId` 記錄是哪個條件篩選器觸發的，`createdByProbe` 記錄是哪個探針發現的。除此之外，它們的一切行為都與手動宣告的事件完全相同。
+以這種方式建立的事件會被伺服器加上標記：設定 `isCreatedAutomatically`，`createdCriteriaId` 記錄是哪個條件篩選器觸發的，`createdByProbe` 記錄是哪個探測器發現的。除此之外，它們的一切行為都與手動宣告的事件完全相同。
 
 監測器宣告的事件會連結到監測器所監測的對象：它的設定所指明的（主機監測器的主機、Kubernetes 監測器的叢集、記錄監測器的服務），以及它 **已連結的資源** 下的一切。網站或 API 監測器的設定不指明任何基礎設施，所以請把它連結到網站背後的叢集、主機或資料庫：這樣它的事件就會出現在那些資源的頁面上，OneUptime AI 可以在那裡調查它們，叢集或資源的 AI 修正也可以對它們生效（請參閱 [AI SRE](/docs/ai/ai-sre#叢集的修正作用於哪些事件)）。監測器建立的警示也以同樣的方式連結。
 
@@ -229,7 +229,7 @@ curl -X POST https://oneuptime.com/api/incident \
 
 要在宣告事件時新增擁有者，請在 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式傳送他們的 ID。如果呼叫方無權新增這些擁有者，要求會在儲存任何內容之前遭到拒絕；否則，事件一建立就會新增他們，且不傳送「你已被新增」通知。API 金鑰不是人：它不會成為擁有者，也沒有任何擁有者規則會為它新增建立者的團隊。要查詢哪些擁有者規則會執行，請將表單所持有的事件——`title`、`description`、`severityId`、`labelIds`、`monitorIds` 以及其他資源的 ID——傳送到 `POST /api/incident/owner-rule-preview`：回應會列出每條會新增某人的規則，以及它所新增對象的 ID。對於警示，則是 `POST /api/alert/owner-rule-preview`。
 
-API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求會被拒絕。這一欄由 OneUptime 自己設定，用於透過 [表單](/docs/forms/on-submit) 回報的事件，以及工作流程的 **Create One Incident** 步驟——它會根據其 **Incident Template** 設定中選擇的範本進行宣告（請參閱 [工作流程元件](/docs/workflows/components)）。要透過 API 從範本宣告，請從 `/api/incident-templates` 讀取範本，並在請求中傳送它的值。
+API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求會被拒絕。這一欄由 OneUptime 自己設定，用於透過 [表單](/docs/forms/on-submit) 回報的事件，以及工作流程的 **Create One Incident** 步驟——它會根據其 **事件範本** 設定中選擇的範本進行宣告（請參閱 [工作流程元件](/docs/workflows/components)）。要透過 API 從範本宣告，請從 `/api/incident-templates` 讀取範本，並在請求中傳送它的值。
 
 相關端點有 `/api/incident-state`、`/api/incident-severity` 和 `/api/incident-state-timeline`。產生的 [API 參考](/reference) 列出了每個端點確切的請求和回應結構，包括監測器等關聯欄位的表示方式。
 

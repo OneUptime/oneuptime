@@ -216,7 +216,7 @@ Per agire solo sulle chiamate perse, ad esempio per pubblicarle in Slack o Micro
 :::steps
 1. Aggiungi il trigger **On Update Incoming Call Log**. Imposta **Fields to watch** su **Ended At** e seleziona i campi da usare, come **Status**, **Caller Phone Number** e **Routing Phone Number**.
 2. Aggiungi un passaggio **If / Else**. Controlla lo **Status** del trigger, con il confronto **è diverso da** e `Completed`.
-3. Collega i tuoi passaggi alla porta **Yes**.
+3. Collega i tuoi passaggi alla porta **Sì**.
 :::
 
 Un workflow può leggere i registri chiamate con **Find One** e **Find Many**, ma non può crearli né modificarli.

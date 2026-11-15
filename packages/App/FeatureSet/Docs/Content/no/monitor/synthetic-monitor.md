@@ -48,7 +48,7 @@ Nettleserne er Chromium og Firefox.
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Synthetic Monitor** under **Syntetisk overvåking**, eller skriver `playwright` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Syntetisk monitor** under **Syntetisk overvåking**, eller skriver `playwright` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 
@@ -223,7 +223,7 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte metrikker**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
+Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
 
 En kjøring kan samle inn høyst 100 metrikker, bare med numeriske verdier, og OneUptime beholder høyst 100 per kontroll på tvers av alle kjøringene. Som for en monitor med egendefinert kode er noen attributtnavn [reservert](/docs/monitor/custom-code-monitor#reserverte-attributtnøkler) og forkastes hvis et skript setter dem.
 

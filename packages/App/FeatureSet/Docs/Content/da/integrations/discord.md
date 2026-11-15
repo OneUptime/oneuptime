@@ -15,11 +15,11 @@ Post en besked i en [Discord](https://discord.com)-kanal, når en hændelse åbn
 flowchart TB
     declared["Hændelse erklæret"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
-    step -->|"Success"| channel["Besked i<br/>din kanal"]
-    step -->|"Error"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
+    step -->|"Succes"| channel["Besked i<br/>din kanal"]
+    step -->|"Fejl"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
 ```
 
-Trinnet poster **Message Text** til kanalens webhook. Det tager sin udgang **Success**, når Discord tager imod beskeden, og sin udgang **Error**, med Discords begrundelse, når Discord afviser den. Er intet forbundet til **Error**, som i skabelonen, mislykkes en kørsel, der ikke kunne poste, og dens **Trin** siger hvorfor.
+Trinnet poster **Message Text** til kanalens webhook. Det tager sin udgang **Succes**, når Discord tager imod beskeden, og sin udgang **Fejl**, med Discords begrundelse, når Discord afviser den. Er intet forbundet til **Fejl**, som i skabelonen, mislykkes en kørsel, der ikke kunne poste, og dens **Trin** siger hvorfor.
 
 ## Før du går i gang
 
@@ -50,10 +50,10 @@ Start fra skabelonen, der bygger hele workflowet for dig, eller fra bunden.
 
 Workflowet åbner i **Bygger** med to trin: **On Create Incident** og **Send Message to Discord**, der poster hændelsens nummer, titel, alvorlighed og tilstand. URL'en gemmes som workflowets hemmelige variabel `discordWebhookUrl`.
 @tab Fra bunden
-1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
 3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Incident Number With Prefix**.
-4. Klik på **Tilføj komponent**, søg efter `discord`, og klik på **Send Message to Discord**. Forbind triggerens udgang **Success** til den.
+4. Klik på **Tilføj komponent**, søg efter `discord`, og klik på **Send Message to Discord**. Forbind triggerens udgang **Succes** til den.
 5. Klik på det nye trin. Klik i **Discord Incoming Webhook URL** på **{ }**, og vælg `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv beskeden i **Message Text**, og indsæt hændelsens felter med **{ }**.
 :::
 
@@ -68,7 +68,7 @@ En besked bygget fra bunden læser hændelsens felter med referencer som disse:
 
 Slå **Aktiveret** til øverst i **Bygger**. Fra nu af postes hver ny hændelse i kanalen.
 
-For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og vælger en hændelse, du allerede har, under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i kanalen. Tager trinnet i stedet **Error**, mislykkes kørslen, og trinnets post under **Trin** siger hvorfor: se [Fejlfinding](#fejlfinding).
+For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og vælger en hændelse, du allerede har, under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i kanalen. Tager trinnet i stedet **Fejl**, mislykkes kørslen, og trinnets post under **Trin** siger hvorfor: se [Fejlfinding](#fejlfinding).
 :::
 
 ## Tips
@@ -80,7 +80,7 @@ For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og v
 
 ## Fejlfinding
 
-Når trinnet tager **Error**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Discords begrundelse.
+Når trinnet tager **Fejl**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Discords begrundelse.
 
 :::details Discord svarer "Unknown Webhook" eller "Invalid Webhook Token"
 Webhooken er slettet, eller URL'en er kopieret forkert. Opret en ny webhook, og erstat URL'en: i skabelonens workflow variablen `discordWebhookUrl`, i dit eget workflow indholdet af `DISCORD_WEBHOOK_URL`.

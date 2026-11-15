@@ -444,7 +444,7 @@
   "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.": "Ajoutez une licence valide pour réactiver le provisionnement SCIM et la journalisation d'audit et rendre la configuration enterprise modifiable.",
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licence obtenue via votre abonnement à la place de marché cloud : chaque utilisateur est facturé à l'heure.",
   "License, version, seat usage, and the instances covered by this key.": "Licence, version, utilisation des sièges et instances couvertes par cette clé.",
-  "Full OneUptime platform with incident response, status pages, and workflow automation.": "La plateforme OneUptime complète avec la réponse aux incidents, les pages de statut et l'automatisation des workflows.",
+  "Full OneUptime platform with incident response, status pages, and workflow automation.": "La plateforme OneUptime complète avec la réponse aux incidents, les pages de statut et l'automatisation des flux de travail.",
   "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Support communautaire, documentation et tutoriels pour aider les équipes à démarrer rapidement.",
   "Regular updates, bug fixes, and open-source extensibility.": "Mises à jour régulières, corrections de bugs et extensibilité open source.",
@@ -631,5 +631,9 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Ce qui a été envoyé était trop volumineux pour que le serveur l'accepte, l'opération n'a donc pas abouti. Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "What was sent was too large for the server to accept.": "Ce qui a été envoyé était trop volumineux pour que le serveur l'accepte.",
+  "Try again with less at once, such as a smaller file.": "Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy placé devant OneUptime l'a refusé, relevez la limite de taille des requêtes de ce proxy à 50 Mo, autant que ce qu'accepte OneUptime lui-même (dans nginx, client_max_body_size 50M)."
 }

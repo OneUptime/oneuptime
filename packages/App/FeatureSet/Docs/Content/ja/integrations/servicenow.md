@@ -58,7 +58,7 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 
 ### レコードを作成する
 
-**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**URL** を `https://your-instance.service-now.com/api/now/table/incident` に設定します。**その他の項目** で、**Request Headers** を次のように設定します:
+**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://your-instance.service-now.com/api/now/table/incident` に設定します。**その他の項目** で、**リクエストヘッダー** を次のように設定します:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 }
 ```
 
-**Request Body** は次のとおりです:
+**リクエストボディ** は次のとおりです:
 
 ```json
 {
@@ -101,11 +101,11 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 
 ### インシデントが解決されたことを確認する
 
-トリガーの後に **If / Else** ブロックを追加します。**Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**Comparison** を **is true** に設定します。
+トリガーの後に **If / Else** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
 
 ### レコードを見つける
 
-**Yes** 側の後に、同じ **Request Headers** と次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
+**はい** 側の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### レコードを解決する
 
-検索ブロックの **Success** の後に、同じ **Request Headers** と次の **URL** を持つ **API Patch (JSON)** ブロックを追加します:
+検索ブロックの **成功** の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API Patch (JSON)** ブロックを追加します:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-**Request Body** を次のように設定します:
+**リクエストボディ** を次のように設定します:
 
 ```json
 {

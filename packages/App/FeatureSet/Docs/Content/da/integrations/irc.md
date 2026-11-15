@@ -57,7 +57,7 @@ Trinnet tager sin udgang **Succes**, så snart serveren har taget imod hver linj
 Bestem, hvor beskederne skal hen: serverens værtsnavn, for eksempel `irc.libera.chat`, og kanalen, for eksempel `#your-channel`.
 
 - **IRC Server** tager værtsnavnet og intet andet: ingen `ircs://` og ingen port. Trinnet forbinder over TLS på port `6697`. Tager din server imod TLS på en anden port, så sæt den i **Port** under **Flere felter**.
-- **Channel** skal være en kanal. Et nickname skrevet der bliver afvist, så trinnet aldrig sender nogen en privat besked ved en fejl.
+- **Kanal** skal være en kanal. Et nickname skrevet der bliver afvist, så trinnet aldrig sender nogen en privat besked ved en fejl.
 
 Serveren skal være en, som OneUptime må forbinde til. Loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og cloud-metadataadresser afvises altid. På OneUptime Cloud afvises også en server på en privat netværksadresse. En selvhostet installation kan nå en IRC-server på sit eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`.
 
@@ -71,7 +71,7 @@ Spring dette trin over, hvis din server, dit netværk og din kanal ikke kræver 
 | **SASL Password**   | Netværket vil have dig logget ind på din konto. **SASL Username** tager kontoens navn. | `IRC_SASL_PASSWORD`    |
 | **Channel Key**     | Kanalen har en nøgle (tilstand `+k`).                                                  | `IRC_CHANNEL_KEY`      |
 
-For at gemme en skal du åbne **Arbejdsgange → Globale variabler** og klikke på **Opret Workflow Variabel**. Skriv navnet i **Navn**, og klik på **Næste**. Indsæt adgangskoden i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**. Kørselslogge viser `[REDACTED]` i stedet for værdien af en hemmelig variabel.
+For at gemme en skal du åbne **Arbejdsgange → Globale variabler** og klikke på **Opret Arbejdsgangsvariabel**. Skriv navnet i **Navn**, og klik på **Næste**. Indsæt adgangskoden i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**. Kørselslogge viser `[REDACTED]` i stedet for værdien af en hemmelig variabel.
 
 ### Byg workflowet
 
@@ -89,7 +89,7 @@ Workflowet åbner i **Bygger** med to trin: **On Create Incident** og **Send Mes
 1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
 2. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren, og vælg i **Fields to pass on** de felter fra hændelsen, som din besked viser, for eksempel dens titel.
 3. Klik på **Tilføj komponent**, søg efter `irc`, og klik på **Send Message to IRC**. Forbind triggerens udgang **Succes** med trinnet.
-4. Klik på det nye trin, og udfyld **IRC Server**, **Channel** og **Message Text**. Knappen **{ }** i **Message Text** indsætter felter fra hændelsen, for eksempel dens titel.
+4. Klik på det nye trin, og udfyld **IRC Server**, **Kanal** og **Message Text**. Knappen **{ }** i **Message Text** indsætter felter fra hændelsen, for eksempel dens titel.
 5. Har du gemt adgangskoder i det forrige trin, så åbn **Flere felter**. Klik i **Server Password**, **SASL Password** eller **Channel Key** på **{ }**, og vælg variablen under **Global variables**. Skriv din kontos navn i **SASL Username**.
 :::
 

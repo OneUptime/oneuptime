@@ -15,11 +15,11 @@ Senden Sie eine Nachricht an einen [Telegram](https://telegram.org)-Chat, eine G
 flowchart TB
     fired["Warnung ausgelöst"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
-    step -->|"Success"| chat["Nachricht in<br/>Ihrem Chat"]
-    step -->|"Error"| failed["Der Lauf schlägt<br/>fehl und sagt,<br/>warum"]
+    step -->|"Erfolg"| chat["Nachricht in<br/>Ihrem Chat"]
+    step -->|"Fehler"| failed["Der Lauf schlägt<br/>fehl und sagt,<br/>warum"]
 ```
 
-Der Schritt sendet den **Message Text** als Ihr Bot über die Bot API von Telegram an den Chat. Er nimmt seinen Ausgang **Success**, wenn Telegram die Nachricht annimmt, und seinen Ausgang **Error**, mit dem Grund von Telegram, wenn Telegram sie ablehnt. Ist mit **Error** nichts verbunden, wie in der Vorlage, schlägt ein Lauf, der nicht senden konnte, fehl, und seine **Schritte** sagen, warum.
+Der Schritt sendet den **Nachrichtentext** als Ihr Bot über die Bot API von Telegram an den Chat. Er nimmt seinen Ausgang **Erfolg**, wenn Telegram die Nachricht annimmt, und seinen Ausgang **Fehler**, mit dem Grund von Telegram, wenn Telegram sie ablehnt. Ist mit **Fehler** nichts verbunden, wie in der Vorlage, schlägt ein Lauf, der nicht senden konnte, fehl, und seine **Schritte** sagen, warum.
 
 ## Bevor Sie beginnen
 
@@ -51,15 +51,15 @@ Beginnen Sie mit der Vorlage, die den ganzen Arbeitsablauf für Warnungen baut, 
 1. Öffnen Sie **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**.
 2. Geben Sie `Telegram` in **Vorlagen durchsuchen…** ein, klicken Sie auf **Tell Telegram when an alert fires** und dann auf **Diese Vorlage verwenden**.
 3. Behalten Sie den Namen **Notify Telegram on new alert** oder ändern Sie ihn, und klicken Sie auf **Weiter**.
-4. Fügen Sie das Token in **Telegram Bot Token** und die ID in **Telegram Chat ID** ein, und klicken Sie auf **Arbeitsablauf erstellen**.
+4. Fügen Sie das Token in **Telegram-Bot-Token** und die ID in **Telegram Chat ID** ein, und klicken Sie auf **Arbeitsablauf erstellen**.
 
 Der Arbeitsablauf öffnet sich im **Editor** mit zwei Schritten: **On Create Alert** und **Send Message to Telegram**, der Nummer, Titel, Schweregrad und Status der Warnung sendet. Das Token wird als geheime Variable `telegramBotToken` des Arbeitsablaufs gespeichert, und die ID als `telegramChatId`.
 @tab Von Grund auf
 1. Speichern Sie das Token als geheime globale Variable: Gehen Sie zu **Arbeitsabläufe → Globale Variablen**, klicken Sie auf **Arbeitsablaufvariable erstellen**, nennen Sie sie `TELEGRAM_BOT_TOKEN` und klicken Sie auf **Weiter**. Fügen Sie das Token in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**.
 2. Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Arbeitsablauf einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
 3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** unter **Beliebt**. Klicken Sie auf den Auslöser: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie die weiteren Felder, die Ihre Nachricht zeigt, etwa **Warnungsnummer mit Präfix**.
-4. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `telegram` und klicken Sie auf **Send Message to Telegram**. Verbinden Sie den Ausgang **Success** des Auslösers mit diesem Schritt.
-5. Klicken Sie auf den neuen Schritt. Klicken Sie in **Telegram Bot Token** auf **{ }** und wählen Sie `TELEGRAM_BOT_TOKEN` unter **Globale Variablen**. Geben Sie die ID des Chats in **Chat ID** ein, schreiben Sie die Nachricht in **Message Text** und fügen Sie die Felder der Warnung mit **{ }** ein.
+4. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `telegram` und klicken Sie auf **Send Message to Telegram**. Verbinden Sie den Ausgang **Erfolg** des Auslösers mit diesem Schritt.
+5. Klicken Sie auf den neuen Schritt. Klicken Sie in **Telegram-Bot-Token** auf **{ }** und wählen Sie `TELEGRAM_BOT_TOKEN` unter **Globale Variablen**. Geben Sie die ID des Chats in **Chat ID** ein, schreiben Sie die Nachricht in **Nachrichtentext** und fügen Sie die Felder der Warnung mit **{ }** ein.
 :::
 
 Eine Nachricht von Grund auf liest die Felder der Warnung mit Verweisen wie diesen:
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Schalten Sie **Aktiviert** oben im **Editor** ein. Von nun an wird jede neue Warnung an den Chat gesendet.
 
-Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Warnung** eine vorhandene Warnung aus: Die neuesten sind aufgelistet, und wenn Sie ihre Nummer oder einen Teil ihres Titels eintippen, finden Sie eine andere. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Chat. Nimmt der Schritt stattdessen **Error**, schlägt der Lauf fehl, und der Eintrag des Schritts unter **Schritte** sagt, warum: siehe [Fehlerbehebung](#fehlerbehebung).
+Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Warnung** eine vorhandene Warnung aus: Die neuesten sind aufgelistet, und wenn Sie ihre Nummer oder einen Teil ihres Titels eintippen, finden Sie eine andere. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Chat. Nimmt der Schritt stattdessen **Fehler**, schlägt der Lauf fehl, und der Eintrag des Schritts unter **Schritte** sagt, warum: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 ## Tipps
@@ -85,7 +85,7 @@ Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf aus
 
 ## Fehlerbehebung
 
-Nimmt der Schritt **Error**, schlägt der Lauf fehl, und der Eintrag des Schritts im Reiter **Schritte** des Laufs nennt den Grund von Telegram. Der Bot muss im Chat sein, prüfen Sie das also zuerst.
+Nimmt der Schritt **Fehler**, schlägt der Lauf fehl, und der Eintrag des Schritts im Reiter **Schritte** des Laufs nennt den Grund von Telegram. Der Bot muss im Chat sein, prüfen Sie das also zuerst.
 
 :::details Telegram antwortet "Bad Request: chat not found"
 Die **Chat ID** ist falsch, oder der Bot kann den Chat nicht sehen: Fügen Sie den Bot der Gruppe hinzu, machen Sie ihn zum Administrator des Kanals, oder bitten Sie die Person, einen Chat mit dem Bot zu beginnen. Die ID einer Gruppe beginnt mit `-`.

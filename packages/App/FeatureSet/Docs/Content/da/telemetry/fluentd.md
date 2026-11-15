@@ -31,7 +31,7 @@ Fluentd sender poster i batches som JSON med din indtagelsesnøgle i headeren `x
 
 Gå til **Produkter → Projektindstillinger**, åbn **Telemetri og APM** i sidemenuen, og vælg **Indtagelsesnøgler**.
 
-![Siden med telemetri-indtagelsesnøgler i projektindstillingerne](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
 
 ### Opret en nøgle
 
@@ -54,6 +54,15 @@ Fluentds konfigurationsfil er normalt `/etc/fluent/fluentd.conf`, eller `/etc/td
 Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERVICE_TOKEN` med din indtagelsesnøgle og `YOUR_SERVICE_NAME` med det navn, loggene skal vises under – et hvilket som helst navn:
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERV
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERV
 ```
 
 `json_array true` sender hver chunk i bufferen som ét JSON-array, og `flush_interval 10s` sender bufferen hvert 10. sekund. `chunk_limit_size 900k` holder hver request under 1 MB, det højeste OneUptime tager imod på dette endpoint.
+
+`retryable_response_codes 429,502,503,504` sender en batch igen, når OneUptime har travlt (`429`) eller genstarter (`502`, `503`, `504`); uden den smider Fluentd en batch væk ved ethvert svar undtagen `503`. `retry_max_interval 30s` venter højst 30 sekunder mellem forsøgene, og `retry_timeout 72h` smider en batch væk, som stadig ikke kan sendes efter 72 timer. Filteret `record_transformer` tilføjer det tidspunkt, Fluentd gav hver post, som `fluentd_time`: HTTP-outputtet sender kun posten, og OneUptime læser en logs tidspunkt fra den.
 
 ### Genstart Fluentd
 
@@ -111,6 +128,15 @@ Denne konfiguration modtager poster over Fluentds forward-protokol på port `242
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Denne konfiguration modtager poster over Fluentds forward-protokol på port `242
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime læser disse felter fra hver post:
 | Trace-ID | `trace_id`, `traceId`, `traceid` | Kobler loggen til dens trace. |
 | Span-ID | `span_id`, `spanId`, `spanid` | Kobler loggen til dens span. |
 | Tjeneste | headeren `x-oneuptime-service-name` | `Fluentd`, når headeren ikke er sat. |
-| Tid | — | Det tidspunkt, hvor OneUptime modtager posten. |
+| Tid | `time`, `timestamp`, `@timestamp`, `ts`, `fluentd_time` | Et ISO 8601-tidspunkt, for eksempel `2026-11-14T08:00:00.123Z`, eller sekunder, millisekunder, mikrosekunder eller nanosekunder siden epoken; et tidspunkt uden tidszone er UTC. Et tidspunkt før 2000, eller mere end en dag frem, læses ikke. Feltet, tidspunktet læses fra, gemmes ikke som attribut. En post uden tidspunkt gemmes på det tidspunkt, hvor OneUptime modtager den. |
 
 Alle andre felter bliver til en attribut med navnet `fluentd.` efterfulgt af feltets navn, som du kan søge og filtrere på: Et felt `container_name` er `@fluentd.container_name` i log-exploreren. Et indlejret objekt bliver fladet ud med punktummer, f.eks. `fluentd.kubernetes.pod_name`, og en liste gemmes som JSON.
 
@@ -174,6 +206,14 @@ Indtagelsesnøglen mangler, er ukendt eller udløbet. Tjek værdien af `x-oneupt
 
 :::details Fluentd logger `413`
 Requesten er over 1 MB, det højeste OneUptime tager imod på dette endpoint. Sæt `chunk_limit_size 900k` i `<buffer>`-sektionen, som i konfigurationen ovenfor.
+:::
+
+:::details Fluentd logger `429`, `502`, `503` eller `504`
+OneUptime har travlt eller genstarter. Med `retryable_response_codes 429,502,503,504` i `<match>`-sektionen, som i konfigurationen ovenfor, beholder Fluentd batchen og sender den igen; uden den smider Fluentd batchen væk.
+:::
+
+:::details Logs viser det tidspunkt, OneUptime modtog dem, ikke deres eget
+OneUptime læser en logs tidspunkt fra dens post, og Fluentds HTTP-output sender kun posten. En `<parse>`-sektion tager feltet `time` ud af posten: tilføj `keep_time_key true` til den. Tilføj også filteret `record_transformer` fra konfigurationen ovenfor: det tilføjer det tidspunkt, Fluentd gav hver post, som `fluentd_time`.
 :::
 
 :::details Logs ankommer under tjenesten `Fluentd`

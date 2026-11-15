@@ -1059,7 +1059,7 @@ describe("DataSourceEgressGuard.shouldBlockPrivateAddresses - BILLING_ENABLED is
  * Callers downstream of the guard used to have nothing but its message string
  * to reason about. A shared probe suppresses that string down to one sanitized
  * sentence (see the security block further down), so
- * API.getRequestFailedDetails matched none of its patterns and reported the
+ * RequestFailedDetailsUtil.getRequestFailedDetails matched none of its patterns and reported the
  * customer's monitor failure as phase "Unknown" with no actionable detail.
  *
  * Every throw site now carries an EgressFailureReason. These tests pin the

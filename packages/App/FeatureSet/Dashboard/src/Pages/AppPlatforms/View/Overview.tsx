@@ -55,7 +55,7 @@ import {
   fetchSpanMetrics,
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   SpanMetrics,
   TimePoint,
@@ -81,6 +81,7 @@ import {
 } from "../Utils/CloudAppTelemetrySetup";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -555,7 +556,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "p95 latency",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",
@@ -733,7 +734,7 @@ const CloudEnvironmentOverview: FunctionComponent<
                       className="flex items-center gap-4 px-4 py-3"
                     >
                       <div className="min-w-0 flex-1 truncate font-mono text-sm text-gray-900">
-                        {(i.instanceName as string) || "—"}
+                        {(i.instanceName as string) || <EmptyValue />}
                       </div>
                       <div className="w-20 text-right text-sm text-gray-700">
                         {formatPercent(

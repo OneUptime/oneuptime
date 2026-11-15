@@ -20,7 +20,7 @@
 | 点击按钮来运行工作流                           | **手动**                  |
 | 按循环计划运行                                 | **计划**                    |
 | 让另一个系统把数据送进来                       | **Webhook**                 |
-| 从一封邮件开始                                 | **Incoming Email**          |
+| 从一封邮件开始                                 | **传入邮件**          |
 | 处理 Huntress 的事件报告                       | **Huntress Incident Report** |
 | 对 OneUptime 中的事做出反应                    | **OneUptime 事件**          |
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | 值                       | 包含的内容                                                                                                             |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | 请求的每个标头，按小写名称列出，例如 `content-type`。                                                                  |
+| **请求标头**      | 请求的每个标头，按小写名称列出，例如 `content-type`。                                                                  |
 | **Request Query Params** | URL 中的查询参数，按名称列出。                                                                                         |
-| **Request Body**         | 调用方发送的正文。用 `Content-Type: application/json` 发送的 JSON 正文可以逐个字段读取，像 Amazon SNS 那样以纯文本发送的 JSON 也可以。 |
+| **请求主体**         | 调用方发送的正文。用 `Content-Type: application/json` 发送的 JSON 正文可以逐个字段读取，像 Amazon SNS 那样以纯文本发送的 JSON 也可以。 |
 
 要读取单个字段，把它的名称加到引用后面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
 
@@ -125,14 +125,14 @@ OneUptime 会给工作流一个专属的邮件地址。每封发到这个地址�
 
 | 值              | 包含的内容                                                                                               |
 | --------------- | -------------------------------------------------------------------------------------------------------- |
-| **From**        | 发件人的地址。                                                                                           |
-| **To**          | 邮件的所有收件人，写在一行中，例如 `ops@example.com, oncall@example.com`。                               |
+| **从**        | 发件人的地址。                                                                                           |
+| **收件人**          | 邮件的所有收件人，写在一行中，例如 `ops@example.com, oncall@example.com`。                               |
 | **CC**          | 邮件抄送的所有人，写在一行中。                                                                           |
-| **Subject**     | 主题行。                                                                                                 |
-| **Body**        | 邮件的纯文本。                                                                                           |
+| **主题**     | 主题行。                                                                                                 |
+| **请求体**        | 邮件的纯文本。                                                                                           |
 | **HTML Body**   | 邮件的 HTML（如果有）。Body 和 HTML Body 各自在 1 MB 处截断。                                            |
 | **Headers**     | 邮件的每个标头，按小写名称列出，例如 `message-id`。                                                      |
-| **Attachments** | 每个附件的名称、类型和大小。文件本身不会保存。                                                           |
+| **附件** | 每个附件的名称、类型和大小。文件本身不会保存。                                                           |
 | **Received At** | OneUptime 收到这封邮件的时间。                                                                           |
 
 邮件到达后，触发器之后每个块中的值选择器都会知道里面有什么：它会列出邮件带有的每个标头和每个附件及其内容，因此你可以选择 `headers.message-id`，而不必输入路径。在此之前，它会说明还没有邮件到达这个地址。参见 [使用前面块的值](/docs/workflows/authoring#使用前面块的值)。
@@ -148,7 +148,7 @@ OneUptime 会给工作流一个专属的邮件地址。每封发到这个地址�
 如果地址泄露，在同一位置点击 **重置地址**：工作流会得到一个新地址，从此发到旧地址的邮件会被忽略，所以请把新地址告诉所有给工作流发邮件的东西。只有允许编辑工作流的人才能查看或重置它的地址——参见 [收到的邮件的安全](/docs/workflows/configuration#收到的邮件的安全)。
 
 > [!WARNING]
-> 任何人都可以在邮件上填写任意发件人，所以 **From** 不能证明是谁发的。在某个步骤做重要的事之前，先检查只有真正的发件人才知道的东西。
+> 任何人都可以在邮件上填写任意发件人，所以 **从** 不能证明是谁发的。在某个步骤做重要的事之前，先检查只有真正的发件人才知道的东西。
 
 > [!NOTE]
 > 在自托管安装上，OneUptime 通过管理员配置的入站邮件服务商接收邮件——参见 [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email)。在此之前，触发器没有地址，它的设置会说明这一点。
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**、**On Update** 和 **On Create or Update** 会把记录传给下一个块，带上你在触发器的 **Fields to pass on** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。记录中没有内容的字段也是如此，例如不是由监视器产生的警报的监视器。
 
-**On Create or Update** 还会传下 **What Happened**：由新记录启动运行时为 `created`，由更改启动时为 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要区别处理这两种情况，可以在 **If / Else** 块中比较它，或用 **Switch / Case** 为每种情况走一条路径。
+**On Create or Update** 还会传下 **发生了什么**：由新记录启动运行时为 `created`，由更改启动时为 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要区别处理这两种情况，可以在 **If / Else** 块中比较它，或用 **Switch / Case** 为每种情况走一条路径。
 
 一次保存只触发一次。OneUptime 在创建记录时填写的内容属于创建的一部分，所以新记录只以 `created` 触发一次。OneUptime 之后做的更改，例如关联事件的 Slack 频道，和其他更新一样：要排除它们，只把你关心的字段加到 **Fields to watch** 中。
 

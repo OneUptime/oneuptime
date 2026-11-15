@@ -108,7 +108,7 @@ Pour un octroi plus restreint, donnez à l'utilisateur `SELECT` sur les seules t
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **SQL Query** sous **Surveillance des bases de données**, ou tapez `query` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Requête SQL** sous **Surveillance des bases de données**, ou tapez `query` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Saisir les informations de connexion
 
@@ -116,7 +116,7 @@ Choisissez le **Type de base de données** — le port passe à la valeur par d�
 
 ### Saisir la requête
 
-Tapez une seule instruction en lecture seule dans **SQL Query** (voir [Écrire la requête](#écrire-la-requête)).
+Tapez une seule instruction en lecture seule dans **Requête SQL** (voir [Écrire la requête](#écrire-la-requête)).
 
 ### La tester
 
@@ -142,7 +142,7 @@ Sélectionnez les **Sondes** qui atteignent la base de données et un **Interval
 | **Authentification** | Microsoft SQL Server uniquement : **Nom d'utilisateur et mot de passe**, par défaut, ou **Windows Integrated Authentication**, qui se connecte avec le compte qui exécute la sonde. Voir [Authentification Windows intégrée](#authentification-windows-intégrée). |
 | **Nom d'utilisateur** | Un utilisateur de base de données en lecture seule, à privilèges minimaux. |
 | **Mot de passe** | Le mot de passe de la base de données. Nous recommandons vivement de faire référence à un [secret de moniteur](/docs/monitor/monitor-secrets) avec `{{monitorSecrets.name}}` plutôt que de saisir le mot de passe en clair (voir [Utiliser un secret de moniteur pour le mot de passe](#utiliser-un-secret-de-moniteur-pour-le-mot-de-passe)). |
-| **SQL Query** | La requête en lecture seule à exécuter (voir [Écrire la requête](#écrire-la-requête)). |
+| **Requête SQL** | La requête en lecture seule à exécuter (voir [Écrire la requête](#écrire-la-requête)). |
 | **Use SSL/TLS** | Activez-le pour vous connecter en TLS. Une fois activé, vous pouvez désactiver **Verify server certificate** si la base de données utilise un certificat auto-signé. |
 
 ### Plus de champs
@@ -216,7 +216,7 @@ Pour que le mot de passe de la base de données ne soit jamais stocké en clair 
 3. Dans le champ **Mot de passe** du moniteur, saisissez `{{monitorSecrets.dbPassword}}`.
 :::
 
-OneUptime résout le secret côté serveur avant de remettre la configuration à la sonde. OneUptime ne crée jamais ces secrets à votre place — y faire référence est votre choix. Les champs **Nom d'utilisateur**, **Hôte**, **Nom de la base de données** et **SQL Query** acceptent aussi les références à des secrets ; **Port** non.
+OneUptime résout le secret côté serveur avant de remettre la configuration à la sonde. OneUptime ne crée jamais ces secrets à votre place — y faire référence est votre choix. Les champs **Nom d'utilisateur**, **Hôte**, **Nom de la base de données** et **Requête SQL** acceptent aussi les références à des secrets ; **Port** non.
 
 ## Configurer les critères
 
@@ -250,7 +250,7 @@ Associez une politique d'astreinte au critère pour que les bonnes personnes soi
 
 - La requête s'exécute à chaque vérification, alors gardez-la peu coûteuse. Utilisez des index et des fenêtres de temps étroites, et comptez sur le délai d'instruction comme filet de sécurité.
 - Seuls le nombre de lignes, la première cellule (scalaire) et la première ligne sont rapportés — concevez votre requête pour que la valeur sur laquelle vous voulez alerter soit dans la première colonne.
-- Si le résultat est tronqué parce qu'il dépassait Lignes max, le résumé de la vérification affiche **Rows Truncated** : "Yes (result capped)". N'augmentez Lignes max qu'en cas de besoin ; des jeux de résultats plus grands coûtent plus de mémoire sur la sonde.
+- Si le résultat est tronqué parce qu'il dépassait Lignes max, le résumé de la vérification affiche **Lignes tronquées** : "Oui (résultat plafonné)". N'augmentez Lignes max qu'en cas de besoin ; des jeux de résultats plus grands coûtent plus de mémoire sur la sonde.
 - Les écritures et le DDL sont toujours rejetés. Si vous devez tester un chemin d'écriture, ce n'est pas le rôle de ce moniteur.
 - Préférez un secret de moniteur à un mot de passe en clair pour que l'identifiant reste chiffré au repos.
 - Une vérification dont la requête échoue est retentée une seconde plus tard, jusqu'à trois fois de plus, avant de rapporter l'erreur, pour qu'une brève coupure de connexion ne mette pas le moniteur hors ligne. Sur une sonde auto-hébergée, `PROBE_MONITOR_RETRY_LIMIT` définit le nombre de tentatives.

@@ -51,7 +51,7 @@ New Relic 工作流用它的过滤器挑选要发送的问题，并在问题被�
 | `state` 为 `ACTIVATED` 且 `isAcknowledged` 为 `true` | 确认该问题的事件，值班升级随之停止。原因记录在它的时间线上。 |
 | `state` 为 `CLOSED` | 解决该问题的事件，除非它已经解决。原因记录在它的时间线上。 |
 
-对于没有事件的问题，确认或关闭不会改变任何东西。其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **No**，运行的 **步骤** 会说明原因。不会有任何内容回到 New Relic：它会在信号恢复时自行关闭其问题，而这正是解决事件的依据。
+对于没有事件的问题，确认或关闭不会改变任何东西。其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **否**，运行的 **步骤** 会说明原因。不会有任何内容回到 New Relic：它会在信号恢复时自行关闭其问题，而这正是解决事件的依据。
 
 ### 优先级与呼叫
 
@@ -162,7 +162,7 @@ curl -X POST "<url>" \
 :::
 
 :::details 工作流运行了，但什么也没打开
-在 **日志 → 运行记录** 中打开该运行。它的 **步骤** 中的 `read-event-1` 条目会说明它为什么走了 **No**。
+在 **日志 → 运行记录** 中打开该运行。它的 **步骤** 中的 `read-event-1` 条目会说明它为什么走了 **否**。
 
 - `New Relic named no issue ID`：请保留负载中的 `"id": {{ json issueId }},` 这一行。
 - `is in no state`：请保留负载中的 `"state": {{ json state }},` 这一行。
@@ -197,7 +197,7 @@ curl -X POST "<url>" \
 
 :::cards
 - [工作流模板](/docs/workflows/authoring): 从模板创建工作流，并在生成器中修改它。
-- [Datadog](/docs/integrations/datadog): 相同的模板，适用于 Datadog 监控器。
+- [Datadog](/docs/integrations/datadog): 相同的模板，适用于 Datadog 监视器。
 - [升级规则](/docs/on-call/escalation-rules): 决定值班策略呼叫谁、何时呼叫。
 - [集成概述](/docs/integrations/index): 你可以连接的其他工具。
 :::

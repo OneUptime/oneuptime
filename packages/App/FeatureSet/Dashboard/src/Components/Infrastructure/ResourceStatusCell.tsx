@@ -10,6 +10,7 @@ import {
   getResourceStatusReasonText,
   getStatusBadgeClass,
 } from "./ResourceTable";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * A row's state in a resource list: its word in a pill, coloured by the
@@ -32,7 +33,7 @@ const ResourceStatusCell: FunctionComponent<ComponentProps> = (
   const resource: ComponentProps["resource"] = props.resource;
 
   if (!resource.status) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const pill: ReactElement = (

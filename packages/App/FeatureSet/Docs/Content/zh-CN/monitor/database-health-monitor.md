@@ -160,7 +160,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::steps
 ### 新建监视器
 
-前往**监视器**，点击**创建监视器**。在**监视器类型**下点击**更多监视器类型**，然后在 **数据库监控** 下选择 **Database Health**，或在搜索框中输入 `health`。输入**名称**，然后点击**下一步**。
+前往**监视器**，点击**创建监视器**。在**监视器类型**下点击**更多监视器类型**，然后在 **数据库监控** 下选择 **数据库健康状况**，或在搜索框中输入 `health`。输入**名称**，然后点击**下一步**。
 
 ### 输入连接信息
 
@@ -364,7 +364,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 以 `total` 结尾的计数器是自服务器启动以来的累计值。比较两个时间点才能得到速率；单个值只有和它自己的历史相比才有意义，而且服务器重启时会归零（**Uptime** 会告诉你何时重启过）。
 
-**Cache Hit Ratio** 和 **Rollback Ratio** 在每次检查时根据计数器自该监视器上一次检查以来的变化计算，而不是自服务器启动以来，因此缓存开始未命中时会立刻显现。探针启动后的第一次检查，以及服务器重启后的第一次检查，两者都没有。
+**Cache Hit Ratio** 和 **Rollback Ratio** 在每次检查时根据计数器自该监视器上一次检查以来的变化计算，而不是自服务器启动以来，因此缓存开始未命中时会立刻显现。探测器启动后的第一次检查，以及服务器重启后的第一次检查，两者都没有。
 
 ## 设置条件
 
@@ -455,5 +455,5 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - [SQL 查询监控](/docs/monitor/sql-monitor): 在服务器健康之外，针对你自己的查询结果发出警报。
 - [数据库](/docs/telemetry/databases): 在一个页面上查看每个数据库的指标、日志和调用方。
 - [监控密钥](/docs/monitor/monitor-secrets): 加密保存监控用户的密码。
-- [自定义探针](/docs/probe/custom-probe): 访问你网络内部的数据库。
+- [自定义探测器](/docs/probe/custom-probe): 访问你网络内部的数据库。
 :::

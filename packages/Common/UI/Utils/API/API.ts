@@ -15,7 +15,11 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import APIException from "../../../Types/Exception/ApiException";
-import { isEmptyErrorPhrase } from "../../../Types/Exception/ErrorMessageRule";
+import {
+  isEmptyErrorPhrase,
+  isErrorPage,
+  isTooLargePhrase,
+} from "../../../Types/Exception/ErrorMessageRule";
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SessionEndedException from "../../../Types/Exception/SessionEndedException";
@@ -34,6 +38,8 @@ import {
 } from "../../../Types/Permission";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
+  LONGEST_INACTIVITY_FIELD,
+  ReportedInactivity,
   SessionEndReason,
 } from "../../../Types/UserSession/SessionLength";
 import API, { AuthRetryContext } from "../../../Utils/API";
@@ -72,6 +78,16 @@ const FETCH_FAILED_MESSAGES: ReadonlyArray<string> = [
   "NetworkError when attempting to fetch resource.",
   "Load failed",
   "Network request failed",
+];
+
+/*
+ * Besides a 502 and a 504, the statuses a gateway in front of OneUptime
+ * answers for a server it could not reach: a load balancer's or an
+ * ingress's 503 while no app is running, and Cloudflare's 520 to 524 (the
+ * origin answered nothing it could use, refused, timed out) and 530.
+ */
+const GATEWAY_DOWN_STATUSES: ReadonlyArray<number> = [
+  503, 520, 521, 522, 523, 524, 530,
 ];
 
 class BaseAPI extends API {
@@ -368,24 +384,56 @@ class BaseAPI extends API {
   }
 
   /*
-   * What a renewal of this client's session tells the server: on the
-   * Dashboard and the Admin Dashboard, how long their person has not used
-   * OneUptime (UserActivity), which the server's idle timeout is counted
-   * from. Nothing on a page that does not notice activity.
+   * What a renewal of this client's session at `nowMs` tells the server: on
+   * the Dashboard and the Admin Dashboard, how long their person has not
+   * used OneUptime (UserActivity), which the server's idle timeout is
+   * counted from, and the longest time they went without since the last
+   * renewal, when one was kept - a browser closed, a computer asleep - which
+   * ends the session when it reached the idle timeout (issue #6789).
+   * Nothing on a page that does not notice activity.
    */
-  protected static getRefreshSessionData(): JSONObject | undefined {
+  protected static getRefreshSessionData(
+    nowMs: number = Date.now(),
+  ): JSONObject | undefined {
     if (!this.isUserSession()) {
       return undefined;
     }
 
     const inactiveForInSeconds: number | null =
-      UserActivity.getInactiveForInSeconds();
+      UserActivity.getInactiveForInSeconds(nowMs);
 
     if (inactiveForInSeconds === null) {
       return undefined;
     }
 
-    return { [INACTIVE_FOR_IN_SECONDS_FIELD]: inactiveForInSeconds };
+    const data: JSONObject = {
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: inactiveForInSeconds,
+    };
+
+    const longestInactivity: ReportedInactivity | null =
+      UserActivity.getLongestInactivity(nowMs);
+
+    if (longestInactivity) {
+      data[LONGEST_INACTIVITY_FIELD] = {
+        forSeconds: longestInactivity.forSeconds,
+        endedSecondsAgo: longestInactivity.endedSecondsAgo,
+      };
+    }
+
+    return data;
+  }
+
+  /*
+   * A renewal that said what getRefreshSessionData said at `reportedAtMs`
+   * went through: the time without use it reported is the server's now,
+   * and the next renewal says only what came after.
+   */
+  protected static onRefreshSessionDataSent(reportedAtMs: number): void {
+    if (!this.isUserSession()) {
+      return;
+    }
+
+    UserActivity.forgetInactivityReportedBy(reportedAtMs);
   }
 
   // Forgets why a session ended. For tests.
@@ -442,8 +490,10 @@ class BaseAPI extends API {
           return true;
         }
 
+        const reportedAtMs: number = Date.now();
+
         const refreshData: JSONObject | undefined =
-          this.getRefreshSessionData();
+          this.getRefreshSessionData(reportedAtMs);
 
         const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await super.fetch<JSONObject>({
@@ -469,6 +519,10 @@ class BaseAPI extends API {
 
         if (refreshed) {
           this.markSessionRefreshed(sessionName);
+
+          if (refreshData) {
+            this.onRefreshSessionDataSent(reportedAtMs);
+          }
         }
 
         return refreshed;
@@ -589,6 +643,39 @@ class BaseAPI extends API {
         return getUnexplainedServerErrorMessage(reference);
       }
 
+      /*
+       * A 413 a proxy answered - nginx's "413 Request Entity Too Large"
+       * page, a load balancer's empty body, an API gateway's bare "Request
+       * Too Long" - says that what was sent was too large, and what to do:
+       * send less. It read as a failure the server could not explain, with
+       * "Try again in a moment", which never helps (#8278). A 413 the API
+       * wrote in a sentence of its own (the limit it holds a gzip body to)
+       * is kept.
+       */
+      if (
+        err.statusCode === 413 &&
+        (isErrorPage(err.message) ||
+          isEmptyErrorPhrase(err.message) ||
+          isTooLargePhrase(err.message))
+      ) {
+        return UNEXPLAINED_ERROR_MESSAGES.tooLarge;
+      }
+
+      /*
+       * The other statuses a gateway answers for a server it could not
+       * reach - a load balancer's or an ingress's 503 while no app is
+       * running, Cloudflare's 520 to 524 and 530 - are the server being
+       * down too, when they come as a page or say nothing. A 503 the API
+       * wrote itself, while it starts (StartupGate), is JSON whose message
+       * says so, and is kept.
+       */
+      if (
+        GATEWAY_DOWN_STATUSES.includes(err.statusCode) &&
+        (isErrorPage(err.message) || isEmptyErrorPhrase(err.message))
+      ) {
+        return SERVER_DOWN_MESSAGE;
+      }
+
       return BaseAPI.explainServerMessage(err.message);
     }
 
@@ -623,12 +710,16 @@ class BaseAPI extends API {
   }
 
   /*
-   * A message as the reader should see it: as it came, unless it says
-   * nothing - "Server Error", "Internal Server Error", an empty body - when
-   * it becomes the sentence for a failure the server did not explain.
+   * A message as the reader should see it: as it came, in whatever script
+   * it is written (#7536), unless it says nothing - "Server Error",
+   * "Internal Server Error", an empty body - or is a page rather than a
+   * message (a proxy's HTML for a 500 or a 404, which used to be shown as
+   * its markup): then it becomes the sentence for a failure the server did
+   * not explain. A 413's page says what was too large, above, while its
+   * status is known.
    */
   private static explainServerMessage(message: string | undefined): string {
-    if (isEmptyErrorPhrase(message)) {
+    if (isEmptyErrorPhrase(message) || isErrorPage(message)) {
       return UNEXPLAINED_ERROR_MESSAGES.server;
     }
 

@@ -29,7 +29,7 @@ stateDiagram-v2
     state "Esperando" as Waiting
     state "Ejecutado" as Executed
     state "Error" as Failed
-    state "Timeout" as TimedOut
+    state "Tiempo de espera agotado" as TimedOut
     [*] --> Scheduled: salta el<br/>disparador
     Scheduled --> Running: un ejecutor<br/>la recoge
     Scheduled --> Failed: nadie la<br/>recoge<br/>en 5 minutos
@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Esperando**                       | La ejecución está aparcada en un bloque **Sleep** y se reanudará sola. No ocupa ningún worker mientras espera.                                                                                                                                                       |
 | **Ejecutado**                       | La ejecución llegó al final sin fallar. Es el estado de éxito: la píldora dice **Ejecutado**, no «Éxito».                                                                                                                                                             |
 | **Error**                           | Un bloque detuvo la ejecución, o falló sin nada conectado a su salida **Error**. También se usa cuando una ejecución en cola nunca se recoge, cuando se pierde la reanudación de una ejecución dormida, cuando no se puede resolver una expresión de programación y cuando el flujo de trabajo se desactivó o se archivó mientras la ejecución esperaba en un bloque **Sleep**. |
-| **Timeout**                         | La ejecución duró más de lo permitido: 2 minutos por defecto. Consulta [Cuánto puede durar una ejecución](/docs/workflows/configuration#cuánto-puede-durar-una-ejecución).                                                                                                    |
-| **Execution Exceeded Current Plan** | El proyecto ha agotado sus ejecuciones de flujos de trabajo de los últimos 30 días, o la suscripción está impagada. La ejecución se registra pero no se ejecuta. Solo en OneUptime Cloud.                                                                            |
+| **Tiempo de espera agotado**        | La ejecución duró más de lo permitido: 2 minutos por defecto. Consulta [Cuánto puede durar una ejecución](/docs/workflows/configuration#cuánto-puede-durar-una-ejecución).                                                                                                    |
+| **La ejecución supera el plan actual** | El proyecto ha agotado sus ejecuciones de flujos de trabajo de los últimos 30 días, o la suscripción está impagada. La ejecución se registra pero no se ejecuta. Solo en OneUptime Cloud.                                                                            |
 
 Un bloque que toma su salida **Error** — un bloque API que recibió un 4xx, por ejemplo — solo hace fallar la ejecución cuando no hay nada conectado a **Error**. Si hay bloques conectados ahí, se ejecutan, y la ejecución puede terminar igualmente como **Ejecutado**. Si no hay nada, el resto de la ejecución sigue en marcha, después termina como **Error**, y la última línea de su **Registro completo** nombra el bloque. En cualquier caso, el propio paso se dibuja en rojo para que lo encuentres.
 
@@ -89,7 +89,7 @@ Los valores que se muestran son los que recibió el bloque, después de rellenar
 
 ### La pestaña Registro completo
 
-El registro bruto, línea a línea, que escribió el ejecutor, incluido todo lo que los propios bloques registraron, como el valor de un bloque **Log** o el `console.log` de un script. Úsalo cuando la pestaña Pasos no explique el fallo.
+El registro bruto, línea a línea, que escribió el ejecutor, incluido todo lo que los propios bloques registraron, como el valor de un bloque **Registro** o el `console.log` de un script. Úsalo cuando la pestaña Pasos no explique el fallo.
 
 ## Copiar y descargar una ejecución
 
@@ -114,14 +114,14 @@ Una descarga no contiene nada que no pudieras leer ya en la ejecución. Los secr
 3. Para un disparador webhook, confirma que el otro sistema envía a la URL correcta. La mayoría de las herramientas registran cuándo envían un webhook: míralo ahí.
 4. Para un disparador programado, confirma que la expresión cron coincide con la hora que esperas. Las programaciones se ejecutan en UTC.
 
-Si la ejecución sí aparece, con el estado **Execution Exceeded Current Plan**, el proyecto ha agotado sus ejecuciones de flujos de trabajo de los últimos 30 días, o la suscripción está impagada. El registro de la ejecución indica el recuento y el límite de tu plan. Esto solo se aplica a OneUptime Cloud.
+Si la ejecución sí aparece, con el estado **La ejecución supera el plan actual**, el proyecto ha agotado sus ejecuciones de flujos de trabajo de los últimos 30 días, o la suscripción está impagada. El registro de la ejecución indica el recuento y el límite de tu plan. Esto solo se aplica a OneUptime Cloud.
 :::
 
 :::details Un bloque posterior nunca se ejecutó
 Un bloque que no se ejecuta suele ser un problema de conexión. Abre el **Constructor** y comprueba:
 
 - ¿Está conectada la salida del bloque anterior a la entrada de este bloque?
-- ¿Tomó el bloque anterior una salida distinta de la que esperabas — **Error** en lugar de **Success**, o **No** en lugar de **Yes**? La pestaña **Pasos** dice qué salida tomó y adónde llevó, o que no hay nada conectado a ella.
+- ¿Tomó el bloque anterior una salida distinta de la que esperabas — **Error** en lugar de **Éxito**, o **No** en lugar de **Sí**? La pestaña **Pasos** dice qué salida tomó y adónde llevó, o que no hay nada conectado a ella.
 :::
 
 :::details Un valor llegó vacío, o como texto {{…}}

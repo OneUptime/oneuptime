@@ -31,9 +31,9 @@ Workflowet kører én gang for hver ny hændelse. Dets blok **API Post (JSON)** 
 ## Gem tokenet
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den navnet `GITLAB_TOKEN`, og klik på **Næste**.
-3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldrig vises i en kørsel.
@@ -51,7 +51,7 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Åbn issuet
 
-Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Success** til den. Sæt dens **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med dit projekts ID i stedet for `12345678`. Sæt under **Flere felter** dens **Request Headers** til:
+Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Succes** til den. Sæt dens **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med dit projekts ID i stedet for `12345678`. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 {
@@ -59,7 +59,7 @@ Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind 
 }
 ```
 
-Og dens **Request Body** til:
+Og dens **Anmodningsbrødtekst** til:
 
 ```json
 {
@@ -81,11 +81,11 @@ Blokken sender JSON, så den behøver ingen `Content-Type`-header. GitLab oprett
 - **Dit eget GitLab.** Send i stedet anmodningen til din server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. En server på en privat netværksadresse kræver et selvhostet OneUptime, hvis administrator tillader det: se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 - **Projektets sti i stedet for dets ID.** Stien virker i stedet for ID'et, med dens `/` skrevet som `%2F`: `projects/your-group%2Fyour-project/issues`. URL'en sendes præcis, som den er skrevet, så kod den selv.
 - **Tildel det.** Føj `"assignee_ids": [42]` eller `"due_date": "2026-12-31"` til body'en, eller `"confidential": true` for kun at vise det for projektmedlemmer.
-- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Yes**-side, for eksempel for én alvorlighed.
+- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Ja**-side, for eksempel for én alvorlighed.
 
 ## Fejlfinding
 
-Trinnet **API Post (JSON)** tager **Error**, når GitLab afviser anmodningen. Dets **Response Status** og **Response Body** i kørslen siger hvorfor.
+Trinnet **API Post (JSON)** tager **Fejl**, når GitLab afviser anmodningen. Dets **Response Status** og **Svarets brødtekst** i kørslen siger hvorfor.
 
 :::details GitLab svarer 401
 Tokenet er forkert, udløbet eller tilbagekaldt. Opret et nyt, og erstat indholdet af `GITLAB_TOKEN`.

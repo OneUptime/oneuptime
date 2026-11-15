@@ -29,8 +29,12 @@ const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 // A line's one placeholder, by its name.
 const PLACEHOLDER: RegExp = /\{\{(\w+)\}\}/;
 
-// Every call the page makes to draw an empty word.
-const NOTHING_PICKED_CALL: RegExp = /getNamesOrNothingPicked\(/g;
+/*
+ * Every call the page makes to draw an empty word: a severity's goes
+ * through getSeverityOrNothingPicked, which reads the name by its list
+ * (#7894) and draws the empty word through getNamesOrNothingPicked.
+ */
+const NOTHING_PICKED_CALL: RegExp = /get(?:Names|Severity)OrNothingPicked\(/g;
 
 const LINES: ReadonlyArray<string> = [
   "Alert: {{owners}}",
@@ -166,7 +170,7 @@ describe("a burn rate rule's line", () => {
 });
 
 describe("the Burn Rate Rules page", () => {
-  test("draws its lines' empty words through getNamesOrNothingPicked", () => {
+  test("draws its lines' empty words through getNamesOrNothingPicked, a severity's through getSeverityOrNothingPicked", () => {
     const page: string = fs.readFileSync(
       path.resolve(
         __dirname,

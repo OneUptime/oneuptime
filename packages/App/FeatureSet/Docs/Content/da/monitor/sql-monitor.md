@@ -33,8 +33,8 @@ Sonden rapporterer kun:
 |---|---|
 | **Antal rækker** | Antallet af rækker, forespørgslen returnerede (begrænset af grænsen Max Rows). |
 | **Skalarværdi** | Den første kolonne i den første række. Det er den naturlige værdi for en forespørgsel i stil med `SELECT COUNT(*)`. |
-| **First Row** | Den første række som par af kolonne og værdi, vist i kontrollens resumé som kontekst. |
-| **Execution Time** | Hvor længe kontrollen tog, i millisekunder — inklusive forbindelsen, ikke kun forespørgslen. |
+| **Første række** | Den første række som par af kolonne og værdi, vist i kontrollens resumé som kontekst. |
+| **Udførelsestid** | Hvor længe kontrollen tog, i millisekunder — inklusive forbindelsen, ikke kun forespørgslen. |
 | **Forespørgselsfejl** | En renset fejlmeddelelse, hvis forespørgslen mislykkedes. |
 
 Det fulde resultatsæt sendes aldrig til OneUptime, så kundedata kopieres ikke over i OneUptimes lager.
@@ -108,7 +108,7 @@ Vil du give snævrere rettigheder, så giv brugeren `SELECT` på kun de tabeller
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **SQL Query** under **Databaseovervågning** eller skrive `query` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **SQL-forespørgsel** under **Databaseovervågning** eller skrive `query` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Angiv forbindelsesoplysningerne
 
@@ -116,7 +116,7 @@ Vælg **Database Type** — porten skifter til den motors standard — og udfyld
 
 ### Angiv forespørgslen
 
-Skriv én skrivebeskyttet sætning i **SQL Query** (se [Skriv forespørgslen](#skriv-forespørgslen)).
+Skriv én skrivebeskyttet sætning i **SQL-forespørgsel** (se [Skriv forespørgslen](#skriv-forespørgslen)).
 
 ### Test den
 
@@ -142,7 +142,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på med den konto, sonden kører som. Se [Integreret Windows-godkendelse](#integreret-windows-godkendelse). |
 | **Brugernavn** | En skrivebeskyttet databasebruger med færrest mulige rettigheder. |
 | **Adgangskode** | Databasens adgangskode. Vi anbefaler kraftigt at henvise til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive adgangskoden som ren tekst (se [Brug en monitorhemmelighed til adgangskoden](#brug-en-monitorhemmelighed-til-adgangskoden)). |
-| **SQL Query** | Den skrivebeskyttede forespørgsel, der skal køres (se [Skriv forespørgslen](#skriv-forespørgslen)). |
+| **SQL-forespørgsel** | Den skrivebeskyttede forespørgsel, der skal køres (se [Skriv forespørgslen](#skriv-forespørgslen)). |
 | **Use SSL/TLS** | Slå til for at forbinde over TLS. Når det er slået til, kan du slå **Verify server certificate** fra, hvis databasen bruger et selvsigneret certifikat. |
 
 ### Flere felter
@@ -216,7 +216,7 @@ For at databasens adgangskode aldrig gemmes som ren tekst på monitoren skal du 
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens felt **Adgangskode**.
 :::
 
-OneUptime løser hemmeligheden op på serveren, før konfigurationen gives videre til sonden. OneUptime opretter aldrig disse hemmeligheder for dig — det er dit valg at henvise til en. Felterne **Brugernavn**, **Vært**, **Databasenavn** og **SQL Query** accepterer også henvisninger til hemmeligheder; **Port** gør ikke.
+OneUptime løser hemmeligheden op på serveren, før konfigurationen gives videre til sonden. OneUptime opretter aldrig disse hemmeligheder for dig — det er dit valg at henvise til en. Felterne **Brugernavn**, **Vært**, **Databasenavn** og **SQL-forespørgsel** accepterer også henvisninger til hemmeligheder; **Port** gør ikke.
 
 ## Opsæt kriterier
 
@@ -250,7 +250,7 @@ Knyt en vagtpolitik til kriteriet, så de rette personer bliver tilkaldt. En SQL
 
 - Forespørgslen kører ved hver kontrol, så hold den billig. Brug indekser og smalle tidsvinduer, og stol på Statement Timeout som sikkerhedsnet.
 - Kun antallet af rækker, den første celle (skalar) og den første række rapporteres — design din forespørgsel, så den værdi, du vil advare på, er den første kolonne.
-- Hvis resultatet afkortes, fordi det oversteg Max Rows, viser kontrollens resumé **Rows Truncated**: "Yes (result capped)". Hæv kun Max Rows, hvis du har brug for det; større resultatsæt koster mere hukommelse på sonden.
+- Hvis resultatet afkortes, fordi det oversteg Max Rows, viser kontrollens resumé **Rækker afkortet**: "Ja (resultatet er begrænset)". Hæv kun Max Rows, hvis du har brug for det; større resultatsæt koster mere hukommelse på sonden.
 - Skrivninger og DDL afvises altid. Hvis du skal teste en skrivesti, er det ikke det, denne monitor er til.
 - Foretræk en monitorhemmelighed frem for en adgangskode i ren tekst, så legitimationsoplysningerne forbliver krypteret, når de er gemt.
 - En kontrol, hvis forespørgsel mislykkes, forsøges igen et sekund senere, op til tre gange mere, før den rapporterer fejlen, så et kort forbindelsestab ikke sætter monitoren offline. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT`, hvor mange gange.
@@ -283,5 +283,5 @@ Sonden har brug for en Microsoft ODBC Driver for SQL Server og en identitet, som
 - [Databasetilstands-monitor](/docs/monitor/database-health-monitor): Hold øje med forbindelser, låse og replikering uden at skrive SQL.
 - [Monitorhemmeligheder](/docs/monitor/monitor-secrets): Hold databasens adgangskode krypteret.
 - [JavaScript-udtryk](/docs/monitor/javascript-expression): Skriv kriterier, der kombinerer flere værdier.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Kør kontroller inde fra dit netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Kør kontroller inde fra dit netværk.
 :::

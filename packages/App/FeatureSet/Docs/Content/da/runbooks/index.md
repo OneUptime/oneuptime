@@ -4,7 +4,7 @@ Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og au
 
 :::cards
 - [Skriv et runbook](/docs/runbooks/authoring): Opret et runbook, og skriv dets trin.
-- [Runbook-regler](/docs/runbooks/rules): Start runbooks ved nye hændelser, advarsler og vedligeholdelsesbegivenheder.
+- [Runbook-regler](/docs/runbooks/rules): Start runbooks ved nye hændelser, advarsler og vedligeholdelseshændelser.
 - [Kør et runbook](/docs/runbooks/running): Start en kørsel, fuldfør og godkend dens trin, annuller den.
 - [Runbook-udløsere](/docs/runbooks/triggers): Kør et runbook efter en tidsplan, eller fra et andet værktøj via dets webhook-URL.
 - [Runbook-variabler](/docs/runbooks/variables): De værter, nøgler, adgangskoder og kubeconfigs, som dine trin bruger ved navn.
@@ -100,7 +100,7 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | **Runbooks → Runbook-agenter** | Installer de [Runners](/docs/runbooks/agents), som dine runbook-trin kører på. |
 | **Runbooks → Indstillinger** | Administrer under **Globale variabler** de variabler, som alle runbooks kan [bruge](/docs/runbooks/variables), samt de **Ejerregler** og **Etiketregler**, der tilføjer ejere og etiketter til nye runbooks. |
 | **Hændelser / Advarsler / Planlagt vedligeholdelse → Regler → Runbook-regler** | Opret de regler, der starter runbooks automatisk. |
-| En hændelse, advarsel eller vedligeholdelsesbegivenhed → **Runbooks** | Se de kørsler, der er knyttet til den, og klik på **Kør runbook** for at starte en. |
+| En hændelse, advarsel eller vedligeholdelseshændelse → **Runbooks** | Se de kørsler, der er knyttet til den, og klik på **Kør runbook** for at starte en. |
 
 Et runbooks egen sidemenu grupperer dets sider sådan. Kun **Grundlæggende** er åbent fra start: klik på en sektions titel for at åbne den. En sektion åbner af sig selv på enhver side i den.
 
@@ -169,6 +169,7 @@ Udførelsen bliver på hændelsens side **Runbooks**. Når du skriver postmortem
 - **[Vagtpolitikker](/docs/on-call/schedules)** afgør, hvem der tilkaldes. Runbooks afgør, hvad den person gør, når vedkommende er vågen.
 - **[Workspace-forbindelser](/docs/workspace-connections/slack)** som Slack og Microsoft Teams er naturlige mål for HTTP-anmodningstrin, der sender opdateringer.
 - **[Statussider](/docs/status-pages/index)** opdateres ofte som et Manual-trin i et kunderettet runbook.
+- **[OneUptime AI](/docs/ai/ai-sre#gem-en-vellykket-rettelse-som-runbook)** skriver et runbook ud fra en af sine egne rettelser, der virkede: **Gem som runbook** på en verificeret rettelse gemmer de trin, der kørte, i et runbook, der er slået fra, indtil du har gennemgået dem.
 
 ## Næste skridt
 

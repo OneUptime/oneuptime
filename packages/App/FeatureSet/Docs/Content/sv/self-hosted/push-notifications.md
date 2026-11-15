@@ -137,7 +137,7 @@ För att fortsätta nå personer i telefonen lägger du till en [anpassad kanal]
 
 Som standard rättar sig en push-avisering efter telefonen: en telefon på ljudlöst förblir tyst, och Stör ej håller tillbaka aviseringen. För den som har jour är det fel standard klockan tre på natten, så mobilappen erbjuder en inställning per enhet – **Settings > Notifications > Critical On-Call Alerts** – som låter *bara jourlarm* spela ett ljud genom båda.
 
-Omfattningen är medvetet snäv. Bara larm som en aviseringsregel för jour skapar kan komma i fråga. Ägarprenumerationer, meddelanden om publicerade anteckningar, uppdateringar om tillståndsändringar och övervakaraviseringar eskaleras aldrig, oavsett vad den här inställningen säger.
+Omfattningen är medvetet snäv. Bara larm som en aviseringsregel för jour skapar kan komma i fråga. Ägarprenumerationer, meddelanden om publicerade anteckningar, uppdateringar om tillståndsändringar och monitoraviseringar eskaleras aldrig, oavsett vad den här inställningen säger.
 
 ```mermaid title="När ett jourlarm ringer igenom tyst läge"
 flowchart TB
@@ -204,7 +204,7 @@ En enhet behåller systemljudet tills den kör en version av appen som erbjuder 
 
 ### Upprepa ett larm tills det bekräftas
 
-En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Användarinställningar > Så når man mig** anger du **Upprepa tills bekräftad** när du lägger till en push-regel, eller ändrar det senare på regelns rad: varje minut, eller med 2, 3, 5, 10, 15 eller 30 minuters mellanrum. Larmet skickas igen med det intervallet, högst 10 gånger till, och slutar så snart incidenten, larmet eller episoden har bekräftats. Lagras per regel i `UserNotificationRule.repeatEveryMinutes`, där 0, som är standard, skickar larmet en gång.
+En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Användarinställningar > Så når man mig** anger du **Upprepa tills bekräftad** när du lägger till en push-regel, eller ändrar det senare på regelns rad: varje minut, eller med 2, 3, 5, 10, 15 eller 30 minuters mellanrum. Larmet skickas igen med det intervallet, högst 10 gånger till, och slutar så snart incidenten, larmet eller episoden har bekräftats. Ett larm som fortsätter efter en bekräftelse, som ett nytt larm, upprepas tills någon det har larmat svarar eller incidenten, larmet eller episoden är löst: [När flera policyer larmar](/docs/on-call/policies#när-flera-policyer-larmar) räknar upp dem. Lagras per regel i `UserNotificationRule.repeatEveryMinutes`, där 0, som är standard, skickar larmet en gång.
 
 ## Felsökning
 

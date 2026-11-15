@@ -129,8 +129,8 @@ URL'en er den eneste loginoplysning, så behandl den som en adgangskode. Se [Web
 :::steps
 1. Gem værktøjets API-nøgle som en hemmelig global variabel, som vist [nedenfor](#hold-loginoplysninger-sikre).
 2. Opret et workflow, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, der skal sendes, f.eks. **Beskrivelse**.
-3. Klik på **Tilføj komponent**, og tilføj en **API Post (JSON)**-blok. Forbind triggerens **Success**-punkt med den.
-4. Udfyld dens **URL**, dens **Request Headers** med `Authorization`-headeren og dens **Request Body** med hændelsens felter, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
+3. Klik på **Tilføj komponent**, og tilføj en **API Post (JSON)**-blok. Forbind triggerens **Succes**-punkt med den.
+4. Udfyld dens **URL**, dens **Anmodningsheadere** med `Authorization`-headeren og dens **Anmodningsbrødtekst** med hændelsens felter, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klik på **Kør arbejdsgang**, vælg en hændelse under **Hændelse**, og kør den. En testkørsel sender anmodningen for alvor. Slå derefter **Aktiveret** til.
 :::
 
@@ -141,9 +141,9 @@ Når værktøjet skal have dataene i en anden form, tilføjer du en [Run Custom 
 Indsæt aldrig en API-nøgle eller et token i en blok. Gem den én gang som en hemmelig global variabel:
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den et navn, f.eks. `JIRA_AUTH`, og klik på **Næste**.
-3. Indsæt nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 Enhver blok læser den som `{{global.variables.JIRA_AUTH}}`. En variabels indhold kan ikke læses igen, når det er gemt, og indholdet af en hemmelig variabel erstattes med `[REDACTED]` i kørselslogs. Til tokens, der udløber, som dem fra Microsoft Entra ID, henter en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv) selv et nyt. Se [Workflow-variabler](/docs/workflows/variables#globale-variabler).

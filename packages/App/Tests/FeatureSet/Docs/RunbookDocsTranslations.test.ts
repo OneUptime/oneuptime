@@ -5,7 +5,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
+import {
+  drawnDashboardLabel,
+  isDashboardLabel,
+  writtenDashboardLabel,
+} from "./DocsDashboardLabels";
 import {
   CARD_LINE,
   anchorProblems,
@@ -415,11 +419,11 @@ describe.each(LANGUAGES)("%s runbook pages", (language: string) => {
       const missing: Array<string> = checkedLabels(entry.page)
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnDashboardLabel(language, label)}**`,
+            `**${writtenDashboardLabel(language, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnDashboardLabel(language, label)}`;
+          return `${label} -> ${writtenDashboardLabel(language, label)}`;
         });
 
       expect(missing).toEqual([]);

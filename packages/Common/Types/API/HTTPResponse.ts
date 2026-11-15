@@ -5,6 +5,32 @@ import JSONFunctions from "../JSONFunctions";
 import Typeof from "../Typeof";
 import Headers from "./Headers";
 
+/*
+ * Whether a body is a list envelope: the server's answer to a list read
+ * (ListData), its rows in a `data` array with count, skip and limit beside
+ * them. An endpoint's own answer may say count, skip and limit too, about
+ * rows it keeps under another name - Telemetry Usage's page of projects
+ * keeps them under `projects` (issue #7794). That is no envelope: reading
+ * it as one looked for rows that were never there, threw "array is not
+ * iterable", and the page never loaded. It is read whole, as any object.
+ */
+export const isListEnvelope: (body: unknown) => boolean = (
+  body: unknown,
+): boolean => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+
+  const keys: Array<string> = Object.keys(body);
+
+  return (
+    Array.isArray((body as JSONObject)["data"]) &&
+    keys.includes("count") &&
+    keys.includes("skip") &&
+    keys.includes("limit")
+  );
+};
+
 export default class HTTPResponse<
   T extends
     | JSONObjectOrArray
@@ -102,23 +128,21 @@ export default class HTTPResponse<
   ) {
     this.statusCode = statusCode;
 
-    if (
-      !Array.isArray(data) &&
-      Object.keys(data).includes("count") &&
-      Object.keys(data).includes("skip") &&
-      Object.keys(data).includes("limit")
-    ) {
-      // likely a list returned.
-      this.count = data["count"] as number;
-      this.skip = data["skip"] as number;
-      this.limit = data["limit"] as number;
-      if (Object.keys(data).includes("hasMore")) {
-        this.hasMore = data["hasMore"] as boolean;
+    if (isListEnvelope(data)) {
+      const envelope: JSONObject = data as JSONObject;
+
+      this.count = envelope["count"] as number;
+      this.skip = envelope["skip"] as number;
+      this.limit = envelope["limit"] as number;
+      if (Object.keys(envelope).includes("hasMore")) {
+        this.hasMore = envelope["hasMore"] as boolean;
       }
-      if (data["isCountCapped"] === true) {
+      if (envelope["isCountCapped"] === true) {
         this.isCountCapped = true;
       }
-      this.jsonData = JSONFunctions.deserializeArray(data["data"] as JSONArray);
+      this.jsonData = JSONFunctions.deserializeArray(
+        envelope["data"] as JSONArray,
+      );
     } else if (Array.isArray(data)) {
       this.jsonData = JSONFunctions.deserializeArray(data as JSONArray);
     } else if (Typeof.String === typeof data) {

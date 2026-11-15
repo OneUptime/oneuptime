@@ -122,12 +122,12 @@ const IoTFleetDeviceDetail: FunctionComponent<
   const batteryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "device_battery",
-      title: "Battery Level",
+      title: translator.translateText("Battery Level"),
       description: translator.translateTemplate(
         "Battery level percent for device {{deviceName}} (iot_battery_percent).",
         { deviceName: deviceName },
       ),
-      legend: "Battery",
+      legend: translator.translateText("Battery"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -146,12 +146,12 @@ const IoTFleetDeviceDetail: FunctionComponent<
   const signalQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "device_signal",
-      title: "Signal Strength",
+      title: translator.translateText("Signal Strength"),
       description: translator.translateTemplate(
         "Signal strength in dBm for device {{deviceName}} (iot_signal_strength_dbm).",
         { deviceName: deviceName },
       ),
-      legend: "Signal",
+      legend: translator.translateText("Signal"),
       legendUnit: "dBm",
     },
     metricQueryData: {
@@ -170,12 +170,12 @@ const IoTFleetDeviceDetail: FunctionComponent<
   const temperatureQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "device_temperature",
-      title: "Temperature",
+      title: translator.translateText("Temperature"),
       description: translator.translateTemplate(
         "Temperature in degrees Celsius for device {{deviceName}} (iot_temperature_celsius).",
         { deviceName: deviceName },
       ),
-      legend: "Temperature",
+      legend: translator.translateText("Temperature"),
       legendUnit: "°C",
     },
     metricQueryData: {
@@ -194,12 +194,12 @@ const IoTFleetDeviceDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "device_memory",
-      title: "Memory Usage",
+      title: translator.translateText("Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for device {{deviceName}} (iot_memory_usage_bytes).",
         { deviceName: deviceName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

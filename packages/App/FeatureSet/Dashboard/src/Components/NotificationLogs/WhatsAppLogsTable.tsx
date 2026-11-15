@@ -28,6 +28,7 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import Color from "Common/Types/Color";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface WhatsAppLogsTableProps {
   query?: Query<BaseModel>;
@@ -96,7 +97,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: WhatsAppLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

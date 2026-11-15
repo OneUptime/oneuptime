@@ -398,7 +398,7 @@ describe("Settings > Global LLM Providers: the Test dialog's request and respons
   test("Arabic draws a request's duration in Arabic, its figure read first from the right", async () => {
     const { words } = await readDialogIn("ar");
 
-    expect(words.duration).toBe(`87 ${ARABIC_MILLISECONDS}`);
+    expect(words.duration).toBe(`87\u00A0${ARABIC_MILLISECONDS}`);
     expect(words.duration).not.toMatch(LATIN_LETTER);
     expect(drawnFromTheRight(words.duration).endsWith("87")).toBe(true);
     // The English it drew before, laid out from the right.

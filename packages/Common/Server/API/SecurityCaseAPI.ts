@@ -3,9 +3,11 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityDetection from "../../Models/DatabaseModels/SecurityDetection";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
+import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import Includes from "../../Types/BaseDatabase/Includes";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
+import Timezone from "../../Types/Timezone";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -285,7 +287,18 @@ export default class SecurityCaseAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(
             req,
             res,
-            await this.getOverview({ projectId, props }),
+            await this.getOverview({
+              projectId,
+              props,
+              /*
+               * The reader's zone, which the page sends: the day bars
+               * count the reader's days (issue #7925). One the list does
+               * not name is dropped, and those days stay UTC's.
+               */
+              timezone: AggregationIntervalUtil.readRequestedTimezone(
+                readBody(req)["timezone"],
+              ),
+            }),
           );
         } catch (error) {
           next(error);
@@ -1246,6 +1259,8 @@ export default class SecurityCaseAPI extends BaseAPI<
   private async getOverview(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    // The zone the reader's days are in; UTC's days when undefined.
+    timezone?: Timezone | undefined;
   }): Promise<JSONObject> {
     const { projectId, props } = data;
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -1378,6 +1393,7 @@ export default class SecurityCaseAPI extends BaseAPI<
       windowStart,
       detectionWindowStart,
       now,
+      timezone: data.timezone,
     });
 
     const myOpenCases: number = props.userId

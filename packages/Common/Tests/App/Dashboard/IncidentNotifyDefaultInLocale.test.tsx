@@ -511,8 +511,9 @@ describe.each(["de", "ar"])("drawn in %s", (language: string) => {
         name: startingWithText(word(language, "Incident Severity")),
       }),
     );
+    // A default severity's name reads in the language (21e88b8a152).
     const options: Array<HTMLElement> = await screen.findAllByText(
-      "Critical Incident",
+      word(language, "Critical Incident"),
       { exact: true },
     );
     await user.click(options[options.length - 1]!);

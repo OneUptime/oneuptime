@@ -33,8 +33,8 @@ A sonda envia apenas:
 |---|---|
 | **Número de linhas** | O número de linhas que a consulta retornou (limitado pelo Max Rows). |
 | **Valor escalar** | A primeira coluna da primeira linha. É o valor natural de uma consulta no estilo `SELECT COUNT(*)`. |
-| **First Row** | A primeira linha como pares de coluna/valor, mostrada no resumo da verificação para dar contexto. |
-| **Execution Time** | Quanto tempo a verificação levou, em milissegundos, incluindo a conexão, não só a consulta. |
+| **Primeira linha** | A primeira linha como pares de coluna/valor, mostrada no resumo da verificação para dar contexto. |
+| **Tempo de execução** | Quanto tempo a verificação levou, em milissegundos, incluindo a conexão, não só a consulta. |
 | **Erro da consulta** | Uma mensagem de erro higienizada, se a consulta falhou. |
 
 O conjunto completo de resultados nunca é enviado ao OneUptime, então os dados dos seus clientes não são replicados no armazenamento do OneUptime.
@@ -108,7 +108,7 @@ Para uma permissão mais restrita, dê ao usuário `SELECT` apenas nas tabelas q
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **SQL Query** em **Monitoramento de bancos de dados**, ou digite `query` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Consulta SQL** em **Monitoramento de bancos de dados**, ou digite `query` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
 
 ### Informar os dados de conexão
 
@@ -116,7 +116,7 @@ Escolha o **Database Type** (a porta muda para o padrão desse mecanismo) e pree
 
 ### Digitar a consulta
 
-Digite uma única instrução somente leitura em **SQL Query** (veja [Escrever a consulta](#escrever-a-consulta)).
+Digite uma única instrução somente leitura em **Consulta SQL** (veja [Escrever a consulta](#escrever-a-consulta)).
 
 ### Testar
 
@@ -142,7 +142,7 @@ Selecione as **Sondas** que alcançam o banco de dados e um **Intervalo de monit
 | **Autenticação** | Somente Microsoft SQL Server: **Usuário e senha**, o padrão, ou **Windows Integrated Authentication**, que entra com a conta que executa a sonda. Veja [Autenticação integrada do Windows](#autenticação-integrada-do-windows). |
 | **Nome de usuário** | Um usuário de banco de dados somente leitura e com privilégio mínimo. |
 | **Senha** | A senha do banco de dados. Recomendamos fortemente fazer referência a um [segredo do monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitar a senha em texto simples (veja [Usar um segredo do monitor para a senha](#usar-um-segredo-do-monitor-para-a-senha)). |
-| **SQL Query** | A consulta somente leitura a executar (veja [Escrever a consulta](#escrever-a-consulta)). |
+| **Consulta SQL** | A consulta somente leitura a executar (veja [Escrever a consulta](#escrever-a-consulta)). |
 | **Use SSL/TLS** | Ative para se conectar via TLS. Quando ativado, você pode desligar **Verify server certificate** se o banco de dados usar um certificado autoassinado. |
 
 ### Mais campos
@@ -216,7 +216,7 @@ Para que a senha do banco de dados nunca seja armazenada em texto simples no mon
 3. No campo **Senha** do monitor, digite `{{monitorSecrets.dbPassword}}`.
 :::
 
-O OneUptime resolve o segredo no servidor antes de entregar a configuração à sonda. O OneUptime nunca cria esses segredos por você: fazer referência a um é escolha sua. Os campos **Nome de usuário**, **Host**, **Nome do Banco de Dados** e **SQL Query** também aceitam referências a segredos; **Porta** não.
+O OneUptime resolve o segredo no servidor antes de entregar a configuração à sonda. O OneUptime nunca cria esses segredos por você: fazer referência a um é escolha sua. Os campos **Nome de usuário**, **Host**, **Nome do Banco de Dados** e **Consulta SQL** também aceitam referências a segredos; **Porta** não.
 
 ## Configurar os critérios
 
@@ -250,7 +250,7 @@ Associe uma política de plantão ao critério para que as pessoas certas sejam 
 
 - A consulta roda a cada verificação, então mantenha-a barata. Use índices e janelas de tempo estreitas, e conte com o Statement Timeout como proteção.
 - Só o número de linhas, a primeira célula (escalar) e a primeira linha são enviados: monte sua consulta de forma que o valor sobre o qual quer alertar esteja na primeira coluna.
-- Se o resultado for truncado por ter passado do Max Rows, o resumo da verificação mostra **Rows Truncated**: "Yes (result capped)". Aumente o Max Rows só se precisar; conjuntos de resultados maiores custam mais memória na sonda.
+- Se o resultado for truncado por ter passado do Max Rows, o resumo da verificação mostra **Linhas truncadas**: "Sim (resultado limitado)". Aumente o Max Rows só se precisar; conjuntos de resultados maiores custam mais memória na sonda.
 - Escritas e DDL são sempre rejeitadas. Se você precisa testar um caminho de escrita, este monitor não serve para isso.
 - Prefira um segredo do monitor a uma senha em texto simples, para que a credencial fique criptografada em repouso.
 - Uma verificação cuja consulta falha é tentada de novo um segundo depois, até mais três vezes, antes de informar o erro, para que uma queda breve de conexão não deixe o monitor offline. Em uma sonda auto-hospedada, `PROBE_MONITOR_RETRY_LIMIT` define quantas vezes.

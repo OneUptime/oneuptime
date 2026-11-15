@@ -21,6 +21,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // One table's tests; every table's when not given.
@@ -134,7 +135,8 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
       filters={[
         {
           field: { name: true },
-          title: "Test",
+          // A test of dbt's, the noun: "Test" alone is the Test buttons' verb (#7535).
+          title: "Test (dbt test)",
           type: FieldType.Text,
         },
         {
@@ -178,7 +180,7 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
       columns={[
         {
           field: { name: true },
-          title: "Test",
+          title: "Test (dbt test)",
           type: FieldType.Element,
           getExportValue: (check: DataCheck): string => {
             return check.name || "";
@@ -242,9 +244,11 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
                   check.lastValue ? "font-medium text-red-600" : "text-gray-700"
                 }`}
               >
-                {check.lastValue === undefined || check.lastValue === null
-                  ? "-"
-                  : translator.formatNumber(check.lastValue)}
+                {check.lastValue === undefined || check.lastValue === null ? (
+                  <TableEmptyValue />
+                ) : (
+                  translator.formatNumber(check.lastValue)
+                )}
               </span>
             );
           },
@@ -262,11 +266,13 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
             return (
               <div className="min-w-0">
                 <span className="block whitespace-nowrap text-sm text-gray-700">
-                  {check.lastRunAt
-                    ? OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(check.lastRunAt),
-                      )
-                    : "-"}
+                  {check.lastRunAt ? (
+                    OneUptimeDate.fromNow(
+                      OneUptimeDate.fromString(check.lastRunAt),
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
                 {check.alertCondition ? (
                   <span className="block whitespace-nowrap text-xs text-gray-500">

@@ -177,3 +177,104 @@ describe("an invitation that is not there", () => {
     expect(generateRegistrationLink).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Get Invitation Link on a pending person's row (#7168) reads the link
+ * again, for an invitation somebody else made or one whose link expired.
+ */
+describe("read again, later", () => {
+  test("each read mints a new token, for the same account and address", async () => {
+    userFindOneById.mockResolvedValue({
+      id: USER_ID,
+      email: EMAIL,
+      password: undefined,
+    } as never);
+    generateRegistrationLink
+      .mockResolvedValueOnce(
+        URL.fromString(
+          "https://oneuptime.example.com/accounts/register?email=new.person%40example.com&token=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        ) as never,
+      )
+      .mockResolvedValueOnce(
+        URL.fromString(
+          "https://oneuptime.example.com/accounts/register?email=new.person%40example.com&token=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        ) as never,
+      );
+
+    const first: InvitationLinkAnswer =
+      await InvitationLink.getForTeamMember(TEAM_MEMBER_ID);
+    const second: InvitationLinkAnswer =
+      await InvitationLink.getForTeamMember(TEAM_MEMBER_ID);
+
+    expect(generateRegistrationLink).toHaveBeenCalledTimes(2);
+    expect(first.link).not.toBe(second.link);
+
+    for (const call of generateRegistrationLink.mock.calls) {
+      expect(call[0]).toEqual({ userId: USER_ID, email: EMAIL });
+    }
+  });
+
+  test("the link is for the account the membership names, whatever team it is on", async () => {
+    const OTHER_TEAM_MEMBER_ID: ObjectID = ObjectID.generate();
+    userFindOneById.mockResolvedValue({
+      id: USER_ID,
+      email: EMAIL,
+      password: undefined,
+    } as never);
+
+    await InvitationLink.getForTeamMember(OTHER_TEAM_MEMBER_ID);
+
+    expect(
+      (teamMemberFindOneById.mock.calls[0]![0] as Record<string, unknown>)[
+        "id"
+      ],
+    ).toBe(OTHER_TEAM_MEMBER_ID);
+    expect(
+      (userFindOneById.mock.calls[0]![0] as Record<string, unknown>)["id"],
+    ).toBe(USER_ID);
+  });
+});
+
+/*
+ * The link is the account's, not the membership's: an accepted invitation
+ * does not change it.
+ */
+describe("an invitation that was accepted", () => {
+  test("accepted for them, before they had an account: still the sign-up link", async () => {
+    teamMemberFindOneById.mockResolvedValue({
+      userId: USER_ID,
+      hasAcceptedInvitation: true,
+    } as never);
+    userFindOneById.mockResolvedValue({
+      id: USER_ID,
+      email: EMAIL,
+      password: undefined,
+    } as never);
+
+    const answer: InvitationLinkAnswer =
+      await InvitationLink.getForTeamMember(TEAM_MEMBER_ID);
+
+    expect(answer.isRegistered).toBe(false);
+    expect(answer.link).toContain("/accounts/register");
+    expect(generateRegistrationLink).toHaveBeenCalledTimes(1);
+  });
+
+  test("by someone with an account: the sign-in page, and nothing minted", async () => {
+    teamMemberFindOneById.mockResolvedValue({
+      userId: USER_ID,
+      hasAcceptedInvitation: true,
+    } as never);
+    userFindOneById.mockResolvedValue({
+      id: USER_ID,
+      email: EMAIL,
+      password: "a-password-hash",
+    } as never);
+
+    const answer: InvitationLinkAnswer =
+      await InvitationLink.getForTeamMember(TEAM_MEMBER_ID);
+
+    expect(answer.isRegistered).toBe(true);
+    expect(answer.link).toBe("https://oneuptime.example.com/accounts");
+    expect(generateRegistrationLink).not.toHaveBeenCalled();
+  });
+});

@@ -102,7 +102,9 @@
  *              goes Offline, opens a Critical incident, emails the
  *              project's owners and pages Ana Lopez through Primary
  *              On-Call) | nobody (no on-call rule matches, so nobody is
- *              paged - the break and its Set Up Paging link) | hidden
+ *              paged - the break and its Set Up Paging link) | no-policy
+ *              (the same in a project with no on-call policy yet, whose
+ *              Set Up Paging opens the on-call guided setup, #7369) | hidden
  *              (paging runs through a policy the reader may not see, an
  *              owner rule and a status page they may not see) | rules
  *              (owner rules add the owners it emails, and a second status
@@ -372,9 +374,13 @@ const securityMode = ["news", "quiet"].includes(params.get("security"))
 // What "Used by" answers (?usedBy=).
 const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
 // What "When this goes down" answers (?whoIsTold=).
-const whoIsToldMode = ["nobody", "hidden", "rules", "gaps"].includes(
-  params.get("whoIsTold"),
-)
+const whoIsToldMode = [
+  "nobody",
+  "no-policy",
+  "hidden",
+  "rules",
+  "gaps",
+].includes(params.get("whoIsTold"))
   ? params.get("whoIsTold")
   : "pages";
 
@@ -3422,6 +3428,9 @@ function whoIsTold(monitorId) {
   });
   const isHidden = whoIsToldMode === "hidden";
   const hasOwnerRules = whoIsToldMode === "rules" || isHidden;
+  // Nobody is paged: no rule matches, or (#7369) the project has no policy yet.
+  const isNobodyPaged =
+    whoIsToldMode === "nobody" || whoIsToldMode === "no-policy";
   const owners = {
     source: "ProjectOwners",
     userNames: ["Ana Lopez"],
@@ -3522,7 +3531,7 @@ function whoIsTold(monitorId) {
               ]
             : [],
           rules:
-            whoIsToldMode === "nobody"
+            isNobodyPaged
               ? []
               : [
                   {
@@ -3530,7 +3539,7 @@ function whoIsTold(monitorId) {
                     name: isHidden ? "" : "Every incident",
                   },
                 ],
-          policies: whoIsToldMode === "nobody" ? [] : [policy],
+          policies: isNobodyPaged ? [] : [policy],
           statusPages: [
             {
               id: "5f000000-0000-4000-8000-0000000000d1",
@@ -3572,8 +3581,9 @@ function whoIsTold(monitorId) {
     breaks: getWhoIsToldBreaks({
       criteria: criteria,
       channels: channels,
-      projectHasIncidentOnCallRules: whoIsToldMode !== "nobody",
+      projectHasIncidentOnCallRules: !isNobodyPaged,
       projectHasAlertOnCallRules: false,
+      projectHasOnCallPolicies: whoIsToldMode !== "no-policy",
     }),
   };
 }

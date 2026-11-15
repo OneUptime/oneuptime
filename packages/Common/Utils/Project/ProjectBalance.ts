@@ -1,3 +1,4 @@
+import { escapeRegExp } from "../RegExpEscape";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import Permission from "../../Types/Permission";
 import {
@@ -254,6 +255,64 @@ export const getProjectBalanceMessageNotSentReason: (data: {
   costInUSDCents: number;
 }): string => {
   return `${getProjectBalanceShortfallSentence(data)} ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall)}`;
+};
+
+/*
+ * What getProjectBalanceMessageNotSentReason said, read back from a line
+ * that is it, whole: the balance used up, or how much was left against
+ * what one message costs, as the line writes the amounts ("0.05 USD").
+ * Null for any other line. A test page's result words it in the reader's
+ * language (#7550).
+ */
+export interface ProjectBalanceNotSentReason {
+  isUsedUp: boolean;
+  balance?: string | undefined;
+  cost?: string | undefined;
+}
+
+export const readProjectBalanceMessageNotSentReason: (data: {
+  statusMessage: string | null | undefined;
+  channel: ProjectNotificationChannel;
+}) => ProjectBalanceNotSentReason | null = (data: {
+  statusMessage: string | null | undefined;
+  channel: ProjectNotificationChannel;
+}): ProjectBalanceNotSentReason | null => {
+  const message: string = (data.statusMessage || "").trim();
+  const whoCanAdd: string = getProjectBalanceWhoCanAddSentence(
+    ProjectBalanceType.SmsOrCall,
+  );
+
+  if (!message.endsWith(` ${whoCanAdd}`)) {
+    return null;
+  }
+
+  const shortfall: string = message
+    .slice(0, message.length - whoCanAdd.length - 1)
+    .trim();
+
+  if (shortfall === "This project's balance is used up.") {
+    return { isUsedUp: true };
+  }
+
+  const oneMessage: string | undefined = ONE_MESSAGE_WORDS[data.channel];
+
+  if (!oneMessage) {
+    return null;
+  }
+
+  const less: RegExpExecArray | null = new RegExp(
+    `^This project's balance \\(([^()]+)\\) is less than ${escapeRegExp(oneMessage)} costs \\(([^()]+)\\)\\.$`,
+  ).exec(shortfall);
+
+  if (!less) {
+    return null;
+  }
+
+  return {
+    isUsedUp: false,
+    balance: less[1]!.trim(),
+    cost: less[2]!.trim(),
+  };
 };
 
 /*

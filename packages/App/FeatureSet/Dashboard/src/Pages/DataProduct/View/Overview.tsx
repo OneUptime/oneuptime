@@ -36,6 +36,7 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Whether a data product's data is fresh, for the people who rely on it:
@@ -235,7 +236,7 @@ const DataProductOverviewPage: FunctionComponent<
           columns={[
             {
               field: { assetKey: true },
-              title: "Table",
+              title: "Table (database object)",
               type: FieldType.Element,
               getElement: (asset: DataAsset): ReactElement => {
                 return (
@@ -258,11 +259,13 @@ const DataProductOverviewPage: FunctionComponent<
               getElement: (asset: DataAsset): ReactElement => {
                 return (
                   <span className="whitespace-nowrap text-sm text-gray-700">
-                    {asset.lastChangedAt
-                      ? OneUptimeDate.fromNow(
-                          OneUptimeDate.fromString(asset.lastChangedAt),
-                        )
-                      : "-"}
+                    {asset.lastChangedAt ? (
+                      OneUptimeDate.fromNow(
+                        OneUptimeDate.fromString(asset.lastChangedAt),
+                      )
+                    ) : (
+                      <TableEmptyValue />
+                    )}
                   </span>
                 );
               },

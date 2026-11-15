@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52297,
-    "untranslated": 2153
+    "keys": 53450,
+    "untranslated": 2048
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -364,6 +364,7 @@
     "Runbook: {{name}}",
     "Runbooks",
     "Runbooks &rsaquo; Runners",
+    "Runbooks ({{count}})",
     "Runbooks › Runners",
     "Runner",
     "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",
@@ -371,6 +372,7 @@
     "SHA-256",
     "SHA-512",
     "SHA256",
+    "SLO {{name}}",
     "SMS: ",
     "SNMP:",
     "SSH",
@@ -668,6 +670,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{name}} (monitor: {{monitor}})",
+    "{{rate}}/min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",

@@ -179,7 +179,7 @@ OneUptime har en egen MQTT-slutpunkt, så enheter som talar MQTT publicerar avl�
 
 En enhets inloggningsuppgifter kan bara publicera under dess egna `oneuptime/<fleet>/<device>/`-ämnen. Du kan återkalla en enhet utan att röra resten av flottan: stäng av dess reglage **Aktiverad**, eller ta bort den, så kopplas en ansluten enhet bort inom ungefär en minut. En registrerad enhet som tystnar finns kvar i inventariet som offline, och larmmallen Device Offline utlöses för den, även om den dör utan en Last Will.
 
-OneUptime nekar felaktiga inloggningsuppgifter vid CONNECT med returkod 4 (felaktigt användarnamn eller lösenord), så en felkonfigurerad enhet misslyckas tydligt. Webbläsarnycklar nekas över MQTT.
+OneUptime nekar felaktiga inloggningsuppgifter vid CONNECT med returkod 4 (felaktigt användarnamn eller lösenord), så en felkonfigurerad enhet misslyckas tydligt. Webbläsarnycklar nekas över MQTT. En klient som anslöt med intagningsnyckeln kopplas bort inom några sekunder när nyckeln stängs av, går ut, får sin hemlighet återställd eller tas bort, och nekas när den ansluter igen.
 
 ### Ämnen och nyttolaster
 

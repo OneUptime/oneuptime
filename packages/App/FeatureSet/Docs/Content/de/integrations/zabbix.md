@@ -84,7 +84,7 @@ Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-e
 | `recovery` | Behebt den Vorfall des Problems, sofern er nicht schon behoben ist. Der Grund steht auf seiner Zeitleiste. |
 | `update` | Fügt dem Vorfall als private Notiz hinzu, was in Zabbix getan wurde: wer es getan hat, was getan und was geschrieben wurde. Hat die Aktualisierung das Problem bestätigt, bestätigt er auch den Vorfall, sodass die Bereitschaft ihn nicht weiter eskaliert. |
 
-Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt: `read-event-1` nimmt **No**, und die **Schritte** der Ausführung sagen, warum. Ein Schritt, der fehlschlägt, lässt die Ausführung fehlschlagen, und sein Eintrag unter **Schritte** sagt, warum.
+Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt: `read-event-1` nimmt **Nein**, und die **Schritte** der Ausführung sagen, warum. Ein Schritt, der fehlschlägt, lässt die Ausführung fehlschlagen, und sein Eintrag unter **Schritte** sagt, warum.
 
 ### Schweregrade
 
@@ -102,7 +102,7 @@ In einem neuen Projekt bildet die Vorlage die sechs Schweregrade von Zabbix auf 
 Mit eigenen Schweregraden gehen Disaster und High an Ihren schwersten, Average und Warning an den mittleren und Information und Not classified an Ihren leichtesten. Zabbix nummeriert seine Schweregrade von 0 (Not classified) bis 5 (Disaster), und die Vorlage liest die Nummer, eine Umbenennung in Zabbix ändert also nichts.
 
 - Um einen Schweregrad per Namen einem Ihrer Schweregrade zuzuordnen, bearbeiten Sie `SEVERITY_BY_NAME` im Schritt `read-event-1`, etwa `{ 2: 'Minor Incident' }` für Warning.
-- Um auch bei Average-Problemen zu alarmieren, setzen Sie **Compare with** des Schritts `if-page-1` **If / Else** auf `3`.
+- Um auch bei Average-Problemen zu alarmieren, setzen Sie **Vergleichen mit** des Schritts `if-page-1` **If / Else** auf `3`.
 
 ### Bestätigungen und Notizen an Zabbix zurücksenden
 

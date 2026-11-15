@@ -23,7 +23,6 @@ import {
   formatDatabaseMetricUnitAxisValue,
   formatDatabaseMetricValue,
   formatDatabaseRuntimeAxisValue,
-  formatDatabaseRuntimeValue,
   getDatabaseEngineMetricsStatusLabel,
   getDatabaseHeaderIdentifier,
   getDatabaseLivenessLabel,
@@ -58,6 +57,8 @@ import { SpanKind } from "../../../Models/AnalyticsModels/Span";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import {
   DATABASE_CONNECTION_SPAN_NAMES,
   isDatabaseConnectionSpanName,
@@ -336,9 +337,9 @@ describe("chart axes", () => {
       getDatabaseRuntimeChartTitle(DATABASE_RUNTIME_METRICS.docker.memory),
     ).toBe("Memory per container");
 
-    // The tooltip-side values keep enough digits too.
-    expect(formatDatabaseRuntimeValue(0.024, "percent")).toBe("0.024%");
-    expect(formatDatabaseRuntimeValue(0.0234, "cores")).toBe("0.0234 cores");
+    // The tooltip shares the axis' formatter: enough digits there too.
+    expect(formatDatabaseRuntimeAxisValue(0.024, "percent")).toBe("0.024%");
+    expect(formatDatabaseRuntimeAxisValue(0.0234, "cores")).toBe("0.023");
     expect(formatDatabaseAxisNumber(2500)).toBe("2.5k");
     expect(formatDatabaseAxisNumber(250)).toBe("250");
   });
@@ -473,6 +474,212 @@ describe("the 'Queries from applications' chart", () => {
         return point.y;
       }),
     ).toEqual([24, 24]);
+  });
+});
+
+/*
+ * A bucket of a calendar closes where the next one starts (issue #7924), not
+ * after the nominal width getAggregationIntervalMs gives it: a month is 28
+ * to 31 days, not 30, and since issue #7277 a day starts at the reader's
+ * midnight, so it is 23 or 25 hours long where their clocks change. Judged by
+ * the nominal widths, an October still open on its 31st was drawn without its
+ * last day, a February finished on 2 March was left out, and a London day
+ * over the October change was drawn for its last hour while still filling.
+ */
+describe("the 'Queries from applications' chart keeps whole days, weeks and months", () => {
+  const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  // One point a bucket, each starting where the server starts it.
+  function pointsAt(starts: Array<string>): Array<DatabaseTimePoint> {
+    return starts.map((start: string): DatabaseTimePoint => {
+      return { x: new Date(start), y: 100 };
+    });
+  }
+
+  function keptOf(
+    series: Array<DatabaseTimePoint>,
+    end: string,
+    windowDays: number,
+  ): Array<string> {
+    const windowEnd: Date = new Date(end);
+
+    return getCompleteBucketSeries(
+      series,
+      {
+        start: new Date(windowEnd.getTime() - windowDays * DAY_MS),
+        end: windowEnd,
+      },
+      windowEnd.getTime(),
+    ).map((point: DatabaseTimePoint): string => {
+      return point.x.toISOString();
+    });
+  }
+
+  // The 1sts of February to October 2026, UTC: a 300-day window's months.
+  const UTC_MONTHS: Array<string> = [
+    "2026-02-01T00:00:00.000Z",
+    "2026-03-01T00:00:00.000Z",
+    "2026-04-01T00:00:00.000Z",
+    "2026-05-01T00:00:00.000Z",
+    "2026-06-01T00:00:00.000Z",
+    "2026-07-01T00:00:00.000Z",
+    "2026-08-01T00:00:00.000Z",
+    "2026-09-01T00:00:00.000Z",
+    "2026-10-01T00:00:00.000Z",
+  ];
+
+  test("a window of 300 days read on 31 October keeps September and drops October, still open", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    const kept: Array<string> = keptOf(
+      pointsAt(UTC_MONTHS),
+      "2026-10-31T12:00:00.000Z",
+      300,
+    );
+
+    // A 30-day October would have closed at midnight on the 31st.
+    expect(kept).toEqual(UTC_MONTHS.slice(0, -1));
+    expect(kept[kept.length - 1]).toBe("2026-09-01T00:00:00.000Z");
+  });
+
+  test("read on 1 November, October has closed and is kept", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    expect(
+      keptOf(pointsAt(UTC_MONTHS), "2026-11-01T00:00:30.000Z", 300),
+    ).toEqual(UTC_MONTHS);
+  });
+
+  test("read on 2 March, the February that ended on the 1st is kept", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    const months: Array<string> = [
+      "2026-06-01T00:00:00.000Z",
+      "2026-07-01T00:00:00.000Z",
+      "2026-08-01T00:00:00.000Z",
+      "2026-09-01T00:00:00.000Z",
+      "2026-10-01T00:00:00.000Z",
+      "2026-11-01T00:00:00.000Z",
+      "2026-12-01T00:00:00.000Z",
+      "2027-01-01T00:00:00.000Z",
+      "2027-02-01T00:00:00.000Z",
+      "2027-03-01T00:00:00.000Z",
+    ];
+    const kept: Array<string> = keptOf(
+      pointsAt(months),
+      "2027-03-02T12:00:00.000Z",
+      300,
+    );
+
+    // A 30-day February would still be open until 3 March.
+    expect(kept[kept.length - 1]).toBe("2027-02-01T00:00:00.000Z");
+    expect(kept).toEqual(months.slice(0, -1));
+  });
+
+  test("in a leap year the 29-day February is kept from 1 March", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    const kept: Array<string> = keptOf(
+      pointsAt([
+        "2028-01-01T00:00:00.000Z",
+        "2028-02-01T00:00:00.000Z",
+        "2028-03-01T00:00:00.000Z",
+      ]),
+      "2028-03-01T12:00:00.000Z",
+      300,
+    );
+
+    expect(kept).toEqual([
+      "2028-01-01T00:00:00.000Z",
+      "2028-02-01T00:00:00.000Z",
+    ]);
+  });
+
+  test("a New York reader's months start at New York's midnight, and close at the next one", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const newYorkMonths: Array<string> = [
+      "2026-02-01T05:00:00.000Z",
+      "2026-03-01T05:00:00.000Z",
+      // Summer time from 8 March: midnight is 04:00 UTC.
+      "2026-04-01T04:00:00.000Z",
+      "2026-05-01T04:00:00.000Z",
+      "2026-06-01T04:00:00.000Z",
+      "2026-07-01T04:00:00.000Z",
+      "2026-08-01T04:00:00.000Z",
+      "2026-09-01T04:00:00.000Z",
+      "2026-10-01T04:00:00.000Z",
+    ];
+
+    // 23:59 on 31 October in New York: October is still open.
+    expect(
+      keptOf(pointsAt(newYorkMonths), "2026-11-01T03:59:00.000Z", 300),
+    ).toEqual(newYorkMonths.slice(0, -1));
+    // 00:01 on 1 November there, past the half-minute grace: it closed.
+    expect(
+      keptOf(pointsAt(newYorkMonths), "2026-11-01T04:01:00.000Z", 300),
+    ).toEqual(newYorkMonths);
+  });
+
+  // A London reader's days over the change of 25 October 2026 (BST to GMT).
+  const LONDON_DAYS: Array<string> = [
+    "2026-10-21T23:00:00.000Z",
+    "2026-10-22T23:00:00.000Z",
+    "2026-10-23T23:00:00.000Z",
+    // The 25th: 25 hours, from 23:00 UTC on the 24th to 00:00 UTC on the 26th.
+    "2026-10-24T23:00:00.000Z",
+    "2026-10-26T00:00:00.000Z",
+  ];
+
+  test("a London reader's window over 25 October at 23:30 UTC on the 25th drops the 25th, still open", () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+    // 23:30 on the 25th in London, an hour after 24 hours of it had passed.
+    const kept: Array<string> = keptOf(
+      pointsAt(LONDON_DAYS.slice(0, 4)),
+      "2026-10-25T23:30:00.000Z",
+      30,
+    );
+
+    expect(kept).toEqual(LONDON_DAYS.slice(0, 3));
+  });
+
+  test("at 00:30 UTC on the 26th it keeps the 25th, and drops the 26th", () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+    const kept: Array<string> = keptOf(
+      pointsAt(LONDON_DAYS),
+      "2026-10-26T00:30:00.000Z",
+      30,
+    );
+
+    expect(kept).toEqual(LONDON_DAYS.slice(0, 4));
+  });
+
+  test("after London's 23-hour 29 March the finished day is kept at once, not an hour later", () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+    // 29 March runs from 00:00 UTC to 23:00 UTC; it is 00:30 on the 30th.
+    const kept: Array<string> = keptOf(
+      pointsAt([
+        "2026-03-27T00:00:00.000Z",
+        "2026-03-28T00:00:00.000Z",
+        "2026-03-29T00:00:00.000Z",
+        "2026-03-29T23:00:00.000Z",
+      ]),
+      "2026-03-29T23:30:00.000Z",
+      30,
+    );
+
+    expect(kept).toEqual([
+      "2026-03-27T00:00:00.000Z",
+      "2026-03-28T00:00:00.000Z",
+      "2026-03-29T00:00:00.000Z",
+    ]);
   });
 });
 

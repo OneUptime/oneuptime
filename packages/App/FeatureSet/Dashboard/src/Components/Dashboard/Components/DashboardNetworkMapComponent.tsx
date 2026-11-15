@@ -21,6 +21,7 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -63,7 +64,9 @@ import {
   toNetworkMapSites,
 } from "./NetworkMapWidgetData";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Network Map widget: this project's network sites drawn on the world,
@@ -91,8 +94,14 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "Status", widthPct: "35%" },
 ];
 
-const EMPTY_MESSAGE: string =
-  "No network sites with coordinates. Add latitude and longitude to a site to pin it on the map.";
+/*
+ * A key of the Dashboard's locales, looked up where it is drawn: the list
+ * view's no-data row and the map's no-data line (#8038). Held in a
+ * constant, it was never extracted, and read English on every board.
+ */
+const EMPTY_MESSAGE: string = translationKey(
+  "No network sites with coordinates. Add latitude and longitude to a site to pin it on the map.",
+);
 
 /*
  * The widget always draws the small overview outlines. The detail tier is
@@ -331,8 +340,10 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
               : null,
         };
       }),
+      // A site's missing name and status, and a default status, in the reader's words.
+      translator,
     );
-  }, [fetched.rows]);
+  }, [fetched.rows, translator.language]);
 
   const sites: Array<NetworkMapSite> = parsed.sites;
 
@@ -346,21 +357,31 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
       cellSize: networkMapClusterCellSize(viewport),
       showLabels: showLabels,
       zoom: zoomOfViewport(viewport),
+      translator: translator,
     });
-  }, [sites, viewport, showLabels]);
+  }, [sites, viewport, showLabels, translator.language]);
 
   const summary: NetworkMapStatusSummary = useMemo(() => {
     return networkMapStatusSummary(sites);
   }, [sites]);
 
   const coverage: string = useMemo(() => {
-    return describeNetworkMapCoverage({
-      siteCount: sites.length,
-      inViewCount: countNetworkMapSitesInViewport(sites, viewport),
-      unplacedCount: parsed.unplacedCount,
-      isTruncated: fetched.isTruncated,
-    });
-  }, [sites, viewport, parsed.unplacedCount, fetched.isTruncated]);
+    return describeNetworkMapCoverage(
+      {
+        siteCount: sites.length,
+        inViewCount: countNetworkMapSitesInViewport(sites, viewport),
+        unplacedCount: parsed.unplacedCount,
+        isTruncated: fetched.isTruncated,
+      },
+      translator,
+    );
+  }, [
+    sites,
+    viewport,
+    parsed.unplacedCount,
+    fetched.isTruncated,
+    translator.language,
+  ]);
 
   const rows: Array<ReactElement> = useMemo(() => {
     return sites.map((site: NetworkMapSite): ReactElement => {
@@ -406,7 +427,14 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full"
                 style={{ backgroundColor: dotColor }}
               ></span>
-              <span style={{ color: dotColor }}>{site.statusName}</span>
+              <span style={{ color: dotColor }}>
+                {/* By its list: the default "Offline" in the reader's words. */}
+                {translateRecordName(
+                  translator,
+                  StateListType.MonitorStatus,
+                  site.statusName,
+                )}
+              </span>
             </span>
           </td>
         </tr>
@@ -500,9 +528,13 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
         </span>
       </div>
 
+      {/*
+       * No site to pin: the map's icon over the shared no-data line
+       * (#8038), in the reader's language. It was English gray-400 words.
+       */}
       {sites.length === 0 ? (
-        <div className="flex-1 rounded-md border border-gray-100 flex items-center justify-center px-4 py-8 text-center text-gray-400 text-sm">
-          {EMPTY_MESSAGE}
+        <div className="flex-1 min-h-0 rounded-md border border-gray-100">
+          <DashboardWidgetEmpty icon={IconProp.Map} message={EMPTY_MESSAGE} />
         </div>
       ) : (
         <div className="flex-1 min-h-0 rounded-md border border-gray-100 overflow-hidden relative">
@@ -714,14 +746,18 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                     className="inline-block w-2 h-2 rounded-full"
                     style={{ backgroundColor: entry.color }}
                   ></span>
-                  {entry.label}
+                  {translator.translateText(entry.label)}
                 </span>
               );
             },
           )}
         </div>
+        {/*
+         * In the gray a widget's summary line is read in: gray-300 at 10px
+         * was 1.5:1 on a light card, too faint to read (#7520).
+         */}
         <span
-          className="text-gray-300 tabular-nums flex-shrink-0"
+          className="text-gray-500 tabular-nums flex-shrink-0"
           style={{ fontSize: "10px" }}
           data-testid="network-map-widget-coverage"
         >

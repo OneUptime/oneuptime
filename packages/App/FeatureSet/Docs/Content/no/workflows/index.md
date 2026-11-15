@@ -17,7 +17,7 @@ Hver arbeidsflyt har tre deler:
 2. **Komponenter** — det arbeidsflyten gjør: sende en melding, kalle et API, sjekke en betingelse, opprette eller oppdatere en OneUptime-post.
 3. **Koblinger** — linjene du trekker fra én blokk til den neste. De avgjør hva som kjører etter hva.
 
-Når triggeren utløses, starter OneUptime en **kjøring**. Hver blokk avslutter med å ta én av utgangene sine, som **Success** eller **Error**, **Yes** eller **No**, og bare blokkene som er koblet til den utgangen, kjører etterpå. Er ingen blokk koblet til utgangen en blokk tok, slutter den veien der. Kjøringen lagres med status, veien den tok, og det hver blokk mottok og returnerte.
+Når triggeren utløses, starter OneUptime en **kjøring**. Hver blokk avslutter med å ta én av utgangene sine, som **Suksess** eller **Feil**, **Ja** eller **Nei**, og bare blokkene som er koblet til den utgangen, kjører etterpå. Er ingen blokk koblet til utgangen en blokk tok, slutter den veien der. Kjøringen lagres med status, veien den tok, og det hver blokk mottok og returnerte.
 
 ```mermaid title="Hva som skjer når en arbeidsflyt kjører"
 flowchart TB
@@ -55,7 +55,7 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 | **Arbeidsflyt**     | Hele automatiseringen: et navn, et lerret med blokker og en bryter for å slå den på eller av.                  |
 | **Utløser**         | Den første blokken. Den avgjør når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én.                    |
 | **Komponent**       | Enhver annen blokk: den sender en melding, gjør en forespørsel, sjekker en betingelse eller endrer en post.    |
-| **Utgang**          | Et punkt nederst på en blokk, som **Success** eller **Error**. Linjer derfra fører til de neste blokkene.       |
+| **Utgang**          | Et punkt nederst på en blokk, som **Suksess** eller **Feil**. Linjer derfra fører til de neste blokkene.       |
 | **Kjøring**         | Én utførelse av arbeidsflyten, lagret med status, tidsstempler og det hver blokk gjorde.                       |
 | **Global variabel** | En verdi, som en API-nøkkel, som du lagrer én gang og bruker i alle arbeidsflytene i prosjektet.               |
 
@@ -107,13 +107,13 @@ Denne arbeidsflyten sender et JSON-sammendrag av hver ny hendelse til en URL du 
 
 ```mermaid title="Det ferdige eksempelet"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["Kjøringen slutter"]
+    trigger["On Create Incident"] -->|"Suksess"| post["API Post (JSON)"]
+    post -->|"Feil"| log["Logg"]
+    post -->|"Suksess"| done["Kjøringen slutter"]
 ```
 
 > [!TIP]
-> Malen **Forward new incidents to another system** bygger denne arbeidsflyten for deg, uten Log-blokken: uten noe på **Error** får en forespørsel som feiler, kjøringen til å mislykkes, og kjøringens **Trinn** sier hvorfor. Du finner den under **Hendelser** når du oppretter en arbeidsflyt.
+> Malen **Forward new incidents to another system** bygger denne arbeidsflyten for deg, uten Log-blokken: uten noe på **Feil** får en forespørsel som feiler, kjøringen til å mislykkes, og kjøringens **Trinn** sier hvorfor. Du finner den under **Hendelser** når du oppretter en arbeidsflyt.
 
 :::steps
 ### Opprett arbeidsflyten
@@ -136,11 +136,11 @@ Triggeren sender den nye hendelsen videre med disse feltene. Et felt du ikke vel
 
 ### Legg til API-blokken
 
-Klikk på **Legg til komponent**, og klikk deretter på **API Post (JSON)** under **Populære**. Dra fra triggerens punkt **Success** ned til det øverste punktet på den nye blokken.
+Klikk på **Legg til komponent**, og klikk deretter på **API Post (JSON)** under **Populære**. Dra fra triggerens punkt **Suksess** ned til det øverste punktet på den nye blokken.
 
 ### Fyll ut forespørselen
 
-Klikk på API-blokken, der det står **Click to set up**. Skriv endepunktet ditt i **URL**. Skriv JSON-en som skal sendes, i **Request Body**, bruk **{ }** til å sette inn feltene til hendelsen der du trenger dem, og klikk på **Lagre**.
+Klikk på API-blokken, der det står **Click to set up**. Skriv endepunktet ditt i **URL**. Skriv JSON-en som skal sendes, i **Forespørselstekst**, bruk **{ }** til å sette inn feltene til hendelsen der du trenger dem, og klikk på **Lagre**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Hver `{{…}}`-referanse erstattes med verdien fra hendelsen når arbeidsflyten 
 
 ### Fang opp feil
 
-Klikk på **Legg til komponent**, og klikk deretter på **Logg**. Koble API-blokkens punkt **Error** til den, og sett Log-blokkens **Value** til `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Klikk på **Legg til komponent**, og klikk deretter på **Logg**. Koble API-blokkens punkt **Feil** til den, og sett Log-blokkens **Verdi** til `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 En forespørsel som mislykkes — en URL som ikke kan nås, eller et svar som ikke er 2xx — tar nå denne veien, og kjøringens logg sier hvorfor.
 
@@ -177,7 +177,7 @@ Fra nå av starter hver ny hendelse i prosjektet en kjøring. Du finner dem alle
 ## Slik passer arbeidsflyter inn i resten av OneUptime
 
 - **Monitorer** oppdager problemet. **Hendelser** og **varsler** registrerer det. **Arbeidsflyter** reagerer på det.
-- **Runbooks** er beredskapsprosedyrer teamet ditt går gjennom ved en hendelse, et varsel eller et vedlikehold: manuelle trinn, godkjenninger og skript, med mennesker involvert. Arbeidsflyter kjører uten tilsyn. Bruk en [runbook](/docs/runbooks/index) når en person må ta beslutninger underveis, og en arbeidsflyt når hvert trinn er automatisk.
+- **Runbooks** er beredskapsprosedyrer teamet ditt går gjennom ved en hendelse, et varsel eller en vedlikeholdshendelse: manuelle trinn, godkjenninger og skript, med mennesker involvert. Arbeidsflyter kjører uten tilsyn. Bruk en [runbook](/docs/runbooks/index) når en person må ta beslutninger underveis, og en arbeidsflyt når hvert trinn er automatisk.
 - **Arbeidsområdetilkoblinger** kobler et prosjekt til Slack og Microsoft Teams for hendelseskanaler og varslinger. Arbeidsflytenes Slack- og Microsoft Teams-blokker bruker dem ikke: hver blokk poster via sin egen innkommende webhook-URL.
 
 ## Neste trinn

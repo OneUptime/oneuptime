@@ -1,9 +1,9 @@
 # OpenStack 代理
 
-OneUptime OpenStack 代理用于监控 OpenStack 云：它的服务和代理、Hypervisor、实例、网络、路由器、卷、存储池、镜像和项目，覆盖每个区域。它使用你选定的凭据读取云的 API，并把发现的内容发送到 OneUptime，云会连同其区域、Hypervisor 和项目一起显示在 OneUptime 中。[OpenStack 监控器](/docs/monitor/openstack-monitor)会针对收到的数据发出警报，也可以使用[探针](/docs/telemetry/openstack-agentless)，无需安装任何东西即可收集一朵云。
+OneUptime OpenStack 代理用于监控 OpenStack 云：它的服务和代理、Hypervisor、实例、网络、路由器、卷、存储池、镜像和项目，覆盖每个区域。它使用你选定的凭据读取云的 API，并把发现的内容发送到 OneUptime，云会连同其区域、Hypervisor 和项目一起显示在 OneUptime 中。[OpenStack 监视器](/docs/monitor/openstack-monitor)会针对收到的数据发出警报，也可以使用[探测器](/docs/telemetry/openstack-agentless)，无需安装任何东西即可收集一朵云。
 
 :::cards
-- [探针还是代理？](/docs/telemetry/openstack-agentless#探测器还是代理): 对于两种方式都可用的云，该如何选择。
+- [探测器还是代理？](/docs/telemetry/openstack-agentless#探测器还是代理): 对于两种方式都可用的云，该如何选择。
 - [选择它能看到多少](#选择代理能看到多少): OpenStack 没有全局只读角色，因此分为三个级别。
 - [安装代理](#安装代理): 先准备凭据，然后使用安装脚本、Docker Compose，或者完全不使用 Docker。
 - [它给你的云带来的开销](#它给你的云带来的开销): 每项设置会读取什么，以及如何更改。
@@ -11,10 +11,10 @@ OneUptime OpenStack 代理用于监控 OpenStack 云：它的服务和代理、H
 - [支出](#支出): 谁在使用什么，按你的价格或 CloudKitty 的计费折合是多少，以及哪些可以回收。
 - [状态页面与通知项目](#状态页面与通知项目): 一步生成每个区域的页面，并且只通知受故障影响的项目。
 - [服务日志](#服务日志): 经过解析，并可跨服务跟踪一个请求。
-- [生命周期事件](#生命周期事件): 实例操作显示在动态和图表中，来源于通知或探针。
+- [生命周期事件](#生命周期事件): 实例操作显示在动态和图表中，来源于通知或探测器。
 - [谁做了什么](#谁做了什么): 把审计记录导入安全事件。
 - [追踪请求](#通过控制平面追踪请求): 一个已签名的请求，在整个控制平面中被跟踪。
-- [从外部检查](#从外部检查云): 通过云外部的探针，检查是否真的有人能启动实例。
+- [从外部检查](#从外部检查云): 通过云外部的探测器，检查是否真的有人能启动实例。
 - [无互联网环境](#无互联网环境): 代理的四个镜像，以及如何把它们复制到你自己的镜像仓库。
 - [按部署工具](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible、OpenStack-Ansible、OpenStack-Helm、Atmosphere、Sunbeam、Red Hat 和 Mirantis。
 - [故障排查](#故障排查): 一个诊断脚本，以及常见问题。
@@ -244,7 +244,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 代理会看到该项目在 Cinder 和 Neutron 中的行，但看不到任何基础设施。选择它之前需要了解三点：
 
-- **通过代理完全看不到实例。** exporter 向 Nova 请求所有项目的服务器，Nova 会拒绝普通 reader，于是这次读取整体失败。只有不使用此代理、直接收集的 OneUptime 探针，才能列出某一个项目的实例。
+- **通过代理完全看不到实例。** exporter 向 Nova 请求所有项目的服务器，Nova 会拒绝普通 reader，于是这次读取整体失败。只有不使用此代理、直接收集的 OneUptime 探测器，才能列出某一个项目的实例。
 - **它可能具有写入能力。** 在 Cinder 的 `enforce_new_defaults` 关闭的云上，普通 `reader` 也可以在其项目中创建卷。在 Epoxy、Flamingo 和 Gazpacho 上确实如此（`202`），而在 Hibiscus 上被拒绝（`403`），因为 DevStack 只在那里开启 `enforce_new_defaults`。Cinder 自己的默认值是关闭。
 - **Placement 读起来像是没有响应。** 它发出的每个调用都被拒绝，而 exporter 报告这种情况的方式与报告 Placement 已停止的方式相同：`openstack_placement_up 0`，在我们记录的全部五个云上都是如此。页面可以根据该凭据还被关闭了哪些其他内容来判断，并会予以说明。但 [Placement API Down](/docs/monitor/openstack-monitor#预置警报模板) 模板做不到，所以在这个级别请不要启用它。
 :::
@@ -445,7 +445,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 
 最后九个是云可能没有运行的服务。当被问及目录中没有的服务时，exporter 会登录 Keystone，记录一行日志（`No suitable endpoint could be found in the service catalog`），然后什么也不返回，这朵云中就不会出现该服务的任何痕迹。每个服务和区域每 5 分钟要登录一次，这就是它们全都是 5 分钟的原因。若只请求你所运行的服务，请设置 `OPENSTACK_AGENT_SERVICES`，例如 `identity|compute|placement|network|volume|image`。
 
-每个服务还会报告 `openstack_<service>_up`，例如 `openstack_nova_up`。[OpenStack 监控器](/docs/monitor/openstack-monitor#收集的指标)列出了每个序列及其含义。每个序列都带有：
+每个服务还会报告 `openstack_<service>_up`，例如 `openstack_nova_up`。[OpenStack 监视器](/docs/monitor/openstack-monitor#收集的指标)列出了每个序列及其含义。每个序列都带有：
 
 | 属性 | 含义 |
 | --- | --- |
@@ -454,7 +454,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 | `openstack.region.name` | 区域，取自 `clouds.yaml` 条目的名称，位于每个数据点上 |
 | `openstack_service` | 该任务的 OpenStack 服务（`compute`、`network` 等），位于每个数据点上 |
 
-监控器的过滤器按相等匹配，所以如果你自定义配置，请保留 `transform/openstack-identity` 处理器，以及 `resource` 处理器中对 `service.name` 和 `service.instance.id` 的两个删除：没有这两个删除，数据会注册为一个幽灵 Service，而不是到达这朵云。
+监视器的过滤器按相等匹配，所以如果你自定义配置，请保留 `transform/openstack-identity` 处理器，以及 `resource` 处理器中对 `service.name` 和 `service.instance.id` 的两个删除：没有这两个删除，数据会注册为一个幽灵 Service，而不是到达这朵云。
 
 ## 它给你的云带来的开销
 
@@ -517,8 +517,8 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 以下每一项都在真实的 DevStack 上记录过，每个页面都会在相关之处说明：
 
 - **Ironic 只向项目显示它所拥有的节点。** Placement 对所有人都有回答，所以当它持有一个 Ironic 未列出的节点时，页面会说明这份列表并非整朵云的全部。按 Ironic 的默认策略，只有系统范围的凭据，或其角色具有 `baremetal:node:list_all` 的凭据，才能读取每个节点。
-- **exporter 不提供节点失败的原因。** 它只有维护原因，没有 `last_error`，而且 Ironic 可能在大约一分钟内就清空 `last_error`，而节点仍处于失败状态：清理失败时确实如此，而部署失败时则保留了。所以请立即用 `openstack baremetal node show <node> -c last_error` 查看，或查看 conductor 的日志。[探针](/docs/telemetry/openstack-agentless)会读取 `last_error` 并保留它看到的最后一个。
-- **exporter 没有 conductor。** 只有探针才能读取它们，而除非 Ironic 的策略另有规定（`baremetal:conductor:get`），否则它会拒绝项目凭据读取该列表。
+- **exporter 不提供节点失败的原因。** 它只有维护原因，没有 `last_error`，而且 Ironic 可能在大约一分钟内就清空 `last_error`，而节点仍处于失败状态：清理失败时确实如此，而部署失败时则保留了。所以请立即用 `openstack baremetal node show <node> -c last_error` 查看，或查看 conductor 的日志。[探测器](/docs/telemetry/openstack-agentless)会读取 `last_error` 并保留它看到的最后一个。
+- **exporter 没有 conductor。** 只有探测器才能读取它们，而除非 Ironic 的策略另有规定（`baremetal:conductor:get`），否则它会拒绝项目凭据读取该列表。
 - **已停止的 Ironic 与没有 Ironic 读起来相同。** 当被问及一个已停止的 Ironic 时，exporter 会返回一个空的 200，就像对从未有过它的云一样。所以页面只会说没有收到 Ironic 的消息，而且节点保持上次读取的样子，绝不会说它宕机了。在云的其余部分上次不带它上报的两周之后，这些行会被移除，如果它恢复，这些行也会回来。
 
 ## 容量
@@ -529,19 +529,19 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 
 **容量是什么。** 对每个资源提供者和资源类，容量为 `(total - reserved) x allocation_ratio`，已分配量是 Placement 已承诺的量。这些会按可用区、聚合、区域和云汇总。`nova-compute` 已宕机的主机会一直报告它最后的数字，被禁用的主机不再接纳新内容，所以两者都不算空余空间。它们上面已有的内容仍然在那里，预测会把它计算在内。
 
-**裸金属。** 一个节点整个只接纳一个实例，所以带有 Ironic 的云会有一个专属的表格，按资源类划分：有多少节点、有多少可以接纳实例、有多少在使用中，以及有多少被保留，因为 Nova 的 Ironic 驱动此刻无法使用它们。这些是 Placement 自己的数字，所以即使 Ironic 只向项目显示它自己拥有的节点，这些数字仍是整朵云的，而且它们不包含在上面的 vCPU 和内存中。探针会读取规格所要求的类，并据此计入这些数字。代理的 exporter 不提供这一信息，所以在代理上，裸金属规格按其 vCPU、内存和磁盘计入主机。
+**裸金属。** 一个节点整个只接纳一个实例，所以带有 Ironic 的云会有一个专属的表格，按资源类划分：有多少节点、有多少可以接纳实例、有多少在使用中，以及有多少被保留，因为 Nova 的 Ironic 驱动此刻无法使用它们。这些是 Placement 自己的数字，所以即使 Ironic 只向项目显示它自己拥有的节点，这些数字仍是整朵云的，而且它们不包含在上面的 vCPU 和内存中。探测器会读取规格所要求的类，并据此计入这些数字。代理的 exporter 不提供这一信息，所以在代理上，裸金属规格按其 vCPU、内存和磁盘计入主机。
 
 **还能再放下多少。** 每种规格是逐台主机计数的，因为一个实例需要它所要求的全部资源都在同一台主机上。计数旁边是假如所有空闲资源都在同一台主机上时的数量，借此区分一朵已满的云与一朵碎片化的云。没有任何主机即使为空也无法容纳的规格会显示 **对每台主机都过大**，并且绝不会为此发出警报。计数针对从镜像启动的实例：从卷启动的实例不要求根磁盘。
 
 页面会说明每个计数的来源：
 
-| | 通过探针 | 通过代理 |
+| | 通过探测器 | 通过代理 |
 | --- | --- | --- |
 | **统计自** | `GET /allocation_candidates`，这是 Nova 调度器所请求的，[StackHPC 的 os-capacity](https://github.com/stackhpc/os-capacity) 也是如此。在轮到某个规格之前，使用清单数据补足 | exporter 已经发送的 Placement 序列：`openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
 | **能看到特征和嵌套提供者** | 能。也会请求规格的额外规格，所以 `trait:` 和 `resources:` 都会计入 | 不能：exporter 的规格序列没有额外规格，所以需要某个特征的规格会计入每台主机，页面会说明这一点 |
 | **主机的 `max_unit`** | Placement 自己的值 | 取主机的总量，这正是 Nova 所设置的 |
 
-探针的请求很克制，因为这是唯一会让 Placement 做功的读取。它每次只询问一种规格形状，所以要求相同内容的规格算作一个问题，每次收集最多 4 个，轮流进行，无论有多少规格。所以一朵有 40 种规格、每 2 分钟收集一次的云，每分钟花费 2 次调用，轮一圈需要 20 分钟。每个回答最多限制 1,000 台主机，这是 Nova 自己的 `max_placement_results`：一次启动所需的工作量。来自这么长的回答的计数是下限，页面会显示 **至少**。它在第一次收集时不询问，在那次收集期间 Placement 较慢时不询问，凭据被拒绝后一小时内也不询问，因为根据清单得到的计数本来就有。应用凭据或 `oneuptime_monitoring` 角色需要允许 `/allocation_candidates`：它在 `access/application-credential-access-rules.json` 和 `access/policy/placement.yaml` 中。
+探测器的请求很克制，因为这是唯一会让 Placement 做功的读取。它每次只询问一种规格形状，所以要求相同内容的规格算作一个问题，每次收集最多 4 个，轮流进行，无论有多少规格。所以一朵有 40 种规格、每 2 分钟收集一次的云，每分钟花费 2 次调用，轮一圈需要 20 分钟。每个回答最多限制 1,000 台主机，这是 Nova 自己的 `max_placement_results`：一次启动所需的工作量。来自这么长的回答的计数是下限，页面会显示 **至少**。它在第一次收集时不询问，在那次收集期间 Placement 较慢时不询问，凭据被拒绝后一小时内也不询问，因为根据清单得到的计数本来就有。应用凭据或 `oneuptime_monitoring` 角色需要允许 `/allocation_candidates`：它在 `access/application-credential-access-rules.json` 和 `access/policy/placement.yaml` 中。
 
 **与主机的真实使用量对照。** 当[真实用量](#真实用量)到达 OneUptime 时，页面会把你设置的比例与主机一天内峰值时的真实使用量并列显示，并显示它们会达到 **Hypervisor CPU Saturated** 和 **Hypervisor Memory Pressure** 所画出的 90% 线时的比例。这是根据一种工作负载一天的数据得出的直线，所以它说明的是比例可以移动多远，而不是你应该移动它。在一个可用区超过一半的主机上报之前，它什么也不显示。
 
@@ -556,9 +556,9 @@ nova-manage placement audit --verbose
 nova-manage placement audit --verbose --delete
 ```
 
-**警报。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 和 **Reserved Headroom Gone** 读取 OneUptime 根据同一份摘要写入的序列。它们位于[监控器的模板](/docs/monitor/openstack-monitor#预置警报模板)中，也在云的 **Suggest** 页面上。
+**警报。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 和 **Reserved Headroom Gone** 读取 OneUptime 根据同一份摘要写入的序列。它们位于[监视器的模板](/docs/monitor/openstack-monitor#预置警报模板)中，也在云的 **Suggest** 页面上。
 
-**成本。** 代理上没有任何成本。探针会增加上面所述的调用。OneUptime 每两分钟为每个可用区的资源类、外部网络和存储池大约写入 2 个序列，并为人们可以请求的每种规格写入一个，与其他指标一样计费。
+**成本。** 代理上没有任何成本。探测器会增加上面所述的调用。OneUptime 每两分钟为每个可用区的资源类、外部网络和存储池大约写入 2 个序列，并为人们可以请求的每种规格写入一个，与其他指标一样计费。
 
 ## 支出
 
@@ -587,9 +587,9 @@ nova-manage placement audit --verbose --delete
 
 ### CloudKitty
 
-如果云运行 [CloudKitty](https://github.com/openstack/cloudkitty)，则它的计费结果会逐项目取代计算结果，页面会说明用了哪一种。探针每小时询问一次，针对本月和上月，请求的是 `GET /v2/summary`，对于太旧而不支持它的 CloudKitty 则是 `GET /v1/report/summary`。这是每小时每 1,000 个项目最多两个请求，外加每次读取时请求其版本的一个请求。
+如果云运行 [CloudKitty](https://github.com/openstack/cloudkitty)，则它的计费结果会逐项目取代计算结果，页面会说明用了哪一种。探测器每小时询问一次，针对本月和上月，请求的是 `GET /v2/summary`，对于太旧而不支持它的 CloudKitty 则是 `GET /v1/report/summary`。这是每小时每 1,000 个项目最多两个请求，外加每次读取时请求其版本的一个请求。
 
-- **只有[探针](/docs/telemetry/openstack-agentless)能读取它。** 代理的 exporter 没有 CloudKitty 的序列，所以通过代理连接的云会自行计算，并会说明这一点。
+- **只有[探测器](/docs/telemetry/openstack-agentless)能读取它。** 代理的 exporter 没有 CloudKitty 的序列，所以通过代理连接的云会自行计算，并会说明这一点。
 - **它看到的是凭据可以看到的内容。** CloudKitty 自己的策略会让 admin 的凭据看到每个项目（无论有无访问规则），而权限更低的凭据只能看到自己的项目。它没有计费的项目会继续根据你的价格计算。
 - **每个区域的 CloudKitty 会累加。** 每个都在各自的时间读取，项目的数字是它们共同计费的结果。目录中列为多个区域共用的同一个 CloudKitty 只会被请求一次。
 - **它的数字是这里唯一属于遥测的部分。** 它们以 `openstack_cloudkitty_rated` 到达 OneUptime，每个项目每月一个数据点，每小时一次：在 10,000 个项目时是每小时 20,000 个，与该规模云的其余部分相比几乎微不足道。
@@ -610,11 +610,11 @@ nova-manage placement audit --verbose --delete
 | 可以被清空的 Hypervisor | 其 vCPU 和内存已分配的比例不超过 20%，其上的所有内容都放得进其可用区和聚合中的其他主机，并且之后该可用区仍能承受失去一台主机 | 整台主机 | `openstack hypervisor list --long` |
 | 长期关机的实例 | 已关机 30 天 | 它们的 vCPU、内存和本地磁盘 | `openstack server list --all-projects --status SHUTOFF --long` |
 | 未连接任何东西的卷 | 处于可用状态 30 天，未连接任何东西，且不是 Cinder 自己的 `image-<id>` 卷（该命令也会列出这些卷） | 它们的存储 | `openstack volume list --all-projects --status available --long` |
-| 旧的卷快照 | 创建于 90 天前。仅限探针 | 它们的存储 | `openstack volume snapshot list --all-projects --long` |
-| 没有任何东西从中启动的镜像 | 私有或共享，已有 30 天，未受保护，且没有实例或卷来自它。仅限探针 | 它们的存储 | `openstack image list --long` |
+| 旧的卷快照 | 创建于 90 天前。仅限探测器 | 它们的存储 | `openstack volume snapshot list --all-projects --long` |
+| 没有任何东西从中启动的镜像 | 私有或共享，已有 30 天，未受保护，且没有实例或卷来自它。仅限探测器 | 它们的存储 | `openstack image list --long` |
 | 没有任何东西在使用的浮动 IP | 未关联达 7 天 | 一个地址 | `openstack floating ip list --status DOWN --long` |
 
-正在使用的内容绝不会被点名。某物保持某种状态有多久，在探针报告时取自云自己的时钟。通过代理时，则是 OneUptime 看到它保持该状态的时间，所以在你连接云的当天，没有什么是旧的。无法确定的规则会明说，而不是猜测：代理无法说明实例是从哪个镜像启动的，所以正在使用的镜像看起来会像是未使用，它也无法列出快照，所以这两条规则要等探针。主机是按已分配的量而不是繁忙程度来点名的，在有主机丢失或被禁用的可用区中绝不会被点名，并且主机按最空闲的优先选取，使被点名的主机都可以做到。它看不到特征，也看不到实例对主机的其他任何需求。
+正在使用的内容绝不会被点名。某物保持某种状态有多久，在探测器报告时取自云自己的时钟。通过代理时，则是 OneUptime 看到它保持该状态的时间，所以在你连接云的当天，没有什么是旧的。无法确定的规则会明说，而不是猜测：代理无法说明实例是从哪个镜像启动的，所以正在使用的镜像看起来会像是未使用，它也无法列出快照，所以这两条规则要等探测器。主机是按已分配的量而不是繁忙程度来点名的，在有主机丢失或被禁用的可用区中绝不会被点名，并且主机按最空闲的优先选取，使被点名的主机都可以做到。它看不到特征，也看不到实例对主机的其他任何需求。
 
 ### 不同规模下的开销
 
@@ -649,7 +649,7 @@ Ceilometer 只会报告其 `polling.yaml` 所要求的内容，而它附带的�
 | `memory.resident` | 没有任何内容说明实例在其 Hypervisor 上占用了多少，所以没有 **Hypervisor Memory Pressure** |
 | `disk.device.read.latency`, `disk.device.write.latency` | 没有磁盘延迟，所以没有 **Instance Disk Latency High** |
 
-OneUptime 在它们到达时把两者转换成同一组序列，与原始序列并存：每个实例有 `openstack.instance.*`（以其 UUID 标识），以及 `openstack.hypervisor.instances.*`（表示 Hypervisor 上各实例的总和）。[OpenStack 监控器](/docs/monitor/openstack-monitor#收集的指标)列出了它们。所以无论云使用哪种来源，页面和警报的含义都相同：
+OneUptime 在它们到达时把两者转换成同一组序列，与原始序列并存：每个实例有 `openstack.instance.*`（以其 UUID 标识），以及 `openstack.hypervisor.instances.*`（表示 Hypervisor 上各实例的总和）。[OpenStack 监视器](/docs/monitor/openstack-monitor#收集的指标)列出了它们。所以无论云使用哪种来源，页面和警报的含义都相同：
 
 | 读取内容 | libvirt | Ceilometer |
 | --- | --- | --- |
@@ -705,7 +705,7 @@ OneUptime 在它们到达时把两者转换成同一组序列，与原始序列�
 
 这里的规则是一条带有项目或域 ID 的 **OpenStack 云所有者规则** 或 **OpenStack 云标签规则**，所以它也会出现在云的 **所有者规则** 或 **标签规则** 设置下，你可以在那里的 **一个项目或域** 下手动编写一条。带有任一 ID 的规则不会给云本身添加任何东西。云上的条件仍然适用，由 **域** 创建的规则会指明它的云，因为每朵云都有一个名为 `default` 的域。如果你重命名那朵云，请更新规则的名称条件。
 
-云的某个部分上的警报或事件，会到达该部分上有内容的每个项目，无论有多少个。只有监控器才能说明它会到达哪里，所以这样的规则不会到达由人手动声明的事件。标签在警报打开时添加，所有者紧随其后。
+云的某个部分上的警报或事件，会到达该部分上有内容的每个项目，无论有多少个。只有监视器才能说明它会到达哪里，所以这样的规则不会到达由人手动声明的事件。标签在警报打开时添加，所有者紧随其后。
 
 早先作为一对警报规则和事件规则编写的规则，在描述中匹配 ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` ``，仍然有效，也会列在这里。一条描述最多列出它所到达的 50 个项目，所以这样的一对规则会在那里止步。移除它并重新添加规则即可解除该限制。
 
@@ -740,7 +740,7 @@ OneUptime 在它们到达时把两者转换成同一组序列，与原始序列�
 
 部分自己的页面会显示它。该部分上的警报或事件会在其描述中说明，例如“2 个项目中的 3 个实例”，并附上它们的名称。
 
-exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个池，所以对于由代理收集的云，两者都不会绘制。地图会说明这一点，存储池的爆炸半径也会说明它无法判断，而不是回答没有。[探针](/docs/telemetry/openstack-agentless)则两者都能说明。此时，当 Cinder 把它的凭据视为 admin 时，地图会把卷连接到它的池，池的爆炸半径会统计它的卷以及这些卷所连接的实例。它还会把实例连接到它拥有地址的每个网络。Nova 只通过名称指明这些网络，而 Neutron 允许两个网络同名，所以地图会先在实例的项目中查找，然后是与其共享的，再然后是任何同名的，并且在两个同样可能时不绘制连接。仍然未知的内容会留在地图的提示中。
+exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个池，所以对于由代理收集的云，两者都不会绘制。地图会说明这一点，存储池的爆炸半径也会说明它无法判断，而不是回答没有。[探测器](/docs/telemetry/openstack-agentless)则两者都能说明。此时，当 Cinder 把它的凭据视为 admin 时，地图会把卷连接到它的池，池的爆炸半径会统计它的卷以及这些卷所连接的实例。它还会把实例连接到它拥有地址的每个网络。Nova 只通过名称指明这些网络，而 Neutron 允许两个网络同名，所以地图会先在实例的项目中查找，然后是与其共享的，再然后是任何同名的，并且在两个同样可能时不绘制连接。仍然未知的内容会留在地图的提示中。
 
 ## 状态页面与通知项目
 
@@ -748,13 +748,13 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 ### 一步创建状态页面
 
-**创建状态页面** 首先会逐个监控器显示它将创建什么，在你确认之前不会创建任何东西。每个区域是一个组，区域运行的每个服务是一行：计算、网络、块存储、镜像、身份和负载均衡，每一行由说明其是否工作的监控器支撑。云没有运行的服务就没有对应的行。
+**创建状态页面** 首先会逐个监视器显示它将创建什么，在你确认之前不会创建任何东西。每个区域是一个组，区域运行的每个服务是一行：计算、网络、块存储、镜像、身份和负载均衡，每一行由说明其是否工作的监视器支撑。云没有运行的服务就没有对应的行。
 
-已经在监控某一行的监控器会原样使用，所以一次故障仍然只产生一个事件。在有多个区域的云上，你为整朵云创建的监控器不能作为某一个区域的行，因为其他地方的故障会使它变红。该行会获得一个专属的监控器，只说明该行的显示状态，而你的监控器继续负责产生事件。
+已经在监控某一行的监视器会原样使用，所以一次故障仍然只产生一个事件。在有多个区域的云上，你为整朵云创建的监视器不能作为某一个区域的行，因为其他地方的故障会使它变红。该行会获得一个专属的监视器，只说明该行的显示状态，而你的监视器继续负责产生事件。
 
 在你另行指示之前，该页面是私有的。它是一个普通的状态页面：它的组、行以及谁能阅读它，都在它自己的页面上。
 
-**创建目标** 为每一行创建一个目标，位于[服务水平目标](/docs/slo/introduction)中：最近 30 天的 99.9%，依据其监控器的正常运行时间，并且在开启了[从外部检查](#从外部检查云)的地方，也包括该检查的监控器。再次运行它时，它不会改动已经创建的那些。
+**创建目标** 为每一行创建一个目标，位于[服务水平目标](/docs/slo/introduction)中：最近 30 天的 99.9%，依据其监视器的正常运行时间，并且在开启了[从外部检查](#从外部检查云)的地方，也包括该检查的监视器。再次运行它时，它不会改动已经创建的那些。
 
 ### 事件会点名谁
 
@@ -787,7 +787,7 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 在项目的页面上，**创建私有页面** 会为使用该项目的人创建一个私有状态页面：它所使用的每个服务、在其所在的每个区域各有一行。只有当故障波及该项目时，一行才会变红，公告则用与通知相同的措辞说明发生了什么。
 
-在你把人添加到它的 **私人用户** 下之前，没有人能阅读它，而且一个项目页面上的会话读不到任何其他项目的页面。该页面只列出它自己的监控器，任何事件都不会发生在这些监控器上，所以无论通过页面还是通过它的 API，都读不到关于其他项目的任何内容。
+在你把人添加到它的 **私人用户** 下之前，没有人能阅读它，而且一个项目页面上的会话读不到任何其他项目的页面。该页面只列出它自己的监视器，任何事件都不会发生在这些监视器上，所以无论通过页面还是通过它的 API，都读不到关于其他项目的任何内容。
 
 ### Hypervisor 或可用区上的计划工作
 
@@ -795,7 +795,7 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 链接到云但没有指明主机或可用区的事件，针对的是整朵云。
 
-在该主机的事件期间，`openstack compute service set --disable` 是预期之中的，Hypervisor 的页面也会这样说明。在事件之外，没有人说明原因，所以 **Compute Service Disabled** 模板会针对它发出呼叫。如果你想知道有主机被手动禁用，请添加该监控器。它会呼叫你，并且不通知任何项目，因为项目已经在那里运行的内容继续运行。因 libvirt 故障而自行禁用的 `nova-compute` 是一次故障、一个事件：**libvirt Service Down** 会说明这一点，而在它未解决期间，这一项保持安静。
+在该主机的事件期间，`openstack compute service set --disable` 是预期之中的，Hypervisor 的页面也会这样说明。在事件之外，没有人说明原因，所以 **Compute Service Disabled** 模板会针对它发出呼叫。如果你想知道有主机被手动禁用，请添加该监视器。它会呼叫你，并且不通知任何项目，因为项目已经在那里运行的内容继续运行。因 libvirt 故障而自行禁用的 `nova-compute` 是一次故障、一个事件：**libvirt Service Down** 会说明这一点，而在它未解决期间，这一项保持安静。
 
 ## 与 OneUptime 其余部分的联动
 
@@ -823,7 +823,7 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 | 来源 | 它说明什么 | 会发生什么 |
 | --- | --- | --- |
-| 完整视图级别的[探针](/docs/telemetry/openstack-agentless) | Cinder 的 RBD 驱动在 `location_info` 中指明了 Ceph 集群的 fsid 和池 | 当这里有一个 [Ceph 集群](/docs/telemetry/ceph)报告该 fsid 时，它会自动关联。Ceph 集群只有在其代理配置中设置了 `ceph.cluster.fsid` 时才会报告它 |
+| 完整视图级别的[探测器](/docs/telemetry/openstack-agentless) | Cinder 的 RBD 驱动在 `location_info` 中指明了 Ceph 集群的 fsid 和池 | 当这里有一个 [Ceph 集群](/docs/telemetry/ceph)报告该 fsid 时，它会自动关联。Ceph 集群只有在其代理配置中设置了 `ceph.cluster.fsid` 时才会报告它 |
 | 代理的 exporter | 池的名称、其后端的名称及其供应商，对 LVM 和 RBD 都显示为 `Open Source` | 没有任何内容说明它位于 Ceph 上。恰好在一个集群中有同名的 Ceph 池时，会提供它供人在池的页面上确认一次，除非另一个 Cinder 池也叫这个名字。没有这样的匹配时，可以选择一个集群，或者说明它不在 Ceph 上 |
 
 一旦关联，池的页面会说明其集群的状况，`HEALTH_WARN` 或 `HEALTH_ERR` 会出现在云的 **需要关注** 中。没有人确认的建议不会引发任何事。别人给出的答案可以在池的页面上更改。只有完整视图的凭据才能看到池：参见[选择代理能看到多少](#选择代理能看到多少)。
@@ -838,7 +838,7 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 exporter 对这些服务的说明比读取它们的 API 要少，而且两个服务都只向 admin 显示整朵云。所以每个页面都会说明你的云的收集器看不到什么。
 
-| 内容 | 代理，完整视图 | 探针，完整视图 | 更低权限 |
+| 内容 | 代理，完整视图 | 探测器，完整视图 | 更低权限 |
 | --- | --- | --- | --- |
 | 每个项目的堆栈及其状态 | 是 | 是 | 最多只有它自己项目的，其上没有项目信息，也没有错误提示这一点 |
 | 堆栈属于谁 | 是 | 是 | 否 |
@@ -852,9 +852,9 @@ exporter 对这些服务的说明比读取它们的 API 要少，而且两个服
 有两种故障读起来不同，两者都是真实的云的行为：
 
 - **已停止的 `heat-engine`** 在任一收集器上都读作 **Orchestration API Down**。Heat 的 API 会向引擎请求它的列表，所以没有引擎时就无法回答，要等一分钟的 RPC 超时。引擎遗留在进行中状态的堆栈，在引擎恢复后可能仍保持进行中，两小时过后会读作 **Stack Stuck In Progress**。
-- **已停止的 `magnum-conductor`** 在由代理收集的云上任何地方都不会显示，因为 Magnum 的 API 在没有它的情况下仍继续回答，而 exporter 不读取 conductor。它的集群只是不再变化。使用完整视图凭据的探针可以读取它们，这是看到这一点的唯一方法，或者运行 `openstack coe service list`。
+- **已停止的 `magnum-conductor`** 在由代理收集的云上任何地方都不会显示，因为 Magnum 的 API 在没有它的情况下仍继续回答，而 exporter 不读取 conductor。它的集群只是不再变化。使用完整视图凭据的探测器可以读取它们，这是看到这一点的唯一方法，或者运行 `openstack coe service list`。
 
-堆栈拥有哪些实例和卷，需要对该堆栈再做一次读取，而代理的 exporter 不做这次读取。在由探针收集的云上，堆栈的页面会列出它们，实例或卷的页面和警报会指出所属堆栈。完整视图的凭据可以获得每个项目堆栈的回答。权限更低的凭据会被拒绝读取其他项目的堆栈，当没有读取过时，堆栈的页面会说明这一点。在由代理收集的云上，请运行 `openstack stack resource list`。
+堆栈拥有哪些实例和卷，需要对该堆栈再做一次读取，而代理的 exporter 不做这次读取。在由探测器收集的云上，堆栈的页面会列出它们，实例或卷的页面和警报会指出所属堆栈。完整视图的凭据可以获得每个项目堆栈的回答。权限更低的凭据会被拒绝读取其他项目的堆栈，当没有读取过时，堆栈的页面会说明这一点。在由代理收集的云上，请运行 `openstack stack resource list`。
 
 ### 装有 Kubernetes 代理的集群
 
@@ -870,13 +870,13 @@ exporter 对这些服务的说明比读取它们的 API 要少，而且两个服
 
 Magnum 集群的服务器会在它自己的页面和任何相关警报中指出其集群，Hypervisor 的 **它会连带影响的内容** 会指出每个在其上有服务器的 Magnum 集群。
 
-如果某个服务离开了 Keystone 的目录，那么在 exporter 开始对它什么也不返回约 15 分钟后，它的行会消失，前提是云的其余部分仍在响应。失败的收集，或无人能登录的 Keystone，不会移除任何东西。监控器为它打开的事件会保持打开，直到有人解决，因为沉默绝不会关闭事件。
+如果某个服务离开了 Keystone 的目录，那么在 exporter 开始对它什么也不返回约 15 分钟后，它的行会消失，前提是云的其余部分仍在响应。失败的收集，或无人能登录的 Keystone，不会移除任何东西。监视器为它打开的事件会保持打开，直到有人解决，因为沉默绝不会关闭事件。
 
 ## Manila
 
 如果你的云运行 Manila，云会自动在 **存储** 下获得 **共享**，没有运行的则不会显示它的任何痕迹。每个共享都有以 Manila 自己的用语表示的状态、它能容纳的容量、协议以及所属者，并有自己的页面。处于错误状态的共享会按名称出现在 **需要关注** 中，仍在进行中超过一小时的也一样：Manila 对缓慢的后端没有自己的超时，所以在此之前，挂起的共享与缓慢的共享读起来是一样的。正在迁移或备份的共享不会被打扰，因为这些操作会持续到其数据复制完成为止。
 
-| 内容 | 代理，完整视图 | 探针，完整视图 | 更低权限 |
+| 内容 | 代理，完整视图 | 探测器，完整视图 | 更低权限 |
 | --- | --- | --- | --- |
 | 每个项目的共享及其状态 | 是 | 是 | 最多只有它自己项目的，而监控角色什么都没有，也没有错误提示这一点 |
 | 哪个后端持有共享，以及其访问规则是否生效 | 否。请运行 `openstack share show` | 是 | 否 |
@@ -884,7 +884,7 @@ Magnum 集群的服务器会在它自己的页面和任何相关警报中指出�
 | 共享已使用多少 | 否：只有它的后端知道 | 否 | 否 |
 | **服务** 上的 `manila-share`、`manila-scheduler` 和 `manila-data` | 否。请运行 `openstack share service list` | 是 | 否 |
 
-Manila 的 API 在其他服务停止后仍会继续回答，所以在由代理收集的云上，已停止的 `manila-share` 不会在任何地方显示：它的共享只是不再变化，最终由 **Share Stuck** 来说明。使用完整视图凭据的探针可以读取它们，此时 **Manila Service Down** 会说明这一点。对于正常关闭的服务，Manila 显示 `stopped`，只有在其心跳已经过期、服务已死亡时才显示 `down`。
+Manila 的 API 在其他服务停止后仍会继续回答，所以在由代理收集的云上，已停止的 `manila-share` 不会在任何地方显示：它的共享只是不再变化，最终由 **Share Stuck** 来说明。使用完整视图凭据的探测器可以读取它们，此时 **Manila Service Down** 会说明这一点。对于正常关闭的服务，Manila 显示 `stopped`，只有在其心跳已经过期、服务已死亡时才显示 `down`。
 
 没有 Manila 的云不会为它产生任何开销：exporter 什么也不返回，也就不会产生行。如果 Manila 离开了 Keystone 的目录，它的行会在那之后约 15 分钟消失，与 [Heat 和 Magnum 的行为](#heat-和-magnum)相同。
 
@@ -898,8 +898,8 @@ Manila 的 API 在其他服务停止后仍会继续回答，所以在由代理�
 | --- | --- | --- |
 | 每个项目的负载均衡器和池，以及两种状态 | 是 | 最多只有它自己项目的，而监控角色什么都没有 |
 | Amphora、它们的角色、它们的实例及其证书 | 是 | 否：Octavia 只允许 admin 列出它们 |
-| 监听器和成员 | 否：exporter 没有它们的序列。[探针](/docs/telemetry/openstack-agentless)可以读取 | 探针：只有它自己项目的 |
-| 流量：连接数、字节数、请求错误 | 否：exporter 没有 `stats_*` 序列，只有 Octavia 的 API 能提供。探针会读取它，并绘制两次读数之间的速率 | 探针：只有它自己项目的 |
+| 监听器和成员 | 否：exporter 没有它们的序列。[探测器](/docs/telemetry/openstack-agentless)可以读取 | 探测器：只有它自己项目的 |
+| 流量：连接数、字节数、请求错误 | 否：exporter 没有 `stats_*` 序列，只有 Octavia 的 API 能提供。探测器会读取它，并绘制两次读数之间的速率 | 探测器：只有它自己项目的 |
 | **服务** 上 Octavia 自己的 worker | 否：代理读取的内容中没有任何东西列出它们 | 否 |
 
 所有成员都未通过健康检查的池，其运行状态为 `ERROR`，而它及其负载均衡器的置备状态仍为 `ACTIVE`（已记录），所以只读取置备状态的页面不会显示任何异常。置备状态为 `ERROR` 的负载均衡器，其运行状态读作 `OFFLINE`。OVN 提供者对每个流量计数器报告 0，这并不是故障。
@@ -912,7 +912,7 @@ Manila 的 API 在其他服务停止后仍会继续回答，所以在由代理�
 
 处于 `ERROR` 的区域会按名称出现在 **需要关注** 中，`PENDING` 超过半小时的也一样。Designate 的 worker 会在这之前很早就自行放弃，所以停留在 `PENDING` 的内容没有任何东西在处理它。区域自己的 `SOA` 和 `NS` 会随它一起读作 `ERROR`，所以这一点只由区域说明一次。
 
-| 内容 | 代理，完整视图 | 探针，完整视图 | 更低权限 |
+| 内容 | 代理，完整视图 | 探测器，完整视图 | 更低权限 |
 | --- | --- | --- | --- |
 | 每个项目的区域及其状态 | 是 | 是 | 什么都没有：见下文 |
 | 不处于 `ACTIVE` 的 recordset | 是 | 是，每次收集最多 50 个区域 | 否 |
@@ -922,7 +922,7 @@ Manila 的 API 在其他服务停止后仍会继续回答，所以在由代理�
 
 有两点与这里的其他所有服务读起来不同，两者都已记录：
 
-- **已停止的 Designate API 什么也不会说。** exporter 先读取它的版本，得不到回答，于是返回一个空的 `200`，与没有 Designate 的云完全一样。所以 exporter 无法区分这两种情况，OneUptime 也不会声称能区分。曾经有过 Designate 的云，会在 20 分钟后在 **服务** 和 **需要关注** 中读作已经沉默。持续两周之后，它的行会消失，如果它恢复，行也会回来。在由代理收集的云上，没有任何警报能说明这一点。探针会自己读取 Keystone 的目录，所以 **DNS API Down** 可以。
+- **已停止的 Designate API 什么也不会说。** exporter 先读取它的版本，得不到回答，于是返回一个空的 `200`，与没有 Designate 的云完全一样。所以 exporter 无法区分这两种情况，OneUptime 也不会声称能区分。曾经有过 Designate 的云，会在 20 分钟后在 **服务** 和 **需要关注** 中读作已经沉默。持续两周之后，它的行会消失，如果它恢复，行也会回来。在由代理收集的云上，没有任何警报能说明这一点。探测器会自己读取 Keystone 的目录，所以 **DNS API Down** 可以。
 - **`openstack_designate_up` 读作 0 表示被拒绝。** exporter 请求每个项目的区域，而只有 admin 才被允许。所以从未读取过它们的凭据会被告知这一点，而不是被告知 Designate 已宕机，并且不会提供 Designate 的警报。
 
 已停止的 `designate-worker` 会让 Designate 的 API 继续回答，其自身的列表在一段时间内仍读作 `UP`，因为它依据的是心跳。更改会被接受但不会被执行，由 **DNS Zone Stuck Pending** 来说明这一点。
@@ -931,14 +931,14 @@ Manila 的 API 在其他服务停止后仍会继续回答，所以在由代理�
 
 运行 Trove 的云会自动获得 **数据库**，没有运行的则不会显示它的任何痕迹。每个数据库都有以 Trove 自己的用语表示的状态、它运行的内容、它的卷以及所属者，并有自己的页面。处于错误状态的数据库会按名称出现在 **需要关注** 中，仍在进行中超过一小时的，或使用量超过其卷 85% 的，也一样。
 
-| 内容 | 代理，完整视图 | 探针，完整视图 | 更低权限 |
+| 内容 | 代理，完整视图 | 探测器，完整视图 | 更低权限 |
 | --- | --- | --- | --- |
 | 每个项目的数据库及其状态 | 是 | 是 | 完全没有：见下文 |
 | 运行中的数据库的卷有多满 | 是 | 是 | 否 |
 | 数据库为何失败，以及它当时在做什么 | 否。请运行 `openstack database instance show` | 是 | 否 |
 | `trove-taskmanager` 和 `trove-conductor` | 否：Trove 没有它们的列表 | 否 | 否 |
 
-exporter 读取 Trove 的 mgmt API，而只有 admin 才被允许。Trove 会拒绝任何权限更低的访问，而 exporter 读取到拒绝的方式与读取到 Trove 已停止完全相同：`openstack_trove_up` 读作 0，别的什么也不说。所以从未成功读取过 Trove 的凭据会被告知这一点，而不是被告知 Trove 已宕机，并且不会提供 Trove 的警报。探针读取同一份列表并能区分两者：Trove 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。一旦读取过 Trove，0 就读作宕机，已经失去访问权限的凭据也会这样读。
+exporter 读取 Trove 的 mgmt API，而只有 admin 才被允许。Trove 会拒绝任何权限更低的访问，而 exporter 读取到拒绝的方式与读取到 Trove 已停止完全相同：`openstack_trove_up` 读作 0，别的什么也不说。所以从未成功读取过 Trove 的凭据会被告知这一点，而不是被告知 Trove 已宕机，并且不会提供 Trove 的警报。探测器读取同一份列表并能区分两者：Trove 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。一旦读取过 Trove，0 就读作宕机，已经失去访问权限的凭据也会这样读。
 
 已停止的 `trove-taskmanager` 不会在任何地方显示，因为 Trove 的列表在没有它的情况下也会回答，而且它没有 worker 列表：它正在处理的事情只是不再变化，由 **Database Instance Stuck** 来说明。Trove 会在那一小时之前很早就放弃某个 guest。
 
@@ -950,12 +950,12 @@ exporter 读取 Trove 的 mgmt API，而只有 admin 才被允许。Trove 会拒
 
 没有处理器会出现在 **需要关注** 中，积压超过 10,000 个度量值也一样。在 `gnocchi-metricd` 停止时，Gnocchi 的 API 仍会继续回答并接收度量值（已记录），所以只有它的处理器能显示这一点。在此期间不会丢失任何数据，但无法读取更新的数据。
 
-| 内容 | 代理，完整视图 | 探针，完整视图 | 更低权限 |
+| 内容 | 代理，完整视图 | 探测器，完整视图 | 更低权限 |
 | --- | --- | --- | --- |
 | 它的 API 是否回答 | 是 | 是 | 什么都没有：见下文 |
 | 有多少度量值和指标在等待，以及它有多少个处理器 | 是 | 是 | 否 |
 
-exporter 读取 Gnocchi 的状态，而只有 admin 才被允许。Gnocchi 会拒绝任何权限更低的访问，而 exporter 读取到拒绝的方式与读取到 Gnocchi 已停止完全相同：`openstack_gnocchi_up` 读作 0。所以从未成功读取过 Gnocchi 的凭据会被告知这一点，而不是被告知 Gnocchi 已宕机，并且不会提供它的警报。探针能区分两者：Gnocchi 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。
+exporter 读取 Gnocchi 的状态，而只有 admin 才被允许。Gnocchi 会拒绝任何权限更低的访问，而 exporter 读取到拒绝的方式与读取到 Gnocchi 已停止完全相同：`openstack_gnocchi_up` 读作 0。所以从未成功读取过 Gnocchi 的凭据会被告知这一点，而不是被告知 Gnocchi 已宕机，并且不会提供它的警报。探测器能区分两者：Gnocchi 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。
 
 **Gnocchi Backlog Growing** 读取一条穿过最近两小时的直线。繁忙的云的积压永远不会读作 0，所以一个很大但正在下降的积压是没问题的，而不在下降的才是它要说明的。我们的测试云最多只达到过 10 个度量值的积压，所以它的这条线只在虚构的数字上检查过。
 
@@ -963,28 +963,28 @@ exporter 读取 Gnocchi 的状态，而只有 admin 才被允许。Gnocchi 会�
 
 运行 Swift 的云会自动在 **存储** 下获得 **对象存储**，没有运行的则不会显示它的任何痕迹。它列出凭据自身项目的容器、每个容器容纳多少内容以及有多少个对象，每个容器都有自己的页面。
 
-| 内容 | 代理，完整视图 | 探针，完整视图 | 探针，带 `ResellerAdmin` | 更低权限 |
+| 内容 | 代理，完整视图 | 探测器，完整视图 | 探测器，带 `ResellerAdmin` | 更低权限 |
 | --- | --- | --- | --- | --- |
 | 该凭据自身项目的容器，以及每个容器容纳多少内容 | 是，不带项目信息 | 是 | 是 | 什么都没有：见下文 |
 | 它的代理是否回答 | 是 | 是 | 是 | 否 |
 | 其他项目的容器 | 否 | 否 | 是，每次收集最多 200 个项目 | 否 |
 | 已停止的对象、容器或账户服务器 | 否 | 否 | 否 | 否 |
 
-Swift 会让每个项目的账户对其他项目的凭据不可见（已记录），所以没有 `ResellerAdmin` 时，这份列表永远不是整朵云的。无论哪种情况，exporter 都只请求它自己的账户。凭据具有该角色的探针会依次读取每个项目的账户，每个账户一次读取，并说明每个容器属于谁。
+Swift 会让每个项目的账户对其他项目的凭据不可见（已记录），所以没有 `ResellerAdmin` 时，这份列表永远不是整朵云的。无论哪种情况，exporter 都只请求它自己的账户。凭据具有该角色的探测器会依次读取每个项目的账户，每个账户一次读取，并说明每个容器属于谁。
 
-被 Swift 拒绝的凭据会让 `openstack_object_store_up` 读作 0，与代理已停止的情况一样。所以从未成功读取过 Swift 的凭据会被告知这一点，而不是被告知 Swift 已宕机，并且不会提供它的警报。探针能区分两者：Swift 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。带有访问规则的应用凭据还需要在 `proxy-server.conf` 中设置 `include_service_catalog = True`。
+被 Swift 拒绝的凭据会让 `openstack_object_store_up` 读作 0，与代理已停止的情况一样。所以从未成功读取过 Swift 的凭据会被告知这一点，而不是被告知 Swift 已宕机，并且不会提供它的警报。探测器能区分两者：Swift 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。带有访问规则的应用凭据还需要在 `proxy-server.conf` 中设置 `include_service_catalog = True`。
 
 已停止的对象服务器不会改变 exporter 所说明的任何内容（已记录）：Swift 的列表来自其账户和容器服务器，而它的代理继续回答。只有每台存储服务器通过自己的 `/recon` 报告的内容才能说明这一点，而这并不在 Keystone 的目录中。
 
-所以探针会在你指明它们的地方读取：在 **数据收集** 卡片的 **默认之外读取的内容** 下，以 `host:port` 的形式列出每台存储服务器的 `/recon` 端口。每次收集每台服务器需要 5 次调用，并且不会向它们发送任何凭据。这样你就会得到 **Swift Storage Server Not Answering**、**Swift Rings Differ** 和 **Swift Replication Stale**，以及它们在 Swift 自己页面上汇总的结果。一次记录中只有一台服务器可读，所以环不一致的情形只在虚构的数字上检查过。复制陈旧的情形也一样，它在测试云上每隔几分钟就会完成一次。
+所以探测器会在你指明它们的地方读取：在 **数据收集** 卡片的 **默认之外读取的内容** 下，以 `host:port` 的形式列出每台存储服务器的 `/recon` 端口。每次收集每台服务器需要 5 次调用，并且不会向它们发送任何凭据。这样你就会得到 **Swift Storage Server Not Answering**、**Swift Rings Differ** 和 **Swift Replication Stale**，以及它们在 Swift 自己页面上汇总的结果。一次记录中只有一台服务器可读，所以环不一致的情形只在虚构的数字上检查过。复制陈旧的情形也一样，它在测试云上每隔几分钟就会完成一次。
 
 **Object Container Growth Forecast** 读取一条穿过每个容器最近一周的直线，并向前预测一周。Swift 在这里没有说明云有多少空间，所以它设定的 1 TiB 这条线是用来提醒的，而不是会有东西在那里出问题的位置。请根据你的云进行调整。没有任何测试云积累了一周的增长，所以它只在虚构的数字上检查过。
 
 ## Barbican
 
-exporter 没有 Barbican 的读取器：向它请求 `key-manager` 会返回 `400`（已记录）。所以由代理收集的云不会显示它的任何痕迹，无论是否运行了它，只有[探针](/docs/telemetry/openstack-agentless)才能说明一些情况。
+exporter 没有 Barbican 的读取器：向它请求 `key-manager` 会返回 `400`（已记录）。所以由代理收集的云不会显示它的任何痕迹，无论是否运行了它，只有[探测器](/docs/telemetry/openstack-agentless)才能说明一些情况。
 
-探针会在 Keystone 的目录指明 Barbican 的地方读取它，并把它放在 **服务** 上：它的 API 是否回答，以及该凭据自身项目持有多少个 secret、order 和 container。Barbican 一次只对一个项目作出回答（admin 也一样），所以这些绝不是整朵云的。OneUptime 不读取任何 secret：列表只说明存在一个，并且它只请求用于获得总数的那一行。
+探测器会在 Keystone 的目录指明 Barbican 的地方读取它，并把它放在 **服务** 上：它的 API 是否回答，以及该凭据自身项目持有多少个 secret、order 和 container。Barbican 一次只对一个项目作出回答（admin 也一样），所以这些绝不是整朵云的。OneUptime 不读取任何 secret：列表只说明存在一个，并且它只请求用于获得总数的那一行。
 
 Barbican 会拒绝普通 reader，这被如实读取：它的 API 作出了回答，所以读作正常，而计数则什么也说明不了。
 
@@ -1116,9 +1116,9 @@ notification_format = versioned
 
 ### 不使用通知
 
-配置不归你修改的云，仍然可以获得失败的操作。[探针](/docs/telemetry/openstack-agentless)会针对自上次查看以来发生变化的实例读取 `os-instance-actions`，并把每件事表述成 Nova 本来会发送的通知，附上 Nova 给出的原因。它对每个发生变化的实例花费一次调用，每次收集最多几次，安静的云则一次也没有。一旦云自己的通知到达，它就会保持安静，所以同一件事不会被说两次。
+配置不归你修改的云，仍然可以获得失败的操作。[探测器](/docs/telemetry/openstack-agentless)会针对自上次查看以来发生变化的实例读取 `os-instance-actions`，并把每件事表述成 Nova 本来会发送的通知，附上 Nova 给出的原因。它对每个发生变化的实例花费一次调用，每次收集最多几次，安静的云则一次也没有。一旦云自己的通知到达，它就会保持安静，所以同一件事不会被说两次。
 
-Nova 只按实例保存这些，没有任何记录发生变化时不会有东西把它调出来。失败的卷挂载可能让实例保持原样，所以探针看不到。通知则可以。
+Nova 只按实例保存这些，没有任何记录发生变化时不会有东西把它调出来。失败的卷挂载可能让实例保持原样，所以探测器看不到。通知则可以。
 
 Nova 还可能在其操作上不留任何痕迹地作废一次构建：在我们的测试云上，在其计算主机上失败的构建让操作看起来一切正常，而原因在实例的 fault 中。所以处于 `ERROR` 的实例的最新操作被视为失败，并以该 fault 作为原因。
 
@@ -1428,15 +1428,15 @@ sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "o
 
 ## 从外部检查云
 
-每个服务都可能报告健康，而没有人能启动实例，所以最真实的测试是从用户所在的地方做用户所做的事。探针从云的外部执行，因为在已故障的云内部做的检查什么也说明不了。请在[你自己的探针](/docs/probe/custom-probe)上运行这些检查，该探针应位于能像你的用户一样访问云的公共端点的地方。在 OneUptime Cloud 上，共享探针永远不会收到 OpenStack 凭据。
+每个服务都可能报告健康，而没有人能启动实例，所以最真实的测试是从用户所在的地方做用户所做的事。探测器从云的外部执行，因为在已故障的云内部做的检查什么也说明不了。请在[你自己的探测器](/docs/probe/custom-probe)上运行这些检查，该探测器应位于能像你的用户一样访问云的公共端点的地方。在 OneUptime Cloud 上，共享探测器永远不会收到 OpenStack 凭据。
 
-两者都在云的 **检查** 页面上。[OpenStack 监控器的模板](/docs/monitor/openstack-monitor#从外部检查)会把它们发现的内容转化为事件。
+两者都在云的 **检查** 页面上。[OpenStack 监视器的模板](/docs/monitor/openstack-monitor#从外部检查)会把它们发现的内容转化为事件。
 
 ### API 检查
 
 默认每分钟一次，且只读。Keystone 签发令牌，目录中的每个服务回答一次经过认证的单行读取，并读取每个端点的证书以确定其过期时间。目录中列出什么就请求什么，所以不需要维护任何列表。
 
-探针已在收集的云只需点击一下：**开启 API 检查** 会使用同一个探针、地址和凭据。由代理收集的云在探针上没有这些，所以它会要求提供。任何能登录的凭据都可以，因为拒绝它的服务也已经作出了回答。
+探测器已在收集的云只需点击一下：**开启 API 检查** 会使用同一个探测器、地址和凭据。由代理收集的云在探测器上没有这些，所以它会要求提供。任何能登录的凭据都可以，因为拒绝它的服务也已经作出了回答。
 
 它每分钟为每个区域的每个服务花费一次登录和一次小规模读取，且不重试。Keystone 拒绝的凭据会在稍后再次请求，而不是每分钟一次，因为重复尝试正是账户被锁定的原因。
 
@@ -1519,11 +1519,11 @@ Nova 还会创建服务器的端口，并在删除服务器时一并删除它。
 
 #### 追踪缓慢的启动
 
-在 **检查** 页面上保存你的 [OSProfiler](#通过控制平面追踪请求) 密钥，每一步的写入都会被签名，每一步各是一条追踪，所以缓慢的启动有一条只包含该次启动的追踪。等待不会被签名，因为已签名的请求在它所经过的每个服务中都要做更多的工作。密钥与凭据一样是加密且只写的：它会发给这个探针并进入每个签名，而不会从任何地方读回。
+在 **检查** 页面上保存你的 [OSProfiler](#通过控制平面追踪请求) 密钥，每一步的写入都会被签名，每一步各是一条追踪，所以缓慢的启动有一条只包含该次启动的追踪。等待不会被签名，因为已签名的请求在它所经过的每个服务中都要做更多的工作。密钥与凭据一样是加密且只写的：它会发给这个探测器并进入每个签名，而不会从任何地方读回。
 
 #### 关闭它
 
-关闭该检查后，不会再开始新的运行。在以它命名的东西全部清除之前，探针会单独继续运行清理程序，这就是凭据要保留这么久的原因。之后 OneUptime 会忘记凭据和密钥，你就可以删除项目。在 OneUptime 中删除云会立即忘记它们，且不会清理任何东西，所以请先关闭检查，并等页面不再显示正在清理。如果凭据先没了，请按名称找出剩余的内容：
+关闭该检查后，不会再开始新的运行。在以它命名的东西全部清除之前，探测器会单独继续运行清理程序，这就是凭据要保留这么久的原因。之后 OneUptime 会忘记凭据和密钥，你就可以删除项目。在 OneUptime 中删除云会立即忘记它们，且不会清理任何东西，所以请先关闭检查，并等页面不再显示正在清理。如果凭据先没了，请按名称找出剩余的内容：
 
 ```bash
 openstack server list --name '^oneuptime-check-'
@@ -1779,7 +1779,7 @@ Neutron 和 Cinder 对 admin 以外的任何人都返回 `200` 且只包含其�
 :::
 
 :::details 级别 3 下没有实例
-exporter 向 Nova 请求所有项目的服务器，Nova 会拒绝普通 reader，于是这次读取整体失败。请使用级别 1 或 2，或者使用可以列出一个项目的实例的[探针](/docs/telemetry/openstack-agentless)。
+exporter 向 Nova 请求所有项目的服务器，Nova 会拒绝普通 reader，于是这次读取整体失败。请使用级别 1 或 2，或者使用可以列出一个项目的实例的[探测器](/docs/telemetry/openstack-agentless)。
 :::
 
 :::details 某一个服务的数据缺失
@@ -1799,13 +1799,13 @@ OneUptime 读取的是 oslo.log 自己的格式。更改了 `logging_context_for
 :::
 
 :::details 动态一直为空
-每个服务都需要 `driver = log` 并重启，Nova 还需要 `notification_format = versioned`：参见[开启通知](#开启通知)。要检查某个服务，请在它的日志中搜索 `oslo.messaging.notification`。如果没有任何结果，请查看 `default_log_levels`：为 `oslo.messaging` 设置高于 `INFO` 的级别会使大部分通知静默。配置不归你修改的云可以使用[探针](#不使用通知)。
+每个服务都需要 `driver = log` 并重启，Nova 还需要 `notification_format = versioned`：参见[开启通知](#开启通知)。要检查某个服务，请在它的日志中搜索 `oslo.messaging.notification`。如果没有任何结果，请查看 `default_log_levels`：为 `oslo.messaging` 设置高于 `INFO` 的级别会使大部分通知静默。配置不归你修改的云可以使用[探测器](#不使用通知)。
 :::
 
 ## 后续步骤
 
 :::cards
-- [OpenStack 监控器](/docs/monitor/openstack-monitor): 针对服务、Hypervisor、实例、网络和存储池发出警报。
-- [不使用代理的 OpenStack](/docs/telemetry/openstack-agentless): 通过探针收集一朵云，无需安装任何东西。
+- [OpenStack 监视器](/docs/monitor/openstack-monitor): 针对服务、Hypervisor、实例、网络和存储池发出警报。
+- [不使用代理的 OpenStack](/docs/telemetry/openstack-agentless): 通过探测器收集一朵云，无需安装任何东西。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 每个控制器和 Hypervisor 的操作系统层面视图。
 :::

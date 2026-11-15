@@ -3140,3 +3140,124 @@ export const forEachBracketedLabel: (
     }
   }
 };
+
+/*
+ * A reference's label as marked's inline lexer looks it up
+ * (Tokenizer.reflink): each run of white space one space, then in lower
+ * case - the other way round from a definition's label
+ * (normalizeLinkLabel), which only differs where a "Σ" ends a word.
+ * Read with a loop: a label can be as long as its text.
+ */
+export const normalizeReferenceLabel: (label: string) => string = (
+  label: string,
+): string => {
+  let collapsed: string = "";
+  let copiedUpTo: number = 0;
+  let index: number = 0;
+
+  while (index < label.length) {
+    if (!isWhiteSpaceCode(label.charCodeAt(index))) {
+      index++;
+      continue;
+    }
+
+    let runEnd: number = index + 1;
+
+    while (
+      runEnd < label.length &&
+      isWhiteSpaceCode(label.charCodeAt(runEnd))
+    ) {
+      runEnd++;
+    }
+
+    // One space is already as marked makes it.
+    if (runEnd - index > 1 || label.charCodeAt(index) !== SPACE) {
+      collapsed += `${label.slice(copiedUpTo, index)} `;
+      copiedUpTo = runEnd;
+    }
+
+    index = runEnd;
+  }
+
+  return (
+    copiedUpTo === 0 ? label : collapsed + label.slice(copiedUpTo)
+  ).toLowerCase();
+};
+
+/*
+ * WHAT MARKED LOOKS A DEFINITION UP BY, IN ONE INLINE TEXT (#7597).
+ *
+ * marked 12 reads the inline Markdown of every paragraph, heading, table
+ * cell and list item - and again of every link's text and every
+ * emphasis's - with Lexer.inlineTokens, and each read starts by listing
+ * every definition of the whole text (Object.keys(tokens.links)), then
+ * looks each reference it finds up in that list. So D definitions and C
+ * such reads cost marked D times C: 20,000 definitions and 20,000 one-word
+ * paragraphs took 42 s, though no paragraph named one of them. A read only
+ * ever looks a definition up by what its own text holds, in two ways:
+ *
+ *   - before it reads, it masks each reference whose label is defined
+ *     (`reflinkSearch`), so emphasis is not read across it. The label it
+ *     checks is what follows the last "[" before the reference's "]" - an
+ *     escaped "\[" too - as written, never normalized: text[open + 1, close)
+ *     where text[open] is the last "[" before the "]" at `close`.
+ *   - as it reads, each reference - "[text][label]", "[label][]",
+ *     "[label]", an image's too - by its label, from the "[" that opens it
+ *     to the "]" that closes it, normalized (normalizeReferenceLabel). The
+ *     label holds no "[" or "]" that a backslash does not escape, and its
+ *     "[" is one no backslash escapes: marked reads "\[" as an escape
+ *     before it could read a reference there.
+ *
+ * A backslash escapes the character after it, but a line break, and
+ * backslashes pair off from the first of a run, as marked reads them. So
+ * this calls `found` with every such label of `text`, both ways: each "]"
+ * that no backslash escapes closes the last "[" before it, as written,
+ * and the last "[" no backslash escapes, normalized - and opens no other.
+ * More labels than marked looks up, never fewer: a link's own text, a
+ * bracket in code, a label that never closes. One pass, and each label
+ * read once: every character of the text is in one label of each way at
+ * most.
+ */
+export const forEachLabelMarkedLooksUp: (
+  text: string,
+  found: (label: string) => void,
+) => void = (text: string, found: (label: string) => void): void => {
+  // The last "[" since a "]" closed one, and the last no backslash escapes.
+  let open: number = -1;
+  let unescapedOpen: number = -1;
+  let index: number = 0;
+
+  while (index < text.length) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      if (
+        index + 1 < text.length &&
+        !isLineTerminatorCode(text.charCodeAt(index + 1))
+      ) {
+        if (text.charCodeAt(index + 1) === OPEN_BRACKET) {
+          open = index + 1;
+        }
+
+        index += 2;
+        continue;
+      }
+    } else if (code === OPEN_BRACKET) {
+      open = index;
+      unescapedOpen = index;
+    } else if (code === CLOSE_BRACKET) {
+      if (open !== -1) {
+        found(text.slice(open + 1, index));
+      }
+
+      if (unescapedOpen !== -1) {
+        found(normalizeReferenceLabel(text.slice(unescapedOpen + 1, index)));
+      }
+
+      open = -1;
+      unescapedOpen = -1;
+    }
+
+    index++;
+  }
+};

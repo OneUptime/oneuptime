@@ -6,7 +6,7 @@ Kortet **Core Web Vitals** i en RUM-applikations översikt visar LCP, INP, CLS, 
 - [Skicka dem](#skicka-dem-från-din-app): Vidarebefordra värdena från web-vitals-biblioteket som OpenTelemetry-mätvärden.
 - [Namn som OneUptime läser](#mätvärdesnamn-som-oneuptime-känner-igen): Mätvärdesnamnen som varje vital kan komma in under.
 - [Ensidesappar](#ensidesappar): INP för varje vy, inte ett värde per sidladdning.
-- [Larma på en vital](#larma-på-en-vital): Färdiga övervakare för dåliga vitals.
+- [Larma på en vital](#larma-på-en-vital): Färdiga monitorer för dåliga vitals.
 :::
 
 ## Så fungerar det
@@ -18,7 +18,7 @@ flowchart TB
     lib["web-vitals-biblioteket<br/>på din sida"] -->|"ett värde per vital"| hist["OpenTelemetry-histogram<br/>med namnet web_vital.*"]
     hist -->|"OTLP-mätvärden"| oneuptime["OneUptime"]
     oneuptime --> card["kortet Core Web Vitals<br/>och INP by route"]
-    oneuptime --> monitors["sidan Mätvärden<br/>och övervakare"]
+    oneuptime --> monitors["sidan Mätvärden<br/>och monitorer"]
 ```
 
 OpenTelemetry har ännu ingen slutlig namnkonvention för web vitals, så OneUptime letar efter varje vital under flera namn och använder det första som har data. Använd namnen `web_vital.*` för ny instrumentering.
@@ -135,7 +135,7 @@ Kortet bedömer varje värde med Googles publicerade gränser för Core Web Vita
 Kortet visar **medelvärdet** över det valda intervallet, inte den 75:e percentil som Googles fältverktyg rapporterar. Det är avsiktligt: OneUptime läser ett histograms percentiler från dess buckets, så en percentil är bara så exakt som dess buckets, medan medelvärdet kommer från histogrammets exakta summa och antal. Med OpenTelemetrys standardbuckets (`0, 5, 10, 25, 50, …`) hamnar varje CLS-värde i den första bucketen, och en 75:e percentil skulle visa 2,5 för en sida som knappt rör sig.
 
 > [!TIP]
-> Läs kortet som en trend. För den 75:e percentilen registrerar du med bucketgränserna ovan och visar sedan mätvärdet på sidan **Mätvärden** med aggregeringen **P75**. En mätvärdesövervakare erbjuder samma val.
+> Läs kortet som en trend. För den 75:e percentilen registrerar du med bucketgränserna ovan och visar sedan mätvärdet på sidan **Mätvärden** med aggregeringen **P75**. En mätvärdesmonitor erbjuder samma val.
 
 ## Ensidesappar
 
@@ -269,7 +269,7 @@ useEffect(() => startView(toRoutePattern(pathname)), [pathname]);
 Det här får du:
 
 - **INP by route** i översikten, långsammast först, utifrån `app.route`; OneUptime läser också OpenTelemetrys `url.template`.
-- Ett routefilter för larm: Filtrera en mätvärdesövervakare på `web_vital.inp` efter `app.route` för att bevaka ett enskilt flöde, som `/checkout`, för sig.
+- Ett routefilter för larm: Filtrera en mätvärdesmonitor på `web_vital.inp` efter `app.route` för att bevaka ett enskilt flöde, som `/checkout`, för sig.
 - Appens samlade INP på kortet **Core Web Vitals** fortsätter att fungera: Det är samma mätvärde, nu med ett värde per vy i stället för ett per sidladdning.
 
 Chromium-webbläsare rapporterar de interaktions-id:n som detta behöver. Safari rapporterar inga, och det är också därför `onINP` inte rapporterar något där. Chromes experimentella Soft Navigations API siktar på att göra detta inbyggt, men det är inte allmänt tillgängligt; den här hjälparen fungerar redan i dag.
@@ -292,7 +292,7 @@ Att registrera den konkreta URL:en i stället för routemönstret skapar en tids
 
 ## Larma på en vital
 
-Applikationens sida **Rekommendationer** erbjuder en färdig övervakare för varje vital. Var och en läser femminutersmedelvärdet av sitt mätvärde och utlöses när det når Googles gräns för dåligt:
+Applikationens sida **Rekommendationer** erbjuder en färdig monitor för varje vital. Var och en läser femminutersmedelvärdet av sitt mätvärde och utlöses när det når Googles gräns för dåligt:
 
 | Rekommendation | Mätvärde | Utlöses vid | Allvarlighetsgrad |
 | --- | --- | --- | --- |
@@ -302,7 +302,7 @@ Applikationens sida **Rekommendationer** erbjuder en färdig övervakare för va
 | **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Varning** |
 | **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Varning** |
 
-De här övervakarna läser bara namnen `web_vital.*`. Om din app skickar en vital under ett annat namn ändrar du mätvärdet i den skapade övervakaren. För att larma på en enda route lägger du till ett filter `app.route` på övervakaren. Du kan också bygga en egen övervakare på vilket som helst av de här mätvärdena: se [Metrikövervakning](/docs/monitor/metrics-monitor).
+De här monitorerna läser bara namnen `web_vital.*`. Om din app skickar en vital under ett annat namn ändrar du mätvärdet i den skapade monitorn. För att larma på en enda route lägger du till ett filter `app.route` på monitorn. Du kan också bygga en egen monitor på vilket som helst av de här mätvärdena: se [Metrikövervakning](/docs/monitor/metrics-monitor).
 
 ## Felsökning
 

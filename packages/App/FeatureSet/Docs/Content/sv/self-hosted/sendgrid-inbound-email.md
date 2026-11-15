@@ -1,8 +1,8 @@
 # SendGrid inkommande e-post
 
-Med OneUptimes **Incoming Email Monitor** kan du skapa och lösa larm utifrån e-post som skickas till unika, övervakarspecifika e-postadresser. Det är användbart för att integrera äldre system, larmverktyg eller vilken tjänst som helst som kan skicka e-post.
+Med OneUptimes **Incoming Email Monitor** kan du skapa och lösa larm utifrån e-post som skickas till unika, monitorspecifika e-postadresser. Det är användbart för att integrera äldre system, larmverktyg eller vilken tjänst som helst som kan skicka e-post.
 
-Samma konfiguration låter också arbetsflöden ta emot e-post: ett arbetsflöde med utlösaren **Incoming Email** får en egen adress på samma domän, och varje e-postmeddelande till den startar arbetsflödet. Se [Utlösare](/docs/workflows/triggers#incoming-email).
+Samma konfiguration låter också arbetsflöden ta emot e-post: ett arbetsflöde med utlösaren **Inkommande e-post** får en egen adress på samma domän, och varje e-postmeddelande till den startar arbetsflödet. Se [Utlösare](/docs/workflows/triggers#incoming-email).
 
 Den här guiden förklarar hur du konfigurerar SendGrid Inbound Parse så att inkommande e-post vidarebefordras till din egeninstallerade OneUptime-instans. OneUptime Cloud behöver inget av detta: där fungerar adresserna direkt.
 
@@ -15,19 +15,19 @@ Den här guiden förklarar hur du konfigurerar SendGrid Inbound Parse så att in
 
 ## Så fungerar det
 
-```mermaid title="Så når ett e-postmeddelande en övervakare"
+```mermaid title="Så når ett e-postmeddelande en monitor"
 sequenceDiagram
     participant Sender as Sändande<br/>e-postserver
     participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: E-post till<br/>övervakarens<br/>adress (din<br/>MX-post)
+    Sender->>SendGrid: E-post till<br/>monitorns<br/>adress (din<br/>MX-post)
     SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Koppla adressen<br/>till en<br/>övervakare eller<br/>ett arbetsflöde
+    OneUptime->>OneUptime: Koppla adressen<br/>till en<br/>monitor eller<br/>ett arbetsflöde
     OneUptime-->>SendGrid: 200 OK
 ```
 
 1. Du skapar en **Incoming Email Monitor** i OneUptime
-2. OneUptime genererar en unik e-postadress för den övervakaren (t.ex. `monitor-abc123@inbound.yourdomain.com`)
+2. OneUptime genererar en unik e-postadress för den monitorn (t.ex. `monitor-abc123@inbound.yourdomain.com`)
 3. När ett e-postmeddelande skickas till den adressen tar SendGrid emot det och vidarebefordrar det till OneUptime via webhook
 4. OneUptime bedömer e-postmeddelandet utifrån dina konfigurerade kriterier för att skapa eller lösa larm
 
@@ -49,18 +49,18 @@ Med Inbound Parse är det SendGrid som öppnar anslutningen till OneUptime. Det 
 
 Publicera DNS för webhookens värdnamn och leverera ett certifikat som publika klienter litar på. En privat OneUptime-installation kan exponera enbart webhooksökvägen via en publik omvänd proxy eller gateway som når OneUptime internt. Bevara sökvägen, hemligheten, innehållstypen och multipart-begärans innehåll, och släpp igenom POST-anropet utan interaktiv inloggning eller webbläsarutmaning. OneUptime-servern behöver ingen inkommande SMTP-lyssnare. Se [SendGrids konfiguration av Inbound Parse](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
 
-Sätt `INBOUND_EMAIL_WEBHOOK_SECRET` till ett starkt slumpmässigt värde och ersätt `YOUR_SECRET` i URL:en med det värdet. Routen kräver det sista sökvägssegmentet, och OneUptime tar bara emot ett e-postmeddelande när det segmentet är hemligheten. Tills hemligheten är satt avvisas varje e-postmeddelande med `503`, vilket SendGrid försöker igen i upp till tre dagar. Håll hela URL:en och övervakarnas e-postadresser hemliga, även i proxyloggar. OneUptime validerar i dag varken SendGrids signerade Inbound Parse-huvuden eller OAuth-token. Behöver du de mekanismerna kan du konfigurera en gateway som validerar dem innan den vidarebefordrar till hela URL:en, enligt [SendGrids dokumentation om webhooksäkerhet](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
+Sätt `INBOUND_EMAIL_WEBHOOK_SECRET` till ett starkt slumpmässigt värde och ersätt `YOUR_SECRET` i URL:en med det värdet. Routen kräver det sista sökvägssegmentet, och OneUptime tar bara emot ett e-postmeddelande när det segmentet är hemligheten. Tills hemligheten är satt avvisas varje e-postmeddelande med `503`, vilket SendGrid försöker igen i upp till tre dagar. Håll hela URL:en och monitorernas e-postadresser hemliga, även i proxyloggar. OneUptime validerar i dag varken SendGrids signerade Inbound Parse-huvuden eller OAuth-token. Behöver du de mekanismerna kan du konfigurera en gateway som validerar dem innan den vidarebefordrar till hela URL:en, enligt [SendGrids dokumentation om webhooksäkerhet](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
 
 SendGrid tillhandahåller ingen tillförlitlig lista över statiska käll-IP-adresser för Inbound Parse. SendGrids IP-adresser för e-postutskick och adresserna som slås upp för `mx.sendgrid.net` är ingen tillåtelselista för webhooks. Följ [SendGrids vägledning om brandväggar](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) i stället för att låsa ett aktuellt DNS-resultat.
 
-Inbound Parse är skilt från utskick av utgående e-post. För att ta emot övervakarnas e-post behöver OneUptime inte anropa SendGrids API. Om du också väljer SendGrid för att skicka aviseringar tillåter du DNS-uppslag och utgående HTTPS till `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) behöver inget inkommande återanrop för att skicka. Använder du SMTP i stället tillåter du den SMTP-server och port som är konfigurerade i OneUptime.
+Inbound Parse är skilt från utskick av utgående e-post. För att ta emot monitorernas e-post behöver OneUptime inte anropa SendGrids API. Om du också väljer SendGrid för att skicka aviseringar tillåter du DNS-uppslag och utgående HTTPS till `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) behöver inget inkommande återanrop för att skicka. Använder du SMTP i stället tillåter du den SMTP-server och port som är konfigurerade i OneUptime.
 
 ## Konfigurationsanvisningar
 
 :::steps
 ### Välj din domän för inkommande e-post
 
-Välj en underdomän som bara används för att ta emot e-post till OneUptime, till exempel `inbound.yourdomain.com`, `email.yourdomain.com` eller `monitor.yourdomain.com`. Den används bara för e-post till OneUptimes övervakare och arbetsflöden, så ingen av dina brevlådor ligger på den.
+Välj en underdomän som bara används för att ta emot e-post till OneUptime, till exempel `inbound.yourdomain.com`, `email.yourdomain.com` eller `monitor.yourdomain.com`. Den används bara för e-post till OneUptimes monitorer och arbetsflöden, så ingen av dina brevlådor ligger på den.
 
 ### Låt dess MX-post peka på SendGrid
 
@@ -118,15 +118,15 @@ inboundEmail:
 
 Tillämpa dem sedan: kör `npm run start` på Docker Compose, vilket återskapar containrarna med de nya värdena, eller uppgradera Helm-releasen på Kubernetes.
 
-### Skapa en Incoming Email-övervakare
+### Skapa en Incoming Email-monitor
 
-[Skapa en Incoming Email-övervakare](/docs/monitor/incoming-email-monitor#skapa-en-monitor-för-inkommande-e-post). Dess sida **Översikt** visar adressen, till exempel `monitor-abc123def456@inbound.yourdomain.com`, och dess kriterier avgör vilka e-postmeddelanden som skapar ett larm och vilka som löser det.
+[Skapa en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#skapa-en-monitor-för-inkommande-e-post). Dess sida **Översikt** visar adressen, till exempel `monitor-abc123def456@inbound.yourdomain.com`, och dess kriterier avgör vilka e-postmeddelanden som skapar ett larm och vilka som löser det.
 
-Arbetsflöden använder samma domän. Lägg till utlösaren **Incoming Email** i ett arbetsflöde och klicka på den: dess adress (`workflow-…@inbound.yourdomain.com`) står överst i dess inställningar. Tills variablerna för inkommande e-post ovan är satta säger utlösaren att servern inte är konfigurerad för att ta emot e-post.
+Arbetsflöden använder samma domän. Lägg till utlösaren **Inkommande e-post** i ett arbetsflöde och klicka på den: dess adress (`workflow-…@inbound.yourdomain.com`) står överst i dess inställningar. Tills variablerna för inkommande e-post ovan är satta säger utlösaren att servern inte är konfigurerad för att ta emot e-post.
 
 ### Skicka ett testmeddelande
 
-Skicka ett e-postmeddelande till övervakarens adress, med ett ämne som matchar dess kriterier. Övervakarens sammanfattning visar meddelandet, och ett larm skapas när kriterierna matchar.
+Skicka ett e-postmeddelande till monitorns adress, med ett ämne som matchar dess kriterier. Monitorns sammanfattning visar meddelandet, och ett larm skapas när kriterierna matchar.
 :::
 
 ## Referens för miljövariabler
@@ -137,7 +137,7 @@ Skicka ett e-postmeddelande till övervakarens adress, med ett ämne som matchar
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Underdomänen som är konfigurerad för inkommande e-post. Inkommande e-post är av tills den är satt. | Ja | Tom |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemlighet som det sista segmentet i webhookens URL måste matcha: `/incoming-email/sendgrid/YOUR_SECRET`. Varje e-postmeddelande avvisas så länge den är tom eller en platshållare. | Ja | Tom |
 
-Vad en Incoming Email-övervakare kan matcha på – ämnet, avsändaren, innehållet, mottagaren och om ett meddelande kom fram i tid – står i [Tillgängliga filtertyper](/docs/monitor/incoming-email-monitor#tillgängliga-filtertyper).
+Vad en Incoming Email-monitor kan matcha på – ämnet, avsändaren, innehållet, mottagaren och om ett meddelande kom fram i tid – står i [Tillgängliga filtertyper](/docs/monitor/incoming-email-monitor#tillgängliga-filtertyper).
 
 ## Felsökning
 
@@ -154,10 +154,10 @@ Vad en Incoming Email-övervakare kan matcha på – ämnet, avsändaren, inneh�
 4. **Kontrollera webhookhemligheten:** Destination URL måste sluta med värdet av `INBOUND_EMAIL_WEBHOOK_SECRET`. Så länge variabeln är tom eller en platshållare avvisas varje e-postmeddelande med `503`, och loggen för tjänsten `app` säger det när den startar; ett e-postmeddelande som skickas till en URL som slutar med något annat avvisas med `403`.
 :::
 
-:::details Övervakaren skapar inga larm
+:::details Monitorn skapar inga larm
 1. **Kontrollera kriterierna:** kontrollera att dina kriterier för att skapa larm matchar e-postens innehåll, och testa först med exakta strängar innan du använder mönster.
-2. **Kontrollera övervakaren:** se till att den inte är inaktiverad och att dess typ är Incoming Email.
-3. **Granska övervakarens sammanfattning:** kontrollera om meddelandet togs emot och bearbetades, och läs utvärderingsloggarna för hur kriterierna matchade.
+2. **Kontrollera monitorn:** se till att den inte är inaktiverad och att dess typ är Incoming Email.
+3. **Granska monitorns sammanfattning:** kontrollera om meddelandet togs emot och bearbetades, och läs utvärderingsloggarna för hur kriterierna matchade.
 :::
 
 :::details Utlösaren säger att servern inte är konfigurerad för att ta emot e-post
@@ -169,7 +169,7 @@ Vad en Incoming Email-övervakare kan matcha på – ämnet, avsändaren, inneh�
 1. **Använd HTTPS:** använd alltid HTTPS för din webhookslutpunkt
 2. **Webhookhemlighet:** använd ett långt slumpmässigt värde som är ditt eget för `INBOUND_EMAIL_WEBHOOK_SECRET`, i slutet av din webhook-URL (t.ex. `/incoming-email/sendgrid/your-secret`): det är den som skiljer SendGrids e-post från alla andras
 3. **Domänverifiering:** verifiera din domän i SendGrid för bättre e-postsäkerhet
-4. **Begränsa åtkomsten:** skapa bara övervakare för betrodda e-postkällor
+4. **Begränsa åtkomsten:** skapa bara monitorer för betrodda e-postkällor
 5. **Övervaka loggar:** granska regelbundet loggarna för inkommande e-post efter misstänkt aktivitet
 
 ## Nästa steg

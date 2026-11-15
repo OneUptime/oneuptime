@@ -10,6 +10,7 @@ import {
   DATA_CHECK_TYPE_LABELS,
   getDataCheckTypeLabel,
 } from "./DataCheckTypeWords";
+import { DATA_CHECK_FORMAT_OPTIONS } from "./DataCheckFormatWords";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -26,10 +27,7 @@ import {
   DataCheckHealthAnswer,
 } from "Common/Types/DataObservability/DataObservabilityAttention";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
-import {
-  DATA_CHECK_FORMATS,
-  DataCheckFormat,
-} from "Common/Types/DataObservability/DataCheckFormats";
+import { DataCheckFormat } from "Common/Types/DataObservability/DataCheckFormats";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   DATA_CHECK_ALERT_CONDITIONS,
@@ -62,6 +60,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -81,12 +80,6 @@ export interface ComponentProps {
 const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
   (type: DataCheckType): DropdownOption => {
     return { value: type, label: DATA_CHECK_TYPE_LABELS[type] };
-  },
-);
-
-const FORMAT_OPTIONS: Array<DropdownOption> = DATA_CHECK_FORMATS.map(
-  (format: DataCheckFormat): DropdownOption => {
-    return { value: format, label: format };
   },
 );
 
@@ -182,7 +175,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
   const isPipeline: boolean = props.dataStoreKind === DataStoreKind.MongoDb;
   const columnOptions: Array<DropdownOption> = (props.columns || []).map(
     (column: DataAssetColumn): DropdownOption => {
-      return { value: column.name, label: column.name };
+      return { value: column.name, label: column.name, isUserContent: true };
     },
   );
 
@@ -474,7 +467,8 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
               "The format every value must be in, or Custom to write a pattern.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: false,
-            dropdownOptions: FORMAT_OPTIONS,
+            // Each format by its name, in the reader's words (#7532).
+            dropdownOptions: DATA_CHECK_FORMAT_OPTIONS,
             showIf: (values: FormValues<DataCheck>): boolean => {
               return values.checkType === DataCheckType.FormatMismatchPercent;
             },
@@ -708,9 +702,11 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             getElement: (check: DataCheck): ReactElement => {
               return (
                 <span className="whitespace-nowrap text-sm text-gray-700">
-                  {check.lastValue === undefined || check.lastValue === null
-                    ? "-"
-                    : translator.formatNumber(Number(check.lastValue))}
+                  {check.lastValue === undefined || check.lastValue === null ? (
+                    <TableEmptyValue />
+                  ) : (
+                    translator.formatNumber(Number(check.lastValue))
+                  )}
                 </span>
               );
             },
@@ -791,6 +787,16 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             field: { alertCondition: true },
             title: "Alert",
             type: FieldType.Element,
+            /*
+             * Under the check's Status, named, where the list does not fit
+             * its card (#7534): at 1280px beside the side menu the German
+             * list ran 46px past its card, and Run Now covered the Alert
+             * column - "Ungewöhnlich niedrig" read "Ungewöhnlich". The
+             * alert a check would raise sits with the alert it has open.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "lastRunStatus",
+            showTitleWhenFolded: true,
             getExportValue: (check: DataCheck): string => {
               return check.alertCondition || "";
             },

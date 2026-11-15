@@ -184,7 +184,7 @@ describe("Hindi's word for an incident", () => {
         "Full OneUptime platform with incident response, status pages, and workflow automation."
       ],
     ).toBe(
-      "घटना प्रतिक्रिया, स्टेटस पेज और वर्कफ़्लो ऑटोमेशन के साथ पूरा OneUptime प्लेटफ़ॉर्म।",
+      "घटना प्रतिक्रिया, स्थिति पृष्ठ और वर्कफ़्लो ऑटोमेशन के साथ पूरा OneUptime प्लेटफ़ॉर्म।",
     );
   });
 
@@ -205,14 +205,14 @@ describe("Hindi's word for an incident", () => {
         "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.",
       ),
     ).toBe(
-      "घटनाएं, अलर्ट और शेड्यूल्ड मेंटेनेंस अपने Slack चैनलों में पोस्ट करें, हर घटना को उसका अपना चैनल दें, और अपनी टीम को Slack से स्वीकार करने, हल करने और पेज करने दें।",
+      "घटनाएं, अलर्ट और अनुसूचित रखरखाव अपने Slack चैनलों में पोस्ट करें, हर घटना को उसका अपना चैनल दें, और अपनी टीम को Slack से स्वीकार करने, हल करने और पेज करने दें।",
     );
     expect(
       dashboardWord(
         "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.",
       ),
     ).toBe(
-      "कोई कस्टम फ़ील्ड या घटना के लेबल रखने वाला टेम्पलेट केवल वही सहेज सकता है जो हर घटना और उसके कस्टम फ़ील्ड पढ़ सकता है। केवल स्टेटस पेज भूमिकाओं से इन्हें जोड़ा नहीं जा सकता।",
+      "कोई कस्टम फ़ील्ड या घटना के लेबल रखने वाला टेम्पलेट केवल वही सहेज सकता है जो हर घटना और उसके कस्टम फ़ील्ड पढ़ सकता है। केवल स्थिति पृष्ठ भूमिकाओं से इन्हें जोड़ा नहीं जा सकता।",
     );
   });
 

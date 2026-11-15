@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 가동 시간",
+    "uptimePercent": "가동 시간 {{percent}}%",
     "operational": "정상 작동",
     "notMonitored": "모니터링되지 않음",
     "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
@@ -68,7 +69,7 @@
     "daysAgo": "{{days}}일 전",
     "today": "오늘",
     "notAvailable": "사용할 수 없음",
-    "underMaintenance": "유지보수 중"
+    "underMaintenance": "유지 관리 중"
   },
   "uptimeHistory": {
     "graphLabel": "최근 {{total}}일간의 가동 기록",
@@ -84,7 +85,7 @@
     "declared": "선언됨",
     "oneIncidentOnThisDay": "이 날짜에 1건의 인시던트가 보고되었습니다",
     "incidentsOnThisDay": "이 날짜에 {{total}}건의 인시던트가 보고되었습니다",
-    "scheduledMaintenance": "예정된 유지보수",
+    "scheduledMaintenance": "예정된 유지 관리",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "유지 관리 이벤트 1건",
     "maintenanceEvents": "유지 관리 이벤트 {{total}}건",
@@ -114,6 +115,7 @@
     "noneDescription": "이 상태 페이지에 게시된 사고가 없습니다.",
     "postmortem": "사고 사후 분석",
     "declaredAt": "발생 시각: ",
+    "declaredAtTime": "발생 시각: {{time}}",
     "report": "사고 보고서",
     "notFound": "이 상태 페이지에서 사고를 찾을 수 없습니다."
   },
@@ -130,26 +132,28 @@
     "none": "공지사항 없음",
     "noneDescription": "이 페이지에 아직 게시된 공지사항이 없습니다.",
     "announcedAt": "공지 시각: ",
+    "announcedAtTime": "공지 시각: {{time}}",
     "notFound": "이 상태 페이지에서 공지사항을 찾을 수 없습니다."
   },
   "scheduledEvents": {
     "title": "예정된 유지 관리",
     "singular": "유지 관리 이벤트",
-    "scheduledMaintenance": "예정된 유지보수",
+    "scheduledMaintenance": "예정된 유지 관리",
     "ongoing": "진행 중인 유지 관리",
     "upcoming": "향후 유지 관리",
     "completed": "완료된 유지 관리",
     "none": "예정된 유지 관리 없음",
     "noneDescription": "이 상태 페이지에 게시된 예정된 유지 관리가 없습니다.",
     "scheduledAt": "예정 시각: ",
+    "scheduledAtTime": "예정 시각: {{time}}",
     "report": "유지 관리 이벤트 보고서",
     "notFound": "이 상태 페이지에서 유지 관리 이벤트를 찾을 수 없습니다.",
     "calendar": {
       "subscribe": "캘린더 구독",
-      "subscribeTitle": "예정된 유지보수 구독",
-      "subscribeDescription": "이 페이지의 예정된 유지보수를 캘린더 앱에서 받아 보세요. 자동으로 최신 상태가 유지됩니다.",
+      "subscribeTitle": "예정된 유지 관리 구독",
+      "subscribeDescription": "이 페이지의 예정된 유지 관리를 캘린더 앱에서 받아 보세요. 자동으로 최신 상태가 유지됩니다.",
       "eventTitle": "캘린더에 추가",
-      "eventDescription": "이 유지보수를 캘린더 앱에 추가합니다.",
+      "eventDescription": "이 유지 관리 이벤트를 캘린더 앱에 추가합니다.",
       "addToCalendar": "캘린더에 추가",
       "addHeading": "내 캘린더에 추가",
       "google": "Google 캘린더",
@@ -467,5 +471,7 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "No options available": "사용 가능한 옵션 없음",
+  "No matches found": "일치하는 항목이 없습니다"
 }

@@ -169,9 +169,11 @@ const sessionRow: (data?: {
 const revocationOf: (data: {
   revokedReason: string | null;
   props?: DatabaseCommonInteractionProps;
+  lastActiveAt?: unknown;
 }) => UpdateBy<UserSession> = (data: {
   revokedReason: string | null;
   props?: DatabaseCommonInteractionProps;
+  lastActiveAt?: unknown;
 }): UpdateBy<UserSession> => {
   return {
     query: { _id: SESSION_ID.toString() } as UpdateBy<UserSession>["query"],
@@ -179,6 +181,9 @@ const revocationOf: (data: {
       isRevoked: true,
       revokedAt: NOW,
       revokedReason: data.revokedReason,
+      ...(data.lastActiveAt === undefined
+        ? {}
+        : { lastActiveAt: data.lastActiveAt }),
     } as UpdateBy<UserSession>["data"],
     props: data.props || { isRoot: true },
     limit: 1,
@@ -208,11 +213,13 @@ const revoke: (data: {
   revokedReason: string | null;
   updatedIds?: Array<ObjectID>;
   props?: DatabaseCommonInteractionProps;
+  lastActiveAt?: unknown;
 }) => Promise<void> = async (data: {
   rows: Array<UserSession>;
   revokedReason: string | null;
   updatedIds?: Array<ObjectID>;
   props?: DatabaseCommonInteractionProps;
+  lastActiveAt?: unknown;
 }): Promise<void> => {
   jest
     .spyOn(UserSessionService, "findRowsAndHoldUpdateToThem")
@@ -221,6 +228,9 @@ const revoke: (data: {
   const updateBy: UpdateBy<UserSession> = revocationOf({
     revokedReason: data.revokedReason,
     ...(data.props ? { props: data.props } : {}),
+    ...(data.lastActiveAt === undefined
+      ? {}
+      : { lastActiveAt: data.lastActiveAt }),
   });
 
   const before: OnUpdate<UserSession> = await hooks.onBeforeUpdate(updateBy);
@@ -603,6 +613,102 @@ describe("a session's end in the audit log", () => {
     );
   });
 
+  /*
+   * Issue #6789: a browser opened again after the idle timeout. The renewal
+   * that ends the session knows when its person was last active better
+   * than the row it read - the row says the last renewal - and writes it
+   * with the end, which the entry says, and counts the timeout from.
+   */
+  test("an idle timeout a renewal found says when its person was last active, as the renewal knew, and ran out from then", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+
+    await revoke({
+      rows: [sessionRow({ lastActiveAgoMs: 2 * HOUR })],
+      revokedReason: getSessionEndCauseRevokedReason(
+        SessionEndCause.IdleTimeout,
+      ),
+      lastActiveAt: new Date(NOW.getTime() - 90 * MINUTE),
+    });
+
+    const event: SessionAuditEvent = recordedEvents()[0]!;
+
+    expect(event.action).toBe(AuditLogAction.SessionTimeout);
+    expect(event.lastActiveAt).toEqual(new Date(NOW.getTime() - 90 * MINUTE));
+    expect(event.endedAt).toEqual(new Date(NOW.getTime() - 60 * MINUTE));
+  });
+
+  test.each([
+    ["an ISO date", new Date(NOW.getTime() - 50 * MINUTE).toISOString()],
+    ["milliseconds", NOW.getTime() - 50 * MINUTE],
+  ])(
+    "the time it wrote is read as %s too",
+    async (_label: string, written: unknown) => {
+      fake.userSessionLengths = lengthsOf({ idle: 30 });
+
+      await revoke({
+        rows: [sessionRow({ lastActiveAgoMs: 2 * HOUR })],
+        revokedReason: getSessionEndCauseRevokedReason(
+          SessionEndCause.IdleTimeout,
+        ),
+        lastActiveAt: written,
+      });
+
+      expect(recordedEvents()[0]!.lastActiveAt).toEqual(
+        new Date(NOW.getTime() - 50 * MINUTE),
+      );
+      expect(recordedEvents()[0]!.endedAt).toEqual(
+        new Date(NOW.getTime() - 20 * MINUTE),
+      );
+    },
+  );
+
+  test.each([
+    ["nothing", null],
+    ["no date", "not a date"],
+    ["an object", { at: 5 }],
+  ])(
+    "a revocation that wrote %s as the last activity leaves the row's own",
+    async (_label: string, written: unknown) => {
+      fake.userSessionLengths = lengthsOf({ idle: 30 });
+
+      await revoke({
+        rows: [sessionRow({ lastActiveAgoMs: 2 * HOUR })],
+        revokedReason: getSessionEndCauseRevokedReason(
+          SessionEndCause.IdleTimeout,
+        ),
+        lastActiveAt: written,
+      });
+
+      expect(recordedEvents()[0]!.lastActiveAt).toEqual(
+        new Date(NOW.getTime() - 2 * HOUR),
+      );
+      expect(recordedEvents()[0]!.endedAt).toEqual(
+        new Date(NOW.getTime() - 2 * HOUR + 30 * MINUTE),
+      );
+    },
+  );
+
+  test("a session length a renewal found says the last activity it knew, and ran out at its sign-in plus the length", async () => {
+    fake.userSessionLengths = lengthsOf({ length: 8 * 60 });
+
+    await revoke({
+      rows: [
+        sessionRow({ signedInAgoMs: 9 * HOUR, lastActiveAgoMs: 3 * HOUR }),
+      ],
+      revokedReason: getSessionEndCauseRevokedReason(
+        SessionEndCause.LengthReached,
+      ),
+      lastActiveAt: new Date(NOW.getTime() - 2 * HOUR),
+    });
+
+    expect(recordedEvents()[0]!.lastActiveAt).toEqual(
+      new Date(NOW.getTime() - 2 * HOUR),
+    );
+    expect(recordedEvents()[0]!.endedAt).toEqual(
+      new Date(NOW.getTime() - HOUR),
+    );
+  });
+
   test("a session length says when it ran out: its sign-in plus the length", async () => {
     fake.userSessionLengths = lengthsOf({ length: 8 * 60 });
 
@@ -754,6 +860,66 @@ describe("what a revocation writes", () => {
         revokedReason: "User logout",
       },
       props: { isRoot: true, requestOrigin: ORIGIN },
+    });
+  });
+
+  test("a revocation that knows when its person was last active writes it with the end, and only then", async () => {
+    const updateOneById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserSessionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const lastActiveAt: Date = new Date(NOW.getTime() - 2 * HOUR);
+
+    await UserSessionService.revokeSessionById(SESSION_ID, {
+      cause: SessionEndCause.IdleTimeout,
+      lastActiveAt: lastActiveAt,
+    });
+    await UserSessionService.revokeSessionById(SESSION_ID, {
+      cause: SessionEndCause.SignedOut,
+    });
+
+    expect(updateOneById.mock.calls[0]![0]).toEqual({
+      id: SESSION_ID,
+      data: {
+        isRevoked: true,
+        revokedAt: NOW,
+        revokedReason: "Idle timeout reached",
+        lastActiveAt: lastActiveAt,
+      },
+      props: { isRoot: true },
+    });
+    expect(
+      Object.keys(
+        (updateOneById.mock.calls[1]![0] as { data: Record<string, unknown> })
+          .data,
+      ),
+    ).toEqual(["isRevoked", "revokedAt", "revokedReason"]);
+  });
+
+  test("the session lengths end a session with when its person was last active, as the renewal knew", async () => {
+    const updateOneById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserSessionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const lastActiveAt: Date = new Date(NOW.getTime() - 2 * HOUR);
+
+    const { SessionEndReason } = jest.requireActual(
+      "../../../Types/UserSession/SessionLength",
+    ) as typeof import("../../../Types/UserSession/SessionLength");
+
+    await UserSessionService.endSessionByLength(
+      SESSION_ID,
+      SessionEndReason.Inactive,
+      { lastActiveAt },
+    );
+
+    expect(updateOneById).toHaveBeenCalledWith({
+      id: SESSION_ID,
+      data: {
+        isRevoked: true,
+        revokedAt: NOW,
+        revokedReason: "Idle timeout reached",
+        lastActiveAt: lastActiveAt,
+      },
+      props: { isRoot: true },
     });
   });
 

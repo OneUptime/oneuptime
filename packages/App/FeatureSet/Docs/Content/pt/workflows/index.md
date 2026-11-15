@@ -17,7 +17,7 @@ Todo workflow tem três partes:
 2. **Componentes** — o que o workflow faz: enviar uma mensagem, chamar uma API, verificar uma condição, criar ou atualizar um registro do OneUptime.
 3. **Ligações** — as linhas que você desenha de um bloco para o próximo. Elas decidem o que roda depois do quê.
 
-Quando o gatilho dispara, o OneUptime inicia uma **execução**. Cada bloco termina tomando uma das suas saídas, como **Success** ou **Error**, **Yes** ou **No**, e só os blocos ligados a essa saída rodam em seguida. Quando nenhum bloco está ligado à saída que um bloco tomou, esse caminho termina. A execução é salva com o seu status, o caminho percorrido e o que cada bloco recebeu e devolveu.
+Quando o gatilho dispara, o OneUptime inicia uma **execução**. Cada bloco termina tomando uma das suas saídas, como **Sucesso** ou **Erro**, **Sim** ou **Não**, e só os blocos ligados a essa saída rodam em seguida. Quando nenhum bloco está ligado à saída que um bloco tomou, esse caminho termina. A execução é salva com o seu status, o caminho percorrido e o que cada bloco recebeu e devolveu.
 
 ```mermaid title="O que acontece quando um workflow roda"
 flowchart TB
@@ -52,10 +52,10 @@ As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction
 
 | Termo                  | O que significa                                                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Workflow**           | A automação inteira: um nome, um canvas de blocos e uma chave para ligá-la ou desligá-la.                          |
+| **Fluxo de trabalho**           | A automação inteira: um nome, um canvas de blocos e uma chave para ligá-la ou desligá-la.                          |
 | **Gatilho**            | O primeiro bloco. Ele decide quando o workflow roda. Todo workflow tem exatamente um.                              |
 | **Componente**         | Qualquer outro bloco: envia uma mensagem, faz uma requisição, verifica uma condição ou altera um registro.         |
-| **Saída**              | Um ponto na parte de baixo de um bloco, como **Success** ou **Error**. As linhas que saem dele levam aos próximos blocos. |
+| **Saída**              | Um ponto na parte de baixo de um bloco, como **Sucesso** ou **Erro**. As linhas que saem dele levam aos próximos blocos. |
 | **Execução**           | Uma execução do workflow, salva com o status, os horários e o que cada bloco fez.                                  |
 | **Variável global**    | Um valor, como uma chave de API, que você salva uma vez e usa em qualquer workflow do projeto.                     |
 
@@ -107,13 +107,13 @@ Este workflow envia um resumo em JSON de cada novo incidente para uma URL sua �
 
 ```mermaid title="O exemplo pronto"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["A execução termina"]
+    trigger["On Create Incident"] -->|"Sucesso"| post["API Post (JSON)"]
+    post -->|"Erro"| log["Registro"]
+    post -->|"Sucesso"| done["A execução termina"]
 ```
 
 > [!TIP]
-> O modelo **Forward new incidents to another system** monta este workflow para você, sem o bloco Log: sem nada em **Error**, uma requisição que falha faz a execução falhar, e as **Etapas** da execução dizem por quê. Ele fica em **Incidentes** quando você cria um workflow.
+> O modelo **Forward new incidents to another system** monta este workflow para você, sem o bloco Log: sem nada em **Erro**, uma requisição que falha faz a execução falhar, e as **Etapas** da execução dizem por quê. Ele fica em **Incidentes** quando você cria um workflow.
 
 :::steps
 ### Criar o workflow
@@ -136,11 +136,11 @@ O gatilho repassa o novo incidente com esses campos. Um campo que você não sel
 
 ### Adicionar o bloco de API
 
-Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Populares**. Arraste do ponto **Success** do gatilho até o ponto superior do novo bloco.
+Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Populares**. Arraste do ponto **Sucesso** do gatilho até o ponto superior do novo bloco.
 
 ### Preencher a requisição
 
-Clique no bloco de API, que mostra **Click to set up**. Coloque o seu endpoint em **URL**. Em **Request Body**, escreva o JSON a enviar, usando **{ }** para inserir os campos do incidente onde precisar, e clique em **Salvar**.
+Clique no bloco de API, que mostra **Click to set up**. Coloque o seu endpoint em **URL**. Em **Corpo da Requisição**, escreva o JSON a enviar, usando **{ }** para inserir os campos do incidente onde precisar, e clique em **Salvar**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Cada referência `{{…}}` é substituída pelo valor do incidente quando o work
 
 ### Capturar as falhas
 
-Clique em **Adicionar componente** e depois em **Registro**. Ligue a ele o ponto **Error** do bloco de API e defina o **Value** do bloco Log como `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Clique em **Adicionar componente** e depois em **Registro**. Ligue a ele o ponto **Erro** do bloco de API e defina o **Valor** do bloco Log como `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Uma requisição que falha — uma URL inacessível ou uma resposta que não é 2xx — agora segue esse caminho, e o log da execução diz por quê.
 
@@ -177,7 +177,7 @@ A partir de agora, cada novo incidente do projeto inicia uma execução. Você e
 ## Como os workflows se encaixam no resto do OneUptime
 
 - Os **monitores** detectam o problema. Os **incidentes** e os **alertas** o registram. Os **workflows** reagem a ele.
-- Os **runbooks** são procedimentos de resposta que a sua equipe segue em um incidente, um alerta ou uma manutenção: passos manuais, aprovações e scripts, com pessoas envolvidas. Os workflows rodam sem supervisão. Use um [runbook](/docs/runbooks/index) quando uma pessoa precisa tomar decisões pelo caminho, e um workflow quando todos os passos são automáticos.
+- Os **runbooks** são procedimentos de resposta que a sua equipe segue em um incidente, um alerta ou um evento de manutenção: passos manuais, aprovações e scripts, com pessoas envolvidas. Os workflows rodam sem supervisão. Use um [runbook](/docs/runbooks/index) quando uma pessoa precisa tomar decisões pelo caminho, e um workflow quando todos os passos são automáticos.
 - As **conexões de workspace** ligam um projeto ao Slack e ao Microsoft Teams para canais de incidente e notificações. Os blocos de Slack e Microsoft Teams dos workflows não as usam: cada bloco publica por uma URL de webhook de entrada própria.
 
 ## Próximos passos

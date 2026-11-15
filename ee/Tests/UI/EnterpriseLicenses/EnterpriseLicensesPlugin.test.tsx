@@ -90,6 +90,12 @@ import { getAdminDashboardPlugins } from "@oneuptime/admin-dashboard/Enterprise/
 
 const REACT_LAZY_TYPE: symbol = Symbol.for("react.lazy");
 
+/*
+ * The Cloud-only notice's title, by its entry in the Admin Dashboard's
+ * locales (#7962): t() here hands back the key it is asked for.
+ */
+const CLOUD_ONLY_TITLE: string = "pages.enterpriseLicenses.cloudOnlyTitle";
+
 beforeEach(() => {
   billingEnabledForTest = false;
 });
@@ -134,15 +140,11 @@ describe("the Enterprise Licenses plugin", () => {
 describe("the core shells with the Enterprise plugin", () => {
   test("self-hosted Enterprise Edition: the Cloud-only empty state, and neither screen is downloaded", () => {
     render(<EnterpriseLicenses />);
-    expect(
-      screen.getByText("Only available on OneUptime Cloud"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_ONLY_TITLE)).toBeInTheDocument();
     cleanup();
 
     render(<EnterpriseLicenseView />);
-    expect(
-      screen.getByText("Only available on OneUptime Cloud"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_ONLY_TITLE)).toBeInTheDocument();
 
     expect(mockLoadedScreens).toEqual([]);
   });
@@ -155,9 +157,7 @@ describe("the core shells with the Enterprise plugin", () => {
     expect(
       await screen.findByTestId("ee-enterprise-licenses-list"),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Only available on OneUptime Cloud"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_ONLY_TITLE)).not.toBeInTheDocument();
     expect(mockLoadedScreens).toContain("list");
   });
 

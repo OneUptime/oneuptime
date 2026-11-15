@@ -1,10 +1,17 @@
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
+  decideSessionRenewal,
   DEFAULT_SESSION_IDLE_DAYS,
   DEFAULT_SESSION_IDLE_TIMEOUT_IN_MINUTES,
   doesShortenAnySession,
   getActivityAtRenewal,
+  getUnknownInactivity,
+  LONGEST_INACTIVITY_FIELD,
+  NO_RENEWAL_REPORT,
+  readReportedLongestInactivity,
+  ReportedInactivity,
+  SessionRenewalOutcome,
   getIdleTimeoutInMinutes,
   getSeparateSsoSessionLengthsProblem,
   getSessionEnd,
@@ -615,6 +622,573 @@ describe("what a renewal makes of the browser's report of inactivity", () => {
         now: NOW,
       }),
     ).toEqual(NOW);
+  });
+});
+
+/*
+ * ISSUE #6789: OPENING ONEUPTIME AGAIN AFTER THE IDLE TIMEOUT.
+ *
+ * Someone who closed the browser, or whose computer slept, and opens the
+ * Dashboard again has clicked by the time the session is renewed - opening
+ * the page counts as activity - so the renewal says they were active a
+ * moment ago. The renewal also says the longest time they went without
+ * since the last renewal (longestInactivity), and that ends the session
+ * when the part of it the session did not know of reached the idle timeout.
+ */
+describe("what a renewal makes of the longest time without use the browser reports", () => {
+  test("the renewal's field name is the one the Dashboard sends", () => {
+    expect(LONGEST_INACTIVITY_FIELD).toBe("longestInactivity");
+  });
+
+  test.each([
+    [
+      { forSeconds: 7200, endedSecondsAgo: 0 },
+      { forSeconds: 7200, endedSecondsAgo: 0 },
+    ],
+    [
+      { forSeconds: 59.9, endedSecondsAgo: 1.5 },
+      { forSeconds: 59, endedSecondsAgo: 1 },
+    ],
+    [
+      {
+        forSeconds: MAX_REPORTED_INACTIVITY_IN_SECONDS,
+        endedSecondsAgo: MAX_REPORTED_INACTIVITY_IN_SECONDS,
+      },
+      {
+        forSeconds: MAX_REPORTED_INACTIVITY_IN_SECONDS,
+        endedSecondsAgo: MAX_REPORTED_INACTIVITY_IN_SECONDS,
+      },
+    ],
+    // Anything else the object holds is not read.
+    [
+      { forSeconds: 900, endedSecondsAgo: 30, fromMs: 1 },
+      { forSeconds: 900, endedSecondsAgo: 30 },
+    ],
+  ])(
+    "%p is read, in whole seconds",
+    (value: Record<string, unknown>, read: ReportedInactivity) => {
+      expect(readReportedLongestInactivity(value)).toEqual(read);
+    },
+  );
+
+  test.each([
+    ["nothing", undefined],
+    ["null", null],
+    ["a number", 7200],
+    ["text", '{"forSeconds":7200,"endedSecondsAgo":0}'],
+    ["a list", [7200, 0]],
+    ["an empty object", {}],
+    ["no end", { forSeconds: 7200 }],
+    ["no length", { endedSecondsAgo: 0 }],
+    ["a length as text", { forSeconds: "7200", endedSecondsAgo: 0 }],
+    ["an end as text", { forSeconds: 7200, endedSecondsAgo: "0" }],
+    ["a negative length", { forSeconds: -1, endedSecondsAgo: 0 }],
+    ["a negative end", { forSeconds: 7200, endedSecondsAgo: -1 }],
+    [
+      "a length that is no number",
+      { forSeconds: Number.NaN, endedSecondsAgo: 0 },
+    ],
+    [
+      "an end at infinity",
+      { forSeconds: 7200, endedSecondsAgo: Number.POSITIVE_INFINITY },
+    ],
+    [
+      "a length past what the server reads",
+      {
+        forSeconds: MAX_REPORTED_INACTIVITY_IN_SECONDS + 1,
+        endedSecondsAgo: 0,
+      },
+    ],
+    [
+      "an end past what the server reads",
+      {
+        forSeconds: 60,
+        endedSecondsAgo: MAX_REPORTED_INACTIVITY_IN_SECONDS + 1,
+      },
+    ],
+  ])("%s is no report", (_label: string, value: unknown) => {
+    expect(readReportedLongestInactivity(value)).toBeNull();
+  });
+
+  const NOW: Date = new Date("2026-11-02T12:00:00.000Z");
+
+  const ago: (ms: number) => Date = (ms: number): Date => {
+    return new Date(NOW.getTime() - ms);
+  };
+
+  test("the part the session did not know of: where the browser says, from the session's last activity at the earliest", () => {
+    expect(
+      getUnknownInactivity({
+        storedLastActiveAt: ago(3 * HOUR),
+        longestInactivity: { forSeconds: 2 * 60 * 60, endedSecondsAgo: 60 },
+        now: NOW,
+      }),
+    ).toEqual({
+      fromMs: NOW.getTime() - 2 * HOUR - MINUTE,
+      toMs: NOW.getTime() - MINUTE,
+    });
+
+    // The server heard of activity 20 minutes ago: only what came after counts.
+    expect(
+      getUnknownInactivity({
+        storedLastActiveAt: ago(20 * MINUTE),
+        longestInactivity: { forSeconds: 2 * 60 * 60, endedSecondsAgo: 0 },
+        now: NOW,
+      }),
+    ).toEqual({ fromMs: NOW.getTime() - 20 * MINUTE, toMs: NOW.getTime() });
+  });
+
+  test("none when there is no report, or when it ended before what the session knew", () => {
+    expect(
+      getUnknownInactivity({
+        storedLastActiveAt: ago(HOUR),
+        longestInactivity: null,
+        now: NOW,
+      }),
+    ).toBeNull();
+
+    expect(
+      getUnknownInactivity({
+        storedLastActiveAt: ago(10 * MINUTE),
+        longestInactivity: {
+          forSeconds: 2 * 60 * 60,
+          endedSecondsAgo: 30 * 60,
+        },
+        now: NOW,
+      }),
+    ).toBeNull();
+
+    // Ending exactly at the session's last activity is nothing it did not know.
+    expect(
+      getUnknownInactivity({
+        storedLastActiveAt: ago(30 * MINUTE),
+        longestInactivity: {
+          forSeconds: 2 * 60 * 60,
+          endedSecondsAgo: 30 * 60,
+        },
+        now: NOW,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("a renewal after a time without use the session did not know of (issue #6789)", () => {
+  const NOW: Date = new Date("2026-11-02T12:00:00.000Z");
+
+  const ago: (ms: number) => Date = (ms: number): Date => {
+    return new Date(NOW.getTime() - ms);
+  };
+
+  const decide: (data: {
+    lengths: SessionLengths | null;
+    lastActiveAgoMs: number;
+    signedInAgoMs?: number;
+    isSsoSignIn?: boolean;
+    inactiveForInSeconds?: number | null;
+    longestInactivity?: ReportedInactivity | null;
+  }) => SessionRenewalOutcome = (data: {
+    lengths: SessionLengths | null;
+    lastActiveAgoMs: number;
+    signedInAgoMs?: number;
+    isSsoSignIn?: boolean;
+    inactiveForInSeconds?: number | null;
+    longestInactivity?: ReportedInactivity | null;
+  }): SessionRenewalOutcome => {
+    return decideSessionRenewal({
+      facts: {
+        signedInAt: ago(data.signedInAgoMs ?? 10 * HOUR),
+        lastActiveAt: ago(data.lastActiveAgoMs),
+        isSsoSignIn: data.isSsoSignIn === true,
+      },
+      lengths: data.lengths,
+      report: {
+        inactiveForInSeconds:
+          data.inactiveForInSeconds === undefined
+            ? 0
+            : data.inactiveForInSeconds,
+        longestInactivity: data.longestInactivity ?? null,
+      },
+      now: NOW,
+    });
+  };
+
+  // The browser stood closed for `ms`, and the page opened again a moment ago.
+  const closedFor: (ms: number) => ReportedInactivity = (
+    ms: number,
+  ): ReportedInactivity => {
+    return { forSeconds: ms / 1000, endedSecondsAgo: 0 };
+  };
+
+  test("the Dashboard opened again two hours after its last renewal, under a 30-minute idle timeout: the session has ended, though the page says its person is here", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 2 * HOUR,
+        inactiveForInSeconds: 0,
+        longestInactivity: closedFor(2 * HOUR),
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      // Last active as the browser closed: the audit log's entry counts its timeout from it.
+      lastActiveAt: ago(2 * HOUR),
+    });
+  });
+
+  test("the same renewal from a page that says only how long it has been now is renewed - which is why the page says the longest time too", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 2 * HOUR,
+        inactiveForInSeconds: 0,
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+  });
+
+  test.each([
+    [
+      "a second short of the idle timeout is renewed",
+      30 * MINUTE - 1000,
+      false,
+    ],
+    ["the idle timeout exactly has ended it", 30 * MINUTE, true],
+    ["a second past it has ended it", 30 * MINUTE + 1000, true],
+  ])(
+    "a browser closed for %s",
+    (_label: string, closedMs: number, hasEnded: boolean) => {
+      const outcome: SessionRenewalOutcome = decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: closedMs,
+        inactiveForInSeconds: 0,
+        longestInactivity: closedFor(closedMs),
+      });
+
+      expect(outcome).toEqual(
+        hasEnded
+          ? {
+              hasEnded: true,
+              reason: SessionEndReason.Inactive,
+              lastActiveAt: ago(closedMs),
+            }
+          : { hasEnded: false, lastActiveAt: NOW },
+      );
+    },
+  );
+
+  test.each([
+    ["15 minutes, the shortest", 15],
+    ["an hour", 60],
+    ["14 days, the longest", 14 * 24 * 60],
+  ])(
+    "every idle timeout counts it: %s",
+    (_label: string, idleMinutes: number) => {
+      const idleMs: number = idleMinutes * MINUTE;
+
+      expect(
+        decide({
+          lengths: lengths({ idle: idleMinutes }),
+          lastActiveAgoMs: idleMs,
+          inactiveForInSeconds: 0,
+          longestInactivity: closedFor(idleMs - 1000),
+        }).hasEnded,
+      ).toBe(false);
+
+      expect(
+        decide({
+          lengths: lengths({ idle: idleMinutes }),
+          lastActiveAgoMs: idleMs,
+          inactiveForInSeconds: 0,
+          longestInactivity: closedFor(idleMs),
+        }),
+      ).toEqual({
+        hasEnded: true,
+        reason: SessionEndReason.Inactive,
+        lastActiveAt: ago(idleMs),
+      });
+    },
+  );
+
+  test("one that ended a while ago ended the session then: its person active again since does not bring it back", () => {
+    // Away an hour, back for the last 10 minutes on a page that asked the server nothing.
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 70 * MINUTE,
+        inactiveForInSeconds: 5,
+        longestInactivity: { forSeconds: 60 * 60, endedSecondsAgo: 10 * 60 },
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: ago(70 * MINUTE),
+    });
+  });
+
+  test("only the part after the session's last activity counts: a renewal in another tab heard of activity during it", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 20 * MINUTE,
+        inactiveForInSeconds: 0,
+        longestInactivity: closedFor(2 * HOUR),
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+
+    // The part after it, at the idle timeout exactly, has ended it, as of then.
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 30 * MINUTE,
+        inactiveForInSeconds: 0,
+        longestInactivity: closedFor(2 * HOUR),
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: ago(30 * MINUTE),
+    });
+  });
+
+  test("a time without use from before the sign-in - a browser that kept an earlier session's - ends nothing", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 15 }),
+        signedInAgoMs: MINUTE,
+        lastActiveAgoMs: MINUTE,
+        inactiveForInSeconds: 0,
+        longestInactivity: {
+          forSeconds: 3 * 24 * 60 * 60,
+          endedSecondsAgo: 50,
+        },
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+  });
+
+  test("one that ended before the session's last activity is old news", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 10 * MINUTE,
+        inactiveForInSeconds: 60,
+        longestInactivity: {
+          forSeconds: 2 * 60 * 60,
+          endedSecondsAgo: 30 * 60,
+        },
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: ago(MINUTE) });
+  });
+
+  test("one shorter than the idle timeout renews the session, as of its person's newest activity", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 60 }),
+        lastActiveAgoMs: 50 * MINUTE,
+        inactiveForInSeconds: 120,
+        longestInactivity: { forSeconds: 45 * 60, endedSecondsAgo: 3 * 60 },
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: ago(2 * MINUTE) });
+  });
+
+  test("without an idle timeout set, nothing the browser says is asked: every renewal is activity, as always", () => {
+    for (const set of [null, lengths({ length: 8 * 60 }), NO_SESSION_LENGTHS]) {
+      expect(
+        decide({
+          lengths: set,
+          signedInAgoMs: 2 * HOUR,
+          lastActiveAgoMs: 2 * HOUR,
+          inactiveForInSeconds: 3 * 24 * 60 * 60,
+          longestInactivity: closedFor(3 * 24 * HOUR),
+        }),
+      ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+    }
+  });
+
+  describe("beside a session length", () => {
+    const both: SessionLengths = lengths({ length: 8 * 60, idle: 60 });
+
+    test("the idle timeout ran out first: ended for the inactivity", () => {
+      expect(
+        decide({
+          lengths: both,
+          signedInAgoMs: 7 * HOUR,
+          lastActiveAgoMs: 6 * HOUR,
+          longestInactivity: closedFor(6 * HOUR),
+        }),
+      ).toEqual({
+        hasEnded: true,
+        reason: SessionEndReason.Inactive,
+        lastActiveAt: ago(6 * HOUR),
+      });
+    });
+
+    test("the length ran out first: ended for the length, as of the activity before it", () => {
+      expect(
+        decide({
+          lengths: both,
+          signedInAgoMs: 9 * HOUR,
+          lastActiveAgoMs: 90 * MINUTE,
+          longestInactivity: closedFor(90 * MINUTE),
+        }),
+      ).toEqual({
+        hasEnded: true,
+        reason: SessionEndReason.LengthReached,
+        lastActiveAt: ago(90 * MINUTE),
+      });
+    });
+
+    test("both at the same moment: the length, which no activity could have moved", () => {
+      expect(
+        decide({
+          lengths: both,
+          signedInAgoMs: 9 * HOUR,
+          lastActiveAgoMs: 2 * HOUR,
+          longestInactivity: closedFor(2 * HOUR),
+        }),
+      ).toEqual({
+        hasEnded: true,
+        reason: SessionEndReason.LengthReached,
+        lastActiveAt: ago(2 * HOUR),
+      });
+    });
+
+    test("within both: renewed", () => {
+      expect(
+        decide({
+          lengths: both,
+          signedInAgoMs: 2 * HOUR,
+          lastActiveAgoMs: 50 * MINUTE,
+          longestInactivity: closedFor(50 * MINUTE),
+        }),
+      ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+    });
+
+    test("past the length, the person's activity after it ran out is not the session's", () => {
+      expect(
+        decide({
+          lengths: both,
+          signedInAgoMs: 9 * HOUR,
+          lastActiveAgoMs: 70 * MINUTE,
+          inactiveForInSeconds: 0,
+        }),
+      ).toEqual({
+        hasEnded: true,
+        reason: SessionEndReason.LengthReached,
+        lastActiveAt: ago(70 * MINUTE),
+      });
+    });
+  });
+
+  test("an SSO sign-in follows the SSO idle timeout, every other sign-in its own", () => {
+    const split: SessionLengths = lengths({ idle: 4 * 60 }, { idle: 30 });
+
+    expect(
+      decide({
+        lengths: split,
+        isSsoSignIn: true,
+        lastActiveAgoMs: HOUR,
+        longestInactivity: closedFor(HOUR),
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: ago(HOUR),
+    });
+
+    expect(
+      decide({
+        lengths: split,
+        lastActiveAgoMs: HOUR,
+        longestInactivity: closedFor(HOUR),
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+  });
+
+  test("how long it has been now still ends a session alone, as of its person's last activity", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 2 * HOUR,
+        inactiveForInSeconds: 40 * 60,
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      // The browser's word, not the session's older one.
+      lastActiveAt: ago(40 * MINUTE),
+    });
+  });
+
+  test("without any report (a mobile app from before issue #8187), the session's own last activity decides, and the renewal is the activity", () => {
+    expect(
+      decideSessionRenewal({
+        facts: {
+          signedInAt: ago(2 * HOUR),
+          lastActiveAt: ago(31 * MINUTE),
+          isSsoSignIn: false,
+        },
+        lengths: lengths({ idle: 30 }),
+        report: NO_RENEWAL_REPORT,
+        now: NOW,
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: ago(31 * MINUTE),
+    });
+
+    expect(
+      decideSessionRenewal({
+        facts: {
+          signedInAt: ago(2 * HOUR),
+          lastActiveAt: ago(29 * MINUTE),
+          isSsoSignIn: false,
+        },
+        lengths: lengths({ idle: 30 }),
+        report: NO_RENEWAL_REPORT,
+        now: NOW,
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+  });
+
+  test("a page that says only the longest time, not how long it has been now, is held to both its word and the session's", () => {
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 25 * MINUTE,
+        inactiveForInSeconds: null,
+        longestInactivity: closedFor(40 * MINUTE),
+      }),
+    ).toEqual({ hasEnded: false, lastActiveAt: NOW });
+
+    expect(
+      decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 45 * MINUTE,
+        inactiveForInSeconds: null,
+        longestInactivity: closedFor(40 * MINUTE),
+      }),
+    ).toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: ago(45 * MINUTE),
+    });
+  });
+
+  test("whatever the browser says, a renewed session's last activity is never before what it knew nor after now", () => {
+    for (const inactiveForInSeconds of [0, 30, 600, 1799]) {
+      const outcome: SessionRenewalOutcome = decide({
+        lengths: lengths({ idle: 30 }),
+        lastActiveAgoMs: 10 * MINUTE,
+        inactiveForInSeconds,
+        longestInactivity: { forSeconds: 600, endedSecondsAgo: 0 },
+      });
+
+      expect(outcome.hasEnded).toBe(false);
+      expect(outcome.lastActiveAt.getTime()).toBeGreaterThanOrEqual(
+        NOW.getTime() - 10 * MINUTE,
+      );
+      expect(outcome.lastActiveAt.getTime()).toBeLessThanOrEqual(NOW.getTime());
+    }
   });
 });
 

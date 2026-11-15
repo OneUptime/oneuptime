@@ -107,8 +107,8 @@ El disparador Incoming Email da al flujo de trabajo una dirección propia, y cua
 
 - No la publiques ni la pongas en un repositorio público. El disparador oculta la clave hasta que haces clic en **Mostrar**, y **Copiar dirección** copia la dirección sin mostrarla.
 - Si la dirección se filtra, haz clic en el disparador Incoming Email en el **Constructor** y después en **Restablecer dirección**. El flujo de trabajo recibe una dirección nueva, y el correo a la antigua se ignora a partir de entonces.
-- Cualquiera puede poner cualquier remitente en un correo, así que **From** no prueba quién lo envió. Antes de que un flujo de trabajo haga algo importante, comprueba algo que solo sepa el remitente real — un token en el asunto o en una cabecera — con un bloque **If / Else**. Guarda el token esperado como variable secreta.
-- La clave se oculta en todo lo que recibe la ejecución — **To**, **CC**, las cabeceras y los cuerpos —, porque el registro de la ejecución es visible para cualquiera que pueda leer las ejecuciones del flujo de trabajo.
+- Cualquiera puede poner cualquier remitente en un correo, así que **De** no prueba quién lo envió. Antes de que un flujo de trabajo haga algo importante, comprueba algo que solo sepa el remitente real — un token en el asunto o en una cabecera — con un bloque **If / Else**. Guarda el token esperado como variable secreta.
+- La clave se oculta en todo lo que recibe la ejecución — **Para**, **CC**, las cabeceras y los cuerpos —, porque el registro de la ejecución es visible para cualquiera que pueda leer las ejecuciones del flujo de trabajo.
 
 Solo las personas que pueden editar el flujo de trabajo — **Propietario del proyecto**, **Administrador del proyecto**, **Administrador de flujos de trabajo** o **Edit Workflow** — pueden ver o restablecer su dirección. Todos los demás ven una nota que dice a quién pedírsela.
 
@@ -132,14 +132,14 @@ Consulta [Acceso a redes privadas](/docs/self-hosted/private-network-access) par
 
 Lo que recibe el proveedor, y lo que el modelo puede hacer con ello:
 
-- **Solo lo que pones en el bloque.** OneUptime envía una instrucción de seguridad fija y, después, las **System Instructions**, el **Prompt** y el **Context** del bloque, con sus referencias rellenadas. **Context** va al final, después de un marcador, y la instrucción de seguridad le dice al modelo que todo lo que va después del marcador son datos no fiables, incluso un texto que parezca instrucciones.
+- **Solo lo que pones en el bloque.** OneUptime envía una instrucción de seguridad fija y, después, las **System Instructions**, el **Indicación** y el **Contexto** del bloque, con sus referencias rellenadas. **Contexto** va al final, después de un marcador, y la instrucción de seguridad le dice al modelo que todo lo que va después del marcador son datos no fiables, incluso un texto que parezca instrucciones.
 - **Nada más.** Los datos del disparador, el historial del flujo de trabajo, las salidas de otros bloques, los registros del proyecto, la telemetría y los secretos nunca se adjuntan. Solo salen de OneUptime cuando haces referencia a ellos en uno de esos tres ajustes.
 - **Texto, y ninguna herramienta.** El modelo no puede consultar OneUptime, hacer solicitudes HTTP ni cambiar datos. Los parámetros adicionales de un proveedor solo dejan pasar una lista permitida de campos de ajuste de la generación: no pueden sustituir los mensajes, añadir herramientas, búsqueda web u otras fuentes de datos, pedir algo distinto de texto o varias respuestas, activar el streaming, hacer que el proveedor conserve la solicitud ni subir el límite de salida del bloque. Los campos que OneUptime no conoce se descartan.
 - **El modelo lo elige tu administrador.** Si la generación tiene que quedarse sin conexión, elige un modelo que no busque nada por su cuenta en el lado del proveedor.
 
 Lo que se registra:
 
-- El registro de la ejecución oculta las **System Instructions**, el **Prompt**, el **Context** y la **Response** del bloque. Los bloques posteriores pueden seguir usándolos durante la ejecución, y un bloque en el que insertes uno lo registra según sus propias reglas, así que insertarlo es una decisión de mostrarlo.
+- El registro de la ejecución oculta las **System Instructions**, el **Indicación**, el **Contexto** y la **Respuesta** del bloque. Los bloques posteriores pueden seguir usándolos durante la ejecución, y un bloque en el que insertes uno lo registra según sus propias reglas, así que insertarlo es una decisión de mostrarlo.
 - El proveedor, el modelo, el número de tokens, el **LLM Log ID** y un mensaje de error seguro siguen visibles, para la operación y la facturación. El error en bruto de un proveedor se mantiene fuera de todos los registros, porque un proveedor puede repetir en él la solicitud.
 - Cada llamada aparece en **Ajustes del proyecto → IA → Registros de IA** con su proveedor, modelo, estado, tokens, coste y facturación, sin el prompt, la respuesta ni el error en bruto.
 
@@ -151,8 +151,8 @@ Lo que necesita el bloque, y lo que cuesta:
 
 | Límite                                                       | Valor                                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** y **Context** juntos     | 50.000 caracteres                                                         |
-| **Temperature**                                              | De `0` a `1`                                                              |
+| **System Instructions**, **Indicación** y **Contexto** juntos     | 50.000 caracteres                                                         |
+| **Temperatura**                                              | De `0` a `1`                                                              |
 | **Maximum Output Tokens**                                    | De `1` a `4096`, `1024` por defecto                                       |
 | Una solicitud                                                | Un solo intento, de 60 segundos como máximo                               |
 | Llamadas simultáneas                                         | 3 por proyecto. Las demás toman **Error**, y una ejecución posterior puede volver a intentarlo. |
@@ -195,8 +195,8 @@ Los pasos que leen y cambian registros de OneUptime — los componentes Find, Cr
 - **Nada de lo que OneUptime se reserva.** Esto se rechaza a todo el mundo, flujos de trabajo incluidos:
   - editar o eliminar una entrada del historial (los historiales de incidentes, alertas, episodios, monitores, políticas de guardia y mantenimientos programados);
   - escribir un registro de notificaciones (los registros de SMS, llamadas, correo, WhatsApp, Telegram, notificaciones push, webhooks y mensajes del espacio de trabajo);
-  - los valores que OneUptime define a medida que ocurren las cosas: si el CNAME de un dominio personalizado está verificado, los interruptores de protección de un equipo (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), qué rol de incidente es el principal y si se puede eliminar, si se ha notificado a un propietario o a un miembro, las horas y el número de recordatorios, quién está de guardia ahora y después en un calendario, el progreso de una ejecución de guardia, la tasa de consumo y el presupuesto de error actuales de un SLO, un monitor pausado por un incidente o un mantenimiento, el token de restablecimiento de contraseña y el último inicio de sesión de un usuario privado de una página de estado, los datos que un servicio informa sobre sí mismo (versión, entorno de ejecución, nube) y la última ejecución de una regla de detección o de una fuente de amenazas;
-  - declarar un incidente a partir de una plantilla enviando `createdIncidentTemplateId` a **Create One Incident** — elige en su lugar la plantilla en el ajuste **Incident Template** del paso: el paso declara entonces el incidente a partir de ella, como Project Admin, y registra la plantilla;
+  - los valores que OneUptime define a medida que ocurren las cosas: si el CNAME de un dominio personalizado está verificado, los interruptores de protección de un equipo (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), qué rol de incidente es el principal y si se puede eliminar, si se ha notificado a un propietario o a un miembro, las horas y el número de recordatorios, quién está de guardia ahora y después en un calendario, el progreso de una ejecución de guardia, la tasa de consumo y el presupuesto de error actuales de un SLO, un monitor pausado por un incidente o un evento de mantenimiento, el token de restablecimiento de contraseña y el último inicio de sesión de un usuario privado de una página de estado, los datos que un servicio informa sobre sí mismo (versión, entorno de ejecución, nube) y la última ejecución de una regla de detección o de una fuente de amenazas;
+  - declarar un incidente a partir de una plantilla enviando `createdIncidentTemplateId` a **Create One Incident** — elige en su lugar la plantilla en el ajuste **Plantilla de incidente** del paso: el paso declara entonces el incidente a partir de ella, como Project Admin, y registra la plantilla;
   - cambiar a qué registro pertenece un registro después de crearlo, como el monitor al que corresponde una fila de propietario o el incidente en el que está una nota.
 - **Como nadie.** Un registro que crea un flujo de trabajo no nombra a ningún creador, y el registro de auditoría nombra el flujo de trabajo, con el nombre que tenía en ese momento, como autor del cambio.
 
@@ -214,7 +214,7 @@ En OneUptime Cloud, los flujos de trabajo necesitan el plan Growth o superior, y
 | Scale      | 2.000                              |
 | Enterprise | Sin límite práctico                |
 
-La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde un disparador, cuenta durante 30 días. En los planes Growth y Scale, la página **Flujos de trabajo** muestra una tarjeta **Ejecuciones del flujo de trabajo** con cuántas ha usado el proyecto. Una vez alcanzado el límite, las ejecuciones nuevas se registran con el estado **Execution Exceeded Current Plan** y no se ejecutan, y lo mismo ocurre mientras la suscripción está impagada. Las instalaciones autoalojadas sin facturación no tienen límite. En un plan que no ejecuta flujos de trabajo, el **Constructor** y la página **Flujos de trabajo** lo dicen, con un enlace para mejorar el plan.
+La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde un disparador, cuenta durante 30 días. En los planes Growth y Scale, la página **Flujos de trabajo** muestra una tarjeta **Ejecuciones del flujo de trabajo** con cuántas ha usado el proyecto. Una vez alcanzado el límite, las ejecuciones nuevas se registran con el estado **La ejecución supera el plan actual** y no se ejecutan, y lo mismo ocurre mientras la suscripción está impagada. Las instalaciones autoalojadas sin facturación no tienen límite. En un plan que no ejecuta flujos de trabajo, el **Constructor** y la página **Flujos de trabajo** lo dicen, con un enlace para mejorar el plan.
 
 ## Cuánto puede durar una ejecución
 
@@ -224,7 +224,7 @@ La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde u
 | Un bloque **Run Custom JavaScript**                          | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Un bloque **Sleep**                                          | 30 días como máximo | —                              |
 
-El ejecutor comprueba el plazo antes y después de cada bloque, y marca una ejecución vencida como **Timeout** en cuanto recupera el control. No puede interrumpir un bloque a mitad, así que los bloques que esperan a la red tienen sus propios límites de tiempo: una solicitud de Generate Text with AI desiste a los 60 segundos como máximo, y una solicitud de token de OAuth 2.0 a los 20. Una espera en un bloque **Sleep** no cuenta para el tiempo de una ejecución: la ejecución se aparta y recibe 2 minutos nuevos al despertar.
+El ejecutor comprueba el plazo antes y después de cada bloque, y marca una ejecución vencida como **Tiempo de espera agotado** en cuanto recupera el control. No puede interrumpir un bloque a mitad, así que los bloques que esperan a la red tienen sus propios límites de tiempo: una solicitud de Generate Text with AI desiste a los 60 segundos como máximo, y una solicitud de token de OAuth 2.0 a los 20. Una espera en un bloque **Sleep** no cuenta para el tiempo de una ejecución: la ejecución se aparta y recibe 2 minutos nuevos al despertar.
 
 ## Límite al llamar a otros flujos de trabajo
 

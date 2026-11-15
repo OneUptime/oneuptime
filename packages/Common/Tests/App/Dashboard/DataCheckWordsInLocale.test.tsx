@@ -45,6 +45,7 @@ const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 const getListMock: MockFunction = getJestMockFunction();
 const createMock: MockFunction = getJestMockFunction();
 const getDismissalsMock: MockFunction = getJestMockFunction();
+const dismissMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -79,6 +80,9 @@ jest.mock(
         getDismissals: (...args: Array<any>) => {
           return getDismissalsMock(...args);
         },
+        dismiss: (...args: Array<any>) => {
+          return dismissMock(...args);
+        },
       },
     };
   },
@@ -96,6 +100,11 @@ import {
   DATA_CHECK_FACTS_LINE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckFactsLine";
 import { DATA_CHECK_TYPE_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTypeWords";
+import { DATA_CHECK_FORMAT_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckFormatWords";
+import {
+  DATA_CHECK_FORMATS,
+  DataCheckFormat,
+} from "../../../Types/DataObservability/DataCheckFormats";
 import SuggestedDataChecks, {
   SUGGESTED_CHECK_BUTTONS_CLASS_NAME,
   SUGGESTED_CHECK_FACTS_TEST_ID,
@@ -104,9 +113,28 @@ import SuggestedDataChecks, {
   SUGGESTED_CHECK_ROW_CLASS_NAME,
   SUGGESTED_CHECKS_ERROR_TEST_ID,
   SUGGESTED_CHECKS_LIST_CLASS_NAME,
+  SuggestedChecksWhatFailed,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import {
+  CustomSqlRefusal,
+  DataReconciliationRefusal,
+  MongoPipelineRefusal,
+} from "../../../Types/DataObservability/DataCheckRefusals";
+import APIException from "../../../Types/Exception/ApiException";
+import {
+  getExplanationWords,
+  getUnexplainedServerErrorMessage,
+  readUnexplainedError,
+  SERVER_DOWN_MESSAGE,
+  UNEXPLAINED_ERROR_MESSAGES,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
+import { BILLING_ENABLED } from "../../../UI/Config";
+import { joinSentences } from "../../../UI/Utils/SentenceSeparator";
 import DataObservabilityReconciliationsPage, {
   RECONCILIATION_MEASURES_LINE_CLASS_NAME,
+  RECONCILIATION_STATUS_MESSAGE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Reconciliations";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
@@ -145,7 +173,11 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 interface CapturedColumn {
   title?: string;
+  field?: Record<string, unknown>;
   getElement?: (item: never) => ReactElement;
+  hideBelowLargeScreen?: boolean;
+  foldInto?: string;
+  showTitleWhenFolded?: boolean;
 }
 
 interface CapturedFormField {
@@ -172,6 +204,12 @@ const CHECK: string = "10000000-0000-4000-8000-000000000301";
 
 // The languages the tab is read in below, from the locale files themselves.
 const LANGUAGES: Array<string> = ["de", "ar"];
+
+/*
+ * Languages whose Format dropdown read English (#7532): Dutch and Italian
+ * left Country Code English, and no language had ISO Date.
+ */
+const FORMAT_LANGUAGES: Array<string> = ["nl", "it"];
 
 // Languages whose Dismiss can break inside a button: Japanese anywhere, Persian at its space.
 const BREAKABLE_DISMISS_LANGUAGES: Array<string> = ["ja", "fa"];
@@ -546,9 +584,11 @@ beforeAll(async () => {
     lng: "en",
     fallbackLng: "en",
     resources: Object.fromEntries(
-      [...LANGUAGES, ...BREAKABLE_DISMISS_LANGUAGES].map((language: string) => {
-        return [language, { translation: readDashboardLocale(language) }];
-      }),
+      [...LANGUAGES, ...BREAKABLE_DISMISS_LANGUAGES, ...FORMAT_LANGUAGES].map(
+        (language: string) => {
+          return [language, { translation: readDashboardLocale(language) }];
+        },
+      ),
     ),
     interpolation: { escapeValue: false },
     keySeparator: false,
@@ -562,6 +602,8 @@ beforeEach(async () => {
   getListMock.mockReset();
   createMock.mockReset();
   getDismissalsMock.mockReset();
+  dismissMock.mockReset();
+  dismissMock.mockResolvedValue(undefined);
   getListMock.mockImplementation(async (...args: Array<unknown>) => {
     const request: { modelType?: unknown } = args[0] as {
       modelType?: unknown;
@@ -951,6 +993,315 @@ describe("Suggested Checks (#7221)", () => {
   );
 });
 
+/*
+ * WHY SUGGESTED CHECKS DID NOT DO WHAT WAS ASKED, IN THE READER'S LANGUAGE
+ * (#7530).
+ *
+ * The card's red line was API.getFriendlyMessage's answer drawn as it
+ * came: the server's refusals in English on every page, and a failure
+ * nobody explained as its English sentence with no reference to copy. A
+ * refusal of the server's is a key of the locales now, and an unexplained
+ * failure is ErrorExplanation: what did not happen (the suggestions were
+ * not loaded, the check was not added, the suggestion was not dismissed),
+ * why, what to do next and the reference.
+ */
+describe("why Suggested Checks did not do what was asked (#7530)", () => {
+  // The words of `language`'s locale: English for a key it has no words for.
+  function wordsOf(language: string): (text: string) => string {
+    const words: Record<string, string> =
+      language === "en" ? {} : readDashboardLocale(language);
+
+    return (text: string): string => {
+      return words[text] || text;
+    };
+  }
+
+  // The words ErrorExplanation says for `message`, in `language`.
+  function explanationIn(language: string, message: string): string {
+    const said: (text: string) => string = wordsOf(language);
+    const words: { why: string; next: string } = getExplanationWords({
+      error: readUnexplainedError(message)!,
+      isCloud: BILLING_ENABLED,
+      isMasterAdmin: false,
+      isVisitor: false,
+    });
+
+    return joinSentences([said(words.why), said(words.next)]);
+  }
+
+  // Add on the first suggestion, failing with `rejection`; the card's error.
+  async function addFailsWith(
+    language: string,
+    rejection: unknown,
+  ): Promise<HTMLElement> {
+    createMock.mockRejectedValue(rejection);
+
+    const items: Array<HTMLElement> = await drawSuggestions(language);
+
+    await act(async () => {
+      fireEvent.click(within(items[0]!).getAllByRole("button")[0]!);
+    });
+
+    return await screen.findByTestId(SUGGESTED_CHECKS_ERROR_TEST_ID);
+  }
+
+  test.each([
+    [
+      "de",
+      new HTTPErrorResponse(502, "<html>Bad Gateway</html>" as never, {}),
+      SERVER_DOWN_MESSAGE,
+    ],
+    [
+      "de",
+      new HTTPErrorResponse(500, {}, {}),
+      UNEXPLAINED_ERROR_MESSAGES.server,
+    ],
+    [
+      "ar",
+      new APIException(
+        "Request failed to https://oneuptime.example.com/api/data-check. Network Error",
+      ),
+      UNEXPLAINED_ERROR_MESSAGES.unreachable,
+    ],
+    [
+      "fa",
+      new HTTPErrorResponse(
+        503,
+        "<html><body><h1>503 Service Temporarily Unavailable</h1></body></html>" as never,
+        {},
+      ),
+      SERVER_DOWN_MESSAGE,
+    ],
+  ])(
+    "in %s, an Add nobody explained says the check was not added, why and what to do next",
+    async (language: string, rejection: unknown, message: string) => {
+      const error: HTMLElement = await addFailsWith(language, rejection);
+      const said: (text: string) => string = wordsOf(language);
+
+      expect(error.tagName).toBe("P");
+      expect(error).toHaveClass("mb-3", "text-sm", "text-red-600");
+      expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+        said(SuggestedChecksWhatFailed.add),
+      );
+      expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+        explanationIn(language, message),
+      );
+      expect(error.textContent).not.toContain(message);
+      expect(error.textContent).not.toContain("<");
+      expect(said(SuggestedChecksWhatFailed.add)).not.toBe(
+        SuggestedChecksWhatFailed.add,
+      );
+      // The suggestion stays, to add again.
+      expect(screen.getAllByTestId(SUGGESTED_CHECK_NAME_TEST_ID)).toHaveLength(
+        ENGLISH_AS_BEFORE.length,
+      );
+    },
+  );
+
+  test("in Persian, an Add nobody explained leaves no English word in the line", async () => {
+    const error: HTMLElement = await addFailsWith(
+      "fa",
+      new HTTPErrorResponse(504, {}, {}),
+    );
+
+    expect(error).not.toHaveAttribute("dir");
+    // The product's name and the command to run are the only Latin letters.
+    expect(
+      (error.textContent || "").replace(
+        /OneUptime|npm run doctor|oneuptime/g,
+        "",
+      ),
+    ).not.toMatch(/[A-Za-z]/);
+  });
+
+  test("a server failure's reference is code, with a Copy button", async () => {
+    const error: HTMLElement = await addFailsWith(
+      "en",
+      new HTTPErrorResponse(
+        500,
+        {
+          error: getUnexplainedServerErrorMessage("1f0c9a2b"),
+          reference: "1f0c9a2b",
+        },
+        {},
+      ),
+    );
+    const reference: HTMLElement = within(error).getByTestId("error-reference");
+
+    expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+      "The check was not added.",
+    );
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
+  });
+
+  test.each([
+    CustomSqlRefusal.notARead,
+    CustomSqlRefusal.writes,
+    MongoPipelineRefusal.noPipeline,
+  ])(
+    "in German, the server's refusal %j reads in German, a line of the page's",
+    async (refusal: string) => {
+      const error: HTMLElement = await addFailsWith(
+        "de",
+        new HTTPErrorResponse(400, { message: refusal }, {}),
+      );
+      const said: string = wordsOf("de")(refusal);
+
+      expect(said).not.toBe(refusal);
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(said);
+      expect(
+        within(error).queryByTestId("error-explanation"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("in German, suggestions that could not be read say so, and why", async () => {
+    getListMock.mockRejectedValue(new HTTPErrorResponse(502, "" as never, {}));
+
+    await inLanguage("de");
+    await act(async () => {
+      render(
+        <SuggestedDataChecks
+          dataAssetId={new ObjectID(TABLE)}
+          dataStoreId={new ObjectID(STORE)}
+          tableName="orders"
+          columns={ORDERS}
+          onChecksAdded={() => {}}
+        />,
+      );
+    });
+
+    const error: HTMLElement = await screen.findByTestId(
+      SUGGESTED_CHECKS_ERROR_TEST_ID,
+    );
+    const said: (text: string) => string = wordsOf("de");
+
+    expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+      said(SuggestedChecksWhatFailed.read),
+    );
+    expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+      explanationIn("de", SERVER_DOWN_MESSAGE),
+    );
+    expect(said(SuggestedChecksWhatFailed.read)).not.toBe(
+      SuggestedChecksWhatFailed.read,
+    );
+  });
+
+  test("in German, a suggestion that could not be dismissed says so, and stays", async () => {
+    dismissMock.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const items: Array<HTMLElement> = await drawSuggestions("de");
+    const said: (text: string) => string = wordsOf("de");
+
+    await act(async () => {
+      fireEvent.click(
+        within(items[0]!).getByRole("button", { name: said("Dismiss") }),
+      );
+    });
+
+    const error: HTMLElement = await screen.findByTestId(
+      SUGGESTED_CHECKS_ERROR_TEST_ID,
+    );
+
+    expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+      said(SuggestedChecksWhatFailed.dismiss),
+    );
+    expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+      explanationIn("de", UNEXPLAINED_ERROR_MESSAGES.unreachable),
+    );
+    expect(said(SuggestedChecksWhatFailed.dismiss)).not.toBe(
+      SuggestedChecksWhatFailed.dismiss,
+    );
+    expect(screen.getAllByTestId(SUGGESTED_CHECK_NAME_TEST_ID)).toHaveLength(
+      ENGLISH_AS_BEFORE.length,
+    );
+  });
+});
+
+/*
+ * The Reconciliations page said why a reconciliation's checks were not set
+ * up with the failure's raw message: a gateway's HTML page, or an empty
+ * body's nothing. It says API.getFriendlyMessage's answer now, inside its
+ * own sentence, in the reader's language (#7530).
+ */
+describe("why a reconciliation was not set up (#7530)", () => {
+  async function saveFailsWith(
+    language: string,
+    rejection: unknown,
+  ): Promise<HTMLElement> {
+    jest
+      .spyOn(DataObservabilityApi, "syncReconciliation")
+      .mockRejectedValue(rejection);
+
+    await inLanguage(language);
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <DataObservabilityReconciliationsPage
+            pageRoute={new Route("/")}
+            currentProject={null}
+            hasPaymentMethod={false}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    const onCreateSuccess: (item: DataReconciliation) => Promise<unknown> =
+      latestProps()["onCreateSuccess"] as (
+        item: DataReconciliation,
+      ) => Promise<unknown>;
+    const item: DataReconciliation = new DataReconciliation();
+    item.id = new ObjectID(TABLE);
+
+    await act(async () => {
+      await onCreateSuccess(item);
+    });
+
+    const notice: HTMLElement | null =
+      document.querySelector<HTMLElement>("p.bg-yellow-50");
+
+    expect(notice).not.toBeNull();
+
+    return notice!;
+  }
+
+  test("a gateway's page is never shown as its markup", async () => {
+    const notice: HTMLElement = await saveFailsWith(
+      "en",
+      new HTTPErrorResponse(
+        502,
+        "<html><head><title>502 Bad Gateway</title></head></html>" as never,
+        {},
+      ),
+    );
+
+    expect(notice.textContent).not.toContain("<");
+    expect(notice.textContent).toContain(UnexplainedErrorWords.serverDownWhy);
+  });
+
+  test("in German, a refusal of the server's reads in German inside the page's sentence", async () => {
+    const notice: HTMLElement = await saveFailsWith(
+      "de",
+      new HTTPErrorResponse(
+        400,
+        { message: DataReconciliationRefusal.sourceNeedsTable },
+        {},
+      ),
+    );
+    const words: Record<string, string> = readDashboardLocale("de");
+
+    expect(notice.textContent).toContain(
+      words[DataReconciliationRefusal.sourceNeedsTable]!,
+    );
+    expect(notice.textContent).not.toContain(
+      DataReconciliationRefusal.sourceNeedsTable,
+    );
+  });
+});
+
 describe("what a check measures, under its name (#7223)", () => {
   const FIELDS: Record<string, unknown> = {
     checkType: DataCheckType.NullPercent,
@@ -1104,6 +1455,119 @@ describe("the Check dropdown and the Check filter (#7223)", () => {
   );
 });
 
+// The Format dropdown of the check form, as DataCheckTable hands it to ModelTable.
+async function formatOptions(): Promise<Array<DropdownOption>> {
+  await act(async () => {
+    render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
+  });
+
+  const form: CapturedFormField | undefined = (
+    latestProps()["formFields"] as Array<CapturedFormField>
+  ).find((field: CapturedFormField): boolean => {
+    return Boolean(field.field?.["formatPreset"]);
+  });
+
+  expect(form?.dropdownOptions).toBeDefined();
+
+  return form!.dropdownOptions!;
+}
+
+// Each option, as a Dropdown draws it picked, in the language i18next is in.
+function drawnOptions(options: Array<DropdownOption>): Array<string> {
+  return options.map((option: DropdownOption): string => {
+    const { container } = render(
+      <Dropdown
+        options={options}
+        value={option}
+        onChange={() => {}}
+        ariaLabel="Format"
+      />,
+    );
+    const drawn: string = withoutIsolateMarks(
+      container.querySelector(".ou-select__single-value")?.textContent || "",
+    );
+
+    cleanup();
+
+    return drawn;
+  });
+}
+
+describe("the Format dropdown (#7532)", () => {
+  test("offers every format, each by its name, its value what is saved", async () => {
+    const options: Array<DropdownOption> = await formatOptions();
+
+    expect(
+      options.map((option: DropdownOption) => {
+        return option.value;
+      }),
+    ).toEqual([...DATA_CHECK_FORMATS]);
+    expect(
+      options.map((option: DropdownOption) => {
+        return option.label;
+      }),
+    ).toEqual(
+      DATA_CHECK_FORMATS.map((format: DataCheckFormat): string => {
+        return DATA_CHECK_FORMAT_LABELS[format];
+      }),
+    );
+  });
+
+  test("in English, each format reads exactly as before", async () => {
+    const options: Array<DropdownOption> = await formatOptions();
+
+    cleanup();
+
+    expect(drawnOptions(options)).toEqual([
+      "Email",
+      "UUID",
+      "Country Code",
+      "URL",
+      "IP Address",
+      "ISO Date",
+      "Phone Number",
+      "Custom",
+    ]);
+  });
+
+  test.each([...FORMAT_LANGUAGES, ...LANGUAGES])(
+    "in %s, each format reads as the language's file words it, Country Code and ISO Date never in English",
+    async (language: string) => {
+      const options: Array<DropdownOption> = await formatOptions();
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      cleanup();
+      await inLanguage(language);
+
+      const drawn: Array<string> = drawnOptions(options);
+
+      expect(drawn).toEqual(
+        DATA_CHECK_FORMATS.map((format: DataCheckFormat): string => {
+          return words[format]!;
+        }),
+      );
+      expect(drawn).not.toContain(DataCheckFormat.CountryCode);
+      expect(drawn).not.toContain(DataCheckFormat.IsoDate);
+      // UUID is written as it is, in every language.
+      expect(drawn[DATA_CHECK_FORMATS.indexOf(DataCheckFormat.Uuid)]).toBe(
+        "UUID",
+      );
+    },
+  );
+
+  test("in Dutch, the two formats the issue named read Landcode and ISO-datum", async () => {
+    const options: Array<DropdownOption> = await formatOptions();
+
+    cleanup();
+    await inLanguage("nl");
+
+    const drawn: Array<string> = drawnOptions(options);
+
+    expect(drawn).toContain("Landcode");
+    expect(drawn).toContain("ISO-datum");
+  });
+});
+
 describe("a reconciliation's measures (#7223)", () => {
   test("in English, the line under its name reads exactly as before", async () => {
     expect(await reconciliationLine("en", reconciliation())).toBe(
@@ -1147,6 +1611,174 @@ describe("a reconciliation's measures (#7223)", () => {
     // A table's cell keeps its words on one line unless told otherwise.
     expect(classes).toEqual(
       expect.arrayContaining(["block", "whitespace-normal", "break-words"]),
+    );
+    expect(classes).not.toContain("truncate");
+  });
+});
+
+/*
+ * #7534: at 1280px beside the side menu, the German Checks list ran 46px
+ * past its card and the English Reconciliations list cut its Status
+ * badges, under the sticky Run Now column. Where a list does not fit its
+ * card, the table folds the columns its page marks foldable, under the
+ * column each names (TableFit; DataObservabilityListsAt1280 draws them).
+ */
+describe("the lists' columns fold where they do not fit their card (#7534)", () => {
+  // Every column, as the page hands it to ModelTable.
+  function columns(): Array<CapturedColumn> {
+    return latestProps()["columns"] as Array<CapturedColumn>;
+  }
+
+  // The column whose field is `field`, and the one each folds into.
+  function byField(field: string): CapturedColumn {
+    const found: CapturedColumn | undefined = columns().find(
+      (candidate: CapturedColumn): boolean => {
+        return Boolean(candidate.field?.[field]);
+      },
+    );
+
+    expect(found).toBeDefined();
+
+    return found!;
+  }
+
+  test.each(["en", ...LANGUAGES])(
+    "in %s, a check's Alert folds under its Status, named; no other column folds",
+    async (language: string) => {
+      await inLanguage(language);
+      await act(async () => {
+        render(<DataCheckTable />);
+      });
+
+      const alert: CapturedColumn = byField("alertCondition");
+
+      expect({
+        hideBelowLargeScreen: alert.hideBelowLargeScreen,
+        foldInto: alert.foldInto,
+        showTitleWhenFolded: alert.showTitleWhenFolded,
+      }).toEqual({
+        hideBelowLargeScreen: true,
+        foldInto: "lastRunStatus",
+        showTitleWhenFolded: true,
+      });
+      // It folds into a column the list draws.
+      expect(byField("lastRunStatus").hideBelowLargeScreen).toBeFalsy();
+      expect(
+        columns()
+          .filter((column: CapturedColumn): boolean => {
+            return Boolean(column.hideBelowLargeScreen);
+          })
+          .map((column: CapturedColumn): string | undefined => {
+            return column.title;
+          }),
+      ).toEqual(["Alert"]);
+    },
+  );
+
+  test("a table's own Checks tab folds its Alert the same way", async () => {
+    await act(async () => {
+      render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
+    });
+
+    expect(byField("alertCondition").foldInto).toBe("lastRunStatus");
+  });
+
+  test.each(["en", ...LANGUAGES])(
+    "in %s, a reconciliation's Target folds under its Source and its Difference under its Status, each named",
+    async (language: string) => {
+      await inLanguage(language);
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <DataObservabilityReconciliationsPage
+              pageRoute={new Route("/")}
+              currentProject={null}
+              hasPaymentMethod={false}
+            />
+          </MemoryRouter>,
+        );
+      });
+
+      for (const [field, into] of [
+        ["targetDataAsset", "sourceDataAsset"],
+        ["difference", "status"],
+      ] as Array<[string, string]>) {
+        const column: CapturedColumn = byField(field);
+
+        expect({
+          field,
+          hideBelowLargeScreen: column.hideBelowLargeScreen,
+          foldInto: column.foldInto,
+          showTitleWhenFolded: column.showTitleWhenFolded,
+        }).toEqual({
+          field,
+          hideBelowLargeScreen: true,
+          foldInto: into,
+          showTitleWhenFolded: true,
+        });
+        expect(byField(into).hideBelowLargeScreen).toBeFalsy();
+      }
+
+      // The name, the source and the status are always drawn.
+      expect(
+        columns()
+          .filter((column: CapturedColumn): boolean => {
+            return !column.hideBelowLargeScreen;
+          })
+          .map((column: CapturedColumn): string | undefined => {
+            return column.title;
+          }),
+      ).toEqual(["Reconciliation", "Source", "Status"]);
+    },
+  );
+
+  test("why a reconciliation waits or failed wraps under its badge, never one line cut short", async () => {
+    const item: DataReconciliation = reconciliation();
+
+    Object.assign(item, {
+      status: "Waiting",
+      statusMessage:
+        "The sides were last read 42 minutes apart: waiting for both to be read together.",
+    });
+
+    await inLanguage("de");
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <DataObservabilityReconciliationsPage
+            pageRoute={new Route("/")}
+            currentProject={null}
+            hasPaymentMethod={false}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    const element: ReactElement = (
+      capturedColumn("Status").getElement as (
+        item: DataReconciliation,
+      ) => ReactElement
+    )(item);
+
+    cleanup();
+
+    const { container } = render(<MemoryRouter>{element}</MemoryRouter>);
+    const message: HTMLElement = within(container).getByText(
+      item.statusMessage!,
+    );
+
+    expect(message.className).toBe(RECONCILIATION_STATUS_MESSAGE_CLASS_NAME);
+
+    const classes: Array<string> =
+      RECONCILIATION_STATUS_MESSAGE_CLASS_NAME.split(" ");
+
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "block",
+        "max-w-xs",
+        "whitespace-normal",
+        "break-words",
+      ]),
     );
     expect(classes).not.toContain("truncate");
   });

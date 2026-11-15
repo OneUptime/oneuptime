@@ -10,7 +10,7 @@ import BadDataException from "./BadDataException";
  * names. That is correct, and this type does not weaken it.
  *
  * What it fixes is the collateral damage. Callers downstream had nothing but
- * that sanitized string to reason about, so API.getRequestFailedDetails matched
+ * that sanitized string to reason about, so RequestFailedDetailsUtil.getRequestFailedDetails matched
  * none of its patterns and reported monitor failures as "Unknown" with no
  * actionable detail. Carrying the STAGE on the exception restores the one bit
  * every caller legitimately needs without reopening the oracle: when detail is

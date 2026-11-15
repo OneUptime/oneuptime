@@ -92,9 +92,16 @@ import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../../Types/Monitor/MonitorType";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  getEveryNewIncidentRuleName,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
-import { GUIDED_SETUP_POLICY_NAME } from "../../../../../Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  getFirstOnCallPolicyName,
+  GUIDED_SETUP_POLICY_NAME,
+} from "../../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import { GUIDED_SETUP_RESOURCE_OPTIONS } from "../../../../../Utils/GuidedSetup/StatusPageRecords";
 import {
   GUIDED_SETUP_MONITORING_INTERVAL,
@@ -809,6 +816,97 @@ describe("set_up_website_monitoring", () => {
     );
   });
 
+  /*
+   * "You own this monitor, so you are emailed when its status changes" was
+   * said to a master admin, whom the server never makes the owner of what
+   * they create (#7409): the action makes them one, as the guided setup
+   * does.
+   */
+  test("approved by a master admin, it makes them the monitor's owner, quietly, as the card says", async () => {
+    stubSeeds();
+    stubLocations();
+    stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    const addOwners: Spy = jest
+      .spyOn(MonitorService, "addOwners")
+      .mockResolvedValue(undefined as never);
+    const asMasterAdmin: ToolContext = {
+      ...ctx,
+      props: { ...ctx.props, isMasterAdmin: true },
+    };
+
+    const result: ToolExecutionResult =
+      await SetUpWebsiteMonitoringTool.execute(
+        { address: "example.com" },
+        asMasterAdmin,
+      );
+
+    expect(addOwners).toHaveBeenCalledTimes(1);
+    const [
+      projectId,
+      monitorId,
+      userIds,
+      teamIds,
+      notifyOwners,
+      props,
+    ]: Array<unknown> = addOwners.mock.calls[0] as Array<unknown>;
+
+    expect(String(projectId)).toBe(PROJECT_ID.toString());
+    expect(String(monitorId)).toBe(MONITOR_ID);
+    expect((userIds as Array<ObjectID>).map(String)).toEqual([
+      USER_ID.toString(),
+    ]);
+    expect(teamIds).toEqual([]);
+    // Their own row: nobody is told they were made an owner.
+    expect(notifyOwners).toBe(false);
+    expect(props).toBe(asMasterAdmin.props);
+    expect(result.dataForLlm).toContain(
+      "The person owns it, so they are emailed when its status changes.",
+    );
+  });
+
+  test("approved by anyone else, the server made them the owner already: nothing more is added", async () => {
+    stubSeeds();
+    stubLocations();
+    stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    const addOwners: Spy = jest
+      .spyOn(MonitorService, "addOwners")
+      .mockResolvedValue(undefined as never);
+
+    await SetUpWebsiteMonitoringTool.execute({ address: "example.com" }, ctx);
+
+    expect(addOwners).not.toHaveBeenCalled();
+  });
+
+  test("a master admin who cannot be made the owner still gets the monitor", async () => {
+    stubSeeds();
+    stubLocations();
+    const create: Spy = stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(MonitorService, "addOwners")
+      .mockRejectedValue(new Error("not a member") as never);
+
+    const result: ToolExecutionResult =
+      await SetUpWebsiteMonitoringTool.execute(
+        { address: "example.com" },
+        { ...ctx, props: { ...ctx.props, isMasterAdmin: true } },
+      );
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(result.citationTarget).toEqual({
+      type: AIChatCitationTargetType.MonitorView,
+      params: { monitorId: MONITOR_ID },
+    });
+  });
+
   test("approved with an address that is not one, or without the project's statuses, it makes nothing and says why", async () => {
     const create: Spy = stubMonitorCreate();
 
@@ -1291,6 +1389,8 @@ describe("set_up_paging", () => {
 
   test("approved, it creates the guided setup's policy as the person, paging who the card named for every new incident and alert", async () => {
     stubPagingCounts({ policies: 0, incidentRules: 0, alertRules: 0 });
+    // No language sent, none saved: English, as it always was.
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
     const create: Spy = jest
       .spyOn(OnCallDutyPolicyService, "create")
       .mockImplementation((async (args: {
@@ -1327,6 +1427,8 @@ describe("set_up_paging", () => {
       users: [USER_ID.toString(), ANA_ID],
       teams: [TEAM_ID],
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      // The server words the two rules in the person's language (#7995).
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "en",
     });
 
     expect(result.citationTarget).toEqual({
@@ -1347,6 +1449,94 @@ describe("set_up_paging", () => {
     expect(result.dataForLlm).toContain(
       'find_dashboard_page "Notification Methods"',
     );
+  });
+
+  /*
+   * #7995: the policy is named in the language the person reads the
+   * Dashboard in, as the guided setup names it, and its create carries
+   * that language so the server words its two rules in it. Its card, its
+   * citation and its test page name it as it was made.
+   */
+  test.each(["de", "ar", "fa", "ja"])(
+    "approved by a reader of %s, it names the policy in their language, and asks for its rules in it",
+    async (language: string) => {
+      stubPagingCounts({ policies: 0, incidentRules: 0, alertRules: 0 });
+      const saved: Spy = jest
+        .spyOn(UserLanguage, "getLanguage")
+        .mockResolvedValue("en" as never);
+      const create: Spy = jest
+        .spyOn(OnCallDutyPolicyService, "create")
+        .mockImplementation((async (args: {
+          data: OnCallDutyPolicy;
+        }): Promise<OnCallDutyPolicy> => {
+          const created: OnCallDutyPolicy = args.data;
+          created._id = POLICY_ID;
+          return created;
+        }) as never);
+
+      const result: ToolExecutionResult = await SetUpPagingTool.execute(
+        { userIds: [USER_ID.toString()], teamIds: [] },
+        { ...ctx, language: language },
+      );
+
+      const args: { data: OnCallDutyPolicy; miscDataProps: JSONObject } = create
+        .mock.calls[0]![0] as {
+        data: OnCallDutyPolicy;
+        miscDataProps: JSONObject;
+      };
+      const name: string = getFirstOnCallPolicyName(
+        dashboardTranslator(language),
+      );
+
+      expect(name).not.toBe(GUIDED_SETUP_POLICY_NAME);
+      expect(args.data.name).toBe(name);
+      expect(args.miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]).toBe(
+        language,
+      );
+      // The Dashboard's language decides: the saved one is not read.
+      expect(saved).not.toHaveBeenCalled();
+      expect(result.widget?.data.testPage).toEqual({
+        kind: "policy",
+        policyId: POLICY_ID,
+        policyName: name,
+      });
+      expect(result.citationLabel).toBe(`Created on-call policy "${name}"`);
+      expect(result.dataForLlm).toContain(
+        `Created the on-call policy "${name}"`,
+      );
+    },
+  );
+
+  test("its approval card names the policy as it will be made: in the reader's language", async () => {
+    jest
+      .spyOn(OnCallReadinessService, "getReadinessForUser")
+      .mockResolvedValue(
+        readiness({ verified: [ReadinessMethodType.Email] }) as never,
+      );
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+    const english: PreparedMutation = await SetUpPagingTool.prepareMutation!(
+      {},
+      ctx,
+    );
+    const german: PreparedMutation = await SetUpPagingTool.prepareMutation!(
+      {},
+      { ...ctx, language: "de" },
+    );
+
+    expect(actionTitleText(english.title!)).toBe(
+      `Create on-call policy "${GUIDED_SETUP_POLICY_NAME}"`,
+    );
+    expect(actionTitleText(german.title!)).toBe(
+      `Create on-call policy "${getFirstOnCallPolicyName(dashboardTranslator("de"))}"`,
+    );
+    // The rule the server then adds names it as it was made.
+    expect(
+      getEveryNewIncidentRuleName(
+        getFirstOnCallPolicyName(dashboardTranslator("de")),
+        dashboardTranslator("de"),
+      ),
+    ).toContain(getFirstOnCallPolicyName(dashboardTranslator("de")));
   });
 
   test("approved after a policy was made elsewhere, it makes no second one", async () => {

@@ -54,7 +54,7 @@ Zie [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 Een machine die de controles van monitoren volgens een schema uitvoert: ze vraagt een pagina op, roept een API aan of pingt een host. OneUptime Cloud draait sondes in meerdere regio's, en een aangepaste sonde die u in uw eigen netwerk draait, controleert wat alleen dat netwerk kan bereiken.
 
-Ook wel: **Aangepaste probes**. Zie [Aangepaste probes](/docs/probe/custom-probe).
+Ook wel: **Aangepaste sondes**. Zie [Aangepaste sondes](/docs/probe/custom-probe).
 
 ### Incident
 
@@ -122,11 +122,11 @@ Iemand die een statuspagina volgt via e-mail, sms, Slack, Microsoft Teams of web
 
 Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
 
-### Geplande onderhoud
+### Gepland onderhoud
 
 Gepland werk, vooraf aangekondigd. Elke onderhoudsgebeurtenis doorloopt de onderhoudsstatussen **Gepland**, **Lopend**, **Beëindigd** en **Voltooid**, en de statuspagina's waarop ze wordt getoond, informeren bezoekers en abonnees erover.
 
-Ook wel: **Geplande onderhoudsgebeurtenis**, **Geplande gebeurtenis**, **Gebeurtenis**. Zie [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index).
+Ook wel: **Geplande onderhoudsgebeurtenis**, **Geplande gebeurtenis**, **Gebeurtenis**. Zie [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index).
 
 ### Telemetrie
 

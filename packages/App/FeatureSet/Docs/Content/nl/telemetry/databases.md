@@ -31,7 +31,7 @@ flowchart LR
 
 Engine-metrics komen altijd van een collector die met de database zelf praat (of, bij een beheerde clouddatabase, met de monitoring-API van de provider). Traces en containerinventarissen vertellen OneUptime dat een database bestaat en hoe hij wordt gebruikt, maar niet hoe het er vanbinnen voor staat: de status **Enginemetrics** van elke database laat zien of dat deel verbonden is.
 
-Je kunt een database ook met de hand toevoegen: **Databases → Database aanmaken** met de engine, het adres en de poort. Voor een gezondheidscontrole vanaf een probe die helemaal geen agent nodig heeft, zie de [Databasegezondheid-monitor](/docs/monitor/database-health-monitor).
+Je kunt een database ook met de hand toevoegen: **Databases → Database aanmaken** met de engine, het adres en de poort. Voor een gezondheidscontrole vanaf een sonde die helemaal geen agent nodig heeft, zie de [Databasegezondheid-monitor](/docs/monitor/database-health-monitor).
 
 ## Ondersteunde databases
 
@@ -640,7 +640,7 @@ Het **Overzicht** van een database zegt hetzelfde: zijn gezondheid in de kop (_G
 
 ## Waarschuwingen voor een database
 
-De tabbladen **Waarschuwingen** en **Incidenten** van een database tonen wat de monitors die hem noemen hebben geopend. Zolang de database in een lopend venster voor gepland onderhoud zit, openen die monitors geen nieuwe incidenten of waarschuwingen, tenzij ze ook een resource noemen die buiten het venster valt. Hun status wordt nog steeds bijgewerkt, en wat ze vóór het venster openden, wordt nog steeds opgelost. Databases kunnen ook met de hand aan incidenten, waarschuwingen en gepland onderhoud worden gekoppeld, net als elke andere resource: als je er een aanmaakt vanaf het eigen tabblad **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** van de database, is de database al geselecteerd.
+De tabbladen **Waarschuwingen** en **Incidenten** van een database tonen wat de monitors die hem noemen hebben geopend. Zolang de database in een lopend venster voor gepland onderhoud zit, openen die monitors geen nieuwe incidenten of waarschuwingen, tenzij ze ook een resource noemen die buiten het venster valt. Hun status wordt nog steeds bijgewerkt, en wat ze vóór het venster openden, wordt nog steeds opgelost. Databases kunnen ook met de hand aan incidenten, waarschuwingen en gepland onderhoud worden gekoppeld, net als elke andere resource: als je er een aanmaakt vanaf het eigen tabblad **Incidenten**, **Waarschuwingen** of **Gepland onderhoud** van de database, is de database al geselecteerd.
 
 ### Aanbevolen monitors
 
@@ -653,7 +653,7 @@ De documentatie van een receiver somt op wat hij kan melden, niet wat er uit elk
 Een monitor die je zelf bouwt, koppelt zijn waarschuwingen en incidenten aan een database als hij de database noemt:
 
 - **Op id.** Een **Metrieken**-monitor over een engine-metric, of een **Logboeken**-monitor over de query-events en het logbestand ervan, die filtert op `oneuptime.database.server.id`, het id op het tabblad **Documentatie** van de database. Om veel databases met één monitor te bewaken, groepeer je de query in plaats daarvan op `oneuptime.database.server.id`: elke reeks wordt dan aan haar eigen database gekoppeld en alleen door het geplande onderhoud van die database gedempt.
-- **Op endpoint.** Monitors voor **Database Health** en **SQL Query** worden gekoppeld aan de database waarvan de endpoints de host en poort bevatten waarmee ze verbinden (voor een benoemde SQL Server-instance `host\instance`, de host en instance ervan: de driver negeert de poort bij een benoemde instance en vraagt SQL Browser om die van de instance), en hetzelfde doen metric- en **Traces**-monitors die op `server.address` filteren, met `server.port` of anders de standaardpoort van de engine die een filter op `db.system.name` of een receivermetric (`postgresql.backends`) noemt. Een traces-monitor op de mislukte aanroepen naar `orders-db.example.com` hoort bij die database. Het adres wordt gelezen zoals dat van een span, dus een filter op `k8s.namespace.name` of `k8s.cluster.name` naast een clusterlokale naam vult die aan en kwalificeert hem; een probe draagt geen cluster, dus hij past alleen op een naam die binnen één cluster resolvet zolang de database die ook ongekwalificeerd heeft (een project met één Kubernetes-cluster).
+- **Op endpoint.** Monitors voor **Databasegezondheid** en **SQL-query** worden gekoppeld aan de database waarvan de endpoints de host en poort bevatten waarmee ze verbinden (voor een benoemde SQL Server-instance `host\instance`, de host en instance ervan: de driver negeert de poort bij een benoemde instance en vraagt SQL Browser om die van de instance), en hetzelfde doen metric- en **Traces**-monitors die op `server.address` filteren, met `server.port` of anders de standaardpoort van de engine die een filter op `db.system.name` of een receivermetric (`postgresql.backends`) noemt. Een traces-monitor op de mislukte aanroepen naar `orders-db.example.com` hoort bij die database. Het adres wordt gelezen zoals dat van een span, dus een filter op `k8s.namespace.name` of `k8s.cluster.name` naast een clusterlokale naam vult die aan en kwalificeert hem; een sonde draagt geen cluster, dus hij past alleen op een naam die binnen één cluster resolvet zolang de database die ook ongekwalificeerd heeft (een project met één Kubernetes-cluster).
 
 De snelste manier om er een te bouwen, is vanuit de grafiek zelf: een grafiek die je vanaf het tabblad **Metrieken** van de database opent, heeft **Monitor maken**, dat een nieuwe metric-monitor over die metric opent (met de aggregatie, de attribuutfilters en het tijdsbereik van de grafiek), gefilterd op de `oneuptime.database.server.id` van de database, zodat hij vanaf het begin bij de database hoort. Een geselecteerde gauge die de grafiek over reeksen heen optelt (verbindingen per database, één agent per lid van de replica set) wordt een monitor die voor elke reeks waarschuwt (een monitor kan reeksen niet optellen), en een gauge waarvan de grafiek het maximum of minimum van zijn reeksen toont, wordt gelezen met Max of Min; een regel onder de knop zegt dat. De knop is uitgeschakeld, en zegt waarom, voor een cumulatieve teller (de grafiek toont de snelheid ervan, en een monitor heeft geen snelheid) en voor een metric die het id van de database niet draagt: `db.client.*`-metrics van de applicaties die hem aanroepen, of de CPU en het geheugen van de pods en containers waarin hij draait. Bouw die in plaats daarvan vanuit de metrics-explorer.
 
@@ -682,7 +682,7 @@ Noem alleen de tellers waarop je waarschuwt: vanaf dan tonen de grafieken van de
 
 De `sqlserver.*.rate`-metrics van SQL Server (batchverzoeken, compilaties, lockwachttijden, deadlocks) zijn vermomde tellers: via de directe verbinding van de agent dragen ze het totaal van de teller sinds de start van de server in plaats van een snelheid per seconde (alleen Windows-prestatiemeteritems melden de snelheid), en `cumulativetodelta` laat ze met rust omdat de receiver ze als gauges meldt. Waarschuw in plaats daarvan op de momentwaarden van SQL Server: geblokkeerde sessies, openstaande geheugentoekenningen, page life expectancy, buffercache-hitratio.
 
-Voor een probe die een database helemaal zonder agent controleert, zie de [Databasegezondheid-monitor](/docs/monitor/database-health-monitor).
+Voor een sonde die een database helemaal zonder agent controleert, zie de [Databasegezondheid-monitor](/docs/monitor/database-health-monitor).
 
 ## Levenscyclus, archivering en bewaring
 
@@ -714,7 +714,7 @@ curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troub
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 
-Het controleert de container, de identiteit in `.env`, de TCP-bereikbaarheid van de database vanuit het eigen netwerk van de agent, login-, rechten- en TLS-fouten in het collectorlog (en noemt elke andere receiverfout die het daar vindt) en de ingestiesleutel. De sleutelcontrole is belangrijk: de OTLP-endpoints van OneUptime weigeren een verkeerde sleutel met `401` (`422` voor een uitgeschakelde sleutel of een browsersleutel), en de collector gooit elke batch weg die hij niet kan afleveren en logt per batch één regel `Exporting failed` die je tussen de uitvoer van de receiver makkelijk mist. Het script roept `GET <url>/otlp/v1/validate` aan, dat direct `200` of `401` antwoordt. Het voert zijn probes uit vanaf een vastgepinde curl-image en geeft de sleutel via stdin door, nooit op een opdrachtregel.
+Het controleert de container, de identiteit in `.env`, de TCP-bereikbaarheid van de database vanuit het eigen netwerk van de agent, login-, rechten- en TLS-fouten in het collectorlog (en noemt elke andere receiverfout die het daar vindt) en de ingestiesleutel. De sleutelcontrole is belangrijk: de OTLP-endpoints van OneUptime weigeren een verkeerde sleutel met `401` (`422` voor een uitgeschakelde sleutel of een browsersleutel), en de collector gooit elke batch weg die hij niet kan afleveren en logt per batch één regel `Exporting failed` die je tussen de uitvoer van de receiver makkelijk mist. Het script roept `GET <url>/otlp/v1/validate` aan, dat direct `200` of `401` antwoordt. Het voert zijn controles uit vanaf een vastgepinde curl-image en geeft de sleutel via stdin door, nooit op een opdrachtregel.
 
 ### De agent draait, maar er verschijnt geen database
 
@@ -785,7 +785,7 @@ De monitor noemt de database niet. Filter of groepeer een metric- of logmonitor 
 
 :::cards
 - [Metrics-monitor](/docs/monitor/metrics-monitor): Waarschuw op de engine-metrics van een database, gefilterd op de `oneuptime.database.server.id` ervan.
-- [Databasegezondheid-monitor](/docs/monitor/database-health-monitor): Controleer PostgreSQL, MySQL of SQL Server vanaf een probe, zonder agent.
+- [Databasegezondheid-monitor](/docs/monitor/database-health-monitor): Controleer PostgreSQL, MySQL of SQL Server vanaf een sonde, zonder agent.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Instrumenteer je applicaties, zodat hun databaseaanroepen **Query's van applicaties** vullen.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Wat de database-AI-agent mag uitvoeren en hoe fixes werken.
 :::

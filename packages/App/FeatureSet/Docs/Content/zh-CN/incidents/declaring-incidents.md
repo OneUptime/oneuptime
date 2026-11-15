@@ -21,7 +21,7 @@
 | 从你自己的代码、脚本或其他工具创建                           | `POST /api/incident`                                                        |
 | 让团队外部的人通过链接报告问题                               | [表单](/docs/forms/index)                                                   |
 
-五种方式写入的是同一个模型，因此探针创建的事件和响应者手动创建的事件看起来完全一样——只是服务器会在自动创建的事件上设置几个记账用的列。工作流也会写入它：[Huntress](/docs/integrations/huntress) 工作流会为其 SOC 发来的每份事件报告创建一个事件。
+五种方式写入的是同一个模型，因此探测器创建的事件和响应者手动创建的事件看起来完全一样——只是服务器会在自动创建的事件上设置几个记账用的列。工作流也会写入它：[Huntress](/docs/integrations/huntress) 工作流会为其 SOC 发来的每份事件报告创建一个事件。
 
 > [!TIP]
 > 你也可以从告警声明事件：在告警列表、告警的页眉或告警的 **已关联事件** 页面上使用 **声明事件**，会打开同一个向导，按告警预先填好，并把它们关联到新事件。表单上默认勾选的复选框还会确认这些告警，让它们停止升级。参见 [关联的告警](/docs/incidents/linked-alerts)。
@@ -195,7 +195,7 @@
 
 标题、描述和补救备注中可用的 `{{variable}}` 占位符完整列表，参见 [事件与告警模板](/docs/monitor/incident-alert-templating)。
 
-以这种方式创建的事件会被服务器打上标记：设置 `isCreatedAutomatically`，`createdCriteriaId` 记录是哪个条件过滤器触发的，`createdByProbe` 记录是哪个探针发现的。除此之外，它们的一切行为都与手动声明的事件完全相同。
+以这种方式创建的事件会被服务器打上标记：设置 `isCreatedAutomatically`，`createdCriteriaId` 记录是哪个条件过滤器触发的，`createdByProbe` 记录是哪个探测器发现的。除此之外，它们的一切行为都与手动声明的事件完全相同。
 
 监视器声明的事件会关联到监视器所监视的对象：它的配置所指明的（主机监视器的主机、Kubernetes 监视器的集群、日志监视器的服务），以及它 **已关联资源** 下的一切。网站或 API 监视器的配置不指明任何基础设施，所以请把它关联到网站背后的集群、主机或数据库：这样它的事件就会出现在那些资源的页面上，OneUptime AI 可以在那里调查它们，集群或资源的 AI 修复也可以对它们生效（参见 [AI SRE](/docs/ai/ai-sre#集群的修复作用于哪些事件)）。监视器创建的告警也以同样的方式关联。
 
@@ -229,7 +229,7 @@ curl -X POST https://oneuptime.com/api/incident \
 
 要在声明事件时添加所有者，请在 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式发送他们的 ID。如果调用方无权添加这些所有者，请求会在保存任何内容之前被拒绝；否则，事件一经创建就会添加他们，且不发送“你已被添加”通知。API 密钥不是人：它不会成为所有者，也没有任何所有者规则会为它添加创建者的团队。要查询哪些所有者规则会运行，请将表单所持有的事件——`title`、`description`、`severityId`、`labelIds`、`monitorIds` 以及其他资源的 ID——发送到 `POST /api/incident/owner-rule-preview`：响应会列出每条会添加某人的规则，以及它所添加对象的 ID。对于警报，则是 `POST /api/alert/owner-rule-preview`。
 
-API 密钥不能从模板声明：发送 `createdIncidentTemplateId` 的请求会被拒绝。这一列由 OneUptime 自己设置，用于通过 [表单](/docs/forms/on-submit) 报告的事件，以及工作流的 **Create One Incident** 步骤——它会根据其 **Incident Template** 设置中选择的模板进行声明（参见 [工作流组件](/docs/workflows/components)）。要通过 API 从模板声明，请从 `/api/incident-templates` 读取模板，并在请求中发送它的值。
+API 密钥不能从模板声明：发送 `createdIncidentTemplateId` 的请求会被拒绝。这一列由 OneUptime 自己设置，用于通过 [表单](/docs/forms/on-submit) 报告的事件，以及工作流的 **Create One Incident** 步骤——它会根据其 **事件模板** 设置中选择的模板进行声明（参见 [工作流组件](/docs/workflows/components)）。要通过 API 从模板声明，请从 `/api/incident-templates` 读取模板，并在请求中发送它的值。
 
 相关端点有 `/api/incident-state`、`/api/incident-severity` 和 `/api/incident-state-timeline`。生成的 [API 参考](/reference) 给出了每个端点确切的请求和响应结构，包括监视器等关系字段的表示方式。
 

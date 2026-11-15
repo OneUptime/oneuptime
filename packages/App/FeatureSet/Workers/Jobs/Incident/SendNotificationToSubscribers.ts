@@ -74,6 +74,7 @@ import SubscriberMessageText, {
   SubscriberChatText,
   SubscriberSmsText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { StateListType } from "Common/Utils/StateOrder";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { Translator } from "Common/Types/Translator";
 
@@ -757,6 +758,7 @@ RunCron(
                                     title: incident.title || "",
                                     severity: incident.incidentSeverity?.name
                                       ? SubscriberMessageText.stateName(
+                                          StateListType.IncidentSeverity,
                                           incident.incidentSeverity.name,
                                         )
                                       : "-",
@@ -827,7 +829,7 @@ RunCron(
                         (translator: Translator): string => {
                           return mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: incident.title || "" })}
 
-${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, StateListType.IncidentSeverity, incident.incidentSeverity.name) : " - ")}
 
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 
@@ -882,7 +884,7 @@ ${slackCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUr
                         language,
                         (translator: Translator): string => {
                           return mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: incident.title || "" })}
-${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, StateListType.IncidentSeverity, incident.incidentSeverity.name) : " - ")}
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, FeedMarkdown.asMarkdown(incident.description || ""))}
 ${teamsCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();

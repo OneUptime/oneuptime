@@ -122,6 +122,8 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
     default: {
       getPolicyFromSecretKey: jest.fn(),
       getProjectIdFromSecretKey: jest.fn(),
+      // A connected MQTT session's key, as it is now (issue #8147).
+      getCurrentPolicyById: jest.fn(),
       findOneBy: jest.fn(),
       markUsed: jest.fn(),
     },
@@ -231,6 +233,44 @@ type SpyLike = {
 
 const getPolicyResolverMock: () => MockedFn = (): MockedFn => {
   return TelemetryIngestionKeyService.getPolicyFromSecretKey as unknown as MockedFn;
+};
+
+/*
+ * The key as it is now, as MQTT CONNECT asks it after the lookup by secret
+ * (issue #8147): the key the lookup resolved, unchanged. Nothing in this
+ * suite changes a key after it is resolved; MqttServerKeyStopped.test.ts
+ * does.
+ */
+const keyAsResolved: (data: {
+  ingestionKeyId: ObjectID;
+}) => Promise<TelemetryIngestionKeyPolicy | null> = async (data: {
+  ingestionKeyId: ObjectID;
+}): Promise<TelemetryIngestionKeyPolicy | null> => {
+  const results: Array<jest.MockResult<unknown>> =
+    getPolicyResolverMock().mock.results;
+
+  for (let index: number = results.length - 1; index >= 0; index--) {
+    const result: jest.MockResult<unknown> = results[index]!;
+
+    if (result.type !== "return") {
+      continue;
+    }
+
+    const policy: TelemetryIngestionKeyPolicy | null = await Promise.resolve(
+      result.value as Promise<TelemetryIngestionKeyPolicy | null>,
+    ).catch((): null => {
+      return null;
+    });
+
+    if (
+      policy &&
+      policy.ingestionKeyId.toString() === data.ingestionKeyId.toString()
+    ) {
+      return policy;
+    }
+  }
+
+  return null;
 };
 
 const getRateLimiterConsumeMock: () => MockedFn = (): MockedFn => {
@@ -463,6 +503,9 @@ afterAll(() => {
 beforeEach(() => {
   jest.clearAllMocks();
   capturedLogs.length = 0;
+  (
+    TelemetryIngestionKeyService.getCurrentPolicyById as unknown as MockedFn
+  ).mockImplementation(keyAsResolved);
 });
 
 describe("gRPC OTLP ingest — telemetry ingestion key refusals", () => {
@@ -786,8 +829,9 @@ describe("MQTT CONNECT — telemetry ingestion key refusals", () => {
      * ingest by the same script that scraped it, from any origin, with no
      * Origin check to fail — the broker does not inspect the WebSocket
      * handshake's Origin, and the key's allowlist is an HTTP-path control. No
-     * OneUptime browser SDK publishes MQTT (browser keys exist for OTLP and
-     * session replay), so a Browser key at CONNECT has no honest explanation.
+     * OneUptime browser SDK publishes MQTT (browser keys exist for OTLP,
+     * session replay and Sentry's browser SDKs), so a Browser key at CONNECT
+     * has no honest explanation.
      */
     const policy: TelemetryIngestionKeyPolicy = buildLegacyServerKeyPolicy({
       keyType: TelemetryIngestionKeyType.Browser,

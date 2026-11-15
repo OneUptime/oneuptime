@@ -33,8 +33,8 @@ De sonde meldt alleen:
 |---|---|
 | **Aantal rijen** | Het aantal rijen dat de query teruggaf (begrensd door de limiet Max Rows). |
 | **Scalaire waarde** | De eerste kolom van de eerste rij. Dit is de natuurlijke waarde voor een query in de stijl van `SELECT COUNT(*)`. |
-| **First Row** | De eerste rij als paren van kolom en waarde, getoond in de samenvatting van de controle voor context. |
-| **Execution Time** | Hoe lang de controle duurde, in milliseconden, inclusief het verbinden en niet alleen de query. |
+| **Eerste rij** | De eerste rij als paren van kolom en waarde, getoond in de samenvatting van de controle voor context. |
+| **Uitvoeringstijd** | Hoe lang de controle duurde, in milliseconden, inclusief het verbinden en niet alleen de query. |
 | **Queryfout** | Een opgeschoonde foutmelding als de query mislukte. |
 
 De volledige resultaatset wordt nooit naar OneUptime gestuurd, dus klantgegevens worden niet naar de opslag van OneUptime gekopieerd.
@@ -108,7 +108,7 @@ Voor een nauwere toekenning geeft u de gebruiker `SELECT` op alleen de tabellen 
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **SQL Query** onder **Databasebewaking**, of typ `query` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **SQL-query** onder **Databasebewaking**, of typ `query` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
 
 ### De verbindingsgegevens invoeren
 
@@ -116,7 +116,7 @@ Kies het **Database Type** (de poort springt naar de standaard van die engine) e
 
 ### De query invoeren
 
-Typ één alleen-lezen instructie in **SQL Query** (zie [De query schrijven](#de-query-schrijven)).
+Typ één alleen-lezen instructie in **SQL-query** (zie [De query schrijven](#de-query-schrijven)).
 
 ### Het testen
 
@@ -142,7 +142,7 @@ Selecteer de **Sondes** die de database bereiken en een **Bewakingsinterval**, e
 | **Authenticatie** | Alleen Microsoft SQL Server: **Gebruikersnaam en wachtwoord**, de standaard, of **Windows Integrated Authentication**, dat aanmeldt met het account waaronder de sonde draait. Zie [Geïntegreerde Windows-verificatie](#geïntegreerde-windows-verificatie). |
 | **Gebruikersnaam** | Een alleen-lezen databasegebruiker met minimale rechten. |
 | **Wachtwoord** | Het databasewachtwoord. We raden sterk aan met `{{monitorSecrets.name}}` naar een [monitorgeheim](/docs/monitor/monitor-secrets) te verwijzen in plaats van het wachtwoord als platte tekst in te typen (zie [Een monitorgeheim voor het wachtwoord gebruiken](#een-monitorgeheim-voor-het-wachtwoord-gebruiken)). |
-| **SQL Query** | De alleen-lezen query die wordt uitgevoerd (zie [De query schrijven](#de-query-schrijven)). |
+| **SQL-query** | De alleen-lezen query die wordt uitgevoerd (zie [De query schrijven](#de-query-schrijven)). |
 | **Use SSL/TLS** | Zet dit aan om via TLS verbinding te maken. Staat het aan, dan kunt u **Verify server certificate** uitzetten als de database een zelfondertekend certificaat gebruikt. |
 
 ### Meer velden
@@ -216,7 +216,7 @@ Zodat het databasewachtwoord nooit als platte tekst op de monitor wordt opgeslag
 3. Voer in het veld **Wachtwoord** van de monitor `{{monitorSecrets.dbPassword}}` in.
 :::
 
-OneUptime lost het geheim op de server op voordat de configuratie aan de sonde wordt overgedragen. OneUptime maakt deze geheimen nooit voor u aan: of u ernaar verwijst, is uw keuze. De velden **Gebruikersnaam**, **Host**, **Databasenaam** en **SQL Query** accepteren ook verwijzingen naar geheimen; **Poort** niet.
+OneUptime lost het geheim op de server op voordat de configuratie aan de sonde wordt overgedragen. OneUptime maakt deze geheimen nooit voor u aan: of u ernaar verwijst, is uw keuze. De velden **Gebruikersnaam**, **Host**, **Databasenaam** en **SQL-query** accepteren ook verwijzingen naar geheimen; **Poort** niet.
 
 ## Criteria instellen
 
@@ -250,7 +250,7 @@ Koppel een on-callbeleid aan het criterium, zodat de juiste mensen worden opgero
 
 - De query draait bij elke controle, dus houd hem goedkoop. Gebruik indexen en smalle tijdvensters, en vertrouw op de Statement Timeout als vangnet.
 - Alleen het aantal rijen, de eerste cel (scalair) en de eerste rij worden gemeld: ontwerp uw query zo dat de waarde waarop u wilt waarschuwen in de eerste kolom staat.
-- Wordt het resultaat afgekapt omdat het Max Rows overschreed, dan toont de samenvatting van de controle **Rows Truncated**: "Yes (result capped)". Verhoog Max Rows alleen als u het nodig hebt; grotere resultaatsets kosten meer geheugen op de sonde.
+- Wordt het resultaat afgekapt omdat het Max Rows overschreed, dan toont de samenvatting van de controle **Rijen afgekapt**: "Ja (resultaat begrensd)". Verhoog Max Rows alleen als u het nodig hebt; grotere resultaatsets kosten meer geheugen op de sonde.
 - Schrijfacties en DDL worden altijd geweigerd. Moet u een schrijfpad testen, dan is deze monitor daar niet voor.
 - Geef de voorkeur aan een monitorgeheim boven een wachtwoord in platte tekst, zodat de inloggegevens versleuteld opgeslagen blijven.
 - Een controle waarvan de query mislukt, wordt een seconde later opnieuw geprobeerd, tot nog drie keer, voordat de fout wordt gemeld, zodat een korte verbindingsonderbreking de monitor niet offline zet. Op een zelfgehoste sonde bepaalt `PROBE_MONITOR_RETRY_LIMIT` hoe vaak.
@@ -283,5 +283,5 @@ De sonde heeft een Microsoft ODBC Driver for SQL Server nodig en een identiteit 
 - [Databasegezondheid-monitor](/docs/monitor/database-health-monitor): Verbindingen, vergrendelingen en replicatie bewaken zonder SQL te schrijven.
 - [Monitor-geheimen](/docs/monitor/monitor-secrets): Het databasewachtwoord versleuteld bewaren.
 - [JavaScript-expressies](/docs/monitor/javascript-expression): Criteria schrijven die meerdere waarden combineren.
-- [Aangepaste probes](/docs/probe/custom-probe): Controles vanuit uw eigen netwerk uitvoeren.
+- [Aangepaste sondes](/docs/probe/custom-probe): Controles vanuit uw eigen netwerk uitvoeren.
 :::

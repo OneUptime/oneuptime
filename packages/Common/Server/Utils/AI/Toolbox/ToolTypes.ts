@@ -9,6 +9,7 @@ import TelemetryReadScopeUtil, {
 import LlmConversationPrivacy from "../../LlmObservability/LlmConversationPrivacy";
 import OneUptimeDate from "../../../../Types/Date";
 import Permission from "../../../../Types/Permission";
+import Timezone from "../../../../Types/Timezone";
 import {
   AIChatCitationTarget,
   AIChatWidget,
@@ -77,6 +78,20 @@ export interface ToolContext {
    * else English. Never a permission, and never the model's language.
    */
   language?: string | undefined;
+  /*
+   * The time zone of the person asking, as the request that started or
+   * approved the turn said it (ChatTurnRequest.timezone): a name the
+   * Timezone list names, in its current name, never anything else
+   * (AggregationIntervalUtil.readRequestedTimezone). A tool that charts a
+   * window asks for its day, week, month and year buckets in it
+   * (AggregationIntervalUtil.withTimezone), as every dashboard chart does
+   * since issue #7277, because the chat draws them on that person's
+   * calendar: in UTC's days, each day's total sat under the day before in
+   * New York (issue #7922). Left out - Slack, Microsoft Teams, an
+   * autonomous investigation, an older Dashboard - those buckets are UTC's.
+   * Never a permission.
+   */
+  readerTimezone?: Timezone | undefined;
 }
 
 // A tool call of the answer being prepared (ToolContext.plannedCalls).
@@ -180,6 +195,12 @@ export interface ToolExecutionResult {
   dataForLlm: string;
   rowCount: number;
   citationLabel: string;
+  /*
+   * The label as a sentence of Types/AI/AIActionWords (issue #7980), whose
+   * English is citationLabel: the chip under Sources says it in the
+   * reader's language (ReadTableWords' citationOf builds both at once).
+   */
+  citationWords?: AIActionSentence | undefined;
   citationTarget?: AIChatCitationTarget | undefined;
   redactionCount: number;
   isTruncated: boolean;

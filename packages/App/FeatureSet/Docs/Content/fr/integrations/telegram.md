@@ -15,11 +15,11 @@ Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://t
 flowchart TB
     fired["Alerte levée"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
-    step -->|"Success"| chat["Message dans<br/>votre discussion"]
-    step -->|"Error"| failed["L'exécution échoue<br/>et dit pourquoi"]
+    step -->|"Succès"| chat["Message dans<br/>votre discussion"]
+    step -->|"Erreur"| failed["L'exécution échoue<br/>et dit pourquoi"]
 ```
 
-L'étape envoie le **Message Text** à la discussion, au nom de votre bot, via la Bot API de Telegram. Elle prend sa sortie **Success** quand Telegram accepte le message, et sa sortie **Error**, avec la raison de Telegram, quand Telegram le refuse. Si rien n'est relié à **Error**, comme dans le modèle, une exécution qui n'a pas pu envoyer échoue, et ses **Étapes** disent pourquoi.
+L'étape envoie le **Texte du message** à la discussion, au nom de votre bot, via la Bot API de Telegram. Elle prend sa sortie **Succès** quand Telegram accepte le message, et sa sortie **Erreur**, avec la raison de Telegram, quand Telegram le refuse. Si rien n'est relié à **Erreur**, comme dans le modèle, une exécution qui n'a pas pu envoyer échoue, et ses **Étapes** disent pourquoi.
 
 ## Avant de commencer
 
@@ -58,8 +58,8 @@ Le workflow s'ouvre dans le **Constructeur** avec deux étapes : **On Create Ale
 1. Enregistrez le jeton comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `TELEGRAM_BOT_TOKEN`, et cliquez sur **Suivant**. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow, et cliquez sur **Créer un flux de travail**.
 3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** sous **Populaires**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'alerte avec préfixe**.
-4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Send Message to Telegram**. Reliez la sortie **Success** du déclencheur à cette étape.
-5. Cliquez sur la nouvelle étape. Dans **Telegram Bot Token**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **Chat ID**, écrivez le message dans **Message Text**, et insérez les champs de l'alerte avec **{ }**.
+4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Send Message to Telegram**. Reliez la sortie **Succès** du déclencheur à cette étape.
+5. Cliquez sur la nouvelle étape. Dans **Telegram Bot Token**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **Chat ID**, écrivez le message dans **Texte du message**, et insérez les champs de l'alerte avec **{ }**.
 :::
 
 Un message construit de zéro lit les champs de l'alerte avec des références comme celles-ci :
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Basculez l'interrupteur **Activé** en haut du **Constructeur**. À partir de là, chaque nouvelle alerte est envoyée dans la discussion.
 
-Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et choisissez une alerte existante sous **Alerte** : les plus récentes sont listées, et saisir son numéro ou une partie de son titre en trouve une autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans la discussion. Si l'étape prend plutôt **Error**, l'exécution échoue, et l'entrée de l'étape dans **Étapes** dit pourquoi : voir [Dépannage](#dépannage).
+Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et choisissez une alerte existante sous **Alerte** : les plus récentes sont listées, et saisir son numéro ou une partie de son titre en trouve une autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans la discussion. Si l'étape prend plutôt **Erreur**, l'exécution échoue, et l'entrée de l'étape dans **Étapes** dit pourquoi : voir [Dépannage](#dépannage).
 :::
 
 ## Conseils
@@ -85,7 +85,7 @@ Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et
 
 ## Dépannage
 
-Quand l'étape prend **Error**, l'exécution échoue, et l'entrée de l'étape dans les **Étapes** de l'exécution donne la raison de Telegram. Le bot doit être dans la discussion : vérifiez-le d'abord.
+Quand l'étape prend **Erreur**, l'exécution échoue, et l'entrée de l'étape dans les **Étapes** de l'exécution donne la raison de Telegram. Le bot doit être dans la discussion : vérifiez-le d'abord.
 
 :::details Telegram répond "Bad Request: chat not found"
 Le **Chat ID** est faux, ou le bot ne voit pas la discussion : ajoutez le bot au groupe, faites-en un administrateur du canal, ou demandez à la personne de commencer une discussion avec le bot. L'ID d'un groupe commence par `-`.

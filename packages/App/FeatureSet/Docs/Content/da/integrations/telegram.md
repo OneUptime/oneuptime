@@ -15,11 +15,11 @@ Send en besked til en [Telegram](https://telegram.org)-chat, -gruppe eller -kana
 flowchart TB
     fired["Advarsel udløst"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
-    step -->|"Success"| chat["Besked i<br/>din chat"]
-    step -->|"Error"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
+    step -->|"Succes"| chat["Besked i<br/>din chat"]
+    step -->|"Fejl"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
 ```
 
-Trinnet sender **Message Text** til chatten som din bot via Telegrams Bot API. Det tager sin udgang **Success**, når Telegram tager imod beskeden, og sin udgang **Error**, med Telegrams begrundelse, når Telegram afviser den. Er intet forbundet til **Error**, som i skabelonen, mislykkes en kørsel, der ikke kunne sende, og dens **Trin** siger hvorfor.
+Trinnet sender **Message Text** til chatten som din bot via Telegrams Bot API. Det tager sin udgang **Succes**, når Telegram tager imod beskeden, og sin udgang **Fejl**, med Telegrams begrundelse, når Telegram afviser den. Er intet forbundet til **Fejl**, som i skabelonen, mislykkes en kørsel, der ikke kunne sende, og dens **Trin** siger hvorfor.
 
 ## Før du går i gang
 
@@ -55,10 +55,10 @@ Start fra skabelonen, der bygger hele workflowet til advarsler, eller fra bunden
 
 Workflowet åbner i **Bygger** med to trin: **On Create Alert** og **Send Message to Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand. Tokenet gemmes som workflowets hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
 @tab Fra bunden
-1. Gem tokenet som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `TELEGRAM_BOT_TOKEN`, og klik på **Næste**. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+1. Gem tokenet som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, giv den navnet `TELEGRAM_BOT_TOKEN`, og klik på **Næste**. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
 3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** under **Populære**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Alert Number With Prefix**.
-4. Klik på **Tilføj komponent**, søg efter `telegram`, og klik på **Send Message to Telegram**. Forbind triggerens udgang **Success** til den.
+4. Klik på **Tilføj komponent**, søg efter `telegram`, og klik på **Send Message to Telegram**. Forbind triggerens udgang **Succes** til den.
 5. Klik på det nye trin. Klik i **Telegram Bot Token** på **{ }**, og vælg `TELEGRAM_BOT_TOKEN` under **Global variables**. Angiv chattens ID i **Chat ID**, skriv beskeden i **Message Text**, og indsæt advarslens felter med **{ }**.
 :::
 
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Slå **Aktiveret** til øverst i **Bygger**. Fra nu af sendes hver ny advarsel til chatten.
 
-For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og vælger en advarsel, du allerede har, under **Advarsel**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i chatten. Tager trinnet i stedet **Error**, mislykkes kørslen, og trinnets post under **Trin** siger hvorfor: se [Fejlfinding](#fejlfinding).
+For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og vælger en advarsel, du allerede har, under **Advarsel**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i chatten. Tager trinnet i stedet **Fejl**, mislykkes kørslen, og trinnets post under **Trin** siger hvorfor: se [Fejlfinding](#fejlfinding).
 :::
 
 ## Tips
@@ -85,7 +85,7 @@ For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og 
 
 ## Fejlfinding
 
-Når trinnet tager **Error**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Telegrams begrundelse. Botten skal være i chatten, så tjek det først.
+Når trinnet tager **Fejl**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Telegrams begrundelse. Botten skal være i chatten, så tjek det først.
 
 :::details Telegram svarer "Bad Request: chat not found"
 **Chat ID** er forkert, eller botten kan ikke se chatten: føj botten til gruppen, gør den til administrator af kanalen, eller bed personen om at starte en chat med botten. En gruppes ID starter med `-`.

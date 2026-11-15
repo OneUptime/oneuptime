@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 稼働率",
+    "uptimePercent": "稼働率 {{percent}}%",
     "operational": "稼働中",
     "notMonitored": "未監視",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
@@ -114,6 +115,7 @@
     "noneDescription": "このステータスページに投稿されたインシデントはありません。",
     "postmortem": "インシデント事後分析",
     "declaredAt": "発生日時: ",
+    "declaredAtTime": "発生日時: {{time}}",
     "report": "インシデントレポート",
     "notFound": "このステータスページでインシデントが見つかりません。"
   },
@@ -130,6 +132,7 @@
     "none": "お知らせなし",
     "noneDescription": "このページにはまだお知らせが投稿されていません。",
     "announcedAt": "告知日時: ",
+    "announcedAtTime": "告知日時: {{time}}",
     "notFound": "このステータスページでお知らせが見つかりません。"
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "定期メンテナンスはありません",
     "noneDescription": "このステータスページに公開された定期メンテナンスはありません。",
     "scheduledAt": "予定日時: ",
+    "scheduledAtTime": "予定日時: {{time}}",
     "report": "メンテナンスイベントのレポート",
     "notFound": "このステータスページにメンテナンスイベントは見つかりません。",
     "calendar": {
@@ -149,7 +153,7 @@
       "subscribeTitle": "計画メンテナンスを購読",
       "subscribeDescription": "このページの計画メンテナンスをカレンダーアプリで受け取れます。自動で最新の状態に保たれます。",
       "eventTitle": "カレンダーに追加",
-      "eventDescription": "このメンテナンスをカレンダーアプリに追加します。",
+      "eventDescription": "このメンテナンスイベントをカレンダーアプリに追加します。",
       "addToCalendar": "カレンダーに追加",
       "addHeading": "カレンダーに追加",
       "google": "Google カレンダー",
@@ -467,5 +471,7 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "No options available": "利用できるオプションはありません",
+  "No matches found": "一致するものが見つかりません"
 }

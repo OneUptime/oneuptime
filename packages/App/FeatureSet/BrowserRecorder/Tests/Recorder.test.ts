@@ -4648,6 +4648,48 @@ describe("Recorder", (): void => {
       expect(bodies).toContain("checkout_failed");
     });
 
+    /*
+     * Issue #7500: the docs tell a page that picked Mask all text to put a
+     * value it needs to read in a tag, because a track() property's value
+     * arrives masked. Both halves of that sentence, on one recording.
+     */
+    it("keeps tag values as written under MaskAllText, where a track() property's value is masked", async (): Promise<void> => {
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: { ...baseConfig(), samplePercentage: 100 },
+      });
+
+      recorder = instance;
+
+      instance.setTags({ setup: "website_down" });
+      instance.addTag("step", "monitor_created");
+      instance.start();
+      instance.track("guided_setup/step_reached", { setup: "api_check" });
+
+      await flushUploads();
+      sealByHidingThePage();
+      await flushUploads();
+
+      const bodies: string = fetchMock.mock.calls
+        .map((call: Array<unknown>): string => {
+          return new TextDecoder().decode(
+            (call[1] as Record<string, unknown>)["body"] as Uint8Array,
+          );
+        })
+        .join("");
+
+      // The event's name and its key as written, its value masked...
+      expect(bodies).toContain("guided_setup/step_reached");
+      expect(bodies).not.toContain("api_check");
+      // ...and the tags' values as the page wrote them.
+      expect(bodies).toContain("website_down");
+      expect(bodies).toContain("monitor_created");
+      expect(instance.getTags()).toEqual({
+        setup: "website_down",
+        step: "monitor_created",
+      });
+    });
+
     it("advertises its capabilities on chunk 0 only", async (): Promise<void> => {
       startRecorder({ samplePercentage: 100 });
 

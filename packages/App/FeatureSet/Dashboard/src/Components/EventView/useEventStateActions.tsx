@@ -37,10 +37,12 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
+  TemplateValue,
   translatableTerm,
   TranslatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, useRef, useState } from "react";
 import {
@@ -224,14 +226,21 @@ function useEventStateActions<T extends BaseModel>(
     return given || getRecordDisplayName(item, { model: model });
   };
 
+  /*
+   * A state's name in a sentence ("Mark as {{state}}"), read by its list
+   * (Common/Utils/DefaultRecordNames): OneUptime's own names in the reader's
+   * words, a state the project named "Open" as written, never "Abrir".
+   */
   const stateTerm: (
     state: EventStateLike | null,
     inSentence: boolean,
-  ) => TranslatableTerm = (
+  ) => TemplateValue = (
     state: EventStateLike | null,
     inSentence: boolean,
-  ): TranslatableTerm => {
-    return translatableTerm(state?.name || "", { inSentence: inSentence });
+  ): TemplateValue => {
+    return recordNameInSentence(definition.stateList, state?.name || "", {
+      inSentence: inSentence,
+    });
   };
 
   // The menu item of a named move: "Acknowledge", "Mark as Ongoing".
@@ -382,7 +391,10 @@ function useEventStateActions<T extends BaseModel>(
     if (refusal) {
       return bulkItemUnchanged(
         translator.translateTemplate(refusal, {
-          state: translatableTerm(data.targetStateName),
+          state: recordNameInSentence(
+            definition.stateList,
+            data.targetStateName,
+          ),
         }),
       );
     }

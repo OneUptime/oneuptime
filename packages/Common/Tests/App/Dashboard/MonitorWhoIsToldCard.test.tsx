@@ -211,6 +211,7 @@ function offline(
 function result(
   criteria: Array<WhoIsToldCriteria>,
   overrides: Partial<WhoIsToldResult> = {},
+  project: { hasOnCallPolicies: boolean } = { hasOnCallPolicies: true },
 ): WhoIsToldResult {
   return {
     monitorId: MONITOR_ID.toString(),
@@ -223,6 +224,7 @@ function result(
       channels: channels(),
       projectHasIncidentOnCallRules: true,
       projectHasAlertOnCallRules: false,
+      projectHasOnCallPolicies: project.hasOnCallPolicies,
     }),
     ...overrides,
   };
@@ -231,10 +233,52 @@ function result(
 describe("the card's first words", () => {
   test("says what happens, who is emailed and who is paged, as the issue words it", () => {
     expect(getWhoIsToldSentences(result([offline()]), translator)).toEqual([
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
       "It emails the project's owners (Owner One).",
       "It pages Ana Lopez through Primary.",
     ]);
+  });
+
+  /*
+   * A new project's incident severities are named "Critical Incident" and
+   * the rest: "opens a {{severity}} incident" read "opens a Critical
+   * Incident incident" on every monitor's page (#7368). The severity is in
+   * brackets now, as the Website down summary sets it.
+   */
+  test("with the severity a new project starts with, the sentence names the incident once", () => {
+    const first: string = getWhoIsToldSentences(
+      result([
+        offline({ events: [event({ severityName: "Critical Incident" })] }),
+      ]),
+      translator,
+    )[0]!;
+
+    expect(first).toBe(
+      "OneUptime marks it Offline and opens an incident (Critical Incident).",
+    );
+    expect(first).not.toMatch(/Incident incident/i);
+    expect(first.match(/\bincident\b/g)).toHaveLength(1);
+  });
+
+  test("and an alert's, its severity in brackets too", () => {
+    for (const name of ["High", "Low"]) {
+      const first: string = getWhoIsToldSentences(
+        result([
+          offline({
+            statusName: undefined,
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                severityName: name,
+              }),
+            ],
+          }),
+        ]),
+        translator,
+      )[0]!;
+
+      expect(first).toBe(`OneUptime opens an alert (${name}).`);
+    }
   });
 
   test("nobody paged, said plainly", () => {
@@ -268,7 +312,7 @@ describe("the card's first words", () => {
         translator,
       ).slice(0, 2),
     ).toEqual([
-      "OneUptime opens a Warning alert.",
+      "OneUptime opens an alert (Warning).",
       "It emails its owners (Ana Lopez and Platform).",
     ]);
   });
@@ -434,7 +478,7 @@ describe("the card's first words", () => {
 
     test("English: a space after each sentence", () => {
       expect(getWhoIsToldSummary(owned, translator)).toBe(
-        "OneUptime marks it Offline and opens a Critical incident. It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
+        "OneUptime marks it Offline and opens an incident (Critical). It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
       );
     });
 
@@ -495,6 +539,22 @@ describe("a break, in the reader's words, with where to fix it", () => {
         recordKind: OnCallTestPageRecordKind.Alert,
       }),
     ).toBe(BREAK_SENTENCES.nobodyPagedAlerts);
+    // No on-call policy yet (#7369), for incidents and alerts alike.
+    for (const recordKind of [
+      OnCallTestPageRecordKind.Incident,
+      OnCallTestPageRecordKind.Alert,
+    ]) {
+      expect(
+        brk({
+          kind: WhoIsToldBreakKind.NobodyPaged,
+          fix: WhoIsToldFix.OnCallGuidedSetup,
+          recordKind: recordKind,
+        }),
+      ).toBe("Nobody is paged: this project has no on-call policy yet.");
+    }
+    expect(BREAK_SENTENCES.nobodyPagedNoPolicy).toBe(
+      "Nobody is paged: this project has no on-call policy yet.",
+    );
     expect(
       brk({
         kind: WhoIsToldBreakKind.PolicyHasNoLevels,
@@ -576,6 +636,49 @@ describe("a break, in the reader's words, with where to fix it", () => {
         fix: WhoIsToldFix.IncidentOnCallRules,
       }),
     ).toMatchObject({ text: "Set Up Paging" });
+    expect(
+      link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.IncidentOnCallRules,
+      })!.route.toString(),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+      ).toString(),
+    );
+    // No on-call policy yet (#7369): the on-call guided setup, by the same words.
+    expect(
+      link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.OnCallGuidedSetup,
+        recordKind: OnCallTestPageRecordKind.Alert,
+      }),
+    ).toEqual({
+      text: "Set Up Paging",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ),
+    });
+    expect(
+      link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.OnCallGuidedSetup,
+      })!.route.toString(),
+    ).toContain("/on-call-duty/setup");
+    // Every fix has its words.
+    for (const fix of Object.values(WhoIsToldFix)) {
+      const found: WhoIsToldFixLink | null = link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: fix,
+      });
+
+      if (fix === WhoIsToldFix.ServerSettings) {
+        expect(found).toBeNull();
+        continue;
+      }
+
+      expect(found?.text.length || 0).toBeGreaterThan(3);
+    }
     expect(
       link({
         kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
@@ -680,7 +783,7 @@ describe("MonitorWhoIsToldCard", () => {
 
     expect(screen.getByTestId("who-is-told-loading")).toBeInTheDocument();
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens a Critical incident. It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
     );
     expect(screen.getByTestId("who-is-told-no-breaks")).toBeInTheDocument();
     expect(screen.getByText("When this goes down")).toBeInTheDocument();
@@ -713,6 +816,101 @@ describe("MonitorWhoIsToldCard", () => {
     expect(screen.queryByTestId("who-is-told-no-breaks")).toBeNull();
   });
 
+  test("the chain names a new project's Critical Incident once: An incident (Critical Incident)", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({ events: [event({ severityName: "Critical Incident" })] }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
+
+    expect(chain).toHaveTextContent("An incident (Critical Incident)");
+    expect(chain).not.toHaveTextContent(/Critical Incident incident/i);
+    expect(screen.getByTestId("who-is-told-summary")).not.toHaveTextContent(
+      /Critical Incident incident/i,
+    );
+  });
+
+  /*
+   * #7369: a new project's first monitor, before any on-call policy. Set Up
+   * Paging opened the incident on-call rules builder, whose rules page
+   * policies the project does not have; it opens the on-call guided setup,
+   * which makes one that pages for every new incident and alert. With a
+   * policy, it still opens the rules (the test above).
+   */
+  test("a project with no on-call policy yet: Set Up Paging opens the on-call guided setup, and the break says why", async () => {
+    getForMonitor.mockResolvedValue(
+      result(
+        [offline({ events: [event({ rules: [], policies: [] })] })],
+        {},
+        {
+          hasOnCallPolicies: false,
+        },
+      ),
+    );
+    renderCard();
+
+    const brk: HTMLElement = await screen.findByTestId("who-is-told-break");
+
+    expect(brk).toHaveAttribute("data-kind", WhoIsToldBreakKind.NobodyPaged);
+    expect(brk).toHaveTextContent(
+      "Nobody is paged: this project has no on-call policy yet.",
+    );
+    expect(brk).not.toHaveTextContent("no on-call rule matches");
+
+    const fix: HTMLElement = within(brk).getByTestId("who-is-told-fix");
+
+    expect(fix).toHaveTextContent("Set Up Paging");
+    expect(fix.getAttribute("href")).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ).toString(),
+    );
+    expect(fix.getAttribute("href")).not.toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+      ).toString(),
+    );
+    expect(screen.getByTestId("who-is-told-summary")).toHaveTextContent(
+      "Nobody is paged.",
+    );
+  });
+
+  test("an alert that pages nobody, with no policy yet, goes to the guided setup too", async () => {
+    getForMonitor.mockResolvedValue(
+      result(
+        [
+          offline({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        {},
+        { hasOnCallPolicies: false },
+      ),
+    );
+    renderCard();
+
+    const brk: HTMLElement = await screen.findByTestId("who-is-told-break");
+
+    expect(
+      within(brk).getByTestId("who-is-told-fix").getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ).toString(),
+    );
+  });
+
   test("the chain is folded until asked for, and the toggle says which way it is", async () => {
     getForMonitor.mockResolvedValue(result([offline()]));
     renderCard();
@@ -733,7 +931,7 @@ describe("MonitorWhoIsToldCard", () => {
     const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
 
     expect(chain).toHaveTextContent("When Offline matches");
-    expect(chain).toHaveTextContent("A Critical incident");
+    expect(chain).toHaveTextContent("An incident (Critical)");
     expect(chain).toHaveTextContent("Every incident");
     expect(chain).toHaveTextContent("Public status");
     expect(
@@ -849,7 +1047,7 @@ describe("MonitorWhoIsToldCard", () => {
     fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
 
     expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
-      "A Critical incident",
+      "An incident (Critical)",
     );
     expect(screen.queryByTestId("who-is-told-title")).toBeNull();
     expect(screen.queryByTestId("who-is-told-owner-rules")).toBeNull();
@@ -1190,6 +1388,94 @@ describe("MonitorWhoIsToldCard", () => {
   });
 
   /*
+   * #7528: somebody no rule of theirs covers the severity for is paged by
+   * what the project's fallback picks - their email alone, though they
+   * verified a number too. Their line lists only that, and says why after
+   * it, so "Email" never reads as a gap in their own rules.
+   */
+  test("somebody the fallback pages: the channels it picks, then why, after the same mark", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              policies: [
+                policy({
+                  people: [
+                    person(),
+                    person({
+                      userId: BEN,
+                      name: "Ben Ito",
+                      reachedThrough: "Schedule Primary",
+                      channels: [OnCallPageChannel.Email],
+                      isFallback: true,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const mark: string = `${NO_BREAK_SPACE}${MIDDLE_DOT} `;
+    const lines: Array<HTMLElement> =
+      screen.getAllByTestId("who-is-told-person");
+
+    expect(
+      lines.map((line: HTMLElement): string => {
+        return line.querySelector("p")!.textContent || "";
+      }),
+    ).toEqual([
+      `Ana Lopez${mark}SMS, Email`,
+      `Ben Ito${mark}Schedule Primary${mark}Email${mark}Picked by the fallback: no on-call rule of theirs covers this severity`,
+    ]);
+    // Said once, on the fallback's line only.
+    expect(screen.getAllByTestId("who-is-told-fallback")).toHaveLength(1);
+    expect(lines[1]).toContainElement(
+      screen.getByTestId("who-is-told-fallback"),
+    );
+    expect(lines[1]).toHaveAttribute("data-reachable", "true");
+  });
+
+  test("somebody the fallback can't page says they can't be paged, and nothing of what it picks", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              policies: [
+                policy({
+                  people: [
+                    person({
+                      channels: [],
+                      isFallback: true,
+                      isReachable: false,
+                      problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    expect(screen.getByTestId("who-is-told-person")).toHaveTextContent(
+      "Can't be paged",
+    );
+    expect(screen.queryByTestId("who-is-told-fallback")).toBeNull();
+  });
+
+  /*
    * Why each is paged and who is not, from the codes the server sends
    * (#7261): in English, the server's own English, word for word - a name
    * set apart only where it reads the other way.
@@ -1519,7 +1805,7 @@ describe("MonitorWhoIsToldCard", () => {
     });
 
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
     );
     expect(screen.queryByTestId("who-is-told-try-again")).toBeNull();
   });

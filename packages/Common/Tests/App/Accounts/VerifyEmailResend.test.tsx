@@ -526,10 +526,14 @@ describe("Verify email page", () => {
         refuse(500, "Server Error"),
         "The server ran into a problem it could not explain. Try again in a moment.",
       ],
+      /*
+       * A 503 that says nothing is a gateway's: no app answered behind it,
+       * so the server did not answer (#7536).
+       */
       [
         "a 503",
         refuse(503, "Service Unavailable"),
-        "The server ran into a problem it could not explain. Try again in a moment.",
+        "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
       ],
       [
         "a network error",

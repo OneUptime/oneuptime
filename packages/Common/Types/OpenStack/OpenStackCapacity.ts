@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../JSON";
+import { readOwnValue, writeOwnValue } from "../../Utils/LookupTable";
 import {
   getOpenStackShortHostName,
   isOpenStackAdminDisabled,
@@ -414,11 +415,17 @@ export function readOpenStackInventories(
       lastColon,
     );
     const field: string = key.substring(lastColon + 1);
+    /*
+     * The class's own reading only, written back as its own key: a
+     * resource class is named by the exporter, and a plain read of one
+     * named __proto__ found the prototype every object shares, which the
+     * line below then wrote the field onto.
+     */
     const reading: Partial<Record<string, number>> =
-      readings[resourceClass] || {};
+      readOwnValue(readings, resourceClass) || {};
 
-    reading[field] = value;
-    readings[resourceClass] = reading;
+    writeOwnValue<number | undefined>(reading, field, value);
+    writeOwnValue(readings, resourceClass, reading);
 
     if (field === "seen" && value > newestSeen) {
       newestSeen = value;
@@ -442,12 +449,12 @@ export function readOpenStackInventories(
       continue;
     }
 
-    inventories[resourceClass] = {
+    writeOwnValue(inventories, resourceClass, {
       total: reading["total"],
       reserved: reading["reserved"] ?? 0,
       allocationRatio: reading["ratio"] ?? 1,
       used: reading["used"] ?? 0,
-    };
+    });
   }
 
   return inventories;

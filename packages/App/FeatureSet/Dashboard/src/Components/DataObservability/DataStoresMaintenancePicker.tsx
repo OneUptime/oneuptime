@@ -12,6 +12,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   value: Array<string> | undefined;
@@ -40,7 +41,11 @@ const DataStoresMaintenancePicker: FunctionComponent<ComponentProps> = (
           setOptions(
             stores.map(
               (store: DataObservabilityStoreSummary): DropdownOption => {
-                return { value: store.dataStoreId, label: store.name };
+                return {
+                  value: store.dataStoreId,
+                  label: store.name,
+                  isUserContent: true,
+                };
               },
             ),
           );
@@ -129,7 +134,7 @@ export const DataStoresUnderMaintenance: FunctionComponent<{
   }, [props.ids.join(",")]);
 
   if (props.ids.length === 0) {
-    return <span className="text-sm text-gray-500">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

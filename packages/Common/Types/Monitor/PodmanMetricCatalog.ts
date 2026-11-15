@@ -1,4 +1,5 @@
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type PodmanMetricCategory =
   | "CPU"
@@ -43,7 +44,7 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-cpu-usage-total",
     friendlyName: "Container CPU Usage (Total)",
-    description: "Total CPU time consumed by the container",
+    description: translationKey("Total CPU time consumed by the container"),
     metricName: "container.cpu.usage.total",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -52,8 +53,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-cpu-utilization",
     friendlyName: "Container CPU Utilization",
-    description:
+    description: translationKey(
       "CPU utilization of the container as a percentage (100% = 1 full CPU core)",
+    ),
     metricName: "container.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -62,7 +64,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-cpu-throttled-time",
     friendlyName: "Container CPU Throttled Time",
-    description: "Total time the container CPU has been throttled",
+    description: translationKey(
+      "Total time the container CPU has been throttled",
+    ),
     metricName: "container.cpu.throttling_data.throttled_time",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -73,7 +77,7 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-memory-usage-total",
     friendlyName: "Container Memory Usage",
-    description: "Total memory usage of the container",
+    description: translationKey("Total memory usage of the container"),
     metricName: "container.memory.usage.total",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -82,7 +86,7 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-memory-usage-limit",
     friendlyName: "Container Memory Limit",
-    description: "Memory limit configured for the container",
+    description: translationKey("Memory limit configured for the container"),
     metricName: "container.memory.usage.limit",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Max,
@@ -91,8 +95,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-memory-percent",
     friendlyName: "Container Memory Percent",
-    description:
+    description: translationKey(
       "Memory usage as a percentage of the container limit or host total",
+    ),
     metricName: "container.memory.percent",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -103,7 +108,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-network-rx-bytes",
     friendlyName: "Container Network Received",
-    description: "Bytes received over the network by the container",
+    description: translationKey(
+      "Bytes received over the network by the container",
+    ),
     metricName: "container.network.io.usage.rx_bytes",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -112,7 +119,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-network-tx-bytes",
     friendlyName: "Container Network Transmitted",
-    description: "Bytes transmitted over the network by the container",
+    description: translationKey(
+      "Bytes transmitted over the network by the container",
+    ),
     metricName: "container.network.io.usage.tx_bytes",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -123,8 +132,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-blockio-read",
     friendlyName: "Container Block I/O Read",
-    description:
+    description: translationKey(
       "Bytes the container has read from each block device since it started. A lifetime counter, per device: chart it as a rate.",
+    ),
     metricName: "container.blockio.io_service_bytes_recursive",
     attributes: { operation: "read" },
     category: "BlockIO",
@@ -138,8 +148,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-blockio-write",
     friendlyName: "Container Block I/O Write",
-    description:
+    description: translationKey(
       "Bytes the container has written to each block device since it started. A lifetime counter, per device: chart it as a rate.",
+    ),
     metricName: "container.blockio.io_service_bytes_recursive",
     attributes: { operation: "write" },
     category: "BlockIO",
@@ -151,7 +162,7 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-uptime",
     friendlyName: "Container Uptime",
-    description: "How long the container has been running",
+    description: translationKey("How long the container has been running"),
     metricName: "container.uptime",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Max,
@@ -160,7 +171,7 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-restarts",
     friendlyName: "Container Restarts",
-    description: "Number of times the container has restarted",
+    description: translationKey("Number of times the container has restarted"),
     metricName: "container.restarts",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Max,
@@ -176,8 +187,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-restarts-increase",
     friendlyName: "Container Restarts (Increase)",
-    description:
+    description: translationKey(
       "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+    ),
     metricName: "container.restarts.increase",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -186,8 +198,9 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
   {
     id: "container-pids-count",
     friendlyName: "Container Process Count",
-    description:
+    description: translationKey(
       "Tasks in the container: processes and their threads, as the cgroup pids controller counts them.",
+    ),
     metricName: "container.pids.count",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,

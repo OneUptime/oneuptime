@@ -94,6 +94,8 @@ const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   "ServiceLevelObjectiveErrorBudgetPolicyTier.incidentDescriptionTemplate",
   "ServiceLevelObjectiveErrorBudgetPolicyTier.incidentRemediationNotes",
   "ServiceLevelObjectiveErrorBudgetPolicyTier.whatWeDo",
+  // A postmortem's action items, each with its description (#6801).
+  "IncidentPostmortemActionItem.description",
 ];
 
 async function statementsFor(

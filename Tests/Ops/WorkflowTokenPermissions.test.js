@@ -119,3 +119,134 @@ describe("every workflow limits its GITHUB_TOKEN", () => {
     },
   );
 });
+
+/*
+ * A called workflow's token is its caller's, cut down, never widened: a job
+ * of a workflow called with `uses: ./.github/workflows/...` may ask for no
+ * more than the calling job grants (its own permissions, else its
+ * workflow's). GitHub checks every job of the called workflow when the run
+ * starts, even one its `if` would skip, and refuses the whole run otherwise
+ * ("The nested job 'report' is requesting 'issues: write', but is only
+ * allowed 'issues: none'"). For release.yml that would be a release run
+ * that never starts (#7510: docs-screens.yml's report job writes issues).
+ */
+describe("a called workflow asks for no more than its caller grants", () => {
+  const LEVELS = { none: 0, read: 1, write: 2 };
+
+  // Every permission a token can be given, for read-all and write-all.
+  const SCOPES = [
+    "actions",
+    "attestations",
+    "checks",
+    "contents",
+    "deployments",
+    "discussions",
+    "id-token",
+    "issues",
+    "models",
+    "packages",
+    "pages",
+    "pull-requests",
+    "repository-projects",
+    "security-events",
+    "statuses",
+  ];
+
+  // A permissions block as scope -> level: unnamed scopes are none.
+  function levelsOf(permissions) {
+    if (permissions === "read-all" || permissions === "write-all") {
+      const level = permissions === "read-all" ? "read" : "write";
+      return Object.fromEntries(
+        SCOPES.map((scope) => {
+          return [scope, LEVELS[level]];
+        }),
+      );
+    }
+    return Object.fromEntries(
+      Object.entries(permissions || {}).map(([scope, level]) => {
+        return [scope, LEVELS[level]];
+      }),
+    );
+  }
+
+  // What a job asks for: its own permissions, else its workflow's.
+  function asked(workflow, job) {
+    return job.permissions !== undefined
+      ? job.permissions
+      : workflow.permissions;
+  }
+
+  // Each `uses: ./.github/workflows/...` job, with the grant it calls with.
+  const calls = workflows.flatMap(({ file, workflow }) => {
+    return Object.entries(workflow.jobs || {})
+      .filter(([, job]) => {
+        return (
+          typeof job.uses === "string" &&
+          job.uses.startsWith("./.github/workflows/")
+        );
+      })
+      .map(([id, job]) => {
+        return {
+          caller: `${file} ${id}`,
+          called: path.basename(job.uses),
+          grant: asked(workflow, job),
+        };
+      });
+  });
+
+  test("finds the release run's calls (the checks below are not vacuous)", () => {
+    expect(
+      calls.map(({ caller }) => {
+        return caller;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "release.yml terraform-provider-e2e",
+        "release.yml crossplane-provider-e2e",
+        "release.yml docs-screens",
+      ]),
+    );
+  });
+
+  test.each(calls.map((call) => [call.caller, call]))(
+    "%s grants every job of the workflow it calls what that job asks for",
+    (_caller, { called, grant }) => {
+      // Every workflow limits its token (above), so there is a grant to compare.
+      expect(grant).toBeDefined();
+      const granted = levelsOf(grant);
+      const calledWorkflow = workflowNamed(called);
+      const problems = Object.entries(calledWorkflow.jobs || {}).flatMap(
+        ([id, job]) => {
+          const asks = asked(calledWorkflow, job);
+          if (asks === undefined) {
+            // It gets the caller's grant as it is.
+            return [];
+          }
+          return Object.entries(levelsOf(asks))
+            .filter(([scope, level]) => {
+              return level > (granted[scope] || 0);
+            })
+            .map(([scope]) => {
+              return `${called} ${id} asks for ${scope}: ${
+                Object.keys(LEVELS)[levelsOf(asks)[scope]]
+              }, but is only allowed ${
+                Object.keys(LEVELS)[granted[scope] || 0]
+              }`;
+            });
+        },
+      );
+
+      expect(problems).toEqual([]);
+    },
+  );
+
+  test("reads a grant the way GitHub does", () => {
+    expect(levelsOf({ contents: "read", issues: "write" })).toEqual({
+      contents: 1,
+      issues: 2,
+    });
+    expect(levelsOf("read-all").issues).toBe(1);
+    expect(levelsOf("write-all").packages).toBe(2);
+    expect(levelsOf({}).contents).toBeUndefined();
+  });
+});

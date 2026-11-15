@@ -10,6 +10,7 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import { Translator } from "Common/Types/Translator";
 import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 
 /*
@@ -95,6 +96,12 @@ export function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
  * One chart's query: the metric, filtered to this monitor and project,
  * grouped by attributes so each probe (or disk, or interface) is its own
  * series.
+ *
+ * The chart draws its description as it is handed (EmbeddedMetricCard,
+ * MetricCharts), so with the reader's translator it is looked up here, once:
+ * a Database monitor's metric says what it is in the reader's language, from
+ * its catalog's description (#8014). Without one it reads English, as the
+ * server and a unit test get it.
  */
 export function buildMonitorMetricQueryConfig(data: {
   monitorId: ObjectID;
@@ -102,9 +109,15 @@ export function buildMonitorMetricQueryConfig(data: {
   monitorType: MonitorType;
   metric: MonitorMetricType;
   probes: Array<Probe>;
+  translator?: Translator | undefined;
 }): MetricQueryConfigData {
   const monitorMetricType: MonitorMetricType = data.metric;
   const monitorType: MonitorType = data.monitorType;
+  const description: string =
+    MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+      monitorMetricType,
+      monitorType,
+    );
 
   return {
     metricAliasData: {
@@ -113,10 +126,9 @@ export function buildMonitorMetricQueryConfig(data: {
         monitorMetricType,
         monitorType,
       ),
-      description: MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
-        monitorMetricType,
-        monitorType,
-      ),
+      description: data.translator
+        ? data.translator.translateText(description) || description
+        : description,
       legend: MonitorMetricTypeUtil.getLegendByMonitorMetricType(
         monitorMetricType,
         monitorType,

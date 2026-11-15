@@ -11,7 +11,7 @@ OneUptime 會根據 IoT 裝置（感測器、閘道、控制器和邊緣設備�
 
 ## 運作方式
 
-每個讀數都屬於一個機群和一台裝置。OneUptime 會根據第一個讀數建立機群，將每台新裝置加入機群的清單中，並在之後每個讀數送達時更新裝置的最新值。透過 OpenTelemetry 和透過 MQTT 傳送的讀數會進入相同的機群、清單、圖表和監控器。
+每個讀數都屬於一個機群和一台裝置。OneUptime 會根據第一個讀數建立機群，將每台新裝置加入機群的清單中，並在之後每個讀數送達時更新裝置的最新值。透過 OpenTelemetry 和透過 MQTT 傳送的讀數會進入相同的機群、清單、圖表和監測器。
 
 ```mermaid title="從裝置到 OneUptime 中的機群"
 flowchart TB
@@ -19,7 +19,7 @@ flowchart TB
     devices -->|"OTLP"| gateway["閘道上的<br/>Collector"]
     gateway -->|"OTLP"| oneuptime
     devices -->|"MQTT"| oneuptime
-    oneuptime --> fleet["機群：裝置、<br/>圖表和監控器"]
+    oneuptime --> fleet["機群：裝置、<br/>圖表和監測器"]
 ```
 
 ## OneUptime 如何為 IoT 建立模型
@@ -32,7 +32,7 @@ flowchart TB
 | `iot.fleet.name` | 資源 | 是 | 裝置所屬的機群。它會成為 OneUptime 服務 `iot/<fleet>`。 |
 | `device.id` | 每個資料點 | 是 | 裝置的穩定 ID，在其機群中唯一。 |
 | `iot.device.kind` | 每個資料點 | 否 | 裝置類別，例如 `Device`、`Sensor` 或 `Gateway`。預設為 `Device`。 |
-| `iot.device.type` | 每個資料點 | 否 | 用於篩選監控器的更細類型或型號，例如 `temp-sensor`。 |
+| `iot.device.type` | 每個資料點 | 否 | 用於篩選監測器的更細類型或型號，例如 `temp-sensor`。 |
 | `iot.device.firmware` | 每個資料點 | 否 | 裝置回報的韌體版本。 |
 
 透過 MQTT 時，主題會替你設定機群和裝置。
@@ -163,7 +163,7 @@ otelcol-contrib --config config.yaml
 
 ## 透過 MQTT 傳送指標
 
-OneUptime 有自己的 MQTT 端點，因此使用 MQTT 的裝置可以直接向它發布讀數，不需要 SDK、Collector 或橋接。透過 MQTT 送達的資料與 OTLP 走同一條管道：會建立機群、更新清單，所有 IoT 監控器和警示範本的運作方式都相同。
+OneUptime 有自己的 MQTT 端點，因此使用 MQTT 的裝置可以直接向它發布讀數，不需要 SDK、Collector 或橋接。透過 MQTT 送達的資料與 OTLP 走同一條管道：會建立機群、更新清單，所有 IoT 監測器和警示範本的運作方式都相同。
 
 ### 端點
 
@@ -179,7 +179,7 @@ OneUptime 有自己的 MQTT 端點，因此使用 MQTT 的裝置可以直接向�
 
 裝置認證只能在它自己的 `oneuptime/<fleet>/<device>/` 主題下發布。你可以撤銷單一裝置，而不影響機群中的其他裝置：關閉它的 **已啟用** 開關或刪除它，已連線的裝置會在大約一分鐘內被中斷。已註冊的裝置沉默後會以離線狀態留在清單中，即使它在沒有 Last Will 的情況下停止運作，Device Offline 警示範本也會為它觸發。
 
-OneUptime 會在 CONNECT 階段以傳回碼 4（bad username or password）拒絕錯誤的認證，因此設定錯誤的裝置會明確地失敗。瀏覽器金鑰在 MQTT 上會被拒絕。
+OneUptime 會在 CONNECT 階段以傳回碼 4（bad username or password）拒絕錯誤的認證，因此設定錯誤的裝置會明確地失敗。瀏覽器金鑰在 MQTT 上會被拒絕。使用擷取金鑰連線的用戶端會在金鑰被停用、過期、重設密鑰值或被刪除後的幾秒內中斷，再次連線時會遭到拒絕。
 
 ### 主題和酬載
 
@@ -276,7 +276,7 @@ OneUptime 會辨識以下 `iot_*` 指標名稱。只傳送對你的裝置有意�
 
 | 指標名稱 | 意義 |
 | --- | --- |
-| `iot_device_up` | 可用性：`1` 表示運作中且可連線，`0` 表示停止運作。IoT Device 監控器會讀取它。 |
+| `iot_device_up` | 可用性：`1` 表示運作中且可連線，`0` 表示停止運作。IoT Device 監測器會讀取它。 |
 | `iot_device_info` | 僅用於識別。它帶有 `device.id`、類別、類型和韌體，因此裝置在回報讀數之前就會出現在清單中。 |
 | `iot_battery_percent` | 電池電量，`0` 到 `100`（%）。 |
 | `iot_signal_strength_dbm` | 以 dBm 表示的無線訊號強度，例如 Wi-Fi、LoRa 或行動網路的 RSSI。 |

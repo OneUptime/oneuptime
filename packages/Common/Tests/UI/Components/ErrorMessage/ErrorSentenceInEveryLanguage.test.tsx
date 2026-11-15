@@ -9,6 +9,7 @@ import {
 import {
   DASHBOARD_LANGUAGES,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
 import i18next from "i18next";
@@ -108,6 +109,12 @@ const MESSAGES: Array<{ message: string; why: string; next: string }> = [
     message: UNEXPLAINED_ERROR_MESSAGES.page,
     why: UnexplainedErrorWords.pageWhy,
     next: UnexplainedErrorWords.pageNext,
+  },
+  // A proxy's 413 (#8278): send less, and the proxy's limit to raise.
+  {
+    message: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+    why: UnexplainedErrorWords.tooLargeWhy,
+    next: UnexplainedErrorWords.tooLargeNext,
   },
 ];
 
@@ -217,7 +224,7 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
   test("the who-is-told sentence reads wholly in the language, the error's words its own", async () => {
     await readIn(language);
 
-    const locale: Record<string, string> = readDashboardLocale(language);
+    const locale: Record<string, string> = readDashboardLocaleAsDrawn(language);
     const template: string = locale[WHO_IS_TOLD]!;
 
     expect(template).toBeTruthy();
@@ -237,7 +244,12 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
           ? locale[UnexplainedErrorWords.adminWhereToLookWithReference]!
           : entry.message === UNEXPLAINED_ERROR_MESSAGES.server
             ? locale[UnexplainedErrorWords.adminWhereToLook]!
-            : "";
+            : entry.message === UNEXPLAINED_ERROR_MESSAGES.tooLarge
+              ? locale[UnexplainedErrorWords.tooLargeWhereToLook]!
+              : "";
+      // OneUptime Health is beside a server failure's logs, not a proxy's limit.
+      const opensHealth: boolean =
+        entry.message !== UNEXPLAINED_ERROR_MESSAGES.tooLarge;
 
       // The card's words, then why and next, in the sentence's place.
       const [before, after] = template.split("{{error}}") as [string, string];
@@ -260,7 +272,13 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
 
       if (whereToLook) {
         expect(text).toContain(whereToLook);
-        expect(text).toContain(locale[UnexplainedErrorWords.openHealth]!);
+
+        if (opensHealth) {
+          expect(text).toContain(locale[UnexplainedErrorWords.openHealth]!);
+        } else {
+          expect(result.queryByTestId("error-open-health")).toBeNull();
+          expect(text).not.toContain(locale[UnexplainedErrorWords.openHealth]!);
+        }
 
         // A line of its own after the card's whole sentence.
         const line: HTMLElement = result.getByTestId("error-where-to-look");

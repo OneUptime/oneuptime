@@ -17,7 +17,7 @@ Tout workflow comporte trois parties :
 2. **Des composants** — ce que fait le workflow : envoyer un message, appeler une API, vérifier une condition, créer ou modifier un enregistrement OneUptime.
 3. **Des liaisons** — les lignes que vous tracez d'un bloc au suivant. Elles décident de ce qui s'exécute après quoi.
 
-Quand le déclencheur se produit, OneUptime lance une **exécution**. Chaque bloc se termine en prenant l'une de ses sorties, par exemple **Success** ou **Error**, **Yes** ou **No**, et seuls les blocs reliés à cette sortie s'exécutent ensuite. Quand aucun bloc n'est relié à la sortie prise, ce chemin s'arrête là. L'exécution est enregistrée avec son statut, le chemin suivi et ce que chaque bloc a reçu et renvoyé.
+Quand le déclencheur se produit, OneUptime lance une **exécution**. Chaque bloc se termine en prenant l'une de ses sorties, par exemple **Succès** ou **Erreur**, **Oui** ou **Non**, et seuls les blocs reliés à cette sortie s'exécutent ensuite. Quand aucun bloc n'est relié à la sortie prise, ce chemin s'arrête là. L'exécution est enregistrée avec son statut, le chemin suivi et ce que chaque bloc a reçu et renvoyé.
 
 ```mermaid title="Ce qui se passe quand un workflow s'exécute"
 flowchart TB
@@ -52,10 +52,10 @@ Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/int
 
 | Terme                   | Ce que cela désigne                                                                                                  |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Workflow**            | L'automatisation dans son ensemble : un nom, un canevas de blocs et un interrupteur pour l'activer ou la désactiver. |
+| **Flux de travail**            | L'automatisation dans son ensemble : un nom, un canevas de blocs et un interrupteur pour l'activer ou la désactiver. |
 | **Déclencheur**         | Le premier bloc. Il décide quand le workflow s'exécute. Chaque workflow en a exactement un.                          |
 | **Composant**           | Tout autre bloc : il envoie un message, lance une requête, vérifie une condition ou modifie un enregistrement.        |
-| **Sortie**              | Un point au bas d'un bloc, comme **Success** ou **Error**. Les lignes qui en partent mènent aux blocs suivants.       |
+| **Sortie**              | Un point au bas d'un bloc, comme **Succès** ou **Erreur**. Les lignes qui en partent mènent aux blocs suivants.       |
 | **Exécution**           | Un passage du workflow, enregistré avec son statut, ses horodatages et ce que chaque bloc a fait.                    |
 | **Variable globale**    | Une valeur, comme une clé d'API, que vous enregistrez une fois et utilisez dans n'importe quel workflow du projet.   |
 
@@ -107,13 +107,13 @@ Ce workflow envoie un résumé JSON de chaque nouvel incident à une URL de votr
 
 ```mermaid title="L'exemple terminé"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["L'exécution se termine"]
+    trigger["On Create Incident"] -->|"Succès"| post["API Post (JSON)"]
+    post -->|"Erreur"| log["Journal"]
+    post -->|"Succès"| done["L'exécution se termine"]
 ```
 
 > [!TIP]
-> Le modèle **Forward new incidents to another system** construit ce workflow pour vous, sans le bloc Log : sans rien sur **Error**, une requête qui échoue fait échouer l'exécution, et les **Étapes** de l'exécution disent pourquoi. Vous le trouverez sous **Incidents** quand vous créez un workflow.
+> Le modèle **Forward new incidents to another system** construit ce workflow pour vous, sans le bloc Log : sans rien sur **Erreur**, une requête qui échoue fait échouer l'exécution, et les **Étapes** de l'exécution disent pourquoi. Vous le trouverez sous **Incidents** quand vous créez un workflow.
 
 :::steps
 ### Créer le workflow
@@ -136,11 +136,11 @@ Le déclencheur transmet le nouvel incident avec ces champs. Un champ que vous n
 
 ### Ajouter le bloc API
 
-Cliquez sur **Ajouter un composant**, puis sur **API Post (JSON)** sous **Populaires**. Faites glisser depuis le point **Success** du déclencheur jusqu'au point supérieur du nouveau bloc.
+Cliquez sur **Ajouter un composant**, puis sur **API Post (JSON)** sous **Populaires**. Faites glisser depuis le point **Succès** du déclencheur jusqu'au point supérieur du nouveau bloc.
 
 ### Remplir la requête
 
-Cliquez sur le bloc API, qui affiche **Click to set up**. Saisissez votre point de terminaison dans **URL**. Dans **Request Body**, écrivez le JSON à envoyer, en utilisant **{ }** pour insérer les champs de l'incident là où vous en avez besoin, puis cliquez sur **Enregistrer**.
+Cliquez sur le bloc API, qui affiche **Click to set up**. Saisissez votre point de terminaison dans **URL**. Dans **Corps de la requête**, écrivez le JSON à envoyer, en utilisant **{ }** pour insérer les champs de l'incident là où vous en avez besoin, puis cliquez sur **Enregistrer**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Chaque référence `{{…}}` est remplacée par la valeur de l'incident quand le
 
 ### Intercepter les échecs
 
-Cliquez sur **Ajouter un composant**, puis sur **Journal**. Reliez-y le point **Error** du bloc API, puis réglez la **Value** du bloc Log sur `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Cliquez sur **Ajouter un composant**, puis sur **Journal**. Reliez-y le point **Erreur** du bloc API, puis réglez la **Valeur** du bloc Log sur `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Une requête qui échoue — une URL injoignable, ou une réponse qui n'est pas en 2xx — prend désormais ce chemin, et le journal de l'exécution dit pourquoi.
 
@@ -177,7 +177,7 @@ Désormais, chaque nouvel incident du projet lance une exécution. Vous les retr
 ## Comment les workflows s'intègrent au reste de OneUptime
 
 - Les **moniteurs** repèrent le problème. Les **incidents** et les **alertes** l'enregistrent. Les **workflows** y réagissent.
-- Les **runbooks** sont des procédures de réponse que votre équipe déroule lors d'un incident, d'une alerte ou d'une maintenance : étapes manuelles, approbations et scripts, avec des personnes dans la boucle. Les workflows s'exécutent sans surveillance. Utilisez un [runbook](/docs/runbooks/index) quand une personne doit prendre des décisions en cours de route, et un workflow quand chaque étape est automatique.
+- Les **runbooks** sont des procédures de réponse que votre équipe déroule lors d'un incident, d'une alerte ou d'un événement de maintenance : étapes manuelles, approbations et scripts, avec des personnes dans la boucle. Les workflows s'exécutent sans surveillance. Utilisez un [runbook](/docs/runbooks/index) quand une personne doit prendre des décisions en cours de route, et un workflow quand chaque étape est automatique.
 - Les **connexions d'espace de travail** relient un projet à Slack et à Microsoft Teams pour les canaux d'incident et les notifications. Les blocs Slack et Microsoft Teams des workflows ne s'en servent pas : chaque bloc publie via sa propre URL de webhook entrant.
 
 ## Étapes suivantes

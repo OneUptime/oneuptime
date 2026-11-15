@@ -77,6 +77,7 @@ import ReplayCard, {
   REPLAY_CARD_PLAN_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayCard";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -141,10 +142,17 @@ function readLocale(language: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
+// The locale's words as the card draws them: French's marks kept with them (NoBreakSpaces).
 function drawn(language: string, english: string): string {
   const value: unknown = locales[language]?.[english];
 
-  return typeof value === "string" && value.length > 0 ? value : english;
+  if (typeof value !== "string" || value.length === 0) {
+    return english;
+  }
+
+  return value === english
+    ? value
+    : withNoBreakSpaces(value, english, language);
 }
 
 function translatorFor(language: string): Translator {

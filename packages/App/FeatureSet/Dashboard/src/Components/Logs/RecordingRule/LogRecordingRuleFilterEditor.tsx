@@ -61,6 +61,7 @@ const LogRecordingRuleFilterEditor: FunctionComponent<ComponentProps> = (
       .map((service: Service): DropdownOption => {
         return {
           label: service.name || service.id!.toString(),
+          isUserContent: true,
           value: service.id!.toString().toLowerCase(),
         };
       });

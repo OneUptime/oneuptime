@@ -15,6 +15,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -36,12 +38,25 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * type, and permissions are mocked as BulkIncidentLinkActions.test.tsx does.
  */
 
+/*
+ * The reader's language: none by default, so every text is the English
+ * key. The tests at the end draw the page in German and in Persian (#7513).
+ */
+let mockReaderLocale: { language: string; words: Record<string, string> } = {
+  language: "en",
+  words: {},
+};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, opts?: { defaultValue?: string }): string => {
-          return opts?.defaultValue ?? key;
+          return mockReaderLocale.words[key] ?? opts?.defaultValue ?? key;
+        },
+        i18n: {
+          language: mockReaderLocale.language,
+          resolvedLanguage: mockReaderLocale.language,
         },
       };
     },
@@ -188,6 +203,27 @@ const SINGLE_ALERT_KEEPS_ESCALATING: string =
   "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.";
 const EVERY_ALERT_KEEPS_ESCALATING: string =
   "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.";
+
+// The box's label for every alert: the key of its plural, "_one" for one alert.
+const EVERY_ALERT_TITLE_KEY: string =
+  "Acknowledge these {{count}} alerts to stop their escalation";
+
+type ReadDashboardLocaleFunction = (language: string) => Record<string, string>;
+
+// A Dashboard locale file, as the Dashboard ships it.
+const readDashboardLocale: ReadDashboardLocaleFunction = (
+  language: string,
+): Record<string, string> => {
+  return JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `../../../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+};
 
 type MakeAlertFunction = (
   id: string,
@@ -1640,6 +1676,121 @@ describe("acknowledging the alerts an incident is declared from", () => {
         ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,
       );
       expect(summary.container.textContent).not.toContain(NO_POLICIES_TEXT);
+    });
+  });
+
+  /*
+   * The box sits in a banner that is in the reader's language, and its own
+   * words were English in every language (#7513): its label, its
+   * description, the note under it and the On-Call step's note are keys now,
+   * drawn with the page's translator.
+   */
+  describe("in the reader's language", () => {
+    const GERMAN: Record<string, string> = readDashboardLocale("de");
+    const PERSIAN: Record<string, string> = readDashboardLocale("fa");
+
+    afterEach(() => {
+      mockReaderLocale = { language: "en", words: {} };
+    });
+
+    test("German: the box's label and its description, for one alert", async () => {
+      mockReaderLocale = { language: "de", words: GERMAN };
+      declareFrom([ALERT_ONE_ID]);
+
+      await openPage();
+
+      const checkbox: HTMLInputElement = acknowledgeCheckbox();
+
+      await waitFor(() => {
+        expect(checkbox).toBeChecked();
+      });
+      expect(labelOf(checkbox)).toBe(
+        "Diese Warnung bestätigen, um ihre Eskalation zu stoppen",
+      );
+      expect(labelOf(checkbox)).toBe(
+        GERMAN[`${EVERY_ALERT_TITLE_KEY}_one`] as string,
+      );
+      expect(descriptionOf(checkbox)).toBe(
+        GERMAN[SINGULAR_DESCRIPTION] as string,
+      );
+      expect(descriptionOf(checkbox)).toContain(
+        "Bereits versendete Alarmierungen werden nicht zurückgerufen.",
+      );
+      expect(
+        screen.getByLabelText(
+          "Diese Warnung bestätigen, um ihre Eskalation zu stoppen",
+        ),
+      ).toBe(checkbox);
+    });
+
+    test("German: only the alerts not acknowledged yet, the one left as it is, and the note once unticked", async () => {
+      mockReaderLocale = { language: "de", words: GERMAN };
+      fixture.alerts[1] = makeAlert(ALERT_TWO_ID, 2, ACKNOWLEDGED_STATE_ID);
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID, ALERT_THREE_ID]);
+
+      await openPage();
+
+      const checkbox: HTMLInputElement = acknowledgeCheckbox();
+
+      await waitFor(() => {
+        expect(checkbox).toBeChecked();
+      });
+      expect(labelOf(checkbox)).toBe(
+        "Die 2 noch nicht bestätigten Warnungen bestätigen, um ihre Eskalation zu stoppen",
+      );
+      expect(descriptionOf(checkbox)).toBe(
+        `${GERMAN[PLURAL_DESCRIPTION]} 1 Warnung ist bereits bestätigt oder behoben und bleibt, wie sie ist.`,
+      );
+
+      await untick();
+
+      expect(screen.getByTestId(KEEP_ESCALATING_TEST_ID).textContent).toBe(
+        "Das Melden des Vorfalls bestätigt die 2 noch nicht bestätigten Warnungen nicht: Sie eskalieren weiter, bis sie bestätigt werden.",
+      );
+    });
+
+    test("German: the note under the box for the only alert, and the On-Call step's note", async () => {
+      mockReaderLocale = { language: "de", words: GERMAN };
+      declareFrom([ALERT_ONE_ID]);
+
+      await openPage();
+      await untick();
+
+      expect(screen.getByTestId(KEEP_ESCALATING_TEST_ID).textContent).toBe(
+        GERMAN[SINGLE_ALERT_KEEPS_ESCALATING] as string,
+      );
+
+      await tick();
+
+      expect(onCallSummary({}).text).toBe(
+        `${GERMAN[NO_POLICIES_TEXT]} ${GERMAN[ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE]}`,
+      );
+    });
+
+    test("Persian: the count in Persian digits, the words in Persian", async () => {
+      mockReaderLocale = { language: "fa", words: PERSIAN };
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID, ALERT_THREE_ID]);
+
+      await openPage();
+
+      const checkbox: HTMLInputElement = acknowledgeCheckbox();
+
+      await waitFor(() => {
+        expect(checkbox).toBeChecked();
+      });
+      expect(labelOf(checkbox)).toBe(
+        (PERSIAN[EVERY_ALERT_TITLE_KEY] as string).replace("{{count}}", "۳"),
+      );
+      expect(labelOf(checkbox)).not.toMatch(/[A-Za-z0-9]/);
+      expect(descriptionOf(checkbox)).toBe(
+        PERSIAN[PLURAL_DESCRIPTION] as string,
+      );
+
+      await untick();
+
+      expect(screen.getByTestId(KEEP_ESCALATING_TEST_ID).textContent).toBe(
+        PERSIAN[EVERY_ALERT_KEEPS_ESCALATING] as string,
+      );
     });
   });
 });

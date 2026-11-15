@@ -224,6 +224,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
   },
   {
+    file: "packages/Common/Types/NoBreakSpaces.ts",
+    count: 2,
+    builtFrom:
+      "the space patterns the file writes from its own characters (SPACES_BEFORE_A_COLON and the others), and what it leaves as written (AS_WRITTEN_IN_TEXT, AS_WRITTEN_IN_HTML), each global",
+  },
+  {
     file: "packages/Common/Types/StatusPage/SubscriberNotificationTemplateCompiler.ts",
     count: 1,
     builtFrom:

@@ -179,7 +179,7 @@ O OneUptime tem um endpoint MQTT próprio, então dispositivos que falam MQTT pu
 
 A credencial de um dispositivo só pode publicar nos próprios tópicos `oneuptime/<fleet>/<device>/`. Você pode revogar um dispositivo sem mexer no resto da frota: desligue o interruptor **Habilitado** dele, ou exclua-o, e um dispositivo conectado é desconectado em cerca de um minuto. Um dispositivo registrado que fica em silêncio continua no inventário como offline, e o modelo de alerta Device Offline dispara para ele, mesmo que ele caia sem um Last Will.
 
-O OneUptime recusa credenciais inválidas no CONNECT com o código de retorno 4 (nome de usuário ou senha inválidos), então um dispositivo mal configurado falha de forma visível. Chaves de navegador são recusadas por MQTT.
+O OneUptime recusa credenciais inválidas no CONNECT com o código de retorno 4 (nome de usuário ou senha inválidos), então um dispositivo mal configurado falha de forma visível. Chaves de navegador são recusadas por MQTT. Um cliente que se conectou com a chave de ingestão é desconectado em poucos segundos quando a chave é desativada, expira, tem o segredo redefinido ou é excluída, e é recusado quando se conecta de novo.
 
 ### Tópicos e payloads
 

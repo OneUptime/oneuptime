@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Hints on the charts
 
-Most charts that zoom name the gesture above the plot — **Drag to zoom**, or **Click or drag to zoom** — and, while a zoom is active, remind you to **double-click to reset**. Metric cards, the metric explorer and the explorers' volume charts always show the hint. On the chart cards of resource overviews and SLOs, and on some dashboard widgets, it appears only while you point at the card or tab into it.
+Most charts that zoom name the gesture above the plot — **Drag to zoom**, or **Click or drag to zoom** — and, while a zoom is active, remind you to **double-click to reset**. Metric cards, the metric explorer and the explorers' volume charts always show the hint. On the chart cards of resource overviews and SLOs, and on some dashboard widgets, it appears only while you point at the card or tab into it. On a phone or a tablet, metric cards and chart cards leave the hint out: a finger cannot drag a zoom box.
 
 ## Where it works
 

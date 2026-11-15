@@ -14,6 +14,7 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -47,7 +48,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="sql-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -59,7 +60,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
           value={
             sqlResponse?.rowCount === null ||
             sqlResponse?.rowCount === undefined
-              ? "-"
+              ? undefined
               : sqlResponse.rowCount.toString()
           }
         />
@@ -78,7 +79,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -88,7 +89,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {sqlResponse?.queryError || props.probeMonitorResponse.failureCause ? (
@@ -147,9 +148,11 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
                             {columnName}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900 font-mono break-all">
-                            {cellValue === null || cellValue === undefined
-                              ? "-"
-                              : String(cellValue)}
+                            {cellValue === null || cellValue === undefined ? (
+                              <TableEmptyValue />
+                            ) : (
+                              String(cellValue)
+                            )}
                           </td>
                         </tr>
                       );

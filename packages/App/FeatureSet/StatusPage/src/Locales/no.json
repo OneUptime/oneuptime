@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
+    "uptimePercent": "{{percent}}% oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåket",
     "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",
@@ -114,6 +115,7 @@
     "noneDescription": "Ingen hendelser er publisert på denne statussiden.",
     "postmortem": "Hendelsesgjennomgang",
     "declaredAt": "Rapportert den ",
+    "declaredAtTime": "Rapportert den {{time}}",
     "report": "Hendelsesrapport",
     "notFound": "Hendelsen ble ikke funnet på denne statussiden."
   },
@@ -130,6 +132,7 @@
     "none": "Ingen kunngjøringer",
     "noneDescription": "Ingen kunngjøringer er publisert på denne siden så langt.",
     "announcedAt": "Kunngjort den ",
+    "announcedAtTime": "Kunngjort den {{time}}",
     "notFound": "Kunngjøringen ble ikke funnet på denne statussiden."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "Ikke noe planlagt vedlikehold",
     "noneDescription": "Det er ikke publisert noe planlagt vedlikehold for denne statussiden.",
     "scheduledAt": "Planlagt til ",
+    "scheduledAtTime": "Planlagt til {{time}}",
     "report": "Rapport for vedlikeholdshendelse",
     "notFound": "Fant ingen vedlikeholdshendelse for denne statussiden.",
     "calendar": {
@@ -149,7 +153,7 @@
       "subscribeTitle": "Abonner på planlagt vedlikehold",
       "subscribeDescription": "Få denne sidens planlagte vedlikehold i kalenderappen din. Den holder seg oppdatert av seg selv.",
       "eventTitle": "Legg til i kalender",
-      "eventDescription": "Legg dette vedlikeholdet til i kalenderappen din.",
+      "eventDescription": "Legg denne vedlikeholdshendelsen til i kalenderappen din.",
       "addToCalendar": "Legg til i kalender",
       "addHeading": "Legg til i kalenderen din",
       "google": "Google Kalender",
@@ -467,5 +471,7 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  }
+  },
+  "No options available": "Ingen tilgjengelige alternativer",
+  "No matches found": "Ingen treff"
 }

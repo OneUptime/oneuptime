@@ -4,13 +4,18 @@ import {
   DEFAULT_INCIDENT_SEVERITY_NAMES,
   DEFAULT_INCIDENT_STATE_NAMES,
   DEFAULT_MONITOR_STATUS_NAMES,
+  DEFAULT_POSTMORTEM_STATUS_NAMES,
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
+  DEFAULT_SECURITY_CASE_PRIORITY_NAMES,
+  DEFAULT_SECURITY_CASE_STATUS_NAMES,
 } from "../Types/StatusPage/DefaultStatusNames";
-import { Translator } from "../Types/Translator";
-import { DEFAULT_POSTMORTEM_STATUSES } from "./Incident/PostmortemStatus";
-import { DEFAULT_SECURITY_CASE_PRIORITIES } from "./SecurityCase/SecurityCasePriorities";
-import { DEFAULT_SECURITY_CASE_STATUSES } from "./SecurityCase/SecurityCaseStatuses";
-import { StateListType } from "./StateOrder";
+import {
+  TemplateValue,
+  TermOptions,
+  Translator,
+  translatableTerm,
+} from "../Types/Translator";
+import { StateListType } from "./StateListType";
 
 /*
  * A RECORD'S NAME, AS ITS READER READS IT - ONE RULE, WHEREVER IT IS DRAWN.
@@ -19,7 +24,8 @@ import { StateListType } from "./StateOrder";
  * a state or a severity a project made. It is drawn as written in every
  * language - a label named "Network" is "Network" on a Spanish page, never
  * "Red" - in a badge (Pill, StatusBubble), in a picker's options and in a
- * filter's menu and chip (DropdownOption.isUserContent).
+ * filter's menu and chip (DropdownOption.isUserContent), as a line of text
+ * (translateRecordName) and in a sentence (recordNameInSentence).
  *
  * The records a new project starts with that OneUptime names itself
  * (ProjectService) are the exception: its states, severities, monitor
@@ -39,23 +45,18 @@ import { StateListType } from "./StateOrder";
  * the project made it (a severity has no built-in flag, both get the same
  * kind of slug, and a badge is handed a name and a colour), so a project's
  * own record named exactly as a default of its list reads as that default
- * does - the same word the status page and the notifications use for it
- * (StatusPage/DefaultStatusNames.translateStateName).
+ * does - the same word the status page and the notifications use for it.
+ * A status page (StatusPage/src/Utils/StatusTranslation), an on-call page
+ * (OnCallDutyPolicy/OnCallPageWords) and a status page's notifications
+ * (Server/Utils/StatusPage/SubscriberMessageText) decide by this rule too,
+ * each handed its record's list (#8066).
  */
 
-interface NamedDefault {
-  name: string;
-}
-
-const namesOf: (defaults: ReadonlyArray<NamedDefault>) => Array<string> = (
-  defaults: ReadonlyArray<NamedDefault>,
-): Array<string> => {
-  return defaults.map((value: NamedDefault): string => {
-    return value.name;
-  });
-};
-
-// Every list a project orders has the names it starts with.
+/*
+ * Every list a project orders has the names it starts with. Only names:
+ * every form loads this, so it loads none of the lists' own modules
+ * (StateOrder, PostmortemStatus, SecurityCaseStatuses and _Priorities).
+ */
 const DEFAULT_NAMES_BY_TABLE: Readonly<
   Record<StateListType, ReadonlyArray<string>>
 > = {
@@ -66,13 +67,9 @@ const DEFAULT_NAMES_BY_TABLE: Readonly<
   [StateListType.MonitorStatus]: DEFAULT_MONITOR_STATUS_NAMES,
   [StateListType.IncidentSeverity]: DEFAULT_INCIDENT_SEVERITY_NAMES,
   [StateListType.AlertSeverity]: DEFAULT_ALERT_SEVERITY_NAMES,
-  [StateListType.IncidentPostmortemStatus]: namesOf(
-    DEFAULT_POSTMORTEM_STATUSES,
-  ),
-  [StateListType.SecurityCaseStatus]: namesOf(DEFAULT_SECURITY_CASE_STATUSES),
-  [StateListType.SecurityCasePriority]: namesOf(
-    DEFAULT_SECURITY_CASE_PRIORITIES,
-  ),
+  [StateListType.IncidentPostmortemStatus]: DEFAULT_POSTMORTEM_STATUS_NAMES,
+  [StateListType.SecurityCaseStatus]: DEFAULT_SECURITY_CASE_STATUS_NAMES,
+  [StateListType.SecurityCasePriority]: DEFAULT_SECURITY_CASE_PRIORITY_NAMES,
 };
 
 /*
@@ -151,4 +148,35 @@ export const translateRecordName: (
   }
 
   return translator.translateText(name.trim()) || name;
+};
+
+/*
+ * A record's name as a value of a sentence - "{{stateName}} in", "Mark as
+ * {{state}}", "Incident · {{severity}}" - by the same rule. One of
+ * OneUptime's default names of its table goes in as a term, translated
+ * with the sentence and only then (Types/Translator): a sentence the
+ * reader's language words reads "Marcar como Resuelto", one it does not
+ * yet reads "Mark as Resolved" whole, and `inSentence` cases the name for
+ * the middle of one ("Not yet resolved"). Any other name goes in as
+ * written, never looked up: a state a project named "Open" reads "Marcar
+ * como Open", never the verb "Abrir", in any language and in any case.
+ */
+export const recordNameInSentence: (
+  tableName: string | null | undefined,
+  name: string | null | undefined,
+  options?: TermOptions,
+) => TemplateValue = (
+  tableName: string | null | undefined,
+  name: string | null | undefined,
+  options?: TermOptions,
+): TemplateValue => {
+  if (!name) {
+    return "";
+  }
+
+  if (!isDefaultRecordName(tableName, name)) {
+    return name;
+  }
+
+  return translatableTerm(name.trim(), options);
 };

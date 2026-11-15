@@ -169,6 +169,7 @@ L'esecuzione resta nella pagina **Runbook** dell'incidente. Quando scrivi il pos
 - Le **[politiche di reperibilità](/docs/on-call/schedules)** decidono chi viene chiamato. I runbook decidono cosa fa quella persona una volta sveglia.
 - Le **[connessioni all'area di lavoro](/docs/workspace-connections/slack)** come Slack e Microsoft Teams sono destinazioni naturali per i passaggi di richiesta HTTP che pubblicano aggiornamenti.
 - Le **[pagine di stato](/docs/status-pages/index)** vengono spesso aggiornate in un passaggio Manual di un runbook rivolto ai clienti.
+- **[OneUptime AI](/docs/ai/ai-sre#salvare-come-runbook-una-correzione-che-ha-funzionato)** scrive un runbook a partire da una propria correzione che ha funzionato: **Salva come runbook** su una correzione verificata salva i passaggi eseguiti in un runbook che resta disattivato finché non li rivedi.
 
 ## Prossimi passi
 

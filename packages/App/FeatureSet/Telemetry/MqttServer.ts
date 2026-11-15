@@ -19,6 +19,8 @@ import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingSe
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ProjectService from "Common/Server/Services/ProjectService";
+import TelemetryIngestionKeyLastUsed from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyLastUsed";
+import TelemetryIngestionKeySecretDigest from "Common/Server/Utils/Telemetry/TelemetryIngestionKeySecretDigest";
 import TelemetryIngestionKeyGuard, {
   TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL,
   TelemetryIngestionKeyRefusal,
@@ -72,7 +74,11 @@ import {
  * explicitly (CONNACK rc=4) so a misconfigured device fails loudly
  * instead of silently dropping data. An MQTT 3.1.1 CONNACK carries no
  * reason, so unlike gRPC's status details the device is not told why;
- * the broker logs it. On success the MQTT clientId is namespaced
+ * the broker logs it. The key is checked again on every publish, so
+ * one switched off, expired, deleted or given a new secret closes a
+ * session that is already open within a few seconds (issue #8147).
+ *
+ * On success the MQTT clientId is namespaced
  * by projectId: aedes keys its session/takeover map on clientId
  * globally, so without the prefix a client in one project could evict
  * (and fire the Last Will of) another project's device that happens
@@ -117,6 +123,11 @@ const MQTT_MAX_PACKET_BYTES: number = MQTT_MAX_PAYLOAD_BYTES + 8 * 1024;
 interface MqttAuthContext {
   projectId: ObjectID;
   /*
+   * Present when the client authenticated with a project-wide ingestion
+   * key. Absent for a device credential, which is not an ingestion key.
+   */
+  ingestionKey?: MqttIngestionKeyContext;
+  /*
    * Present when the client authenticated with a per-device credential
    * (username = credential id, password = device secret) instead of a
    * project-wide ingestion key. Device-authenticated clients may only
@@ -129,6 +140,29 @@ interface MqttAuthContext {
     fleetName: string;
     externalId: string;
   };
+}
+
+/*
+ * The ingestion key a client connected with, and how it proved it held it.
+ *
+ * Every publish checks the key again (issue #8147): a key switched off,
+ * past its expiry, deleted or given a new secret stops a session that is
+ * already open within CURRENT_STATE_FRESH_MS (TelemetryIngestionKeyService),
+ * not when the device next reconnects - which, for a gateway with a
+ * keep-alive, can be weeks. A new secret is caught by comparing digests:
+ * the session keeps the digest of the secret it presented at CONNECT, never
+ * the secret, so a heap snapshot of a broker with a thousand gateways on it
+ * holds no live credential (TelemetryIngestionKeySecretDigest).
+ */
+interface MqttIngestionKeyContext {
+  ingestionKeyId: ObjectID;
+  secretKeyDigest: string;
+  /*
+   * Set once a publish found the key stopped and the client was closed:
+   * nothing it publishes after - the Last Will aedes publishes as it closes
+   * the client - is ingested, checked or counted again.
+   */
+  isStopped: boolean;
 }
 
 const clientAuthContexts: WeakMap<Client, MqttAuthContext> = new WeakMap();
@@ -249,40 +283,122 @@ async function resolveAuthContext(
    * replayed into MQTT ingest by the same script that scraped it, from any
    * origin, with no Origin check to fail (a WebSocket handshake's Origin is
    * not something this broker inspects). No OneUptime browser SDK publishes
-   * MQTT; browser keys exist for OTLP and session replay. So a Browser key
-   * presented at CONNECT has no honest explanation, and is refused.
+   * MQTT; browser keys exist for OTLP, session replay and Sentry's browser
+   * SDKs. So a Browser key presented at CONNECT has no honest explanation,
+   * and is refused.
    */
+  if (isIngestionKeyRefused(policy)) {
+    return null;
+  }
+
+  const ingestionKey: MqttIngestionKeyContext = {
+    ingestionKeyId: policy.ingestionKeyId,
+    secretKeyDigest: TelemetryIngestionKeySecretDigest.of(projectSecretKey),
+    isStopped: false,
+  };
+
+  /*
+   * And the key as it is now, as every publish asks it. The lookup by
+   * secret above is kept for a minute on servers that did not make a
+   * change, so a key stopped seconds ago could still pass it - and a
+   * gateway thrown off on its publish would reconnect straight into a
+   * session it may not use. Asked here, it is refused with rc=4 instead,
+   * within the same few seconds as the publish.
+   */
+  const current: TelemetryIngestionKeyPolicy | null =
+    await getCurrentIngestionKeyPolicy({
+      projectId: policy.projectId,
+      ingestionKey: ingestionKey,
+    });
+
+  if (!current) {
+    return null;
+  }
+
+  return { projectId: policy.projectId, ingestionKey: ingestionKey };
+}
+
+/*
+ * Whether this key may not send over MQTT - switched off, past its expiry,
+ * or a Browser key - and if so, says why in the log and counts it against
+ * the key.
+ */
+function isIngestionKeyRefused(policy: TelemetryIngestionKeyPolicy): boolean {
   const refusal: TelemetryIngestionKeyRefusal | null =
     TelemetryIngestionKeyGuard.getRefusal({
       policy: policy,
       surface: TelemetryIngestSurface.Mqtt,
     });
 
-  if (refusal) {
-    /*
-     * CONNACK rc=4 carries no reason string on the wire — MQTT 3.1.1 has no
-     * field for one — so this log line is the only place the WHY exists.
-     * It names the key id and the refusal reason and never the credential:
-     * on this transport the password IS the ingestion key, which is why
-     * nothing in this file ever logs it.
-     */
-    logger.warn(
-      `MQTT: ingestion key ${policy.ingestionKeyId.toString()} refused — ${refusal.reason}.`,
-      { service: "telemetry" },
-    );
+  if (!refusal) {
+    return false;
+  }
 
-    // Counted against the key, for its page (issue #6378).
-    TelemetryIngestRefusalRecorder.record({
-      projectId: policy.projectId,
-      ingestionKeyId: policy.ingestionKeyId,
-      reason: TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL[refusal.reason],
-      surface: TelemetryIngestSurface.Mqtt,
+  /*
+   * CONNACK rc=4 carries no reason string on the wire — MQTT 3.1.1 has no
+   * field for one — and a client closed on its publish is told nothing at
+   * all, so this log line is the only place the WHY exists. It names the
+   * key id and the refusal reason and never the credential: on this
+   * transport the password IS the ingestion key, which is why nothing in
+   * this file ever logs it.
+   */
+  logger.warn(
+    `MQTT: ingestion key ${policy.ingestionKeyId.toString()} refused — ${refusal.reason}.`,
+    { service: "telemetry" },
+  );
+
+  // Counted against the key, for its page (issue #6378).
+  TelemetryIngestRefusalRecorder.record({
+    projectId: policy.projectId,
+    ingestionKeyId: policy.ingestionKeyId,
+    reason: TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL[refusal.reason],
+    surface: TelemetryIngestSurface.Mqtt,
+  });
+
+  return true;
+}
+
+/*
+ * The key a client connected with, as it is now (issue #8147) - or null
+ * when it may no longer send: deleted, given a new secret, switched off or
+ * past its expiry (TelemetryIngestionKeyService.getCurrentPolicyById, kept
+ * for a few seconds, so publishes do not read Postgres). A key that is
+ * gone, or has a new secret, is not counted: like a token no key has at
+ * CONNECT, the secret the client holds opens no key. Anything the lookup
+ * throws is infrastructural and propagates.
+ */
+async function getCurrentIngestionKeyPolicy(data: {
+  projectId: ObjectID;
+  ingestionKey: MqttIngestionKeyContext;
+}): Promise<TelemetryIngestionKeyPolicy | null> {
+  const current: TelemetryIngestionKeyPolicy | null =
+    await TelemetryIngestionKeyService.getCurrentPolicyById({
+      ingestionKeyId: data.ingestionKey.ingestionKeyId,
+      secretKeyDigest: data.ingestionKey.secretKeyDigest,
     });
 
+  /*
+   * A key never moves between projects; a different project on the row
+   * would mean the id now names something else, and is no key of this
+   * session's.
+   */
+  if (
+    !current ||
+    current.projectId.toString().toLowerCase() !==
+      data.projectId.toString().toLowerCase()
+  ) {
+    logger.warn(
+      `MQTT: ingestion key ${data.ingestionKey.ingestionKeyId.toString()} refused — it was deleted, or its secret was reset.`,
+      { service: "telemetry" },
+    );
     return null;
   }
 
-  return { projectId: policy.projectId };
+  if (isIngestionKeyRefused(current)) {
+    return null;
+  }
+
+  return current;
 }
 
 async function handleAuthorizePublish(
@@ -330,6 +446,36 @@ async function handleAuthorizePublish(
     if (!liveContext) {
       logger.warn(
         `MQTT: closing client "${client.id}" — device credential was revoked or deleted.`,
+        { service: "telemetry" },
+      );
+      client.close();
+      return;
+    }
+  }
+
+  /*
+   * The ingestion key it connected with, as it is now (issue #8147): a key
+   * switched off, past its expiry, deleted or given a new secret since
+   * CONNECT closes the client, so it reconnects and is refused with rc=4.
+   * Nothing it sent is ingested or stamped - its Last Will, which aedes
+   * publishes as the client closes, included.
+   */
+  let currentIngestionKey: TelemetryIngestionKeyPolicy | null = null;
+
+  if (authContext.ingestionKey) {
+    if (authContext.ingestionKey.isStopped) {
+      return;
+    }
+
+    currentIngestionKey = await getCurrentIngestionKeyPolicy({
+      projectId: projectId,
+      ingestionKey: authContext.ingestionKey,
+    });
+
+    if (!currentIngestionKey) {
+      authContext.ingestionKey.isStopped = true;
+      logger.warn(
+        `MQTT: closing client "${client.id}" — the ingestion key it connected with can no longer send.`,
         { service: "telemetry" },
       );
       client.close();
@@ -441,6 +587,22 @@ async function handleAuthorizePublish(
   };
 
   await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+
+  /*
+   * The key is now in use, so "Last Used At" and the guides' first-data
+   * wait see a key that sends only over MQTT (issue #8020). Stamped through
+   * the helper the HTTP and gRPC paths use, and only here, once the queue
+   * has taken the publish: a CONNECT refused for its key never gets a
+   * publish, and a key stopped since CONNECT, a blocked or unpaid project,
+   * a dropped payload (malformed, off its device's topics, or ingest
+   * switched off), a skipped will replay and a failed enqueue all return or
+   * throw before this line. A device credential names no ingestion key, so
+   * nothing is stamped for it. Fire and forget, so the publish is never held
+   * up by it.
+   */
+  if (currentIngestionKey) {
+    TelemetryIngestionKeyLastUsed.stamp(currentIngestionKey);
+  }
 }
 
 async function createMqttBroker(): Promise<Aedes> {

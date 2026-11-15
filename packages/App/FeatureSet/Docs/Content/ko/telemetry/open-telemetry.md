@@ -52,7 +52,7 @@ flowchart TB
 2. 사이드 메뉴에서 **텔레메트리 및 APM**을 열고 **수집 키**를 선택합니다.
 3. **수집 키 생성**을 클릭합니다. 대화 상자가 이름을 채우고, 애플리케이션이나 Collector가 데이터를 보낼 때 쓰는 키 유형인 **서버**를 선택합니다. 원하면 이름을 바꾼 다음 **수집 키 생성**을 클릭합니다.
 
-![프로젝트 설정의 텔레메트리 수집 키 페이지](/docs/static/images/TelemetryIngestionKeys.png)
+![‘수집 키’ 목록, ‘수집 키 생성’ 강조 표시됨](screen:ingestion-keys)
 
 새 키는 자체 페이지에서 열립니다. 키의 **시크릿 키**를 복사하세요. 이것이 `x-oneuptime-token`으로 보내는 토큰입니다.
 
@@ -89,9 +89,9 @@ export OTEL_SERVICE_NAME="my-service"
 SDK, 자동 계측, OTLP/HTTP 익스포터를 설치합니다.
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 SDK를 별도 파일에서 만듭니다.
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

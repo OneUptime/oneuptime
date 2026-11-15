@@ -1,8 +1,8 @@
 # SendGrid 傳入郵件
 
-OneUptime 的 **Incoming Email Monitor** 讓你可以根據寄到唯一、依監視器區分的電子郵件地址的郵件來建立和解決警示。這對於整合舊系統、警示工具或任何能夠寄送郵件的服務都很有用。
+OneUptime 的 **Incoming Email Monitor** 讓你可以根據寄到唯一、依監測器區分的電子郵件地址的郵件來建立和解決警示。這對於整合舊系統、警示工具或任何能夠寄送郵件的服務都很有用。
 
-同樣的設定也讓工作流程可以接收郵件：帶有 **Incoming Email** 觸發器的工作流程會在同一個網域上取得自己的地址，寄到該地址的每封郵件都會啟動該工作流程。請參閱[觸發器](/docs/workflows/triggers#incoming-email)。
+同樣的設定也讓工作流程可以接收郵件：帶有 **傳入電子郵件** 觸發器的工作流程會在同一個網域上取得自己的地址，寄到該地址的每封郵件都會啟動該工作流程。請參閱[觸發器](/docs/workflows/triggers#incoming-email)。
 
 本指南說明如何設定 SendGrid Inbound Parse，把傳入郵件轉寄到你的自架 OneUptime 執行個體。OneUptime Cloud 不需要這些設定：它的地址開箱即用。
 
@@ -15,19 +15,19 @@ OneUptime 的 **Incoming Email Monitor** 讓你可以根據寄到唯一、依監
 
 ## 運作方式
 
-```mermaid title="郵件如何到達監視器"
+```mermaid title="郵件如何到達監測器"
 sequenceDiagram
     participant Sender as 寄件郵件伺服器
     participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: 寄到<br/>監視器地址的<br/>郵件（經由你的<br/>MX 記錄）
+    Sender->>SendGrid: 寄到<br/>監測器地址的<br/>郵件（經由你的<br/>MX 記錄）
     SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: 把地址比對到<br/>監視器或<br/>工作流程
+    OneUptime->>OneUptime: 把地址比對到<br/>監測器或<br/>工作流程
     OneUptime-->>SendGrid: 200 OK
 ```
 
 1. 你在 OneUptime 中建立一個 **Incoming Email Monitor**
-2. OneUptime 為該監視器產生一個唯一的電子郵件地址（例如 `monitor-abc123@inbound.yourdomain.com`）
+2. OneUptime 為該監測器產生一個唯一的電子郵件地址（例如 `monitor-abc123@inbound.yourdomain.com`）
 3. 當有郵件寄到該地址時，SendGrid 接收它並透過 Webhook 轉寄給 OneUptime
 4. OneUptime 依照你設定的條件評估該郵件，以建立或解決警示
 
@@ -49,18 +49,18 @@ sequenceDiagram
 
 為 Webhook 主機名稱發布 DNS，並提供公用用戶端信任的憑證。私有部署的 OneUptime 可以只透過一個能從內部連到 OneUptime 的公用反向代理或閘道公開 Webhook 路徑。保留路徑、密鑰、內容類型和 multipart 請求本文，並讓 POST 無需互動式登入或瀏覽器驗證即可通過。OneUptime 伺服器不需要傳入的 SMTP 接聽程式。請參閱 [SendGrid 的 Inbound Parse 設定](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)。
 
-把 `INBOUND_EMAIL_WEBHOOK_SECRET` 設為一個強隨機值，並用該值取代 URL 中的 `YOUR_SECRET`。該路由要求包含最後一個路徑區段，而且只有當該區段就是密鑰時，OneUptime 才會接收郵件。在設定密鑰之前，每封郵件都會以 `503` 被拒絕，SendGrid 會在最多三天內重試。請對完整 URL 和監視器的電子郵件地址保密，包括在代理記錄中。OneUptime 目前不驗證 SendGrid 簽署的 Inbound Parse 標頭或 OAuth 權杖。如果你需要這些機制，請依照 [SendGrid 的 Webhook 安全性文件](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) 設定一個閘道，在轉寄到完整 URL 之前先驗證它們。
+把 `INBOUND_EMAIL_WEBHOOK_SECRET` 設為一個強隨機值，並用該值取代 URL 中的 `YOUR_SECRET`。該路由要求包含最後一個路徑區段，而且只有當該區段就是密鑰時，OneUptime 才會接收郵件。在設定密鑰之前，每封郵件都會以 `503` 被拒絕，SendGrid 會在最多三天內重試。請對完整 URL 和監測器的電子郵件地址保密，包括在代理記錄中。OneUptime 目前不驗證 SendGrid 簽署的 Inbound Parse 標頭或 OAuth 權杖。如果你需要這些機制，請依照 [SendGrid 的 Webhook 安全性文件](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) 設定一個閘道，在轉寄到完整 URL 之前先驗證它們。
 
 SendGrid 沒有為 Inbound Parse 提供可靠的靜態來源 IP 清單。它寄送郵件所用的 IP，以及 `mx.sendgrid.net` 解析出的位址，都不能作為 Webhook 的允許清單。請遵循 [SendGrid 的防火牆指引](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)，而不是固定一個目前的 DNS 結果。
 
-Inbound Parse 與對外郵件寄送是分開的。接收監視器郵件不需要 OneUptime 呼叫 SendGrid API。如果你也選擇 SendGrid 寄送通知，請允許 DNS 解析以及到 `api.sendgrid.com` 的對外 HTTPS；[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) 提交時不需要任何傳入回呼。如果改用 SMTP，請允許在 OneUptime 中設定的 SMTP 伺服器和連接埠。
+Inbound Parse 與對外郵件寄送是分開的。接收監測器郵件不需要 OneUptime 呼叫 SendGrid API。如果你也選擇 SendGrid 寄送通知，請允許 DNS 解析以及到 `api.sendgrid.com` 的對外 HTTPS；[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) 提交時不需要任何傳入回呼。如果改用 SMTP，請允許在 OneUptime 中設定的 SMTP 伺服器和連接埠。
 
 ## 設定說明
 
 :::steps
 ### 選擇你的傳入郵件網域
 
-選擇一個專門用於為 OneUptime 接收郵件的子網域，例如 `inbound.yourdomain.com`、`email.yourdomain.com` 或 `monitor.yourdomain.com`。它只用於寄給 OneUptime 監視器和工作流程的郵件，因此你的任何信箱都不在它上面。
+選擇一個專門用於為 OneUptime 接收郵件的子網域，例如 `inbound.yourdomain.com`、`email.yourdomain.com` 或 `monitor.yourdomain.com`。它只用於寄給 OneUptime 監測器和工作流程的郵件，因此你的任何信箱都不在它上面。
 
 ### 把它的 MX 記錄指向 SendGrid
 
@@ -118,15 +118,15 @@ inboundEmail:
 
 然後套用它們：在 Docker Compose 上執行 `npm run start`，它會用新值重新建立容器；在 Kubernetes 上則升級 Helm 發行版本。
 
-### 建立 Incoming Email 監視器
+### 建立 Incoming Email 監測器
 
-[建立 Incoming Email 監視器](/docs/monitor/incoming-email-monitor#建立傳入郵件監測器)。它的 **概覽** 頁面會顯示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的條件決定哪些郵件建立警示、哪些郵件解決警示。
+[建立 Incoming Email 監測器](/docs/monitor/incoming-email-monitor#建立傳入郵件監測器)。它的 **概覽** 頁面會顯示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的條件決定哪些郵件建立警示、哪些郵件解決警示。
 
-工作流程使用同一個網域。把 **Incoming Email** 觸發器新增到工作流程並點選它：它的地址（`workflow-…@inbound.yourdomain.com`）顯示在其設定的頂部。在設定上面的傳入郵件變數之前，觸發器會提示伺服器尚未設定為接收郵件。
+工作流程使用同一個網域。把 **傳入電子郵件** 觸發器新增到工作流程並點選它：它的地址（`workflow-…@inbound.yourdomain.com`）顯示在其設定的頂部。在設定上面的傳入郵件變數之前，觸發器會提示伺服器尚未設定為接收郵件。
 
 ### 寄送測試郵件
 
-寄一封主旨符合其條件的郵件到監視器的地址。監視器的摘要會顯示這封郵件，條件相符時會建立警示。
+寄一封主旨符合其條件的郵件到監測器的地址。監測器的摘要會顯示這封郵件，條件相符時會建立警示。
 :::
 
 ## 環境變數參考
@@ -137,7 +137,7 @@ inboundEmail:
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 為傳入郵件設定的子網域。設定之前，傳入郵件處於關閉狀態。 | 是 | 空 |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Webhook URL 最後一段 `/incoming-email/sendgrid/YOUR_SECRET` 必須與之相符的密鑰。只要它為空或是預留位置，每封郵件都會被拒絕。 | 是 | 空 |
 
-Incoming Email 監視器可以依據哪些內容進行比對——主旨、寄件者、本文、收件者，以及郵件是否準時到達——請參閱[可用的篩選器類型](/docs/monitor/incoming-email-monitor#可用的篩選器類型)。
+Incoming Email 監測器可以依據哪些內容進行比對——主旨、寄件者、本文、收件者，以及郵件是否準時到達——請參閱[可用的篩選器類型](/docs/monitor/incoming-email-monitor#可用的篩選器類型)。
 
 ## 疑難排解
 
@@ -154,10 +154,10 @@ Incoming Email 監視器可以依據哪些內容進行比對——主旨、寄�
 4. **檢查 Webhook 密鑰：** Destination URL 必須以 `INBOUND_EMAIL_WEBHOOK_SECRET` 的值結尾。只要該變數為空或是預留位置，每封郵件都會以 `503` 被拒絕，`app` 服務的記錄會在啟動時說明這一點；寄送到以其他內容結尾的 URL 的郵件會以 `403` 被拒絕。
 :::
 
-:::details 監視器不建立警示
+:::details 監測器不建立警示
 1. **核對條件：** 檢查你的警示建立條件是否與郵件內容相符，在使用模式比對之前先用精確字串測試。
-2. **檢查監視器：** 確認它沒有被停用，並且類型是 Incoming Email。
-3. **查看監視器的摘要：** 檢查郵件是否已接收並處理，並閱讀評估記錄，了解條件是如何相符的。
+2. **檢查監測器：** 確認它沒有被停用，並且類型是 Incoming Email。
+3. **查看監測器的摘要：** 檢查郵件是否已接收並處理，並閱讀評估記錄，了解條件是如何相符的。
 :::
 
 :::details 觸發器提示伺服器尚未設定為接收郵件
@@ -169,7 +169,7 @@ Incoming Email 監視器可以依據哪些內容進行比對——主旨、寄�
 1. **使用 HTTPS：** Webhook 端點一律使用 HTTPS
 2. **Webhook 密鑰：** 為 `INBOUND_EMAIL_WEBHOOK_SECRET` 使用一個只屬於你的長隨機值，放在 Webhook URL 的末尾（例如 `/incoming-email/sendgrid/your-secret`）：正是它把 SendGrid 的郵件與其他任何人的郵件區分開來
 3. **網域驗證：** 在 SendGrid 中驗證你的網域，以提高郵件安全性
-4. **限制存取：** 只為可信任的郵件來源建立監視器
+4. **限制存取：** 只為可信任的郵件來源建立監測器
 5. **監控記錄：** 定期檢查傳入郵件記錄，留意可疑活動
 
 ## 後續步驟

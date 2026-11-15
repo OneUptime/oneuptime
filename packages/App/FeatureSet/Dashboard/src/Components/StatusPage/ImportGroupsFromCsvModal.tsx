@@ -44,6 +44,8 @@ import React, {
   useState,
 } from "react";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Bulk CSV import for Status Page Groups, reached from the ⋯ menu on the
@@ -461,7 +463,11 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {importError && <p className="text-sm text-red-700">{importError}</p>}
+        {importError && (
+          <p className="text-sm text-red-700">
+            <ErrorInSentence message={importError} showWhereToLook={true} />
+          </p>
+        )}
 
         {parseErrors.length > 0 && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3">
@@ -557,14 +563,14 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                           {row.description ? (
                             <IsolatedText text={row.description} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.viewMode || "—"}
+                          {row.viewMode || <TableEmptyValue />}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {describeOptions(row) || "—"}
+                          {describeOptions(row) || <TableEmptyValue />}
                         </td>
                       </tr>
                     );
@@ -642,7 +648,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                               }
                             />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                       </tr>

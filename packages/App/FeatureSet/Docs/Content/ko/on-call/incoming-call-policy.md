@@ -216,7 +216,7 @@ Twilio는 음성 합성으로 메시지를 읽어 주므로, 들리길 원하는
 :::steps
 1. **On Update Incoming Call Log** 트리거를 추가합니다. **Fields to watch** 를 **Ended At** 으로 설정하고, **Status**, **Caller Phone Number**, **Routing Phone Number** 처럼 사용할 필드를 선택합니다.
 2. **If / Else** 단계를 추가합니다. 트리거의 **Status** 를 비교 연산 **같지 않음** 과 `Completed` 로 확인합니다.
-3. 내 단계를 **Yes** 포트에 연결합니다.
+3. 내 단계를 **예** 포트에 연결합니다.
 :::
 
 워크플로는 **Find One** 과 **Find Many** 로 통화 로그를 읽을 수 있지만, 만들거나 바꿀 수는 없습니다.

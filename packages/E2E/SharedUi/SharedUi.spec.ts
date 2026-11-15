@@ -2151,3 +2151,227 @@ test.describe("a rule's conditions at every width", () => {
     await screenshot(page, "rule-conditions-dark-1280");
   });
 });
+
+/*
+ * A metric chart's title row and its value axis, measured (#8048, #8049).
+ *
+ * The zoom hint on a chart's title row never gave way: on a 390px phone in
+ * Russian its words ("Выделите область, чтобы приблизить") took the row and
+ * the Kubernetes Control Plane's etcd titles read "Размер…" - and a finger
+ * neither drags a zoom box nor double-clicks. A request rate was written
+ * "100 req per Second" on a 64px value axis: every tick broke over two
+ * lines and the top one was cut at the card's edge.
+ *
+ * The charts are the production ChartGroup, in its cards and its card-less
+ * stack, on a zoomable page (?section=charts), with an API server request
+ * rate whose ticks run past 1.8K req/s.
+ */
+interface ChartRow {
+  title: string;
+  titleWhole: boolean;
+  hintShown: boolean;
+  hintWhole: boolean;
+  hintBesideTitle: boolean;
+  hintUnderTitle: boolean;
+}
+
+async function chartRows(page: Page): Promise<Array<ChartRow>> {
+  return await page
+    .getByTestId("chart-title-row")
+    .evaluateAll((rows: Array<Element>): Array<ChartRow> => {
+      return rows.map((row: Element): ChartRow => {
+        const heading: HTMLElement = row.querySelector("h2, h3") as HTMLElement;
+        const hint: HTMLElement | null = row.querySelector(
+          '[data-testid="time-range-zoom-hint"]',
+        );
+        const titleBox: DOMRect = heading.getBoundingClientRect();
+        const hintBox: DOMRect | null = hint
+          ? hint.getBoundingClientRect()
+          : null;
+        const hintShown: boolean = Boolean(
+          hint && window.getComputedStyle(hint).display !== "none",
+        );
+
+        return {
+          title: heading.textContent || "",
+          // Whole: its text is no wider than its box, so nothing is cut.
+          titleWhole: heading.scrollWidth <= heading.clientWidth + 1,
+          hintShown: hintShown,
+          hintWhole: Boolean(
+            hint && hintShown && hint.scrollWidth <= hint.clientWidth + 1,
+          ),
+          hintBesideTitle: Boolean(
+            hintShown &&
+              hintBox &&
+              Math.abs(
+                hintBox.top +
+                  hintBox.height / 2 -
+                  (titleBox.top + titleBox.height / 2),
+              ) < 6,
+          ),
+          hintUnderTitle: Boolean(
+            hintShown && hintBox && hintBox.top >= titleBox.bottom - 1,
+          ),
+        };
+      });
+    });
+}
+
+interface AxisTick {
+  text: string;
+  lines: number;
+  cutAtLeft: boolean;
+}
+
+/*
+ * The value axis's ticks: the chart library draws every tick label in a layer
+ * of its own, the value axis's ending at the axis (text-anchor end).
+ */
+const VALUE_AXIS_TICKS: string =
+  'text.recharts-cartesian-axis-tick-value[text-anchor="end"]';
+
+// Every value axis tick on the page: how many lines it takes, and whether it starts off the chart.
+async function valueAxisTicks(page: Page): Promise<Array<AxisTick>> {
+  return await page
+    .locator(VALUE_AXIS_TICKS)
+    .evaluateAll((ticks: Array<Element>): Array<AxisTick> => {
+      return ticks.map((tick: Element): AxisTick => {
+        const svg: SVGSVGElement | null = (tick as SVGElement).ownerSVGElement;
+        const left: number = svg ? svg.getBoundingClientRect().left : 0;
+
+        return {
+          text: tick.textContent || "",
+          lines: Math.max(1, tick.querySelectorAll("tspan").length),
+          cutAtLeft: tick.getBoundingClientRect().left < left - 0.5,
+        };
+      });
+    });
+}
+
+async function openCharts(page: Page, query: string): Promise<void> {
+  await open(page, `section=charts&${query}`);
+  await expect(page.getByTestId("section-charts")).toBeVisible();
+  await expect(page.locator(VALUE_AXIS_TICKS).first()).toBeVisible();
+}
+
+test.describe("a chart's title row and its value axis", () => {
+  test("on a 390px phone in Russian: no hint, every title whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openCharts(page, "lang=ru&zoomed=1");
+
+    const rows: Array<ChartRow> = await chartRows(page);
+    expect(rows.length).toBe(6);
+    for (const row of rows) {
+      expect(row).toMatchObject({ titleWhole: true, hintShown: false });
+    }
+    expect(
+      rows.map((row: ChartRow): string => {
+        return row.title;
+      }),
+    ).toContain("Размер базы данных");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "chart-title-rows-ru-390");
+  });
+
+  test("at 1280 in English, the hint sits beside each title, both whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openCharts(page, "");
+
+    for (const row of await chartRows(page)) {
+      expect(row).toMatchObject({
+        titleWhole: true,
+        hintShown: true,
+        hintWhole: true,
+        hintBesideTitle: true,
+      });
+    }
+    await expect(page.getByText("Drag to zoom").first()).toBeVisible();
+    await screenshot(page, "chart-title-rows-en-1280");
+  });
+
+  test("at 1024 in French while zoomed, a hint too long for the row goes under the title, and the title stays whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openCharts(page, "lang=fr&zoomed=1");
+
+    const rows: Array<ChartRow> = await chartRows(page);
+    for (const row of rows) {
+      expect(row.titleWhole).toBe(true);
+      expect(row.hintShown).toBe(true);
+      // Beside the title when it fits, under it when it does not: never over it.
+      expect(row.hintBesideTitle || row.hintUnderTitle).toBe(true);
+    }
+    // The two-column cards have no room for both: the hint went under.
+    expect(
+      rows.some((row: ChartRow): boolean => {
+        return row.hintUnderTitle;
+      }),
+    ).toBe(true);
+    await screenshot(page, "chart-title-rows-fr-1024-zoomed");
+  });
+
+  test("no value axis tick wraps or is cut, at 1280 and 390, the rate written req/s", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openCharts(page, "");
+
+      const ticks: Array<AxisTick> = await valueAxisTicks(page);
+      expect(ticks.length).toBeGreaterThan(6);
+      for (const tick of ticks) {
+        expect({ width, ...tick }).toEqual({
+          width,
+          text: tick.text,
+          lines: 1,
+          cutAtLeft: false,
+        });
+        expect(tick.text).not.toContain("per");
+      }
+      expect(
+        ticks.some((tick: AxisTick): boolean => {
+          return tick.text.endsWith("K req/s");
+        }),
+      ).toBe(true);
+    }
+  });
+});
+
+test.describe("on a touch screen the size of a tablet", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 820, height: 1180 },
+  });
+
+  test("no chart names a drag a finger cannot make", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCharts(page, "");
+
+    // A screen with no hover: the hint's rule is the one that applies.
+    expect(
+      await page.evaluate((): boolean => {
+        return window.matchMedia("(hover: none)").matches;
+      }),
+    ).toBe(true);
+    for (const row of await chartRows(page)) {
+      expect(row).toMatchObject({ titleWhole: true, hintShown: false });
+    }
+  });
+});

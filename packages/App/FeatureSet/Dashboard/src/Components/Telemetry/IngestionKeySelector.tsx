@@ -33,6 +33,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import OneUptimeDate from "Common/Types/Date";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Why a key cannot send right now (issue #6378): turned off, or past its
@@ -359,7 +360,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       return (
         <div className="text-xs text-gray-500 mt-2 leading-relaxed">
           {translator.translateTemplate(
-            "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
+            "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
             { identities: key.allowedOrigins.join(", ") },
             { setsValuesApart: true },
           )}
@@ -477,6 +478,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                   return {
                     value: key.id?.toString() || "",
                     label: getKeyLabel(key),
+                    /*
+                     * The key's name, in a sentence already translated when
+                     * it is refused; "Unnamed Key" in its place is the
+                     * product's word, looked up.
+                     */
+                    isUserContent: Boolean(key.name),
                   };
                 },
               )}
@@ -489,6 +496,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                     return {
                       value: key.id?.toString() || "",
                       label: getKeyLabel(key),
+                      isUserContent: Boolean(key.name),
                     };
                   })[0]
               }
@@ -554,7 +562,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                     {translator.translateText("Ingestion Token")}
                   </div>
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
-                    {selectedKey.secretKey?.toString() || "—"}
+                    {selectedKey.secretKey?.toString() || <TableEmptyValue />}
                   </div>
                   {renderSelectedKeyCaution(selectedKey)}
                 </div>

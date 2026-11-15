@@ -47,14 +47,14 @@ type Language = "en" | "de" | "ar" | "fa";
 const WIDE: string = "[@container(min-width:22rem)]";
 const ZWNJ: string = "\u{200C}";
 
-// A whole Persian time: Persian digits and separators, then the unit.
+// A whole Persian time: Persian digits and separators, then the unit held to them.
 const PERSIAN_TIME: RegExp = new RegExp(
-  `^[\u{06F0}-\u{06F9}\u{066B}\u{066C}]+ میلی${ZWNJ}ثانیه$`,
+  `^[\u{06F0}-\u{06F9}\u{066B}\u{066C}]+\u00A0میلی${ZWNJ}ثانیه$`,
   "u",
 );
 
-// A whole Arabic time: Latin digits, as Arabic pages write them, then the unit.
-const ARABIC_TIME: RegExp = /^[0-9.,]+ ملي ث$/;
+// A whole Arabic time: Latin digits, as Arabic pages write them, then the unit held to them.
+const ARABIC_TIME: RegExp = /^[0-9.,]+\u00A0ملي ث$/;
 
 const ARABIC_LETTER: RegExp = /[\u{0600}-\u{06FF}]/u;
 

@@ -52,7 +52,7 @@ flowchart TB
 2. 在侧边菜单中展开 **遥测与 APM**，然后选择 **摄取密钥**。
 3. 点击 **创建摄取密钥**。对话框会填好名称，并选择 **服务器** 密钥类型，这是应用或 Collector 发送数据时使用的类型。可以按需改名，然后点击 **创建摄取密钥**。
 
-![项目设置中的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeys.png)
+![“摄取密钥”列表，“创建摄取密钥”已框出](screen:ingestion-keys)
 
 新密钥会在它自己的页面中打开。复制它的 **密钥**，这就是你通过 `x-oneuptime-token` 发送的令牌。
 
@@ -89,9 +89,9 @@ export OTEL_SERVICE_NAME="my-service"
 安装 SDK、自动插桩和 OTLP/HTTP 导出器：
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 在单独的文件中创建 SDK：
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

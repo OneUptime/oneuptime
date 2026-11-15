@@ -3,7 +3,7 @@
 Ogni volta che un workflow viene eseguito, OneUptime salva un resoconto di ciò che è successo: quando è stato eseguito, se ha funzionato e cosa ha ricevuto e restituito ogni blocco. Quel resoconto si chiama **esecuzione**. Le esecuzioni servono a confermare che un workflow ha funzionato, a fare il debug di uno che non ha funzionato e a ripercorrere l'attività passata.
 
 :::cards
-- [Stati di un'esecuzione](#stati-di-unesecuzione): Cosa significano Programmato, In attesa, Executed e gli altri stati.
+- [Stati di un'esecuzione](#stati-di-unesecuzione): Cosa significano Programmato, In attesa, Eseguito e gli altri stati.
 - [Leggere un'esecuzione](#leggere-unesecuzione): Segui il percorso di un'esecuzione, blocco per blocco.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Un workflow che non è partito, un blocco mai eseguito, un valore arrivato vuoto.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Programmato" as Scheduled
     state "In esecuzione" as Running
     state "In attesa" as Waiting
-    state "Executed" as Executed
+    state "Eseguito" as Executed
     state "Errore" as Failed
-    state "Timeout" as TimedOut
+    state "Tempo scaduto" as TimedOut
     [*] --> Scheduled: scatta il trigger
     Scheduled --> Running: un esecutore la<br/>prende in carico
     Scheduled --> Failed: non presa<br/>in carico<br/>entro 5 minuti
@@ -49,11 +49,11 @@ stateDiagram-v2
 | **In esecuzione**                   | Il workflow è in corso.                                                                                                                                                                                                                                               |
 | **In attesa**                       | L'esecuzione è ferma su un blocco **Sleep** e riprenderà da sola. Mentre attende non occupa nessun worker.                                                                                                                                                           |
 | **Eseguito**                        | L'esecuzione è arrivata alla fine senza errori. È lo stato di successo: la pillola dice **Eseguito**, non «Riuscito».                                                                                                                                                 |
-| **Errore**                          | Un blocco ha fermato l'esecuzione, o è fallito senza nulla collegato alla sua uscita **Error**. Si usa anche quando un'esecuzione in coda non viene mai presa in carico, quando si perde la ripresa di un'esecuzione in pausa, quando un'espressione di pianificazione non può essere risolta e quando il workflow è stato disattivato o archiviato mentre l'esecuzione attendeva su un blocco **Sleep**. |
-| **Timeout**                         | L'esecuzione è durata più del consentito: 2 minuti per impostazione predefinita. Vedi [Quanto può durare un'esecuzione](/docs/workflows/configuration#quanto-può-durare-unesecuzione).                                                                                       |
-| **Execution Exceeded Current Plan** | Il progetto ha esaurito le esecuzioni dei workflow degli ultimi 30 giorni, oppure l'abbonamento non è pagato. L'esecuzione viene registrata ma non eseguita. Solo OneUptime Cloud.                                                                                   |
+| **Errore**                          | Un blocco ha fermato l'esecuzione, o è fallito senza nulla collegato alla sua uscita **Errore**. Si usa anche quando un'esecuzione in coda non viene mai presa in carico, quando si perde la ripresa di un'esecuzione in pausa, quando un'espressione di pianificazione non può essere risolta e quando il workflow è stato disattivato o archiviato mentre l'esecuzione attendeva su un blocco **Sleep**. |
+| **Tempo scaduto**                   | L'esecuzione è durata più del consentito: 2 minuti per impostazione predefinita. Vedi [Quanto può durare un'esecuzione](/docs/workflows/configuration#quanto-può-durare-unesecuzione).                                                                                       |
+| **Esecuzione oltre il piano attuale** | Il progetto ha esaurito le esecuzioni dei workflow degli ultimi 30 giorni, oppure l'abbonamento non è pagato. L'esecuzione viene registrata ma non eseguita. Solo OneUptime Cloud.                                                                                   |
 
-Un blocco che prende la sua uscita **Error** — un blocco API che ha ricevuto un 4xx, ad esempio — fa fallire l'esecuzione solo quando a **Error** non è collegato nulla. Se lì sono collegati dei blocchi, vengono eseguiti, e l'esecuzione può comunque terminare come **Eseguito**. Se non è collegato nulla, il resto dell'esecuzione continua, poi termina come **Errore**, e l'ultima riga del suo **Full Log** nomina il blocco. In ogni caso il passaggio stesso viene disegnato in rosso, così lo trovi.
+Un blocco che prende la sua uscita **Errore** — un blocco API che ha ricevuto un 4xx, ad esempio — fa fallire l'esecuzione solo quando a **Errore** non è collegato nulla. Se lì sono collegati dei blocchi, vengono eseguiti, e l'esecuzione può comunque terminare come **Eseguito**. Se non è collegato nulla, il resto dell'esecuzione continua, poi termina come **Errore**, e l'ultima riga del suo **Full Log** nomina il blocco. In ogni caso il passaggio stesso viene disegnato in rosso, così lo trovi.
 
 ## Leggere un'esecuzione
 
@@ -89,7 +89,7 @@ I valori mostrati sono quelli che il blocco ha ricevuto, dopo la compilazione de
 
 ### La scheda Full Log
 
-Il registro grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Log** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
+Il registro grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Registro** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
 
 ## Copiare e scaricare un'esecuzione
 
@@ -114,14 +114,14 @@ Un download non contiene nulla che tu non possa già leggere nell'esecuzione. I 
 3. Per un trigger webhook, verifica che l'altro sistema invii all'URL giusto. La maggior parte degli strumenti registra quando invia un webhook: controlla lì.
 4. Per un trigger pianificato, verifica che l'espressione cron corrisponda all'ora che ti aspetti. Le pianificazioni girano in UTC.
 
-Se l'esecuzione compare, con lo stato **Execution Exceeded Current Plan**, il progetto ha esaurito le esecuzioni dei workflow degli ultimi 30 giorni, oppure l'abbonamento non è pagato. Il registro dell'esecuzione indica il conteggio e il limite del tuo piano. Questo vale solo per OneUptime Cloud.
+Se l'esecuzione compare, con lo stato **Esecuzione oltre il piano attuale**, il progetto ha esaurito le esecuzioni dei workflow degli ultimi 30 giorni, oppure l'abbonamento non è pagato. Il registro dell'esecuzione indica il conteggio e il limite del tuo piano. Questo vale solo per OneUptime Cloud.
 :::
 
 :::details Un blocco successivo non è mai stato eseguito
 Un blocco che non viene eseguito è di solito un problema di collegamento. Apri il **Costruttore** e verifica:
 
 - L'uscita del blocco precedente è collegata all'ingresso di questo blocco?
-- Il blocco precedente ha preso un'uscita diversa da quella che ti aspettavi — **Error** invece di **Success**, o **No** invece di **Yes**? La scheda **Passaggi** dice quale uscita ha preso e dove ha portato, oppure che non c'è nulla di collegato.
+- Il blocco precedente ha preso un'uscita diversa da quella che ti aspettavi — **Errore** invece di **Successo**, o **No** invece di **Sì**? La scheda **Passaggi** dice quale uscita ha preso e dove ha portato, oppure che non c'è nulla di collegato.
 :::
 
 :::details Un valore è arrivato vuoto, o come testo {{…}}

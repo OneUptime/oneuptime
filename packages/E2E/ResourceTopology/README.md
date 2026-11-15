@@ -53,6 +53,11 @@ The suite drives the pages the way a person does:
   square spine;
 - the other six resources, and a cloud account, drawn from their own
   inventories;
+- a cloud account's Connections: its most connected parts around it, a
+  click (or Enter) moving a part to the middle with what it is connected to
+  around it, a search and Needs attention gathered as a filter, the part
+  picked on the map in the middle, the middle's panel, no card over another,
+  dark mode and Persian; and every other product not offered them;
 - the master Topology opened on a vCenter, a cluster and a host from their
   maps, each offering the way back ("Open vCenter topology");
 - a phone's list, dark mode, German, and Persian (the tree and a host's lanes

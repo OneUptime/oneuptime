@@ -17,7 +17,7 @@ Varje arbetsflöde har tre delar:
 2. **Komponenter** — det arbetsflödet gör: skickar ett meddelande, anropar ett API, kontrollerar ett villkor, skapar eller uppdaterar en OneUptime-post.
 3. **Kopplingar** — linjerna du drar från ett block till nästa. De avgör vad som körs efter vad.
 
-När utlösaren aktiveras startar OneUptime en **körning**. Varje block avslutas med att ta en av sina utgångar, som **Success** eller **Error**, **Yes** eller **No**, och bara de block som är kopplade till den utgången körs därefter. Om inget block är kopplat till utgången ett block tog, slutar den vägen där. Körningen sparas med sin status, vägen den tog och vad varje block tog emot och returnerade.
+När utlösaren aktiveras startar OneUptime en **körning**. Varje block avslutas med att ta en av sina utgångar, som **Framgång** eller **Fel**, **Ja** eller **Nej**, och bara de block som är kopplade till den utgången körs därefter. Om inget block är kopplat till utgången ett block tog, slutar den vägen där. Körningen sparas med sin status, vägen den tog och vad varje block tog emot och returnerade.
 
 ```mermaid title="Vad som händer när ett arbetsflöde körs"
 flowchart TB
@@ -55,7 +55,7 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 | **Arbetsflöde**     | Hela automatiseringen: ett namn, en arbetsyta med block och en brytare för att slå på eller av den.            |
 | **Utlösare**        | Det första blocket. Det avgör när arbetsflödet körs. Varje arbetsflöde har exakt en.                           |
 | **Komponent**       | Varje annat block: det skickar ett meddelande, gör en förfrågan, kontrollerar ett villkor eller ändrar en post. |
-| **Utgång**          | En punkt längst ned på ett block, som **Success** eller **Error**. Linjer därifrån leder till nästa block.      |
+| **Utgång**          | En punkt längst ned på ett block, som **Framgång** eller **Fel**. Linjer därifrån leder till nästa block.      |
 | **Körning**         | En exekvering av arbetsflödet, sparad med status, tidsstämplar och vad varje block gjorde.                     |
 | **Global variabel** | Ett värde, som en API-nyckel, som du sparar en gång och använder i alla arbetsflöden i projektet.              |
 
@@ -107,13 +107,13 @@ Det här arbetsflödet skickar en JSON-sammanfattning av varje ny incident till 
 
 ```mermaid title="Det färdiga exemplet"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["Körningen slutar"]
+    trigger["On Create Incident"] -->|"Framgång"| post["API Post (JSON)"]
+    post -->|"Fel"| log["Logg"]
+    post -->|"Framgång"| done["Körningen slutar"]
 ```
 
 > [!TIP]
-> Mallen **Forward new incidents to another system** bygger det här arbetsflödet åt dig, utan Log-blocket: utan något på **Error** får en förfrågan som misslyckas körningen att misslyckas, och körningens **Steg** säger varför. Du hittar den under **Incidenter** när du skapar ett arbetsflöde.
+> Mallen **Forward new incidents to another system** bygger det här arbetsflödet åt dig, utan Log-blocket: utan något på **Fel** får en förfrågan som misslyckas körningen att misslyckas, och körningens **Steg** säger varför. Du hittar den under **Incidenter** när du skapar ett arbetsflöde.
 
 :::steps
 ### Skapa arbetsflödet
@@ -136,11 +136,11 @@ Utlösaren skickar den nya incidenten vidare med de här fälten. Ett fält du i
 
 ### Lägg till API-blocket
 
-Klicka på **Lägg till komponent** och klicka sedan på **API Post (JSON)** under **Populära**. Dra från utlösarens punkt **Success** ned till den översta punkten på det nya blocket.
+Klicka på **Lägg till komponent** och klicka sedan på **API Post (JSON)** under **Populära**. Dra från utlösarens punkt **Framgång** ned till den översta punkten på det nya blocket.
 
 ### Fyll i förfrågan
 
-Klicka på API-blocket, där det står **Click to set up**. Ange din slutpunkt i **URL**. Skriv JSON:en som ska skickas i **Request Body**, använd **{ }** för att infoga incidentens fält där du behöver dem och klicka på **Spara**.
+Klicka på API-blocket, där det står **Click to set up**. Ange din slutpunkt i **URL**. Skriv JSON:en som ska skickas i **Begärandekropp**, använd **{ }** för att infoga incidentens fält där du behöver dem och klicka på **Spara**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Varje `{{…}}`-referens ersätts med incidentens värde när arbetsflödet kör
 
 ### Fånga fel
 
-Klicka på **Lägg till komponent** och klicka sedan på **Logg**. Koppla API-blockets punkt **Error** till det och sätt sedan Log-blockets **Value** till `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Klicka på **Lägg till komponent** och klicka sedan på **Logg**. Koppla API-blockets punkt **Fel** till det och sätt sedan Log-blockets **Värde** till `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 En förfrågan som misslyckas — en URL som inte går att nå, eller ett svar som inte är 2xx — tar nu den här vägen, och körningens logg säger varför.
 
@@ -177,7 +177,7 @@ Från och med nu startar varje ny incident i projektet en körning. Du hittar de
 ## Hur arbetsflöden passar ihop med resten av OneUptime
 
 - **Monitorer** upptäcker problemet. **Incidenter** och **larm** registrerar det. **Arbetsflöden** reagerar på det.
-- **Runbooks** är insatsrutiner som ditt team går igenom vid en incident, ett larm eller ett underhåll: manuella steg, godkännanden och skript, med människor inblandade. Arbetsflöden körs utan tillsyn. Använd en [runbook](/docs/runbooks/index) när en person behöver fatta beslut längs vägen, och ett arbetsflöde när varje steg är automatiskt.
+- **Runbooks** är insatsrutiner som ditt team går igenom vid en incident, ett larm eller en underhållshändelse: manuella steg, godkännanden och skript, med människor inblandade. Arbetsflöden körs utan tillsyn. Använd en [runbook](/docs/runbooks/index) när en person behöver fatta beslut längs vägen, och ett arbetsflöde när varje steg är automatiskt.
 - **Arbetsytekopplingar** kopplar ett projekt till Slack och Microsoft Teams för incidentkanaler och aviseringar. Arbetsflödenas Slack- och Microsoft Teams-block använder dem inte: varje block postar via sin egen inkommande webhook-URL.
 
 ## Nästa steg

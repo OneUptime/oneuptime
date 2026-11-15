@@ -17,7 +17,7 @@ Todo flujo de trabajo tiene tres partes:
 2. **Componentes** — lo que hace el flujo de trabajo: enviar un mensaje, llamar a una API, comprobar una condición, crear o actualizar un registro de OneUptime.
 3. **Conexiones** — las líneas que trazas de un bloque al siguiente. Deciden qué se ejecuta después de qué.
 
-Cuando salta el disparador, OneUptime inicia una **ejecución**. Cada bloque termina tomando una de sus salidas, como **Success** o **Error**, **Yes** o **No**, y solo los bloques conectados a esa salida se ejecutan a continuación. Cuando no hay ningún bloque conectado a la salida que tomó un bloque, ese camino termina. La ejecución se guarda con su estado, el camino que siguió y lo que cada bloque recibió y devolvió.
+Cuando salta el disparador, OneUptime inicia una **ejecución**. Cada bloque termina tomando una de sus salidas, como **Éxito** o **Error**, **Sí** o **No**, y solo los bloques conectados a esa salida se ejecutan a continuación. Cuando no hay ningún bloque conectado a la salida que tomó un bloque, ese camino termina. La ejecución se guarda con su estado, el camino que siguió y lo que cada bloque recibió y devolvió.
 
 ```mermaid title="Qué pasa cuando se ejecuta un flujo de trabajo"
 flowchart TB
@@ -55,7 +55,7 @@ Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introdu
 | **Flujo de trabajo**   | La automatización completa: un nombre, un lienzo de bloques y un interruptor para activarla o desactivarla.        |
 | **Disparador**         | El primer bloque. Decide cuándo se ejecuta el flujo de trabajo. Todo flujo de trabajo tiene exactamente uno.      |
 | **Componente**         | Cualquier otro bloque: envía un mensaje, hace una solicitud, comprueba una condición o cambia un registro.        |
-| **Salida**             | Un punto en la parte inferior de un bloque, como **Success** o **Error**. Las líneas que salen de él llevan a los bloques siguientes. |
+| **Salida**             | Un punto en la parte inferior de un bloque, como **Éxito** o **Error**. Las líneas que salen de él llevan a los bloques siguientes. |
 | **Ejecución**          | Una ejecución del flujo de trabajo, guardada con su estado, sus marcas de tiempo y lo que hizo cada bloque.        |
 | **Variable global**    | Un valor, como una clave de API, que guardas una vez y usas en cualquier flujo de trabajo del proyecto.            |
 
@@ -107,9 +107,9 @@ Este flujo de trabajo envía un resumen JSON de cada incidente nuevo a una URL t
 
 ```mermaid title="El ejemplo terminado"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["La ejecución termina"]
+    trigger["On Create Incident"] -->|"Éxito"| post["API Post (JSON)"]
+    post -->|"Error"| log["Registro"]
+    post -->|"Éxito"| done["La ejecución termina"]
 ```
 
 > [!TIP]
@@ -136,11 +136,11 @@ El disparador pasa el incidente nuevo con esos campos. Un campo que no seleccion
 
 ### Añadir el bloque de API
 
-Haz clic en **Añadir componente** y, luego, en **API Post (JSON)**, en **Populares**. Arrastra desde el punto **Success** del disparador hasta el punto superior del bloque nuevo.
+Haz clic en **Añadir componente** y, luego, en **API Post (JSON)**, en **Populares**. Arrastra desde el punto **Éxito** del disparador hasta el punto superior del bloque nuevo.
 
 ### Rellenar la solicitud
 
-Haz clic en el bloque de API, que dice **Haz clic para configurar**. Pon tu endpoint en **URL**. En **Request Body**, escribe el JSON que quieres enviar, usando **{ }** para insertar los campos del incidente donde los necesites, y haz clic en **Guardar**.
+Haz clic en el bloque de API, que dice **Haz clic para configurar**. Pon tu endpoint en **URL**. En **Cuerpo de la solicitud**, escribe el JSON que quieres enviar, usando **{ }** para insertar los campos del incidente donde los necesites, y haz clic en **Guardar**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Cada referencia `{{…}}` se sustituye por el valor del incidente cuando se ejec
 
 ### Capturar los fallos
 
-Haz clic en **Añadir componente** y, luego, en **Registro**. Conecta a él el punto **Error** del bloque de API y, después, pon como **Value** del bloque Log `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Haz clic en **Añadir componente** y, luego, en **Registro**. Conecta a él el punto **Error** del bloque de API y, después, pon como **Valor** del bloque Log `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Una solicitud que falla — una URL inaccesible o una respuesta que no es 2xx — toma ahora este camino, y el registro de la ejecución dice por qué.
 
@@ -177,7 +177,7 @@ A partir de ahora, cada incidente nuevo del proyecto inicia una ejecución. Las 
 ## Cómo encajan los flujos de trabajo con el resto de OneUptime
 
 - Los **monitores** detectan el problema. Los **incidentes** y las **alertas** lo registran. Los **flujos de trabajo** reaccionan a él.
-- Los **runbooks** son procedimientos de respuesta que tu equipo sigue ante un incidente, una alerta o un mantenimiento: pasos manuales, aprobaciones y scripts, con personas en el proceso. Los flujos de trabajo se ejecutan sin supervisión. Usa un [runbook](/docs/runbooks/index) cuando una persona tenga que tomar decisiones por el camino, y un flujo de trabajo cuando todos los pasos sean automáticos.
+- Los **runbooks** son procedimientos de respuesta que tu equipo sigue ante un incidente, una alerta o un evento de mantenimiento: pasos manuales, aprobaciones y scripts, con personas en el proceso. Los flujos de trabajo se ejecutan sin supervisión. Usa un [runbook](/docs/runbooks/index) cuando una persona tenga que tomar decisiones por el camino, y un flujo de trabajo cuando todos los pasos sean automáticos.
 - Las **conexiones del espacio de trabajo** vinculan un proyecto con Slack y Microsoft Teams para los canales de incidentes y las notificaciones. Los bloques de Slack y Microsoft Teams de los flujos de trabajo no las usan: cada bloque publica a través de su propia URL de webhook entrante.
 
 ## Siguientes pasos

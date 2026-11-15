@@ -97,7 +97,8 @@ const isUnderPrivateKind: (modelType: ModelType) => boolean = (
   );
 };
 
-const CREATABLE_UNDER_PRIVATE_KINDS_COUNT: number = 30;
+// A postmortem's action items (#6801) made it 31.
+const CREATABLE_UNDER_PRIVATE_KINDS_COUNT: number = 31;
 
 /*
  * A permission of the model's create list that reads nothing of the parent:

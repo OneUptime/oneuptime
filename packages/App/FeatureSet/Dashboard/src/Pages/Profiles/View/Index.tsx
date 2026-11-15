@@ -41,6 +41,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
@@ -415,11 +416,13 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
             {translator.translateText("Captured")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
-            {p.startTime
-              ? OneUptimeDate.getDateAsLocalFormattedString(
-                  new Date(p.startTime as unknown as string),
-                )
-              : "—"}
+            {p.startTime ? (
+              OneUptimeDate.getDateAsLocalFormattedString(
+                new Date(p.startTime as unknown as string),
+              )
+            ) : (
+              <EmptyValue />
+            )}
           </div>
         </div>
 

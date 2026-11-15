@@ -143,7 +143,7 @@ Het adres, of een firewall ervoor, beantwoordt geen ICMP-echoverzoeken van de so
 :::
 
 :::details Een IPv6-adres mislukt altijd
-De sonde die de controle uitvoerde heeft geen IPv6-connectiviteit; de foutmelding zegt dat. Draai de monitor op een sonde met IPv6: zie [Aangepaste probes](/docs/probe/custom-probe).
+De sonde die de controle uitvoerde heeft geen IPv6-connectiviteit; de foutmelding zegt dat. Draai de monitor op een sonde met IPv6: zie [Aangepaste sondes](/docs/probe/custom-probe).
 :::
 
 :::details Pakketverlies en jitter zijn leeg
@@ -155,6 +155,6 @@ De sonde die de controle uitvoerde kan geen pings versturen, dus ze controleerde
 :::cards
 - [Ping-monitor](/docs/monitor/ping-monitor): Een host bij naam pingen en DNS-wijzigingen volgen.
 - [Poort-monitor](/docs/monitor/port-monitor): Een dienst op het adres controleren, niet alleen het adres.
-- [Aangepaste probes](/docs/probe/custom-probe): Privé- en IPv6-adressen vanuit uw eigen netwerk controleren.
+- [Aangepaste sondes](/docs/probe/custom-probe): Privé- en IPv6-adressen vanuit uw eigen netwerk controleren.
 - [Incidenten](/docs/incidents/index): Wat er gebeurt nadat de monitor er een meldt.
 :::

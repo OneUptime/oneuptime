@@ -68,10 +68,10 @@ Siden **Målinger** til et SLO har fire faner:
 | --- | --- |
 | **SLO-målinger** | `oneuptime.slo.*`-seriene i tre kort som deler ett tidsrom, som standard det siste døgnet: **Mål** (SLI-en med målet over, og gjenværende budsjett), **Forbruk** (forbruksrate og gjenværende budsjettid) og **Status**. |
 | **Feilbudsjettets historikk** | SLI-en, gjenværende budsjett og forbruksraten over den langsiktige historikken, med linjer ved målet, ved grensene for risiko og oppbrukt budsjett og ved terskelen til hver aktivert forbruksrateregel. |
-| **Hendelsesmetrikker** | Antallet, tiden til kvittering, tiden til løsning og varigheten til hendelsene som påvirker dette SLO-et, som standard den siste uken. Hendelser som forbruksratereglene har erklært, er med. |
-| **Varselmetrikker** | Det samme for varsler. Varsler som forbruksratereglene har utløst, er med. |
+| **Hendelsesmålinger** | Antallet, tiden til kvittering, tiden til løsning og varigheten til hendelsene som påvirker dette SLO-et, som standard den siste uken. Hendelser som forbruksratereglene har erklært, er med. |
+| **Varselmålinger** | Det samme for varsler. Varsler som forbruksratereglene har utløst, er med. |
 
-Fanene **SLO-målinger**, **Hendelsesmetrikker** og **Varselmetrikker** leser metrikklageret, noe som krever tillatelse til å lese telemetri. En egendefinert rolle som kan lese SLO-er, men ikke telemetri, ser disse fanene tomme, mens **Feilbudsjettets historikk** fortsatt fungerer.
+Fanene **SLO-målinger**, **Hendelsesmålinger** og **Varselmålinger** leser metrikklageret, noe som krever tillatelse til å lese telemetri. En egendefinert rolle som kan lese SLO-er, men ikke telemetri, ser disse fanene tomme, mens **Feilbudsjettets historikk** fortsatt fungerer.
 
 ## SLO-er på dashbord
 

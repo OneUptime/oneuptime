@@ -444,7 +444,7 @@
   "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.": "Tilføj en gyldig licens for at slå SCIM-provisionering og auditlogning til igen og gøre enterprise-konfigurationen redigerbar.",
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licenseret gennem dit abonnement på cloud-markedspladsen: hver bruger faktureres pr. time.",
   "License, version, seat usage, and the instances covered by this key.": "Licens, version, pladsforbrug og de instanser, som denne nøgle dækker.",
-  "Full OneUptime platform with incident response, status pages, and workflow automation.": "Hele OneUptime-platformen med incident-håndtering, statussider og workflow-automatisering.",
+  "Full OneUptime platform with incident response, status pages, and workflow automation.": "Hele OneUptime-platformen med incident-håndtering, statussider og automatisering af arbejdsgange.",
   "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- og OIDC-single sign-on (SSO) til projekter, statussider og hele instansen, herunder \"Kræv SSO til login\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Community-support, dokumentation og vejledninger, der hjælper teams hurtigt i gang.",
   "Regular updates, bug fixes, and open-source extensibility.": "Løbende opdateringer, fejlrettelser og open source-udvidelsesmuligheder.",
@@ -522,7 +522,7 @@
   "This is the Community Edition image": "Dette er Community Edition-imaget",
   "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.": "IS_ENTERPRISE_EDITION er sat, men dette er Community Edition-imaget. Skift til enterprise-imaget (image-tags enterprise-*) for at bruge funktioner i Enterprise Edition. Indtil da er de slået fra; alt andet virker fortsat.",
   "You are running the Community Edition of OneUptime. Here is a quick comparison to help you decide if Enterprise is the right fit for your team.": "Du kører Community Edition af OneUptime. Her er en hurtig sammenligning, der hjælper dig med at afgøre, om Enterprise passer til dit team.",
-  "Best for small teams experimenting with reliability workflows.": "Bedst til små teams, der eksperimenterer med pålidelighedsworkflows.",
+  "Best for small teams experimenting with reliability workflows.": "Bedst til små teams, der eksperimenterer med arbejdsgange for pålidelighed.",
   "Everything in Community plus white-glove onboarding, enterprise SLAs, and a partner dedicated to your reliability goals.": "Alt i Community plus personlig onboarding, enterprise-SLA'er og en partner, der arbejder for jeres pålidelighedsmål.",
   "Ready to unlock enterprise capabilities? Click \"Talk to Sales\" to start the conversation.": "Klar til at låse enterprise-funktioner op? Klik på \"Tal med salg\" for at starte samtalen.",
   "Security update": "Sikkerhedsopdatering",
@@ -631,5 +631,9 @@
     "note": "Bemærk",
     "tip": "Tip",
     "warning": "Advarsel"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det.",
+  "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M)."
 }

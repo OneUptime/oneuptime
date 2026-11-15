@@ -29,6 +29,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import {
@@ -38,8 +39,6 @@ import {
   getSecurityEventSeverityColor,
   resolveSecurityEventsFlowMaxEvents,
 } from "./SecurityEventsWidgetData";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSecurityEventsFlowComponent;
@@ -98,7 +97,6 @@ const renderSankeyNode: RenderSankeyNodeFunction = (
 const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
-  const translator: Translator = useTranslator();
   const [flowRecords, setFlowRecords] = useState<
     Array<SecurityEventFlowRecord>
   >([]);
@@ -247,11 +245,10 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
             />
           ))}
         {!isLoading && !error && flowData.links.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            {translator.translateText(
-              "No security events for the selected time range and filters",
-            )}
-          </div>
+          <DashboardWidgetEmpty
+            icon={IconProp.ShieldExclamation}
+            message="No security events for the selected time range and filters"
+          />
         )}
         {!error && flowData.links.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">

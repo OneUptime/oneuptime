@@ -17,6 +17,7 @@ import {
 } from "../../security/playbookApproval";
 import { getEntityTerm } from "../../security/caseTerms";
 import type { PlaybookDecision } from "../../api/securityCases";
+import { countTypingAsActivity } from "../../auth/userActivity";
 
 // The heading over the targets a step never acts on, as the dashboard says it.
 export const PROTECTED_TARGETS_TITLE: string = "Protected, never acted on";
@@ -563,7 +564,7 @@ export function PlaybookDecisionSheet({
         testID="playbook-decision-comment"
         accessibilityLabel="Comment"
         value={comment}
-        onChangeText={setComment}
+        onChangeText={countTypingAsActivity(setComment)}
         placeholder="Why you decided this way."
         placeholderTextColor={theme.colors.textTertiary}
         selectionColor={theme.colors.actionPrimary}

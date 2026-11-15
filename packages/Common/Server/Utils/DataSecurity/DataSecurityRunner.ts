@@ -48,7 +48,20 @@ import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "./DataSecurityScanTypes";
 import { buildFingerprint, deriveFingerprintKey } from "./Fingerprint";
-import { scanProjectTelemetry } from "./Telemetry/TelemetryDataScanner";
+import {
+  claimDueDataStoresForWorkers,
+  isDataStoreContentScannableByWorkers,
+} from "./DataSecurityWorkerClaim";
+import {
+  getTelemetryOwnersNotScanned,
+  isProjectTelemetryScannable,
+  isTelemetryOwnerNotScanned,
+} from "./DataSecurityTelemetryScanRule";
+import { ClaimedDataStore } from "./DataSecurityProbeClaim";
+import {
+  scanProjectTelemetry,
+  TelemetryOwnersNotScanned,
+} from "./Telemetry/TelemetryDataScanner";
 import {
   getScrubCoverage,
   isFindingScrubbed,
@@ -533,60 +546,57 @@ export default class DataSecurityRunner {
   }
 
   /*
-   * Stores whose content is due, claimed: their next scan time moves
-   * forward before the work is queued, so two workers never take one.
-   * Stores scanned from a probe are the probe's to claim.
+   * Stores whose content is due, claimed in one statement that holds each
+   * an hour on (DataSecurityWorkerClaim): only those a worker may scan -
+   * content scanning on for the store and the project, not archived, of a
+   * kind a worker samples, of a project that is served - the longest
+   * overdue first. Stores scanned from a probe are the probe's to claim.
    */
   public static async claimDueStores(
     limit: number,
   ): Promise<Array<{ projectId: ObjectID; dataStoreId: ObjectID }>> {
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const scannableKinds: Array<string> = [
-      DataStoreKind.AwsS3Bucket,
-      DataStoreKind.AzureStorageAccount,
-      DataStoreKind.GcpStorageBucket,
-      DataStoreKind.GcpBigQueryDataset,
-      DataStoreKind.PostgreSql,
-      DataStoreKind.MySql,
-      DataStoreKind.SqlServer,
-    ];
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: {
-        isArchived: false,
-        isContentScanEnabled: true,
-        kind: new Includes(scannableKinds),
-        nextContentScanAt: QueryHelper.lessThanEqualToOrNull(now),
-        scanProbeId: QueryHelper.isNull(),
-      },
-      select: { _id: true, projectId: true },
-      skip: 0,
-      limit,
-      props: { isRoot: true },
-    });
     const claimed: Array<{ projectId: ObjectID; dataStoreId: ObjectID }> = [];
 
-    for (const store of stores) {
-      if (!store.id || !store.projectId) {
+    const rows: Array<ClaimedDataStore> = await claimDueDataStoresForWorkers({
+      limit,
+    });
+
+    for (const row of rows) {
+      if (
+        !ObjectID.isValidUUID(row._id) ||
+        !ObjectID.isValidUUID(row.projectId)
+      ) {
         continue;
       }
 
-      // An hour's hold: the scan sets the real next time when it ends.
-      await DataStoreService.updateColumnsByIdWithoutHooks({
-        id: store.id,
-        data: { nextContentScanAt: OneUptimeDate.addRemoveHours(now, 1) },
+      claimed.push({
+        projectId: new ObjectID(row.projectId),
+        dataStoreId: new ObjectID(row._id),
       });
-
-      claimed.push({ projectId: store.projectId, dataStoreId: store.id });
     }
 
     return claimed;
   }
 
+  /*
+   * Samples one store's content. Before it reads anything it asks the
+   * claim's rule again (isDataStoreContentScannableByWorkers): a store
+   * whose switch was turned off, or whose project turned content scanning
+   * off or stopped being served, after it was claimed - or one Scan Now
+   * queued - is left alone.
+   */
   public static async scanStore(
     projectId: ObjectID,
     dataStoreId: ObjectID,
   ): Promise<void> {
     const startedAt: Date = OneUptimeDate.getCurrentDate();
+
+    if (
+      !(await isDataStoreContentScannableByWorkers({ projectId, dataStoreId }))
+    ) {
+      return;
+    }
+
     const store: DataStore | null = await DataStoreService.findOneBy({
       query: { _id: dataStoreId, projectId },
       select: {
@@ -962,12 +972,31 @@ export default class DataSecurityRunner {
    * Scans a project's telemetry: each service's logs, traces, exceptions,
    * replays and AI conversations become stores of their own, and a finding
    * a scrub rule already masks is marked so.
+   *
+   * Nothing is read of a project that is not served or that turned
+   * telemetry scanning off, nor of a service whose store turned content
+   * scanning off (DataSecurityTelemetryScanRule). Both are asked again
+   * before anything is written, so a switch turned off while the scan ran
+   * keeps what it read out of the findings.
    */
   public static async scanTelemetry(projectId: ObjectID): Promise<void> {
     const startedAt: Date = OneUptimeDate.getCurrentDate();
+
+    if (!(await isProjectTelemetryScannable(projectId))) {
+      return;
+    }
+
     const setup: ScanSetup = await this.getScanSetup(projectId);
 
     if (setup.setting.isTelemetryScanEnabled === false) {
+      return;
+    }
+
+    const ownersNotScanned: TelemetryOwnersNotScanned | null =
+      await this.readTelemetryOwnersNotScanned(projectId);
+
+    // Which services must be left out is unknown: nothing is read.
+    if (!ownersNotScanned) {
       return;
     }
 
@@ -981,7 +1010,22 @@ export default class DataSecurityRunner {
       sampleSize: setup.setting.telemetrySampleSize || 500,
       since: OneUptimeDate.addRemoveHours(startedAt, -1),
       options: setup.options,
+      ownersNotScanned,
     });
+
+    if (results.length === 0) {
+      return;
+    }
+
+    // The switches again, as they are now: one turned off while it read wins.
+    const ownersNotScannedNow: TelemetryOwnersNotScanned | null =
+      (await isProjectTelemetryScannable(projectId))
+        ? await this.readTelemetryOwnersNotScanned(projectId)
+        : null;
+
+    if (!ownersNotScannedNow) {
+      return;
+    }
     /*
      * Which findings ingest already masks. When the scrub rules cannot be
      * read, findings keep the mark they had rather than all turning
@@ -999,7 +1043,14 @@ export default class DataSecurityRunner {
     }
 
     for (const item of results) {
-      if (!ObjectID.isValidUUID(item.serviceId)) {
+      if (
+        !ObjectID.isValidUUID(item.serviceId) ||
+        isTelemetryOwnerNotScanned(
+          ownersNotScannedNow,
+          item.kind,
+          item.serviceId,
+        )
+      ) {
         continue;
       }
 
@@ -1029,6 +1080,25 @@ export default class DataSecurityRunner {
       if (coverage) {
         await this.markScrubbed(dataStoreId, item.kind, coverage);
       }
+    }
+  }
+
+  /*
+   * The services whose telemetry store of a kind turned content scanning
+   * off, or null when they cannot be read: then the scan reads nothing,
+   * rather than read one a person turned off.
+   */
+  private static async readTelemetryOwnersNotScanned(
+    projectId: ObjectID,
+  ): Promise<TelemetryOwnersNotScanned | null> {
+    try {
+      return await getTelemetryOwnersNotScanned(projectId);
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not read which telemetry stores of project ${projectId.toString()} turned content scanning off; its telemetry is not scanned this time:`,
+      );
+      logger.error(error);
+      return null;
     }
   }
 

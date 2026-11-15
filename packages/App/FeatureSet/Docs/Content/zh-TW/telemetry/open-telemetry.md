@@ -52,7 +52,7 @@ flowchart TB
 2. 在側邊選單中展開 **遙測與 APM**，然後選擇 **擷取金鑰**。
 3. 點選 **建立擷取金鑰**。對話框會填好名稱，並選擇 **伺服器** 金鑰類型，也就是應用程式或 Collector 傳送資料時使用的類型。可視需要重新命名，然後點選 **建立擷取金鑰**。
 
-![專案設定中的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeys.png)
+![「擷取金鑰」清單，「建立擷取金鑰」已框出](screen:ingestion-keys)
 
 新金鑰會在自己的頁面中開啟。複製它的 **密鑰金鑰**，這就是你以 `x-oneuptime-token` 傳送的權杖。
 
@@ -89,9 +89,9 @@ export OTEL_SERVICE_NAME="my-service"
 安裝 SDK、自動檢測與 OTLP/HTTP 匯出器：
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 在獨立的檔案中建立 SDK：
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

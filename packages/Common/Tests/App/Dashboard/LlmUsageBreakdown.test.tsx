@@ -117,6 +117,8 @@ import {
   emptyLlmUsageFigures,
   emptyLlmUsageResponse,
 } from "../../../Types/Telemetry/LlmUsageApi";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../UI/Components/Table/TableEmptyValue";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -227,7 +229,16 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
     expect(renderedRows()).toEqual([
       ["1", "senior@example.com", "40", "100", "25", "125", "$9.00", "90.0%"],
       // Junior's calls reported no token: dashes, never 0s nobody measured.
-      ["2", "junior@example.com", "4", "—", "—", "—", "$1.00", "10.0%"],
+      [
+        "2",
+        "junior@example.com",
+        "4",
+        QUIET_DASH_TEXT,
+        QUIET_DASH_TEXT,
+        QUIET_DASH_TEXT,
+        "$1.00",
+        "10.0%",
+      ],
     ]);
     // Calls alone: nothing to say about where the figures came from.
     expect(screen.queryAllByTestId("llm-usage-row-source")).toHaveLength(0);
@@ -239,7 +250,9 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
       3,
     );
     expect(
-      within(junior).getAllByTestId("llm-usage-not-counted")[0],
+      within(
+        within(junior).getAllByTestId("llm-usage-not-counted")[0]!,
+      ).getByTestId(TABLE_EMPTY_VALUE_TEST_ID),
     ).toHaveClass("text-gray-400");
   });
 
@@ -371,8 +384,8 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
     await renderBreakdown();
 
     // No cost reported: never a "$0" that claims the calls were free.
-    expect(renderedRows()[0]![6]).toBe("—");
-    expect(renderedRows()[0]![7]).toBe("—");
+    expect(renderedRows()[0]![6]).toBe(QUIET_DASH_TEXT);
+    expect(renderedRows()[0]![7]).toBe(QUIET_DASH_TEXT);
   });
 
   test("a row with no cost of its own beside rows with one: a dash for its cost and its share, never 0.0%", async () => {
@@ -398,7 +411,10 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
     await renderBreakdown();
 
     expect(renderedRows()[0]!.slice(6)).toEqual(["$4.00", "100.0%"]);
-    expect(renderedRows()[1]!.slice(6)).toEqual(["—", "—"]);
+    expect(renderedRows()[1]!.slice(6)).toEqual([
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+    ]);
   });
 });
 
@@ -666,10 +682,15 @@ describe("LlmUsageBreakdown - where a row's figures came from", () => {
     expect(within(rows[2]!).queryByTestId("llm-usage-row-source")).toBeNull();
 
     // Chen only uses a coding tool: a dash for the calls it never counts.
-    expect(renderedRows()[1]![2]).toBe("—");
+    expect(renderedRows()[1]![2]).toBe(QUIET_DASH_TEXT);
     expect(renderedRows()[1]![3]).toBe("1,000,000");
     // Dana: no call and no token reported - dashes, never zeros.
-    expect(renderedRows()[3]!.slice(2, 6)).toEqual(["—", "—", "—", "—"]);
+    expect(renderedRows()[3]!.slice(2, 6)).toEqual([
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+    ]);
     expect(renderedRows()[3]![6]).toBe("$1.00");
   });
 

@@ -85,6 +85,7 @@ import { getAddExternalCalendarQuery } from "./ExternalCalendarAddLink";
 import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -802,7 +803,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               type: FieldType.Text,
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 if (!item.scheduledMaintenanceNumber) {
-                  return <>-</>;
+                  return <TableEmptyValue />;
                 }
 
                 const numberLabel: string =
@@ -1020,7 +1021,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               disableCsvExport: true,
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 if (!item.startsAt || !item.endsAt) {
-                  return <>-</>;
+                  return <TableEmptyValue />;
                 }
 
                 return (

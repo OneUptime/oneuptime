@@ -46,9 +46,9 @@ Resten af denne side bygger workflowet. Det kræver:
 ## Gem tokenet
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den navnet `GITHUB_TOKEN`, og klik på **Næste**.
-3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldrig vises i en kørsel.
@@ -66,7 +66,7 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Åbn issuet
 
-Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Success** til den. Sæt dens **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med dit repositories ejer og navn. Sæt under **Flere felter** dens **Request Headers** til:
+Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Succes** til den. Sæt dens **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med dit repositories ejer og navn. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 {
@@ -76,7 +76,7 @@ Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind 
 }
 ```
 
-Og dens **Request Body** til:
+Og dens **Anmodningsbrødtekst** til:
 
 ```json
 {
@@ -97,11 +97,11 @@ Issuet forbliver åbent, når hændelsen er løst, da opfølgningsarbejdet som r
 
 - **GitHub Enterprise Server.** Send i stedet anmodningen til din server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. En server på en privat netværksadresse kræver et selvhostet OneUptime, hvis administrator tillader det: se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 - **Tildel det.** Føj `"assignees": ["octocat"]` eller `"milestone": 3` til body'en. GitHub dropper labels, tildelte og milepæle uden et ord, når tokenet ikke må pushe til repositoriet.
-- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Yes**-side, for eksempel for én alvorlighed.
+- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Ja**-side, for eksempel for én alvorlighed.
 
 ## Fejlfinding
 
-Trinnet **API Post (JSON)** tager **Error**, når GitHub afviser anmodningen. Dets **Response Status** og **Response Body** i kørslen siger hvorfor.
+Trinnet **API Post (JSON)** tager **Fejl**, når GitHub afviser anmodningen. Dets **Response Status** og **Svarets brødtekst** i kørslen siger hvorfor.
 
 :::details GitHub svarer 401
 Tokenet er forkert, udløbet eller tilbagekaldt. Opret et nyt, og erstat indholdet af `GITHUB_TOKEN`.

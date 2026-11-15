@@ -66,7 +66,7 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Creat
 
 ### Het issue openen
 
-Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Success** van de trigger ermee. Zet zijn **URL** op `https://api.github.com/repos/your-org/your-repo/issues`, met de eigenaar en de naam van je repository. Zet onder **Meer velden** zijn **Request Headers** op:
+Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Succes** van de trigger ermee. Zet zijn **URL** op `https://api.github.com/repos/your-org/your-repo/issues`, met de eigenaar en de naam van je repository. Zet onder **Meer velden** zijn **Aanvraagheaders** op:
 
 ```json
 {
@@ -76,7 +76,7 @@ Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbin
 }
 ```
 
-En de **Request Body** op:
+En de **Verzoeklichaam** op:
 
 ```json
 {
@@ -97,11 +97,11 @@ Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk he
 
 - **GitHub Enterprise Server.** Stuur het verzoek in plaats daarvan naar je server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Een server op een privénetwerkadres heeft een zelf gehoste OneUptime nodig waarvan de beheerder dat toestaat: zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 - **Wijs het toe.** Voeg `"assignees": ["octocat"]` of `"milestone": 3` toe aan de body. GitHub laat labels, toegewezenen en mijlpalen zonder melding vallen wanneer het token niet naar de repository mag pushen.
-- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Yes** ervan, bijvoorbeeld voor één ernst.
+- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Ja** ervan, bijvoorbeeld voor één ernst.
 
 ## Problemen oplossen
 
-De stap **API Post (JSON)** neemt **Error** wanneer GitHub het verzoek weigert. Zijn **Response Status** en **Response Body** in de run zeggen waarom.
+De stap **API Post (JSON)** neemt **Fout** wanneer GitHub het verzoek weigert. Zijn **Response Status** en **Antwoordlichaam** in de run zeggen waarom.
 
 :::details GitHub antwoordt 401
 Het token is fout, verlopen of ingetrokken. Maak een nieuw token en vervang de inhoud van `GITHUB_TOKEN`.

@@ -15,6 +15,8 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -226,7 +228,12 @@ export const QueryAlertsTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Alert ${alert?.alertNumber ? `#${alert.alertNumber}` : alertId.toString()}`,
+        // In the reader's language (issue #7980).
+        ...citationSentence(AI_READ_CITATIONS.alert, {
+          alert: alert?.alertNumber
+            ? `#${alert.alertNumber}`
+            : alertId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.AlertView,
           params: { alertId: alertId.toString() },
@@ -378,26 +385,39 @@ export const QueryAlertsTool: ObservabilityTool = {
       dataForLlm = `Showing rows ${skip + 1}–${skip + rows.length} of ${totalCount} total. Pass skip to page further.\n${serialized.text}`;
     }
 
-    let scopeLabel: string;
+    /*
+     * What the chip under the answer names, in the reader's language (issue
+     * #7980): which alerts, over how many hours, and how many of how many.
+     */
+    const isPaged: boolean = totalCount > serialized.rowCount;
+    const hasWindow: boolean = state !== "active" || hasExplicitWindow;
+    let citationTemplate: string;
     if (state === "active") {
-      scopeLabel = hasExplicitWindow
-        ? `Active alerts, last ${createdWithinHours}h`
-        : "Active alerts";
+      citationTemplate = hasExplicitWindow
+        ? isPaged
+          ? AI_READ_CITATIONS.activeAlertsInHoursPaged
+          : AI_READ_CITATIONS.activeAlertsInHours
+        : isPaged
+          ? AI_READ_CITATIONS.activeAlertsPaged
+          : AI_READ_CITATIONS.activeAlerts;
     } else if (state === "resolved") {
-      scopeLabel = `Resolved alerts, last ${createdWithinHours}h`;
+      citationTemplate = isPaged
+        ? AI_READ_CITATIONS.resolvedAlertsInHoursPaged
+        : AI_READ_CITATIONS.resolvedAlertsInHours;
     } else {
-      scopeLabel = `Alerts, last ${createdWithinHours}h`;
+      citationTemplate = isPaged
+        ? AI_READ_CITATIONS.alertsInHoursPaged
+        : AI_READ_CITATIONS.alertsInHours;
     }
-
-    const citationLabel: string =
-      totalCount > serialized.rowCount
-        ? `${scopeLabel} (${serialized.rowCount} of ${totalCount})`
-        : `${scopeLabel} (${serialized.rowCount} found)`;
 
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: citationLabel,
+      ...citationSentence(citationTemplate, {
+        ...(hasWindow ? { hours: countFigure(createdWithinHours) } : {}),
+        count: countFigure(serialized.rowCount),
+        ...(isPaged ? { total: countFigure(totalCount) } : {}),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Alerts,
       },

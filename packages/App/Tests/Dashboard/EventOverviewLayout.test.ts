@@ -968,13 +968,25 @@ describe("header duration label", () => {
       expect(page.changeState).not.toContain('"{{stateName}} in"');
       /*
        * The stat bar's label: "<resolved state's name> in", translated whole.
-       * The state's name is a term the sentence translates: the seeded
-       * "Resolved" reads in the reader's language, a state the project named
-       * itself reads as written.
+       * The state's name is read by its list (Common/Utils/DefaultRecordNames):
+       * the seeded "Resolved" is a term the sentence translates, a state the
+       * project named itself - "Open" - reads as written, never "Abrir"
+       * (#8064).
        */
+      const stateList: string =
+        page.noun === "incident"
+          ? "StateListType.IncidentState"
+          : "StateListType.AlertState";
+
       expect(page.view).toContain(
-        'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(resolvedState?.name || "Resolved"), })}',
+        `label={translator.translateTemplate("{{stateName}} in", { stateName: recordNameInSentence( ${stateList}, resolvedState?.name || "Resolved", ), })}`,
       );
+      expect(page.view).toContain(
+        `label={translator.translateTemplate("{{stateName}} in", { stateName: recordNameInSentence( ${stateList}, acknowledgeState?.name || "Acknowledged", ), })}`,
+      );
+      expect(page.view).not.toContain("translatableTerm(");
+      // The time to it, before it is reached, names it by the same list.
+      expect(countOccurrences(page.view, `stateList: ${stateList},`)).toBe(2);
     },
   );
 });

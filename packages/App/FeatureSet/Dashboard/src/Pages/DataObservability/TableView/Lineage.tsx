@@ -19,13 +19,14 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 function tableLink(
   id: ObjectID | undefined,
   key: string | undefined,
 ): ReactElement {
   if (!id) {
-    return <span className="text-sm text-gray-500">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -105,7 +106,7 @@ const TableLineagePage: FunctionComponent<
       }
 
       if (!edge.dataPipeline) {
-        return <span className="text-sm text-gray-500">-</span>;
+        return <TableEmptyValue />;
       }
 
       return (
@@ -145,9 +146,11 @@ const TableLineagePage: FunctionComponent<
     getElement: (edge: DataAssetLineage): ReactElement => {
       return (
         <span className="whitespace-nowrap text-sm text-gray-700">
-          {edge.lastSeenAt
-            ? OneUptimeDate.fromNow(OneUptimeDate.fromString(edge.lastSeenAt))
-            : "-"}
+          {edge.lastSeenAt ? (
+            OneUptimeDate.fromNow(OneUptimeDate.fromString(edge.lastSeenAt))
+          ) : (
+            <TableEmptyValue />
+          )}
         </span>
       );
     },
@@ -236,7 +239,7 @@ const TableLineagePage: FunctionComponent<
         columns={[
           {
             field: { downstreamDataAsset: { assetKey: true } },
-            title: "Table",
+            title: "Table (database object)",
             type: FieldType.Element,
             disableSort: true,
             getElement: (edge: DataAssetLineage): ReactElement => {

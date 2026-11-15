@@ -23,6 +23,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveAlertEpisodes: FunctionComponent<
   PageComponentProps
@@ -140,6 +141,8 @@ const ActiveAlertEpisodes: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -191,7 +194,7 @@ const ActiveAlertEpisodes: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: AlertEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>

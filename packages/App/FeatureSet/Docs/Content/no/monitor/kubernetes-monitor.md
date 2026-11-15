@@ -99,7 +99,7 @@ Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
 
 ### Hva som evalueres
 
-Disse monitorene evaluerer alltid **Metrikkverdi** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**.
+Disse monitorene evaluerer alltid **Målingsverdi** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Måling**, **Aggregering**, **Betingelse** og **Terskel**.
 
 ### Aggregeringstyper
 

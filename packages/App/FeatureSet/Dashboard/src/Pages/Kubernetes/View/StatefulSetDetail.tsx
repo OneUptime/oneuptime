@@ -198,12 +198,12 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "statefulset_cpu",
-      title: "Pod CPU Utilization",
+      title: translator.translateText("Pod CPU Utilization"),
       description: translator.translateTemplate(
         "CPU utilization for pods in statefulset {{statefulSetName}}",
         { statefulSetName: statefulSetName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -230,12 +230,12 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "statefulset_memory",
-      title: "Pod Memory Usage",
+      title: translator.translateText("Pod Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for pods in statefulset {{statefulSetName}}",
         { statefulSetName: statefulSetName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

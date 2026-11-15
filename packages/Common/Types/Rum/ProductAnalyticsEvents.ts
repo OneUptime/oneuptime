@@ -29,6 +29,7 @@ import {
   SessionReplayStringMapLimits,
   sanitizeSessionReplayStringMap,
 } from "../../Utils/Rum/SessionReplayStringMap";
+import UrlScrubber from "../../Utils/Rum/UrlScrubber";
 import {
   SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH,
   SESSION_REPLAY_MAX_CUSTOM_EVENT_PROPERTY_KEYS,
@@ -295,8 +296,19 @@ export interface ProductAnalyticsWireBatch {
 
 const HEX_32_PATTERN: RegExp = /^[0-9a-f]{32}$/;
 
-/* Where a page's query or fragment begins. */
-const QUERY_OR_FRAGMENT_PATTERN: RegExp = /[?#]/;
+/* An address's scheme, at its start: "https://", "app://". */
+const SCHEME_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//;
+
+/* Where an address's host ends: at its path, its query or its fragment. */
+const END_OF_HOST_PATTERN: RegExp = /[/?#]/;
+
+/*
+ * A property value that is an address: an http(s) URL, one written without
+ * its scheme ("//cdn.example.com/a"), or a path from the root
+ * ("/orders/42"), with no whitespace in it. Anything else is the
+ * application's own words, and is kept as written.
+ */
+const ADDRESS_VALUE_PATTERN: RegExp = /^(?:https?:\/\/|\/)\S*$/i;
 
 export function isProductAnalyticsId(value: unknown): value is string {
   return typeof value === "string" && HEX_32_PATTERN.test(value);
@@ -331,8 +343,42 @@ export function toProductAnalyticsEventName(value: unknown): string | null {
 
 /*
  * A page as stored: its path, from the first "/", without a query or a
- * fragment. A mobile app's screen name ("Checkout") becomes "/Checkout",
- * the path part one files its sessions' pages under. "" when there is none.
+ * fragment - and for a hash router (#/orders, #!/orders) the route in the
+ * fragment, after the page's own path: "https://shop.example.com/app/#/cart"
+ * is "/app/cart". A mobile app's screen name ("Checkout") becomes
+ * "/Checkout", the path part one files its sessions' pages under. "" when
+ * there is none. The browser recorder names a page by this too, from the
+ * page's location (readProductAnalyticsPage), so a client that sends the
+ * location's own address files the event on the same page.
+ *
+ * Scrubbed as Session Replay scrubs every address it keeps
+ * (UrlScrubber.scrubPath): a segment shaped like an identifier - an email,
+ * a uuid, a 24-hex object id, nine digits or more, an opaque token of 32 or
+ * more letters, digits, "_" and "-" - is "[redacted]", whether it came
+ * plain or escaped ("someone%40example.com"). The recorders scrub before
+ * they send, but the server takes no client's word for it: a recorder from
+ * before, or a client of the application's own posting with its ingestion
+ * key, sends what it likes, and the page is kept for months and shown to
+ * everyone who can read the application's analytics (#8197). A screen name
+ * is held to the same rule the mobile recorder already holds its routes to
+ * (sanitizeRoute), so one of 32 or more letters in a row is taken for a
+ * token.
+ *
+ * In the path's one spelling (UrlScrubber.normalizePathSpelling), the one
+ * Session Replay stores and User Flows keys a page by: "/caf%c3%a9",
+ * "/cafe%CC%81" and "/café" are all "/caf%C3%A9". The recorder writes that
+ * spelling, but an older or cached recorder still sends the one the browser
+ * had, and the server runs this over what it was sent. Every read of a page
+ * a request names runs it too (toProductAnalyticsEventRef), so a link or a
+ * saved funnel with an older spelling, or with the address it was viewed
+ * at, names the same page.
+ *
+ * Running it over its own result changes nothing: the server runs it over
+ * what the recorder made with it, and the reads over what was stored. A page
+ * longer than PRODUCT_ANALYTICS_MAX_PAGE_LENGTH is scrubbed before it is cut,
+ * so an email past the cut is not cut into a shape the rule misses, and once
+ * more after, so the cut does not leave a segment in one it catches
+ * ("1234567890x" cut to "123456789").
  */
 export function toProductAnalyticsPage(value: unknown): string {
   if (typeof value !== "string") {
@@ -340,28 +386,132 @@ export function toProductAnalyticsPage(value: unknown): string {
   }
 
   let page: string = value.trim();
-  const schemeIndex: number = page.indexOf("://");
+  const scheme: RegExpExecArray | null = SCHEME_PATTERN.exec(page);
 
-  if (schemeIndex >= 0) {
-    const pathIndex: number = page.indexOf("/", schemeIndex + 3);
-    page = pathIndex >= 0 ? page.slice(pathIndex) : "/";
+  if (scheme) {
+    const address: string = page.slice(scheme[0].length);
+    const hostEnd: number = address.search(END_OF_HOST_PATTERN);
+    page = hostEnd >= 0 ? address.slice(hostEnd) : "";
   }
 
-  const queryIndex: number = page.search(QUERY_OR_FRAGMENT_PATTERN);
+  const fragmentIndex: number = page.indexOf("#");
+  const route: string | null =
+    fragmentIndex >= 0
+      ? UrlScrubber.getHashRoute(page.slice(fragmentIndex))
+      : null;
+  let path: string = fragmentIndex >= 0 ? page.slice(0, fragmentIndex) : page;
+  const queryIndex: number = path.indexOf("?");
 
   if (queryIndex >= 0) {
-    page = page.slice(0, queryIndex);
+    path = path.slice(0, queryIndex);
   }
 
-  if (page.length === 0) {
+  // An address with no path ("https://shop.example.com") is its root.
+  if (path.length === 0 && !scheme && route === null) {
     return "";
   }
 
-  if (!page.startsWith("/")) {
-    page = `/${page}`;
+  if (!path.startsWith("/")) {
+    path = `/${path}`;
   }
 
-  return page.slice(0, PRODUCT_ANALYTICS_MAX_PAGE_LENGTH);
+  let kept: string = UrlScrubber.scrubPath(path);
+
+  if (route !== null) {
+    /*
+     * As the browser recorder joins them, after the page's path without its
+     * last "/": "/shop/" and "#/cart" are "/shop/cart". A fragment inside
+     * the route ("#/a#b") is no route of its own.
+     */
+    kept =
+      (kept.endsWith("/") ? kept.slice(0, -1) : kept) +
+      UrlScrubber.scrubPath(route.split("#")[0] || "/");
+  }
+
+  if (kept.length <= PRODUCT_ANALYTICS_MAX_PAGE_LENGTH) {
+    return kept;
+  }
+
+  return UrlScrubber.scrubPath(
+    kept.slice(0, PRODUCT_ANALYTICS_MAX_PAGE_LENGTH),
+  ).slice(0, PRODUCT_ANALYTICS_MAX_PAGE_LENGTH);
+}
+
+/*
+ * A track() property, a metric() attribute or a user property as stored. A
+ * value that is an address (ADDRESS_VALUE_PATTERN) - the page's own
+ * location.href, a link, a document.referrer - is scrubbed as Session Replay
+ * scrubs every address it keeps (UrlScrubber.scrub): its query and fragment
+ * dropped, but for a hash router's route, and its identifier-shaped segments
+ * "[redacted]". "https://shop.example.com/reset?token=abc" is
+ * "https://shop.example.com/reset". Any other value is kept as written.
+ *
+ * At most maxLength long. An address is scrubbed before it is cut and once
+ * more after, as a page is (toProductAnalyticsPage), so running this over
+ * its own result changes nothing. Never throws: UrlScrubber does not.
+ */
+export function toProductAnalyticsPropertyValue(
+  value: string,
+  maxLength: number,
+): string {
+  const address: string = value.trim();
+
+  if (!ADDRESS_VALUE_PATTERN.test(address)) {
+    return value.slice(0, maxLength);
+  }
+
+  const scrubbed: string = scrubAddressValue(address);
+
+  if (scrubbed.length <= maxLength) {
+    return scrubbed;
+  }
+
+  return scrubAddressValue(scrubbed.slice(0, maxLength)).slice(0, maxLength);
+}
+
+/*
+ * An address as Session Replay keeps one (UrlScrubber.scrub). A path from
+ * the root is read as a path, without the URL parser: the parser resolves
+ * "." and ".." segments, so "/.//cdn.example.com/a" would come out as
+ * "//cdn.example.com/a" - another site's address, which read again is
+ * another value - and it escapes what it reads ("{id}" is "%7Bid%7D").
+ */
+function scrubAddressValue(address: string): string {
+  if (!address.startsWith("/") || address.startsWith("//")) {
+    return UrlScrubber.scrub(address, []);
+  }
+
+  const fragmentIndex: number = address.indexOf("#");
+  let path: string =
+    fragmentIndex >= 0 ? address.slice(0, fragmentIndex) : address;
+  const queryIndex: number = path.indexOf("?");
+
+  if (queryIndex >= 0) {
+    path = path.slice(0, queryIndex);
+  }
+
+  return (
+    UrlScrubber.scrubPath(path) +
+    (fragmentIndex >= 0
+      ? UrlScrubber.scrubHashRoute(address.slice(fragmentIndex))
+      : "")
+  );
+}
+
+/*
+ * A track() call's properties or a metric() point's attributes as they are
+ * sent and stored: the caps track() already has, and every value that is an
+ * address scrubbed (toProductAnalyticsPropertyValue). The recorder sends
+ * them so, and the server reads every batch so again.
+ */
+export function toProductAnalyticsProperties(
+  value: unknown,
+): Record<string, string> {
+  return sanitizeSessionReplayStringMap(
+    value,
+    PRODUCT_ANALYTICS_PROPERTY_LIMITS,
+    toProductAnalyticsPropertyValue,
+  );
 }
 
 function toContextValue(value: unknown): string {
@@ -434,8 +584,9 @@ export function normalizeProductAnalyticsUserPropertyKeys(
 
 /*
  * The traits an event may carry: those the application listed, matched as
- * written, under the trait caps. Any other trait never leaves the page, and
- * the server drops it again if a recorder sent it.
+ * written, under the trait caps, a value that is an address scrubbed as a
+ * property's is (toProductAnalyticsPropertyValue). Any other trait never
+ * leaves the page, and the server drops it again if a recorder sent it.
  */
 export function pickProductAnalyticsUserProperties(
   traits: unknown,
@@ -444,6 +595,7 @@ export function pickProductAnalyticsUserProperties(
   const sanitized: Record<string, string> = sanitizeSessionReplayStringMap(
     traits,
     PRODUCT_ANALYTICS_USER_PROPERTY_LIMITS,
+    toProductAnalyticsPropertyValue,
   );
   const picked: Record<string, string> = {};
 
@@ -516,6 +668,11 @@ function isFiniteNumber(value: unknown): value is number {
  * (receivedAt - sentAt), so a phone whose clock is a day out still files
  * its events when they happened; none lands in the future, and one older
  * than PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS is dropped.
+ *
+ * Nothing the recorder scrubbed is taken on trust: every page and page name
+ * is scrubbed again (toProductAnalyticsPage), and every property, attribute
+ * and user property that is an address (toProductAnalyticsPropertyValue),
+ * whoever sent the batch.
  *
  * userProperties keep only allowedUserPropertyKeys; with no userRef (the
  * application does not capture identity, or nobody signed in) there are
@@ -647,10 +804,7 @@ export function parseProductAnalyticsBatch(
       page: kind === ProductAnalyticsEventKind.Page ? name : page,
       properties:
         kind === ProductAnalyticsEventKind.Custom
-          ? sanitizeSessionReplayStringMap(
-              event["properties"],
-              PRODUCT_ANALYTICS_PROPERTY_LIMITS,
-            )
+          ? toProductAnalyticsProperties(event["properties"])
           : {},
     });
   }
@@ -691,10 +845,7 @@ export function parseProductAnalyticsBatch(
       name: metric["name"],
       value: metric["value"],
       time: time,
-      attributes: sanitizeSessionReplayStringMap(
-        metric["attributes"],
-        PRODUCT_ANALYTICS_PROPERTY_LIMITS,
-      ),
+      attributes: toProductAnalyticsProperties(metric["attributes"]),
     });
   }
 

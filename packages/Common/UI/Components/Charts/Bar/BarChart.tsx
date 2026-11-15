@@ -24,6 +24,7 @@ import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import XAxisType from "../Types/XAxis/XAxisType";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
+import { getYAxisWidthInPx } from "../Utils/YAxisWidth";
 import {
   ChartTimeRangeZoomContextValue,
   ChartTimeRangeZoomHandlers,
@@ -158,6 +159,20 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       });
     }, [props.referenceRegions, props.xAxis, props.data]);
 
+  /*
+   * The value axis is as wide as the widest tick it draws, and never under
+   * the 64 pixels it always had: a tick too wide for it broke over two
+   * lines and was cut at the card's edge (YAxisWidth, #8049).
+   */
+  const yAxisWidthInPx: number = useMemo(() => {
+    return getYAxisWidthInPx({
+      data: props.data,
+      formatter: props.yAxis.options.formatter,
+      min: props.yAxis.options.min,
+      max: props.yAxis.options.max,
+    });
+  }, [props.data, props.yAxis]);
+
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -191,7 +206,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
         showLegend={props.showLegend !== false}
-        yAxisWidth={64}
+        yAxisWidth={yAxisWidthInPx}
         syncid={props.sync ? props.syncid : undefined}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}

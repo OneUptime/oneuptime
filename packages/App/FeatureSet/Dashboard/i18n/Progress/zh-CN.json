@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52297,
-    "untranslated": 9059
+    "keys": 52780,
+    "untranslated": 8821
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -31,6 +31,7 @@
     "DE",
     "DES",
     "DHCP",
+    "DNSSEC",
     "DeploymentConfigs",
     "Docker Compose",
     "Down + In",
@@ -62,6 +63,8 @@
     "Keystone",
     "Kibana URL",
     "Kolla-Ansible",
+    "Kubernetes Deployment",
+    "Kubernetes Pod",
     "LXC 201 · pve3",
     "Log4Shell",
     "MCP",
@@ -73,6 +76,7 @@
     "Mirantis MOSK",
     "MySQL",
     "NAA ID",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OVN Chassis",
@@ -96,6 +100,7 @@
     "PromQL",
     "Proxmox ID",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -120,6 +125,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "VIP",

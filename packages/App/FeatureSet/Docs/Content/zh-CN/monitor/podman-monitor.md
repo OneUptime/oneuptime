@@ -44,7 +44,7 @@ flowchart TB
 
 ### 选择 Podman Container
 
-在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础设施** 下选择 **Podman Container**，或在搜索框中输入 `podman`。输入 **名称**（它会用在事件和警报标题中），然后点击 **下一步**。
+在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础设施** 下选择 **Podman 容器**，或在搜索框中输入 `podman`。输入 **名称**（它会用在事件和警报标题中），然后点击 **下一步**。
 
 ### 选择主机
 
@@ -107,7 +107,7 @@ flowchart TB
 > `container.cpu.utilization` 就是 `podman stats` 输出的数字在代理每个 30 秒间隔内的平均值：100% 是一个完整的 CPU 核心，而不是容器的全部 CPU 配额。分配了多个核心的容器在健康时也会远高于 100，所以要为这类容器调高阈值。
 
 > [!NOTE]
-> `container.restarts` 是 Podman 维护的累计值，直到手动重启或重新创建的容器让它从 0 重新开始，所以代理还会在每个样本里发送 `container.restarts.increase`：自它上一次对该容器采样以来的重启次数。**Container Restart Loop** 与 Docker 一样把它们相加，因此无论样本相隔多远，每次重启都会计入，而手动重启不算在内。旧版代理不会发送 `container.restarts.increase`：请先[升级它](/docs/telemetry/podman-host#升级代理)。在那之前用该模板创建的监控器读取的是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
+> `container.restarts` 是 Podman 维护的累计值，直到手动重启或重新创建的容器让它从 0 重新开始，所以代理还会在每个样本里发送 `container.restarts.increase`：自它上一次对该容器采样以来的重启次数。**Container Restart Loop** 与 Docker 一样把它们相加，因此无论样本相隔多远，每次重启都会计入，而手动重启不算在内。旧版代理不会发送 `container.restarts.increase`：请先[升级它](/docs/telemetry/podman-host#升级代理)。在那之前用该模板创建的监视器读取的是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
 
 > [!CAUTION]
 > `container.uptime` 只存在于正在运行的容器。停止后一直保持停止的容器不发送任何数据，所以 **Container Restarted (Low Uptime)** 模板捕捉的是重启和重新部署，而不是永久关闭。设计为运行不到两分钟的容器，在其整个生命周期内都会处于警报状态。
@@ -187,7 +187,7 @@ flowchart TB
 | 2 | Check if _monitor name_ is online | 第一个查询有数据 | 将监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监控器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监控器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监视器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监视器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 收集的日志
 
@@ -292,7 +292,7 @@ OneUptime 通过 `resource.host.name` 识别主机，代理从 `PODMAN_HOST_NAME
 :::
 
 :::details 重启警报从不触发，或始终不清除
-直接拿 `container.restarts` 与阈值比较的监控器（例如用重启模板的早期版本创建的监控器）会因容器的历史而触发，并且始终不会清除：这个总数只会增长。在 **Container Restart Loop** 改为读取 `container.restarts.increase` 之前用它创建的监控器，测量的是总数在每分钟内增长了多少，会漏掉循环中大约一半的重启。旧版代理不会发送 `container.restarts.increase`：请[升级代理](/docs/telemetry/podman-host#升级代理)，然后删除该监控器，再重新创建 **Container Restart Loop**。
+直接拿 `container.restarts` 与阈值比较的监视器（例如用重启模板的早期版本创建的监视器）会因容器的历史而触发，并且始终不会清除：这个总数只会增长。在 **Container Restart Loop** 改为读取 `container.restarts.increase` 之前用它创建的监视器，测量的是总数在每分钟内增长了多少，会漏掉循环中大约一半的重启。旧版代理不会发送 `container.restarts.increase`：请[升级代理](/docs/telemetry/podman-host#升级代理)，然后删除该监视器，再重新创建 **Container Restart Loop**。
 :::
 
 ## 后续步骤

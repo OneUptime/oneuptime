@@ -25,6 +25,9 @@ import RemediationApproval, {
   getScopeRefusalNextStep,
 } from "../Utils/AutoRemediation/RemediationApproval";
 import DeclaredCodeChanges from "../Utils/AutoRemediation/DeclaredCodeChanges";
+import VerifiedFixRunbookSave, {
+  VerifiedFixRunbookSaved,
+} from "../Utils/AutoRemediation/VerifiedFixRunbookSave";
 import RemediationRound from "../Utils/AutoRemediation/RemediationRound";
 import {
   REMEDIATION_ROUND_PATH,
@@ -154,6 +157,41 @@ router.post(
           suggestionId: readSuggestionId(req),
         }),
       );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Save as Runbook: a verified fix of OneUptime AI's own commands or MCP
+ * calls, written down as a runbook - turned off until someone reviews it
+ * (VerifiedFixRunbookSave). Asked as the person: they read the fix, and
+ * create the runbook with their own permissions. Answers the runbook's id
+ * and name, or 400 with why the fix cannot be saved.
+ */
+router.post(
+  "/auto-remediation/save-as-runbook",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const saved: VerifiedFixRunbookSaved = await VerifiedFixRunbookSave.save({
+        props,
+        suggestionId: readSuggestionId(req),
+      });
+
+      Response.sendJsonObjectResponse(req, res, {
+        runbookId: saved.runbookId.toString(),
+        runbookName: saved.runbookName,
+      });
       return;
     } catch (err) {
       next(err);

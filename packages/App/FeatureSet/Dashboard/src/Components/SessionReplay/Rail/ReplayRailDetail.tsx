@@ -6,11 +6,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import AppLink from "../../AppLink/AppLink";
 import {
-  formatReplayDuration,
-  formatReplayOffset,
-  formatReplayOffsetPrecise,
-  formatReplayWallClock,
+  formatReplayOffsetInLanguage,
+  formatReplayOffsetPreciseInLanguage,
+  formatReplayWallClockInLanguage,
 } from "../ReplayTimeFormat";
+import { replayDurationValue } from "../ReplayTimelineMath";
 import {
   ReplayBackendSignalKind,
   ReplayBackendSignalsSlot,
@@ -352,7 +352,20 @@ const BackendForRequest: FunctionComponent<{
                         props.onSelectSignal(log.id);
                       }}
                     >
-                      {formatReplayOffset(log.offsetMs)} {log.title}
+                      {/*
+                       * The time in the reader's digits (#7318), left to
+                       * right; the log's own words set apart from it, so a
+                       * line that starts with a figure ("200 OK") is never
+                       * read as one number with the time on a page read
+                       * from the right.
+                       */}
+                      <span dir="ltr">
+                        {formatReplayOffsetInLanguage(
+                          log.offsetMs,
+                          translator.language,
+                        )}
+                      </span>{" "}
+                      <bdi>{log.title}</bdi>
                     </button>
                   </li>
                 );
@@ -965,7 +978,10 @@ const VitalReportLink: FunctionComponent<{
     >
       {translator.translateTemplate("{{title}} at {{time}}", {
         title: props.report.title,
-        time: formatReplayOffsetPrecise(props.report.offsetMs),
+        time: formatReplayOffsetPreciseInLanguage(
+          props.report.offsetMs,
+          translator.language,
+        ),
       })}
     </button>
   );
@@ -1242,7 +1258,12 @@ const ErrorDetail: FunctionComponent<{
                 isClient
                   ? "also reported server-side at {{time}}"
                   : "also seen in the browser at {{time}}",
-                { time: formatReplayOffsetPrecise(counterpart.offsetMs) },
+                {
+                  time: formatReplayOffsetPreciseInLanguage(
+                    counterpart.offsetMs,
+                    translator.language,
+                  ),
+                },
               )}
             </button>
           </Fact>
@@ -1429,13 +1450,19 @@ const TraceDetail: FunctionComponent<{
                   span.hasError ? "text-rose-700" : "text-gray-700"
                 }`}
                 title={translator.translateTemplate("Seek to {{time}}", {
-                  time: formatReplayOffsetPrecise(span.sessionOffsetMs),
+                  time: formatReplayOffsetPreciseInLanguage(
+                    span.sessionOffsetMs,
+                    translator.language,
+                  ),
                 })}
                 aria-label={translator.translateTemplate(
                   "Seek to span {{name}} at {{time}}",
                   {
                     name: span.name,
-                    time: formatReplayOffsetPrecise(span.sessionOffsetMs),
+                    time: formatReplayOffsetPreciseInLanguage(
+                      span.sessionOffsetMs,
+                      translator.language,
+                    ),
                   },
                 )}
                 onClick={(): void => {
@@ -1695,12 +1722,37 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
         </Note>
       );
     case "idle-pause":
+      /*
+       * The page's own pause (#7498): it paused recording and resumed it,
+       * and somebody may have used it all along, on a part not recorded.
+       */
+      if (detail.pauseReason === "page") {
+        return detail.idlePauseEdge === "resumed" ? (
+          <Note>
+            {typeof detail.pausedForMs === "number"
+              ? translator.translateTemplate(
+                  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+                  { duration: replayDurationValue(detail.pausedForMs) },
+                )
+              : translator.translateText(
+                  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+                )}
+          </Note>
+        ) : (
+          <Note>
+            {translator.translateText(
+              "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.",
+            )}
+          </Note>
+        );
+      }
+
       return detail.idlePauseEdge === "resumed" ? (
         <Note>
           {typeof detail.pausedForMs === "number"
             ? translator.translateTemplate(
                 "Input came back after {{duration}} and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
-                { duration: formatReplayDuration(detail.pausedForMs) },
+                { duration: replayDurationValue(detail.pausedForMs) },
               )
             : translator.translateText(
                 "Input came back and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
@@ -1711,7 +1763,7 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
           {typeof detail.idleForMs === "number"
             ? translator.translateTemplate(
                 "Nobody touched the page for {{duration}}, so the recorder stopped capturing here. Nothing the page did on its own is recorded until the next input.",
-                { duration: formatReplayDuration(detail.idleForMs) },
+                { duration: replayDurationValue(detail.idleForMs) },
               )
             : translator.translateText(
                 "Nobody touched the page, so the recorder stopped capturing here. Nothing the page did on its own is recorded until the next input.",
@@ -1739,7 +1791,10 @@ function describeDetailMoment(
   },
 ): string {
   const at: string = translator.translateTemplate("at {{time}}", {
-    time: formatReplayOffsetPrecise(input.signal.offsetMs),
+    time: formatReplayOffsetPreciseInLanguage(
+      input.signal.offsetMs,
+      translator.language,
+    ),
   });
   const parts: Array<string> = [
     input.wallClock ? `${at} (${input.wallClock})` : at,
@@ -1765,7 +1820,12 @@ function describeDetailMoment(
           other: "repeated {{count}} times until {{time}}",
         },
         input.repeat.count,
-        { time: formatReplayOffset(input.repeat.lastOffsetMs) },
+        {
+          time: formatReplayOffsetInLanguage(
+            input.repeat.lastOffsetMs,
+            translator.language,
+          ),
+        },
       ),
     );
   }
@@ -1778,9 +1838,11 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const signal: ReplaySignal = props.signal;
-  const wallClock: string | null = formatReplayWallClock(
+  // In the reader's digits, as the header's wall clock is (#7318).
+  const wallClock: string | null = formatReplayWallClockInLanguage(
     props.startTimeUnixMs,
     signal.offsetMs,
+    translator.language,
   );
 
   let body: ReactElement;
@@ -1873,7 +1935,10 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
   return (
     <div data-testid="rail-detail" data-signal-kind={signal.kind}>
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <div className="text-[11px] text-gray-500">
+        <div
+          data-testid="rail-detail-moment"
+          className="text-[11px] text-gray-500"
+        >
           {describeDetailMoment(translator, {
             signal: signal,
             wallClock: wallClock,

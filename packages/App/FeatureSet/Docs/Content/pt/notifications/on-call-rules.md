@@ -29,25 +29,25 @@ A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens d
 
 ## Uma só sequência para tudo
 
-**Configurações do usuário → Como me contatar** abre na sua sequência: as etapas que cada chamada tenta, para incidentes, alertas e episódios de qualquer gravidade. Cada etapa é um dos seus métodos verificados e quando usá-lo, por exemplo um SMS na hora e uma ligação após 5 minutos. Etapas com a mesma espera saem juntas, então a sequência se lê na ordem em que chama.
+**Configurações do usuário → Como me contatar** abre na sua sequência: etapas numeradas que cada chamada tenta, uma após a outra, para incidentes, alertas e episódios de qualquer gravidade. Cada etapa é um momento, por exemplo na hora ou após 5 minutos, com os métodos verificados que saem juntos nesse momento. Uma etapa seguinte só sai se ninguém tiver confirmado a chamada até lá.
 
 :::steps
 ### Adicionar uma forma de contatar você
 
-Escolha um dos seus métodos verificados em **Adicionar uma forma de contatar você**. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**.
+Clique em **Adicionar** em uma etapa para enviar um dos seus métodos verificados no momento dessa etapa, ou em **Adicionar etapa** para começar uma nova etapa depois da última. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**.
 
 ### Escolher quando usar
 
-Ao lado de cada etapa, escolha uma espera de **Imediatamente** a **1 hora**. Uma etapa de push também diz como toca e se repete: veja [Regras de push](#regras-de-push).
+Clique no momento de uma etapa, por exemplo **Na hora**, e escolha outro, até uma hora: a etapa inteira se move. Uma etapa de push também diz como toca e se repete: veja [Regras de push](#regras-de-push).
 
 ### Salvar
 
-Clique em **Salvar sequência**. As mesmas regras são gravadas em cada cartão de cada aba: as regras que você adicionaria à mão em cada cartão.
+Clique em **Salvar alterações**, que aparece assim que algo muda. As mesmas regras são gravadas em cada cartão de cada aba: as regras que você adicionaria à mão em cada cartão.
 :::
 
 **Teste suas chamadas**, no pé da página, envia a você uma chamada de teste por elas.
 
-Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades** abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**, e a sequência diz o que cada um faz no lugar. Se suas regras já diferem, a página abre nos cartões, com **Usar uma só sequência para tudo**: ao salvar, ela primeiro nomeia os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
+Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades**, abaixo das etapas, abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**, e a sequência diz o que cada um faz no lugar. Se suas regras já diferem, a página abre nos cartões, com **Usar uma só sequência para tudo**: ao salvar, ela primeiro nomeia os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
 
 Uma política de plantão decide quem é chamado e quando vem o próximo nível. Como você é contatado é esta sequência, para cada política que chama você.
 
@@ -117,11 +117,11 @@ Uma regra que aciona um telefone diz como o push dela toca:
 | **Alerta crítico** | Toca mesmo quando o telefone está no silencioso ou em Não perturbe, depois que Critical On-Call Alerts é ativado no app OneUptime On-Call. Uma nova regra de telefone começa aqui. |
 | **Normal** | Segue as configurações de som, silencioso e Não perturbe do telefone. |
 
-Uma regra de push, para um telefone ou um navegador, também pode reenviar o push até alguém confirmar: **Não repetir**, o padrão, ou **A cada minuto**, **A cada 2 minutos**, **A cada 3 minutos**, **A cada 5 minutos**, **A cada 10 minutos**, **A cada 15 minutos** ou **A cada 30 minutos**. Ela se repete até 10 vezes a mais, e para assim que o incidente, o alerta ou o episódio é confirmado. Veja [Alertas de plantão críticos](/docs/self-hosted/push-notifications#alertas-críticos-de-plantão-ignorando-o-modo-silencioso).
+Uma regra de push, para um telefone ou um navegador, também pode reenviar o push até alguém confirmar: **Não repetir**, o padrão, ou **A cada minuto**, **A cada 2 minutos**, **A cada 3 minutos**, **A cada 5 minutos**, **A cada 10 minutos**, **A cada 15 minutos** ou **A cada 30 minutos**. Ela se repete até 10 vezes a mais, e para assim que o incidente, o alerta ou o episódio é confirmado. Um acionamento que continua depois de uma confirmação, como um novo acionamento, se repete até que alguém que ele acionou responda ou que o incidente, o alerta ou o episódio seja resolvido: [Quando várias políticas acionam](/docs/on-call/policies#quando-várias-políticas-acionam) os lista. Veja [Alertas de plantão críticos](/docs/self-hosted/push-notifications#alertas-críticos-de-plantão-ignorando-o-modo-silencioso).
 
 ## Quando uma gravidade não tem regra
 
-Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos, feitas a partir do que você já escolheu nessa aba: os mesmos métodos, após os mesmos atrasos. Se você não tinha regras nessa aba, ela recebe o seu e-mail verificado, na hora.
+Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos, feitas a partir do que você já escolheu nessa aba: os mesmos métodos, após os mesmos atrasos, e um push que toca e se repete do mesmo jeito. Se você não tinha regras nessa aba, ela recebe o seu e-mail verificado, na hora.
 
 Um acionamento que mesmo assim não encontra regra é enviado aos seus métodos verificados de qualquer forma, e você recebe um e-mail sobre isso; veja [Quando nenhuma regra corresponde](/docs/notifications/index#quando-nenhuma-regra-corresponde).
 

@@ -15,7 +15,9 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const SCHEMA_EVENTS: Array<DataAssetFeedEventType> = [
   DataAssetFeedEventType.ColumnAdded,
@@ -27,14 +29,26 @@ const SCHEMA_EVENTS: Array<DataAssetFeedEventType> = [
   DataAssetFeedEventType.AssetRestored,
 ];
 
+/*
+ * The Change filter's and column's title. "Change" alone is every Change
+ * button's verb ("Cambiar", "Ändern", "Modifier"), so a schema change has
+ * a key of its own, worded as the noun in every language - "Cambio",
+ * "Änderung", "Modification" - that English reads as "Change"
+ * (Common/Types/MeaningKeys).
+ */
+const SCHEMA_CHANGE_TITLE: string = translationKey("Change (schema change)");
+
+// The Change filter's words, keys of the Dashboard's locales.
 const EVENT_LABELS: Record<string, string> = {
-  [DataAssetFeedEventType.ColumnAdded]: "Column added",
-  [DataAssetFeedEventType.ColumnRemoved]: "Column removed",
-  [DataAssetFeedEventType.ColumnRenamed]: "Column renamed",
-  [DataAssetFeedEventType.ColumnTypeChanged]: "Type changed",
-  [DataAssetFeedEventType.ColumnNullabilityChanged]: "Nullability changed",
-  [DataAssetFeedEventType.AssetDropped]: "Table dropped",
-  [DataAssetFeedEventType.AssetRestored]: "Table restored",
+  [DataAssetFeedEventType.ColumnAdded]: translationKey("Column added"),
+  [DataAssetFeedEventType.ColumnRemoved]: translationKey("Column removed"),
+  [DataAssetFeedEventType.ColumnRenamed]: translationKey("Column renamed"),
+  [DataAssetFeedEventType.ColumnTypeChanged]: translationKey("Type changed"),
+  [DataAssetFeedEventType.ColumnNullabilityChanged]: translationKey(
+    "Nullability changed",
+  ),
+  [DataAssetFeedEventType.AssetDropped]: translationKey("Table dropped"),
+  [DataAssetFeedEventType.AssetRestored]: translationKey("Table restored"),
 };
 
 const EVENT_OPTIONS: Array<DropdownOption> = SCHEMA_EVENTS.map(
@@ -81,7 +95,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
       filters={[
         {
           field: { dataAssetFeedEventType: true },
-          title: "Change",
+          title: SCHEMA_CHANGE_TITLE,
           type: FieldType.Dropdown,
           filterDropdownOptions: EVENT_OPTIONS,
         },
@@ -104,18 +118,18 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
           getElement: (item: DataAssetFeed): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm text-gray-700">
-                {item.postedAt
-                  ? OneUptimeDate.fromNow(
-                      OneUptimeDate.fromString(item.postedAt),
-                    )
-                  : "-"}
+                {item.postedAt ? (
+                  OneUptimeDate.fromNow(OneUptimeDate.fromString(item.postedAt))
+                ) : (
+                  <TableEmptyValue />
+                )}
               </span>
             );
           },
         },
         {
           field: { dataAsset: { assetKey: true, dataStoreName: true } },
-          title: "Table",
+          title: "Table (database object)",
           type: FieldType.Element,
           disableSort: true,
           getExportValue: (item: DataAssetFeed): string => {
@@ -123,7 +137,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
           },
           getElement: (item: DataAssetFeed): ReactElement => {
             if (!item.dataAssetId) {
-              return <span>-</span>;
+              return <TableEmptyValue />;
             }
 
             return (
@@ -146,7 +160,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
         },
         {
           field: { feedInfoInMarkdown: true },
-          title: "Change",
+          title: SCHEMA_CHANGE_TITLE,
           type: FieldType.Element,
           disableSort: true,
           wrapContent: true,

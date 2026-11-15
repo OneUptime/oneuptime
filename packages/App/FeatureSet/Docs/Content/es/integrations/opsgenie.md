@@ -53,13 +53,13 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Crear la alerta
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` en Europa. En **Más campos**, pon sus **Request Headers** en:
+Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` en Europa. En **Más campos**, pon sus **Encabezados de la solicitud** en:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-Y su **Request Body** en:
+Y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -93,17 +93,17 @@ Crea un flujo de trabajo llamado `Close Opsgenie alerts` y elige **On Update Inc
 
 ### Comprobar que el incidente está resuelto
 
-Añade un bloque **If / Else** después del disparador. Pon **Value to check** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparison** en **is true**.
+Añade un bloque **If / Else** después del disparador. Pon **Valor que comprobar** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparación** en **es verdadero**.
 
 ### Cerrar la alerta
 
-Añade un bloque **API Post (JSON)** después del lado **Yes**, con los mismos **Request Headers** y esta **URL**:
+Añade un bloque **API Post (JSON)** después del lado **Sí**, con los mismos **Encabezados de la solicitud** y esta **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Pon su **Request Body** en `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Pon su **Cuerpo de la solicitud** en `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Activarlo
 
@@ -117,7 +117,7 @@ Activa **Habilitado** y luego resuelve un incidente de prueba en OneUptime. Opsg
 Para enviar la gravedad de cada incidente como prioridad de Opsgenie, añade un bloque **Run Custom JavaScript** entre el disparador y el bloque **API Post (JSON)**.
 
 1. En los **Fields to pass on** del disparador, haz clic en **Añadir campo**, abre **Gravedad del incidente** y elige **Nombre**.
-2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **JavaScript Code** en:
+2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **Código JavaScript** en:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.

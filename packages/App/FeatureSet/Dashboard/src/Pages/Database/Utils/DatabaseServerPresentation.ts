@@ -1,6 +1,12 @@
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { formatMillisecondsInEnglish } from "../../../Utils/Milliseconds";
+import { translationKey } from "Common/Types/Translator";
+import {
+  formatReaderFigure,
+  isEnglishDateLanguage,
+} from "Common/Types/DateLanguage";
 import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
   getDatabaseServerDiscoverySourceLabel,
@@ -521,7 +527,15 @@ export function getDatabaseRunsOnLabel(
 }
 
 export interface DatabaseRuntimeMetric {
+  // The series' name: the legend's and the hover line's.
   title: string;
+  /*
+   * The chart's title when it says more than the series' name - the unit
+   * its axis leaves out - as one key of the locales. Joined to the name
+   * in the code ("CPU per pod" + " (cores)"), it was a title no locale
+   * has, so it read English in every language (#8060).
+   */
+  chartTitle?: string | undefined;
   metricName: string;
   aggregation: AggregationType;
   unit: "cores" | "percent" | "bytes";
@@ -544,6 +558,7 @@ export const DATABASE_RUNTIME_METRICS: Record<
   [DatabaseRuntimePlatform.Kubernetes]: {
     cpu: {
       title: "CPU per pod",
+      chartTitle: translationKey("CPU per pod (cores)"),
       metricName: "k8s.pod.cpu.utilization",
       aggregation: AggregationType.Avg,
       unit: "cores",
@@ -807,7 +822,9 @@ export function formatDatabaseMetricAxisValue(
   if (cleanUnit === "s") {
     // Sub-second values in ms: "0.0 s" on every tick told nothing apart.
     return Math.abs(value) > 0 && Math.abs(value) < 1
-      ? `${formatDatabaseAxisNumber(value * 1000)} ms`
+      ? formatMillisecondsInEnglish(
+          Number(formatDatabaseAxisNumber(value * 1000)),
+        )
       : formatDatabaseSeconds(value);
   }
   if (cleanUnit === "fraction") {
@@ -1002,63 +1019,81 @@ export function getDatabaseChartYAxis(
 }
 
 /*
- * A small share or core count with enough digits to tell 0.02 from 0.03
- * (two significant digits below 1), one decimal above.
+ * A figure the formatters above wrote in English ("0.025", "1.25", "2.5k",
+ * "12%", "1.0 MiB"), in the reader's digits, decimal sign and percent sign,
+ * with the decimals it was written with: "0,025", "12 %" and "1,0 MiB" in
+ * German, "۰٫۰۲۵" and "۱۲٪" in Persian (#8060). Its letters - a size's
+ * unit, a count's "k" - stay as written. English, no language, and
+ * anything that is not such a figure come back as they came.
  */
-function formatSmallRuntimeNumber(value: number): string {
-  if (value === 0) {
-    return "0";
-  }
-  return Math.abs(value) < 1
-    ? trimDecimalZeros(value.toPrecision(2))
-    : value.toFixed(1);
-}
+const DATABASE_FIGURE: RegExp =
+  /^(-?\d{1,15}(?:\.(\d{1,10}))?)([kMB]?)(%|\s+\S.*)?$/;
 
-export function formatDatabaseRuntimeValue(
-  value: number | null | undefined,
-  unit: DatabaseRuntimeMetric["unit"],
+export function writeDatabaseFigureInLanguage(
+  english: string,
+  language: string | undefined,
 ): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+  if (!language || isEnglishDateLanguage(language)) {
+    return english;
   }
-  if (unit === "bytes") {
-    return formatDatabaseBytes(value);
+
+  const figure: RegExpMatchArray | null = english.match(DATABASE_FIGURE);
+
+  if (!figure) {
+    return english;
   }
-  if (unit === "percent") {
-    return `${formatSmallRuntimeNumber(value)}%`;
-  }
-  return `${
-    Math.abs(value) < 1
-      ? trimDecimalZeros(value.toPrecision(3))
-      : value.toFixed(2)
-  } cores`;
+
+  const suffix: string = figure[3] || "";
+  const unit: string = figure[4] || "";
+  // A percent of thousands ("2.5k%") keeps its sign as written.
+  const isPercent: boolean = unit === "%" && !suffix;
+  const number: string = formatReaderFigure(Number(figure[1]), {
+    decimals: (figure[2] || "").length,
+    isPercent: isPercent,
+    language: language,
+  });
+
+  return isPercent ? number : `${number}${suffix}${unit}`;
 }
 
 /**
  * A runtime chart's axis tick (and tooltip): "0.025%", "12 MiB", and for
- * cores the number alone — the chart's title says "(cores)".
+ * cores the number alone — the chart's title says "(cores)". Written in
+ * the reader's language when one is given (writeDatabaseFigureInLanguage);
+ * English, or none, reads exactly as it always has.
  */
 export function formatDatabaseRuntimeAxisValue(
   value: number | null | undefined,
   unit: DatabaseRuntimeMetric["unit"],
+  language?: string | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "";
   }
   if (unit === "bytes") {
-    return formatDatabaseBytes(value);
+    return writeDatabaseFigureInLanguage(formatDatabaseBytes(value), language);
   }
   if (unit === "percent") {
-    return `${formatDatabaseAxisNumber(value)}%`;
+    return writeDatabaseFigureInLanguage(
+      `${formatDatabaseAxisNumber(value)}%`,
+      language,
+    );
   }
-  return formatDatabaseAxisNumber(value);
+  return writeDatabaseFigureInLanguage(
+    formatDatabaseAxisNumber(value),
+    language,
+  );
 }
 
-/** A runtime chart's title, with the unit its axis leaves out. */
+/*
+ * A runtime chart's title, in English: a key the chart's card looks up in
+ * the reader's language, the unit its axis leaves out in it where it has
+ * one ("CPU per pod (cores)").
+ */
 export function getDatabaseRuntimeChartTitle(
   metric: DatabaseRuntimeMetric,
 ): string {
-  return metric.unit === "cores" ? `${metric.title} (cores)` : metric.title;
+  return metric.chartTitle || metric.title;
 }
 
 // ---- engine support --------------------------------------------------

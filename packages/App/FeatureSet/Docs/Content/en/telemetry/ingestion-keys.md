@@ -140,7 +140,7 @@ The key's page keeps count too: **Refused Telemetry** lists what was refused fro
 For the other answers an OTLP exporter can get, see [Responses](/docs/telemetry/open-telemetry#responses).
 
 :::details Data still arrives a minute after I turned the key off
-Each OneUptime server keeps what it knows about a key for up to a minute, so a change reaches all of them within about a minute. Requests after that are refused.
+Each OneUptime server keeps what it knows about a key for up to a minute, so a change reaches all of them within about a minute. Requests after that are refused. An MQTT client that connected with the key is cut off within a few seconds.
 :::
 
 :::details A Browser key works on my laptop but not in production

@@ -4,7 +4,7 @@ Een runbook is een herbruikbare responsprocedure: een geordende lijst van handma
 
 :::cards
 - [Een runbook schrijven](/docs/runbooks/authoring): Een runbook maken en de stappen schrijven.
-- [Runbook-regels](/docs/runbooks/rules): Runbooks starten bij nieuwe incidenten, waarschuwingen en onderhoudsevenementen.
+- [Runbook-regels](/docs/runbooks/rules): Runbooks starten bij nieuwe incidenten, waarschuwingen en onderhoudsgebeurtenissen.
 - [Een runbook uitvoeren](/docs/runbooks/running): Een uitvoering starten, de stappen voltooien en goedkeuren, de uitvoering annuleren.
 - [Runbook-triggers](/docs/runbooks/triggers): Een runbook volgens een schema uitvoeren, of vanuit een ander hulpmiddel via zijn webhook-URL.
 - [Runbook-variabelen](/docs/runbooks/variables): De hosts, sleutels, wachtwoorden en kubeconfigs die uw stappen bij naam gebruiken.
@@ -73,7 +73,7 @@ Een runbook kan ze allemaal combineren. De kracht van runbooks zit in het afwiss
 
 | Hoe | Waar | De uitvoering hangt aan |
 | --- | --- | --- |
-| Een runbook-regel | **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** → **Regels** → **Runbook-regels** | Het nieuwe incident, de nieuwe waarschuwing of het nieuwe evenement |
+| Een runbook-regel | **Incidenten**, **Waarschuwingen** of **Gepland onderhoud** → **Regels** → **Runbook-regels** | Het nieuwe incident, de nieuwe waarschuwing of het nieuwe evenement |
 | **Runbook uitvoeren** | De pagina **Runbooks** van een incident, een waarschuwing of een onderhoudsgebeurtenis | Dat evenement |
 | **Nu uitvoeren** | De pagina **Overzicht** van het runbook | Niets: een losse uitvoering |
 | Een AI-regel | Zie [AI SRE](/docs/ai/ai-sre) | Het incident of de waarschuwing |
@@ -99,8 +99,8 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | **Runbooks → Uitvoeringen** | Elke uitvoering van elk runbook in het project. |
 | **Runbooks → Runbook-agenten** | De [Runners](/docs/runbooks/agents) installeren waarop de stappen van uw runbooks draaien. |
 | **Runbooks → Instellingen** | Onder **Globale variabelen** de variabelen beheren die elk runbook kan [gebruiken](/docs/runbooks/variables), en de **Eigenaarsregels** en **Labelregels** die eigenaren en labels aan nieuwe runbooks toevoegen. |
-| **Incidenten / Waarschuwingen / Geplande onderhoud → Regels → Runbook-regels** | De regels maken die runbooks automatisch starten. |
-| Een incident, waarschuwing of onderhoudsevenement → **Runbooks** | De gekoppelde uitvoeringen zien, en op **Runbook uitvoeren** klikken om er een te starten. |
+| **Incidenten / Waarschuwingen / Gepland onderhoud → Regels → Runbook-regels** | De regels maken die runbooks automatisch starten. |
+| Een incident, waarschuwing of onderhoudsgebeurtenis → **Runbooks** | De gekoppelde uitvoeringen zien, en op **Runbook uitvoeren** klikken om er een te starten. |
 
 Het zijmenu van een runbook groepeert de pagina's zo. Alleen **Basis** staat open bij het begin: klik op de titel van een sectie om die te openen. Een sectie opent vanzelf op elke pagina erin.
 
@@ -169,6 +169,7 @@ De uitvoering blijft op de pagina **Runbooks** van het incident. Wanneer u de po
 - **[Dienstbeleid](/docs/on-call/schedules)** bepaalt wie wordt opgeroepen. Runbooks bepalen wat die persoon doet zodra die wakker is.
 - **[Werkruimteverbindingen](/docs/workspace-connections/slack)** zoals Slack en Microsoft Teams zijn logische doelen voor HTTP-verzoekstappen die updates plaatsen.
 - **[Statuspagina's](/docs/status-pages/index)** worden vaak bijgewerkt als Manual-stap van een runbook richting klanten.
+- **[OneUptime AI](/docs/ai/ai-sre#een-geslaagde-fix-opslaan-als-runbook)** schrijft een runbook op basis van een eigen fix die werkte: **Opslaan als runbook** bij een geverifieerde fix slaat de uitgevoerde stappen op in een runbook dat uitgeschakeld blijft tot u ze hebt nagekeken.
 
 ## Volgende stappen
 

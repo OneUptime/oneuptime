@@ -47,23 +47,23 @@ Sleep blokken waarheen je wilt; het canvas klikt ze daarbij vast aan een raster.
 | **Identifier** (onder **ID**)         | De korte ID op het blok, zoals `log-1`. Hiermee verwijzen andere blokken naar dit blok, dus hernoemen breekt elke `{{local.components.…}}`-verwijzing die ernaar wijst. De kop van het blok is de eigen naam van het component en kan niet worden gewijzigd.                                                    |
 | **Instellingen**                      | Wat het blok nodig heeft om zijn werk te doen: een URL, een Slack-kanaal, de tekst van een bericht. Optionele velden zijn gemarkeerd met **(Optioneel)**; al het andere is verplicht. Een aan/uit-schakelaar heeft geen van beide, omdat die altijd een waarde heeft. Minder gebruikte instellingen zijn ingeklapt onder **Meer velden**, waarvan de kop ze noemt en de ingevulde toont. |
 | **Input**                             | Het punt aan de bovenrand, waar lijnen van eerdere blokken binnenkomen. Triggers hebben er geen: er draait niets vóór hen.                                                                                                                                                                                     |
-| **Outputs**                           | De punten langs de onderrand, met het label er direct boven, waar lijnen naar de volgende blokken vertrekken. Veel blokken hebben aparte uitgangen **Success** en **Error**, zodat je beide gevallen kunt afhandelen.                                                                                         |
+| **Outputs**                           | De punten langs de onderrand, met het label er direct boven, waar lijnen naar de volgende blokken vertrekken. Veel blokken hebben aparte uitgangen **Succes** en **Fout**, zodat je beide gevallen kunt afhandelen.                                                                                         |
 
 ## Blokken verbinden
 
 Sleep van een punt onderaan het ene blok naar het punt bovenaan het volgende. De lijn die je trekt, bepaalt wat er daarna draait.
 
-- Verbind je vanaf **Success**, dan draait het volgende blok alleen als het vorige lukte.
-- Verbind je vanaf **Error**, dan draait het volgende blok alleen als het vorige mislukte.
+- Verbind je vanaf **Succes**, dan draait het volgende blok alleen als het vorige lukte.
+- Verbind je vanaf **Fout**, dan draait het volgende blok alleen als het vorige mislukte.
 - Verbind je een uitgang niet, dan stopt dat pad gewoon.
 
 ```mermaid title="Alleen de uitgang die een blok neemt, leidt ergens heen"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Niets aangesloten, dus<br/>de uitvoering eindigt"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    hook["Webhook"] -->|"Uitgaand"| check{"If / Else"}
+    check -->|"Ja"| post["API Post (JSON)"]
+    check -->|"Nee"| ends(["Niets aangesloten, dus<br/>de uitvoering eindigt"])
+    post -->|"Succes"| slack["Send Message to Slack"]
+    post -->|"Fout"| log["Logboek"]
 ```
 
 Je kunt één uitgang op meerdere blokken aansluiten. Ze draaien allemaal, maar na elkaar, in één wachtrij, niet parallel. Reken niet op de volgorde tussen de takken en ook niet op overlap in de tijd.
@@ -105,7 +105,7 @@ In de instelling verschijnt een waarde als chip, zoals **Webhook › Request Bod
 
 - **Waarden die er zijn staan eerst, en de rest staat apart.** De trigger en de blokken die vóór dit blok draaien, worden aangeboden. Een blok dat alleen bij sommige uitvoeringen vóór dit blok draait — na één uitgang van een **If / Else**, bijvoorbeeld — zegt dat, omdat de waarden ervan hier leeg kunnen zijn. Een blok dat later draait, of op een tak die niet hierheen leidt, staat aan het eind, ingeklapt en grijs, met de reden, en de waarden ervan kunnen niet worden gekozen. Zolang een blok niet is verbonden, worden alleen de waarden van de trigger getoond, en de lijst zegt dat.
 - **Een record opent op zijn velden.** Een Find One- of On Create-blok geeft een volledig record terug. Kies het om de velden te zien: eerst de velden die het blok doorgeeft, die in **Fields to pass on** van het blok staan, en daarna, apart, de velden die het niet doorgeeft en die hier leeg zijn. Een JSON-waarde of een set headers opent op een vak waarin je een pad typt, zoals `title` of `alerts[0].status`.
-- **Heeft een blok eenmaal gedraaid, dan weet de lijst wat er in zijn waarden zit.** Elke waarde zegt wat ze bij de laatste uitvoering bevatte — `"production"` of `3 fields` —, en een JSON-waarde of een set headers opent op de velden die ze had, elk met de inhoud. Zo kies je uit de **Request Body** van een Webhook **incident.title** in plaats van een pad te typen. Zoeken vindt deze velden ook: typ `title`, of `{{` en het begin van een pad. Ook de velden van een record tonen wat ze bevatten. De velden komen uit de laatste uitvoering, dus een veld dat een later verzoek weglaat, is in die uitvoering leeg. Een waarde die op een geheim lijkt, zoals een `Authorization`-header, een token of een wachtwoord, wordt zonder inhoud getoond.
+- **Heeft een blok eenmaal gedraaid, dan weet de lijst wat er in zijn waarden zit.** Elke waarde zegt wat ze bij de laatste uitvoering bevatte — `"production"` of `3 fields` —, en een JSON-waarde of een set headers opent op de velden die ze had, elk met de inhoud. Zo kies je uit de **Verzoeklichaam** van een Webhook **incident.title** in plaats van een pad te typen. Zoeken vindt deze velden ook: typ `title`, of `{{` en het begin van een pad. Ook de velden van een record tonen wat ze bevatten. De velden komen uit de laatste uitvoering, dus een veld dat een later verzoek weglaat, is in die uitvoering leeg. Een waarde die op een geheim lijkt, zoals een `Authorization`-header, een token of een wachtwoord, wordt zonder inhoud getoond.
 - **Een Webhook die nog geen verzoek heeft ontvangen, zegt dat** bovenaan zijn waarden, met **Testverzoek kopiëren**: een `curl`-opdracht die `{"message": "Hello"}` naar de webhook-URL van de workflow stuurt. Voer hem uit in een terminal terwijl de lijst open is, en de velden van het verzoek verschijnen erin zodra de uitvoering die het start klaar is, meestal binnen enkele seconden. Alleen mensen die de webhook-URL mogen zien, krijgen de knop. Zolang de workflow uit staat, weigert de URL verzoeken; de lijst biedt dan in plaats daarvan **Testen met "Workflow uitvoeren"**: de velden van het verzoek dat je van daaruit verstuurt, verschijnen op dezelfde manier. Een Incoming Email-trigger die nog geen e-mail heeft ontvangen, zegt dat op dezelfde plek; stuur een e-mail naar het adres ervan, en de headers en bijlagen verschijnen op dezelfde manier.
 - **Code-editors hebben Insert value in hun werkbalk.** In JSON voegt het de aanhalingstekens toe die een waarde in een document nodig heeft. **Run Custom JavaScript** leest waarden via zijn **Arguments**, dus de code ervan heeft geen kiezer.
 - **Getallen, wachtwoorden, schakelaars en datums houden hun eigen besturingselement,** met **{ }** ernaast. Een gekozen waarde vervangt het besturingselement, en met **abc** ga je terug naar typen.
@@ -135,7 +135,7 @@ De snelste manier om het canvas te leren kennen is een workflow van twee blokken
 :::steps
 1. Klik op het gestippelde plaatshouderblok en daarna op **Handmatig** in het paneel **Trigger toevoegen**.
 2. Klik op **Component toevoegen** en daarna op **Logboek** onder **Populair**. Het nieuwe blok komt onder de trigger terecht. Verbind het punt **Execute** van de trigger met het invoerpunt van het Log-blok eronder.
-3. Klik op het Log-blok, waarop **Click to set up** staat, en typ `Hello from ` in de **Value** ervan. Klik op **{ }** en daarna op **JSON** onder **Handmatig**. De instelling toont **Manual › JSON** en slaat `{{local.components.manual-1.returnValues.value}}` op. `manual-1` is de **Identifier** van de trigger, die op het triggerblok staat. Klik op **Opslaan**.
+3. Klik op het Log-blok, waarop **Click to set up** staat, en typ `Hello from ` in de **Waarde** ervan. Klik op **{ }** en daarna op **JSON** onder **Handmatig**. De instelling toont **Manual › JSON** en slaat `{{local.components.manual-1.returnValues.value}}` op. `manual-1` is de **Identifier** van de trigger, die op het triggerblok staat. Klik op **Opslaan**.
 4. Klik terug in de **Bouwer** op **Workflow uitvoeren**, zet `{ "name": "Ada" }` in het veld **JSON**, klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. De workflow staat nog uit, en hij hoeft niet aan te staan: een uitvoering die je zelf start, is een **Testrun**.
 5. Er opent vanzelf een paneel **Workflow-uitvoering** dat de uitvoering volgt. Bovenaan staat **Testrun**, en het logboek toont `Value:` gevolgd door `Hello from` en de JSON die je typte.
 :::
@@ -158,7 +158,7 @@ Zolang een workflow uit staat, bepaalt wat hem start of hij draait:
 | Zijn trigger: een schema, een OneUptime-gebeurtenis of een e-mail | Genegeerd.                                                                                                                                                                         |
 | **Workflow uitvoeren** of **Run just this step**            | Draait, als **Testrun**. Zijn blokken draaien echt: een bericht wordt echt verstuurd en een record wordt echt gewijzigd. De uitvoering is gemarkeerd als **Testrun** in de lijsten met uitvoeringen en bovenaan de uitvoering, met wie hem startte. |
 | Een aanroep van zijn webhook-URL                           | Geweigerd met HTTP 400 en "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
-| Het **Execute Workflow**-blok van een andere workflow       | Dat blok neemt zijn pad **Error**, en de fout noemt de workflow die het aanriep. Dat geldt ook in een testrun: een workflow die het aanroept, moet aan staan. |
+| Het **Execute Workflow**-blok van een andere workflow       | Dat blok neemt zijn pad **Fout**, en de fout noemt de workflow die het aanriep. Dat geldt ook in een testrun: een workflow die het aanroept, moet aan staan. |
 
 De volgorde is dus: bouwen, testen met **Workflow uitvoeren** terwijl hij nog uit staat, het logboek van de uitvoering lezen en **Ingeschakeld** aanzetten als je wilt dat de trigger afgaat. Gebruik **Run just this step** in de instellingen van een blok om één blok te testen zonder het geheel uit te voeren.
 

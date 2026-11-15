@@ -58,7 +58,7 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Creare il record
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **URL** su `https://your-instance.service-now.com/api/now/table/incident`. In **Altri campi**, imposta i suoi **Request Headers** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://your-instance.service-now.com/api/now/table/incident`. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
 
 ```json
 {
@@ -67,7 +67,7 @@ Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e co
 }
 ```
 
-E il suo **Request Body** su:
+E il suo **Corpo della Richiesta** su:
 
 ```json
 {
@@ -101,11 +101,11 @@ Crea un workflow chiamato `Resolve ServiceNow incidents` e scegli **On Update In
 
 ### Controllare che l'incidente sia risolto
 
-Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Value to check** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** su **is true**.
+Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
 
 ### Trovare il record
 
-Aggiungi un blocco **API Get (JSON)** dopo il lato **Yes**, con gli stessi **Request Headers** e questo **URL**:
+Aggiungi un blocco **API Get (JSON)** dopo il lato **Sì**, con gli stessi **Intestazioni della richiesta** e questo **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Risolvere il record
 
-Aggiungi un blocco **API Patch (JSON)** dopo il **Success** del blocco di ricerca, con gli stessi **Request Headers** e questo **URL**:
+Aggiungi un blocco **API Patch (JSON)** dopo il **Successo** del blocco di ricerca, con gli stessi **Intestazioni della richiesta** e questo **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Imposta il suo **Request Body** su:
+Imposta il suo **Corpo della Richiesta** su:
 
 ```json
 {

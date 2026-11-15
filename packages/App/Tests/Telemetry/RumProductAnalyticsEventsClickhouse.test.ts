@@ -19,9 +19,22 @@ import {
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import { RumSessionErasureRequestType } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import {
+  PRODUCT_ANALYTICS_WIRE_VERSION,
+  ProductAnalyticsBatchParseResult,
   ProductAnalyticsEventKind,
   ProductAnalyticsParsedEvent,
+  parseProductAnalyticsBatch,
+  toProductAnalyticsPage,
+  toProductAnalyticsPropertyValue,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
+import {
+  CAFE_PAGE,
+  CAFE_SPELLINGS,
+  PAGES_WITH_PERSONAL_DATA,
+  PageSpellingCase,
+  addressOf,
+} from "Common/Tests/Helpers/PageSpellings";
+import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import {
   ProductAnalyticsEventBreakdownDto,
   ProductAnalyticsEventField,
@@ -33,6 +46,7 @@ import {
   ProductAnalyticsRetentionDto,
   ProductAnalyticsRetentionPeriod,
   ProductAnalyticsSegmentFilter,
+  toProductAnalyticsEventRef,
 } from "Common/Types/Rum/ProductAnalyticsEventReads";
 import ProductAnalyticsEventIngestService from "../../FeatureSet/Telemetry/Services/ProductAnalyticsEventIngestService";
 import { ProductAnalyticsEventsJobData } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
@@ -327,6 +341,181 @@ const batches: Array<BatchFixture> = [
     project: otherProjectId,
     events: [sessionStart(at(1, 9, 59)), custom("Signed up", at(1, 10, 0))],
   },
+];
+
+/*
+ * #8017: the rows recorders stored before the ingest wrote one spelling, in
+ * an application of their own. The café page in every spelling a recorder
+ * sent (CAFE_SPELLINGS, the table the recorder's and the parser's suites
+ * read), one session each on days 1 to 6, each followed five minutes later
+ * by an order on that page; the first visitor came back for the last one,
+ * so the page has one person fewer than spellings. And one session through
+ * pages that name others: "/a%2fb" (an escaped slash) and "/a/b", "/Cart"
+ * and "/cart".
+ */
+const spellingApplicationId: ObjectID = new ObjectID(
+  "6600000000000000000000d3",
+);
+
+function pageView(name: string, time: number): ProductAnalyticsParsedEvent {
+  return {
+    kind: ProductAnalyticsEventKind.Page,
+    name: name,
+    time: time,
+    page: name,
+    properties: {},
+  };
+}
+
+const spellingBatches: Array<BatchFixture> = [
+  ...CAFE_SPELLINGS.map((spelling: string, index: number): BatchFixture => {
+    const time: number = at(Math.min(index + 1, 6), 12);
+    const isLast: boolean = index === CAFE_SPELLINGS.length - 1;
+
+    return {
+      sessionId: hex(`3${index}`, 32),
+      visitorId: hex(isLast ? "50" : `5${index}`, 32),
+      ...desktop,
+      countryCode: "US",
+      application: spellingApplicationId,
+      events: [
+        sessionStart(time - MINUTE_MS),
+        pageView(spelling, time),
+        {
+          ...custom("Ordered", time + 5 * MINUTE_MS),
+          page: spelling,
+        },
+      ],
+    };
+  }),
+  {
+    sessionId: hex("3f", 32),
+    visitorId: hex("5f", 32),
+    ...desktop,
+    countryCode: "US",
+    application: spellingApplicationId,
+    events: [
+      sessionStart(at(3, 8)),
+      pageView("/a%2fb", at(3, 9)),
+      pageView("/a/b", at(3, 9, 1)),
+      pageView("/Cart", at(3, 9, 2)),
+      pageView("/cart", at(3, 9, 3)),
+    ],
+  },
+];
+
+/*
+ * #8197: pages that name a person or a secret, in an application of their
+ * own. One session a client that does not scrub sent - each page of the
+ * table (PAGES_WITH_PERSONAL_DATA) as it sent it, viewed, then an order on
+ * it carrying the page's whole address as a property - read by the ingest's
+ * own parser, as the route reads every batch. And one session stored before
+ * the ingest scrubbed what it was sent: the same pages as the old ingest
+ * kept them, the query and fragment dropped and nothing else.
+ */
+const personalApplicationId: ObjectID = new ObjectID(
+  "6600000000000000000000d4",
+);
+const personalSession: string = hex("4a", 32);
+const storedBeforeSession: string = hex("4b", 32);
+
+function personalBatchEvents(): Array<ProductAnalyticsParsedEvent> {
+  const receivedAt: number = at(2, 12);
+  const parsed: ProductAnalyticsBatchParseResult = parseProductAnalyticsBatch(
+    {
+      v: PRODUCT_ANALYTICS_WIRE_VERSION,
+      batchId: hex("4c", 32),
+      sessionId: personalSession,
+      visitorId: hex("4d", 32),
+      consentState: "NotRequired",
+      sentAt: receivedAt,
+      context: {
+        deviceType: "desktop",
+        browserName: "Chrome",
+        osName: "Linux",
+      },
+      events: PAGES_WITH_PERSONAL_DATA.flatMap(
+        (row: PageSpellingCase, index: number): Array<JSONObject> => {
+          return [
+            {
+              kind: ProductAnalyticsEventKind.Page,
+              name: row.sent,
+              at: at(2, 9, index * 2),
+            },
+            {
+              kind: ProductAnalyticsEventKind.Custom,
+              name: "Ordered",
+              page: addressOf(row),
+              at: at(2, 9, index * 2 + 1),
+              properties: { url: addressOf(row), plan: "pro" },
+            },
+          ];
+        },
+      ),
+      metrics: [],
+    },
+    { receivedAtUnixMs: receivedAt, allowedUserPropertyKeys: [] },
+  );
+
+  if (!parsed.isValid) {
+    throw new Error(`The personal data batch was refused: ${parsed.error}`);
+  }
+
+  return parsed.batch.events;
+}
+
+// The page the ingest kept before it scrubbed: no query, no fragment.
+function storedBeforeTheIngestScrubbed(sent: string): string {
+  const path: string = sent.split(/[?#]/)[0] || "/";
+
+  return UrlScrubber.normalizePathSpelling(
+    path.startsWith("/") ? path : `/${path}`,
+  );
+}
+
+const personalBatches: Array<BatchFixture> = [
+  {
+    sessionId: personalSession,
+    visitorId: hex("4d", 32),
+    ...desktop,
+    countryCode: "US",
+    application: personalApplicationId,
+    events: personalBatchEvents(),
+  },
+  {
+    sessionId: storedBeforeSession,
+    visitorId: hex("4e", 32),
+    ...desktop,
+    countryCode: "US",
+    application: personalApplicationId,
+    events: PAGES_WITH_PERSONAL_DATA.flatMap(
+      (
+        row: PageSpellingCase,
+        index: number,
+      ): Array<ProductAnalyticsParsedEvent> => {
+        const page: string = storedBeforeTheIngestScrubbed(row.sent);
+
+        return [
+          pageView(page, at(3, 9, index * 2)),
+          { ...custom("Ordered", at(3, 9, index * 2 + 1)), page: page },
+        ];
+      },
+    ),
+  },
+];
+
+// What a page, a name or a property must not hold once stored or read.
+const PERSONAL_DATA: Array<string> = [
+  "someone",
+  "First.Last",
+  "jörg",
+  "j%C3%B6rg",
+  "3f1a9c7e",
+  "3F1A9C7E",
+  "5f8d0d55b54764421b7156c9",
+  "4111111111111111",
+  "Zx8",
+  "abc123",
 ];
 
 function rowsOfBatch(batch: BatchFixture, index: number): Array<JSONObject> {
@@ -1040,6 +1229,478 @@ for (const analyzer of [1, 0]) {
             period: ProductAnalyticsRetentionPeriod.Day,
           }),
         ).toEqual(["2026-02-01", "2026-02-02"]);
+      });
+
+      /*
+       * #8017: one page written several ways ("/caf%c3%a9", "/cafe%CC%81",
+       * "/caf%C3%A9") is stored as each, by the recorders that sent them
+       * before the ingest wrote one spelling, and those rows stay for
+       * PRODUCT_ANALYTICS_RETENTION_MONTHS: the page is in the table's sort
+       * key, which ClickHouse never rewrites. Every read matches and groups
+       * them as one page, and names it in the one spelling.
+       */
+      describe("a page in its one spelling", () => {
+        const spellingScope: {
+          projectId: ObjectID;
+          rumApplicationId: ObjectID;
+          startTime: Date;
+          endTime: Date;
+        } = {
+          projectId: projectId,
+          rumApplicationId: spellingApplicationId,
+          startTime: rangeStart,
+          endTime: rangeEnd,
+        };
+
+        const cafe: ProductAnalyticsEventRef = {
+          kind: ProductAnalyticsEventKind.Page,
+          name: CAFE_PAGE,
+        };
+        const ordered: ProductAnalyticsEventRef = {
+          kind: ProductAnalyticsEventKind.Custom,
+          name: "Ordered",
+        };
+
+        beforeAll(async (): Promise<void> => {
+          for (let index: number = 0; index < spellingBatches.length; index++) {
+            await RumProductAnalyticsEventService.insertJsonRows(
+              rowsOfBatch(spellingBatches[index]!, 100 + index),
+              { clickhouseSettings: { wait_for_async_insert: 1 } },
+            );
+          }
+        });
+
+        test("the old rows are stored as their recorders sent them", async () => {
+          expect(
+            await count(
+              `SELECT toUInt64(uniqExact(name)) AS rows FROM ${database}.RumProductAnalyticsEventV1 WHERE rumApplicationId = '${spellingApplicationId.toString()}' AND kind = 'page' AND name LIKE '/caf%'`,
+            ),
+          ).toBe(CAFE_SPELLINGS.length);
+        });
+
+        test("the events list names the page once, with every spelling's events and people", async () => {
+          const list: ProductAnalyticsEventNamesDto =
+            await RumProductAnalyticsEventReadService.listEventNames(
+              spellingScope,
+            );
+
+          const pages: Array<ProductAnalyticsEventNameDto> = list.events.filter(
+            (event: ProductAnalyticsEventNameDto): boolean => {
+              return event.kind === ProductAnalyticsEventKind.Page;
+            },
+          );
+
+          expect(
+            pages.map((event: ProductAnalyticsEventNameDto): string => {
+              return `${event.name} ${event.events} ${event.users}`;
+            }),
+          ).toEqual([
+            /*
+             * Every spelling, one event each, and one person viewed it in
+             * two: a person counts once.
+             */
+            `${CAFE_PAGE} ${CAFE_SPELLINGS.length} ${CAFE_SPELLINGS.length - 1}`,
+            // What names another page stays its own.
+            "/Cart 1 1",
+            "/a%2Fb 1 1",
+            "/a/b 1 1",
+            "/cart 1 1",
+          ]);
+          expect(pages[0]?.lastSeenAt).toBe(at(6, 12));
+
+          const pageOnly: ProductAnalyticsEventNamesDto =
+            await RumProductAnalyticsEventReadService.listEventNames({
+              ...spellingScope,
+              kind: ProductAnalyticsEventKind.Page,
+            });
+
+          expect(namesOf(pageOnly)).toEqual([
+            `page:${CAFE_PAGE}`,
+            "page:/Cart",
+            "page:/a%2Fb",
+            "page:/a/b",
+            "page:/cart",
+          ]);
+        });
+
+        test("a page view is counted in every spelling, whichever spelling the read names", async () => {
+          for (const name of [CAFE_PAGE, "/caf%c3%a9", "/cafe%CC%81"]) {
+            const trend: ProductAnalyticsEventTrendDto =
+              await RumProductAnalyticsEventReadService.getEventTrend({
+                ...spellingScope,
+                event: { kind: ProductAnalyticsEventKind.Page, name: name },
+                filters: [],
+                timeZone: "UTC",
+              });
+
+            expect([name, trend.totalEvents, trend.totalUsers]).toEqual([
+              name,
+              CAFE_SPELLINGS.length,
+              CAFE_SPELLINGS.length - 1,
+            ]);
+          }
+
+          // A page apart is counted apart.
+          const slash: ProductAnalyticsEventTrendDto =
+            await RumProductAnalyticsEventReadService.getEventTrend({
+              ...spellingScope,
+              event: { kind: ProductAnalyticsEventKind.Page, name: "/a%2Fb" },
+              filters: [],
+              timeZone: "UTC",
+            });
+
+          expect(slash.totalEvents).toBe(1);
+        });
+
+        test("a breakdown by page names the page once, and a segment on it holds every spelling", async () => {
+          const breakdown: ProductAnalyticsEventBreakdownDto =
+            await RumProductAnalyticsEventReadService.getEventBreakdown({
+              ...spellingScope,
+              event: ordered,
+              filters: [],
+              breakdown: { field: ProductAnalyticsEventField.Page, key: "" },
+              limit: 10,
+            });
+
+          expect(breakdown.rows).toEqual([
+            {
+              value: CAFE_PAGE,
+              events: CAFE_SPELLINGS.length,
+              users: CAFE_SPELLINGS.length - 1,
+            },
+          ]);
+          expect(breakdown.totalEvents).toBe(CAFE_SPELLINGS.length);
+
+          const segmented: ProductAnalyticsEventTrendDto =
+            await RumProductAnalyticsEventReadService.getEventTrend({
+              ...spellingScope,
+              event: ordered,
+              filters: [
+                {
+                  field: ProductAnalyticsEventField.Page,
+                  key: "",
+                  value: CAFE_PAGE,
+                },
+              ],
+              timeZone: "UTC",
+            });
+
+          expect(segmented.totalEvents).toBe(CAFE_SPELLINGS.length);
+        });
+
+        test("a funnel from the page reads every spelling of it", async () => {
+          const funnel: ProductAnalyticsFunnelDto =
+            await RumProductAnalyticsEventReadService.getFunnel({
+              ...spellingScope,
+              steps: [cafe, ordered],
+              filters: [],
+              windowMs: 24 * HOUR_MS,
+              now: now,
+            });
+
+          expect(
+            funnel.steps.map((step: { people: number }): number => {
+              return step.people;
+            }),
+          ).toEqual([CAFE_SPELLINGS.length - 1, CAFE_SPELLINGS.length - 1]);
+        });
+
+        test("what the ingest stores from now on is the one spelling", () => {
+          const parsed: ProductAnalyticsBatchParseResult =
+            parseProductAnalyticsBatch(
+              {
+                v: PRODUCT_ANALYTICS_WIRE_VERSION,
+                batchId: hex("9a", 32),
+                sessionId: hex("9b", 32),
+                visitorId: hex("9c", 32),
+                consentState: "NotRequired",
+                sentAt: now.getTime(),
+                context: {
+                  deviceType: "desktop",
+                  browserName: "Chrome",
+                  osName: "Linux",
+                  appVersion: "",
+                },
+                events: CAFE_SPELLINGS.map((spelling: string): JSONObject => {
+                  return {
+                    kind: ProductAnalyticsEventKind.Page,
+                    name: spelling,
+                    page: spelling,
+                    at: now.getTime(),
+                  };
+                }),
+                metrics: [],
+              },
+              { receivedAtUnixMs: now.getTime(), allowedUserPropertyKeys: [] },
+            );
+
+          expect(parsed.isValid).toBe(true);
+
+          const rows: Array<JSONObject> = rowsOfBatch(
+            {
+              sessionId: hex("9b", 32),
+              visitorId: hex("9c", 32),
+              ...desktop,
+              countryCode: "US",
+              application: spellingApplicationId,
+              events: parsed.isValid ? parsed.batch.events : [],
+            },
+            199,
+          );
+
+          expect(
+            Array.from(
+              new Set(
+                rows.map((row: JSONObject): string => {
+                  return `${row["name"]} ${row["page"]}`;
+                }),
+              ),
+            ),
+          ).toEqual([`${CAFE_PAGE} ${CAFE_PAGE}`]);
+        });
+      });
+
+      /*
+       * #8197: a client that does not scrub its pages - the application's
+       * own code posting with its ingestion key - had them stored as sent,
+       * kept for months and shown to everyone who reads the application's
+       * analytics. What the ingest stores now names no one, and the reads
+       * name the pages stored before as the ingest would store them now.
+       */
+      describe("personal data in a page", () => {
+        const personalScope: {
+          projectId: ObjectID;
+          rumApplicationId: ObjectID;
+          startTime: Date;
+          endTime: Date;
+        } = {
+          projectId: projectId,
+          rumApplicationId: personalApplicationId,
+          startTime: rangeStart,
+          endTime: rangeEnd,
+        };
+        const ordered: ProductAnalyticsEventRef = {
+          kind: ProductAnalyticsEventKind.Custom,
+          name: "Ordered",
+        };
+        const scrubbedPages: Array<string> = Array.from(
+          new Set(
+            PAGES_WITH_PERSONAL_DATA.map((row: PageSpellingCase): string => {
+              return row.page;
+            }),
+          ),
+        ).sort();
+
+        interface StoredRow {
+          kind: string;
+          name: string;
+          page: string;
+          properties: Record<string, string>;
+        }
+
+        async function storedRows(
+          sessionId: string,
+        ): Promise<Array<StoredRow>> {
+          const result: { json: () => Promise<unknown> } = await client.query({
+            query: `SELECT kind, name, page, properties FROM ${database}.RumProductAnalyticsEventV1 WHERE rumApplicationId = '${personalApplicationId.toString()}' AND sessionId = '${sessionId}' ORDER BY time`,
+            format: "JSONEachRow",
+          });
+
+          return (await result.json()) as Array<StoredRow>;
+        }
+
+        function expectNoOne(texts: Array<string>): void {
+          for (const text of texts) {
+            for (const personal of PERSONAL_DATA) {
+              expect([text, personal, text.includes(personal)]).toEqual([
+                text,
+                personal,
+                false,
+              ]);
+            }
+          }
+        }
+
+        beforeAll(async (): Promise<void> => {
+          for (let index: number = 0; index < personalBatches.length; index++) {
+            await RumProductAnalyticsEventService.insertJsonRows(
+              rowsOfBatch(personalBatches[index]!, 300 + index),
+              { clickhouseSettings: { wait_for_async_insert: 1 } },
+            );
+          }
+        });
+
+        test("what the ingest stores of a batch a client sent unscrubbed names no one", async () => {
+          const rows: Array<StoredRow> = await storedRows(personalSession);
+
+          expect(
+            rows.map((row: StoredRow): string => {
+              return `${row.kind} ${row.name} ${row.page}`;
+            }),
+          ).toEqual(
+            PAGES_WITH_PERSONAL_DATA.flatMap(
+              (row: PageSpellingCase): Array<string> => {
+                return [
+                  `page ${row.page} ${row.page}`,
+                  `custom Ordered ${row.page}`,
+                ];
+              },
+            ),
+          );
+          expect(
+            rows
+              .filter((row: StoredRow): boolean => {
+                return row.kind === ProductAnalyticsEventKind.Custom;
+              })
+              .map((row: StoredRow): Record<string, string> => {
+                return row.properties;
+              }),
+          ).toEqual(
+            PAGES_WITH_PERSONAL_DATA.map(
+              (row: PageSpellingCase): Record<string, string> => {
+                return {
+                  url: toProductAnalyticsPropertyValue(addressOf(row), 200),
+                  plan: "pro",
+                };
+              },
+            ),
+          );
+          expectNoOne(
+            rows.map((row: StoredRow): string => {
+              return JSON.stringify(row);
+            }),
+          );
+        });
+
+        test("the rows stored before hold what their client sent", async () => {
+          const rows: Array<StoredRow> = await storedRows(storedBeforeSession);
+          const unscrubbed: Array<string> = rows
+            .filter((row: StoredRow): boolean => {
+              return (
+                row.kind === ProductAnalyticsEventKind.Page &&
+                toProductAnalyticsPage(row.name) !== row.name
+              );
+            })
+            .map((row: StoredRow): string => {
+              return row.name;
+            });
+
+          expect(unscrubbed).toEqual(
+            PAGES_WITH_PERSONAL_DATA.map((row: PageSpellingCase): string => {
+              return storedBeforeTheIngestScrubbed(row.sent);
+            }).filter((page: string): boolean => {
+              return toProductAnalyticsPage(page) !== page;
+            }),
+          );
+          expect(unscrubbed.length).toBeGreaterThan(8);
+          expect(unscrubbed).toContain("/users/someone@example.com/orders");
+        });
+
+        test("the events list names every page as the ingest stores it now, the old rows' too", async () => {
+          const list: ProductAnalyticsEventNamesDto =
+            await RumProductAnalyticsEventReadService.listEventNames(
+              personalScope,
+            );
+          const pages: Array<string> = list.events
+            .filter((event: ProductAnalyticsEventNameDto): boolean => {
+              return event.kind === ProductAnalyticsEventKind.Page;
+            })
+            .map((event: ProductAnalyticsEventNameDto): string => {
+              return event.name;
+            });
+
+          expect(Array.from(new Set(pages)).sort()).toEqual(scrubbedPages);
+          expectNoOne(pages);
+
+          for (const page of pages) {
+            expect(toProductAnalyticsPage(page)).toBe(page);
+          }
+        });
+
+        test("a breakdown of an order by its page, and by its address property, names no one", async () => {
+          const byPage: ProductAnalyticsEventBreakdownDto =
+            await RumProductAnalyticsEventReadService.getEventBreakdown({
+              ...personalScope,
+              event: ordered,
+              filters: [],
+              breakdown: { field: ProductAnalyticsEventField.Page, key: "" },
+              limit: 100,
+            });
+
+          expect(
+            Array.from(
+              new Set(
+                byPage.rows.map((row: { value: string }): string => {
+                  return row.value;
+                }),
+              ),
+            ).sort(),
+          ).toEqual(scrubbedPages);
+          expect(byPage.totalEvents).toBe(PAGES_WITH_PERSONAL_DATA.length * 2);
+
+          const byAddress: ProductAnalyticsEventBreakdownDto =
+            await RumProductAnalyticsEventReadService.getEventBreakdown({
+              ...personalScope,
+              event: ordered,
+              filters: [],
+              breakdown: {
+                field: ProductAnalyticsEventField.Property,
+                key: "url",
+              },
+              limit: 100,
+            });
+          const addresses: Array<string> = byAddress.rows
+            .map((row: { value: string }): string => {
+              return row.value;
+            })
+            .filter((value: string): boolean => {
+              return value !== "";
+            });
+
+          expect(addresses.length).toBeGreaterThan(10);
+          expectNoOne(addresses);
+        });
+
+        test("a read that names a page with an email in it counts the page as stored", async () => {
+          const named: ProductAnalyticsEventRef | null =
+            toProductAnalyticsEventRef({
+              kind: ProductAnalyticsEventKind.Page,
+              name: "https://shop.example.com/users/someone@example.com/orders?tab=1",
+            });
+
+          expect(named).toEqual({
+            kind: ProductAnalyticsEventKind.Page,
+            name: "/users/[redacted]/orders",
+          });
+
+          const trend: ProductAnalyticsEventTrendDto =
+            await RumProductAnalyticsEventReadService.getEventTrend({
+              ...personalScope,
+              event: named!,
+              filters: [],
+              timeZone: "UTC",
+            });
+
+          /*
+           * The page views the ingest stored on that page, and an old row
+           * that was stored so already; an old row stored with the email is
+           * not the page the read names.
+           */
+          const expected: number =
+            PAGES_WITH_PERSONAL_DATA.filter(
+              (row: PageSpellingCase): boolean => {
+                return row.page === named!.name;
+              },
+            ).length +
+            PAGES_WITH_PERSONAL_DATA.filter(
+              (row: PageSpellingCase): boolean => {
+                return storedBeforeTheIngestScrubbed(row.sent) === named!.name;
+              },
+            ).length;
+
+          expect(expected).toBe(3);
+          expect(trend.totalEvents).toBe(expected);
+        });
       });
 
       describe("erasure", () => {

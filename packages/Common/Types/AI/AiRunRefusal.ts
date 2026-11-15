@@ -14,6 +14,8 @@ import {
  * start an investigation - Try again on the failure notice, and Investigate
  * now while a rule waits - and an AI insight's card has Try again for its
  * triage. When the server refuses, the card shows why under the button.
+ * An AI insight's page refuses Confirm, Dismiss, Resolve and Reopen with
+ * the same codes when the insight is gone or closed already (#8052).
  *
  * The server answers the refusal as bad data (400) with its English
  * sentence as the message, for the API and for older Dashboards, and with
@@ -65,7 +67,23 @@ export enum AiRunRefusalCode {
   IncidentTokenLimitUsedUp = "incident_token_limit_used_up",
   AlertTokenLimitPaused = "alert_token_limit_paused",
   AlertTokenLimitUsedUp = "alert_token_limit_used_up",
-  // An AI insight's triage Try again.
+  /*
+   * An AI insight's page: Confirm, Dismiss, Resolve, Reopen, Run triage
+   * and Try again look the insight up first, and refuse alike for one
+   * that is gone and one the person may not read, so the answer never
+   * tells whether an id exists in another project (#8052).
+   */
+  InsightNotFoundOrNoAccess = "insight_not_found_or_no_access",
+  /*
+   * Resolve, on a page left open while someone closed the insight
+   * elsewhere: a closed insight is never resolved again.
+   */
+  InsightAlreadyResolved = "insight_already_resolved",
+  InsightAlreadyDismissed = "insight_already_dismissed",
+  /*
+   * An AI insight's triage Try again - and Confirm, Dismiss, Resolve and
+   * Reopen when the insight went between the page's check and the change.
+   */
   InsightNotFound = "insight_not_found",
   InsightTriageRunning = "insight_triage_running",
   TriageFinished = "triage_finished",
@@ -148,6 +166,15 @@ export const AI_RUN_REFUSALS: Readonly<Record<AiRunRefusalCode, string>> = {
   ),
   [AiRunRefusalCode.AlertTokenLimitUsedUp]: translationKey(
     "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+  ),
+  [AiRunRefusalCode.InsightNotFoundOrNoAccess]: translationKey(
+    "AI insight not found (or you do not have access to it).",
+  ),
+  [AiRunRefusalCode.InsightAlreadyResolved]: translationKey(
+    "This AI insight is already resolved and cannot be resolved again.",
+  ),
+  [AiRunRefusalCode.InsightAlreadyDismissed]: translationKey(
+    "This AI insight is already dismissed and cannot be resolved again.",
   ),
   [AiRunRefusalCode.InsightNotFound]: translationKey(
     "This AI insight no longer exists.",

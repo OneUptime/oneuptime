@@ -29,6 +29,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
+  formatInline,
   getGlobalTranslator,
   translatableTerm,
   translateTemplate,
@@ -40,6 +41,8 @@ import {
   ChangeEventAttribute,
   ChangeEventSource,
 } from "Common/Utils/Telemetry/ChangeEventFields";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   CloudChangeTitleFacts,
   CloudHealthTitleFacts,
@@ -155,6 +158,66 @@ export function getChangeEventMarkerTitle(
 // The line under a change marker's title in its hover card.
 export const CHANGE_EVENT_MARKER_SUBTITLE: string =
   translationKey("Change event");
+
+/*
+ * The line under an incident's or an alert's marker in its hover card: its
+ * kind and its severity side by side, "Incident · Critical Incident" - two
+ * facts on a line, as a row's subtitle writes them, never a sentence. The
+ * severity is read by its list (Common/Utils/DefaultRecordNames): one a
+ * project starts with in the reader's words - "Vorfall · Kritischer
+ * Vorfall", "Incident · Incident critique" - a project's own as written.
+ */
+const getEventMarkerSubtitle: (data: {
+  kind: string;
+  list: StateListType.IncidentSeverity | StateListType.AlertSeverity;
+  severityName: string | undefined;
+  translator: Translator;
+}) => string = (data: {
+  kind: string;
+  list: StateListType.IncidentSeverity | StateListType.AlertSeverity;
+  severityName: string | undefined;
+  translator: Translator;
+}): string => {
+  const severity: string = translateRecordName(
+    data.translator,
+    data.list,
+    data.severityName,
+  );
+
+  return formatInline(
+    [data.translator.translateText(data.kind) || data.kind, severity].filter(
+      (part: string): boolean => {
+        return part.length > 0;
+      },
+    ),
+    data.translator,
+  );
+};
+
+export function getIncidentMarkerSubtitle(
+  severityName: string | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return getEventMarkerSubtitle({
+    kind: translationKey("Incident"),
+    list: StateListType.IncidentSeverity,
+    severityName: severityName,
+    translator: translator,
+  });
+}
+
+// The same for an alert's marker: "Alert · High".
+export function getAlertMarkerSubtitle(
+  severityName: string | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return getEventMarkerSubtitle({
+    kind: translationKey("Alert"),
+    list: StateListType.AlertSeverity,
+    severityName: severityName,
+    translator: translator,
+  });
+}
 
 export function getChangeEventMarkerLabel(
   eventType: string | undefined,
@@ -486,11 +549,7 @@ export default function useEventTimeReferenceLines(input: {
             title: truncateEventMarkerTitle(incident.title || ""),
           }),
           kind: ChartEventKind.Incident,
-          subtitle: incident.incidentSeverity?.name
-            ? translateTemplate("Incident · {{severity}}", {
-                severity: incident.incidentSeverity.name,
-              })
-            : translateTemplate("Incident"),
+          subtitle: getIncidentMarkerSubtitle(incident.incidentSeverity?.name),
           color:
             incident.incidentSeverity?.color?.toString() ||
             INCIDENT_MARKER_COLOR,
@@ -514,11 +573,7 @@ export default function useEventTimeReferenceLines(input: {
             title: truncateEventMarkerTitle(alert.title || ""),
           }),
           kind: ChartEventKind.Alert,
-          subtitle: alert.alertSeverity?.name
-            ? translateTemplate("Alert · {{severity}}", {
-                severity: alert.alertSeverity.name,
-              })
-            : translateTemplate("Alert"),
+          subtitle: getAlertMarkerSubtitle(alert.alertSeverity?.name),
           color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
           route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW]!, {
             modelId: alert.id,

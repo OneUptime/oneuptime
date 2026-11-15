@@ -52,6 +52,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { QUIET_DASH_TEXT, quietDashTextIn } from "../../Helpers/QuietDash";
 
 /*
  * What one check of an external status page found, as the monitor's
@@ -469,7 +470,7 @@ describe("the facts", () => {
     ).toHaveAttribute("data-status", "All Systems Operational");
   });
 
-  test("the reachability check's answer reads Reachable, and no overall status reads a dash", () => {
+  test("the reachability check's answer reads Reachable, and no overall status is the quiet dash", () => {
     renderView(pageResponse({ overallStatus: "reachable" }));
 
     expect(factValue("external-status-page-page-facts", 1)).toHaveTextContent(
@@ -480,7 +481,8 @@ describe("the facts", () => {
     renderView(pageResponse({ overallStatus: "" }));
 
     const empty: HTMLElement = factValue("external-status-page-page-facts", 1);
-    expect(empty.textContent).toBe("-");
+    // The quiet dash every empty value is, not a hyphen of the view's (#7603).
+    expect(empty.textContent).toBe(QUIET_DASH_TEXT);
     expect(
       within(empty).queryByTestId(EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID),
     ).toBeNull();
@@ -1654,8 +1656,8 @@ describe("a refused check's summary in English", () => {
 describe.each([
   ["en", "412 ms"],
   ["de", "412 ms"],
-  ["ar", "412 ملي ث"],
-  ["fa", "۴۱۲ میلی\u{200C}ثانیه"],
+  ["ar", "412\u00A0ملي ث"],
+  ["fa", "۴۱۲\u00A0میلی\u{200C}ثانیه"],
 ])("the Response Time in %s", (language: string, expected: string) => {
   beforeAll(async () => {
     await i18next.changeLanguage(language);
@@ -1801,8 +1803,8 @@ describe("the Active Incidents fact", () => {
     (_name: string, cause: string) => {
       renderView({ ...refusedResponse(cause), overallStatus: "" });
 
-      expect(activeIncidents()).toBe("-");
-      expect(overallStatus()).toBe("-");
+      expect(activeIncidents()).toBe(QUIET_DASH_TEXT);
+      expect(overallStatus()).toBe(QUIET_DASH_TEXT);
     },
   );
 
@@ -1811,7 +1813,7 @@ describe("the Active Incidents fact", () => {
       refusedResponse("Request was tried 3 times and it timed out.", undefined),
     );
 
-    expect(activeIncidents()).toBe("-");
+    expect(activeIncidents()).toBe(QUIET_DASH_TEXT);
   });
 
   test("a page that answered with none: 0", () => {
@@ -1855,7 +1857,12 @@ describe("the Active Incidents fact", () => {
     test("a refused page: a dash", () => {
       renderView(refusedResponse(PRIVATE_PAGE_MESSAGE));
 
-      expect(activeIncidents()).toBe("-");
+      // The quiet dash, "Not set" in Persian for a screen reader.
+      expect(activeIncidents()).toBe(
+        quietDashTextIn(
+          "\u062A\u0646\u0638\u06CC\u0645 \u0646\u0634\u062F\u0647",
+        ),
+      );
     });
   });
 });

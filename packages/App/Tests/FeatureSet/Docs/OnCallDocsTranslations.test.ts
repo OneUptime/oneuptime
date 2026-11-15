@@ -9,6 +9,7 @@ import {
   drawnCreateButton,
   drawnDashboardLabel,
   isDashboardLabel,
+  writtenDashboardLabel,
 } from "./DocsDashboardLabels";
 import {
   CARD_LINE,
@@ -82,12 +83,15 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Copy https link",
   ],
   "on-call/incoming-call-policy": [
-    // The workflow builder: its trigger's fields and its ports, which are not translated.
+    /*
+     * The workflow builder's trigger's fields, which are not translated. Its
+     * If / Else's Yes port is: the canvas draws it in the reader's words,
+     * and the page names it so (#7511, WorkflowStepNamesAsDrawnDocs).
+     */
     "Ended At",
     "Caller Phone Number",
     "Routing Phone Number",
     "Status",
-    "Yes",
   ],
 };
 
@@ -136,11 +140,11 @@ const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
   "on-call/incoming-call-policy": ["Create Twilio Config"],
 };
 
-// How this language's Dashboard draws a bold label of a page.
+// How this language's Dashboard draws a bold label of a page, a plan's name as written.
 function drawnLabel(language: string, page: string, label: string): string {
   return (TABLE_CREATE_BUTTONS[page] || []).includes(label)
     ? drawnCreateButton(language, label)
-    : drawnDashboardLabel(language, label);
+    : writtenDashboardLabel(language, label);
 }
 
 /*

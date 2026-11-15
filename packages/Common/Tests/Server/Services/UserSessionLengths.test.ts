@@ -317,6 +317,8 @@ describe("UserSessionService.decideRenewal", () => {
     ).resolves.toEqual({
       hasEnded: true,
       reason: SessionEndReason.LengthReached,
+      // What the session knew: no idle timeout asks the browser.
+      lastActiveAt: NOW,
     });
   });
 
@@ -348,7 +350,11 @@ describe("UserSessionService.decideRenewal", () => {
         }),
         reportedInactivityInSeconds: 40 * 60,
       }),
-    ).resolves.toEqual({ hasEnded: true, reason: SessionEndReason.Inactive });
+    ).resolves.toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: new Date(NOW.getTime() - 40 * MINUTE),
+    });
   });
 
   test("with an idle timeout, a report of recent activity renews it, as of that activity", async () => {
@@ -389,7 +395,7 @@ describe("UserSessionService.decideRenewal", () => {
     });
   });
 
-  test("without a report (the mobile app, an older page), the session's own last activity decides, and the renewal is the activity", async () => {
+  test("without a report (a mobile app or a page from before it said one), the session's own last activity decides, and the renewal is the activity", async () => {
     fake.userSessionLengths = lengths({ idle: 30 });
 
     await expect(
@@ -400,7 +406,11 @@ describe("UserSessionService.decideRenewal", () => {
         }),
         reportedInactivityInSeconds: null,
       }),
-    ).resolves.toEqual({ hasEnded: true, reason: SessionEndReason.Inactive });
+    ).resolves.toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: new Date(NOW.getTime() - 31 * MINUTE),
+    });
 
     await expect(
       UserSessionService.decideRenewal({
@@ -443,6 +453,173 @@ describe("UserSessionService.decideRenewal", () => {
     ).resolves.toEqual({
       hasEnded: true,
       reason: SessionEndReason.LengthReached,
+      lastActiveAt: NOW,
+    });
+  });
+
+  /*
+   * Issue #6789: opening the Dashboard again after the idle timeout. The
+   * page has been clicked by the time it renews (opening it is activity),
+   * so it says its person is here - and the longest time they were not,
+   * since the last renewal, which is what ends the session.
+   */
+  test("a browser opened again after the idle timeout has ended, though its page says its person is here", async () => {
+    fake.userSessionLengths = lengths({ idle: 30 });
+
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 3 * HOUR,
+          lastActiveAgoMs: 2 * HOUR,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: {
+          forSeconds: 2 * 60 * 60,
+          endedSecondsAgo: 0,
+        },
+      }),
+    ).resolves.toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: new Date(NOW.getTime() - 2 * HOUR),
+    });
+  });
+
+  test("closed a second short of the idle timeout, it is renewed as of now; closed for the timeout exactly, it has ended", async () => {
+    fake.userSessionLengths = lengths({ idle: 30 });
+
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 3 * HOUR,
+          lastActiveAgoMs: 30 * MINUTE - 1000,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: {
+          forSeconds: 30 * 60 - 1,
+          endedSecondsAgo: 0,
+        },
+      }),
+    ).resolves.toEqual({
+      hasEnded: false,
+      lastActiveAt: NOW,
+      lengths: lengths({ idle: 30 }),
+    });
+
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 3 * HOUR,
+          lastActiveAgoMs: 30 * MINUTE,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: { forSeconds: 30 * 60, endedSecondsAgo: 0 },
+      }),
+    ).resolves.toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: new Date(NOW.getTime() - 30 * MINUTE),
+    });
+  });
+
+  test("a time without use the session knew part of counts from what it knew: another tab's renewal heard of activity during it", async () => {
+    fake.userSessionLengths = lengths({ idle: 30 });
+
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 3 * HOUR,
+          lastActiveAgoMs: 10 * MINUTE,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: {
+          forSeconds: 2 * 60 * 60,
+          endedSecondsAgo: 0,
+        },
+      }),
+    ).resolves.toEqual({
+      hasEnded: false,
+      lastActiveAt: NOW,
+      lengths: lengths({ idle: 30 }),
+    });
+  });
+
+  test("without an idle timeout set, the time without use is not asked, however long", async () => {
+    fake.userSessionLengths = lengths({ length: 8 * 60 });
+
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 2 * HOUR,
+          lastActiveAgoMs: 2 * HOUR,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: {
+          forSeconds: 3 * 24 * 60 * 60,
+          endedSecondsAgo: 0,
+        },
+      }),
+    ).resolves.toEqual({
+      hasEnded: false,
+      lastActiveAt: NOW,
+      lengths: lengths({ length: 8 * 60 }),
+    });
+  });
+
+  test("with a session length beside the idle timeout, whichever ran out first", async () => {
+    fake.userSessionLengths = lengths({ length: 8 * 60, idle: 60 });
+
+    // Signed in 7 hours ago, away for the last 6: the idle timeout ran out 5 hours ago.
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 7 * HOUR,
+          lastActiveAgoMs: 6 * HOUR,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: {
+          forSeconds: 6 * 60 * 60,
+          endedSecondsAgo: 0,
+        },
+      }),
+    ).resolves.toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.Inactive,
+      lastActiveAt: new Date(NOW.getTime() - 6 * HOUR),
+    });
+
+    // Signed in 9 hours ago, away for the last 90 minutes: the length ran out first, an hour ago.
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 9 * HOUR,
+          lastActiveAgoMs: 90 * MINUTE,
+        }),
+        reportedInactivityInSeconds: 0,
+        reportedLongestInactivity: { forSeconds: 90 * 60, endedSecondsAgo: 0 },
+      }),
+    ).resolves.toEqual({
+      hasEnded: true,
+      reason: SessionEndReason.LengthReached,
+      lastActiveAt: new Date(NOW.getTime() - 90 * MINUTE),
+    });
+  });
+
+  test("a caller that hands over no time without use (an older one) decides as before", async () => {
+    fake.userSessionLengths = lengths({ idle: 30 });
+
+    await expect(
+      UserSessionService.decideRenewal({
+        session: storedSession({
+          signedInAgoMs: 3 * HOUR,
+          lastActiveAgoMs: 2 * HOUR,
+        }),
+        reportedInactivityInSeconds: 0,
+      }),
+    ).resolves.toEqual({
+      hasEnded: false,
+      lastActiveAt: NOW,
+      lengths: lengths({ idle: 30 }),
     });
   });
 
@@ -621,6 +798,39 @@ describe("ending a session the lengths ended", () => {
       ).toBe(revokedReason);
     },
   );
+
+  test("with when its person was last active before it ended, when the renewal that ended it knew", async () => {
+    const revoke: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserSessionService, "revokeSessionById")
+      .mockResolvedValue(undefined as never);
+    const lastActiveAt: Date = new Date(NOW.getTime() - 2 * HOUR);
+
+    await UserSessionService.endSessionByLength(
+      SESSION_ID,
+      SessionEndReason.Inactive,
+      { lastActiveAt },
+    );
+    await UserSessionService.endSessionByLength(
+      SESSION_ID,
+      SessionEndReason.LengthReached,
+      { lastActiveAt },
+    );
+    // Without one, the session keeps what it knew.
+    await UserSessionService.endSessionByLength(
+      SESSION_ID,
+      SessionEndReason.Inactive,
+      {},
+    );
+
+    expect(revoke.mock.calls).toEqual([
+      [SESSION_ID, { cause: SessionEndCause.IdleTimeout, lastActiveAt }],
+      [SESSION_ID, { cause: SessionEndCause.LengthReached, lastActiveAt }],
+      [SESSION_ID, { cause: SessionEndCause.IdleTimeout }],
+    ]);
+    expect(
+      Object.keys(revoke.mock.calls[2]![1] as Record<string, unknown>),
+    ).toEqual(["cause"]);
+  });
 
   test("a refresh after it learns why, from the reason the session was revoked with", async () => {
     const revoked: UserSession = new UserSession();

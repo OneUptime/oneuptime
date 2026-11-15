@@ -117,7 +117,7 @@
       "intro": "在本指南中,我們將了解如何在查詢 OneUptime API 時處理分頁回應。預設情況下,所有回應將結果限制為十項。",
       "body": "當 API 回應回傳物件列表時,無論數量多少,都支援分頁。在分頁回應中,物件嵌套在 <code>data</code> 屬性中。API 回應還具有 <code>count</code> 屬性,該屬性指示該查詢的列表中的總數。您可以使用 <code>limit</code> 和 <code>skip</code> 查詢參數來查詢分頁。",
       "exampleHeading": "分頁範例",
-      "exampleBody": "在此範例中,我們請求監視器列表。結果是,我們獲得了三個監視器的列表,並可透過 <code>count</code> 屬性得知我們已到達結果集的末尾",
+      "exampleBody": "在此範例中,我們請求監測器列表。結果是,我們獲得了三個監測器的列表,並可透過 <code>count</code> 屬性得知我們已到達結果集的末尾",
       "queryParameters": "查詢參數",
       "responseBody": "回應內文",
       "limitDescription": "您需要取得的項目數量。項目越多,回應速度越慢。最大限制為 100。",

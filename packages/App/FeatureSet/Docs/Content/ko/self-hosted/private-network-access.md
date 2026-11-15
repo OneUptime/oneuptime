@@ -59,7 +59,7 @@ Ping, Port, SSL 인증서, DNS, DNSSEC, SNMP / 네트워크 장치, SQL 쿼리, 
 - 워크플로 **API** 구성 요소(GET / POST / PUT / PATCH / DELETE)
 - 워크플로 **Mattermost** 구성 요소
 - 워크플로 **Custom JavaScript** 구성 요소가 보내는 HTTP 요청
-- 프로젝트 웹후크 알림(인시던트, 알림, 모니터, 온콜, 예약된 유지 관리, 상태 페이지 이벤트)
+- 프로젝트 웹후크 알림(인시던트, 알림, 모니터, 온콜, 예정된 유지 관리, 상태 페이지 이벤트)
 - 온콜 **사용자 웹후크**
 - 팀이 대시보드에서, API 키로 또는 워크플로로 추가하는 상태 페이지 웹후크 구독자
 
@@ -144,7 +144,7 @@ Docker Compose에서는 `config.env`에 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=fal
 
 ## 프로브와 모니터
 
-영향을 받는 모니터 유형은 **API**, **웹사이트**, **External Status Page**, **Custom JavaScript Code**의 네 가지입니다. 기본 프로브에서 이들은 공개 HTTP(S) 대상에는 접근할 수 있지만 프라이빗 주소 공간은 거부합니다. API, Website, External Status Page 모니터는 연결마다 DNS 결과를 검증하고 고정하며, 리디렉션마다 다시 검증합니다. Custom JavaScript Code는 샌드박스 브리지에서 같은 주소 정책을 적용합니다.
+영향을 받는 모니터 유형은 **API**, **웹사이트**, **외부 상태 페이지**, **사용자 지정 JavaScript 코드**의 네 가지입니다. 기본 프로브에서 이들은 공개 HTTP(S) 대상에는 접근할 수 있지만 프라이빗 주소 공간은 거부합니다. API, Website, External Status Page 모니터는 연결마다 DNS 결과를 검증하고 고정하며, 리디렉션마다 다시 검증합니다. Custom JavaScript Code는 샌드박스 브리지에서 같은 주소 정책을 적용합니다.
 
 스위치는 API 서버의 환경이 아니라 **프로브 프로세스가 자체 환경에서** 읽으며, 모든 프로브가 이를 읽습니다. Docker Compose에 번들로 포함된 프로브, Helm 차트가 배포하는 프로브, 그리고 직접 실행하는 모든 [사용자 지정 프로브](/docs/probe/custom-probe)가 그렇습니다. 프로브를 배포하는 사람이 그 환경을 관리하며, 그 프로브가 어떤 네트워크를 볼 수 있는지 아는 당사자입니다. 사용자 지정 프로브는 보통 다른 머신이고, 다른 사람이 운영하는 경우가 많으며, API 서버의 구성을 절대 읽지 않습니다.
 
@@ -188,7 +188,7 @@ probes:
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 번들(글로벌) 프로브가 모니터를 실행했고, 그 프로브의 스위치가 꺼져 있습니다. 인스턴스의 모든 프로젝트가 그 네트워크에 접근해도 된다면 위에서 설명한 대로 그 프로브에서 켜세요. 그렇지 않다면 모니터에서 프라이빗 프로브를 선택하세요.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 환경에 `BILLING_ENABLED=true`가 있는 글로벌 프로브가 모니터를 실행했습니다. 그곳에서 자동 등록된 글로벌 프로브는 스위치가 무엇이든 공개 전용으로 남습니다. 대상 네트워크 안에 프라이빗 프로브를 배포하고 모니터에서 그 프로브를 선택하세요.
 - _"Monitor target host ... could not be reached."_ — 대상이 **호스트 이름**인 API, Website 또는 External Status Page 모니터는 이름이 거부된 주소로 확인될 때와 DNS가 실패할 때 모두 이 메시지를 보고하므로, 모니터로 어떤 내부 이름이 존재하는지 알아낼 수 없습니다. 함께 표시되는 오류 세부 정보는 어느 경우든 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`를 언급하며, 어느 경우에 해당하는지는 말하지 않습니다. 이름이 프라이빗 주소를 가리킨다면 프로브의 시작 로그에서 프라이빗 네트워크 정책을 확인하세요. 꺼져 있다면 해결 방법은 위의 메시지와 같습니다. `LOG_LEVEL=DEBUG`에서는 프로브가 거부된 각 이름의 정확한 이유도 로그에 기록합니다.
-- _"Request URL could not be reached."_ — **Custom JavaScript Code** 모니터에도 같은 규칙이 적용됩니다. **호스트 이름**을 요청하는 스크립트는 이름이 거부된 주소로 확인될 때와 DNS가 실패할 때 모두 이 메시지를 받습니다. `LOG_LEVEL=DEBUG`에서는 프로브가 정확한 이유를 로그에 기록합니다.
+- _"Request URL could not be reached."_ — **사용자 지정 JavaScript 코드** 모니터에도 같은 규칙이 적용됩니다. **호스트 이름**을 요청하는 스크립트는 이름이 거부된 주소로 확인될 때와 DNS가 실패할 때 모두 이 메시지를 받습니다. `LOG_LEVEL=DEBUG`에서는 프로브가 정확한 이유를 로그에 기록합니다.
 - _"Webhook URL could not be reached."_ 또는 워크플로에서는 _"Request URL could not be reached."_ — 인스턴스가 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`(또는 `BILLING_ENABLED=true`)로 실행되므로 거부된 **호스트 이름**은 설명되지 않습니다. 거부된 주소로 확인되었거나 전혀 확인되지 않았거나 둘 중 하나입니다. `LOG_LEVEL=DEBUG`에서는 app 또는 worker가 어느 쪽인지와 그 주소를 로그에 기록합니다.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — 대상이 금지 단계에 있습니다. 웹후크라면, 정말 필요한 경우 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`에 정확한 호스트나 CIDR을 지정하세요. 모니터에는 예외가 없습니다.
 - _"...hostname could not be resolved via DNS."_ — 컨테이너가 이름을 확인할 수 없습니다. 컨테이너가 대상과 네트워크를 공유하는지 확인하세요.

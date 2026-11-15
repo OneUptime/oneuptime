@@ -50,6 +50,9 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
+import { AI_READ_RECORD_TABLE_TITLES } from "../../../../Types/AI/AIReadTableWords";
+import { countFigure } from "./ReadTableWords";
 
 /*
  * THE DATA SECURITY TOOLS: how OneUptime AI reads what Data Security found,
@@ -402,7 +405,15 @@ export const QueryDataStoresTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Data stores (${rows.length})`,
+              // In the reader's language (issue #7977).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.dataStores,
+                  {
+                    count: countFigure(rows.length),
+                  },
+                ),
+              },
               columns: [
                 { key: "name", title: translationKey("Store"), type: "text" },
                 { key: "kind", title: translationKey("Kind"), type: "text" },
@@ -834,7 +845,12 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Data security issues (${rows.length})`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.dataSecurityIssues,
+                  { count: countFigure(rows.length) },
+                ),
+              },
               columns: [
                 { key: "title", title: translationKey("Issue"), type: "text" },
                 { key: "store", title: translationKey("Store"), type: "text" },
@@ -1216,7 +1232,15 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
       widget:
         listed.length > 0
           ? WidgetBuilder.table({
-              title: `What "${principal}" can reach (${listed.length})`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.principalCanReach,
+                  {
+                    principal: principal || "",
+                    count: countFigure(listed.length),
+                  },
+                ),
+              },
               columns: [
                 { key: "store", title: translationKey("Store"), type: "text" },
                 {

@@ -13,7 +13,7 @@
 
 ## 작동 방식
 
-Huntress는 보고서가 발송될 때, 누군가 댓글을 달 때, 보고서가 닫힐 때 인시던트 보고서 이벤트를 보냅니다. **Huntress Incident Report** 트리거는 이벤트마다 워크플로를 한 번 시작하며, 트리거의 **Event**가 어떤 이벤트였는지 알려 줍니다: `created`, `comment-added`, `closed`.
+Huntress는 보고서가 발송될 때, 누군가 댓글을 달 때, 보고서가 닫힐 때 인시던트 보고서 이벤트를 보냅니다. **Huntress Incident Report** 트리거는 이벤트마다 워크플로를 한 번 시작하며, 트리거의 **이벤트**가 어떤 이벤트였는지 알려 줍니다: `created`, `comment-added`, `closed`.
 
 ```mermaid title="워크플로에서의 Huntress 인시던트 보고서 하나"
 sequenceDiagram
@@ -79,19 +79,19 @@ Huntress에서 엔드포인트 메뉴(⋯)를 열고 **View Signing Secret**을 
 
 ## 워크플로가 하는 일
 
-트리거 뒤에서 **Incident From Another Tool**이 보고서 번호로 **Event**마다 요청하는 일을 합니다.
+트리거 뒤에서 **Incident From Another Tool**이 보고서 번호로 **이벤트**마다 요청하는 일을 합니다.
 
 | Event | 워크플로가 하는 일 |
 | --- | --- |
-| `created` | 트리거의 **Incident Severity ID**로 인시던트를 열고, **Organization Label ID** 레이블을 붙입니다. 높음 또는 심각 보고서라면 **Page an On-Call Policy**가 정책을 호출하고, 낮음 보고서는 아무도 호출하지 않습니다. 이미 인시던트가 있는 보고서는 다른 인시던트를 열지 않습니다. |
+| `created` | 트리거의 **인시던트 심각도 ID**로 인시던트를 열고, **Organization Label ID** 레이블을 붙입니다. 높음 또는 심각 보고서라면 **Page an On-Call Policy**가 정책을 호출하고, 낮음 보고서는 아무도 호출하지 않습니다. 이미 인시던트가 있는 보고서는 다른 인시던트를 열지 않습니다. |
 | `comment-added` | 보고서의 인시던트를 찾아 댓글을 비공개 메모로 추가합니다. |
 | `closed` | 보고서의 인시던트를 찾아, 아직 해결되지 않았다면 해결합니다. 이유는 타임라인에 남습니다: Huntress가 보고서를 닫았습니다. |
 
-다른 워크플로와 같으므로 하는 일을 바꿀 수 있습니다. **Incident From Another Tool** 뒤의 **If / Else**가 비교하는 값을 바꿔 심각 보고서에만 호출하거나, Slack 또는 Microsoft Teams 단계로 보고서마다 채팅 채널에 게시하거나, **Organization**에 대한 **Switch / Case**로 조직마다 자기 온콜 정책으로 보낼 수 있습니다. 모든 실행은 워크플로의 실행 목록에 각 단계가 한 일과 함께 표시됩니다.
+다른 워크플로와 같으므로 하는 일을 바꿀 수 있습니다. **Incident From Another Tool** 뒤의 **If / Else**가 비교하는 값을 바꿔 심각 보고서에만 호출하거나, Slack 또는 Microsoft Teams 단계로 보고서마다 채팅 채널에 게시하거나, **조직**에 대한 **Switch / Case**로 조직마다 자기 온콜 정책으로 보낼 수 있습니다. 모든 실행은 워크플로의 실행 목록에 각 단계가 한 일과 함께 표시됩니다.
 
 ### 심각도
 
-Huntress는 각 인시던트 보고서에 세 가지 심각도 중 하나를 붙입니다. 트리거의 **Incident Severity ID**는 보고서가 열리는 인시던트 심각도입니다. 해당 설정에서 고른 심각도이고, 설정이 없으면 **인시던트 → 설정 → 인시던트 심각도**에 나열된 순서로 정해집니다.
+Huntress는 각 인시던트 보고서에 세 가지 심각도 중 하나를 붙입니다. 트리거의 **인시던트 심각도 ID**는 보고서가 열리는 인시던트 심각도입니다. 해당 설정에서 고른 심각도이고, 설정이 없으면 **인시던트 → 설정 → 인시던트 심각도**에 나열된 순서로 정해집니다.
 
 | Huntress 심각도 | Huntress에서의 의미 | 설정 | 설정이 비어 있을 때의 인시던트 심각도 |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ Huntress는 각 인시던트 보고서에 세 가지 심각도 중 하나를 붙
 
 | 값 | 담긴 내용 |
 | --- | --- |
-| **Event** | `created`, `comment-added`, `closed` 중 하나. 이미 닫혔거나 기각된 보고서는 어떤 이벤트로 왔든 `closed`입니다. |
+| **이벤트** | `created`, `comment-added`, `closed` 중 하나. 이미 닫혔거나 기각된 보고서는 어떤 이벤트로 왔든 `closed`입니다. |
 | **Report ID** | Huntress에서의 보고서 번호. |
-| **Severity** | `critical`, `high`, `low` 중 하나. |
-| **Status** | Huntress에서의 보고서 상태(예: `sent`, `closed`, `dismissed`). |
-| **Subject** | Huntress가 쓴 그대로의 보고서 제목. |
-| **Summary** | SOC 분석가가 쓴 내용. |
-| **Organization**, **Organization ID** | 보고서가 다루는 Huntress 조직. |
-| **Affected** | 보고서가 다루는 호스트나 계정. |
-| **Platform**, **Indicators** | Huntress가 어디에서 무엇을 찾았는지. |
-| **Comment** | `comment-added`에서 누군가 추가한 댓글. |
+| **심각도** | `critical`, `high`, `low` 중 하나. |
+| **상태** | Huntress에서의 보고서 상태(예: `sent`, `closed`, `dismissed`). |
+| **제목** | Huntress가 쓴 그대로의 보고서 제목. |
+| **요약** | SOC 분석가가 쓴 내용. |
+| **조직**, **조직 ID** | 보고서가 다루는 Huntress 조직. |
+| **영향 대상** | 보고서가 다루는 호스트나 계정. |
+| **플랫폼**, **지표** | Huntress가 어디에서 무엇을 찾았는지. |
+| **댓글** | `comment-added`에서 누군가 추가한 댓글. |
 | **Report URL** | Huntress에서 보고서가 열리는 위치. |
-| **Incident Title**, **Incident Description** | 보고서에 대한 인시던트의 제목과 Markdown 설명. |
-| **Note** | 이벤트에 대한 메모의 Markdown: 댓글, 또는 Huntress가 보고서를 닫았다는 내용. |
-| **Incident Severity ID**, **Organization Label ID** | 위에서 설명한 인시던트 심각도와 레이블. |
+| **인시던트 제목**, **인시던트 설명** | 보고서에 대한 인시던트의 제목과 Markdown 설명. |
+| **노트** | 이벤트에 대한 메모의 Markdown: 댓글, 또는 Huntress가 보고서를 닫았다는 내용. |
+| **인시던트 심각도 ID**, **Organization Label ID** | 위에서 설명한 인시던트 심각도와 레이블. |
 | **Received At** | OneUptime이 이벤트를 받은 시각. |
 
-**Summary**와 **Comment**는 Huntress 분석가가 쓴 텍스트입니다. 인시던트나 메모에 넣을 때는 **Incident Description**과 **Note**를 쓰세요. 서식이 유지되고, 이미지를 불러오거나 누군가를 멘션하는 내용은 들어가지 않습니다.
+**요약**과 **댓글**은 Huntress 분석가가 쓴 텍스트입니다. 인시던트나 메모에 넣을 때는 **인시던트 설명**과 **노트**를 쓰세요. 서식이 유지되고, 이미지를 불러오거나 누군가를 멘션하는 내용은 들어가지 않습니다.
 
-Huntress 없이 워크플로를 시험하려면 **빌더**에서 **워크플로 실행**을 클릭하고 **Event**, **Report ID**와 필요한 필드를 입력하세요. 같은 **Report ID**를 쓰면 보고서 하나를 `created`부터 `closed`까지 따라갈 수 있습니다.
+Huntress 없이 워크플로를 시험하려면 **빌더**에서 **워크플로 실행**을 클릭하고 **이벤트**, **Report ID**와 필요한 필드를 입력하세요. 같은 **Report ID**를 쓰면 보고서 하나를 `created`부터 `closed`까지 따라갈 수 있습니다.
 
 ## 이전에 만든 Huntress 연결
 

@@ -112,6 +112,7 @@ import UserTwoFactorBackupCodeAPI from "Common/Server/API/UserTwoFactorBackupCod
 import UserWebAuthnAPI from "Common/Server/API/UserWebAuthnAPI";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import IncidentInternalNoteAPI from "Common/Server/API/IncidentInternalNoteAPI";
+import IncidentPostmortemActionItemAPI from "Common/Server/API/IncidentPostmortemActionItemAPI";
 import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
 import IncidentEpisodePublicNoteAPI from "Common/Server/API/IncidentEpisodePublicNoteAPI";
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
@@ -7243,6 +7244,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new IncidentInternalNoteAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new IncidentPostmortemActionItemAPI().getRouter(),
     );
 
     app.use(

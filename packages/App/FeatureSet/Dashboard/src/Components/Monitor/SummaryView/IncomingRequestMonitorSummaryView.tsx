@@ -99,12 +99,12 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.incomingMonitorRequest.incomingRequestReceivedAt,
                 )
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
           title="Request Method"
-          value={props.incomingMonitorRequest.requestMethod || "-"}
+          value={props.incomingMonitorRequest.requestMethod}
         />
         {props.incomingRequestMonitorHeartbeatCheckedAt ? (
           <SummaryFact

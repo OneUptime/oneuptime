@@ -13,7 +13,7 @@ Questa integrazione è **in entrata**: Huntress invia ogni evento di un report d
 
 ## Come funziona
 
-Huntress invia un evento su un report di incidente quando il report viene inviato, quando qualcuno lo commenta e quando viene chiuso. Il trigger **Huntress Incident Report** avvia il workflow una volta per ogni evento, e il suo **Event** dice quale è stato: `created`, `comment-added` o `closed`.
+Huntress invia un evento su un report di incidente quando il report viene inviato, quando qualcuno lo commenta e quando viene chiuso. Il trigger **Huntress Incident Report** avvia il workflow una volta per ogni evento, e il suo **Evento** dice quale è stato: `created`, `comment-added` o `closed`.
 
 ```mermaid title="Un report di incidente di Huntress in un workflow"
 sequenceDiagram
@@ -79,19 +79,19 @@ Attiva **Abilitato** in alto nel **Costruttore**. In Huntress, apri il menu dell
 
 ## Cosa fa il workflow
 
-Dopo il trigger, **Incident From Another Tool** fa ciò che chiede ogni **Event**, tramite il numero del report:
+Dopo il trigger, **Incident From Another Tool** fa ciò che chiede ogni **Evento**, tramite il numero del report:
 
 | Event | Cosa fa il workflow |
 | --- | --- |
-| `created` | Apre un incidente con la **Incident Severity ID** del trigger, con l'etichetta della sua **Organization Label ID**. Per un report alto o critico, **Page an On-Call Policy** avvisa la tua policy; un report basso non avvisa nessuno. Un report che ha già un incidente non ne apre un altro. |
+| `created` | Apre un incidente con la **ID gravità dell'incidente** del trigger, con l'etichetta della sua **Organization Label ID**. Per un report alto o critico, **Page an On-Call Policy** avvisa la tua policy; un report basso non avvisa nessuno. Un report che ha già un incidente non ne apre un altro. |
 | `comment-added` | Trova l'incidente del report e vi aggiunge il commento come nota privata. |
 | `closed` | Trova l'incidente del report e lo risolve, a meno che non sia già risolto. Il motivo è nella sua cronologia: Huntress ha chiuso il report. |
 
-È un workflow come gli altri, quindi puoi cambiare cosa fa: avvisare solo per i report critici cambiando cosa confronta l'**If / Else** dopo **Incident From Another Tool**, pubblicare ogni report in un canale di chat con un passaggio Slack o Microsoft Teams, oppure mandare ogni organizzazione alla propria policy di reperibilità con uno **Switch / Case** su **Organization**. Ogni esecuzione compare tra le esecuzioni del workflow, con cosa ha fatto ogni passaggio.
+È un workflow come gli altri, quindi puoi cambiare cosa fa: avvisare solo per i report critici cambiando cosa confronta l'**If / Else** dopo **Incident From Another Tool**, pubblicare ogni report in un canale di chat con un passaggio Slack o Microsoft Teams, oppure mandare ogni organizzazione alla propria policy di reperibilità con uno **Switch / Case** su **Organizzazione**. Ogni esecuzione compare tra le esecuzioni del workflow, con cosa ha fatto ogni passaggio.
 
 ### Gravità
 
-Huntress assegna a ogni report di incidente una di tre gravità. La **Incident Severity ID** del trigger è la gravità di incidente con cui si apre il report: quella scelta dalla sua impostazione, oppure l'ordine delle tue gravità di incidente, come le elenca **Incidenti → Impostazioni → Gravità incidente**:
+Huntress assegna a ogni report di incidente una di tre gravità. La **ID gravità dell'incidente** del trigger è la gravità di incidente con cui si apre il report: quella scelta dalla sua impostazione, oppure l'ordine delle tue gravità di incidente, come le elenca **Incidenti → Impostazioni → Gravità incidente**:
 
 | Gravità in Huntress | Cosa intende Huntress | Impostazione | Gravità di incidente quando l'impostazione è vuota |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ Il trigger si apre su Huntress: il suo URL, un segno di spunta accanto a ogni pa
 
 | Valore | Cosa contiene |
 | --- | --- |
-| **Event** | `created`, `comment-added` o `closed`. Un report già chiuso o archiviato è `closed`, qualunque evento lo abbia portato. |
+| **Evento** | `created`, `comment-added` o `closed`. Un report già chiuso o archiviato è `closed`, qualunque evento lo abbia portato. |
 | **Report ID** | Il numero del report in Huntress. |
-| **Severity** | `critical`, `high` o `low`. |
-| **Status** | Lo stato del report in Huntress, ad esempio `sent`, `closed` o `dismissed`. |
-| **Subject** | L'oggetto del report, come lo scrive Huntress. |
-| **Summary** | Cosa ha scritto l'analista del SOC. |
-| **Organization**, **Organization ID** | L'organizzazione Huntress di cui tratta il report. |
-| **Affected** | L'host o l'identità di cui tratta il report. |
-| **Platform**, **Indicators** | Dove l'ha trovato Huntress, e cosa ha trovato. |
-| **Comment** | Il commento aggiunto da qualcuno, con `comment-added`. |
+| **Gravità** | `critical`, `high` o `low`. |
+| **Stato** | Lo stato del report in Huntress, ad esempio `sent`, `closed` o `dismissed`. |
+| **Oggetto** | L'oggetto del report, come lo scrive Huntress. |
+| **Riepilogo** | Cosa ha scritto l'analista del SOC. |
+| **Organizzazione**, **ID organizzazione** | L'organizzazione Huntress di cui tratta il report. |
+| **Interessato** | L'host o l'identità di cui tratta il report. |
+| **Piattaforma**, **Indicatori** | Dove l'ha trovato Huntress, e cosa ha trovato. |
+| **Commento** | Il commento aggiunto da qualcuno, con `comment-added`. |
 | **Report URL** | Dove si apre il report in Huntress. |
-| **Incident Title**, **Incident Description** | Un titolo e una descrizione in Markdown per un incidente sul report. |
-| **Note** | Markdown per una nota sull'evento: il commento, oppure che Huntress ha chiuso il report. |
-| **Incident Severity ID**, **Organization Label ID** | La gravità di incidente e l'etichetta, come sopra. |
+| **Titolo dell'incidente**, **Descrizione dell'incidente** | Un titolo e una descrizione in Markdown per un incidente sul report. |
+| **Nota** | Markdown per una nota sull'evento: il commento, oppure che Huntress ha chiuso il report. |
+| **ID gravità dell'incidente**, **Organization Label ID** | La gravità di incidente e l'etichetta, come sopra. |
 | **Received At** | Quando OneUptime ha ricevuto l'evento. |
 
-**Summary** e **Comment** sono testo scritto dagli analisti di Huntress. Per inserirli in un incidente o in una nota, usa **Incident Description** e **Note**: mantengono la formattazione, e niente in essi carica un'immagine o menziona qualcuno.
+**Riepilogo** e **Commento** sono testo scritto dagli analisti di Huntress. Per inserirli in un incidente o in una nota, usa **Descrizione dell'incidente** e **Nota**: mantengono la formattazione, e niente in essi carica un'immagine o menziona qualcuno.
 
-Per provare il workflow senza Huntress, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scrivi un **Event**, un **Report ID** e i campi che ti servono. Usa lo stesso **Report ID** per seguire un report da `created` a `closed`.
+Per provare il workflow senza Huntress, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scrivi un **Evento**, un **Report ID** e i campi che ti servono. Usa lo stesso **Report ID** per seguire un report da `created` a `closed`.
 
 ## Connessioni Huntress create prima
 

@@ -140,7 +140,7 @@ Nyckelns sida räknar också: **Avvisad telemetri** visar vad som avvisats från
 För de andra svar som en OTLP-exportör kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
 :::details Data kommer fortfarande in en minut efter att jag stängde av nyckeln
-Varje OneUptime-server minns vad den vet om en nyckel i upp till en minut, så en ändring når alla inom ungefär en minut. Begäranden efter det avvisas.
+Varje OneUptime-server minns vad den vet om en nyckel i upp till en minut, så en ändring når alla inom ungefär en minut. Begäranden efter det avvisas. En MQTT-klient som anslöt med nyckeln kopplas bort inom några sekunder.
 :::
 
 :::details En webbläsarnyckel fungerar på min bärbara dator men inte i produktion

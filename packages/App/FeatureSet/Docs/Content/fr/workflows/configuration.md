@@ -107,8 +107,8 @@ Le déclencheur Incoming Email donne au workflow sa propre adresse, et quiconque
 
 - Ne la publiez pas et ne la mettez pas dans un dépôt public. Le déclencheur masque la clé tant que vous ne cliquez pas sur **Afficher**, et **Copier l'adresse** copie l'adresse sans l'afficher.
 - Si l'adresse fuite, cliquez sur le déclencheur Incoming Email dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le workflow reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
-- N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **From** ne prouve donc pas qui l'a envoyé. Avant qu'un workflow fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **If / Else**. Enregistrez le jeton attendu comme variable secrète.
-- La clé est masquée dans tout ce que reçoit l'exécution — **To**, **CC**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du workflow.
+- N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Avant qu'un workflow fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **If / Else**. Enregistrez le jeton attendu comme variable secrète.
+- La clé est masquée dans tout ce que reçoit l'exécution — **À**, **CC**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du workflow.
 
 Seules les personnes qui peuvent modifier le workflow — **Propriétaire du projet**, **Administrateur du projet**, **Administrateur des flux de travail** ou **Edit Workflow** — peuvent voir ou réinitialiser son adresse. Tous les autres voient une note qui dit à qui s'adresser.
 
@@ -132,14 +132,14 @@ Voir [Accès au réseau privé](/docs/self-hosted/private-network-access) pour s
 
 Ce que reçoit le fournisseur, et ce que le modèle peut en faire :
 
-- **Uniquement ce que vous mettez dans le bloc.** OneUptime envoie une consigne de sécurité fixe, puis les **System Instructions**, le **Prompt** et le **Context** du bloc, avec leurs références remplies. **Context** vient en dernier, après un marqueur, et la consigne de sécurité indique au modèle que tout ce qui suit le marqueur est une donnée non fiable, même un texte qui ressemble à des instructions.
+- **Uniquement ce que vous mettez dans le bloc.** OneUptime envoie une consigne de sécurité fixe, puis les **System Instructions**, le **Prompt** et le **Contexte** du bloc, avec leurs références remplies. **Contexte** vient en dernier, après un marqueur, et la consigne de sécurité indique au modèle que tout ce qui suit le marqueur est une donnée non fiable, même un texte qui ressemble à des instructions.
 - **Rien d'autre.** Les données du déclencheur, l'historique du workflow, les sorties des autres blocs, les enregistrements du projet, la télémétrie et les secrets ne sont jamais joints. Ils ne quittent OneUptime que si vous y faites référence dans l'un de ces trois paramètres.
 - **Du texte, et aucun outil.** Le modèle ne peut pas interroger OneUptime, faire de requêtes HTTP ni modifier de données. Les paramètres supplémentaires d'un fournisseur ne laissent passer qu'une liste autorisée de champs de réglage de la génération : ils ne peuvent pas remplacer les messages, ajouter des outils, une recherche web ou d'autres sources de données, demander autre chose que du texte ou plusieurs réponses, activer le streaming, faire conserver la requête par le fournisseur, ni relever la limite de sortie du bloc. Les champs que OneUptime ne connaît pas sont écartés.
 - **Le modèle est le choix de votre administrateur.** Si la génération doit rester hors ligne, choisissez un modèle qui ne va rien chercher de lui-même du côté du fournisseur.
 
 Ce qui est journalisé :
 
-- Le journal de l'exécution masque les **System Instructions**, le **Prompt**, le **Context** et la **Response** du bloc. Les blocs suivants peuvent quand même les utiliser pendant l'exécution, et un bloc dans lequel vous en insérez un le journalise selon ses propres règles : en insérer un revient à choisir de l'afficher.
+- Le journal de l'exécution masque les **System Instructions**, le **Prompt**, le **Contexte** et la **Réponse** du bloc. Les blocs suivants peuvent quand même les utiliser pendant l'exécution, et un bloc dans lequel vous en insérez un le journalise selon ses propres règles : en insérer un revient à choisir de l'afficher.
 - Le fournisseur, le modèle, le nombre de jetons, le **LLM Log ID** et un message d'erreur sans risque restent visibles, pour l'exploitation et la facturation. L'erreur brute d'un fournisseur est tenue à l'écart de tous les journaux, car un fournisseur peut y répéter la requête.
 - Chaque appel est listé sous **Paramètres du projet → IA → Journaux IA** avec son fournisseur, son modèle, son statut, ses jetons, son coût et sa facturation, sans le prompt, la réponse ni l'erreur brute.
 
@@ -147,17 +147,17 @@ Ce dont le bloc a besoin, et ce qu'il coûte :
 
 - **Activer l'IA** doit être activé, sous **Paramètres du projet → IA → Fonctionnalités IA**. Sur OneUptime Cloud, le projet a aussi besoin du forfait Growth ou supérieur et d'un abonnement payé. Les installations auto-hébergées sans facturation n'ont pas de restriction de forfait.
 - Les appels via un fournisseur global payant utilisent les crédits IA du projet.
-- Chaque appel compte dans les [limites quotidiennes d'IA propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet), quand un propriétaire du projet les fixe. Une fois une limite atteinte, le bloc prend **Error** sans contacter le modèle, jusqu'à minuit UTC.
+- Chaque appel compte dans les [limites quotidiennes d'IA propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet), quand un propriétaire du projet les fixe. Une fois une limite atteinte, le bloc prend **Erreur** sans contacter le modèle, jusqu'à minuit UTC.
 
 | Limite                                                       | Valeur                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** et **Context** ensemble  | 50 000 caractères                                                         |
-| **Temperature**                                              | De `0` à `1`                                                              |
+| **System Instructions**, **Prompt** et **Contexte** ensemble  | 50 000 caractères                                                         |
+| **Température**                                              | De `0` à `1`                                                              |
 | **Maximum Output Tokens**                                    | De `1` à `4096`, `1024` par défaut                                        |
 | Une requête                                                  | Une seule tentative, 60 secondes au plus                                  |
-| Appels simultanés                                            | 3 par projet. Les suivants prennent **Error**, et une exécution ultérieure peut réessayer. |
+| Appels simultanés                                            | 3 par projet. Les suivants prennent **Erreur**, et une exécution ultérieure peut réessayer. |
 
-Les échecs de validation, de configuration, d'accès, de limite, de crédits, de simultanéité, de fournisseur et de délai prennent tous le chemin **Error**, avec la raison dans **Error**. Reliez ce chemin avant la mise en production du workflow.
+Les échecs de validation, de configuration, d'accès, de limite, de crédits, de simultanéité, de fournisseur et de délai prennent tous le chemin **Erreur**, avec la raison dans **Erreur**. Reliez ce chemin avant la mise en production du workflow.
 
 > [!WARNING]
 > Chaque valeur à laquelle vous faites référence est une donnée que vous envoyez au fournisseur. Ne mettez pas de variable secrète dans le prompt ni dans le contexte, sauf si le fournisseur est autorisé à la recevoir. Un fournisseur local auto-hébergé comme Ollama garde les requêtes au sein de votre propre infrastructure ; un fournisseur hébergé les reçoit selon ses propres conditions de traitement des données.
@@ -195,12 +195,12 @@ Les étapes qui lisent et modifient des enregistrements OneUptime — les compos
 - **Rien de ce que OneUptime garde pour lui.** Ceci est refusé à tout le monde, workflows compris :
   - modifier ou supprimer une entrée de fil d'activité (fils des incidents, des alertes, des épisodes, des moniteurs, des politiques d'astreinte et des maintenances planifiées) ;
   - écrire un journal de notification (journaux des SMS, des appels, des e-mails, de WhatsApp, de Telegram, des notifications push, des webhooks et des messages d'espace de travail) ;
-  - les valeurs que OneUptime définit au fil des événements : si le CNAME d'un domaine personnalisé est vérifié, les interrupteurs de protection d'une équipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quel rôle d'incident est le rôle principal et s'il peut être supprimé, si un propriétaire ou un membre a été notifié, les heures et le nombre de rappels, qui est d'astreinte maintenant et ensuite sur un planning, la progression d'une exécution d'astreinte, le taux de consommation et le budget d'erreur actuels d'un SLO, un moniteur mis en pause par un incident ou une maintenance, le jeton de réinitialisation du mot de passe et la dernière connexion d'un utilisateur privé d'une page de statut, les informations qu'un service déclare sur lui-même (version, environnement d'exécution, cloud), et la dernière exécution d'une règle de détection ou d'un flux de menaces ;
-  - déclarer un incident à partir d'un modèle en envoyant `createdIncidentTemplateId` à **Create One Incident** — choisissez plutôt le modèle sous le paramètre **Incident Template** de l'étape : l'étape déclare alors l'incident à partir de lui, en tant que Project Admin, et enregistre le modèle ;
+  - les valeurs que OneUptime définit au fil des événements : si le CNAME d'un domaine personnalisé est vérifié, les interrupteurs de protection d'une équipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quel rôle d'incident est le rôle principal et s'il peut être supprimé, si un propriétaire ou un membre a été notifié, les heures et le nombre de rappels, qui est d'astreinte maintenant et ensuite sur un planning, la progression d'une exécution d'astreinte, le taux de consommation et le budget d'erreur actuels d'un SLO, un moniteur mis en pause par un incident ou un événement de maintenance, le jeton de réinitialisation du mot de passe et la dernière connexion d'un utilisateur privé d'une page de statut, les informations qu'un service déclare sur lui-même (version, environnement d'exécution, cloud), et la dernière exécution d'une règle de détection ou d'un flux de menaces ;
+  - déclarer un incident à partir d'un modèle en envoyant `createdIncidentTemplateId` à **Create One Incident** — choisissez plutôt le modèle sous le paramètre **Modèle d'incident** de l'étape : l'étape déclare alors l'incident à partir de lui, en tant que Project Admin, et enregistre le modèle ;
   - changer l'enregistrement auquel appartient un enregistrement après sa création, comme le moniteur auquel se rapporte une ligne de propriétaire ou l'incident sur lequel figure une note.
 - **Au nom de personne.** Un enregistrement créé par un workflow n'a pas de créateur, et le journal d'audit nomme le workflow, sous son nom du moment, comme auteur de la modification.
 
-Quand une vérification refuse une étape, l'étape prend sa sortie **Error** sans faire la modification refusée, et le journal de l'exécution nomme l'étape et la raison en termes simples, par exemple *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lisez-le dans les [Exécutions](/docs/workflows/runs-and-logs) du workflow. Une étape Create Many crée ses enregistrements un par un et s'arrête au premier refusé : les enregistrements créés avant celui-là sont conservés.
+Quand une vérification refuse une étape, l'étape prend sa sortie **Erreur** sans faire la modification refusée, et le journal de l'exécution nomme l'étape et la raison en termes simples, par exemple *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lisez-le dans les [Exécutions](/docs/workflows/runs-and-logs) du workflow. Une étape Create Many crée ses enregistrements un par un et s'arrête au premier refusé : les enregistrements créés avant celui-là sont conservés.
 
 Les étapes qui dialoguent avec d'autres systèmes — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code et Generate Text with AI — ne lisent ni ne modifient d'enregistrements OneUptime : rien de tout cela ne les concerne.
 
@@ -214,7 +214,7 @@ Sur OneUptime Cloud, les workflows demandent le forfait Growth ou supérieur, et
 | Scale      | 2 000                                |
 | Enterprise | Pas de limite pratique               |
 
-La fenêtre est glissante : chaque exécution enregistrée par le projet, à la main ou depuis un déclencheur, compte pendant 30 jours. Sur les forfaits Growth et Scale, la page **Flux de travail** affiche une carte **Exécutions du flux de travail** avec le nombre d'exécutions utilisées par le projet. Une fois la limite atteinte, les nouvelles exécutions sont enregistrées avec le statut **Execution Exceeded Current Plan** et ne s'exécutent pas, et il en va de même tant que l'abonnement est impayé. Les installations auto-hébergées sans facturation n'ont pas de limite. Sur un forfait qui n'exécute aucun workflow, le **Constructeur** et la page **Flux de travail** le disent, avec un lien pour passer à un forfait supérieur.
+La fenêtre est glissante : chaque exécution enregistrée par le projet, à la main ou depuis un déclencheur, compte pendant 30 jours. Sur les forfaits Growth et Scale, la page **Flux de travail** affiche une carte **Exécutions du flux de travail** avec le nombre d'exécutions utilisées par le projet. Une fois la limite atteinte, les nouvelles exécutions sont enregistrées avec le statut **Exécution au-delà du forfait actuel** et ne s'exécutent pas, et il en va de même tant que l'abonnement est impayé. Les installations auto-hébergées sans facturation n'ont pas de limite. Sur un forfait qui n'exécute aucun workflow, le **Constructeur** et la page **Flux de travail** le disent, avec un lien pour passer à un forfait supérieur.
 
 ## Combien de temps peut durer une exécution
 
@@ -224,11 +224,11 @@ La fenêtre est glissante : chaque exécution enregistrée par le projet, à la 
 | Un bloc **Run Custom JavaScript**                            | 5 secondes         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Un bloc **Sleep**                                            | 30 jours au plus   | —                               |
 
-Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Timeout** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Sleep** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
+Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Délai dépassé** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Sleep** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
 
 ## Limite d'appels entre workflows
 
-Le composant **Execute Workflow** permet à un workflow d'en démarrer un autre. Pour éviter les boucles où le workflow A démarre B, qui redémarre A, une chaîne de workflows qui se démarrent les uns les autres est refusée quand elle reviendrait vers un workflow qui en fait déjà partie, ou dépasserait 10 workflows de profondeur. Le bloc **Execute Workflow** prend alors sa sortie **Error**, et l'erreur montre la chaîne.
+Le composant **Execute Workflow** permet à un workflow d'en démarrer un autre. Pour éviter les boucles où le workflow A démarre B, qui redémarre A, une chaîne de workflows qui se démarrent les uns les autres est refusée quand elle reviendrait vers un workflow qui en fait déjà partie, ou dépasserait 10 workflows de profondeur. Le bloc **Execute Workflow** prend alors sa sortie **Erreur**, et l'erreur montre la chaîne.
 
 Si vous avez réellement besoin d'une longue chaîne (comme une tâche qui traite un élément par exécution), il est en général plus simple de boucler dans un seul workflow avec **Run Custom JavaScript**.
 

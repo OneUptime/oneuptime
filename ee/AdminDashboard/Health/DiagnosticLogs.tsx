@@ -17,6 +17,7 @@ import HealthLicenseRequired, {
   toHealthRequestError,
 } from "./HealthLicenseRequired";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 type LogTab = "application" | "clickhouse" | "postgres" | "redis";
 
@@ -404,7 +405,9 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                     <div key={index} className="text-xs">
                       <span className="text-gray-400">{key}: </span>
                       <span className="font-medium text-gray-700">
-                        {String(stats[key] ?? "—")}
+                        {String(stats[key] ?? "") || (
+                          <TableEmptyValue isSmall={true} />
+                        )}
                       </span>
                     </div>
                   );

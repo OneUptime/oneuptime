@@ -66,6 +66,7 @@ import useProductFirstRun, {
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
 ### How SLOs and Error Budgets Work
@@ -278,7 +279,7 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
           const target: number | undefined | null = item.targetPercentage;
 
           if (sli === undefined || sli === null) {
-            return <span className="text-sm text-gray-400">—</span>;
+            return <TableEmptyValue />;
           }
 
           const meetsTarget: boolean =
@@ -308,7 +309,7 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
             item.errorBudgetRemainingPercentage;
 
           if (remaining === undefined || remaining === null) {
-            return <span className="text-sm text-gray-400">—</span>;
+            return <TableEmptyValue />;
           }
 
           const tier: SloBudgetTier = getSloBudgetTier({
@@ -339,7 +340,7 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
           );
 
           if (burnRate === null) {
-            return <span className="text-sm text-gray-400">—</span>;
+            return <TableEmptyValue />;
           }
 
           /*

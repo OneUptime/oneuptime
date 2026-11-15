@@ -139,7 +139,7 @@
     "text": [
       "1",
       "我們要檢查什麼？",
-      "OneUptime 每 5 分鐘從多個位置檢查一次。如果沒有回應，或回應錯誤，就會建立事件。",
+      "OneUptime 每 5 分鐘檢查一次。當檢查它的每個位置都發現它當機（沒有回應，或回應錯誤）時，就會建立事件。",
       "網站或 API 位址",
       "這是一個 API 端點",
       "開始檢查",
@@ -154,7 +154,7 @@
       "link: 更多監測器類型"
     ],
     "width": 768,
-    "height": 278
+    "height": 298
   },
   "website-down-who": {
     "text": [
@@ -165,7 +165,7 @@
       "新增團隊成員",
       "AL",
       "Ada Lovelace",
-      "這會建立待命策略「Default on-call policy」，在此專案中每出現一個新事件和警示，都會呼叫他們。",
+      "這會建立待命策略「預設待命策略」，在此專案中每出現一個新事件和警示，都會呼叫他們。",
       "儲存並繼續"
     ],
     "outline": [
@@ -197,15 +197,15 @@
       "檢查時間",
       "每 5 分鐘，來自 2 個位置。",
       "當機時",
-      "如果沒有回應，或回應錯誤，OneUptime 會建立一個事件（Critical Incident）。",
+      "如果沒有回應，或回應錯誤，OneUptime 會建立一個事件（嚴重事件）。 狀態變更需要兩個已連線探測器都一致。",
       "會通知誰",
-      "待命策略「Default on-call policy」會在每個新事件和警示出現時呼叫 Ada Lovelace。 你是此監測器的擁有者，所以它狀態變化時你會收到電子郵件。",
+      "待命策略「預設待命策略」會在每個新事件和警示出現時呼叫 Ada Lovelace。 你是此監測器的擁有者，所以它狀態變化時你會收到電子郵件。",
       "已測試",
       "Ada Lovelace 在 14 秒 後透過電子郵件確認。",
       "下一步",
       "在狀態頁面上顯示",
       "透過 SMS 或電話接收呼叫",
-      "開啟監控器",
+      "開啟監測器",
       "檢查其他位址"
     ],
     "outline": [
@@ -213,11 +213,11 @@
       "heading: 下一步",
       "link: 在狀態頁面上顯示",
       "link: 透過 SMS 或電話接收呼叫",
-      "link: 開啟監控器",
+      "link: 開啟監測器",
       "button: 檢查其他位址"
     ],
     "width": 768,
-    "height": 471
+    "height": 491
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "還有誰待命？",
-      "這會建立待命策略「Default on-call policy」。在此專案中每出現一個新事件和警示，它都會先呼叫這些人。",
+      "這會建立待命策略「預設待命策略」。在此專案中每出現一個新事件和警示，它都會先呼叫這些人。",
       "首先呼叫",
       "新增團隊成員",
       "AL",
@@ -343,13 +343,13 @@
       "button: 略過測試"
     ],
     "width": 768,
-    "height": 178
+    "height": 158
   },
   "paging-summary": {
     "text": [
       "呼叫已設定",
       "呼叫對象",
-      "每個新事件或警示都會執行「Default on-call policy」，它會呼叫 Ada Lovelace (電子郵件, SMS, 電話)。",
+      "每個新事件或警示都會執行「預設待命策略」，它會呼叫 Ada Lovelace (電子郵件, SMS, 電話)。",
       "如果無人回應",
       "如果 30 分鐘內無人確認，將呼叫 Grace Hopper。",
       "已測試",
@@ -386,7 +386,7 @@
       "清除",
       "已選擇 1 / 1",
       "Acme website",
-      "Operational",
+      "運作中",
       "頁面建立後即公開：任何擁有連結的人都能看到您所選監測器的狀態。",
       "建立狀態頁面",
       "value: Acme Commerce 狀態",
@@ -410,7 +410,7 @@
       "Acme Commerce 狀態",
       "它顯示",
       "Acme website",
-      "Operational",
+      "運作中",
       "公開連結",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "這些監測器中任何一個發生事件時，會自動顯示在這裡，並向訂閱者寄送電子郵件。",
@@ -465,6 +465,88 @@
     ],
     "width": 768,
     "height": 682
+  },
+  "ingestion-keys": {
+    "text": [
+      "擷取金鑰",
+      "搜尋…",
+      "/",
+      "/",
+      "建立擷取金鑰",
+      "這些金鑰用於擷取您專案的遙測資料，例如日誌、追蹤和指標。",
+      "選取所有項目",
+      "名稱",
+      "類型",
+      "上次使用",
+      "描述",
+      "操作",
+      "Production collectors",
+      "Server",
+      "11月11日 09:58",
+      "OpenTelemetry collectors in prod-us-east-1 and prod-eu-west-1.",
+      "檢視",
+      "Storefront web",
+      "Browser",
+      "11月11日 09:59",
+      "Browser traces and session replay for the public storefront. This key ships in the page.",
+      "檢視",
+      "Checkout beta",
+      "Browser",
+      "10月28日 16:40",
+      "Turned off after the beta ended. Kept so the key can be turned back on if the rollout resumes.",
+      "檢視",
+      "Marketing site",
+      "Browser",
+      "從未",
+      "Made for the marketing site rollout. No origins listed yet, so nothing is accepted.",
+      "檢視",
+      "第 1-4 筆，共 4 筆",
+      "每頁列數",
+      "10",
+      "20",
+      "25",
+      "50",
+      "100",
+      "1",
+      "placeholder: 依名稱、說明搜尋擷取金鑰…",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "checkbox: off",
+      "value: 10"
+    ],
+    "outline": [
+      "heading: 擷取金鑰",
+      "button: 擷取金鑰",
+      "button: Open search",
+      "field text: 依名稱、說明搜尋擷取金鑰…",
+      "button: 建立擷取金鑰",
+      "button: 更多選項",
+      "field checkbox: 選取所有項目",
+      "button: 名稱",
+      "button: 類型",
+      "button: 上次使用",
+      "button: 描述",
+      "field checkbox: 選取 擷取金鑰: Production collectors",
+      "button: 檢視擷取金鑰",
+      "button: 擷取金鑰: Production collectors 的更多操作",
+      "field checkbox: 選取 擷取金鑰: Storefront web",
+      "button: 檢視擷取金鑰",
+      "button: 擷取金鑰: Storefront web 的更多操作",
+      "field checkbox: 選取 擷取金鑰: Checkout beta",
+      "button: 檢視擷取金鑰",
+      "button: 擷取金鑰: Checkout beta 的更多操作",
+      "field checkbox: 選取 擷取金鑰: Marketing site",
+      "button: 檢視擷取金鑰",
+      "button: 擷取金鑰: Marketing site 的更多操作",
+      "field: 10 20 25 50 100",
+      "button: 前往上一頁",
+      "button: 第 1 頁",
+      "button: 前往下一頁"
+    ],
+    "width": 940,
+    "height": 500
   },
   "incident-feed": {
     "text": [
@@ -525,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "解決",
-      "已建立",
+      "Created",
       "已確認",
       "已解決",
       "已持續",

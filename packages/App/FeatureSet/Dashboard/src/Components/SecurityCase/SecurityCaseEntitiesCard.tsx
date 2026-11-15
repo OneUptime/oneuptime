@@ -47,6 +47,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // How far back the card looks: a week, long enough to see an attack's run-up.
 export const ENTITY_ACTIVITY_HOURS: number = 24 * 7;
@@ -595,14 +596,18 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                           ) : severityPill ? (
                             severityPill
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td
                           className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top text-gray-500 ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                           data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.lastSeen}
                         >
-                          {isRowLoading ? <SkeletonCell /> : lastSeen || "-"}
+                          {isRowLoading ? (
+                            <SkeletonCell />
+                          ) : (
+                            lastSeen || <TableEmptyValue />
+                          )}
                         </td>
                         <td
                           className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
@@ -610,9 +615,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                             ENTITY_RISK_TEST_IDS.caseEntityRiskColumn
                           }
                         >
-                          {getRiskLink(false) || (
-                            <span className="text-gray-400">-</span>
-                          )}
+                          {getRiskLink(false) || <TableEmptyValue />}
                         </td>
                       </tr>
                     );

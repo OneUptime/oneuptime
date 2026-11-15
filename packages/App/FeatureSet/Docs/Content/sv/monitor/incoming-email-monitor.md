@@ -39,7 +39,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj Incoming Email
 
-Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Incoming Email** under **Inkommande övervakning**, eller skriver `email` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Inkommande e-post** under **Inkommande övervakning**, eller skriver `email` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Gå igenom kriterierna
 
@@ -117,7 +117,7 @@ Slutför verifieringen så som e-postmeddelandet beskriver.
 Om ett annat e-postmeddelande har kommit sedan dess visar kortet inte längre verifieringsmejlet. Öppna **Övervakningsloggar**, leta upp verifieringsmejlet utifrån ämnet i kolumnen **E-post** och klicka på **Visa sammanfattning** på den raden.
 
 > [!IMPORTANT]
-> **Dina kriterier ser det också.** Verifieringsmejlet utvärderas som vilket e-postmeddelande som helst. En formulering som "if you received this in error" matchar standardkriteriet `error` och markerar monitorn som offline. För att undvika det stänger du av **Kontrollera den här övervakaren** i kortet **Övervakning** på monitorns sida **Inställningar** medan du verifierar (du blir ombedd att bekräfta). En monitor med övervakningen avstängd lagrar fortfarande e-postmeddelandet, och kortet **Monitor-sammanfattning** visar det fortfarande. Den utvärderar dock ingenting, så e-postmeddelandet får ingen rad i **Övervakningsloggar**: läs det innan ett annat e-postmeddelande kommer. När du är klar trycker du på **Slå på övervakning** i bannern högst upp på monitorns sidor, eller slår på reglaget igen.
+> **Dina kriterier ser det också.** Verifieringsmejlet utvärderas som vilket e-postmeddelande som helst. En formulering som "if you received this in error" matchar standardkriteriet `error` och markerar monitorn som offline. För att undvika det stänger du av **Kontrollera den här monitorn** i kortet **Övervakning** på monitorns sida **Inställningar** medan du verifierar (du blir ombedd att bekräfta). En monitor med övervakningen avstängd lagrar fortfarande e-postmeddelandet, och kortet **Monitor-sammanfattning** visar det fortfarande. Den utvärderar dock ingenting, så e-postmeddelandet får ingen rad i **Övervakningsloggar**: läs det innan ett annat e-postmeddelande kommer. När du är klar trycker du på **Slå på övervakning** i bannern högst upp på monitorns sidor, eller slår på reglaget igen.
 
 **Verifieringen hör till adressen.** Om du [återställer eller anpassar adressen](#återställa-eller-anpassa-e-postadressen) ser tjänsten en ny mottagare, och du måste verifiera igen.
 

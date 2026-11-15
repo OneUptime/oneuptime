@@ -189,6 +189,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The name a project's first on-call policy starts with, and the names
+   * and descriptions of the two on-call rules made with it, in the
+   * language of the person they are made for - the guided setups', Create
+   * On-Call Policy's and Ask AI's alike (#7995). Only the sentences the
+   * files mark are read.
+   */
+  {
+    directory: "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
+    kind: "keys",
+  },
+  /*
    * A monitor template's Template sync settings (#7546): the name of each
    * field a linked monitor can keep its own value for, and what it keeps
    * together, as the card and its summary line say them. Only the words the
@@ -296,6 +311,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Telemetry/TraceSpanType.ts",
+    kind: "keys",
+  },
+  /*
+   * An audit log entry's action in words - Sign In, Session Timeout - as
+   * the audit log's Action column and its Action filter draw it, and a
+   * workflow run's status - Timeout, Execution Exceeded Current Plan - as
+   * the runs' Status pill and their Status filter draw it (#7781). Only the
+   * words the files mark are read: the stored values they label are not.
+   */
+  {
+    directory: "packages/Common/Types/AuditLog/AuditLogActionLabel.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Workflow/WorkflowStatus.ts",
     kind: "keys",
   },
   /*
@@ -423,6 +453,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Exception/UnexplainedError.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a data check or a reconciliation was not written, added or set up
+   * (#7530): the server's refusals, which Write a Check from a Sentence,
+   * Suggested Checks and the Reconciliations page say in the reader's
+   * language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataObservability/DataCheckRefusals.ts",
     kind: "keys",
   },
   /*
@@ -588,6 +628,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/AI/AIActionWords.ts",
     kind: "keys",
   },
+  /*
+   * What Ask AI's tables and its Sources chips say beside their data - a
+   * table's title and line, the cells that are OneUptime's words, a
+   * chip's label (issues #7977, #7979, #7980) - which the chat says in the
+   * reader's language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIReadTableWords.ts",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/AI/AiAffectedResources.ts",
     kind: "keys",
@@ -617,8 +667,9 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox,
    * OpenStack and Ceph metric pickers and Metrics tabs. The database and
    * queue catalogs mark their descriptions too, which the (i) beside those
-   * tiles and charts says. Only the text the files mark is read: metric
-   * names and attribute keys stay as written.
+   * tiles and charts says, and so do the monitor catalogs (below). Only the
+   * text the files mark is read: metric names and attribute keys stay as
+   * written.
    */
   {
     directory:
@@ -644,6 +695,48 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * What each monitor metric is (#8014): the line under every metric picker
+   * of a monitor's form, a Database Health criteria's line, a Database
+   * monitor's charts and the metric it stores, and the words under each of
+   * the Database catalog's groups. Every monitor metric catalog marks its
+   * descriptions - the four above and these eight. These mark nothing else:
+   * their metric names are no keys yet (#8353, #8354), and the attribute
+   * names, values and units a description gives stay as written in every
+   * language (MonitorMetricDescriptionsInLocales).
+   */
+  {
+    directory: "packages/Common/Types/Monitor/DatabaseMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/DockerMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/DockerSwarmMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/HostMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/IotMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/KubernetesMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/PodmanMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
     kind: "keys",
   },
   /*

@@ -4,6 +4,8 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FieldType from "../Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import BooleanFilter from "./BooleanFilter";
 import DateFilter from "./DateFilter";
 import DropdownFilter from "./DropdownFilter";
@@ -76,6 +78,7 @@ const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (value: string | undefined) => string = (
     value: string | undefined,
   ): string => {
@@ -228,8 +231,18 @@ const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
                       return clearFilter(filter.key as keyof T);
                     }}
                     className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                    aria-label={`${tx("Clear")} ${tx(filter.title)} ${tx("filter")}`}
-                    title={`${tx("Clear")} ${tx(filter.title)}`}
+                    /*
+                     * Each one sentence with the filter's name in it, worded
+                     * in the reader's order: "Status-Filter löschen", never
+                     * "Löschen Status Filter" (#8076).
+                     */
+                    aria-label={translator.translateTemplate(
+                      "Clear {{filter}} filter",
+                      { filter: translatableTerm(filter.title) },
+                    )}
+                    title={translator.translateTemplate("Clear {{filter}}", {
+                      filter: translatableTerm(filter.title),
+                    })}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

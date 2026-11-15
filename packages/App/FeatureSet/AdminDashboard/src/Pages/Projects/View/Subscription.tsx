@@ -7,10 +7,16 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenuComponent from "./SideMenu";
 import Route from "Common/Types/API/Route";
+import Link from "Common/Types/Link";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import {
+  BillingPeriod,
+  isSamePlanChoice,
+} from "Common/Types/Billing/SubscriptionPlanPricing";
 import ProjectBalanceType from "Common/Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "Common/Types/Billing/BalanceAdjustmentType";
 import OneUptimeDate from "Common/Types/Date";
@@ -21,15 +27,19 @@ import ObjectID from "Common/Types/ObjectID";
 import { Amber600 } from "Common/Types/BrandColors";
 import Project from "Common/Models/DatabaseModels/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import PlanPicker from "Common/UI/Components/Billing/PlanPicker/PlanPicker";
 import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
@@ -53,6 +63,18 @@ const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
  * form rather than in the API response.
  */
 const MAX_BALANCE_ADJUSTMENT_IN_USD: number = 10000;
+
+/*
+ * A project's user limit, read the way the server holds people to it
+ * (TeamMemberService.readPeopleLimits: seatLimit || null) - nothing, or 0,
+ * is no limit - so the card never says a project is limited when the
+ * server lets everyone in, or the other way round.
+ */
+const getUserLimit: (seatLimit: number | null | undefined) => number | null = (
+  seatLimit: number | null | undefined,
+): number | null => {
+  return seatLimit || null;
+};
 
 const ProjectSubscription: FunctionComponent = (): ReactElement => {
   const { t, i18n } = useTranslation();
@@ -79,6 +101,9 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
   }, [modelIdString]);
 
   const [project, setProject] = useState<Project | null>(null);
+  const [showChangePlanModal, setShowChangePlanModal] =
+    useState<boolean>(false);
+  const [isChangingPlan, setIsChangingPlan] = useState<boolean>(false);
   const [showExtendTrialModal, setShowExtendTrialModal] =
     useState<boolean>(false);
   const [isExtending, setIsExtending] = useState<boolean>(false);
@@ -98,6 +123,111 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     SubscriptionStatus.Trialing;
 
   const projectCrudRoute: Route | null = new Project().getCrudApiPath();
+
+  // The plans this server sells, in their order (the customer's own picker's).
+  const plans: Array<SubscriptionPlan> = useMemo(() => {
+    return SubscriptionPlan.getSubscriptionPlans(getAllEnvVars());
+  }, []);
+
+  /*
+   * Staff move a project to another plan through a master-admin route of
+   * its own (issue #6771): the customer's change-plan route is held to the
+   * caller's own project and billing permissions in it, which staff acting
+   * from here do not have. The move behind it is the customer's own.
+   */
+  const changePlanApiUrl: URL = URL.fromString(APP_API_URL.toString())
+    .addRoute(projectCrudRoute!)
+    .addRoute(`/${modelId.toString()}/admin-change-plan`);
+
+  type ChangePlanFunction = (paymentProviderPlanId: string) => Promise<void>;
+
+  const changePlan: ChangePlanFunction = async (
+    paymentProviderPlanId: string,
+  ): Promise<void> => {
+    setIsChangingPlan(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.put({
+          url: changePlanApiUrl,
+          data: {
+            data: {
+              paymentProviderPlanId: paymentProviderPlanId,
+            },
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      if (response.isFailure()) {
+        throw new Error(t("pages.projectSubscription.changePlanFailure"));
+      }
+
+      setSuccess(
+        t("pages.projectSubscription.changePlanSuccess", {
+          // A plan's name is its name in every language, as on the invoice.
+          plan:
+            SubscriptionPlan.getSubscriptionPlanById(
+              paymentProviderPlanId,
+              getAllEnvVars(),
+            )?.getName() || paymentProviderPlanId,
+        }),
+      );
+
+      setShowChangePlanModal(false);
+
+      // Pull the project back down so the card shows the plan it is now on.
+      setRefresher(!refresher);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    } finally {
+      setIsChangingPlan(false);
+    }
+  };
+
+  /*
+   * The plan picked is not one to move to: none, or the plan the project is
+   * already on (isSamePlanChoice - the same price, or the other period of a
+   * plan that costs nothing either way). Said under the plans, as the
+   * customer's own Change Plan says it, rather than sent: the server would
+   * refuse it too.
+   */
+  const getChangePlanError: (pickedPlanId: string) => string | null = (
+    pickedPlanId: string,
+  ): string | null => {
+    if (!pickedPlanId) {
+      return t("pages.projectSubscription.planRequired");
+    }
+
+    if (isSamePlanChoice(plans, project?.paymentProviderPlanId, pickedPlanId)) {
+      return t("pages.projectSubscription.samePlan");
+    }
+
+    return null;
+  };
+
+  type OnChangePlanSubmitFunction = (values: JSONObject) => Promise<void>;
+
+  const onChangePlanSubmit: OnChangePlanSubmitFunction = async (
+    values: JSONObject,
+  ): Promise<void> => {
+    const pickedPlanId: string = String(
+      values["paymentProviderPlanId"] || "",
+    ).trim();
+
+    const pickError: string | null = getChangePlanError(pickedPlanId);
+
+    if (pickError) {
+      setError(pickError);
+      return;
+    }
+
+    await changePlan(pickedPlanId);
+  };
 
   const extendTrialApiUrl: URL = URL.fromString(APP_API_URL.toString())
     .addRoute(projectCrudRoute!)
@@ -394,17 +524,20 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     });
   };
 
-  const breadcrumbLinks: Array<{ title: string; to: Route }> = [
+  const breadcrumbLinks: Array<Link> = [
     {
       title: t("breadcrumbs.adminDashboard"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
     },
     {
       title: t("breadcrumbs.projects"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECTS] as Route),
     },
     {
       title: t("breadcrumbs.project"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROJECT_VIEW] as Route,
         { modelId: modelId },
@@ -412,6 +545,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     },
     {
       title: t("breadcrumbs.projectSubscription"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROJECT_SUBSCRIPTION] as Route,
         { modelId: modelId },
@@ -482,6 +616,15 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
             description: t("pages.projectSubscription.cardDescription"),
             buttons: [
               {
+                title: t("pages.projectSubscription.changePlanTitle"),
+                icon: IconProp.Upgrade,
+                onClick: () => {
+                  setError("");
+                  setSuccess("");
+                  setShowChangePlanModal(true);
+                },
+              },
+              {
                 title: t("pages.projectSubscription.extendTitle"),
                 icon: IconProp.Clock,
                 onClick: () => {
@@ -498,6 +641,15 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
             id: "model-detail-project-subscription",
             onItemLoaded: (item: Project) => {
               setProject(item);
+            },
+            /*
+             * What Change Plan opens on: the price the project is subscribed
+             * to, which its picker marks, and the cloud marketplace that
+             * bills it, which bills month to month only.
+             */
+            selectMoreFields: {
+              paymentProviderPlanId: true,
+              billingMarketplace: true,
             },
             fields: [
               {
@@ -636,6 +788,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                               over: formatCount(count - limit),
                             },
                           )}
+                          isUserContent={true}
                           color={Amber600}
                           size={PillSize.Normal}
                         />
@@ -645,6 +798,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                       {limit !== null && count === limit ? (
                         <Pill
                           text={t("pages.projectSubscription.atMonitorLimit")}
+                          isUserContent={true}
                           color={Amber600}
                           size={PillSize.Normal}
                         />
@@ -675,6 +829,128 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     />
                   ) : (
                     <span data-testid="project-active-monitor-limit">
+                      {formatCount(limit)}
+                    </span>
+                  );
+                },
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {/*
+         * The most people the project may have (Project.seatLimit, issue
+         * #6767), beside how many it has. Everyone with a membership counts,
+         * an invitation not yet accepted too: at the limit nobody new joins,
+         * however they would - an invitation, a first sign-in through the
+         * project's SSO, SCIM, an import - and everyone already in stays
+         * (TeamMemberService.readPeopleLimits). Held on a billed install
+         * only, which is the only one this card is drawn on. A plan bought
+         * from a reseller writes the limit too. The count is the one the bill
+         * reports, as the customer's Billing page shows it
+         * (Project.paymentProviderSubscriptionSeats).
+         */}
+        <CardModelDetail<Project>
+          name="Project Users"
+          modelAPI={AdminModelAPI}
+          refresher={refresher}
+          cardProps={{
+            title: t("pages.projectSubscription.userLimitCardTitle"),
+            description: t(
+              "pages.projectSubscription.userLimitCardDescription",
+            ),
+          }}
+          isEditable={true}
+          editButtonText={t("pages.projectSubscription.userLimitEditButton")}
+          editModalTitle={t("pages.projectSubscription.userLimitEditButton")}
+          formFields={[
+            {
+              field: {
+                seatLimit: true,
+              },
+              title: t("pages.projectSubscription.fieldUserLimit"),
+              description: t(
+                "pages.projectSubscription.fieldUserLimitDescription",
+              ),
+              fieldType: FormFieldSchemaType.Number,
+              required: false,
+              placeholder: t("pages.projectSubscription.noUserLimit"),
+              isPlaceholderTranslated: true,
+              validation: {
+                minValue: 1,
+              },
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-users",
+            fields: [
+              {
+                field: {
+                  paymentProviderSubscriptionSeats: true,
+                },
+                title: t("pages.projectSubscription.fieldUsers"),
+                fieldType: FieldType.Element,
+                /*
+                 * The count, and how it stands against the project's own
+                 * limit: a project past it says by how many at a glance.
+                 */
+                getElement: (item: Project): ReactElement => {
+                  const count: number = Number(
+                    item.paymentProviderSubscriptionSeats || 0,
+                  );
+                  const limit: number | null = getUserLimit(item.seatLimit);
+
+                  return (
+                    <div
+                      className="flex flex-wrap items-center gap-2"
+                      data-testid="project-users-count"
+                    >
+                      <span>{formatCount(count)}</span>
+                      {limit !== null && count > limit ? (
+                        <Pill
+                          text={t("pages.projectSubscription.overUserLimit", {
+                            over: formatCount(count - limit),
+                          })}
+                          isUserContent={true}
+                          color={Amber600}
+                          size={PillSize.Normal}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                      {limit !== null && count === limit ? (
+                        <Pill
+                          text={t("pages.projectSubscription.atUserLimit")}
+                          isUserContent={true}
+                          color={Amber600}
+                          size={PillSize.Normal}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                  );
+                },
+              },
+              {
+                field: {
+                  seatLimit: true,
+                },
+                title: t("pages.projectSubscription.fieldUserLimit"),
+                fieldType: FieldType.Element,
+                // Nothing, or 0, is no limit (getUserLimit).
+                getElement: (item: Project): ReactElement => {
+                  const limit: number | null = getUserLimit(item.seatLimit);
+
+                  return limit === null ? (
+                    <PlaceholderText
+                      text={t("pages.projectSubscription.noUserLimit")}
+                      isTextTranslated={true}
+                    />
+                  ) : (
+                    <span data-testid="project-user-limit">
                       {formatCount(limit)}
                     </span>
                   );
@@ -835,6 +1111,91 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                   fieldType: FormFieldSchemaType.Text,
                   placeholder: t("pages.projectSubscription.reasonPlaceholder"),
                   isPlaceholderTranslated: true,
+                },
+              ],
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {showChangePlanModal ? (
+          /*
+           * The customer's own Change Plan picker (PlanPicker): it opens on
+           * the plan the project is on, marked Current plan, offers no
+           * trial - a change keeps a running one and never starts another -
+           * and shows a project a cloud marketplace bills the monthly
+           * prices alone. Keyed on that plan, as the trial form below is on
+           * its date, so a project that finishes loading while the dialog is
+           * open still opens on its plan.
+           *
+           * isSubmitting, not isLoading: a refused change keeps the plan
+           * the admin picked on screen, with why under it.
+           */
+          <BasicFormModal
+            key={project?.paymentProviderPlanId || "no-plan"}
+            title={t("pages.projectSubscription.changePlanTitle")}
+            description={t("pages.projectSubscription.changePlanDescription")}
+            modalWidth={ModalWidth.Medium}
+            isSubmitting={isChangingPlan}
+            submitButtonText={t(
+              "pages.projectSubscription.changePlanSubmitButton",
+            )}
+            onClose={() => {
+              setShowChangePlanModal(false);
+              setError("");
+            }}
+            onSubmit={onChangePlanSubmit}
+            formProps={{
+              id: "change-plan-form",
+              name: "Change Plan",
+              // See the note on the extend-trial form: one error, on the form.
+              error: error,
+              initialValues: {
+                paymentProviderPlanId: project?.paymentProviderPlanId || "",
+              },
+              fields: [
+                {
+                  field: {
+                    paymentProviderPlanId: true,
+                  },
+                  title: t("pages.projectSubscription.fieldPlan"),
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  // The picker draws "Plan" itself, with the Monthly | Yearly switch beside it.
+                  customElementDrawsOwnLabel: true,
+                  required: true,
+                  customValidation: (
+                    values: FormValues<JSONObject>,
+                  ): string | null => {
+                    return getChangePlanError(
+                      String(values["paymentProviderPlanId"] || "").trim(),
+                    );
+                  },
+                  getCustomElement: (
+                    _values: FormValues<JSONObject>,
+                    props: CustomElementProps,
+                  ): ReactElement => {
+                    return (
+                      <PlanPicker
+                        plans={plans}
+                        value={(props.initialValue as string) || ""}
+                        isPlanChange={true}
+                        currentPlanId={
+                          project?.paymentProviderPlanId || undefined
+                        }
+                        periods={
+                          project?.billingMarketplace
+                            ? [BillingPeriod.Monthly]
+                            : undefined
+                        }
+                        error={props.error}
+                        dataTestId="admin-change-plan-picker"
+                        onChange={(planId: string) => {
+                          props.onChange?.(planId);
+                        }}
+                      />
+                    );
+                  },
                 },
               ],
             }}

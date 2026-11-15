@@ -104,7 +104,7 @@ Die Vorlagen für Warnungen erledigen dieselben Aufgaben für Warnungen. Es ist 
 
 Keine der Vorlagen von OneUptime zu Dynamics 365 sendet einen als **Privater Vorfall** markierten Vorfall oder eine als **Private Warnung** markierte Warnung an Dynamics 365: weder den Datensatz noch seinen Status oder seine Notizen, es sei denn, Sie schalten das ein. Siehe [Ändern, was eine Vorlage tut](#ändern-was-eine-vorlage-tut).
 
-**Monitore lösen Warnungen von selbst aus, und es können viele sein.** **Create a Dynamics 365 case when an alert is created** legt für jede einen Fall an. Sofern nicht jede Warnung einen Fall verdient, setzen Sie zwischen den Trigger und den Rest des Workflows einen **If / Else**-Baustein, etwa auf `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, und verbinden Sie nur seine Seite **Yes** weiter.
+**Monitore lösen Warnungen von selbst aus, und es können viele sein.** **Create a Dynamics 365 case when an alert is created** legt für jede einen Fall an. Sofern nicht jede Warnung einen Fall verdient, setzen Sie zwischen den Trigger und den Rest des Workflows einen **If / Else**-Baustein, etwa auf `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, und verbinden Sie nur seine Seite **Ja** weiter.
 
 ### Was die Vorlagen abfragen
 
@@ -133,7 +133,7 @@ Jeder Workflow behält seine eigene Kopie. Wenn Sie das Client-Secret ersetzen, 
 4. Klicken Sie auf **Arbeitsablauf erstellen**. Jeder Workflow wird ausgeschaltet angelegt: Schalten Sie oben in seinem **Editor** **Aktiviert** ein.
 :::
 
-Beginnen Sie mit **Create a Dynamics 365 case when an incident is declared**, oder für Warnungen mit **Create a Dynamics 365 case when an alert is created**: Jede andere Vorlage von OneUptime zu Dynamics 365 derselben Art findet den Fall über die Verknüpfung, die diese schreibt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Protokolle → Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Response Body** ihres letzten Schritts, `create-case-1`, enthält die `ticketnumber` des neuen Falls, etwa `CAS-01001-X1Y2Z3`.
+Beginnen Sie mit **Create a Dynamics 365 case when an incident is declared**, oder für Warnungen mit **Create a Dynamics 365 case when an alert is created**: Jede andere Vorlage von OneUptime zu Dynamics 365 derselben Art findet den Fall über die Verknüpfung, die diese schreibt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Protokolle → Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Antworttext** ihres letzten Schritts, `create-case-1`, enthält die `ticketnumber` des neuen Falls, etwa `CAS-01001-X1Y2Z3`.
 
 ### Die Vorlagen von Dynamics 365 zu OneUptime verbinden
 
@@ -184,7 +184,7 @@ Bevor Sie sich auf einen der beiden verlassen:
 Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Protokolle → Ausführungen** und sehen Sie nach, wie sie geendet hat:
 
 - **Ausgeführt**: Sie hat ihre Aufgabe erledigt, und ihr letzter Schritt nennt den Fall, den Vorfall oder die Warnung.
-- **Ausgeführt**, mit dem Schritt **Check With JavaScript** auf **No**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Der Fall ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam von der anderen Seite, der Datensatz ist privat, oder der neue Status schließt den Fall nicht.
+- **Ausgeführt**, mit dem Schritt **Check With JavaScript** auf **Nein**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Der Fall ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam von der anderen Seite, der Datensatz ist privat, oder der neue Status schließt den Fall nicht.
 - **Fehler**: Ein Schritt ist fehlgeschlagen, und sein Eintrag unter **Schritte** sagt, warum. Bei einem Dynamics-365-Aufruf enthält er die Antwort von Dynamics 365.
 - **Fehler** bei `link-case-1`: Eine Vorlage, die aus einem Fall einen Datensatz anlegt, hat ihn angelegt, aber Dynamics 365 hat die Verknüpfung nicht angenommen, die anderen Vorlagen finden ihn also noch nicht. Tippen Sie die Verknüpfung von Hand in die Spalte des Falls.
 
@@ -221,7 +221,7 @@ Behalten Sie die Markierungen, wenn Sie die Vorlagen bearbeiten. Es sind die Kon
 
 ### Ändern, was eine Vorlage tut
 
-Öffnen Sie den **Editor** des Workflows und klicken Sie auf den Baustein, den Sie ändern möchten. Die Einstellungen, die Sie am ehesten brauchen, sind Konstanten nahe dem Anfang eines Skripts, im **JavaScript Code** eines **Check With JavaScript**-Bausteins, direkt unter dem gemeinsamen Hilfsblock. Die Versionen für Vorfälle und Warnungen haben dieselben Konstanten in denselben Bausteinen.
+Öffnen Sie den **Editor** des Workflows und klicken Sie auf den Baustein, den Sie ändern möchten. Die Einstellungen, die Sie am ehesten brauchen, sind Konstanten nahe dem Anfang eines Skripts, im **JavaScript-Code** eines **Check With JavaScript**-Bausteins, direkt unter dem gemeinsamen Hilfsblock. Die Versionen für Vorfälle und Warnungen haben dieselben Konstanten in denselben Bausteinen.
 
 | Konstante | Vorlage und Baustein | Was sie steuert |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ Der Geltungsbereich muss Ihre Umgebungs-URL gefolgt von `/.default` sein. Eine f
 
 :::steps
 1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Dynamics 365` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Seine **Fields to pass on** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben.
-2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **Kennung** auf `create-case` und seine **URL** auf `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Setzen Sie unter **Weitere Felder** seine **Request Headers** auf:
+2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **Kennung** auf `create-case` und seine **URL** auf `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
    ```json
    {
@@ -284,7 +284,7 @@ Der Geltungsbereich muss Ihre Umgebungs-URL gefolgt von `/.default` sein. Eine f
    }
    ```
 
-4. Setzen Sie seinen **Request Body** auf den Fall, mit der GUID des Kontos, zu dem Ihre Fälle gehören:
+4. Setzen Sie seinen **Anfragetext** auf den Fall, mit der GUID des Kontos, zu dem Ihre Fälle gehören:
 
    ```json
    {
@@ -324,8 +324,8 @@ Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von F
 
 :::steps
 1. Legen Sie einen Workflow namens `Close Dynamics 365 cases` an, mit dem Trigger **On Update Incident**. Klicken Sie in **Fields to watch** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Fields to pass on** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**.
-2. Fügen Sie einen **If / Else**-Baustein hinzu: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Fügen Sie nach seiner Seite **Yes** einen **API Get (JSON)**-Baustein mit der **Kennung** `find-case` hinzu, mit denselben Headern ohne `Prefer` und dieser **URL**:
+2. Fügen Sie einen **If / Else**-Baustein hinzu: **Zu prüfender Wert** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Vergleich** **ist wahr**.
+3. Fügen Sie nach seiner Seite **Ja** einen **API Get (JSON)**-Baustein mit der **Kennung** `find-case` hinzu, mit denselben Headern ohne `Prefer` und dieser **URL**:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ Bauen Sie zuerst den empfangenden Workflow:
 
    Bei einer selbst gehosteten Installation enthält die URL Ihren eigenen Host. Behandeln Sie die URL wie ein Passwort: Wer sie hat, kann den Workflow starten. Wird sie bekannt, klicken Sie an derselben Stelle auf **URL zurücksetzen**, und die alte URL funktioniert sofort nicht mehr.
 
-3. Fügen Sie einen **If / Else**-Baustein hinzu, der vor allem anderen ein gemeinsames Geheimnis prüft: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** ein Wert, den Sie sich ausdenken, in einer geheimen globalen Variable aufbewahrt.
-4. Fügen Sie nach seiner Seite **Yes** einen **Update One Incident**-Baustein hinzu. Setzen Sie seine **Query** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Data (JSON Object)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Find One Incident State**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Fügen Sie einen **If / Else**-Baustein hinzu, der vor allem anderen ein gemeinsames Geheimnis prüft: **Zu prüfender Wert** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergleich** **ist gleich**, **Vergleichen mit** ein Wert, den Sie sich ausdenken, in einer geheimen globalen Variable aufbewahrt.
+4. Fügen Sie nach seiner Seite **Ja** einen **Update One Incident**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Data (JSON Object)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Find One Incident State**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Schalten Sie ihn ein und lassen Sie Dynamics 365 ihn dann aufrufen:
 
@@ -395,7 +395,7 @@ Warnungen funktionieren genauso. Tauschen Sie die Art des Datensatzes, sonst än
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je einen Workflow. Um dieselbe Dynamics-365-Arbeit für beide zu erledigen, bauen Sie sie einmal in einem Workflow mit einem **Manual**-Trigger und starten ihn aus beiden mit einem **Execute Workflow**-Baustein.
+Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je einen Workflow. Um dieselbe Dynamics-365-Arbeit für beide zu erledigen, bauen Sie sie einmal in einem Workflow mit einem **Manuell**-Trigger und starten ihn aus beiden mit einem **Execute Workflow**-Baustein.
 
 ## Fehlerbehebung
 

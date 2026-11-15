@@ -97,14 +97,14 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 
 | टूल | दिशा | क्या करता है |
 | --- | --- | --- |
-| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्टेटस पेज। |
+| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्थिति पृष्ठ। |
 
 ## किसी दूसरे टूल से आना
 
-किसी दूसरे ऑन-कॉल, अपटाइम या स्टेटस पेज टूल को छोड़ने के लिए, दोनों को जोड़ने के बजाय अपनी टीम को यहां ले आएं। **प्रोजेक्ट सेटिंग्स → उन्नत → किसी दूसरे टूल से आयात करें** एक API कुंजी से आपका खाता पढ़ता है, जो मिला वह दिखाता है, और जिन पर आप टिक करते हैं उन्हें बनाता है। हर टूल की एक गाइड है:
+किसी दूसरे ऑन-कॉल, अपटाइम या स्थिति पृष्ठ टूल को छोड़ने के लिए, दोनों को जोड़ने के बजाय अपनी टीम को यहां ले आएं। **प्रोजेक्ट सेटिंग्स → उन्नत → किसी दूसरे टूल से आयात करें** एक API कुंजी से आपका खाता पढ़ता है, जो मिला वह दिखाता है, और जिन पर आप टिक करते हैं उन्हें बनाता है। हर टूल की एक गाइड है:
 
 - ऑन-कॉल और घटना टूल: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) और [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall)।
-- अपटाइम और स्टेटस पेज टूल: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) और [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)।
+- अपटाइम और स्थिति पृष्ठ टूल: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) और [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)।
 
 ## अपना इंटिग्रेशन बनाएं
 
@@ -116,7 +116,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 
 :::steps
 1. **वर्कफ़्लो** खोलें, **वर्कफ़्लो बनाएं** पर क्लिक करें, फिर **शुरू से बनाएं** पर। वर्कफ़्लो को नाम दें और **वर्कफ़्लो बनाएं** पर क्लिक करें।
-2. डैश वाले **चुनें कि यह वर्कफ़्लो किससे शुरू हो** ब्लॉक पर क्लिक करें और **Webhook** चुनें। ट्रिगर पर क्लिक करें, फिर **URL कॉपी करें** पर।
+2. डैश वाले **चुनें कि यह वर्कफ़्लो किससे शुरू हो** ब्लॉक पर क्लिक करें और **वेबहुक** चुनें। ट्रिगर पर क्लिक करें, फिर **URL कॉपी करें** पर।
 3. दूसरे टूल में, उसका वेबहुक उस URL पर `Content-Type: application/json` के साथ `POST` के रूप में भेजें।
 4. उस पर काम करने वाले ब्लॉक जोड़ें। वे `{{local.components.webhook-1.returnValues.request-body.status}}` जैसे रेफ़रेंस से अनुरोध पढ़ते हैं: किसी फ़ील्ड को जांचने के लिए **If / Else** ब्लॉक, फिर घटना घोषित करने के लिए **Create One Incident**।
 5. **बिल्डर** के ऊपर **सक्षम** चालू करें, दूसरे टूल से एक टेस्ट भेजें, और जो आया उसे देखने के लिए **लॉग → रन** खोलें।
@@ -129,8 +129,8 @@ URL ही एकमात्र क्रेडेंशियल है, इ�
 :::steps
 1. टूल की API कुंजी को एक सीक्रेट ग्लोबल वेरिएबल के रूप में सहेजें, जैसा [नीचे](#क्रेडेंशियल-सुरक्षित-रखें) दिखाया गया है।
 2. एक वर्कफ़्लो बनाएं, डैश वाले ब्लॉक पर क्लिक करें और कोई इवेंट ट्रिगर चुनें, जैसे **On Create Incident**। ट्रिगर पर क्लिक करें: उसके **Fields to pass on** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और भेजने वाले बाकी फ़ील्ड चुनें, जैसे **विवरण**।
-3. **घटक जोड़ें** पर क्लिक करें और एक **API Post (JSON)** ब्लॉक जोड़ें। ट्रिगर के **Success** बिंदु को उससे जोड़ें।
-4. उसका **URL** भरें, `Authorization` हेडर के साथ उसके **Request Headers** भरें, और घटना के फ़ील्ड के साथ उसकी **Request Body** भरें, जैसे `{{local.components.incident-on-create-1.returnValues.model.title}}`।
+3. **घटक जोड़ें** पर क्लिक करें और एक **API Post (JSON)** ब्लॉक जोड़ें। ट्रिगर के **सफलता** बिंदु को उससे जोड़ें।
+4. उसका **URL** भरें, `Authorization` हेडर के साथ उसके **अनुरोध हेडर** भरें, और घटना के फ़ील्ड के साथ उसकी **अनुरोध बॉडी** भरें, जैसे `{{local.components.incident-on-create-1.returnValues.model.title}}`।
 5. **वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई घटना चुनें, और चलाएं। टेस्ट रन सचमुच अनुरोध भेजता है। फिर **सक्षम** चालू करें।
 :::
 

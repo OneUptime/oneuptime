@@ -63,7 +63,6 @@ const DockerSwarmTasksTable: FunctionComponent<ComponentProps> = (
         resources={resources}
         showGroupColumn={true}
         groupColumnTitle={props.groupBy === "service" ? "Service" : "Node"}
-        groupFallbackLabel="—"
         showAge={false}
         tableIdPrefix="docker-swarm-part"
         metricThresholds={DOCKER_SWARM_TASK_METRIC_THRESHOLDS}

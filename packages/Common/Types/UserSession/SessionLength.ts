@@ -30,10 +30,16 @@
  * Both are counted by the server, from the session's own facts
  * (SessionFacts): when it signed in, and when its person was last active. A
  * browser says how long its person has not clicked, typed or scrolled when
- * it renews the session; anything else (the mobile app, an older page) is
- * active whenever it renews. The server decides at every renewal and on
- * every request (getSessionEnd), never the browser, and a change applies to
- * the sessions there are: a shorter length signs out everyone it is past.
+ * it renews the session, and the longest time they went without since its
+ * last renewal - a browser closed, a computer asleep - so opening
+ * OneUptime again after the idle timeout does not bring the session back
+ * (issue #6789). The mobile app says the same of its person's touches, and
+ * of the time it spent in the background or closed (issue #8187,
+ * MobileApp/src/auth/userActivity.ts). Anything else (an older app or
+ * page) is active whenever it renews. The server decides at every renewal
+ * (decideSessionRenewal) and on every request (getSessionEnd), never the
+ * browser, and a change applies to the sessions there are: a shorter
+ * length signs out everyone it is past.
  *
  * The values live in the GlobalConfig columns below, the lengths in whole
  * minutes. The Enterprise module hands core what they hold (EnterpriseEdition.
@@ -498,7 +504,8 @@ export const readSessionEndReason: (
 /*
  * The field of a renewal (POST /identity/refresh-token) in which the
  * Dashboard and the Admin Dashboard say how long their person has not
- * clicked, typed or scrolled, in whole seconds.
+ * clicked, typed or scrolled, and the mobile app how long its person has
+ * not touched it or typed in it, in whole seconds.
  */
 export const INACTIVE_FOR_IN_SECONDS_FIELD: string = "inactiveForInSeconds";
 
@@ -630,4 +637,225 @@ export const getActivityAtRenewal: (data: {
       Math.max(data.storedLastActiveAt.getTime(), reportedMs),
     ),
   );
+};
+
+/*
+ * THE LONGEST TIME WITHOUT USE SINCE THE LAST RENEWAL (issue #6789).
+ *
+ * How long the person has not used OneUptime now (inactiveForInSeconds) is
+ * not enough on its own. Someone who closes the browser, or whose computer
+ * sleeps, and opens OneUptime again hours later clicks before the session
+ * is renewed - opening the page is a click's worth of activity - so that
+ * renewal says they were active a moment ago. A tab left in the background
+ * that nobody brought back does the same the moment they do. So the
+ * Dashboard and the Admin Dashboard say, too, the longest time that ended
+ * since the session was last renewed during which nobody used OneUptime in
+ * any tab of the browser (Common/UI/Utils/UserActivity): how long it
+ * lasted, and how long ago it ended, in whole seconds - durations, never
+ * the browser's clock. The server ends the session when it reached the
+ * idle timeout, counting it only from what the session knew of its
+ * person's activity already: activity the server heard of cuts it short.
+ *
+ * The mobile app says the same (issue #8187): the longest time it spent in
+ * the background, or closed, or on the screen untouched. Without it the app
+ * was decided from its last renewal alone, and under the 15-minute idle
+ * timeout - whose end the access token runs out at - it was signed out at
+ * every renewal, however much it was used.
+ */
+export const LONGEST_INACTIVITY_FIELD: string = "longestInactivity";
+
+// A time without use a renewal reports, in whole seconds.
+export interface ReportedInactivity {
+  // How long it lasted.
+  forSeconds: number;
+  // How long before the renewal it ended: the activity that ended it.
+  endedSecondsAgo: number;
+}
+
+/*
+ * The time without use a renewal reports (LONGEST_INACTIVITY_FIELD), or
+ * null when it reports none it can read: an object whose two durations are
+ * each read as inactiveForInSeconds is (readReportedInactivityInSeconds) -
+ * a whole, non-negative number of seconds, no more than
+ * MAX_REPORTED_INACTIVITY_IN_SECONDS. Anything else is no report, and
+ * never a reason to end a session.
+ */
+export const readReportedLongestInactivity: (
+  value: unknown,
+) => ReportedInactivity | null = (
+  value: unknown,
+): ReportedInactivity | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const report: Record<string, unknown> = value as Record<string, unknown>;
+  const forSeconds: number | null = readReportedInactivityInSeconds(
+    report["forSeconds"],
+  );
+  const endedSecondsAgo: number | null = readReportedInactivityInSeconds(
+    report["endedSecondsAgo"],
+  );
+
+  if (forSeconds === null || endedSecondsAgo === null) {
+    return null;
+  }
+
+  return { forSeconds, endedSecondsAgo };
+};
+
+// What a renewal says of its person's use of OneUptime, each part null when it says nothing.
+export interface RenewalReport {
+  // How long they have not used it now (INACTIVE_FOR_IN_SECONDS_FIELD).
+  inactiveForInSeconds: number | null;
+  // The longest time without use that ended since the last renewal (LONGEST_INACTIVITY_FIELD).
+  longestInactivity: ReportedInactivity | null;
+}
+
+export const NO_RENEWAL_REPORT: RenewalReport = {
+  inactiveForInSeconds: null,
+  longestInactivity: null,
+};
+
+// What a renewal decides.
+export type SessionRenewalOutcome =
+  | {
+      hasEnded: true;
+      reason: SessionEndReason;
+      /*
+       * When its person was last active before it ended, as far as the
+       * renewal knows: what the audit log's entry about its end says, and
+       * counts the moment an idle timeout ran out from.
+       */
+      lastActiveAt: Date;
+    }
+  | {
+      hasEnded: false;
+      // When its person was last active (getActivityAtRenewal): what the session keeps.
+      lastActiveAt: Date;
+    };
+
+/*
+ * The part of a reported time without use that the session did not know of
+ * already, in milliseconds since 1970, or null when there is none: it ends
+ * where the browser says, and starts where the browser says or at the
+ * session's last activity, whichever is later. Activity the server heard of
+ * - a renewal in another tab, the sign-in itself - is never counted as
+ * time without use, so a browser that kept an older time (a previous
+ * sign-in's, say) can end no session with it.
+ */
+export const getUnknownInactivity: (data: {
+  storedLastActiveAt: Date;
+  longestInactivity: ReportedInactivity | null;
+  now: Date;
+}) => { fromMs: number; toMs: number } | null = (data: {
+  storedLastActiveAt: Date;
+  longestInactivity: ReportedInactivity | null;
+  now: Date;
+}): { fromMs: number; toMs: number } | null => {
+  if (!data.longestInactivity) {
+    return null;
+  }
+
+  const toMs: number =
+    data.now.getTime() - data.longestInactivity.endedSecondsAgo * 1000;
+  const fromMs: number = Math.max(
+    toMs - data.longestInactivity.forSeconds * 1000,
+    data.storedLastActiveAt.getTime(),
+  );
+
+  if (toMs <= fromMs) {
+    return null;
+  }
+
+  return { fromMs, toMs };
+};
+
+/*
+ * Whether a renewal at `now` may go ahead under the lengths (null: none
+ * set), and when its person was last active - the one place a renewal of
+ * a session decides (UserSessionService.decideRenewal):
+ *
+ *   - its kind's session length counts from its sign-in, however active
+ *     its person is;
+ *   - its kind's idle timeout counts from its person's last activity. While
+ *     one is set, what the browser reports counts: how long its person has
+ *     not used OneUptime now (never further back than what the session
+ *     knew, never after now - getActivityAtRenewal), and the longest time
+ *     they went without since the last renewal, which ends the session
+ *     when the part the session did not know of reached the idle timeout
+ *     (getUnknownInactivity). Without a report of how long it has been, the
+ *     session's own last activity decides, and the renewal is the activity
+ *     - as every renewal has always been. Without an idle timeout set,
+ *     nothing the browser says is asked.
+ *
+ * A session that ended says why: whichever of the two came first, the
+ * length where both fall at the same moment (getSessionEnd).
+ */
+export const decideSessionRenewal: (data: {
+  facts: SessionFacts;
+  lengths: SessionLengths | null | undefined;
+  report: RenewalReport;
+  now: Date;
+}) => SessionRenewalOutcome = (data: {
+  facts: SessionFacts;
+  lengths: SessionLengths | null | undefined;
+  report: RenewalReport;
+  now: Date;
+}): SessionRenewalOutcome => {
+  const rule: SessionLengthRule = getSessionLengthRule(
+    data.lengths,
+    data.facts.isSsoSignIn,
+  );
+
+  const isReportAsked: boolean = rule.idleTimeoutInMinutes !== null;
+  const report: RenewalReport = isReportAsked ? data.report : NO_RENEWAL_REPORT;
+
+  const lastActiveAt: Date = getActivityAtRenewal({
+    storedLastActiveAt: data.facts.lastActiveAt,
+    reportedInactivityInSeconds: report.inactiveForInSeconds,
+    now: data.now,
+  });
+
+  // Without a report of how long it has been, inactivity is what the session knew of it.
+  let idleFrom: Date =
+    report.inactiveForInSeconds === null
+      ? data.facts.lastActiveAt
+      : lastActiveAt;
+
+  // An earlier time without use that already reached the idle timeout ended the session then.
+  const unknownInactivity: { fromMs: number; toMs: number } | null =
+    getUnknownInactivity({
+      storedLastActiveAt: data.facts.lastActiveAt,
+      longestInactivity: report.longestInactivity,
+      now: data.now,
+    });
+
+  if (
+    unknownInactivity &&
+    unknownInactivity.toMs - unknownInactivity.fromMs >=
+      getIdleTimeoutInMinutes(rule) * MS_IN_A_MINUTE &&
+    unknownInactivity.fromMs < idleFrom.getTime()
+  ) {
+    idleFrom = new Date(unknownInactivity.fromMs);
+  }
+
+  const end: SessionEnd = getSessionEnd(
+    { ...data.facts, lastActiveAt: idleFrom },
+    data.lengths,
+  );
+
+  if (end.endsAt.getTime() <= data.now.getTime()) {
+    return {
+      hasEnded: true,
+      reason: end.reason,
+      // Activity the browser saw after the session ended is not the session's.
+      lastActiveAt:
+        idleFrom.getTime() <= end.endsAt.getTime()
+          ? idleFrom
+          : data.facts.lastActiveAt,
+    };
+  }
+
+  return { hasEnded: false, lastActiveAt: lastActiveAt };
 };

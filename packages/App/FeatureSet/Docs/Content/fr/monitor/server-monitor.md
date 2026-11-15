@@ -3,7 +3,7 @@
 Un moniteur Serveur / VM surveille une machine grâce à l'agent d'infrastructure OneUptime (`oneuptime-infrastructure-agent`), un petit service qui envoie à OneUptime, toutes les 30 secondes, le CPU, la mémoire, les disques, la charge, le réseau et les processus en cours. Cette page explique comment connecter l'agent à un moniteur Serveur / VM, ce que l'agent remonte et comment écrire les critères qui décident quand le serveur est en ligne ou hors ligne.
 
 > [!IMPORTANT]
-> **Créer un moniteur** ne propose plus **Server / VM**. Les moniteurs Serveur / VM existants continuent de fonctionner, et tout ce qui figure sur cette page s'applique à eux. Pour surveiller un nouveau serveur, créez plutôt un [moniteur d'hôte](/docs/monitor/host-monitor) : il alerte sur les métriques d'hôte qu'envoie le [collecteur OpenTelemetry sur l'hôte](/docs/telemetry/host-otel-collector).
+> **Créer un moniteur** ne propose plus **Serveur / VM**. Les moniteurs Serveur / VM existants continuent de fonctionner, et tout ce qui figure sur cette page s'applique à eux. Pour surveiller un nouveau serveur, créez plutôt un [moniteur d'hôte](/docs/monitor/host-monitor) : il alerte sur les métriques d'hôte qu'envoie le [collecteur OpenTelemetry sur l'hôte](/docs/telemetry/host-otel-collector).
 
 :::cards
 - [Connecter l'agent](#connecter-lagent): L'installer, lui donner la clé secrète du moniteur et le démarrer.

@@ -33,8 +33,8 @@ Sonden rapporterer bare:
 |---|---|
 | **Antall rader** | Antall rader spørringen returnerte (begrenset av grensen Max Rows). |
 | **Skalarverdi** | Den første kolonnen i den første raden. Dette er den naturlige verdien for en spørring av typen `SELECT COUNT(*)`. |
-| **First Row** | Den første raden som par av kolonne og verdi, vist i kontrollsammendraget som kontekst. |
-| **Execution Time** | Hvor lang tid kontrollen tok, i millisekunder — tilkoblingen inkludert, ikke bare spørringen. |
+| **Første rad** | Den første raden som par av kolonne og verdi, vist i kontrollsammendraget som kontekst. |
+| **Kjøretid** | Hvor lang tid kontrollen tok, i millisekunder — tilkoblingen inkludert, ikke bare spørringen. |
 | **Spørringsfeil** | En renset feilmelding hvis spørringen mislyktes. |
 
 Hele resultatsettet sendes aldri til OneUptime, så kundedata kopieres ikke over i lagringen til OneUptime.
@@ -108,7 +108,7 @@ For strammere rettigheter kan du gi brukeren `SELECT` på bare tabellene spørri
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **SQL Query** under **Databaseovervåking**, eller skriver `query` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **SQL-spørring** under **Databaseovervåking**, eller skriver `query` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Skriv inn tilkoblingsdetaljene
 
@@ -116,7 +116,7 @@ Velg **Database Type** — porten endres til standarden for den motoren — og f
 
 ### Skriv inn spørringen
 
-Skriv én skrivebeskyttet setning i **SQL Query** (se [Skriv spørringen](#skriv-spørringen)).
+Skriv én skrivebeskyttet setning i **SQL-spørring** (se [Skriv spørringen](#skriv-spørringen)).
 
 ### Test den
 
@@ -142,7 +142,7 @@ Velg **Sonder** som når databasen, og et **Overvåkingsintervall**, og klikk de
 | **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på med kontoen sonden kjører som. Se [Integrert Windows-autentisering](#integrert-windows-autentisering). |
 | **Brukernavn** | En skrivebeskyttet databasebruker med minst mulig rettigheter. |
 | **Passord** | Databasepassordet. Vi anbefaler sterkt å henvise til en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive passordet inn som ren tekst (se [Bruk en overvåkingshemmelighet for passordet](#bruk-en-overvåkingshemmelighet-for-passordet)). |
-| **SQL Query** | Den skrivebeskyttede spørringen som skal kjøres (se [Skriv spørringen](#skriv-spørringen)). |
+| **SQL-spørring** | Den skrivebeskyttede spørringen som skal kjøres (se [Skriv spørringen](#skriv-spørringen)). |
 | **Use SSL/TLS** | Slå på for å koble til over TLS. Når det er slått på, kan du slå av **Verify server certificate** hvis databasen bruker et selvsignert sertifikat. |
 
 ### Flere felt
@@ -216,7 +216,7 @@ For at databasepassordet aldri skal lagres som ren tekst på monitoren, opprette
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens felt **Passord**.
 :::
 
-OneUptime løser opp hemmeligheten på serveren før konfigurasjonen gis videre til sonden. OneUptime oppretter aldri disse hemmelighetene for deg — det er ditt valg å henvise til en. Feltene **Brukernavn**, **Vert**, **Databasenavn** og **SQL Query** godtar også henvisninger til hemmeligheter; **Port** gjør ikke det.
+OneUptime løser opp hemmeligheten på serveren før konfigurasjonen gis videre til sonden. OneUptime oppretter aldri disse hemmelighetene for deg — det er ditt valg å henvise til en. Feltene **Brukernavn**, **Vert**, **Databasenavn** og **SQL-spørring** godtar også henvisninger til hemmeligheter; **Port** gjør ikke det.
 
 ## Sett opp kriterier
 
@@ -250,7 +250,7 @@ Knytt en vaktpolicy til kriteriet slik at de riktige personene blir tilkalt. En 
 
 - Spørringen kjører ved hver kontroll, så hold den billig. Bruk indekser og smale tidsvinduer, og stol på Statement Timeout som sikkerhetsnett.
 - Bare antall rader, den første cellen (skalar) og den første raden rapporteres — utform spørringen slik at verdien du vil varsle på, er den første kolonnen.
-- Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rows Truncated**: "Yes (result capped)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
+- Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rader avkortet**: "Ja (resultatet er begrenset)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
 - Skriving og DDL avvises alltid. Hvis du må teste en skrivevei, er det ikke det denne monitoren er til.
 - Foretrekk en overvåkingshemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
 - En kontroll der spørringen mislykkes, prøves igjen et sekund senere, opptil tre ganger til, før den rapporterer feilen, slik at et kort tilkoblingsbrudd ikke gjør monitoren frakoblet. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT` hvor mange ganger.

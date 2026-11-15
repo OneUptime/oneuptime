@@ -125,6 +125,7 @@ export const ON_CALL_SETUP_COPY: {
   whoAddRules: string;
   whoCannotCreate: string;
   policyMadeElsewhere: string;
+  policyDeleted: string;
   couldNotSave: string;
   whoReadinessTitle: string;
   sendReminder: string;
@@ -232,6 +233,14 @@ export const ON_CALL_SETUP_COPY: {
    * nothing was made twice (#7252). The website-down setup's words.
    */
   policyMadeElsewhere: WEBSITE_DOWN_COPY.policyMadeElsewhere,
+  /*
+   * Said when the run's policy was deleted - in another tab, or by a
+   * teammate - so "Who else is on call?" opened again on making or picking
+   * one (#7516), and when the page opens on a run whose policy is gone.
+   */
+  policyDeleted: translationKey(
+    "The on-call policy this setup was using was deleted, so pick or make one again.",
+  ),
   // The project's policies could not be read just before: nothing is made.
   couldNotSave: WEBSITE_DOWN_COPY.couldNotSave,
   whoReadinessTitle: translationKey("Can a page reach them?"),
@@ -306,6 +315,35 @@ export enum OnCallRunValue {
   TestExecutionLogId = "testExecutionLogId",
   TestSkipped = "testSkipped",
 }
+
+/*
+ * What the run keeps of its policy and of the steps built on it. When the
+ * policy is gone - found so when the page opens, or deleted in another tab
+ * or by a teammate while it is open (#7516) - they are forgotten together,
+ * so the setup starts again at "Who else is on call?". Who is reached stays
+ * confirmed: it is the person's, not the policy's.
+ */
+export const RUN_VALUES_OF_THE_POLICY: ReadonlyArray<OnCallRunValue> = [
+  OnCallRunValue.PolicyId,
+  OnCallRunValue.PolicyIsExisting,
+  OnCallRunValue.NoAnswerDone,
+  OnCallRunValue.TestExecutionLogId,
+  OnCallRunValue.TestSkipped,
+];
+
+// The values to save to forget the run's policy (GuidedSetupRunStore.save).
+export const getRunWithoutPolicy: () => Record<string, null> = (): Record<
+  string,
+  null
+> => {
+  const values: Record<string, null> = {};
+
+  for (const value of RUN_VALUES_OF_THE_POLICY) {
+    values[value] = null;
+  }
+
+  return values;
+};
 
 // What the records say about each step, read when the page opens.
 export interface OnCallProgressFacts {
