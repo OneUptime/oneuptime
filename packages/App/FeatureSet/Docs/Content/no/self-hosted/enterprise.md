@@ -54,7 +54,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 | [Egendefinerte varslingskanaler](/docs/self-hosted/custom-notification-channels): varsle folk gjennom din egen tjeneste, for eksempel bedriftens egen app | Nei | Ja | Ikke aktuelt |
 | [Øktlengde](/docs/self-hosted/session-length): hvor lenge folk forblir pålogget, og hvor lenge uten å bruke OneUptime | Nei | Ja | Ikke aktuelt |
 | Kapasitetsvisning for ClickHouse, kapasitetsvarsler og automatisk opprydding av disken | Ja | Ja | Ikke aktuelt |
-| Migreringsstatus, støttepakke og globale prober i Admin-dashbordet | Ja | Ja | Ikke aktuelt |
+| Migreringsstatus, støttepakke og globale sonder i Admin-dashbordet | Ja | Ja | Ikke aktuelt |
 | Administrasjon av Enterprise-lisens, plasser og instanser | Nei | Ja | Ikke aktuelt |
 
 Enkel pålogging omfatter "Require SSO for login" for prosjekter, private statussider og hele instansen, i begge utgavene.

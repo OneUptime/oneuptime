@@ -622,7 +622,7 @@ output "eu_west_probe_key" {
 }
 ```
 
-Запустите зонд, задав `PROBE_ID` равным `id` зонда, а `PROBE_KEY` — ключу, который печатает `terraform output -raw eu_west_probe_key`: см. [Пользовательские probes](/docs/probe/custom-probe). Чтобы выбрать ключ самостоятельно, задайте `key` из чувствительной переменной. Сквозные тесты `23-probe-crud` и `61-name-only-and-choices` применяют зонды.
+Запустите зонд, задав `PROBE_ID` равным `id` зонда, а `PROBE_KEY` — ключу, который печатает `terraform output -raw eu_west_probe_key`: см. [Пользовательские зонды](/docs/probe/custom-probe). Чтобы выбрать ключ самостоятельно, задайте `key` из чувствительной переменной. Сквозные тесты `23-probe-crud` и `61-name-only-and-choices` применяют зонды.
 
 ## Дальнейшие шаги
 

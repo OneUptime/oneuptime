@@ -21,7 +21,7 @@ Es gibt fünf Wege, auf denen ein Vorfall in OneUptime entsteht, und alle enden 
 | einen aus eigenem Code, einem Skript oder einem anderen Werkzeug öffnen wollen | `POST /api/incident`                                           |
 | Personen außerhalb Ihres Teams Probleme über einen Link melden lassen wollen | ein [Formular](/docs/forms/index)                                |
 
-Alle fünf schreiben dasselbe Modell, ein von einer Probe geöffneter Vorfall sieht also genauso aus wie einer, den ein Responder von Hand geöffnet hat – bis auf ein paar Verwaltungsspalten, die der Server bei automatischen setzt. Auch Workflows schreiben es: Der [Huntress](/docs/integrations/huntress)-Workflow öffnet für jeden Vorfallbericht, den sein SOC sendet, einen Vorfall.
+Alle fünf schreiben dasselbe Modell, ein von einer Sonde geöffneter Vorfall sieht also genauso aus wie einer, den ein Responder von Hand geöffnet hat – bis auf ein paar Verwaltungsspalten, die der Server bei automatischen setzt. Auch Workflows schreiben es: Der [Huntress](/docs/integrations/huntress)-Workflow öffnet für jeden Vorfallbericht, den sein SOC sendet, einen Vorfall.
 
 > [!TIP]
 > Sie können einen Vorfall auch aus Warnungen melden: **Vorfall melden** in einer Warnungsliste, in der Kopfzeile einer Warnung oder auf der Seite **Verknüpfte Vorfälle** einer Warnung öffnet denselben Assistenten, vorausgefüllt aus den Warnungen, und verknüpft sie mit dem neuen Vorfall. Ein standardmäßig angehaktes Kästchen im Formular bestätigt die Warnungen außerdem, damit ihre Eskalation stoppt. Siehe [Verknüpfte Warnungen](/docs/incidents/linked-alerts).
@@ -195,7 +195,7 @@ Jeder Vorfalleintrag hat:
 
 Die vollständige Liste der `{{variable}}`-Platzhalter für Titel, Beschreibung und Behebungsnotizen finden Sie unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 
-So angelegte Vorfälle werden vom Server markiert: `isCreatedAutomatically` wird gesetzt, `createdCriteriaId` hält fest, welcher Kriterienfilter ausgelöst hat, und `createdByProbe`, welche Probe es gesehen hat. Alles andere an ihnen verhält sich genau wie bei einem von Hand gemeldeten Vorfall.
+So angelegte Vorfälle werden vom Server markiert: `isCreatedAutomatically` wird gesetzt, `createdCriteriaId` hält fest, welcher Kriterienfilter ausgelöst hat, und `createdByProbe`, welche Sonde es gesehen hat. Alles andere an ihnen verhält sich genau wie bei einem von Hand gemeldeten Vorfall.
 
 Ein von einem Monitor gemeldeter Vorfall wird mit dem verknüpft, was der Monitor überwacht: mit allem, was seine Konfiguration nennt (der Host eines Host-Monitors, der Cluster eines Kubernetes-Monitors, die Dienste eines Log-Monitors), und mit allem unter seinen **Verknüpfte Ressourcen**. Die Konfiguration eines Website- oder API-Monitors nennt keine Infrastruktur; verknüpfen Sie ihn daher mit dem Cluster, den Hosts oder der Datenbank hinter der Website: Seine Vorfälle erscheinen dann auf den Seiten dieser Ressourcen, die OneUptime-KI kann sie dort untersuchen, und die KI-Behebung des Clusters oder der Ressource kann auf sie wirken (siehe [AI SRE](/docs/ai/ai-sre#auf-welche-vorfälle-die-korrekturen-eines-clusters-wirken)). Von einem Monitor erstellte Warnungen werden ebenso verknüpft.
 

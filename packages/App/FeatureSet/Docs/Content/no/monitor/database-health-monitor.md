@@ -2,11 +2,11 @@
 
 Database Health-monitoren kobler til PostgreSQL, MySQL eller Microsoft SQL Server etter en tidsplan og rapporterer serverens egne helsesignaler — ledig kapasitet for tilkoblinger, blokkerte økter, replikeringsforsinkelse, treffrate i hurtigbufferen, databasestørrelse, transaksjons-ID-wraparound og rundt tretti til — slik at du kan varsle på dem på samme måte som du varsler når et nettsted er nede.
 
-Du skriver ingen SQL. Proben kjører et fast sett skrivebeskyttede katalogspørringer, valgt etter databasemotor, og rapporterer et lite sett navngitte tall.
+Du skriver ingen SQL. Sonden kjører et fast sett skrivebeskyttede katalogspørringer, valgt etter databasemotor, og rapporterer et lite sett navngitte tall.
 
 :::cards
 - [Opprett en overvåkingsbruker](#opprett-en-overvåkingsbruker): Rettighetene hver motor trenger. Dette er steget som betyr mest.
-- [Opprett monitoren](#opprett-en-database-health-monitor): Rett en probe mot databasen og velg hva som skal samles inn.
+- [Opprett monitoren](#opprett-en-database-health-monitor): Rett en sonde mot databasen og velg hva som skal samles inn.
 - [Innsamlede målinger](#innsamlede-målinger): Hver serie, med motorene som rapporterer den.
 - [Sett opp kriterier](#sett-opp-kriterier): Varsle om tilkoblinger, blokkering, forsinkelse og wraparound.
 :::
@@ -41,7 +41,7 @@ Hver database som applikasjonene, klyngene og vertene dine bruker — disse tre 
 
 ## Slik fungerer det
 
-Ved hver kontroll gjør en probe dette:
+Ved hver kontroll gjør en sonde dette:
 
 1. Den kobler til databasen med påloggingsinformasjonen du konfigurerer.
 2. Den kjører én lett testspørring. **Dette er den eneste setningen som kan ta monitoren offline hvis den feiler.**
@@ -62,11 +62,11 @@ flowchart TB
 
 Bare navngitte numeriske aggregater sendes til OneUptime. Ingen spørringstekst, ingen rader fra tabellene dine og ingen skjemanavn forlater nettverket ditt — spørringene leser motorens egne statistikkvisninger (`pg_stat_activity`, `performance_schema.global_status`, `sys.dm_exec_sessions` og lignende), aldri dataene dine.
 
-Fordi kontrollen kjører fra en probe, trenger databasen bare å kunne nås fra proben. Sett en [egendefinert probe](/docs/probe/custom-probe) inn i nettverket ditt, så trenger OneUptime ingen rute til databasen i det hele tatt.
+Fordi kontrollen kjører fra en sonde, trenger databasen bare å kunne nås fra sonden. Sett en [egendefinert sonde](/docs/probe/custom-probe) inn i nettverket ditt, så trenger OneUptime ingen rute til databasen i det hele tatt.
 
 ## Før du begynner
 
-- En **probe** med nettverkstilgang til databasens vert og port. Bruk en probe som OneUptime drifter hvis databasen kan nås fra internett, og ellers en [egendefinert probe](/docs/probe/custom-probe) i nettverket ditt.
+- En **sonde** med nettverkstilgang til databasens vert og port. Bruk en sonde som OneUptime drifter hvis databasen kan nås fra internett, og ellers en [egendefinert sonde](/docs/probe/custom-probe) i nettverket ditt.
 - En **overvåkingsbruker**, opprettet som beskrevet i neste avsnitt, og tilkoblingsinformasjonen dens.
 
 ## Opprett en overvåkingsbruker
@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` er en innebygd rolle (PostgreSQL 10 og nyere) som gir lesetilgang til statistikk- og overvåkingsvisningene. Den gir ingen tilgang til tabellene dine.
 
 > [!IMPORTANT]
-> **Hvorfor `pg_monitor` ikke er valgfri på PostgreSQL.** Uten den feiler ikke `pg_stat_activity` — spørringen lykkes og returnerer bare overvåkingsøktens egen rad. Antall tilkoblinger ville vist `1`, blokkerte økter `0` og replikeringsforsinkelsen `0`, for alltid, på en server som i virkeligheten står i brann. Derfor sjekker proben, **før** den kjører de spørringene, at påloggingen er medlem av `pg_monitor` (eller `pg_read_all_stats`) eller er superbruker. Er den ingen av delene, rapporterer proben gruppene Connections, Activity og Locks som utilgjengelige, sammen med `GRANT`-en du trenger. Å rapportere ingenting er det ærlige svaret; å rapportere `1` er det ikke.
+> **Hvorfor `pg_monitor` ikke er valgfri på PostgreSQL.** Uten den feiler ikke `pg_stat_activity` — spørringen lykkes og returnerer bare overvåkingsøktens egen rad. Antall tilkoblinger ville vist `1`, blokkerte økter `0` og replikeringsforsinkelsen `0`, for alltid, på en server som i virkeligheten står i brann. Derfor sjekker sonden, **før** den kjører de spørringene, at påloggingen er medlem av `pg_monitor` (eller `pg_read_all_stats`) eller er superbruker. Er den ingen av delene, rapporterer sonden gruppene Connections, Activity og Locks som utilgjengelige, sammen med `GRANT`-en du trenger. Å rapportere ingenting er det ærlige svaret; å rapportere `1` er det ikke.
 
 På en administrert tjeneste der `pg_monitor` ikke er tilgjengelig, dekker `pg_read_all_stats` de samme visningene. På Amazon RDS trengs ikke `GRANT rds_superuser` — `GRANT pg_monitor TO oneuptime_health;` fungerer som medlem av `rds_superuser`.
 
@@ -145,11 +145,11 @@ Det er nok på vCore-databaser og på DTU-databaser fra S2 og oppover. På **Bas
 ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 ```
 
-`##MS_ServerStateReader##` fungerer på alle nivåer, så det er også reserveløsningen hvis `VIEW DATABASE STATE` likevel ikke er nok. Et nytt rollemedlemskap kan bruke noen minutter på å tre i kraft og gjelder bare nye tilkoblinger; proben åpner en ny tilkobling ved hver kontroll.
+`##MS_ServerStateReader##` fungerer på alle nivåer, så det er også reserveløsningen hvis `VIEW DATABASE STATE` likevel ikke er nok. Et nytt rollemedlemskap kan bruke noen minutter på å tre i kraft og gjelder bare nye tilkoblinger; sonden åpner en ny tilkobling ved hver kontroll.
 
 En innesluttet databasebruker (`CREATE USER oneuptime_health WITH PASSWORD = '...'` i den overvåkede databasen, uten pålogging) fungerer med `VIEW DATABASE STATE` fra S2 og oppover, men kan ikke bli medlem av `##MS_ServerStateReader##`: serverroller tar bare pålogginger. For å flytte en innesluttet bruker til rollen sletter du den (`DROP USER oneuptime_health;`) og følger setningene ovenfor.
 
-Proben gjenkjenner Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versjonen — Azure SQL Database rapporterer `12.0.2000.8` uansett hva den faktisk kjører, noe som leses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighet vises som Azure-setningen ovenfor, aldri som `VIEW SERVER STATE`.
+Sonden gjenkjenner Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versjonen — Azure SQL Database rapporterer `12.0.2000.8` uansett hva den faktisk kjører, noe som leses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighet vises som Azure-setningen ovenfor, aldri som `VIEW SERVER STATE`.
 
 - **Replikering samles ikke inn på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication hoppes over der i stedet for å bli rapportert som feilet ved hver kontroll. Azures egne replikavisninger (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) leses ikke ennå.
 - **Tilkoblinger gjelder per database.** Med `VIEW DATABASE STATE` viser Azure SQL Database bare øktene til den overvåkede databasen, så Connections teller den databasen og ikke den logiske serveren. Overvåk hver database du bryr deg om.
@@ -178,7 +178,7 @@ Klikk på **Test monitor** for å kjøre én kontroll før du lagrer, og les hva
 
 Gå gjennom kriteriene monitoren starter med, og legg til dine egne — se [Sett opp kriterier](#sett-opp-kriterier). Klikk deretter på **Neste**.
 
-### Velg prober og opprett
+### Velg sonder og opprett
 
 Velg **Sonder** som kan nå databasen, og et **Overvåkingsintervall**, og klikk deretter på **Opprett monitor**.
 :::
@@ -188,10 +188,10 @@ Velg **Sonder** som kan nå databasen, og et **Overvåkingsintervall**, og klikk
 | Felt | Hva du fyller inn |
 |---|---|
 | **Database Type** | PostgreSQL, MySQL eller Microsoft SQL Server. Valg av type setter standardporten og avgjør hvilke spørringer som kjøres. |
-| **Vert** | Databaseverten som kan nås fra proben (for eksempel `db.internal`). |
+| **Vert** | Databaseverten som kan nås fra sonden (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Databasen det kobles til. Målinger på databasenivå (størrelse, treffrate i hurtigbufferen, utskriving til midlertidige filer) rapporteres for denne databasen; målinger på servernivå (tilkoblinger, oppetid, replikering) for hele serveren — unntatt på Azure SQL Database, der tilkoblinger bare telles for den overvåkede databasen. |
-| **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på som probeprosessen. Se [Integrert Windows-autentisering](/docs/monitor/sql-monitor#integrert-windows-autentisering) på siden om SQL Query-monitoren — oppsettet er det samme. |
+| **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på som sondeprosessen. Se [Integrert Windows-autentisering](/docs/monitor/sql-monitor#integrert-windows-autentisering) på siden om SQL Query-monitoren — oppsettet er det samme. |
 | **Brukernavn** | Overvåkingsbrukeren. Påkrevd, med mindre du bruker integrert Windows-autentisering. |
 | **Passord** | Passordet. Henvis til en [monitorhemmelighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive det inn i klartekst (se [Bruk en monitorhemmelighet](#bruk-en-monitorhemmelighet-for-passordet)). |
 | **Use SSL/TLS** | Koble til over TLS. Når dette er slått på, kan du slå av **Verify server certificate** for et selvsignert sertifikat. |
@@ -217,7 +217,7 @@ Slik blir passordet aldri lagret i klartekst på monitoren:
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens **Passord**-felt.
 :::
 
-Hemmeligheten slås opp på serveren før konfigurasjonen gis videre til en probe. Feltene Vert, Brukernavn og Databasenavn godtar den samme henvisningen. Påloggingsinformasjon skrives aldri til logger, monitorfeeder eller varselmaler.
+Hemmeligheten slås opp på serveren før konfigurasjonen gis videre til en sonde. Feltene Vert, Brukernavn og Databasenavn godtar den samme henvisningen. Påloggingsinformasjon skrives aldri til logger, monitorfeeder eller varselmaler.
 
 ## Målingsgrupper
 
@@ -259,7 +259,7 @@ Mangler betyr alltid mangler. En verdi som ikke ble målt, rapporteres aldri som
 
 ### "The user does not have permission to perform this action"
 
-Dette er SQL Servers melding (Msg 297) for en pålogging som kan koble til, men ikke kan lese serverens tilstandsvisninger. Den betyr alltid en manglende rettighet, aldri en feil i databasen. SQL Server sender den som nummer to, etter en melding som nevner tillatelsen som ble avvist, og monitoren viser begge: for eksempel `VIEW SERVER STATE permission was denied on object 'server', database 'master'. The user does not have permission to perform this action.` Ved siden av står setningen som løser det for plattformen proben koblet til:
+Dette er SQL Servers melding (Msg 297) for en pålogging som kan koble til, men ikke kan lese serverens tilstandsvisninger. Den betyr alltid en manglende rettighet, aldri en feil i databasen. SQL Server sender den som nummer to, etter en melding som nevner tillatelsen som ble avvist, og monitoren viser begge: for eksempel `VIEW SERVER STATE permission was denied on object 'server', database 'master'. The user does not have permission to perform this action.` Ved siden av står setningen som løser det for plattformen sonden koblet til:
 
 - **SQL Server eller Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, kjørt i `master` (monitoren viser den som `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, kjørt i den overvåkede databasen; på Basic, S0, S1 og elastiske pooler i stedet medlemskap i `##MS_ServerStateReader##`. Se [Azure SQL Database](#azure-sql-database).
@@ -364,7 +364,7 @@ Forsinkelsen i sekunder står på null på en inaktiv primærserver selv når en
 
 Tellere som slutter på `total`, er kumulative siden serveren startet. Sammenlign to tidspunkter for å få en rate; én enkelt verdi gir bare mening sammenlignet med sin egen historikk, og den nullstilles når serveren starter på nytt (noe **Uptime** viser deg).
 
-**Cache Hit Ratio** og **Rollback Ratio** regnes ut ved hver kontroll fra hvor mye tellerne har flyttet seg siden monitorens forrige kontroll, ikke siden serveren startet, så en hurtigbuffer som begynner å bomme, synes med en gang. Den første kontrollen etter at proben starter, og den første etter at serveren starter på nytt, har ingen av dem.
+**Cache Hit Ratio** og **Rollback Ratio** regnes ut ved hver kontroll fra hvor mye tellerne har flyttet seg siden monitorens forrige kontroll, ikke siden serveren startet, så en hurtigbuffer som begynner å bomme, synes med en gang. Den første kontrollen etter at sonden starter, og den første etter at serveren starter på nytt, har ingen av dem.
 
 ## Sett opp kriterier
 
@@ -430,11 +430,11 @@ Knytt en vaktpolicy til offline-kriteriet, og la alt som er avledet av **Metric 
 ## Feilsøking
 
 :::details Monitoren er frakoblet, men databasen kjører
-Frakoblet betyr at proben ikke kunne koble til, eller at testspørringen feilet: verten eller porten kan ikke nås fra proben, påloggingen ble avvist, TLS feilet eller tilkoblingen fikk tidsavbrudd. Monitorens sammendrag viser feilen. Sjekk at proben kan nå databasen (en probe som OneUptime drifter, trenger en offentlig adresse; bruk ellers en [egendefinert probe](/docs/probe/custom-probe)), sjekk brukernavnet og passordet eller monitorhemmeligheten for det, og slå av **Verify server certificate** for et selvsignert sertifikat. Klikk deretter på **Test monitor** for å sjekke igjen.
+Frakoblet betyr at sonden ikke kunne koble til, eller at testspørringen feilet: verten eller porten kan ikke nås fra sonden, påloggingen ble avvist, TLS feilet eller tilkoblingen fikk tidsavbrudd. Monitorens sammendrag viser feilen. Sjekk at sonden kan nå databasen (en sonde som OneUptime drifter, trenger en offentlig adresse; bruk ellers en [egendefinert sonde](/docs/probe/custom-probe)), sjekk brukernavnet og passordet eller monitorhemmeligheten for det, og slå av **Verify server certificate** for et selvsignert sertifikat. Klikk deretter på **Test monitor** for å sjekke igjen.
 :::
 
 :::details Connections, Activity og Locks mangler på PostgreSQL
-Påloggingen er verken medlem av `pg_monitor` eller `pg_read_all_stats` og er ikke superbruker, så proben hopper over de gruppene i stedet for å registrere feil tall. Kjør `GRANT pg_monitor TO oneuptime_health;` slik det er beskrevet under [PostgreSQL](#postgresql).
+Påloggingen er verken medlem av `pg_monitor` eller `pg_read_all_stats` og er ikke superbruker, så sonden hopper over de gruppene i stedet for å registrere feil tall. Kjør `GRANT pg_monitor TO oneuptime_health;` slik det er beskrevet under [PostgreSQL](#postgresql).
 :::
 
 :::details Connections, Throughput og Locks mangler på MySQL
@@ -455,5 +455,5 @@ En gruppe kan ikke samles inn ved noen kontroll, så det samme innsamlingsproble
 - [SQL-spørring-overvåking](/docs/monitor/sql-monitor): Varsle om resultatet av din egen spørring, ved siden av serverens helse.
 - [Databaser](/docs/telemetry/databases): Se hver databases målinger, logger og kallere på én side.
 - [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold passordet til overvåkingsbrukeren kryptert.
-- [Egendefinerte probes](/docs/probe/custom-probe): Nå en database inne i nettverket ditt.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Nå en database inne i nettverket ditt.
 :::

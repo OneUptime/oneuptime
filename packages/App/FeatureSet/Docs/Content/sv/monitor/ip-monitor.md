@@ -143,7 +143,7 @@ Adressen, eller en brandvägg framför den, svarar inte på ICMP-ekobegäranden 
 :::
 
 :::details En IPv6-adress misslyckas alltid
-Sonden som körde kontrollen saknar IPv6-anslutning; felet säger det. Kör monitorn på en sond med IPv6: se [Anpassade probes](/docs/probe/custom-probe).
+Sonden som körde kontrollen saknar IPv6-anslutning; felet säger det. Kör monitorn på en sond med IPv6: se [Anpassade sonder](/docs/probe/custom-probe).
 :::
 
 :::details Paketförlust och jitter är tomma
@@ -155,6 +155,6 @@ Sonden som körde kontrollen kan inte skicka ping, så den kontrollerade i stäl
 :::cards
 - [Ping-övervakning](/docs/monitor/ping-monitor): Pinga en värd via namn och följ DNS-ändringar.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera en tjänst på adressen, inte bara adressen.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera privata adresser och IPv6-adresser från ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera privata adresser och IPv6-adresser från ditt eget nätverk.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att monitorn har deklarerat en.
 :::

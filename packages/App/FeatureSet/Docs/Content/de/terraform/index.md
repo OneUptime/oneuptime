@@ -105,7 +105,7 @@ Der Provider hat für jede Art von Datensatz, die Sie über die OneUptime-API an
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | Vorfälle, ihre Schweregrade und ihre Status |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | Warnungen, ihre Schweregrade und ihre Status |
 | `oneuptime_scheduled_maintenance_event` | Ein geplantes Wartungsfenster |
-| `oneuptime_probe` | Eine eigene Probe, die aus Ihrem Netzwerk prüft |
+| `oneuptime_probe` | Eine eigene Sonde, die aus Ihrem Netzwerk prüft |
 
 Die [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) listet jede Ressource mit jedem ihrer Attribute.
 

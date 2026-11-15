@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"команды govc<br/>только для чтения"| vsphere
 ```
 
-vCenter регистрируется по своим первым данным под именем, которое агент проставляет на каждую метрику как `vmware.vcenter.name`. Чтобы отслеживать vCenter вообще без агента, см. [VMware без агента](/docs/telemetry/vmware-agentless): одна из ваших проб собирает те же данные с учётной записью только для чтения.
+vCenter регистрируется по своим первым данным под именем, которое агент проставляет на каждую метрику как `vmware.vcenter.name`. Чтобы отслеживать vCenter вообще без агента, см. [VMware без агента](/docs/telemetry/vmware-agentless): одна из ваших зондов собирает те же данные с учётной записью только для чтения.
 
 ## Перед началом
 
@@ -517,7 +517,7 @@ OneUptime регистрирует vCenter по его `vmware.vcenter.name`, к
 
 :::cards
 - [Мониторинг VMware](/docs/monitor/vmware-monitor): Оповещения по хостам, ВМ, хранилищам данных, кластерам, датацентрам и vSAN.
-- [VMware без агента](/docs/telemetry/vmware-agentless): Пусть vCenter вместо этого собирает проба.
+- [VMware без агента](/docs/telemetry/vmware-agentless): Пусть vCenter вместо этого собирает зонд.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Что может выполнять ИИ-агент VMware и как работают исправления.
 - [OpenTelemetry-коллектор на хосте](/docs/telemetry/host-otel-collector): Вид на уровне операционной системы внутри ВМ или машины агента.
 :::

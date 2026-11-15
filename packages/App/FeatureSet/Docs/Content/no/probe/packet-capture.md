@@ -36,7 +36,7 @@ sequenceDiagram
 
 ## Før du begynner
 
-- **En av prosjektets egne sonder.** Globale sonder bærer andre prosjekters trafikk, så de tar aldri opp. Se [Egendefinerte probes](/docs/probe/custom-probe) for å installere en egen sonde.
+- **En av prosjektets egne sonder.** Globale sonder bærer andre prosjekters trafikk, så de tar aldri opp. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å installere en egen sonde.
 - **En sonde fra denne utgivelsen eller nyere.** Eldre sonder rapporterer ikke hva de kan ta opp på.
 - **De riktige tillatelsene.** Å starte og stoppe et opptak krever **Start Packet Capture**, og å laste ned en fil krever **Download Packet Capture**. Prosjekteiere og -administratorer har begge. Se [Tillatelser](#tillatelser).
 - **En speilet port, for trafikk som ikke når sonden.** En sonde ser bare trafikken på sin egen verts grensesnitt. For å ta opp trafikk mellom andre enheter speiler du switchporten deres (SPAN) til et ledig grensesnitt på sondens vert.
@@ -234,7 +234,7 @@ En sonde kjører 2 opptak om gangen. Vent til ett er ferdig, eller stopp ett, og
 ## Neste steg
 
 :::cards
-- [Egendefinerte probes](/docs/probe/custom-probe): Installer en sonde i nettverket du vil ta opp i.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Installer en sonde i nettverket du vil ta opp i.
 - [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Overvåk enhetene du tar opp trafikken til.
 - [Tillatelser](/docs/permissions/index): Gi et team tillatelsene for pakkeopptak.
 :::

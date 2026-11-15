@@ -54,7 +54,7 @@ Se [Kriterier og statuser](/docs/monitor/criteria-and-statuses).
 
 En maskin som kjører monitorenes sjekker etter en tidsplan: den henter en side, kaller et API eller pinger en vert. OneUptime Cloud kjører sonder i flere regioner, og en egendefinert sonde du kjører i ditt eget nettverk, sjekker det bare det nettverket kan nå.
 
-Også kalt: **Egendefinerte probes**. Se [Egendefinerte probes](/docs/probe/custom-probe).
+Også kalt: **Egendefinerte sonder**. Se [Egendefinerte sonder](/docs/probe/custom-probe).
 
 ### Hendelse
 

@@ -82,7 +82,7 @@ Lo storage cresce **in modo lineare con la conservazione**: una finestra di 90 g
 
 PostgreSQL memorizza la configurazione e lo stato operativo, non la telemetria, quindi cresce lentamente e resta piccolo rispetto a ClickHouse. Anche le installazioni grandi restano di solito nell'ordine delle decine di GB. Il volume predefinito da **25 Gi** basta per le installazioni piccole; prevedi 50–100 GB per quelle più grandi, con margine per la cronologia di incidenti e avvisi.
 
-Con molte repliche di app, worker e probe, le connessioni al database possono esaurirsi prima dello storage. Ogni pod apre fino a 50 connessioni per impostazione predefinita, e il PostgreSQL incluso ne accetta 500. Proprio per questo il chart include un connection pooler **PgBouncer** opzionale (`pgbouncer.enabled`): attivalo per le installazioni con molte repliche.
+Con molte repliche di app, worker e sonde, le connessioni al database possono esaurirsi prima dello storage. Ogni pod apre fino a 50 connessioni per impostazione predefinita, e il PostgreSQL incluso ne accetta 500. Proprio per questo il chart include un connection pooler **PgBouncer** opzionale (`pgbouncer.enabled`): attivalo per le installazioni con molte repliche.
 
 ## Valkey – cache, code e sessioni
 
@@ -96,11 +96,11 @@ Oltre agli archivi di dati, dimensiona i carichi di lavoro senza stato. Ognuno g
 | --- | --- | --- |
 | App: dashboard, API e ingestione | `app` | Utenti, chiamate API e telemetria in ingresso |
 | Worker, quando separati dall'app | `worker` | Telemetria ed elaborazione dei job in background |
-| Probe | `probes` | Il numero di monitor attivi |
+| Sonda | `probes` | Il numero di monitor attivi |
 | Gateway di ingresso | `nginx` | Il volume di richieste |
 | Telemetry writer, quando attivato | `telemetryWriter` | Non con il carico: raggruppa ogni inserimento di telemetria in ClickHouse, quindi si dimensiona su ciò che ClickHouse può reggere |
 
-Il chart include **KEDA**, così app, worker, probe e il Runner globale possono scalare in base alla coda arretrata. Attiva `keda.enabled` insieme al `keda.enabled` di ogni servizio (per esempio `app.keda.enabled`). Su un cluster che non ha ancora KEDA, la prima installazione richiede un passaggio in più: vedi la [guida KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) del chart. I servizi che KEDA non gestisce possono usare invece un autoscaler basato su CPU o memoria (`autoscaling`).
+Il chart include **KEDA**, così app, worker, sonde e il Runner globale possono scalare in base alla coda arretrata. Attiva `keda.enabled` insieme al `keda.enabled` di ogni servizio (per esempio `app.keda.enabled`). Su un cluster che non ha ancora KEDA, la prima installazione richiede un passaggio in più: vedi la [guida KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) del chart. I servizi che KEDA non gestisce possono usare invece un autoscaler basato su CPU o memoria (`autoscaling`).
 
 ## Livelli di partenza
 

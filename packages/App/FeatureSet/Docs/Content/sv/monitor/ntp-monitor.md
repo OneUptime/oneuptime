@@ -157,6 +157,6 @@ Sonden ligger långt från servern, eller vägen är långsammare åt ena hålle
 :::cards
 - [Ping-övervakning](/docs/monitor/ping-monitor): Kontrollera att själva värden kan nås.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera TCP-tjänsterna på samma värd.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera tidsservrar i ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera tidsservrar i ditt eget nätverk.
 - [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg stratum och avvikelse i en incidents titel.
 :::

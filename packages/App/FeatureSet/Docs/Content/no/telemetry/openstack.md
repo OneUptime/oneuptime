@@ -1,9 +1,9 @@
 # OpenStack-agent
 
-OneUptime sin OpenStack-agent overvåker en OpenStack-sky: tjenestene og agentene, hypervisorene, instansene, nettverkene, ruterne, volumene, lagringspoolene, bildene og prosjektene, i alle regioner. Den leser skyens API-er med en legitimasjon du velger, og sender det den finner til OneUptime, der skyen vises med regionene, hypervisorene og prosjektene sine. [OpenStack-monitorer](/docs/monitor/openstack-monitor) varsler om det som kommer inn, og en [probe](/docs/telemetry/openstack-agentless) kan samle inn data fra en sky uten at noe må installeres.
+OneUptime sin OpenStack-agent overvåker en OpenStack-sky: tjenestene og agentene, hypervisorene, instansene, nettverkene, ruterne, volumene, lagringspoolene, bildene og prosjektene, i alle regioner. Den leser skyens API-er med en legitimasjon du velger, og sender det den finner til OneUptime, der skyen vises med regionene, hypervisorene og prosjektene sine. [OpenStack-monitorer](/docs/monitor/openstack-monitor) varsler om det som kommer inn, og en [sonde](/docs/telemetry/openstack-agentless) kan samle inn data fra en sky uten at noe må installeres.
 
 :::cards
-- [Probe eller agent?](/docs/telemetry/openstack-agentless#sonde-eller-agent): Hvilken du bør velge for en sky som kan bruke begge.
+- [Sonde eller agent?](/docs/telemetry/openstack-agentless#sonde-eller-agent): Hvilken du bør velge for en sky som kan bruke begge.
 - [Velg hvor mye den ser](#velg-hvor-mye-agenten-ser): OpenStack har ingen global skrivebeskyttet rolle, så det finnes tre nivåer.
 - [Installer agenten](#installer-agenten): En legitimasjon, deretter installasjonsskriptet, Docker Compose eller helt uten Docker.
 - [Hva den koster skyen din](#hva-den-koster-skyen-din): Hva hver innstilling leser, og hvordan du endrer den.
@@ -11,10 +11,10 @@ OneUptime sin OpenStack-agent overvåker en OpenStack-sky: tjenestene og agenten
 - [Forbruk](#forbruk): Hvem som bruker hva, hva det utgjør med dine priser eller slik CloudKitty vurderte det, og hva som kan frigjøres.
 - [Statussider og varsling av prosjekter](#statussider-og-varsling-av-prosjekter): En side per region i ett steg, og varsling av bare de prosjektene en feil rammer.
 - [Tjenestelogger](#tjenestelogger): Tolket, med en forespørsel fulgt på tvers av tjenester.
-- [Livssyklushendelser](#livssyklushendelser): Instanshandlinger i feeden og på diagrammer, fra varsler eller en probe.
+- [Livssyklushendelser](#livssyklushendelser): Instanshandlinger i feeden og på diagrammer, fra varsler eller en sonde.
 - [Hvem gjorde hva](#hvem-gjorde-hva): Revisjonsspor inn i sikkerhetshendelser.
 - [Spor en forespørsel](#spor-forespørsler-gjennom-kontrollplanet): Én signert forespørsel, fulgt gjennom kontrollplanet.
-- [Sjekk skyen utenfra](#sjekk-skyen-utenfra): Om noen faktisk kan starte en instans, fra en probe utenfor skyen.
+- [Sjekk skyen utenfra](#sjekk-skyen-utenfra): Om noen faktisk kan starte en instans, fra en sonde utenfor skyen.
 - [Uten internett](#uten-internett): Agentens fire images, og hvordan du kopierer dem til et eget register.
 - [Etter distribusjonsverktøy](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat og Mirantis.
 - [Feilsøking](#feilsøking): Et diagnoseskript og de vanligste problemene.
@@ -244,7 +244,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 Agenten ser det prosjektets rader fra Cinder og Neutron og ingen infrastruktur. Tre ting du bør vite før du velger dette:
 
-- **Gjennom agenten vises ingen instanser i det hele tatt.** Exporteren ber Nova om alle prosjekters servere, Nova avviser en vanlig reader, og den lesingen feiler som helhet. Bare en OneUptime-probe, som samler inn uten denne agenten, kan liste ett prosjekts instanser.
+- **Gjennom agenten vises ingen instanser i det hele tatt.** Exporteren ber Nova om alle prosjekters servere, Nova avviser en vanlig reader, og den lesingen feiler som helhet. Bare en OneUptime-sonde, som samler inn uten denne agenten, kan liste ett prosjekts instanser.
 - **Den kan kanskje skrive.** I en sky der Cinder har `enforce_new_defaults` av, kan vanlig `reader` også opprette volumer i prosjektet sitt. På Epoxy, Flamingo og Gazpacho gjorde den det (`202`), og på Hibiscus ble det avvist (`403`), fordi DevStack bare slår på `enforce_new_defaults` der. Cinders egen standard er av.
 - **Placement leses som om den ikke svarer.** Hvert kall den gjør avvises, og exporteren rapporterer det på samme måte som en stoppet Placement: `openstack_placement_up 0`, på alle fem skyene vi har registrert. Sidene kan se det, ut fra hva annet som er stengt for denne legitimasjonen, og sier fra om det. Malen [Placement API Down](/docs/monitor/openstack-monitor#ferdige-varselmaler) kan ikke det, så utelat den på dette nivået.
 :::
@@ -517,8 +517,8 @@ Hva som trenger noen, på de samme linjene som [varselmalene](/docs/monitor/open
 Hver av disse ble registrert på en ekte DevStack, og hver side sier fra om det der det betyr noe:
 
 - **Ironic viser et prosjekt bare nodene det eier.** Placement svarer alle, så der den har en node Ironic ikke listet, sier siden at listen ikke er hele skyens. Etter Ironics standardpolicy leser bare en legitimasjon med systemomfang hver node, eller en hvis rolle har `baremetal:node:list_all`.
-- **Exporteren har ikke med hvorfor en node feilet.** Den har en vedlikeholdsårsak og ingen `last_error`, og Ironic kan uansett tømme `last_error` i løpet av omtrent et minutt, mens noden fortsatt er feilet: det gjorde den for en feilet clean, og lot en feilet deploys stå. Så se med en gang med `openstack baremetal node show <node> -c last_error`, eller i conductorens logg. En [probe](/docs/telemetry/openstack-agentless) leser `last_error` og beholder den siste den så.
-- **Exporteren har ingen conductorer.** Bare en probe leser dem, og Ironic avviser et prosjekts legitimasjon listen med mindre policyen sier noe annet (`baremetal:conductor:get`).
+- **Exporteren har ikke med hvorfor en node feilet.** Den har en vedlikeholdsårsak og ingen `last_error`, og Ironic kan uansett tømme `last_error` i løpet av omtrent et minutt, mens noden fortsatt er feilet: det gjorde den for en feilet clean, og lot en feilet deploys stå. Så se med en gang med `openstack baremetal node show <node> -c last_error`, eller i conductorens logg. En [sonde](/docs/telemetry/openstack-agentless) leser `last_error` og beholder den siste den så.
+- **Exporteren har ingen conductorer.** Bare en sonde leser dem, og Ironic avviser et prosjekts legitimasjon listen med mindre policyen sier noe annet (`baremetal:conductor:get`).
 - **En stoppet Ironic leses likt som ingen Ironic.** Spurt om en som er stoppet, svarer exporteren en tom 200, slik den gjør for en sky som aldri har hatt den. Så en side sier bare at den ikke har hørt fra Ironic, og at nodene er slik de sist ble lest. Den sier aldri nede. To uker etter at resten av skyen sist rapporterte uten den, forsvinner disse radene, og de kommer tilbake hvis den gjør det.
 
 ## Kapasitet
@@ -529,19 +529,19 @@ Alt på den er allokering: det som er lovet, ikke det som er opptatt. En ledig i
 
 **Hva kapasitet er.** For hver ressursleverandør og ressursklasse er kapasiteten `(total - reserved) x allocation_ratio`, og allokert er det Placement har lovet. Det summeres per sone, aggregat, region og sky. En vert hvis `nova-compute` er nede beholder sine siste tall, og en deaktivert tar ikke imot noe mer, så ingen av dem teller som plass. Det de holder er fortsatt der, og en prognose teller det med.
 
-**Bare metal.** En node tar én instans hel, så en sky med Ironic får en egen tabell, etter ressursklasse: hvor mange noder, hvor mange som kunne ta en instans, hvor mange som er i bruk, og hvor mange som holdes tilbake fordi Novas Ironic-driver ikke kan bruke dem akkurat nå. Dette er Placements egne tall, så de gjelder hele skyen selv der Ironic viser et prosjekt bare det det eier, og de er ikke med i vCPU-ene og minnet ovenfor. En probe leser hvilken klasse en flavor ber om og teller den mot disse. Agentens exporter sier det ikke, så på agenten teller en bare metal-flavor som sine vCPU-er, sitt minne og sin disk, på verter.
+**Bare metal.** En node tar én instans hel, så en sky med Ironic får en egen tabell, etter ressursklasse: hvor mange noder, hvor mange som kunne ta en instans, hvor mange som er i bruk, og hvor mange som holdes tilbake fordi Novas Ironic-driver ikke kan bruke dem akkurat nå. Dette er Placements egne tall, så de gjelder hele skyen selv der Ironic viser et prosjekt bare det det eier, og de er ikke med i vCPU-ene og minnet ovenfor. En sonde leser hvilken klasse en flavor ber om og teller den mot disse. Agentens exporter sier det ikke, så på agenten teller en bare metal-flavor som sine vCPU-er, sitt minne og sin disk, på verter.
 
 **Hvor mange flere som får plass.** Hver flavor telles vert for vert, fordi en instans trenger alt den ber om på én vert. Ved siden av tallet står hva det ville vært hvis alt ledig lå på én vert, og det er slik en full sky skilles fra en fragmentert. En flavor ingen vert kunne rommet selv tom, sier **For stor for hver vert**, og ingenting varsler noen gang om den. Tallene gjelder en instans startet fra et image: en startet fra et volum ber ikke om noen rotdisk.
 
 Siden sier hvor hvert tall kom fra:
 
-| | Gjennom en probe | Gjennom agenten |
+| | Gjennom en sonde | Gjennom agenten |
 | --- | --- | --- |
 | **Talt fra** | `GET /allocation_candidates`, som er det Novas scheduler spør om, slik [StackHPCs os-capacity](https://github.com/stackhpc/os-capacity) gjør. Inventarer fylles inn til det blir flavorens tur | Placement-seriene exporteren allerede sender: `openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
 | **Ser traits og nestede leverandører** | Ja. En flavors extra specs etterspørres også, så `trait:` og `resources:` telles | Nei: exporterens flavorserie har ingen extra specs, så en flavor som trenger en trait teller hver vert, og siden sier fra om det |
 | **En verts `max_unit`** | Placements egen | Antatt å være vertens total, som er det Nova setter |
 
-En probe spør forsiktig, fordi dette er den ene lesingen som gir Placement arbeid. Den spør om én flavorform om gangen, så flavors som ber om det samme er ett spørsmål, og høyst 4 per innsamling, i omganger, uansett hvor mange flavors det er. Så en sky med 40 flavors samlet inn hvert 2. minutt koster 2 kall i minuttet og går en runde på 20 minutter. Hvert svar er begrenset til 1 000 verter, som er Novas egen `max_placement_results`: én oppstarts verdi av arbeid. Et tall fra et så langt svar er et gulv, og siden sier **Minst**. Den spør om ingenting ved første innsamling, ingenting når Placement har vært treg i den innsamlingen, og ingenting på en time etter at en legitimasjon er avvist, fordi tallet fra inventarene er der uansett. En applikasjonslegitimasjon eller rollen `oneuptime_monitoring` trenger at `/allocation_candidates` er tillatt: den står i `access/application-credential-access-rules.json` og `access/policy/placement.yaml`.
+En sonde spør forsiktig, fordi dette er den ene lesingen som gir Placement arbeid. Den spør om én flavorform om gangen, så flavors som ber om det samme er ett spørsmål, og høyst 4 per innsamling, i omganger, uansett hvor mange flavors det er. Så en sky med 40 flavors samlet inn hvert 2. minutt koster 2 kall i minuttet og går en runde på 20 minutter. Hvert svar er begrenset til 1 000 verter, som er Novas egen `max_placement_results`: én oppstarts verdi av arbeid. Et tall fra et så langt svar er et gulv, og siden sier **Minst**. Den spør om ingenting ved første innsamling, ingenting når Placement har vært treg i den innsamlingen, og ingenting på en time etter at en legitimasjon er avvist, fordi tallet fra inventarene er der uansett. En applikasjonslegitimasjon eller rollen `oneuptime_monitoring` trenger at `/allocation_candidates` er tillatt: den står i `access/application-credential-access-rules.json` og `access/policy/placement.yaml`.
 
 **Ved siden av det vertene faktisk bruker.** Der [faktisk bruk](#faktisk-bruk) når OneUptime, setter siden forholdet du har satt ved siden av det vertene faktisk bruker på toppen over et døgn, og forholdet der de ville nådd 90 %-linjen som **Hypervisor CPU Saturated** og **Hypervisor Memory Pressure** trekker. Det er en rett linje fra ett døgn med én arbeidsmengde, så den sier hvor langt et forhold kunne flyttes, ikke at du bør flytte det. Den sier ingenting før over halvparten av en sones verter rapporterer.
 
@@ -558,7 +558,7 @@ nova-manage placement audit --verbose --delete
 
 **Varsler.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** og **Reserved Headroom Gone** leser serier OneUptime skriver fra den samme oppsummeringen. De står i [monitorens maler](/docs/monitor/openstack-monitor#ferdige-varselmaler) og på skyens **Anbefalinger**-side.
 
-**Hva det koster.** Ingenting på agenten. En probe legger til kallene ovenfor. OneUptime skriver omtrent 2 serier for hver sones ressursklasse, eksterne nettverk og lagringspool, og én for hver flavor folk kan be om, hvert annet minutt, fakturert som enhver annen måling.
+**Hva det koster.** Ingenting på agenten. En sonde legger til kallene ovenfor. OneUptime skriver omtrent 2 serier for hver sones ressursklasse, eksterne nettverk og lagringspool, og én for hver flavor folk kan be om, hvert annet minutt, fakturert som enhver annen måling.
 
 ## Forbruk
 
@@ -587,9 +587,9 @@ En pris på null betyr ingen pris, ikke en gratis sky. Det som ikke har noen pri
 
 ### CloudKitty
 
-Hvis skyen kjører [CloudKitty](https://github.com/openstack/cloudkitty), erstatter det den vurderte utregningen, prosjekt for prosjekt, og siden sier hvilken den brukte. En probe spør én gang i timen, for denne måneden og forrige, og den spør `GET /v2/summary`, eller `GET /v1/report/summary` på en CloudKitty som er for gammel for den. Det er høyst to forespørsler per 1 000 prosjekter i timen, pluss en forespørsel om versjonen hver gang den leses.
+Hvis skyen kjører [CloudKitty](https://github.com/openstack/cloudkitty), erstatter det den vurderte utregningen, prosjekt for prosjekt, og siden sier hvilken den brukte. En sonde spør én gang i timen, for denne måneden og forrige, og den spør `GET /v2/summary`, eller `GET /v1/report/summary` på en CloudKitty som er for gammel for den. Det er høyst to forespørsler per 1 000 prosjekter i timen, pluss en forespørsel om versjonen hver gang den leses.
 
-- **Bare en [probe](/docs/telemetry/openstack-agentless) kan lese den.** Agentens exporter har ingen serie for CloudKitty, så en sky koblet til gjennom en agent regner ut, og sier fra om det.
+- **Bare en [sonde](/docs/telemetry/openstack-agentless) kan lese den.** Agentens exporter har ingen serie for CloudKitty, så en sky koblet til gjennom en agent regner ut, og sier fra om det.
 - **Det den ser er det legitimasjonen kan se.** CloudKittys egen policy viser en admins legitimasjon hvert prosjekt, med tilgangsregler eller uten, og alt mindre bare dens eget. Prosjektene den ikke vurderer, fortsetter å regnes ut fra prisene dine.
 - **En CloudKitty per region summeres.** Hver leses i sin egen tid, og et prosjekts tall er det de vurderte til sammen. Én CloudKitty katalogen lister for flere regioner spørres én gang.
 - **Tallene dens er den eneste delen av dette som er telemetri.** De når OneUptime som `openstack_cloudkitty_rated`, ett datapunkt per prosjekt og måned, én gang i timen: 20 000 i timen ved 10 000 prosjekter, som er nesten ingenting ved siden av resten av en sky i den størrelsen.
@@ -610,11 +610,11 @@ Skyens **Anbefalinger**-side lister hva som er blitt stående ubrukt, hva hver v
 | Hypervisorer som kunne tømmes | 20 % eller mindre av vCPU-ene og minnet er allokert, alt på den får plass på de andre vertene i sonen og aggregatene, og sonen kunne fortsatt miste en vert etterpå | Hele verten | `openstack hypervisor list --long` |
 | Instanser som har vært slått av lenge | Slått av i 30 dager | Deres vCPU-er, minne og lokale disk | `openstack server list --all-projects --status SHUTOFF --long` |
 | Volumer som ikke er koblet til noe | Tilgjengelig i 30 dager, ikke koblet til noe, og ikke et av Cinders egne `image-<id>`-volumer, som kommandoen også lister | Deres lagring | `openstack volume list --all-projects --status available --long` |
-| Gamle volumøyeblikksbilder | Laget for 90 dager siden. Bare probe | Deres lagring | `openstack volume snapshot list --all-projects --long` |
-| Images ingenting ble startet fra | Private eller delte, 30 dager gamle, ikke beskyttet, og ingen instans eller volum kom fra dem. Bare probe | Deres lagring | `openstack image list --long` |
+| Gamle volumøyeblikksbilder | Laget for 90 dager siden. Bare sonde | Deres lagring | `openstack volume snapshot list --all-projects --long` |
+| Images ingenting ble startet fra | Private eller delte, 30 dager gamle, ikke beskyttet, og ingen instans eller volum kom fra dem. Bare sonde | Deres lagring | `openstack image list --long` |
 | Flytende IP-er ingenting bruker | Ikke tilknyttet i 7 dager | En adresse | `openstack floating ip list --status DOWN --long` |
 
-Ingenting som er i bruk blir noen gang navngitt. Hvor lenge noe har vært slik kommer fra skyens egen klokke der en probe rapporterer en. Gjennom en agent er det hvor lenge OneUptime har sett det slik, så den dagen du kobler til en sky er ingenting gammelt ennå. En regel som ikke kan være sikker, sier det i stedet for å gjette: agenten kan ikke si hvilket image en instans ble startet fra, så et image i bruk ville sett ubrukt ut, og den kan ikke liste øyeblikksbilder, så disse to reglene venter på en probe. En vert navngis etter hva som er allokert i stedet for hvor travel den er, den navngis aldri i en sone med en vert som er tapt eller deaktivert, og verter tas tomste først slik at alt som navngis kan gjøres. Den kan ikke se traits eller noe annet en instans trenger av en vert.
+Ingenting som er i bruk blir noen gang navngitt. Hvor lenge noe har vært slik kommer fra skyens egen klokke der en sonde rapporterer en. Gjennom en agent er det hvor lenge OneUptime har sett det slik, så den dagen du kobler til en sky er ingenting gammelt ennå. En regel som ikke kan være sikker, sier det i stedet for å gjette: agenten kan ikke si hvilket image en instans ble startet fra, så et image i bruk ville sett ubrukt ut, og den kan ikke liste øyeblikksbilder, så disse to reglene venter på en sonde. En vert navngis etter hva som er allokert i stedet for hvor travel den er, den navngis aldri i en sone med en vert som er tapt eller deaktivert, og verter tas tomste først slik at alt som navngis kan gjøres. Den kan ikke se traits eller noe annet en instans trenger av en vert.
 
 ### Ved hver størrelse
 
@@ -740,7 +740,7 @@ En dels skaderadius er det den tar med seg, etter antall og etter prosjekt:
 
 En dels side viser den. Et varsel eller en hendelse på delen sier den i beskrivelsen, for eksempel «3 instanser i 2 prosjekter», med navnene deres.
 
-Exporteren sier ikke hvilket nettverk en instans er på, eller hvilken pool som holder et volum, så ingen av delene tegnes for en sky agenten samler inn. Kartet sier fra om det, og en lagringspools skaderadius sier at den ikke kan vite det i stedet for å svare ingen. En [probe](/docs/telemetry/openstack-agentless) sier begge deler. Kartet knytter da et volum til poolen sin, når Cinder behandler legitimasjonen som admin, og en pools skaderadius teller volumene og instansene de er koblet til. Det knytter også en instans til hvert nettverk den har en adresse på. Nova navngir disse nettverkene bare med navn, og Neutron tillater to med samme navn, så kartet leter etter ett i instansens prosjekt, deretter ett delt med det, så et hvilket som helst med det navnet, og tegner ingen forbindelse når to er like sannsynlige. Det som fortsatt er ukjent, blir stående i kartets merknad.
+Exporteren sier ikke hvilket nettverk en instans er på, eller hvilken pool som holder et volum, så ingen av delene tegnes for en sky agenten samler inn. Kartet sier fra om det, og en lagringspools skaderadius sier at den ikke kan vite det i stedet for å svare ingen. En [sonde](/docs/telemetry/openstack-agentless) sier begge deler. Kartet knytter da et volum til poolen sin, når Cinder behandler legitimasjonen som admin, og en pools skaderadius teller volumene og instansene de er koblet til. Det knytter også en instans til hvert nettverk den har en adresse på. Nova navngir disse nettverkene bare med navn, og Neutron tillater to med samme navn, så kartet leter etter ett i instansens prosjekt, deretter ett delt med det, så et hvilket som helst med det navnet, og tegner ingen forbindelse når to er like sannsynlige. Det som fortsatt er ukjent, blir stående i kartets merknad.
 
 ## Statussider og varsling av prosjekter
 
@@ -823,7 +823,7 @@ Det hver kilde sier om en pool avgjør hvordan den kobles:
 
 | Kilde | Hva den sier | Hva som skjer |
 | --- | --- | --- |
-| En [probe](/docs/telemetry/openstack-agentless) på nivået Full visning | Cinders RBD-driver navngir Ceph-klyngens fsid og pool i `location_info` | Den kobles av seg selv, når én [Ceph-klynge](/docs/telemetry/ceph) her rapporterer den fsid-en. En Ceph-klynge rapporterer den bare med `ceph.cluster.fsid` satt i agentens konfigurasjon |
+| En [sonde](/docs/telemetry/openstack-agentless) på nivået Full visning | Cinders RBD-driver navngir Ceph-klyngens fsid og pool i `location_info` | Den kobles av seg selv, når én [Ceph-klynge](/docs/telemetry/ceph) her rapporterer den fsid-en. En Ceph-klynge rapporterer den bare med `ceph.cluster.fsid` satt i agentens konfigurasjon |
 | Agentens exporter | Poolens navn, backendens navn og leverandøren, som står som `Open Source` for både LVM og RBD | Ingenting sier at den er på Ceph. En Ceph-pool med samme navn i nøyaktig én klynge foreslås, for at noen skal bekrefte én gang på poolens side, med mindre en annen Cinder-pool har det navnet også. Uten en slik treff kan de velge en klynge, eller si at den ikke er på Ceph |
 
 Når den er koblet, sier poolens side hvordan klyngen dens leses, og `HEALTH_WARN` eller `HEALTH_ERR` vises i skyens **Krever oppmerksomhet**. Et forslag ingen bekreftet utløser ingenting. Et svar noen ga kan endres på poolens side. Bare legitimasjonen med Full visning kan se pooler i det hele tatt: se [Velg hvor mye agenten ser](#velg-hvor-mye-agenten-ser).
@@ -838,7 +838,7 @@ En sky med Heat får **Stacks** under **Orkestrering**, og en med Magnum får **
 
 Exporteren sier mindre om disse tjenestene enn en lesing av API-ene deres gjør, og ingen av tjenestene viser noen andre enn en admin hele skyen. Så hver side sier hva skyens collector ikke kan se.
 
-| Hva | Agent, Full visning | Probe, Full visning | Alt mindre |
+| Hva | Agent, Full visning | Sonde, Full visning | Alt mindre |
 | --- | --- | --- | --- |
 | Hvert prosjekts stacks og statusen deres | Ja | Ja | Høyst eget prosjekts, uten prosjekt på dem, og ingen feil sier det |
 | Hvem en stack tilhører | Ja | Ja | Nei |
@@ -852,9 +852,9 @@ Exporteren sier mindre om disse tjenestene enn en lesing av API-ene deres gjør,
 To feil leses annerledes, og begge er det en ekte sky gjør:
 
 - **En stoppet `heat-engine`** leses som **Orchestration API Down**, på begge collectorene. Heats API ber en engine om listene sine, så når ingen er igjen kan det ikke svare på dem, etter et minutts venting på et RPC-tidsavbrudd. En stack en engine lot stå pågående kan bli stående pågående etter at engine kommer tilbake, og leses som **Stack Stuck In Progress** når to timer har gått.
-- **En stoppet `magnum-conductor`** vises ingen steder på en sky agenten samler inn, fordi Magnums API fortsetter å svare uten en og exporteren ikke leser conductorer. Klyngene bare slutter å bevege seg. En probe med en legitimasjon med Full visning leser dem, som er den eneste måten å se dette på, eller kjør `openstack coe service list`.
+- **En stoppet `magnum-conductor`** vises ingen steder på en sky agenten samler inn, fordi Magnums API fortsetter å svare uten en og exporteren ikke leser conductorer. Klyngene bare slutter å bevege seg. En sonde med en legitimasjon med Full visning leser dem, som er den eneste måten å se dette på, eller kjør `openstack coe service list`.
 
-Hvilke instanser og volumer en stack eier ligger i en lesing til av den stacken, som agentens exporter ikke gjør. På en sky en probe samler inn, lister en stacks side dem, og en instans eller et volums side og varsler navngir stacken. En legitimasjon med Full visning får svar om hvert prosjekts stacks. Alt mindre får et annet prosjekts avvist, og en stacks side sier fra når ingenting har lest den. På en sky agenten samler inn, kjør `openstack stack resource list`.
+Hvilke instanser og volumer en stack eier ligger i en lesing til av den stacken, som agentens exporter ikke gjør. På en sky en sonde samler inn, lister en stacks side dem, og en instans eller et volums side og varsler navngir stacken. En legitimasjon med Full visning får svar om hvert prosjekts stacks. Alt mindre får et annet prosjekts avvist, og en stacks side sier fra når ingenting har lest den. På en sky agenten samler inn, kjør `openstack stack resource list`.
 
 ### En klynge med Kubernetes-agenten på
 
@@ -876,7 +876,7 @@ Hvis en tjeneste forlater Keystones katalog, forsvinner radene dens omtrent 15 m
 
 Hvis skyen din kjører Manila, får en sky **Delinger** under **Lagring** av seg selv, og en som ikke gjør det viser ikke spor av det. Hver deling har statusen i Manilas eget ord, hva den har plass til, protokollen og hvem den tilhører, og en egen side. En deling i en feiltilstand havner i **Krever oppmerksomhet** med navn, og det gjør også en som fortsatt er på vei etter en time: Manila har ingen egen tidsavbrudd for en treg backend, så en som hang leses likt som en som er treg til da. En deling som migreres eller sikkerhetskopieres lades være i fred, fordi de varer så lenge dataene tar å kopiere.
 
-| Hva | Agent, Full visning | Probe, Full visning | Alt mindre |
+| Hva | Agent, Full visning | Sonde, Full visning | Alt mindre |
 | --- | --- | --- | --- |
 | Hvert prosjekts delinger og statusen deres | Ja | Ja | Høyst eget prosjekts, og overvåkingsrollen ingen, og ingen feil sier det |
 | Hvilken backend som holder en deling, og om tilgangsreglene gjelder | Nei. Kjør `openstack share show` | Ja | Nei |
@@ -884,7 +884,7 @@ Hvis skyen din kjører Manila, får en sky **Delinger** under **Lagring** av seg
 | Hvor mye av en deling som er brukt | Nei: bare backenden vet det | Nei | Nei |
 | `manila-share`, `manila-scheduler` og `manila-data` på **Tjenester** | Nei. Kjør `openstack share service list` | Ja | Nei |
 
-Manilas API fortsetter å svare uten de andre tjenestene sine, så på en sky agenten samler inn vises en stoppet `manila-share` ingen steder: delingene bare slutter å endre seg, og **Share Stuck** er det som til slutt sier fra. En probe med en legitimasjon med Full visning leser dem, og **Manila Service Down** sier det da. Manila sier `stopped` for en tjeneste som stengte ned rent, og `down` bare for en som døde, når heartbeaten dens er blitt gammel.
+Manilas API fortsetter å svare uten de andre tjenestene sine, så på en sky agenten samler inn vises en stoppet `manila-share` ingen steder: delingene bare slutter å endre seg, og **Share Stuck** er det som til slutt sier fra. En sonde med en legitimasjon med Full visning leser dem, og **Manila Service Down** sier det da. Manila sier `stopped` for en tjeneste som stengte ned rent, og `down` bare for en som døde, når heartbeaten dens er blitt gammel.
 
 En sky uten Manila koster ingenting for det: exporteren svarer med ingenting, og det gir ingen rad. Hvis Manila forlater Keystones katalog, forsvinner radene omtrent 15 minutter etter at det begynner, slik [Heats og Magnums](#heat-og-magnum) gjør.
 
@@ -898,8 +898,8 @@ En lastbalanserer i `ERROR`, en som sitter fast i `PENDING_UPDATE` eller `PENDIN
 | --- | --- | --- |
 | Hvert prosjekts lastbalansere og pooler, med begge statuser | Ja | Høyst eget prosjekts, og overvåkingsrollen ingen |
 | Amphorae, rollen deres, instansen deres og sertifikatet deres | Ja | Nei: Octavia lar bare en admin liste dem |
-| Lyttere og medlemmer | Nei: exporteren har ingen serier for dem. En [probe](/docs/telemetry/openstack-agentless) leser dem | En probe: eget prosjekts |
-| Trafikk: tilkoblinger, byte, forespørselsfeil | Nei: exporteren har ingen `stats_*`-serier, og Octavias API er det eneste stedet som sier det. En probe leser det og tegner raten mellom to lesinger | En probe: eget prosjekts |
+| Lyttere og medlemmer | Nei: exporteren har ingen serier for dem. En [sonde](/docs/telemetry/openstack-agentless) leser dem | En sonde: eget prosjekts |
+| Trafikk: tilkoblinger, byte, forespørselsfeil | Nei: exporteren har ingen `stats_*`-serier, og Octavias API er det eneste stedet som sier det. En sonde leser det og tegner raten mellom to lesinger | En sonde: eget prosjekts |
 | Octavias egne workere på **Tjenester** | Nei: ingenting agenten leser lister dem | Nei |
 
 En pool der alle medlemmene feiler helsesjekken er `ERROR` i driftsstatus mens den og lastbalansereren dens forblir `ACTIVE` i provisjonering, registrert, så en side som bare leste provisjonering ville ikke vist noe galt. En lastbalanserer i provisjonering `ERROR` leses som driftsstatus `OFFLINE`. OVN-leverandøren rapporterer 0 for hver trafikkteller, som ikke er en feil.
@@ -912,7 +912,7 @@ En sky som kjører Designate får **DNS-soner** under **Nettverk** av seg selv, 
 
 En sone i `ERROR` havner i **Krever oppmerksomhet** med navn, og det gjør også en som er `PENDING` etter en halv time. Designates worker gir opp av seg selv lenge før det, så det som blir `PENDING` har ingenting som jobber på seg. En sones egne `SOA` og `NS` leses som `ERROR` sammen med den, så det sies én gang, av sonen.
 
-| Hva | Agent, Full visning | Probe, Full visning | Alt mindre |
+| Hva | Agent, Full visning | Sonde, Full visning | Alt mindre |
 | --- | --- | --- | --- |
 | Hvert prosjekts soner og statusen deres | Ja | Ja | Ingenting: se nedenfor |
 | Recordsets som ikke er `ACTIVE` | Ja | Ja, for opptil 50 soner per innsamling | Nei |
@@ -922,7 +922,7 @@ En sone i `ERROR` havner i **Krever oppmerksomhet** med navn, og det gjør også
 
 To ting leses annerledes enn hver annen tjeneste her, begge registrert:
 
-- **Et stoppet Designate-API sier ingenting i det hele tatt.** Exporteren leser versjonene først, får ikke svar, og svarer en tom `200`, nøyaktig som for en sky uten Designate. Så ingenting fra exporteren kan skille de to, og OneUptime påstår ikke at det kan. En sky som hadde Designate leses som at den har gått stille etter 20 minutter, på **Tjenester** og i **Krever oppmerksomhet**. Radene går etter to uker av det, og kommer tilbake hvis den gjør det. Ingen varsel kan si dette på en sky agenten samler inn. En probe leser Keystones katalog selv, så **DNS API Down** kan.
+- **Et stoppet Designate-API sier ingenting i det hele tatt.** Exporteren leser versjonene først, får ikke svar, og svarer en tom `200`, nøyaktig som for en sky uten Designate. Så ingenting fra exporteren kan skille de to, og OneUptime påstår ikke at det kan. En sky som hadde Designate leses som at den har gått stille etter 20 minutter, på **Tjenester** og i **Krever oppmerksomhet**. Radene går etter to uker av det, og kommer tilbake hvis den gjør det. Ingen varsel kan si dette på en sky agenten samler inn. En sonde leser Keystones katalog selv, så **DNS API Down** kan.
 - **`openstack_designate_up` som leses 0 betyr en avvisning.** Exporteren ber om hvert prosjekts soner, som bare en admin kan. Så en legitimasjon som aldri har lest dem får beskjed om det, i stedet for at Designate er nede, og får ikke tilbud om Designates varsler.
 
 En stoppet `designate-worker` lar Designates API svare og sin egen liste lese `UP` en stund, fordi det går etter en heartbeat. Endringer godtas og utføres ikke, og **DNS Zone Stuck Pending** er det som sier fra.
@@ -931,14 +931,14 @@ En stoppet `designate-worker` lar Designates API svare og sin egen liste lese `U
 
 En sky som kjører Trove får **Databaser** av seg selv, og en som ikke gjør det viser ikke spor av det. Hver database har statusen i Troves eget ord, hva den kjører, volumet sitt og hvem den tilhører, og en egen side. En i en feiltilstand havner i **Krever oppmerksomhet** med navn, og det gjør også en som fortsatt er på vei etter en time, eller en over 85 % av volumet sitt.
 
-| Hva | Agent, Full visning | Probe, Full visning | Alt mindre |
+| Hva | Agent, Full visning | Sonde, Full visning | Alt mindre |
 | --- | --- | --- | --- |
 | Hvert prosjekts databaser og statusen deres | Ja | Ja | Ingenting i det hele tatt: se nedenfor |
 | Hvor fullt volumet til en kjørende database er | Ja | Ja | Nei |
 | Hvorfor en database feilet, og hva den holdt på med | Nei. Kjør `openstack database instance show` | Ja | Nei |
 | `trove-taskmanager` og `trove-conductor` | Nei: Trove har ingen liste over dem | Nei | Nei |
 
-Exporteren leser Troves mgmt-API, som bare en admin kan. Trove avviser alt mindre, og exporteren leser en avvisning akkurat som den leser at Trove er stoppet: `openstack_trove_up` leses 0 og ingenting annet sies. Så en legitimasjon som aldri har lest Trove får beskjed om det, i stedet for at Trove er nede, og får ikke tilbud om Troves varsler. En probe leser den samme listen og skiller de to: Trove svarte, så API-et leses som oppe, og tilkoblingstesten sier at det ble avvist. Når den har lest Trove, leses en 0 som nede, som også er hvordan en legitimasjon som siden har mistet tilgangen leses.
+Exporteren leser Troves mgmt-API, som bare en admin kan. Trove avviser alt mindre, og exporteren leser en avvisning akkurat som den leser at Trove er stoppet: `openstack_trove_up` leses 0 og ingenting annet sies. Så en legitimasjon som aldri har lest Trove får beskjed om det, i stedet for at Trove er nede, og får ikke tilbud om Troves varsler. En sonde leser den samme listen og skiller de to: Trove svarte, så API-et leses som oppe, og tilkoblingstesten sier at det ble avvist. Når den har lest Trove, leses en 0 som nede, som også er hvordan en legitimasjon som siden har mistet tilgangen leses.
 
 En stoppet `trove-taskmanager` vises ingen steder, fordi Troves lister svarer uten den og den har ingen liste over workere: det den jobbet med slutter bare å bevege seg, og **Database Instance Stuck** er det som sier fra. Trove gir opp en gjest av seg selv lenge før den timen.
 
@@ -950,12 +950,12 @@ En sky som kjører Gnocchi får API-et sitt på **Tjenester** av seg selv, og en
 
 Ingen prosessorer havner i **Krever oppmerksomhet**, og det gjør også en bakkelogg forbi 10 000 målinger. Gnocchis API fortsetter å svare og ta imot målinger med `gnocchi-metricd` stoppet, registrert, så prosessorene er det eneste stedet som viser det. Ingenting går tapt så lenge det varer, men ingenting nyere kan leses.
 
-| Hva | Agent, Full visning | Probe, Full visning | Alt mindre |
+| Hva | Agent, Full visning | Sonde, Full visning | Alt mindre |
 | --- | --- | --- | --- |
 | Om API-et svarer | Ja | Ja | Ingenting: se nedenfor |
 | Hvor mange målinger og målinger som venter, og hvor mange prosessorer den har | Ja | Ja | Nei |
 
-Exporteren leser Gnocchis status, som bare en admin kan. Gnocchi avviser alt mindre, og exporteren leser en avvisning akkurat som den leser at Gnocchi er stoppet: `openstack_gnocchi_up` leses 0. Så en legitimasjon som aldri har lest Gnocchi får beskjed om det, i stedet for at Gnocchi er nede, og får ikke tilbud om varslene. En probe skiller de to: Gnocchi svarte, så API-et leses oppe, og tilkoblingstesten sier at det ble avvist.
+Exporteren leser Gnocchis status, som bare en admin kan. Gnocchi avviser alt mindre, og exporteren leser en avvisning akkurat som den leser at Gnocchi er stoppet: `openstack_gnocchi_up` leses 0. Så en legitimasjon som aldri har lest Gnocchi får beskjed om det, i stedet for at Gnocchi er nede, og får ikke tilbud om varslene. En sonde skiller de to: Gnocchi svarte, så API-et leses oppe, og tilkoblingstesten sier at det ble avvist.
 
 **Gnocchi Backlog Growing** leser en linje gjennom de to siste timene. En travel skys bakkelogg leses aldri 0, så en stor som synker er greit, og en som ikke synker er det den sier. Testskyene våre kom aldri lenger enn en bakkelogg på 10 målinger, så linjen er bare sjekket på oppdiktede tall.
 
@@ -963,28 +963,28 @@ Exporteren leser Gnocchis status, som bare en admin kan. Gnocchi avviser alt min
 
 En sky som kjører Swift får **Objektlagring** under **Lagring** av seg selv, og en som ikke gjør det viser ikke spor av det. Den lister containerne i legitimasjonens eget prosjekt, hvor mye hver rommer og hvor mange objekter, og hver har en egen side.
 
-| Hva | Agent, Full visning | Probe, Full visning | Probe, med `ResellerAdmin` | Alt mindre |
+| Hva | Agent, Full visning | Sonde, Full visning | Sonde, med `ResellerAdmin` | Alt mindre |
 | --- | --- | --- | --- | --- |
 | Denne legitimasjonens eget prosjekts containere, og hvor mye hver rommer | Ja, uten prosjekt | Ja | Ja | Ingenting: se nedenfor |
 | Om proxyen svarer | Ja | Ja | Ja | Nei |
 | Et annet prosjekts containere | Nei | Nei | Ja, opptil 200 prosjekter per innsamling | Nei |
 | En stoppet objekt-, container- eller kontoserver | Nei | Nei | Nei | Nei |
 
-Swift holder hvert prosjekts konto unna alle andre prosjekters legitimasjoner, registrert, så uten `ResellerAdmin` er denne listen aldri hele skyens. Exporteren ber uansett bare om sin egen konto. En probe hvis legitimasjon har den rollen leser hvert prosjekts i tur og orden, én lesing per konto, og sier hvem hver container tilhører.
+Swift holder hvert prosjekts konto unna alle andre prosjekters legitimasjoner, registrert, så uten `ResellerAdmin` er denne listen aldri hele skyens. Exporteren ber uansett bare om sin egen konto. En sonde hvis legitimasjon har den rollen leser hvert prosjekts i tur og orden, én lesing per konto, og sier hvem hver container tilhører.
 
-En legitimasjon Swift avviser leser `openstack_object_store_up` 0, akkurat som en stoppet proxy gjør. Så en legitimasjon som aldri har lest Swift får beskjed om det, i stedet for at Swift er nede, og får ikke tilbud om varslene. En probe skiller de to: Swift svarte, så API-et leses oppe, og tilkoblingstesten sier at det ble avvist. En applikasjonslegitimasjon med tilgangsregler trenger også `include_service_catalog = True` i `proxy-server.conf`.
+En legitimasjon Swift avviser leser `openstack_object_store_up` 0, akkurat som en stoppet proxy gjør. Så en legitimasjon som aldri har lest Swift får beskjed om det, i stedet for at Swift er nede, og får ikke tilbud om varslene. En sonde skiller de to: Swift svarte, så API-et leses oppe, og tilkoblingstesten sier at det ble avvist. En applikasjonslegitimasjon med tilgangsregler trenger også `include_service_catalog = True` i `proxy-server.conf`.
 
 En stoppet objektserver endrer ingenting exporteren sier, registrert: Swifts lister kommer fra konto- og containerserverne, og proxyen fortsetter å svare. Bare det hver lagringsserver sier gjennom sin egen `/recon` sier det, og den står ikke i Keystones katalog.
 
-Så en probe leser den der du navngir dem: under **Hva den leser utover standardene** i kortet **Datainnsamling**, list hver lagringsservers `/recon`-port som `host:port`. Det tar 5 kall per server ved hver innsamling, og ingen legitimasjon går til dem. Du får da **Swift Storage Server Not Answering**, **Swift Rings Differ** og **Swift Replication Stale**, og hva de summerer seg til på Swifts egen side. Et opptak hadde bare én server å lese, så ringer som er ulike er bare sjekket på oppdiktede tall. Det samme gjelder replikering som har gått i stå, som på en testsky er ferdig hvert par minutter.
+Så en sonde leser den der du navngir dem: under **Hva den leser utover standardene** i kortet **Datainnsamling**, list hver lagringsservers `/recon`-port som `host:port`. Det tar 5 kall per server ved hver innsamling, og ingen legitimasjon går til dem. Du får da **Swift Storage Server Not Answering**, **Swift Rings Differ** og **Swift Replication Stale**, og hva de summerer seg til på Swifts egen side. Et opptak hadde bare én server å lese, så ringer som er ulike er bare sjekket på oppdiktede tall. Det samme gjelder replikering som har gått i stå, som på en testsky er ferdig hvert par minutter.
 
 **Object Container Growth Forecast** leser en linje gjennom den siste uken for hver container, og ser en uke frem. Swift sier ingenting her om hvor mye plass en sky har, så linjen på 1 TiB er en det er verdt å høre om, ikke en noe går i stykker ved. Endre den så den passer skyen din. Ingen testsky rommer en ukes vekst, så den er bare sjekket på oppdiktede tall.
 
 ## Barbican
 
-Exporteren har ingen leser for Barbican: å be den om `key-manager` gir en `400`, registrert. Så en sky agenten samler inn viser ikke spor av den, enten den kjører den eller ikke, og bare en [probe](/docs/telemetry/openstack-agentless) sier noe.
+Exporteren har ingen leser for Barbican: å be den om `key-manager` gir en `400`, registrert. Så en sky agenten samler inn viser ikke spor av den, enten den kjører den eller ikke, og bare en [sonde](/docs/telemetry/openstack-agentless) sier noe.
 
-En probe leser Barbican der Keystones katalog navngir den, og setter den på **Tjenester**: om API-et svarer, og hvor mange hemmeligheter, bestillinger og containere denne legitimasjonens eget prosjekt har. Barbican svarer om ett prosjekt om gangen, også en admin, så de er aldri skyens. OneUptime leser ingen hemmeligheter: en liste sier bare at en finnes, og den ber om den ene raden det tar for å få totalen.
+En sonde leser Barbican der Keystones katalog navngir den, og setter den på **Tjenester**: om API-et svarer, og hvor mange hemmeligheter, bestillinger og containere denne legitimasjonens eget prosjekt har. Barbican svarer om ett prosjekt om gangen, også en admin, så de er aldri skyens. OneUptime leser ingen hemmeligheter: en liste sier bare at en finnes, og den ber om den ene raden det tar for å få totalen.
 
 Barbican avviser en vanlig reader, og det leses som det det er: API-et svarte, så det leses som oppe, og tallene sier ingenting.
 
@@ -1116,9 +1116,9 @@ La `notify_on_state_change` stå som den er. Den legger bare til `instance.updat
 
 ### Uten varsler
 
-En sky hvis konfigurasjon ikke er din å endre kan fortsatt ha feilede handlinger. En [probe](/docs/telemetry/openstack-agentless) leser `os-instance-actions` for instansene som endret seg siden den sist så, og sier hver ting som varselet Nova ville sendt, med årsaken Nova gir. Det koster ett kall per instans som endret seg, noen få per innsamling på det meste, og en rolig sky ingen i det hele tatt. Den blir stille så snart skyens egne varsler kommer inn, så ingenting sies to ganger.
+En sky hvis konfigurasjon ikke er din å endre kan fortsatt ha feilede handlinger. En [sonde](/docs/telemetry/openstack-agentless) leser `os-instance-actions` for instansene som endret seg siden den sist så, og sier hver ting som varselet Nova ville sendt, med årsaken Nova gir. Det koster ett kall per instans som endret seg, noen få per innsamling på det meste, og en rolig sky ingen i det hele tatt. Den blir stille så snart skyens egne varsler kommer inn, så ingenting sies to ganger.
 
-Nova beholder disse bare per instans, og uten en post som endret seg tar ingenting dem opp. En feilet volumtilkobling kan la instansen stå som den var, så en probe kan ikke se den. Varsler kan.
+Nova beholder disse bare per instans, og uten en post som endret seg tar ingenting dem opp. En feilet volumtilkobling kan la instansen stå som den var, så en sonde kan ikke se den. Varsler kan.
 
 Nova kan også avskrive en bygging uten noe på handlingen: på testskyene våre lot en bygging som feilet på compute-verten handlingen se fin ut og la årsaken i instansens fault. Så den nyeste handlingen til en instans i `ERROR` teller som feilet, med den faulten som årsak.
 
@@ -1428,7 +1428,7 @@ Dette ble kjørt på DevStack på 2026.2, fra en ekte oppstart til en kjørende 
 
 ## Sjekk skyen utenfra
 
-Hver tjeneste kan rapportere frisk mens ingen kan starte en instans, så den sannferdigste testen er å gjøre det brukerne gjør, derfra de er. En probe gjør det utenfor skyen, fordi en sjekk inne i en sky som har sviktet ikke sier noe. Kjør disse på [en egen probe](/docs/probe/custom-probe), et sted som når skyens offentlige endepunkter slik brukerne dine gjør. På OneUptime Cloud får delte prober aldri OpenStack-legitimasjon.
+Hver tjeneste kan rapportere frisk mens ingen kan starte en instans, så den sannferdigste testen er å gjøre det brukerne gjør, derfra de er. En sonde gjør det utenfor skyen, fordi en sjekk inne i en sky som har sviktet ikke sier noe. Kjør disse på [en egen sonde](/docs/probe/custom-probe), et sted som når skyens offentlige endepunkter slik brukerne dine gjør. På OneUptime Cloud får delte sonder aldri OpenStack-legitimasjon.
 
 Begge ligger på skyens **Sjekker**-side. [OpenStack-monitorens maler](/docs/monitor/openstack-monitor#sjekker-utenfra) gjør det de finner om til hendelser.
 
@@ -1436,7 +1436,7 @@ Begge ligger på skyens **Sjekker**-side. [OpenStack-monitorens maler](/docs/mon
 
 Hvert minutt som standard, og skrivebeskyttet. Keystone utsteder et token, hver tjeneste i katalogen svarer på en autentisert lesing av én rad, og hvert endepunkts sertifikat leses for når det utløper. Det katalogen navngir er det som spørres, så det er ingen liste å vedlikeholde.
 
-En sky en probe allerede samler inn trenger ett klikk: **Slå på API-kontroller** bruker den samme proben, adressen og legitimasjonen. En sky agenten samler inn har ingen av dem på en probe, så den ber om dem. Enhver legitimasjon som kan logge inn duger, fordi en tjeneste som avviser den fortsatt har svart.
+En sky en sonde allerede samler inn trenger ett klikk: **Slå på API-kontroller** bruker den samme sonden, adressen og legitimasjonen. En sky agenten samler inn har ingen av dem på en sonde, så den ber om dem. Enhver legitimasjon som kan logge inn duger, fordi en tjeneste som avviser den fortsatt har svart.
 
 Det koster én innlogging og én liten lesing per tjeneste per region, hvert minutt, uten nye forsøk. En legitimasjon Keystone avviser spørres igjen senere i stedet for hvert minutt, fordi å gjenta en er det som låser en konto.
 
@@ -1519,11 +1519,11 @@ En applikasjonslegitimasjon er bedre enn et passord her, fordi den ikke kan avgr
 
 #### Spor en treg oppstart
 
-Lagre [OSProfiler](#spor-forespørsler-gjennom-kontrollplanet)-nøkkelen din på **Sjekker**-siden, så signeres hvert trinns skrivinger, hvert trinn med et eget spor, så en treg oppstart har et spor som rommer oppstarten og ingenting annet. Ventingen signeres ikke, fordi en signert forespørsel gjør mer arbeid i hver tjeneste den krysser. Nøkkelen er kryptert og bare skrivbar, som legitimasjonen: den går til denne proben og inn i hver signatur, og kommer tilbake fra ingensteds.
+Lagre [OSProfiler](#spor-forespørsler-gjennom-kontrollplanet)-nøkkelen din på **Sjekker**-siden, så signeres hvert trinns skrivinger, hvert trinn med et eget spor, så en treg oppstart har et spor som rommer oppstarten og ingenting annet. Ventingen signeres ikke, fordi en signert forespørsel gjør mer arbeid i hver tjeneste den krysser. Nøkkelen er kryptert og bare skrivbar, som legitimasjonen: den går til denne sonden og inn i hver signatur, og kommer tilbake fra ingensteds.
 
 #### Slå den av
 
-Slå kontrollen av, så starter ingen flere kjøringer. Til ingenting navngitt for den er igjen, kjører proben janitoren alene, og derfor beholdes legitimasjonen så lenge. Deretter glemmer OneUptime legitimasjonen og nøkkelen, og du kan slette prosjektet. Å slette skyen i OneUptime glemmer dem med en gang og rydder ingenting opp, så slå kontrollen av først og vent til siden slutter å si at den rydder opp. Hvis legitimasjonen er borte først, finn det som er igjen etter navn:
+Slå kontrollen av, så starter ingen flere kjøringer. Til ingenting navngitt for den er igjen, kjører sonden janitoren alene, og derfor beholdes legitimasjonen så lenge. Deretter glemmer OneUptime legitimasjonen og nøkkelen, og du kan slette prosjektet. Å slette skyen i OneUptime glemmer dem med en gang og rydder ingenting opp, så slå kontrollen av først og vent til siden slutter å si at den rydder opp. Hvis legitimasjonen er borte først, finn det som er igjen etter navn:
 
 ```bash
 openstack server list --name '^oneuptime-check-'
@@ -1779,7 +1779,7 @@ Neutron og Cinder svarer alle andre enn en admin med en `200` og bare eget prosj
 :::
 
 :::details Ingen instanser på nivå 3
-Exporteren ber Nova om alle prosjekters servere, Nova avviser en vanlig reader, og den lesingen feiler som helhet. Bruk nivå 1 eller 2, eller en [probe](/docs/telemetry/openstack-agentless), som kan liste ett prosjekts instanser.
+Exporteren ber Nova om alle prosjekters servere, Nova avviser en vanlig reader, og den lesingen feiler som helhet. Bruk nivå 1 eller 2, eller en [sonde](/docs/telemetry/openstack-agentless), som kan liste ett prosjekts instanser.
 :::
 
 :::details Én tjenestes data mangler
@@ -1799,13 +1799,13 @@ OneUptime leser oslo.logs egne formater. En sky som endret `logging_context_form
 :::
 
 :::details Feeden forblir tom
-Hver tjeneste trenger `driver = log` og en omstart, og Nova `notification_format = versioned` i tillegg: se [Slå på varsler](#slå-på-varsler). For å sjekke en tjeneste, grep loggen dens etter `oslo.messaging.notification`. Hvis det ikke er noe, se på `default_log_levels`: et nivå over `INFO` for `oslo.messaging` demper de fleste av dem. En sky hvis konfigurasjon ikke er din å endre kan bruke en [probe](#uten-varsler).
+Hver tjeneste trenger `driver = log` og en omstart, og Nova `notification_format = versioned` i tillegg: se [Slå på varsler](#slå-på-varsler). For å sjekke en tjeneste, grep loggen dens etter `oslo.messaging.notification`. Hvis det ikke er noe, se på `default_log_levels`: et nivå over `INFO` for `oslo.messaging` demper de fleste av dem. En sky hvis konfigurasjon ikke er din å endre kan bruke en [sonde](#uten-varsler).
 :::
 
 ## Neste steg
 
 :::cards
 - [OpenStack-monitor](/docs/monitor/openstack-monitor): Varsle om tjenester, hypervisorer, instanser, nettverk og lagringspooler.
-- [OpenStack uten agent](/docs/telemetry/openstack-agentless): Samle inn fra en sky med en probe, uten noe å installere.
+- [OpenStack uten agent](/docs/telemetry/openstack-agentless): Samle inn fra en sky med en sonde, uten noe å installere.
 - [Vert-OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Utsikten på OS-nivå over hver kontroller og hypervisor.
 :::

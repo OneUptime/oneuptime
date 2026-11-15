@@ -1,9 +1,9 @@
 # OpenStack-Agent
 
-Der OneUptime-OpenStack-Agent überwacht eine OpenStack-Cloud: ihre Dienste und Agents, Hypervisoren, Instanzen, Netzwerke, Router, Volumes, Speicherpools, Images und Projekte, in jeder Region. Er liest die APIs der Cloud mit einer von Ihnen gewählten Credential und sendet das Gefundene an OneUptime, wo die Cloud mit ihren Regionen, Hypervisoren und Projekten erscheint. [OpenStack-Monitore](/docs/monitor/openstack-monitor) alarmieren anhand dessen, was ankommt, und eine [Probe](/docs/telemetry/openstack-agentless) kann eine Cloud erfassen, ohne dass etwas installiert werden muss.
+Der OneUptime-OpenStack-Agent überwacht eine OpenStack-Cloud: ihre Dienste und Agents, Hypervisoren, Instanzen, Netzwerke, Router, Volumes, Speicherpools, Images und Projekte, in jeder Region. Er liest die APIs der Cloud mit einer von Ihnen gewählten Credential und sendet das Gefundene an OneUptime, wo die Cloud mit ihren Regionen, Hypervisoren und Projekten erscheint. [OpenStack-Monitore](/docs/monitor/openstack-monitor) alarmieren anhand dessen, was ankommt, und eine [Sonde](/docs/telemetry/openstack-agentless) kann eine Cloud erfassen, ohne dass etwas installiert werden muss.
 
 :::cards
-- [Probe oder Agent?](/docs/telemetry/openstack-agentless#sonde-oder-agent): Was Sie wählen sollten, wenn eine Cloud beides zuließe.
+- [Sonde oder Agent?](/docs/telemetry/openstack-agentless#sonde-oder-agent): Was Sie wählen sollten, wenn eine Cloud beides zuließe.
 - [Sichtbarkeit wählen](#sichtbarkeit-des-agents-wählen): OpenStack hat keine globale Nur-Lese-Rolle, daher gibt es drei Ebenen.
 - [Agent installieren](#den-agent-installieren): Eine Credential, dann das Installationsskript, Docker Compose oder gar kein Docker.
 - [Was es Ihre Cloud kostet](#was-es-ihre-cloud-kostet): Was jede Einstellung liest und wie Sie sie ändern.
@@ -11,10 +11,10 @@ Der OneUptime-OpenStack-Agent überwacht eine OpenStack-Cloud: ihre Dienste und 
 - [Ausgaben](#ausgaben): Wer was nutzt, was das zu Ihren Preisen oder nach CloudKitty-Bewertung ergibt und was sich zurückholen ließe.
 - [Statusseiten und Projekte informieren](#statusseiten-und-projekte-informieren): Eine Seite pro Region in einem Schritt, und nur die Projekte informieren, die ein Ausfall trifft.
 - [Dienstprotokolle](#dienstprotokolle): Geparst, mit einer Anfrage, die über Dienste hinweg verfolgt wird.
-- [Lebenszyklusereignisse](#lebenszyklusereignisse): Instanzaktionen im Feed und in Diagrammen, aus Benachrichtigungen oder von einer Probe.
+- [Lebenszyklusereignisse](#lebenszyklusereignisse): Instanzaktionen im Feed und in Diagrammen, aus Benachrichtigungen oder von einer Sonde.
 - [Wer was getan hat](#wer-was-getan-hat): Audit-Trails in die Sicherheitsereignisse.
 - [Eine Anfrage nachverfolgen](#anfragen-durch-die-steuerungsebene-nachverfolgen): Eine signierte Anfrage, verfolgt quer durch die Steuerungsebene.
-- [Von außen prüfen](#die-cloud-von-außen-prüfen): Ob tatsächlich jemand eine Instanz starten kann, von einer Probe außerhalb der Cloud.
+- [Von außen prüfen](#die-cloud-von-außen-prüfen): Ob tatsächlich jemand eine Instanz starten kann, von einer Sonde außerhalb der Cloud.
 - [Ohne Internet](#ohne-internet): Die vier Images des Agents und wie Sie sie in eine eigene Registry kopieren.
 - [Nach Deployment-Tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat und Mirantis.
 - [Fehlerbehebung](#fehlerbehebung): Ein Diagnoseskript und die üblichen Probleme.
@@ -244,7 +244,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 Der Agent sieht die Zeilen dieses Projekts aus Cinder und Neutron und keine Infrastruktur. Drei Dinge, die Sie wissen sollten, bevor Sie dies wählen:
 
-- **Über den Agent zeigt es gar keine Instanzen.** Der Exporter fragt Nova nach den Servern aller Projekte, Nova lehnt einen einfachen Reader ab, und dieser Lesezugriff schlägt als Ganzes fehl. Nur eine OneUptime-Probe, die ohne diesen Agent erfasst, kann die Instanzen eines einzelnen Projekts auflisten.
+- **Über den Agent zeigt es gar keine Instanzen.** Der Exporter fragt Nova nach den Servern aller Projekte, Nova lehnt einen einfachen Reader ab, und dieser Lesezugriff schlägt als Ganzes fehl. Nur eine OneUptime-Sonde, die ohne diesen Agent erfasst, kann die Instanzen eines einzelnen Projekts auflisten.
 - **Es kann möglicherweise schreiben.** Auf einer Cloud, auf der Cinder `enforce_new_defaults` ausgeschaltet hat, kann ein einfacher `reader` auch in seinem Projekt Volumes erstellen. Auf Epoxy, Flamingo und Gazpacho tat er das (`202`), und auf Hibiscus wurde es abgelehnt (`403`), weil DevStack `enforce_new_defaults` nur dort einschaltet. Cinders eigener Standard ist ausgeschaltet.
 - **Placement erscheint als nicht antwortend.** Jeder Aufruf wird abgelehnt, und der Exporter meldet das so, wie er ein angehaltenes Placement meldet: `openstack_placement_up 0`, auf allen fünf Clouds, die wir aufzeichnen. Die Seiten können es daran erkennen, was für diese Credential sonst noch gesperrt ist, und sagen es. Die Vorlage [Placement API Down](/docs/monitor/openstack-monitor#vorgefertigte-warnungsvorlagen) kann das nicht, lassen Sie sie auf dieser Ebene also weg.
 :::
@@ -517,8 +517,8 @@ Was jemanden braucht, in denselben Zeilen wie die [Alarmvorlagen](/docs/monitor/
 Jedes davon wurde auf einem echten DevStack aufgezeichnet, und jede Seite sagt es dort, wo es zählt:
 
 - **Ironic zeigt einem Projekt nur die Knoten, die es besitzt.** Placement antwortet jedem, wo es also einen Knoten hält, den Ironic nicht aufgelistet hat, sagt die Seite, dass die Liste nicht die der ganzen Cloud ist. Nach Ironics Standard-Policy liest nur eine Credential mit System-Scope jeden Knoten, oder eine, deren Rolle `baremetal:node:list_all` hat.
-- **Der Exporter liefert nicht, warum ein Knoten fehlgeschlagen ist.** Er hat einen Wartungsgrund und kein `last_error`, und Ironic kann `last_error` ohnehin innerhalb etwa einer Minute leeren, während der Knoten weiter fehlgeschlagen ist: Bei einem fehlgeschlagenen Clean tat es das, bei einem fehlgeschlagenen Deploy ließ es ihn stehen. Schauen Sie also sofort nach mit `openstack baremetal node show <node> -c last_error` oder im Log des Conductors. Eine [Probe](/docs/telemetry/openstack-agentless) liest `last_error` und behält den letzten, den sie sah.
-- **Der Exporter kennt keine Conductors.** Nur eine Probe liest sie, und Ironic verweigert der Credential eines Projekts die Liste, sofern seine Policy nichts anderes sagt (`baremetal:conductor:get`).
+- **Der Exporter liefert nicht, warum ein Knoten fehlgeschlagen ist.** Er hat einen Wartungsgrund und kein `last_error`, und Ironic kann `last_error` ohnehin innerhalb etwa einer Minute leeren, während der Knoten weiter fehlgeschlagen ist: Bei einem fehlgeschlagenen Clean tat es das, bei einem fehlgeschlagenen Deploy ließ es ihn stehen. Schauen Sie also sofort nach mit `openstack baremetal node show <node> -c last_error` oder im Log des Conductors. Eine [Sonde](/docs/telemetry/openstack-agentless) liest `last_error` und behält den letzten, den sie sah.
+- **Der Exporter kennt keine Conductors.** Nur eine Sonde liest sie, und Ironic verweigert der Credential eines Projekts die Liste, sofern seine Policy nichts anderes sagt (`baremetal:conductor:get`).
 - **Ein gestopptes Ironic sieht aus wie gar kein Ironic.** Nach einem gestoppten gefragt, antwortet der Exporter mit einem leeren 200, wie bei einer Cloud, die es nie hatte. Eine Seite sagt also nur, dass sie nichts von Ironic gehört hat und die Knoten so sind, wie sie zuletzt gelesen wurden. Sie sagt nie ausgefallen. Zwei Wochen nachdem der Rest der Cloud zuletzt ohne es berichtet hat, verschwinden diese Zeilen, und sie kommen zurück, wenn es wiederkommt.
 
 ## Kapazität
@@ -529,19 +529,19 @@ Alles darauf ist Zuteilung: was zugesagt wurde, nicht was ausgelastet ist. Eine 
 
 **Was Kapazität ist.** Für jeden Resource Provider und jede Ressourcenklasse ist die Kapazität `(total - reserved) x allocation_ratio`, und zugeteilt ist, was Placement zugesagt hat. Das summiert sich nach Zone, Aggregat, Region und Cloud. Ein Host, dessen `nova-compute` ausgefallen ist, meldet weiter seine letzten Zahlen, und ein deaktivierter nimmt nichts mehr auf, daher zählt keiner als Platz. Was sie halten, ist weiterhin da, und eine Prognose zählt es mit.
 
-**Bare Metal.** Ein Knoten nimmt eine Instanz ganz auf, daher erhält eine Cloud mit Ironic eine eigene Tabelle nach Ressourcenklasse: wie viele Knoten, wie viele eine Instanz aufnehmen könnten, wie viele in Benutzung sind und wie viele zurückgehalten werden, weil Novas Ironic-Treiber sie gerade nicht nutzen kann. Das sind Placements eigene Zahlen, sie gelten also für die ganze Cloud, auch wo Ironic einem Projekt nur zeigt, was es besitzt, und sie stecken nicht in den vCPUs und dem Arbeitsspeicher oben. Eine Probe liest, welche Klasse ein Flavor verlangt, und zählt ihn gegen diese. Der Exporter des Agents sagt das nicht, daher zählt auf dem Agent ein Bare-Metal-Flavor als seine vCPUs, sein Arbeitsspeicher und sein Datenträger, auf Hosts.
+**Bare Metal.** Ein Knoten nimmt eine Instanz ganz auf, daher erhält eine Cloud mit Ironic eine eigene Tabelle nach Ressourcenklasse: wie viele Knoten, wie viele eine Instanz aufnehmen könnten, wie viele in Benutzung sind und wie viele zurückgehalten werden, weil Novas Ironic-Treiber sie gerade nicht nutzen kann. Das sind Placements eigene Zahlen, sie gelten also für die ganze Cloud, auch wo Ironic einem Projekt nur zeigt, was es besitzt, und sie stecken nicht in den vCPUs und dem Arbeitsspeicher oben. Eine Sonde liest, welche Klasse ein Flavor verlangt, und zählt ihn gegen diese. Der Exporter des Agents sagt das nicht, daher zählt auf dem Agent ein Bare-Metal-Flavor als seine vCPUs, sein Arbeitsspeicher und sein Datenträger, auf Hosts.
 
 **Wie viele weitere passen.** Jeder Flavor wird Host für Host gezählt, denn eine Instanz braucht alles, was sie verlangt, auf einem Host. Neben der Zahl steht, was sie wäre, wenn alles Freie auf einem Host läge, woran man eine volle Cloud von einer fragmentierten unterscheidet. Ein Flavor, den kein Host auch leer aufnehmen könnte, sagt **Für jeden Host zu groß**, und nie alarmiert etwas darauf. Die Zahlen gelten für eine von einem Image gestartete Instanz: Eine von einem Volume gestartete verlangt keinen Root-Datenträger.
 
 Die Seite sagt, woher jede Zahl kam:
 
-| | Über eine Probe | Über den Agent |
+| | Über eine Sonde | Über den Agent |
 | --- | --- | --- |
 | **Gezählt ab** | `GET /allocation_candidates`, was Novas Scheduler fragt, wie [os-capacity von StackHPC](https://github.com/stackhpc/os-capacity). Die Inventare füllen sich, bis ein Flavor an der Reihe ist | Die Placement-Serien, die der Exporter ohnehin sendet: `openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
 | **Sieht Traits und verschachtelte Provider** | Ja. Auch die Extra Specs eines Flavors werden abgefragt, daher zählen `trait:` und `resources:` | Nein: Die Flavor-Serie des Exporters hat keine Extra Specs, ein Flavor, der einen Trait braucht, zählt also jeden Host, und die Seite sagt das |
 | **Das `max_unit` eines Hosts** | Das von Placement selbst | Als die Gesamtmenge des Hosts angenommen, was Nova setzt |
 
-Eine Probe fragt behutsam, denn dies ist der eine Lesezugriff, der Placement arbeiten lässt. Sie fragt jeweils nach einer Form von Flavor, sodass Flavors, die dasselbe verlangen, eine einzige Frage sind, und höchstens 4 pro Erfassung, reihum, egal wie viele Flavors es gibt. Eine Cloud mit 40 Flavors, alle 2 Minuten erfasst, kostet also 2 Aufrufe pro Minute und ist in 20 Minuten einmal durch. Jede Antwort ist auf 1.000 Hosts begrenzt, was Novas eigenes `max_placement_results` ist: die Arbeit eines einzigen Starts. Eine Zahl aus einer so langen Antwort ist eine Untergrenze, und die Seite sagt **Mindestens**. Sie fragt bei ihrer ersten Erfassung nichts, nichts, wenn Placement bei dieser Erfassung langsam war, und eine Stunde lang nichts, sobald eine Credential abgelehnt wurde, denn die Zahl aus den Inventaren ist ohnehin da. Eine Application Credential oder die Rolle `oneuptime_monitoring` braucht dafür, dass `/allocation_candidates` erlaubt ist: Es steht in `access/application-credential-access-rules.json` und `access/policy/placement.yaml`.
+Eine Sonde fragt behutsam, denn dies ist der eine Lesezugriff, der Placement arbeiten lässt. Sie fragt jeweils nach einer Form von Flavor, sodass Flavors, die dasselbe verlangen, eine einzige Frage sind, und höchstens 4 pro Erfassung, reihum, egal wie viele Flavors es gibt. Eine Cloud mit 40 Flavors, alle 2 Minuten erfasst, kostet also 2 Aufrufe pro Minute und ist in 20 Minuten einmal durch. Jede Antwort ist auf 1.000 Hosts begrenzt, was Novas eigenes `max_placement_results` ist: die Arbeit eines einzigen Starts. Eine Zahl aus einer so langen Antwort ist eine Untergrenze, und die Seite sagt **Mindestens**. Sie fragt bei ihrer ersten Erfassung nichts, nichts, wenn Placement bei dieser Erfassung langsam war, und eine Stunde lang nichts, sobald eine Credential abgelehnt wurde, denn die Zahl aus den Inventaren ist ohnehin da. Eine Application Credential oder die Rolle `oneuptime_monitoring` braucht dafür, dass `/allocation_candidates` erlaubt ist: Es steht in `access/application-credential-access-rules.json` und `access/policy/placement.yaml`.
 
 **Neben dem, was Hosts wirklich nutzen.** Wo die [echte Nutzung](#echte-nutzung) OneUptime erreicht, stellt die Seite das von Ihnen gesetzte Verhältnis neben das, was die Hosts auf ihrem Tageshöchststand wirklich nutzen, und neben das Verhältnis, bei dem sie die 90-%-Linie erreichen würden, die **Hypervisor CPU Saturated** und **Hypervisor Memory Pressure** ziehen. Es ist eine gerade Linie aus einem Tag einer Last, sie sagt also, wie weit ein Verhältnis sich bewegen könnte, nicht dass Sie es bewegen sollten. Sie sagt nichts, bis über die Hälfte der Hosts einer Zone berichtet.
 
@@ -558,7 +558,7 @@ nova-manage placement audit --verbose --delete
 
 **Alarme.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** und **Reserved Headroom Gone** lesen Serien, die OneUptime aus derselben Zusammenfassung schreibt. Sie stehen in den [Vorlagen des Monitors](/docs/monitor/openstack-monitor#vorgefertigte-warnungsvorlagen) und auf der Seite **Empfehlungen** der Cloud.
 
-**Was es kostet.** Auf dem Agent nichts. Eine Probe fügt die obigen Aufrufe hinzu. OneUptime schreibt etwa 2 Serien für die Ressourcenklasse jeder Zone, jedes externe Netzwerk und jeden Speicherpool und eine für jeden Flavor, den man anfragen kann, alle zwei Minuten, abgerechnet wie jede andere Metrik.
+**Was es kostet.** Auf dem Agent nichts. Eine Sonde fügt die obigen Aufrufe hinzu. OneUptime schreibt etwa 2 Serien für die Ressourcenklasse jeder Zone, jedes externe Netzwerk und jeden Speicherpool und eine für jeden Flavor, den man anfragen kann, alle zwei Minuten, abgerechnet wie jede andere Metrik.
 
 ## Ausgaben
 
@@ -587,9 +587,9 @@ Ein Preis von null heißt kein Preis, nicht eine kostenlose Cloud. Was keinen Pr
 
 ### CloudKitty
 
-Betreibt die Cloud [CloudKitty](https://github.com/openstack/cloudkitty), ersetzt das, was es bewertet hat, die Berechnung, Projekt für Projekt, und die Seite sagt, welches sie verwendet hat. Eine Probe fragt einmal pro Stunde, für diesen und den letzten Monat, und zwar bei `GET /v2/summary`, oder `GET /v1/report/summary` bei einem CloudKitty, das dafür zu alt ist. Das sind höchstens zwei Anfragen pro 1.000 Projekte und Stunde, plus eine Anfrage nach seiner Version bei jedem Lesen.
+Betreibt die Cloud [CloudKitty](https://github.com/openstack/cloudkitty), ersetzt das, was es bewertet hat, die Berechnung, Projekt für Projekt, und die Seite sagt, welches sie verwendet hat. Eine Sonde fragt einmal pro Stunde, für diesen und den letzten Monat, und zwar bei `GET /v2/summary`, oder `GET /v1/report/summary` bei einem CloudKitty, das dafür zu alt ist. Das sind höchstens zwei Anfragen pro 1.000 Projekte und Stunde, plus eine Anfrage nach seiner Version bei jedem Lesen.
 
-- **Nur eine [Probe](/docs/telemetry/openstack-agentless) kann es lesen.** Der Exporter des Agents hat keine Serie für CloudKitty, daher berechnet eine über einen Agent verbundene Cloud selbst und sagt das.
+- **Nur eine [Sonde](/docs/telemetry/openstack-agentless) kann es lesen.** Der Exporter des Agents hat keine Serie für CloudKitty, daher berechnet eine über einen Agent verbundene Cloud selbst und sagt das.
 - **Es sieht, was die Credential sehen darf.** CloudKittys eigene Policy zeigt der Credential eines Admins jedes Projekt, mit Zugriffsregeln oder ohne, und allem Geringeren nur das eigene. Die Projekte, die es nicht bewertet, werden weiter aus Ihren Preisen berechnet.
 - **Ein CloudKitty pro Region summiert sich.** Jedes wird in seiner eigenen Zeit gelesen, und die Zahl eines Projekts ist das, was sie zusammen bewertet haben. Ein CloudKitty, das der Katalog für mehrere Regionen auflistet, wird einmal gefragt.
 - **Seine Zahlen sind der einzige Teil hiervon, der Telemetrie ist.** Sie erreichen OneUptime als `openstack_cloudkitty_rated`, ein Datenpunkt pro Projekt und Monat, einmal pro Stunde: 20.000 pro Stunde bei 10.000 Projekten, was neben dem Rest einer Cloud dieser Größe kaum etwas ist.
@@ -610,11 +610,11 @@ Die Seite **Empfehlungen** der Cloud listet einmal pro Stunde auf, was ungenutzt
 | Hypervisoren, die sich leeren ließen | 20 % oder weniger seiner vCPUs und seines Arbeitsspeichers sind zugeteilt, alles darauf passt auf die anderen Hosts in seiner Zone und seinen Aggregaten, und die Zone könnte danach noch einen Host verlieren | Den ganzen Host | `openstack hypervisor list --long` |
 | Lange abgeschaltete Instanzen | 30 Tage abgeschaltet | Ihre vCPUs, ihren Arbeitsspeicher und lokalen Datenträger | `openstack server list --all-projects --status SHUTOFF --long` |
 | Volumes, die an nichts angehängt sind | 30 Tage verfügbar, an nichts angehängt und kein `image-<id>`-Volume von Cinder selbst, die der Befehl ebenfalls auflistet | Ihren Speicher | `openstack volume list --all-projects --status available --long` |
-| Alte Volume-Snapshots | Vor 90 Tagen erstellt. Nur Probe | Ihren Speicher | `openstack volume snapshot list --all-projects --long` |
-| Images, von denen nichts gestartet wurde | Privat oder geteilt, 30 Tage alt, nicht geschützt, und keine Instanz oder kein Volume stammt davon. Nur Probe | Ihren Speicher | `openstack image list --long` |
+| Alte Volume-Snapshots | Vor 90 Tagen erstellt. Nur Sonde | Ihren Speicher | `openstack volume snapshot list --all-projects --long` |
+| Images, von denen nichts gestartet wurde | Privat oder geteilt, 30 Tage alt, nicht geschützt, und keine Instanz oder kein Volume stammt davon. Nur Sonde | Ihren Speicher | `openstack image list --long` |
 | Floating-IPs, die nichts nutzt | 7 Tage nicht zugeordnet | Eine Adresse | `openstack floating ip list --status DOWN --long` |
 
-Nichts in Benutzung wird je genannt. Wie lange etwas schon so ist, kommt von der eigenen Uhr der Cloud, wo eine Probe eine meldet. Über einen Agent ist es, wie lange OneUptime es so gesehen hat, daher ist am Tag, an dem Sie eine Cloud verbinden, noch nichts alt. Eine Regel, die nicht sicher sein kann, sagt das, statt zu raten: Der Agent kann nicht sagen, von welchem Image eine Instanz gestartet wurde, ein verwendetes Image sähe also ungenutzt aus, und er kann Snapshots nicht auflisten, sodass diese beiden Regeln auf eine Probe warten. Ein Host wird danach benannt, was zugeteilt ist, nicht wie ausgelastet er ist, er wird nie in einer Zone mit einem verlorenen oder deaktivierten Host genannt, und Hosts werden vom leersten an genommen, sodass sich alles Genannte tun lässt. Er kann keine Traits sehen und nichts anderes, was eine Instanz von einem Host braucht.
+Nichts in Benutzung wird je genannt. Wie lange etwas schon so ist, kommt von der eigenen Uhr der Cloud, wo eine Sonde eine meldet. Über einen Agent ist es, wie lange OneUptime es so gesehen hat, daher ist am Tag, an dem Sie eine Cloud verbinden, noch nichts alt. Eine Regel, die nicht sicher sein kann, sagt das, statt zu raten: Der Agent kann nicht sagen, von welchem Image eine Instanz gestartet wurde, ein verwendetes Image sähe also ungenutzt aus, und er kann Snapshots nicht auflisten, sodass diese beiden Regeln auf eine Sonde warten. Ein Host wird danach benannt, was zugeteilt ist, nicht wie ausgelastet er ist, er wird nie in einer Zone mit einem verlorenen oder deaktivierten Host genannt, und Hosts werden vom leersten an genommen, sodass sich alles Genannte tun lässt. Er kann keine Traits sehen und nichts anderes, was eine Instanz von einem Host braucht.
 
 ### Bei jeder Größe
 
@@ -740,7 +740,7 @@ Der Auswirkungsradius eines Teils ist, was er mitreißt, nach Anzahl und nach Pr
 
 Die Seite eines Teils zeigt ihn. Ein Alarm oder Incident auf dem Teil sagt ihn in seiner Beschreibung, etwa „3 instances in 2 projects“, mit ihren Namen.
 
-Der Exporter sagt nicht, in welchem Netzwerk eine Instanz ist oder welcher Pool ein Volume hält, daher wird keines von beiden für eine Cloud gezeichnet, die der Agent erfasst. Die Karte sagt das, und der Auswirkungsradius eines Speicherpools sagt, dass er es nicht erkennen kann, statt keine zu antworten. Eine [Probe](/docs/telemetry/openstack-agentless) sagt beides. Die Karte verbindet dann ein Volume mit seinem Pool, wenn Cinder seine Credential als Admin behandelt, und der Auswirkungsradius eines Pools zählt seine Volumes und die Instanzen, an die sie angehängt sind. Sie verbindet auch eine Instanz mit jedem Netzwerk, in dem sie eine Adresse hat. Nova nennt diese Netzwerke nur beim Namen, und Neutron erlaubt zwei mit einem Namen, daher sucht die Karte eines im Projekt der Instanz, dann eines, das mit ihm geteilt ist, dann irgendeines mit diesem Namen, und zeichnet keine Verbindung, wenn zwei gleich wahrscheinlich sind. Was noch unbekannt ist, bleibt im Hinweis der Karte.
+Der Exporter sagt nicht, in welchem Netzwerk eine Instanz ist oder welcher Pool ein Volume hält, daher wird keines von beiden für eine Cloud gezeichnet, die der Agent erfasst. Die Karte sagt das, und der Auswirkungsradius eines Speicherpools sagt, dass er es nicht erkennen kann, statt keine zu antworten. Eine [Sonde](/docs/telemetry/openstack-agentless) sagt beides. Die Karte verbindet dann ein Volume mit seinem Pool, wenn Cinder seine Credential als Admin behandelt, und der Auswirkungsradius eines Pools zählt seine Volumes und die Instanzen, an die sie angehängt sind. Sie verbindet auch eine Instanz mit jedem Netzwerk, in dem sie eine Adresse hat. Nova nennt diese Netzwerke nur beim Namen, und Neutron erlaubt zwei mit einem Namen, daher sucht die Karte eines im Projekt der Instanz, dann eines, das mit ihm geteilt ist, dann irgendeines mit diesem Namen, und zeichnet keine Verbindung, wenn zwei gleich wahrscheinlich sind. Was noch unbekannt ist, bleibt im Hinweis der Karte.
 
 ## Statusseiten und Projekte informieren
 
@@ -823,7 +823,7 @@ Was jede Quelle über einen Pool sagt, entscheidet, wie er verknüpft wird:
 
 | Quelle | Was sie sagt | Was passiert |
 | --- | --- | --- |
-| Eine [Probe](/docs/telemetry/openstack-agentless) auf der Ebene Vollansicht | Cinders RBD-Treiber nennt die fsid und den Pool des Ceph-Clusters in `location_info` | Er verknüpft sich von selbst, wenn ein [Ceph-Cluster](/docs/telemetry/ceph) hier diese fsid meldet. Ein Ceph-Cluster meldet sie nur, wenn `ceph.cluster.fsid` in der Konfiguration seines Agents gesetzt ist |
+| Eine [Sonde](/docs/telemetry/openstack-agentless) auf der Ebene Vollansicht | Cinders RBD-Treiber nennt die fsid und den Pool des Ceph-Clusters in `location_info` | Er verknüpft sich von selbst, wenn ein [Ceph-Cluster](/docs/telemetry/ceph) hier diese fsid meldet. Ein Ceph-Cluster meldet sie nur, wenn `ceph.cluster.fsid` in der Konfiguration seines Agents gesetzt ist |
 | Der Exporter des Agents | Der Name des Pools, der Name seines Backends und sein Hersteller, der für LVM und RBD gleichermaßen `Open Source` lautet | Nichts sagt, dass er auf Ceph liegt. Ein Ceph-Pool gleichen Namens in genau einem Cluster wird vorgeschlagen, damit jemand ihn einmal auf der Seite des Pools bestätigt, sofern nicht auch ein anderer Cinder-Pool diesen Namen hat. Ohne solchen Treffer können sie einen Cluster wählen oder sagen, dass er nicht auf Ceph liegt |
 
 Einmal verknüpft, sagt die Seite des Pools, wie sein Cluster liest, und `HEALTH_WARN` oder `HEALTH_ERR` erscheint unter **Erfordert Aufmerksamkeit** der Cloud. Ein Vorschlag, den niemand bestätigt hat, löst nichts aus. Eine Antwort, die jemand gegeben hat, lässt sich auf der Seite des Pools ändern. Nur die Credential der Vollansicht kann Pools überhaupt sehen: siehe [Sichtbarkeit des Agents wählen](#sichtbarkeit-des-agents-wählen).
@@ -838,7 +838,7 @@ Eine Cloud mit Heat erhält **Stacks** unter **Orchestrierung**, und eine mit Ma
 
 Der Exporter sagt über diese Dienste weniger als ein Lesen ihrer APIs, und keiner der beiden Dienste zeigt jemand anderem als einem Admin die ganze Cloud. Daher sagt jede Seite, was der Collector Ihrer Cloud nicht sehen kann.
 
-| Was | Agent, Vollansicht | Probe, Vollansicht | Alles Geringere |
+| Was | Agent, Vollansicht | Sonde, Vollansicht | Alles Geringere |
 | --- | --- | --- | --- |
 | Die Stacks jedes Projekts und ihr Status | Ja | Ja | Höchstens die des eigenen Projekts, ohne Projekt darauf, und kein Fehler sagt es |
 | Wem ein Stack gehört | Ja | Ja | Nein |
@@ -852,9 +852,9 @@ Der Exporter sagt über diese Dienste weniger als ein Lesen ihrer APIs, und kein
 Zwei Ausfälle lesen sich anders, und beide sind das, was eine echte Cloud tut:
 
 - **Ein gestopptes `heat-engine`** liest sich als **Orchestration API Down**, bei beiden Collectors. Heats API fragt eine Engine nach ihren Listen, daher kann sie sie ohne eine nicht beantworten, nach einer Minute Wartezeit auf ein RPC-Timeout. Ein Stack, den eine Engine in Arbeit zurückließ, kann in Arbeit bleiben, nachdem die Engine zurückkommt, und liest sich als **Stack Stuck In Progress**, sobald zwei Stunden vergangen sind.
-- **Ein gestopptes `magnum-conductor`** wird auf einer vom Agent erfassten Cloud nirgends angezeigt, weil Magnums API auch ohne einen weiter antwortet und der Exporter keine Conductors liest. Seine Cluster bewegen sich einfach nicht mehr. Eine Probe mit einer Credential der Vollansicht liest sie, was der einzige Weg ist, das zu sehen, oder führen Sie `openstack coe service list` aus.
+- **Ein gestopptes `magnum-conductor`** wird auf einer vom Agent erfassten Cloud nirgends angezeigt, weil Magnums API auch ohne einen weiter antwortet und der Exporter keine Conductors liest. Seine Cluster bewegen sich einfach nicht mehr. Eine Sonde mit einer Credential der Vollansicht liest sie, was der einzige Weg ist, das zu sehen, oder führen Sie `openstack coe service list` aus.
 
-Welche Instanzen und Volumes ein Stack besitzt, steht in einem weiteren Lesezugriff auf diesen Stack, den der Exporter des Agents nicht macht. Auf einer Cloud, die eine Probe erfasst, listet die Seite eines Stacks sie auf, und die Seite und die Alarme einer Instanz oder eines Volumes nennen den Stack. Einer Credential der Vollansicht wird zu den Stacks jedes Projekts geantwortet. Allem Geringeren wird das eines anderen Projekts verweigert, und die Seite eines Stacks sagt, wenn ihn nichts gelesen hat. Führen Sie auf einer vom Agent erfassten Cloud `openstack stack resource list` aus.
+Welche Instanzen und Volumes ein Stack besitzt, steht in einem weiteren Lesezugriff auf diesen Stack, den der Exporter des Agents nicht macht. Auf einer Cloud, die eine Sonde erfasst, listet die Seite eines Stacks sie auf, und die Seite und die Alarme einer Instanz oder eines Volumes nennen den Stack. Einer Credential der Vollansicht wird zu den Stacks jedes Projekts geantwortet. Allem Geringeren wird das eines anderen Projekts verweigert, und die Seite eines Stacks sagt, wenn ihn nichts gelesen hat. Führen Sie auf einer vom Agent erfassten Cloud `openstack stack resource list` aus.
 
 ### Ein Cluster mit dem Kubernetes-Agent darauf
 
@@ -876,7 +876,7 @@ Verlässt ein Dienst den Katalog von Keystone, verschwinden seine Zeilen etwa 15
 
 Betreibt Ihre Cloud Manila, erhält eine Cloud von selbst **Shares** unter **Speicher**, und eine, die es nicht betreibt, zeigt keine Spur davon. Jeder Share hat seinen Status im Wort von Manila, wofür er Platz hält, sein Protokoll und wem er gehört, und eine eigene Seite. Ein Share in einem Fehlerzustand erreicht **Erfordert Aufmerksamkeit** mit Namen, ebenso einer, der nach einer Stunde noch unterwegs ist: Manila hat kein eigenes Timeout für ein langsames Backend, daher liest sich eines, das hängt, bis dahin wie eines, das langsam ist. Ein Share, der migriert oder gesichert wird, bleibt unberührt, denn das dauert so lange, wie das Kopieren seiner Daten braucht.
 
-| Was | Agent, Vollansicht | Probe, Vollansicht | Alles Geringere |
+| Was | Agent, Vollansicht | Sonde, Vollansicht | Alles Geringere |
 | --- | --- | --- | --- |
 | Die Shares jedes Projekts und ihr Status | Ja | Ja | Höchstens die des eigenen Projekts, und die Monitoring-Rolle keine, und kein Fehler sagt es |
 | Welches Backend einen Share hält und ob seine Zugriffsregeln in Kraft sind | Nein. Führen Sie `openstack share show` aus | Ja | Nein |
@@ -884,7 +884,7 @@ Betreibt Ihre Cloud Manila, erhält eine Cloud von selbst **Shares** unter **Spe
 | Wie viel eines Shares belegt ist | Nein: nur sein Backend weiß es | Nein | Nein |
 | `manila-share`, `manila-scheduler` und `manila-data` unter **Dienste** | Nein. Führen Sie `openstack share service list` aus | Ja | Nein |
 
-Manilas API antwortet auch ohne seine anderen Dienste weiter, daher wird auf einer vom Agent erfassten Cloud ein gestopptes `manila-share` nirgends angezeigt: Seine Shares ändern sich einfach nicht mehr, und **Share Stuck** ist es, was das schließlich sagt. Eine Probe mit einer Credential der Vollansicht liest sie, und **Manila Service Down** sagt es dann. Manila sagt `stopped` für einen Dienst, der sauber heruntergefahren wurde, und `down` nur für einen, der starb, sobald sein Heartbeat alt geworden ist.
+Manilas API antwortet auch ohne seine anderen Dienste weiter, daher wird auf einer vom Agent erfassten Cloud ein gestopptes `manila-share` nirgends angezeigt: Seine Shares ändern sich einfach nicht mehr, und **Share Stuck** ist es, was das schließlich sagt. Eine Sonde mit einer Credential der Vollansicht liest sie, und **Manila Service Down** sagt es dann. Manila sagt `stopped` für einen Dienst, der sauber heruntergefahren wurde, und `down` nur für einen, der starb, sobald sein Heartbeat alt geworden ist.
 
 Eine Cloud ohne Manila kostet dafür nichts: Der Exporter antwortet mit nichts, und das erzeugt keine Zeile. Verlässt Manila den Katalog von Keystone, verschwinden seine Zeilen etwa 15 Minuten danach, wie [die von Heat und Magnum](#heat-und-magnum).
 
@@ -898,8 +898,8 @@ Ein Load Balancer in `ERROR`, einer, der eine Stunde in `PENDING_UPDATE` oder `P
 | --- | --- | --- |
 | Die Load Balancer und Pools jedes Projekts, mit beiden Status | Ja | Höchstens die des eigenen Projekts, und die Monitoring-Rolle keine |
 | Amphorae, ihre Rolle, ihre Instanz und ihr Zertifikat | Ja | Nein: Octavia lässt nur einen Admin sie auflisten |
-| Listener und Mitglieder | Nein: Der Exporter hat keine Serie dafür. Eine [Probe](/docs/telemetry/openstack-agentless) liest sie | Eine Probe: die des eigenen Projekts |
-| Traffic: Verbindungen, Bytes, Anfragefehler | Nein: Der Exporter hat keine `stats_*`-Serie, und Octavias API ist der einzige Ort, der es sagt. Eine Probe liest es und zeichnet die Rate zwischen zwei Messungen | Eine Probe: die des eigenen Projekts |
+| Listener und Mitglieder | Nein: Der Exporter hat keine Serie dafür. Eine [Sonde](/docs/telemetry/openstack-agentless) liest sie | Eine Sonde: die des eigenen Projekts |
+| Traffic: Verbindungen, Bytes, Anfragefehler | Nein: Der Exporter hat keine `stats_*`-Serie, und Octavias API ist der einzige Ort, der es sagt. Eine Sonde liest es und zeichnet die Rate zwischen zwei Messungen | Eine Sonde: die des eigenen Projekts |
 | Octavias eigene Worker unter **Dienste** | Nein: Nichts, was der Agent liest, listet sie auf | Nein |
 
 Ein Pool, dessen Mitglieder alle ihren Health Check nicht bestehen, ist im Betriebsstatus `ERROR`, während er und sein Load Balancer im Provisioning `ACTIVE` bleiben, aufgezeichnet, eine Seite, die allein das Provisioning las, würde also nichts Falsches zeigen. Ein Load Balancer im Provisioning `ERROR` liest sich im Betrieb als `OFFLINE`. Der OVN-Provider meldet für jeden Traffic-Zähler 0, was kein Fehler ist.
@@ -912,7 +912,7 @@ Eine Cloud, die Designate betreibt, erhält von selbst **DNS-Zonen** unter **Net
 
 Eine Zone in `ERROR` erreicht **Erfordert Aufmerksamkeit** mit Namen, ebenso eine, die nach einer halben Stunde `PENDING` ist. Designates Worker gibt von selbst lange vorher auf, daher arbeitet an dem, was `PENDING` bleibt, nichts. Das eigene `SOA` und `NS` einer Zone liest sich mit ihr als `ERROR`, das wird also einmal gesagt, von der Zone.
 
-| Was | Agent, Vollansicht | Probe, Vollansicht | Alles Geringere |
+| Was | Agent, Vollansicht | Sonde, Vollansicht | Alles Geringere |
 | --- | --- | --- | --- |
 | Die Zonen jedes Projekts und ihr Status | Ja | Ja | Nichts: siehe unten |
 | Recordsets, die nicht `ACTIVE` sind | Ja | Ja, von bis zu 50 Zonen pro Erfassung | Nein |
@@ -922,7 +922,7 @@ Eine Zone in `ERROR` erreicht **Erfordert Aufmerksamkeit** mit Namen, ebenso ein
 
 Zwei Dinge lesen sich anders als bei jedem anderen Dienst hier, beide aufgezeichnet:
 
-- **Eine gestoppte Designate-API sagt gar nichts.** Der Exporter liest zuerst ihre Versionen, bekommt keine Antwort und antwortet mit einem leeren `200`, genau wie bei einer Cloud ohne Designate. Nichts vom Exporter kann die beiden also unterscheiden, und OneUptime behauptet das nicht. Eine Cloud, die Designate hatte, liest sich nach 20 Minuten als verstummt, unter **Dienste** und in **Erfordert Aufmerksamkeit**. Ihre Zeilen verschwinden nach zwei Wochen davon und kommen zurück, wenn es zurückkommt. Kein Alarm kann das auf einer vom Agent erfassten Cloud sagen. Eine Probe liest den Katalog von Keystone selbst, daher kann es **DNS API Down**.
+- **Eine gestoppte Designate-API sagt gar nichts.** Der Exporter liest zuerst ihre Versionen, bekommt keine Antwort und antwortet mit einem leeren `200`, genau wie bei einer Cloud ohne Designate. Nichts vom Exporter kann die beiden also unterscheiden, und OneUptime behauptet das nicht. Eine Cloud, die Designate hatte, liest sich nach 20 Minuten als verstummt, unter **Dienste** und in **Erfordert Aufmerksamkeit**. Ihre Zeilen verschwinden nach zwei Wochen davon und kommen zurück, wenn es zurückkommt. Kein Alarm kann das auf einer vom Agent erfassten Cloud sagen. Eine Sonde liest den Katalog von Keystone selbst, daher kann es **DNS API Down**.
 - **`openstack_designate_up` mit Wert 0 bedeutet eine Ablehnung.** Der Exporter fragt nach den Zonen jedes Projekts, was nur ein Admin darf. Einer Credential, die sie nie gelesen hat, wird daher das gesagt, statt dass Designate ausgefallen ist, und ihr werden Designates Alarme nicht angeboten.
 
 Ein gestopptes `designate-worker` lässt Designates API weiter antworten und seine eigene Liste eine Weile `UP` lesen, weil sie nach einem Heartbeat geht. Änderungen werden angenommen und nicht ausgeführt, und **DNS Zone Stuck Pending** ist es, was das sagt.
@@ -931,14 +931,14 @@ Ein gestopptes `designate-worker` lässt Designates API weiter antworten und sei
 
 Eine Cloud, die Trove betreibt, erhält von selbst **Datenbanken**, und eine, die es nicht betreibt, zeigt keine Spur davon. Jede Datenbank hat ihren Status im Wort von Trove, was sie betreibt, ihr Volume und wem sie gehört, und eine eigene Seite. Eine in einem Fehlerzustand erreicht **Erfordert Aufmerksamkeit** mit Namen, ebenso eine, die nach einer Stunde noch unterwegs ist, oder eine über 85 % ihres Volumes.
 
-| Was | Agent, Vollansicht | Probe, Vollansicht | Alles Geringere |
+| Was | Agent, Vollansicht | Sonde, Vollansicht | Alles Geringere |
 | --- | --- | --- | --- |
 | Die Datenbanken jedes Projekts und ihr Status | Ja | Ja | Gar nichts: siehe unten |
 | Wie voll das Volume einer laufenden Datenbank ist | Ja | Ja | Nein |
 | Warum eine Datenbank fehlgeschlagen ist und was sie gerade tat | Nein. Führen Sie `openstack database instance show` aus | Ja | Nein |
 | `trove-taskmanager` und `trove-conductor` | Nein: Trove hat keine Liste davon | Nein | Nein |
 
-Der Exporter liest Troves Mgmt-API, die nur ein Admin darf. Trove lehnt alles Geringere ab, und der Exporter liest eine Ablehnung genauso wie ein gestopptes Trove: `openstack_trove_up` steht auf 0 und nichts sonst wird gesagt. Einer Credential, die Trove noch nie gelesen hat, wird daher das gesagt, statt dass Trove ausgefallen ist, und ihr werden Troves Alarme nicht angeboten. Eine Probe liest dieselbe Liste und unterscheidet die beiden: Trove hat geantwortet, seine API liest sich also als verfügbar, und der Verbindungstest sagt, dass abgelehnt wurde. Hat sie Trove einmal gelesen, liest sich eine 0 als ausgefallen, was auch für eine Credential gilt, die ihren Zugriff inzwischen verloren hat.
+Der Exporter liest Troves Mgmt-API, die nur ein Admin darf. Trove lehnt alles Geringere ab, und der Exporter liest eine Ablehnung genauso wie ein gestopptes Trove: `openstack_trove_up` steht auf 0 und nichts sonst wird gesagt. Einer Credential, die Trove noch nie gelesen hat, wird daher das gesagt, statt dass Trove ausgefallen ist, und ihr werden Troves Alarme nicht angeboten. Eine Sonde liest dieselbe Liste und unterscheidet die beiden: Trove hat geantwortet, seine API liest sich also als verfügbar, und der Verbindungstest sagt, dass abgelehnt wurde. Hat sie Trove einmal gelesen, liest sich eine 0 als ausgefallen, was auch für eine Credential gilt, die ihren Zugriff inzwischen verloren hat.
 
 Ein gestopptes `trove-taskmanager` wird nirgends angezeigt, weil Troves Listen ohne es antworten und es keine Liste von Workern hat: Woran es arbeitete, bewegt sich einfach nicht mehr, und **Database Instance Stuck** ist es, was das sagt. Trove gibt einen Guest von selbst lange vor dieser Stunde auf.
 
@@ -950,12 +950,12 @@ Eine Cloud, die Gnocchi betreibt, erhält von selbst seine API unter **Dienste**
 
 Keine Prozessoren erreichen **Erfordert Aufmerksamkeit**, ebenso ein Rückstau über 10.000 Measures. Gnocchis API antwortet und nimmt Measures weiter an, wenn `gnocchi-metricd` gestoppt ist, aufgezeichnet, daher sind seine Prozessoren der einzige Ort, der es zeigt. Solange das dauert, geht nichts verloren, aber nichts Neueres lässt sich lesen.
 
-| Was | Agent, Vollansicht | Probe, Vollansicht | Alles Geringere |
+| Was | Agent, Vollansicht | Sonde, Vollansicht | Alles Geringere |
 | --- | --- | --- | --- |
 | Ob seine API antwortet | Ja | Ja | Nichts: siehe unten |
 | Wie viele Measures und Metriken warten und wie viele Prozessoren es hat | Ja | Ja | Nein |
 
-Der Exporter liest Gnocchis Status, was nur ein Admin darf. Gnocchi lehnt alles Geringere ab, und der Exporter liest eine Ablehnung genauso wie ein gestopptes Gnocchi: `openstack_gnocchi_up` steht auf 0. Einer Credential, die Gnocchi noch nie gelesen hat, wird daher das gesagt, statt dass Gnocchi ausgefallen ist, und ihr werden seine Alarme nicht angeboten. Eine Probe unterscheidet die beiden: Gnocchi hat geantwortet, seine API liest sich also als verfügbar, und der Verbindungstest sagt, dass abgelehnt wurde.
+Der Exporter liest Gnocchis Status, was nur ein Admin darf. Gnocchi lehnt alles Geringere ab, und der Exporter liest eine Ablehnung genauso wie ein gestopptes Gnocchi: `openstack_gnocchi_up` steht auf 0. Einer Credential, die Gnocchi noch nie gelesen hat, wird daher das gesagt, statt dass Gnocchi ausgefallen ist, und ihr werden seine Alarme nicht angeboten. Eine Sonde unterscheidet die beiden: Gnocchi hat geantwortet, seine API liest sich also als verfügbar, und der Verbindungstest sagt, dass abgelehnt wurde.
 
 **Gnocchi Backlog Growing** liest eine Linie durch die letzten zwei Stunden. Der Rückstau einer ausgelasteten Cloud liest nie 0, ein großer, der fällt, ist also in Ordnung, und einer, der nicht fällt, ist das, was der Alarm sagt. Unsere Testclouds kamen nie über einen Rückstau von 10 Measures hinaus, daher wurde seine Linie nur an erfundenen Zahlen geprüft.
 
@@ -963,28 +963,28 @@ Der Exporter liest Gnocchis Status, was nur ein Admin darf. Gnocchi lehnt alles 
 
 Eine Cloud, die Swift betreibt, erhält von selbst **Object Storage** unter **Speicher**, und eine, die es nicht betreibt, zeigt keine Spur davon. Er listet die Container des eigenen Projekts der Credential auf, wie viel jeder hält und wie viele Objekte, und jeder hat eine eigene Seite.
 
-| Was | Agent, Vollansicht | Probe, Vollansicht | Probe, mit `ResellerAdmin` | Alles Geringere |
+| Was | Agent, Vollansicht | Sonde, Vollansicht | Sonde, mit `ResellerAdmin` | Alles Geringere |
 | --- | --- | --- | --- | --- |
 | Die Container des eigenen Projekts dieser Credential und wie viel jeder hält | Ja, ohne Projekt | Ja | Ja | Nichts: siehe unten |
 | Ob sein Proxy antwortet | Ja | Ja | Ja | Nein |
 | Die Container eines anderen Projekts | Nein | Nein | Ja, bis zu 200 Projekte pro Erfassung | Nein |
 | Ein gestoppter Objekt-, Container- oder Account-Server | Nein | Nein | Nein | Nein |
 
-Swift hält den Account jedes Projekts vor den Credentials jedes anderen Projekts fern, aufgezeichnet, daher ist diese Liste ohne `ResellerAdmin` nie die der ganzen Cloud. Der Exporter fragt in beiden Fällen nur nach seinem eigenen Account. Eine Probe, deren Credential diese Rolle hat, liest den jedes Projekts der Reihe nach, ein Lesezugriff pro Account, und sagt, wem jeder Container gehört.
+Swift hält den Account jedes Projekts vor den Credentials jedes anderen Projekts fern, aufgezeichnet, daher ist diese Liste ohne `ResellerAdmin` nie die der ganzen Cloud. Der Exporter fragt in beiden Fällen nur nach seinem eigenen Account. Eine Sonde, deren Credential diese Rolle hat, liest den jedes Projekts der Reihe nach, ein Lesezugriff pro Account, und sagt, wem jeder Container gehört.
 
-Eine Credential, die Swift ablehnt, liest `openstack_object_store_up` 0, genau wie ein gestoppter Proxy. Einer Credential, die Swift noch nie gelesen hat, wird daher das gesagt, statt dass Swift ausgefallen ist, und ihr werden seine Alarme nicht angeboten. Eine Probe unterscheidet die beiden: Swift hat geantwortet, seine API liest sich also als verfügbar, und der Verbindungstest sagt, dass abgelehnt wurde. Eine Application Credential mit Zugriffsregeln braucht außerdem `include_service_catalog = True` in `proxy-server.conf`.
+Eine Credential, die Swift ablehnt, liest `openstack_object_store_up` 0, genau wie ein gestoppter Proxy. Einer Credential, die Swift noch nie gelesen hat, wird daher das gesagt, statt dass Swift ausgefallen ist, und ihr werden seine Alarme nicht angeboten. Eine Sonde unterscheidet die beiden: Swift hat geantwortet, seine API liest sich also als verfügbar, und der Verbindungstest sagt, dass abgelehnt wurde. Eine Application Credential mit Zugriffsregeln braucht außerdem `include_service_catalog = True` in `proxy-server.conf`.
 
 Ein gestoppter Objekt-Server ändert nichts von dem, was der Exporter sagt, aufgezeichnet: Swifts Listen kommen von seinen Account- und Container-Servern, und sein Proxy antwortet weiter. Nur was jeder Storage-Server über sein eigenes `/recon` sagt, zeigt es, und das steht nicht im Katalog von Keystone.
 
-Eine Probe liest es also dort, wo Sie sie nennen: Listen Sie unter **Was über die Standardwerte hinaus gelesen wird** auf der Karte **Datenerfassung** den `/recon`-Port jedes Storage-Servers als `host:port` auf. Das kostet 5 Aufrufe pro Server bei jeder Erfassung, und keine Credential geht an sie. Sie erhalten dann **Swift Storage Server Not Answering**, **Swift Rings Differ** und **Swift Replication Stale**, und was sie zusammen ergeben, auf Swifts eigener Seite. Eine Aufzeichnung hatte nur einen Server zu lesen, daher wurden abweichende Ringe nur an erfundenen Zahlen geprüft. Ebenso veraltete Replikation, die auf einer Testcloud alle paar Minuten abschließt.
+Eine Sonde liest es also dort, wo Sie sie nennen: Listen Sie unter **Was über die Standardwerte hinaus gelesen wird** auf der Karte **Datenerfassung** den `/recon`-Port jedes Storage-Servers als `host:port` auf. Das kostet 5 Aufrufe pro Server bei jeder Erfassung, und keine Credential geht an sie. Sie erhalten dann **Swift Storage Server Not Answering**, **Swift Rings Differ** und **Swift Replication Stale**, und was sie zusammen ergeben, auf Swifts eigener Seite. Eine Aufzeichnung hatte nur einen Server zu lesen, daher wurden abweichende Ringe nur an erfundenen Zahlen geprüft. Ebenso veraltete Replikation, die auf einer Testcloud alle paar Minuten abschließt.
 
 **Object Container Growth Forecast** liest eine Linie durch die letzte Woche jedes Containers und blickt eine Woche voraus. Swift sagt hier nichts darüber, wie viel Platz eine Cloud hat, daher ist seine Linie von 1 TiB eine, bei der man Bescheid bekommen will, nicht eine, an der etwas bricht. Ändern Sie sie passend zu Ihrer Cloud. Keine Testcloud hält eine Woche Wachstum, daher wurde sie nur an erfundenen Zahlen geprüft.
 
 ## Barbican
 
-Der Exporter hat keinen Reader für Barbican: Ihn nach `key-manager` zu fragen ist ein `400`, aufgezeichnet. Eine Cloud, die der Agent erfasst, zeigt daher keine Spur davon, ob sie es betreibt oder nicht, und nur eine [Probe](/docs/telemetry/openstack-agentless) sagt etwas.
+Der Exporter hat keinen Reader für Barbican: Ihn nach `key-manager` zu fragen ist ein `400`, aufgezeichnet. Eine Cloud, die der Agent erfasst, zeigt daher keine Spur davon, ob sie es betreibt oder nicht, und nur eine [Sonde](/docs/telemetry/openstack-agentless) sagt etwas.
 
-Eine Probe liest Barbican dort, wo der Katalog von Keystone es nennt, und setzt es unter **Dienste**: ob seine API antwortet und wie viele Secrets, Orders und Container das eigene Projekt dieser Credential hält. Barbican antwortet immer über ein Projekt, auch einem Admin, daher sind das nie die der Cloud. OneUptime liest kein Secret: Eine Liste sagt nur, dass eines existiert, und es fragt nach der einen Zeile, die es für die Gesamtzahl braucht.
+Eine Sonde liest Barbican dort, wo der Katalog von Keystone es nennt, und setzt es unter **Dienste**: ob seine API antwortet und wie viele Secrets, Orders und Container das eigene Projekt dieser Credential hält. Barbican antwortet immer über ein Projekt, auch einem Admin, daher sind das nie die der Cloud. OneUptime liest kein Secret: Eine Liste sagt nur, dass eines existiert, und es fragt nach der einen Zeile, die es für die Gesamtzahl braucht.
 
 Barbican lehnt einen einfachen Reader ab, und das liest sich als das, was es ist: Seine API hat geantwortet, daher liest sie sich als verfügbar, und die Zahlen sagen nichts.
 
@@ -1116,9 +1116,9 @@ Lassen Sie `notify_on_state_change`, wie es ist. Es fügt nur `instance.update`-
 
 ### Ohne Benachrichtigungen
 
-Eine Cloud, deren Konfiguration nicht Ihnen gehört, kann trotzdem fehlgeschlagene Aktionen haben. Eine [Probe](/docs/telemetry/openstack-agentless) liest `os-instance-actions` für die Instanzen, die sich seit ihrem letzten Blick geändert haben, und gibt jedes als die Benachrichtigung wieder, die Nova gesendet hätte, mit dem Grund, den Nova nennt. Das kostet einen Aufruf pro geänderter Instanz, höchstens einige pro Erfassung, und bei einer ruhigen Cloud keinen. Sie bleibt still, sobald die eigenen Benachrichtigungen einer Cloud eintreffen, damit nichts doppelt gesagt wird.
+Eine Cloud, deren Konfiguration nicht Ihnen gehört, kann trotzdem fehlgeschlagene Aktionen haben. Eine [Sonde](/docs/telemetry/openstack-agentless) liest `os-instance-actions` für die Instanzen, die sich seit ihrem letzten Blick geändert haben, und gibt jedes als die Benachrichtigung wieder, die Nova gesendet hätte, mit dem Grund, den Nova nennt. Das kostet einen Aufruf pro geänderter Instanz, höchstens einige pro Erfassung, und bei einer ruhigen Cloud keinen. Sie bleibt still, sobald die eigenen Benachrichtigungen einer Cloud eintreffen, damit nichts doppelt gesagt wird.
 
-Nova hält diese nur pro Instanz, und ohne Datensatz, der sich geändert hat, ruft nichts einen auf. Ein fehlgeschlagenes Anhängen eines Volumes kann seine Instanz lassen, wie sie war, eine Probe kann es also nicht sehen. Benachrichtigungen können es.
+Nova hält diese nur pro Instanz, und ohne Datensatz, der sich geändert hat, ruft nichts einen auf. Ein fehlgeschlagenes Anhängen eines Volumes kann seine Instanz lassen, wie sie war, eine Sonde kann es also nicht sehen. Benachrichtigungen können es.
 
 Nova kann auch einen Build abschreiben, ohne dass an seiner Aktion etwas steht: Auf unseren Test-Clouds ließ ein auf seinem Compute-Host fehlgeschlagener Build die Aktion in Ordnung aussehen und den Grund im Fault der Instanz. Daher zählt die neueste Aktion einer Instanz in `ERROR` als fehlgeschlagen, mit diesem Fault als Grund.
 
@@ -1428,7 +1428,7 @@ Das wurde auf DevStack auf 2026.2 ausgeführt, von einem echten Start bis zu ein
 
 ## Die Cloud von außen prüfen
 
-Jeder Dienst kann gesund melden, während niemand eine Instanz starten kann, daher ist der wahrste Test, zu tun, was Benutzer tun, von dort, wo sie sind. Eine Probe tut das von außerhalb der Cloud, denn eine Prüfung innerhalb einer ausgefallenen Cloud sagt nichts. Führen Sie diese auf [einer eigenen Probe](/docs/probe/custom-probe) aus, irgendwo, wo sie die öffentlichen Endpunkte der Cloud so erreicht wie Ihre Benutzer. In OneUptime Cloud erhalten geteilte Proben nie OpenStack-Credentials.
+Jeder Dienst kann gesund melden, während niemand eine Instanz starten kann, daher ist der wahrste Test, zu tun, was Benutzer tun, von dort, wo sie sind. Eine Sonde tut das von außerhalb der Cloud, denn eine Prüfung innerhalb einer ausgefallenen Cloud sagt nichts. Führen Sie diese auf [einer eigenen Sonde](/docs/probe/custom-probe) aus, irgendwo, wo sie die öffentlichen Endpunkte der Cloud so erreicht wie Ihre Benutzer. In OneUptime Cloud erhalten geteilte Sonden nie OpenStack-Credentials.
 
 Beide stehen auf der Seite **Prüfungen** der Cloud. [Die Vorlagen des OpenStack-Monitors](/docs/monitor/openstack-monitor#prüfungen-von-außen) machen aus dem Gefundenen Incidents.
 
@@ -1436,7 +1436,7 @@ Beide stehen auf der Seite **Prüfungen** der Cloud. [Die Vorlagen des OpenStack
 
 Standardmäßig jede Minute und nur lesend. Keystone stellt ein Token aus, jeder Dienst im Katalog beantwortet einen authentifizierten Lesezugriff auf eine Zeile, und das Zertifikat jedes Endpunkts wird darauf gelesen, wann es abläuft. Was der Katalog nennt, wird gefragt, es gibt also keine Liste zu pflegen.
 
-Eine Cloud, die eine Probe bereits erfasst, braucht einen Klick: **API-Prüfungen einschalten** verwendet dieselbe Probe, Adresse und Credential. Eine Cloud, die der Agent erfasst, hat nichts davon auf einer Probe und fragt daher danach. Jede Credential, die sich anmelden kann, genügt, weil ein Dienst, der sie ablehnt, trotzdem geantwortet hat.
+Eine Cloud, die eine Sonde bereits erfasst, braucht einen Klick: **API-Prüfungen einschalten** verwendet dieselbe Sonde, Adresse und Credential. Eine Cloud, die der Agent erfasst, hat nichts davon auf einer Sonde und fragt daher danach. Jede Credential, die sich anmelden kann, genügt, weil ein Dienst, der sie ablehnt, trotzdem geantwortet hat.
 
 Es kostet pro Dienst und Region jede Minute eine Anmeldung und einen kleinen Lesezugriff, ohne Wiederholungen. Eine Credential, die Keystone ablehnt, wird später erneut gefragt statt jede Minute, weil Wiederholen das ist, was ein Konto sperrt.
 
@@ -1519,11 +1519,11 @@ Eine Application Credential ist hier besser als ein Passwort, weil sie nicht auf
 
 #### Einen langsamen Start nachverfolgen
 
-Speichern Sie Ihren [OSProfiler](#anfragen-durch-die-steuerungsebene-nachverfolgen)-Schlüssel auf der Seite **Prüfungen**, und die Schreibzugriffe jedes Schritts werden signiert, jeder Schritt mit eigenem Trace, sodass ein langsamer Start einen Trace hat, der den Start und sonst nichts enthält. Die Wartezeiten werden nicht signiert, weil eine signierte Anfrage in jedem Dienst, den sie durchquert, mehr Arbeit macht. Der Schlüssel ist verschlüsselt und nur schreibbar, wie die Credential: Er geht an diese Probe und in jede Signatur und kommt von nirgends zurück.
+Speichern Sie Ihren [OSProfiler](#anfragen-durch-die-steuerungsebene-nachverfolgen)-Schlüssel auf der Seite **Prüfungen**, und die Schreibzugriffe jedes Schritts werden signiert, jeder Schritt mit eigenem Trace, sodass ein langsamer Start einen Trace hat, der den Start und sonst nichts enthält. Die Wartezeiten werden nicht signiert, weil eine signierte Anfrage in jedem Dienst, den sie durchquert, mehr Arbeit macht. Der Schlüssel ist verschlüsselt und nur schreibbar, wie die Credential: Er geht an diese Sonde und in jede Signatur und kommt von nirgends zurück.
 
 #### Ausschalten
 
-Schalten Sie die Prüfung aus, und es beginnen keine Läufe mehr. Bis nichts, was nach ihr benannt ist, übrig ist, führt die Probe den Janitor allein weiter aus, weshalb die Credential so lange behalten wird. Dann vergisst OneUptime die Credential und den Schlüssel, und Sie können das Projekt löschen. Das Löschen der Cloud in OneUptime vergisst sie sofort und räumt nichts auf, schalten Sie die Prüfung also zuerst aus und warten Sie, bis die Seite nicht mehr sagt, dass sie aufräumt. Ist die Credential zuerst weg, finden Sie, was übrig ist, am Namen:
+Schalten Sie die Prüfung aus, und es beginnen keine Läufe mehr. Bis nichts, was nach ihr benannt ist, übrig ist, führt die Sonde den Janitor allein weiter aus, weshalb die Credential so lange behalten wird. Dann vergisst OneUptime die Credential und den Schlüssel, und Sie können das Projekt löschen. Das Löschen der Cloud in OneUptime vergisst sie sofort und räumt nichts auf, schalten Sie die Prüfung also zuerst aus und warten Sie, bis die Seite nicht mehr sagt, dass sie aufräumt. Ist die Credential zuerst weg, finden Sie, was übrig ist, am Namen:
 
 ```bash
 openstack server list --name '^oneuptime-check-'
@@ -1779,7 +1779,7 @@ Neutron und Cinder beantworten alles außer einem Admin mit einem `200` und nur 
 :::
 
 :::details Keine Instanzen auf Ebene 3
-Der Exporter fragt Nova nach den Servern aller Projekte, Nova lehnt einen einfachen Reader ab, und dieser Lesezugriff schlägt als Ganzes fehl. Verwenden Sie Ebene 1 oder 2 oder eine [Probe](/docs/telemetry/openstack-agentless), die die Instanzen eines Projekts auflisten kann.
+Der Exporter fragt Nova nach den Servern aller Projekte, Nova lehnt einen einfachen Reader ab, und dieser Lesezugriff schlägt als Ganzes fehl. Verwenden Sie Ebene 1 oder 2 oder eine [Sonde](/docs/telemetry/openstack-agentless), die die Instanzen eines Projekts auflisten kann.
 :::
 
 :::details Die Daten eines Dienstes fehlen
@@ -1799,13 +1799,13 @@ OneUptime liest die eigenen Formate von oslo.log. Eine Cloud, die `logging_conte
 :::
 
 :::details Der Feed bleibt leer
-Jeder Dienst braucht `driver = log` und einen Neustart, und Nova zusätzlich `notification_format = versioned`: siehe [Benachrichtigungen einschalten](#benachrichtigungen-einschalten). Um einen Dienst zu prüfen, suchen Sie in seinem Log mit grep nach `oslo.messaging.notification`. Ist dort nichts, sehen Sie sich `default_log_levels` an: Ein Level über `INFO` für `oslo.messaging` unterdrückt die meisten. Eine Cloud, deren Konfiguration nicht Ihnen gehört, kann eine [Probe](#ohne-benachrichtigungen) verwenden.
+Jeder Dienst braucht `driver = log` und einen Neustart, und Nova zusätzlich `notification_format = versioned`: siehe [Benachrichtigungen einschalten](#benachrichtigungen-einschalten). Um einen Dienst zu prüfen, suchen Sie in seinem Log mit grep nach `oslo.messaging.notification`. Ist dort nichts, sehen Sie sich `default_log_levels` an: Ein Level über `INFO` für `oslo.messaging` unterdrückt die meisten. Eine Cloud, deren Konfiguration nicht Ihnen gehört, kann eine [Sonde](#ohne-benachrichtigungen) verwenden.
 :::
 
 ## Nächste Schritte
 
 :::cards
 - [OpenStack-Monitor](/docs/monitor/openstack-monitor): Alarmieren Sie bei Diensten, Hypervisoren, Instanzen, Netzwerken und Speicherpools.
-- [OpenStack ohne Agent](/docs/telemetry/openstack-agentless): Erfassen Sie eine Cloud von einer Probe, ohne etwas zu installieren.
+- [OpenStack ohne Agent](/docs/telemetry/openstack-agentless): Erfassen Sie eine Cloud von einer Sonde, ohne etwas zu installieren.
 - [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector): Die Sicht auf Betriebssystemebene für jeden Controller und Hypervisor.
 :::

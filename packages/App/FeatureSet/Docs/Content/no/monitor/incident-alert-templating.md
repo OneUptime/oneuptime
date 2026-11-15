@@ -226,10 +226,10 @@ I en tittel kuttes hver av dem til én linje på høyst 150 tegn. Beskrivelser o
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om tidsserveren svarte på probens forespørsel. | `boolean` |
+| `isOnline` | Om tidsserveren svarte på sondens forespørsel. | `boolean` |
 | `isSynchronized` | Om den svarte med stratum 1 til 15, uten leap-alarmen og med ekte tidsstempler. | `boolean` |
 | `stratum` | Stratumet serveren rapporterte: 1 for en primærserver, 16 når den ikke er synkronisert, 0 for en kiss-o'-death. | `number` |
-| `clockOffsetInMs` | Hvor langt serverens klokke er fra probens, i millisekunder. Positiv betyr at serveren er foran. | `number` |
+| `clockOffsetInMs` | Hvor langt serverens klokke er fra sondens, i millisekunder. Positiv betyr at serveren er foran. | `number` |
 | `referenceId` | Hva serveren synkroniserer mot: en kilde som `GPS` på stratum 1, eller adressen til serveren over den. | `string` |
 | `leapIndicator` | 0 til 2 når alt er i orden, 3 når serveren sier at klokken ikke er synkronisert. | `number` |
 | `kissCode` | Med stratum 0 koden på fire bokstaver som serveren sendte i stedet for tiden, som `RATE`. | `string` |
@@ -423,7 +423,7 @@ En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om proben kunne koble til og kjøre grunnspørringen. Manglende målinger gjør den aldri usann. | `boolean` |
+| `isOnline` | Om sonden kunne koble til og kjøre grunnspørringen. Manglende målinger gjør den aldri usann. | `boolean` |
 | `responseTimeInMs` | Tiden det tok å koble til og kjøre grunnspørringen, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |
 | `connectionError` | Tilkoblingsfeilen, uten påloggingsinformasjon eller tilkoblingsstrengen. | `string` |

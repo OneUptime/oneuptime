@@ -152,6 +152,6 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 :::cards
 - [IP-overvåking](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
 - [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
-- [Egendefinerte probes](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

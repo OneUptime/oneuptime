@@ -1,6 +1,6 @@
 # Arkitektur
 
-En egeninstallerad OneUptime består av en handfull containrar: en ingress som varje begäran kommer in genom, en app-image som gör jobbet, prober som kör dina monitorers kontroller och tre datalager. Den här sidan visar hur de hänger ihop, vad var och en gör och vilka anslutningar som korsar ditt nätverk.
+En egeninstallerad OneUptime består av en handfull containrar: en ingress som varje begäran kommer in genom, en app-image som gör jobbet, sonder som kör dina monitorers kontroller och tre datalager. Den här sidan visar hur de hänger ihop, vad var och en gör och vilka anslutningar som korsar ditt nätverk.
 
 ```mermaid title="En egeninstallerad OneUptime"
 flowchart TB
@@ -12,7 +12,7 @@ flowchart TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>instrumentpaneler,<br/>statussidor,<br/>API, inmatning,<br/>bakgrundsjobb"]
         Runner["Global Runner"]
-        Probe["Prober"]
+        Probe["Sonder"]
         subgraph Data["Datalager"]
             direction LR
             Postgres[("PostgreSQL<br/>konfiguration<br/>och tillstånd")]
@@ -36,10 +36,10 @@ flowchart TB
 
 - Personer når OneUptime genom **ingressen**, som avslutar TLS och skickar varje begäran vidare till appen: Dashboard, statussidorna, API:et och varje inmatningsslutpunkt som telemetri skickas till.
 - **Appen** läser och skriver sitt tillstånd i PostgreSQL, sparar telemetri i ClickHouse och använder Valkey (den BSD-licensierade forken av Redis 7.2) som cache och för de köer som dess bakgrundsjobb arbetar sig igenom.
-- **Prober** kan köras i ditt kluster (rekommenderas) och/eller någon annanstans i ditt nätverk. De kan övervaka:
+- **Sonder** kan köras i ditt kluster (rekommenderas) och/eller någon annanstans i ditt nätverk. De kan övervaka:
   - Interna/privata tjänster bakom din brandvägg.
   - Externa/publika resurser på internet.
-- Probresultat skickas till appen, köas i Valkey och bearbetas av bakgrundsjobben in i dina datalager. En prob någon annanstans i ditt nätverk når appen genom ingressen, på din OneUptime-URL.
+- Sondresultat skickas till appen, köas i Valkey och bearbetas av bakgrundsjobben in i dina datalager. En sond någon annanstans i ditt nätverk når appen genom ingressen, på din OneUptime-URL.
 - Telemetri (mätvärden, spår, loggar och mer) tas emot av samma app och lagras i ClickHouse.
 
 > [!NOTE]
@@ -53,7 +53,7 @@ flowchart TB
 | App | `app` | `app` | Dashboard, statussidorna, API- och inmatningsslutpunkterna och, om du inte delar upp dem, bakgrundsjobben. |
 | Worker | En del av `app` | `worker` (av som standard) | Bakgrundsjobben i egna poddar, så att tung köbearbetning aldrig konkurrerar med API-begäranden. |
 | Telemetry writer | En del av `app` | `telemetryWriter` (av som standard) | En nivå med fast storlek som gör varje ClickHouse-insättning, så att insättningarna håller sig begränsade hur långt workers än skalar. |
-| Prob | `probe-1` | `probes` | Kör monitorkontroller och skickar tillbaka resultaten. Varje medföljande prob är en global prob som alla projekt kan använda. |
+| Sond | `probe-1` | `probes` | Kör monitorkontroller och skickar tillbaka resultaten. Varje medföljande sond är en global sond som alla projekt kan använda. |
 | Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globala-runners): den kör JavaScript-stegen i alla projekt som inte väljer en egen Runner, vart och ett i en sandlåda som bara når internet, och OneUptime AI:s kodkorrigeringar i varje kodrepository som inte väljer någon. Den har sin egen nyckel och inget annat från servern. Bash-, SSH- och kubectl-steg körs på [Runners](/docs/runbooks/agents) som du installerar där de ska köras. |
 | PostgreSQL | `postgres` | `postgresql`, eller `postgresOperator.cnpg` | Projekt, monitorer, incidenter, användare och alla andra inställningar och tillstånd. |
 | ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Loggar, mätvärden, spår, undantag, profiler och monitorloggar. |
@@ -68,7 +68,7 @@ Fyra anslutningar görs om du inte ändrar en inställning:
 - En gång om dagen frågar appen GitHubs API (`api.github.com`) om en nyare version har kommit. Den läser också de säkerhetsmeddelanden som OneUptime har publicerat, så att dina huvudadministratörer får veta när ett av dem berör den version du kör ([Uppdaterings- och säkerhetskontroller](/docs/self-hosted/update-checks)). Du stänger av det med `updateCheck.disabled: true` i Helm-chartet, eller med `DISABLE_UPDATE_CHECK=true` i `config.env` med Docker Compose.
 - En gång om dagen meddelar appen `oneuptime.com` din installations adress och vilken version den kör, så att OneUptime vet vilka installationer som fortfarande kör en version med ett säkerhetsproblem. Inget om dina användare, projekt eller övervakningsdata skickas. Du stänger av det med `instanceCheckIn.disabled: true` i Helm-chartet, eller med `DISABLE_INSTANCE_CHECK_IN=true` i `config.env` med Docker Compose.
 - Registrerar sig någon med ”Meddela mig om säkerhetsuppdateringar och nya versioner” markerad, som den är från början, skickas personens namn och e-post, eventuellt företag och telefonnummer samt din installations adress och version till `oneuptime.com`. Avmarkera den i ett nätverk utan internetåtkomst. När det dagliga anropet ovan är avstängt visar formuläret inte längre rutan, och inget skickas.
-- På Kubernetes faller prober tillbaka på de publika resolvrarna `8.8.8.8` och `1.1.1.1` efter klustrets egen DNS. Sätt `dnsConfig.nameservers` till `[]` för att hålla alla uppslag på din egen DNS.
+- På Kubernetes faller sonder tillbaka på de publika resolvrarna `8.8.8.8` och `1.1.1.1` efter klustrets egen DNS. Sätt `dnsConfig.nameservers` till `[]` för att hålla alla uppslag på din egen DNS.
 
 Allt annat ansluter bara utåt när du slår på det, och var och en har en sida som anger exakt vilka adresser som ska tillåtas:
 
@@ -81,7 +81,7 @@ Allt annat ansluter bara utåt när du slår på det, och var och en har en sida
 | En LLM-leverantör, som OpenAI, Anthropic, Microsoft Foundry eller en modell du kör själv | OneUptime AI | [LLM-leverantörer](/docs/ai/llm-provider) |
 | `oneuptime.com` | Aktivera en Enterprise-licens online | [Enterprise Edition](/docs/self-hosted/enterprise) |
 
-Anslutningar åt andra hållet – SendGrid som levererar inkommande e-post, Slack och Microsoft Teams som anropar tillbaka – kräver att ingressen går att nå från internet. Vilka privata adresser appen och proberna får nå bestämmer du: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
+Anslutningar åt andra hållet – SendGrid som levererar inkommande e-post, Slack och Microsoft Teams som anropar tillbaka – kräver att ingressen går att nå från internet. Vilka privata adresser appen och sonderna får nå bestämmer du: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 
 OneUptimes logotyp finns inuti varje e-postmeddelande som OneUptime skickar, så den visas även i ett nätverk utan internetåtkomst, och när ett meddelande öppnas efterfrågas ingenting från någon annan värd. En logotyp som du laddar upp själv finns också inuti meddelandet: din egen logotyp när den är en PNG, JPEG eller GIF, och en statussidas logotyp när den är en PNG, JPEG, GIF, WebP eller SVG, som OneUptime gör om till en bild i storlek med meddelandets sidhuvud. Alla andra bilder som du laddar upp visas från din OneUptime-URL, som de som läser meddelandena måste kunna nå, och detsamma gäller en statussidas SVG-logotyp vars ord är text och inte former.
 
@@ -90,6 +90,6 @@ OneUptimes logotyp finns inuti varje e-postmeddelande som OneUptime skickar, så
 :::cards
 - [Docker Compose](/docs/installation/docker-compose): Installera alla komponenter på en maskin.
 - [Dimensionering och kapacitetsplanering](/docs/installation/sizing): Hur mycket CPU, minne och disk varje nivå behöver.
-- [Egna prober](/docs/probe/custom-probe): Kör en prob i ett annat nätverk.
+- [Egna sonder](/docs/probe/custom-probe): Kör en sond i ett annat nätverk.
 - [Enterprise Edition](/docs/self-hosted/enterprise): Vad Enterprise-images lägger till och hur licensiering fungerar.
 :::

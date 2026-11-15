@@ -173,6 +173,6 @@ Servern i **DNS-server (valfritt)** validerar inte DNSSEC och sätter därför a
 :::cards
 - [DNSSEC-övervakning](/docs/monitor/dnssec-monitor): Validera förtroendekedjan i en signerad zon.
 - [Domänövervakning](/docs/monitor/domain-monitor): Håll koll på domänens registrering och utgång.
-- [Anpassade probes](/docs/probe/custom-probe): Fråga interna DNS-servrar från ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Fråga interna DNS-servrar från ditt eget nätverk.
 - [Incidenter – Översikt](/docs/incidents/index): Vad som händer när monitorn har deklarerat en.
 :::

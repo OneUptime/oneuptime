@@ -115,7 +115,7 @@ Sondens nettverk kan ikke nå vCenter på TCP 443. Tillat trafikken gjennom bran
 :::
 
 :::details Sonden plukket ikke opp dette
-Sonden er frakoblet, eller kjører en OneUptime-versjon som er eldre enn VMware-innsamling. Kontroller at den er tilkoblet i tabellen **Egendefinerte probes**, og oppdater den.
+Sonden er frakoblet, eller kjører en OneUptime-versjon som er eldre enn VMware-innsamling. Kontroller at den er tilkoblet i tabellen **Egendefinerte sonder**, og oppdater den.
 :::
 
 :::details Denne vCenter er for stor til å samles inn av en sonde

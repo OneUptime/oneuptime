@@ -79,7 +79,7 @@ Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller 
 
 ### Var globala Runners kommer ifrån
 
-I OneUptime Cloud kör OneUptime dem. En egenhostad installation kör som standard en egen, precis som den kör sina egna globala prober: tjänsten `global-runner` i Docker Compose och distributionen `globalRunner` i Helm-diagrammet. Den har sin egen nyckel, `GLOBAL_RUNNER_KEY`, och inget annat från servern.
+I OneUptime Cloud kör OneUptime dem. En egenhostad installation kör som standard en egen, precis som den kör sina egna globala sonder: tjänsten `global-runner` i Docker Compose och distributionen `globalRunner` i Helm-diagrammet. Den har sin egen nyckel, `GLOBAL_RUNNER_KEY`, och inget annat från servern.
 
 En huvudadministratör kan lägga till fler för att köra steg och kodkorrigeringar från andra värdar: öppna **Inställningar** och sedan **Globala Runners** i administratörspanelen, skapa en och kör det kommando som dess **Visa ID och nyckel** ger på en värd som når internet.
 
