@@ -303,7 +303,7 @@ describe("a monitor's chart (buildMonitorMetricQueryConfig)", () => {
       [MonitorType.Website, MonitorMetricType.ResponseTime],
       [MonitorType.Server, MonitorMetricType.CPUUsagePercent],
       [MonitorType.Ping, MonitorMetricType.PacketLossPercent],
-      [MonitorType.Ntp, MonitorMetricType.NtpClockOffset],
+      [MonitorType.NTP, MonitorMetricType.NtpClockOffset],
     ] as Array<[MonitorType, MonitorMetricType]>) {
       const query: MetricQueryConfigData = build(monitorType, metric, probing);
 
