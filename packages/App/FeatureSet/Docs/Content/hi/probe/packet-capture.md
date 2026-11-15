@@ -188,10 +188,10 @@ spec:
 
 | अनुमति | किसी को यह करने देती है | डिफ़ॉल्ट रूप से किसके पास है |
 | --- | --- | --- |
-| **Start Packet Capture** | कैप्चर शुरू करना, और उन्हें रोकना | Project Owner, Project Admin |
-| **Download Packet Capture** | कैप्चर फ़ाइलें डाउनलोड करना | Project Owner, Project Admin |
-| **Delete Packet Capture** | कैप्चर और उनकी फ़ाइलें हटाना | Project Owner, Project Admin |
-| **Read Packet Capture** | कैप्चर देखना: वे कब चले, किस प्रोब पर और किस फ़िल्टर के साथ | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | कैप्चर शुरू करना, और उन्हें रोकना | प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन |
+| **Download Packet Capture** | कैप्चर फ़ाइलें डाउनलोड करना | प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन |
+| **Delete Packet Capture** | कैप्चर और उनकी फ़ाइलें हटाना | प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन |
+| **Read Packet Capture** | कैप्चर देखना: वे कब चले, किस प्रोब पर और किस फ़िल्टर के साथ | प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, दर्शक |
 
 किसी टीम को **Start Packet Capture** या **Download Packet Capture** देने के लिए, उसे **सेटिंग्स → टीमें** में खोलें और उसके **अनुमतियाँ** पेज पर अनुमति जोड़ें। [अनुमतियाँ](/docs/permissions/index) देखें।
 
