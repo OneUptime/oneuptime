@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Exigir um segredo em toda requisição
 
-Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um proprietário ou administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
+Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um Proprietário do projeto ou Administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
 
 :::steps
 ### Crie um segredo

@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Kräv en hemlighet vid varje begäran
 
-Alla som har en monitors URL kan skicka begäranden till den. En projektägare eller -administratör kan låta varje monitor för inkommande begäranden i projektet även kräva en av projektets egna hemligheter, oavsett vem som satte upp monitorn: slå på **Kräv en hemlighet vid varje begäran**. En begäran utan hemlighet avvisas med `401` och orsaken, innan den räknas som heartbeat, sparas som monitorns senaste begäran eller når några kriterier. En begäran med hemlighet går vidare till monitorns egna kriterier, som tidigare.
+Alla som har en monitors URL kan skicka begäranden till den. En Projektägare eller Projektadministratör kan låta varje monitor för inkommande begäranden i projektet även kräva en av projektets egna hemligheter, oavsett vem som satte upp monitorn: slå på **Kräv en hemlighet vid varje begäran**. En begäran utan hemlighet avvisas med `401` och orsaken, innan den räknas som heartbeat, sparas som monitorns senaste begäran eller når några kriterier. En begäran med hemlighet går vidare till monitorns egna kriterier, som tidigare.
 
 :::steps
 ### Skapa en hemlighet

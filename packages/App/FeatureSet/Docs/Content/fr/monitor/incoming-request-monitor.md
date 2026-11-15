@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Exiger un secret à chaque requête
 
-Toute personne qui possède l'URL d'un moniteur peut lui envoyer des requêtes. Un propriétaire ou un administrateur du projet peut faire exiger en plus, par chaque moniteur de requêtes entrantes du projet, l'un des secrets propres au projet, quelle que soit la personne qui a configuré le moniteur : activez **Exiger un secret à chaque requête**. Une requête sans secret est refusée avec `401` et le motif, avant de compter comme heartbeat, d'être conservée comme dernière requête du moniteur ou d'atteindre des critères. Une requête avec un secret poursuit vers les critères propres au moniteur, comme avant.
+Toute personne qui possède l'URL d'un moniteur peut lui envoyer des requêtes. Un Propriétaire du projet ou un Administrateur du projet peut faire exiger en plus, par chaque moniteur de requêtes entrantes du projet, l'un des secrets propres au projet, quelle que soit la personne qui a configuré le moniteur : activez **Exiger un secret à chaque requête**. Une requête sans secret est refusée avec `401` et le motif, avant de compter comme heartbeat, d'être conservée comme dernière requête du moniteur ou d'atteindre des critères. Une requête avec un secret poursuit vers les critères propres au moniteur, comme avant.
 
 :::steps
 ### Créer un secret

@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Exigir un secreto en cada solicitud
 
-Cualquiera que tenga la URL de un monitor puede enviarle solicitudes. Un propietario o administrador del proyecto puede hacer que cada monitor de solicitudes entrantes del proyecto exija además uno de los secretos propios del proyecto, sin importar quién configuró el monitor: active **Exigir un secreto en cada solicitud**. Una solicitud sin ninguno se rechaza con `401` y el motivo, antes de contar como latido, de guardarse como la última solicitud del monitor o de llegar a ningún criterio. Una solicitud con uno sigue hacia los criterios propios del monitor, como antes.
+Cualquiera que tenga la URL de un monitor puede enviarle solicitudes. Un Propietario del proyecto o Administrador del proyecto puede hacer que cada monitor de solicitudes entrantes del proyecto exija además uno de los secretos propios del proyecto, sin importar quién configuró el monitor: active **Exigir un secreto en cada solicitud**. Una solicitud sin ninguno se rechaza con `401` y el motivo, antes de contar como latido, de guardarse como la última solicitud del monitor o de llegar a ningún criterio. Una solicitud con uno sigue hacia los criterios propios del monitor, como antes.
 
 :::steps
 ### Cree un secreto

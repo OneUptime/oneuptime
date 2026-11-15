@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Richiedere un segreto a ogni richiesta
 
-Chiunque abbia l'URL di un monitor può inviargli richieste. Un proprietario o un amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
+Chiunque abbia l'URL di un monitor può inviargli richieste. Un Proprietario del progetto o un Amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
 
 :::steps
 ### Create un segreto
