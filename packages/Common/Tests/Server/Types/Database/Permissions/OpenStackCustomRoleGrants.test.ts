@@ -171,7 +171,10 @@ describe("what a custom role can be granted", () => {
 
   test.each(
     Object.values(Permission).filter((permission: Permission): boolean => {
-      return permission.includes("OpenStack");
+      return (
+        permission.includes("OpenStack") &&
+        permission !== Permission.EditOpenStackCloudFeed
+      );
     }),
   )(
     "%s is offered, with a title and a line that say what it is",
@@ -183,6 +186,18 @@ describe("what a custom role can be granted", () => {
       expect(props?.description).toContain("OpenStack");
     },
   );
+
+  test("Edit OpenStack Cloud Feed is not offered: a feed's entries are never edited, so it grants nothing (#8275)", () => {
+    const props: PermissionProps | undefined =
+      PermissionHelper.getAllPermissionPropsAsDictionary()[
+        Permission.EditOpenStackCloudFeed
+      ];
+
+    expect(grantable.has(Permission.EditOpenStackCloudFeed)).toBe(false);
+    expect(props?.isAssignableToTenant).toBe(false);
+    expect(props?.title).toBe("Edit OpenStack Cloud Feed");
+    expect(props?.description).toContain("OpenStack");
+  });
 
   test("every permission a table names is one of them, so none can be missed on a role", () => {
     for (const table of TABLES) {

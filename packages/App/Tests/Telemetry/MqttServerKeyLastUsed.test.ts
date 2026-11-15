@@ -20,6 +20,7 @@ import TelemetryIngestRefusalRecorder from "Common/Server/Utils/Telemetry/Teleme
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ObjectID from "Common/Types/ObjectID";
+import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 
@@ -817,7 +818,7 @@ describe("a device credential is not an ingestion key", () => {
   const arrangeCredential: () => void = (): void => {
     credentialMock().mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: PROJECT_ID.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: FLEET,

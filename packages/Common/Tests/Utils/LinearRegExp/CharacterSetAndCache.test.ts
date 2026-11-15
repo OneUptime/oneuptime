@@ -1,11 +1,15 @@
 import CharacterSet, {
   MAX_CODE_UNIT,
 } from "../../../Utils/LinearRegExp/CharacterSet";
-import LinearRegExp from "../../../Utils/LinearRegExp/LinearRegExp";
+import LinearRegExp, {
+  MAX_PATTERN_LENGTH,
+} from "../../../Utils/LinearRegExp/LinearRegExp";
 import {
   clearLinearRegExpCache,
   describePatternProblem,
+  getCachedPatternCount,
   getLinearRegExp,
+  LinearRegExpHandle,
   MAX_CACHED_PATTERNS,
   tryGetLinearRegExp,
 } from "../../../Utils/LinearRegExp/PatternCache";
@@ -135,6 +139,32 @@ describe("the cache of compiled patterns", () => {
     expect(getLinearRegExp("kept-0", "i")).toBe(kept);
     // Not used since it was compiled: dropped, and compiled again.
     expect(getLinearRegExp("pattern-1", "i")).not.toBe(dropped);
+  });
+
+  test("keeps a source by the length it may have, so a longer maxLength is not refused for the default's sake", () => {
+    clearLinearRegExpCache();
+
+    // One class of one character, longer than MAX_PATTERN_LENGTH.
+    const source: string = `[${"b".repeat(MAX_PATTERN_LENGTH)}]`;
+    const longer: { maxLength: number } = {
+      maxLength: MAX_PATTERN_LENGTH + 2,
+    };
+
+    expect(tryGetLinearRegExp(source)).toBeNull();
+    expect(getCachedPatternCount()).toBe(0);
+
+    const compiled: LinearRegExp = getLinearRegExp(source, "", longer);
+
+    expect(compiled.test("b")).toBe(true);
+    expect(getLinearRegExp(source, "", longer)).toBe(compiled);
+    expect(getCachedPatternCount()).toBe(1);
+    // Still refused at the default length, kept or not.
+    expect(tryGetLinearRegExp(source)).toBeNull();
+    // A handle honours it too.
+    expect(new LinearRegExpHandle(source, "", longer).get()).toBe(compiled);
+    expect(() => {
+      return new LinearRegExpHandle(source);
+    }).toThrow(`The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`);
   });
 
   test("words a refusal for the person who wrote the pattern, and nothing else", () => {

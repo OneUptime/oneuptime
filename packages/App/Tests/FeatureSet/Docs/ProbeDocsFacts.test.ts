@@ -1470,7 +1470,7 @@ describe("the Incoming Request Ingress page", () => {
       'export const INGRESS_BODY_LIMIT: string = "50mb";',
     );
     expect(ingress).toMatch(
-      /app\.use\(ExpressJson\(\{ limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(ExpressUrlEncoded\(\{ extended: true, limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(router\);/,
+      /app\.use\(ExpressJson\(\{ limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(ExpressUrlEncoded\(\{ extended: true, limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(PlainTextJsonBody\.getReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(router\);/,
     );
     expect(appParsers).toMatch(
       /export const jsonBodyParserOptions: BodyParserOptions = \{\s*limit: "50mb",/,
@@ -1482,7 +1482,7 @@ describe("the Incoming Request Ingress page", () => {
       "const ingressApp: ExpressApplication = createIngressApp();",
     );
     expect(forwardingRow("The body")).toBe(
-      "JSON and form bodies of up to 50 MB, as when you send to OneUptime directly. As there, any other body reaches the monitor empty.",
+      "JSON and form bodies of up to 50 MB, and JSON sent as plain text (as Amazon SNS sends it), as when you send to OneUptime directly. As there, any other body reaches the monitor empty.",
     );
   });
 

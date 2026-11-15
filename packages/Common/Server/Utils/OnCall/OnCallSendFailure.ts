@@ -1,4 +1,5 @@
 import logger from "../Logger";
+import OnCallSendAttempt from "./OnCallSendAttempt";
 import { redactLogString } from "../LogRedaction";
 import {
   recordSendResult,
@@ -283,11 +284,18 @@ export async function recordSendFailure(data: {
 /*
  * The failure handler of a request to the Notification service, for the
  * send's `.catch`: recordNotificationRequestFailure.
+ *
+ * Each of these handlers is made as its send is handed to its sender, so
+ * making one counts the page being sent as handed to a sender
+ * (OnCallSendAttempt): from here on a failure of the page keeps its claim,
+ * as sending it again would page twice (issue #8407).
  */
 export function whenNotificationRequestFails(data: {
   userOnCallLogTimelineId: ObjectID;
   fallbackStatusMessage: string;
 }): (error: unknown) => Promise<void> {
+  OnCallSendAttempt.markHandedToASender();
+
   return async (error: unknown): Promise<void> => {
     await recordNotificationRequestFailure({
       userOnCallLogTimelineId: data.userOnCallLogTimelineId,
@@ -305,6 +313,9 @@ export function whenNotificationRequestFails(data: {
 export function whenNotificationRequestAnswers(data: {
   userOnCallLogTimelineId: ObjectID;
 }): (answer: unknown) => Promise<void> {
+  // Its send was handed to its sender (OnCallSendAttempt).
+  OnCallSendAttempt.markHandedToASender();
+
   return async (answer: unknown): Promise<void> => {
     await recordNotificationRequestAnswer({
       userOnCallLogTimelineId: data.userOnCallLogTimelineId,
@@ -321,6 +332,9 @@ export function whenSendFails(data: {
   userOnCallLogTimelineId: ObjectID;
   fallbackStatusMessage: string;
 }): (error: unknown) => Promise<void> {
+  // Its send was handed to its sender (OnCallSendAttempt).
+  OnCallSendAttempt.markHandedToASender();
+
   return async (error: unknown): Promise<void> => {
     await recordSendFailure({
       userOnCallLogTimelineId: data.userOnCallLogTimelineId,

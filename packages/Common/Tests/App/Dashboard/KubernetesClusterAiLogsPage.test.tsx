@@ -77,12 +77,18 @@ import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { toHeadline } from "../../../UI/Components/Table/EmptyTableMessage";
 
+/*
+ * English, as it is - but for the words a case below gives a wording of
+ * their own, to see how often each is looked up.
+ */
+const mockLookedUpWords: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (value: string): string => {
-          return value;
+          return mockLookedUpWords[value] ?? value;
         },
       };
     },
@@ -1571,6 +1577,61 @@ describe("AI Logs page", () => {
         ),
       ).toBeInTheDocument();
       expect(document.body.textContent || "").not.toMatch(/TimedOut|Claimed/);
+    });
+
+    /*
+     * The Result pill's words are worded once, by the page (#8178): a status
+     * alone, and "Failed (exit 1)" around its code. The pill looked the
+     * finished sentence up again; where that sentence, or the status's
+     * wording, is itself a key, it read as another word. Here each is one,
+     * and reads "Looked up twice".
+     */
+    test("words a command's result once: the pill never looks the page's words up again", async () => {
+      const TWICE: string = "Looked up twice";
+      const TIMED_OUT_WORDING: string = "Not picked up in time, worded";
+
+      mockLookedUpWords["Failed (exit 1)"] = TWICE;
+      mockLookedUpWords["Not picked up in time"] = TIMED_OUT_WORDING;
+      mockLookedUpWords[TIMED_OUT_WORDING] = TWICE;
+
+      try {
+        jobs = [
+          makeJob("failed", {
+            status: RunnerJobStatus.Failed,
+            exitCode: 1,
+          }),
+          makeJob("timed-out", {
+            status: RunnerJobStatus.TimedOut,
+            exitCode: undefined,
+          }),
+        ];
+        openLogsPage();
+
+        const rowOf: (command: string) => HTMLElement = (
+          command: string,
+        ): HTMLElement => {
+          return screen.getByText(command).closest("tr") as HTMLElement;
+        };
+
+        expect(
+          await findText("kubectl get pods -n web-failed"),
+        ).toBeInTheDocument();
+        expect(
+          within(rowOf("kubectl get pods -n web-failed")).getByText(
+            "Failed (exit 1)",
+          ),
+        ).toBeInTheDocument();
+        expect(
+          within(rowOf("kubectl get pods -n web-timed-out")).getByText(
+            TIMED_OUT_WORDING,
+          ),
+        ).toBeInTheDocument();
+        expect(document.body).not.toHaveTextContent(TWICE);
+      } finally {
+        for (const key of Object.keys(mockLookedUpWords)) {
+          delete mockLookedUpWords[key];
+        }
+      }
     });
 
     test("is titled 'kubectl commands' and says when nothing ran yet", async () => {

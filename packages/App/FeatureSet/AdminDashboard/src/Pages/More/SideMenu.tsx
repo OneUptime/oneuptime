@@ -12,10 +12,14 @@ const MoreSideMenu: () => JSX.Element = (): ReactElement => {
   const { t } = useTranslation();
   return (
     <SideMenu>
-      <SideMenuSection title={t("sideMenu.moreCommunication")}>
+      <SideMenuSection
+        title={t("sideMenu.moreCommunication")}
+        isTitleTranslated={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.moreSendEmail"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MORE_EMAIL] as Route,
             ),

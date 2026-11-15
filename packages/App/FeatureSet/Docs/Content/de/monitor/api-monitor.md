@@ -34,7 +34,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die die API erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Steht eine Firewall vor der API, lassen Sie die [Sonden-IP-Adressen von OneUptime Cloud](/docs/configuration/ip-addresses) zu. Eine API in einem privaten Netzwerk braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk, die private Adressen erreichen darf: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 - **Anmeldedaten als Monitor-Geheimnisse.** Braucht die API einen Schlüssel oder ein Token, speichern Sie ihn zuerst als [Monitor-Geheimnis](/docs/monitor/monitor-secrets), damit der Monitor nur einen Verweis darauf enthält.
 

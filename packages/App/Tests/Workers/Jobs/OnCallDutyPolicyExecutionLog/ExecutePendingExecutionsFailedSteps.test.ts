@@ -232,7 +232,7 @@ describe("a run that pages, its move to the next level failing", () => {
     },
   );
 
-  test("in the middle of a level: what it paged stays paged, nobody is paged twice, and the next level comes after its wait", async () => {
+  test("REGRESSION: in the middle of a level: the rest of it is paged the next minute, nobody is paged twice, and the next level comes after its wait", async () => {
     await world.startRun();
     // Bob is paged; the page of Carl, Level 2's second person, fails.
     world.failAt(FailurePoint.PagePerson, { when: pages(CARL) });
@@ -246,12 +246,14 @@ describe("a run that pages, its move to the next level failing", () => {
     await minutesPass(10);
 
     /*
-     * Level 2 is not started again - that would page Bob twice. Carl, whose
-     * page failed, is the level's loss; Level 3 is paged on time.
+     * Level 2 is resumed, not started again (issue #8406): Carl, whose page
+     * failed, is paged the next minute, and Bob is not paged twice. Level 3
+     * is paged on time, Level 2's wait run from when it started.
      */
     expect(pagesSoFar()).toEqual([
       "Ana Lopez L1 @ 0",
       "Bob Smith L2 @ 10",
+      "Carl Diaz L2 @ 11",
       "Dana Kim L3 @ 20",
     ]);
     expect(world.timesPaged(BOB, levelTwo)).toBe(1);
@@ -399,7 +401,8 @@ describe("a run that waited, its start failing", () => {
     },
   );
 
-  test("as its first rule pages: who it paged stays paged, and the escalation goes on from that rule", async () => {
+  // The rest of its first level is paged the next minute (issue #8406).
+  test("as its first rule pages: who it paged stays paged, the rest of the level is paged the next minute, and the escalation goes on from that rule", async () => {
     world.rules = [levelTwo, levelThree];
     levelTwo.order = 1;
     levelThree.order = 2;
@@ -413,8 +416,13 @@ describe("a run that waited, its start failing", () => {
 
     await minutesPass(10);
 
-    expect(pagesSoFar()).toEqual(["Bob Smith L1 @ 5", "Dana Kim L2 @ 15"]);
+    expect(pagesSoFar()).toEqual([
+      "Bob Smith L1 @ 5",
+      "Carl Diaz L1 @ 6",
+      "Dana Kim L2 @ 15",
+    ]);
     expect(world.timesPaged(BOB, levelTwo)).toBe(1);
+    expect(world.timesPaged(CARL, levelTwo)).toBe(1);
   });
 
   test("its last write, that it is paging, failing: it pages on, from its first rule's wait", async () => {
@@ -479,7 +487,11 @@ describe("a worker that restarts in the middle of a run", () => {
     expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
   });
 
-  test("stopped in the middle of a level: nobody it paged is paged again, and the run goes on", async () => {
+  /*
+   * The level shows no sign of life after Bob, and is resumed two minutes
+   * on (issue #8406): Carl is paged then, and nobody it paged is paged again.
+   */
+  test("REGRESSION: stopped in the middle of a level: the rest of it is paged two minutes on, nobody it paged is paged again, and the run goes on", async () => {
     await world.startRun();
     world.crashAt(FailurePoint.PagePerson, { when: pages(CARL) });
 
@@ -488,6 +500,7 @@ describe("a worker that restarts in the middle of a run", () => {
     expect(pagesSoFar()).toEqual([
       "Ana Lopez L1 @ 0",
       "Bob Smith L2 @ 10",
+      "Carl Diaz L2 @ 12",
       "Dana Kim L3 @ 20",
     ]);
     expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);

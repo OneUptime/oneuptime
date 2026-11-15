@@ -70,6 +70,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { formatUptimePercentFigure } from "../../Utils/UptimeFigure";
 import { translateStatusName } from "../../Utils/StatusTranslation";
 import { StateListType } from "Common/Utils/StateOrder";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
@@ -169,7 +170,9 @@ const tintFromHex: (hex: string, alpha: number) => string = (
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // The page's language, for the uptime figures it writes (#8292).
+  const pageLanguage: string = i18n.resolvedLanguage || i18n.language || "en";
   /*
    * Back from single sign-on: on to where the visitor was going on this
    * page, which the SSO page kept for this tab and this page alone.
@@ -965,7 +968,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return {
           // One phrase, the figure where the reader's language puts it (#8076).
           label: t("overview.uptimePercent", {
-            percent: String(uptimePercent),
+            percent:
+              uptimePercent === null
+                ? "—"
+                : formatUptimePercentFigure(uptimePercent, pageLanguage),
           }),
           color: color,
         };
@@ -1645,7 +1651,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
               return a + b;
             }, 0) / uptimePercents.length;
           uptimePercentText = t("overview.uptimePercent", {
-            percent: avg.toFixed(2),
+            percent: formatUptimePercentFigure(avg, pageLanguage, {
+              decimals: 2,
+            }),
           });
         }
       }
@@ -2243,7 +2251,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                   currentStatus.isOperationalState &&
                   statusPage?.showOverallUptimePercentOnStatusPage
                     ? t("overview.uptimePercent", {
-                        percent: overallUptime?.toString() || "100",
+                        percent: formatUptimePercentFigure(
+                          overallUptime ?? 100,
+                          pageLanguage,
+                        ),
                       })
                     : undefined
                 }

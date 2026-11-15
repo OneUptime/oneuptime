@@ -14,6 +14,7 @@ Båda använder samma monitortyp. Det som skiljer dem åt är kriterierna du kon
 - [Skicka ett heartbeat](#skicka-ett-heartbeat): Från curl, cron, Node.js, Python eller Go.
 - [Larma när anropen slutar](#markera-som-offline-om-inget-heartbeat-kommit-på-10-minuter-ett-dödmansgrepp): Gör monitorn till ett dödmansgrepp.
 - [Ta emot larm](#ta-emot-larm-från-ett-annat-system): En incident per larm från Alertmanager eller Grafana.
+- [Prenumerera på SNS eller Event Grid](#prenumerera-på-amazon-sns-eller-azure-event-grid): Bekräfta prenumerationen med ett klick.
 :::
 
 ## Så fungerar det
@@ -77,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Ersätt `https://oneuptime.com` med URL:en till din OneUptime-instans om du självhostar.
 
-Skicka **GET**- eller **POST**-förfrågningar till den här URL:en. HEAD godtas och behandlas som GET; PUT, PATCH och DELETE returnerar 404. Den hemliga nyckeln i sökvägen är den enda inloggningsuppgiften — det krävs ingen header eller token. Frågesträngar ignoreras: skicka det som kriterierna ska läsa i kroppen eller i headerna.
+Skicka **GET**- eller **POST**-förfrågningar till den här URL:en. HEAD godtas och behandlas som GET; PUT, PATCH och DELETE returnerar 404. Den hemliga nyckeln i sökvägen är inloggningsuppgiften: det krävs ingen header eller token, om inte projektet [kräver en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran). Frågesträngar ignoreras: skicka det som kriterierna ska läsa i kroppen eller i headerna.
 
 > [!WARNING]
 > Alla som känner till den här URL:en kan markera monitorn som frisk, så behandla den som en hemlighet. Om den läcker öppnar du monitorns sida **Inställningar** och klickar på **Återställ hemlig nyckel för inkommande begäran**, och sedan uppdaterar du varje avsändare. Monitorns översikt visar den senaste förfrågan så som dess loggar behåller den: med hemligheter och personuppgifter maskerade, och utan headers eller brödtext när **Behåll förfrågans innehåll** är avstängt. Maskeringen hittar bara de namn och mönster den känner till, så skicka inte API-nycklar eller token till den här slutpunkten.
 
 > [!IMPORTANT]
-> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram.
+> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram. Det enda undantaget är ett projekt som kräver en hemlighet vid varje begäran: en begäran utan hemlighet besvaras med `401`.
 
 ### Skicka en förfrågningskropp
 
@@ -93,6 +94,7 @@ Om du vill använda fält i kroppen — `{{requestBody.status}}` i en incidentti
 | --- | --- |
 | `application/json` | Den tolkade JSON:en. |
 | `application/x-www-form-urlencoded` | Det tolkade formuläret. Nycklar inom hakparenteser nästlas (`alerts[0][status]=firing`), och alla värden är strängar. |
+| `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text blir en tom kropp. |
 | Allt annat, eller ingen | En tom kropp (`{}`), så varje hänvisning till `requestBody` blir ingenting. |
 
 Kroppar på upp till 50 MB godtas; en större avvisas med en `413`. Komprimera inte kroppen med `Content-Encoding: gzip`: då lagras den inte som JSON, och sökvägar in i den löses inte upp.
@@ -186,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Kräv en hemlighet vid varje begäran
+
+Alla som har en monitors URL kan skicka begäranden till den. En projektägare eller -administratör kan låta varje monitor för inkommande begäranden i projektet även kräva en av projektets egna hemligheter, oavsett vem som satte upp monitorn: slå på **Kräv en hemlighet vid varje begäran**. En begäran utan hemlighet avvisas med `401` och orsaken, innan den räknas som heartbeat, sparas som monitorns senaste begäran eller når några kriterier. En begäran med hemlighet går vidare till monitorns egna kriterier, som tidigare.
+
+:::steps
+### Skapa en hemlighet
+
+Gå till **Monitorer → Inställningar → Hemligheter för inkommande begäranden** och skapa en hemlighet. Ge den ett namn så genererar OneUptime värdet; kopiera det från listan.
+
+### Skicka den från varje avsändare
+
+Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange.
+
+### Slå på kravet
+
+Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime sparar aldrig hemligheten: den tar bort headern från begäran och maskerar en Bearer-token som är en av projektets hemligheter innan den sparar något.
+
+> [!TIP]
+> För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas, och den sista kan inte tas bort medan kravet är på.
 
 ## Övervakningskriterier
 
@@ -345,6 +379,40 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Prenumerera på Amazon SNS eller Azure Event Grid
+
+Amazon SNS och Azure Event Grid skickar ingenting till en ny slutpunkt förrän någon bekräftar prenumerationen genom att öppna en länk som tjänsten skickar dit. När den förfrågan kommer visar kortet **Monitor-sammanfattning** på monitorns **Översikt** vad tjänsten väntar på, ämnet och en knapp som öppnar länken i en ny flik.
+
+| Tjänst | Förfrågan | Knapp | Länken fungerar i |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, för en ny HTTPS-prenumeration | **Bekräfta prenumeration** | Två dagar |
+| Amazon SNS | `UnsubscribeConfirmation`, när prenumerationen tas bort | **Återställ prenumeration** | Två dagar |
+| Azure Event Grid | `SubscriptionValidationEvent`, för en ny händelseprenumeration med webhook | **Validera prenumeration** | 10 minuter |
+
+Knappen finns kvar tills monitorns nästa förfrågan kommer, även efter att du har öppnat länken. När länkens tid har gått ut berättar kortet i stället hur du får en ny. Om nyare förfrågningar har kommit öppnar du **Övervakningsloggar** och klickar på **Visa sammanfattning** på förfrågans rad.
+
+Länken, och token i den, behålls omaskerade överallt där förfrågan behålls: i dess detaljer, i dess loggar och i de incidenter och larm den öppnar. Det enda länken kan göra är att starta leveranser till den här monitorn. Bara en länk till tjänstens egen adress räknas: alla andra maskeras som vanligt och får ingen knapp.
+
+### Amazon SNS
+
+:::steps
+1. Öppna ämnet i Amazon SNS-konsolen och välj **Create subscription**. Välj `HTTPS` som protokoll och klistra in monitorns **Heartbeat URL** som slutpunkt.
+2. Öppna monitorns **Översikt** och klicka på **Bekräfta prenumeration** på kortet **Monitor-sammanfattning**. I SNS-konsolen ändras prenumerationens status från **Pending confirmation** till bekräftad.
+:::
+
+SNS skickar sina meddelanden som JSON märkt `text/plain`, och monitorn läser dem som JSON, så kriterier, mallar och gruppering av incidenter kan använda deras fält, som `{{requestBody.Subject}}` och `{{requestBody.Message}}`. En aviserings egen JSON, till exempel ett CloudWatch-larms, kommer som text i `Message`.
+
+Om kortet säger att länken inte längre kan öppnas markerar du prenumerationen i SNS-konsolen och väljer **Request confirmation**. SNS tar bort en prenumeration som inte har bekräftats inom 48 timmar; om det händer skapar du prenumerationen igen.
+
+### Azure Event Grid
+
+:::steps
+1. Öppna resursen vars händelser du vill ha i Azure-portalen och lägg till en händelseprenumeration. Välj **Event Grid Schema** som händelseschema, **Web Hook** som slutpunktstyp och monitorns **Heartbeat URL** som slutpunkt.
+2. Öppna monitorns **Översikt** inom 10 minuter och klicka på **Validera prenumeration** på kortet **Monitor-sammanfattning**.
+:::
+
+Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller vars ägare öppnar länken den skickar. OneUptime svarar på varje förfrågan med en tom `200`, så det är länken som gäller. Länken pekar på Event Grid på port 553, som en brandvägg framför din webbläsare måste släppa igenom. Om 10 minuter hinner gå först misslyckas händelseprenumerationen: skapa den igen.
+
 ## Bästa praxis
 
 1. **Ställ in tidsfönstret rätt** — Om ditt cron-jobb körs var 5:e minut sätter du tröskeln för "Inte mottaget inom (minuter)" till 10–15 minuter för att ge utrymme för enstaka fördröjningar, och lägger det kriteriet först.
@@ -359,16 +427,24 @@ En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager]
 `200` skickas innan förfrågan valideras, så den bevisar inte att förfrågan godtogs. Kontrollera att den hemliga nyckeln i URL:en stämmer med monitorns **Heartbeat URL**, och att monitorn inte är inaktiverad. Titta sedan på monitorns tidslinje för att se om förfrågningarna kommer fram.
 :::
 
+:::details Min avsändare får 401
+Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn.
+:::
+
 :::details Monitorn blir aldrig offline när heartbeats upphör
 Bara ett kriterium med **Inkommande begäran** (**Inte mottaget inom (minuter)**) kan märka tystnad. Lägg till ett om det saknas, och dra det ovanför standardkriterierna: standardkriteriet för online matchar den senaste förfrågan vid varje bakgrundskontroll, och det första kriteriet som matchar avgör.
 :::
 
 :::details Ett filter på Begärandekropp matchar aldrig
-Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte.
+Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte: det gör bara JSON som skickas som `text/plain`.
 :::
 
 :::details Ett filter på Begärandehuvud matchar aldrig
 Headernamn och headervärden jämförs i sin helhet. Ange hela värdet, som `application/json; charset=utf-8`, i stället för en del av det.
+:::
+
+:::details Amazon SNS säger att prenumerationen väntar på bekräftelse
+Klicka på **Bekräfta prenumeration** på kortet **Monitor-sammanfattning** på monitorns **Översikt**. Om nyare förfrågningar har kommit öppnar du **Övervakningsloggar** och klickar på **Visa sammanfattning** på bekräftelsens rad. När **Behåll förfrågans innehåll** är avstängt behåller monitorn ingen kropp och därmed ingen länk heller: slå på det i monitorns **Inställningar**, så visas den senaste förfrågan igen med sin länk.
 :::
 
 :::details Avsändaren får en 500

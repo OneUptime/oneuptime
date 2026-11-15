@@ -867,6 +867,59 @@ describe("an AWS account's AI Logs page in the reader's language", () => {
     },
   );
 
+  /*
+   * The Result pill's words are worded once, by the page (#8178): a
+   * status alone, and "Failed (exit 1)" around its code. Looked up again
+   * by the pill, a wording that is itself a key would read as another
+   * word; here both are made keys that read TWICE.
+   */
+  test.each(RENDERED_LANGUAGES)(
+    "%s: a command's result is worded once, even where its words are a key of their own",
+    async (code: string) => {
+      const TWICE: string = "Looked up twice";
+      const sentence: string = filledIn(
+        code,
+        "{{status}} (exit {{exitCode}})",
+        {
+          status: wordingIn(code, "Failed"),
+          exitCode: "1",
+        },
+      );
+      const statusAlone: string = wordingIn(code, "Not picked up in time");
+
+      i18next.addResource(code, "translation", sentence, TWICE);
+      i18next.addResource(code, "translation", statusAlone, TWICE);
+
+      try {
+        await setLanguage(code);
+        openLogsPage();
+
+        const failed: HTMLElement = (
+          await screen.findByText(
+            "cloud restart checkout-api",
+            {},
+            { timeout: WAIT_TIMEOUT },
+          )
+        ).closest("tr")!;
+        const timedOut: HTMLElement = screen
+          .getByText("cloud scale-out checkout-api --count 4")
+          .closest("tr")!;
+
+        expect(failed).toHaveTextContent(sentence);
+        expect(timedOut).toHaveTextContent(statusAlone);
+        expect(document.body).not.toHaveTextContent(TWICE);
+      } finally {
+        // The locale as it ships again, for the cases after this one.
+        const words: Record<string, unknown> = i18next.store.data[code]![
+          "translation"
+        ] as Record<string, unknown>;
+
+        delete words[sentence];
+        delete words[statusAlone];
+      }
+    },
+  );
+
   test.each(RENDERED_LANGUAGES)(
     "%s: how each command ended, in words: never TimedOut, and an exit code in the reader's sentence",
     async (code: string) => {

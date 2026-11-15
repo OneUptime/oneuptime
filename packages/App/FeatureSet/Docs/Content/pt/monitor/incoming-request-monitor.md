@@ -14,6 +14,7 @@ Os dois usam o mesmo tipo de monitor. O que os separa são os critérios que voc
 - [Enviar um heartbeat](#enviar-um-heartbeat): Pelo curl, cron, Node.js, Python ou Go.
 - [Alertar quando as chamadas param](#marcar-como-offline-se-não-houver-heartbeat-em-10-minutos-um-interruptor-de-homem-morto): Transforme o monitor em um interruptor de homem morto.
 - [Receber alertas](#receber-alertas-de-outro-sistema): Um incidente por alerta do Alertmanager ou do Grafana.
+- [Assinar o SNS ou o Event Grid](#assinar-o-amazon-sns-ou-o-azure-event-grid): Confirme a assinatura com um clique.
 :::
 
 ## Como funciona
@@ -77,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Substitua `https://oneuptime.com` pela URL da sua instância do OneUptime se ela for auto-hospedada.
 
-Envie requisições **GET** ou **POST** para essa URL. HEAD é aceito e tratado como GET; PUT, PATCH e DELETE retornam 404. A chave secreta no caminho é a única credencial: não é preciso cabeçalho nem token. Query strings são ignoradas: envie o que os critérios devem ler no corpo ou nos cabeçalhos.
+Envie requisições **GET** ou **POST** para essa URL. HEAD é aceito e tratado como GET; PUT, PATCH e DELETE retornam 404. A chave secreta no caminho é a credencial: não é preciso cabeçalho nem token, a menos que o projeto [exija um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Query strings são ignoradas: envie o que os critérios devem ler no corpo ou nos cabeçalhos.
 
 > [!WARNING]
 > Qualquer pessoa que conheça essa URL pode marcar o monitor como saudável, então trate-a como um segredo. Se ela vazar, abra a página **Configurações** do monitor e clique em **Redefinir chave secreta de requisição recebida**, depois atualize cada remetente. A visão geral do monitor mostra a última requisição como os registros dele a guardam: com segredos e dados pessoais mascarados, e sem cabeçalhos nem corpo quando **Manter o conteúdo da solicitação** está desligado. O mascaramento reconhece os nomes e padrões que conhece, então não envie chaves de API nem tokens para esse endpoint.
 
 > [!IMPORTANT]
-> O OneUptime responde `200` com um objeto JSON vazio (`{}`) na hora e processa a requisição em uma fila. Essa resposta é escrita antes de qualquer validação, então um `200` **não** confirma que a requisição foi aceita: uma chave secreta errada, um monitor excluído e um monitor desativado também retornam `200`. Confira a linha do tempo do monitor para confirmar que as requisições estão chegando.
+> O OneUptime responde `200` com um objeto JSON vazio (`{}`) na hora e processa a requisição em uma fila. Essa resposta é escrita antes de qualquer validação, então um `200` **não** confirma que a requisição foi aceita: uma chave secreta errada, um monitor excluído e um monitor desativado também retornam `200`. Confira a linha do tempo do monitor para confirmar que as requisições estão chegando. A única exceção é um projeto que exige um segredo em toda requisição: uma requisição sem nenhum recebe `401`.
 
 ### Enviar um corpo de requisição
 
@@ -93,6 +94,7 @@ Se você quiser acessar campos dentro do corpo (`{{requestBody.status}}` em um t
 | --- | --- |
 | `application/json` | O JSON analisado. |
 | `application/x-www-form-urlencoded` | O formulário analisado. Chaves entre colchetes são aninhadas (`alerts[0][status]=firing`), e cada valor é uma string. |
+| `text/plain` | O JSON analisado, quando o texto é um objeto ou um array JSON: o Amazon SNS envia suas mensagens assim. Qualquer outro texto é um corpo vazio. |
 | Qualquer outro, ou nenhum | Um corpo vazio (`{}`), então toda referência a `requestBody` não resolve nada. |
 
 Corpos de até 50 MB são aceitos; um maior é recusado com um `413`. Não comprima o corpo com `Content-Encoding: gzip`: ele não é armazenado como JSON, e os caminhos dentro dele não serão resolvidos.
@@ -186,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Exigir um segredo em toda requisição
+
+Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um proprietário ou administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
+
+:::steps
+### Crie um segredo
+
+Vá em **Monitores → Configurações → Segredos de requisição recebida** e crie um segredo. Dê um nome a ele e o OneUptime gera o valor; copie-o da lista.
+
+### Envie-o de cada remetente
+
+Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir.
+
+### Ative a exigência
+
+Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+O OneUptime nunca guarda o segredo: ele tira o cabeçalho da requisição e mascara um token Bearer que seja um dos segredos do projeto antes de guardar qualquer coisa.
+
+> [!TIP]
+> Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, e o último não pode ser excluído enquanto a exigência estiver ativa.
 
 ## Critérios de monitoramento
 
@@ -345,6 +379,40 @@ O payload completo fica disponível ao lado dela, então funcionam tanto um tít
 
 Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para o Grafana, veja [Grafana](/docs/integrations/grafana).
 
+## Assinar o Amazon SNS ou o Azure Event Grid
+
+O Amazon SNS e o Azure Event Grid não enviam nada a um novo endpoint até que alguém confirme a assinatura, abrindo um link que o serviço envia a ele. Quando essa requisição chega, o cartão **Resumo do monitor** na **Visão geral** do monitor mostra o que o serviço está esperando, o tópico e um único botão que abre o link em uma nova aba.
+
+| Serviço | A requisição | Botão | O link funciona por |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, para uma nova assinatura HTTPS | **Confirmar assinatura** | Dois dias |
+| Amazon SNS | `UnsubscribeConfirmation`, quando a assinatura é excluída | **Restaurar assinatura** | Dois dias |
+| Azure Event Grid | `SubscriptionValidationEvent`, para uma nova assinatura de evento de webhook | **Validar assinatura** | 10 minutos |
+
+O botão continua lá até a próxima requisição do monitor chegar, mesmo depois que você abre o link. Quando o prazo do link acaba, o cartão diz, em vez disso, como obter um novo. Se chegaram requisições mais novas, abra **Registros de monitoramento** e clique em **Ver resumo** na linha da requisição.
+
+O link, e o token que ele contém, ficam sem máscara em todo lugar onde a requisição é guardada: nos detalhes dela, nos registros dela e nos incidentes e alertas que ela abre. Tudo o que o link pode fazer é iniciar as entregas para este monitor. Só conta um link para o endereço do próprio serviço: qualquer outro é mascarado como de costume e não ganha botão.
+
+### Amazon SNS
+
+:::steps
+1. No console do Amazon SNS, abra o tópico e escolha **Create subscription**. Escolha `HTTPS` como protocolo e cole a **Heartbeat URL** do monitor como endpoint.
+2. Abra a **Visão geral** do monitor e clique em **Confirmar assinatura** no cartão **Resumo do monitor**. No console do SNS, a assinatura passa de **Pending confirmation** para confirmada.
+:::
+
+O SNS envia suas mensagens como JSON rotulado `text/plain`, e o monitor as lê como JSON, então critérios, modelos e o agrupamento de incidentes podem usar os campos delas, como `{{requestBody.Subject}}` e `{{requestBody.Message}}`. O JSON próprio de uma notificação, como o de um alarme do CloudWatch, chega como texto em `Message`.
+
+Se o cartão disser que o link não pode mais ser aberto, selecione a assinatura no console do SNS e escolha **Request confirmation**. O SNS exclui uma assinatura que não é confirmada em 48 horas; se isso acontecer, crie a assinatura de novo.
+
+### Azure Event Grid
+
+:::steps
+1. No portal do Azure, abra o recurso cujos eventos você quer receber e adicione uma assinatura de evento. Escolha **Event Grid Schema** como esquema de evento, **Web Hook** como tipo de endpoint e a **Heartbeat URL** do monitor como endpoint.
+2. Em até 10 minutos, abra a **Visão geral** do monitor e clique em **Validar assinatura** no cartão **Resumo do monitor**.
+:::
+
+O Event Grid valida um endpoint que lhe devolve um código, ou cujo dono abre o link que ele envia. O OneUptime responde a toda requisição com um `200` vazio, então o caminho é o link. O link aponta para o Event Grid na porta 553, que um firewall na frente do seu navegador precisa permitir. Se os 10 minutos passarem antes, a assinatura de evento falha: crie-a de novo.
+
 ## Boas práticas
 
 1. **Defina bem a janela de tempo**: se seu cron job roda a cada 5 minutos, defina o limite "Não recebido em minutos" em 10–15 minutos para acomodar atrasos ocasionais, e coloque esse critério em primeiro lugar.
@@ -359,16 +427,24 @@ Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager]
 O `200` é enviado antes de a requisição ser validada, então não prova que ela foi aceita. Confira se a chave secreta da URL corresponde à **Heartbeat URL** do monitor, e se o monitor não está desativado. Depois, olhe a linha do tempo do monitor para ver se as requisições estão chegando.
 :::
 
+:::details Meu remetente recebe um 401
+O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor.
+:::
+
 :::details O monitor nunca fica offline quando os heartbeats param
 Só um critério **Requisição recebida** (**Não recebido em minutos**) consegue perceber o silêncio. Adicione um, se não houver, e arraste-o para cima dos critérios padrão: o critério online padrão corresponde à última requisição a cada verificação em segundo plano, e o primeiro critério que corresponde decide.
 :::
 
 :::details Um filtro Corpo da Requisição nunca corresponde
-Envie `Content-Type: application/json`, e escreva o valor como JSON compacto: `"status":"firing"`, sem espaço depois dos dois-pontos. Sem um tipo de conteúdo JSON ou de formulário, o corpo não é analisado.
+Envie `Content-Type: application/json`, e escreva o valor como JSON compacto: `"status":"firing"`, sem espaço depois dos dois-pontos. Sem um tipo de conteúdo JSON ou de formulário, o corpo não é analisado: só o JSON enviado como `text/plain` é.
 :::
 
 :::details Um filtro Cabeçalho da requisição nunca corresponde
 Nomes e valores de cabeçalhos são comparados inteiros. Informe o valor completo, como `application/json; charset=utf-8`, em vez de parte dele.
+:::
+
+:::details O Amazon SNS diz que a assinatura está aguardando confirmação
+Clique em **Confirmar assinatura** no cartão **Resumo do monitor** na **Visão geral** do monitor. Se chegaram requisições mais novas, abra **Registros de monitoramento** e clique em **Ver resumo** na linha da confirmação. Com **Manter o conteúdo da solicitação** desligado, o monitor não guarda nenhum corpo e, portanto, nenhum link: ligue-o nas **Configurações** do monitor, e a última requisição volta a ser mostrada com o link dela.
 :::
 
 :::details O remetente recebe 500

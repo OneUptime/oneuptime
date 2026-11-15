@@ -430,7 +430,7 @@ Diese funktionieren ohne Zugangsdaten, allein mit den Tools für öffentliche St
 | Was der Agent tut | Unter **Zugriff** wählen |
 | --- | --- |
 | Liest nur | **Betrachter**, oder fügen Sie auf der Seite des Schlüssels Leseberechtigungen hinzu |
-| Legt auch an, aktualisiert und löscht | **Projektadministrator**, oder fügen Sie auf der Seite des Schlüssels die Rolle Project Admin hinzu |
+| Legt auch an, aktualisiert und löscht | **Projektadministrator**, oder fügen Sie auf der Seite des Schlüssels die Rolle Projektadministrator hinzu |
 
 Geben Sie jedem Schlüssel das Minimum, das er braucht, rotieren Sie Schlüssel regelmäßig, verwenden Sie für jede Umgebung einen eigenen Schlüssel und beobachten Sie in OneUptime, was jeder Schlüssel tut.
 

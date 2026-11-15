@@ -37,9 +37,19 @@ interface Comparable {
   index: number;
   value: string;
   captures: Array<string | undefined>;
+  // Where each group's capture starts and ends: JavaScript's d flag.
+  captureIndices: Array<[number, number] | undefined>;
 }
 
-function fromJavaScript(match: RegExpExecArray | null): Comparable | null {
+/*
+ * What exec returns with JavaScript's d flag (ES2022): where each group's
+ * capture is, which this code's ES2017 typings do not declare.
+ */
+type IndexedMatch = RegExpExecArray & {
+  indices?: Array<[number, number] | undefined>;
+};
+
+function fromJavaScript(match: IndexedMatch | null): Comparable | null {
   if (match === null) {
     return null;
   }
@@ -48,6 +58,7 @@ function fromJavaScript(match: RegExpExecArray | null): Comparable | null {
     index: match.index,
     value: match[0],
     captures: match.slice(1),
+    captureIndices: (match.indices ?? []).slice(1),
   };
 }
 
@@ -56,7 +67,12 @@ function fromLinear(match: LinearRegExpMatch | null): Comparable | null {
     return null;
   }
 
-  return { index: match.index, value: match.value, captures: match.captures };
+  return {
+    index: match.index,
+    value: match.value,
+    captures: match.captures,
+    captureIndices: match.captureIndices,
+  };
 }
 
 const FLAG_SETS: ReadonlyArray<string> = [
@@ -136,8 +152,9 @@ function compare(data: {
     }
 
     if (withCaptures !== null) {
+      // With the d flag, which reports where each group's capture is.
       const expectedExec: Comparable | null = fromJavaScript(
-        new RegExp(data.oracle, data.oracleFlags).exec(text),
+        new RegExp(data.oracle, `${data.oracleFlags}d`).exec(text),
       );
       const linearExec: Comparable | null = fromLinear(withCaptures.exec(text));
 

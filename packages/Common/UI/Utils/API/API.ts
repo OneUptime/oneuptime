@@ -18,6 +18,7 @@ import APIException from "../../../Types/Exception/ApiException";
 import {
   isEmptyErrorPhrase,
   isErrorPage,
+  isTooLargePhrase,
 } from "../../../Types/Exception/ErrorMessageRule";
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
@@ -39,6 +40,7 @@ import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
   LONGEST_INACTIVITY_FIELD,
   ReportedInactivity,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   SessionEndReason,
 } from "../../../Types/UserSession/SessionLength";
 import API, { AuthRetryContext } from "../../../Utils/API";
@@ -388,8 +390,11 @@ class BaseAPI extends API {
    * used OneUptime (UserActivity), which the server's idle timeout is
    * counted from, and the longest time they went without since the last
    * renewal, when one was kept - a browser closed, a computer asleep - which
-   * ends the session when it reached the idle timeout (issue #6789).
-   * Nothing on a page that does not notice activity.
+   * ends the session when it reached the idle timeout (issue #6789). And,
+   * on a page that renews while its person uses it (UserActivity installed
+   * with reportActivity), that it does, which lets the server record an
+   * idle timeout soon after it ran out (issue #8188). Nothing on a page
+   * that does not notice activity.
    */
   protected static getRefreshSessionData(
     nowMs: number = Date.now(),
@@ -409,6 +414,10 @@ class BaseAPI extends API {
       [INACTIVE_FOR_IN_SECONDS_FIELD]: inactiveForInSeconds,
     };
 
+    if (UserActivity.isReportingActivityWhileInUse()) {
+      data[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD] = true;
+    }
+
     const longestInactivity: ReportedInactivity | null =
       UserActivity.getLongestInactivity(nowMs);
 
@@ -423,16 +432,52 @@ class BaseAPI extends API {
   }
 
   /*
-   * A renewal that said what getRefreshSessionData said at `reportedAtMs`
+   * A renewal that said `data` (getRefreshSessionData) at `reportedAtMs`
    * went through: the time without use it reported is the server's now,
-   * and the next renewal says only what came after.
+   * and the next renewal says only what came after; and the server has
+   * heard of the activity it reported, which every tab counts the next
+   * report from (UserActivity.noteActivityReported).
    */
-  protected static onRefreshSessionDataSent(reportedAtMs: number): void {
+  protected static onRefreshSessionDataSent(
+    reportedAtMs: number,
+    data: JSONObject,
+  ): void {
     if (!this.isUserSession()) {
       return;
     }
 
     UserActivity.forgetInactivityReportedBy(reportedAtMs);
+
+    const inactiveForInSeconds: unknown = data[INACTIVE_FOR_IN_SECONDS_FIELD];
+
+    if (
+      typeof inactiveForInSeconds === "number" &&
+      Number.isFinite(inactiveForInSeconds)
+    ) {
+      UserActivity.noteActivityReported(
+        reportedAtMs - inactiveForInSeconds * 1000,
+      );
+    }
+  }
+
+  /*
+   * Tells the server, by a renewal, that the person is using OneUptime
+   * (issue #8188): what the Dashboard and the Admin Dashboard hand
+   * UserActivity as its reportActivity, which asks while their person uses
+   * the page, once the server's record of their activity is getting old.
+   * A renewal another tab made a moment ago is shared, as always; one the
+   * server refuses - the idle timeout ran out while the computer slept -
+   * sends the person to sign in, saying why, as any request's would. Only
+   * for a person's sign-in to OneUptime, and only while they are signed
+   * in. Never throws: a renewal that got no answer is asked for again at
+   * the next activity a minute later.
+   */
+  public static reportActivityWhileInUse(): Promise<boolean> {
+    if (!this.isUserSession() || !User.isLoggedIn()) {
+      return Promise.resolve(false);
+    }
+
+    return this.refreshSession();
   }
 
   // Forgets why a session ended. For tests.
@@ -520,7 +565,7 @@ class BaseAPI extends API {
           this.markSessionRefreshed(sessionName);
 
           if (refreshData) {
-            this.onRefreshSessionDataSent(reportedAtMs);
+            this.onRefreshSessionDataSent(reportedAtMs, refreshData);
           }
         }
 
@@ -643,6 +688,24 @@ class BaseAPI extends API {
       }
 
       /*
+       * A 413 a proxy answered - nginx's "413 Request Entity Too Large"
+       * page, a load balancer's empty body, an API gateway's bare "Request
+       * Too Long" - says that what was sent was too large, and what to do:
+       * send less. It read as a failure the server could not explain, with
+       * "Try again in a moment", which never helps (#8278). A 413 the API
+       * wrote in a sentence of its own (the limit it holds a gzip body to)
+       * is kept.
+       */
+      if (
+        err.statusCode === 413 &&
+        (isErrorPage(err.message) ||
+          isEmptyErrorPhrase(err.message) ||
+          isTooLargePhrase(err.message))
+      ) {
+        return UNEXPLAINED_ERROR_MESSAGES.tooLarge;
+      }
+
+      /*
        * The other statuses a gateway answers for a server it could not
        * reach - a load balancer's or an ingress's 503 while no app is
        * running, Cloudflare's 520 to 524 and 530 - are the server being
@@ -694,9 +757,10 @@ class BaseAPI extends API {
    * A message as the reader should see it: as it came, in whatever script
    * it is written (#7536), unless it says nothing - "Server Error",
    * "Internal Server Error", an empty body - or is a page rather than a
-   * message (a proxy's HTML for a 500, a 413 or a 404, which used to be
-   * shown as its markup): then it becomes the sentence for a failure the
-   * server did not explain.
+   * message (a proxy's HTML for a 500 or a 404, which used to be shown as
+   * its markup): then it becomes the sentence for a failure the server did
+   * not explain. A 413's page says what was too large, above, while its
+   * status is known.
    */
   private static explainServerMessage(message: string | undefined): string {
     if (isEmptyErrorPhrase(message) || isErrorPage(message)) {

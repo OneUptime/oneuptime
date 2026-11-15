@@ -162,6 +162,7 @@ const ConfirmSubscription: FunctionComponent<ComponentProps> = (
   return (
     <Page
       title={t("subscribe.confirm.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("nav.overview"),

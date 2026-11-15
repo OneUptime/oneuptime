@@ -181,6 +181,7 @@ import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorNetworkDeviceService from "./MonitorNetworkDeviceService";
 import MonitorSecretService from "./MonitorSecretService";
+import IncomingRequestSecretService from "./IncomingRequestSecretService";
 import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
@@ -805,6 +806,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  IncomingRequestSecretService,
   RunbookOwnerRuleService,
   RunbookOwnerUserService,
   RunbookOwnerTeamService,

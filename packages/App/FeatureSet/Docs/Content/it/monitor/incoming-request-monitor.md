@@ -14,6 +14,7 @@ Entrambi usano lo stesso tipo di monitor. A distinguerli sono i criteri che conf
 - [Inviare un heartbeat](#inviare-un-heartbeat): Da curl, cron, Node.js, Python o Go.
 - [Avvisare quando le chiamate si fermano](#segnare-offline-se-non-arriva-un-heartbeat-in-10-minuti-un-interruttore-a-uomo-morto): Trasformate il monitor in un interruttore a uomo morto.
 - [Ricevere avvisi](#ricevere-avvisi-da-un-altro-sistema): Un incidente per ogni avviso di Alertmanager o Grafana.
+- [Sottoscrivere SNS o Event Grid](#sottoscrivere-amazon-sns-o-azure-event-grid): Confermate la sottoscrizione con un clic.
 :::
 
 ## Come funziona
@@ -77,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Sostituite `https://oneuptime.com` con l'URL della vostra istanza di OneUptime se è self-hosted.
 
-Inviate richieste **GET** o **POST** a questo URL. HEAD viene accettato e trattato come GET; PUT, PATCH e DELETE restituiscono 404. La chiave segreta nel percorso è l'unica credenziale: non serve alcuna intestazione né token. Le query string vengono ignorate: inviate ciò che i criteri devono leggere nel corpo o nelle intestazioni.
+Inviate richieste **GET** o **POST** a questo URL. HEAD viene accettato e trattato come GET; PUT, PATCH e DELETE restituiscono 404. La chiave segreta nel percorso è la credenziale: non serve alcuna intestazione né token, a meno che il progetto non [richieda un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Le query string vengono ignorate: inviate ciò che i criteri devono leggere nel corpo o nelle intestazioni.
 
 > [!WARNING]
 > Chiunque conosca questo URL può segnare il monitor come sano, quindi trattatelo come un segreto. Se trapela, aprite la pagina **Impostazioni** del monitor e fate clic su **Reimposta la chiave segreta della richiesta in arrivo**, poi aggiornate ogni mittente. La panoramica del monitor mostra l'ultima richiesta così come la conservano i suoi log: con segreti e dati personali mascherati, e senza intestazioni né corpo quando **Conserva il contenuto della richiesta** è disattivato. Il mascheramento riconosce i nomi e i modelli che conosce, quindi non inviate chiavi API o token verso questo endpoint.
 
 > [!IMPORTANT]
-> OneUptime risponde subito `200` con un oggetto JSON vuoto (`{}`) ed elabora la richiesta in una coda. Quella risposta viene scritta prima di qualsiasi convalida, quindi un `200` **non** conferma che la richiesta sia stata accettata: anche una chiave segreta sbagliata, un monitor eliminato e un monitor disattivato restituiscono `200`. Controllate la cronologia del monitor per confermare che le richieste arrivino.
+> OneUptime risponde subito `200` con un oggetto JSON vuoto (`{}`) ed elabora la richiesta in una coda. Quella risposta viene scritta prima di qualsiasi convalida, quindi un `200` **non** conferma che la richiesta sia stata accettata: anche una chiave segreta sbagliata, un monitor eliminato e un monitor disattivato restituiscono `200`. Controllate la cronologia del monitor per confermare che le richieste arrivino. L'unica eccezione è un progetto che richiede un segreto a ogni richiesta: una richiesta senza segreto riceve `401`.
 
 ### Inviare un corpo della richiesta
 
@@ -93,6 +94,7 @@ Se volete raggiungere campi all'interno del corpo (`{{requestBody.status}}` in u
 | --- | --- |
 | `application/json` | Il JSON analizzato. |
 | `application/x-www-form-urlencoded` | Il modulo analizzato. Le chiavi tra parentesi quadre si annidano (`alerts[0][status]=firing`), e ogni valore è una stringa. |
+| `text/plain` | Il JSON analizzato, quando il testo è un oggetto o un array JSON: è così che Amazon SNS invia i suoi messaggi. Qualsiasi altro testo è un corpo vuoto. |
 | Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi ogni riferimento a `requestBody` non dà nulla. |
 
 Sono accettati corpi fino a 50 MB; uno più grande viene rifiutato con un `413`. Non comprimete il corpo con `Content-Encoding: gzip`: non verrebbe salvato come JSON, e i percorsi al suo interno non si risolverebbero.
@@ -186,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Richiedere un segreto a ogni richiesta
+
+Chiunque abbia l'URL di un monitor può inviargli richieste. Un proprietario o un amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
+
+:::steps
+### Create un segreto
+
+Andate in **Monitor → Impostazioni → Segreti per richieste in arrivo** e create un segreto. Dategli un nome e OneUptime genera il valore; copiatelo dall'elenco.
+
+### Inviatelo da ogni mittente
+
+Inviate il segreto nell'intestazione `X-OneUptime-Secret`, o come token Bearer nell'intestazione `Authorization`, secondo ciò che il vostro mittente sa impostare.
+
+### Attivate il requisito
+
+Attivate **Richiedi un segreto a ogni richiesta**. Non si può attivare finché il progetto non ha alcun segreto, così nessun mittente viene rifiutato per errore.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime non conserva mai il segreto: toglie l'intestazione dalla richiesta e maschera un token Bearer che sia uno dei segreti del progetto prima di conservare qualsiasi cosa.
+
+> [!TIP]
+> Per sostituire un segreto senza rifiutare nessuno, createne un secondo, spostate i vostri mittenti su di esso, poi eliminate quello vecchio quando il suo **Ultimo utilizzo** smette di cambiare. Qualsiasi segreto del progetto viene accettato, e l'ultimo non si può eliminare finché il requisito è attivo.
 
 ## Criteri di monitoraggio
 
@@ -345,6 +379,40 @@ Accanto è disponibile l'intero payload, quindi funzionano sia un titolo di inci
 
 Per una configurazione completa di Alertmanager, consultate [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Per Grafana, consultate [Grafana](/docs/integrations/grafana).
 
+## Sottoscrivere Amazon SNS o Azure Event Grid
+
+Amazon SNS e Azure Event Grid non inviano nulla a un nuovo endpoint finché qualcuno non conferma la sottoscrizione aprendo un link che il servizio gli invia. Quando arriva quella richiesta, la scheda **Riepilogo del monitor** nella **Panoramica** del monitor mostra che cosa attende il servizio, il topic e un pulsante che apre il link in una nuova scheda del browser.
+
+| Servizio | La richiesta | Pulsante | Validità del link |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, per una nuova sottoscrizione HTTPS | **Conferma sottoscrizione** | Due giorni |
+| Amazon SNS | `UnsubscribeConfirmation`, quando la sottoscrizione viene eliminata | **Ripristina sottoscrizione** | Due giorni |
+| Azure Event Grid | `SubscriptionValidationEvent`, per una nuova sottoscrizione di eventi tramite webhook | **Convalida sottoscrizione** | 10 minuti |
+
+Il pulsante resta finché non arriva la prossima richiesta del monitor, anche dopo che avete aperto il link. Quando il tempo del link è scaduto, la scheda spiega invece come ottenerne uno nuovo. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della richiesta.
+
+Il link, e il token che contiene, vengono conservati senza mascheramento ovunque sia conservata la richiesta: i suoi dettagli, i suoi log e gli incidenti e gli avvisi che apre. Il link non può fare altro che avviare le consegne a questo monitor. Conta solo un link all'indirizzo del servizio stesso: qualsiasi altro viene mascherato come di consueto e non riceve alcun pulsante.
+
+### Amazon SNS
+
+:::steps
+1. Nella console di Amazon SNS, aprite il topic e scegliete **Create subscription**. Scegliete `HTTPS` come protocollo e incollate l'**Heartbeat URL** del monitor come endpoint.
+2. Aprite la **Panoramica** del monitor e fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor**. Nella console SNS, lo stato della sottoscrizione passa da **Pending confirmation** a confermata.
+:::
+
+SNS invia i suoi messaggi come JSON etichettato `text/plain`, e il monitor li legge come JSON, quindi criteri, modelli e raggruppamento degli incidenti possono usarne i campi, come `{{requestBody.Subject}}` e `{{requestBody.Message}}`. Il JSON proprio di una notifica, come quello di un allarme CloudWatch, arriva come testo in `Message`.
+
+Se la scheda dice che il link non si può più aprire, selezionate la sottoscrizione nella console SNS e scegliete **Request confirmation**. SNS elimina una sottoscrizione che non viene confermata entro 48 ore; in quel caso, create di nuovo la sottoscrizione.
+
+### Azure Event Grid
+
+:::steps
+1. Nel portale di Azure, aprite la risorsa di cui volete ricevere gli eventi e aggiungete una sottoscrizione di eventi. Scegliete **Event Grid Schema** come schema degli eventi, **Web Hook** come tipo di endpoint e l'**Heartbeat URL** del monitor come endpoint.
+2. Entro 10 minuti, aprite la **Panoramica** del monitor e fate clic su **Convalida sottoscrizione** nella scheda **Riepilogo del monitor**.
+:::
+
+Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprietario apre il link che invia. OneUptime risponde a ogni richiesta con un `200` vuoto, quindi la strada è il link. Il link punta a Event Grid sulla porta 553, che un firewall davanti al vostro browser deve consentire. Se prima passano 10 minuti, la sottoscrizione di eventi non va a buon fine: createla di nuovo.
+
 ## Buone pratiche
 
 1. **Impostate bene la finestra di tempo**: se il vostro cron job gira ogni 5 minuti, impostate la soglia "Non ricevuto in minuti" a 10–15 minuti per assorbire ritardi occasionali, e mettete quel criterio per primo.
@@ -359,16 +427,24 @@ Per una configurazione completa di Alertmanager, consultate [Prometheus Alertman
 Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimostra che sia stata accettata. Controllate che la chiave segreta nell'URL corrisponda all'**Heartbeat URL** del monitor, e che il monitor non sia disattivato. Poi guardate la cronologia del monitor per vedere se le richieste arrivano.
 :::
 
+:::details Il mio mittente riceve un 401
+Il progetto richiede un segreto a ogni richiesta, e la richiesta non ne ha inviato nessuno, o ne ha inviato uno che non è del progetto: la risposta dice quale dei due. Inviate uno dei segreti del progetto nell'intestazione `X-OneUptime-Secret` o come token Bearer, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Una richiesta rifiutata non raggiunge mai il monitor.
+:::
+
 :::details Il monitor non va mai offline quando gli heartbeat si fermano
 Solo un criterio **Richiesta in arrivo** (**Non ricevuto in minuti**) può accorgersi del silenzio. Aggiungetene uno se manca, e trascinatelo sopra i criteri predefiniti: il criterio online predefinito corrisponde all'ultima richiesta a ogni controllo in background, e decide il primo criterio che corrisponde.
 :::
 
 :::details Un filtro Corpo della Richiesta non corrisponde mai
-Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON o di modulo, il corpo non viene analizzato.
+Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON o di modulo, il corpo non viene analizzato: lo è solo il JSON inviato come `text/plain`.
 :::
 
 :::details Un filtro Intestazione della richiesta non corrisponde mai
 Nomi e valori delle intestazioni vengono confrontati per intero. Indicate il valore completo, come `application/json; charset=utf-8`, invece di una sua parte.
+:::
+
+:::details Amazon SNS dice che la sottoscrizione è in attesa di conferma
+Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** della **Panoramica** del monitor. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della conferma. Con **Conserva il contenuto della richiesta** disattivato, il monitor non conserva alcun corpo, quindi nemmeno il link: attivatelo nelle **Impostazioni** del monitor, e l'ultima richiesta viene mostrata di nuovo con il suo link.
 :::
 
 :::details Il mittente riceve un 500

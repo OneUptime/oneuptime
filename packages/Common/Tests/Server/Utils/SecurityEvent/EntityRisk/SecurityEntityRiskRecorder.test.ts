@@ -403,7 +403,10 @@ describe("recording what was found", () => {
     expect(row["riskExpiresAt"]).toEqual(
       new Date(ago(HOUR_IN_MS).getTime() + 7 * DAY_IN_MS),
     );
-    expect(row["riskHistory"]).toEqual([{ day: "2026-10-14", score: 50 }]);
+    // When its score changed, and to what (issue #8207).
+    expect(row["riskHistory"]).toEqual([
+      { at: "2026-10-14T12:00:00.000Z", score: 50 },
+    ]);
     expect(row["criticality"]).toBeUndefined();
 
     const contributions: Array<SecurityEntityRiskContribution> = row[
@@ -793,8 +796,8 @@ describe("the refresh", () => {
         "riskHistory"
       ] as Array<SecurityEntityRiskHistoryPoint>,
     ).toEqual([
-      { day: "2026-10-14", score: 75 },
-      { day: "2026-10-16", score: 25 },
+      { at: "2026-10-14T12:00:00.000Z", score: 75 },
+      { at: "2026-10-16T12:00:00.000Z", score: 25 },
     ]);
     // Which projects are due is read first; each is then refreshed under its lock.
     expect(world.order).toEqual([

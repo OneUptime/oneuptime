@@ -24,6 +24,7 @@ import ingressRouter, {
   createIngressApp,
   getForwardUrl,
   INGRESS_BODY_LIMIT,
+  isRefusalNotWorthRetrying,
 } from "../../API/IncomingRequestIngress";
 import http from "http";
 import { AddressInfo } from "net";
@@ -545,6 +546,48 @@ describe("when the forward fails", () => {
     expect(spy.mock.calls.length).toBeGreaterThan(1);
   });
 
+  /*
+   * A 4xx says the request itself is wrong - most often, now, that its
+   * project requires an incoming request secret and the device sent none
+   * (issue #7526). The same request is refused the same way every time, so
+   * retrying it only keeps the probe busy through every backoff.
+   */
+  test.each([400, 401, 403, 404, 413, 422])(
+    "does not retry a request OneUptime refused with %i",
+    async (status: number) => {
+      const spy: ApiFetchSpy = jest
+        .spyOn(API, "fetch")
+        .mockResolvedValue(
+          new HTTPErrorResponse(
+            status,
+            { message: "This project requires a secret." },
+            {},
+          ) as never,
+        ) as unknown as ApiFetchSpy;
+
+      await callIngress();
+      await flush();
+
+      expect(spy.mock.calls.length).toBe(1);
+    },
+  );
+
+  test.each([408, 429, 500, 502, 503])(
+    "still retries %i, which is about the moment, not the request",
+    async (status: number) => {
+      const spy: ApiFetchSpy = jest
+        .spyOn(API, "fetch")
+        .mockResolvedValue(
+          new HTTPErrorResponse(status, { message: "busy" }, {}) as never,
+        ) as unknown as ApiFetchSpy;
+
+      await callIngress();
+      await flush();
+
+      expect(spy.mock.calls.length).toBe(3);
+    },
+  );
+
   test("stops retrying as soon as one attempt succeeds", async () => {
     let attempt: number = 0;
 
@@ -754,10 +797,65 @@ describe("the listener, over HTTP", () => {
   });
 
   /*
-   * OneUptime reads only JSON and form bodies, so any other body reaches the
-   * monitor empty. The listener used to read application/octet-stream too,
-   * under express.raw's 100 KB default: a larger one was answered 413, not
-   * the 200 a device is promised, and was never forwarded at all.
+   * Amazon SNS posts its subscription confirmations and notifications as
+   * JSON labelled text/plain, and OneUptime reads that as the JSON it is
+   * (PlainTextJsonBody, #7723): so does the listener, so a topic pointed
+   * at the probe reaches the monitor as it would have directly.
+   */
+  test("forwards JSON sent as text/plain, as Amazon SNS sends it, parsed", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const confirmation: Record<string, string> = {
+      Type: "SubscriptionConfirmation",
+      TopicArn: "arn:aws:sns:eu-west-1:123456789012:oneuptime-alerts",
+      SubscribeURL:
+        "https://sns.eu-west-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=arn:aws:sns:eu-west-1:123456789012:oneuptime-alerts&Token=2336412f37fb687f",
+      Token: "2336412f37fb687f",
+    };
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain; charset=UTF-8",
+        "x-amz-sns-message-type": "SubscriptionConfirmation",
+      },
+      body: JSON.stringify(confirmation),
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect((await forwarded(spy))["data"]).toEqual(confirmation);
+  });
+
+  test("inflates gzip JSON sent as text/plain, and forwards it parsed", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await send({
+      method: "POST",
+      headers: { "Content-Type": "text/plain", "Content-Encoding": "gzip" },
+      body: zlib.gzipSync(JSON.stringify({ status: "healthy" })),
+    });
+
+    expect((await forwarded(spy))["data"]).toEqual({ status: "healthy" });
+  });
+
+  test("forwards plain text empty, as OneUptime would read it", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "backup finished",
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect((await forwarded(spy))["data"]).toEqual({});
+  });
+
+  /*
+   * OneUptime reads only JSON and form bodies, and JSON sent as text/plain,
+   * so any other body reaches the monitor empty. The listener used to read
+   * application/octet-stream too, under express.raw's 100 KB default: a
+   * larger one was answered 413, not the 200 a device is promised, and was
+   * never forwarded at all.
    */
   test.each([
     ["application/octet-stream", 200 * 1024],
@@ -815,4 +913,18 @@ describe("the listener, over HTTP", () => {
       );
     },
   );
+});
+
+describe("isRefusalNotWorthRetrying", () => {
+  test("is true for a 4xx that would be refused again", () => {
+    for (const status of [400, 401, 403, 404, 405, 413, 415, 422]) {
+      expect(isRefusalNotWorthRetrying(status)).toBe(true);
+    }
+  });
+
+  test("is false for a timeout, rate limiting, a 5xx or a success", () => {
+    for (const status of [200, 204, 302, 408, 429, 500, 502, 503, 504]) {
+      expect(isRefusalNotWorthRetrying(status)).toBe(false);
+    }
+  });
 });

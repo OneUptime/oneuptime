@@ -9,11 +9,15 @@ jest.mock("../../../Server/Utils/DataSecurity/DataSecurityJobs", () => {
 import { describe, expect, jest, test } from "@jest/globals";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import {
+  DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT,
   getContentScannableSql,
   getServedProjectSql,
 } from "../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import { PROBE_SCANNABLE_KINDS } from "../../../Server/Utils/DataSecurity/DataSecurityProbeScan";
-import { getWorkerContentScannableSql } from "../../../Server/Utils/DataSecurity/DataSecurityWorkerClaim";
+import {
+  DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT,
+  getWorkerContentScannableSql,
+} from "../../../Server/Utils/DataSecurity/DataSecurityWorkerClaim";
 import {
   getTelemetryProjectScannableSql,
   getTelemetryStoreScannableSql,
@@ -1375,6 +1379,27 @@ describe("every content-scan path reads the store's switch, the project's switch
     expect(path.clauses).toContain(path.projectSwitch);
     expect(path.clauses).toEqual(
       expect.arrayContaining(getServedProjectSql(path.statusesParameter)),
+    );
+  });
+
+  /*
+   * And the question asked again before anything is written - a probe's
+   * result (#8391), a worker's scan - is the claim's own rule, so the page's
+   * rule, held to the claims above, is the rule a scan is kept by too.
+   */
+  test("what a scan writes is kept by the same rule its claim hands the store out by", () => {
+    expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).toContain(
+      getContentScannableSql({
+        providerParameter: "$3",
+        kindsParameter: "$4",
+        statusesParameter: "$5",
+      }),
+    );
+    expect(DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT).toContain(
+      getWorkerContentScannableSql({
+        kindsParameter: "$3",
+        statusesParameter: "$4",
+      }),
     );
   });
 

@@ -18,6 +18,7 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { getDateDisplayLanguage } from "Common/Types/DateLanguage";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -233,7 +234,9 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };

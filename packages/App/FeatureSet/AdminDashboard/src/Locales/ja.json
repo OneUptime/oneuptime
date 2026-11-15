@@ -1045,7 +1045,7 @@
   "Custom Price": "カスタム料金",
   "Compare plans": "プランを比較",
   "Free forever.": "ずっと無料。",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "アクティブなモニターとテレメトリは従量課金で、支払い方法の登録が必要です。",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Web サイト、API、サーバーのチェックとテレメトリの送信は従量課金で、支払い方法の登録が必要です。",
   "Active monitors and telemetry are pay as you go.": "アクティブなモニターとテレメトリは従量課金です。",
   "Then {{price}} per user, billed yearly.": "その後は 1 ユーザーあたり {{price}}、毎年請求されます。",
   "Then {{price}} per user, billed monthly.": "その後は 1 ユーザーあたり {{price}}、毎月請求されます。",
@@ -2142,7 +2142,9 @@
   "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "このサーバーはまだメールを送信できないため、招待メールは届きません。招待は作成され、ご自身で送れるリンクが表示されます。",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。このリンクをコピーして、ご自身で送ってください。このアドレス専用で、7 日以内に 1 回だけ使えます。",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。すでにアカウントをお持ちです。このリンクを送ってサインインしてもらうと、そこから招待を承諾できます。",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。すでにアカウントをお持ちで、メンバーになっています。このリンクを送ってサインインしてもらってください。",
   "Invited": "招待済み",
+  "Not Signed Up Yet": "未登録",
   "Get Invitation Link": "招待リンクを取得",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM プロビジョニングが停止し、監査ログの記録が止まり、エンタープライズ設定は読み取り専用になり、エンタープライズ管理ダッシュボードはロックされます。ライセンスを有効化するとすぐにすべてが再開し、コアの監視が影響を受けることはありません。",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "有効なライセンスがない場合（{{days}} 日間のトライアルの後）、SCIM プロビジョニングが停止し、監査ログの記録が止まり、エンタープライズ設定は読み取り専用になり、エンタープライズ管理ダッシュボードはロックされます。ライセンスを有効化するとすぐにすべてが再開し、コアの監視が影響を受けることはありません。",
@@ -3145,5 +3147,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "NTP サーバーの名前がアドレスに解決されなかったため、リクエストは送信されませんでした。",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "ホストには到達できますが、この UDP ポートで待ち受けているサービスはないと応答しました。NTP デーモンが停止しているか、別のポートで待ち受けています。",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "プローブが自身の側でリクエストを送信できなかったため、NTP サーバーには一度も接続していません。障害はサーバーではなくプローブ側にあります。",
-  "The NTP check failed because of a network error.": "ネットワークエラーのため、NTP チェックに失敗しました。"
+  "The NTP check failed because of a network error.": "ネットワークエラーのため、NTP チェックに失敗しました。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が大きすぎてサーバーが受け付けなかったため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "What was sent was too large for the server to accept.": "送信した内容が大きすぎて、サーバーが受け付けませんでした。",
+  "Try again with less at once, such as a smaller file.": "小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime の前にあるプロキシが拒否した場合は、そのプロキシのリクエストサイズの上限を、OneUptime 自体が受け付ける 50 MB に引き上げてください（nginx では client_max_body_size 50M）。"
 }

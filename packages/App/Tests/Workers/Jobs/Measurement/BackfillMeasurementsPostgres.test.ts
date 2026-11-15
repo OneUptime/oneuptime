@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
 
 /*
@@ -31,10 +32,15 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  *     pages (the next tick resumes inside it), and one apart by
  *     microseconds: each record worked out once, the measurement finished;
  *   - a cursor saved before the id was kept, a cursor whose record was
- *     deleted, records deleted with a deletedAt;
+ *     deleted - between ticks or between two pages, saved to the
+ *     microsecond so the walk goes on right after it (#8388), or to the
+ *     millisecond before that - and records deleted with a deletedAt;
  *   - an edit made while a run is walked: the walk's next write is
  *     refused, the cleared cursor stays cleared, and the next tick walks the
  *     edit from the beginning;
+ *   - the tick's deadline (#8172): stopped in the middle of a page or as
+ *     one ends, the walk saves where it got to and the next tick goes on
+ *     right after it;
  *   - all three domains, and that a page is read by the index.
  *
  * Opt in with RUN_POSTGRES_MEASUREMENT_BACKFILL_WALK_TESTS=true against a
@@ -47,7 +53,8 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  * / _PORT (default localhost:5400, Scripts/Dev/docker-compose.dev.yml).
  */
 
-type CronHandler = () => Promise<void>;
+// The tick, handed its deadline as RunCron hands it (none: a run outside the queue).
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
 
@@ -227,7 +234,7 @@ interface StoredBackfill {
   backfillCompletedAt: Date | null;
 }
 
-async function runTick(): Promise<void> {
+async function runTick(deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined =
     mockCapturedJobs["Measurement:Backfill"];
 
@@ -235,7 +242,7 @@ async function runTick(): Promise<void> {
     throw new Error("Measurement:Backfill did not register a cron handler");
   }
 
-  await handler();
+  await handler(deadline);
 }
 
 // The ids worked out more than once, with how many times.
@@ -411,6 +418,32 @@ describePostgres("Measurement:Backfill against Postgres", () => {
     return rows[0]!;
   }
 
+  // What a measurement holds as its cursor's createdAt, to the microsecond (UTC).
+  async function storedCursorExactly(
+    id: string,
+    table: string = "IncidentMeasurement",
+  ): Promise<string | null> {
+    const rows: Array<{ exactly: string | null }> = await database.query(
+      `SELECT to_char("backfillCursorCreatedAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "exactly" FROM "${table}" WHERE "_id" = $1`,
+      [id],
+    );
+
+    return rows[0]!.exactly;
+  }
+
+  // A record's createdAt, to the microsecond (UTC).
+  async function createdAtExactly(
+    recordId: string,
+    table: string = "Incident",
+  ): Promise<string> {
+    const rows: Array<{ exactly: string }> = await database.query(
+      `SELECT to_char("createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "exactly" FROM "${table}" WHERE "_id" = $1`,
+      [recordId],
+    );
+
+    return rows[0]!.exactly;
+  }
+
   // The last record the walk visits, as a page reads it.
   async function lastRecord(
     table: string = "Incident",
@@ -460,6 +493,10 @@ describePostgres("Measurement:Backfill against Postgres", () => {
     expect(row.backfillCursorId).toBe(last._id);
     expect(row.backfillCursorCreatedAt?.toISOString()).toBe(
       last.createdAt.toISOString(),
+    );
+    // And to the microsecond, as the record has it (#8388).
+    expect(await storedCursorExactly(id, domain.measurementTable)).toBe(
+      await createdAtExactly(last._id, domain.recordTable),
     );
     expect(mockedLogger.warn).not.toHaveBeenCalled();
     expect(mockedLogger.error).not.toHaveBeenCalled();
@@ -674,7 +711,14 @@ describePostgres("Measurement:Backfill against Postgres", () => {
       expect(row.backfillCursorId).toBe(ordered[299]);
     });
 
-    test("a cursor whose record was deleted since: the walk goes on from the stored millisecond, passing over no record of the run", async () => {
+    /*
+     * #8388. The run one statement inserted shares its now() to the
+     * microsecond. Cut to the millisecond, the stored cursor stood before
+     * the whole run once its record was gone, and the next tick worked the
+     * first tick's 5,000 records out again; to the microsecond it stands
+     * where the record stood.
+     */
+    test("a cursor whose record was deleted since: the walk goes on right after it, nothing read again (#8388)", async () => {
       await insertRun({ count: MAX_PAGES_PER_RUN * PAGE_SIZE + 600 });
       const id: string = await insertMeasurement();
 
@@ -682,9 +726,13 @@ describePostgres("Measurement:Backfill against Postgres", () => {
 
       const cursor: StoredBackfill = await readBackfill(id);
       const ordered: Array<string> = await orderedIds();
-      const firstTick: Array<string> = INCIDENTS.recomputed();
       const rest: Array<string> = ordered.slice(
         ordered.indexOf(cursor.backfillCursorId!) + 1,
+      );
+
+      // The stored cursor is the record's own createdAt, to the microsecond.
+      expect(await storedCursorExactly(id)).toBe(
+        await createdAtExactly(cursor.backfillCursorId!),
       );
 
       await database.query(`DELETE FROM "Incident" WHERE "_id" = $1`, [
@@ -692,37 +740,96 @@ describePostgres("Measurement:Backfill against Postgres", () => {
       ]);
       incidentValues.recomputeForIncident.mockClear();
 
-      // More than a tick's pages to read again here: it takes two.
-      expect(await walkToCompletion(id)).toBeLessThanOrEqual(2);
+      expect(await walkToCompletion(id)).toBe(1);
 
-      const secondTick: Array<string> = INCIDENTS.recomputed();
-      const readAgain: Array<string> = secondTick.slice(
-        0,
-        secondTick.length - rest.length,
+      expect(INCIDENTS.recomputed()).toEqual(rest);
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+    });
+
+    test("a cursor whose record was deleted between two pages of one tick: the next page goes on right after it", async () => {
+      await insertRun({ count: 3 * PAGE_SIZE });
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+
+      // The first page's last record is deleted for good once it is worked out.
+      incidentValues.recomputeForIncident.mockImplementation(
+        async (data: { incidentId: ObjectID }): Promise<void> => {
+          if (data.incidentId.toString() === ordered[PAGE_SIZE - 1]) {
+            await database.query(`DELETE FROM "Incident" WHERE "_id" = $1`, [
+              ordered[PAGE_SIZE - 1],
+            ]);
+          }
+        },
       );
 
-      // Every record after the deleted one is worked out, once...
-      expect(secondTick.slice(secondTick.length - rest.length)).toEqual(rest);
-      expect(repeatsOf(secondTick)).toEqual({});
-      /*
-       * ...after the records of the stored millisecond the first tick had
-       * worked out - here the whole run before it, which one statement's
-       * now() put in one microsecond - read again, once.
-       */
-      const sameMillisecond: Array<{ _id: string }> = await database.query(
-        `SELECT "_id"::text AS "_id" FROM "Incident" WHERE date_trunc('milliseconds', "createdAt") = $1`,
-        [cursor.backfillCursorCreatedAt],
+      expect(await walkToCompletion(id)).toBe(1);
+
+      expect(INCIDENTS.recomputed()).toEqual(ordered);
+      expect(repeatsOf(INCIDENTS.recomputed())).toEqual({});
+    });
+
+    test("the cursor is saved as the record has it, to the microsecond, page by page", async () => {
+      await database.query(
+        `INSERT INTO "Incident" ("_id", "projectId", "createdAt") SELECT gen_random_uuid(), $1, date_trunc('milliseconds', now()) + interval '123 microseconds' + "step" * interval '7 microseconds' FROM generate_series(1, $2) AS "step"`,
+        [PROJECT_ID, MAX_PAGES_PER_RUN * PAGE_SIZE + 50],
       );
-      const inStoredMillisecond: Set<string> = new Set(
-        sameMillisecond.map((row: { _id: string }): string => {
-          return row._id;
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+
+      await runTick();
+
+      const cursor: StoredBackfill = await readBackfill(id);
+
+      expect(cursor.backfillCursorId).toBe(
+        ordered[MAX_PAGES_PER_RUN * PAGE_SIZE - 1],
+      );
+      const exactly: string = await createdAtExactly(cursor.backfillCursorId!);
+      expect(await storedCursorExactly(id)).toBe(exactly);
+      // Past its millisecond: what a Date would have cut.
+      expect(exactly.slice(23, 26)).not.toBe("000");
+
+      await runTick();
+
+      await expectEachWorkedOutOnce(id);
+      expect(await storedCursorExactly(id)).toBe(
+        await createdAtExactly(ordered[ordered.length - 1]!),
+      );
+    });
+
+    test("a cursor saved to the millisecond before #8388, its record gone: that millisecond is read again once, nothing passed over, and the next cursor is saved to the microsecond", async () => {
+      // One statement's run, its moment past the millisecond, as now() mostly is.
+      await database.query(
+        `INSERT INTO "Incident" ("_id", "projectId", "createdAt") SELECT gen_random_uuid(), $1, date_trunc('milliseconds', now()) + interval '456 microseconds' FROM generate_series(1, 900)`,
+        [PROJECT_ID],
+      );
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+      const cursorRecord: string = ordered[299]!;
+
+      // Saved by the walk as it was: the createdAt as node-postgres read it.
+      const asRead: Array<{ createdAt: Date }> = await database.query(
+        `SELECT "createdAt" FROM "Incident" WHERE "_id" = $1`,
+        [cursorRecord],
+      );
+      await database.query(
+        `UPDATE "IncidentMeasurement" SET "backfillCursorCreatedAt" = $2, "backfillCursorId" = $3 WHERE "_id" = $1`,
+        [id, asRead[0]!.createdAt, cursorRecord],
+      );
+      await database.query(`DELETE FROM "Incident" WHERE "_id" = $1`, [
+        cursorRecord,
+      ]);
+
+      expect(await walkToCompletion(id)).toBe(1);
+
+      // The whole run, but the deleted record: the run shares one microsecond past that millisecond.
+      expect(INCIDENTS.recomputed()).toEqual(
+        ordered.filter((recordId: string): boolean => {
+          return recordId !== cursorRecord;
         }),
       );
-
-      for (const readId of readAgain) {
-        expect(firstTick).toContain(readId);
-        expect(inStoredMillisecond.has(readId)).toBe(true);
-      }
+      expect(await storedCursorExactly(id)).toBe(
+        await createdAtExactly(ordered[ordered.length - 1]!),
+      );
     });
 
     test("a cursor whose record was deleted since, in records a second apart: the walk goes on right after it", async () => {
@@ -926,55 +1033,169 @@ describePostgres("Measurement:Backfill against Postgres", () => {
     });
   });
 
-  test("a page is read by the (projectId, createdAt) index, from the cursor on, not by sorting the project", async () => {
-    await insertRun({ count: 2000 });
-    await database.query(`ANALYZE "Incident"`);
-    const last: { _id: string; createdAt: Date } = await lastRecord();
+  /*
+   * #8172. The tick stops at its deadline - its time limit, or its lock
+   * lost - with where it got to saved, and the next tick carries on from
+   * there, on the real tables: no record worked out twice, none passed over.
+   */
+  describe("the tick's deadline", () => {
+    // Ends `deadline` while the nth record of the tick (from 1) is worked out.
+    function endWhileWorkingOut(deadline: JobDeadline, nth: number): void {
+      let recomputed: number = 0;
 
-    const statement: { sql: string; parameters: Array<unknown> } =
-      MeasurementBackfillPage.getStatement({
-        tableName: "Incident",
-        projectId: new ObjectID(PROJECT_ID),
-        after: { createdAt: last.createdAt, id: new ObjectID(last._id) },
-        limit: PAGE_SIZE,
-      });
+      incidentValues.recomputeForIncident.mockImplementation(
+        async (): Promise<void> => {
+          recomputed++;
 
-    const runner: QueryRunner = database.createQueryRunner();
-    await runner.connect();
-
-    try {
-      await runner.startTransaction();
-      // A table this small would otherwise be read whole: ask what the index plan is.
-      await runner.query(`SET LOCAL enable_seqscan = off`);
-      const plan: Array<{ "QUERY PLAN": unknown }> = await runner.query(
-        `EXPLAIN (FORMAT JSON) ${statement.sql}`,
-        statement.parameters,
+          if (recomputed === nth) {
+            deadline.end();
+          }
+        },
       );
-      await runner.rollbackTransaction();
+    }
 
-      const indexes: Array<{ indexname: string; indexdef: string }> =
-        await database.query(
-          `SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = 'Incident'`,
-          [schema],
-        );
-      const byProjectAndCreatedAt: Array<string> = indexes
-        .filter((index: { indexdef: string }): boolean => {
-          return index.indexdef.includes(`("projectId", "createdAt")`);
-        })
-        .map((index: { indexname: string }): string => {
-          return index.indexname;
+    async function expectNextTickCarriesOnToTheEnd(
+      id: string,
+      firstTick: Array<string>,
+    ): Promise<void> {
+      incidentValues.recomputeForIncident.mockReset();
+      incidentValues.recomputeForIncident.mockResolvedValue(undefined);
+
+      await runTick();
+
+      const both: Array<string> = [...firstTick, ...INCIDENTS.recomputed()];
+
+      expect(repeatsOf(both)).toEqual({});
+      expect(both).toEqual(await orderedIds());
+      expect((await readBackfill(id)).backfillCompletedAt).toBeInstanceOf(Date);
+    }
+
+    test("passing in the middle of a page of a run: the walk saves the last record it worked out, to the microsecond, and the next tick goes on right after it", async () => {
+      await insertRun({ count: 3 * PAGE_SIZE + 100 });
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+      const deadline: JobDeadline = new JobDeadline();
+      endWhileWorkingOut(deadline, 700);
+
+      await runTick(deadline);
+
+      expect(INCIDENTS.recomputed()).toEqual(ordered.slice(0, 700));
+
+      const stopped: StoredBackfill = await readBackfill(id);
+
+      expect(stopped.backfillCursorId).toBe(ordered[699]);
+      expect(stopped.backfillCompletedAt).toBeNull();
+      expect(await storedCursorExactly(id)).toBe(
+        await createdAtExactly(ordered[699]!),
+      );
+
+      await expectNextTickCarriesOnToTheEnd(id, ordered.slice(0, 700));
+    });
+
+    test("passing as a page ends: no page after it is read, and the cursor saved is that page's last record", async () => {
+      await insertRun({ count: 3 * PAGE_SIZE + 100 });
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+      const deadline: JobDeadline = new JobDeadline();
+      endWhileWorkingOut(deadline, 2 * PAGE_SIZE);
+
+      const reads: { mock: { calls: Array<unknown> } } = jest.spyOn(
+        MeasurementBackfillPage,
+        "read",
+      );
+
+      await runTick(deadline);
+
+      expect(reads.mock.calls).toHaveLength(2);
+      expect(INCIDENTS.recomputed()).toEqual(ordered.slice(0, 2 * PAGE_SIZE));
+      expect((await readBackfill(id)).backfillCursorId).toBe(
+        ordered[2 * PAGE_SIZE - 1],
+      );
+
+      await expectNextTickCarriesOnToTheEnd(
+        id,
+        ordered.slice(0, 2 * PAGE_SIZE),
+      );
+    });
+
+    test("passed before the tick: no measurement is read and nothing is written", async () => {
+      await insertRun({ count: 600 });
+      const id: string = await insertMeasurement();
+      const deadline: JobDeadline = new JobDeadline();
+      deadline.end();
+
+      await runTick(deadline);
+
+      expect(INCIDENTS.recomputed()).toEqual([]);
+
+      const row: StoredBackfill = await readBackfill(id);
+
+      expect(row.backfillCursorId).toBeNull();
+      expect(row.backfillCompletedAt).toBeNull();
+    });
+  });
+
+  test.each([
+    { name: "the millisecond", exactly: false },
+    { name: "the microsecond", exactly: true },
+  ])(
+    "a page is read by the (projectId, createdAt) index, from a cursor to $name on, not by sorting the project",
+    async (cursor: { name: string; exactly: boolean }) => {
+      await insertRun({ count: 2000 });
+      await database.query(`ANALYZE "Incident"`);
+      const last: { _id: string; createdAt: Date } = await lastRecord();
+
+      const statement: { sql: string; parameters: Array<unknown> } =
+        MeasurementBackfillPage.getStatement({
+          tableName: "Incident",
+          projectId: new ObjectID(PROJECT_ID),
+          after: {
+            createdAt: last.createdAt,
+            exactCreatedAt: cursor.exactly
+              ? await createdAtExactly(last._id)
+              : undefined,
+            id: new ObjectID(last._id),
+          },
+          limit: PAGE_SIZE,
         });
 
-      expect(byProjectAndCreatedAt.length).toBeGreaterThan(0);
+      const runner: QueryRunner = database.createQueryRunner();
+      await runner.connect();
 
-      const text: string = JSON.stringify(plan);
-      expect(
-        byProjectAndCreatedAt.some((name: string): boolean => {
-          return text.includes(`"Index Name":"${name}"`);
-        }),
-      ).toBe(true);
-    } finally {
-      await runner.release();
-    }
-  });
+      try {
+        await runner.startTransaction();
+        // A table this small would otherwise be read whole: ask what the index plan is.
+        await runner.query(`SET LOCAL enable_seqscan = off`);
+        const plan: Array<{ "QUERY PLAN": unknown }> = await runner.query(
+          `EXPLAIN (FORMAT JSON) ${statement.sql}`,
+          statement.parameters,
+        );
+        await runner.rollbackTransaction();
+
+        const indexes: Array<{ indexname: string; indexdef: string }> =
+          await database.query(
+            `SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = 'Incident'`,
+            [schema],
+          );
+        const byProjectAndCreatedAt: Array<string> = indexes
+          .filter((index: { indexdef: string }): boolean => {
+            return index.indexdef.includes(`("projectId", "createdAt")`);
+          })
+          .map((index: { indexname: string }): string => {
+            return index.indexname;
+          });
+
+        expect(byProjectAndCreatedAt.length).toBeGreaterThan(0);
+
+        const text: string = JSON.stringify(plan);
+        expect(
+          byProjectAndCreatedAt.some((name: string): boolean => {
+            return text.includes(`"Index Name":"${name}"`);
+          }),
+        ).toBe(true);
+      } finally {
+        await runner.release();
+      }
+    },
+  );
 });

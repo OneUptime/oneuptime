@@ -473,7 +473,7 @@ Zabbix 接受了更新时触发 **已更新**；无法连接 Zabbix 或 Zabbix �
 
 工作流就是这样读取和更改 OneUptime 数据的。例如，来自 CI 工具的 Webhook 可以用 **Create One Incident** 开一个带有失败详情的事件。
 
-这些组件以工作流所在项目的 Project Admin 身份执行：Project Admin 不允许做的事，或者你的套餐不包含的事，会被拒绝，运行的日志会说明原因。参见 [工作流步骤可以做什么](/docs/workflows/configuration#工作流步骤可以做什么)。
+这些组件以工作流所在项目的项目管理员身份执行：项目管理员不允许做的事，或者你的套餐不包含的事，会被拒绝，运行的日志会说明原因。参见 [工作流步骤可以做什么](/docs/workflows/configuration#工作流步骤可以做什么)。
 
 ### 根据模板宣布事件
 

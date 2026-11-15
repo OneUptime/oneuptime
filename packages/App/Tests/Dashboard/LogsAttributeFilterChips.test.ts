@@ -437,3 +437,73 @@ describe("resource pages' pinned log attributes", () => {
     expect(unlabelled).toEqual([]);
   });
 });
+
+/*
+ * A chip's text is English: the operator's label glued before the value
+ * ("contains web"). It stays the chip's key and what removal reads, and a
+ * filter that holds an operator hands the chip its stored value as well,
+ * for the chip to say as one sentence in the reader's language
+ * (LockedFilterChip, #8309): "http.route stimmt mit /api/* überein".
+ */
+describe("buildAttributeFilterChips — the stored filter, for the chip to say", () => {
+  test.each([
+    ["is any of", new Includes(["web", "api"])],
+    ["is none of", new IncludesNone(["web"])],
+    ["contains", new Search<string>("web")],
+    ["starts with", new StartsWith<string>("web")],
+    ["ends with", new EndsWith<string>("web")],
+    ["does not equal", new NotEqual<string>("web")],
+    ["greater than", new GreaterThan<number>(5)],
+    ["is empty", new IsNull()],
+    ["is not empty", new NotNull()],
+  ])(
+    "a %s filter carries its stored value",
+    (_label: string, value: DictionaryEntryValue) => {
+      const chip: ActiveFilter = onlyChip({ logtype: value });
+
+      expect(chip.filterValue).toBe(value);
+      // The key text is unchanged: React keys and removal still read it.
+      expect(typeof chip.value).toBe("string");
+    },
+  );
+
+  test("a filter read back from a saved monitor carries its JSON, which the sentence reads", () => {
+    const stored: DictionaryEntryValue = {
+      _type: "Includes",
+      value: ["web", "api"],
+    } as never;
+
+    expect(onlyChip({ logtype: stored }).filterValue).toBe(stored);
+  });
+
+  test.each([
+    ["a string", "web"],
+    ["a number", 42],
+    ["a yes or no", true],
+  ])(
+    "a bare value (%s) is matched as it is, and keeps its key: value chip",
+    (_label: string, value: DictionaryEntryValue) => {
+      expect(onlyChip({ logtype: value }).filterValue).toBeUndefined();
+    },
+  );
+
+  test("a page's own name for the value is drawn as the page names it", () => {
+    const chip: ActiveFilter = buildAttributeFilterChips(
+      { "networkDevice.id": new Includes(["device-1"]) },
+      { displayValues: { "networkDevice.id": "core-switch" } },
+    )[0]!;
+
+    expect(chip.displayValue).toBe("core-switch");
+    expect(chip.filterValue).toBeUndefined();
+  });
+
+  test("a blank override is no name: the filter is said", () => {
+    const value: DictionaryEntryValue = new Search<string>("web");
+    const chip: ActiveFilter = buildAttributeFilterChips(
+      { logtype: value },
+      { displayValues: { logtype: "  " } },
+    )[0]!;
+
+    expect(chip.filterValue).toBe(value);
+  });
+});

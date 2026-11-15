@@ -194,6 +194,63 @@ const SEVERITY_NUMBER_BY_OTLP_NAME: ReadonlyMap<string, number> = new Map([
 
 const MAX_OTLP_SEVERITY_NUMBER: number = 24;
 
+/*
+ * A log record's severityText, upper-cased, to the SeverityNumber it names,
+ * for a record that sets the text and no number (issue #8248). The
+ * OpenTelemetry Logs Data Model makes both fields optional, and a sender may
+ * set only the text: a Node.js app that emits { severityText: "INFO" }, or a
+ * log shipper that maps a level field to the text alone.
+ *
+ * The spec's short names come first - TRACE, DEBUG, INFO, WARN, ERROR and
+ * FATAL, each with its numbered steps (INFO2, WARN4, ...): the name of each
+ * step is its number's (Field: SeverityText; Displaying Severity). Then the
+ * spellings other logging systems write, mapped as the spec's own table of
+ * example mappings maps them (Appendix B: syslog, Windows Event Log, log4j,
+ * zap, java.util.logging): `information` and `warning`, syslog's `notice`
+ * (INFO2), `crit` / `critical` (ERROR2), `alert` (ERROR3) and `emerg` /
+ * `emergency` (FATAL), and the like. A Map, like SEVERITY_NUMBER_BY_OTLP_NAME,
+ * so "constructor" names nothing.
+ */
+const SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
+  string,
+  number
+>([
+  ...(
+    [
+      ["TRACE", 1],
+      ["DEBUG", 5],
+      ["INFO", 9],
+      ["WARN", 13],
+      ["ERROR", 17],
+      ["FATAL", 21],
+    ] as Array<[string, number]>
+  ).flatMap(([level, first]: [string, number]): Array<[string, number]> => {
+    return [0, 1, 2, 3].map((step: number): [string, number] => {
+      return [step === 0 ? level : `${level}${step + 1}`, first + step];
+    });
+  }),
+  // log4j, zap, java.util.logging, Windows Event Log and .NET spellings.
+  ["FINEST", 1],
+  ["VERBOSE", 5],
+  ["FINER", 5],
+  ["FINE", 6],
+  ["CONFIG", 7],
+  ["INFORMATION", 9],
+  ["INFORMATIONAL", 9],
+  ["WARNING", 13],
+  ["ERR", 17],
+  ["SEVERE", 17],
+  ["DPANIC", 18],
+  ["PANIC", 19],
+  // syslog's levels (RFC 5424), as the spec's appendix maps them.
+  ["NOTICE", 10],
+  ["CRIT", 18],
+  ["CRITICAL", 18],
+  ["ALERT", 19],
+  ["EMERG", 21],
+  ["EMERGENCY", 21],
+]);
+
 // Plain decimal digits only: no sign, fraction, exponent, hex or padding.
 const NUMERIC_SEVERITY_STRING: RegExp = /^[0-9]+$/;
 
@@ -891,9 +948,21 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   const hasRecordTime: boolean =
                     recordTime.source === OtlpLogTimeSource.Record;
 
+                  /*
+                   * The record's severityNumber, or - for a record that
+                   * sets only its severityText - the number that text
+                   * names (issue #8248). A number the record sets always
+                   * wins over its text.
+                   */
                   let logSeverityNumber: number = this.normalizeSeverityNumber(
                     log["severityNumber"],
                   );
+
+                  if (logSeverityNumber === 0) {
+                    logSeverityNumber = this.severityNumberFromText(
+                      log["severityText"],
+                    );
+                  }
 
                   let body: string = "";
                   try {
@@ -1992,6 +2061,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     }
 
     return parsed;
+  }
+
+  /*
+   * The SeverityNumber a log record's severityText names, for a record that
+   * sets no number (issue #8248): the spec's short names and their numbered
+   * steps, and the spellings in SEVERITY_NUMBER_BY_TEXT, in any case and
+   * with spaces around them. Anything else - text that names no severity,
+   * or a value that is not text - is UNSPECIFIED (0), as a record with
+   * neither field is: a severity is never guessed from a word that does not
+   * name one.
+   */
+  public static severityNumberFromText(severityText: unknown): number {
+    if (typeof severityText !== "string") {
+      return 0;
+    }
+
+    return SEVERITY_NUMBER_BY_TEXT.get(severityText.trim().toUpperCase()) ?? 0;
   }
 
   /*

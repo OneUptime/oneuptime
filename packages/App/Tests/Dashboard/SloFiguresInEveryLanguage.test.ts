@@ -200,7 +200,7 @@ describe("English reads every line word for word as before", () => {
 
   test("the create form's help and the Settings lines", () => {
     expect(getSloTargetHelpText(ENGLISH)).toBe(
-      "The share of time its monitors must be up. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% about 4.",
+      "The share of time, or of requests, that must be good. Over 30 days, 99.9% allows 43 minutes of downtime, or 1 bad request in 1,000.",
     );
     expect(
       describeSloErrorBudget(
@@ -335,8 +335,8 @@ describe.each(LANGUAGES)("%s", (code: string) => {
           days: figure(30),
           target: formatSloPercent(99.9, 3, translator) as string,
           minutes: figure(43),
-          stricterTarget: formatSloPercent(99.99, 3, translator) as string,
-          stricterMinutes: figure(4),
+          // 99.9% of requests good: 1 bad one in 1,000.
+          requests: translator.formatNumber(1000),
         },
         FIGURES_SET_APART,
       ),

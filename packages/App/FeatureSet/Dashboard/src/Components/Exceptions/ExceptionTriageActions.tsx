@@ -151,7 +151,7 @@ const ExceptionTriageActions: FunctionComponent<ComponentProps> = (
          * says why from a wrapper that can take both.
          */
         return (
-          <Tooltip key={action.id} text={reason}>
+          <Tooltip key={action.id} text={reason} isTextTranslated={true}>
             <span
               className={EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME}
               tabIndex={0}

@@ -370,7 +370,8 @@ export default class SecurityEntityRisk extends BaseModel {
     required: false,
     computed: true,
     title: "Risk History",
-    description: "Its risk score at the end of each of the last 30 days.",
+    description:
+      "When its risk score changed over the last 30 days, and to what: each day's score is read from it in the reader's time zone.",
   })
   @Column({
     type: ColumnType.JSON,

@@ -132,7 +132,13 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
 
   return (
     <Page
+      /*
+       * The product's name as the menu says it, in the reader's words
+       * already: drawn as given, or Spanish "Red" (Network) is headed
+       * "Rojo" (#8224). The catalog's English name is looked up once.
+       */
       title={pageTitle.title}
+      isTitleTranslated={pageTitle.isTranslated}
       /*
        * The trail's words, looked up once (#8075): "Project" in English
        * for the trail to look up, and the product's name as the menu says

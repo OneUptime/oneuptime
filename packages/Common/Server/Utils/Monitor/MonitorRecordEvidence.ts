@@ -8,6 +8,9 @@ import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapsho
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import IncomingRequestSubscriptionConfirmationUtil, {
+  SubscriptionConfirmationField,
+} from "../../../Utils/Monitor/IncomingRequestSubscriptionConfirmation";
 import { toStorableJson } from "../Database/PostgresStorableValue";
 import DataToProcess from "./DataToProcess";
 import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
@@ -56,7 +59,13 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  *     an Incoming Request monitor - and the copy says it left them out
  *     (isResponseContentOmitted). A test's result keeps them, masked:
  *     seeing the response is what a test is run for, and the switch is
- *     about the monitor's logs, incidents and alerts.
+ *     about the monitor's logs, incidents and alerts;
+ *   - an incoming request that is a subscription confirmation - Amazon SNS
+ *     asking to confirm (or restore) an HTTPS subscription, Azure Event Grid
+ *     asking to validate a webhook - keeps the link that confirms it, and
+ *     the token the link carries, as they came: the owner has to open that
+ *     link, and all it can do is start deliveries to this monitor
+ *     (IncomingRequestSubscriptionConfirmation, #7723).
  *
  * Left as they are: screenshots, which no text rule can read, and an
  * incoming email - its addresses, subject, body and headers. An incident's
@@ -90,6 +99,9 @@ const HEADER_FIELDS: ReadonlyArray<string> = [
 
 // The response's or the request's body.
 const BODY_FIELDS: ReadonlyArray<string> = ["responseBody", "requestBody"];
+
+// An incoming request's body: the one a subscription confirmation is sent in.
+const REQUEST_BODY_FIELD: string = "requestBody";
 
 // A Custom Code monitor's run, and each run of a Synthetic monitor.
 const SCRIPT_RESPONSE_FIELDS: ReadonlyArray<string> = [
@@ -177,6 +189,7 @@ export default class MonitorRecordEvidence {
 
     const redacted: RedactedCheck = MonitorRecordEvidence.redactCheckContent({
       check: structural,
+      original: input.check as unknown as JSONValue,
       keepResponseContent: input.keepResponseContent,
       monitorStep: input.monitorStep,
     });
@@ -310,6 +323,7 @@ export default class MonitorRecordEvidence {
 
       const redacted: RedactedCheck = MonitorRecordEvidence.redactCheckContent({
         check: check as unknown as JSONValue,
+        original: check as unknown as JSONValue,
         keepResponseContent: keepResponseContent,
         monitorStep: input.monitorStep,
       });
@@ -342,6 +356,11 @@ export default class MonitorRecordEvidence {
    */
   private static redactCheckContent(input: {
     check: JSONValue;
+    /*
+     * The check as it was handed in, before any rule read it: what a
+     * subscription confirmation keeps is copied from here.
+     */
+    original: JSONValue;
     keepResponseContent: boolean;
     monitorStep?: MonitorStep | undefined;
   }): RedactedCheck {
@@ -371,9 +390,22 @@ export default class MonitorRecordEvidence {
           continue;
         }
 
-        check[key] = HEADER_FIELDS.includes(key)
-          ? MonitorRecordEvidence.redactHeaderMap(value)
-          : MonitorRecordEvidence.redactBody(value);
+        if (HEADER_FIELDS.includes(key)) {
+          check[key] = MonitorRecordEvidence.redactHeaderMap(value);
+          continue;
+        }
+
+        const body: JSONValue = MonitorRecordEvidence.redactBody(value);
+
+        check[key] =
+          key === REQUEST_BODY_FIELD
+            ? MonitorRecordEvidence.keepSubscriptionConfirmation({
+                original: MonitorRecordEvidence.isPlainObject(input.original)
+                  ? ((input.original as JSONObject)[key] as JSONValue)
+                  : undefined,
+                redacted: body,
+              })
+            : body;
         continue;
       }
 
@@ -456,6 +488,90 @@ export default class MonitorRecordEvidence {
     }
 
     return MonitorEvidenceRedaction.redactJson(value);
+  }
+
+  /*
+   * An incoming request's body, cut, with what a subscription confirmation
+   * keeps put back as it came: the link that confirms the subscription and
+   * the token it carries (IncomingRequestSubscriptionConfirmation). Read
+   * from the body as it came, so the rules that masked them - Token, and
+   * token= in a URL - cannot hide the link from the owner who has to open
+   * it. Any body that is not exactly a confirmation, and every other field
+   * of one (its signature among them), stays as the rules cut it.
+   */
+  private static keepSubscriptionConfirmation(input: {
+    original: JSONValue | undefined;
+    redacted: JSONValue;
+  }): JSONValue {
+    const fields: Array<SubscriptionConfirmationField> =
+      IncomingRequestSubscriptionConfirmationUtil.getFieldsToKeep(
+        input.original,
+      );
+
+    let result: JSONValue = input.redacted;
+
+    for (const field of fields) {
+      result = MonitorRecordEvidence.withValueAt({
+        value: result,
+        path: field.path,
+        replacement: field.value,
+      });
+    }
+
+    return result;
+  }
+
+  /*
+   * A copy of a value with one string at a path replaced: the objects and
+   * arrays on the way copied, nothing changed in place. A path the value
+   * does not have is left as it is: the cut keeps a body's shape, so the
+   * field is where it was, or the body is not the one the path was read
+   * from.
+   */
+  private static withValueAt(input: {
+    value: JSONValue;
+    path: Array<string | number>;
+    replacement: string;
+  }): JSONValue {
+    const [step, ...rest] = input.path;
+
+    if (step === undefined) {
+      return input.replacement;
+    }
+
+    if (typeof step === "number") {
+      if (!Array.isArray(input.value) || step >= input.value.length) {
+        return input.value;
+      }
+
+      const copy: Array<JSONValue> = [...(input.value as Array<JSONValue>)];
+
+      copy[step] = MonitorRecordEvidence.withValueAt({
+        value: copy[step] as JSONValue,
+        path: rest,
+        replacement: input.replacement,
+      });
+
+      return copy as JSONValue;
+    }
+
+    if (
+      !MonitorRecordEvidence.isPlainObject(input.value) ||
+      !Object.prototype.hasOwnProperty.call(input.value, step)
+    ) {
+      return input.value;
+    }
+
+    const source: JSONObject = input.value as JSONObject;
+
+    return {
+      ...source,
+      [step]: MonitorRecordEvidence.withValueAt({
+        value: source[step] as JSONValue,
+        path: rest,
+        replacement: input.replacement,
+      }),
+    };
   }
 
   // A script's run: its result read as a JSON body, the rest as text.

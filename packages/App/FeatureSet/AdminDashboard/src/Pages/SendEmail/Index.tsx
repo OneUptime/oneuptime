@@ -64,6 +64,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.sendEmail.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

@@ -41,9 +41,11 @@ import React, {
 export const INVITATION_LINK_COPY: {
   inviteDescriptionForAdmin: string;
   invitedPill: string;
+  notSignedUpPill: string;
   title: string;
   description: string;
   registeredDescription: string;
+  memberDescription: string;
   failed: string;
   done: string;
   getLink: string;
@@ -54,12 +56,21 @@ export const INVITATION_LINK_COPY: {
   ),
   // A pending member's pill, where "Invitation Sent" would not be true.
   invitedPill: translationKey("Invited"),
+  /*
+   * Beside Member, for someone whose invitation was accepted for them
+   * before they had an account: they still have to sign up (#8191).
+   */
+  notSignedUpPill: translationKey("Not Signed Up Yet"),
   title: translationKey("Send them their invitation link"),
   description: translationKey(
     "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.",
   ),
   registeredDescription: translationKey(
     "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.",
+  ),
+  // Someone with an account, already a member: nothing left to accept (#8191).
+  memberDescription: translationKey(
+    "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.",
   ),
   failed: translationKey(
     "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.",
@@ -82,23 +93,30 @@ export const INVITATION_LINK_COPY: {
  * `isAvailable` says whether this viewer may have the link at all; the
  * server refuses anybody but a master admin whatever the page shows
  * (POST /team-member/invitation-link). The row of somebody who has joined
- * shows nothing: they have no invitation to send.
+ * shows nothing: they have no invitation to send - unless the invitation
+ * was accepted for them before they had an account (`isNotSignedUp`, from
+ * useMembersNotSignedUp), and they still have to sign up with the link
+ * (#8191).
  */
 export const getInvitationLinkRowAction: <T extends TeamMember>(data: {
   isAvailable: boolean;
   onOpen: (teamMemberId: ObjectID) => void;
+  isNotSignedUp?: ((item: T) => boolean) | undefined;
 }) => ActionButtonSchema<T> = <T extends TeamMember>(data: {
   isAvailable: boolean;
   onOpen: (teamMemberId: ObjectID) => void;
+  isNotSignedUp?: ((item: T) => boolean) | undefined;
 }): ActionButtonSchema<T> => {
   return {
     title: INVITATION_LINK_COPY.getLink,
     buttonStyleType: ButtonStyleType.OUTLINE,
     icon: IconProp.Link,
     isVisible: (item: T): boolean => {
-      return (
-        data.isAvailable && !item.hasAcceptedInvitation && Boolean(item.id)
-      );
+      if (!data.isAvailable || !item.id) {
+        return false;
+      }
+
+      return !item.hasAcceptedInvitation || Boolean(data.isNotSignedUp?.(item));
     },
     onClick: (item: T, onCompleteAction: VoidFunction): void => {
       if (item.id) {
@@ -113,8 +131,27 @@ export const getInvitationLinkRowAction: <T extends TeamMember>(data: {
 export interface InvitationLink {
   link: string;
   isRegistered: boolean;
+  // Accepted already: nothing left for them to accept (#8191).
+  isAccepted: boolean;
   email: string;
 }
+
+/*
+ * What the dialog says, for whom: someone new is handed the sign-up link,
+ * which works once; someone with an account, the sign-in page - to accept
+ * the invitation, or, when it was accepted for them, just to sign in.
+ */
+export const getInvitationLinkDescription: (
+  invitation: InvitationLink,
+) => string = (invitation: InvitationLink): string => {
+  if (!invitation.isRegistered) {
+    return INVITATION_LINK_COPY.description;
+  }
+
+  return invitation.isAccepted
+    ? INVITATION_LINK_COPY.memberDescription
+    : INVITATION_LINK_COPY.registeredDescription;
+};
 
 export const INVITATION_LINK_ROUTE: string = "/team-member/invitation-link";
 
@@ -149,6 +186,7 @@ export const fetchInvitationLink: (
     return {
       link: data["link"] as string,
       isRegistered: data["isRegistered"] === true,
+      isAccepted: data["isAccepted"] === true,
       email: typeof data["email"] === "string" ? (data["email"] as string) : "",
     };
   } catch {
@@ -195,9 +233,7 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
       description={
         invitation
           ? translator.translateTemplate(
-              invitation.isRegistered
-                ? INVITATION_LINK_COPY.registeredDescription
-                : INVITATION_LINK_COPY.description,
+              getInvitationLinkDescription(invitation),
               { email: invitation.email },
             )
           : undefined

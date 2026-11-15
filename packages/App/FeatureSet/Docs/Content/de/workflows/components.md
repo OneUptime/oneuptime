@@ -473,7 +473,7 @@ Ein Typ bietet nur die Komponenten an, die sein Modell erlaubt. Ein schreibgesch
 
 So liest und ändert ein Workflow OneUptime-Daten. Zum Beispiel kann ein Webhook aus Ihrem CI-Tool mit **Create One Incident** einen Vorfall mit den Details des Fehlers eröffnen.
 
-Diese Komponenten handeln als Project Admin des Projekts des Workflows: Was ein Project Admin nicht darf oder Ihr Plan nicht enthält, wird abgelehnt, und das Protokoll der Ausführung sagt, warum. Siehe [Was Workflow-Schritte tun können](/docs/workflows/configuration#was-workflow-schritte-dürfen).
+Diese Komponenten handeln als Projektadministrator des Projekts des Workflows: Was ein Projektadministrator nicht darf oder Ihr Plan nicht enthält, wird abgelehnt, und das Protokoll der Ausführung sagt, warum. Siehe [Was Workflow-Schritte tun können](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 
 ### Einen Vorfall aus einer Vorlage melden
 

@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - 接続するリージョンで Security Hub が有効になっている AWS アカウント。Security Hub はリージョン単位です。1 つの接続が読むのは、1 つのアカウントが 1 つのリージョンに持つ検出結果です。
 - すべてのアカウントとリージョンの検出結果を 1 つの接続で読むには、Security Hub の委任管理者アカウントを、その[リージョン間集約](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html)を有効にしたホームリージョンで使います。ホームリージョンは **Security Hub → Settings → Regions** に表示されます。
 - OneUptime のアプリと worker から `securityhub.<region>.amazonaws.com`（中国では `securityhub.<region>.amazonaws.com.cn`）への送信 HTTPS と、それらのホストの正確な時計。AWS は 5 分を超えてずれた署名のリクエストを拒否します。

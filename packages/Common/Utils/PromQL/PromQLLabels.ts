@@ -4,8 +4,7 @@ import {
   PromQLMatchType,
 } from "./PromQLAst";
 import PromQLError, { PromQLErrorType } from "./PromQLError";
-import { compilePromQLRegex } from "./PromQLRegex";
-import LinearRegExp from "../LinearRegExp/LinearRegExp";
+import { CompiledPromQLRegex, compilePromQLRegex } from "./PromQLRegex";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
 import { copyOwnValues, writeOwnValue } from "../LookupTable";
 
@@ -109,16 +108,16 @@ export type PromQLLabelsTest = (labels: PromQLLabels) => boolean;
  * answer without it: it is refused, with a sentence that names the pattern.
  */
 const testMatcherPattern: (
-  regex: LinearRegExp,
+  compiled: CompiledPromQLRegex,
   matcher: PromQLLabelMatcher,
   value: string,
 ) => boolean = (
-  regex: LinearRegExp,
+  compiled: CompiledPromQLRegex,
   matcher: PromQLLabelMatcher,
   value: string,
 ): boolean => {
   try {
-    return regex.test(value);
+    return compiled.test(value);
   } catch (error: unknown) {
     if (error instanceof PatternWorkLimitError) {
       throw new PromQLError(
@@ -146,13 +145,13 @@ const compilePromQLMatcher: (
       };
     case PromQLMatchType.RegexMatch:
     case PromQLMatchType.RegexNoMatch: {
-      const regex: LinearRegExp = compilePromQLRegex(matcher.value).regex;
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(matcher.value);
       const wanted: boolean = matcher.type === PromQLMatchType.RegexMatch;
 
       return (labels: PromQLLabels): boolean => {
         return (
           testMatcherPattern(
-            regex,
+            compiled,
             matcher,
             promQLLabelValue(labels, matcher.name),
           ) === wanted

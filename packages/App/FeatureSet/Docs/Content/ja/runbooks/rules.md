@@ -42,7 +42,7 @@ flowchart TB
 ## 始める前に
 
 - **実行できる Runbook。** 少なくとも 1 つのステップがあり、 **設定** ページで **この Runbook を実行** がオンになっている必要があります。[Runbook を作成する](/docs/runbooks/authoring) を参照してください。
-- **ルールを管理する権限。** Project Owner、Project Admin、Runbook Admin は Runbook ルールを作成できます。 **Create Runbook Rule** 権限を持つ人も作成できます。
+- **ルールを管理する権限。** プロジェクト所有者、プロジェクト管理者、Runbook 管理者は Runbook ルールを作成できます。 **Create Runbook Rule** 権限を持つ人も作成できます。
 
 ## Runbook ルールを作成する
 

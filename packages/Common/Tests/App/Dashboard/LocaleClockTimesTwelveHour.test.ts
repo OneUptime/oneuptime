@@ -1,6 +1,8 @@
 /** @timezone UTC */
 
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import {
   forgetRememberedDateTexts,
   getDateLocale,
@@ -167,6 +169,35 @@ describe("a chart's time on an AI chat's PDF", () => {
 });
 
 describe("a security connection's local time", () => {
+  /*
+   * In the reader's zone (issue #8231): here they picked UTC, where the
+   * browser is. With no zone picked, a UTC browser's is Africa/Abidjan's
+   * to moment, which names it "GMT".
+   */
+  beforeEach(() => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+  });
+
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  test("is in the zone the reader picked, and names it, wherever the browser is", () => {
+    setDateDisplayLanguage("en");
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    expect(spaced(formatConnectionLocalDate(MORNING))).toBe(
+      "Nov 05, 2025, 12:14:00 AM EST",
+    );
+
+    OneUptimeDate.setUserTimezone(Timezone.AsiaKathmandu);
+    setDateDisplayLanguage("de");
+
+    expect(spaced(formatConnectionLocalDate(MORNING))).toBe(
+      "05. Nov. 2025, 10:59:00 GMT+5:45",
+    );
+  });
+
   test.each<[string, string]>([
     ["ko", "2025년 11월 05일 오전 5시 14분 0초 UTC"],
     ["zh-TW", "2025年11月05日 上午5:14:00 [UTC]"],

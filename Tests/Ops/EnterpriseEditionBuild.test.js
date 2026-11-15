@@ -1606,6 +1606,8 @@ describe("the dev loop", () => {
 
     expect(environment).toEqual({
       ONEUPTIME_EDITION: "${ONEUPTIME_EDITION:-auto}",
+      // Whether dev.sh watches the frontends (DevFrontendWatchers.test.js).
+      ONEUPTIME_DEV_WATCH_FRONTENDS: "${ONEUPTIME_DEV_WATCH_FRONTENDS:-true}",
     });
     expect(devCompose.services.app.extends).toEqual({
       file: "./docker-compose.base.yml",

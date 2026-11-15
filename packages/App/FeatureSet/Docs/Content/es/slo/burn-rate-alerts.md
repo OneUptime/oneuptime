@@ -212,8 +212,8 @@ Para escribir los tuyos, usa variables de plantilla en el título, la descripci�
 | `{{targetPercentage}}` | El objetivo del SLO, en porcentaje. | `99.9` |
 | `{{currentSliPercentage}}` | El SLI medido en la ventana de cumplimiento del SLO, en porcentaje. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Parte del presupuesto de errores que queda, en porcentaje. Negativa cuando el presupuesto se ha superado. | `42.5` |
-| `{{errorBudgetRemaining}}` | Presupuesto de errores que queda, como duración. Empieza con un signo menos cuando el presupuesto se ha superado. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Presupuesto de errores que queda, en minutos. | `18.37` |
+| `{{errorBudgetRemaining}}` | Presupuesto de errores que queda, como duración o, en un SLO de solicitudes, como las solicitudes fallidas o lentas que todavía permite. Empieza con un signo menos cuando el presupuesto se ha superado. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Presupuesto de errores que queda, en minutos. Vacío en un SLO de solicitudes, cuyo presupuesto se cuenta en solicitudes. | `18.37` |
 | `{{windowDescription}}` | La ventana de cumplimiento del SLO, en palabras. | `rolling 30-day window` |
 | `{{policyTier}}` | Nombre del nivel de la política de presupuesto de errores en el que está el SLO tras esta evaluación. "None" cuando no está en ningún nivel. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Umbral de presupuesto restante de ese nivel, como porcentaje. Vacío cuando el SLO no está en ningún nivel. | `25` |

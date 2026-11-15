@@ -33,7 +33,6 @@ import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogT
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
-import Exception from "../../../Types/Exception/Exception";
 import Name from "../../../Types/Name";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
@@ -1438,7 +1437,12 @@ describe("UserNotificationRule administrative write guards", () => {
       expect(stubs.deliver).toHaveBeenCalledTimes(1);
     });
 
-    test("the claim is still taken first, and a missing rule still throws", async () => {
+    /*
+     * A rule deleted between the page's read and its send sends nothing,
+     * and no longer throws: a throw ended the person's whole log in Error,
+     * and their other rules were never sent (issue #8168).
+     */
+    test("the claim is still taken first, and a missing rule sends nothing", async () => {
       stubs.ruleFindOneById.mockResolvedValue(null as never);
 
       await expect(
@@ -1446,9 +1450,10 @@ describe("UserNotificationRule administrative write guards", () => {
           RULE_ID,
           executeOptions(),
         ),
-      ).rejects.toThrow(Exception);
+      ).resolves.toBeUndefined();
 
       expect(stubs.claim).toHaveBeenCalledTimes(1);
+      expect(stubs.deliver).not.toHaveBeenCalled();
     });
   });
 });
