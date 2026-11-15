@@ -1,4 +1,5 @@
 import PostgresCluster from "../../../AdminDashboard/Health/PostgresCluster";
+import HealthOverview from "../../../AdminDashboard/Health/Overview";
 import {
   EnterpriseLicenseInstanceStatusPill,
   getLicenseLifecycle,
@@ -279,6 +280,22 @@ const ACTIVITY: JSONObject = {
   topStatements: [],
 };
 
+// PostgreSQL up, ClickHouse down, three of four queues healthy, 12 jobs failed.
+const OVERVIEW: JSONObject = {
+  summary: {
+    postgres: { connected: true, databaseSizeInBytes: 1073741824 },
+    clickhouse: { connected: false },
+    redis: { connected: true, usedMemoryInBytes: 1048576 },
+    queues: {
+      totalQueues: 4,
+      healthyQueues: 3,
+      failingQueues: 1,
+      unavailableQueues: 0,
+      failedJobs: 12,
+    },
+  },
+};
+
 afterEach(() => {
   cleanup();
   mockApiGet.mockReset();
@@ -290,6 +307,10 @@ const serve: () => void = (): void => {
 
     if (url.includes("/admin/health/postgres-activity")) {
       return { data: ACTIVITY };
+    }
+
+    if (url.includes("/admin/health/overview")) {
+      return { data: OVERVIEW };
     }
 
     return { data: CLUSTER };
@@ -373,6 +394,39 @@ describe.each(LANGUAGES)(
     });
   },
 );
+
+describe.each(LANGUAGES)("Health > Overview, in %s", (language: string) => {
+  test("each tile's line reads in the language, its counts in the language's forms (#8636)", async () => {
+    serve();
+    await drawIn(language, <HealthOverview />);
+
+    await waitFor(() => {
+      expect(pageText()).toContain(
+        sentenceIn(language, "Database {{size}}", { size: "1.0 GB" }),
+      );
+    });
+
+    expect(pageText()).toContain(
+      wordIn(language, "Not reachable from this instance"),
+    );
+    expect(pageText()).toContain(
+      sentenceIn(language, "{{healthy}}/{{count}} queues healthy", {
+        healthy: digits(language, 3),
+        count: digits(language, 4),
+      }),
+    );
+    expect(pageText()).toContain(
+      sentenceIn(language, "{{count}} failed jobs", {
+        count: digits(language, 12),
+      }),
+    );
+
+    if (language !== "en") {
+      expect(pageText()).not.toContain("Not reachable from this instance");
+      expect(pageText()).not.toContain("queues healthy");
+    }
+  });
+});
 
 describe.each(LANGUAGES)("Enterprise licenses, in %s", (language: string) => {
   test("a license's status reads in the language, its days in the language's forms", async () => {
