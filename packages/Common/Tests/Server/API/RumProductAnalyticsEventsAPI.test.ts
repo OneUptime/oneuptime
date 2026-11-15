@@ -1923,4 +1923,137 @@ describe("Product analytics event API", () => {
       expect(devices!.query).not.toContain("normalizeUTF8NFC");
     });
   });
+
+  /*
+   * #8197: the ingest scrubs every page it stores (toProductAnalyticsPage),
+   * so a read that names a page with an email or an id in it - a link, a
+   * saved funnel, a segment typed in - names the page as it is stored, and
+   * a page a client stored unscrubbed before the ingest did is named
+   * scrubbed in the answers that show stored pages, never as it came.
+   */
+  describe("a page that names a person", () => {
+    const REDACTED_PAGE: JSONObject = {
+      kind: ProductAnalyticsEventKind.Page,
+      name: "/users/[redacted]/orders",
+    };
+
+    test("a page a request names is read scrubbed, in every read", async () => {
+      const trend: jest.SpyInstance = jest.spyOn(
+        RumProductAnalyticsEventReadService,
+        "getEventTrend",
+      );
+
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, {
+        event: {
+          kind: ProductAnalyticsEventKind.Page,
+          name: "/users/someone@example.com/orders",
+        },
+        filters: [
+          {
+            field: ProductAnalyticsEventField.Page,
+            value:
+              "https://shop.example.com/#/reset/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f?token=abc",
+          },
+        ],
+      });
+
+      expect(argumentOf(trend)["event"]).toEqual(REDACTED_PAGE);
+      expect(argumentOf(trend)["filters"]).toEqual([
+        {
+          field: ProductAnalyticsEventField.Page,
+          key: "",
+          value: "/reset/[redacted]",
+        },
+      ]);
+
+      const funnel: jest.SpyInstance = jest.spyOn(
+        RumProductAnalyticsEventReadService,
+        "getFunnel",
+      );
+
+      await callAsOwner(PRODUCT_ANALYTICS_FUNNEL_ROUTE, {
+        steps: [
+          {
+            kind: ProductAnalyticsEventKind.Page,
+            name: "/users/someone%40example.com/orders",
+          },
+          SIGNED_UP,
+        ],
+      });
+
+      expect(argumentOf(funnel)["steps"]).toEqual([REDACTED_PAGE, SIGNED_UP]);
+
+      const retention: jest.SpyInstance = jest.spyOn(
+        RumProductAnalyticsEventReadService,
+        "getRetention",
+      );
+
+      await callAsOwner(PRODUCT_ANALYTICS_RETENTION_ROUTE, {
+        startEvent: {
+          kind: ProductAnalyticsEventKind.Page,
+          name: "https://shop.example.com/users/someone@example.com/orders?x=1",
+        },
+        returnEvent: SIGNED_UP,
+      });
+
+      expect(argumentOf(retention)["startEvent"]).toEqual(REDACTED_PAGE);
+
+      for (const statement of queriesOf(querySpy)) {
+        expect(JSON.stringify(statement)).not.toContain("someone");
+      }
+    });
+
+    test("the events list names a page stored unscrubbed as it would be stored now", async () => {
+      querySpy.mockImplementation(async (statement: unknown) => {
+        if ((statement as Statement).query.includes("paLabel")) {
+          return fakeResultSet([
+            {
+              paKind: ProductAnalyticsEventKind.Page,
+              paLabel: "/users/someone@example.com/orders",
+              paEvents: 2,
+              paUsers: 1,
+              paLastSeenAt: 5,
+            },
+          ]);
+        }
+
+        return fakeResultSet([]);
+      });
+
+      const names: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+        {},
+      );
+
+      expect(names.thrownToNext).toBeUndefined();
+      expect(names.jsonBody?.["events"]).toEqual([
+        { ...REDACTED_PAGE, events: 2, users: 1, lastSeenAt: 5 },
+      ]);
+    });
+
+    test("a breakdown by page names a page stored unscrubbed as it would be stored now", async () => {
+      querySpy.mockImplementation(async (statement: unknown) => {
+        if ((statement as Statement).query.includes("ARRAY JOIN paS0")) {
+          return fakeResultSet([
+            { paValue: "/reset/123456789012", paEvents: 1, paUsers: 1 },
+          ]);
+        }
+
+        return fakeResultSet([{ paEvents: 1, paUsers: 1 }]);
+      });
+
+      const breakdown: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+        {
+          event: SIGNED_UP,
+          breakdown: { field: ProductAnalyticsEventField.Page },
+        },
+      );
+
+      expect(breakdown.thrownToNext).toBeUndefined();
+      expect(breakdown.jsonBody?.["rows"]).toEqual([
+        { value: "/reset/[redacted]", events: 1, users: 1 },
+      ]);
+    });
+  });
 });
