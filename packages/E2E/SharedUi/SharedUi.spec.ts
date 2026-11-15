@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -2344,7 +2345,8 @@ test.describe("a chart's title row and its value axis", () => {
       }
       expect(
         ticks.some((tick: AxisTick): boolean => {
-          return tick.text.endsWith("K req/s");
+          // The rate held to its figure (#8748).
+          return tick.text.endsWith(`K${NO_BREAK_SPACE}req/s`);
         }),
       ).toBe(true);
     }

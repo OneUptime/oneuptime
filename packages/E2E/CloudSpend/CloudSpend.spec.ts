@@ -11,6 +11,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { drawnTextOf, expectQuietDash } from "../SuiteHelpers/QuietDash";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
@@ -303,7 +304,8 @@ async function tileValue(
     "cloud-stat-tile-value",
   );
   await expect(value).toBeVisible();
-  return ((await value.textContent()) || "").trim();
+  // As drawn: a figure with no reading is "—", its "Not set" heard only (#8749).
+  return drawnTextOf(value);
 }
 
 function tileSublabel(page: Page, stripId: string, key: string): Locator {
@@ -1092,6 +1094,12 @@ test.describe("the Overview", () => {
     await open(page, CLOUD, "state=unread");
 
     expect(await tileValue(page, "cloud-overview-strip", "spend")).toBe("—");
+    // The quiet dash, and "Not set" for a screen reader, not a cost of nothing.
+    await expectQuietDash(
+      tileOf(page, "cloud-overview-strip", "spend").getByTestId(
+        "cloud-stat-tile-value",
+      ),
+    );
     await expect(
       tileSublabel(page, "cloud-overview-strip", "spend"),
     ).toHaveText("Costs not read yet");
