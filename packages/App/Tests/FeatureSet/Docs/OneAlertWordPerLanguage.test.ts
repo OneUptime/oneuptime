@@ -20,6 +20,12 @@ import path from "path";
  *   is 중요 알림, as the phone draws it, and a push notification 푸시 알림.
  *   A line that names an alert and a notification is the translator's to
  *   word, a word each.
+ * - Norwegian named Alerts and Notifications both Varsler (#8719). It says
+ *   an alert varsel (Varsler) and a notification varsling (Varslinger), as
+ *   phones and the Norwegian docs do: no translated string whose English
+ *   names a notification and no alert says the noun varsel, varselet,
+ *   varslene or a varsel- compound. (varsler alone is also the verb
+ *   "notifies", so it is not read.)
  */
 
 const FEATURE_SET: string = path.join(
@@ -33,15 +39,6 @@ const FEATURE_SET: string = path.join(
 type Strings = Record<string, unknown>;
 
 const APPS: Array<string> = ["Dashboard", "AdminDashboard"];
-
-/*
- * A language whose Dashboard still says an alert and a notification with one
- * word, each with the issue that words them apart. Remove a language as its
- * issue is fixed: the ratchet below fails once the words differ.
- */
-const STILL_ONE_WORD: Record<string, string> = {
-  no: "#8719",
-};
 
 // English that names a notification, a reminder, a notice or a push, besides any alert.
 const NAMES_A_NOTIFICATION: RegExp =
@@ -209,7 +206,7 @@ describe("an alert is not a notification", () => {
 
   test.each(
     dashboardLanguages().filter((language: string) => {
-      return language !== "en" && !STILL_ONE_WORD[language];
+      return language !== "en";
     }),
   )(
     "%s: the Dashboard says Alerts and Notifications, and Alert and Notification, with different words",
@@ -232,19 +229,6 @@ describe("an alert is not a notification", () => {
       // The Products menu opens the Alerts page under the page's own title.
       expect(menu["alertsTitle"]).toBe(strings["Alerts"]);
       expect(menu["alertsTitle"]).not.toBe(strings["Notifications"]);
-    },
-  );
-
-  test.each(Object.keys(STILL_ONE_WORD))(
-    "%s still says an alert and a notification with one word, until its issue is fixed (ratchet)",
-    (language: string) => {
-      const strings: Strings = readStrings("Dashboard", language);
-
-      expect({
-        language,
-        issue: STILL_ONE_WORD[language],
-        same: strings["Alerts"] === strings["Notifications"],
-      }).toEqual({ language, issue: STILL_ONE_WORD[language], same: true });
     },
   );
 
@@ -450,5 +434,170 @@ describe("Korean says an alert 경고", () => {
         ["planted.md"],
       ),
     ).toEqual(["planted.md:1"]);
+  });
+});
+
+/*
+ * The Norwegian noun varsel (an alert) in a string: varsel, varselet,
+ * varslene, alone or last in a compound (testvarsel, push-varslene), and a
+ * compound it starts (varselmetode, varselsstatus). Not varsler, which is
+ * also the verb ("OneUptime varsler deg"), nor varsle, varslet or varsles.
+ */
+const NORWEGIAN_ALERT_NOUN: RegExp =
+  /[Vv]arslene(?![a-zæøå])|[Vv]arsel(?:et)?(?![a-zæøå])|[Vv]arsel(?!(?:et|ene|er|e)(?![a-zæøå]))[a-zæøå]{2,}/;
+
+// English that names a notification and no alert.
+function namesOnlyANotification(english: string): boolean {
+  return /notification/i.test(english) && !NAMES_AN_ALERT.test(english);
+}
+
+// The translated strings that name only a notification and say it with varsel.
+function notificationsSaidAsAlerts(
+  english: Map<string, string>,
+  norwegian: Map<string, string>,
+): Array<string> {
+  return Array.from(english.entries())
+    .filter(([key, text]: [string, string]): boolean => {
+      const value: string | undefined = norwegian.get(key);
+
+      return (
+        namesOnlyANotification(text) &&
+        typeof value === "string" &&
+        value !== text &&
+        NORWEGIAN_ALERT_NOUN.test(value)
+      );
+    })
+    .map(([key]: [string, string]): string => {
+      return key;
+    });
+}
+
+describe("Norwegian says an alert varsel and a notification varsling", () => {
+  test("Alerts and Notifications read Varsler and Varslinger, in the Dashboard and in the docs' menu", () => {
+    const strings: Strings = readStrings("Dashboard", "no");
+    const groups: Record<string, string> = (
+      JSON.parse(
+        fs.readFileSync(
+          path.join(FEATURE_SET, "Docs", "Locales", "no.json"),
+          "utf8",
+        ),
+      ) as { navGroups: Record<string, string> }
+    ).navGroups;
+
+    expect(strings["Alerts"]).toBe("Varsler");
+    expect(strings["Alert"]).toBe("Varsel");
+    expect(
+      (strings["navbar"] as { items: Record<string, string> }).items[
+        "alertsTitle"
+      ],
+    ).toBe("Varsler");
+    expect(strings["Notifications"]).toBe("Varslinger");
+    expect(strings["Notification"]).toBe("Varsling");
+    expect(strings["Notification Settings"]).toBe("Varslingsinnstillinger");
+    expect(strings["Alerts & Notifications"]).toBe("Varsler og varslinger");
+    expect(groups["Alerts"]).toBe("Varsler");
+    expect(groups["Notifications"]).toBe("Varslinger");
+    expect(readStrings("AdminDashboard", "no")["Notifications"]).toBe(
+      "Varslinger",
+    );
+  });
+
+  test.each(APPS)(
+    "every translated %s string that names only a notification says varsling, not the noun varsel",
+    (app: string) => {
+      expect(
+        notificationsSaidAsAlerts(
+          flatten(readStrings(app, "en")),
+          flatten(readStrings(app, "no")),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  test("the rule reads real strings: hundreds of Norwegian strings name a notification varsling", () => {
+    const english: Map<string, string> = flatten(readStrings("Dashboard", "en"));
+    const norwegian: Map<string, string> = flatten(
+      readStrings("Dashboard", "no"),
+    );
+
+    expect(
+      Array.from(english.entries()).filter(
+        ([key, text]: [string, string]): boolean => {
+          return (
+            namesOnlyANotification(text) &&
+            (norwegian.get(key) || "").toLowerCase().includes("varsling")
+          );
+        },
+      ).length,
+    ).toBeGreaterThan(300);
+  });
+
+  test("every Norwegian docs line whose English names only a notification says varsling, not the noun varsel", () => {
+    const found: Array<string> = [];
+
+    for (const page of docsPages("no")) {
+      const english: Array<string> | null = readDocsLines("en", page);
+
+      if (!english) {
+        continue;
+      }
+
+      readDocsLines("no", page)!.forEach((line: string, index: number) => {
+        if (
+          namesOnlyANotification(english[index] || "") &&
+          NORWEGIAN_ALERT_NOUN.test(prose(line))
+        ) {
+          found.push(`${page}:${index + 1}`);
+        }
+      });
+    }
+
+    expect(found).toEqual([]);
+    expect(
+      readDocsLines("no", "notifications/notification-methods.md")![0],
+    ).toBe("# Varslingsmetoder");
+  });
+
+  // The verb stays the verb: OneUptime varsler (notifies) people.
+  test("a sentence that notifies keeps the verb varsler", () => {
+    expect(
+      readStrings("Dashboard", "no")[
+        "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice."
+      ],
+    ).toBe(
+      "Når OneUptime varsler de riktige personene, slår du av varslingene i {{tool}}, så ingen varsles to ganger.",
+    );
+  });
+
+  // What the check above would see if a string went back to varsel.
+  test("a notification said varsel is found, and an alert, the verb and varsling are not (negative control)", () => {
+    const english: Map<string, string> = new Map<string, string>([
+      ["Notification Settings", "Notification Settings"],
+      ["Test Notification", "Test Notification"],
+      ["Send this notification again?", "Send this notification again?"],
+      ["Active Alerts", "Active Alerts"],
+      ["Notification Methods", "Notification Methods"],
+      ["Its notification goes to {{name}}.", "Its notification goes to {{name}}."],
+      ["Alert notification rules", "Alert notification rules"],
+    ]);
+    const norwegian: Map<string, string> = new Map<string, string>([
+      ["Notification Settings", "Varselinnstillinger"],
+      ["Test Notification", "Testvarsel"],
+      ["Send this notification again?", "Sende dette varselet på nytt?"],
+      ["Active Alerts", "Aktive varsler"],
+      ["Notification Methods", "Varslingsmetoder"],
+      ["Its notification goes to {{name}}.", "Den varsler {{name}}."],
+      ["Alert notification rules", "Varselregler"],
+    ]);
+
+    expect(notificationsSaidAsAlerts(english, norwegian)).toEqual([
+      "Notification Settings",
+      "Test Notification",
+      "Send this notification again?",
+    ]);
+    expect(NORWEGIAN_ALERT_NOUN.test("Vis varslene")).toBe(true);
+    expect(NORWEGIAN_ALERT_NOUN.test("Abonnentvarselsstatus")).toBe(true);
+    expect(NORWEGIAN_ALERT_NOUN.test("Abonnentvarslingsstatus")).toBe(false);
+    expect(NORWEGIAN_ALERT_NOUN.test("Ingen blir varslet")).toBe(false);
   });
 });
