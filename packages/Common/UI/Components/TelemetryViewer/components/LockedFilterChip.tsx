@@ -19,6 +19,8 @@ import {
   TelemetrySignal,
 } from "../../../../Utils/Telemetry/LockedFilterSearch";
 import {
+  composedValue,
+  ComposedValue,
   PluralTemplate,
   TemplateValues,
   translatableTerm,
@@ -28,6 +30,9 @@ import {
   translationKey,
 } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import DictionaryFilterSentence, {
+  formatDictionaryFilterSentence,
+} from "../../Dictionary/DictionaryFilterSentence";
 
 /*
  * The grey lock chip every telemetry explorer shows for a filter its host
@@ -91,6 +96,40 @@ const SCOPED_LOCKED_FILTER_LABEL: PluralTemplate = {
   one: "{{key}}: {{value}}, locked filter matching any of {{count}} value",
   other: "{{key}}: {{value}}, locked filter matching any of {{count}} values",
 };
+/*
+ * The same, for a chip that says its filter as one sentence: an attribute
+ * filter that holds an operator ("http.route matches /api/*", #8309).
+ */
+const LOCKED_FILTER_SENTENCE_LABEL: string = translationKey(
+  "{{filter}}, locked filter",
+);
+const LOCKED_FILTER_SENTENCE_LABEL_WITH_COPY_HINT: string = translationKey(
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.",
+);
+const APPLIED_FILTER_SENTENCE_TITLE: string = translationKey(
+  "{{filter}} (applied filter)",
+);
+
+/*
+ * A chip's filter as one sentence, in the language of the sentence it goes
+ * into: its key as the chip names it, its value as stored.
+ */
+export const getLockedFilterSentence: (
+  displayKey: string,
+  filterValue: unknown,
+) => ComposedValue = (
+  displayKey: string,
+  filterValue: unknown,
+): ComposedValue => {
+  return composedValue((sentence: Translator): string => {
+    return formatDictionaryFilterSentence({
+      attributeKey: sentence.translateText(displayKey) || displayKey,
+      value: filterValue,
+      translator: sentence,
+    });
+  });
+};
+
 const SCOPED_LOCKED_FILTER_LABEL_WITH_COPY_HINT: PluralTemplate = {
   one: "{{key}}: {{value}}, locked filter matching any of {{count}} value. Press Enter to copy its search syntax.",
   other:
@@ -170,6 +209,8 @@ type GetLockedFilterChipAriaLabelFunction = (
   displayValue: string,
   hasSearchToken?: boolean | undefined,
   scopeValueCount?: number | undefined,
+  // An attribute filter's stored value: the name says it as one sentence.
+  filterValue?: unknown,
 ) => string;
 
 /**
@@ -184,7 +225,20 @@ export const getLockedFilterChipAriaLabel: GetLockedFilterChipAriaLabelFunction 
     displayValue: string,
     hasSearchToken?: boolean | undefined,
     scopeValueCount?: number | undefined,
+    filterValue?: unknown,
   ): string => {
+    if (
+      filterValue !== undefined &&
+      !(scopeValueCount && scopeValueCount > 0)
+    ) {
+      return translateTemplate(
+        hasSearchToken
+          ? LOCKED_FILTER_SENTENCE_LABEL_WITH_COPY_HINT
+          : LOCKED_FILTER_SENTENCE_LABEL,
+        { filter: getLockedFilterSentence(displayKey, filterValue) },
+      );
+    }
+
     const values: TemplateValues = {
       key: translatableTerm(displayKey),
       value: displayValue,
@@ -516,6 +570,12 @@ export interface LockedFilterChipProps {
    * operable by neither.
    */
   trailing?: ReactNode;
+  /*
+   * An attribute filter's stored value, when it holds an operator: the chip
+   * says the filter as one sentence in the reader's language, in place of
+   * "key: value" (ActiveFilter.filterValue, #8309).
+   */
+  filterValue?: unknown;
 }
 
 interface LockedFilterChipBodyProps {
@@ -529,6 +589,8 @@ interface LockedFilterChipBodyProps {
    * value says there is more behind it — the list of what it matches.
    */
   hasScopeMatches?: boolean | undefined;
+  // An attribute filter's stored value: the chip says it as one sentence.
+  filterValue?: unknown;
 }
 
 const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
@@ -554,15 +616,38 @@ const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
               : "text-gray-400"
         }`}
       />
-      <span className="shrink-0 font-medium text-gray-500">
-        {translator.translateText(props.displayKey)}:
-      </span>
-      <span
-        className={LOCKED_FILTER_CHIP_VALUE_CLASS_NAME}
-        data-testid="locked-filter-chip-value"
-      >
-        {props.displayValue}
-      </span>
+      {props.filterValue !== undefined ? (
+        /*
+         * A filter that holds an operator, as one sentence in the reader's
+         * language: "http.route stimmt überein /api/*", its key and value as
+         * written, its words where the language puts them (#8309).
+         */
+        <span
+          className={LOCKED_FILTER_CHIP_VALUE_CLASS_NAME}
+          data-testid="locked-filter-chip-value"
+        >
+          <DictionaryFilterSentence
+            attributeKey={
+              translator.translateText(props.displayKey) || props.displayKey
+            }
+            value={props.filterValue}
+            keyClassName="font-medium text-gray-500"
+            dataTestId="locked-filter-chip-sentence"
+          />
+        </span>
+      ) : (
+        <>
+          <span className="shrink-0 font-medium text-gray-500">
+            {translator.translateText(props.displayKey)}:
+          </span>
+          <span
+            className={LOCKED_FILTER_CHIP_VALUE_CLASS_NAME}
+            data-testid="locked-filter-chip-value"
+          >
+            {props.displayValue}
+          </span>
+        </>
+      )}
       {props.hasScopeMatches ? (
         <span
           className="inline-flex items-center"
@@ -587,6 +672,7 @@ interface DetailedLockedFilterChipProps {
   lockedDetail: LockedFilterDetail;
   signal?: TelemetrySignal | undefined;
   trailing?: ReactNode;
+  filterValue?: unknown;
 }
 
 /*
@@ -619,6 +705,7 @@ const DetailedLockedFilterChip: FunctionComponent<
         props.displayValue,
         Boolean(searchToken),
         scopeValueCount,
+        props.filterValue,
       )}
       onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
         /*
@@ -640,6 +727,7 @@ const DetailedLockedFilterChip: FunctionComponent<
         copied={feedback.copied}
         failed={feedback.failed}
         hasScopeMatches={scopeValueCount > 0}
+        filterValue={scopeValueCount > 0 ? undefined : props.filterValue}
       />
     </button>
   );
@@ -681,13 +769,22 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
     return (
       <span
         className={LOCKED_FILTER_CHIP_CLASS_NAME}
-        title={translator.translateTemplate(
-          "{{key}}: {{value}} (applied filter)",
-          {
-            key: translatableTerm(props.displayKey),
-            value: props.displayValue,
-          },
-        )}
+        title={
+          props.filterValue !== undefined
+            ? translator.translateTemplate(APPLIED_FILTER_SENTENCE_TITLE, {
+                filter: getLockedFilterSentence(
+                  props.displayKey,
+                  props.filterValue,
+                ),
+              })
+            : translator.translateTemplate(
+                "{{key}}: {{value}} (applied filter)",
+                {
+                  key: translatableTerm(props.displayKey),
+                  value: props.displayValue,
+                },
+              )
+        }
         data-testid="locked-filter-chip"
       >
         <LockedFilterChipBody
@@ -695,6 +792,7 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
           displayValue={props.displayValue}
           copied={false}
           failed={false}
+          filterValue={props.filterValue}
         />
         {props.trailing}
       </span>
@@ -708,6 +806,7 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
       lockedDetail={props.lockedDetail}
       signal={props.signal}
       trailing={props.trailing}
+      filterValue={props.filterValue}
     />
   );
 };
