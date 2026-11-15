@@ -32,7 +32,7 @@ flowchart TB
 
 Statussidor finns under **Statussidor** i menyn **Produkter** i det översta fältet, bland de viktigaste. Allt på den här sidan gäller per statussida: ett projekt kan ha hur många som helst — en offentlig för kunder, en privat för en intern publik, en per region för en viss marknad.
 
-Sidan visar monitorerna du lägger på den som resurser, och incidenter når sidan via de monitorerna. [Planerade underhållshändelser](/docs/scheduled-maintenance/index) och meddelanden når den direkt: var och en anger de statussidor den visas på. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
+Sidan visar monitorerna du lägger på den som resurser, och incidenter når sidan via de monitorerna. [Underhållshändelser](/docs/scheduled-maintenance/index) och meddelanden når den direkt: var och en anger de statussidor den visas på. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
 
 ## I korthet
 
@@ -226,11 +226,11 @@ Tre sätt att visa status någon annanstans än på själva sidan.
 
 **Inbäddad statusbricka.** Under **Statussidor → din sida → Avancerad → Inbäddad status** slår du på **Aktivera inbäddad statusbricka** (`enableEmbeddedOverallStatus`, av som standard). Första gången du slår på den får brickan sin token (`embeddedOverallStatusToken`), och kortet **Bädda in brickan** visar brickan, levererad från `/api/status-page/badge/<status-page-id>?token=<token>`, med dess **HTML** och dess **Markdown, med länk till statussidan** att kopiera, så att du kan lägga in den aktuella övergripande statusen i din dokumentation, i sidfoten i din app eller på en marknadsföringssida. Markdown-koden länkar till sidans första aktiva anpassade domän, även en med ett certifikat som du har laddat upp, eller till dess adress hos OneUptime så länge ingen är aktiv. Token finns på kortet **Säkerhetstoken** under **Fler inställningar**, med **Generera om token** för när länken har delats för brett.
 
-**RSS-flöde.** Varje statussida levererar `/rss`: ett flöde med titeln "{sidtitel} Updates", med den **Sidtitel** som anges under **Varumärke**, eller sidans namn om den inte har någon, och vars poster börjar med `Incident: `, `Announcement: ` och `Scheduled Maintenance: `. Varje post är daterad som sidan daterar den: en incident efter när den deklarerades, ett meddelande efter när det publicerades och en planerad underhållshändelse efter när den börjar, med beskrivningen inledd av dess tidsfönster. Användbart för den som hellre hämtar dina uppdateringar till en flödesläsare eller en chattbot än prenumererar via e-post.
+**RSS-flöde.** Varje statussida levererar `/rss`: ett flöde med titeln "{sidtitel} Updates", med den **Sidtitel** som anges under **Varumärke**, eller sidans namn om den inte har någon, och vars poster börjar med `Incident: `, `Announcement: ` och `Scheduled Maintenance: `. Varje post är daterad som sidan daterar den: en incident efter när den deklarerades, ett meddelande efter när det publicerades och en underhållshändelse efter när den börjar, med beskrivningen inledd av dess tidsfönster. Användbart för den som hellre hämtar dina uppdateringar till en flödesläsare eller en chattbot än prenumererar via e-post.
 
 **Underhållskalender.** Varje statussida levererar också `/maintenance.ics`: det schemalagda underhåll den visar, som en kalender som Google Kalender, Apple Kalender eller Outlook kan prenumerera på. Besökare lägger till den med **Prenumerera på kalender** på sidans sida **Schemalagt underhåll**, och en enskild händelse med **Lägg till i kalender** på händelsens egen sida. En privat sidas kalender är tom, eftersom en kalenderapp inte kan logga in. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
-Om du hellre hämtar data själv bygger statussidan på offentliga lässlutpunkter för översikten, incidenterna, de schemalagda underhållshändelserna, meddelandena och episoderna: se [Offentligt API](/docs/status-pages/public-api).
+Om du hellre hämtar data själv bygger statussidan på offentliga lässlutpunkter för översikten, incidenterna, underhållshändelserna, meddelandena och episoderna: se [Offentligt API](/docs/status-pages/public-api).
 
 ## Arkivera en statussida
 

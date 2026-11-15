@@ -1,14 +1,26 @@
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import User from "../../../../Models/DatabaseModels/User";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
+import IncidentEpisodePublicNoteService from "../../../../Server/Services/IncidentEpisodePublicNoteService";
+import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
+import IncidentService from "../../../../Server/Services/IncidentService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import ScheduledMaintenancePublicNoteService from "../../../../Server/Services/ScheduledMaintenancePublicNoteService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../../Server/Services/UserService";
+import PublicNoteApprovalEngine, {
+  PublicNoteApprovalHost,
+} from "../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
 import PublicNoteApprovalNotifications, {
   buildApprovalDecidedMessage,
   buildApprovalRequestedMessage,
   PublicNoteApprovalMessage,
   PublicNoteApprovalMessageFacts,
 } from "../../../../Server/Utils/Notes/PublicNoteApprovalNotifications";
+import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
@@ -46,7 +58,6 @@ function facts(
     projectId: PROJECT_ID,
     recordLabel: "Incident INC-42",
     recordTitle: "Checkout is down",
-    recordNoun: "incident",
     notesUrl: "https://oneuptime.example/dashboard/p/incidents/i/public-notes",
     note: "We are **looking** into it.",
     isEdit: false,
@@ -75,7 +86,7 @@ describe("buildApprovalRequestedMessage", () => {
       "Approval needed: public note on Incident INC-42 - Checkout is down",
     );
     expect(message.emailVars["leadSentence"]).toBe(
-      "A public note on incident Incident INC-42 is waiting for your approval. It is not on status pages and no subscriber is told about it until it is approved.",
+      "A public note on Incident INC-42 is waiting for your approval. It is not on status pages and no subscriber is told about it until it is approved.",
     );
     expect(message.emailVars["sentBy"]).toBe("Alice");
     expect(message.emailVars["stepLabel"]).toBe("Step 1 of 2: Support");
@@ -86,7 +97,9 @@ describe("buildApprovalRequestedMessage", () => {
     );
     expect(message.pushType).toBe("public-note-approval-requested");
     expect(message.smsText).toContain("Approval needed");
-    expect(message.callText).toContain("is waiting for your approval");
+    expect(message.callText).toBe(
+      "This is a message from OneUptime. A public note on Incident INC-42, Checkout is down, is waiting for your approval. To approve or reject it, go to the OneUptime Dashboard. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.",
+    );
   });
 
   test("an edit, asked of a team's member, says so", () => {
@@ -99,7 +112,7 @@ describe("buildApprovalRequestedMessage", () => {
     });
 
     expect(message.emailVars["leadSentence"]).toMatch(
-      /^An edit of a public note on incident Incident INC-42 is waiting/,
+      /^An edit of a public note on Incident INC-42 is waiting/,
     );
     expect(message.emailVars["reasonSentence"]).toContain(
       "You are on a team that approves public notes for this step.",
@@ -128,10 +141,13 @@ describe("buildApprovalDecidedMessage", () => {
       "Approved: public note on Incident INC-42 - Checkout is down",
     );
     expect(message.emailVars["leadSentence"]).toBe(
-      "Your public note on incident Incident INC-42 was approved by Bob and is now published on status pages.",
+      "Your public note on Incident INC-42 was approved by Bob and is now published on status pages.",
     );
     expect(message.emailVars["decision"]).toBe("Approved");
     expect(message.emailVars["reason"]).toBe("");
+    expect(message.callText).toBe(
+      "This is a message from OneUptime. Your public note on Incident INC-42 was approved and is published. Good bye.",
+    );
     expect(message.pushBody).toBe("Approved by Bob. It is now published.");
     expect(message.pushType).toBe("public-note-approval-approved");
   });
@@ -145,7 +161,7 @@ describe("buildApprovalDecidedMessage", () => {
         isApproved: true,
       }).emailVars["leadSentence"],
     ).toBe(
-      "Your edit of a public note on incident Incident INC-42 was approved by Bob. Status pages now show the edited note.",
+      "Your edit of a public note on Incident INC-42 was approved by Bob. Status pages now show the edited note.",
     );
   });
 
@@ -162,7 +178,7 @@ describe("buildApprovalDecidedMessage", () => {
       "Rejected: public note on Incident INC-42 - Checkout is down",
     );
     expect(message.emailVars["leadSentence"]).toBe(
-      "Your public note on incident Incident INC-42 was rejected by Bob. It is not published. Change it and send it again from the Dashboard.",
+      "Your public note on Incident INC-42 was rejected by Bob. It is not published. Change it and send it again from the Dashboard.",
     );
     expect(message.emailVars["decision"]).toBe("Rejected");
     expect(message.emailVars["reason"]).toBe("Do not name the vendor.");
@@ -170,11 +186,181 @@ describe("buildApprovalDecidedMessage", () => {
     expect(message.pushBody).toBe("Rejected by Bob. Do not name the vendor.");
     expect(message.pushType).toBe("public-note-approval-rejected");
     // A call does not read a reason out; it says where to see it.
-    expect(message.callText).toContain(
-      "To see why, go to the OneUptime Dashboard.",
+    expect(message.callText).toBe(
+      "This is a message from OneUptime. Your public note on Incident INC-42 was rejected. To see why, go to the OneUptime Dashboard. Good bye.",
     );
     expect(message.callText).not.toContain("vendor");
   });
+});
+
+/*
+ * A record's label names its kind - "Incident INC-42", "Episode EP-7",
+ * "Scheduled Maintenance SM-3" - so every message names the record by its
+ * label alone (#7906): a kind before the label, as in "a public note on
+ * incident Incident INC-42", names the kind twice. Each kind's facts are
+ * made as the server makes them: its own note service's approval host
+ * reads the record, and the engine's getFacts hands on what it read.
+ */
+describe("each kind of record, named in its messages", () => {
+  const RECORD_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+
+  type GetFacts = (
+    host: PublicNoteApprovalHost<BaseModel>,
+    note: Record<string, unknown>,
+    isEdit: boolean,
+  ) => Promise<PublicNoteApprovalMessageFacts | null>;
+
+  interface RecordKind {
+    name: string;
+    host: () => PublicNoteApprovalHost<BaseModel>;
+    // The label its note service writes.
+    label: string;
+    /*
+     * The last word of each name the kind goes by ("incident episode",
+     * "maintenance event", "scheduled maintenance"): one of them right
+     * before the label names the kind twice.
+     */
+    kindWords: Array<string>;
+  }
+
+  const KINDS: Array<RecordKind> = [
+    {
+      name: "incident",
+      host: (): PublicNoteApprovalHost<BaseModel> => {
+        return IncidentPublicNoteService.getApprovalHost() as unknown as PublicNoteApprovalHost<BaseModel>;
+      },
+      label: "Incident INC-42",
+      kindWords: ["incident"],
+    },
+    {
+      name: "episode",
+      host: (): PublicNoteApprovalHost<BaseModel> => {
+        return IncidentEpisodePublicNoteService.getApprovalHost() as unknown as PublicNoteApprovalHost<BaseModel>;
+      },
+      label: "Episode EP-7",
+      kindWords: ["episode"],
+    },
+    {
+      name: "maintenance event",
+      host: (): PublicNoteApprovalHost<BaseModel> => {
+        return ScheduledMaintenancePublicNoteService.getApprovalHost() as unknown as PublicNoteApprovalHost<BaseModel>;
+      },
+      label: "Scheduled Maintenance SM-3",
+      kindWords: ["maintenance", "event"],
+    },
+  ];
+
+  beforeEach(() => {
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString("https://oneuptime.example/dashboard"));
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+      title: "Checkout is down",
+      incidentNumber: 42,
+      incidentNumberWithPrefix: "INC-42",
+    } as never);
+    jest.spyOn(IncidentEpisodeService, "findOneById").mockResolvedValue({
+      title: "Checkout is down",
+      episodeNumber: 7,
+      episodeNumberWithPrefix: "EP-7",
+    } as never);
+    jest.spyOn(ScheduledMaintenanceService, "findOneById").mockResolvedValue({
+      title: "Database upgrade",
+      scheduledMaintenanceNumber: 3,
+      scheduledMaintenanceNumberWithPrefix: "SM-3",
+    } as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // Every text of a message a person reads or hears.
+  const textsOf: (message: PublicNoteApprovalMessage) => Array<string> = (
+    message: PublicNoteApprovalMessage,
+  ): Array<string> => {
+    return [
+      message.subject,
+      ...Object.values(message.emailVars),
+      message.smsText,
+      message.callText,
+      message.pushTitle,
+      message.pushBody,
+    ];
+  };
+
+  test.each(KINDS)(
+    "$name: by its label, never by its kind and then its label",
+    async (kind: RecordKind) => {
+      const getFacts: GetFacts = (
+        PublicNoteApprovalEngine as unknown as { getFacts: GetFacts }
+      ).getFacts.bind(PublicNoteApprovalEngine);
+      const host: PublicNoteApprovalHost<BaseModel> = kind.host();
+
+      for (const isEdit of [false, true]) {
+        const facts: PublicNoteApprovalMessageFacts | null = await getFacts(
+          host,
+          {
+            projectId: PROJECT_ID,
+            [host.parentIdColumn]: RECORD_ID,
+            note: "We are looking into it.",
+            pendingNote: "A fix is going out.",
+          },
+          isEdit,
+        );
+
+        if (!facts) {
+          throw new Error(`No facts for a note on the ${kind.name}.`);
+        }
+
+        expect(facts.recordLabel).toBe(kind.label);
+
+        const messages: Array<PublicNoteApprovalMessage> = [
+          buildApprovalRequestedMessage({
+            facts,
+            projectName: "Acme",
+            sentBy: "Alice",
+            stepLabel: "Approval",
+            isTeam: false,
+          }),
+          buildApprovalDecidedMessage({
+            facts,
+            projectName: "Acme",
+            decidedBy: "Bob",
+            isApproved: true,
+          }),
+          buildApprovalDecidedMessage({
+            facts,
+            projectName: "Acme",
+            decidedBy: "Bob",
+            isApproved: false,
+            reason: "Do not name the vendor.",
+          }),
+        ];
+
+        for (const message of messages) {
+          // No text names the kind right before the label.
+          expect(
+            textsOf(message).filter((text: string): boolean => {
+              return kind.kindWords.some((word: string): boolean => {
+                return text
+                  .toLowerCase()
+                  .includes(`${word} ${kind.label.toLowerCase()}`);
+              });
+            }),
+          ).toEqual([]);
+
+          // The email and the call say where the note is: on the label.
+          expect(message.emailVars["leadSentence"]).toContain(
+            ` on ${kind.label} `,
+          );
+          expect(message.callText).toContain(` on ${kind.label}`);
+        }
+      }
+    },
+  );
 });
 
 describe("PublicNoteApprovalNotifications: who is told", () => {

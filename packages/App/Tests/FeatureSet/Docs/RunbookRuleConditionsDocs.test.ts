@@ -73,9 +73,7 @@ describe("runbook rule conditions in the docs", () => {
   });
 
   it("says scheduled maintenance rules have no severity to match", () => {
-    expect(conditions).toContain(
-      "Scheduled maintenance events have no severity",
-    );
+    expect(conditions).toContain("Maintenance events have no severity");
   });
 
   it("explains the list operators the new criteria use", () => {

@@ -310,7 +310,7 @@ const RumApplicationProductAnalyticsRetention: FunctionComponent<
                   return option.value === retentionPeriod;
                 })}
                 isClearable={false}
-                ariaLabel={translator.translateText("Cohorts") || ""}
+                ariaLabel="Cohorts"
                 dataTestId="product-analytics-retention-period"
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,

@@ -255,7 +255,7 @@ Alcune modifiche risolvono sempre ciò che una regola ha aperto, qualunque cosa 
 
 ## Manutenzione pianificata
 
-Mentre un monitor dello SLO è in un evento di manutenzione pianificata in corso, le sue regole del tasso di consumo non generano avvisi né dichiarano incidenti: il lavoro pianificato non deve avvisare nessuno. Ciò che le regole hanno già aperto si risolve comunque come al solito. Il tempo conta comunque nel budget di errore, secondo gli stati di inattività dello SLO.
+Mentre un monitor dello SLO è in un evento di manutenzione in corso, le sue regole del tasso di consumo non generano avvisi né dichiarano incidenti: il lavoro pianificato non deve avvisare nessuno. Ciò che le regole hanno già aperto si risolve comunque come al solito. Il tempo conta comunque nel budget di errore, secondo gli stati di inattività dello SLO.
 
 ## Il feed dello SLO
 
@@ -271,8 +271,8 @@ Una regola scatta solo quando lo SLO ha una finestra lunga completa di cronologi
 La risoluzione automatica segue la finestra lunga: appena il tasso di consumo della finestra lunga scende sotto la soglia, l'avviso si risolve. Dai alla regola una finestra lunga più lunga, oppure disattiva **Risoluzione automatica dell'avviso** e risolvi l'avviso a mano.
 :::
 
-:::details Non è scattato nulla durante un evento di manutenzione pianificata
-Le regole del tasso di consumo restano in silenzio mentre uno dei monitor dello SLO è in un evento di manutenzione pianificata in corso. L'inattività conta comunque nel budget.
+:::details Non è scattato nulla durante un evento di manutenzione
+Le regole del tasso di consumo restano in silenzio mentre uno dei monitor dello SLO è in un evento di manutenzione in corso. L'inattività conta comunque nel budget.
 :::
 
 :::details Esiste un numero minimo di campioni?

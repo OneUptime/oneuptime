@@ -227,7 +227,7 @@ Hver side, hændelsen når, får de samme værdier: de hører til hændelsen, ik
 
 ## Sådan adskiller det sig fra planlagt vedligeholdelse
 
-Planlagte vedligeholdelsesbegivenheder har også en liste **Statussider**, men den virker anderledes:
+Vedligeholdelseshændelser har også en liste **Statussider**, men den virker anderledes:
 
 - **Planlagt vedligeholdelse erstatter.** Begivenheden vises på præcis de sider, der er på dens liste, uanset om de viser dens monitorer.
 - **En hændelse indsnævrer.** Dens liste vælger kun blandt de sider, der allerede viser dens monitorer. At vælge en side, der ikke viser nogen af dem, gør intet, og formularen siger det. Sæt monitoren på den side først.

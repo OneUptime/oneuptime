@@ -4,7 +4,7 @@ Chaque soumission via un formulaire crée un enregistrement dans votre projet : 
 
 :::cards
 - [Comment une soumission devient un incident](#comment-une-soumission-devient-un-incident): Chaque champ du nouvel incident, et d'où vient sa valeur.
-- [Comment une soumission devient un événement de maintenance planifiée](#comment-une-soumission-devient-un-événement-de-maintenance-planifiée): La même chose, pour une demande de maintenance.
+- [Comment une soumission devient un événement de maintenance](#comment-une-soumission-devient-un-événement-de-maintenance): La même chose, pour une demande de maintenance.
 - [Les paramètres À la soumission](#les-paramètres-à-la-soumission): Valeurs par défaut, ce qui est toujours joint, propriétaires et publication.
 - [La note privée](#la-note-privée): Qui l'a envoyée, et les réponses qu'aucun champ ne contient.
 :::
@@ -92,7 +92,7 @@ Activez **Visible sur la page de statut** depuis la page **Paramètres** de l'in
 Comme l'incident a été déclaré avec **Notifier les abonnés de la page de statut** désactivé, le publier n'envoie pas la notification « incident créé ». Pour informer les abonnés, publiez une note publique avec **Notifier les abonnés de la page de statut** coché — voir [Publier une note publique](/docs/incidents/notes-owners-and-feed#publier-une-note-publique).
 :::
 
-## Comment une soumission devient un événement de maintenance planifiée
+## Comment une soumission devient un événement de maintenance
 
 | Champ | Vient de |
 | --- | --- |

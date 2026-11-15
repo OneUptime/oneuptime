@@ -494,6 +494,7 @@ function getUserRollupCells(
             "Watch the newest session ({{id}})",
             { id: row.lastSessionId.slice(0, 8) },
           )}
+          isTitleTranslated={true}
         >
           <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
           <span data-testid="session-user-watch-latest">

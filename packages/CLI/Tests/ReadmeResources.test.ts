@@ -71,6 +71,12 @@ const MARKDOWN_LINK: RegExp =
   /\]\((https:\/\/oneuptime\.com\/docs\/[^)\s]+)\)/g;
 // "450 and more of them": the number the README claims.
 const RESOURCE_COUNT_CLAIM: RegExp = /(?<!\d)(\d+) and more of them/;
+/*
+ * The name #6817 retired for one record of Scheduled Maintenance, in any
+ * case: a Maintenance Event. Not the command, scheduled-maintenance-event.
+ */
+const SCHEDULED_MAINTENANCE_EVENT: RegExp =
+  /\bscheduled\s+maintenance\s+events?\b/i;
 
 // A section of the README: its heading line and everything up to the next heading of its level or higher.
 function section(heading: string): string {
@@ -337,7 +343,10 @@ describe("the CLI README's resource operations", () => {
       "scheduled-maintenance-event",
     ]);
     expect(withAction(CliAction.End)).toEqual(withAction(CliAction.Start));
-    expect(describedAs("start")).toBe("Start a scheduled maintenance event");
+    // The command keeps the API's name, so the row names it beside the record's.
+    expect(describedAs("start")).toBe(
+      "Start a maintenance event (`scheduled-maintenance-event`)",
+    );
 
     expect(withAction(CliAction.AddNote)).toEqual(
       [
@@ -346,6 +355,10 @@ describe("the CLI README's resource operations", () => {
       ].sort(),
     );
     expect(describedAs("add-note")).toContain("any of those");
+  });
+
+  it("no longer say scheduled maintenance event: one is a maintenance event (#6817)", () => {
+    expect(README).not.toMatch(SCHEDULED_MAINTENANCE_EVENT);
   });
 
   it("say what the subcommands are for, that most take all six, and which are read only", () => {

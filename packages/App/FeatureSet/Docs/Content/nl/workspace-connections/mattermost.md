@@ -112,7 +112,7 @@ Om in een bestaand kanaal te plaatsen, vul je de naam in zoals die in het adres 
 
 Mensen worden lid van het kanaal van een regel via het Mattermost-account dat ze hebben gekoppeld, of anders via het Mattermost-account met hun e-mailadres, als je server e-mailadressen aan de bot toont (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime noemt wie het niet kon toevoegen in één bericht in het kanaal, met een link om hun account te koppelen.
 
-Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Mattermost** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, op je Mattermost-server. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record dat ook kanalen in Slack of Microsoft Teams heeft, heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin je regels posten, worden niet aangeboden.
+Een incident, waarschuwing, episode of onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Mattermost** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, op je Mattermost-server. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record dat ook kanalen in Slack of Microsoft Teams heeft, heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin je regels posten, worden niet aangeboden.
 
 **Regel testen** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zoals bij Slack.
 
@@ -120,7 +120,7 @@ De berichten van OneUptime sturen niemand een melding via wat ze citeren: een na
 
 ## Wie er in het kanaal van een record zit
 
-Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen Mattermost-kanaal heeft een kaart **Mattermost-kanaal** op zijn pagina in OneUptime. De kaart toont het kanaal, als link die het op je Mattermost-server opent, of het privé is en wie erin zit, jij eerst. Vanaf de kaart, zonder Mattermost-beheerder:
+Een incident, waarschuwing, episode of onderhoudsgebeurtenis met een eigen Mattermost-kanaal heeft een kaart **Mattermost-kanaal** op zijn pagina in OneUptime. De kaart toont het kanaal, als link die het op je Mattermost-server opent, of het privé is en wie erin zit, jij eerst. Vanaf de kaart, zonder Mattermost-beheerder:
 
 - **Deelnemen aan kanaal** voegt jou toe, als je niet in het kanaal zit.
 - **Mensen toevoegen** opent een lijst van de mensen en teams van het project: kies iemand om die toe te voegen, of een team om iedereen erin toe te voegen.
@@ -145,7 +145,7 @@ De berichten van OneUptime hebben knoppen, en een menu **More actions** voor wat
 | **Incidentepisode, waarschuwingsepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Gepland onderhoud** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** en **Execute On-Call Policy** openen een formulier in Mattermost. Een notitie bij een incident of een geplande onderhoudsgebeurtenis kan openbaar zijn, getoond op de statuspagina, of privé; een notitie bij een privé-incident is altijd privé, en bij een waarschuwing ook altijd privé. Elk bericht heeft ook een link die zijn record in OneUptime opent, voor al het andere. Als openbare notities in het project goedkeuring nodig hebben, wacht een openbare notitie uit het formulier daarop, en een bericht dat alleen jij ziet, zegt op wie ze wacht: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
+**Add Note**, **Change State**, **Change Severity** en **Execute On-Call Policy** openen een formulier in Mattermost. Een notitie bij een incident of een onderhoudsgebeurtenis kan openbaar zijn, getoond op de statuspagina, of privé; een notitie bij een privé-incident is altijd privé, en bij een waarschuwing ook altijd privé. Elk bericht heeft ook een link die zijn record in OneUptime opent, voor al het andere. Als openbare notities in het project goedkeuring nodig hebben, wacht een openbare notitie uit het formulier daarop, en een bericht dat alleen jij ziet, zegt op wie ze wacht: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
 
 Is je Mattermost-account nog niet gekoppeld, dan zegt een knop je dat, met een link naar **Gebruikersinstellingen** > **Werkruimte** > **Mattermost**. Koppel je account en druk daarna opnieuw op de knop.
 

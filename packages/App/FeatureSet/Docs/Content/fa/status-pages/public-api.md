@@ -1,6 +1,6 @@
 # API عمومی
 
-هر صفحهٔ وضعیت به مجموعهٔ کوچکی از نقطه‌های پایانی JSON فقط‌خواندنی پاسخ می‌دهد: نمای کلی، یک خلاصه، زمان کارکرد، حادثه‌ها، اپیزودها، رویدادهای نگهداری زمان‌بندی‌شده و اطلاعیه‌هایش. این‌ها همان نقطه‌های پایانی‌ای هستند که خود صفحهٔ وضعیت بارگذاری می‌کند، پس دقیقاً همان چیزی را برمی‌گردانند که بازدیدکننده می‌بیند، و صفحهٔ عمومی به کلید API نیازی ندارد. از آن‌ها برای نمایش وضعیت در برنامهٔ خودتان، یک چت‌بات یا یک نمایشگر دیواری استفاده کنید.
+هر صفحهٔ وضعیت به مجموعهٔ کوچکی از نقطه‌های پایانی JSON فقط‌خواندنی پاسخ می‌دهد: نمای کلی، یک خلاصه، زمان کارکرد، حادثه‌ها، اپیزودها، رویدادهای تعمیر و نگهداری و اطلاعیه‌هایش. این‌ها همان نقطه‌های پایانی‌ای هستند که خود صفحهٔ وضعیت بارگذاری می‌کند، پس دقیقاً همان چیزی را برمی‌گردانند که بازدیدکننده می‌بیند، و صفحهٔ عمومی به کلید API نیازی ندارد. از آن‌ها برای نمایش وضعیت در برنامهٔ خودتان، یک چت‌بات یا یک نمایشگر دیواری استفاده کنید.
 
 :::cards
 - [نقطه‌های پایانی](#نقطههای-پایانی): برای هر چیزی که صفحه نشان می‌دهد یک نقطهٔ پایانی.
@@ -57,8 +57,8 @@ flowchart TB
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | یک حادثه. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | اپیزودهای حادثه که صفحه فهرست می‌کند. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | یک اپیزود. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`، `POST` | رویدادهای نگهداری زمان‌بندی‌شده که صفحه فهرست می‌کند، با یادداشت‌های عمومی و تغییرات وضعیتشان. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | یک رویداد نگهداری زمان‌بندی‌شده. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`، `POST` | رویدادهای تعمیر و نگهداری که صفحه فهرست می‌کند، با یادداشت‌های عمومی و تغییرات وضعیتشان. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | یک رویداد تعمیر و نگهداری. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`، `POST` | اطلاعیه‌هایی که صفحه فهرست می‌کند. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | یک اطلاعیه. |
 
@@ -140,13 +140,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeIncidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، یادداشت‌های عمومی و تغییرات وضعیتشان، و وضعیت‌های حادثهٔ پروژه. |
 | `timelineIncidents` | حادثه‌های درون بازهٔ نوارهای زمان کارکرد، از جمله حل‌شده‌ها، برای راهنمای نوارها. |
 | `activeEpisodes`، `episodePublicNotes`، `episodeStateTimelines` | همین‌ها برای اپیزودهای حادثه. |
-| `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates` | رویدادهای نگهداری زمان‌بندی‌شده که هنوز در پیش‌اند یا در جریان‌اند، یادداشت‌های عمومی و تغییرات وضعیتشان. |
-| `timelineScheduledMaintenanceEvents` | رویدادهای نگهداری زمان‌بندی‌شدهٔ درون بازهٔ نوارهای زمان کارکرد که آغاز شده‌اند، چه در جریان باشند چه پایان‌یافته، برای راهنمای نوارها و پنجرهٔ گفت‌وگوی هر روز: رویدادهایی که صفحه نشان می‌دهد و یکی از مانیتورهای آن را در بر دارند، هر کدام فقط با مانیتورهای صفحه. |
+| `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates` | رویدادهای تعمیر و نگهداری که هنوز در پیش‌اند یا در جریان‌اند، یادداشت‌های عمومی و تغییرات وضعیتشان. |
+| `timelineScheduledMaintenanceEvents` | رویدادهای تعمیر و نگهداری درون بازهٔ نوارهای زمان کارکرد که آغاز شده‌اند، چه در جریان باشند چه پایان‌یافته، برای راهنمای نوارها و پنجرهٔ گفت‌وگوی هر روز: رویدادهایی که صفحه نشان می‌دهد و یکی از مانیتورهای آن را در بر دارند، هر کدام فقط با مانیتورهای صفحه. |
 | `activeAnnouncements` | اطلاعیه‌هایی که اکنون نمایش داده می‌شوند: آغازشده و پایان‌نیافته. |
 
 ## خواندن خلاصه
 
-خلاصه همان نمای کلی است که به آنچه یک ابزار پایش از صفحه می‌پرسد کوتاه شده: وضعیت هر منبع، و اینکه آیا یک رویداد نگهداری زمان‌بندی‌شدهٔ در جریان بر آن اثر می‌گذارد. هر قدر هم صفحه تاریخچه نشان دهد کوچک می‌ماند، و همان چیزی است که [مانیتور صفحه وضعیت خارجی](/docs/monitor/external-status-page-monitor#صفحههای-وضعیت-oneuptime) یک OneUptime دیگر می‌خواند. از همان حافظهٔ نهانی می‌آید که نمای کلی، پس از همان قاعده‌های دسترسی.
+خلاصه همان نمای کلی است که به آنچه یک ابزار پایش از صفحه می‌پرسد کوتاه شده: وضعیت هر منبع، و اینکه آیا یک رویداد تعمیر و نگهداری در جریان بر آن اثر می‌گذارد. هر قدر هم صفحه تاریخچه نشان دهد کوچک می‌ماند، و همان چیزی است که [مانیتور صفحه وضعیت خارجی](/docs/monitor/external-status-page-monitor#صفحههای-وضعیت-oneuptime) یک OneUptime دیگر می‌خواند. از همان حافظهٔ نهانی می‌آید که نمای کلی، پس از همان قاعده‌های دسترسی.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `overallStatus` | وضعیت کلی صفحه، همان‌طور که بنرش نشان می‌دهد: `name`، `color` و `isOperational`. وقتی همهٔ منابع صفحه **پایش نشده** باشند، `null` است. |
 | `resources` | هر منبعی که صفحه نشان می‌دهد، به ترتیب صفحه: `name` آن در صفحه، `groupName` آن همراه با گروه‌های بالاتر، `currentStatus` آن، `isMonitored`، و `isUnderMaintenance`. |
 | `activeIncidents` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، هر کدام با `affectedResourceIds` منبع‌هایی که بر آن‌ها اثر می‌گذارد. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | رویدادهای نگهداری زمان‌بندی‌شدهٔ در جریان و پیش رو، هر کدام با `affectedResourceIds` خودش. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | رویدادهای تعمیر و نگهداری در جریان و پیش رو، هر کدام با `affectedResourceIds` خودش. |
 
 وقتی صفحه وضعیت یک منبع را نشان نمی‌دهد، `currentStatus` آن `null` است، و همچنین وقتی `isMonitored` برابر `false` باشد: هیچ چیز منبع را بررسی نمی‌کند، چون پایش مانیتورش خاموش است یا پایش همهٔ مانیتورهای گروه مانیتورش خاموش است، پس صفحه آن را **پایش نشده** نشان می‌دهد. ‏`isUnderMaintenance` تا وقتی `true` است که رویدادی در جریان یکی از مانیتورهای منبع، یا مانیتوری در گروه مانیتورش را نام ببرد، آن مانیتورها در هر وضعیتی که باشند.
 
@@ -346,7 +346,7 @@ for group in uptime["groupUptimes"]:
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | حادثه‌ها | `incidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates`، `statusPageResources`، `monitorsInGroup` |
 | اپیزودها | `episodes`، `episodePublicNotes`، `episodeStateTimelines`، `incidentStates`، `statusPageResources`، `monitorsInGroup` |
-| رویدادهای نگهداری زمان‌بندی‌شده | `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates`، `statusPageResources`، `monitorsInGroup` |
+| رویدادهای تعمیر و نگهداری | `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates`، `statusPageResources`، `monitorsInGroup` |
 | اطلاعیه‌ها | `announcements`، `statusPageResources`، `monitorsInGroup` |
 
 درخواست تک‌مورد با همان کلیدها پاسخ می‌دهد که همان یک رکورد را در خود دارند.
@@ -406,7 +406,7 @@ for incident in incidents:
 
 ## راه‌های دیگر خواندن یک صفحهٔ وضعیت
 
-- **RSS.** هر صفحهٔ وضعیت `/rss` را ارائه می‌کند، خوراکی از حادثه‌ها، اطلاعیه‌ها و رویدادهای نگهداری زمان‌بندی‌شده‌اش، که هر کدام همان تاریخی را دارد که صفحه به آن می‌دهد. [نشان تعبیه‌شدنی و خوراک RSS](/docs/status-pages/index#نشان-تعبیهشدنی-و-خوراک-rss) را ببینید.
+- **RSS.** هر صفحهٔ وضعیت `/rss` را ارائه می‌کند، خوراکی از حادثه‌ها، اطلاعیه‌ها و رویدادهای تعمیر و نگهداری‌اش، که هر کدام همان تاریخی را دارد که صفحه به آن می‌دهد. [نشان تعبیه‌شدنی و خوراک RSS](/docs/status-pages/index#نشان-تعبیهشدنی-و-خوراک-rss) را ببینید.
 - **llms.txt.** هر صفحهٔ وضعیت در کنار `/rss`، فایل `/llms.txt` را هم ارائه می‌کند که عامل‌های هوش مصنوعی را به خوراک RSS و JSON نمای کلی راهنمایی می‌کند.
 - **MCP.** عامل‌های هوش مصنوعی می‌توانند صفحه را از راه سرور MCP در OneUptime به نشانی `https://oneuptime.com/mcp` و بدون کلید API بخوانند، با فرستادن شناسه یا دامنهٔ صفحه به‌عنوان `statusPageIdOrDomain`. این قابلیت به‌طور پیش‌فرض روشن است؛ آن را با **فعال کردن سرور MCP** در **هوش مصنوعی ← MCP** در منوی کناری صفحه خاموش کنید. [سرور MCP](/docs/ai/mcp-server) را ببینید.
 - **REST API.** برای ساختن یا تغییر صفحات وضعیت، منابع، مشترکان و اطلاعیه‌ها، از [API در OneUptime](/docs/api-reference/api-reference) با یک کلید API استفاده کنید.

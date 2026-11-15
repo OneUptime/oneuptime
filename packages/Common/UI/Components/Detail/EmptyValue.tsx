@@ -89,7 +89,10 @@ export const EMPTY_VALUE_CLASS_NAME: string = "text-sm leading-6 text-gray-400";
 export const EMPTY_VALUE_TEST_ID: string = "detail-empty-value";
 
 export interface ComponentProps {
+  // The field's own words, in English: looked up where they are drawn.
   placeholder?: string | undefined;
+  // In the reader's words already: drawn as given (#7791).
+  isPlaceholderTranslated?: boolean | undefined;
 }
 
 const EmptyValue: FunctionComponent<ComponentProps> = (
@@ -102,7 +105,12 @@ const EmptyValue: FunctionComponent<ComponentProps> = (
    * dash below, with "Not set" for a screen reader, not a hyphen of its own.
    */
   if (props.placeholder?.trim() && !isDashText(props.placeholder)) {
-    return <PlaceholderText text={props.placeholder} />;
+    return (
+      <PlaceholderText
+        text={props.placeholder}
+        isTextTranslated={props.isPlaceholderTranslated}
+      />
+    );
   }
 
   return (

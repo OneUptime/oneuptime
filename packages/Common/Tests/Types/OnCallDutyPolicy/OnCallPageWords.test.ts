@@ -560,18 +560,11 @@ describe("in every language", () => {
    * names in the person's language, from the server's words - the words a
    * public status page shows (Server/Locales, pinned to the status page's
    * own in ServerLocales.test.ts). They read as the Dashboard reads them,
-   * so a page and the record's own page agree - but for these, where a
-   * status page's public word is not the Dashboard's: Japanese writes
-   * Identified as 確認済み on a status page, the Dashboard's word for
-   * Acknowledged. Aligning them changes what public status pages say, so
-   * it is left to its own change; this list only shrinks.
+   * so a page and the record's own page agree. Japanese and Korean once
+   * wrote Identified apart on a status page - Japanese as 確認済み, the
+   * Dashboard's word for Acknowledged - until #7895 gave every default name
+   * the Dashboard's word there too (DefaultStatusNamesInDashboardLocales).
    */
-  const STATUS_PAGE_WORDS_NOT_THE_DASHBOARDS: ReadonlyArray<string> = [
-    "ja: Identified is 確認済み on a page, 原因特定 on the Dashboard",
-    "ja: Acknowledged is 承認済み on a page, 確認済み on the Dashboard",
-    "ko: Identified is 확인됨 on a page, 식별됨 on the Dashboard",
-  ];
-
   test("a page's state and severity names read as the Dashboard reads them", () => {
     const dashboardLocales: string = path.resolve(
       __dirname,
@@ -614,6 +607,6 @@ describe("in every language", () => {
       }
     }
 
-    expect(problems).toEqual([...STATUS_PAGE_WORDS_NOT_THE_DASHBOARDS]);
+    expect(problems).toEqual([]);
   });
 });

@@ -198,7 +198,7 @@ Be AI om å analysere, oppsummere eller bestemme noe midt i kjøringen. Svaret b
 | **Prompt** | Hva AI-en skal gjøre. For eksempel: "Gå gjennom outputen fra de forrige trinnene, og si om det er trygt å fortsette med utbedringen." |
 | **LLM-leverandør** | Valgfritt. **Prosjektstandard** bruker prosjektets standardleverandør. Fest en leverandør når trinnet trenger en bestemt modell, for eksempel en selvhostet modell for data som ikke skal forlate nettverket ditt. Se [LLM-leverandører](/docs/ai/llm-provider). |
 | **Ta med kontekst fra forrige trinn** | Når den er slått på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger. Den får opptil 4 000 tegn av hvert trinns output. |
-| **Ta med utløserkontekst** | Når den er slått på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller den planlagte vedlikeholdshendelsen (beskrivelse, alvorlighetsgrad, nåværende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbooket manuelt. |
+| **Ta med utløserkontekst** | Når den er slått på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller vedlikeholdshendelsen (beskrivelse, alvorlighetsgrad, nåværende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbooket manuelt. |
 
 For å holde et menneske i løkken slår du på **Krev godkjenning** på trinnet etter et AI-trinn: AI-en analyserer, en person leser svaret, og det utbedrende trinnet kjører først når personen godkjenner det.
 
