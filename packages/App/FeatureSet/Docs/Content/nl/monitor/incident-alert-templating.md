@@ -226,10 +226,10 @@ In een titel wordt elk ervan afgekapt tot één regel van hoogstens 150 tekens. 
 
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |
-| `isOnline` | Of de tijdserver antwoordde op het verzoek van de probe. | `boolean` |
+| `isOnline` | Of de tijdserver antwoordde op het verzoek van de sonde. | `boolean` |
 | `isSynchronized` | Of hij antwoordde met stratum 1 tot 15, zonder het leap-alarm en met echte tijdstempels. | `boolean` |
 | `stratum` | Het stratum dat de server rapporteerde: 1 voor een primaire server, 16 als hij niet gesynchroniseerd is, 0 voor een kiss-o'-death. | `number` |
-| `clockOffsetInMs` | Hoe ver de klok van de server afwijkt van die van de probe, in milliseconden. Positief betekent dat de server voorloopt. | `number` |
+| `clockOffsetInMs` | Hoe ver de klok van de server afwijkt van die van de sonde, in milliseconden. Positief betekent dat de server voorloopt. | `number` |
 | `referenceId` | Waarmee de server synchroniseert: een bron zoals `GPS` op stratum 1, of het adres van zijn upstream-server. | `string` |
 | `leapIndicator` | 0 tot 2 als alles in orde is, 3 als de server zegt dat zijn klok niet gesynchroniseerd is. | `number` |
 | `kissCode` | Bij stratum 0 de code van vier letters die de server stuurde in plaats van de tijd, zoals `RATE`. | `string` |
@@ -423,7 +423,7 @@ Een netwerkapparaat wordt bij elke poll gepingd en alleen via SNMP doorlopen als
 
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |
-| `isOnline` | Of de probe verbinding kon maken en de basisquery kon uitvoeren. Ontbrekende metrieken maken dit nooit onwaar. | `boolean` |
+| `isOnline` | Of de sonde verbinding kon maken en de basisquery kon uitvoeren. Ontbrekende metrieken maken dit nooit onwaar. | `boolean` |
 | `responseTimeInMs` | De tijd om verbinding te maken en de basisquery uit te voeren, in milliseconden. | `number` |
 | `failureCause` | Waarom de controle mislukte, als dat zo was. | `string` |
 | `connectionError` | De verbindingsfout, zonder inloggegevens of de verbindingsstring. | `string` |

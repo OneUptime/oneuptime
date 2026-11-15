@@ -27,6 +27,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   translatableTerm,
@@ -58,6 +59,16 @@ type FormSide = "source" | "target";
  */
 export const RECONCILIATION_MEASURES_LINE_CLASS_NAME: string =
   "block whitespace-normal break-words text-xs text-gray-500";
+
+/*
+ * Why a reconciliation waits or failed - "Waiting for both sides to be read."
+ * - under its Status pill: a sentence, which wraps within its 20rem rather
+ * than holding the column at its whole width on one line (#7534). Cut short
+ * on one line, it held the Status column wide and the list ran under Run
+ * Now.
+ */
+export const RECONCILIATION_STATUS_MESSAGE_CLASS_NAME: string =
+  "block max-w-xs whitespace-normal break-words text-xs text-gray-500";
 
 const MEASURE_OPTIONS: Array<DropdownOption> = DATA_RECONCILIATION_MEASURES.map(
   (measure: DataReconciliationMeasure): DropdownOption => {
@@ -126,7 +137,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
         setSyncError(
           translator.translateTemplate(
             "The reconciliation is saved, but its checks and monitor could not be set up: {{reason}}",
-            { reason: errorInSentence((err as Error).message) },
+            { reason: errorInSentence(API.getFriendlyMessage(err)) },
           ),
         );
       }
@@ -159,7 +170,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
       {
         field: isSource ? { sourceDataAsset: true } : { targetDataAsset: true },
         stepId: side,
-        title: "Table",
+        title: "Table (database object)",
         description: isSource
           ? "The table to compare from: the system of record, usually."
           : "The table to compare with: its copy in another database, a warehouse or a replica.",
@@ -416,6 +427,15 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
             title: "Target",
             type: FieldType.Element,
             disableSort: true,
+            /*
+             * Under the source, named, where the list does not fit its card
+             * (#7534): at 1280px beside the side menu Run Now covered the
+             * Status column - "In Ste..." in English, only "St" of its
+             * heading in German. The two sides are read one over the other.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "sourceDataAsset",
+            showTitleWhenFolded: true,
             getElement: (item: DataReconciliation): ReactElement => {
               return (
                 <div className="min-w-0">
@@ -433,6 +453,10 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
             field: { difference: true },
             title: "Difference",
             type: FieldType.Element,
+            // Under the Status, named, where the list does not fit its card (#7534).
+            hideBelowLargeScreen: true,
+            foldInto: "status",
+            showTitleWhenFolded: true,
             getElement: (item: DataReconciliation): ReactElement => {
               return item.difference === undefined ||
                 item.difference === null ? (
@@ -459,7 +483,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                 <div className="min-w-0 space-y-1">
                   {getStatusPill(item.status)}
                   {item.statusMessage ? (
-                    <span className="block max-w-xs truncate text-xs text-gray-500">
+                    <span className={RECONCILIATION_STATUS_MESSAGE_CLASS_NAME}>
                       {item.statusMessage}
                     </span>
                   ) : item.comparedAt ? (

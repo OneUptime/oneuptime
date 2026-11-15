@@ -189,6 +189,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The name a project's first on-call policy starts with, and the names
+   * and descriptions of the two on-call rules made with it, in the
+   * language of the person they are made for - the guided setups', Create
+   * On-Call Policy's and Ask AI's alike (#7995). Only the sentences the
+   * files mark are read.
+   */
+  {
+    directory: "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
+    kind: "keys",
+  },
+  /*
    * A monitor template's Template sync settings (#7546): the name of each
    * field a linked monitor can keep its own value for, and what it keeps
    * together, as the card and its summary line say them. Only the words the
@@ -441,6 +456,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a data check or a reconciliation was not written, added or set up
+   * (#7530): the server's refusals, which Write a Check from a Sentence,
+   * Suggested Checks and the Reconciliations page say in the reader's
+   * language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataObservability/DataCheckRefusals.ts",
+    kind: "keys",
+  },
+  /*
    * A RUM application's status - Receiving data, No recent traffic, Waiting
    * for data - and what each means: the RUM Applications list and an
    * application's hero say them in the reader's language. Only the words
@@ -601,6 +626,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  /*
+   * What Ask AI's tables and its Sources chips say beside their data - a
+   * table's title and line, the cells that are OneUptime's words, a
+   * chip's label (issues #7977, #7979, #7980) - which the chat says in the
+   * reader's language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIReadTableWords.ts",
     kind: "keys",
   },
   {

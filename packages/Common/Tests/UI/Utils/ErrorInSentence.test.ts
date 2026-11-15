@@ -35,8 +35,19 @@ import {
   MONITOR_TYPE_MISMATCH_REFUSAL,
 } from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import {
+  CHECK_NOT_WRITTEN_REFUSAL,
+  CustomSqlRefusal,
+  DATA_CHECK_REFUSALS_WITH_VALUES,
+  RULE_NOT_A_CHECK_REFUSAL,
+} from "../../../Types/DataObservability/DataCheckRefusals";
+import {
+  getRefusalText,
+  readRefusalValues,
+} from "../../../Types/Exception/RefusalWithValues";
+import {
   dashboardTranslator,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 import {
   afterEach,
@@ -557,6 +568,7 @@ describe("getErrorReader: the page's reader", () => {
 
     expect(importsOf("UI/Utils/ErrorInSentence.ts")).toEqual(
       [
+        "../../Types/DataObservability/DataCheckRefusals",
         "../../Types/Exception/RefusalWithValues",
         "../../Types/Exception/UnexplainedError",
         "../../Types/Translator",
@@ -580,5 +592,91 @@ describe("getErrorReader: the page's reader", () => {
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Translator",
     ]);
+    expect(importsOf("Types/DataObservability/DataCheckRefusals.ts")).toEqual([
+      "../Exception/RefusalWithValues",
+      "../Translator",
+    ]);
+  });
+});
+
+describe("why a data check could not be written is said in the reader's language, with its why (#7530)", () => {
+  const MODEL_REASON: string =
+    "the table has no column for when an order was refunded";
+
+  test("in English, as the server wrote it", () => {
+    for (const refusal of [
+      getRefusalText(CHECK_NOT_WRITTEN_REFUSAL, { reason: MODEL_REASON }),
+      getRefusalText(RULE_NOT_A_CHECK_REFUSAL, { reason: MODEL_REASON }),
+    ]) {
+      expect(wordsOf(refusal)).toEqual({ isUnexplained: false, text: refusal });
+    }
+  });
+
+  test.each(["de", "fr", "ja", "fa", "ar", "hi", "zh-CN"])(
+    "in %s, the sentence in that language with the model's why where it puts it",
+    (language: string) => {
+      const said: string = getErrorInSentenceText({
+        message: getRefusalText(RULE_NOT_A_CHECK_REFUSAL, {
+          reason: MODEL_REASON,
+        }),
+        translator: dashboardTranslator(language),
+      });
+
+      // As drawn: French's colon kept with its word (NoBreakSpaces).
+      expect(said).toBe(
+        readDashboardLocaleAsDrawn(language)[
+          RULE_NOT_A_CHECK_REFUSAL.template
+        ]!.replace("{{reason}}", MODEL_REASON),
+      );
+      expect(said).not.toContain("could not be made a check");
+    },
+  );
+
+  test.each(["de", "ja", "fa"])(
+    "in %s, a why of OneUptime's own is said in that language too",
+    (language: string) => {
+      const said: string = getErrorInSentenceText({
+        message: getRefusalText(CHECK_NOT_WRITTEN_REFUSAL, {
+          reason: CustomSqlRefusal.writes,
+        }),
+        translator: dashboardTranslator(language),
+      });
+
+      expect(said).toBe(
+        dashboardTranslator(language).translateTemplate(
+          CHECK_NOT_WRITTEN_REFUSAL.template,
+          { reason: translatableTerm(CustomSqlRefusal.writes) },
+        ),
+      );
+      expect(said).toContain(
+        readDashboardLocale(language)[CustomSqlRefusal.writes]!,
+      );
+      expect(said).not.toContain("Custom SQL may only read");
+    },
+  );
+
+  test("every refusal with a value is read back, and nothing else is taken for one", () => {
+    for (const refusal of DATA_CHECK_REFUSALS_WITH_VALUES) {
+      expect(
+        readRefusalValues(
+          refusal,
+          getRefusalText(refusal, { reason: MODEL_REASON }),
+        ),
+      ).not.toBeNull();
+      expect(readRefusalValues(refusal, "The table was not found.")).toBeNull();
+      expect(readRefusalValues(refusal, "")).toBeNull();
+    }
+  });
+
+  test("a why that holds a closing bracket is read whole", () => {
+    const reason: string =
+      "Custom SQL must start with SELECT or WITH (not CALL).";
+
+    expect(
+      readRefusalValues(
+        CHECK_NOT_WRITTEN_REFUSAL,
+        getRefusalText(CHECK_NOT_WRITTEN_REFUSAL, { reason }),
+      ),
+    ).toEqual({ reason: translatableTerm(reason) });
   });
 });

@@ -8,6 +8,7 @@ import {
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
 } from "Common/Types/StatusPage/DefaultStatusNames";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -68,10 +69,6 @@ const pagesOf: (language: string) => Array<string> = (
   walk(root);
 
   return pages.sort();
-};
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /*

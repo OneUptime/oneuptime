@@ -64,6 +64,8 @@ import {
   toNetworkMapSites,
 } from "./NetworkMapWidgetData";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -338,8 +340,10 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
               : null,
         };
       }),
+      // A site's missing name and status, and a default status, in the reader's words.
+      translator,
     );
-  }, [fetched.rows]);
+  }, [fetched.rows, translator.language]);
 
   const sites: Array<NetworkMapSite> = parsed.sites;
 
@@ -353,21 +357,31 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
       cellSize: networkMapClusterCellSize(viewport),
       showLabels: showLabels,
       zoom: zoomOfViewport(viewport),
+      translator: translator,
     });
-  }, [sites, viewport, showLabels]);
+  }, [sites, viewport, showLabels, translator.language]);
 
   const summary: NetworkMapStatusSummary = useMemo(() => {
     return networkMapStatusSummary(sites);
   }, [sites]);
 
   const coverage: string = useMemo(() => {
-    return describeNetworkMapCoverage({
-      siteCount: sites.length,
-      inViewCount: countNetworkMapSitesInViewport(sites, viewport),
-      unplacedCount: parsed.unplacedCount,
-      isTruncated: fetched.isTruncated,
-    });
-  }, [sites, viewport, parsed.unplacedCount, fetched.isTruncated]);
+    return describeNetworkMapCoverage(
+      {
+        siteCount: sites.length,
+        inViewCount: countNetworkMapSitesInViewport(sites, viewport),
+        unplacedCount: parsed.unplacedCount,
+        isTruncated: fetched.isTruncated,
+      },
+      translator,
+    );
+  }, [
+    sites,
+    viewport,
+    parsed.unplacedCount,
+    fetched.isTruncated,
+    translator.language,
+  ]);
 
   const rows: Array<ReactElement> = useMemo(() => {
     return sites.map((site: NetworkMapSite): ReactElement => {
@@ -413,7 +427,14 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full"
                 style={{ backgroundColor: dotColor }}
               ></span>
-              <span style={{ color: dotColor }}>{site.statusName}</span>
+              <span style={{ color: dotColor }}>
+                {/* By its list: the default "Offline" in the reader's words. */}
+                {translateRecordName(
+                  translator,
+                  StateListType.MonitorStatus,
+                  site.statusName,
+                )}
+              </span>
             </span>
           </td>
         </tr>
@@ -725,14 +746,18 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                     className="inline-block w-2 h-2 rounded-full"
                     style={{ backgroundColor: entry.color }}
                   ></span>
-                  {entry.label}
+                  {translator.translateText(entry.label)}
                 </span>
               );
             },
           )}
         </div>
+        {/*
+         * In the gray a widget's summary line is read in: gray-300 at 10px
+         * was 1.5:1 on a light card, too faint to read (#7520).
+         */}
         <span
-          className="text-gray-300 tabular-nums flex-shrink-0"
+          className="text-gray-500 tabular-nums flex-shrink-0"
           style={{ fontSize: "10px" }}
           data-testid="network-map-widget-coverage"
         >

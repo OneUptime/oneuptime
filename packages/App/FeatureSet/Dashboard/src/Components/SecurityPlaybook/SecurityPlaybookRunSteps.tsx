@@ -36,6 +36,7 @@ import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 function getMarker(status: string | undefined): {
   icon: IconProp;
@@ -360,7 +361,9 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
       </ol>
 
       {undoError ? (
-        <p className="mt-3 text-sm text-red-700">{undoError}</p>
+        <p className="mt-3 text-sm text-red-700">
+          <ErrorInSentence message={undoError} showWhereToLook={true} />
+        </p>
       ) : (
         <></>
       )}

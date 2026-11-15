@@ -2,11 +2,11 @@
 
 Database Health-monitoren forbinder til PostgreSQL, MySQL eller Microsoft SQL Server efter en tidsplan og rapporterer serverens egne helbredssignaler — luft i forbindelserne, blokerede sessioner, replikeringsforsinkelse, cache-hitrate, databasestørrelse, transaktions-ID-wraparound og en god snes flere — så du kan sende advarsler på dem, ligesom du sender en advarsel, når et websted er nede.
 
-Du skriver ingen SQL. Proben kører et fast sæt skrivebeskyttede katalogforespørgsler, valgt efter databasemotor, og rapporterer et lille sæt navngivne tal.
+Du skriver ingen SQL. Sonden kører et fast sæt skrivebeskyttede katalogforespørgsler, valgt efter databasemotor, og rapporterer et lille sæt navngivne tal.
 
 :::cards
 - [Opret en overvågningsbruger](#opret-en-overvågningsbruger): De rettigheder, hver motor har brug for. Det er det trin, der betyder mest.
-- [Opret monitoren](#opret-en-database-health-monitor): Ret en probe mod databasen, og vælg, hvad der skal indsamles.
+- [Opret monitoren](#opret-en-database-health-monitor): Ret en sonde mod databasen, og vælg, hvad der skal indsamles.
 - [Indsamlede metrikker](#indsamlede-metrikker): Hver serie med de motorer, der rapporterer den.
 - [Opsæt kriterier](#opsæt-kriterier): Send advarsler om forbindelser, blokeringer, forsinkelse og wraparound.
 :::
@@ -41,7 +41,7 @@ Hver database, som dine applikationer, klynger og værter bruger — disse tre m
 
 ## Sådan virker det
 
-Ved hver kontrol gør en probe følgende:
+Ved hver kontrol gør en sonde følgende:
 
 1. Den forbinder til databasen med de loginoplysninger, du angiver.
 2. Den kører én let testforespørgsel. **Det er den eneste sætning, hvis fejl kan tage monitoren offline.**
@@ -62,11 +62,11 @@ flowchart TB
 
 Kun navngivne numeriske aggregater sendes til OneUptime. Ingen forespørgselstekst, ingen rækker fra dine tabeller og ingen skemanavne forlader dit netværk — forespørgslerne læser motorens egne statistikvisninger (`pg_stat_activity`, `performance_schema.global_status`, `sys.dm_exec_sessions` og lignende), aldrig dine data.
 
-Fordi kontrollen kører fra en probe, behøver databasen kun at kunne nås fra proben. Placér en [brugerdefineret probe](/docs/probe/custom-probe) i dit netværk, så behøver OneUptime slet ingen rute til databasen.
+Fordi kontrollen kører fra en sonde, behøver databasen kun at kunne nås fra sonden. Placér en [brugerdefineret sonde](/docs/probe/custom-probe) i dit netværk, så behøver OneUptime slet ingen rute til databasen.
 
 ## Før du begynder
 
-- En **probe** med netværksadgang til databasens vært og port. Brug en probe, som OneUptime hoster, hvis databasen kan nås fra internettet, og ellers en [brugerdefineret probe](/docs/probe/custom-probe) i dit netværk.
+- En **sonde** med netværksadgang til databasens vært og port. Brug en sonde, som OneUptime hoster, hvis databasen kan nås fra internettet, og ellers en [brugerdefineret sonde](/docs/probe/custom-probe) i dit netværk.
 - En **overvågningsbruger**, oprettet som beskrevet i næste afsnit, og dens forbindelsesoplysninger.
 
 ## Opret en overvågningsbruger
@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` er en indbygget rolle (PostgreSQL 10 og nyere), der giver læseadgang til statistik- og overvågningsvisningerne. Den giver ingen adgang til dine tabeller.
 
 > [!IMPORTANT]
-> **Hvorfor `pg_monitor` ikke er valgfri på PostgreSQL.** Uden den fejler `pg_stat_activity` ikke — forespørgslen lykkes og returnerer kun overvågningssessionens egen række. Antallet af forbindelser ville stå på `1`, blokerede sessioner på `0` og replikeringsforsinkelsen på `0`, for evigt, på en server, der i virkeligheden brænder. Derfor kontrollerer proben, **før** den kører de forespørgsler, at loginnet er medlem af `pg_monitor` (eller `pg_read_all_stats`) eller er superbruger. Er det ingen af delene, rapporterer proben grupperne Connections, Activity og Locks som utilgængelige sammen med den `GRANT`, du har brug for. At rapportere ingenting er det ærlige svar; at rapportere `1` er ikke.
+> **Hvorfor `pg_monitor` ikke er valgfri på PostgreSQL.** Uden den fejler `pg_stat_activity` ikke — forespørgslen lykkes og returnerer kun overvågningssessionens egen række. Antallet af forbindelser ville stå på `1`, blokerede sessioner på `0` og replikeringsforsinkelsen på `0`, for evigt, på en server, der i virkeligheden brænder. Derfor kontrollerer sonden, **før** den kører de forespørgsler, at loginnet er medlem af `pg_monitor` (eller `pg_read_all_stats`) eller er superbruger. Er det ingen af delene, rapporterer sonden grupperne Connections, Activity og Locks som utilgængelige sammen med den `GRANT`, du har brug for. At rapportere ingenting er det ærlige svar; at rapportere `1` er ikke.
 
 På en administreret tjeneste, hvor `pg_monitor` ikke er tilgængelig, dækker `pg_read_all_stats` de samme visninger. På Amazon RDS er `GRANT rds_superuser` ikke nødvendig — `GRANT pg_monitor TO oneuptime_health;` virker som medlem af `rds_superuser`.
 
@@ -145,11 +145,11 @@ Det er nok på vCore-databaser og på DTU-databaser fra S2 og op. På **Basic, S
 ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 ```
 
-`##MS_ServerStateReader##` virker på alle niveauer, så det er også reserveløsningen, hvis `VIEW DATABASE STATE` alligevel ikke er nok. Et nyt rollemedlemskab kan tage et par minutter om at slå igennem og gælder kun nye forbindelser; proben åbner en ny forbindelse ved hver kontrol.
+`##MS_ServerStateReader##` virker på alle niveauer, så det er også reserveløsningen, hvis `VIEW DATABASE STATE` alligevel ikke er nok. Et nyt rollemedlemskab kan tage et par minutter om at slå igennem og gælder kun nye forbindelser; sonden åbner en ny forbindelse ved hver kontrol.
 
 En indesluttet databasebruger (`CREATE USER oneuptime_health WITH PASSWORD = '...'` i den overvågede database, uden login) virker med `VIEW DATABASE STATE` fra S2 og op, men kan ikke blive medlem af `##MS_ServerStateReader##`: serverroller tager kun logins. For at flytte en indesluttet bruger til rollen skal du slette den (`DROP USER oneuptime_health;`) og følge sætningerne ovenfor.
 
-Proben genkender Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versionen — Azure SQL Database rapporterer `12.0.2000.8`, uanset hvad den faktisk kører, hvilket læses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighed vises som Azure-sætningen ovenfor, aldrig som `VIEW SERVER STATE`.
+Sonden genkender Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versionen — Azure SQL Database rapporterer `12.0.2000.8`, uanset hvad den faktisk kører, hvilket læses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighed vises som Azure-sætningen ovenfor, aldrig som `VIEW SERVER STATE`.
 
 - **Replikering indsamles ikke på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication springes over der i stedet for at blive rapporteret som fejlet ved hver kontrol. Azures egne replikavisninger (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) læses endnu ikke.
 - **Forbindelser gælder pr. database.** Med `VIEW DATABASE STATE` viser Azure SQL Database kun den overvågede databases sessioner, så Connections tæller den database og ikke den logiske server. Overvåg hver database, du holder øje med.
@@ -160,7 +160,7 @@ Proben genkender Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikk
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Database Health** under **Databaseovervågning** eller skrive `health` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Databasesundhed** under **Databaseovervågning** eller skrive `health` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Angiv forbindelsesoplysningerne
 
@@ -178,7 +178,7 @@ Klik på **Test monitor** for at køre én kontrol, før du gemmer, og læs, hva
 
 Gennemgå de kriterier, monitoren starter med, og tilføj dine egne — se [Opsæt kriterier](#opsæt-kriterier). Klik derefter på **Næste**.
 
-### Vælg prober, og opret
+### Vælg sonder, og opret
 
 Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og klik derefter på **Opret monitor**.
 :::
@@ -188,10 +188,10 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | Felt | Hvad du angiver |
 |---|---|
 | **Database Type** | PostgreSQL, MySQL eller Microsoft SQL Server. Valget af type sætter standardporten og afgør, hvilke forespørgsler der kører. |
-| **Vært** | Databaseværten, som proben kan nå (for eksempel `db.internal`). |
+| **Vært** | Databaseværten, som sonden kan nå (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Den database, der forbindes til. Metrikker på databaseniveau (størrelse, cache-hitrate, udskrivning til midlertidige filer) rapporteres for denne database; metrikker på serverniveau (forbindelser, oppetid, replikering) for hele serveren — undtagen på Azure SQL Database, hvor forbindelser kun tælles for den overvågede database. |
-| **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på som probeprocessen. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL Query-monitoren — opsætningen er den samme. |
+| **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på som sondeprocessen. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL Query-monitoren — opsætningen er den samme. |
 | **Brugernavn** | Overvågningsbrugeren. Påkrævet, medmindre du bruger integreret Windows-godkendelse. |
 | **Adgangskode** | Adgangskoden. Henvis til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive den i klartekst (se [Brug en monitorhemmelighed](#brug-en-monitorhemmelighed-til-adgangskoden)). |
 | **Use SSL/TLS** | Forbind over TLS. Når det er slået til, kan du slå **Verify server certificate** fra for et selvsigneret certifikat. |
@@ -217,7 +217,7 @@ Sådan bliver adgangskoden aldrig gemt i klartekst på monitoren:
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens felt **Adgangskode**.
 :::
 
-Hemmeligheden slås op på serveren, før konfigurationen gives videre til en probe. Felterne Vært, Brugernavn og Databasenavn accepterer den samme henvisning. Loginoplysninger skrives aldrig i logs, monitorfeeds eller advarselsskabeloner.
+Hemmeligheden slås op på serveren, før konfigurationen gives videre til en sonde. Felterne Vært, Brugernavn og Databasenavn accepterer den samme henvisning. Loginoplysninger skrives aldrig i logs, monitorfeeds eller advarselsskabeloner.
 
 ## Metrikgrupper
 
@@ -259,7 +259,7 @@ Mangler betyder altid mangler. En værdi, der ikke er målt, rapporteres aldrig 
 
 ### "The user does not have permission to perform this action"
 
-Det er SQL Servers meddelelse (Msg 297) for et login, der kan forbinde, men ikke kan læse serverens tilstandsvisninger. Den betyder altid en manglende rettighed, aldrig en fejl i databasen. SQL Server sender den som nummer to, efter en meddelelse, der nævner den afviste tilladelse, og monitoren viser dem begge: for eksempel `VIEW SERVER STATE permission was denied on object 'server', database 'master'. The user does not have permission to perform this action.` Ved siden af står den sætning, der løser det for den platform, proben forbandt til:
+Det er SQL Servers meddelelse (Msg 297) for et login, der kan forbinde, men ikke kan læse serverens tilstandsvisninger. Den betyder altid en manglende rettighed, aldrig en fejl i databasen. SQL Server sender den som nummer to, efter en meddelelse, der nævner den afviste tilladelse, og monitoren viser dem begge: for eksempel `VIEW SERVER STATE permission was denied on object 'server', database 'master'. The user does not have permission to perform this action.` Ved siden af står den sætning, der løser det for den platform, sonden forbandt til:
 
 - **SQL Server eller Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, kørt i `master` (monitoren viser den som `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, kørt i den overvågede database; på Basic, S0, S1 og elastiske puljer i stedet medlemskab af `##MS_ServerStateReader##`. Se [Azure SQL Database](#azure-sql-database).
@@ -364,7 +364,7 @@ Forsinkelsen i sekunder står på nul på en inaktiv primær server, selv når e
 
 Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign to tidspunkter for at få en rate; en enkelt værdi giver kun mening i forhold til dens egen historik, og den nulstilles, når serveren genstarter (hvilket **Uptime** viser dig).
 
-**Cache Hit Ratio** og **Rollback Ratio** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at proben starter, og den første efter at serveren genstarter, har ingen af dem.
+**Cache Hit Ratio** og **Rollback Ratio** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at sonden starter, og den første efter at serveren genstarter, har ingen af dem.
 
 ## Opsæt kriterier
 
@@ -430,11 +430,11 @@ Knyt en vagtpolitik til offline-kriteriet, og lad alt, der er afledt af **Metric
 ## Fejlfinding
 
 :::details Monitoren er offline, men databasen kører
-Offline betyder, at proben ikke kunne forbinde, eller at testforespørgslen fejlede: værten eller porten kan ikke nås fra proben, loginnet blev afvist, TLS fejlede, eller forbindelsen fik timeout. Monitorens oversigt viser fejlen. Kontrollér, at proben kan nå databasen (en probe, som OneUptime hoster, kræver en offentlig adresse; brug ellers en [brugerdefineret probe](/docs/probe/custom-probe)), kontrollér brugernavnet og adgangskoden eller dens monitorhemmelighed, og slå **Verify server certificate** fra for et selvsigneret certifikat. Klik derefter på **Test monitor** for at kontrollere igen.
+Offline betyder, at sonden ikke kunne forbinde, eller at testforespørgslen fejlede: værten eller porten kan ikke nås fra sonden, loginnet blev afvist, TLS fejlede, eller forbindelsen fik timeout. Monitorens oversigt viser fejlen. Kontrollér, at sonden kan nå databasen (en sonde, som OneUptime hoster, kræver en offentlig adresse; brug ellers en [brugerdefineret sonde](/docs/probe/custom-probe)), kontrollér brugernavnet og adgangskoden eller dens monitorhemmelighed, og slå **Verify server certificate** fra for et selvsigneret certifikat. Klik derefter på **Test monitor** for at kontrollere igen.
 :::
 
 :::details Connections, Activity og Locks mangler på PostgreSQL
-Loginnet er hverken medlem af `pg_monitor` eller `pg_read_all_stats` og er ikke superbruger, så proben springer de grupper over i stedet for at registrere forkerte tal. Kør `GRANT pg_monitor TO oneuptime_health;` som beskrevet under [PostgreSQL](#postgresql).
+Loginnet er hverken medlem af `pg_monitor` eller `pg_read_all_stats` og er ikke superbruger, så sonden springer de grupper over i stedet for at registrere forkerte tal. Kør `GRANT pg_monitor TO oneuptime_health;` som beskrevet under [PostgreSQL](#postgresql).
 :::
 
 :::details Connections, Throughput og Locks mangler på MySQL
@@ -455,5 +455,5 @@ En gruppe kan ikke indsamles ved nogen kontrol, så det samme indsamlingsproblem
 - [SQL-forespørgsel-monitor](/docs/monitor/sql-monitor): Send advarsler om resultatet af din egen forespørgsel ved siden af serverens helbred.
 - [Databaser](/docs/telemetry/databases): Se hver databases metrikker, logs og kaldere på én side.
 - [Monitorhemmeligheder](/docs/monitor/monitor-secrets): Hold overvågningsbrugerens adgangskode krypteret.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Nå en database inde i dit netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Nå en database inde i dit netværk.
 :::

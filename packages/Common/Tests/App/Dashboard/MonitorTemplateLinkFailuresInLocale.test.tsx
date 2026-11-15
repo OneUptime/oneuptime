@@ -38,6 +38,7 @@ import {
 import {
   dashboardTranslator,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -549,8 +550,12 @@ describe("the sentence for monitors that could not be linked", () => {
     ).toBe(`3 of 4 monitors could not be linked: ${SERVER_SAYS}`);
   });
 
+  /*
+   * The no-break kinds French typography writes there: before the colon a
+   * full one, before the semicolon a narrow one (NoBreakSpaces).
+   */
   test("French sets its colon and its semicolon apart with a space", () => {
-    const french: Record<string, string> = readDashboardLocale("fr");
+    const french: Record<string, string> = readDashboardLocaleAsDrawn("fr");
 
     expect(
       getLinkFailuresText({
@@ -559,7 +564,7 @@ describe("the sentence for monitors that could not be linked", () => {
         translator: dashboardTranslator("fr"),
       }),
     ).toBe(
-      `2 moniteurs sur 3 n'ont pas pu être liés : ${SERVER_SAYS} ; ${french[SERVER_DOWN_WHY]} ${french[SERVER_DOWN_NEXT]}`,
+      `2 moniteurs sur 3 n'ont pas pu être liés\u00A0: ${SERVER_SAYS}\u202F; ${french[SERVER_DOWN_WHY]} ${french[SERVER_DOWN_NEXT]}`,
     );
   });
 

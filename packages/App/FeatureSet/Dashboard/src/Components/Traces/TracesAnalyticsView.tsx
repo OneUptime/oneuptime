@@ -71,6 +71,11 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatDurationMs,
+  formatDurationMsInLanguage,
+} from "../Dashboard/Components/TraceChartData";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -213,21 +218,12 @@ function isDurationMetric(metric: string): boolean {
   return metric !== "count" && metric !== "errorCount";
 }
 
-export function formatDurationMs(ms: number): string {
-  if (!isFinite(ms)) {
-    return "-";
-  }
-  if (ms < 1) {
-    return `${Math.round(ms * 1000)} µs`;
-  }
-  if (ms < 1000) {
-    return `${ms < 10 ? ms.toFixed(1) : Math.round(ms)} ms`;
-  }
-  if (ms < 60000) {
-    return `${(ms / 1000).toFixed(2)} s`;
-  }
-  return `${(ms / 60000).toFixed(1)} min`;
-}
+/*
+ * A duration as the trace widgets write it (TraceChartData): English on a
+ * chart's value axis, the reader's words in its tooltip, its top list and
+ * its table (issue #7418).
+ */
+export { formatDurationMs };
 
 function formatCount(value: number): string {
   if (value >= 1000000) {
@@ -270,6 +266,8 @@ interface AnalyticsTooltipProps {
 const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
   props: AnalyticsTooltipProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
+
   if (!props.active || !props.payload || props.payload.length === 0) {
     return null;
   }
@@ -298,7 +296,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                 </div>
                 <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
                   {props.isDuration
-                    ? formatDurationMs(entry.value)
+                    ? formatDurationMsInLanguage(entry.value, translator)
                     : entry.value.toLocaleString(getReaderNumberLocale())}
                 </span>
               </div>
@@ -1243,7 +1241,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 <div className="flex flex-shrink-0 items-center gap-3">
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
                     {isDuration
-                      ? formatDurationMs(item.metricValue)
+                      ? formatDurationMsInLanguage(item.metricValue, translator)
                       : translator.formatNumber(item.metricValue)}
                   </span>
                   {isDuration && (
@@ -1367,25 +1365,46 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       {row.errorCount.toLocaleString(getReaderNumberLocale())}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.avgDurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.avgDurationMs,
+                        translator,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p50DurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.p50DurationMs,
+                        translator,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p90DurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.p90DurationMs,
+                        translator,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p95DurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.p95DurationMs,
+                        translator,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p99DurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.p99DurationMs,
+                        translator,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
-                      {formatDurationMs(row.minDurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.minDurationMs,
+                        translator,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
-                      {formatDurationMs(row.maxDurationMs)}
+                      {formatDurationMsInLanguage(
+                        row.maxDurationMs,
+                        translator,
+                      )}
                     </td>
                   </tr>
                 );
@@ -1414,10 +1433,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           />
         </svg>
         <p className="text-sm text-gray-400">
-          {error ||
-            translator.translateText(
-              "No data available for the selected query",
-            )}
+          <ErrorInSentence
+            message={
+              error ||
+              translator.translateText(
+                "No data available for the selected query",
+              )
+            }
+            showWhereToLook={true}
+          />
         </p>
       </div>
     );

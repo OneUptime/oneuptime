@@ -44,7 +44,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**.
 
 ### Scegliere Podman Container
 
-In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Podman Container** in **Infrastruttura**, oppure digitate `podman` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Container Podman** in **Infrastruttura**, oppure digitate `podman` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
 
 ### Scegliere l'host
 

@@ -1,5 +1,6 @@
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import Route from "Common/Types/API/Route";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -28,15 +29,18 @@ import React, {
 } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { getNextClaimWords } from "../Probe/NextClaimWords";
 import { CertificateDetails } from "./VMwareConnectionTestPanel";
 import {
   VMWARE_STATUS_POLL_INTERVAL_IN_MS,
   VMwareCollectionStatusView,
   VMwareCollectionTone,
   getVMwareCollectionStatusView,
+  getVMwareNextCollection,
   getVMwareProductLine,
   isProbeCollected,
 } from "./VMwareProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * How a vCenter a probe collects is doing, at the top of its overview: is
@@ -86,8 +90,17 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
         lastSuccessfulCollectionAt: true,
         collectionIntervalInMinutes: true,
         vcenterUrl: true,
+        // What decides whether a probe may collect it (VMwareCollectionStop).
+        projectId: true,
+        nextCollectionAt: true,
+        isVCenterPasswordSet: true,
+        vcenterUsername: true,
+        collectionProbeId: true,
         collectionProbe: {
           name: true,
+          isGlobalProbe: true,
+          projectId: true,
+          connectionStatus: true,
         },
       },
     });
@@ -107,7 +120,12 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
 
   const view: VMwareCollectionStatusView | null =
     vcenter && isProbeCollected(vcenter)
-      ? getVMwareCollectionStatusView(vcenter, translator)
+      ? getVMwareCollectionStatusView(
+          vcenter,
+          translator,
+          new Date(),
+          BILLING_ENABLED,
+        )
       : null;
 
   // Ask again while the probe has the new settings and has not answered yet.
@@ -267,7 +285,7 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
 
         {trustError ? (
           <p className="text-red-700" role="alert">
-            {trustError}
+            <ErrorInSentence message={trustError} showWhereToLook={true} />
           </p>
         ) : (
           <></>
@@ -292,6 +310,17 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
               {vcenter.lastSuccessfulCollectionAt
                 ? OneUptimeDate.fromNow(vcenter.lastSuccessfulCollectionAt)
                 : translator.translateText("Not yet")}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-gray-500">
+              {translator.translateText("Next collection")}
+            </dt>
+            <dd className="text-gray-900" data-testid="vmware-next-collection">
+              {getNextClaimWords(
+                getVMwareNextCollection(vcenter, new Date(), BILLING_ENABLED),
+                translator,
+              )}
             </dd>
           </div>
           {product ? (

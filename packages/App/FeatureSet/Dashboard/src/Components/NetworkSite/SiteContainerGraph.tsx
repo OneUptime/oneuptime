@@ -31,6 +31,8 @@ import { SiteChildView, SiteLinkView } from "./SiteHierarchyTypes";
 import { SiteCardBody } from "./SiteCard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * One drill-down level of the site hierarchy as a React Flow graph: the
@@ -324,7 +326,10 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
         const ariaLabel: string = link.monitorStatus
           ? translator.translateTemplate("{{name}} — {{status}} link", {
               name: link.name,
-              status: link.monitorStatus.name,
+              status: recordNameInSentence(
+                StateListType.MonitorStatus,
+                link.monitorStatus.name,
+              ),
             })
           : translator.translateTemplate("{{name}} — No status link", {
               name: link.name,

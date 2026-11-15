@@ -50,7 +50,7 @@ import OneUptimeDate from "Common/Types/Date";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -67,6 +67,7 @@ import {
   formatErrorRate,
   healthForErrorRate,
 } from "./TopologyMeta";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Drill-down for one Service Map edge. The edge row itself only stores the
@@ -577,7 +578,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                 </span>
                 <span>
                   {translator.translateTemplate("avg {{duration}}", {
-                    duration: formatDurationMs(rel.avgDurationMs),
+                    duration: composedValue((sentence: Translator): string => {
+                      return formatDurationMs(rel.avgDurationMs, sentence);
+                    }),
                   })}
                 </span>
               </div>
@@ -662,7 +665,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                       {translateString(
                         "Couldn't refresh — showing previously loaded data.",
                       ) || ""}{" "}
-                      {error}
+                      <ErrorInSentence message={error} />
                     </span>
                   </div>
                 ) : (

@@ -6,7 +6,7 @@ import ServiceCallsTable, {
 import { MessageQueueServiceRow } from "./MessageQueueTelemetryQueries";
 import {
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
 } from "./MessageQueueOverviewPresentation";
 import Route from "Common/Types/API/Route";
@@ -190,7 +190,10 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
                 errorRate: formatMessageQueueErrorRate(
                   service.errorRatePercent,
                 ),
-                duration: formatMessageQueueDurationMs(service.p95DurationMs),
+                duration: formatMessageQueueDurationMsInLanguage(
+                  service.p95DurationMs,
+                  translator,
+                ),
               };
             },
           )}

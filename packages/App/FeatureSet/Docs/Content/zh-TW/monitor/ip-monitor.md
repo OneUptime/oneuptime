@@ -143,7 +143,7 @@ flowchart TB
 :::
 
 :::details IPv6 位址總是失敗
-執行檢查的探測器沒有 IPv6 連線能力；失敗訊息會說明這一點。請在具備 IPv6 的探測器上執行監測器：請參閱 [自訂探針](/docs/probe/custom-probe)。
+執行檢查的探測器沒有 IPv6 連線能力；失敗訊息會說明這一點。請在具備 IPv6 的探測器上執行監測器：請參閱 [自訂探測器](/docs/probe/custom-probe)。
 :::
 
 :::details 封包遺失率和抖動為空白
@@ -155,6 +155,6 @@ flowchart TB
 :::cards
 - [Ping 監控](/docs/monitor/ping-monitor): 以名稱 ping 主機，並跟上 DNS 的變更。
 - [連接埠監控](/docs/monitor/port-monitor): 檢查該位址上的服務，而不只是位址本身。
-- [自訂探針](/docs/probe/custom-probe): 從您自己的網路檢查私有位址和 IPv6 位址。
+- [自訂探測器](/docs/probe/custom-probe): 從您自己的網路檢查私有位址和 IPv6 位址。
 - [事件](/docs/incidents/index): 監測器宣告事件之後會發生什麼。
 :::

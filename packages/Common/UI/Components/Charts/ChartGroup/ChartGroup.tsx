@@ -19,6 +19,7 @@ import {
 import Icon, { SizeProp } from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Modal, { ModalWidth } from "../../Modal/Modal";
+import DictionaryFilterSentence from "../../Dictionary/DictionaryFilterSentence";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
@@ -55,7 +56,12 @@ export enum ChartType {
 export interface ChartMetricInfo {
   metricName: string;
   aggregationType: string;
-  attributes?: Dictionary<string> | undefined;
+  /*
+   * The query's attribute filters as they are stored - a bare value for
+   * equality, an operator's value otherwise - each said as one sentence
+   * in the reader's language (DictionaryFilterSentence).
+   */
+  attributes?: Dictionary<unknown> | undefined;
   groupByAttribute?: string | undefined;
   unit?: string | undefined;
 }
@@ -286,7 +292,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const attributes: Dictionary<string> =
+    const attributes: Dictionary<unknown> =
       metricInfoModalChart.attributes || {};
     const attributeKeys: Array<string> = Object.keys(attributes);
 
@@ -357,13 +363,17 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       <div className="space-y-1.5">
                         {attributeKeys.map((key: string) => {
                           return (
-                            <div key={key} className="flex items-center gap-2">
-                              <span className="inline-flex items-center rounded bg-gray-200 px-2 py-0.5 text-xs font-mono text-gray-700">
-                                {key}
-                              </span>
-                              <span className="text-xs text-gray-900 font-mono">
-                                {attributes[key]}
-                              </span>
+                            <div
+                              key={key}
+                              className="text-xs leading-6 text-gray-500"
+                            >
+                              <DictionaryFilterSentence
+                                attributeKey={key}
+                                value={attributes[key]}
+                                keyClassName="inline-block rounded bg-gray-200 px-2 font-mono text-gray-700"
+                                valueClassName="font-mono text-gray-900"
+                                dataTestId="metric-info-attribute"
+                              />
                             </div>
                           );
                         })}

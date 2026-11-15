@@ -36,6 +36,8 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
   getSecurityPlaybookTriggerOptions,
@@ -302,10 +304,10 @@ const SecurityPlaybooksPage: FunctionComponent<
                   {item.minimumSecurityCasePriority?.name ? (
                     <div className="text-xs text-gray-500">
                       {translator.translateTemplate("{{priority}} and up", {
-                        priority:
-                          translator.translateText(
-                            item.minimumSecurityCasePriority.name,
-                          ) || item.minimumSecurityCasePriority.name,
+                        priority: recordNameInSentence(
+                          StateListType.SecurityCasePriority,
+                          item.minimumSecurityCasePriority.name,
+                        ),
                       })}
                     </div>
                   ) : (

@@ -28,7 +28,10 @@ import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
+  composedValue,
   formatInline,
   translatableTerm,
   translationKey,
@@ -314,11 +317,16 @@ function toInventoryItem(entity: EntityDetail): InventoryItem {
   return item;
 }
 
-/** One active incident/alert row: title link + severity line. */
+/*
+ * One active incident/alert row: title link + severity line, the severity
+ * read by its list (Common/Utils/DefaultRecordNames): "Critical Incident" in
+ * the reader's words, one the project named itself as written.
+ */
 function renderStatusItem(
   item: ServiceStatusItem,
   viewRoute: Route,
   fallbackColor: string,
+  severityText: string,
 ): ReactElement {
   return (
     <li key={item.id} className="py-2">
@@ -330,12 +338,12 @@ function renderStatusItem(
       >
         {item.title}
       </Link>
-      {item.severityName ? (
+      {severityText ? (
         <p
           className="mt-0.5 text-xs font-medium"
           style={{ color: item.severityColor || fallbackColor }}
         >
-          {item.severityName}
+          {severityText}
         </p>
       ) : (
         <></>
@@ -866,7 +874,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                 {totals.avgDurationMs === null ? (
                   <EmptyValue />
                 ) : (
-                  formatDurationMs(totals.avgDurationMs)
+                  formatDurationMs(totals.avgDurationMs, translator)
                 )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
@@ -986,7 +994,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                       ),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
-                      duration: formatDurationMs(row.avgDurationMs),
+                      duration: composedValue(
+                        (sentence: Translator): string => {
+                          return formatDurationMs(row.avgDurationMs, sentence);
+                        },
+                      ),
                     }),
                   ],
                   translator,
@@ -1084,7 +1096,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={actionClassNameOf("reload")}
-              aria-label={`${t("Reload list")}: ${title}`}
+              aria-label={translator.translateTemplate(
+                "Reload list: {{title}}",
+                { title: translatableTerm(config.title) },
+              )}
               disabled={Boolean(pending)}
               aria-busy={pending === "reload"}
               ref={registerFocusable(reloadFocusId(config.section))}
@@ -1107,7 +1122,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={actionClassNameOf("more")}
-              aria-label={`${t("Show more")}: ${title}`}
+              aria-label={translator.translateTemplate("Show more: {{title}}", {
+                title: translatableTerm(config.title),
+              })}
               disabled={Boolean(pending)}
               aria-busy={pending === "more"}
               onClick={() => {
@@ -1340,6 +1357,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         item,
                         RouteMap[PageMap.INCIDENT_VIEW] as Route,
                         "#dc2626",
+                        translateRecordName(
+                          translator,
+                          StateListType.IncidentSeverity,
+                          item.severityName,
+                        ),
                       );
                     },
                   )}
@@ -1362,6 +1384,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         item,
                         RouteMap[PageMap.ALERT_VIEW] as Route,
                         "#f59e0b",
+                        translateRecordName(
+                          translator,
+                          StateListType.AlertSeverity,
+                          item.severityName,
+                        ),
                       );
                     },
                   )}

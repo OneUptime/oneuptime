@@ -152,6 +152,22 @@ describe("the inventory's empty state in Japanese, Persian and Arabic", () => {
     },
   );
 
+  test("a caseless or noun-capitalizing language names each type exactly as written", () => {
+    for (const language of SENTENCE_LANGUAGES) {
+      if (language !== "de" && !isWrittenWithoutLetterCase(language)) {
+        continue;
+      }
+
+      for (const descriptor of UNLINKED_TYPES) {
+        const word: string = typeWordIn(language, descriptor.label);
+
+        expect(toSentenceTerm(word, language)).toBe(
+          word.split(/\s+/).join(" "),
+        );
+      }
+    }
+  });
+
   test("a Japanese pod is never a lower-case pod", () => {
     expect(sentenceIn("ja", EntityType.KubernetesPod)).not.toMatch(
       /Kubernetes pod/,
@@ -160,7 +176,11 @@ describe("the inventory's empty state in Japanese, Persian and Arabic", () => {
 
   /*
    * Every type the sentence names, in each language that words it: the
-   * type reads exactly as the language's file writes it.
+   * type reads exactly as the language's file writes it where its script
+   * has no letter case (or, as German, keeps its nouns' capitals), and as
+   * the middle of a sentence writes it elsewhere - since every language
+   * words the sentence (#7950), French reads "Cet élément (pod
+   * Kubernetes)", its brand names' capitals kept.
    */
   test.each(SENTENCE_LANGUAGES)(
     "%s names every type exactly as its file writes it",
@@ -168,7 +188,7 @@ describe("the inventory's empty state in Japanese, Persian and Arabic", () => {
       const misnamed: Array<string> = UNLINKED_TYPES.filter(
         (descriptor: InventoryTypeDescriptor): boolean => {
           return !sentenceIn(language, descriptor.entityType).includes(
-            typeWordIn(language, descriptor.label),
+            toSentenceTerm(typeWordIn(language, descriptor.label), language),
           );
         },
       ).map((descriptor: InventoryTypeDescriptor): string => {

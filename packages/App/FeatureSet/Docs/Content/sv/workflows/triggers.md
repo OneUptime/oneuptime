@@ -20,7 +20,7 @@ För att lägga till utlösaren klickar du på det streckade blocket **Välj vad
 | Klicka på en knapp för att köra arbetsflödet   | **Manuell**                  |
 | Köra enligt ett återkommande schema            | **Schema**                  |
 | Låta ett annat system skicka in data           | **Webhook**                 |
-| Börja från ett e-postmeddelande                | **Incoming Email**          |
+| Börja från ett e-postmeddelande                | **Inkommande e-post**          |
 | Agera på incidentrapporter från Huntress       | **Huntress Incident Report** |
 | Reagera på något i OneUptime                   | **OneUptime-händelse**      |
 

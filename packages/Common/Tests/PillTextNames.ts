@@ -6,8 +6,9 @@ import { listScanRoots, listSourceFiles } from "./ForeignHiddenRuleGuard";
 /*
  * THE TEXT OF EVERY BADGE, READ FROM SOURCE (RecordNamesInPillsGuard, #7780).
  *
- * A badge - a Pill or a StatusBubble - looks its text up in the reader's
- * language unless it is told the text is drawn as written (isUserContent).
+ * A badge - a Pill or a StatusBubble - and a menu's item (MoreMenuItem)
+ * look their text up in the reader's language unless told the text is
+ * drawn as written (isUserContent).
  * This reads every badge the front ends draw, by the name each file
  * imports the component under, and tells which of them draw a name: a
  * text that reads a record's name (`state.name`, `label["name"]`,
@@ -37,10 +38,16 @@ export const REPOSITORY_ROOT: string = path.resolve(
   "..",
 );
 
-// The badges, by their module's path from the repository root.
+/*
+ * The badges, by their module's path from the repository root - and a
+ * menu's item, which looks its text up the same way and is told the same
+ * way that it draws a name (#8064): a Change state menu's "Open", a
+ * priority picker's "Critical".
+ */
 export const BADGE_MODULES: Readonly<Record<string, string>> = {
   "packages/Common/UI/Components/Pill/Pill": "Pill",
   "packages/Common/UI/Components/StatusBubble/StatusBubble": "StatusBubble",
+  "packages/Common/UI/Components/MoreMenu/MoreMenuItem": "MoreMenuItem",
 };
 
 // The property a badge is told its text is drawn as written by.
@@ -50,13 +57,13 @@ export const AS_WRITTEN_PROPERTY: string = "isUserContent";
 const NAME_SUFFIX_PATTERN: RegExp = /[a-z0-9]Name$/;
 
 // A file that may draw a badge.
-const BADGE_WORD_PATTERN: RegExp = /Pill|StatusBubble/;
+const BADGE_WORD_PATTERN: RegExp = /Pill|StatusBubble|MoreMenuItem/;
 
 export interface BadgeTextSite {
   // From the repository root, with forward slashes.
   file: string;
   line: number;
-  // "Pill" or "StatusBubble".
+  // "Pill", "StatusBubble" or "MoreMenuItem".
   badge: string;
   // The text, as written ("(none)" for a badge given no text the reader sees).
   text: string;

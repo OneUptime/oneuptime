@@ -47,6 +47,7 @@ import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
 import DashboardWidgetIds from "Common/Utils/Dashboard/DashboardWidgetIds";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
@@ -265,10 +266,24 @@ const DashboardIncidentListComponentElement: FunctionComponent<
     (incident: Incident): HoneycombTile => {
       const incidentId: string = (incident._id as string) || "";
       const title: string = (incident.title as string) || "Untitled";
+      /*
+       * The state and the severity by their lists
+       * (Common/Utils/DefaultRecordNames): the ones a project starts with in
+       * the reader's words, a project's own as written - so the tile reads
+       * them as written from here on, never looking them up again.
+       */
       const stateName: string =
-        (incident.currentIncidentState?.name as string) || "—";
+        translateRecordName(
+          translator,
+          StateListType.IncidentState,
+          incident.currentIncidentState?.name,
+        ) || "—";
       const severityName: string =
-        (incident.incidentSeverity?.name as string) || "—";
+        translateRecordName(
+          translator,
+          StateListType.IncidentSeverity,
+          incident.incidentSeverity?.name,
+        ) || "—";
       const severityColor: Color | undefined = incident.incidentSeverity
         ?.color as Color | undefined;
       const stateColor: Color | undefined = incident.currentIncidentState
@@ -284,6 +299,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       return {
         id: incidentId || title,
         status: stateName,
+        isStatusUserContent: true,
         color: severityColor
           ? severityColor.toString()
           : stateColor
@@ -315,12 +331,21 @@ const DashboardIncidentListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = incidents.map(
     (incident: Incident): ReactElement => {
       const incidentId: string = (incident._id as string) || "";
+      // By their lists, as the tiles read them.
       const stateName: string =
-        (incident.currentIncidentState?.name as string) || "—";
+        translateRecordName(
+          translator,
+          StateListType.IncidentState,
+          incident.currentIncidentState?.name,
+        ) || "—";
       const stateColor: Color | undefined = incident.currentIncidentState
         ?.color as Color | undefined;
       const severityName: string =
-        (incident.incidentSeverity?.name as string) || "—";
+        translateRecordName(
+          translator,
+          StateListType.IncidentSeverity,
+          incident.incidentSeverity?.name,
+        ) || "—";
       const severityColor: Color | undefined = incident.incidentSeverity
         ?.color as Color | undefined;
       const declared: DashboardDateTime = getDashboardDateTime(

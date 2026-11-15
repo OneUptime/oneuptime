@@ -233,10 +233,52 @@ function result(
 describe("the card's first words", () => {
   test("says what happens, who is emailed and who is paged, as the issue words it", () => {
     expect(getWhoIsToldSentences(result([offline()]), translator)).toEqual([
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
       "It emails the project's owners (Owner One).",
       "It pages Ana Lopez through Primary.",
     ]);
+  });
+
+  /*
+   * A new project's incident severities are named "Critical Incident" and
+   * the rest: "opens a {{severity}} incident" read "opens a Critical
+   * Incident incident" on every monitor's page (#7368). The severity is in
+   * brackets now, as the Website down summary sets it.
+   */
+  test("with the severity a new project starts with, the sentence names the incident once", () => {
+    const first: string = getWhoIsToldSentences(
+      result([
+        offline({ events: [event({ severityName: "Critical Incident" })] }),
+      ]),
+      translator,
+    )[0]!;
+
+    expect(first).toBe(
+      "OneUptime marks it Offline and opens an incident (Critical Incident).",
+    );
+    expect(first).not.toMatch(/Incident incident/i);
+    expect(first.match(/\bincident\b/g)).toHaveLength(1);
+  });
+
+  test("and an alert's, its severity in brackets too", () => {
+    for (const name of ["High", "Low"]) {
+      const first: string = getWhoIsToldSentences(
+        result([
+          offline({
+            statusName: undefined,
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                severityName: name,
+              }),
+            ],
+          }),
+        ]),
+        translator,
+      )[0]!;
+
+      expect(first).toBe(`OneUptime opens an alert (${name}).`);
+    }
   });
 
   test("nobody paged, said plainly", () => {
@@ -270,7 +312,7 @@ describe("the card's first words", () => {
         translator,
       ).slice(0, 2),
     ).toEqual([
-      "OneUptime opens a Warning alert.",
+      "OneUptime opens an alert (Warning).",
       "It emails its owners (Ana Lopez and Platform).",
     ]);
   });
@@ -436,7 +478,7 @@ describe("the card's first words", () => {
 
     test("English: a space after each sentence", () => {
       expect(getWhoIsToldSummary(owned, translator)).toBe(
-        "OneUptime marks it Offline and opens a Critical incident. It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
+        "OneUptime marks it Offline and opens an incident (Critical). It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
       );
     });
 
@@ -741,7 +783,7 @@ describe("MonitorWhoIsToldCard", () => {
 
     expect(screen.getByTestId("who-is-told-loading")).toBeInTheDocument();
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens a Critical incident. It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
     );
     expect(screen.getByTestId("who-is-told-no-breaks")).toBeInTheDocument();
     expect(screen.getByText("When this goes down")).toBeInTheDocument();
@@ -772,6 +814,25 @@ describe("MonitorWhoIsToldCard", () => {
       ).toString(),
     );
     expect(screen.queryByTestId("who-is-told-no-breaks")).toBeNull();
+  });
+
+  test("the chain names a new project's Critical Incident once: An incident (Critical Incident)", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({ events: [event({ severityName: "Critical Incident" })] }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
+
+    expect(chain).toHaveTextContent("An incident (Critical Incident)");
+    expect(chain).not.toHaveTextContent(/Critical Incident incident/i);
+    expect(screen.getByTestId("who-is-told-summary")).not.toHaveTextContent(
+      /Critical Incident incident/i,
+    );
   });
 
   /*
@@ -870,7 +931,7 @@ describe("MonitorWhoIsToldCard", () => {
     const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
 
     expect(chain).toHaveTextContent("When Offline matches");
-    expect(chain).toHaveTextContent("A Critical incident");
+    expect(chain).toHaveTextContent("An incident (Critical)");
     expect(chain).toHaveTextContent("Every incident");
     expect(chain).toHaveTextContent("Public status");
     expect(
@@ -986,7 +1047,7 @@ describe("MonitorWhoIsToldCard", () => {
     fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
 
     expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
-      "A Critical incident",
+      "An incident (Critical)",
     );
     expect(screen.queryByTestId("who-is-told-title")).toBeNull();
     expect(screen.queryByTestId("who-is-told-owner-rules")).toBeNull();
@@ -1744,7 +1805,7 @@ describe("MonitorWhoIsToldCard", () => {
     });
 
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
     );
     expect(screen.queryByTestId("who-is-told-try-again")).toBeNull();
   });

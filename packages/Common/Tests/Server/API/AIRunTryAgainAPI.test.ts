@@ -575,3 +575,73 @@ describe("the AI insight's triage card says whether the reader may try again", (
     });
   });
 });
+
+/*
+ * AN AI INSIGHT'S PAGE, REFUSED FOR AN INSIGHT THAT IS GONE OR NOT THE
+ * READER'S (#8052). Confirm, Dismiss, Resolve, Reopen, the triage panel and
+ * a triage's Try again all look the insight up first. That lookup refused
+ * with a plain BadDataException, so the page said "AI insight not found (or
+ * you do not have access to it)." in English on a German page. It refuses
+ * with its code now, the same answer for a deleted insight and one in
+ * another project, so the page words it and nothing tells them apart.
+ */
+describe("every AI insight route refuses an insight it cannot find with its code", () => {
+  const ROUTES: ReadonlyArray<[string, JSONObject]> = [
+    ["/ai-insight/verdict", { verdict: "Confirmed" }],
+    ["/ai-insight/resolve", {}],
+    ["/ai-insight/reopen", {}],
+    ["/ai-insight/triage-run", {}],
+    ["/ai-insight/triage-try-again", {}],
+  ];
+
+  let tryAgain: SpyInstance<typeof InsightTriage.tryAgain>;
+  let verdict: SpyInstance<typeof AIInsightService.applyHumanVerdict>;
+  let resolve: SpyInstance<typeof AIInsightService.resolveInsight>;
+  let reopen: SpyInstance<typeof AIInsightService.reopenInsight>;
+
+  beforeEach(() => {
+    tryAgain = jest.spyOn(InsightTriage, "tryAgain").mockResolvedValue(RUN_ID);
+    verdict = jest.spyOn(AIInsightService, "applyHumanVerdict");
+    resolve = jest.spyOn(AIInsightService, "resolveInsight");
+    reopen = jest.spyOn(AIInsightService, "reopenInsight");
+    jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(null);
+  });
+
+  it.each(ROUTES)(
+    "%s: an unknown insight is refused with its code beside the sentence, and nothing changes",
+    async (route: string, body: JSONObject) => {
+      const next: NextMock = await call(route, {
+        ...body,
+        insightId: INSIGHT_ID.toString(),
+      });
+
+      expect(next).toHaveBeenCalledTimes(1);
+      const error: unknown = next.mock.calls[0]![0];
+
+      expect(error).toBeInstanceOf(AiRunRefusalException);
+      // Still bad data (400), for the API and older Dashboards.
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error).toMatchObject({
+        message: "AI insight not found (or you do not have access to it).",
+        refusalCode: AiRunRefusalCode.InsightNotFoundOrNoAccess,
+        details: { refusalCode: "insight_not_found_or_no_access" },
+      });
+      expect(tryAgain).not.toHaveBeenCalled();
+      expect(verdict).not.toHaveBeenCalled();
+      expect(resolve).not.toHaveBeenCalled();
+      expect(reopen).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(ROUTES)(
+    "%s: a request that names no insight is malformed bad data, with no code",
+    async (route: string, body: JSONObject) => {
+      const next: NextMock = await call(route, body);
+      const error: unknown = next.mock.calls[0]![0];
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error).not.toBeInstanceOf(AiRunRefusalException);
+      expect((error as Error).message).toBe("insightId is required.");
+    },
+  );
+});

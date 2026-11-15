@@ -5,6 +5,8 @@ import { isArchivedValue } from "Common/Utils/ArchivableValues";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -129,7 +131,12 @@ const SecurityCaseStatusStepper: FunctionComponent<ComponentProps> = (
               index < currentIndex || (isClosed && isCurrent);
             const canSelect: boolean =
               Boolean(props.onSelect) && !props.isDisabled && !isCurrent;
-            const name: string = translator.translateText(status.name) || "";
+            // Read by its list: a status the project named "Open" as written.
+            const name: string = translateRecordName(
+              translator,
+              StateListType.SecurityCaseStatus,
+              status.name,
+            );
             const description: string = status.description
               ? translator.translateText(status.description) || ""
               : "";

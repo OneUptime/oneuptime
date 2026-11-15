@@ -146,10 +146,8 @@ import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
@@ -1067,13 +1065,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(
+            stateName: recordNameInSentence(
+              StateListType.AlertState,
               acknowledgeState?.name || "Acknowledged",
             ),
           })}
           icon={IconProp.Check}
           value={getTimeToStateText(
             {
+              stateList: StateListType.AlertState,
               startedAt: responseTimes.startedAt,
               reachedAt: responseTimes.acknowledgedAt,
               stateName: acknowledgeState?.name,
@@ -1093,11 +1093,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(resolvedState?.name || "Resolved"),
+            stateName: recordNameInSentence(
+              StateListType.AlertState,
+              resolvedState?.name || "Resolved",
+            ),
           })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText(
             {
+              stateList: StateListType.AlertState,
               startedAt: responseTimes.startedAt,
               reachedAt: responseTimes.resolvedAt,
               stateName: resolvedState?.name,

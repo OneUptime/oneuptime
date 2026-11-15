@@ -58,6 +58,7 @@ import ResourceOverview, {
 import ChartCard from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ChartCard";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 import {
   getTileTitleWordsClassName,
@@ -158,10 +159,15 @@ function sentence(
 ): string {
   const worded: boolean = drawn(language, template) !== template;
 
-  return (worded ? drawn(language, template) : template).replace(
-    `{{${slot}}}`,
-    worded ? drawn(language, english) : english,
-  );
+  /*
+   * As the Translator fills it: the language's words set as it sets a
+   * line, French's colon kept with its word (NoBreakSpaces).
+   */
+  return (
+    worded
+      ? withNoBreakSpaces(drawn(language, template), template, language)
+      : template
+  ).replace(`{{${slot}}}`, worded ? drawn(language, english) : english);
 }
 
 /*
@@ -367,7 +373,8 @@ describe("a golden-metric tile", () => {
         "Page loads",
       );
 
-      expect(status).toHaveTextContent(expected);
+      // Read as its text reads: a no-break space is a space there.
+      expect(status).toHaveTextContent(expected.replace(/\s+/g, " "));
 
       // The language's name never sits inside the English sentence.
       expect(status).toHaveTextContent(

@@ -9,6 +9,7 @@ import {
 import {
   DASHBOARD_LANGUAGES,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
 import i18next from "i18next";
@@ -217,7 +218,7 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
   test("the who-is-told sentence reads wholly in the language, the error's words its own", async () => {
     await readIn(language);
 
-    const locale: Record<string, string> = readDashboardLocale(language);
+    const locale: Record<string, string> = readDashboardLocaleAsDrawn(language);
     const template: string = locale[WHO_IS_TOLD]!;
 
     expect(template).toBeTruthy();

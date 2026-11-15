@@ -77,16 +77,27 @@ beforeAll(async () => {
         translation: {
           Events: "Ereignisse",
           "Search limit reached": "Suchlimit erreicht",
-          "critical or high": "kritisch oder hoch",
-          "less frequent not shown": "seltenere nicht angezeigt",
+          /*
+           * Whole sentences with their count (#8076): German may put the
+           * count where its grammar does, as "less frequent observables"
+           * does below.
+           */
+          "{{count}} critical or high": "{{count}} kritisch oder hoch",
+          "{{count}} critical or high_one": "{{count}} kritisch oder hoch",
+          "{{count}} less frequent not shown":
+            "{{count}} seltenere nicht angezeigt",
+          "{{count}} less frequent not shown_one":
+            "{{count}} seltenerer nicht angezeigt",
           "Found in": "Gefunden in",
           "Graph key": "Legende",
           "Your filter": "Ihr Filter",
           "No severity": "Kein Schweregrad",
           High: "Hoch",
           Informational: "Informativ",
-          "less frequent observables not drawn":
-            "seltenere Observables nicht gezeichnet",
+          "{{count}} less frequent observables not drawn":
+            "Nicht gezeichnet: {{count}} seltenere Observables",
+          "{{count}} less frequent observables not drawn_one":
+            "Nicht gezeichnet: {{count}} selteneres Observable",
           [ZOOM_SENTENCE]: GERMAN_ZOOM_SENTENCE,
         },
       },
@@ -1389,7 +1400,27 @@ describe("CorrelateGraphLegend", () => {
     expect(screen.queryByText("Informativ")).toBeNull();
     expect(
       screen.getByTestId("correlate-dropped-observables"),
-    ).toHaveTextContent(/^2 seltenere Observables nicht gezeichnet$/);
+    ).toHaveTextContent(/^Nicht gezeichnet: 2 seltenere Observables$/);
+  });
+
+  /*
+   * One sentence, its count where the language puts it (#8076): the
+   * count and the words were joined in English's order, the count first.
+   */
+  test("says how many were left off in one sentence, worded and ordered as the language does", () => {
+    renderLegend({ droppedObservableCount: 1 }, GermanWrapper);
+
+    expect(
+      screen.getByTestId("correlate-dropped-observables"),
+    ).toHaveTextContent(/^Nicht gezeichnet: 1 selteneres Observable$/);
+  });
+
+  test("says one observable in the singular in English", () => {
+    renderLegend({ droppedObservableCount: 1 });
+
+    expect(
+      screen.getByTestId("correlate-dropped-observables"),
+    ).toHaveTextContent(/^1 less frequent observable not drawn$/);
   });
 });
 

@@ -1,4 +1,5 @@
 import APIException from "../../../Types/Exception/ApiException";
+import { getNotificationServiceNotReachedLine } from "../../../Types/OnCallDutyPolicy/OnCallSendFailureLine";
 import axios, { AxiosError } from "axios";
 
 /*
@@ -170,8 +171,9 @@ export function classifyNotificationRequestFailure(
 /*
  * What a notification whose request never reached the Notification service
  * says: the code only - the error's own message names the service's
- * internal address, which is not for the person paged.
+ * internal address, which is not for the person paged. Written, and read
+ * back for a test page's result, by OnCallSendFailureLine (#7550).
  */
 export function getNotReachedStatusMessage(code: string): string {
-  return `Could not reach the Notification service to send this (${code}).`;
+  return getNotificationServiceNotReachedLine(code);
 }

@@ -1,6 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
+import DocumentationInReadersLanguage, {
+  DocumentationTranslations,
+} from "../../Components/Documentation/DocumentationInReadersLanguage";
 import Card from "Common/UI/Components/Card/Card";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -9,8 +11,18 @@ import React, { FunctionComponent, ReactElement } from "react";
  * needs, how a probe collects a database only the customer's network can
  * reach, and the metrics every table writes - which is how alerts, charts
  * and dashboards are made from table health.
+ *
+ * In every language the Dashboard is read in (#7531): each has its text in
+ * DocumentationTranslations/<code>.ts, fetched when a reader of that
+ * language opens the page (DocumentationInReadersLanguage). A translation
+ * keeps the code, field names, metric names and product names as they are
+ * written here, and names what the product draws - a check type, a tab, a
+ * setting - as that language's Dashboard words it. A change to this text
+ * changes every translation in the same pull request:
+ * DataObservabilityDocumentationInLocale holds each to this text's code
+ * blocks, inline code, links, headings and tables.
  */
-const DOCUMENTATION: string = `
+export const DOCUMENTATION: string = `
 ## What Data Observability watches
 
 Every table and view of each connected database, every five minutes:
@@ -441,6 +453,64 @@ A span is tied to a table only when its database is the one a collection read, a
 These metrics are OneUptime's own operational data and are not billed as telemetry.
 `;
 
+/*
+ * Each language's text, by the Dashboard's language code: one chunk each,
+ * fetched only by a reader of that language.
+ */
+export const DOCUMENTATION_TRANSLATIONS: DocumentationTranslations = {
+  de: () => {
+    return import("./DocumentationTranslations/de");
+  },
+  fr: () => {
+    return import("./DocumentationTranslations/fr");
+  },
+  es: () => {
+    return import("./DocumentationTranslations/es");
+  },
+  it: () => {
+    return import("./DocumentationTranslations/it");
+  },
+  pt: () => {
+    return import("./DocumentationTranslations/pt");
+  },
+  nl: () => {
+    return import("./DocumentationTranslations/nl");
+  },
+  da: () => {
+    return import("./DocumentationTranslations/da");
+  },
+  no: () => {
+    return import("./DocumentationTranslations/no");
+  },
+  sv: () => {
+    return import("./DocumentationTranslations/sv");
+  },
+  ru: () => {
+    return import("./DocumentationTranslations/ru");
+  },
+  ja: () => {
+    return import("./DocumentationTranslations/ja");
+  },
+  ko: () => {
+    return import("./DocumentationTranslations/ko");
+  },
+  "zh-CN": () => {
+    return import("./DocumentationTranslations/zh-CN");
+  },
+  "zh-TW": () => {
+    return import("./DocumentationTranslations/zh-TW");
+  },
+  hi: () => {
+    return import("./DocumentationTranslations/hi");
+  },
+  fa: () => {
+    return import("./DocumentationTranslations/fa");
+  },
+  ar: () => {
+    return import("./DocumentationTranslations/ar");
+  },
+};
+
 const DataObservabilityDocumentationPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -449,7 +519,10 @@ const DataObservabilityDocumentationPage: FunctionComponent<
       title="Documentation"
       description="How Data Observability watches your tables, and how to connect a database."
     >
-      <MarkdownViewer text={DOCUMENTATION} />
+      <DocumentationInReadersLanguage
+        english={DOCUMENTATION}
+        translations={DOCUMENTATION_TRANSLATIONS}
+      />
     </Card>
   );
 };

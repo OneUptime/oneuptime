@@ -96,6 +96,7 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
       projects: projects.map((row: OpenStackResource): DropdownOption => {
         return {
           label: row.name || row.externalId || "",
+          isUserContent: true,
           value: row.externalId || "",
         };
       }),
@@ -104,7 +105,7 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
       )
         .sort()
         .map((name: string): DropdownOption => {
-          return { label: name, value: name };
+          return { label: name, isUserContent: true, value: name };
         }),
     };
   }, [props.modelId.toString()]);

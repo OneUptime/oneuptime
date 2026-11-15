@@ -36,6 +36,7 @@ import {
   getOpenStackConnectionTestView,
   isOpenStackConnectionTestSettled,
 } from "./OpenStackProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Test connection": the address, credential, regions and certificates on the form, tried by
@@ -555,7 +556,9 @@ const OpenStackConnectionTestPanel: FunctionComponent<ComponentProps> = (
           role="alert"
         >
           <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 flex-none" />
-          <span>{error}</span>
+          <span>
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </span>
         </div>
       ) : (
         <></>

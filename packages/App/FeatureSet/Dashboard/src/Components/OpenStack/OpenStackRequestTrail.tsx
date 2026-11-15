@@ -38,6 +38,7 @@ import DashboardLogsViewer from "../Logs/LogsViewer";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * One request, followed across a cloud's services: every line holding its ID or its global
@@ -220,7 +221,13 @@ const OpenStackRequestTrail: FunctionComponent<ComponentProps> = (
               {translator.translateText("Back to all of this cloud's logs")}
             </Link>
           </div>
-          {error ? <p className="text-red-700">{error}</p> : <></>}
+          {error ? (
+            <p className="text-red-700">
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </p>
+          ) : (
+            <></>
+          )}
           {join ? (
             <Fragment>
               <ul data-testid="openstack-request-joined">

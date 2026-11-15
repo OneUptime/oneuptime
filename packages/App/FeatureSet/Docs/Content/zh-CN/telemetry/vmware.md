@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"只读的<br/>govc 命令"| vsphere
 ```
 
-vCenter 会随其第一批数据，以代理作为 `vmware.vcenter.name` 打到每个指标上的名称自行注册。若要完全不运行代理来监控 vCenter，请参见 [无需代理的 VMware](/docs/telemetry/vmware-agentless)：你的某个探针会用只读帐户收集相同的数据。
+vCenter 会随其第一批数据，以代理作为 `vmware.vcenter.name` 打到每个指标上的名称自行注册。若要完全不运行代理来监控 vCenter，请参见 [无需代理的 VMware](/docs/telemetry/vmware-agentless)：你的某个探测器会用只读帐户收集相同的数据。
 
 ## 开始之前
 
@@ -517,7 +517,7 @@ vSphere 没有自己的 OpenTelemetry 推送，因此代理（或任何带有 `v
 
 :::cards
 - [VMware 监控](/docs/monitor/vmware-monitor): 针对主机、VM、数据存储、集群、数据中心和 vSAN 发出警报。
-- [无需代理的 VMware](/docs/telemetry/vmware-agentless): 改为让探针收集 vCenter。
+- [无需代理的 VMware](/docs/telemetry/vmware-agentless): 改为让探测器收集 vCenter。
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): VMware AI 代理可以运行什么，以及修复如何工作。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): VM 内部或代理所在机器的操作系统视图。
 :::

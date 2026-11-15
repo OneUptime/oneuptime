@@ -156,7 +156,7 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
   let timeToAcknowledge: string = "-";
 
   if (!firstAcknowledgedAt) {
-    timeToAcknowledge = getNotYetInStateText(acknowledgedStateName);
+    timeToAcknowledge = getNotYetInStateText(input.list, acknowledgedStateName);
   } else if (startedAt) {
     timeToAcknowledge = getEventDurationText(startedAt, firstAcknowledgedAt);
   }
@@ -164,7 +164,7 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
   let timeToResolve: string = "-";
 
   if (!firstResolvedAt) {
-    timeToResolve = getNotYetInStateText(resolvedStateName);
+    timeToResolve = getNotYetInStateText(input.list, resolvedStateName);
   } else if (startedAt) {
     timeToResolve = getEventDurationText(startedAt, firstResolvedAt);
   }

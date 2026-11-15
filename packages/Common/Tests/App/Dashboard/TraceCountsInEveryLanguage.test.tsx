@@ -380,8 +380,9 @@ describe.each(LANGUAGES)("a row's age in %s", (language: string) => {
         ),
       );
 
+      // Read as textOf reads it: a no-break space is a space there.
       expect(textOf(ageCell(result))).toBe(
-        sentence(language, phrase, { count }),
+        sentence(language, phrase, { count }).replace(/\s+/g, " ").trim(),
       );
     },
   );

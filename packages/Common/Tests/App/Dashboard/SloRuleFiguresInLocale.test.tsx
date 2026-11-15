@@ -65,7 +65,19 @@ const DE: Record<string, string> = readLocale("de");
 const FA: Record<string, string> = readLocale("fa");
 const AR: Record<string, string> = readLocale("ar");
 
-// The locale's own words for `key`, which must differ from the English.
+const LANGUAGE_OF: Map<Record<string, string>, string> = new Map<
+  Record<string, string>,
+  string
+>([
+  [DE, "de"],
+  [FA, "fa"],
+  [AR, "ar"],
+]);
+
+/*
+ * The locale's own words for `key`, which must differ from the English, as
+ * the page draws them: each number with its unit (NoBreakSpaces).
+ */
 function worded(
   locale: Record<string, string>,
   key: string,
@@ -78,9 +90,12 @@ function worded(
     translated: true,
   });
 
-  return Object.keys(values).reduce((sentence: string, name: string) => {
-    return sentence.split(`{{${name}}}`).join(values[name] as string);
-  }, text as string);
+  return Object.keys(values).reduce(
+    (sentence: string, name: string) => {
+      return sentence.split(`{{${name}}}`).join(values[name] as string);
+    },
+    withNoBreakSpaces(text as string, key, LANGUAGE_OF.get(locale)),
+  );
 }
 
 // A Latin digit: none is left on a Persian page.
@@ -267,6 +282,7 @@ import {
 } from "../../../Utils/Slo/SloWidgetFormat";
 import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
 import { isolated } from "../../Helpers/IsolateMarks";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",

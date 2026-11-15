@@ -15,6 +15,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Test the destination", inside the form, before anything is saved: the
@@ -69,10 +70,17 @@ export const BackupTestResultBox: FunctionComponent<{
           className="mt-0.5 h-4 w-4 flex-none"
         />
         <span className="min-w-0 break-words">
-          {props.refusal ||
-            translator.translateText(
-              isSuccessful ? BackupsCopy.testSucceeded : BackupsCopy.testFailed,
-            )}
+          <ErrorInSentence
+            message={
+              props.refusal ||
+              translator.translateText(
+                isSuccessful
+                  ? BackupsCopy.testSucceeded
+                  : BackupsCopy.testFailed,
+              )
+            }
+            showWhereToLook={true}
+          />
         </span>
       </div>
       {props.result.checks.length > 0 ? (

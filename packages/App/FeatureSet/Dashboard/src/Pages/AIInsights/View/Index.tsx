@@ -18,6 +18,10 @@ import InsightFactsList, {
   InsightFact,
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
+import InsightActionError, {
+  InsightActionRefusal,
+  readInsightActionRefusal,
+} from "../../../Components/AIInsights/InsightActionError";
 import InsightTitleText from "../../../Components/AIInsights/InsightTitleText";
 import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import ProfileFixStrip from "../../../Components/Profiles/ProfileFixStrip";
@@ -82,7 +86,6 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -190,7 +193,9 @@ const AIInsightViewPage: FunctionComponent<
   const triageSignatureRef: React.MutableRefObject<string> = useRef<string>("");
 
   const [isSavingAction, setIsSavingAction] = useState<boolean>(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<InsightActionRefusal | null>(
+    null,
+  );
   /*
    * Guards a polled refetch from clobbering the optimistic status/verdict
    * while a save is in flight; once the POST settles, the server value is
@@ -478,7 +483,8 @@ const AIInsightViewPage: FunctionComponent<
         // Roll back the optimistic update.
         setStatus(previousStatus);
         setHumanVerdict(previousVerdict);
-        setActionError(API.getFriendlyMessage(err));
+        // Its message and its code, worded when drawn (InsightActionError).
+        setActionError(readInsightActionRefusal(err));
       }
 
       setIsSavingAction(false);
@@ -1068,13 +1074,14 @@ const AIInsightViewPage: FunctionComponent<
             </div>
           </div>
 
+          {/*
+           * Why it did not save, in the reader's language when the server
+           * refused it with a code (#8052): the insight is gone, or closed
+           * already.
+           */}
           {actionError ? (
             <div className="mt-4">
-              <Alert
-                type={AlertType.DANGER}
-                strongTitle="Could not save your action"
-                title={actionError}
-              />
+              <InsightActionError refusal={actionError} />
             </div>
           ) : (
             <></>
