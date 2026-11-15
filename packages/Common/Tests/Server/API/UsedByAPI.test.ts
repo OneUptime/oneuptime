@@ -215,7 +215,7 @@ describe("GET /used-by/:recordKind/:recordId", () => {
   test("a record the caller may not read is passed on as not found", async () => {
     getSummary.mockRejectedValue(
       new NotFoundException(
-        "This record was not found in the project, or you may not read it. Check the link, or ask a project admin for access.",
+        "This record was not found in the project, or you may not read it. Check the link, or ask a Project Admin for access.",
       ),
     );
 

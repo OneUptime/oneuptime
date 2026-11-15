@@ -60,7 +60,7 @@ Both are whole numbers, compared with **Greater Than**, **Less Than**, **Equal T
 
 | Criteria | Filter | What it does |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** greater than `0` | Marks the monitor offline and declares an incident titled `Probe disconnected: {{disconnectedProbeNames}}`, which resolves by itself. |
+| Check if a probe is disconnected | **Disconnected Probes** greater than `0` | Marks the monitor offline and declares an incident titled "Probe disconnected: {{disconnectedProbeNames}}", which resolves by itself. |
 | Check if every probe is connected | **Disconnected Probes** equal to `0` | Marks the monitor operational. |
 
 **Connected Probes** suits a monitor that watches several probes and can lose one: **Connected Probes** less than `2` declares an incident only when fewer than two are left.

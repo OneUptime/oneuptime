@@ -107,7 +107,7 @@ describe("TargetedCapturePanel", () => {
     expect(
       screen.getByTestId("targeted-capture-no-permission"),
     ).toHaveTextContent(
-      'so it needs the "Edit RUM Application" permission (project owners',
+      'so it needs the "Edit RUM Application" permission (Project Owners',
     );
     expect(screen.queryByTestId("targeted-capture-user-ref")).toBeNull();
     expect(postMock).not.toHaveBeenCalled();

@@ -329,7 +329,7 @@ export class Service extends ProjectReferencesService<IncomingCallPolicy> {
    * The people who own this policy: its owner users, plus the accepted
    * members of its owner teams, once each. Owners who are no longer accepted
    * members of the project are left out. Empty means nobody owns the policy,
-   * which callers treat as "tell the project owners".
+   * which callers treat as "tell the Project Owners".
    */
   @CaptureSpan()
   public async findOwners(

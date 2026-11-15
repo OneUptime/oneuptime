@@ -98,7 +98,7 @@ Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten o
 
 Een nieuwe IP-monitor begint met twee criteria:
 
-- **Offline** — het adres beantwoordt geen van de echoverzoeken, of is na alle nieuwe pogingen helemaal niet bereikbaar. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ is offline" gemaakt. Het incident lost zichzelf op wanneer het adres weer antwoordt.
+- **Offline** — het adres beantwoordt geen van de echoverzoeken, of is na alle nieuwe pogingen helemaal niet bereikbaar. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitornaam_ is offline" gemaakt. Het incident lost zichzelf op wanneer het adres weer antwoordt.
 - **Bereikbaar** — het adres antwoordt. De monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden** onder de criteria een andere kiest.

@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Bij elke aanvraag een geheim vereisen
 
-Iedereen die de URL van een monitor heeft, kan er verzoeken naartoe sturen. Een projecteigenaar of -beheerder kan elke monitor voor inkomende aanvragen in het project daarnaast een van de eigen geheimen van het project laten vereisen, wie de monitor ook heeft ingesteld: zet **Bij elke aanvraag een geheim vereisen** aan. Een verzoek zonder geheim wordt geweigerd met `401` en de reden, voordat het als heartbeat telt, als laatste verzoek van de monitor wordt bewaard of criteria bereikt. Een verzoek met een geheim gaat door naar de eigen criteria van de monitor, zoals voorheen.
+Iedereen die de URL van een monitor heeft, kan er verzoeken naartoe sturen. Een Projecteigenaar of Projectbeheerder kan elke monitor voor inkomende aanvragen in het project daarnaast een van de eigen geheimen van het project laten vereisen, wie de monitor ook heeft ingesteld: zet **Bij elke aanvraag een geheim vereisen** aan. Een verzoek zonder geheim wordt geweigerd met `401` en de reden, voordat het als heartbeat telt, als laatste verzoek van de monitor wordt bewaard of criteria bereikt. Een verzoek met een geheim gaat door naar de eigen criteria van de monitor, zoals voorheen.
 
 :::steps
 ### Een geheim aanmaken

@@ -299,7 +299,7 @@ describe.each(KINDS)(
       }
     });
 
-    test("project owners and admins, root and master admins are not narrowed", async () => {
+    test("Project Owners and Project Admins, root and master admins are not narrowed", async () => {
       for (const props of [
         userProps(Permission.ProjectOwner),
         userProps(Permission.ProjectAdmin),

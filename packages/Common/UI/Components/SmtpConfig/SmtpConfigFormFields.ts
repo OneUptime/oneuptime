@@ -17,6 +17,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
 import SelectFormFields from "../../Types/SelectEntityField";
+import { getProductName } from "../../Utils/ProductBranding";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import type { CardSelectOption } from "../CardSelect/CardSelect";
 import type { RadioButton } from "../RadioButtons/GroupRadioButtons";
@@ -1861,6 +1862,43 @@ export const getGlobalEmailProviderFormSteps: (
   return [providerStep[transport], { title: "Sender", id: "sender" }];
 };
 
+// Whether `field` edits `column`.
+const isFieldOf: <TEntity>(field: Field<TEntity>, column: string) => boolean = <
+  TEntity,
+>(
+  field: Field<TEntity>,
+  column: string,
+): boolean => {
+  return Boolean(
+    field.field && (field.field as Record<string, unknown>)[column],
+  );
+};
+
+/*
+ * The From Name of a mail server the instance sends through: the product's
+ * name when the instance holds none, as the port starts on 587 (#8183). A
+ * fresh server holds none - its SMTP From Name is "", which
+ * UpdateGlobalConfigFromEnv writes over the "OneUptime" the row was created
+ * with, and a provider's is null - and the field is required, so a newcomer
+ * had to make a name up before Save worked, on a form that asks only what it
+ * cannot work out. The product's name is what the sender falls back to
+ * (Notification/Config.ts), so the default is what mail would say anyway.
+ * Not seeded in the database: a From Name counts as something set
+ * (ServerChannelSetup.getCustomSmtpProblem), and an untouched server would
+ * read as half set up again (#7458). A name the instance holds is kept.
+ */
+const startsOnInstanceFromName: (
+  field: Field<GlobalConfig>,
+) => Field<GlobalConfig> = (
+  field: Field<GlobalConfig>,
+): Field<GlobalConfig> => {
+  return {
+    ...field,
+    defaultValue: getProductName(),
+    startsOnDefaultWhenEmpty: true,
+  };
+};
+
 export const getGlobalEmailProviderFormFields: (
   transport: GlobalEmailProviderTransport,
 ) => Array<Field<GlobalConfig>> = (
@@ -1876,20 +1914,30 @@ export const getGlobalEmailProviderFormFields: (
     [MailTransportType.Resend]: getResendFormFields<GlobalConfig>,
   };
 
+  const sender: {
+    fromEmail: Extract<keyof GlobalConfig, string>;
+    fromName: Extract<keyof GlobalConfig, string>;
+  } = GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport];
+
   return [
     ...providerFields[transport](),
-    ...getProviderSenderFormFields<GlobalConfig>(
-      GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport],
+    ...getProviderSenderFormFields<GlobalConfig>(sender).map(
+      (field: Field<GlobalConfig>): Field<GlobalConfig> => {
+        return isFieldOf(field, sender.fromName)
+          ? startsOnInstanceFromName(field)
+          : field;
+      },
     ),
   ];
 };
 
 /*
  * The instance's mail server (GlobalConfig): the shared fields, with the
- * port starting on 587 when the instance has none (#6875). The form edits
- * the one settings row, so nothing else is filled in; a fresh server's
- * empty port showed 587 as its placeholder, looked filled in, and refused
- * Next. An instance with a port of its own keeps it.
+ * port starting on 587 when the instance has none (#6875), and the From
+ * Name on the product's name (#8183). The form edits the one settings row,
+ * so nothing else is filled in; a fresh server's empty port showed 587 as
+ * its placeholder, looked filled in, and refused Next. An instance with a
+ * port and a name of its own keeps them.
  */
 export const getGlobalSmtpConfigFormFields: () => Array<
   Field<GlobalConfig>
@@ -1897,20 +1945,19 @@ export const getGlobalSmtpConfigFormFields: () => Array<
   return getSmtpConfigFormFields<GlobalConfig>(
     GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
   ).map((field: Field<GlobalConfig>): Field<GlobalConfig> => {
-    const isPort: boolean = Boolean(
-      field.field &&
-        (field.field as Record<string, unknown>)[
-          GLOBAL_SMTP_CONFIG_FORM_COLUMNS.port
-        ],
-    );
+    if (isFieldOf(field, GLOBAL_SMTP_CONFIG_FORM_COLUMNS.port)) {
+      return {
+        ...field,
+        defaultValue: DEFAULT_SMTP_PORT,
+        startsOnDefaultWhenEmpty: true,
+      };
+    }
 
-    return isPort
-      ? {
-          ...field,
-          defaultValue: DEFAULT_SMTP_PORT,
-          startsOnDefaultWhenEmpty: true,
-        }
-      : field;
+    if (isFieldOf(field, GLOBAL_SMTP_CONFIG_FORM_COLUMNS.fromName)) {
+      return startsOnInstanceFromName(field);
+    }
+
+    return field;
   });
 };
 

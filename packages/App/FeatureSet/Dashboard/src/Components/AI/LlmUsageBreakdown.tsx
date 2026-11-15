@@ -731,7 +731,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
               />
               <div>
                 {translator.translateText(
-                  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
+                  "Usage metrics are left out: your role cannot read metrics. Ask a Project Admin for access.",
                 )}
               </div>
             </div>

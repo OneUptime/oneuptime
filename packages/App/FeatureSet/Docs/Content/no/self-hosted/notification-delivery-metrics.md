@@ -168,7 +168,7 @@ For en innkommende forespørsel løper tiden fra den siste forespørselen endepu
 | `rule_wait` | En persons vaktregel som venter, for eksempel "ring meg etter 10 minutter": så lenge etter at personen ble tilkalt. Aldri før workeren sist gikk gjennom reglene deres, så en regel som legges til eller endres senere, forfaller fra da. |
 | `repeat` | En push som gjentas til noen bekrefter: hver gang intervallet løper ut. |
 | `escalation` | Et senere eskaleringsnivå: når nivået før har fullført ventetiden sin, eller med en gang når en person gir tilkallingen videre. |
-| `policy_repeat` | Retningslinjen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
+| `policy_repeat` | Policyen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
 
 Den bærer også `notification.channel`, `notification.trigger.type` og, for egendefinerte kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. Et varsel som forfaller når tilkallingen starter, er aldri med i den, heller ikke når en worker startet tilkallingen for sent, etter en pause eller som en ny tilkalling: det er i tid til sending.
 

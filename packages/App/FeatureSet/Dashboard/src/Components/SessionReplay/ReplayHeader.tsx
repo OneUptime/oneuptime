@@ -424,7 +424,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
      * as the server's own refusal and the filter dialog put it.
      */
     identityTitle = translator.translateTemplate(
-      'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.',
+      'Your role cannot read end-user identity. Ask a Project Admin for the "{{permission}}" permission.',
       { permission: getSessionReplayIdentityPermissionTitle() },
     );
     identityClassName = "text-gray-500";

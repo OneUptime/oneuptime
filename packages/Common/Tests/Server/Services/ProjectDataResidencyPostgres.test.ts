@@ -269,7 +269,7 @@ describePostgres("Project.dataResidency against Postgres", () => {
     });
   });
 
-  describe("a project owner", () => {
+  describe("a Project Owner", () => {
     test("cannot set it", async () => {
       const projectId: ObjectID = await seedProject(null);
 

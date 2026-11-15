@@ -257,7 +257,7 @@ describe("the maintainer's case: Test User 2 on INC-17, owned by Team 2 (Viewer)
     ).toBe(true);
   });
 
-  test("once a project admin names them an owner of INC-17, nothing is narrowed", () => {
+  test("once a Project Admin names them an owner of INC-17, nothing is narrowed", () => {
     expect(
       privateRecordOptions({ owningTeamIds: [TEAM_2], isOwnedByReader: true }),
     ).toBeUndefined();

@@ -552,12 +552,12 @@ describe.each(cases)(
        * its title - but the rule is the member's, not the recipient's, as it
        * is for the feed entries: one email never carries a private title.
        */
-      test("is listed without its title to the project owners the email falls back to, too", async () => {
+      test("is listed without its title to the Project Owners the email falls back to, too", async () => {
         entry.episodeService.findOwners.mockResolvedValue([]);
         (ProjectService.getOwners as jest.Mock).mockResolvedValue([
           {
             id: new ObjectID("project-owner-1"),
-            name: "Project owner",
+            name: "Project Owner",
             email: "project-owner@example.com",
           },
         ]);

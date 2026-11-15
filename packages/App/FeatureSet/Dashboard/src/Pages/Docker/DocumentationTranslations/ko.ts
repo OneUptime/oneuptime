@@ -115,7 +115,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The host's name comes from `DOCKER_HOST_NAME`. An agent started without it reports `docker-host`, so every host set up that way looks like the same host. Set `DOCKER_HOST_NAME` to a name of its own on each host and recreate the agent — `docker rm -f oneuptime-docker-agent`, then run the command from step 2 with the new name.":
     "호스트 이름은 `DOCKER_HOST_NAME`에서 옵니다. 이것 없이 시작한 에이전트는 `docker-host`를 보고하므로, 그렇게 설정한 호스트는 모두 같은 호스트처럼 보입니다. 각 호스트에서 `DOCKER_HOST_NAME`에 고유한 이름을 설정하고 에이전트를 다시 만드세요. `docker rm -f oneuptime-docker-agent`를 실행한 뒤 새 이름으로 2단계의 명령을 실행합니다.",
   "This installs the agent for **`web-1`** — keep `DOCKER_HOST_NAME` exactly as it is, or the data registers as a new host.":
-    "이 명령은 **`web-1`**용으로 에이전트를 설치합니다. `DOCKER_HOST_NAME`을 그대로 두세요. 바꾸면 데이터가 새 호스트로 등록됩니다.",
+    "이 명령은 **`web-1`** 호스트용으로 에이전트를 설치합니다. `DOCKER_HOST_NAME`을 그대로 두세요. 바꾸면 데이터가 새 호스트로 등록됩니다.",
   "Docker Compose v2 (the `docker compose` command)":
     "Docker Compose v2(`docker compose` 명령)",
   "The second service is the OneUptime AI agent, with the same URL, key and host name. **AI investigations are on by default**: while OneUptime AI investigates an incident or alert on this host, it runs read-only `docker` commands through the AI agent, and it changes nothing unless you allow fixes — see **The OneUptime AI agent** under Advanced. Delete the `oneuptime-docker-ai-agent` service to run the collector without AI investigations.":

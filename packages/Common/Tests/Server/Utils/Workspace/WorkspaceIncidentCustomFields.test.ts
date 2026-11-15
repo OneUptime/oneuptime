@@ -1024,7 +1024,7 @@ describe("WorkspaceIncidentCustomFields: the reads and the write, as the member"
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "You do not have permission to edit the custom fields of this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+        "You do not have permission to edit the custom fields of this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
       ),
     );
     expect(update).not.toHaveBeenCalled();

@@ -78,7 +78,7 @@ Også kalt: **Hendelsesepisode**, **Varselsepisode**. Se [Episoder](/docs/incide
 
 Avgjør hvem som tilkalles om en hendelse, et varsel eller en episode, og hvem som er neste hvis ingen bekrefter. Nivåene er eskaleringsregler.
 
-Også kalt: **Vakttjeneste**, **On-Call Duty Policy**, **Vakt**, `OnCallDutyPolicy`. Se [Vaktretningslinjer](/docs/on-call/policies).
+Også kalt: **Vakttjeneste**, **On-Call Duty Policy**, **Vakt**, `OnCallDutyPolicy`. Se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Eskaleringsregel
 
@@ -452,11 +452,11 @@ Hvert nivå har sine egne: **Prosjektinnstillinger** for hele prosjektet, **Bruk
 
 Se [Prosjektinnstillinger](/docs/configuration/project-settings).
 
-### Retningslinje
+### Policy
 
 Oftest en **Vaktpolicy**: hvem som tilkalles, og hvem som er neste. En policy for innkommende anrop gir teamet ditt et telefonnummer som ringer den som har vakt, og en feilbudsjettpolicy skriver ned hva teamet ditt gjør når budsjettet til et SLO tar slutt.
 
-Se [Vaktretningslinjer](/docs/on-call/policies).
+Se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Mal
 

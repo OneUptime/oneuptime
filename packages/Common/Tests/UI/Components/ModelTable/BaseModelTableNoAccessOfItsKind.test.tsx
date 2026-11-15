@@ -180,7 +180,7 @@ describe("the Probes list, for someone who may read none of it", () => {
     const block: HTMLElement = screen.getByTestId(`${TABLE_ID}-no-access`);
 
     expect(block).toHaveTextContent(
-      "You need this permission: Read Probe. Ask a project admin for access.",
+      "You need this permission: Read Probe. Ask a Project Admin for access.",
     );
     expect(block).not.toHaveTextContent("one of these permissions");
     for (const other of [

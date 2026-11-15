@@ -647,7 +647,7 @@ describe("buildPageSearchCommandDescriptors", () => {
 });
 
 describe("canDeleteProject (the Danger Zone's own rule, mirrored)", () => {
-  test("a project owner may", () => {
+  test("a Project Owner may", () => {
     expect(
       canDeleteProject({
         held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),

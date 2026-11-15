@@ -70,7 +70,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Alert Episode On-Call Rule Owning Teams",
   icon: IconProp.Call,
   tableDescription:
-    "Teams that own an alert episode on-call rule: only their members, and project admins, can change or delete it.",
+    "Teams that own an alert episode on-call rule: only their members, and Project Admins, can change or delete it.",
 })
 @Entity({
   name: "AlertEpisodeOnCallRuleOwningTeam",

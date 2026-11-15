@@ -110,7 +110,7 @@ const NOT_A_BOOLEAN_MESSAGE: string =
 const NO_ACKNOWLEDGED_STATE_MESSAGE: string =
   "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.";
 const MAY_NOT_ACKNOWLEDGE_MESSAGE: string =
-  "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.";
+  "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a Project Admin for permission.";
 const ACKNOWLEDGE_FAILED_LOG_PREFIX: string =
   "Acknowledging the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ";
 const MAY_NOT_CHANGE_STATE_MESSAGE: string =

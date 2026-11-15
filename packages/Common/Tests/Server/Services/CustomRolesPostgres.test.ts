@@ -1393,7 +1393,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
   });
 
   describe("nobody gives through a role what they could not give directly", () => {
-    test("Project Owner is never part of a role, not even for a project owner", async () => {
+    test("Project Owner is never part of a role, not even for a Project Owner", async () => {
       const role: ObjectID = await createRole("Everything");
 
       expect(
@@ -1727,7 +1727,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
   });
 
   describe("a team's copies are the role's", () => {
-    test("a copy is not changed or removed on its own, even by a project admin; the role names itself in the refusal", async () => {
+    test("a copy is not changed or removed on its own, even by a Project Admin; the role names itself in the refusal", async () => {
       const role: ObjectID = await createRole("Incident Responder");
       await addToRole(role, Permission.IncidentMember);
       await giveRole(roleTeam, role);
@@ -1851,7 +1851,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
 
       expect(
         await refusal(() => {
-          return createRole("project admin");
+          return createRole("Project Admin");
         }),
       ).toBe(
         "Project Admin is a built-in role. Pick another name for your role.",

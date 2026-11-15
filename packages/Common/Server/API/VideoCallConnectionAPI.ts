@@ -232,7 +232,7 @@ export default class VideoCallConnectionAPI extends BaseAPI<
         ]),
       ),
       errorMessage:
-        "Project owners, project administrators and settings administrators can test video call connections.",
+        "Project Owners, project administrators and settings administrators can test video call connections.",
     });
   }
 }

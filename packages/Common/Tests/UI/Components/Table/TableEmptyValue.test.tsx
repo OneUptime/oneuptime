@@ -99,7 +99,13 @@ describe("the dash", () => {
     expect(screen.getByTestId(TABLE_EMPTY_VALUE_TEST_ID).className).toBe(
       TABLE_EMPTY_VALUE_CLASS_NAME,
     );
+    /*
+     * relative: the sr-only words (position: absolute) stay in the dash's
+     * box. Placed against the page, they reached past a table scrolling
+     * sideways in its card, and a phone's page scrolled sideways with them.
+     */
     expect(TABLE_EMPTY_VALUE_CLASS_NAME.split(" ")).toEqual([
+      "relative",
       "text-sm",
       "leading-6",
       "text-gray-400",

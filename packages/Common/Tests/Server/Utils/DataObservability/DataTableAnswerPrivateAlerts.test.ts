@@ -233,7 +233,7 @@ const OWNERS: Array<[string, DatabaseCommonInteractionProps]> = [
   ],
 ];
 const ADMINS: Array<[string, DatabaseCommonInteractionProps]> = [
-  ["a project admin", person(ADMIN, Permission.ProjectAdmin)],
+  ["a Project Admin", person(ADMIN, Permission.ProjectAdmin)],
   ["the project's owner", person(PROJECT_OWNER, Permission.ProjectOwner)],
 ];
 // What an AI run of OneUptime's own reads as: an investigation's.

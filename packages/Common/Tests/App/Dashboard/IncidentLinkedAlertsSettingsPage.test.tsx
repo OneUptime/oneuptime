@@ -401,7 +401,7 @@ describe("Incidents → Settings → Linked Alerts", () => {
     ).toHaveTextContent(/unless an alert is linked to another open incident\./);
   });
 
-  test("a project owner turns the acknowledge switch off, and exactly that column is saved", async () => {
+  test("a Project Owner turns the acknowledge switch off, and exactly that column is saved", async () => {
     openPage();
 
     const acknowledge: HTMLElement = await acknowledgeSwitch();

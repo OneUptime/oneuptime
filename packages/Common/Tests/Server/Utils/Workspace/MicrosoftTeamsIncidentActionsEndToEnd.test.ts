@@ -1577,7 +1577,7 @@ describe("somebody who may not: told why, mentioning them, and no card", () => {
     const delivery: Delivery = await deliver(press("ViewAssignIncidentRole"));
 
     expect(answerOf(posted(delivery)[0])).toBe(
-      "You do not have permission to assign a role on this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+      "You do not have permission to assign a role on this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
     );
   });
 

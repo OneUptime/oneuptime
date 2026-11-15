@@ -370,7 +370,7 @@ describe("a privacy rule's name", () => {
       expect(name.defaultValue).toBe(PRIVACY_RULE_NAMES[record]);
       // It says what the rule does, where the name is asked for.
       expect(String(name.description)).toMatch(
-        /become private: only their owners, project admins and project owners can see them\.$/,
+        /become private: only their owners, Project Admins and Project Owners can see them\.$/,
       );
     }
   });

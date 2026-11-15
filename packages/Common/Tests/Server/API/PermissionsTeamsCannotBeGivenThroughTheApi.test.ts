@@ -223,8 +223,8 @@ interface Caller {
   apiKey?: string | undefined;
 }
 
-const AS_OWNER: Caller = { label: "a project owner", session: OWNER };
-const AS_ADMIN: Caller = { label: "a project admin", session: ADMIN };
+const AS_OWNER: Caller = { label: "a Project Owner", session: OWNER };
+const AS_ADMIN: Caller = { label: "a Project Admin", session: ADMIN };
 const AS_MEMBER: Caller = { label: "a project member", session: MEMBER };
 const AS_OWNER_KEY: Caller = {
   label: "the owner's API key, as Terraform calls",
@@ -871,7 +871,7 @@ describe("POST /team-permission", () => {
     });
   });
 
-  test("a project owner still gives a team what the picker offers", async () => {
+  test("a Project Owner still gives a team what the picker offers", async () => {
     const result: HttpResult = await call({
       method: "POST",
       path: "/team-permission",
@@ -901,7 +901,7 @@ describe("POST /team-permission", () => {
     );
   });
 
-  test("and a project admin gives what their own access holds", async () => {
+  test("and a Project Admin gives what their own access holds", async () => {
     const result: HttpResult = await call({
       method: "POST",
       path: "/team-permission",
@@ -913,7 +913,7 @@ describe("POST /team-permission", () => {
     expect(teamPermissions.inserts).toHaveLength(1);
   });
 
-  test("a project admin's grant ceiling still holds for what a team may be given", async () => {
+  test("a Project Admin's grant ceiling still holds for what a team may be given", async () => {
     const result: HttpResult = await call({
       method: "POST",
       path: "/team-permission",
@@ -1008,7 +1008,7 @@ describe("POST /api-key-permission", () => {
     });
   });
 
-  test("a project owner still gives a key what the picker offers", async () => {
+  test("a Project Owner still gives a key what the picker offers", async () => {
     const result: HttpResult = await call({
       method: "POST",
       path: "/api-key-permission",
@@ -1035,7 +1035,7 @@ describe("POST /api-key-permission", () => {
     expect(apiKeyPermissions.inserts).toHaveLength(1);
   });
 
-  test("a project admin's grant ceiling still holds for what a key may be given", async () => {
+  test("a Project Admin's grant ceiling still holds for what a key may be given", async () => {
     const result: HttpResult = await call({
       method: "POST",
       path: "/api-key-permission",

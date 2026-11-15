@@ -477,7 +477,7 @@ describe("LlmProviderService - changing a provider through the write pipeline", 
     },
   );
 
-  test("a project owner clears it", async () => {
+  test("a Project Owner clears it", async () => {
     await LlmProviderService.updateOneById({
       id: new ObjectID(PROVIDER_ID),
       data: { baseUrl: null } as never,

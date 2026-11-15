@@ -93,7 +93,7 @@ describe.each(ALL_BALANCES)(
   "who may add to the %s balance",
   (balance: ProjectBalanceType) => {
     test.each([
-      ["a project owner", [Permission.ProjectOwner]],
+      ["a Project Owner", [Permission.ProjectOwner]],
       ["someone with Manage Billing", [Permission.ManageProjectBilling]],
     ])("%s may", (_who: string, permissions: Array<Permission>) => {
       grant([...BASE_PERMISSIONS, ...permissions]);
@@ -104,7 +104,7 @@ describe.each(ALL_BALANCES)(
     });
 
     test.each([
-      ["a project admin", [Permission.ProjectAdmin]],
+      ["a Project Admin", [Permission.ProjectAdmin]],
       ["a member", [Permission.ProjectMember]],
       ["a viewer", [Permission.Viewer]],
       ["the Billing Admin role", [Permission.BillingAdmin]],
@@ -167,7 +167,7 @@ describe("the Current Balance card's description", () => {
           PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forEveryoneElse,
         );
         expect(description).toContain(
-          "A project owner or someone with Manage Billing can recharge it",
+          "A Project Owner or someone with Manage Billing can recharge it",
         );
         expect(description).not.toContain("Recharge it,");
       }
@@ -246,7 +246,7 @@ describe("the AI agent pages' words for used-up credits", () => {
 
   test("everyone else is told who can add credits, in the server's words", () => {
     expect(WHO_CAN_ADD_AI_CREDITS).toBe(
-      "A project owner or someone with Manage Billing can add AI credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits.",
     );
     expect(getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)).toContain(
       WHO_CAN_ADD_AI_CREDITS.replace(/\.$/, ""),

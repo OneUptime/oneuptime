@@ -122,7 +122,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer Port-Monitor beginnt mit zwei Kriterien:
 
-- **Offline** — der Port nimmt auch nach allen Wiederholungen keine Verbindung an. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ is offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Port wieder Verbindungen annimmt.
+- **Offline** — der Port nimmt auch nach allen Wiederholungen keine Verbindung an. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ ist offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Port wieder Verbindungen annimmt.
 - **Online** — der Port nimmt eine Verbindung an. Der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Trifft keines zu, zeigt der Monitor seinen Standardstatus: **Betriebsbereit**, sofern Sie unter **Weitere Felder** unterhalb der Kriterien keinen anderen wählen.

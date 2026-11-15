@@ -122,7 +122,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de puerto nuevo empieza con dos criterios:
 
-- **Sin conexión** — el puerto no acepta una conexión, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ is offline». El incidente se resuelve solo cuando el puerto vuelve a aceptar conexiones.
+- **Sin conexión** — el puerto no acepta una conexión, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_nombre del monitor_ está sin conexión». El incidente se resuelve solo cuando el puerto vuelve a aceptar conexiones.
 - **En línea** — el puerto acepta una conexión. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

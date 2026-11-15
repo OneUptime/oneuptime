@@ -237,12 +237,12 @@ const SSO_EDITOR_ROWS: Array<UserPermission> = [
 
 const CALLERS: Array<Caller> = [
   {
-    name: "a project owner",
+    name: "a Project Owner",
     rows: [allow(Permission.ProjectOwner)],
     grantable: PROJECT_TEAMS,
   },
   {
-    name: "a project owner blocked from Project Owner, who is also an admin and a member",
+    name: "a Project Owner blocked from Project Owner, who is also an admin and a member",
     rows: [
       allow(Permission.ProjectOwner),
       block(Permission.ProjectOwner),
@@ -252,12 +252,12 @@ const CALLERS: Array<Caller> = [
     grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
   },
   {
-    name: "a project admin",
+    name: "a Project Admin",
     rows: [allow(Permission.ProjectAdmin)],
     grantable: [ADMIN, READERS],
   },
   {
-    name: "a project admin who is also in Members",
+    name: "a Project Admin who is also in Members",
     rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
     grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
   },
@@ -365,10 +365,10 @@ function callerNamed(name: string): Caller {
   return caller;
 }
 
-const OWNER: Caller = callerNamed("a project owner");
-const ADMIN_CALLER: Caller = callerNamed("a project admin");
+const OWNER: Caller = callerNamed("a Project Owner");
+const ADMIN_CALLER: Caller = callerNamed("a Project Admin");
 const ADMIN_IN_MEMBERS: Caller = callerNamed(
-  "a project admin who is also in Members",
+  "a Project Admin who is also in Members",
 );
 const MASTER_ADMIN: Caller = callerNamed("a master admin");
 const ROOT: Caller = callerNamed("the server itself (root)");
@@ -833,11 +833,11 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
     expect(error?.message).toContain("adds people to Owners");
     expect(error?.message).toContain("Owners gives more access than you have");
     expect(error?.message).toContain(
-      "Choose teams you could invite someone to, or ask a project owner to save it.",
+      "Choose teams you could invite someone to, or ask a Project Owner to save it.",
     );
   });
 
-  test("a team of another project is refused, even for a project owner", async () => {
+  test("a team of another project is refused, even for a Project Owner", async () => {
     const error: Error | null = await refusal(
       create(providerCase, [MEMBERS, OTHER_PROJECTS_TEAM], propsFor(OWNER)),
     );
@@ -938,7 +938,7 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
     expect(database.permissionReads).not.toHaveBeenCalled();
   });
 
-  test("a project owner's teams are checked to be the project's, and nothing more is read", async () => {
+  test("a Project Owner's teams are checked to be the project's, and nothing more is read", async () => {
     await create(providerCase, [OWNERS, MEMBERS], propsFor(OWNER));
 
     expect(database.teamReads).toHaveBeenCalledTimes(1);
@@ -1122,7 +1122,7 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       ).resolves.toBeDefined();
     });
 
-    test("that moves a team to another project's is refused, even for a project owner", async () => {
+    test("that moves a team to another project's is refused, even for a Project Owner", async () => {
       storeProvider([MEMBERS]);
 
       const error: Error | null = await refusal(
@@ -1677,18 +1677,18 @@ describe(SCIM.label, () => {
     );
 
     expect(error?.message).toBe(
-      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a project owner to save it.",
+      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a Project Owner to save it.",
     );
   });
 
-  test("someone who is not a project owner is refused before a single team is read", async () => {
+  test("someone who is not a Project Owner is refused before a single team is read", async () => {
     await refusal(create(SCIM, [ADMIN], propsFor(ADMIN_IN_MEMBERS)));
 
     expect(database.teamReads).not.toHaveBeenCalled();
     expect(database.permissionReads).not.toHaveBeenCalled();
   });
 
-  test("someone who is not a project owner is told who can save it, whatever teams they name", async () => {
+  test("someone who is not a Project Owner is told who can save it, whatever teams they name", async () => {
     for (const teams of [[OTHER_PROJECTS_TEAM], [OWNERS], []]) {
       const error: Error | null = await refusal(
         create(SCIM, teams, propsFor(ADMIN_CALLER)),
@@ -1701,7 +1701,7 @@ describe(SCIM.label, () => {
     expect(database.teamReads).not.toHaveBeenCalled();
   });
 
-  test("a project owner may create one, with or without default teams", async () => {
+  test("a Project Owner may create one, with or without default teams", async () => {
     await expect(
       create(SCIM, [MEMBERS], propsFor(OWNER)),
     ).resolves.toBeDefined();
@@ -1734,7 +1734,7 @@ describe(SCIM.label, () => {
     expect((result.createBy.data as ProjectSCIM).bearerToken).toBeTruthy();
   });
 
-  test("default teams of another project are refused, even for a project owner", async () => {
+  test("default teams of another project are refused, even for a Project Owner", async () => {
     const error: Error | null = await refusal(
       create(SCIM, [OTHER_PROJECTS_TEAM], propsFor(OWNER)),
     );
@@ -1801,7 +1801,7 @@ describe("a SCIM connection's bearer token", () => {
     }
   }
 
-  test("is readable by a project owner only", () => {
+  test("is readable by a Project Owner only", () => {
     expect(
       new ProjectSCIM().getColumnAccessControlFor("bearerToken")?.read,
     ).toEqual([Permission.ProjectOwner]);
@@ -1844,7 +1844,7 @@ describe("a SCIM connection's bearer token", () => {
           teams: { _id: true },
           enablePushGroups: true,
         } as Select<ProjectSCIM>,
-        propsFor(callerNamed("a project admin")),
+        propsFor(callerNamed("a Project Admin")),
       );
     }).not.toThrow();
   });
@@ -1867,7 +1867,7 @@ describe("a SCIM connection's bearer token", () => {
  * buttons) agrees with the save.
  */
 describe("who may create or change a SCIM connection", () => {
-  test("the model lets a project owner create and change one; reading and deleting are as they were", () => {
+  test("the model lets a Project Owner create and change one; reading and deleting are as they were", () => {
     const connection: ProjectSCIM = new ProjectSCIM();
 
     expect(connection.createRecordPermissions).toEqual([
@@ -1891,7 +1891,7 @@ describe("who may create or change a SCIM connection", () => {
     ]);
   });
 
-  test("every column says the same: only a project owner writes one", () => {
+  test("every column says the same: only a Project Owner writes one", () => {
     const columns: Record<
       string,
       { create?: Array<Permission>; update?: Array<Permission> }
@@ -1960,7 +1960,7 @@ describe("who may create or change a SCIM connection", () => {
     expect(error).toBeInstanceOf(NotAuthorizedException);
   });
 
-  test("a blocked project owner, whom the table check lets through, is refused by the save", async () => {
+  test("a blocked Project Owner, whom the table check lets through, is refused by the save", async () => {
     storeProvider([READERS]);
 
     const error: Error | null = await refusal(
@@ -1969,7 +1969,7 @@ describe("who may create or change a SCIM connection", () => {
         { name: "Renamed" },
         propsFor(
           callerNamed(
-            "a project owner blocked from Project Owner, who is also an admin and a member",
+            "a Project Owner blocked from Project Owner, who is also an admin and a member",
           ),
         ),
       ),
@@ -1984,7 +1984,7 @@ describe("who may create or change a SCIM connection", () => {
  * may hand on every team, so nothing is read for one.
  */
 describe("TeamPermissionService.assertCanGrantTeamPermissions", () => {
-  test("reads nothing for a project owner", async () => {
+  test("reads nothing for a Project Owner", async () => {
     await expect(
       TeamPermissionService.assertCanGrantTeamPermissions({
         teamId: OWNERS.id,
@@ -2016,7 +2016,7 @@ describe("TeamPermissionService.assertCanGrantTeamPermissions", () => {
     expect(database.permissionReads).toHaveBeenCalledTimes(2);
   });
 
-  test("a project owner of another project is refused before anything is read", async () => {
+  test("a Project Owner of another project is refused before anything is read", async () => {
     await expect(
       TeamPermissionService.assertCanGrantTeamPermissions({
         teamId: OWNERS.id,
@@ -2091,7 +2091,7 @@ describe("TeamPermissionService.findTeamsCallerCannotGrant", () => {
     ).rejects.toBeInstanceOf(NotAuthorizedException);
   });
 
-  test("reads nothing for a project owner, a master admin or root", async () => {
+  test("reads nothing for a Project Owner, a master admin or root", async () => {
     for (const caller of [OWNER, MASTER_ADMIN, ROOT]) {
       await expect(
         TeamPermissionService.findTeamsCallerCannotGrant({
@@ -2156,7 +2156,7 @@ describe("the refusal's wording", () => {
         teamNames: ["Owners"],
       }),
     ).toBe(
-      "You can't save this SSO provider while it adds people to Owners, because Owners gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save it.",
+      "You can't save this SSO provider while it adds people to Owners, because Owners gives more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save it.",
     );
     expect(
       getProviderTeamsRefusalMessage({
@@ -2164,13 +2164,13 @@ describe("the refusal's wording", () => {
         teamNames: ["Owners", "Members"],
       }),
     ).toBe(
-      "You can't save this OIDC provider while it adds people to Owners and Members, because those teams give more access than you have. Choose teams you could invite someone to, or ask a project owner to save it.",
+      "You can't save this OIDC provider while it adds people to Owners and Members, because those teams give more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save it.",
     );
   });
 
   test("SCIM says why every team counts, and who can save it", () => {
     expect(SCIM_SAVE_REFUSAL_MESSAGE).toBe(
-      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a project owner to save it.",
+      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a Project Owner to save it.",
     );
   });
 

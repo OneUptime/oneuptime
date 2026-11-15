@@ -288,7 +288,7 @@ describe("the ask-to-connect routes", () => {
 
         expect(response.status).toBe(422);
         expect(JSON.stringify(response.body)).toContain(
-          "Only a project owner or admin can ask the project's members to connect their accounts.",
+          "Only a Project Owner or Project Admin can ask the project's members to connect their accounts.",
         );
       }
 

@@ -649,7 +649,7 @@ describe("Administrative notification rule edit guards", () => {
    * ------------------------------------------------------------------
    */
   describe("R1: the rule's owner must be a member of the acting project", () => {
-    test("a project admin cannot write a rule for a user who is not on this project's roster", async () => {
+    test("a Project Admin cannot write a rule for a user who is not on this project's roster", async () => {
       /*
        * The attack in one request. The caller is a genuine administrator of
        * PROJECT_ID - the permission layer has already waved them through, which
@@ -679,7 +679,7 @@ describe("Administrative notification rule edit guards", () => {
       expect(stubs.methodFindOneById.get("userEmailId")).not.toHaveBeenCalled();
     });
 
-    test("a project admin CAN write a rule for a user who is on the roster", async () => {
+    test("a Project Admin CAN write a rule for a user who is on the roster", async () => {
       /*
        * The other half, and the more important one to keep passing. An admin
        * who cannot repair a colleague's notification setup is the whole problem

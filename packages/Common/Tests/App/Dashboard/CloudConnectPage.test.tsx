@@ -523,7 +523,7 @@ describe("rights and plans", () => {
   test("without the right to connect: tiles disabled, why said in words, no role asked about", async () => {
     createGate = {
       isAllowed: false,
-      disabledReason: "Ask a project admin to connect a cloud account.",
+      disabledReason: "Ask a Project Admin to connect a cloud account.",
     };
 
     await openPage();
@@ -534,7 +534,7 @@ describe("rights and plans", () => {
       ).toBeDisabled();
     }
     expect(screen.getByTestId("cloud-connect-locked")).toHaveTextContent(
-      "Ask a project admin to connect a cloud account.",
+      "Ask a Project Admin to connect a cloud account.",
     );
     expect(getSpy).not.toHaveBeenCalled();
   });
