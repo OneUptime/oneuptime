@@ -53944,5 +53944,21 @@
   "{{order}}. {{name}}: {{targets}} (escalates after {{minutes}}m)": "{{order}}. {{name}}: {{targets}}（{{minutes}} 分後にエスカレーション）",
   "{{sensitivity}} or above": "{{sensitivity}} 以上",
   "{{state}} alert {{alert}}": "アラート {{alert}}: {{state}}",
-  "{{state}} incident {{incident}}": "インシデント {{incident}}: {{state}}"
+  "{{state}} incident {{incident}}": "インシデント {{incident}}: {{state}}",
+  "Available command targets": "利用可能なコマンドの対象",
+  "Clusters OneUptime AI can inspect": "OneUptime AI が調査できるクラスター",
+  "Executed on Runner \"{{runner}}\": {{command}}": "Runner「{{runner}}」で実行: {{command}}",
+  "Executed on cluster \"{{cluster}}\": {{command}}": "クラスター「{{cluster}}」で実行: {{command}}",
+  "Executed on {{resource}}: {{command}}": "{{resource}} で実行: {{command}}",
+  "Infrastructure OneUptime AI can inspect": "OneUptime AI が調査できるインフラストラクチャ",
+  "Proposed a {{count}}-command remediation plan": "{{count}} 個のコマンドの修復計画を提案",
+  "Proposed rolling back {{deployment}}": "{{deployment}} のロールバックを提案",
+  "Sent to cluster \"{{cluster}}\", result unknown: {{command}}": "クラスター「{{cluster}}」に送信、結果は不明: {{command}}",
+  "Sent to {{resource}}, result unknown: {{command}}": "{{resource}} に送信、結果は不明: {{command}}",
+  "Tools of MCP server {{server}}": "MCP サーバー {{server}} のツール",
+  "Tools of the external MCP servers": "外部 MCP サーバーのツール",
+  "Why there is no fix": "修正がない理由",
+  "{{command}} on cluster \"{{cluster}}\"": "クラスター「{{cluster}}」での {{command}}",
+  "{{command}} on {{resource}}": "{{resource}} での {{command}}",
+  "{{server}} · {{tool}} (not run)": "{{server}} · {{tool}}（未実行）"
 }

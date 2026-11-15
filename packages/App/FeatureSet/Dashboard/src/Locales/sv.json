@@ -53944,5 +53944,21 @@
   "{{order}}. {{name}}: {{targets}} (escalates after {{minutes}}m)": "{{order}}. {{name}}: {{targets}} (eskalerar efter {{minutes}} min)",
   "{{sensitivity}} or above": "{{sensitivity}} eller högre",
   "{{state}} alert {{alert}}": "Larm {{alert}}: {{state}}",
-  "{{state}} incident {{incident}}": "Incident {{incident}}: {{state}}"
+  "{{state}} incident {{incident}}": "Incident {{incident}}: {{state}}",
+  "Available command targets": "Tillgängliga kommandomål",
+  "Clusters OneUptime AI can inspect": "Kluster som OneUptime AI kan undersöka",
+  "Executed on Runner \"{{runner}}\": {{command}}": "Kört på Runner ”{{runner}}”: {{command}}",
+  "Executed on cluster \"{{cluster}}\": {{command}}": "Kört på klustret ”{{cluster}}”: {{command}}",
+  "Executed on {{resource}}: {{command}}": "Kört på {{resource}}: {{command}}",
+  "Infrastructure OneUptime AI can inspect": "Infrastruktur som OneUptime AI kan undersöka",
+  "Proposed a {{count}}-command remediation plan": "Åtgärdsplan med {{count}} kommandon föreslagen",
+  "Proposed rolling back {{deployment}}": "Återställning av {{deployment}} föreslagen",
+  "Sent to cluster \"{{cluster}}\", result unknown: {{command}}": "Skickat till klustret ”{{cluster}}”, okänt resultat: {{command}}",
+  "Sent to {{resource}}, result unknown: {{command}}": "Skickat till {{resource}}, okänt resultat: {{command}}",
+  "Tools of MCP server {{server}}": "Verktyg på MCP-servern {{server}}",
+  "Tools of the external MCP servers": "Verktyg på de externa MCP-servrarna",
+  "Why there is no fix": "Varför det inte finns någon åtgärd",
+  "{{command}} on cluster \"{{cluster}}\"": "{{command}} på klustret ”{{cluster}}”",
+  "{{command}} on {{resource}}": "{{command}} på {{resource}}",
+  "{{server}} · {{tool}} (not run)": "{{server}} · {{tool}} (inte körd)"
 }
