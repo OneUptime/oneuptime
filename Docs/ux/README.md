@@ -520,6 +520,11 @@ work out, starts from a default for everything else, and folds what most people 
   server and the front ends write, the English docs with their diagrams, and the website, and
   [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
   that each old name still finds the page.
+- **A permission is named after the record it guards.** A feed's permissions read "Create Incident
+  Feed" and "Read Scheduled Maintenance Feed", as the feed calls itself, so a search of the permission
+  picker for "feed" finds every one, and a refusal names the same thing the permission does. They
+  read "Scheduled Maintenance Log" until #8451. Enforced by
+  [FeedPermissionTitles](../../packages/Common/Tests/Types/FeedPermissionTitles.test.ts).
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A
   `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
   Enforced by

@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+クラウドをアーカイブしても、これらは何もオフになりません。アーカイブしたクラウドは一覧に表示されなくなるだけで、引き続き収集され、API チェックとライフサイクルチェックも実行され続けます。チェックを止めるには、そのチェックをオフにしてください。
+
 ## AI エージェント
 
 エージェントの `docker-compose.yml` は、**OpenStack AI エージェント**（`oneuptime-openstack-ai-agent`、イメージ `oneuptime/resource-ai-agent:release`）も動かします。OneUptime AI がこのクラウドのインシデントやアラートを調査する間、これを通じて読み取り専用の `openstack` コマンドを実行します。`openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list` などで、実行したものを引用して示します。エージェントには `openstack` バイナリもシェルもありません。各コマンドは、それに答えるサービスへの 1 回の `GET` になり、エージェント自身の認証情報で実行されます。エージェントは、Collector が報告するのと同じ `OPENSTACK_CLOUD_NAME` で登録されるため、このクラウドを担当します。

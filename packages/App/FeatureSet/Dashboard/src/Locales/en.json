@@ -53473,11 +53473,9 @@
   "Telemetry scanning is off for this project. Turn it on in Data Security's Settings.": "Telemetry scanning is off for this project. Turn it on in Data Security's Settings.",
   "The next time {{probe}} asks for work, it scans this store's content. What it finds shows on What's Inside when it is done.": "The next time {{probe}} asks for work, it scans this store's content. What it finds shows on What's Inside when it is done.",
   "This cloud has no Keystone address.": "This cloud has no Keystone address.",
-  "This cloud is archived, so no probe collects it.": "This cloud is archived, so no probe collects it.",
   "This vCenter has no address.": "This vCenter has no address.",
   "This vCenter has no user name.": "This vCenter has no user name.",
   "This vCenter was due to be collected {{time}}, and no probe has come for it.": "This vCenter was due to be collected {{time}}, and no probe has come for it.",
-  "Unarchive it to collect it again.": "Unarchive it to collect it again.",
   "With the project's telemetry scan, from what its service sent in the last hour.": "With the project's telemetry scan, from what its service sent in the last hour.",
   "ISO Date": "ISO Date",
   "Test (dbt test)": "Test (dbt test)",
@@ -54324,5 +54322,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} acknowledged the alert episode.",
   "{{name}} acknowledged the alert.": "{{name}} acknowledged the alert.",
   "{{name}} acknowledged the incident episode.": "{{name}} acknowledged the incident episode.",
-  "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident."
+  "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident.",
+  "Active · seen {{time}}": "Active · seen {{time}}",
+  "Inactive · seen {{time}}": "Inactive · seen {{time}}",
+  "Runs on {{count}} of these": "Runs on {{count}} of these",
+  "Runs on {{count}} of these_one": "Runs on {{count}} of these"
 }

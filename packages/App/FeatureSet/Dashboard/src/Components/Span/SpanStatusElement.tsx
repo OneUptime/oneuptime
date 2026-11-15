@@ -48,6 +48,7 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
             tooltip={translator.translateTerm(
               props.plainLabel ? status.plainDotTooltip : status.dotTooltip,
             )}
+            isTooltipTranslated={true}
           />
         ) : (
           <></>
