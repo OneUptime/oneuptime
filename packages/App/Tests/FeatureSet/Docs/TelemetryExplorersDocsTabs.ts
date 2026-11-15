@@ -1,3 +1,5 @@
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
+
 /*
  * What LogsAiDocsFacts, TracesAiDocsFacts and MetricsAiDocsFacts read their
  * explorer page's tab table with: the sentence that counts the explorer's
@@ -48,10 +50,14 @@ export interface ExplorerTabTable {
  * the sentence that counts them.
  */
 export function drawnExplorerTabs(navTabsSource: string): ExplorerTabTable {
+  /*
+   * A label may be a meaning key, "Insights (explorer analytics)", which
+   * English draws as its word, "Insights" (Common/Types/MeaningKeys).
+   */
   const tabs: Array<string> = Array.from(
     navTabsSource.matchAll(TAB_LABEL),
     (match: RegExpMatchArray): string => {
-      return match[1] as string;
+      return withMeaningKeyAsItsWord(match[1] as string);
     },
   );
 

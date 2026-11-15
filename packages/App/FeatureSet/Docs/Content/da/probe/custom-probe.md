@@ -201,7 +201,7 @@ spec:
 Hvad der går gennem proxyen:
 
 - **Sondens egne forespørgsler til OneUptime.**
-- **Overvågningers HTTP-tjek**: Website-, API-, External Status Page-, Custom Code-, SSL-certifikat-, syntetiske og domænemonitorer. SSL-certifikat- og syntetiske monitorer bruger `HTTPS_PROXY_URL`, eller `HTTP_PROXY_URL`, når kun den er sat.
+- **Overvågningers HTTP-tjek**: Website-, API-, Ekstern statusside-, Custom Code-, SSL-certifikat-, syntetiske og domænemonitorer. SSL-certifikat- og syntetiske monitorer bruger `HTTPS_PROXY_URL`, eller `HTTP_PROXY_URL`, når kun den er sat.
 - **Ikke de andre tjek.** Ping, Port, DNS, SNMP og de andre tjek, der ikke er HTTP, forbinder direkte.
 
 En post i `NO_PROXY` er et værtsnavn (`api.internal`), et domæne med et punktum eller `*.` foran for hvert navn under det (`.internal.example.com`), hver af dem med en `:port`, eller `*` for alt. IP-intervaller læses ikke: angiv hver adresse. Navnene med små bogstaver `http_proxy`, `https_proxy` og `no_proxy` samt `HTTP_PROXY` og `HTTPS_PROXY` virker også.
@@ -287,8 +287,8 @@ Sonden læser sine indstillinger fra sit miljø, når den starter: ændr en, og 
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrænse for syntetiske monitorers scripts, i millisekunder. |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sæt til `true` for at køre Chromium i syntetiske monitorer inde i sin egen sandkasse. Slå den kun til, når sondens container kører med en seccomp-profil, der tillader sandkassen, som Playwrights: uden en kan Chromium ikke starte. Så længe den er slået fra, logger sonden en advarsel ved opstart. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrænse for Custom Code-monitorers scripts, i millisekunder. |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sæt til `true`, så Website-, API-, External Status Page- og Custom Code-monitorer på denne sonde må nå private adresser. Se [Adgang til privat netværk](/docs/self-hosted/private-network-access). |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- og API-monitorer på denne sonde spørger et certifikats udsteder, om den har tilbagekaldt certifikatet, som browsere gør. Sæt til `false` for at holde op med at spørge, for eksempel på en sonde uden internetadgang. En udsteder, sonden ikke kan nå, regnes aldrig som en tilbagekaldelse: sonden venter nogle sekunder på hver responder, den ikke kan nå, cirka én gang hvert 5. minut. Se [SSL-certifikat-monitor](/docs/monitor/ssl-certificate-monitor). |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sæt til `true`, så Website-, API-, Ekstern statusside- og Custom Code-monitorer på denne sonde må nå private adresser. Se [Adgang til privat netværk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL-certifikat-, Website- og API-monitorer på denne sonde spørger et certifikats udsteder, om den har tilbagekaldt certifikatet, som browsere gør. Sæt til `false` for at holde op med at spørge, for eksempel på en sonde uden internetadgang. En udsteder, sonden ikke kan nå, regnes aldrig som en tilbagekaldelse: sonden venter nogle sekunder på hver responder, den ikke kan nå, cirka én gang hvert 5. minut. Se [SSL-certifikat-monitor](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hvor mange netværksenheder sonden poller ad gangen. Hæv den for en sonde, der poller mange enheder. |
 
 De grænser, en syntetisk monitor kører inden for (hvor mange ad gangen, deres hukommelse og deres disk), står på siden [Syntetisk monitor](/docs/monitor/synthetic-monitor).

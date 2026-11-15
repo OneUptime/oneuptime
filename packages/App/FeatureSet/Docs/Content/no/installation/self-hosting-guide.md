@@ -15,7 +15,7 @@ Følg denne siden fra topp til bunn for å gå fra en tom server til din egen On
 - **Et domenenavn** folk skal bruke for å åpne OneUptime, som `oneuptime.example.com`, med en DNS-`A`-post som peker på serveren. Du kan begynne med serverens IP-adresse, men et sertifikat fra Let's Encrypt krever et domenenavn.
 - **Portene 80 og 443**, som kan nås fra internett, for HTTPS.
 - **En måte å sende e-post på**: en e-postserver, som bedriftens, Microsoft 365 eller Google Workspace, eller en konto hos Amazon SES, SendGrid, Mailgun, Postmark eller Resend.
-- **En Twilio-konto**, for å bli varslet med SMS og telefonanrop. E-post og push-varsler trenger ingen.
+- **En Twilio-konto**, for å bli varslet med SMS og telefonanrop. E-post og push-varslinger trenger ingen.
 
 **Det virket når** `dig +short oneuptime.example.com` skriver ut serverens IP-adresse.
 
@@ -108,7 +108,7 @@ Siden **Serveroppsett** i Admin Dashboard, på `/admin/setup`, viser hva en ny s
 :::steps
 ### Sett opp e-post
 
-Klikk på **Sett opp e-post**. Den åpner **Innstillinger > Varsler > E-poster**, der du fyller inn e-postserveren din (de fleste bruker port `587`) eller e-postleverandøren din, og adressen e-postene kommer fra. Lagre, klikk deretter på **Send test-e-post** og send en til deg selv.
+Klikk på **Sett opp e-post**. Den åpner **Innstillinger > Varslinger > E-poster**, der du fyller inn e-postserveren din (de fleste bruker port `587`) eller e-postleverandøren din, og adressen e-postene kommer fra. Lagre, klikk deretter på **Send test-e-post** og send en til deg selv.
 
 **Det virket når** e-posten kommer frem og sjekklisten merker E-post som ferdig. Når testen mislykkes, viser den hva e-postserveren svarte: se [SMTP](/docs/emails/smtp#feilsøking).
 
@@ -120,7 +120,7 @@ Alle som kan åpne adressen din, kan registrere seg. Når teamet ditt har kontoe
 
 ### Sett opp SMS og anrop, eller bruk bare e-post og push
 
-For å bli varslet med SMS og telefonanrop klikker du på **Sett opp SMS og anrop** og legger til Twilio-kontoen din under **Innstillinger > Varsler > Anrop og SMS**: [Twilio-integrasjon](/docs/self-hosted/twilio-integration) viser hvor du finner hver verdi. Klikk deretter på **Send test-SMS** og **Ring testsamtale**. For å sende dem gjennom en egen gateway i stedet, se [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway). Hvis e-post og push-varsler er nok, klikker du på **Bruk bare e-post og push**.
+For å bli varslet med SMS og telefonanrop klikker du på **Sett opp SMS og anrop** og legger til Twilio-kontoen din under **Innstillinger > Varslinger > Anrop og SMS**: [Twilio-integrasjon](/docs/self-hosted/twilio-integration) viser hvor du finner hver verdi. Klikk deretter på **Send test-SMS** og **Ring testsamtale**. For å sende dem gjennom en egen gateway i stedet, se [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway). Hvis e-post og push-varslinger er nok, klikker du på **Bruk bare e-post og push**.
 
 **Det virket når** SMS-en kommer frem og telefonen ringer, eller sjekklisten viser valget ditt.
 :::

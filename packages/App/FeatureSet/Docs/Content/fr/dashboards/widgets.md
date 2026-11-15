@@ -194,7 +194,7 @@ Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale 
 | **Proxmox** | **Nœuds**, **Invités** | L'agent Proxmox |
 | **VMware** | **Hôtes**, **Machines virtuelles** | L'agent VMware, ou un vCenter que vous connectez |
 | **Ceph** | **OSDs**, en mur coloré selon l'état, et **Pools** | L'agent Ceph |
-| **Baies de stockage** | **Volumes**, et **Matériel** en mur coloré selon le statut | L'agent Storage Array |
+| **Baies de stockage** | **Volumes**, et **Matériel** en mur coloré selon le statut | L'agent Baie de stockage |
 
 Utilisez-les pour une page qui réunit l'état de votre infrastructure et la télémétrie des charges de travail qui tournent dessus.
 

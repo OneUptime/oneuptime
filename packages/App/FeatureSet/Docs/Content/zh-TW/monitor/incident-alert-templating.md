@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### 指標和基礎設施監測器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array 和 IoT Device 監測器各有一個自己的變數：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、儲存陣列 和 IoT 裝置 監測器各有一個自己的變數：
 
 | 變數 | 內容 | 類型 |
 | --- | --- | --- |
 | `metricName` | 監測器的第一個查詢所讀取的指標名稱，例如 `container.cpu.time`。 | `string` |
 
-分組時，它們還有每個 **分組依據** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT Device 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
+分組時，它們還有每個 **分組依據** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT 裝置 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
 
 ### 其他監測器類型
 
-Logs、Traces、Exceptions、Security Events、AI / LLM 和 SQL Query 監測器沒有自己的變數。請使用 [所有監測器都有的變數](#所有監測器都有的變數)，在分組的 Logs 監測器上還可以使用 [分組的值](#分組監測器的值)。
+Logs、Traces、Exceptions、安全事件、AI / LLM 和 SQL 查詢 監測器沒有自己的變數。請使用 [所有監測器都有的變數](#所有監測器都有的變數)，在分組的 Logs 監測器上還可以使用 [分組的值](#分組監測器的值)。
 
 ## 範例
 

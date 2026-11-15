@@ -111,7 +111,7 @@ flowchart TB
 - 排除项同时适用于批量同步和单个同步。它们保存在模板上，而不是在每次同步时单独选择。
 - 新监视器仍以模板中的字段值开始。排除项只影响向现有监视器的同步。
 - 条件总是会同步。仅同步条件时，监控间隔、标签和其他监视器级别的设置保持不变。
-- 现有模板在您配置之前没有字段排除项。Network Device 监视器会继续自动保留它们自己的设备绑定，网络发现导入为设备创建的 Ping、IP、Port 和 NTP 监视器也会继续检查各设备自己的地址。
+- 现有模板在您配置之前没有字段排除项。网络设备 监视器会继续自动保留它们自己的设备绑定，网络发现导入为设备创建的 Ping、IP、Port 和 NTP 监视器也会继续检查各设备自己的地址。
 
 对于有多个步骤的模板，受保护的值按步骤 ID 匹配。单独创建的单步骤监视器也可以接收单步骤模板。如果某个受保护的步骤无法匹配，同步会在任何监视器更新之前被拒绝，因此新增或重新排序的步骤不会意外复制另一个步骤的目标地址或凭据。
 
@@ -144,22 +144,22 @@ flowchart TB
 :::details 按监视器类型列出的 doNotSyncFields 字段名称
 | 监视器类型 | 字段名称 |
 | --- | --- |
-| 网站、API、Ping、IP、端口、SSL Certificate、NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| 网站、API、Ping、IP、端口、SSL 证书、NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | 仅 API | `requestHeaders`, `requestType`, `requestBody` |
 | 网站和 API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication`（客户端证书、密钥和密码一起） |
 | 端口、NTP | `monitorDestinationPort` |
-| Synthetic Monitor、Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| 合成监视器、自定义 JavaScript 代码 | `customCode` |
+| 合成监视器 | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver`（DNS 服务器和端口一起）, `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | 域名 | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| 日志、Security Events、追踪、AI / LLM、指标、异常、配置文件 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`（监视器的整个配置） |
+| SQL 查询 | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| 数据库健康状况 | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| 外部状态页 | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| 日志、安全事件、追踪、AI / LLM、指标、异常、配置文件 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`（监视器的整个配置） |
 | 探测器状态 | `probeStatusMonitor.probeIds` |
 
-基础设施监视器（Kubernetes、Docker Container、主机、Podman Container、Proxmox、Docker Swarm、Ceph、存储阵列、IoT Device）可以保护它们的资源选择器、筛选条件（主机除外）、指标查询和查询时间窗口。这些名称列在该类型模板的 **模板同步设置** 中。
+基础设施监视器（Kubernetes、Docker 容器、主机、Podman 容器、Proxmox、Docker Swarm、Ceph、存储阵列、IoT 设备）可以保护它们的资源选择器、筛选条件（主机除外）、指标查询和查询时间窗口。这些名称列在该类型模板的 **模板同步设置** 中。
 :::
 
 ## 故障排查

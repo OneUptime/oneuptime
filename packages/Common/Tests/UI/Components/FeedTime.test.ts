@@ -510,9 +510,9 @@ describe("how long ago, at any distance", () => {
       // A language no other test here formats with, so no formatter is cached.
       expect(
         formatFeedTimeAgo(ago(3 * HOUR), clock({ now, language: "is" })),
-      ).toBe("3 hours ago");
+      ).toBe("3\u00A0hours ago");
       expect(formatFeedTimeAgo(ago(30), clock({ now, language: "is" }))).toBe(
-        "1 minute ago",
+        "1\u00A0minute ago",
       );
     } finally {
       Object.defineProperty(Intl, "RelativeTimeFormat", {

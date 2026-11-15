@@ -18,8 +18,8 @@ flowchart TB
     Probe["프로브"]
     Snmp["벤더 템플릿:<br/>상태 OID와 SNMP 테이블"]
     Syslog["Syslog: 로그 파이프라인,<br/>로그 모니터, 기록 규칙"]
-    Monitor["권장 알림이 있는<br/>Network Device 모니터"]
-    Incident["인시던트와 알림"]
+    Monitor["권장 경고가 있는<br/>Network Device 모니터"]
+    Incident["인시던트와 경고"]
     Device -->|"SNMP"| Probe
     Device -->|"Syslog와 트랩"| Probe
     Probe --> Snmp
@@ -30,8 +30,8 @@ flowchart TB
 ```
 
 - 장비마다 하나의 [네트워크 디바이스](/docs/monitor/network-device-monitor). 도달할 수 있는 프로브가 폴링하며, 알맞은 상태 OID와 [SNMP 테이블](/docs/monitor/network-device-monitor#snmp-테이블)을 가져오는 벤더 템플릿을 씁니다.
-- 경고를 위한 디바이스마다 하나의 Network Device 모니터. 디바이스 페이지에서 만들면, 정상이 무엇인지 아는 테이블마다 행별 경고 하나를 포함한 [권장 알림](/docs/monitor/network-device-monitor#권장-알림-팩)이 채워집니다. 여러 디바이스에는 [알림 정책](/docs/monitor/network-device-monitor#알림-정책)이 모든 디바이스에 모니터를 하나씩 유지합니다.
-- 벤더가 로그로만 보고하는 것을 위해: 프로브로 보내는 syslog(OneUptime이 알아서 [네트워크 이벤트](/docs/monitor/network-events)로 읽습니다), 터널이나 게이트웨이마다 한 번씩 알리는 [Group By를 쓰는 로그 모니터](/docs/monitor/logs-monitor#그룹별-알림group-by), 그 로그의 숫자를 차트로 그리는 [로그 기록 규칙](/docs/telemetry/log-recording-rules).
+- 경고를 위한 디바이스마다 하나의 네트워크 디바이스 모니터. 디바이스 페이지에서 만들면, 정상이 무엇인지 아는 테이블마다 행별 경고 하나를 포함한 [권장 경고](/docs/monitor/network-device-monitor#권장-경고-팩)이 채워집니다. 여러 디바이스에는 [경고 정책](/docs/monitor/network-device-monitor#경고-정책)이 모든 디바이스에 모니터를 하나씩 유지합니다.
+- 벤더가 로그로만 보고하는 것을 위해: 프로브로 보내는 syslog(OneUptime이 알아서 [네트워크 이벤트](/docs/monitor/network-events)로 읽습니다), 터널이나 게이트웨이마다 한 번씩 알리는 [Group By를 쓰는 로그 모니터](/docs/monitor/logs-monitor#그룹별-경고group-by), 그 로그의 숫자를 차트로 그리는 [로그 기록 규칙](/docs/telemetry/log-recording-rules).
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -56,7 +56,7 @@ Sophos는 어떤 SFOS 버전에서도 게이트웨이나 SD-WAN 상태를 SNMP�
 
 다음 폴링 후 디바이스의 **SNMP 테이블** 페이지에 모든 IPsec 연결이 상태(active, inactive, partially active)와 함께 나열되고, CPU 코어도 나열됩니다. SFOS는 코어 번호를 196608부터 매기므로, CPU는 단일 `hrProcessorLoad.1`이 아니라 테이블에서 가져옵니다.
 
-### 모든 IPsec 터널에 알림 걸기
+### 모든 IPsec 터널에 경고 걸기
 
 디바이스 페이지에서 **모니터 생성**을 클릭합니다. 권장 경고에는 **IPsec Tunnels: row unhealthy**가 포함됩니다. `ipsec_tunnels` 테이블에 대해 Row `*`로 설정한 **SNMP 테이블 행 비정상 여부** 기준으로, active가 아닌 터널마다 터널 이름을 딴 인시던트를 하나씩 열고, 터널이 돌아오면 각각 해결합니다.
 
@@ -103,7 +103,7 @@ Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.
 
 Extreme의 범용 하드웨어(5000 및 7000 시리즈)에서 실행되는 Fabric Engine은 EXOS와 같은 엔터프라이즈 번호를 보고합니다. 시스템 설명(`7520-48Y-8C-FabricEngine (9.0.4.0)`)만이 어떤 운영 체제가 실행 중인지 알려 줍니다. OneUptime은 둘 다 읽으므로 자동 적용과 디바이스 페이지의 제안이 알맞은 템플릿을 고르며, 구형 VSP 스위치는 Avaya/Nortel 아크를 보고하므로 바로 Fabric Engine으로 인식됩니다.
 
-### 패브릭과 하드웨어 알림
+### 패브릭과 하드웨어 경고
 
 Fabric Engine 스위치의 권장 경고에는 **Fabric Adjacencies (IS-IS): row unhealthy**가 포함되어, 인접 관계가 올라와 있지 않은 이웃마다 인시던트를 엽니다. Fabric Engine은 인접 관계가 바뀔 때 트랩 `rcnIsisPlsbAdjStateTrap`(`1.3.6.1.4.1.2272.1.21.0.281`)도 보내며, 이 트랩에 대한 **SNMP 트랩 수신(트랩 OID)** 기준은 다음 폴링 전에 몇 초 안에 알립니다.
 

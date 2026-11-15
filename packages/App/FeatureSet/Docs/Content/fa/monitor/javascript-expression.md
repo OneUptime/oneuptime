@@ -46,7 +46,7 @@ flowchart TB
 
 ## متغیرها بر اساس نوع مانیتور
 
-عبارت‌های JavaScript برای مانیتورهای Website، API، درخواست ورودی، Incoming Email، SQL Query و Database Health ارائه می‌شوند.
+عبارت‌های JavaScript برای مانیتورهای Website، API، درخواست ورودی، ایمیل ورودی، پرس‌وجوی SQL و سلامت پایگاه داده ارائه می‌شوند.
 
 ### مانیتورهای وب‌سایت و API
 

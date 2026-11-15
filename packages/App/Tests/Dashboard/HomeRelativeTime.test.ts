@@ -113,7 +113,7 @@ describe("the words", () => {
         now: NOW,
         language: "not a language!",
       }),
-    ).toBe("2 hours ago");
+    ).toBe("2\u00A0hours ago");
   });
 
   test("no language is English", () => {
@@ -155,7 +155,7 @@ describe("the words", () => {
         parts: threeHoursAgo,
         language: "not a language!",
       }),
-    ).toBe("3 hours ago");
+    ).toBe("3\u00A0hours ago");
   });
 });
 

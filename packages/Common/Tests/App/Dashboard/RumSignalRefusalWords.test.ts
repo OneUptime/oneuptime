@@ -148,7 +148,7 @@ function emptyCopy(data: {
 
 const REFUSED_LINE: RumSetupCheckLine = {
   tone: "error",
-  text: "Refused. The latest was refused 30 minutes ago.",
+  text: "Refused. The latest was refused 30\u00A0minutes ago.",
   detail:
     'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
   action: { kind: "pick-key", label: "Pick another key" },
@@ -178,7 +178,7 @@ describe("a setup check row whose telemetry is refused", () => {
 
     expect(line({ state: "receiving", refusal: partly })).toEqual({
       tone: "warning",
-      text: "Arriving, but some are refused. The latest was refused 5 minutes ago.",
+      text: "Arriving, but some are refused. The latest was refused 5\u00A0minutes ago.",
       detail: "This project went over its ingestion rate limit.",
       action: { kind: "budgets", label: "See budgets" },
       refusal: partly,
@@ -442,7 +442,7 @@ describe("an empty chart whose telemetry is refused", () => {
           title,
           detail:
             'The key "Storefront browser key" is turned off, so everything sent with it is refused.',
-          evidence: "The latest was refused 30 minutes ago.",
+          evidence: "The latest was refused 30\u00A0minutes ago.",
           action: { kind: "pick-key", label: "Pick another key" },
           helpLink: {
             text: "Why nothing arrives",

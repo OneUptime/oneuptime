@@ -99,10 +99,8 @@ import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ValueFormatter from "Common/Utils/ValueFormatter";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
-import ZH_CN from "../../../App/FeatureSet/Dashboard/src/Locales/zh-CN.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -294,15 +292,39 @@ const FETCHED_LOCALE =
     ? await (await fetch(`/locales/${language}.json`)).json()
     : {};
 
+/*
+ * English, the fallback, is in the bundle; German, Japanese, Persian and
+ * Chinese are each a chunk of its own, loaded only by a page drawn in that
+ * language, as the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts),
+ * and built as the Dashboard ships them (server.js,
+ * SuiteHelpers/FixtureLocalesBuild.js). Imported whole, they were parsed on
+ * every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  ja: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+  "zh-CN": () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/zh-CN.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
+  fallbackLng: "en",
   resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    ja: { translation: JA },
-    fa: { translation: FA },
-    "zh-CN": { translation: ZH_CN },
+    ...(await localeResources({
+      language: language,
+      english: EN,
+      loaders: LOCALE_LOADERS,
+    })),
+    // Russian and French, served at /locales/ as a spec hands them.
     ru: { translation: FETCHED_LOCALE },
     fr: { translation: FETCHED_LOCALE },
   },

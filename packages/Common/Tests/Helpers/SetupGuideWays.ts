@@ -40,6 +40,10 @@ import {
   OPENSTACK_DEPLOYMENT_TOOLS,
   OpenStackDeploymentTool,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
+import {
+  VMWARE_INSTALL_METHODS,
+  getVMwareSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -297,4 +301,30 @@ export function getOpenStackSetupGuideWays(): Array<SetupGuideWay> {
       });
     },
   );
+}
+
+/*
+ * The VMware guide varies by install method (the install script, Docker
+ * Compose by hand, a Linux service without Docker), by whether a key is
+ * picked (the install script's prompts) and by the vCenter a Documentation
+ * tab installs for.
+ */
+export function getVMwareSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: VMWARE_INSTALL_METHODS,
+    names: ["vcenter-1", "Prod vCenter 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof VMWARE_INSTALL_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getVMwareSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        method: option,
+        vcenterName: name,
+      });
+    },
+  });
 }

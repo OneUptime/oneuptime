@@ -172,7 +172,7 @@ Hvert element i `monitor_steps` er én ting at tjekke:
 | `tls_client_key_passphrase` | string (følsom) | Website, API | Den private nøgles adgangssætning. |
 | `request_timeout_in_ms` | number | Tjek, som en sonde udfører | Hvor længe ét forsøg må tage, i millisekunder. Sonden sænker alt over 60000 til 60000. |
 | `retry_count` | number | Tjek, som en sonde udfører | Nye forsøg efter et mislykket første forsøg: `0` tjekker én gang, `3` op til fire gange. Sonden sænker alt over 3 til 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Det script, trinnet kører. |
+| `custom_code` | string | Brugerdefineret JavaScript-kode, Synthetic | Det script, trinnet kører. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` og `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` og `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nye forsøg, når scriptet fejler: `0` kører det én gang. |

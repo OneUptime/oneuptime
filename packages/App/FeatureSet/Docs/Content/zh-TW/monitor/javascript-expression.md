@@ -46,7 +46,7 @@ flowchart TB
 
 ## 各監測器類型的變數
 
-JavaScript 運算式適用於 Website、API、傳入請求、Incoming Email、SQL Query 和 Database Health 監測器。
+JavaScript 運算式適用於 Website、API、傳入請求、傳入電子郵件、SQL 查詢 和 資料庫健康狀況 監測器。
 
 ### 網站和 API 監測器
 

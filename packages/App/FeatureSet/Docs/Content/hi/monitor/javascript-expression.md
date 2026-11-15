@@ -46,7 +46,7 @@ flowchart TB
 
 ## मॉनिटर प्रकार के अनुसार वेरिएबल
 
-JavaScript अभिव्यक्तियाँ Website, API, इनकमिंग अनुरोध, Incoming Email, SQL Query और Database Health मॉनिटर के लिए उपलब्ध हैं।
+JavaScript अभिव्यक्तियाँ Website, API, इनकमिंग अनुरोध, इनकमिंग ईमेल, SQL क्वेरी और डेटाबेस स्वास्थ्य मॉनिटर के लिए उपलब्ध हैं।
 
 ### वेबसाइट और API मॉनिटर
 

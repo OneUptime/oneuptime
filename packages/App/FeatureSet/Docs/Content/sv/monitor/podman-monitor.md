@@ -42,7 +42,7 @@ flowchart TB
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Podman Container
+### Välj Podman-container
 
 Klicka på **Fler monitortyper** under **Monitortyp** och välj **Podman-container** under **Infrastruktur**, eller skriv `podman` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och larm – och klicka på **Nästa**.
 

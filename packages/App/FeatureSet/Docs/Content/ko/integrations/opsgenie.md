@@ -4,8 +4,8 @@ OneUptime 인시던트를 [Opsgenie](https://www.atlassian.com/software/opsgenie
 
 :::cards
 - [API 키 저장하기](#api-키-저장하기): Opsgenie의 키를 워크플로 밖에 둡니다.
-- [Opsgenie 알림 만들기](#인시던트마다-opsgenie-알림-만들기): 워크플로 하나, 블록 두 개.
-- [닫기](#opsgenie-알림-닫기): 인시던트 상태를 따라가는 두 번째 워크플로.
+- [Opsgenie 경고 만들기](#인시던트마다-opsgenie-경고-만들기): 워크플로 하나, 블록 두 개.
+- [닫기](#opsgenie-경고-닫기): 인시던트 상태를 따라가는 두 번째 워크플로.
 - [문제 해결](#문제-해결): Opsgenie가 요청을 거부할 때.
 :::
 
@@ -14,10 +14,10 @@ OneUptime 인시던트를 [Opsgenie](https://www.atlassian.com/software/opsgenie
 
 ## 작동 방식
 
-```mermaid title="워크플로 두 개, Opsgenie 알림 하나"
+```mermaid title="워크플로 두 개, Opsgenie 경고 하나"
 flowchart TB
     declared["인시던트 선언"] --> create["워크플로 1:<br/>On Create Incident"]
-    create -->|"POST /v2/alerts"| og["Opsgenie 알림"]
+    create -->|"POST /v2/alerts"| og["Opsgenie 경고"]
     resolved["인시던트 해결"] --> update["워크플로 2:<br/>On Update Incident"]
     update -->|"alias로 닫기"| og
 ```
@@ -40,7 +40,7 @@ flowchart TB
 
 시크릿 변수는 실행 로그에서 `[REDACTED]`로 바뀌므로 키가 실행에 표시되지 않습니다.
 
-## 인시던트마다 Opsgenie 알림 만들기
+## 인시던트마다 Opsgenie 경고 만들기
 
 :::steps
 ### 워크플로 만들기
@@ -51,7 +51,7 @@ flowchart TB
 
 점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
-### 알림 만들기
+### 경고 만들기
 
 **구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://api.opsgenie.com/v2/alerts`(유럽에서는 `https://api.eu.opsgenie.com/v2/alerts`)로 설정합니다. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
@@ -78,7 +78,7 @@ flowchart TB
 
 Opsgenie의 방식은 `GenieKey`라는 단어, 공백, 키의 순서입니다. Opsgenie는 `message`를 130자로 제한하며, 우선순위는 `P1`부터 `P5`까지입니다. 인시던트마다 그 우선순위를 보내려면 [우선순위 매핑](#우선순위-매핑)을 참고하세요.
 
-## Opsgenie 알림 닫기
+## Opsgenie 경고 닫기
 
 워크플로에는 트리거가 하나뿐이므로, 닫으려면 인시던트 상태가 바뀔 때 시작되는 두 번째 워크플로가 필요합니다.
 
@@ -95,7 +95,7 @@ Opsgenie의 방식은 `GenieKey`라는 단어, 공백, 키의 순서입니다. O
 
 트리거 뒤에 **조건 분기** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
 
-### 알림 닫기
+### 경고 닫기
 
 **예** 쪽 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API 호출 POST (JSON)** 블록을 추가합니다:
 

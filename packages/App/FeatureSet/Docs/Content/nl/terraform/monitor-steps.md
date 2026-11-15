@@ -172,7 +172,7 @@ Elk item van `monitor_steps` is één ding om te controleren:
 | `tls_client_key_passphrase` | string (gevoelig) | Website, API | De wachtwoordzin van de privésleutel. |
 | `request_timeout_in_ms` | number | Controles die een sonde uitvoert | Hoe lang één poging mag duren, in milliseconden. De sonde verlaagt alles boven 60000 naar 60000. |
 | `retry_count` | number | Controles die een sonde uitvoert | Nieuwe pogingen na een mislukte eerste poging: `0` controleert één keer, `3` tot vier keer. De sonde verlaagt alles boven 3 naar 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Het script dat de stap uitvoert. |
+| `custom_code` | string | Aangepaste JavaScript-code, Synthetic | Het script dat de stap uitvoert. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` en `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` en `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nieuwe pogingen als het script mislukt: `0` voert het één keer uit. |

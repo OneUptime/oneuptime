@@ -37,6 +37,7 @@ import {
   formatFeedTimeAgo,
   getFeedLocale,
 } from "Common/UI/Components/Feed/FeedTime";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -146,7 +147,7 @@ export function formatBackupDuration(ms: number, language: string): string {
   }
 
   const names: [string, string] = ENGLISH_DURATION_UNITS[unit]!;
-  return `${count} ${count === 1 ? names[0] : names[1]}`;
+  return `${count}${NO_BREAK_SPACE}${count === 1 ? names[0] : names[1]}`;
 }
 
 /*
@@ -213,7 +214,7 @@ export function formatBackupTimeUntil(date: Date, clock: FeedClock): string {
   }
 
   const names: [string, string] = ENGLISH_DURATION_UNITS[unit]!;
-  return `in ${count} ${count === 1 ? names[0] : names[1]}`;
+  return `in ${count}${NO_BREAK_SPACE}${count === 1 ? names[0] : names[1]}`;
 }
 
 // Sunday (0) to Saturday (6), in the reader's language.

@@ -655,8 +655,15 @@ async function openDay(name: string, dateLabel: string): Promise<HTMLElement> {
   return screen.getByRole("dialog");
 }
 
+/*
+ * A duration as the dialog draws it, read the way getByText reads a node:
+ * its no-break spaces (#8669) folded into plain ones.
+ */
 function duration(seconds: number): string {
-  return OneUptimeDate.secondsToFormattedFriendlyTimeString(seconds);
+  return OneUptimeDate.secondsToFormattedFriendlyTimeString(seconds).replace(
+    /\s/g,
+    " ",
+  );
 }
 
 describe("Status page overview in Shanghai - a monitor group's days (issue #6697)", () => {

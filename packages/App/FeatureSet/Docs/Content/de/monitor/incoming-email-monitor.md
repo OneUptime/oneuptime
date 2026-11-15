@@ -37,7 +37,7 @@ sequenceDiagram
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**.
 
-### Incoming Email wählen
+### Eingehende E-Mail wählen
 
 Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Eingehende E-Mail** unter **Eingehende Überwachung**, oder tippen Sie `email` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 

@@ -24,6 +24,7 @@ import {
   writeDigitsInLocale,
   writeInDateDisplayLanguage,
 } from "./DateLanguage";
+import { NO_BREAK_SPACE, withDurationWordsHeld } from "./NoBreakSpaces";
 import { Translator } from "./Translator";
 import {
   CompactDuration,
@@ -227,7 +228,7 @@ export interface FriendlyTimeOptions {
 }
 
 // What a duration of nothing reads in English, with writesZero.
-export const ZERO_FRIENDLY_TIME_TEXT: string = "0 secs";
+export const ZERO_FRIENDLY_TIME_TEXT: string = `0${NO_BREAK_SPACE}secs`;
 
 export default class OneUptimeDate {
   // get date time from unix timestamp
@@ -394,15 +395,16 @@ export default class OneUptimeDate {
       (): string => {
         let formattedString: string = "";
 
+        // Each number held to its word: "2 hours 5 minutes" (#8669).
         if (hours > 0) {
-          formattedString += hours + " hours ";
+          formattedString += `${hours}${NO_BREAK_SPACE}hours `;
         }
 
         if (mins > 0) {
-          formattedString += mins + " minutes";
+          formattedString += `${mins}${NO_BREAK_SPACE}minutes`;
         }
 
-        return formattedString.trim() || "0 minutes";
+        return formattedString.trim() || `0${NO_BREAK_SPACE}minutes`;
       },
       (_language: string, locale: string): string | null => {
         // "2 Stunden 5 Minuten", "0 Minuten".
@@ -1381,12 +1383,16 @@ export default class OneUptimeDate {
   /*
    * "5 hours ago", "in 3 days" - in the reader's language when a frontend set
    * one ("vor 5 Stunden"), rounded as moment rounds it. Counted from now, or
-   * from the moment a view reads its own clock at (one its tests pin).
+   * from the moment a view reads its own clock at (one its tests pin). The
+   * number is held to its unit in every language: moment's English through
+   * withDurationWordsHeld (#8669), Intl's through DateLanguage (#8456).
    */
   public static fromNow(date: Date, now?: Date | undefined): string {
     return writeInDateDisplayLanguage(
       (): string => {
-        return now ? moment(date).from(now) : moment(date).fromNow();
+        return withDurationWordsHeld(
+          now ? moment(date).from(now) : moment(date).fromNow(),
+        );
       },
       (_language: string, locale: string): string | null => {
         return formatRelativeDate({
@@ -2235,7 +2241,10 @@ export default class OneUptimeDate {
               part.unit
             ] || [part.unit, part.unit];
 
-            return `${part.count} ${part.count === 1 ? names[0] : names[1]}`;
+            // Each number held to its unit: "1 min 47 secs" (#8669).
+            return `${part.count}${NO_BREAK_SPACE}${
+              part.count === 1 ? names[0] : names[1]
+            }`;
           })
           .join(" ");
       },
@@ -2839,7 +2848,7 @@ export default class OneUptimeDate {
     let formattedString: string = "";
 
     if (days > 0) {
-      formattedString += days + " days";
+      formattedString += `${days}${NO_BREAK_SPACE}days`;
     }
 
     if (hours > 0) {
@@ -2847,7 +2856,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += hours + " hours";
+      formattedString += `${hours}${NO_BREAK_SPACE}hours`;
     }
 
     if (minutes > 0) {
@@ -2855,7 +2864,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += minutes + " minutes";
+      formattedString += `${minutes}${NO_BREAK_SPACE}minutes`;
     }
 
     if (secs > 0) {
@@ -2863,7 +2872,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += secs + " seconds";
+      formattedString += `${secs}${NO_BREAK_SPACE}seconds`;
     }
 
     return formattedString;
@@ -2909,7 +2918,7 @@ export default class OneUptimeDate {
     let formattedString: string = "";
 
     if (days > 0) {
-      formattedString += days + " days";
+      formattedString += `${days}${NO_BREAK_SPACE}days`;
     }
 
     if (hours > 0) {
@@ -2917,7 +2926,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += hours + " hours";
+      formattedString += `${hours}${NO_BREAK_SPACE}hours`;
     }
 
     if (mins >= 0) {
@@ -2925,7 +2934,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += mins + " minutes";
+      formattedString += `${mins}${NO_BREAK_SPACE}minutes`;
     }
 
     return formattedString;

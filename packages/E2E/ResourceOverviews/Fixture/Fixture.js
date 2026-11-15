@@ -50,9 +50,8 @@ import {
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
-import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import ServiceLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Layout";
 import ServiceOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Index";
 import DatabaseLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Layout";
@@ -949,14 +948,30 @@ function subscribe() {
 Realtime.listenToAnalyticsModelEvent = subscribe;
 Realtime.listenToModelEvent = subscribe;
 
+/*
+ * English, the fallback, is in the bundle; German and Persian are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: LANGUAGE,
   fallbackLng: "en",
-  resources: {
-    en: { translation: en },
-    de: { translation: de },
-    fa: { translation: fa },
-  },
+  resources: await localeResources({
+    language: LANGUAGE,
+    english: en,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.

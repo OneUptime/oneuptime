@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### 指标和基础设施监视器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array 和 IoT Device 监视器各有一个自己的变量：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、存储阵列 和 IoT 设备 监视器各有一个自己的变量：
 
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |
 | `metricName` | 监视器的第一个查询所读取的指标的名称，例如 `container.cpu.time`。 | `string` |
 
-分组时，它们还有每个 **分组依据** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
+分组时，它们还有每个 **分组依据** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT 设备 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
 
 ### 其他监视器类型
 
-Logs、Traces、Exceptions、Security Events、AI / LLM 和 SQL Query 监视器没有自己的变量。请使用 [所有监视器都有的变量](#所有监视器都有的变量)，在分组的 Logs 监视器上还可以使用 [分组的值](#分组监视器的值)。
+Logs、Traces、Exceptions、安全事件、AI / LLM 和 SQL 查询 监视器没有自己的变量。请使用 [所有监视器都有的变量](#所有监视器都有的变量)，在分组的 Logs 监视器上还可以使用 [分组的值](#分组监视器的值)。
 
 ## 示例
 

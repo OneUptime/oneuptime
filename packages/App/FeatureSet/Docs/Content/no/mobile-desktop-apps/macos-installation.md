@@ -1,12 +1,12 @@
 # macOS-installasjon
 
-OneUptime-dashbordet installeres på en Mac som en app: legg det til i Dock fra Safari, eller installer det fra Google Chrome eller Microsoft Edge. Det åpnes i sitt eget vindu, med eget symbol i Dock og i Launchpad, og kan vise varsler. Det er ingenting å laste ned: appen er dashbordet til ditt OneUptime, og den er oppdatert så snart ditt OneUptime er det.
+OneUptime-dashbordet installeres på en Mac som en app: legg det til i Dock fra Safari, eller installer det fra Google Chrome eller Microsoft Edge. Det åpnes i sitt eget vindu, med eget symbol i Dock og i Launchpad, og kan vise varslinger. Det er ingenting å laste ned: appen er dashbordet til ditt OneUptime, og den er oppdatert så snart ditt OneUptime er det.
 
 :::cards
 - [Installer appen](#installer-appen): Fra Safari, Chrome eller Edge.
 - [Behold den i Dock](#behold-den-i-dock): Åpne den med ett klikk, eller ved pålogging.
-- [Få varsler på denne Macen](#få-varsler-på-denne-macen): Registrer appen for push-varsler.
-- [Feilsøking](#feilsøking): Ingen Legg til i Dock, ingen varsler, logg inn igjen.
+- [Få varslinger på denne Macen](#få-varslinger-på-denne-macen): Registrer appen for push-varslinger.
+- [Feilsøking](#feilsøking): Ingen Legg til i Dock, ingen varslinger, logg inn igjen.
 :::
 
 ## Slik fungerer skrivebordsappen
@@ -55,24 +55,24 @@ Installer fra en dashbordside etter at du har logget inn: innloggingssiden er ik
 - **Åpne ved pålogging.** Kontroll-klikk på symbolet i Dock, og velg **Valg → Åpne ved pålogging**.
 - **Spotlight.** Trykk Kommando-mellomrom, og skriv OneUptime.
 
-## Få varsler på denne Macen
+## Få varslinger på denne Macen
 
-Appen viser varsler når du har registrert den for push-varsler, i hvert prosjekt du vil ha dem fra. Registrer Safari-nettappen inne fra selve nettappen: den er en nettleser for seg. En app installert fra Chrome eller Edge registreres med nettleseren sin.
+Appen viser varslinger når du har registrert den for push-varslinger, i hvert prosjekt du vil ha dem fra. Registrer Safari-nettappen inne fra selve nettappen: den er en nettleser for seg. En app installert fra Chrome eller Edge registreres med nettleseren sin.
 
 :::steps
 ### Åpne push-enhetene dine
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i appen.
+Åpne **Brukerinnstillinger → Varslingsmetoder** og fanen **Push-varslinger** i appen.
 
 ### Registrer denne appen
-Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Safari on macOS`, eller endre det, og klikk på **Registrer enhet** igjen. Når macOS eller nettleseren spør om OneUptime kan sende varsler, velger du **Tillat**.
+Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Safari on macOS`, eller endre det, og klikk på **Registrer enhet** igjen. Når macOS eller nettleseren spør om OneUptime kan sende varslinger, velger du **Tillat**.
 
 ### Send en test
-Klikk på **Send testvarsel** i dialogen **Nettleser registrert**. Vises ingenting, ser du på Macens varslingsinnstillinger: se [Feilsøking](#feilsøking).
+Klikk på **Send testvarsling** i dialogen **Nettleser registrert**. Vises ingenting, ser du på Macens varslingsinnstillinger: se [Feilsøking](#feilsøking).
 :::
 
 En nettleser kan ikke ringe gjennom et Fokus som Ikke forstyrr. Bruk mobilappen med kritiske varsler for varsler som må vekke deg: se [iOS-installasjon](/docs/mobile-desktop-apps/ios-installation#ring-gjennom-lydløs).
 
-På et selvdriftet OneUptime trenger nettleservarsler serverens VAPID-nøkler: se [Push-varsler](/docs/self-hosted/push-notifications#selvhostet-oppsett).
+På et selvdriftet OneUptime trenger nettleservarslinger serverens VAPID-nøkler: se [Push-varslinger](/docs/self-hosted/push-notifications#selvhostet-oppsett).
 
 ## Oppdateringer
 
@@ -89,7 +89,7 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 Åpne `edge://apps` i Edge, velg **Detaljer** for OneUptime, og deretter **Avinstaller**.
 :::
 
-Å avinstallere appen avregistrerer den ikke: nettleseren dens får fortsatt varsler. For å stoppe dem sletter du den under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, med **Slett**.
+Å avinstallere appen avregistrerer den ikke: nettleseren dens får fortsatt varslinger. For å stoppe dem sletter du den under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**, med **Slett**.
 
 ## Feilsøking
 
@@ -97,10 +97,10 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 Safari legger nettapper til i Dock fra macOS Sonoma 14. Oppdater macOS, eller installer appen fra Chrome eller Edge i stedet.
 :::
 
-:::details Det vises ingen varsler
-- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at appen eller nettleseren dens står i listen, og send et **Testvarsel**.
-- Åpne **Systeminnstillinger → Varslinger** på Macen, og sjekk at OneUptime, eller nettleseren det ble installert fra, kan sende varsler, og at ingen Fokus holder dem tilbake.
-- Blokkerer nettleseren varsler for OneUptime, tillater du dem i innstillingene for nettstedet og registrerer på nytt.
+:::details Det vises ingen varslinger
+- Sjekk under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**, at appen eller nettleseren dens står i listen, og send en **Testvarsling**.
+- Åpne **Systeminnstillinger → Varslinger** på Macen, og sjekk at OneUptime, eller nettleseren det ble installert fra, kan sende varslinger, og at ingen Fokus holder dem tilbake.
+- Blokkerer nettleseren varslinger for OneUptime, tillater du dem i innstillingene for nettstedet og registrerer på nytt.
 - På et selvdriftet OneUptime sier dialogen **Registrer enhet** fra når serveren ikke har VAPID-nøkler.
 :::
 

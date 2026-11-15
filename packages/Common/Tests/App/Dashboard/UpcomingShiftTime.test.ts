@@ -534,10 +534,10 @@ describe("an engine without the unit and list formats", () => {
 
         expect(
           isolated.formatShiftLength({ days: 1, hours: 6, minutes: 0 }, "de"),
-        ).toBe("1 day, 6 hours");
+        ).toBe("1\u00A0day, 6\u00A0hours");
         expect(
           isolated.formatShiftLength({ days: 0, hours: 1, minutes: 0 }, "en"),
-        ).toBe("1 hour");
+        ).toBe("1\u00A0hour");
       } finally {
         Object.defineProperty(Intl, "NumberFormat", {
           value: realNumberFormat,

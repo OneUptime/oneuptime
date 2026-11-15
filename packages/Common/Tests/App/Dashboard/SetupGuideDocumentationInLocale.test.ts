@@ -60,6 +60,14 @@ const CODE_SPAN: RegExp = /`[^`\n]+`/g;
 
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 
+/*
+ * A run in single asterisks: a guide writes another product's own menus
+ * that way, as that product draws them (vSphere's *Configure → System →
+ * Advanced System Settings*), so an "Advanced" there is not this guide's
+ * section.
+ */
+const ITALIC_SPAN: RegExp = /(?<![*\w])\*(?!\*)[^*\n]+?(?<!\*)\*(?![*\w])/g;
+
 // A letter of the Arabic script: Arabic's and Persian's words.
 const ARABIC_SCRIPT: RegExp = /\p{Script=Arabic}/u;
 
@@ -384,6 +392,42 @@ describe.each(
       expect(card).toContain(`translations={${product.translationsConstant}}`);
     });
 
+    /*
+     * The key step's description is the card's own sentence, drawn under the
+     * key picker of the guide's first step. Written as a plain string, the
+     * i18n extractor never saw it and it read in English in every language
+     * (VMware's, Kubernetes's, Storage Array's; #8341). A card that sets
+     * none draws the shared one, which is worded with SetupGuideCard.
+     */
+    test("the card's key step description is a locale key, worded in every language", () => {
+      const card: string = fs.readFileSync(product.cardFile, "utf8");
+      const prop: RegExpMatchArray | null = card.match(
+        /keyStepDescription=(\{\s*translationKey\(\s*)?"((?:[^"\\]|\\.)*)"/,
+      );
+
+      if (!prop) {
+        return;
+      }
+
+      const description: string = JSON.parse(`"${prop[2]}"`) as string;
+
+      expect({ description, isAKey: Boolean(prop[1]) }).toEqual({
+        description,
+        isAKey: true,
+      });
+      expect(readDashboardLocale("en")[description]).toBe(description);
+
+      for (const language of DASHBOARD_LANGUAGES) {
+        const worded: string | undefined =
+          readDashboardLocale(language)[description];
+
+        expect({
+          language,
+          worded: worded !== undefined && worded !== description,
+        }).toEqual({ language, worded: true });
+      }
+    });
+
     test("the guide has pieces to word, in every way through it", () => {
       expect(WAYS[product.name]!.length).toBeGreaterThan(3);
 
@@ -673,7 +717,7 @@ describe.each(
           for (const section of ["Advanced", "Troubleshooting"]) {
             if (
               new RegExp(`\\b${section}\\b`).test(
-                english.replace(CODE_SPAN, ""),
+                english.replace(CODE_SPAN, "").replace(ITALIC_SPAN, ""),
               )
             ) {
               expect({
@@ -912,5 +956,24 @@ describe("the checks above (negative control)", () => {
       ),
     ).toEqual([]);
     expect(boldMarksThatShow("`a**b` **`ceph-1`**: ok")).toEqual([]);
+  });
+
+  test("another product's italic menu path is set aside, and a bold run or the guide's own section is not", () => {
+    const strip: (text: string) => string = (text: string): string => {
+      return text.replace(ITALIC_SPAN, "");
+    };
+
+    expect(
+      strip("open *Configure → System → Advanced System Settings*, set it"),
+    ).toBe("open , set it");
+    expect(strip("see **OneUptime AI agent** under Advanced")).toBe(
+      "see **OneUptime AI agent** under Advanced",
+    );
+    expect(strip("a VM is *powered on*; one is *powered off*")).toBe(
+      "a VM is ; one is ",
+    );
+    expect(strip("`a*b` and 2 * 3 under Troubleshooting")).toBe(
+      "`a*b` and 2 * 3 under Troubleshooting",
+    );
   });
 });

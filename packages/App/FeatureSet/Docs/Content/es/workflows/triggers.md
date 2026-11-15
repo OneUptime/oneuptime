@@ -117,7 +117,7 @@ OneUptime le da al flujo de trabajo una dirección de correo propia. Cada correo
 
 Útil para: actuar sobre correos de sistemas que no pueden llamar a un webhook — alertas de herramientas de monitorización antiguas, avisos de estado de un proveedor, el informe que envía por correo un proceso nocturno.
 
-Para obtener la dirección, haz clic en el disparador Incoming Email en el lienzo. La dirección está en la parte superior de sus ajustes, con un botón **Copiar dirección**. Dásela a lo que deba iniciar el flujo de trabajo: una herramienta que solo sabe enviar correos, los ajustes de notificación de un proveedor o una regla de reenvío de tu propio buzón.
+Para obtener la dirección, haz clic en el disparador Correo entrante en el lienzo. La dirección está en la parte superior de sus ajustes, con un botón **Copiar dirección**. Dásela a lo que deba iniciar el flujo de trabajo: una herramienta que solo sabe enviar correos, los ajustes de notificación de un proveedor o una regla de reenvío de tu propio buzón.
 
 Cada correo inicia su propia ejecución. El correo llega al flujo de trabajo tanto si la dirección está en Para como en CC, como copia oculta o a través de una regla de reenvío. Un correo que nombra la dirección dos veces inicia una sola ejecución.
 
@@ -139,7 +139,7 @@ Cuando ha llegado un correo, el selector de valores de cada bloque posterior al 
 
 Para probar el flujo de trabajo sin enviar un correo, haz clic en **Ejecutar flujo de trabajo** en la página **Constructor** y rellena un remitente, un asunto y un cuerpo. Los valores que dejes fuera llegan vacíos.
 
-El correo inicia el flujo de trabajo solo mientras está activado. El correo a un flujo de trabajo desactivado se ignora, igual que el correo a un flujo de trabajo cuyo disparador ya no es Incoming Email.
+El correo inicia el flujo de trabajo solo mientras está activado. El correo a un flujo de trabajo desactivado se ignora, igual que el correo a un flujo de trabajo cuyo disparador ya no es Correo entrante.
 
 ### Mantén la dirección en privado
 

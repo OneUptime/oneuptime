@@ -7,7 +7,7 @@
 
 ```mermaid title="온콜 정책은 누군가 확인할 때까지 단계별로 호출합니다"
 flowchart TB
-    trigger["인시던트 또는 알림"] --> level1["Level 1 호출"]
+    trigger["인시던트 또는 경고"] --> level1["Level 1 호출"]
     level1 --> ack1{"제시간에<br/>확인했나요?"}
     ack1 -->|"예"| stop["호출 중지"]
     ack1 -->|"아니요"| level2["Level 2 호출"]

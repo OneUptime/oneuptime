@@ -81,7 +81,7 @@ Klikk på **Importer JSON** i listen **Arbeidsflyter**, og velg en fil som er ek
 Filen inneholder navnet, beskrivelsen, aktiveringstilstanden og grafen til arbeidsflyten. Den inneholder med vilje ikke:
 
 - **Den hemmelige nøkkelen til webhooken.** En ny genereres når arbeidsflyten opprettes, så en importert arbeidsflyt har en annen webhook-URL — kopier den fra Webhook-triggeren til den nye arbeidsflyten. Alt som kalte originalen, må pekes om.
-- **Adressen for innkommende e-post.** En importert arbeidsflyt med en Incoming Email-trigger får sin egen adresse — kopier den fra triggeren til den nye arbeidsflyten. Alt som sendte e-post til originalen, må få den nye adressen.
+- **Adressen for innkommende e-post.** En importert arbeidsflyt med en Innkommende e-post-trigger får sin egen adresse — kopier den fra triggeren til den nye arbeidsflyten. Alt som sendte e-post til originalen, må få den nye adressen.
 - **Globale variabler.** En blokk som leser `{{global.variables.MY_SECRET}}`, beholder den referansen, men verdien er ikke i filen. Opprett variablene i målprosjektet før du kjører den importerte arbeidsflyten.
 - **Eiere og etiketter.** Prosjektets egne etikett- og eierregler kjører mot den importerte arbeidsflyten, akkurat som om du hadde opprettet den manuelt.
 
@@ -103,10 +103,10 @@ Bare personer som kan redigere arbeidsflyten — **Prosjekteier**, **Prosjektadm
 
 ## Sikkerhet for innkommende e-post
 
-Incoming Email-triggeren gir arbeidsflyten sin egen adresse, og alle som kjenner adressen, kan sende e-post til den. Delen før `@` er den hemmelige nøkkelen til arbeidsflyten, så behandle adressen som et passord:
+Innkommende e-post-triggeren gir arbeidsflyten sin egen adresse, og alle som kjenner adressen, kan sende e-post til den. Delen før `@` er den hemmelige nøkkelen til arbeidsflyten, så behandle adressen som et passord:
 
 - Ikke publiser den, og ikke legg den i et offentlig repo. Triggeren skjuler nøkkelen til du klikker på **Vis**, og **Kopier adresse** kopierer adressen uten å vise den.
-- Lekker adressen, klikker du på Incoming Email-triggeren i **Bygger** og deretter på **Tilbakestill adresse**. Arbeidsflyten får en ny adresse, og e-post til den gamle ignoreres fra da av.
+- Lekker adressen, klikker du på Innkommende e-post-triggeren i **Bygger** og deretter på **Tilbakestill adresse**. Arbeidsflyten får en ny adresse, og e-post til den gamle ignoreres fra da av.
 - Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **Fra** beviser ikke hvem som sendte den. Før en arbeidsflyt gjør noe viktig, sjekker du noe bare den ekte avsenderen vet — et token i emnet eller i en header — med en **Hvis / Ellers**-blokk. Lagre det forventede tokenet som en hemmelig variabel.
 - Nøkkelen skjules i alt kjøringen mottar — **Til**, **CC**, headerne og innholdet — fordi loggen til kjøringen er synlig for alle som kan lese kjøringene til arbeidsflyten.
 

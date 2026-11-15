@@ -148,7 +148,7 @@ flowchart TB
 | API のみ | `requestHeaders`, `requestType`, `requestBody` |
 | ウェブサイトと API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication`（クライアント証明書、鍵、パスフレーズをまとめて） |
 | ポート、NTP | `monitorDestinationPort` |
-| シンセティックモニター、Custom JavaScript Code | `customCode` |
+| シンセティックモニター、カスタム JavaScript コード | `customCode` |
 | シンセティックモニター | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver`（DNS サーバーとポートをまとめて）, `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | ドメイン | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
@@ -159,7 +159,7 @@ flowchart TB
 | ログ、セキュリティイベント、トレース、AI / LLM、メトリクス、例外、プロファイル | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`（モニターの構成全体） |
 | プローブステータス | `probeStatusMonitor.probeIds` |
 
-インフラストラクチャのモニター（Kubernetes、Docker Container、ホスト、Podman Container、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター（ホストを除く）、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
+インフラストラクチャのモニター（Kubernetes、Docker コンテナ、ホスト、Podman コンテナ、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター（ホストを除く）、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
 :::
 
 ## トラブルシューティング

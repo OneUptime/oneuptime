@@ -1182,7 +1182,7 @@ describe("Security Events > Entity Risk", () => {
       ).map((fact: Element): string => {
         return fact.textContent || "";
       }),
-    ).toEqual(["1 event", "1 finding", "Last seen 5 minutes ago"]);
+    ).toEqual(["1 event", "1 finding", "Last seen 5\u00A0minutes ago"]);
 
     // The value is no link: Open in Correlate is the one way on.
     expect(within(result).getByText("fin-ws-112").closest("a")).toBeNull();
@@ -1482,7 +1482,8 @@ describe("an entity's page", () => {
     expect(header()).toHaveTextContent(
       `Counting since ${OneUptimeDate.fromNow(row.firstRiskAt!)}, last finding ${OneUptimeDate.fromNow(row.lastRiskAt!)}`,
     );
-    expect(header()).toHaveTextContent(
+    // Read as written: the number holds its unit with a no-break space (#8669).
+    expect(header().textContent).toContain(
       `Falls ${OneUptimeDate.fromNow(row.riskExpiresAt!)}, as its oldest source stops counting`,
     );
     expect(header()).toHaveTextContent(

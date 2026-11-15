@@ -1,9 +1,9 @@
 # 伺服器 / 虛擬機器監控
 
-Server / VM 監測器透過 OneUptime 基礎設施代理程式（`oneuptime-infrastructure-agent`）監控一台機器。這個代理程式是一個小型服務，每 30 秒向 OneUptime 回報一次 CPU、記憶體、磁碟、負載、網路和正在執行的處理程序。本頁說明如何將代理程式連接到 Server / VM 監測器、代理程式回報哪些內容，以及如何撰寫判斷伺服器上線或離線的條件。
+伺服器 / 虛擬機器 監測器透過 OneUptime 基礎設施代理程式（`oneuptime-infrastructure-agent`）監控一台機器。這個代理程式是一個小型服務，每 30 秒向 OneUptime 回報一次 CPU、記憶體、磁碟、負載、網路和正在執行的處理程序。本頁說明如何將代理程式連接到 伺服器 / 虛擬機器 監測器、代理程式回報哪些內容，以及如何撰寫判斷伺服器上線或離線的條件。
 
 > [!IMPORTANT]
-> **建立監測器** 已不再提供 **伺服器 / 虛擬機器**。你已有的 Server / VM 監測器會繼續運作，本頁的所有內容都適用於它們。若要監控新的伺服器，請改為建立 [主機監測器](/docs/monitor/host-monitor)：它會依據 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送的主機指標發出警示。
+> **建立監測器** 已不再提供 **伺服器 / 虛擬機器**。你已有的 伺服器 / 虛擬機器 監測器會繼續運作，本頁的所有內容都適用於它們。若要監控新的伺服器，請改為建立 [主機監測器](/docs/monitor/host-monitor)：它會依據 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送的主機指標發出警示。
 
 :::cards
 - [連接代理程式](#連接代理程式): 安裝代理程式、提供監測器的密鑰，然後啟動它。
@@ -16,7 +16,7 @@ Server / VM 監測器透過 OneUptime 基礎設施代理程式（`oneuptime-infr
 
 代理程式以系統服務的形式執行。它每 30 秒收集一份報告，以監測器的密鑰簽署後傳送到你的 OneUptime URL。OneUptime 會把這些數值存為監測器的指標，並用監測器的條件檢查報告。
 
-靜默會另外檢查。OneUptime 每分鐘會重新評估所有 3 分鐘以上沒有回報的 Server / VM 監測器的 **是否在線** 條件；靜默時間超過條件允許範圍（預設 3 分鐘）的伺服器會被視為離線。沒有 **是否在線** 條件的監測器，不會只因為代理程式靜默就被標記為離線。只有 OneUptime 正在接收資料的時間才會計入這段靜默：OneUptime 本身重新啟動、升級或追趕積壓的時間不會計入，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
+靜默會另外檢查。OneUptime 每分鐘會重新評估所有 3 分鐘以上沒有回報的 伺服器 / 虛擬機器 監測器的 **是否在線** 條件；靜默時間超過條件允許範圍（預設 3 分鐘）的伺服器會被視為離線。沒有 **是否在線** 條件的監測器，不會只因為代理程式靜默就被標記為離線。只有 OneUptime 正在接收資料的時間才會計入這段靜默：OneUptime 本身重新啟動、升級或追趕積壓的時間不會計入，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ```mermaid title="Server / VM 監測器如何取得資料"
 flowchart TB
@@ -28,7 +28,7 @@ flowchart TB
 
 ## 開始之前
 
-- 專案中有一個 Server / VM 監測器。
+- 專案中有一個 伺服器 / 虛擬機器 監測器。
 - 編輯監測器的權限。密鑰以及包含密鑰的設定指令，只會顯示給可以編輯監測器的人。
 - 伺服器上的 root 權限（Linux、macOS）或系統管理員權限（Windows）。代理程式會把自己安裝成系統服務。
 - 伺服器能透過 HTTPS 對外連線到你的 OneUptime URL，可以直接連線，也可以透過 HTTP Proxy。
@@ -40,7 +40,7 @@ flowchart TB
 :::steps
 ### 開啟監測器的設定指令
 
-前往 **監測器**，開啟 Server / VM 監測器並選擇 **文件**。**Set up your Server Monitor (Linux/Mac)** 和 **Set up your Server Monitor (Windows)** 卡片中有這個監測器的指令。在代理程式第一次回報之前，監測器的 **概覽** 也會顯示這些指令。
+前往 **監測器**，開啟 伺服器 / 虛擬機器 監測器並選擇 **文件**。**Set up your Server Monitor (Linux/Mac)** 和 **Set up your Server Monitor (Windows)** 卡片中有這個監測器的指令。在代理程式第一次回報之前，監測器的 **概覽** 也會顯示這些指令。
 
 ### 安裝代理程式
 

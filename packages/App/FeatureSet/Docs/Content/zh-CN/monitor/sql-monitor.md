@@ -231,7 +231,7 @@ OneUptime 会在把配置交给探测器之前，在服务器端解析密钥。O
 | **SQL 查询错误** | 查询的错误消息。在它为空（或不为空），或匹配某个特定字符串时告警。 |
 | **JavaScript 表达式** | 对 `rowCount`、`scalarValue`、`firstRow`、`executionTimeInMs`、`queryError` 和 `isOnline` 求值一个自定义 JavaScript 表达式。请参阅 [JavaScript 表达式](/docs/monitor/javascript-expression#sql-查询监视器)。 |
 
-数值阈值是整数：写 `10`，不要写 `10.5`。SQL Query 过滤器不能在一段时间内求值；每次检查都独立判断。
+数值阈值是整数：写 `10`，不要写 `10.5`。SQL 查询 过滤器不能在一段时间内求值；每次检查都独立判断。
 
 新的 SQL 查询监视器一开始有两个条件：**SQL 是否在线** 为 false 时，监视器离线并宣布一个会自动解决的事件；**SQL 是否在线** 为 true 时，将其标记为在线。**添加条件** 会在底部添加一个条件；请把它拖到在线条件之上，因为条件从上往下检查，第一个匹配的条件说了算。
 

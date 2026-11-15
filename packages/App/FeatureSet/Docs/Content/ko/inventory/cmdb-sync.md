@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-각 네트워크 장치의 `descriptiveAttributes`에는 호스트 이름, IP 주소, 일련 번호, MAC 주소, 제조사, 모델, 펌웨어, 운영 체제, 역할, 사이트, 위치가 들어 있습니다. 아래의 [네트워크 장치 자산 속성](#네트워크-장치-자산-속성)을 참조하세요. 인터페이스와 이웃처럼 폴러가 아는 그 밖의 정보는 Network Device 레코드 자체에 있습니다. `resourceId`를 따라 `/api/network-device/:id/get-item`을 호출하거나, `/api/network-device/get-list`를 직접 가져오세요.
+각 네트워크 장치의 `descriptiveAttributes`에는 호스트 이름, IP 주소, 일련 번호, MAC 주소, 제조사, 모델, 펌웨어, 운영 체제, 역할, 사이트, 위치가 들어 있습니다. 아래의 [네트워크 장치 자산 속성](#네트워크-장치-자산-속성)을 참조하세요. 인터페이스와 이웃처럼 폴러가 아는 그 밖의 정보는 네트워크 디바이스 레코드 자체에 있습니다. `resourceId`를 따라 `/api/network-device/:id/get-item`을 호출하거나, `/api/network-device/get-list`를 직접 가져오세요.
 
 ### CSV로
 
@@ -184,7 +184,7 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 
 ## 네트워크 장치 자산 속성
 
-네트워크 장치(`entityType: network.device`)는 Network Device 레코드에서 미러링되며, 그 `descriptiveAttributes`는 같은 정보에 대해 호스트와 같은 키를 씁니다. 그래서 행이 서버이든 스위치이든 CMDB의 한 열에 일련 번호가 들어갑니다.
+네트워크 장치(`entityType: network.device`)는 네트워크 디바이스 레코드에서 미러링되며, 그 `descriptiveAttributes`는 같은 정보에 대해 호스트와 같은 키를 씁니다. 그래서 행이 서버이든 스위치이든 CMDB의 한 열에 일련 번호가 들어갑니다.
 
 | 필드 | 키 | 출처 |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로�
 
 호스트 이름은 결코 IP 주소가 아닙니다. 주소로만 이름이 붙는 장치에는 `host.ip`가 있고 `host.name`은 없습니다. SNMP 워크가 시스템 이름을 보고하면 다음 처리 때 `host.name`이 생깁니다.
 
-이 값들은 15분마다 Network Device 레코드에서 복사되며, 이전 값에 더해지는 대신 이전 값을 **대체합니다**. 그래서 장치에서 지운 값(예를 들어 제거한 MAC 주소)은 인벤토리 항목에서도 사라집니다.
+이 값들은 15분마다 네트워크 디바이스 레코드에서 복사되며, 이전 값에 더해지는 대신 이전 값을 **대체합니다**. 그래서 장치에서 지운 값(예를 들어 제거한 MAC 주소)은 인벤토리 항목에서도 사라집니다.
 
 *사용 가능한 업그레이드* 버전은 없습니다. SNMP에는 이를 위한 표준 오브젝트가 없으므로, OneUptime은 장치가 실행 중인 버전을 기록합니다.
 
