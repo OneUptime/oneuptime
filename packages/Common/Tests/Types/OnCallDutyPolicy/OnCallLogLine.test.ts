@@ -48,8 +48,15 @@ import {
   USER_LOG_TIMED_OUT_STATUS_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallRunStart";
 import {
+  CALL_ANSWERED_MESSAGE,
+  CALL_BUSY_MESSAGE,
+  CALL_NOT_CONNECTED_MESSAGE,
+  CALL_RANG_OUT_MESSAGE,
+  CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
+  getCallAnsweredAndLastedMessage,
   getCallIdStatusMessage,
+  getCallOutcomeMessage,
   getMessageIdStatusMessage,
   getProviderDeliveryStatusMessage,
   getStuckNotificationStatusMessage,
@@ -58,6 +65,7 @@ import {
   ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
   ProviderDeliveryStatus,
   PUSH_NOTIFICATION_SENT_MESSAGE,
+  readCallOutcomeMessage,
   readEmailSentWithoutImagesMessage,
   readProviderDeliveryStatusMessage,
   readProviderIdStatusMessage,
@@ -758,5 +766,97 @@ describe("an email sent without its images (#8551)", () => {
     expect(
       readEmailSentWithoutImagesMessage("Email sent successfully."),
     ).toBeNull();
+  });
+});
+
+/*
+ * A CALL'S OUTCOME (#8576), read back from CallOutcome's own builders:
+ * answered - for how long, when Twilio said - rang out, busy or declined,
+ * not connected, after the call's id when Twilio gave one.
+ */
+describe("a call that ended (#8576)", () => {
+  const CALL_SID: string = "CA0123456789abcdef0123456789abcdef";
+
+  test("the words are as Twilio's callback always wrote them", () => {
+    expect(CALL_ANSWERED_MESSAGE).toBe("The call was answered.");
+    expect(getCallAnsweredAndLastedMessage(1)).toBe(
+      "The call was answered and lasted 1 second.",
+    );
+    expect(getCallAnsweredAndLastedMessage(42)).toBe(
+      "The call was answered and lasted 42 seconds.",
+    );
+    expect(CALL_RANG_OUT_MESSAGE).toBe(
+      "The call was not answered: it rang out.",
+    );
+    expect(CALL_BUSY_MESSAGE).toBe(
+      "The call was not answered: the line was busy, or the call was declined.",
+    );
+    expect(CALL_NOT_CONNECTED_MESSAGE).toBe("The call could not be connected.");
+    expect(
+      getCallOutcomeMessage({
+        callId: CALL_SID,
+        sentence: CALL_RANG_OUT_MESSAGE,
+      }),
+    ).toBe(`Call ID: ${CALL_SID}. The call was not answered: it rang out.`);
+  });
+
+  test.each([
+    [CALL_ANSWERED_MESSAGE, CallOutcomeLine.Answered],
+    [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
+    [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
+    [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+  ] as Array<[string, CallOutcomeLine]>)(
+    "%s, with its id and without",
+    (sentence: string, outcome: CallOutcomeLine) => {
+      expect(
+        readOnCallLogLine(
+          getCallOutcomeMessage({ callId: CALL_SID, sentence: sentence }),
+        ),
+      ).toEqual({
+        code: OnCallLogLineCode.CallEnded,
+        callOutcome: outcome,
+        id: CALL_SID,
+      });
+      expect(
+        readOnCallLogLine(getCallOutcomeMessage({ callId: null, sentence })),
+      ).toEqual({ code: OnCallLogLineCode.CallEnded, callOutcome: outcome });
+    },
+  );
+
+  test.each([0, 1, 42, 3600])(
+    "answered, and lasted %i seconds",
+    (seconds: number) => {
+      expect(
+        readOnCallLogLine(
+          getCallOutcomeMessage({
+            callId: CALL_SID,
+            sentence: getCallAnsweredAndLastedMessage(seconds),
+          }),
+        ),
+      ).toEqual({
+        code: OnCallLogLineCode.CallEnded,
+        callOutcome: CallOutcomeLine.Answered,
+        seconds: seconds,
+        id: CALL_SID,
+      });
+    },
+  );
+
+  test("a call placed is still a call placed, not an outcome", () => {
+    expect(readOnCallLogLine(getCallIdStatusMessage(CALL_SID))).toEqual({
+      code: OnCallLogLineCode.CallPlaced,
+      id: CALL_SID,
+    });
+  });
+
+  test("words the builder never writes are none", () => {
+    expect(
+      readCallOutcomeMessage("The call was answered and lasted 1 seconds."),
+    ).toBeNull();
+    expect(
+      readCallOutcomeMessage("The call was answered and lasted 2 second."),
+    ).toBeNull();
+    expect(readCallOutcomeMessage(`Call ID: ${CALL_SID}. It rang.`)).toBeNull();
+    expect(readCallOutcomeMessage("")).toBeNull();
   });
 });

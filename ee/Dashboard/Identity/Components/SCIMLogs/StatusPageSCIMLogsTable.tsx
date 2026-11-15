@@ -8,6 +8,8 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -24,6 +26,7 @@ export interface StatusPageSCIMLogsTableProps {
 const StatusPageSCIMLogsTable: FunctionComponent<
   StatusPageSCIMLogsTableProps
 > = (props: StatusPageSCIMLogsTableProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showLogModal, setShowLogModal] = useState<boolean>(false);
   const [logModalText, setLogModalText] = useState<string>("");
   const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
@@ -141,13 +144,25 @@ const StatusPageSCIMLogsTable: FunctionComponent<
               }
               if (item["statusMessage"]) {
                 logDetails =
-                  `Status Message: ${item["statusMessage"]}\n\n` + logDetails;
+                  translator.translateTemplate("Status Message: {{message}}", {
+                    message: item["statusMessage"] as string,
+                  }) +
+                  "\n\n" +
+                  logDetails;
               }
               if (item["requestPath"]) {
                 logDetails =
-                  `Request Path: ${item["requestPath"]}\n\n` + logDetails;
+                  translator.translateTemplate("Request Path: {{path}}", {
+                    path: item["requestPath"] as string,
+                  }) +
+                  "\n\n" +
+                  logDetails;
               }
-              setLogModalText(logDetails || "No details available");
+              setLogModalText(
+                logDetails ||
+                  translator.translateText("No details available") ||
+                  "No details available",
+              );
               setShowLogModal(true);
               onCompleteAction();
             },

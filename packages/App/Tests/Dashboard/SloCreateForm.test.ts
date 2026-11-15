@@ -17,6 +17,7 @@ import {
   SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS,
   validateAtRiskThreshold,
   validateLatencyThreshold,
+  validateRequestFilter,
   validateTargetPercentage,
   validateWindowDays,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
@@ -42,6 +43,8 @@ import { getCreateFormColumnDefault } from "Common/UI/Components/Forms/Utils/Cre
 import { getFoldedFormFieldItems } from "Common/UI/Components/Forms/Utils/FoldedFormFields";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import Validation from "Common/UI/Components/Forms/Validation";
+import { SLO_REQUEST_FILTER_EXPLORER_FIELDS } from "Common/Utils/Slo/SloRequestFilter";
+import { TRACE_FIELD_ALIAS_MAP } from "../../FeatureSet/Dashboard/src/Components/Traces/TracesSearchCompile";
 
 /*
  * SLO create used to walk three steps - Basic Info, Objective, Period - when
@@ -80,6 +83,8 @@ const MEASURES_COLUMNS: Array<string> = [
   "sliType",
   "services",
   "latencyThresholdInMilliseconds",
+  // Which of the services' requests count (#8444).
+  "requestFilter",
 ];
 
 // The second step's open fields.
@@ -269,17 +274,28 @@ describe("the SLO create form", () => {
     expect(section.getSummary).toBe(getSloAdvancedSummary);
   });
 
-  test("is three rows a step: what it measures with its two follow-ups, then the name, the target and the folded section", () => {
-    for (const step of SLO_CREATE_FORM_STEPS) {
-      expect({
-        step: step.id,
-        rows: countRows(
-          CREATE_FIELDS.filter((field: SloField): boolean => {
-            return field.stepId === step.id;
-          }),
-        ),
-      }).toEqual({ step: step.id, rows: 3 });
-    }
+  /*
+   * What it measures, and for a request SLO its services, a latency SLO's
+   * threshold and an optional request filter (#8444) - only the answer is
+   * shown for a monitor uptime SLO; then the name, the target and the fold.
+   */
+  test("is four rows on what it measures and three on the objective", () => {
+    const rowsOn: (stepId: string) => number = (stepId: string): number => {
+      return countRows(
+        CREATE_FIELDS.filter((field: SloField): boolean => {
+          return field.stepId === stepId;
+        }),
+      );
+    };
+
+    expect(
+      SLO_CREATE_FORM_STEPS.map((step: { id: string }) => {
+        return [step.id, rowsOn(step.id)];
+      }),
+    ).toEqual([
+      ["measures", 4],
+      ["objective", 3],
+    ]);
   });
 
   test("keeps the labels the shared Labels field, folded with the rest", () => {
@@ -862,5 +878,100 @@ describe("what the SLO create form asks an SLO to measure", () => {
     expect(Object.keys(missingThreshold)).toEqual([
       "latencyThresholdInMilliseconds",
     ]);
+  });
+});
+
+/*
+ * A request SLO's request filter (#8444): optional, asked only of a request
+ * SLO, a traces search the counting can read - checked here as the server
+ * checks it, in the reader's language.
+ */
+describe("the SLO create form's request filter", () => {
+  test("is asked of a request SLO only, and never required", () => {
+    const filter: SloField = fieldFor("requestFilter");
+    const show: (values: SloValues) => boolean = filter.showIf!;
+
+    expect(filter.title).toBe("Request Filter");
+    expect(filter.fieldType).toBe(FormFieldSchemaType.Text);
+    expect(filter.required).toBe(false);
+    expect(filter.stepId).toBe("measures");
+    expect(filter.placeholder).toBe(
+      "@http.route:/checkout* -@http.route:/health",
+    );
+
+    for (const sliType of [SliType.RequestSuccess, SliType.RequestLatency]) {
+      expect(show(withValues({ sliType: sliType }))).toBe(true);
+    }
+
+    expect(show(withValues({ sliType: SliType.MonitorUptime }))).toBe(false);
+  });
+
+  test("accepts no filter, and any traces search of attributes and names", () => {
+    for (const value of [
+      undefined,
+      "",
+      "   ",
+      "@http.route:/checkout*",
+      '-@http.route:/health name:"POST /checkout"',
+      "@http.request.method:[POST, PUT] @http.response.status_code:>=200",
+    ]) {
+      expect(
+        validateRequestFilter(withValues({ requestFilter: value })),
+      ).toBeNull();
+    }
+  });
+
+  test("refuses free text, saying what to write instead", () => {
+    expect(
+      validateRequestFilter(withValues({ requestFilter: "checkout" })),
+    ).toBe(
+      'The request filter takes span attributes and the span\'s name, such as @http.route:/checkout* or name:"POST /checkout". "checkout" is neither.',
+    );
+  });
+
+  test("refuses the Traces explorer's status, service and duration, which the SLO already decides", () => {
+    expect(
+      validateRequestFilter(
+        withValues({ requestFilter: "@http.route:/checkout* status:error" }),
+      ),
+    ).toBe(
+      'The request filter takes span attributes and the span\'s name, such as @http.route:/checkout* or name:"POST /checkout". "status:error" is neither.',
+    );
+    expect(
+      validateRequestFilter(withValues({ requestFilter: "@status:error" })),
+    ).toBeNull();
+  });
+
+  /*
+   * The SLO's filter knows the explorer's fields from a copy in Common, as
+   * Common cannot read the Dashboard: a field the explorer adds is one a
+   * filter must refuse or take on purpose.
+   */
+  test("knows every field the Traces explorer has, and no other", () => {
+    expect([...SLO_REQUEST_FILTER_EXPLORER_FIELDS].sort()).toEqual(
+      Object.keys(TRACE_FIELD_ALIAS_MAP).sort(),
+    );
+  });
+
+  test("refuses a filter too long, or with too many terms, with the limit grouped", () => {
+    expect(
+      validateRequestFilter(
+        withValues({ requestFilter: `@k:${"a".repeat(600)}` }),
+      ),
+    ).toBe("The request filter can be at most 500 characters long.");
+
+    const terms: Array<string> = [];
+
+    for (let index: number = 0; index < 11; index++) {
+      terms.push(`@k${index}:v`);
+    }
+
+    expect(
+      validateRequestFilter(withValues({ requestFilter: terms.join(" ") })),
+    ).toBe("The request filter can have at most 10 terms.");
+  });
+
+  test("a monitor uptime SLO validates without one", () => {
+    expect(validateForm(withValues({ name: "API" }))).toEqual({});
   });
 });

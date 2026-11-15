@@ -137,6 +137,10 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { toLabelTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatCompactDuration,
+  formatCompactDurationAgo,
+} from "../../../Utils/Milliseconds";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
@@ -1802,7 +1806,9 @@ const ProxmoxClusterOverview: FunctionComponent<
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
-            nodeAvailabilityPct === null ? "—" : `${nodesOnline}/${nodesTotal}`
+            nodeAvailabilityPct === null
+              ? undefined
+              : `${nodesOnline}/${nodesTotal}`
           }
           sublabel={nodesSublabel}
           percent={nodeAvailabilityPct}
@@ -1867,7 +1873,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={
             inventory && guestsTotal > 0
               ? `${guestsRunning}/${guestsTotal}`
-              : "—"
+              : undefined
           }
           sublabel={
             netTotal === null
@@ -2086,6 +2092,7 @@ const ProxmoxClusterOverview: FunctionComponent<
 
     const nowSeconds: number = Date.now() / 1000;
 
+    // "4.2s", "3m 12s": in the reader's short units and digits (#8455).
     const formatDuration: (seconds: number | null) => string = (
       seconds: number | null,
     ): string => {
@@ -2093,26 +2100,37 @@ const ProxmoxClusterOverview: FunctionComponent<
         return "—";
       }
       if (seconds < 60) {
-        return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+        return formatCompactDuration(
+          translator,
+          { seconds },
+          { decimals: seconds < 10 ? 1 : 0 },
+        );
       }
       const minutes: number = Math.floor(seconds / 60);
       const rest: number = Math.round(seconds % 60);
-      return `${minutes}m ${rest}s`;
+      return formatCompactDuration(translator, { minutes, seconds: rest });
     };
 
+    // "5m ago", "3h ago", "2d ago": in the reader's language (#8455).
     const formatAge: (ageSeconds: number) => string = (
       ageSeconds: number,
     ): string => {
       if (ageSeconds < 60) {
-        return "just now";
+        return translator.translateText("just now") || "just now";
       }
       if (ageSeconds < 60 * 60) {
-        return `${Math.floor(ageSeconds / 60)}m ago`;
+        return formatCompactDurationAgo(translator, {
+          minutes: Math.floor(ageSeconds / 60),
+        });
       }
       if (ageSeconds < 24 * 60 * 60) {
-        return `${Math.floor(ageSeconds / (60 * 60))}h ago`;
+        return formatCompactDurationAgo(translator, {
+          hours: Math.floor(ageSeconds / (60 * 60)),
+        });
       }
-      return `${Math.floor(ageSeconds / (24 * 60 * 60))}d ago`;
+      return formatCompactDurationAgo(translator, {
+        days: Math.floor(ageSeconds / (24 * 60 * 60)),
+      });
     };
 
     return (

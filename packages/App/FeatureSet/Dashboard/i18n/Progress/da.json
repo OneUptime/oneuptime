@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54285,
-    "untranslated": 8577
+    "keys": 54327,
+    "untranslated": 8526
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -27,6 +27,7 @@
     "Alias",
     "Amphora",
     "Amphorae",
+    "Analog",
     "Apache Kafka · kafka-1:9092",
     "App",
     "Appliance",
@@ -97,6 +98,7 @@
     "Desktop",
     "Destination",
     "Diagram",
+    "Digital",
     "Disk",
     "Disk %",
     "Disk {{path}}",

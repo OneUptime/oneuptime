@@ -106,7 +106,7 @@ Zodra een waarschuwing wordt aangemaakt, doorloopt OneUptime deze stappen, in de
 
 Een achtergrondtaak licht de eigenaren van de waarschuwing ongeveer een minuut na het aanmaken in, iedere eigenaar die ze dan heeft, en de workflowtrigger **On Create Alert** start elke workflow die erop is gebouwd.
 
-Om personen en teams al bij het aanmaken eigenaar van de waarschuwing te maken, zodat deze melding hen bereikt en niet de eigenaren van het project, geef je ze mee met het aanmaken: via de API stuur je hun id's in `miscDataProps`, als `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, met `POST /api/alert`; in een workflow kies je ze onder **Eigenaarsgebruikers** en **Eigenaarsteams** van **Create One Alert**; via MCP geef je `ownerUsers` en `ownerTeams` door aan `create_alert`. Een verzoek waarvan de afzender die eigenaren niet mag toevoegen, wordt geweigerd voordat er iets wordt opgeslagen. Eigenaren die een apart verzoek na het aanmaken toevoegt, horen er alleen van als ze binnen die minuut zijn toegevoegd.
+Om personen en teams al bij het aanmaken eigenaar van de waarschuwing te maken, zodat deze melding hen bereikt en niet de Projecteigenaren, geef je ze mee met het aanmaken: via de API stuur je hun id's in `miscDataProps`, als `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, met `POST /api/alert`; in een workflow kies je ze onder **Eigenaarsgebruikers** en **Eigenaarsteams** van **Create One Alert**; via MCP geef je `ownerUsers` en `ownerTeams` door aan `create_alert`. Een verzoek waarvan de afzender die eigenaren niet mag toevoegen, wordt geweigerd voordat er iets wordt opgeslagen. Eigenaren die een apart verzoek na het aanmaken toevoegt, horen er alleen van als ze binnen die minuut zijn toegevoegd.
 
 ### Al bevestigd of opgelost aangemaakt
 
@@ -152,7 +152,7 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 
 ## Privéwaarschuwingen
 
-Een privéwaarschuwing is alleen zichtbaar voor haar eigenaren, de eigenaar-gebruikers en de leden van haar eigenaar-teams, en voor de beheerders en eigenaren van je project. Niemand anders in het project kan haar openen.
+Een privéwaarschuwing is alleen zichtbaar voor haar eigenaren, de eigenaar-gebruikers en de leden van haar eigenaar-teams, en voor de Projectbeheerders en Projecteigenaren. Niemand anders in het project kan haar openen.
 
 Maak een waarschuwing privé met **Privéwaarschuwing** onder **Meer velden** in het aanmaakformulier of in de criteria van een monitor, met **Waarschuwingen → Regels → Privacyregels**, of later op haar pagina **Instellingen**, die **Deze waarschuwing privé maken?** vraagt voordat de waarschuwing wordt verborgen. Hoor je bij geen van deze mensen, dan verlies je zelf ook de toegang.
 
@@ -161,7 +161,7 @@ Een episode die door een privéwaarschuwing wordt geopend, is niet privé en too
 ## Wie van een waarschuwing hoort
 
 - **Wie dienst heeft.** Het bereikbaarheidsbeleid van de waarschuwing roept zijn mensen op, elk zoals die het heeft ingesteld onder **Gebruikersinstellingen → Hoe ik bereikbaar ben**, op het tabblad **Waarschuwingen**. Wie de oproep beantwoordt, bevestigt de waarschuwing, en het oproepen stopt.
-- **Haar eigenaren.** Per e-mail, tenzij ze andere kanalen kozen onder **Gebruikersinstellingen → Meldingsinstellingen**, op het tabblad **Waarschuwingen**: **Waarschuwing aangemaakt**, **Status van waarschuwing gewijzigd** en **Waarschuwingsherinnering** staan standaard aan, en **Notitie bij waarschuwing geplaatst** en **Toegevoegd als eigenaar van waarschuwing** staan uit tot iemand ze aanzet. Een waarschuwing zonder eigenaren licht in plaats daarvan de eigenaren van het project in. Stopt OneUptime terwijl het een melding verstuurt, dan krijgen de mensen bij wie het nog niet was aangekomen die zodra OneUptime terug is, een paar minuten later, en niemand krijgt hem twee keer.
+- **Haar eigenaren.** Per e-mail, tenzij ze andere kanalen kozen onder **Gebruikersinstellingen → Meldingsinstellingen**, op het tabblad **Waarschuwingen**: **Waarschuwing aangemaakt**, **Status van waarschuwing gewijzigd** en **Waarschuwingsherinnering** staan standaard aan, en **Notitie bij waarschuwing geplaatst** en **Toegevoegd als eigenaar van waarschuwing** staan uit tot iemand ze aanzet. Een waarschuwing zonder eigenaren licht in plaats daarvan de Projecteigenaren in. Stopt OneUptime terwijl het een melding verstuurt, dan krijgen de mensen bij wie het nog niet was aangekomen die zodra OneUptime terug is, een paar minuten later, en niemand krijgt hem twee keer.
 - **Je chattools.** **Waarschuwingen → Werkruimte** bevat de Slack- en Microsoft Teams-regels die waarschuwingen en episodes in kanalen plaatsen. Zie [Slack](/docs/workspace-connections/slack) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Probleemoplossing

@@ -82,6 +82,10 @@ Voeg een `<match>`-sectie toe die records naar OneUptime stuurt. Vervang `YOUR_S
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Voeg een `<match>`-sectie toe die records naar OneUptime stuurt. Vervang `YOUR_S
 
 `json_array true` stuurt elke chunk van de buffer als één JSON-array, en `flush_interval 10s` stuurt de buffer elke 10 seconden. `chunk_limit_size 900k` houdt elk request onder 1 MB, het meeste dat OneUptime op dit endpoint aanneemt.
 
+`@type file` bewaart de batches die nog verstuurd moeten worden in de map die `path` noemt, zodat een herstart van Fluentd er geen verliest; een buffer in het geheugen, de standaard van Fluentd, verliest wat hij vasthoudt. De gebruiker van Fluentd moet in die map kunnen schrijven: `/var/log/fluent` is die van fluent-package, `/var/log/td-agent` die van td-agent en `/fluentd/log` die van de image `fluent/fluentd`. `total_limit_size 512m` bewaart daar hooguit 512 MB; is hij vol, dan neemt Fluentd geen records meer aan tot er een batch is verstuurd.
+
 `retryable_response_codes 429,502,503,504` stuurt een batch opnieuw als OneUptime het druk heeft (`429`) of herstart (`502`, `503`, `504`); zonder deze instelling gooit Fluentd een batch weg bij elk antwoord behalve `503`. `retry_max_interval 30s` wacht hoogstens 30 seconden tussen pogingen, en `retry_timeout 72h` gooit een batch weg die na 72 uur nog steeds niet verstuurd kan worden. Het filter `record_transformer` voegt de tijd toe die Fluentd elk record gaf, als `fluentd_time`: de HTTP-output stuurt alleen het record, en OneUptime leest de tijd van een log daaruit.
 
 ### Fluentd herstarten
@@ -113,7 +119,7 @@ Enkele seconden na de volgende flush verschijnen de logs onder **Producten → L
 
 ## Volledig voorbeeld
 
-Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort `24224` en stuurt ze allemaal naar OneUptime:
+Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort `24224`, alleen van deze host, en stuurt ze allemaal naar OneUptime:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort
 </label>
 ```
 
-Wil je verschillende bronnen als verschillende services sturen, gebruik dan één `<match>`-sectie per tag, elk met een eigen `x-oneuptime-service-name`.
+`bind 127.0.0.1` neemt alleen records van deze host aan, zoals die van de logdriver `fluentd` van Docker, die naar `localhost:24224` stuurt. Wil je verschillende bronnen als verschillende services sturen, gebruik dan één `<match>`-sectie per tag, elk met een eigen `x-oneuptime-service-name` en een eigen buffer-`path`: met twee buffers op één pad start Fluentd niet.
+
+## Records van andere hosts ontvangen
+
+Met `bind 0.0.0.0` en zonder sectie `<security>` kan iedereen die poort `24224` bereikt logs naar OneUptime sturen onder je ingestiesleutel. Om records van Fluentd of Fluent Bit op andere hosts te ontvangen, luister je op elk adres, vraag je elke afzender om een gedeelde sleutel en gebruik je TLS. Vervang de sectie `<source>` van het volledige voorbeeld door:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` en `private_key_path` zijn een certificaat voor de naam van deze host, hier `fluentd.example.com`, en de sleutel ervan, die de gebruiker van Fluentd moet kunnen lezen. Fluentd waarschuwt als de sleutel geen wachtwoordzin heeft; `private_key_passphrase` stelt er een in. Vervang `YOUR_SHARED_KEY` door een lang willekeurig geheim, zoals een uit `openssl rand -base64 32`, en geef elke afzender hetzelfde:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+De `forward`-output van Fluent Bit neemt dezelfde instellingen: `Shared_Key`, `Self_Hostname`, `tls On` en `tls.ca_file`.
+
+Een afzender zonder de sleutel, of zonder TLS, wordt geweigerd. De sleutel zelf gaat nooit over het netwerk: elke kant bewijst dat hij hem heeft. Zonder TLS kan iedereen op het netwerk tussen de hosts de records lezen. Open poort `24224` in de firewall van de host alleen voor de hosts die sturen. Draait Fluentd vanuit het Docker Compose-bestand van de logs-handleiding, publiceer de poort daar dan ook op elk adres, `"24224:24224"`, en koppel de map van het certificaat in de container.
 
 ## Hoe records worden gelezen
 
@@ -209,11 +274,15 @@ Het request is groter dan 1 MB, het meeste dat OneUptime op dit endpoint aanneem
 :::
 
 :::details Fluentd logt `429`, `502`, `503` of `504`
-OneUptime heeft het druk of herstart. Met `retryable_response_codes 429,502,503,504` in de sectie `<match>`, zoals in de configuratie hierboven, houdt Fluentd de batch vast en stuurt hem opnieuw; zonder deze instelling gooit Fluentd de batch weg.
+OneUptime heeft het druk of herstart. Met `retryable_response_codes 429,502,503,504` in de sectie `<match>`, zoals in de configuratie hierboven, houdt Fluentd de batch vast en stuurt hem opnieuw; zonder deze instelling gooit Fluentd de batch weg. Met `@type file` in de sectie `<buffer>` houdt Fluentd de batch ook vast als het herstart.
 :::
 
 :::details Logs tonen het moment waarop OneUptime ze ontving, niet hun eigen tijd
-OneUptime leest de tijd van een log uit zijn record, en de HTTP-output van Fluentd stuurt alleen het record. Een sectie `<parse>` haalt het veld `time` uit het record: voeg er `keep_time_key true` aan toe. Voeg ook het filter `record_transformer` uit de configuratie hierboven toe: dat voegt de tijd toe die Fluentd elk record gaf, als `fluentd_time`.
+OneUptime leest de tijd van een log uit zijn record, en de HTTP-output van Fluentd stuurt alleen het record. Een sectie `<parse>` haalt het veld `time` uit het record, als tijd van de gebeurtenis: voeg er `time_key fluentd_time` aan toe, zodat hij van geen enkel record de tijd leest en `time` laat zoals het is. Voeg ook het filter `record_transformer` uit de configuratie hierboven toe: dat voegt de tijd toe die Fluentd elk record gaf, als `fluentd_time`.
+:::
+
+:::details Een JSON-regel waarvan `time` `null`, `true`, een lijst of een object is, komt nooit aan
+De `json`-parser van Fluentd leest het veld `time` van een regel als tijd van de gebeurtenis, en gooit zonder waarschuwing een regel weg waarvan `time` geen tekst en geen getal is. Voeg `time_key fluentd_time` toe aan zijn sectie `<parse>`, zoals hierboven: Fluentd laat `time` dan in het record zoals het is. Met het filter `record_transformer` hierboven slaat OneUptime de log op op het moment dat Fluentd hem las, `fluentd_time`; zonder dat filter op het moment dat OneUptime hem ontvangt.
 :::
 
 :::details Logs komen binnen onder de service `Fluentd`

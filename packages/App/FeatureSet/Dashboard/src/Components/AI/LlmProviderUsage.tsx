@@ -376,7 +376,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
       >
         <LlmTile
           label="Requests"
-          value={summary ? formatLlmCount(summary.totals.requests) : "—"}
+          value={summary ? formatLlmCount(summary.totals.requests) : undefined}
           icon={IconProp.Sparkles}
           iconClassName="text-violet-600"
           iconTileClassName="bg-violet-50"
@@ -385,7 +385,9 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
         />
         <LlmTile
           label="Input tokens"
-          value={summary ? formatLlmTokens(summary.totals.inputTokens) : "—"}
+          value={
+            summary ? formatLlmTokens(summary.totals.inputTokens) : undefined
+          }
           icon={IconProp.ArrowDown}
           iconClassName="text-indigo-600"
           iconTileClassName="bg-indigo-50"
@@ -394,7 +396,9 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
         />
         <LlmTile
           label="Output tokens"
-          value={summary ? formatLlmTokens(summary.totals.outputTokens) : "—"}
+          value={
+            summary ? formatLlmTokens(summary.totals.outputTokens) : undefined
+          }
           icon={IconProp.ArrowUp}
           iconClassName="text-sky-600"
           iconTileClassName="bg-sky-50"
@@ -403,7 +407,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
         />
         <LlmTile
           label="Cost (USD)"
-          value={summary ? formatLlmCost(summary.totals.costUsd) : "—"}
+          value={summary ? formatLlmCost(summary.totals.costUsd) : undefined}
           icon={IconProp.CurrencyDollar}
           iconClassName="text-emerald-600"
           iconTileClassName="bg-emerald-50"

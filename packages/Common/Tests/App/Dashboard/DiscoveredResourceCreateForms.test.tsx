@@ -286,6 +286,14 @@ import {
   hasSetChip,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/host/needs-attention"]);
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 

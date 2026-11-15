@@ -11,8 +11,13 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { TimelineViewMode } from "Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, { FunctionComponent, ReactElement } from "react";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
@@ -213,6 +218,70 @@ export const NavigationBar: FunctionComponent<NavigationBarProps> = (
 
 // -- Summary ----------------------------------------------------------------
 
+/*
+ * Each summary chip is one sentence with its count in it, bold, where the
+ * reader's language puts it. The count was drawn on its own before a
+ * translated phrase ("3" then "schedules"), in English's order (#8483).
+ */
+export const SUMMARY_SCHEDULES: PluralTemplate = {
+  one: "{{count}} schedule",
+  other: "{{count}} schedules",
+};
+
+export const SUMMARY_COVERED_NOW: PluralTemplate = {
+  one: "{{count}} covered now",
+  other: "{{count}} covered now",
+};
+
+export const SUMMARY_NO_ONE_ON_CALL_NOW: PluralTemplate = {
+  one: "{{count}} with no one on call now",
+  other: "{{count}} with no one on call now",
+};
+
+export const SUMMARY_GAPS_THIS_WEEK: PluralTemplate = {
+  one: "{{count}} with coverage gaps this week",
+  other: "{{count}} with coverage gaps this week",
+};
+
+export const SUMMARY_GAPS_THIS_MONTH: PluralTemplate = {
+  one: "{{count}} with coverage gaps this month",
+  other: "{{count}} with coverage gaps this month",
+};
+
+/*
+ * A chip's sentence. The chip is a flex row spaced by its gap, so each
+ * piece of text is a box of its own; the words keep their spaces for a
+ * screen reader.
+ */
+const SummaryCount: FunctionComponent<{
+  template: PluralTemplate;
+  count: number;
+  countClassName: string;
+}> = (props: {
+  template: PluralTemplate;
+  count: number;
+  countClassName: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <TranslatedSentence
+      template={props.template}
+      count={props.count}
+      slots={{
+        count: (
+          <span className={props.countClassName}>
+            {translator.formatNumber(props.count)}
+          </span>
+        ),
+      }}
+      renderText={(text: string): ReactElement => {
+        return <span>{text}</span>;
+      }}
+    />
+  );
+};
+
 export interface SummaryBarProps {
   summary: TimelineSummary;
   mode: TimelineViewMode;
@@ -250,14 +319,11 @@ export const SummaryBar: FunctionComponent<SummaryBarProps> = (
     >
       <span className="inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
         <Icon icon={IconProp.Calendar} className="h-4 w-4 text-gray-400" />
-        <span className="font-semibold text-gray-900">
-          {props.summary.total}
-        </span>
-        {/* The count is drawn on its own, bold; this is the word beside it. */}
-        {translator.translatePlural(
-          { one: "schedule", other: "schedules" },
-          props.summary.total,
-        )}
+        <SummaryCount
+          template={SUMMARY_SCHEDULES}
+          count={props.summary.total}
+          countClassName="font-semibold text-gray-900"
+        />
       </span>
 
       {props.summary.coveredNow !== null && (
@@ -266,10 +332,11 @@ export const SummaryBar: FunctionComponent<SummaryBarProps> = (
           data-testid="timeline-summary-covered-now"
         >
           <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-          <span className="font-semibold text-gray-900">
-            {props.summary.coveredNow}
-          </span>
-          {translator.translateText("covered now")}
+          <SummaryCount
+            template={SUMMARY_COVERED_NOW}
+            count={props.summary.coveredNow}
+            countClassName="font-semibold text-gray-900"
+          />
         </span>
       )}
 
@@ -296,10 +363,11 @@ export const SummaryBar: FunctionComponent<SummaryBarProps> = (
           )}
         >
           <Icon icon={IconProp.Alert} className="h-4 w-4 text-amber-500" />
-          <span className="font-semibold">
-            {props.summary.uncoveredNow ?? 0}
-          </span>
-          {translator.translateText("with no one on call now")}
+          <SummaryCount
+            template={SUMMARY_NO_ONE_ON_CALL_NOW}
+            count={props.summary.uncoveredNow ?? 0}
+            countClassName="font-semibold"
+          />
         </button>
       )}
 
@@ -323,12 +391,13 @@ export const SummaryBar: FunctionComponent<SummaryBarProps> = (
           )}
         >
           <span className="oneuptime-schedule-timeline-gap-swatch inline-block h-3 w-3 rounded-sm" />
-          <span className="font-semibold">{props.summary.withGaps}</span>
-          {translator.translateText(
-            isMonth
-              ? "with coverage gaps this month"
-              : "with coverage gaps this week",
-          )}
+          <SummaryCount
+            template={
+              isMonth ? SUMMARY_GAPS_THIS_MONTH : SUMMARY_GAPS_THIS_WEEK
+            }
+            count={props.summary.withGaps}
+            countClassName="font-semibold"
+          />
         </button>
       )}
     </div>

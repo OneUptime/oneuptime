@@ -346,6 +346,9 @@ describe("DashboardAPI public SLO", () => {
         errorBudgetRemainingSeconds: true,
         currentBurnRate: true,
         sloStatus: true,
+        // What a request SLO's budget line is worded from (#8441).
+        sliType: true,
+        errorBudgetRemainingEvents: true,
       });
       expect(Response.sendEntityArrayResponse).toHaveBeenCalledTimes(1);
     });
@@ -949,6 +952,9 @@ describe("DashboardAPI public SLO", () => {
         errorBudgetRemainingSeconds: true,
         currentBurnRate: true,
         sloStatus: true,
+        // What a request SLO's budget line is worded from (#8441).
+        sliType: true,
+        errorBudgetRemainingEvents: true,
       });
     });
 
@@ -1180,7 +1186,7 @@ describe("DashboardAPI public SLO", () => {
       expect(findByArgs["limit"]).toBe(50);
       expect(findByArgs["props"]).toEqual({ isRoot: true });
       /*
-       * The seven display fields plus isEnabled, so a disabled SLO reads
+       * The nine display fields plus isEnabled, so a disabled SLO reads
        * Disabled on the public page instead of its frozen status.
        */
       expect(findByArgs["select"]).toEqual({
@@ -1192,6 +1198,9 @@ describe("DashboardAPI public SLO", () => {
         errorBudgetRemainingSeconds: true,
         currentBurnRate: true,
         sloStatus: true,
+        // What a request SLO's budget line is worded from (#8441).
+        sliType: true,
+        errorBudgetRemainingEvents: true,
         isEnabled: true,
       });
     });

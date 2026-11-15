@@ -187,6 +187,14 @@ import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/incident-public-note/approval/policy"]);
 
 const INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");

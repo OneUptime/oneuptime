@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54285,
-    "untranslated": 8565
+    "keys": 54327,
+    "untranslated": 8514
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -43,6 +43,7 @@
     "Backup",
     "Badge",
     "Bare Metal",
+    "Bearer Token:",
     "Blade",
     "Branding",
     "Browser",
@@ -97,6 +98,7 @@
     "Datacenter",
     "Datastore",
     "Datastores",
+    "Debug",
     "DeploymentConfigs",
     "Desktop",
     "Directory",

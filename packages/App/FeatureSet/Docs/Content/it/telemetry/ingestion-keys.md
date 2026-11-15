@@ -108,7 +108,7 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 
 ## Ruotare, disattivare o eliminare una chiave
 
-La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Fai clic per mostrare**, e il suo **Last Used At**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
+La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Fai clic per mostrare**, e il suo **Ultimo utilizzo il**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
 
 | Per | Fate questo | Che cosa vedono i mittenti |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietr
 | Sostituire un segreto trapelato | Fate clic su **Reimposta la chiave segreta** e confermate. La chiave mantiene le sue impostazioni e riceve un nuovo segreto. | `401` finché non inviano il nuovo segreto |
 | Fermare una chiave per sempre | Fate clic su **Elimina: Chiave di acquisizione** in fondo alla sua pagina. | `401` |
 
-Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate i mittenti su di essa ed eliminate la vecchia chiave quando il suo **Last Used At** smette di muoversi. **Last Used At** si aggiorna ogni pochi minuti, non a ogni richiesta.
+Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate i mittenti su di essa ed eliminate la vecchia chiave quando il suo **Ultimo utilizzo il** smette di muoversi. **Ultimo utilizzo il** si aggiorna ogni pochi minuti, non a ogni richiesta.
 
 ## Risoluzione dei problemi
 

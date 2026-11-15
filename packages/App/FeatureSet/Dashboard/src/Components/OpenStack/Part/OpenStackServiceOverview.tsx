@@ -574,7 +574,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
                 title={tile.title}
                 icon={IconProp.List}
                 iconColor="sky"
-                value={typeof value === "number" ? `${value}` : "—"}
+                value={typeof value === "number" ? `${value}` : undefined}
                 description={tile.description}
               />
             );

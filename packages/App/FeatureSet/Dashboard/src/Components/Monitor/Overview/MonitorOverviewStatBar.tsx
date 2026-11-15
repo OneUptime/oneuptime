@@ -36,7 +36,11 @@ export interface ComponentProps {
 }
 
 interface TileContent {
-  value: string | ReactElement;
+  /*
+   * The figure. One the bar could not read is no value: the tile draws the
+   * figure's quiet dash, read out as "Not set" (EmptyFigure, #8264).
+   */
+  value?: string | ReactElement | undefined;
   description?: string | undefined;
 }
 
@@ -72,14 +76,19 @@ const LOADING_TILE: TileContent = {
   value: <Skeleton className="h-6 w-16" />,
 };
 
+/*
+ * A count the open-work sentence could not read, in its words: "— incidents
+ * · 0 alerts". The tile's figure has its own (EmptyFigure); in a sentence,
+ * "Not set incidents" would read as nonsense.
+ */
 const getUnknownValue: () => ReactElement = (): ReactElement => {
   return <span className="text-gray-400">—</span>;
 };
 
 /*
- * One uptime window. "No data" (nothing was recorded) and "—" (the number
- * could not be read) are different answers and read differently, and
- * neither is ever shown as 100%.
+ * One uptime window. "No data" (nothing was recorded) and the figure's
+ * quiet dash (the number could not be read) are different answers and read
+ * differently, and neither is ever shown as 100%.
  */
 export const getUptimeTileContent: (data: {
   summary: OverviewSection<MonitorUptimeSummary>;
@@ -104,14 +113,14 @@ export const getUptimeTileContent: (data: {
   if (!summary) {
     if (data.summary.status === "forbidden") {
       return {
-        value: getUnknownValue(),
+        value: undefined,
         description: translateTileText("No access to status history"),
       };
     }
 
     if (data.summary.status === "error") {
       return {
-        value: getUnknownValue(),
+        value: undefined,
         description: translateTileText("Uptime is unavailable"),
       };
     }
@@ -132,7 +141,7 @@ export const getUptimeTileContent: (data: {
   // A summary without this window cannot vouch for any number.
   if (!presentation) {
     return {
-      value: getUnknownValue(),
+      value: undefined,
       description: translateTileText("Uptime is unavailable"),
     };
   }

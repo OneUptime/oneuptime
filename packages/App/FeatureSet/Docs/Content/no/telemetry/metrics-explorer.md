@@ -56,11 +56,11 @@ Klikk på målingen i **Leser**. Utforskeren åpnes med én spørring, `a`, for 
 
 ### Velg hvordan den aggregeres
 
-Under **Aggregate by** velger du hvordan verdiene i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en persentil, P50, P75, P90, P95 eller P99. En persentil av en histogrammåling, som varigheten til en forespørsel, regnes ut fra bøttene.
+Under **Aggreger etter** velger du hvordan verdiene i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en persentil, P50, P75, P90, P95 eller P99. En persentil av en histogrammåling, som varigheten til en forespørsel, regnes ut fra bøttene.
 
 ### Filtrer og grupper den
 
-Åpne **Filters & grouping**. **Filter by attributes** beholder datapunktene der attributtene passer, som én bestemt `http.route`, og **Grupper etter** tegner én linje per verdi av attributtene du velger, som én linje per vert.
+Åpne **Filtre og gruppering**. **Filtrer etter attributter** beholder datapunktene der attributtene passer, som én bestemt `http.route`, og **Grupper etter** tegner én linje per verdi av attributtene du velger, som én linje per vert.
 
 ### Juster diagrammet
 

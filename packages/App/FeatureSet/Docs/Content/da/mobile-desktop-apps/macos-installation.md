@@ -67,7 +67,7 @@ Appen viser notifikationer, når du har registreret den til push-notifikationer 
 Klik på **Registrer enhed**, behold det foreslåede **Enhedsnavn**, for eksempel `Safari on macOS`, eller ret det, og klik på **Registrer enhed** igen. Når macOS eller browseren spørger, om OneUptime må sende notifikationer, vælger du **Tillad**.
 
 ### Send en test
-Klik på **Send Test Notification** i dialogen **Browser Registered**. Vises der intet, så se på Mac'ens notifikationsindstillinger: se [Fejlfinding](#fejlfinding).
+Klik på **Send testnotifikation** i dialogen **Browser registreret**. Vises der intet, så se på Mac'ens notifikationsindstillinger: se [Fejlfinding](#fejlfinding).
 :::
 
 En browser kan ikke ringe igennem et Fokus som Forstyr ikke. Brug mobilappen med kritiske advarsler til alarmer, der skal vække dig: se [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igennem-lydløs).

@@ -50,7 +50,7 @@ Open **Producten → Dashboards**, klap **Instellingen** uit in het zijmenu en k
 
 ### Kies het type
 
-Klik op **Data Source aanmaken**. Het dialoogvenster **Choose a Data Source Type** groepeert de typen naar wat ze bevatten: metrics, logs, databases, zoeken en API's. Klik er een aan.
+Klik op **Gegevensbron aanmaken**. Het dialoogvenster **Choose a Data Source Type** groepeert de typen naar wat ze bevatten: metrics, logs, databases, zoeken en API's. Klik er een aan.
 
 ### Geef haar een naam
 
@@ -58,15 +58,15 @@ Geef haar onder **Basisinformatie** een **Naam**, zoals "Productie-Prometheus", 
 
 ### Geef aan waar ze staat
 
-Onder **Verbinding** krijgt een HTTP-bron de **URL** waarop ze antwoordt. Een database krijgt haar **Database Host**, haar **Database Port** (laat leeg voor 5432, 3306, 1433 of 8123) en haar **Databasenaam**.
+Onder **Verbinding** krijgt een HTTP-bron de **URL** waarop ze antwoordt. Een database krijgt haar **Databasehost**, haar **Databasepoort** (laat leeg voor 5432, 3306, 1433 of 8123) en haar **Databasenaam**.
 
 ### Geef aan hoe je je aanmeldt
 
-Vul onder **Authenticatie** een **Gebruikersnaam** en een **Wachtwoord** in, of voor een HTTP-bron een **API-token**, dat als bearer-token wordt verstuurd. **Meer velden** bevat **Custom HTTP Headers**, zoals `{ "X-Scope-OrgID": "tenant-1" }`, en **Additional Options**: `sslEnabled` en `sslRejectUnauthorized` voor databases, en `elasticsearchIndex` voor Elasticsearch, dat zonder deze optie elke index (`*`) leest.
+Vul onder **Authenticatie** een **Gebruikersnaam** en een **Wachtwoord** in, of voor een HTTP-bron een **API-token**, dat als bearer-token wordt verstuurd. **Meer velden** bevat **Aangepaste HTTP-headers**, zoals `{ "X-Scope-OrgID": "tenant-1" }`, en **Aanvullende opties**: `sslEnabled` en `sslRejectUnauthorized` voor databases, en `elasticsearchIndex` voor Elasticsearch, dat zonder deze optie elke index (`*`) leest.
 
 ### Test haar
 
-Klik op **Data Source aanmaken** en daarna op **Testen** in haar rij. OneUptime maakt verbinding met de gegevens die je hebt opgegeven, en zegt of het werkte of wat er misging.
+Klik op **Gegevensbron aanmaken** en daarna op **Testen** in haar rij. OneUptime maakt verbinding met de gegevens die je hebt opgegeven, en zegt of het werkte of wat er misging.
 :::
 
 Om een gegevensbron later te wijzigen, open je haar vanuit de lijst. **Bewerken** op **Data Source Details** wijzigt alles behalve de geheimen; **Inloggegevens bijwerken** vervangt het wachtwoord, het token of de headers, en laat de velden die je leeg laat zoals ze waren; **Testen** controleert haar opnieuw.
@@ -75,9 +75,9 @@ Om een gegevensbron later te wijzigen, open je haar vanuit de lijst. **Bewerken*
 
 Bewerk een dashboard, klik op **Widget toevoegen** en kies een widget uit de groep Externe gegevensbronnen: een **Grafiek**, een **Waarde**, een **Meter** of een **Tabel**. In de instellingen ervan:
 
-- Kies de **Data Source** en schrijf de **Query**. De editor noemt de querytaal en toont een voorbeeld voor het type.
+- Kies de **Gegevensbron** en schrijf de **Query**. De editor noemt de querytaal en toont een voorbeeld voor het type.
 - Op een grafiek legt **Query toevoegen** meer query's op dezelfde assen, en geeft **Legend (optional)** elke reeks een naam op basis van haar labels: `{{instance}} — errors` zet het label `instance` van de reeks vooraan.
-- Op een waarde of een meter maakt **Reduce** van de punten één getal: de laatste waarde (de standaard), de eerste, het gemiddelde, de som, het minimum of het maximum. **Eenheid** voegt een achtervoegsel toe, en schaalt de bekende eenheden: `Bytes` leest als 1.5 MB, `ms` als 2.4 s.
+- Op een waarde of een meter maakt **Samenvatten** van de punten één getal: de laatste waarde (de standaard), de eerste, het gemiddelde, de som, het minimum of het maximum. **Eenheid** voegt een achtervoegsel toe, en schaalt de bekende eenheden: `Bytes` leest als 1.5 MB, `ms` als 2.4 s.
 - Op een tabel werkt elke alleen-lezen query, en de rijen worden getoond zoals ze terugkomen.
 
 ## Een query schrijven
@@ -162,14 +162,14 @@ Bereikquery's van Prometheus en Loki vragen om ongeveer 250 punten over het tijd
 ## Veiligheid
 
 - **SQL blijft alleen-lezen.** Een query moet één statement zijn dat begint met `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` of `DESC`. Woorden die schrijven of een sessie wijzigen, zoals `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` of `SET`, worden overal buiten strings en geciteerde namen geweigerd, dus zet een kolom die naar een daarvan heet tussen aanhalingstekens. Schrijf een aanhalingsteken in een string als twee aanhalingstekens (`''`): een backslash voor een aanhalingsteken wordt geweigerd. Sessies van PostgreSQL, MySQL en ClickHouse zijn ook alleen-lezen. SQL Server heeft geen alleen-lezen sessie, dus koppel die met een alleen-lezen login.
-- **Inloggegevens zijn alleen-schrijven.** **Wachtwoord**, **API-token** en **Custom HTTP Headers** worden versleuteld opgeslagen, en de API geeft ze nooit terug, zelfs niet aan jou.
+- **Inloggegevens zijn alleen-schrijven.** **Wachtwoord**, **API-token** en **Aangepaste HTTP-headers** worden versleuteld opgeslagen, en de API geeft ze nooit terug, zelfs niet aan jou.
 - **Adressen worden gecontroleerd.** Loopback-, link-local- (waar cloudmetadata staat) en andere gereserveerde adressen worden overal geweigerd. Privéadressen worden geweigerd in OneUptime Cloud, en toegestaan op een zelfgehoste installatie tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 - **Openbare dashboards voeren ze nooit uit.** De widgets van Externe gegevensbronnen worden weggelaten uit een [openbaar dashboard](/docs/dashboards/sharing), query's en al.
 
 ## Problemen oplossen
 
 :::details Testen meldt dat er geen verbinding kan worden gemaakt
-Controleer de URL, of de host en poort, vanaf waar OneUptime draait: een firewall, een privéadres in OneUptime Cloud of een database die alleen op zijn eigen machine luistert, zien er vanaf hier allemaal hetzelfde uit. Voeg voor een database die TLS vereist `{ "sslEnabled": true }` toe onder **Additional Options**.
+Controleer de URL, of de host en poort, vanaf waar OneUptime draait: een firewall, een privéadres in OneUptime Cloud of een database die alleen op zijn eigen machine luistert, zien er vanaf hier allemaal hetzelfde uit. Voeg voor een database die TLS vereist `{ "sslEnabled": true }` toe onder **Aanvullende opties**.
 :::
 
 :::details "Only read-only queries are allowed"

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -34,7 +35,11 @@ export interface CloudStatTile {
   key: string;
   title: string;
   description?: string | undefined;
-  value: string;
+  /*
+   * The figure. A reading the account has not reported is no value
+   * (undefined): the tile draws the figure's quiet dash (EmptyFigure, #8264).
+   */
+  value?: string | undefined;
   // Under the value: what it is of, how it compares.
   sublabel?: string | undefined;
   // A sublabel already in the reader's language (a sentence a page wrote).
@@ -131,7 +136,7 @@ const Tile: FunctionComponent<{ tile: CloudStatTile }> = (props: {
             CLOUD_STAT_VALUE_TONE_CLASS_NAMES[tile.tone || "neutral"]
           }`}
         >
-          <bdi>{tile.value}</bdi>
+          <bdi>{getFigure(tile.value)}</bdi>
         </div>
       )}
       {sublabel ? (

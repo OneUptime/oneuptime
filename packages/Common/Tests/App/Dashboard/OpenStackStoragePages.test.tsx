@@ -37,6 +37,14 @@ import {
   tableRow,
   tile,
 } from "./OpenStackPartHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/security-events/get-list"]);
 
 /*
  * The storage pages, rendered for real over the real tables and part cards, with only the

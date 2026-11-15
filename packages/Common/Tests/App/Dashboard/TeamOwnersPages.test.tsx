@@ -218,6 +218,14 @@ import { BUILT_IN_TEAM_OWNERS_MESSAGE } from "../../../Types/Team/BuiltInTeam";
 import { getPeopleInitials } from "../../../UI/Components/PeoplePicker/PeopleAvatar";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/used-by/team/*"]);
 
 jest.setTimeout(30000);
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54285,
-    "untranslated": 1960
+    "keys": 54327,
+    "untranslated": 1929
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -86,6 +86,7 @@
     "Bash",
     "Basic Auth",
     "Bearer Token",
+    "Bearer Token:",
     "Bits",
     "Blade",
     "Bolivia",
@@ -137,6 +138,7 @@
     "Daemon",
     "Daemons",
     "DeploymentConfigs",
+    "Digital",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",

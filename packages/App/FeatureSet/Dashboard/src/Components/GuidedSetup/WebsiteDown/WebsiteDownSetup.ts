@@ -909,7 +909,7 @@ export const getWhoIsToldDoneLine: (data: {
         "You are emailed as the monitor's owner.",
       ) || ""
     : data.translator.translateText(
-        "The project's owners are emailed about incidents nobody owns.",
+        "Project Owners are emailed about incidents nobody owns.",
       ) || "";
 };
 
@@ -1107,7 +1107,7 @@ export const getWebsiteDownSummaryRows: (
     text:
       told.join(" ") ||
       translator.translateText(
-        "The project's owners are emailed about incidents nobody owns.",
+        "Project Owners are emailed about incidents nobody owns.",
       ) ||
       "",
   });

@@ -67,15 +67,23 @@ const MEANT_MARKS: ReadonlyArray<MeantMark> = [
     file: "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewStatBar.tsx",
     text: '<span className="text-gray-400">—</span>',
     reason:
-      "A count the monitor's stat bar could not read, inside its sentence ('— incidents · 0 alerts') and in its uptime tile, with the reason said beside it ('No access to status history'). The quiet dash would read 'Not set incidents'.",
-  },
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/CorrelateResultSummary.tsx",
-    text: '<span className="text-base">—</span>',
-    reason:
-      "The Highest Severity tile's figure, at the size of the severity pill it stands in for, with the tile's hint saying why under it ('No severity recorded').",
+      "A count the monitor's open-work sentence could not read, inside the sentence ('— incidents · 0 alerts'), with the reason said under it ('Couldn't load open alerts'). The quiet dash would read 'Not set incidents'; the bar's uptime tiles draw EmptyFigure.",
   },
 ];
+
+// What to draw instead, by what the scan found.
+const FIXES: Record<HandWrittenDashKind, string> = {
+  "dash-element":
+    "draw <TableEmptyValue /> (a table's cell) or <EmptyValue /> (a card's field) instead",
+  "dash-fallback":
+    "draw <TableEmptyValue /> (a table's cell) or <EmptyValue /> (a card's field) instead",
+  "dash-words":
+    "leave the words out: the component draws the quiet dash itself, or write words",
+  "dash-value":
+    "hand the component no value (undefined): a fact and a tile draw the quiet dash themselves",
+  "dash-figure":
+    "draw <EmptyFigure /> (Common/UI/Components/EmptyFigure) in the figure, or hand the tile no value",
+};
 
 function relative(file: string): string {
   return path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/");
@@ -250,6 +258,78 @@ describe("the scan finds a dash written for an empty value", () => {
     expect(kindsOf(tree)).toEqual(["dash-value"]);
   });
 
+  test.each([
+    ['<GoldenMetricTile title="CPU" value={cpu === null ? "—" : fmt(cpu)} />'],
+    ['<GoldenMetricTile title="Role" value={role || "—"} />'],
+    [
+      '<EventStatTile label="Alerts" value={count === undefined ? "-" : String(count)} />',
+    ],
+    [
+      '<EventStatTile label="Started" value={at ? <Started at={at} /> : "-"} />',
+    ],
+    ['<LlmTile label="Cost" value={summary ? fmt(summary.cost) : "—"} />'],
+    ['<Stat label="Fixes" value="—" />'],
+    ['<StatTile title="Availability" value={"—"} />'],
+    ["<InfoCard title=\"Pods\" value={count ?? '–'} />"],
+    ['<SummaryFact title="Probe" value={probe || "-"} />'],
+    ['<ui.Tile value={x ? y : "—"} />'],
+  ])(
+    "a dash handed to a tile as its figure, or to any component as its value: %s",
+    (tree: string) => {
+      expect(kindsOf(tree)).toEqual(["dash-value"]);
+    },
+  );
+
+  test.each([
+    ['<span className="text-2xl font-semibold text-gray-300">—</span>'],
+    [
+      '<span className="mt-0.5 block text-2xl font-semibold tabular-nums text-gray-400">—</span>',
+    ],
+    ['<span className="text-base sm:text-xl">-</span>'],
+    ['<div className="text-lg font-semibold">{"—"}</div>'],
+    [
+      '<div className="text-3xl font-semibold">{stats.isLoaded ? stats.totalRuns : "—"}</div>',
+    ],
+    ['<p className="text-lg font-semibold">{count ?? "—"}</p>'],
+    ['<span className="mt-1 text-3xl">{count === null ? "—" : count}</span>'],
+    [
+      '<span className={`text-2xl ${tone}`}>{typeof n === "number" ? fmt(n) : "—"}</span>',
+    ],
+    ['<span className="text-2xl"><TableEmptyValue /></span>'],
+    [
+      '<div className="text-2xl font-semibold">{failed ? <TableEmptyValue /> : fmt(count)}</div>',
+    ],
+    ['<dd className="text-lg">{count ?? <EmptyValue />}</dd>'],
+  ])(
+    "a dash drawn in a figure - a stat tile's number - or the table's quiet dash put there: %s",
+    (tree: string) => {
+      expect(kindsOf(tree)).toEqual(["dash-figure"]);
+    },
+  );
+
+  test("a figure's dash inside a tile's figure handed to InfoCard", () => {
+    expect(
+      scan(
+        [
+          "const a = (",
+          "  <InfoCard",
+          '    title="Nodes"',
+          "    value={",
+          "      isLoading ? (",
+          '        <span className="text-2xl font-semibold text-gray-300">…</span>',
+          "      ) : failed ? (",
+          '        <span className="text-2xl font-semibold text-gray-300">—</span>',
+          "      ) : (",
+          '        <span className="text-2xl font-semibold">{fmt(count)}</span>',
+          "      )",
+          "    }",
+          "  />",
+          ");",
+        ].join("\n"),
+      ),
+    ).toEqual([{ line: 8, kind: "dash-figure" }]);
+  });
+
   test("reports where the dash is, and the code it is in", () => {
     expect(
       findHandWrittenDashes(
@@ -364,15 +444,39 @@ describe("the scan leaves alone a dash that is not an empty value", () => {
     ).toEqual([]);
   });
 
-  test("a mark hidden from a screen reader, and a tile's figure", () => {
+  test("a mark hidden from a screen reader", () => {
     expect(
       scan(
         [
           'const a = <span aria-hidden="true">—</span>;',
-          'const b = <span className="text-2xl font-semibold text-gray-300">—</span>;',
-          'const c = <p className="text-lg font-semibold">{count ?? "—"}</p>;',
-          'const d = <span className="mt-1 text-3xl">{count === null ? "—" : count}</span>;',
-          'const e = <span className="sm:text-xl">—</span>;',
+          'const b = <span className="text-2xl" aria-hidden="true">—</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("the figure's quiet dash, and a tile handed no value", () => {
+    expect(
+      scan(
+        [
+          'const a = <span className="text-2xl font-semibold"><EmptyFigure /></span>;',
+          'const b = <p className="text-lg">{count ?? <EmptyFigure />}</p>;',
+          'const c = <GoldenMetricTile title="CPU" value={cpu === null ? undefined : fmt(cpu)} />;',
+          'const d = <EventStatTile label="Alerts" value={count?.toString()} />;',
+          'const e = <span className="text-sm"><TableEmptyValue /></span>;',
+          'const f = <td className="text-xs">{count ?? <TableEmptyValue isSmall={true} />}</td>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("an element's own value: a select's choice, what an input holds", () => {
+    expect(
+      scan(
+        [
+          'const a = <option value="-">None</option>;',
+          'const b = <input value={draft || "-"} readOnly={true} />;',
+          'const c = <select value={choice ?? "—"} />;',
         ].join("\n"),
       ),
     ).toEqual([]);
@@ -429,7 +533,7 @@ describe("no page draws a dash of its own for an empty value", () => {
           return !isMeant(dash);
         })
         .map((dash: HandWrittenDash): string => {
-          return `${dash.file}:${dash.line}: ${dash.text} - draw <TableEmptyValue /> (a table's cell) or <EmptyValue /> (a card's field) instead (${dash.kind}).`;
+          return `${dash.file}:${dash.line}: ${dash.text} - ${FIXES[dash.kind]} (${dash.kind}).`;
         }),
     ).toEqual([]);
   });

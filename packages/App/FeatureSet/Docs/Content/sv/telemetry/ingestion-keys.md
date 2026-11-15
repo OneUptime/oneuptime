@@ -108,7 +108,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
-En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
+En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Senast använd den**: senaste gången OneUptime tog emot data som skickades med den.
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka fö
 | Ersätta en läckt hemlighet | Klicka på **Återställ hemlig nyckel** och bekräfta. Nyckeln behåller sina inställningar och får en ny hemlighet. | `401` tills de skickar den nya hemligheten |
 | Stoppa en nyckel för gott | Klicka på **Ta bort Intagningsnyckel** längst ned på dess sida. | `401` |
 
-För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Last Used At** slutar ändras. **Last Used At** uppdateras med några minuters mellanrum, inte vid varje begäran.
+För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Senast använd den** slutar ändras. **Senast använd den** uppdateras med några minuters mellanrum, inte vid varje begäran.
 
 ## Felsökning
 

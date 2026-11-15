@@ -85,9 +85,13 @@ import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactor
 import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
 import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
+  RevokeSessionOptions,
   SessionMetadata,
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
@@ -2510,12 +2514,56 @@ router.post(
         CookieUtil.getRefreshTokenFromExpressRequest(req) ||
         (req.body.refreshToken as string | undefined);
 
-      if (refreshToken) {
-        await UserSessionService.revokeSessionByRefreshToken(refreshToken, {
-          cause: SessionEndCause.SignedOut,
-          // Where they signed out from, for the audit log's entry.
-          requestOrigin: RequestOriginUtil.fromRequest(req),
-        });
+      const revokeOptions: RevokeSessionOptions = {
+        cause: SessionEndCause.SignedOut,
+        // Where they signed out from, for the audit log's entry.
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+      };
+
+      const hasEndedSession: boolean = refreshToken
+        ? await UserSessionService.revokeSessionByRefreshToken(
+            refreshToken,
+            revokeOptions,
+          )
+        : false;
+
+      /*
+       * The refresh token matched no live session: the session it named
+       * may have been renewed by a request whose answer never reached the
+       * client - the server rotates the refresh token at every renewal and
+       * keeps only the new one - and would stay signed in on the server
+       * though its person signed out (issue #8592). The access token the
+       * client still holds names that session: its own signature says so,
+       * expired or not (DecodeOptions.acceptExpired, for this and nothing
+       * else), and only its user's live session is ended.
+       */
+      if (!hasEndedSession) {
+        const accessToken: string | undefined =
+          UserMiddleware.getAccessTokenFromExpressRequest(req);
+        let sessionOfAccessToken: JSONWebTokenData | null = null;
+
+        if (accessToken) {
+          try {
+            sessionOfAccessToken = JSONWebToken.decode(
+              accessToken,
+              JsonWebTokenPurpose.UserSession,
+              { acceptExpired: true },
+            );
+          } catch {
+            // Not a session's token OneUptime signed: nothing to end.
+            sessionOfAccessToken = null;
+          }
+        }
+
+        if (sessionOfAccessToken?.sessionId) {
+          await UserSessionService.revokeLiveSessionOfUser(
+            {
+              userId: sessionOfAccessToken.userId,
+              sessionId: sessionOfAccessToken.sessionId,
+            },
+            revokeOptions,
+          );
+        }
       }
 
       CookieUtil.removeAllCookies(req, res);

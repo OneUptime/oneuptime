@@ -30,7 +30,7 @@ flowchart TB
 ## Before you begin
 
 - **A connected AWS account.** Connect it under **Cloud → Connect** first: see [Connect a Cloud Account](/docs/telemetry/cloud-accounts).
-- **A project owner or admin.** Only they can make a stream key and stop streaming.
+- **A Project Owner or Project Admin.** Only they can make a stream key and stop streaming.
 - **AWS CloudShell in that account**, signed in as someone who may create CloudFormation stacks and IAM roles.
 - **An HTTPS address, on a self-hosted OneUptime.** Firehose delivers only to `https://` addresses on port 443, with a certificate AWS trusts, and the address must be reachable from AWS.
 

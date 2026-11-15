@@ -653,23 +653,23 @@ describe("rule presentation", () => {
     ).toEqual({ passing: 0, failing: 1, total: 1, passingPercent: 0 });
   });
 
+  /*
+   * One sentence each, its form picked by how many members there are
+   * (#8296): "1 of 3 members meet it", where the English used to glue
+   * "1 of 3" and "members meets it" together, a sentence no language could
+   * word whole.
+   */
   test.each([
-    [5, 5, "All 5", "meet it", "All 5 meet this rule"],
-    [2, 2, "All 2", "meet it", "All 2 meet this rule"],
-    [1, 1, "1 of 1", "member meets it", "1 of 1 member meets this rule"],
-    [0, 1, "0 of 1", "member meets it", "0 of 1 member meets this rule"],
-    [0, 3, "0 of 3", "members meet it", "0 of 3 members meet this rule"],
-    [1, 3, "1 of 3", "members meets it", "1 of 3 members meets this rule"],
-    [2, 3, "2 of 3", "members meet it", "2 of 3 members meet this rule"],
+    [5, 5, "All 5 meet it", "All 5 meet this rule"],
+    [2, 2, "All 2 meet it", "All 2 meet this rule"],
+    [1, 1, "1 of 1 member meets it", "1 of 1 member meets this rule"],
+    [0, 1, "0 of 1 member meets it", "0 of 1 member meets this rule"],
+    [0, 3, "0 of 3 members meet it", "0 of 3 members meet this rule"],
+    [1, 3, "1 of 3 members meet it", "1 of 3 members meet this rule"],
+    [2, 3, "2 of 3 members meet it", "2 of 3 members meet this rule"],
   ])(
     "pass rate words: %i of %i",
-    (
-      passing: number,
-      total: number,
-      count: string,
-      caption: string,
-      label: string,
-    ) => {
+    (passing: number, total: number, text: string, label: string) => {
       expect(
         getRulePassRateText(
           getRulePassRate(
@@ -679,7 +679,7 @@ describe("rule presentation", () => {
             }),
           ),
         ),
-      ).toEqual({ count: count, caption: caption, label: label });
+      ).toEqual({ text: text, label: label });
     },
   );
 
@@ -1188,8 +1188,8 @@ describe("the verdict", () => {
 
   test.each([
     [12, 9, "9 of 12 members meet every rule", "3 need attention"],
-    [12, 1, "1 of 12 members meets every rule", "11 need attention"],
-    [2, 1, "1 of 2 members meets every rule", "1 needs attention"],
+    [12, 1, "1 of 12 members meet every rule", "11 need attention"],
+    [2, 1, "1 of 2 members meet every rule", "1 needs attention"],
     [4, 0, "None of the 4 members meet every rule", "4 need attention"],
     [
       1,

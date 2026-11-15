@@ -51,8 +51,16 @@ import {
   WorkflowStepTraceWarning,
 } from "../../../Types/Workflow/StepTrace";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
-import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  formatCompactDuration,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
@@ -64,23 +72,36 @@ export interface ComponentProps {
   isRunning?: boolean | undefined;
 }
 
-type FormatDurationFunction = (durationInMs: number) => string;
+type FormatDurationFunction = (
+  durationInMs: number,
+  translator?: Translator,
+) => string;
 
+/*
+ * How long a step took: "12 ms", "1.5s", "1m 30s", in the reader's units
+ * and digits ("1,5 Sek.", "۱ دقیقه ۳۰ ثانیه"; #8455). The milliseconds are
+ * the product's own ("12 ms"), as every other duration under a second.
+ */
 export const formatStepDuration: FormatDurationFunction = (
   durationInMs: number,
+  translator: Translator = getGlobalTranslator(),
 ): string => {
   if (durationInMs < 1000) {
-    return `${durationInMs}ms`;
+    return formatMilliseconds(translator, durationInMs);
   }
 
   if (durationInMs < 60000) {
-    return `${(durationInMs / 1000).toFixed(1)}s`;
+    return formatCompactDuration(
+      translator,
+      { seconds: durationInMs / 1000 },
+      { decimals: 1 },
+    );
   }
 
   const minutes: number = Math.floor(durationInMs / 60000);
   const seconds: number = Math.round((durationInMs % 60000) / 1000);
 
-  return `${minutes}m ${seconds}s`;
+  return formatCompactDuration(translator, { minutes, seconds });
 };
 
 /*
@@ -602,7 +623,7 @@ const StepItem: FunctionComponent<StepItemProps> = (
           <span className="flex shrink-0 items-center gap-2">
             <StatusBadge isFailed={isFailed} />
             <span className="text-xs tabular-nums text-gray-500">
-              {formatStepDuration(durationInMs)}
+              {formatStepDuration(durationInMs, translator)}
             </span>
             <Icon
               icon={IconProp.ChevronDown}

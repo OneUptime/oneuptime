@@ -28,7 +28,10 @@ export interface FeedManageAction {
   onClick: () => void;
   isDestructive?: boolean | undefined;
   isDisabled?: boolean | undefined;
-  // Why the action is locked: read on hover and to screen readers.
+  /*
+   * Why the action is locked: read on hover and to screen readers.
+   * Why it is locked: a permission check's reason, in the reader's words.
+   */
   disabledReason?: string | undefined;
   dataTestId: string;
 }
@@ -56,6 +59,8 @@ export function getFeedManageMenuButtons(data: {
             isDestructive={action.isDestructive}
             isDisabled={action.isDisabled || Boolean(action.disabledReason)}
             tooltip={action.disabledReason}
+            // A permission check's reason, in the reader's words already.
+            isTooltipTranslated={true}
             dataTestId={action.dataTestId}
             onClick={action.onClick}
           />

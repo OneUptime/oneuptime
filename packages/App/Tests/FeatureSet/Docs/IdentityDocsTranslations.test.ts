@@ -70,8 +70,10 @@ import {
  * cannot know (IDENTITY_PROVIDER_LABELS); plans, roles and permission names,
  * which the API, Terraform and the role pickers name in English; text the
  * product writes in English whatever the language - the sign-in pages'
- * messages, the SCIM dialog's field names, the docs' empty IP list
- * (KEPT_IN_ENGLISH, SERVER_MESSAGES). Bold words that are Dashboard labels
+ * messages, the docs' empty IP list (KEPT_IN_ENGLISH, SERVER_MESSAGES). The
+ * SCIM dialog's field names were English too, until #8461 had the dialog
+ * look them up: the pages name them as the dialog draws them
+ * (DIALOG_LABELS, LOOKED_UP_TEXT). Bold words that are Dashboard labels
  * only by coincidence are PROSE; the pages' own bold leads are PROSE_LEADS.
  * A new bold word on these English pages fails "know every bold word" until
  * it is put in one of the lists.
@@ -269,22 +271,12 @@ const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
 
 /*
  * The OAuth 2.0 client credentials in a SCIM connection's dialog
- * (ScimOAuthClientCredentials): its field names are JSX text, never looked
- * up, and its buttons are words no Dashboard locale has, so every language
- * draws them in English.
+ * (ScimOAuthClientCredentials). Its field names and its buttons were drawn
+ * in English in every language, and the pages kept them so; since #8461
+ * the dialog looks each one up, and every Dashboard locale words it.
  */
 const SCIM_CLIENT_CREDENTIALS_FILE: string =
   "ee/Dashboard/Identity/Components/ScimOAuthClientCredentials.tsx";
-
-const SCIM_CLIENT_CREDENTIALS_TEXT: Array<string> = [
-  "OAuth 2.0 Client Credentials",
-  "Token Endpoint",
-  "Client ID",
-  "Client Secret",
-  "Make Client Secret",
-  "Make New Client Secret",
-  "Delete Previous Secret",
-];
 
 const SCIM_CLIENT_CREDENTIALS_BUTTONS: Array<string> = [
   "Make Client Secret",
@@ -296,9 +288,8 @@ const SCIM_CLIENT_CREDENTIALS_BUTTONS: Array<string> = [
  * Bold names the translations keep in English, by page: plans; roles and
  * permissions, as the API, Terraform and the role pickers name them;
  * products; "Admin", the Admin Dashboard in a path; and what the product
- * writes in English in every language - the SCIM dialogs' field names (JSX
- * text, never looked up: SOURCE_TEXT) and the docs' own empty IP list
- * (Utils/Placeholders).
+ * writes in English in every language - the docs' own empty IP list
+ * (Utils/Placeholders, SOURCE_TEXT).
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [SSO]: [
@@ -309,15 +300,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Admin",
   ],
   [GLOBAL_SSO]: ["Admin"],
-  [SCIM]: [
-    "Scale",
-    "OneUptime Cloud",
-    "Microsoft Entra ID",
-    "Okta",
-    "SCIM Base URL",
-    "Bearer Token",
-    ...SCIM_CLIENT_CREDENTIALS_TEXT,
-  ],
+  [SCIM]: ["Scale", "OneUptime Cloud", "Microsoft Entra ID", "Okta"],
   [IP_ADDRESSES]: ["No IP addresses configured."],
 };
 
@@ -327,14 +310,7 @@ const PLANS: Array<string> = ["Growth", "Scale"];
 const PRODUCT_TEXT_IN_ENGLISH: Record<string, Array<string>> = {
   [SSO]: ["Admin"],
   [GLOBAL_SSO]: ["Admin"],
-  [SCIM]: [
-    "OneUptime Cloud",
-    "Microsoft Entra ID",
-    "Okta",
-    "SCIM Base URL",
-    "Bearer Token",
-    ...SCIM_CLIENT_CREDENTIALS_TEXT,
-  ],
+  [SCIM]: ["OneUptime Cloud", "Microsoft Entra ID", "Okta"],
   [IP_ADDRESSES]: ["No IP addresses configured."],
 };
 
@@ -351,51 +327,63 @@ interface SourceText {
 
 const SOURCE_TEXT: ReadonlyArray<SourceText> = [
   {
-    text: "SCIM Base URL",
-    file: "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
-    literal: /\n\s*SCIM Base URL:\n/,
-  },
-  {
-    text: "Bearer Token",
-    file: "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
-    literal: /\n\s*Bearer Token:\n/,
-  },
-  {
-    text: "SCIM Base URL",
-    file: "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx",
-    literal: /<strong>SCIM Base URL:<\/strong>/,
-  },
-  {
-    text: "Bearer Token",
-    file: "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx",
-    literal: /<strong>Bearer Token:<\/strong>/,
-  },
-  {
     text: "No IP addresses configured.",
     file: "packages/App/FeatureSet/Docs/Utils/Placeholders.ts",
     literal: /return "- No IP addresses configured\.";/,
   },
+];
+
+/*
+ * Where the product looks a page's dialog words up, as the pages name them
+ * in each language (DIALOG_LABELS, and the client secret buttons as any
+ * Dashboard label): the SCIM dialogs' field names and buttons, worded in
+ * every Dashboard locale since #8461. A dialog that stops looking one up
+ * draws it in English again, and fails here before the pages are wrong.
+ */
+const LOOKED_UP_TEXT: ReadonlyArray<SourceText> = [
+  {
+    text: "SCIM Base URL",
+    file: "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
+    literal: /translator\.translateText\("SCIM Base URL:"\)/,
+  },
+  {
+    text: "Bearer Token",
+    file: "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
+    literal: /translator\.translateText\("Bearer Token:"\)/,
+  },
+  {
+    text: "SCIM Base URL",
+    file: "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx",
+    literal:
+      /<strong>\{translator\.translateText\("SCIM Base URL:"\)\}<\/strong>/,
+  },
+  {
+    text: "Bearer Token",
+    file: "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx",
+    literal:
+      /<strong>\{translator\.translateText\("Bearer Token:"\)\}<\/strong>/,
+  },
   {
     text: "OAuth 2.0 Client Credentials",
     file: SCIM_CLIENT_CREDENTIALS_FILE,
-    literal: /\n\s*OAuth 2\.0 Client Credentials:\n/,
+    literal: /translator\.translateText\("OAuth 2\.0 Client Credentials:"\)/,
   },
   {
     text: "Token Endpoint",
     file: SCIM_CLIENT_CREDENTIALS_FILE,
-    literal: />Token Endpoint:<\/p>/,
+    literal: /translator\.translateText\("Token Endpoint:"\)/,
   },
   {
     text: "Client ID",
     file: SCIM_CLIENT_CREDENTIALS_FILE,
-    literal: />Client ID:<\/p>/,
+    literal: /translator\.translateText\("Client ID:"\)/,
   },
   {
     text: "Client Secret",
     file: SCIM_CLIENT_CREDENTIALS_FILE,
-    literal: />Client Secret:<\/p>/,
+    literal: /translator\.translateText\("Client Secret:"\)/,
   },
-  // Its buttons are looked up, and drawn in English while no locale words them.
+  // Its buttons, which Button looks up.
   {
     text: "Make Client Secret",
     file: SCIM_CLIENT_CREDENTIALS_FILE,
@@ -497,6 +485,15 @@ const DIALOG_LABELS: Record<string, Record<string, string>> = {
     "Identifier (Entity ID)": "Identifier (Entity ID):",
     "Reply URL (Assertion Consumer Service URL)":
       "Reply URL (Assertion Consumer Service URL):",
+  },
+  // The SCIM URLs dialog's field names, and its OAuth 2.0 client credentials'.
+  [SCIM]: {
+    "SCIM Base URL": "SCIM Base URL:",
+    "Bearer Token": "Bearer Token:",
+    "OAuth 2.0 Client Credentials": "OAuth 2.0 Client Credentials:",
+    "Token Endpoint": "Token Endpoint:",
+    "Client ID": "Client ID:",
+    "Client Secret": "Client Secret:",
   },
 };
 
@@ -1085,7 +1082,7 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("keep the Admin Dashboard's labels it has no wording for out of its locale, and the ones it has in it", () => {
+  it("keep every Admin Dashboard label the identity pages name in its locale, so a translation names it in its language", () => {
     const adminEnglish: Record<string, unknown> = appLocale(
       "AdminDashboard",
       "en",
@@ -1119,15 +1116,11 @@ describe("the lists this test keeps", () => {
       "Client Secret",
       "Discovery URL",
       "Scopes",
-    ]) {
-      expect({ label, inLocale: adminEnglish[label] }).toEqual({
-        label,
-        inLocale: label,
-      });
-    }
-
-    // Drawn in English there, in every language.
-    for (const label of [
+      /*
+       * The provider pages' own labels, drawn in English in every language
+       * until the Admin Dashboard's own pages read in every language
+       * (9d4230468d5).
+       */
       "Identity Provider URLs",
       "Test this SSO provider",
       "Attached Projects",
@@ -1135,20 +1128,54 @@ describe("the lists this test keeps", () => {
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
-        inLocale: undefined,
+        inLocale: label,
       });
     }
   });
 
-  it("keep the SCIM dialog's client secret buttons out of every Dashboard locale, so they are drawn in English", () => {
-    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
-      for (const label of SCIM_CLIENT_CREDENTIALS_BUTTONS) {
-        expect({ language, label, drawn: label }).toEqual({
+  /*
+   * Drawn in English in every language until #8461, and kept so on every
+   * page: each one is a Dashboard label now, which the pages name as the
+   * reader's Dashboard draws it.
+   */
+  it("find the SCIM dialog's words in every Dashboard locale, worded in each docs language", () => {
+    for (const language of LANGUAGES) {
+      for (const label of [
+        ...SCIM_CLIENT_CREDENTIALS_BUTTONS,
+        ...Object.values(DIALOG_LABELS[SCIM] as Record<string, string>),
+      ]) {
+        const value: unknown = dashboardLocale(language)[label];
+
+        expect({ language, label, worded: true }).toEqual({
           language,
           label,
-          drawn: flatDashboardLabel(language, label),
+          worded: typeof value === "string" && value.trim().length > 0,
         });
       }
+    }
+
+    for (const label of SCIM_CLIENT_CREDENTIALS_BUTTONS) {
+      expect({ label, isLabel: isActionLabel(label) }).toEqual({
+        label,
+        isLabel: true,
+      });
+      expect(notDashboardLabels(SCIM)).not.toContain(label);
+    }
+  });
+
+  it("find the dialogs looking those words up where the lists say", () => {
+    for (const entry of LOOKED_UP_TEXT) {
+      const file: string = path.join(REPO_DIR, entry.file);
+
+      // Common and App CI run without ee/: what is drawn there is checked where it is.
+      if (!fs.existsSync(file)) {
+        continue;
+      }
+
+      expect({ ...entry, found: true }).toEqual({
+        ...entry,
+        found: entry.literal.test(readRepoFile(entry.file)),
+      });
     }
   });
 
@@ -1498,7 +1525,13 @@ describe("the helpers, on these pages' shapes", () => {
       "SSO für die Anmeldung erzwingen",
     );
     expect(adminLabel("de", "Settings")).toBe("Einstellungen");
-    expect(adminLabel("ja", "Attached Projects")).toBe("Attached Projects");
+    expect(adminLabel("ja", "Attached Projects")).toBe(
+      "関連付けたプロジェクト",
+    );
+    // A label the Admin Dashboard's locale lacks is read in English.
+    expect(adminLabel("ja", "A label no locale words")).toBe(
+      "A label no locale words",
+    );
   });
 
   it("read a dialog's field name without its colon, in any script", () => {

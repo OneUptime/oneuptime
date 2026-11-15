@@ -11,6 +11,7 @@ import {
   getIoTSetupGuide,
   resolveIoTIngestionMethod,
 } from "../../Pages/IoT/Utils/DocumentationMarkdown";
+import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../Pages/IoT/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -42,6 +43,7 @@ const IoTDocumentationCard: FunctionComponent<ComponentProps> = (
           fleetName: props.fleetName,
         });
       }}
+      translations={IOT_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

@@ -136,6 +136,25 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * comes in as its words are routed through the translator.
    */
   { directory: "ee/Dashboard/AuditLogs", kind: "ui" },
+  /*
+   * Teams > Compliance, the SCIM pages and their logs, the telemetry
+   * retention overrides, and the notice an Enterprise setting's screen
+   * shows when the license lapses: Enterprise screens whose every word goes
+   * through the reader's Translator since #8296 and #8461. Before, none was
+   * read here, so about 116 of their words were in no locale and every
+   * reader got them in English.
+   */
+  { directory: "ee/Dashboard/TeamCompliance", kind: "ui" },
+  { directory: "ee/Dashboard/Identity", kind: "ui" },
+  { directory: "ee/Dashboard/TelemetryRetention", kind: "ui" },
+  { directory: "ee/Dashboard/EnterpriseSettings", kind: "ui" },
+  /*
+   * The team compliance rules' catalog: each rule kind's and channel's
+   * name, what each kind checks, and the sentence a rule reads as on the
+   * Compliance page. Only the words the file marks are read: the server
+   * evaluates rules with the same file and keeps its own English.
+   */
+  { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
@@ -196,29 +215,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Milliseconds.ts", kind: "ui" },
   /*
-   * The Incident List and Alert List widgets' settings, and the View Mode
-   * every list widget offers: each setting's name (a key), what it does,
-   * its placeholder and its options, which the widget settings form looks
-   * up as it draws them. They were never extracted, so the Lifecycle State
-   * filter read "Unresolved (open)" in English in every language (#8164).
-   * The other widgets' settings are still to come (#8479,
-   * WidgetSettingsWordsInEveryLanguage).
+   * Every dashboard widget's settings: each setting's and section's name,
+   * what it does, its placeholder and its options, which the widget
+   * settings form looks up as it draws them. They were never extracted, so
+   * every widget's form read English in every language - the Incident
+   * List's Lifecycle State filter "Unresolved (open)" (#8164), a Chart's
+   * "Chart Type" and "Stacked Area Chart" (#8479). A setting's name is a
+   * word by its type (ComponentArgument, PROPS_IN_LISTS).
    */
-  {
-    directory:
-      "packages/Common/Utils/Dashboard/Components/DashboardIncidentListComponent.ts",
-    kind: "ui",
-  },
-  {
-    directory:
-      "packages/Common/Utils/Dashboard/Components/DashboardAlertListComponent.ts",
-    kind: "ui",
-  },
-  {
-    directory:
-      "packages/Common/Utils/Dashboard/Components/DashboardListSharedArgs.ts",
-    kind: "ui",
-  },
+  { directory: "packages/Common/Utils/Dashboard/Components", kind: "ui" },
   /*
    * The monitor types' cards in Create Monitor's picker: each type's title
    * and what it alerts on, and the categories More lists them under.
@@ -574,6 +579,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/Slo/SloHealth.ts",
+    kind: "keys",
+  },
+  // What the SLO forms say of a request filter they cannot read (#8444).
+  {
+    directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
     kind: "keys",
   },
   /*
@@ -1041,10 +1051,22 @@ const HTML_TEXT_ATTRIBUTES: ReadonlySet<string> = new Set<string>([
  * and "Env Vars" read English in every language (#8367).
  */
 export const PROPS_IN_LISTS: ReadonlyArray<{
-  list: string;
+  list?: string | undefined;
   itemType: string;
   prop: string;
-}> = [{ list: "tabs", itemType: "Tab", prop: "name" }];
+}> = [
+  { list: "tabs", itemType: "Tab", prop: "name" },
+  /*
+   * A dashboard widget's setting and the section it is in: their name is
+   * the field's and the fold's title in the widget settings form, known by
+   * the type its list or its object is declared as
+   * (`const componentArguments: Array<ComponentArgument<T>> = []`, `const
+   * DisplaySection: ComponentArgumentSection = {...}`), or a function that
+   * returns one (getViewModeArgument), #8479.
+   */
+  { itemType: "ComponentArgument", prop: "name" },
+  { itemType: "ComponentArgumentSection", prop: "name" },
+];
 
 // Element text inside these is code or a key name, not copy.
 const CODE_ELEMENTS: ReadonlySet<string> = new Set<string>([
@@ -1813,6 +1835,23 @@ const getObjectHolder: (object: ts.Node) => {
     };
   }
 
+  /*
+   * A list a function returns: `(): Array<ComponentArgument<T>> => { return
+   * [{...}] }`, as the type it returns a list of (#8479).
+   */
+  const listReturnedBy: ts.Node | undefined = ts.isReturnStatement(holder)
+    ? ts.findAncestor(holder, ts.isFunctionLike)
+    : ts.isArrowFunction(holder)
+      ? holder
+      : undefined;
+
+  if (listReturnedBy && ts.isFunctionLike(listReturnedBy)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(listReturnedBy.type);
+
+    return type && type.isList ? { itemType: type.name } : {};
+  }
+
   return {};
 };
 
@@ -1836,10 +1875,15 @@ export const isPropInList: (
   } = getObjectHolder(object);
 
   return PROPS_IN_LISTS.some(
-    (rule: { list: string; itemType: string; prop: string }): boolean => {
+    (rule: {
+      list?: string | undefined;
+      itemType: string;
+      prop: string;
+    }): boolean => {
       return (
         rule.prop === prop &&
-        (rule.list === holder.listName || rule.itemType === holder.itemType)
+        ((rule.list !== undefined && rule.list === holder.listName) ||
+          rule.itemType === holder.itemType)
       );
     },
   );

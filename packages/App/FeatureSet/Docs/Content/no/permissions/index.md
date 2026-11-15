@@ -338,7 +338,7 @@ Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlems
 
 ### Private hendelser, varsler og episoder
 
-En hendelse, et varsel eller en episode som er merket som privat, kan bare ses av eierne sine — personene som er oppført som eiere, og medlemmene av eierteamene som har godtatt invitasjonen sin — og av prosjektets eiere og administratorer.
+En hendelse, et varsel eller en episode som er merket som privat, kan bare ses av eierne sine — personene som er oppført som eiere, og medlemmene av eierteamene som har godtatt invitasjonen sin — og av Prosjekteiere og Prosjektadministratorer.
 
 En slik post endres bare med tillatelsene til teamene som eier den, og til personene som er oppført som eiere av den. Den som er oppført som eier, handler på den med alle tillatelsene vedkommende har. Alle andre handler bare på den med tillatelsene til teamene sine som eier den, hver med sitt eget omfang og sine egne etiketter: et annet teams tillatelse når ingen privat post som det teamet ikke eier. Det gjelder alt som gjøres med posten og det som hører til den — å redigere den, endre tilstanden, notatene, eierne, rollene, etikettene, de koblede varslene, episodemedlemmene og samtalene, og å slette den — fra dashbordet, API-et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Prosjekteiere og Prosjektadministratorer endrer enhver privat post, og det gjør også arbeidsflyttrinn, som handler som Prosjektadministrator; en API-nøkkel gjør det bare med `ProjectOwner` eller `ProjectAdmin`.
 
@@ -352,7 +352,7 @@ Et team som eier private poster, men ikke har noen tillatelser, et team som bare
 
 ### Regler som tilhører team
 
-En vaktregel for hendelser eller varsler, en vaktregel for episoder, en eierregel for hendelser og en varslingsregel for Slack eller Microsoft Teams kan tilhøre team. En regel som ikke tilhører noe team, er prosjektets: alle som har tillatelser til å endre regler av den typen, kan endre den. En regel som tilhører team, endres og slettes bare med tillatelsene til teamene den tilhører, og av prosjektets eiere og administratorer. Alle som kan lese regler, leser den fortsatt og ser hvilke team den tilhører.
+En vaktregel for hendelser eller varsler, en vaktregel for episoder, en eierregel for hendelser og en varslingsregel for Slack eller Microsoft Teams kan tilhøre team. En regel som ikke tilhører noe team, er prosjektets: alle som har tillatelser til å endre regler av den typen, kan endre den. En regel som tilhører team, endres og slettes bare med tillatelsene til teamene den tilhører, og av Prosjekteiere og Prosjektadministratorer. Alle som kan lese regler, leser den fortsatt og ser hvilke team den tilhører.
 
 Velg teamene i regelens skjema, i **Ansvarlige team** under **Flere felt**. Det krever regeltypens tillatelse for ansvarlige team, for eksempel `CreateIncidentOnCallRuleOwningTeam`, som Prosjekteiere og Prosjektadministratorer har. Å legge til eller fjerne en regels team endrer regelen, så når en regel tilhører team, er det bare de teamene og Prosjekteiere og Prosjektadministratorer som endrer hvem den tilhører. I en liste over regler er en regel som bare tilhører andre team, skrivebeskyttet for deg: handlingene for å redigere og slette den er låst og nevner teamene den tilhører.
 
