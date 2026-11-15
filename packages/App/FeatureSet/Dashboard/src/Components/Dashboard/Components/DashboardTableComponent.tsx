@@ -66,6 +66,7 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
 import { getUnsetText } from "./DashboardWidgetFallbackWords";
 import DashboardWidgetError from "./DashboardWidgetError";
 import {
+  DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
@@ -1066,7 +1067,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
               <tr>
                 <td
                   colSpan={totalColumnCount}
-                  className="px-4 py-8 text-center text-gray-400 text-sm"
+                  className={DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME}
                 >
                   {translator.translateText(
                     "No data available for the selected time range.",

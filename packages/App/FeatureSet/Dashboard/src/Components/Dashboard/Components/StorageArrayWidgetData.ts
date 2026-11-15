@@ -7,6 +7,7 @@ import {
   STORAGE_ARRAY_WARNING_COMPONENT_STATUSES,
 } from "Common/Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 import {
+  composedValue,
   createTranslator,
   DEFAULT_LANGUAGE,
   formatInline,
@@ -14,6 +15,11 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  getReadingDirection,
+  setApartInSentence,
+} from "Common/Types/ReadingDirection";
+import { getKnownStorageArrayStatusKey } from "../../../Pages/StorageArray/Utils/StorageArrayHealth";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -143,19 +149,71 @@ export function getVolumeLatencyState(
 }
 
 /*
+ * A figure with `decimals` decimals: in the reader's digits and decimal sign
+ * when a translator is handed in ("۰٫۴۲" in Persian, "0,42" in German, Latin
+ * digits in Arabic), exactly as toFixed writes it otherwise - and in English,
+ * which formatReaderFigure writes as toFixed does (#7521).
+ */
+function writeFigure(
+  value: number,
+  decimals: number,
+  translator: Translator | undefined,
+): string {
+  return translator
+    ? formatReaderFigure(value, {
+        decimals: decimals,
+        language: translator.language,
+      })
+    : value.toFixed(decimals);
+}
+
+/*
  * Pure reports latency in microseconds. Below a millisecond the µs figure is
  * the readable one ("420 µs"); from a millisecond up, milliseconds are
- * ("2.35 ms").
+ * ("2.35 ms"). Given a translator, the figure is in its reader's digits and
+ * decimal sign ("۰٫۴۲ ms", "2,35 ms"), as a drive's size and a temperature
+ * are (#7521); the unit is the symbol every language writes, as TiB is.
  */
-export function formatLatencyUsec(value: unknown): string {
+export function formatLatencyUsec(
+  value: unknown,
+  translator?: Translator,
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
   }
   if (numeric < 1000) {
-    return `${Math.round(numeric)} µs`;
+    return `${writeFigure(Math.round(numeric), 0, translator)} µs`;
   }
-  return `${(numeric / 1000).toFixed(2)} ms`;
+  return `${writeFigure(numeric / 1000, 2, translator)} ms`;
+}
+
+/*
+ * A volume's read and write latency in one cell: "420 µs / 2.35 ms". On a
+ * page read from the right each latency is set apart (setApartInSentence):
+ * the bidi algorithm read the write latency's figure after the read
+ * latency's Latin "µs" as part of one left-to-right run with it, so an
+ * Arabic or Persian cell was drawn "µs / ۲٫۳۵ ms ۴۲۰". Set apart, the read
+ * latency is drawn first from the right, as the header's "(R / W)" reads,
+ * and each one whole. An English cell is written exactly as before.
+ */
+export function formatReadWriteLatencyUsec(
+  readLatencyUsec: unknown,
+  writeLatencyUsec: unknown,
+  translator?: Translator,
+): string {
+  const direction: ReturnType<typeof getReadingDirection> = getReadingDirection(
+    translator?.language,
+  );
+
+  return [
+    formatLatencyUsec(readLatencyUsec, translator),
+    formatLatencyUsec(writeLatencyUsec, translator),
+  ]
+    .map((latency: string): string => {
+      return setApartInSentence(latency, direction);
+    })
+    .join(" / ");
 }
 
 // Read plus write operations per second; undefined when neither is known.
@@ -171,18 +229,64 @@ export function getTotalIops(
   return (read || 0) + (write || 0);
 }
 
-export function formatIops(value: unknown): string {
+/*
+ * Operations per second, short: "843", "1.5K", "2.4M". Given a translator,
+ * the figure is in its reader's digits and decimal sign ("۱٫۵K", "1,5K"),
+ * as a size and a latency beside it are (#7521).
+ */
+export function formatIops(value: unknown, translator?: Translator): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
   }
   if (numeric >= 1_000_000) {
-    return `${(numeric / 1_000_000).toFixed(1)}M`;
+    return `${writeFigure(numeric / 1_000_000, 1, translator)}M`;
   }
   if (numeric >= 1_000) {
-    return `${(numeric / 1_000).toFixed(1)}K`;
+    return `${writeFigure(numeric / 1_000, 1, translator)}K`;
   }
-  return String(Math.round(numeric));
+  return writeFigure(Math.round(numeric), 0, translator);
+}
+
+/*
+ * A volume's space in its reader's sentence: "3.5 TiB of 10.0 TiB", "۳٫۵
+ * TiB از ۱۰٫۰ TiB". Each size is written in the sentence's own digits
+ * (composedValue): the reader's where their language words the sentence,
+ * English while it does not, so an English sentence never holds a Persian
+ * figure (#7521).
+ */
+export function formatUsedOfProvisioned(
+  usedBytes: unknown,
+  provisionedBytes: unknown,
+  translator: Translator = ENGLISH,
+): string {
+  return translator.translateTemplate("{{used}} of {{provisioned}}", {
+    used: composedValue((sentence: Translator): string => {
+      return formatStorageBytes(usedBytes, sentence);
+    }),
+    provisioned: composedValue((sentence: Translator): string => {
+      return formatStorageBytes(provisionedBytes, sentence);
+    }),
+  });
+}
+
+/*
+ * A volume's read and write IOPS, under the pointer: "Read 1.2K · Write
+ * 300", each figure in the sentence's own digits, as its sizes are.
+ */
+export function formatReadWriteIops(
+  readIops: unknown,
+  writeIops: unknown,
+  translator: Translator = ENGLISH,
+): string {
+  return translator.translateTemplate("Read {{read}} · Write {{write}}", {
+    read: composedValue((sentence: Translator): string => {
+      return formatIops(readIops, sentence);
+    }),
+    write: composedValue((sentence: Translator): string => {
+      return formatIops(writeIops, sentence);
+    }),
+  });
 }
 
 /*
@@ -314,7 +418,8 @@ export function getHardwareStatusState(
  * Arrays pages write it ("Not Installed", "Power Supply", "Not Ready",
  * "SSD"): each word capitalized, a word already in capitals kept, "ok" as
  * "OK". The value is the array's own vocabulary, shown as data rather than
- * translated.
+ * translated: a word the widget knows is looked up before it comes here
+ * (getHardwareTypeName, getHardwareStatusText).
  */
 export function humanizeArrayValue(value: unknown): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -336,6 +441,31 @@ export function humanizeArrayValue(value: unknown): string {
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
+}
+
+/*
+ * A component's status as the array reported it, in the reader's words
+ * (#7521): the list's Status column and a tile's Reported Status. A Persian
+ * board read "Degraded" and "Not Installed" in a column whose header, types
+ * and details are Persian. A status the Storage Arrays pages know - ok,
+ * healthy, ready, critical, failed, missing, degraded, unknown, not ready,
+ * not_installed, device_off, empty and the rest (StorageArrayHealth's
+ * list, the one the pages' pills are worded by) - is looked up in the
+ * reader's language, however the array cases or pads it. A status they do
+ * not know - a word a new Purity release brings - is the array's own,
+ * drawn as reported (humanizeArrayValue), in every language.
+ */
+export function getHardwareStatusText(
+  status: unknown,
+  translator: Translator = ENGLISH,
+): string {
+  const known: string | undefined = getKnownStorageArrayStatusKey(status);
+
+  if (known) {
+    return translator.translateText(known) as string;
+  }
+
+  return humanizeArrayValue(status);
 }
 
 /*

@@ -308,6 +308,21 @@ describe("one meaning per key", () => {
   });
 
   /*
+   * #7522: the storage widgets headed their array column, and a tile's
+   * first row, with the bare "Array", which six languages word as a
+   * programming array. The storage array has a key of its own, looked up
+   * only by the two storage widgets; nothing in the Dashboard looks up the
+   * bare word now, so a data array that needs it gets a meaning of its own.
+   */
+  test("a storage array is its own key, looked up only by the storage widgets, and nothing looks up the bare Array", () => {
+    expect(filesLookingUp("Array (storage array)")).toEqual([
+      "Components/Dashboard/Components/DashboardStorageArrayHardwareListComponent.tsx",
+      "Components/Dashboard/Components/DashboardStorageArrayVolumeListComponent.tsx",
+    ]);
+    expect(filesLookingUp("Array")).toEqual([]);
+  });
+
+  /*
    * #8078: Paid, Void and Uncollectible are worded for an invoice - Spanish
    * "Pagada", "Anulada", as a factura is - so a new place that looks one up
    * is checked to mean an invoice too.
@@ -449,6 +464,76 @@ describe("the locales word each meaning as its own", () => {
     expect(readLocale("es")["View (database object)"]).toBe("Vista");
     expect(readLocale("de")["View (database object)"]).toBe("Sicht");
     expect(readLocale("fr")["View (database object)"]).toBe("Vue");
+  });
+
+  /*
+   * #7522: the storage widgets' "Array" read 配列 (a list in code), Matriz,
+   * Tableau (a table), 배열, 数组 and Matrise. Each language words the
+   * storage array's key as its Storage Arrays pages name an array - the
+   * word its "Array Controller" and its "Storage Array" are made of.
+   */
+  test("a storage array is worded as the language's storage array, never a programming array", () => {
+    const PROGRAMMING_ARRAY: Record<string, string> = {
+      ja: "配列",
+      es: "Matriz",
+      fr: "Tableau",
+      ko: "배열",
+      "zh-CN": "数组",
+      no: "Matrise",
+    };
+    const STORAGE_ARRAY: Record<string, string> = {
+      ja: "アレイ",
+      es: "Cabina",
+      fr: "Baie",
+      ko: "어레이",
+      "zh-CN": "阵列",
+      no: "Array",
+    };
+
+    // Whether `word` is the one a language's storage array names are made of.
+    const namesItsStorageArrays: (
+      locale: Record<string, string>,
+      word: string,
+    ) => boolean = (locale: Record<string, string>, word: string): boolean => {
+      return [
+        locale["Storage Array"] as string,
+        locale["Array Controller"] as string,
+      ].some((name: string): boolean => {
+        return name.toLowerCase().includes(word.toLowerCase());
+      });
+    };
+
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+      const storageArray: string = locale["Array (storage array)"] as string;
+
+      expect({
+        language,
+        worded:
+          Boolean(storageArray) && storageArray !== "Array (storage array)",
+        namesItsStorageArrays: namesItsStorageArrays(locale, storageArray),
+      }).toEqual({ language, worded: true, namesItsStorageArrays: true });
+    }
+
+    for (const language of Object.keys(PROGRAMMING_ARRAY)) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({ language, word: locale["Array (storage array)"] }).toEqual({
+        language,
+        word: STORAGE_ARRAY[language],
+      });
+
+      // The negative control: the check refuses each programming array.
+      expect({
+        language,
+        programming: namesItsStorageArrays(
+          locale,
+          PROGRAMMING_ARRAY[language] as string,
+        ),
+      }).toEqual({ language, programming: false });
+    }
   });
 
   // French named a database's table "Tableau", and Chinese 表格: a table on the page.

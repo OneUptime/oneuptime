@@ -39,7 +39,8 @@ const COMPONENTS_DIR: string = path.resolve(
 // The cells a list cuts short that hold a figure, not a name: by file, what each draws.
 const FIGURE_CELLS: ReadonlyArray<string> = [
   "DashboardHostListComponent.tsx: {formatHostLastSeen(lastSeenAt, translator)}",
-  "DashboardStorageArrayVolumeListComponent.tsx: {formatUsedOfProvisioned(r)}",
+  // A volume's sizes in its reader's sentence and digits (#7521).
+  "DashboardStorageArrayVolumeListComponent.tsx: {formatUsedOfProvisioned(r.usedBytes, r.capacityBytes, translator)}",
 ];
 
 const LIST_WIDGET_FILE_REGEX: RegExp = /^Dashboard\w*ListComponent\.tsx$/;
