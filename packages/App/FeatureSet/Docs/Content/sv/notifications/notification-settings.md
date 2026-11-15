@@ -21,7 +21,7 @@ flowchart TB
 - Varje rad är en händelse, och varje kolumn en kanal: E-post, SMS, Samtal, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost och Webhook. Slack, Microsoft Teams och Mattermost är bara kolumner när projektet har anslutit dem.
 - En kanal som är påslagen skickar till varje verifierad metod du har på den i det här projektet, inte bara till en.
 - En kanal som är påslagen utan någon verifierad metod bakom sig skickar ingenting. **Your setup checklist** säger det under **Staying informed**.
-- En uppdatering går till sakens ägare: personerna som är angivna som ägare, och medlemmarna i dess ägarteam. Har en sak inga ägare går den i stället till projektets ägare. En händelse om att ha lagts till som ägare går bara till personen som lades till.
+- En uppdatering går till sakens ägare: personerna som är angivna som ägare, och medlemmarna i dess ägarteam. Har en sak inga ägare går den i stället till projektets ägare. En händelse om att ha lagts till som ägare går bara till personen som lades till. Om OneUptime stannar medan det skickar en uppdatering till en saks ägare får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
 - Säkerhetsärenden har inga ägare. Ett nytt ärende går till alla som kan se projektets ärenden, från den prioritet som var och en av dem väljer, och ett tilldelat ärende till dem som det är tilldelat. Se [Säkerhetsärenden](/docs/telemetry/security-cases#aviseringar).
 - Varje e-postmeddelande till ägare slutar med en länk, "Manage notification preferences", tillbaka till den här sidan.
 
