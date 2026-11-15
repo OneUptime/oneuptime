@@ -1118,7 +1118,7 @@ describe("a renewal after a time without use the session did not know of (issue 
     });
   });
 
-  test("without any report (the mobile app), the session's own last activity decides, and the renewal is the activity", () => {
+  test("without any report (a mobile app from before issue #8187), the session's own last activity decides, and the renewal is the activity", () => {
     expect(
       decideSessionRenewal({
         facts: {
