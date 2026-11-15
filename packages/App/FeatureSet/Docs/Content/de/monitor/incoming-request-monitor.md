@@ -202,6 +202,10 @@ Gehen Sie zu **Monitore → Einstellungen → Geheimnisse für eingehende Anfrag
 
 Senden Sie das Geheimnis im Header `X-OneUptime-Secret` oder als Bearer-Token im Header `Authorization`, je nachdem, was Ihr Absender setzen kann.
 
+### Die vergessenen Absender finden
+
+Sobald das Projekt ein Geheimnis hat, prüft OneUptime jede Anfrage darauf, ohne schon eine abzulehnen. **Anfragen ohne Geheimnis** auf derselben Seite listet jeden Monitor für eingehende Anfragen, der in den letzten 24 Stunden eine Anfrage ohne gültiges Geheimnis erhalten hat, und warum: Es wurde keines gesendet oder ein falsches. Stellen Sie diese Absender um. Ein Monitor, dessen Absender umgestellt sind, zeigt unter **Zuletzt mit Geheimnis** eine spätere Zeit als unter **Zuletzt ohne Geheimnis** und verschwindet innerhalb von 24 Stunden aus der Liste.
+
 ### Die Anforderung aktivieren
 
 Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Solange das Projekt kein Geheimnis hat, lässt sich die Anforderung nicht aktivieren, sodass kein Absender versehentlich abgelehnt wird.
@@ -429,6 +433,10 @@ Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht
 
 :::details Mein Absender bekommt 401
 Das Projekt verlangt bei jeder Anfrage ein Geheimnis, und die Anfrage hat keines gesendet oder eines, das nicht zum Projekt gehört: Die Antwort sagt, was davon zutrifft. Senden Sie eines der Geheimnisse des Projekts im Header `X-OneUptime-Secret` oder als Bearer-Token, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt. Eine abgelehnte Anfrage erreicht den Monitor nie.
+:::
+
+:::details Der Monitor bekommt keine Anfragen mehr, seit ein Geheimnis verlangt wird
+Seine Absender senden kein Geheimnis oder ein falsches, daher wird jede ihrer Anfragen abgelehnt. Eine Zeile unter der **Heartbeat-URL** des Monitors sagt, wann die letzte abgelehnte Anfrage kam, und **Anfragen ohne Geheimnis** listet jeden Monitor, der in den letzten 24 Stunden eine bekommen hat, und warum. Senden Sie von diesen Absendern eines der Geheimnisse des Projekts, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt.
 :::
 
 :::details Der Monitor geht nie offline, wenn die Heartbeats ausbleiben

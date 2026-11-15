@@ -15,7 +15,9 @@
  *     presented travels with the job;
  *   - a request the endpoint cannot place in a project (a made-up key, a new
  *     monitor's first request) is answered 200 and queued, unrecorded, for the
- *     worker to decide.
+ *     worker to decide;
+ *   - a refused request tells its monitor it had no valid secret, and why
+ *     (issue #8498): it never reaches the worker, which records the rest.
  *
  * The route's own handler is driven directly, with the real gate
  * (IncomingRequestSecretGate) and request parsing; the project's policy, the
@@ -60,6 +62,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import IncomingRequestAPI from "../../FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest";
 import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import IncomingRequestSecretActivity from "Common/Server/Utils/Monitor/IncomingRequestSecretActivity";
 import IncomingRequestSecretPolicy, {
   INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
   INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
@@ -74,6 +77,7 @@ import { ExpressRouter, RequestHandler } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
 import Exception from "Common/Types/Exception/Exception";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import { IncomingRequestSecretProblem } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ObjectID from "Common/Types/ObjectID";
 import {
   afterEach,
@@ -111,6 +115,7 @@ const sendEmptySuccessResponse: jest.Mock =
 let policy: IncomingRequestSecretPolicyValue;
 let keptMonitor: MonitorOfSecretKey | null;
 let advanceIfTracked: jest.Mock;
+let recordActivity: jest.Mock;
 
 // Express 4 keeps these on each stack layer; its typings leave them out.
 interface RouteLayer {
@@ -213,6 +218,10 @@ beforeEach(() => {
     .spyOn(IncomingRequestReceivedAtStore, "advanceIfTracked")
     .mockResolvedValue(undefined) as unknown as jest.Mock;
 
+  recordActivity = jest
+    .spyOn(IncomingRequestSecretActivity, "record")
+    .mockResolvedValue(undefined) as unknown as jest.Mock;
+
   addIncomingRequestIngestJob.mockResolvedValue(undefined as never);
 });
 
@@ -235,6 +244,14 @@ describe("a project that requires an incoming request secret", () => {
       expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
       expect(advanceIfTracked).not.toHaveBeenCalled();
       expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
+
+      // It never reaches the worker: its monitor learns of it here.
+      expect(recordActivity).toHaveBeenCalledTimes(1);
+      expect(recordActivity).toHaveBeenCalledWith({
+        monitorId: MONITOR.monitorId,
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      });
     },
   );
 
@@ -248,6 +265,11 @@ describe("a project that requires an incoming request secret", () => {
     );
     expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
     expect(advanceIfTracked).not.toHaveBeenCalled();
+    expect(recordActivity).toHaveBeenCalledWith({
+      monitorId: MONITOR.monitorId,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.WrongSecret,
+    });
   });
 
   test("the secret in X-OneUptime-Secret: 200, recorded and queued without it", async () => {
@@ -273,6 +295,9 @@ describe("a project that requires an incoming request secret", () => {
       IncomingRequestSecretRequest.hashSecret(PROJECT_SECRET),
     ]);
     expect(JSON.stringify(job)).not.toContain(PROJECT_SECRET);
+
+    // The worker records it, with the rest it processes.
+    expect(recordActivity).not.toHaveBeenCalled();
   });
 
   test("the secret as a Bearer token: 200, and the sender's header queued as it came", async () => {
@@ -340,6 +365,22 @@ describe("a project that requires no secret", () => {
   });
 });
 
+describe("a project with a secret that does not require one yet", () => {
+  beforeEach(() => {
+    policy = { isRequired: false, secrets: REQUIRED.secrets };
+  });
+
+  test("a request without the secret is answered, recorded and queued, as before, and left for the worker to note", async () => {
+    const next: jest.Mock = await send({});
+
+    expect(refusalOf(next)).toBeNull();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(advanceIfTracked).toHaveBeenCalledTimes(1);
+    expect(addIncomingRequestIngestJob).toHaveBeenCalledTimes(1);
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+});
+
 describe("a request the endpoint cannot place in a project", () => {
   beforeEach(() => {
     keptMonitor = null;
@@ -353,5 +394,6 @@ describe("a request the endpoint cannot place in a project", () => {
     expect(advanceIfTracked).not.toHaveBeenCalled();
     expect(addIncomingRequestIngestJob).toHaveBeenCalledTimes(1);
     expect(IncomingRequestSecretPolicy.getPolicy).not.toHaveBeenCalled();
+    expect(recordActivity).not.toHaveBeenCalled();
   });
 });

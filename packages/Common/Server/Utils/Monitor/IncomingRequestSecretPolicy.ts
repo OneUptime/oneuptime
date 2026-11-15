@@ -8,7 +8,10 @@ import Project from "../../../Models/DatabaseModels/Project";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
-import { INCOMING_REQUEST_SECRET_HEADER } from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import {
+  INCOMING_REQUEST_SECRET_HEADER,
+  IncomingRequestSecretProblem,
+} from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -24,6 +27,11 @@ import ObjectID from "../../../Types/ObjectID";
  * (forget, from ProjectService and IncomingRequestSecretService), so a change
  * applies to the next request; the minute is the bound for the rare read that
  * raced the change, and for a Redis that could not be told.
+ *
+ * The secrets are read whether or not the project requires one yet: a
+ * request is checked against them either way, so a monitor's senders that do
+ * not send one yet are known before the requirement is turned on (issue
+ * #8498, IncomingRequestSecretActivity).
  *
  * A Redis that cannot be reached is a miss: the policy is read from Postgres.
  * A project that requires a secret and has none refuses every request - the
@@ -50,14 +58,23 @@ export interface IncomingRequestSecretOfPolicy {
 
 export interface IncomingRequestSecretPolicyValue {
   isRequired: boolean;
-  // The project's secrets while it requires one; empty otherwise.
+  // The project's secrets, whether or not it requires one yet.
   secrets: Array<IncomingRequestSecretOfPolicy>;
 }
 
 export interface IncomingRequestSecretDecision {
   verdict: IncomingRequestSecretVerdict;
-  // The secret the request presented, when the verdict is Accepted.
+  // The secret the request presented, when it presented one of the project's.
   matchedSecretId?: string | undefined;
+  /*
+   * Whatever the project requires: whether the request sent one of the
+   * project's secrets - for the monitor's record of requests with and without
+   * one (IncomingRequestSecretActivity). Undefined while the project has no
+   * secret: there is nothing to have sent.
+   */
+  sentValidSecret?: boolean | undefined;
+  // Why it did not, when it did not.
+  problem?: IncomingRequestSecretProblem | undefined;
 }
 
 export const INCOMING_REQUEST_SECRET_MISSING_MESSAGE: string = `This project requires a secret on every incoming request. Send one of the project's incoming request secrets in the ${INCOMING_REQUEST_SECRET_HEADER} header, or as a Bearer token in the Authorization header. A Project Owner or Project Admin finds them under Monitors > Settings > Incoming Request Secrets.`;
@@ -65,7 +82,12 @@ export const INCOMING_REQUEST_SECRET_MISSING_MESSAGE: string = `This project req
 export const INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE: string = `The secret sent with this request is not one of this project's incoming request secrets. Check the value in the ${INCOMING_REQUEST_SECRET_HEADER} header or the Authorization header against Monitors > Settings > Incoming Request Secrets, where a Project Owner or Project Admin can also create a new one.`;
 
 export default class IncomingRequestSecretPolicy {
-  public static readonly NAMESPACE: string = "incoming-request-secret-policy";
+  /*
+   * "-v2": a policy kept by a server from before #8498 has no secrets while
+   * the project requires none, and must not be read as one that has none.
+   */
+  public static readonly NAMESPACE: string =
+    "incoming-request-secret-policy-v2";
 
   public static readonly EXPIRES_IN_SECONDS: number = 60;
 
@@ -144,40 +166,65 @@ export default class IncomingRequestSecretPolicy {
     policy: IncomingRequestSecretPolicyValue;
     presentedSecretHashes: ReadonlyArray<string> | undefined;
   }): IncomingRequestSecretDecision {
-    if (!data.policy.isRequired) {
-      return { verdict: IncomingRequestSecretVerdict.NotRequired };
-    }
-
     const presented: ReadonlyArray<string> = data.presentedSecretHashes || [];
 
-    if (presented.length === 0) {
-      return { verdict: IncomingRequestSecretVerdict.Missing };
-    }
-
     const matchedHash: string | null =
-      IncomingRequestSecretRequest.findMatchingHash({
-        presentedSecretHashes: presented,
-        projectSecretHashes: data.policy.secrets.map(
-          (secret: IncomingRequestSecretOfPolicy): string => {
-            return secret.secretHash;
-          },
-        ),
-      });
+      presented.length === 0
+        ? null
+        : IncomingRequestSecretRequest.findMatchingHash({
+            presentedSecretHashes: presented,
+            projectSecretHashes: data.policy.secrets.map(
+              (secret: IncomingRequestSecretOfPolicy): string => {
+                return secret.secretHash;
+              },
+            ),
+          });
 
-    if (!matchedHash) {
-      return { verdict: IncomingRequestSecretVerdict.NotRecognized };
+    const matched: IncomingRequestSecretOfPolicy | undefined = matchedHash
+      ? data.policy.secrets.find(
+          (secret: IncomingRequestSecretOfPolicy): boolean => {
+            return secret.secretHash === matchedHash;
+          },
+        )
+      : undefined;
+
+    const problem: IncomingRequestSecretProblem | undefined = matched
+      ? undefined
+      : presented.length === 0
+        ? IncomingRequestSecretProblem.NoSecret
+        : IncomingRequestSecretProblem.WrongSecret;
+
+    const presentation: Pick<
+      IncomingRequestSecretDecision,
+      "sentValidSecret" | "problem"
+    > =
+      data.policy.secrets.length > 0
+        ? { sentValidSecret: !problem, problem: problem }
+        : {};
+
+    if (!data.policy.isRequired) {
+      return {
+        verdict: IncomingRequestSecretVerdict.NotRequired,
+        matchedSecretId: matched?.secretId,
+        ...presentation,
+      };
     }
 
-    const matched: IncomingRequestSecretOfPolicy | undefined =
-      data.policy.secrets.find(
-        (secret: IncomingRequestSecretOfPolicy): boolean => {
-          return secret.secretHash === matchedHash;
-        },
-      );
+    if (problem === IncomingRequestSecretProblem.NoSecret) {
+      return { verdict: IncomingRequestSecretVerdict.Missing, ...presentation };
+    }
+
+    if (problem === IncomingRequestSecretProblem.WrongSecret) {
+      return {
+        verdict: IncomingRequestSecretVerdict.NotRecognized,
+        ...presentation,
+      };
+    }
 
     return {
       verdict: IncomingRequestSecretVerdict.Accepted,
       matchedSecretId: matched?.secretId,
+      ...presentation,
     };
   }
 
@@ -198,7 +245,8 @@ export default class IncomingRequestSecretPolicy {
   }
 
   /*
-   * A request was accepted with this secret: stamp its lastUsedAt, at most
+   * A request sent this secret - accepted, or one that would be once the
+   * project requires a secret: stamp its lastUsedAt, at most
    * every LAST_USED_EVERY_SECONDS. Never throws - it is bookkeeping, and must
    * never fail the request that was accepted.
    */
@@ -253,7 +301,7 @@ export default class IncomingRequestSecretPolicy {
       },
     });
 
-    if (!project?.requireIncomingRequestSecret) {
+    if (!project) {
       return { isRequired: false, secrets: [] };
     }
 
@@ -274,7 +322,7 @@ export default class IncomingRequestSecretPolicy {
       });
 
     return {
-      isRequired: true,
+      isRequired: Boolean(project.requireIncomingRequestSecret),
       secrets: secrets
         .filter((secret: IncomingRequestSecret): boolean => {
           return Boolean(secret.id && secret.secretValue?.trim());

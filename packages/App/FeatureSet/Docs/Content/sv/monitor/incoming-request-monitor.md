@@ -202,6 +202,10 @@ Gå till **Monitorer → Inställningar → Hemligheter för inkommande begäran
 
 Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange.
 
+### Hitta avsändarna du har missat
+
+Så snart projektet har en hemlighet kontrollerar OneUptime varje begäran, utan att avvisa någon ännu. **Begäranden utan hemlighet** på samma sida listar varje monitor för inkommande begäranden som har fått en begäran utan giltig hemlighet de senaste 24 timmarna, och varför: ingen hemlighet skickades, eller en felaktig. Åtgärda de avsändarna. En monitor vars avsändare är åtgärdade visar en senare tid under **Senast med hemlighet** än under **Senast utan hemlighet**, och försvinner från listan inom 24 timmar.
+
 ### Slå på kravet
 
 Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag.
@@ -429,6 +433,10 @@ Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller va
 
 :::details Min avsändare får 401
 Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn.
+:::
+
+:::details Monitorn får inga begäranden längre sedan en hemlighet krävs
+Dess avsändare skickar ingen hemlighet, eller en felaktig, så varje begäran de skickar avvisas. En rad under monitorns **Heartbeat URL** säger när den senaste avvisade begäran kom, och **Begäranden utan hemlighet** listar varje monitor som har fått en de senaste 24 timmarna, och varför. Skicka en av projektets hemligheter från de avsändarna, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar.
 :::
 
 :::details Monitorn blir aldrig offline när heartbeats upphör

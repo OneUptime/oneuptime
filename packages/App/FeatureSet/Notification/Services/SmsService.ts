@@ -1,3 +1,4 @@
+import { getMessageIdStatusMessage } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import {
   SMSDefaultCostInCents,
   SMSHighRiskCostInCents,
@@ -659,7 +660,7 @@ export default class SmsService {
         smsLog.status =
           SmsService.mapProviderStatusToSmsStatus(twillioMessage.status) ||
           SmsStatus.Sent;
-        smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
+        smsLog.statusMessage = getMessageIdStatusMessage(twillioMessage.sid);
 
         // Accepted - unless Twilio answered with a status that already failed.
         if (SmsService.isFailureStatus(smsLog.status)) {

@@ -202,6 +202,10 @@ Go to **Monitors → Settings → Incoming Request Secrets** and create a secret
 
 Send the secret in the `X-OneUptime-Secret` header, or as a bearer token in the `Authorization` header, whichever your sender can set.
 
+### Find the senders you missed
+
+As soon as the project has a secret, OneUptime checks every request for one, without refusing any yet. **Requests Without a Secret**, on the same page, lists each Incoming Request monitor that got a request without a valid secret in the last 24 hours, and why: none was sent, or a wrong one. Fix those senders. A monitor whose senders are fixed shows a **Last With Secret** later than its **Last Without Secret**, and leaves the list within 24 hours.
+
 ### Turn on the requirement
 
 Turn on **Require a secret on every request**. It cannot be turned on while the project has no secret, so no sender is refused by mistake.
@@ -429,6 +433,10 @@ The `200` is sent before the request is validated, so it does not prove the requ
 
 :::details My sender gets a 401
 The project requires a secret on every request, and the request sent none, or one that is not the project's: the reply says which. Send one of the project's secrets in the `X-OneUptime-Secret` header or as a bearer token, as [Require a secret on every request](#require-a-secret-on-every-request) shows. A refused request never reaches the monitor.
+:::
+
+:::details The monitor stopped getting requests after a secret was required
+Its senders send no secret, or a wrong one, so every request they send is refused. A line under the monitor's **Heartbeat URL** says when the latest refused request came, and **Requests Without a Secret** lists every monitor that got one in the last 24 hours, and why. Send one of the project's secrets from those senders, as [Require a secret on every request](#require-a-secret-on-every-request) shows.
 :::
 
 :::details The monitor never goes offline when the heartbeats stop

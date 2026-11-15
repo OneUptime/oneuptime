@@ -202,6 +202,10 @@ Allez dans **Moniteurs → Paramètres → Secrets de requête entrante** et cr�
 
 Envoyez le secret dans l'en-tête `X-OneUptime-Secret`, ou comme jeton Bearer dans l'en-tête `Authorization`, selon ce que votre expéditeur sait définir.
 
+### Retrouver les expéditeurs oubliés
+
+Dès que le projet a un secret, OneUptime vérifie chaque requête, sans encore en refuser aucune. **Requêtes sans secret**, sur la même page, liste chaque moniteur de requêtes entrantes qui a reçu une requête sans secret valide au cours des dernières 24 heures, et pourquoi : aucun secret n'a été envoyé, ou un mauvais. Corrigez ces expéditeurs. Un moniteur dont les expéditeurs sont corrigés affiche sous **Dernière avec secret** une heure postérieure à celle de **Dernière sans secret**, et quitte la liste dans les 24 heures.
+
 ### Activer l'exigence
 
 Activez **Exiger un secret à chaque requête**. L'exigence ne peut pas être activée tant que le projet n'a aucun secret, afin qu'aucun expéditeur ne soit refusé par erreur.
@@ -429,6 +433,10 @@ Le `200` est envoyé avant la validation de la requête : il ne prouve donc pas 
 
 :::details Mon expéditeur reçoit un 401
 Le projet exige un secret à chaque requête, et la requête n'en a envoyé aucun, ou un qui n'est pas celui du projet : la réponse précise lequel des deux. Envoyez l'un des secrets du projet dans l'en-tête `X-OneUptime-Secret` ou comme jeton Bearer, comme l'indique [Exiger un secret à chaque requête](#exiger-un-secret-à-chaque-requête). Une requête refusée n'atteint jamais le moniteur.
+:::
+
+:::details Le moniteur ne reçoit plus de requêtes depuis qu'un secret est exigé
+Ses expéditeurs n'envoient aucun secret, ou un mauvais, donc chacune de leurs requêtes est refusée. Une ligne sous l'**URL de heartbeat** du moniteur indique quand la dernière requête refusée est arrivée, et **Requêtes sans secret** liste chaque moniteur qui en a reçu une au cours des dernières 24 heures, et pourquoi. Envoyez l'un des secrets du projet depuis ces expéditeurs, comme l'indique [Exiger un secret à chaque requête](#exiger-un-secret-à-chaque-requête).
 :::
 
 :::details Le moniteur ne passe jamais hors ligne quand les heartbeats cessent

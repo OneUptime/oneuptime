@@ -202,6 +202,10 @@ Gå til **Monitorer → Innstillinger → Hemmeligheter for innkommende forespø
 
 Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette.
 
+### Finn avsenderne du har glemt
+
+Så snart prosjektet har en hemmelighet, sjekker OneUptime hver forespørsel for en, uten å avvise noen ennå. **Forespørsler uten hemmelighet** på samme side viser hver overvåker av innkommende forespørsler som har fått en forespørsel uten gyldig hemmelighet de siste 24 timene, og hvorfor: Det ble ikke sendt noen, eller det ble sendt en feil. Rett de avsenderne. En overvåker der avsenderne er rettet, viser et senere tidspunkt under **Sist med hemmelighet** enn under **Sist uten hemmelighet**, og forsvinner fra listen innen 24 timer.
+
 ### Slå på kravet
 
 Slå på **Krev en hemmelighet ved hver forespørsel**. Kravet kan ikke slås på mens prosjektet ikke har noen hemmelighet, så ingen avsender avvises ved en feil.
@@ -429,6 +433,10 @@ Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, ell
 
 :::details Avsenderen min får en 401
 Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri overvåkeren.
+:::
+
+:::details Overvåkeren får ikke lenger forespørsler etter at en hemmelighet ble påkrevd
+Avsenderne sender ingen hemmelighet, eller en feil, så hver forespørsel de sender, avvises. En linje under overvåkerens **Heartbeat URL** sier når den siste avviste forespørselen kom, og **Forespørsler uten hemmelighet** viser hver overvåker som har fått en de siste 24 timene, og hvorfor. Send en av prosjektets hemmeligheter fra disse avsenderne, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser.
 :::
 
 :::details Monitoren blir aldri frakoblet når heartbeats stopper
