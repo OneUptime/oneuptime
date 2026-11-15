@@ -1873,9 +1873,15 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
   it("says a rule waits for a full long window, and resolves on Paused or Misconfigured", () => {
     const worker: string = readSource("worker");
 
-    expect(worker).toContain("const hasFullLongWindow: boolean = Boolean(");
+    /*
+     * Each rule reads its windows through the SLO's burn windows: monitor
+     * timelines, or a request SLO's counts (SloBurnWindows.hasFullWindow).
+     */
     expect(worker).toContain(
-      "burnRateLong >= threshold && burnRateShort >= threshold",
+      "const hasFullLongWindow: boolean = context.burnWindows.hasFullWindow(",
+    );
+    expect(worker).toMatch(
+      /burnRateLong >= threshold &&\s+burnRateShort >= threshold/,
     );
     expect(
       blockFrom(

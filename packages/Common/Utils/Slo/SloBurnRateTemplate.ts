@@ -295,6 +295,42 @@ export const DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE: string =
   'SLO "{{sloName}}" is burning its error budget too fast. Rule "{{ruleName}}": burn rate over the last {{longWindowInMinutes}} minutes is {{longWindowBurnRate}}x and over the last {{shortWindowInMinutes}} minutes is {{shortWindowBurnRate}}x — both at or above the threshold of {{burnRateThreshold}}x. Error budget remaining: {{errorBudgetRemainingPercentage}}% ({{errorBudgetRemainingMinutes}} minutes).';
 
 /*
+ * The same, for a request SLO: its budget is counted in requests, and the
+ * minutes above would read "( minutes)". It names the budget left in the
+ * SLO's own words instead ({{errorBudgetRemaining}}: "1,234 failed
+ * requests").
+ */
+export const DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE: string =
+  'SLO "{{sloName}}" is burning its error budget too fast. Rule "{{ruleName}}": burn rate over the last {{longWindowInMinutes}} minutes is {{longWindowBurnRate}}x and over the last {{shortWindowInMinutes}} minutes is {{shortWindowBurnRate}}x — both at or above the threshold of {{burnRateThreshold}}x. Error budget remaining: {{errorBudgetRemainingPercentage}}% ({{errorBudgetRemaining}}).';
+
+export type GetSloBurnRateDescriptionTemplateFunction = (data: {
+  // The rule's own template, as stored; empty for the built-in text.
+  template: string | undefined | null;
+  isRequestSli: boolean;
+}) => string | undefined;
+
+/*
+ * The description template a burn rate rule's record is rendered with: the
+ * rule's own. A request SLO's rule whose template is still the built-in
+ * text - the rule form fills it in, so most rules store it - follows the
+ * request SLO's built-in text instead, rather than say "( minutes)".
+ */
+export const getSloBurnRateDescriptionTemplate: GetSloBurnRateDescriptionTemplateFunction =
+  (data: {
+    template: string | undefined | null;
+    isRequestSli: boolean;
+  }): string | undefined => {
+    if (
+      data.isRequestSli &&
+      data.template?.trim() === DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE
+    ) {
+      return DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE;
+    }
+
+    return data.template || undefined;
+  };
+
+/*
  * What an alert or incident a policy tier raises says when its templates are
  * blank: which tier the SLO entered, the budget that put it there, and the
  * team's agreement for it. The dashboard prefills a tier's template fields

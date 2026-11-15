@@ -117,6 +117,7 @@ import {
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+  DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   DEFAULT_SLO_POLICY_TIER_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE,
@@ -125,6 +126,7 @@ import {
   SloPolicyTierTemplateValues,
   buildSloBurnRateTemplateVariables,
   buildSloPolicyTierTemplateVariables,
+  getSloBurnRateDescriptionTemplate,
   renderSloBurnRateTemplate,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import {
@@ -3689,6 +3691,9 @@ async function buildBurnRateDeclaration(data: {
       policyTier: toPolicyTierTemplateValues(context.policyTier),
     });
 
+  // A request SLO's budget is in requests: its built-in text says so.
+  const isRequestSli: boolean = context.requestBudget !== null;
+
   const defaultCopy: { title: string; description: string } = {
     title:
       renderSloBurnRateTemplate(
@@ -3697,7 +3702,9 @@ async function buildBurnRateDeclaration(data: {
       ) || "",
     description:
       renderSloBurnRateTemplate(
-        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+        isRequestSli
+          ? DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE
+          : DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
         variables,
       ) || "",
   };
@@ -3709,14 +3716,20 @@ async function buildBurnRateDeclaration(data: {
     variables: variables,
     alert: renderSloRecordOutputCopy({
       titleTemplate: rule.alertTitleTemplate,
-      descriptionTemplate: rule.alertDescriptionTemplate,
+      descriptionTemplate: getSloBurnRateDescriptionTemplate({
+        template: rule.alertDescriptionTemplate,
+        isRequestSli: isRequestSli,
+      }),
       remediationNotesTemplate: rule.alertRemediationNotes,
       variables: variables,
       defaultCopy: defaultCopy,
     }),
     incident: renderSloRecordOutputCopy({
       titleTemplate: rule.incidentTitleTemplate,
-      descriptionTemplate: rule.incidentDescriptionTemplate,
+      descriptionTemplate: getSloBurnRateDescriptionTemplate({
+        template: rule.incidentDescriptionTemplate,
+        isRequestSli: isRequestSli,
+      }),
       remediationNotesTemplate: rule.incidentRemediationNotes,
       variables: variables,
       defaultCopy: defaultCopy,
