@@ -59,7 +59,7 @@ Skriv inn et **Navn**, for eksempel «Checkout requests», og et **Mål (%)**: a
 Den første evalueringen, innen 5 minutter, teller forespørslene fra de siste 6 timene, så SLO-et har tall med en gang. Evalueringene etter den teller også eldre forespørsler, helt til samsvarsvinduet er dekket.
 :::
 
-Vil du senere endre hva et SLO måler, tjenestene eller grensen, åpner du **Innstillinger** for SLO-et og klikker på **Rediger hva den måler**.
+En tjenestes egen side **SLOs** viser SLO-ene som måler den, og **Opprett Service Level Objective** der åpner det samme skjemaet med tjenesten allerede valgt. Vil du senere endre hva et SLO måler, tjenestene eller grensen, åpner du **Innstillinger** for SLO-et og klikker på **Rediger hva den måler**.
 
 ## Slik telles forespørsler
 
@@ -80,13 +80,13 @@ Budsjettet er de dårlige forespørslene målet tillater blant forespørslene so
 - **Budsjettets rekkevidde** viser hvor lenge budsjettet varer med den nåværende forbruksraten, så lenge trafikken holder seg som den var.
 - Sammendraget viser antallet tjenester i SLO-et, og et latens-SLO viser grensen sin under målet.
 
-Forbruksratevarsler, varslinger og feeden oppgir også budsjettet i forespørsler. Metrikken `oneuptime.slo.error.budget.remaining.seconds` sendes ikke for et forespørsels-SLO; vis `oneuptime.slo.error.budget.remaining.percent` i et diagram i stedet.
+Forbruksratevarsler, varslinger og feeden oppgir også budsjettet i forespørsler. Målingen `oneuptime.slo.error.budget.remaining.seconds` sendes ikke for et forespørsels-SLO; vis `oneuptime.slo.error.budget.remaining.percent` i et diagram i stedet.
 
 Et forespørsels-SLO får de samme reglene **Fast burn**, **Slow burn** og **Slow leak** som alle nye SLO-er. I en rolig time med en håndfull forespørsler kan én enkelt feil gi et raskt forbruk, så en regel kan se bort fra vinduer med for få forespørsler: angi `minimumSampleCount` for regelen via API-et, så hopper regelen over et langt vindu med færre forespørsler enn det.
 
 ## Feilsøking
 
-:::details SLO-et viser Waiting for requests
+:::details SLO-et viser Venter på forespørsler
 Ingen av tjenestene har besvart en forespørsel i vinduet ennå. Sjekk at tjenestene sender spor til OneUptime, og at spannene deres omfatter inngangsspans: en tjeneste der alle spannene er interne, har ingen forespørsler å telle.
 :::
 

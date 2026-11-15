@@ -153,7 +153,7 @@ export default class GoogleSecOpsIndicatorSource {
     cursor: string | undefined,
     now: Date,
   ): { start: Date; end: Date } {
-    const earliest: Date = OneUptimeDate.addRemoveDays(
+    const earliest: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS,
     );
@@ -238,7 +238,7 @@ export default class GoogleSecOpsIndicatorSource {
     const version: number = now.getTime();
     const minimumConfidence: number = Math.max(0, feed.minimumConfidence || 0);
     // Later than any version this feed wrote before, and than every validity it writes now.
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS + 1,
     );
@@ -260,7 +260,7 @@ export default class GoogleSecOpsIndicatorSource {
         ioc.lastSeen && ioc.lastSeen.getTime() <= now.getTime()
           ? ioc.lastSeen
           : now;
-      let validUntil: Date = OneUptimeDate.addRemoveDays(
+      let validUntil: Date = OneUptimeDate.addRemoveDurationInDays(
         lastSeen,
         THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS,
       );

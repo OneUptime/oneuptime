@@ -123,7 +123,7 @@ Tjek, at **Aktivér AI** er slået til, og **Vurder nye sager** under **Produkte
 :::
 
 :::details Kortet siger, at projektet er løbet tør for AI-kreditter eller har nået sin daglige AI-grænse
-En projektejer eller en person med Manage Billing kan tilføje kreditter under **Projektindstillinger → AI → AI-kreditter** eller hæve eller fjerne grænsen under **Projektindstillinger → AI → AI-funktioner**. Klik derefter på **Vurder med AI** på sagen.
+En Projektejer eller en person med Manage Billing kan tilføje kreditter under **Projektindstillinger → AI → AI-kreditter** eller hæve eller fjerne grænsen under **Projektindstillinger → AI → AI-funktioner**. Klik derefter på **Vurder med AI** på sagen.
 :::
 
 :::details Kortet siger, at tekst i sagen lyder som instruktioner til en AI

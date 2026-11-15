@@ -98,7 +98,7 @@ OneUptime 每 15 分钟检查一次每个未验证的域名，找到记录后，
 
 ### 谁可以管理域名
 
-项目所有者和管理员，以及拥有 **Edit Form** 的任何人，都可以添加表单的域名、检查它们、重新签发它们的证书并删除它们。仅针对表单域名的权限也可以，例如 **Edit Form Domain**：[表单概览](/docs/forms/index#权限) 列出了这些权限。能读取表单的人都能看到它的域名、域名的 **状态** 以及 **DNS 设置** 中的记录；对他们来说，**立即检查** 和 **Reissue SSL** 处于锁定状态，并会说明需要哪项权限。API 密钥在 `/form-domain` 上的工作方式相同：`verify-cname`、`order-ssl` 和 `reissue-ssl` 需要 **Edit Form Domain** 或 **Edit Form**。
+项目所有者和项目管理员，以及拥有 **Edit Form** 的任何人，都可以添加表单的域名、检查它们、重新签发它们的证书并删除它们。仅针对表单域名的权限也可以，例如 **Edit Form Domain**：[表单概览](/docs/forms/index#权限) 列出了这些权限。能读取表单的人都能看到它的域名、域名的 **状态** 以及 **DNS 设置** 中的记录；对他们来说，**立即检查** 和 **Reissue SSL** 处于锁定状态，并会说明需要哪项权限。API 密钥在 `/form-domain` 上的工作方式相同：`verify-cname`、`order-ssl` 和 `reissue-ssl` 需要 **Edit Form Domain** 或 **Edit Form**。
 
 ## 什么在保护表单
 

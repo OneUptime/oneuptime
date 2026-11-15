@@ -1,0 +1,9 @@
+{
+  /*
+   * The project every file in this directory belongs to: exactly
+   * ../../tsconfig.tests.dashboard.json, a part of the type-check `npm run
+   * compile` runs, for editors and ESLint's typed linting, which pick a
+   * file's project by the nearest tsconfig.json. See ../tsconfig.json.
+   */
+  "extends": "../../tsconfig.tests.dashboard.json"
+}

@@ -1,7 +1,7 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddOwnerNotificationDelivery1809179400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809179400000-AddOwnerNotificationDelivery";
-import { AddOwnerNotificationFeedStatus1809179500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809179500000-AddOwnerNotificationFeedStatus";
-import { AddOwnerNotificationFeedStatusIndex1809179510000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809179510000-AddOwnerNotificationFeedStatusIndex";
+import { AddOwnerNotificationFeedStatus1809179600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809179600000-AddOwnerNotificationFeedStatus";
+import { AddOwnerNotificationFeedStatusIndex1809179610000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809179610000-AddOwnerNotificationFeedStatusIndex";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import OwnerNotificationDelivery from "../../../../Models/DatabaseModels/OwnerNotificationDelivery";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -27,9 +27,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * migration of its own. Statements are recorded against a fake QueryRunner.
  */
 
-const COLUMN_MIGRATION: string = "AddOwnerNotificationFeedStatus1809179500000";
+const COLUMN_MIGRATION: string = "AddOwnerNotificationFeedStatus1809179600000";
 const INDEX_MIGRATION: string =
-  "AddOwnerNotificationFeedStatusIndex1809179510000";
+  "AddOwnerNotificationFeedStatusIndex1809179610000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 const FEED_INDEX: string = `CREATE INDEX "IDX_6949512eb6ccac3f68f3d589a4" ON "OwnerNotificationDelivery" ("kind", "attemptedAt") WHERE "feedStatus" = 'Pending'`;
@@ -37,8 +37,8 @@ const FEED_INDEX: string = `CREATE INDEX "IDX_6949512eb6ccac3f68f3d589a4" ON "Ow
 type MigrationClass = new () => MigrationInterface;
 
 const MIGRATIONS: Array<MigrationClass> = [
-  AddOwnerNotificationFeedStatus1809179500000,
-  AddOwnerNotificationFeedStatusIndex1809179510000,
+  AddOwnerNotificationFeedStatus1809179600000,
+  AddOwnerNotificationFeedStatusIndex1809179610000,
 ];
 
 async function record(
@@ -85,10 +85,10 @@ afterEach(() => {
 
 describe("the owner notification feed status migrations", () => {
   test("name themselves after their timestamps", () => {
-    expect(new AddOwnerNotificationFeedStatus1809179500000().name).toBe(
+    expect(new AddOwnerNotificationFeedStatus1809179600000().name).toBe(
       COLUMN_MIGRATION,
     );
-    expect(new AddOwnerNotificationFeedStatusIndex1809179510000().name).toBe(
+    expect(new AddOwnerNotificationFeedStatusIndex1809179610000().name).toBe(
       INDEX_MIGRATION,
     );
   });
@@ -97,7 +97,7 @@ describe("the owner notification feed status migrations", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddOwnerNotificationFeedStatus1809179500000,
+      AddOwnerNotificationFeedStatus1809179600000,
     );
 
     for (const migration of MIGRATIONS) {
@@ -112,12 +112,12 @@ describe("the owner notification feed status migrations", () => {
       registered.indexOf(AddOwnerNotificationDelivery1809179400000),
     );
     expect(registered[at + 1]).toBe(
-      AddOwnerNotificationFeedStatusIndex1809179510000,
+      AddOwnerNotificationFeedStatusIndex1809179610000,
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddOwnerNotificationFeedStatus1809179500000),
+        timestampOf(AddOwnerNotificationFeedStatus1809179600000),
       );
     }
   });
@@ -141,7 +141,7 @@ describe("the owner notification feed status migrations", () => {
 
   test("add the column, nullable, with no default and nothing backfilled", async () => {
     const steps: Array<string> = await record(
-      new AddOwnerNotificationFeedStatus1809179500000(),
+      new AddOwnerNotificationFeedStatus1809179600000(),
       "up",
     );
 
@@ -152,8 +152,8 @@ describe("the owner notification feed status migrations", () => {
   });
 
   test("build the partial index online, outside a transaction", async () => {
-    const migration: AddOwnerNotificationFeedStatusIndex1809179510000 =
-      new AddOwnerNotificationFeedStatusIndex1809179510000();
+    const migration: AddOwnerNotificationFeedStatusIndex1809179610000 =
+      new AddOwnerNotificationFeedStatusIndex1809179610000();
 
     expect(migration.transaction).toBe(false);
     expect(await record(migration, "up")).toEqual([`online: ${FEED_INDEX}`]);
@@ -162,12 +162,12 @@ describe("the owner notification feed status migrations", () => {
   test("down drops the index online, then the column", async () => {
     expect(
       await record(
-        new AddOwnerNotificationFeedStatusIndex1809179510000(),
+        new AddOwnerNotificationFeedStatusIndex1809179610000(),
         "down",
       ),
     ).toEqual([`online: DROP INDEX "public"."IDX_6949512eb6ccac3f68f3d589a4"`]);
     expect(
-      await record(new AddOwnerNotificationFeedStatus1809179500000(), "down"),
+      await record(new AddOwnerNotificationFeedStatus1809179600000(), "down"),
     ).toEqual([
       `ALTER TABLE "OwnerNotificationDelivery" DROP COLUMN "feedStatus"`,
     ]);

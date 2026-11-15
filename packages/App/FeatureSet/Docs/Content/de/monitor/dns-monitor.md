@@ -173,6 +173,6 @@ Der Server unter **DNS-Server (Optional)** validiert DNSSEC nicht und setzt desh
 :::cards
 - [DNSSEC-Überwachung](/docs/monitor/dnssec-monitor): Die Vertrauenskette einer signierten Zone validieren.
 - [Domain-Überwachung](/docs/monitor/domain-monitor): Die Registrierung und den Ablauf der Domain beobachten.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Interne DNS-Server aus Ihrem eigenen Netzwerk abfragen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Interne DNS-Server aus Ihrem eigenen Netzwerk abfragen.
 - [Vorfälle – Übersicht](/docs/incidents/index): Was passiert, nachdem der Monitor einen gemeldet hat.
 :::

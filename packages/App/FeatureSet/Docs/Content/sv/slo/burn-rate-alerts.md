@@ -235,7 +235,7 @@ Till exempel blir rubriken `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 - **Lägg till SLO-ägare som ägare** lägger också till SLO:ets ägare, dess ägaranvändare och medlemmarna i dess ägarteam, på allt som regeln skapar. SLO:ets ägare får redan höra om själva SLO:ets statusändringar, så det kan avisera dem två gånger. Det är avstängt som standard.
 - Varje ägare läggs till en gång: en användare som redan är ägare av larmet eller incidenten, till exempel via projektets ägarregler, eller som ingår i ett tillagt ägarteam, läggs inte till igen.
 - **Larmetiketter** och **Incidentetiketter** läggs till på larmet eller incidenten, så att filter, ägarregler och aviseringsregler för arbetsytan kan matcha dem.
-- Ett privat larm eller en privat incident syns bara för sina ägare, projektets administratörer och projektets ägare.
+- Ett privat larm eller en privat incident syns bara för sina ägare, Projektadministratörer och Projektägare.
 
 Etiketter, ägarteam och jourpolicyer måste höra till SLO:ets projekt.
 

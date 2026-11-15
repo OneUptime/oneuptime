@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53649,
-    "untranslated": 8832
+    "keys": 53972,
+    "untranslated": 8766
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -40,6 +40,7 @@
     "DNS:",
     "DNSSEC",
     "DeploymentConfigs",
+    "Docker CLI",
     "Docker Compose",
     "Down + In",
     "Down + Out",
@@ -94,6 +95,8 @@
     "Passthrough",
     "Ping",
     "Placement Groups",
+    "Podman CLI",
+    "Podman Compose",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",

@@ -507,7 +507,7 @@ export const getFeedRelativeHint: (
 
   return formatter
     ? formatter.format(-minutes, "minute")
-    : `${minutes} min ago`;
+    : `${minutes}\u00A0min ago`;
 };
 
 /*

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 2523
+    "keys": 53972,
+    "untranslated": 2512
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -225,6 +225,7 @@
     "Fatal",
     "Favicon",
     "Feed",
+    "Feedback",
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
@@ -567,6 +568,7 @@
     "Stack",
     "Stacks",
     "Stacktrace",
+    "Staging",
     "Status",
     "Status: ",
     "Stratum",

@@ -179,7 +179,7 @@ L'interruttore è attivo per i repository collegati da ora in poi, tramite la Gi
 
 ## Verifica prima della pull request
 
-Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice, il file che leggono gli agenti di codice. Prima di cambiare qualsiasi cosa, l'agente di codice legge l'`AGENTS.md` del repository (o il suo `CLAUDE.md`, quando non ha un `AGENTS.md`) dal branch da cui parte l'attività, e lavora come dice. Senza nessuno dei due, impara come fare dal `CONTRIBUTING.md` del repository, dal README, dagli script del pacchetto, dal `Makefile` o dai workflow di CI. Non c'è nulla da configurare in OneUptime.
+Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice, il file che leggono gli agenti di codice. Prima di cambiare qualsiasi cosa, l'agente di codice legge l'`AGENTS.md` del repository (o il suo `CLAUDE.md`, quando non ha un `AGENTS.md`) dal branch da cui parte l'attività, e lavora come dice. Senza nessuno dei due, impara come fare dal `CONTRIBUTING.md` del repository, dal README, dagli script del pacchetto, dal `Makefile` o dai flussi di lavoro di CI. Non c'è nulla da configurare in OneUptime.
 
 | Dove lavora l'IA | Cosa fa con la build e i test del repository |
 | --- | --- |

@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynner
 
 - **Et abonnement som inkluderer det.** På OneUptime Cloud krever oppretting og endring av datakilder abonnementet **Growth**. Sletting av en fungerer på alle abonnementer.
-- **En tillatelse til å legge dem til.** Prosjekteiere og -administratorer kan legge til datakilder; alle andre trenger `CreateDataSource`, med `EditDataSource` og `DeleteDataSource` for å endre og fjerne dem. Alle som kan lese prosjektets datakilder, også medlemmer og seere, ser dataene i widgetene deres.
+- **En tillatelse til å legge dem til.** Prosjekteiere og Prosjektadministratorer kan legge til datakilder; alle andre trenger `CreateDataSource`, med `EditDataSource` og `DeleteDataSource` for å endre og fjerne dem. Alle som kan lese prosjektets datakilder, også medlemmer og seere, ser dataene i widgetene deres.
 - **En skrivebeskyttet konto.** Dashbord leser bare. Koble til databaser med en konto som bare kan lese, og HTTP-kilder med et token som bare kan spørre.
 - **En vei inn.** Det er OneUptimes API-server som kobler til systemet ditt, så den må kunne nå det: se [Sikkerhet](#sikkerhet) for adressene som avvises.
 
@@ -50,7 +50,7 @@ flowchart TB
 
 ### Velg typen
 
-Klikk på **Opprett Data Source**. Dialogen **Choose a Data Source Type** grupperer typene etter hva de inneholder: metrikker, logger, databaser, søk og API-er. Klikk på én.
+Klikk på **Opprett Data Source**. Dialogen **Choose a Data Source Type** grupperer typene etter hva de inneholder: målinger, logger, databaser, søk og API-er. Klikk på én.
 
 ### Gi den et navn
 
@@ -84,7 +84,7 @@ Rediger et dashbord, klikk på **Legg til widget**, og velg en widget fra gruppe
 
 Hver type bruker sitt eget språk, med de samme reglene for hva som kommer tilbake:
 
-- **Diagrammer, verdier og målere trenger tidsserier.** En SQL-spørring returnerer en tidskolonne med navnet `time`, `timestamp`, `date` eller `ts`, og en numerisk kolonne `value` (eller den første numeriske kolonnen); alle andre kolonner blir serieetiketter. Elasticsearch trenger en aggregering `date_histogram`, og Loki en metrikkspørring som `rate()` eller `count_over_time()`.
+- **Diagrammer, verdier og målere trenger tidsserier.** En SQL-spørring returnerer en tidskolonne med navnet `time`, `timestamp`, `date` eller `ts`, og en numerisk kolonne `value` (eller den første numeriske kolonnen); alle andre kolonner blir serieetiketter. Elasticsearch trenger en aggregering `date_histogram`, og Loki en målingsspørring som `rate()` eller `count_over_time()`.
 - **Tabeller viser rader** slik spørringen returnerer dem: SQL-rader, Prometheus-serier, Loki-logglinjer, Elasticsearch-treff, eller objektene ved et REST-API-s `rowsPath`.
 
 :::tabs
@@ -181,7 +181,7 @@ Et ord som skriver, står utenfor en streng, ofte som et kolonnenavn, for eksemp
 :::
 
 :::details Diagrammet forblir tomt, men tabellen viser rader
-Spørringen returnerer rader, men ingen tidsserier. Gi tidskolonnen navnet `time` og tallet navnet `value` i SQL, legg til en aggregering `date_histogram` i Elasticsearch, eller gjør en Loki-loggspørring om til en metrikkspørring med `rate()` eller `count_over_time()`.
+Spørringen returnerer rader, men ingen tidsserier. Gi tidskolonnen navnet `time` og tallet navnet `value` i SQL, legg til en aggregering `date_histogram` i Elasticsearch, eller gjør en Loki-loggspørring om til en målingsspørring med `rate()` eller `count_over_time()`.
 :::
 
 :::details Noen data mangler

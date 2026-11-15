@@ -239,7 +239,7 @@ Quando GitHub ti riporta indietro e l'installazione non è stata connessa, **Cod
 | La pagina dice | Cosa fare |
 | --- | --- |
 | **"Questo link di connessione non è valido, è scaduto o è già stato usato. Ricomincia."** | Il link funziona una volta, per 15 minuti, nel browser che l'ha avviato. Ricomincia da **Codice** e completa su GitHub entro 15 minuti, nello stesso browser. Installare l'app dalla sua pagina su GitHub non la connette a nessun progetto: per connettere un'installazione fatta lì, fai clic su **Collega un'installazione esistente**. |
-| **"Non hai l'autorizzazione per aggiungere repository di codice a questo progetto."** | La connessione richiede il permesso di aggiungere repository di codice (vedi [Connettere i repository](#connettere-i-repository)). Chiedi a un amministratore del progetto di concedertelo. Viene verificato di nuovo quando GitHub ti riporta indietro, quindi un permesso tolto nel frattempo chiude la connessione anche qui. |
+| **"Non hai l'autorizzazione per aggiungere repository di codice a questo progetto."** | La connessione richiede il permesso di aggiungere repository di codice (vedi [Connettere i repository](#connettere-i-repository)). Chiedi a un Amministratore del progetto di concedertelo. Viene verificato di nuovo quando GitHub ti riporta indietro, quindi un permesso tolto nel frattempo chiude la connessione anche qui. |
 | **"Per connettere GitHub serve il piano ...."** | Su OneUptime Cloud, i repository di codice richiedono il piano indicato nella frase. Passa il progetto a quel piano, poi connettiti di nuovo. |
 | **"GitHub non ha confermato chi ha installato l'app, quindi non è stato possibile verificare l'installazione."** | Attiva **Request user authorization (OAuth) during installation** nelle impostazioni della GitHub App (vedi [Creare la GitHub App](#creare-la-github-app)), poi connettiti di nuovo. |
 | **"OneUptime non è riuscito a confermare che il tuo account GitHub possa gestire questa installazione."** | L'account GitHub che ha completato l'installazione non la amministra (vedi [Connettere i repository](#connettere-i-repository) per sapere chi la amministra). L'app resta installata su GitHub, quindi chiedi a chi amministra l'installazione di connetterla con **Collega un'installazione esistente**. |
@@ -291,5 +291,5 @@ Dai all'app **Issues: Read and write** e iscrivila agli eventi interattivi di [I
 :::cards
 - [Lavorare con OneUptime da GitHub](/docs/ai/github-app): I comandi che si possono dare all'app, e chi può darli.
 - [Codice](/docs/ai/ai-agent): Come l'agente IA apre pull request di correzione.
-- [Accesso alla rete privata](/docs/self-hosted/private-network-access): Permetti a workflow e webhook di raggiungere gli strumenti interni.
+- [Accesso alla rete privata](/docs/self-hosted/private-network-access): Permetti a flussi di lavoro e webhook di raggiungere gli strumenti interni.
 :::

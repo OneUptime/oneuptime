@@ -11,7 +11,7 @@ Om een dashboard te maken, open je **Producten → Dashboards** en klik je op **
 
 ## Voordat je begint
 
-Projecteigenaren en -beheerders kunnen elk dashboard maken en bewerken. Alle anderen hebben een teammachtiging nodig: `CreateDashboard` om dashboards te maken en `EditDashboard` om ze te wijzigen. Projectleden en kijkers kunnen dashboards lezen zonder een van beide. Wie een dashboard niet mag bewerken, opent toch het menu **⋯**, waar **Dashboard bewerken** vergrendeld is en zegt welke machtiging nodig is.
+Projecteigenaren en Projectbeheerders kunnen elk dashboard maken en bewerken. Alle anderen hebben een teammachtiging nodig: `CreateDashboard` om dashboards te maken en `EditDashboard` om ze te wijzigen. Projectleden en Kijkers kunnen dashboards lezen zonder een van beide. Wie een dashboard niet mag bewerken, opent toch het menu **⋯**, waar **Dashboard bewerken** vergrendeld is en zegt welke machtiging nodig is.
 
 ## Het dashboard maken
 

@@ -123,7 +123,7 @@ Controlla che **Abilita IA** sia attivo, e anche **Classifica i nuovi casi** in 
 :::
 
 :::details La scheda dice che il progetto ha esaurito i crediti IA, o che ha raggiunto il suo limite giornaliero di IA
-Un proprietario del progetto o qualcuno con Manage Billing può aggiungere crediti in **Impostazioni del progetto → IA → Crediti IA**, oppure alzare o togliere il limite in **Impostazioni del progetto → IA → Funzionalità IA**. Poi fai clic su **Classifica con l'IA** sul caso.
+Un Proprietario del progetto o qualcuno con Manage Billing può aggiungere crediti in **Impostazioni del progetto → IA → Crediti IA**, oppure alzare o togliere il limite in **Impostazioni del progetto → IA → Funzionalità IA**. Poi fai clic su **Classifica con l'IA** sul caso.
 :::
 
 :::details La scheda dice che un testo del caso sembra un insieme di istruzioni per un'IA

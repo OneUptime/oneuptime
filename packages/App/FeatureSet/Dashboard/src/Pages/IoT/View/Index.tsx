@@ -113,7 +113,7 @@ const formatDbm: (value: number | null) => string = (
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return `${value.toFixed(0)} dBm`;
+  return `${value.toFixed(0)}\u00A0dBm`;
 };
 
 /*

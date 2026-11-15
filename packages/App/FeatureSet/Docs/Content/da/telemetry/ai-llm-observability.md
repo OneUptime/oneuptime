@@ -307,7 +307,7 @@ Opret en [metrik-monitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budg
 Sæt monitorens rullende vindue til 30 minutter. Et budget udgiver ét punkt hvert 15. minut, så standardvinduet på 1 minut ville ikke finde noget mellem to punkter.
 :::
 
-En budgetadvarsel kan også køre en workflow, der stopper en løbsk agent: se [Circuit breakers til AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
+En budgetadvarsel kan også køre en arbejdsgang, der stopper en løbsk agent: se [Circuit breakers til AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Dashboards og advarsler på metrikker
 
@@ -321,7 +321,7 @@ Prompts og svar sendt som loghændelser gemmes som logs, så det er logs' **Scru
 
 Uanset hvad læser en regel hver tekst i en liste eller en struktureret værdi, såsom beskeder, som en instrumentering sender som en liste i stedet for som JSON-tekst, og bevarer værdiens form: en e-mailadresse i en prompt maskeres, uanset hvor den står. Se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data).
 
-Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun projektets ejere og administratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
+Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun Projektejere og Projektadministratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
 
 ## Attributter, som OneUptime læser
 

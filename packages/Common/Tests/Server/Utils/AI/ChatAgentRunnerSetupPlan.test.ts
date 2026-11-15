@@ -270,11 +270,9 @@ function installSpies(data?: {
     .spyOn(OnCallDutyPolicyService, "countBy")
     .mockResolvedValue(new PositiveNumber(data?.policies ?? 0) as never);
   jest
-    .spyOn(IncidentOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
-  jest
-    .spyOn(AlertOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
+    .spyOn(IncidentOnCallRuleService, "findBy")
+    .mockResolvedValue([] as never);
+  jest.spyOn(AlertOnCallRuleService, "findBy").mockResolvedValue([] as never);
   jest.spyOn(OnCallReadinessService, "getReadinessForUser").mockResolvedValue({
     status: ReadinessStatus.PartiallyReady,
     methods: [

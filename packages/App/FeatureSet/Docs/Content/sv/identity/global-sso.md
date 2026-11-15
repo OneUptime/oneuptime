@@ -1,6 +1,6 @@
 # Global SSO
 
-Med global SSO konfigurerar en **instansadministratör** i OneUptime (master admin) en identitetsleverantör för SAML 2.0 eller OpenID Connect (OIDC) **en gång**, på instansnivå, och ansluter den till valfritt projekt på servern. I stället för att varje projektägare konfigurerar sin egen identitetsleverantör konfigurerar en master admin en som betjänar hela instansen.
+Med global SSO konfigurerar en **instansadministratör** i OneUptime (master admin) en identitetsleverantör för SAML 2.0 eller OpenID Connect (OIDC) **en gång**, på instansnivå, och ansluter den till valfritt projekt på servern. I stället för att varje Projektägare konfigurerar sin egen identitetsleverantör konfigurerar en master admin en som betjänar hela instansen.
 
 > [!NOTE]
 > Global SSO, inklusive reglaget "Require SSO for Login" för hela instansen, ingår i alla OneUptime-utgåvor: alla självhostade instanser har det, även Community Edition, och det kräver ingen licens. Det är instansadministration och gäller därför inte OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) för vad varje utgåva innehåller.
@@ -16,7 +16,7 @@ Med global SSO konfigurerar en **instansadministratör** i OneUptime (master adm
 
 |                         | Projekt-SSO                                       | Global SSO                                          |
 | ----------------------- | ------------------------------------------------- | --------------------------------------------------- |
-| Konfigureras av         | Projektägare/-administratör (Projektinställningar) | Instansens master admin (Admin Dashboard)          |
+| Konfigureras av         | Projektägare eller Projektadministratör (Projektinställningar) | Instansens master admin (Admin Dashboard)          |
 | Omfattning              | Ett enskilt projekt                               | Hela instansen, kan anslutas till valfritt projekt  |
 | Resultat vid inloggning | Åtkomst till just det projektet                   | Åtkomst till alla projekt användaren kan nå         |
 

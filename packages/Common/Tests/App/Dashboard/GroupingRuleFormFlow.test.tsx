@@ -725,7 +725,7 @@ describe("creating a grouping rule", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("time-window-setting-error")).toHaveTextContent(
-        "Enter a whole number of minutes between 1 and 525600.",
+        "Enter a whole number of minutes between 1 and 525,600.",
       );
     });
     expect(activeStep()).toBe("Grouping");
@@ -883,7 +883,7 @@ describe("creating a grouping rule", () => {
       expect(
         screen.getByTestId("resolve-delay-setting-error"),
       ).toHaveTextContent(
-        "Enter a whole number of minutes between 1 and 525600.",
+        "Enter a whole number of minutes between 1 and 525,600.",
       );
     });
     expect(activeStep()).toBe("Grouping");

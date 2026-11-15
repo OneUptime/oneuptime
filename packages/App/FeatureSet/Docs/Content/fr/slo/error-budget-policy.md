@@ -299,7 +299,7 @@ Ces autorisations se trouvent dans le groupe SLO d'un rôle. Les rôles Proprié
 
 ## Pas encore disponible
 
-Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : un déclencheur de workflow propre à chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement).
+Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : un déclencheur de flux de travail propre à chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement).
 
 ## Prochaines étapes
 

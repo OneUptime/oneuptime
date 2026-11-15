@@ -359,7 +359,10 @@ export default class InsightScanner {
           status: AIInsightStatus.ActionRequired,
           triageCompletedAt: QueryHelper.isNull(),
           createdAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7),
+            OneUptimeDate.addRemoveDurationInDays(
+              OneUptimeDate.getCurrentDate(),
+              -7,
+            ),
           ),
         },
         select: {
@@ -452,7 +455,10 @@ export default class InsightScanner {
           classification: ExceptionAIClassification.CodeFault,
           fixAiRunId: QueryHelper.isNull(),
           triageCompletedAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1),
+            OneUptimeDate.addRemoveDurationInDays(
+              OneUptimeDate.getCurrentDate(),
+              -1,
+            ),
           ),
         },
         select: {

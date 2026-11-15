@@ -9,6 +9,7 @@
  */
 
 import Search from "../BaseDatabase/Search";
+import { normalizeLogSeverity } from "./LogSeverity";
 import {
   SearchToken,
   SearchTokenType,
@@ -65,28 +66,22 @@ export const LOG_KNOWN_FIELD_KEYS: Set<string> = new Set(
   Object.keys(LOG_FIELD_ALIASES),
 );
 
-/*
- * Severity values stored in the database use title case (e.g. "Error",
- * "Debug"). Normalise user input so that "error" matches "Error".
- */
-const SEVERITY_CANONICAL: Record<string, string> = {
-  fatal: "Fatal",
-  error: "Error",
-  warning: "Warning",
-  warn: "Warning",
-  information: "Information",
-  info: "Information",
-  debug: "Debug",
-  trace: "Trace",
-  unspecified: "Unspecified",
-};
-
 type NormalizeSeverityValueFunction = (value: string) => string;
 
+/*
+ * Severity values stored in the database are LogSeverity's members, in
+ * title case ("Error", "Debug"). A word a person types names one as ingest
+ * reads a sender's level - the one table of level words every log path
+ * reads (normalizeLogSeverity, LOG_SEVERITY_NUMBER_BY_TEXT; issue #8538):
+ * `error` matches Error, `critical` Fatal, `crit` Error and `notice`
+ * Information, so a search for a level finds the logs sent with it.
+ * Anything else is searched for as typed. The table is a Map, so a word
+ * named like an Object member (`constructor`, `toString`) is only a word.
+ */
 const normalizeSeverityValue: NormalizeSeverityValueFunction = (
   value: string,
 ): string => {
-  return SEVERITY_CANONICAL[value.toLowerCase()] || value;
+  return normalizeLogSeverity(value) || value;
 };
 
 type CanonicalizeTokenFunction = (token: SearchToken) => SearchToken;

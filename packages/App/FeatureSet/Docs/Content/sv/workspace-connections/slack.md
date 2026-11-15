@@ -123,7 +123,7 @@ En kanal förblir läsbar: varje händelse publiceras en gång, och postens för
 
 **Projektinställningar** > **Arbetsyta** > **Slack** visar de kanaler som OneUptime kan se, med **Skicka test** bredvid var och en. OneUptime går själv med i en offentlig kanal första gången den publicerar där. En privat kanal visas, och kan ta emot publiceringar, först när OneUptime-appen har bjudits in till den i Slack.
 
-En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser reglerna ser den skrivskyddad. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och Projektadministratörer kan redigera eller ta bort den, och alla andra som ser reglerna ser den skrivskyddad. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
 
 ### Jourmeddelanden
 

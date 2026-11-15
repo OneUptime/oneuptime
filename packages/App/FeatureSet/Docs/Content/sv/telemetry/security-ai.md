@@ -123,7 +123,7 @@ Kontrollera att **Aktivera AI** är påslaget, och **Bedöm nya ärenden** under
 :::
 
 :::details Kortet säger att projektet har slut på AI-krediter, eller har nått sin dagliga AI-gräns
-En projektägare eller någon med Manage Billing kan lägga till krediter under **Projektinställningar → AI → AI-krediter**, eller höja eller ta bort gränsen under **Projektinställningar → AI → AI-funktioner**. Klicka sedan på **Bedöm med AI** på ärendet.
+En Projektägare eller någon med Manage Billing kan lägga till krediter under **Projektinställningar → AI → AI-krediter**, eller höja eller ta bort gränsen under **Projektinställningar → AI → AI-funktioner**. Klicka sedan på **Bedöm med AI** på ärendet.
 :::
 
 :::details Kortet säger att text i ärendet låter som instruktioner till en AI

@@ -40,7 +40,10 @@ import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 import {
   SPAN_STATUS_PRESENTATIONS,
   SpanStatusPresentation,
@@ -67,28 +70,40 @@ const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> =
   );
 
 /*
- * A span's duration, its milliseconds in the reader's language ("12.3 ms",
- * "۱۲٫۳ میلی‌ثانیه"); the other units as short as they always were.
+ * A span's duration in the reader's language, in every unit: "850 ns",
+ * "12 µs", "12.3 ms", "1.25 s"; "۱۲٫۳ میلی‌ثانیه", "۱٫۲۵ ثانیه" (#7418,
+ * #8348). Each unit stands apart from its figure, as the milliseconds
+ * between them always did.
  */
 export const formatTraceListDuration: (
   durationNano: number,
   translator: Translator,
 ) => string = (durationNano: number, translator: Translator): string => {
+  const durationMs: number = durationNano / 1000000;
+
   if (durationNano < 1000) {
-    return `${durationNano}ns`;
+    return formatDurationInUnit(translator, durationNano, "nanosecond", {
+      decimals: 0,
+      dropTrailingZeros: true,
+    });
   }
-  const durationMicro: number = durationNano / 1000;
-  if (durationMicro < 1000) {
-    return `${Math.round(durationMicro)}µs`;
+  if (durationNano < 1000000) {
+    return formatDurationInUnit(
+      translator,
+      durationNano / 1000,
+      "microsecond",
+      { decimals: 0, dropTrailingZeros: true },
+    );
   }
-  const durationMs: number = durationMicro / 1000;
   if (durationMs < 1000) {
     return formatMilliseconds(translator, durationMs, {
       maximumFractionDigits: 1,
     });
   }
-  const durationS: number = durationMs / 1000;
-  return `${Math.round(durationS * 100) / 100}s`;
+  return formatDurationInUnit(translator, durationNano / 1000000000, "second", {
+    decimals: 2,
+    dropTrailingZeros: true,
+  });
 };
 
 const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (

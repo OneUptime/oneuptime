@@ -41,7 +41,7 @@ Project SCIM allows identity providers to manage team members within OneUptime p
 
 ### Setting Up Project SCIM
 
-Only a project owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project.
+Only a Project Owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project.
 :::steps
 1. **Navigate to Project Settings**
 
@@ -88,7 +88,7 @@ Some identity providers do not keep a bearer token, and ask for OAuth 2.0 client
 
 Your identity provider sends the client ID and secret to the token endpoint, and gets an access token that works for an hour. The connection's bearer token keeps working beside it.
 
-To replace a secret, click **Make New Client Secret**. The secret before it keeps working until it expires or you click **Delete Previous Secret**, so your identity provider can be given the new one with no gap in provisioning: delete the old one once it uses the new one. A secret that expires or is deleted ends the access tokens issued with it, at once. The people who may change a connection's bearer token may make and delete its secrets: a project owner, or for a status page, whoever may edit its single sign-on.
+To replace a secret, click **Make New Client Secret**. The secret before it keeps working until it expires or you click **Delete Previous Secret**, so your identity provider can be given the new one with no gap in provisioning: delete the old one once it uses the new one. A secret that expires or is deleted ends the access tokens issued with it, at once. The people who may change a connection's bearer token may make and delete its secrets: a Project Owner, or for a status page, whoever may edit its single sign-on.
 
 ## SCIM for Status Pages
 
@@ -394,7 +394,7 @@ On OneUptime Cloud, SCIM provisioning works fully only while the project is on *
 
 Nothing is deleted. Upgrade to **Scale** and the connections work fully again as they are, with the same bearer token and nothing to set up again in your identity provider; a plan change takes effect within a minute. Identity providers keep calling on their own schedule: Okta lists the refusals among its provisioning errors, and Entra ID shows them in its provisioning logs and may quarantine a job that keeps failing, which slows its syncs - removals too - to about once a day. Restart provisioning there after you upgrade, so the people added meanwhile are provisioned.
 
-Below **Scale**, **Project Settings** > **Security** > **SCIM**, and a status page's **SCIM** page, list the connections under the plan's upsell (**SCIM connections still set up**) and say they only remove people. Delete a connection to remove it. Adding a connection, changing one or replacing its bearer token needs **Scale**. The list does not show bearer tokens, and only project owners can read a token, on every plan.
+Below **Scale**, **Project Settings** > **Security** > **SCIM**, and a status page's **SCIM** page, list the connections under the plan's upsell (**SCIM connections still set up**) and say they only remove people. Delete a connection to remove it. Adding a connection, changing one or replacing its bearer token needs **Scale**. The list does not show bearer tokens, and only Project Owners can read a token, on every plan.
 
 ## Troubleshooting
 

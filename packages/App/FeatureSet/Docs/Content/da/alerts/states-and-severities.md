@@ -85,7 +85,7 @@ Du flytter en advarsel til en af dine egne tilstande fra menuen **⋯** i advars
 
 ## Rækkefølgen håndhæves
 
-Hvert tilstandsskift for en advarsel kontrolleres mod listen, uanset hvem der foretager det: dashboardet, Slack, Microsoft Teams, API'et, Terraform, et workflow eller OneUptime selv.
+Hvert tilstandsskift for en advarsel kontrolleres mod listen, uanset hvem der foretager det: dashboardet, Slack, Microsoft Teams, API'et, Terraform, en arbejdsgang eller OneUptime selv.
 
 - **Skift baglæns afvises** med en besked, der nævner begge tilstande: "Alert cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of alert states."
 - **Et skift til den tilstand, den allerede er i, afvises**: "Alert state cannot be same as previous state."

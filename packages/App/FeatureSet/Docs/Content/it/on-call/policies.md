@@ -34,7 +34,7 @@ Una policy non avvisa nessuno finché qualcosa non la esegue. Ogni incidente, av
 | Regole di reperibilità | **Incidenti → Regole → Regole di reperibilità** e **Avvisi → Regole → Regole di reperibilità** aggiungono le policy di ogni regola che corrisponde | [Regole di reperibilità degli incidenti](/docs/incidents/settings#regole-di-reperibilità-degli-incidenti) |
 | Regole di raggruppamento | Una regola di raggruppamento esegue le sue policy quando apre un episodio | [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes) |
 | A mano | **Esegui criterio di reperibilità**, nel menu **Azioni** di un feed, o su un messaggio di Slack o Microsoft Teams | [Il feed dell'incidente](/docs/incidents/notes-owners-and-feed#il-feed-dellincidente) |
-| Chat e workflow | `/oneuptime page` in Slack o Microsoft Teams, e il passo **Page an On-Call Policy** di un workflow | [Paging](/docs/workflows/components#paging) |
+| Chat e flussi di lavoro | `/oneuptime page` in Slack o Microsoft Teams, e il passo **Page an On-Call Policy** di un flusso di lavoro | [Paging](/docs/workflows/components#paging) |
 
 Una policy che più regole aggiungono viene eseguita una sola volta. Una gravità non esegue mai una policy da sola: lo fa una regola di reperibilità che corrisponde a quella gravità. Un incidente o un avviso creato già riconosciuto o risolto non esegue nessuna delle sue policy. Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere le policy che aggiunge finché quell'orario non inizia.
 
@@ -120,7 +120,7 @@ flowchart TB
 Trovate i registri di esecuzione in tre posti:
 
 - nei **Registri di esecuzione** della policy stessa, in **Registri**;
-- in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
+- in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da flussi di lavoro e chat compaiono come **Chiamata diretta**;
 - nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
 Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. **Notificato tramite** mostra come ogni avviso ha raggiunto la persona: chiamata telefonica, SMS, e-mail, notifica push e così via. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Un livello che non ha avvisato nessuno dice perché, con **Proseguito senza attendere** sotto: la policy non lo ha atteso. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.

@@ -115,7 +115,7 @@ const formatBytes: (bytes: number) => string = (bytes: number): string => {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+  return `${value.toFixed(value >= 100 || idx === 0 ? 0 : 1)}\u00A0${units[idx]}`;
 };
 
 const formatReadingBytes: (value: number | null) => string = (

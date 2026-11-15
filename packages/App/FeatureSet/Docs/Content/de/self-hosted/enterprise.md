@@ -54,7 +54,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | [Benutzerdefinierte Benachrichtigungskanäle](/docs/self-hosted/custom-notification-channels): Personen über Ihren eigenen Dienst alarmieren, etwa über die App Ihres Unternehmens | Nein | Ja | Nicht zutreffend |
 | [Sitzungsdauer](/docs/self-hosted/session-length): wie lange Personen angemeldet bleiben, und wie lange ohne OneUptime zu nutzen | Nein | Ja | Nicht zutreffend |
 | Kapazitätsansicht, Kapazitätsalarme und automatisches Bereinigen der Festplatte für ClickHouse | Ja | Ja | Nicht zutreffend |
-| Migrationsstatus, Support-Bundle und globale Probes im Admin-Dashboard | Ja | Ja | Nicht zutreffend |
+| Migrationsstatus, Support-Bundle und globale Sonden im Admin-Dashboard | Ja | Ja | Nicht zutreffend |
 | Verwaltung von Enterprise-Lizenz, Plätzen und Instanzen | Nein | Ja | Nicht zutreffend |
 
 Single Sign-On umfasst „Require SSO for login“ für Projekte, private Statusseiten und die gesamte Instanz, in beiden Editionen.

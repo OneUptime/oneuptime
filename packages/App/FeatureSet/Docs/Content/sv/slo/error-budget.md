@@ -133,7 +133,7 @@ En status säger hur mycket budget som finns kvar, inte vad ditt team gör åt d
 
 När ett SLO går över till **I riskzonen** eller **Budget förbrukad** aviserar OneUptime dess ägare:
 
-- Ägarna är de användare och teammedlemmar på SLO:ets sida **Ägare** som fortfarande är medlemmar i projektet. Ett SLO utan ägare aviserar i stället projektets ägare.
+- Ägarna är de användare och teammedlemmar på SLO:ets sida **Ägare** som fortfarande är medlemmar i projektet. Ett SLO utan ägare aviserar i stället Projektägare.
 - Varje ägare får ett e-postmeddelande som standard, och aviseringen i alla andra kanaler som hen slår på för **SLO-status ändrad** under **Användarinställningar** → **Aviseringsinställningar** → **Övervakning**.
 - E-postmeddelandets ämne anger statusen och SLO:et, till exempel `[SLO At Risk] API Availability`.
 

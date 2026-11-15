@@ -1133,7 +1133,7 @@ export class Service extends ProjectReferencesService<Model> {
    */
   @CaptureSpan()
   public async deleteExpiredCaptures(): Promise<number> {
-    const cutoff: Date = OneUptimeDate.addRemoveDays(
+    const cutoff: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       -PACKET_CAPTURE_RETENTION_IN_DAYS,
     );

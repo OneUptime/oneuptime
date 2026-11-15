@@ -836,7 +836,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
     }
 
     expect(page).toContain(
-      "Project owners, admins and members have it, and so does anyone whose role lets them create probes.",
+      "Project Owners, Project Admins and Project Members have it, and so does anyone whose role lets them create probes.",
     );
   });
 
@@ -908,7 +908,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
       'title: canReadProbeKey ? "Show ID and Key" : "Show ID",',
     );
     expect(install).toContain(
-      "its key is shown only to project owners and admins, who see **Show ID and Key** where the others see **Show ID**.",
+      "its key is shown only to Project Owners and Project Admins, who see **Show ID and Key** where the others see **Show ID**.",
     );
   });
 
@@ -922,7 +922,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
     expect(card).toContain("title={`Set up your Custom Probe`}");
     expect(view).toContain('title={"Reset Probe Key"}');
     expect(install).toContain(
-      "Project owners and admins can also click the probe: the **Set up your Custom Probe** card on its page shows the Docker command with its ID and key already filled in.",
+      "Project Owners and Project Admins can also click the probe: the **Set up your Custom Probe** card on its page shows the Docker command with its ID and key already filled in.",
     );
     expect(page).toContain("**Reset Probe Key**, on the probe's page");
   });

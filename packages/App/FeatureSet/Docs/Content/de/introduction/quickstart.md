@@ -56,7 +56,7 @@ Im Free-Tarif von OneUptime Cloud werden Monitore nach Nutzung abgerechnet, dahe
 
 ### Festlegen, wer informiert wird
 
-Unter **Wer soll informiert werden?** stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Speichern und weiter**: Dabei wird die Richtlinie `Default on-call policy` angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert, zunächst per E-Mail. Um auch Teammitglieder zu alarmieren, die schon im Projekt sind, klicken Sie vorher auf **Teammitglieder hinzufügen**.
+Unter **Wer soll informiert werden?** stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Speichern und weiter**: Dabei wird die **Standard-Bereitschaftsrichtlinie** angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert, zunächst per E-Mail. Um auch Teammitglieder zu alarmieren, die schon im Projekt sind, klicken Sie vorher auf **Teammitglieder hinzufügen**.
 
 ### Sich selbst einen Test senden
 
@@ -69,7 +69,7 @@ Um auch eine API zu prüfen und zu erfahren, was zu tun ist, wenn die erste Prü
 
 ## Bei einem Ausfall alarmiert werden
 
-Die Website-Einrichtung hat bereits die Richtlinie `Default on-call policy` angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung per E-Mail alarmiert, deshalb hakt die Checkliste **Bereitschaftsrichtlinie einrichten** als erledigt ab. Deren geführte Einrichtung fügt trotzdem Ihr Telefon hinzu, die Personen, die mit Ihnen alarmiert werden, und was passiert, wenn niemand antwortet.
+Die Website-Einrichtung hat bereits die **Standard-Bereitschaftsrichtlinie** angelegt, die Sie bei jedem neuen Vorfall und jeder neuen Warnung per E-Mail alarmiert, deshalb hakt die Checkliste **Bereitschaftsrichtlinie einrichten** als erledigt ab. Deren geführte Einrichtung fügt trotzdem Ihr Telefon hinzu, die Personen, die mit Ihnen alarmiert werden, und was passiert, wenn niemand antwortet.
 
 :::steps
 ### Die Bereitschafts-Einrichtung öffnen
@@ -84,7 +84,7 @@ Unter **Wie sollen wir dich erreichen?** ist Ihre Anmelde-E-Mail bereits aufgef�
 
 ### Festlegen, wer sonst alarmiert wird
 
-Behalten Sie unter **Wer hat sonst Bereitschaft?** die Richtlinie `Default on-call policy` unter **Bereitschaftsrichtlinie** bei. Um Teammitglieder mit Ihnen zu alarmieren, nehmen Sie sie unter **Zur ersten Eskalationsregel hinzufügen** auf. Klicken Sie auf **Speichern und weiter**.
+Behalten Sie unter **Wer hat sonst Bereitschaft?** die **Standard-Bereitschaftsrichtlinie** unter **Bereitschaftsrichtlinie** bei. Um Teammitglieder mit Ihnen zu alarmieren, nehmen Sie sie unter **Zur ersten Eskalationsregel hinzufügen** auf. Klicken Sie auf **Speichern und weiter**.
 
 ### Festlegen, was passiert, wenn niemand antwortet
 
@@ -96,7 +96,7 @@ Klicken Sie unter **Test-Alarmierung senden** auf **Diese Richtlinie testen**, w
 :::
 
 > [!NOTE]
-> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Abrechnungs-Administrator oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
+> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projektinhaber, ein Abrechnungs-Administrator oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
 
 Zwei Bereitschaftsregeln lösen die Richtlinie aus: eine bei jedem neuen Vorfall und eine bei jeder neuen Warnung. Um die erste zu sehen, öffnen Sie **Vorfälle** im Menü **Produkte**, klappen **Regeln** im Seitenmenü auf und wählen **Bereitschaftsregeln**: Sie trifft auf **Alle Vorfälle** zu. Damit die Richtlinie nur bei manchen Vorfällen ausgelöst wird, etwa bei kritischen, bearbeiten Sie die Regel dort, oder klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, um eine eigene anzulegen.
 

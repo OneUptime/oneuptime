@@ -283,5 +283,5 @@ Sonden behöver en Microsoft ODBC Driver for SQL Server och en identitet som din
 - [Övervakning av databashälsa](/docs/monitor/database-health-monitor): Håll koll på anslutningar, lås och replikering utan att skriva SQL.
 - [Övervakningshemligheter](/docs/monitor/monitor-secrets): Håll databasens lösenord krypterat.
 - [JavaScript-uttryck](/docs/monitor/javascript-expression): Skriv kriterier som kombinerar flera värden.
-- [Anpassade probes](/docs/probe/custom-probe): Kör kontroller inifrån ditt nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kör kontroller inifrån ditt nätverk.
 :::

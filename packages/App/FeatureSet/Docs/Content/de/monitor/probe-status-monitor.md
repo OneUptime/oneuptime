@@ -53,17 +53,17 @@ Die Filter eines Sondenstatus-Monitors zählen Sonden:
 
 | Filter | Was er zählt |
 | --- | --- |
-| **Disconnected Probes** | Die überwachten Sonden, die getrennt sind. |
-| **Connected Probes** | Die überwachten Sonden, die verbunden sind. |
+| **Getrennte Sonden** | Die überwachten Sonden, die getrennt sind. |
+| **Verbundene Sonden** | Die überwachten Sonden, die verbunden sind. |
 
 Beide sind ganze Zahlen und werden mit **Größer als**, **Kleiner als**, **Gleich** und den übrigen Vergleichen geprüft. Ein neuer Monitor beginnt mit zwei Kriterien:
 
 | Kriterium | Filter | Was es bewirkt |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** größer als `0` | Setzt den Monitor auf offline und meldet einen Vorfall mit dem Titel `Probe disconnected: {{disconnectedProbeNames}}`, der sich von selbst löst. |
-| Check if every probe is connected | **Disconnected Probes** gleich `0` | Setzt den Monitor auf betriebsbereit. |
+| Prüfen, ob eine Sonde getrennt ist | **Getrennte Sonden** größer als `0` | Setzt den Monitor auf offline und meldet einen Vorfall mit dem Titel `Probe disconnected: {{disconnectedProbeNames}}`, der sich von selbst löst. |
+| Prüfen, ob alle Sonden verbunden sind | **Getrennte Sonden** gleich `0` | Setzt den Monitor auf betriebsbereit. |
 
-**Connected Probes** eignet sich für einen Monitor, der mehrere Sonden überwacht und eine verlieren darf: **Connected Probes** kleiner als `2` meldet erst dann einen Vorfall, wenn weniger als zwei übrig sind.
+Der Filter **Verbundene Sonden** eignet sich für einen Monitor, der mehrere Sonden überwacht und eine verlieren darf: **Verbundene Sonden** kleiner als `2` meldet erst dann einen Vorfall, wenn weniger als zwei übrig sind.
 
 ### Länger warten vor einem Vorfall
 

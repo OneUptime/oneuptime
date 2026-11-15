@@ -321,7 +321,7 @@ Prompts en antwoorden die als log-events worden gestuurd, worden opgeslagen als 
 
 Hoe dan ook leest een regel elke tekst in een lijst of een gestructureerde waarde, zoals berichten die een instrumentatie als lijst in plaats van als JSON-tekst stuurt, en behoudt hij de vorm van de waarde: een e-mailadres in een prompt wordt gemaskeerd, waar het ook staat. Zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen).
 
-Gesprekken worden gelezen met dezelfde machtiging als traces: wie de traces van het project kan lezen, kan de gesprekken lezen, en verder niemand. De gesprekken van een AI-tool van je bedrijf zijn de uitzondering: alleen eigenaren en beheerders van het project kunnen ze lezen, tenzij de verbinding iets anders zegt ([AI-tools van je bedrijf](/docs/telemetry/ai-company-tools#privacy)).
+Gesprekken worden gelezen met dezelfde machtiging als traces: wie de traces van het project kan lezen, kan de gesprekken lezen, en verder niemand. De gesprekken van een AI-tool van je bedrijf zijn de uitzondering: alleen Projecteigenaren en Projectbeheerders kunnen ze lezen, tenzij de verbinding iets anders zegt ([AI-tools van je bedrijf](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributen die OneUptime leest
 

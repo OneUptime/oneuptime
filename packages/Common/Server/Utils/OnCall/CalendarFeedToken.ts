@@ -149,7 +149,7 @@ export default class CalendarFeedToken {
       rotatedAt: now,
       previousTokenHash: previousTokenHash,
       previousTokenExpiresAt: previousTokenHash
-        ? OneUptimeDate.addRemoveDays(now, PREVIOUS_TOKEN_GRACE_DAYS)
+        ? OneUptimeDate.addRemoveDurationInDays(now, PREVIOUS_TOKEN_GRACE_DAYS)
         : null,
     };
   }

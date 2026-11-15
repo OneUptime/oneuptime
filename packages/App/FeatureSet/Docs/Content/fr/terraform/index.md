@@ -59,7 +59,7 @@ Les versions du fournisseur suivent celles de OneUptime : le fournisseur {{TERRA
 
 ## Laisser le tableau de bord l'écrire
 
-Vous n'avez pas à écrire à la main une ressource que vous avez déjà. Chaque ressource du tableau de bord OneUptime (un moniteur, une page de statut, un workflow, une politique d'astreinte et les autres) a une section **Développeurs** dans son menu latéral, repliée jusqu'à ce que vous l'ouvriez. Sa page **Terraform** écrit la configuration pour vous, remplie à partir de votre propre projet.
+Vous n'avez pas à écrire à la main une ressource que vous avez déjà. Chaque ressource du tableau de bord OneUptime (un moniteur, une page de statut, un flux de travail, une politique d'astreinte et les autres) a une section **Développeurs** dans son menu latéral, repliée jusqu'à ce que vous l'ouvriez. Sa page **Terraform** écrit la configuration pour vous, remplie à partir de votre propre projet.
 
 :::steps
 ### Ouvrir la ressource

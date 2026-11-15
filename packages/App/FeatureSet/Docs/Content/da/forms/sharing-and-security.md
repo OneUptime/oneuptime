@@ -98,7 +98,7 @@ Serveren skal svare på port 80, hvor Let's Encrypt tjekker hvert domæne. En in
 
 ### Hvem der kan administrere domæner
 
-Projektets ejere og administratorer, og alle med **Edit Form**, kan tilføje en formulars domæner, tjekke dem, genudstede deres certifikater og slette dem. Det kan tilladelserne kun til en formulars domæner også, som **Edit Form Domain**: [Formularer – overblik](/docs/forms/index#tilladelser) oplister dem. Alle, der kan læse en formular, ser dens domæner, deres **Status** og posten i **DNS-opsætning**; for dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der skal til. En API-nøgle virker på samme måde på `/form-domain`: `verify-cname`, `order-ssl` og `reissue-ssl` kræver **Edit Form Domain** eller **Edit Form**.
+Projektejere og Projektadministratorer, og alle med **Edit Form**, kan tilføje en formulars domæner, tjekke dem, genudstede deres certifikater og slette dem. Det kan tilladelserne kun til en formulars domæner også, som **Edit Form Domain**: [Formularer – overblik](/docs/forms/index#tilladelser) oplister dem. Alle, der kan læse en formular, ser dens domæner, deres **Status** og posten i **DNS-opsætning**; for dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der skal til. En API-nøgle virker på samme måde på `/form-domain`: `verify-cname`, `order-ssl` og `reissue-ssl` kræver **Edit Form Domain** eller **Edit Form**.
 
 ## Hvad der beskytter en formular
 

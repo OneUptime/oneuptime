@@ -57,7 +57,9 @@ import StatusPageResourceService from "../../../../../Server/Services/StatusPage
 import StatusPageService from "../../../../../Server/Services/StatusPageService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../../Server/Services/TeamService";
+import AlertOnCallRule from "../../../../../Models/DatabaseModels/AlertOnCallRule";
 import AlertSeverity from "../../../../../Models/DatabaseModels/AlertSeverity";
+import IncidentOnCallRule from "../../../../../Models/DatabaseModels/IncidentOnCallRule";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
@@ -95,6 +97,7 @@ import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../../Types/Monitor/MonitorType";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import {
   EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
   getEveryNewIncidentRuleName,
@@ -273,20 +276,80 @@ function stubMonitorCreate(): Spy {
   }) as never);
 }
 
+/*
+ * The project's paging, as its database holds it: each policy archived or
+ * not, and each on-call rule with the policies it runs, archived or not.
+ * The fake answers as the services do: a count of the policies the query
+ * matches, and the rules read with their policies (#8518).
+ */
+function servePaging(project: {
+  policies: Array<boolean>;
+  incidentRules?: Array<Array<boolean>>;
+  alertRules?: Array<Array<boolean>>;
+}): { policyCount: Spy; incidentRules: Spy; alertRules: Spy } {
+  const rulesOf: <T extends IncidentOnCallRule | AlertOnCallRule>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ) => Array<T> = <T extends IncidentOnCallRule | AlertOnCallRule>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ): Array<T> => {
+    return rules.map((policiesArchived: Array<boolean>): T => {
+      const rule: T = new type();
+      rule._id = ObjectID.generate().toString();
+      rule.onCallDutyPolicies = policiesArchived.map(
+        (isArchived: boolean): OnCallDutyPolicy => {
+          const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+          policy._id = ObjectID.generate().toString();
+          policy.isArchived = isArchived;
+          return policy;
+        },
+      );
+      return rule;
+    });
+  };
+
+  return {
+    policyCount: jest
+      .spyOn(OnCallDutyPolicyService, "countBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<PositiveNumber> => {
+        return new PositiveNumber(
+          project.policies.filter((isArchived: boolean): boolean => {
+            return (
+              !("isArchived" in args.query) ||
+              args.query["isArchived"] === isArchived
+            );
+          }).length,
+        );
+      }) as never),
+    incidentRules: jest
+      .spyOn(IncidentOnCallRuleService, "findBy")
+      .mockResolvedValue(
+        rulesOf(IncidentOnCallRule, project.incidentRules || []) as never,
+      ),
+    alertRules: jest
+      .spyOn(AlertOnCallRuleService, "findBy")
+      .mockResolvedValue(
+        rulesOf(AlertOnCallRule, project.alertRules || []) as never,
+      ),
+  };
+}
+
+// A project with this many policies in service, and rules that run one.
 function stubPagingCounts(counts: {
   policies: number;
   incidentRules: number;
   alertRules: number;
 }): void {
-  jest
-    .spyOn(OnCallDutyPolicyService, "countBy")
-    .mockResolvedValue(new PositiveNumber(counts.policies) as never);
-  jest
-    .spyOn(IncidentOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(counts.incidentRules) as never);
-  jest
-    .spyOn(AlertOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(counts.alertRules) as never);
+  servePaging({
+    policies: new Array<boolean>(counts.policies).fill(false),
+    incidentRules: new Array<Array<boolean>>(counts.incidentRules).fill([
+      false,
+    ]),
+    alertRules: new Array<Array<boolean>>(counts.alertRules).fill([false]),
+  });
 }
 
 function readiness(data: {
@@ -1727,6 +1790,174 @@ describe("set_up_paging", () => {
       SetUpPagingTool.execute({ userIds: ["nope"] }, ctx),
     ).rejects.toThrow("nobody named is a member or a team");
     expect(create).not.toHaveBeenCalled();
+  });
+
+  /*
+   * ONLY WHAT PAGES PEOPLE COUNTS (#8518), as the website-down guided setup
+   * counts a project (#8234, #8433). An archived policy pages no one, and
+   * an on-call rule pages people only through a policy in service: a
+   * project whose only policy was archived, with the rules that run it, was
+   * told "this project already pages people", and nobody was paged when
+   * its monitor opened an incident.
+   */
+  describe("archived policies, and rules that run only archived ones (#8518)", () => {
+    const propose: () => Promise<SetupActionRefusal | null> =
+      async (): Promise<SetupActionRefusal | null> => {
+        return await SetUpPagingTool.checkBeforeApproval!(
+          { userIds: [USER_ID.toString()] },
+          ctx,
+        );
+      };
+
+    test("the policies are counted as the On-Call Policies list shows them: archived ones left out, as the person", async () => {
+      const spies: { policyCount: Spy; incidentRules: Spy; alertRules: Spy } =
+        servePaging({ policies: [] });
+
+      await propose();
+
+      expect(spies.policyCount).toHaveBeenCalledTimes(1);
+      expect(spies.policyCount.mock.calls[0]![0]).toEqual({
+        query: { projectId: PROJECT_ID, isArchived: false },
+        props: ctx.props,
+      });
+    });
+
+    test("the rules are read with each policy's archived flag, one list each, as the person - never just counted", async () => {
+      const spies: { policyCount: Spy; incidentRules: Spy; alertRules: Spy } =
+        servePaging({ policies: [] });
+      const ruleCounts: Array<Spy> = [
+        jest.spyOn(IncidentOnCallRuleService, "countBy"),
+        jest.spyOn(AlertOnCallRuleService, "countBy"),
+      ];
+
+      await propose();
+
+      for (const spy of [spies.incidentRules, spies.alertRules]) {
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0]![0]).toEqual({
+          query: { projectId: PROJECT_ID },
+          select: {
+            _id: true,
+            onCallDutyPolicies: { _id: true, isArchived: true },
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: ctx.props,
+        });
+      }
+
+      for (const spy of ruleCounts) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    });
+
+    test("the issue's project: its only policy archived, with the two rules that run it - Ask AI proposes paging", async () => {
+      servePaging({
+        policies: [true],
+        incidentRules: [[true]],
+        alertRules: [[true]],
+      });
+
+      expect(await propose()).toBeNull();
+    });
+
+    test("approved for that project, it makes the guided setup's policy", async () => {
+      servePaging({
+        policies: [true],
+        incidentRules: [[true]],
+        alertRules: [[true]],
+      });
+      jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+      const create: Spy = jest
+        .spyOn(OnCallDutyPolicyService, "create")
+        .mockImplementation((async (args: {
+          data: OnCallDutyPolicy;
+        }): Promise<OnCallDutyPolicy> => {
+          const created: OnCallDutyPolicy = args.data;
+          created._id = POLICY_ID;
+          return created;
+        }) as never);
+
+      await SetUpPagingTool.execute({ userIds: [USER_ID.toString()] }, ctx);
+
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    test("several archived policies, and rules that run only them, are still none", async () => {
+      servePaging({
+        policies: [true, true, true],
+        incidentRules: [[true, true], [true]],
+        alertRules: [[true]],
+      });
+
+      expect(await propose()).toBeNull();
+    });
+
+    test("a rule that runs no policy at all pages no one, and does not count", async () => {
+      servePaging({ policies: [], incidentRules: [[]], alertRules: [[]] });
+
+      expect(await propose()).toBeNull();
+    });
+
+    test("a rule running a policy in service beside an archived one: the project pages people already", async () => {
+      servePaging({
+        policies: [true, false],
+        incidentRules: [[true, false]],
+      });
+
+      const refused: SetupActionRefusal | null = await propose();
+
+      expect(refused?.toldModel).toContain(
+        "this project already pages people through its on-call policies and on-call rules (1 on-call policy, 1 on-call rule)",
+      );
+    });
+
+    test("the counts it says are of what pages people: archived policies and their rules left out", async () => {
+      servePaging({
+        policies: [true, false, false],
+        incidentRules: [[false], [true], []],
+        alertRules: [[false], [true, false], [true]],
+      });
+
+      const refused: SetupActionRefusal | null = await propose();
+
+      expect(refused?.toldModel).toContain(
+        "(2 on-call policies, 3 on-call rules)",
+      );
+    });
+
+    test("approved after a policy was archived elsewhere, it still makes one: execute counts the same way", async () => {
+      servePaging({ policies: [false], incidentRules: [[false]] });
+      expect((await propose())?.toldModel).toContain("already pages people");
+
+      // Archived meanwhile: the card's approval finds no policy in service.
+      servePaging({ policies: [true], incidentRules: [[true]] });
+      jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+      const create: Spy = jest
+        .spyOn(OnCallDutyPolicyService, "create")
+        .mockImplementation((async (args: {
+          data: OnCallDutyPolicy;
+        }): Promise<OnCallDutyPolicy> => {
+          const created: OnCallDutyPolicy = args.data;
+          created._id = POLICY_ID;
+          return created;
+        }) as never);
+
+      await SetUpPagingTool.execute({ userIds: [USER_ID.toString()] }, ctx);
+
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    test("rules that cannot be read are unknown, never none: the person is told who can set it up", async () => {
+      servePaging({ policies: [] });
+      jest
+        .spyOn(AlertOnCallRuleService, "findBy")
+        .mockRejectedValue(new Error("not allowed") as never);
+
+      const refused: SetupActionRefusal | null = await propose();
+
+      expect(refused?.refusal).toBe(AIToolRefusal.Permission);
+    });
   });
 });
 

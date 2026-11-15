@@ -47,7 +47,7 @@ flowchart TB
 ## 始める前に
 
 - OneUptime に届いているログ。[OpenTelemetry](/docs/telemetry/open-telemetry)、[syslog](/docs/telemetry/syslog)、[Fluentd](/docs/telemetry/fluentd)、またはプローブ経由です。
-- パイプラインを変更する権限。プロジェクトのオーナーと管理者は持っています。それ以外のユーザーには **Create Log Pipeline** と **Create Log Pipeline Processor** の権限が必要です。
+- パイプラインを変更する権限。プロジェクト所有者とプロジェクト管理者は持っています。それ以外のユーザーには **Create Log Pipeline** と **Create Log Pipeline Processor** の権限が必要です。
 
 ## パイプラインを作成する
 

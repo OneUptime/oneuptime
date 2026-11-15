@@ -32,7 +32,7 @@ sequenceDiagram
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
-Un Incoming Webhook ou une URL de workflow Teams ne remplace pas le point de terminaison de messagerie de ce bot.
+Un Incoming Webhook ou une URL de flux de travail Teams ne remplace pas le point de terminaison de messagerie de ce bot.
 
 Les appels vidéo (une réunion Teams pour un incident) n'utilisent pas ce bot : ils ont besoin de leur propre inscription d'application, décrite dans [Appels vidéo](/docs/workspace-connections/video-calls#connexion-en-un-clic-sur-un-serveur-auto-hébergé).
 
@@ -422,5 +422,5 @@ Nous aimerions améliorer cette intégration : vos retours sont les bienvenus à
 :::cards
 - [Microsoft Teams](/docs/workspace-connections/microsoft-teams): Créer des règles de notification et des résumés pour le projet.
 - [Intégration Slack](/docs/self-hosted/slack-integration): Configurer aussi l'application Slack sur votre serveur.
-- [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre les outils internes.
+- [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux flux de travail et aux webhooks de joindre les outils internes.
 :::

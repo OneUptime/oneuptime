@@ -42,7 +42,7 @@ Typ onder **Wat moeten we controleren?** het adres bij **Adres van de website of
 
 Wat u onder **Wie moet er op de hoogte worden gesteld?** ziet, hangt af van het project:
 
-- Is er nog geen bereikbaarheidsbeleid of bereikbaarheidsregel, dan staat u al bij **Wie wordt opgeroepen**. Klik op **Teamleden toevoegen** om mensen toe te voegen die al in het project zitten, en klik daarna op **Opslaan en doorgaan**. Zo wordt het beleid `Default on-call policy` aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project.
+- Is er nog geen bereikbaarheidsbeleid of bereikbaarheidsregel, dan staat u al bij **Wie wordt opgeroepen**. Klik op **Teamleden toevoegen** om mensen toe te voegen die al in het project zitten, en klik daarna op **Opslaan en doorgaan**. Zo wordt het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project.
 - Is er al een bereikbaarheidsbeleid of -regel, dan bepalen de eigen regels van het project wie er wordt opgeroepen: klik op **Doorgaan**.
 - Bent u lid, dan mag u geen oproepen instellen, en ziet u dat u als eigenaar van de monitor per e-mail bericht krijgt: klik op **Doorgaan**.
 

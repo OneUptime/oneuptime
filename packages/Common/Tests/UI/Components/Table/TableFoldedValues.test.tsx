@@ -6,6 +6,7 @@ import TableFoldedValues, {
   TABLE_FOLDED_MAIN_CLASS_NAMES,
   TABLE_FOLDED_MAIN_LINE_CLASS_NAME,
   TABLE_FOLDED_VALUES_TEST_ID,
+  TABLE_FOLDED_VALUE_BREAK_TEST_ID,
   TABLE_FOLDED_VALUE_CLASS_NAME,
   TABLE_FOLDED_VALUE_TEST_ID,
   TABLE_FOLDED_VALUE_TITLE_TEST_ID,
@@ -130,6 +131,60 @@ describe("TableFoldedValues", () => {
 
     expect(title).toHaveTextContent("Acknowledged By");
     expect(title).not.toHaveClass("sr-only");
+  });
+
+  /*
+   * #8345: the title's margin is no space, so "Warnung" and the value's
+   * first word "Ungewöhnlich" were one unbreakable word: a German check's
+   * folded alert held its Status column wider than any of its words, and at
+   * 1100px beside the side menu the list ran under its sticky Run Now
+   * column (measured in Chromium, E2E/ModelTables/DataObservabilityLists).
+   */
+  test("the line may break between a shown title and its value, and reads as before", () => {
+    render(
+      <TableFoldedValues
+        main={<span>Bestanden</span>}
+        folded={[
+          {
+            title: "Warnung",
+            content: <span>Ungewöhnlich hoch</span>,
+            isTitleShown: true,
+          },
+        ]}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(TABLE_FOLDED_VALUE_TEST_ID);
+    const title: HTMLElement = screen.getByTestId(
+      TABLE_FOLDED_VALUE_TITLE_TEST_ID,
+    );
+    const breakAfterTitle: HTMLElement = screen.getByTestId(
+      TABLE_FOLDED_VALUE_BREAK_TEST_ID,
+    );
+
+    // A break opportunity right after the title, before the value.
+    expect(breakAfterTitle.tagName).toBe("WBR");
+    expect(title.nextElementSibling).toBe(breakAfterTitle);
+    expect(breakAfterTitle.nextElementSibling).toHaveTextContent(
+      "Ungewöhnlich hoch",
+    );
+    // It adds no words: the line still reads the title, then the value.
+    expect(line.textContent).toBe("WarnungUngewöhnlich hoch");
+    // The line itself wraps.
+    expect(line.className.split(" ")).toContain("whitespace-normal");
+  });
+
+  test("a value whose title is for a screen reader alone has no break of its own", () => {
+    render(
+      <TableFoldedValues
+        main={<span>Executed</span>}
+        folded={[{ title: "Duration", content: <span>2 minutes</span> }]}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId(TABLE_FOLDED_VALUE_BREAK_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("a line's value is a box the table may cut short as one; a date's cell is not", () => {

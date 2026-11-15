@@ -59,6 +59,12 @@ import {
   SloRecommendedBurnRateRule,
   getMissingSloRecommendedBurnRateRules,
 } from "../../../../Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  formatRequestCount,
+  getBadRequestKind,
+  isRequestSliType,
+} from "../../../../Utils/Slo/SloRequestSli";
+import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -105,6 +111,50 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
       return value.length > 0;
     })
     .join(", ");
+}
+
+// A count from a decimal column, which can arrive as text; undefined if none.
+function toCount(
+  value: number | string | undefined | null,
+): number | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const parsed: number = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(parsed) ? Math.round(parsed) : undefined;
+}
+
+/*
+ * A request SLO's budget in words the assistant can repeat (#8441): "120 of
+ * 1,000 failed requests left", "50 slow requests over budget". Empty
+ * before the first evaluation.
+ */
+export function formatRequestBudgetForAssistant(data: {
+  sliType: SliType | string | undefined | null;
+  remaining: number | string | undefined | null;
+  total: number | string | undefined | null;
+}): string {
+  const remaining: number | undefined = toCount(data.remaining);
+
+  if (remaining === undefined) {
+    return "";
+  }
+
+  const kind: string = getBadRequestKind(data.sliType);
+
+  if (remaining < 0) {
+    const over: string = formatRequestCount(remaining);
+
+    return `${over} ${kind} ${over === "1" ? "request" : "requests"} over budget`;
+  }
+
+  const total: string = formatRequestCount(toCount(data.total) ?? 0);
+
+  return `${formatRequestCount(remaining)} of ${total} ${kind} ${
+    total === "1" ? "request" : "requests"
+  } left`;
 }
 
 /*
@@ -419,6 +469,16 @@ export const QuerySlosTool: ObservabilityTool = {
             errorBudgetRemainingPercentage: true,
             errorBudgetRemainingSeconds: true,
             errorBudgetTotalSeconds: true,
+            // A request SLO's budget, counted in requests (#8441).
+            errorBudgetRemainingEvents: true,
+            errorBudgetTotalEvents: true,
+            goodEventCount: true,
+            totalEventCount: true,
+            latencyThresholdInMilliseconds: true,
+            services: {
+              _id: true,
+              name: true,
+            },
             currentBurnRate: true,
             currentErrorBudgetPolicyTierId: true,
             currentErrorBudgetPolicyTierName: true,
@@ -463,6 +523,31 @@ export const QuerySlosTool: ObservabilityTool = {
           errorBudgetRemainingPercentage: slo.errorBudgetRemainingPercentage,
           errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
           errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
+          /*
+           * A request SLO (Request Success, Request Latency) measures its
+           * services' requests: its budget is bad requests, not seconds, so
+           * the assistant says "120 of 1,000 failed requests left" rather
+           * than an empty duration.
+           */
+          ...(isRequestSliType(slo.sliType)
+            ? {
+                services: joinNames(slo.services) || undefined,
+                latencyThresholdInMilliseconds:
+                  slo.latencyThresholdInMilliseconds ?? undefined,
+                goodRequestCount: toCount(slo.goodEventCount),
+                totalRequestCount: toCount(slo.totalEventCount),
+                errorBudgetRemainingRequests: toCount(
+                  slo.errorBudgetRemainingEvents,
+                ),
+                errorBudgetTotalRequests: toCount(slo.errorBudgetTotalEvents),
+                errorBudgetRemaining:
+                  formatRequestBudgetForAssistant({
+                    sliType: slo.sliType,
+                    remaining: slo.errorBudgetRemainingEvents,
+                    total: slo.errorBudgetTotalEvents,
+                  }) || undefined,
+              }
+            : {}),
           currentBurnRate: slo.currentBurnRate,
           currentErrorBudgetPolicyTier:
             slo.currentErrorBudgetPolicyTierName || undefined,

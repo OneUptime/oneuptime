@@ -104,7 +104,7 @@ describe("AddOwnerNotificationDelivery1809179400000", () => {
       true,
     );
 
-    // Added by AddOwnerNotificationFeedStatus1809179500000 (#8510).
+    // Added by AddOwnerNotificationFeedStatus1809179600000 (#8510).
     const addedLater: Array<string> = ["feedStatus"];
 
     for (const column of persistedColumns(OwnerNotificationDelivery)) {

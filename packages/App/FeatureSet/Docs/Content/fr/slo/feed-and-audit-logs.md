@@ -84,14 +84,14 @@ Allez dans **Paramètres du projet**, ouvrez **Journaux d'audit** dans le menu l
 
 ### Modifier les paramètres
 
-Cliquez sur **Edit Audit Log Settings** et activez **Activer les journaux d'audit**.
+Cliquez sur **Modifier les paramètres des journaux d'audit** et activez **Activer les journaux d'audit**.
 
 ### Choisir ce qui est conservé
 
 Définissez **Rétention (jours)**, de 7 (la valeur par défaut) à 180, et activez **Stocker les événements système** pour enregistrer aussi les changements que fait OneUptime lui-même. Enregistrez. Le changement s'applique en une minute environ.
 :::
 
-Tant que la journalisation d'audit est désactivée, la page **Journaux d'audit** du SLO affiche **Audit logging is off**, avec un lien pour l'activer. Les entrées enregistrées avant la désactivation restent visibles. Le journal d'audit complet du projet, pour toutes les ressources, se trouve dans **Paramètres du projet** → **Journaux d'audit** → **Journaux d'audit**.
+Tant que la journalisation d'audit est désactivée, la page **Journaux d'audit** du SLO affiche **Journalisation d'audit désactivée**, avec un lien pour l'activer. Les entrées enregistrées avant la désactivation restent visibles. Le journal d'audit complet du projet, pour toutes les ressources, se trouve dans **Paramètres du projet** → **Journaux d'audit** → **Journaux d'audit**.
 
 ## Prochaines étapes
 

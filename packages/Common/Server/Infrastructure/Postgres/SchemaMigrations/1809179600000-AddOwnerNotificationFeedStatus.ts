@@ -17,12 +17,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * with no default, so it is added without rewriting the table; nothing is
  * backfilled. Its index is on a table that already holds rows, so it is
  * built online, in the migration registered right after this one:
- * AddOwnerNotificationFeedStatusIndex1809179510000.
+ * AddOwnerNotificationFeedStatusIndex1809179610000.
  */
-export class AddOwnerNotificationFeedStatus1809179500000
+export class AddOwnerNotificationFeedStatus1809179600000
   implements MigrationInterface
 {
-  public name: string = "AddOwnerNotificationFeedStatus1809179500000";
+  public name: string = "AddOwnerNotificationFeedStatus1809179600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

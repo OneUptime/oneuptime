@@ -187,7 +187,7 @@ describe("the Storage Arrays pages' figures", () => {
     expect(joined).toContain(" / ");
     // Each figure is isolated, so its unit stays after its number.
     expect(joined).toMatch(/[⁦-⁨]/);
-    expect(withoutIsolateMarks(joined)).toBe("۱٫۵ KiB/s / ۲٫۰ KiB/s");
+    expect(withoutIsolateMarks(joined)).toBe("۱٫۵\u00A0KiB/s / ۲٫۰\u00A0KiB/s");
     // In English the cell reads as it always did.
     expect(
       StorageArrayResourceUtils.joinFiguresOfACell(

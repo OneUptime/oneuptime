@@ -274,7 +274,7 @@ describe("the postmortem page's action items", () => {
     );
 
     expect(flat(section(POSTMORTEMS, "### See every action item"))).toContain(
-      "Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, project admins and project owners.",
+      "Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, Project Admins and Project Owners.",
     );
   });
 

@@ -498,6 +498,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "PostmortemActionItemCodeTasks.onPullRequestMerged IncidentPostmortemActionItem":
       Why.Automation,
   },
+  /*
+   * When an Incoming Request monitor last got a request with, and without, a
+   * valid incoming request secret (#8498): what its senders sent, stamped as
+   * it arrives, at most every five minutes.
+   */
+  "packages/Common/Server/Utils/Monitor/IncomingRequestSecretActivity.ts": {
+    "IncomingRequestSecretActivity.record Monitor": Why.Reported,
+  },
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,
   },

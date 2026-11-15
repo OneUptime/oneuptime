@@ -640,7 +640,7 @@ function formatBytes(bytes: number): string {
   }
 
   // Plain bytes are whole: "512 B", never "512.0 B" (issue #7417).
-  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+  return `${value.toFixed(index === 0 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
 function hasEntries(
@@ -1313,12 +1313,12 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             />
             <DetailRow
               label="Consent"
-              value={getReplayConsentStateLabel(d.consentState)}
+              value={getReplayConsentStateLabel(d.consentState, translator)}
               testId="replay-details-consent"
             />
             <DetailRow
               label="Why recorded"
-              value={getReplayTriggerReasonLabel(d.triggerReason)}
+              value={getReplayTriggerReasonLabel(d.triggerReason, translator)}
               testId="replay-details-trigger"
             />
           </dl>
@@ -1376,7 +1376,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         <dl>
           <DetailRow
             label="Client clock skew"
-            value={formatReplayClockSkew(d.clockSkewMs)}
+            value={formatReplayClockSkew(d.clockSkewMs, translator)}
             testId="replay-details-skew"
           />
         </dl>

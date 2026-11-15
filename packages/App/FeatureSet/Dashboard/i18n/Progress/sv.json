@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 8853
+    "keys": 53972,
+    "untranslated": 8785
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -76,6 +76,7 @@
     "Disk",
     "Disk %",
     "Disk {{path}}",
+    "Docker CLI",
     "Docker Compose",
     "Down + In",
     "Down + Out",
@@ -210,6 +211,8 @@
     "Plan",
     "Playbook",
     "Playbooks",
+    "Podman CLI",
+    "Podman Compose",
     "Policy",
     "Pool",
     "Pool {{name}}",
@@ -455,6 +458,7 @@
     "{{count}} live",
     "{{count}} manager",
     "{{count}} managers",
+    "{{count}} miss",
     "{{count}} mon",
     "{{count}} monitor",
     "{{count}} mons",
@@ -473,6 +477,8 @@
     "{{count}} sample",
     "{{count}} samples",
     "{{count}} session",
+    "{{count}} shard",
+    "{{count}} shards",
     "{{count}} share",
     "{{count}} shares",
     "{{count}} signal",
@@ -480,9 +486,12 @@
     "{{count}} team",
     "{{count}} token",
     "{{count}} vCPU",
+    "{{count}} writeset",
+    "{{count}} writesets",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{percent}} full",
     "{{rate}}/min",
     "{{rate}}/s",

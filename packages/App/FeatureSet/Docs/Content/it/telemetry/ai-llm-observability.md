@@ -307,7 +307,7 @@ Crea un [monitor metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budg
 Imposta la finestra mobile del monitor a 30 minuti. Un budget pubblica un punto ogni 15 minuti, quindi la finestra predefinita di 1 minuto non troverebbe nulla tra due punti.
 :::
 
-Un avviso di budget può anche avviare un workflow che ferma un agente fuori controllo: vedi [Circuit breaker per agenti IA](/docs/telemetry/ai-agent-circuit-breaker).
+Un avviso di budget può anche avviare un flusso di lavoro che ferma un agente fuori controllo: vedi [Circuit breaker per agenti IA](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Dashboard e avvisi sulle metriche
 
@@ -321,7 +321,7 @@ Prompt e risposte inviati come eventi di log vengono salvati come log, quindi si
 
 In entrambi i casi, una regola legge ogni testo dentro una lista o un valore strutturato, come i messaggi che una strumentazione invia come lista invece che come testo JSON, e mantiene la forma del valore: un indirizzo email in un prompt viene mascherato ovunque si trovi. Vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili).
 
-Le conversazioni si leggono con lo stesso permesso delle tracce: chi può leggere le tracce del progetto può leggerne le conversazioni, e nessun altro. Le conversazioni di uno strumento di IA aziendale sono l'eccezione: solo i proprietari e gli amministratori del progetto possono leggerle, a meno che la sua connessione non dica altrimenti ([Strumenti di IA aziendali](/docs/telemetry/ai-company-tools#privacy)).
+Le conversazioni si leggono con lo stesso permesso delle tracce: chi può leggere le tracce del progetto può leggerne le conversazioni, e nessun altro. Le conversazioni di uno strumento di IA aziendale sono l'eccezione: solo i Proprietari del progetto e gli Amministratori del progetto possono leggerle, a meno che la sua connessione non dica altrimenti ([Strumenti di IA aziendali](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributi che OneUptime legge
 

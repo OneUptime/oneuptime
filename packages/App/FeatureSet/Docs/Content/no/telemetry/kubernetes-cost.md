@@ -1,6 +1,6 @@
 # Kubernetes-kostnadsobserverbarhet
 
-Se hva hver Kubernetes-arbeidsbelastning koster — forbruk per navnerom, arbeidsbelastning og pod, ledig kapasitet og hvor mye av hver request som brukes — ved siden av metrikkene, loggene og sporene [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) allerede samler inn. Én Helm-verdi slår det på, uten skylegitimasjon, og klyngens side **Kostnader** forteller deg deretter hvilke requests som bør krympes.
+Se hva hver Kubernetes-arbeidsbelastning koster — forbruk per navnerom, arbeidsbelastning og pod, ledig kapasitet og hvor mye av hver request som brukes — ved siden av målingene, loggene og sporene [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) allerede samler inn. Én Helm-verdi slår det på, uten skylegitimasjon, og klyngens side **Kostnader** forteller deg deretter hvilke requests som bør krympes.
 
 :::cards
 - [Slå det på](#slå-på-kostnadsobserverbarhet): Én `helm upgrade`.
@@ -19,15 +19,15 @@ flowchart TB
     prometheus --> opencost["OpenCost"]
     pricing["Skyens listepriser<br/>eller din prisliste"] --> opencost
     opencost -->|"én avsluttet time<br/>om gangen"| poller["Kostnadspoller"]
-    opencost -->|"kostnadsmetrikker"| collector["Agentens collector"]
+    opencost -->|"kostnadsmålinger"| collector["Agentens collector"]
     poller -->|"kostnadsrader"| oneuptime["OneUptime"]
     collector -->|"OTLP"| oneuptime
 ```
 
 1. **OpenCost**, kostnadsmotoren med åpen kildekode (Apache-2.0, CNCF; [cost-model](https://github.com/kubecost/cost-model) som også driver Kubecost). Den overvåker klyngen, priser nodene, volumene og lastbalansererne dine, og regner ut hva hver arbeidsbelastning koster.
-2. **En liten Prometheus**, som OpenCost trenger for bruks- og prishistorikk. Den kjører én replika, beholder 7 dager med historikk og scraper nøyaktig to mål: cAdvisor gjennom API-serverens node-proxy, og OpenCost selv (som sender sine egne metrikker for ressurs-requests, så kube-state-metrics er ikke involvert). Den eksponeres aldri utenfor klyngen, og dataene forlater den aldri.
+2. **En liten Prometheus**, som OpenCost trenger for bruks- og prishistorikk. Den kjører én replika, beholder 7 dager med historikk og scraper nøyaktig to mål: cAdvisor gjennom API-serverens node-proxy, og OpenCost selv (som sender sine egne målinger for ressurs-requests, så kube-state-metrics er ikke involvert). Den eksponeres aldri utenfor klyngen, og dataene forlater den aldri.
 3. **Kostnadspolleren** (`cost.agent`). Én gang per avsluttet time leser den Allocation API-et til OpenCost og sender én kostnadsrad per arbeidsbelastning til OneUptime: CPU, minne, GPU, volumer, nettverk, lastbalanserere og ledig kapasitet, med effektivitet. Hver time sendes én gang; serveren hopper over en time den allerede har, så en omstart kan ikke telle forbruk to ganger.
-4. **En scrape av kostnadsmetrikker** (`cost.metrics`). Agentens collector scraper kostnadsmetrikkene til OpenCost og sender dem sammen med resten av klyngens metrikker.
+4. **En scrape av kostnadsmålinger** (`cost.metrics`). Agentens collector scraper kostnadsmålingene til OpenCost og sender dem sammen med resten av klyngens målinger.
 
 OpenCost priser noder ut fra skyleverandørens offentlige listepriser (AWS, Google Cloud, Azure), uten legitimasjon. Klynger uten listepris i skyen setter i stedet en [prisliste](#prising-for-lokale-klynger-og-bare-metal).
 
@@ -55,7 +55,7 @@ De første kostnadene vises etter at den første hele timen er avsluttet, og Ope
 - På en klynge viser **Kostnader** forbrukstrenden, **Spend by Namespace** med fordelingen på CPU, minne og lagring, **Spend by Workload**, forbruk på ledig kapasitet, effektivitet og kortet **Right-Sizing**.
 :::
 
-Kostnadsmetrikkene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige metrikker: de finnes i metrikkutforskeren, på egendefinerte dashbord og i metrikkmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
+Kostnadsmålingene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige målinger: de finnes i målingsutforskeren, på egendefinerte dashbord og i målingsmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
 
 ## Kjører du allerede Kubecost eller OpenCost?
 
@@ -148,7 +148,7 @@ Et Prometheus-brudd stopper aldri innsamlingen av forbruk: toppene er et tillegg
 
 ## Varsling på kostnader
 
-Kostnadsmetrikkene er vanlige metrikker, så en [metrikkmonitor](/docs/monitor/metrics-monitor) kan varsle på dem som på alt annet: for eksempel når gjennomsnittlig `node_total_hourly_cost` stiger over et budsjett, eller når `pv_hourly_cost` dukker opp for en volumklasse som ikke skal finnes i en klynge.
+Kostnadsmålingene er vanlige målinger, så en [målingsmonitor](/docs/monitor/metrics-monitor) kan varsle på dem som på alt annet: for eksempel når gjennomsnittlig `node_total_hourly_cost` stiger over et budsjett, eller når `pv_hourly_cost` dukker opp for en volumklasse som ikke skal finnes i en klynge.
 
 ## Datamodell og oppbevaring
 
@@ -165,11 +165,11 @@ Les loggene: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`.
 :::
 
 :::details OpenCost-loggen sier mkdir /var/configs: permission denied
-Et eldre chart kjørte OpenCost uten en skrivbar konfigurasjonsmappe, så `Error downloading default pricing data` gjorde at Allocation API-et ikke kunne svare og polleren stoppet opp, mens poden forble `Running`, `/healthz` forble grønn og nodenes kostnadsmetrikker fortsatte å publiseres. Nåværende charts retter det: kjør `helm repo update`, og oppgrader deretter med `--reset-then-reuse-values`. Kostnadsrader vises ved neste poll.
+Et eldre chart kjørte OpenCost uten en skrivbar konfigurasjonsmappe, så `Error downloading default pricing data` gjorde at Allocation API-et ikke kunne svare og polleren stoppet opp, mens poden forble `Running`, `/healthz` forble grønn og nodenes kostnadsmålinger fortsatte å publiseres. Nåværende charts retter det: kjør `helm repo update`, og oppgrader deretter med `--reset-then-reuse-values`. Kostnadsrader vises ved neste poll.
 :::
 
 :::details Kubernetes Cost Dashboard viser ingen data
-Malen leser de scrapede kostnadsmetrikkene: sjekk at `cost.metrics.enabled` er `true`.
+Malen leser de scrapede kostnadsmålingene: sjekk at `cost.metrics.enabled` er `true`.
 :::
 
 :::details Right-Sizing-kortet er tomt
@@ -192,6 +192,6 @@ Med standardlagringen `emptyDir` mister en omstart noen timer med brukshistorikk
 
 :::cards
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Installer agenten, og alt annet den samler inn.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle når forbruket krysser et budsjett.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle når forbruket krysser et budsjett.
 - [Kubernetes-overvåking](/docs/monitor/kubernetes-monitor): Varsle også på klyngens helse.
 :::
