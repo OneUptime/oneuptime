@@ -17,12 +17,15 @@ import RealtimeAccessChanges, {
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
   readSessionLengths,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   SESSION_LENGTH_SETTING_COLUMNS,
   SessionEndReason,
   SessionLengths,
   SessionLengthSettingColumn,
 } from "../../../Types/UserSession/SessionLength";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import FakeEnterpriseModule, {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
@@ -53,7 +56,9 @@ import { DataSource } from "typeorm";
  *   - saving the setting through GlobalConfigService applies it to the
  *     sessions there are, and a refresh after it can say why;
  *   - thousands of sessions end in batches;
- *   - a refresh on its way when a session is ended does not bring it back.
+ *   - a refresh on its way when a session is ended does not bring it back;
+ *   - the five-minute sweep ends a session past its idle timeout once no
+ *     browser can still be using it, and never one still in use (#8188).
  */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_USER_SESSION_LENGTH_TESTS"] === "true"
@@ -115,7 +120,10 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
     return await HashedString.hashValue(token, EncryptionSecret);
   };
 
-  // A session, signed in and last active that many minutes ago.
+  /*
+   * A session, signed in and last active that many minutes ago - its last
+   * renewal from a browser that renews while in use, when it says so.
+   */
   const insertSession: (data: {
     userId: ObjectID;
     signedInMinutesAgo: number;
@@ -124,6 +132,7 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
     isRevoked?: boolean | undefined;
     refreshTokenExpired?: boolean | undefined;
     refreshToken?: string | undefined;
+    reportsActivityWhileInUse?: boolean | undefined;
   }) => Promise<ObjectID> = async (data: {
     userId: ObjectID;
     signedInMinutesAgo: number;
@@ -132,17 +141,27 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
     isRevoked?: boolean | undefined;
     refreshTokenExpired?: boolean | undefined;
     refreshToken?: string | undefined;
+    reportsActivityWhileInUse?: boolean | undefined;
   }): Promise<ObjectID> => {
     const id: ObjectID = ObjectID.generate();
     const refreshToken: string =
       data.refreshToken || ObjectID.generate().toString();
+
+    const additionalInfo: Record<string, boolean> = {
+      isGlobalLogin: !data.isSso,
+    };
+
+    if (data.reportsActivityWhileInUse !== undefined) {
+      additionalInfo[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD] =
+        data.reportsActivityWhileInUse;
+    }
 
     await query(
       `INSERT INTO "${schema}"."UserSession"
        ("_id", "userId", "refreshToken", "refreshTokenExpiresAt", "createdAt", "lastActiveAt", "isRevoked", "revokedReason", "additionalInfo", "version")
        VALUES ($1, $2, $3,
          ${data.refreshTokenExpired ? "NOW() - INTERVAL '1 minute'" : "NOW() + INTERVAL '29 days'"},
-         NOW() - make_interval(mins => $4), NOW() - make_interval(mins => $5), $6, $7, $8, 1)`,
+         NOW() - make_interval(mins => $4), NOW() - make_interval(secs => $5::double precision * 60), $6, $7, $8, 1)`,
       [
         id.toString(),
         data.userId.toString(),
@@ -151,7 +170,7 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
         data.lastActiveMinutesAgo ?? 0,
         Boolean(data.isRevoked),
         data.isRevoked ? "User logout" : null,
-        JSON.stringify({ isGlobalLogin: !data.isSso }),
+        JSON.stringify(additionalInfo),
       ],
     );
 
@@ -729,6 +748,233 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
           ).toBeNull();
         }
       }
+    });
+  });
+
+  /*
+   * Issue #8188: a browser that never comes back had its idle timeout
+   * recorded only 30 days later, as "Not used for 30 days". The sweep
+   * (endSessionsThatRanOut) ends a session past its idle timeout once no
+   * browser can still be using it - its last renewal said its browser
+   * renews while its person uses OneUptime, and nothing has been heard of
+   * it for the idle timeout and the margin - by the database's clock, and
+   * never one whose person is still working.
+   */
+  describe("the sweep and the idle timeout", () => {
+    const IDLE: number = 30;
+    const CUTOFF: number = IDLE + IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES;
+
+    const inUseSession: (
+      lastActiveMinutesAgo: number,
+    ) => Promise<ObjectID> = async (
+      lastActiveMinutesAgo: number,
+    ): Promise<ObjectID> => {
+      return await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 600,
+        lastActiveMinutesAgo,
+        reportsActivityWhileInUse: true,
+      });
+    };
+
+    test("ends a session once its idle timeout and the margin have passed, and none a moment before", async () => {
+      const beforeTheTimeout: ObjectID = await inUseSession(IDLE - 1);
+      const atTheTimeout: ObjectID = await inUseSession(IDLE);
+      const withinTheMargin: ObjectID = await inUseSession(IDLE + 10);
+      const justBeforeTheCutoff: ObjectID = await inUseSession(CUTOFF - 0.5);
+      const atTheCutoff: ObjectID = await inUseSession(CUTOFF);
+      const pastTheCutoff: ObjectID = await inUseSession(CUTOFF + 1);
+
+      await setLengths({ sessionIdleTimeoutInMinutes: IDLE });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(2);
+
+      for (const kept of [
+        beforeTheTimeout,
+        atTheTimeout,
+        withinTheMargin,
+        justBeforeTheCutoff,
+      ]) {
+        expect((await rowOf(kept)).isRevoked).toBe(false);
+      }
+
+      for (const ended of [atTheCutoff, pastTheCutoff]) {
+        const row: SessionRow = await rowOf(ended);
+        expect(row.isRevoked).toBe(true);
+        expect(row.revokedReason).toBe(
+          SESSION_END_REVOKED_REASONS[SessionEndReason.Inactive],
+        );
+      }
+
+      expect(endedSessionIds()).toEqual(
+        [atTheCutoff.toString(), pastTheCutoff.toString()].sort(),
+      );
+    });
+
+    test("never ends a session whose browser did not say it renews while in use: the mobile app, a tab of an earlier release", async () => {
+      const mobileApp: ObjectID = await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 600,
+        lastActiveMinutesAgo: CUTOFF + 60,
+        reportsActivityWhileInUse: false,
+      });
+      const earlierRelease: ObjectID = await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 600,
+        lastActiveMinutesAgo: CUTOFF + 60,
+      });
+
+      await setLengths({ sessionIdleTimeoutInMinutes: IDLE });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(0);
+      expect((await rowOf(mobileApp)).isRevoked).toBe(false);
+      expect((await rowOf(earlierRelease)).isRevoked).toBe(false);
+    });
+
+    test("recent activity in another tab, which its renewal reported, keeps the session", async () => {
+      const token: string = ObjectID.generate().toString();
+      const id: ObjectID = await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 600,
+        lastActiveMinutesAgo: CUTOFF + 20,
+        reportsActivityWhileInUse: true,
+        refreshToken: token,
+      });
+
+      // Another tab of the browser, in use a moment ago, renews the session.
+      const session: UserSession | null =
+        await UserSessionService.findActiveSessionByRefreshToken(token);
+
+      await UserSessionService.renewSessionWithNewRefreshToken({
+        session: session!,
+        lastActiveAt: new Date(Date.now() - 20 * 1000),
+        lengths: null,
+        additionalInfo: { [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true },
+      });
+
+      await setLengths({ sessionIdleTimeoutInMinutes: IDLE });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(0);
+      expect((await rowOf(id)).isRevoked).toBe(false);
+    });
+
+    test("a renewal that lands between the sweep's read and its write keeps the session", async () => {
+      const id: ObjectID = await inUseSession(CUTOFF + 5);
+
+      await setLengths({ sessionIdleTimeoutInMinutes: IDLE });
+
+      const realUpdateBy: typeof UserSessionService.updateBy =
+        UserSessionService.updateBy.bind(UserSessionService);
+
+      const spy: jest.SpiedFunction<typeof UserSessionService.updateBy> = jest
+        .spyOn(UserSessionService, "updateBy")
+        .mockImplementation(
+          async (updateBy: UpdateBy<UserSession>): Promise<number> => {
+            // A tab in use renews the session as the sweep is about to write.
+            await query(
+              `UPDATE "${schema}"."UserSession" SET "lastActiveAt" = NOW() WHERE "_id" = $1`,
+              [id.toString()],
+            );
+
+            return await realUpdateBy(updateBy);
+          },
+        );
+
+      try {
+        await UserSessionService.endSessionsThatRanOut(
+          await readLengthsFromRow(),
+        );
+      } finally {
+        spy.mockRestore();
+      }
+
+      expect((await rowOf(id)).isRevoked).toBe(false);
+      expect(endedSessionIds()).toEqual([]);
+    });
+
+    test("an SSO sign-in follows its own idle timeout", async () => {
+      const sso: ObjectID = await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 600,
+        lastActiveMinutesAgo: CUTOFF + 5,
+        isSso: true,
+        reportsActivityWhileInUse: true,
+      });
+      const password: ObjectID = await inUseSession(CUTOFF + 5);
+
+      // Every other sign-in: no idle timeout. SSO sign-ins: two hours.
+      await setLengths({
+        useSeparateSsoSessionLengths: true,
+        ssoSessionIdleTimeoutInMinutes: 120,
+      });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(0);
+      expect((await rowOf(sso)).isRevoked).toBe(false);
+      expect((await rowOf(password)).isRevoked).toBe(false);
+
+      await setLengths({
+        sessionIdleTimeoutInMinutes: IDLE,
+        useSeparateSsoSessionLengths: true,
+        ssoSessionIdleTimeoutInMinutes: 120,
+      });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(1);
+      expect((await rowOf(password)).isRevoked).toBe(true);
+      expect((await rowOf(sso)).isRevoked).toBe(false);
+    });
+
+    test("only what ran out in the last day: older idle sessions are left for their refresh to refuse", async () => {
+      const ranOutADayAgo: ObjectID = await inUseSession(IDLE + 25 * 60);
+      const ranOutToday: ObjectID = await inUseSession(IDLE + 23 * 60);
+
+      await setLengths({ sessionIdleTimeoutInMinutes: IDLE });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(1);
+      expect((await rowOf(ranOutADayAgo)).isRevoked).toBe(false);
+      expect((await rowOf(ranOutToday)).isRevoked).toBe(true);
+    });
+
+    test("without an idle timeout set, ends nothing by it, however long ago", async () => {
+      const id: ObjectID = await inUseSession(CUTOFF + 120);
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(0);
+      expect((await rowOf(id)).isRevoked).toBe(false);
+    });
+
+    test("leaves sessions already over as they were", async () => {
+      const signedOut: ObjectID = await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 600,
+        lastActiveMinutesAgo: CUTOFF + 5,
+        isRevoked: true,
+        reportsActivityWhileInUse: true,
+      });
+
+      await setLengths({ sessionIdleTimeoutInMinutes: IDLE });
+
+      await expect(
+        UserSessionService.endSessionsThatRanOut(await readLengthsFromRow()),
+      ).resolves.toBe(0);
+      expect(await rowOf(signedOut)).toEqual(
+        expect.objectContaining({
+          isRevoked: true,
+          revokedReason: "User logout",
+        }),
+      );
     });
   });
 });
