@@ -96,6 +96,7 @@ const WORDED_LANGUAGES: ReadonlyArray<string> = [
   "ru",
   "ja",
   "ko",
+  "zh-CN",
 ];
 
 const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
