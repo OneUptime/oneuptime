@@ -174,7 +174,9 @@ async function aiInsights(): Promise<ToolExecutionResult> {
     insight.title = data.title;
     insight.status = data.status;
     insight.severity = data.severity;
-    insight.classification = data.classification;
+    if (data.classification !== undefined) {
+      insight.classification = data.classification;
+    }
     insight.serviceName = "checkout-service";
     insight.lastSeenAt = new Date("2026-09-16T09:00:00Z");
     return insight;
