@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} de {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} núcleos / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} núcleo / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} em execução / {{stopped}} parados"
+  "{{running}} running / {{stopped}} stopped": "{{running}} em execução / {{stopped}} parados",
+  "per {{denominator}}": "por {{denominator}}"
 }

@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} di {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} core / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} core / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} in esecuzione / {{stopped}} arrestati"
+  "{{running}} running / {{stopped}} stopped": "{{running}} in esecuzione / {{stopped}} arrestati",
+  "per {{denominator}}": "/{{denominator}}"
 }

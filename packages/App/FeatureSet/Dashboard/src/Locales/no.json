@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} av {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} kjerner / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} kjerne / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} kjører / {{stopped}} stoppet"
+  "{{running}} running / {{stopped}} stopped": "{{running}} kjører / {{stopped}} stoppet",
+  "per {{denominator}}": "/{{denominator}}"
 }

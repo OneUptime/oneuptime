@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} из {{capacity}}",
   "{{count}}c / {{memory}}": "Ядер: {{count}} / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} ядро / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "Запущено: {{running}} / остановлено: {{stopped}}"
+  "{{running}} running / {{stopped}} stopped": "Запущено: {{running}} / остановлено: {{stopped}}",
+  "per {{denominator}}": "/{{denominator}}"
 }

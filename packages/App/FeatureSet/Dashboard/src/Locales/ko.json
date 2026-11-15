@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{capacity}} 중 {{used}}",
   "{{count}}c / {{memory}}": "코어 {{count}}개 / {{memory}}",
   "{{count}}c / {{memory}}_one": "코어 {{count}}개 / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "실행 중 {{running}} / 중지됨 {{stopped}}"
+  "{{running}} running / {{stopped}} stopped": "실행 중 {{running}} / 중지됨 {{stopped}}",
+  "per {{denominator}}": "{{denominator}}당"
 }

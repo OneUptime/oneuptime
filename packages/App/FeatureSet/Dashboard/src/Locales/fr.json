@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} sur {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} cœurs / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} cœur / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} en cours / {{stopped}} arrêtés"
+  "{{running}} running / {{stopped}} stopped": "{{running}} en cours / {{stopped}} arrêtés",
+  "per {{denominator}}": "par {{denominator}}"
 }

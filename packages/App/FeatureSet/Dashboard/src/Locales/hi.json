@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{capacity}} में से {{used}}",
   "{{count}}c / {{memory}}": "{{count}} कोर / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} कोर / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} चल रहे / {{stopped}} रुके हुए"
+  "{{running}} running / {{stopped}} stopped": "{{running}} चल रहे / {{stopped}} रुके हुए",
+  "per {{denominator}}": "प्रति {{denominator}}"
 }

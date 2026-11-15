@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{capacity}} 中的 {{used}}",
   "{{count}}c / {{memory}}": "{{count}} 核 / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} 核 / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "运行中 {{running}} / 已停止 {{stopped}}"
+  "{{running}} running / {{stopped}} stopped": "运行中 {{running}} / 已停止 {{stopped}}",
+  "per {{denominator}}": "/{{denominator}}"
 }

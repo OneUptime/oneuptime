@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{capacity}} 中 {{used}}",
   "{{count}}c / {{memory}}": "{{count}} コア / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} コア / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "実行中 {{running}} / 停止 {{stopped}}"
+  "{{running}} running / {{stopped}} stopped": "実行中 {{running}} / 停止 {{stopped}}",
+  "per {{denominator}}": "/{{denominator}}"
 }

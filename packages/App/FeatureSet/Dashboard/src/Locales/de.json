@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} von {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} Kerne / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} Kern / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} laufend / {{stopped}} gestoppt"
+  "{{running}} running / {{stopped}} stopped": "{{running}} laufend / {{stopped}} gestoppt",
+  "per {{denominator}}": "pro {{denominator}}"
 }

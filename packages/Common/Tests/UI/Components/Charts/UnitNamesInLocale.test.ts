@@ -4,8 +4,10 @@ import path from "path";
 import ValueFormatter from "../../../../Utils/ValueFormatter";
 import {
   getUnitNameInLanguage,
+  getValueFormatterOptionsForReader,
   RATE_PERIOD_NAMES,
   UNIT_NAMES,
+  UNIT_PER_TEMPLATE,
   UNIT_RATE_TEMPLATE,
 } from "../../../../UI/Components/Charts/Utils/UnitNames";
 import {
@@ -116,6 +118,7 @@ describe("the unit names", () => {
       ...UNIT_NAMES,
       ...RATE_PERIOD_NAMES,
       UNIT_RATE_TEMPLATE,
+      UNIT_PER_TEMPLATE,
     ]) {
       expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
     }
@@ -130,6 +133,7 @@ describe("the unit names", () => {
         ...UNIT_NAMES,
         ...RATE_PERIOD_NAMES,
         UNIT_RATE_TEMPLATE,
+        UNIT_PER_TEMPLATE,
         ...TOOLBAR_WORDS,
         ...ROW_WORDS,
       ].filter((key: string): boolean => {
@@ -209,5 +213,88 @@ describe("getUnitNameInLanguage", () => {
     }, "fr");
 
     expect(getUnitNameInLanguage("By/s", bare)).toBe("Bytes per Second");
+  });
+
+  /*
+   * A rate of a dimensionless count ("1/s") has no numerator to name
+   * (#7518): "per Second" in English, where it read " per Second", and
+   * the reader's own words for it.
+   */
+  test.each([
+    ["en", "1/s", "per Second"],
+    ["de", "1/s", "pro Sekunde"],
+    ["de", "1/min", "pro Minute"],
+    ["fr", "1/s", "par seconde"],
+    ["ko", "1/s", "초당"],
+    ["fa", "1/s", "بر ثانیه"],
+    ["ar", "1/s", "لكل ثانية"],
+  ])("%s names %s %s", (language: string, unit: string, name: string) => {
+    expect(getUnitNameInLanguage(unit, translatorFor(language))).toBe(name);
+  });
+
+  test("a language that has not worded a rate with no numerator says the English", () => {
+    const bare: Translator = createTranslator((text: string) => {
+      return text === "Second" ? "Seconde" : undefined;
+    }, "fr");
+
+    expect(getUnitNameInLanguage("1/s", bare)).toBe("per Second");
+  });
+});
+
+/*
+ * What a Gauge or a Value widget hands the formatter for its reader
+ * (#7518): their language, and their words for a unit the formatter names.
+ */
+describe("getValueFormatterOptionsForReader", () => {
+  test("in English, every value reads exactly as the formatter writes it", () => {
+    const options: ReturnType<typeof getValueFormatterOptionsForReader> =
+      getValueFormatterOptionsForReader(translatorFor("en"), "");
+
+    for (const [value, unit] of [
+      [21.5, "Cel"],
+      [12.5, "1/s"],
+      [12.5, "{request}/s"],
+      [5, "requests/s"],
+      [3600, "s"],
+      [1234, "1"],
+      [1.96e6, "By/s"],
+    ] as Array<[number, string]>) {
+      expect(ValueFormatter.formatValue(value, unit, options)).toBe(
+        ValueFormatter.formatValue(value, unit),
+      );
+    }
+  });
+
+  test("in German, a unit's name in German's words, a rate as one German sentence", () => {
+    const options: ReturnType<typeof getValueFormatterOptionsForReader> =
+      getValueFormatterOptionsForReader(translatorFor("de"));
+
+    expect(ValueFormatter.formatValue(12.5, "1/s", options)).toBe(
+      "12,5 pro Sekunde",
+    );
+    expect(ValueFormatter.formatValue(12.5, "{request}/s", options)).toBe(
+      "12,5 {request} pro Sekunde",
+    );
+    expect(ValueFormatter.formatValue(21.5, "Hz", options)).toBe(
+      `21,5 ${String(locale("de")["Hertz"])}`,
+    );
+    expect(ValueFormatter.formatValue(3600, "s", options)).toBe("1 Stunde");
+  });
+
+  test("it carries the metric's name, for the formatter's name-based rules", () => {
+    const options: ReturnType<typeof getValueFormatterOptionsForReader> =
+      getValueFormatterOptionsForReader(
+        translatorFor("de"),
+        "system.cpu.utilization",
+      );
+
+    expect(options.metricName).toBe("system.cpu.utilization");
+    expect(options.language).toBe("de");
+    expect(ValueFormatter.formatValue(0.25, "1", options)).toBe(
+      `25,00${String.fromCharCode(0xa0)}%`,
+    );
+    expect(
+      getValueFormatterOptionsForReader(translatorFor("de")).metricName,
+    ).toBeUndefined();
   });
 });

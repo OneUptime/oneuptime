@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} از {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} هسته / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} هسته / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} در حال اجرا / {{stopped}} متوقف"
+  "{{running}} running / {{stopped}} stopped": "{{running}} در حال اجرا / {{stopped}} متوقف",
+  "per {{denominator}}": "بر {{denominator}}"
 }

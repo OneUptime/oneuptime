@@ -1,5 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
+import ValueFormatter, {
+  FormattedValue,
+  ValueFormatterOptions,
+} from "Common/Utils/ValueFormatter";
+import { getValueFormatterOptionsForReader } from "Common/UI/Components/Charts/Utils/UnitNames";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -280,9 +284,13 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    * Its numbers - the centre value, the thresholds' and the bounds - in the
    * reader's language (#7094): "73,40 %" in German, "۷۳٫۴۰٪" in Persian,
    * as the SLO tiles beside it write theirs. They were Latin digits and a
-   * point on every board.
+   * point on every board. And its unit in the reader's words (#7518):
+   * "6,91 Stunden", "12,5 pro Sekunde", a big number in their own scale
+   * ("1,2 Mio."). The unit's symbols (%, MB/s, °C) read the same in every
+   * language.
    */
-  const language: string = translator.language;
+  const formatterOptions: ValueFormatterOptions =
+    getValueFormatterOptionsForReader(translator, metricName);
 
   /*
    * The number and its unit as two parts, so the gauge can render the big
@@ -292,7 +300,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   const displayParts: FormattedValue = ValueFormatter.formatValueInParts(
     aggregatedValue,
     rawUnit,
-    { metricName, language },
+    formatterOptions,
   );
 
   /*
@@ -400,7 +408,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       label: ValueFormatter.formatValue(
         isFractionScale ? warningThreshold / 100 : warningThreshold,
         rawUnit,
-        { metricName, language },
+        formatterOptions,
       ),
     });
   }
@@ -417,7 +425,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       label: ValueFormatter.formatValue(
         isFractionScale ? criticalThreshold / 100 : criticalThreshold,
         rawUnit,
-        { metricName, language },
+        formatterOptions,
       ),
     });
   }
@@ -431,12 +439,12 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   const formattedMin: string = ValueFormatter.formatValue(
     isFractionScale ? minValue / 100 : minValue,
     rawUnit,
-    { metricName, language },
+    formatterOptions,
   );
   const formattedMax: string = ValueFormatter.formatValue(
     isFractionScale ? maxValue / 100 : maxValue,
     rawUnit,
-    { metricName, language },
+    formatterOptions,
   );
 
   const gaugeViewboxHeight: number = gaugeSize / 2 + strokeWidth + 12;

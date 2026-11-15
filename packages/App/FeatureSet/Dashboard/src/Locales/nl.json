@@ -52405,5 +52405,6 @@
   "{{used}} of {{capacity}}": "{{used}} van {{capacity}}",
   "{{count}}c / {{memory}}": "{{count}} kernen / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} kern / {{memory}}",
-  "{{running}} running / {{stopped}} stopped": "{{running}} actief / {{stopped}} gestopt"
+  "{{running}} running / {{stopped}} stopped": "{{running}} actief / {{stopped}} gestopt",
+  "per {{denominator}}": "/{{denominator}}"
 }
