@@ -3,7 +3,6 @@ import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingR
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { FindOperator } from "typeorm";
 
 /*
  * IncidentEpisode:AutoResolve (the line-for-line twin of
@@ -18,6 +17,17 @@ import { FindOperator } from "typeorm";
  * names, how it reads rules and states, and how it writes - and that it no
  * longer reads members or incidents episode by episode.
  */
+
+/*
+ * The part of typeorm's FindOperator these assertions read. typeorm is
+ * Common's dependency, not App's, so its type cannot be imported here
+ * (TestImportsResolveFromApp.test.ts): the structural type says exactly as
+ * much as the assertions rely on.
+ */
+interface ReadFindOperator {
+  getSql?: ((aliasPath: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
 
 type CronHandler = (deadline?: unknown) => Promise<void>;
 
@@ -140,8 +150,8 @@ const EPISODE_ID: ObjectID = new ObjectID(
 );
 
 function cursorOf(query: Record<string, unknown>): string | undefined {
-  const cursor: FindOperator<ObjectID> | undefined = query["_id"] as
-    | FindOperator<ObjectID>
+  const cursor: ReadFindOperator | undefined = query["_id"] as
+    | ReadFindOperator
     | undefined;
 
   if (!cursor) {
@@ -198,7 +208,7 @@ describe("IncidentEpisode:AutoResolve", () => {
 
     for (const read of [first!, second!]) {
       expect(
-        (read.query["resolvedAt"] as FindOperator<unknown>).getSql!("r"),
+        (read.query["resolvedAt"] as ReadFindOperator).getSql!("r"),
       ).toMatch(/r IS NULL/);
       expect(read.sort).toEqual({ _id: SortOrder.Ascending });
       expect(read.limit).toBe(EPISODE_AUTO_RESOLVE_PAGE_SIZE);

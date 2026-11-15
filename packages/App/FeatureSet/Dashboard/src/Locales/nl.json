@@ -52321,5 +52321,6 @@
   "Monitor Network Device": "Monitor Network Device",
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
-  "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "Tot zes poorten: eerst de offline poorten, dan poorten met fouten, dan de drukste. Elke rij toont inkomende / uitgaande Mbps en het gebruik (de drukste richting als aandeel van de linksnelheid), gemiddeld tussen twee SNMP-walks. De waarden worden bijgewerkt wanneer ze merkbaar veranderen, en minstens elke 15 minuten."
+  "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "Tot zes poorten: eerst de offline poorten, dan poorten met fouten, dan de drukste. Elke rij toont inkomende / uitgaande Mbps en het gebruik (de drukste richting als aandeel van de linksnelheid), gemiddeld tussen twee SNMP-walks. De waarden worden bijgewerkt wanneer ze merkbaar veranderen, en minstens elke 15 minuten.",
+  "Coarse Last Seen At": "Coarse Last Seen At"
 }

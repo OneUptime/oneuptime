@@ -6,7 +6,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunRecordHandledMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import { FindOperator } from "typeorm";
 
 /*
  * THE ON-CALL POLICY WORKER IN AN ALERT STORM, A PAGE AT A TIME.
@@ -27,6 +26,17 @@ import { FindOperator } from "typeorm";
  *   6. a page whose records cannot be read waits for the next minute, and
  *      none of its runs is ended in error for it.
  */
+
+/*
+ * The part of typeorm's FindOperator these assertions read. typeorm is
+ * Common's dependency, not App's, so its type cannot be imported here
+ * (TestImportsResolveFromApp.test.ts): the structural type says exactly as
+ * much as the assertions rely on.
+ */
+interface ReadFindOperator {
+  getSql?: ((aliasPath: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
 
 type CronHandler = (deadline?: unknown) => Promise<void>;
 
@@ -199,8 +209,8 @@ function pagingRun(data: {
 }
 
 function cursorOf(query: Record<string, unknown>): string | undefined {
-  const cursor: FindOperator<ObjectID> | undefined = query["_id"] as
-    | FindOperator<ObjectID>
+  const cursor: ReadFindOperator | undefined = query["_id"] as
+    | ReadFindOperator
     | undefined;
 
   return cursor
@@ -209,9 +219,7 @@ function cursorOf(query: Record<string, unknown>): string | undefined {
 }
 
 function idsIn(query: Record<string, unknown>): Array<string> {
-  const predicate: FindOperator<unknown> = query[
-    "_id"
-  ] as FindOperator<unknown>;
+  const predicate: ReadFindOperator = query["_id"] as ReadFindOperator;
   return Object.values(predicate.objectLiteralParameters!)[0] as Array<string>;
 }
 
