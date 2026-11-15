@@ -61,7 +61,10 @@ import {
   getOnCallPolicyRunPagingDueAt,
   getOnCallPolicyRunWaitingMessage,
 } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
-import { IsNull, UpdateResult } from "typeorm";
+import { IsNull, Not, UpdateResult } from "typeorm";
+import OnCallRunFailure, {
+  OnCallRunFailureKind,
+} from "../Utils/OnCall/OnCallRunFailure";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
@@ -1087,6 +1090,33 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
     } catch (err) {
+      /*
+       * Its level failed part way for a moment - the database lost as it
+       * paged (issue #8471): the page again is handed to its escalation, as
+       * a run whose start fails is (onCreateSuccess, startWaitingRun), and
+       * the worker resumes its level (OnCallLevelsInFlight), the person who
+       * acknowledged first, and tries a run that keeps failing a few times
+       * before it ends it, saying why. It used to end in Error here, and
+       * nobody else it named was paged. Only once its rule was recorded:
+       * one that failed before that has no level to resume.
+       */
+      if (
+        OnCallRunFailure.classify(err) !== OnCallRunFailureKind.Permanent &&
+        (await this.handStartedRunToEscalation({
+          executionLogId: runId,
+          dueAt: data.dueAt || OneUptimeDate.getCurrentDate(),
+          onlyFromItsRule: true,
+        }))
+      ) {
+        logger.error(
+          `On-call execution log ${runId.toString()}: its page again failed part way; handed to its escalation, which pages what it did not.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        logger.error(err as Error);
+
+        return runId;
+      }
+
       // The run says what went wrong rather than sitting at "started".
       await this.updateOneById({
         id: runId,
@@ -1628,6 +1658,11 @@ export class Service extends ProjectReferencesService<Model> {
     dueAt: Date;
     // The statuses the run may have been left in; Started when absent.
     fromStatuses?: Array<OnCallDutyPolicyStatus> | undefined;
+    /*
+     * Only a run whose rule was recorded, which goes on from it: a page
+     * again starts at a rule of its own, not its policy's first.
+     */
+    onlyFromItsRule?: boolean | undefined;
   }): Promise<boolean> {
     try {
       let handedOver: boolean = false;
@@ -1635,23 +1670,25 @@ export class Service extends ProjectReferencesService<Model> {
       for (const fromStatus of data.fromStatuses || [
         OnCallDutyPolicyStatus.Started,
       ]) {
-        const fromFirstRule: UpdateResult = await this.getRepository().update(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {
-            _id: data.executionLogId.toString(),
-            status: fromStatus,
-            lastExecutedEscalationRuleId: IsNull(),
-            lastEscalationRuleExecutedAt: IsNull(),
-          } as any,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {
-            status: OnCallDutyPolicyStatus.Executing,
-            lastEscalationRuleExecutedAt: data.dueAt,
-            executeNextEscalationRuleInMinutes: 0,
-          } as any,
-        );
+        if (!data.onlyFromItsRule) {
+          const fromFirstRule: UpdateResult = await this.getRepository().update(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {
+              _id: data.executionLogId.toString(),
+              status: fromStatus,
+              lastExecutedEscalationRuleId: IsNull(),
+              lastEscalationRuleExecutedAt: IsNull(),
+            } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {
+              status: OnCallDutyPolicyStatus.Executing,
+              lastEscalationRuleExecutedAt: data.dueAt,
+              executeNextEscalationRuleInMinutes: 0,
+            } as any,
+          );
 
-        handedOver = (fromFirstRule.affected || 0) > 0;
+          handedOver = (fromFirstRule.affected || 0) > 0;
+        }
 
         if (!handedOver) {
           const fromItsRule: UpdateResult = await this.getRepository().update(
@@ -1659,6 +1696,9 @@ export class Service extends ProjectReferencesService<Model> {
             {
               _id: data.executionLogId.toString(),
               status: fromStatus,
+              ...(data.onlyFromItsRule
+                ? { lastExecutedEscalationRuleId: Not(IsNull()) }
+                : {}),
             } as any,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             {

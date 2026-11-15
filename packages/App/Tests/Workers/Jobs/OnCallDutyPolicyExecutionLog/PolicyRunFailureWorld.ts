@@ -122,6 +122,16 @@ function isNullOperator(value: unknown): boolean {
   );
 }
 
+// A TypeORM FindOperator for IS NOT NULL: Not(IsNull()).
+function isNotNullOperator(value: unknown): boolean {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    (value as { type?: unknown }).type === "not" &&
+    isNullOperator((value as { child?: unknown }).child)
+  );
+}
+
 export default class PolicyRunFailureWorld extends EmptyLevelWorld {
   // What Redis holds, by namespace and key.
   public cache: Map<string, string> = new Map();
@@ -377,6 +387,10 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
 
                 if (isNullOperator(expected)) {
                   return actual === null || actual === undefined;
+                }
+
+                if (isNotNullOperator(expected)) {
+                  return actual !== null && actual !== undefined;
                 }
 
                 if (expected instanceof Date) {

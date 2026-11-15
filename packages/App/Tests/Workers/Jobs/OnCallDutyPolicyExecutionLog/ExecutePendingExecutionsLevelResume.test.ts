@@ -4,6 +4,8 @@ import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/O
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import ProjectMilestoneService from "Common/Server/Services/ProjectMilestoneService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import OnCallSendLag from "Common/Server/Utils/OnCall/OnCallSendLag";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
@@ -11,8 +13,11 @@ import {
   BOB,
   CARL,
   DANA,
+  PageEvent,
   START,
 } from "Common/Tests/Server/Utils/OnCall/PassOnWorld";
+
+type AnyFunction = (...args: Array<any>) => any;
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
 import "../../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import PolicyRunFailureWorld, {
@@ -343,5 +348,112 @@ describe("a run whose first level fails part way as it starts", () => {
 
     expect(pagesSoFar()).toEqual(["Bob Smith L1 @ 0", "Carl Diaz L1 @ 1"]);
     expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+});
+
+/*
+ * A RESUMED LEVEL PAGES AS ITS START DID (issue #8471): a page again's
+ * acknowledger, whom its level pages before its own people, is paged first
+ * by the resume too; and the resume's pages are timed as the level's were
+ * as it started - due when the wait before it ran out, or as its page
+ * started - so a page it sends late shows as late (notification.send.lag).
+ */
+describe("a resumed level, as its start paged it", () => {
+  test("REGRESSION: a page again's acknowledger, paged first, is paged by the resume when the level stopped before them", async () => {
+    // Ana acknowledged, and is paged first by the page again at Level 2: her page fails.
+    world.failAt(FailurePoint.PagePerson, { when: pages(ANA) });
+
+    await world.startPageAgain({ startAtRule: levelTwo, acknowledgedBy: ANA });
+
+    expect(pagesSoFar()).toEqual([]);
+
+    await minutesPass(1);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 1",
+      "Bob Smith L2 @ 1",
+      "Carl Diaz L2 @ 1",
+    ]);
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+
+  test("the acknowledger paged before the level stopped is not paged again", async () => {
+    world.failAt(FailurePoint.PagePerson, { when: pages(CARL) });
+
+    await world.startPageAgain({ startAtRule: levelTwo, acknowledgedBy: ANA });
+    await minutesPass(1);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 0",
+      "Bob Smith L2 @ 0",
+      "Carl Diaz L2 @ 1",
+    ]);
+    expect(world.timesPaged(ANA, levelTwo)).toBe(1);
+  });
+
+  test("REGRESSION: a first level resumed is timed from its page's start, as its first pass was", async () => {
+    world.rules = [levelTwo];
+    levelTwo.order = 1;
+    world.failAt(FailurePoint.PagePerson, { when: pages(CARL) });
+
+    await (
+      OnCallDutyPolicyExecutionLogService as unknown as {
+        onCreateSuccess: (
+          onCreate: unknown,
+          item: OnCallDutyPolicyExecutionLog,
+        ) => Promise<unknown>;
+      }
+    ).onCreateSuccess({ carryForward: null }, world.newRun());
+
+    await minutesPass(1);
+
+    const bob: PageEvent = world.pages.find((page: PageEvent) => {
+      return page.userId.toLowerCase() === BOB.toString().toLowerCase();
+    })!;
+    const carl: PageEvent = world.pages.find((page: PageEvent) => {
+      return page.userId.toLowerCase() === CARL.toString().toLowerCase();
+    })!;
+
+    // Carl is paged a minute late, and his page says it was due as Bob's was.
+    expect(carl.at.getTime() - bob.at.getTime()).toBe(60 * 1000);
+    expect(bob.pageStart).not.toBeNull();
+    expect(carl.pageStart).toEqual(bob.pageStart);
+  });
+
+  test("REGRESSION: a later level resumed is timed from when the wait before it ran out, as its first pass was", async () => {
+    // What each page's send was due at, as the scheduled send it ran in says.
+    const dueAt: Map<string, number | null> = new Map();
+    const paging: AnyFunction = (
+      UserNotificationRuleService.startUserNotificationRulesExecution as unknown as {
+        getMockImplementation: () => AnyFunction;
+      }
+    ).getMockImplementation();
+
+    jest
+      .spyOn(UserNotificationRuleService, "startUserNotificationRulesExecution")
+      .mockImplementation((async (...args: Array<unknown>) => {
+        dueAt.set(
+          String(args[0]).toLowerCase(),
+          OnCallSendLag.getScheduledSend()?.dueAt.getTime() ?? null,
+        );
+        return await paging(...args);
+      }) as never);
+
+    await world.startRun();
+    world.failAt(FailurePoint.PagePerson, { when: pages(CARL) });
+
+    await minutesPass(11);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L1 @ 0",
+      "Bob Smith L2 @ 10",
+      "Carl Diaz L2 @ 11",
+    ]);
+
+    // Level 2 was due as Level 1's wait ran out, at 10: Carl's page, sent at 11, says so.
+    const levelTwoDue: number = START.getTime() + 10 * 60 * 1000;
+
+    expect(dueAt.get(BOB.toString().toLowerCase())).toBe(levelTwoDue);
+    expect(dueAt.get(CARL.toString().toLowerCase())).toBe(levelTwoDue);
   });
 });

@@ -32,6 +32,7 @@ import { NotificationSchedule } from "../Telemetry/NotificationDeliveryMetrics";
 import { toOnCallPolicyRunStatusMessage } from "../../../Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
 import OnCallRunFailure from "./OnCallRunFailure";
 import OnCallSendLag, { OnCallScheduledSend } from "./OnCallSendLag";
+import OnCallPageTiming from "./OnCallPageTiming";
 import { OnCallLevelInFlight } from "./OnCallLevelsInFlight";
 import OnCallMoveOnsInFlight, {
   OnCallMoveOnInFlight,
@@ -715,16 +716,43 @@ export default class OnCallEscalationAdvance {
       run.id!,
     );
 
-    const outcome: OnCallRuleExecutionOutcome =
-      await OnCallDutyPolicyEscalationRuleService.resumeRuleExecution(
-        new ObjectID(data.level.ruleId),
-        {
-          ...this.getPageContext(run),
-          onCallPolicyId: run.onCallDutyPolicyId!,
-          passedOnUserIds: passedOnUserIds,
-          since: data.level.startedAt,
-        },
-      );
+    const resume: () => Promise<OnCallRuleExecutionOutcome> =
+      (): Promise<OnCallRuleExecutionOutcome> => {
+        return OnCallDutyPolicyEscalationRuleService.resumeRuleExecution(
+          new ObjectID(data.level.ruleId),
+          {
+            ...this.getPageContext(run),
+            onCallPolicyId: run.onCallDutyPolicyId!,
+            passedOnUserIds: passedOnUserIds,
+            level: data.level,
+          },
+        );
+      };
+
+    /*
+     * Its pages are timed as the level's were as it started (issue #8471):
+     * due when the wait before it ran out, or as its page started - so one
+     * it sends now shows as late as it is (notification.send.lag).
+     */
+    const level: OnCallLevelInFlight = data.level;
+
+    const outcome: OnCallRuleExecutionOutcome = level.pageStart
+      ? await OnCallPageTiming.runInPageStart(
+          {
+            startedAt: level.pageStart.startedAt,
+            start: level.pageStart.start,
+          },
+          resume,
+        )
+      : level.scheduledSend
+        ? await OnCallSendLag.runAsScheduledSend(
+            {
+              dueAt: level.scheduledSend.dueAt,
+              schedule: level.scheduledSend.schedule,
+            },
+            resume,
+          )
+        : await resume();
 
     if (outcome.movesOnAtOnce) {
       await this.moveOnAtOnce({ runId: run.id! });
