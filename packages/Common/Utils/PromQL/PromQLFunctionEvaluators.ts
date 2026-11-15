@@ -33,6 +33,7 @@ import { compilePromQLRegex } from "./PromQLRegex";
 import LinearRegExp, { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { describePatternProblem } from "../LinearRegExp/PatternCache";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
+import lookupTable from "../LookupTable";
 
 /*
  * What each PromQL function does (promql/functions.go), given its arguments
@@ -135,7 +136,14 @@ const mapValues: (
   });
 };
 
-const SIMPLE_FUNCTIONS: Record<string, (value: number) => number> = {
+type MathFunction = (value: number) => number;
+
+/*
+ * This table, OVER_TIME and DATE_FUNCTIONS are read by the name a query
+ * calls, so they are Maps: each answers only for the functions it lists,
+ * never with what every object inherits.
+ */
+const SIMPLE_FUNCTIONS: ReadonlyMap<string, MathFunction> = lookupTable({
   abs: Math.abs,
   acos: Math.acos,
   acosh: Math.acosh,
@@ -169,7 +177,7 @@ const SIMPLE_FUNCTIONS: Record<string, (value: number) => number> = {
   sqrt: Math.sqrt,
   tan: Math.tan,
   tanh: Math.tanh,
-};
+});
 
 /*
  * rate(), increase() and delta(): the change across the range, extrapolated
@@ -310,14 +318,16 @@ const average: (values: ArrayLike<number>) => number = (
   return kahanResult(sum) / values.length;
 };
 
+type OverTimeFunction = (
+  series: PromQLRangeSeries,
+  range: RangeVectorValue,
+) => number | undefined;
+
 /*
  * The functions that read a range vector and answer with one value per
  * series. Undefined means "no value for this series at this step".
  */
-const OVER_TIME: Record<
-  string,
-  (series: PromQLRangeSeries, range: RangeVectorValue) => number | undefined
-> = {
+const OVER_TIME: ReadonlyMap<string, OverTimeFunction> = lookupTable({
   avg_over_time: (series: PromQLRangeSeries): number => {
     return average(series.values);
   },
@@ -444,14 +454,16 @@ const OVER_TIME: Record<
   irate: (series: PromQLRangeSeries): number | undefined => {
     return instantValue(series, true);
   },
-};
+});
 
 // The functions whose answer keeps the input's metric name.
 const KEEPS_METRIC_NAME: ReadonlySet<string> = new Set<string>([
   "last_over_time",
 ]);
 
-const DATE_FUNCTIONS: Record<string, (date: Date) => number> = {
+type DateFunction = (date: Date) => number;
+
+const DATE_FUNCTIONS: ReadonlyMap<string, DateFunction> = lookupTable({
   day_of_month: (date: Date): number => {
     return date.getUTCDate();
   },
@@ -479,7 +491,7 @@ const DATE_FUNCTIONS: Record<string, (date: Date) => number> = {
   year: (date: Date): number => {
     return date.getUTCFullYear();
   },
-};
+});
 
 /*
  * The labels absent() and absent_over_time() give their 1: the selector's
@@ -509,7 +521,7 @@ const absentLabels: (expression: PromQLExpression) => PromQLLabels = (
       continue;
     }
 
-    if (labels[matcher.name] !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(labels, matcher.name)) {
       repeated.add(matcher.name);
     }
 
@@ -650,19 +662,13 @@ export const evaluatePromQLFunction: (
     return context.evaluate(call.args[index]!);
   };
 
-  const simple: ((value: number) => number) | undefined =
-    SIMPLE_FUNCTIONS[name];
+  const simple: MathFunction | undefined = SIMPLE_FUNCTIONS.get(name);
 
   if (simple) {
     return vectorValue(mapValues(readSamples(arg(0)), now, simple));
   }
 
-  const overTime:
-    | ((
-        series: PromQLRangeSeries,
-        range: RangeVectorValue,
-      ) => number | undefined)
-    | undefined = OVER_TIME[name];
+  const overTime: OverTimeFunction | undefined = OVER_TIME.get(name);
 
   if (overTime) {
     const range: RangeVectorValue = readRange(arg(0));
@@ -689,8 +695,7 @@ export const evaluatePromQLFunction: (
     return vectorValue(samples);
   }
 
-  const dateFunction: ((date: Date) => number) | undefined =
-    DATE_FUNCTIONS[name];
+  const dateFunction: DateFunction | undefined = DATE_FUNCTIONS.get(name);
 
   if (dateFunction) {
     const samples: Array<PromQLSample> =
@@ -1039,7 +1044,7 @@ export const evaluatePromQLFunction: (
         samples.map((sample: PromQLSample): PromQLSample => {
           const value: string = sources
             .map((source: string): string => {
-              return sample.labels[source] || "";
+              return promQLLabelValue(sample.labels, source);
             })
             .join(separator);
           const labels: PromQLLabels = { ...sample.labels };
@@ -1072,8 +1077,8 @@ export const evaluatePromQLFunction: (
         [...samples].sort((a: PromQLSample, b: PromQLSample): number => {
           for (const label of labels) {
             const order: number = naturalCompare(
-              a.labels[label] || "",
-              b.labels[label] || "",
+              promQLLabelValue(a.labels, label),
+              promQLLabelValue(b.labels, label),
             );
 
             if (order !== 0) {
