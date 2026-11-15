@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Если их отклонил прокси перед OneUptime, увеличьте ограничение этого прокси на размер запроса до 50 МБ — столько, сколько принимает сам OneUptime (в nginx это client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные оказались слишком большими, и сервер их не принял, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
-  "What was sent was too large for the server to accept.": "Отправленные данные оказались слишком большими, и сервер их не принял."
+  "What was sent was too large for the server to accept.": "Отправленные данные оказались слишком большими, и сервер их не принял.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS ничего не отправляет этому монитору, пока вы не подтвердите подписку.",
+  "Confirm Subscription": "Подтвердить подписку",
+  "Confirm the Amazon SNS subscription": "Подтвердите подписку Amazon SNS",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid не отправляет события этому монитору, пока вы не проверите подписку на события.",
+  "Restore Subscription": "Восстановить подписку",
+  "The Amazon SNS subscription was deleted": "Подписка Amazon SNS удалена",
+  "The link works until {{time}}.": "Ссылка действует до {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "Эту ссылку больше нельзя открыть. В консоли AWS выберите подписку и нажмите Request confirmation или, если подписки уже нет, создайте её заново.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "Эту ссылку больше нельзя открыть. Чтобы снова получать сообщения из темы, создайте подписку заново в консоли AWS.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "Эту ссылку больше нельзя открыть: она действует 10 минут после того, как Event Grid её отправит. Чтобы получить новую, создайте подписку на события заново.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "Этот монитор больше не получает сообщения из темы. Чтобы снова получать их, восстановите подписку.",
+  "This note stays until the monitor's next request arrives.": "Это уведомление останется, пока монитор не получит следующий запрос.",
+  "Topic": "Тема",
+  "Validate Subscription": "Проверить подписку",
+  "Validate the Azure Event Grid subscription": "Проверьте подписку Azure Event Grid"
 }

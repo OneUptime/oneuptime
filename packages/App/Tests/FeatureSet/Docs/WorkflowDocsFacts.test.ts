@@ -626,6 +626,23 @@ describe("the triggers page", () => {
     );
   });
 
+  /*
+   * Amazon SNS posts JSON labelled text/plain; the trigger reads it as JSON
+   * (PlainTextJsonBody, #7723), as the Request Body row says.
+   */
+  it("reads JSON sent as plain text, as the Request Body row says", () => {
+    for (const method of ["get", "post"]) {
+      expect(WEBHOOK_TRIGGER).toContain(
+        `props.router.${method}(\n      \`/trigger/:secretkey\`,\n      readTextBody,`,
+      );
+    }
+
+    expect(WEBHOOK_TRIGGER).toContain("PlainTextJsonBody.getReader(");
+    expect(section(TRIGGERS, "## Webhook")).toContain(
+      "can be read field by field, and so can JSON sent as plain text, as Amazon SNS sends it.",
+    );
+  });
+
   it("lists exactly the values the Webhook trigger returns, and reads the body by its ID", () => {
     const webhook: ComponentMetadata = component(ComponentID.Webhook);
     const page: string = section(TRIGGERS, "## Webhook");

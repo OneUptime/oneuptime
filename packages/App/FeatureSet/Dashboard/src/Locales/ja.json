@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime の前にあるプロキシが拒否した場合は、そのプロキシのリクエストサイズの上限を、OneUptime 自体が受け付ける 50 MB に引き上げてください（nginx では client_max_body_size 50M）。",
   "Try again with less at once, such as a smaller file.": "小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が大きすぎてサーバーが受け付けなかったため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
-  "What was sent was too large for the server to accept.": "送信した内容が大きすぎて、サーバーが受け付けませんでした。"
+  "What was sent was too large for the server to accept.": "送信した内容が大きすぎて、サーバーが受け付けませんでした。",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "サブスクリプションを確認するまで、Amazon SNS はこのモニターに何も送信しません。",
+  "Confirm Subscription": "サブスクリプションを確認",
+  "Confirm the Amazon SNS subscription": "Amazon SNS のサブスクリプションを確認",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "イベントサブスクリプションを検証するまで、Event Grid はこのモニターにイベントを送信しません。",
+  "Restore Subscription": "サブスクリプションを復元",
+  "The Amazon SNS subscription was deleted": "Amazon SNS のサブスクリプションが削除されました",
+  "The link works until {{time}}.": "このリンクは {{time}} まで有効です。",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "このリンクは開けなくなりました。AWS コンソールでサブスクリプションを選択して「Request confirmation」を選ぶか、サブスクリプションがなくなっている場合は作り直してください。",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "このリンクは開けなくなりました。トピックからメッセージをもう一度受け取るには、AWS コンソールでサブスクリプションを作り直してください。",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "このリンクは開けなくなりました。リンクを使えるのは、Event Grid が送信してから 10 分間だけです。新しいリンクを受け取るには、イベントサブスクリプションを作り直してください。",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "このモニターには、もうトピックからメッセージが届きません。再び受け取るには、サブスクリプションを復元してください。",
+  "This note stays until the monitor's next request arrives.": "この案内は、モニターに次のリクエストが届くまで表示されます。",
+  "Topic": "トピック",
+  "Validate Subscription": "サブスクリプションを検証",
+  "Validate the Azure Event Grid subscription": "Azure Event Grid のサブスクリプションを検証"
 }

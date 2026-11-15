@@ -24,6 +24,7 @@ export const ExpressStatic: GenericFunction = express.static;
 export const ExpressJson: GenericFunction = express.json;
 export const ExpressUrlEncoded: GenericFunction = express.urlencoded;
 export const ExpressRaw: GenericFunction = express.raw;
+export const ExpressText: GenericFunction = express.text;
 
 export const createExpressApp: () => express.Application =
   (): express.Application => {

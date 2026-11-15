@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
-  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det."
+  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS sender intet til denne monitor, før du bekræfter abonnementet.",
+  "Confirm Subscription": "Bekræft abonnement",
+  "Confirm the Amazon SNS subscription": "Bekræft Amazon SNS-abonnementet",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid sender ingen hændelser til denne monitor, før du validerer hændelsesabonnementet.",
+  "Restore Subscription": "Gendan abonnement",
+  "The Amazon SNS subscription was deleted": "Amazon SNS-abonnementet blev slettet",
+  "The link works until {{time}}.": "Linket virker indtil {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "Dette link kan ikke længere åbnes. Markér abonnementet i AWS-konsollen, og vælg Request confirmation, eller opret abonnementet igen, hvis det ikke længere findes.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "Dette link kan ikke længere åbnes. Opret abonnementet på ny i AWS-konsollen for at få beskeder fra emnet igen.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "Dette link kan ikke længere åbnes: det virker i 10 minutter, efter at Event Grid har sendt det. Opret hændelsesabonnementet igen for at få et nyt.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "Denne monitor får ikke flere beskeder fra emnet. Gendan abonnementet for at få dem igen.",
+  "This note stays until the monitor's next request arrives.": "Denne meddelelse bliver stående, indtil monitorens næste anmodning ankommer.",
+  "Topic": "Emne",
+  "Validate Subscription": "Valider abonnement",
+  "Validate the Azure Event Grid subscription": "Valider Azure Event Grid-abonnementet"
 }

@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Wenn ein Proxy vor OneUptime es abgelehnt hat, erhöhen Sie dessen Größenlimit für Anfragen auf 50 MB, so viel, wie OneUptime selbst annimmt (in nginx client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden, daher wurde der Vorgang nicht abgeschlossen. Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
-  "What was sent was too large for the server to accept.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden."
+  "What was sent was too large for the server to accept.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS sendet nichts an diesen Monitor, bis Sie das Abonnement bestätigen.",
+  "Confirm Subscription": "Abonnement bestätigen",
+  "Confirm the Amazon SNS subscription": "Das Abonnement bei Amazon SNS bestätigen",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid sendet keine Ereignisse an diesen Monitor, bis Sie das Ereignisabonnement validieren.",
+  "Restore Subscription": "Abonnement wiederherstellen",
+  "The Amazon SNS subscription was deleted": "Das Abonnement bei Amazon SNS wurde gelöscht",
+  "The link works until {{time}}.": "Der Link funktioniert bis zum {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "Dieser Link lässt sich nicht mehr öffnen. Wählen Sie in der AWS-Konsole das Abonnement aus und klicken Sie auf „Request confirmation“, oder erstellen Sie das Abonnement neu, falls es nicht mehr vorhanden ist.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "Dieser Link lässt sich nicht mehr öffnen. Erstellen Sie das Abonnement in der AWS-Konsole neu, um wieder Nachrichten vom Topic zu erhalten.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "Dieser Link lässt sich nicht mehr öffnen: Er funktioniert 10 Minuten lang, nachdem Event Grid ihn gesendet hat. Erstellen Sie das Ereignisabonnement neu, um einen neuen zu erhalten.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "Dieser Monitor erhält keine Nachrichten mehr vom Topic. Stellen Sie das Abonnement wieder her, um sie erneut zu erhalten.",
+  "This note stays until the monitor's next request arrives.": "Dieser Hinweis bleibt, bis die nächste Anfrage des Monitors eintrifft.",
+  "Topic": "Topic",
+  "Validate Subscription": "Abonnement validieren",
+  "Validate the Azure Event Grid subscription": "Das Abonnement bei Azure Event Grid validieren"
 }

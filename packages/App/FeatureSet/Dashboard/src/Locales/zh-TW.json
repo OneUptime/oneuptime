@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒絕了它，請將該代理的請求大小上限提高到 50 MB，與 OneUptime 本身接受的大小相同（在 nginx 中為 client_max_body_size 50M）。",
   "Try again with less at once, such as a smaller file.": "請一次傳送較少的內容（例如較小的檔案）後再試一次。",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "傳送的內容太大，伺服器無法接受，因此操作未完成。請一次傳送較少的內容（例如較小的檔案）後再試一次。",
-  "What was sent was too large for the server to accept.": "傳送的內容太大，伺服器無法接受。"
+  "What was sent was too large for the server to accept.": "傳送的內容太大，伺服器無法接受。",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "在確認訂閱之前，Amazon SNS 不會向此監測器傳送任何內容。",
+  "Confirm Subscription": "確認訂閱",
+  "Confirm the Amazon SNS subscription": "確認 Amazon SNS 訂閱",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "在驗證事件訂閱之前，Event Grid 不會向此監測器傳送任何事件。",
+  "Restore Subscription": "還原訂閱",
+  "The Amazon SNS subscription was deleted": "Amazon SNS 訂閱已刪除",
+  "The link works until {{time}}.": "此連結在 {{time}} 之前有效。",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "此連結已無法開啟。請在 AWS 主控台中選取該訂閱，然後選擇「Request confirmation」；如果訂閱已不存在，請重新建立。",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "此連結已無法開啟。若要再次接收來自該主題的訊息，請在 AWS 主控台中重新建立訂閱。",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "此連結已無法開啟：它僅在 Event Grid 傳送後的 10 分鐘內有效。請重新建立事件訂閱以取得新的連結。",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "此監測器不會再收到來自該主題的訊息。若要再次接收，請還原訂閱。",
+  "This note stays until the monitor's next request arrives.": "此提示會一直顯示，直到監測器收到下一個請求。",
+  "Topic": "主題",
+  "Validate Subscription": "驗證訂閱",
+  "Validate the Azure Event Grid subscription": "驗證 Azure Event Grid 訂閱"
 }

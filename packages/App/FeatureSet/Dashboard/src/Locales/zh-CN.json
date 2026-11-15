@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒绝了它，请将该代理的请求大小上限提高到 50 MB，与 OneUptime 本身接受的大小相同（在 nginx 中为 client_max_body_size 50M）。",
   "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
-  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。"
+  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "在确认订阅之前，Amazon SNS 不会向此监视器发送任何内容。",
+  "Confirm Subscription": "确认订阅",
+  "Confirm the Amazon SNS subscription": "确认 Amazon SNS 订阅",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "在验证事件订阅之前，Event Grid 不会向此监视器发送任何事件。",
+  "Restore Subscription": "恢复订阅",
+  "The Amazon SNS subscription was deleted": "Amazon SNS 订阅已删除",
+  "The link works until {{time}}.": "此链接在 {{time}} 之前有效。",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "此链接已无法打开。请在 AWS 控制台中选中该订阅，然后选择“Request confirmation”；如果订阅已不存在，请重新创建。",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "此链接已无法打开。要重新接收来自该主题的消息，请在 AWS 控制台中重新创建订阅。",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "此链接已无法打开：它仅在 Event Grid 发送后的 10 分钟内有效。请重新创建事件订阅以获取新链接。",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "此监视器不会再收到来自该主题的消息。要重新接收，请恢复订阅。",
+  "This note stays until the monitor's next request arrives.": "此提示会一直显示，直到监视器收到下一个请求。",
+  "Topic": "主题",
+  "Validate Subscription": "验证订阅",
+  "Validate the Azure Event Grid subscription": "验证 Azure Event Grid 订阅"
 }

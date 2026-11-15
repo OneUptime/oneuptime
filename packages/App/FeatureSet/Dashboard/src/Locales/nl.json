@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Heeft een proxy vóór OneUptime het geweigerd, verhoog dan de limiet voor de grootte van een verzoek van die proxy naar 50 MB, zoveel als OneUptime zelf accepteert (in nginx, client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Wat is verzonden, was te groot voor de server om te accepteren, dus dit is niet voltooid. Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
-  "What was sent was too large for the server to accept.": "Wat is verzonden, was te groot voor de server om te accepteren."
+  "What was sent was too large for the server to accept.": "Wat is verzonden, was te groot voor de server om te accepteren.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS stuurt niets naar deze monitor totdat u het abonnement bevestigt.",
+  "Confirm Subscription": "Abonnement bevestigen",
+  "Confirm the Amazon SNS subscription": "Bevestig het Amazon SNS-abonnement",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid stuurt geen gebeurtenissen naar deze monitor totdat u het gebeurtenisabonnement valideert.",
+  "Restore Subscription": "Abonnement herstellen",
+  "The Amazon SNS subscription was deleted": "Het Amazon SNS-abonnement is verwijderd",
+  "The link works until {{time}}.": "De link werkt tot {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "Deze link kan niet meer worden geopend. Selecteer het abonnement in de AWS-console en kies Request confirmation, of maak het abonnement opnieuw aan als het niet meer bestaat.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "Deze link kan niet meer worden geopend. Maak het abonnement opnieuw aan in de AWS-console om weer berichten van het topic te krijgen.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "Deze link kan niet meer worden geopend: hij werkt 10 minuten lang nadat Event Grid hem heeft verstuurd. Maak het gebeurtenisabonnement opnieuw aan om een nieuwe te krijgen.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "Deze monitor krijgt geen berichten meer van het topic. Herstel het abonnement om ze weer te krijgen.",
+  "This note stays until the monitor's next request arrives.": "Deze melding blijft staan tot het volgende verzoek van de monitor binnenkomt.",
+  "Topic": "Topic",
+  "Validate Subscription": "Abonnement valideren",
+  "Validate the Azure Event Grid subscription": "Valideer het Azure Event Grid-abonnement"
 }

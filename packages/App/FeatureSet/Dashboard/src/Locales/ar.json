@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "إذا رفضه وكيل (proxy) أمام OneUptime، فارفع حد حجم الطلب في ذلك الوكيل إلى 50 MB، أي ما يقبله OneUptime نفسه (في nginx، client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل كان أكبر من أن يقبله الخادم، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
-  "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم."
+  "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "لا يرسل Amazon SNS أي شيء إلى هذه المراقبة حتى تؤكّد الاشتراك.",
+  "Confirm Subscription": "تأكيد الاشتراك",
+  "Confirm the Amazon SNS subscription": "أكّد اشتراك Amazon SNS",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "لا يرسل Event Grid أي أحداث إلى هذه المراقبة حتى تتحقق من صحة اشتراك الأحداث.",
+  "Restore Subscription": "استعادة الاشتراك",
+  "The Amazon SNS subscription was deleted": "حُذف اشتراك Amazon SNS",
+  "The link works until {{time}}.": "يعمل الرابط حتى {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "لم يعد من الممكن فتح هذا الرابط. في وحدة تحكم AWS، حدّد الاشتراك واختر Request confirmation، أو أنشئ الاشتراك من جديد إن لم يعد موجودًا.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "لم يعد من الممكن فتح هذا الرابط. لتتلقى رسائل الموضوع مجددًا، أنشئ الاشتراك من جديد في وحدة تحكم AWS.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "لم يعد من الممكن فتح هذا الرابط: فهو يعمل 10 دقائق بعد أن يرسله Event Grid. أنشئ اشتراك الأحداث من جديد للحصول على رابط جديد.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "لم تعد هذه المراقبة تتلقى رسائل من الموضوع. لتتلقاها مجددًا، استعِد الاشتراك.",
+  "This note stays until the monitor's next request arrives.": "تبقى هذه الملاحظة حتى يصل الطلب التالي إلى المراقبة.",
+  "Topic": "الموضوع",
+  "Validate Subscription": "التحقق من صحة الاشتراك",
+  "Validate the Azure Event Grid subscription": "تحقّق من صحة اشتراك Azure Event Grid"
 }

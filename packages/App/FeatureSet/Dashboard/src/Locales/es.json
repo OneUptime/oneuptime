@@ -53529,5 +53529,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy delante de OneUptime lo rechazó, aumente el límite de tamaño de las solicitudes de ese proxy a 50 MB, lo mismo que acepta OneUptime (en nginx, client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Lo que se envió era demasiado grande para que el servidor lo aceptara, así que la operación no terminó. Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
-  "What was sent was too large for the server to accept.": "Lo que se envió era demasiado grande para que el servidor lo aceptara."
+  "What was sent was too large for the server to accept.": "Lo que se envió era demasiado grande para que el servidor lo aceptara.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS no envía nada a este monitor hasta que confirmes la suscripción.",
+  "Confirm Subscription": "Confirmar suscripción",
+  "Confirm the Amazon SNS subscription": "Confirma la suscripción de Amazon SNS",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid no envía eventos a este monitor hasta que valides la suscripción de eventos.",
+  "Restore Subscription": "Restaurar suscripción",
+  "The Amazon SNS subscription was deleted": "Se eliminó la suscripción de Amazon SNS",
+  "The link works until {{time}}.": "El enlace funciona hasta el {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "Este enlace ya no se puede abrir. En la consola de AWS, selecciona la suscripción y elige Request confirmation, o vuelve a crear la suscripción si ya no existe.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "Este enlace ya no se puede abrir. Para volver a recibir mensajes del tema, vuelve a crear la suscripción en la consola de AWS.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "Este enlace ya no se puede abrir: funciona durante 10 minutos desde que Event Grid lo envía. Vuelve a crear la suscripción de eventos para obtener uno nuevo.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "Este monitor ya no recibe mensajes del tema. Para volver a recibirlos, restaura la suscripción.",
+  "This note stays until the monitor's next request arrives.": "Este aviso se mantiene hasta que llegue la próxima solicitud del monitor.",
+  "Topic": "Tema",
+  "Validate Subscription": "Validar suscripción",
+  "Validate the Azure Event Grid subscription": "Valida la suscripción de Azure Event Grid"
 }
