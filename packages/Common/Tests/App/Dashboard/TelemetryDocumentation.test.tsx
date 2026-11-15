@@ -415,6 +415,11 @@ describe("TelemetryDocumentation", () => {
         expect(container.textContent).toContain(
           "sudo systemctl restart fluentd",
         );
+        // This host alone sends to it, and its batches stay on disk (#8243, #8242).
+        expect(container.textContent).toContain("bind 127.0.0.1");
+        expect(container.textContent).toContain(
+          "path /var/log/fluent/buffer/oneuptime",
+        );
         expect(container.textContent).not.toContain("/fluentd/log/fluentd.pos");
         expect(container.textContent).not.toContain("image: fluent/fluentd");
       };
@@ -424,6 +429,14 @@ describe("TelemetryDocumentation", () => {
         );
         expect(container.textContent).toContain("image: fluent/fluentd");
         expect(container.textContent).toContain("user: root");
+        // Published to this host alone, root with one capability, and the batches in the volume.
+        expect(container.textContent).toContain('"127.0.0.1:24224:24224"');
+        expect(container.textContent).toContain("- DAC_OVERRIDE");
+        expect(container.textContent).toContain(
+          "path /fluentd/log/buffer/oneuptime",
+        );
+        expect(container.textContent).toContain("fluentd-state:/fluentd/log");
+        expect(container.textContent).not.toContain("bind 127.0.0.1");
         expect(container.textContent).not.toContain(
           "/var/log/fluent/fluentd.pos",
         );

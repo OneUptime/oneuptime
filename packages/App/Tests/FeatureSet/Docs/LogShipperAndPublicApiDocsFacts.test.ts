@@ -1529,7 +1529,7 @@ describe("the Fluentd page", () => {
     );
   });
 
-  it("gives files that send each record's Fluentd time, and keep a parser's time field, as the ingest reads them", () => {
+  it("gives files that send each record's Fluentd time, and leave a parser's time field alone, as the ingest reads them", () => {
     for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
       expect(output.code).toContain(
         `    ${FLUENTD_EVENT_TIME_FIELD} \${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}`,
@@ -1547,7 +1547,118 @@ describe("the Fluentd page", () => {
         FLUENTD,
         "Logs show the time OneUptime received them, not their own",
       ),
-    ).toContain("add `keep_time_key true` to it");
+    ).toContain(
+      `add \`time_key ${FLUENTD_EVENT_TIME_FIELD}\` to it, so that it reads no record's time and leaves \`time\` as it is.`,
+    );
+  });
+
+  /*
+   * Fluentd's json parser read a line's "time" itself, and dropped a line
+   * whose "time" was no text and no number, with no warning (issue #8241).
+   * With time_key fluentd_time, it reads none, and the ingest times the
+   * line as the answer says.
+   */
+  it("says which JSON lines Fluentd drops for their time, and how OneUptime times them once kept", () => {
+    const answer: string = detailsAnswer(
+      FLUENTD,
+      "A JSON line whose `time` is `null`, `true`, a list or an object never arrives",
+    );
+    const arrivedAt: Date = new Date("2026-11-15T17:39:33.100Z");
+    const readAt: string = "2026-11-15T17:39:28.041016696Z";
+
+    expect(answer).toContain(
+      `Add \`time_key ${FLUENTD_EVENT_TIME_FIELD}\` to its \`<parse>\` section`,
+    );
+    expect(answer).toContain(
+      "drops a line whose `time` is neither text nor a number, without a warning.",
+    );
+    expect(answer).toContain(
+      "With the `record_transformer` filter above, OneUptime stores the log at the time Fluentd read it, `fluentd_time`; without it, at the time OneUptime receives it.",
+    );
+
+    for (const value of [null, true, [1, 2], { s: 1 }]) {
+      // "at the time Fluentd read it, `fluentd_time`"
+      expect({
+        value,
+        field: FluentRecordTimeUtil.read(
+          { time: value, message: "x", [FLUENTD_EVENT_TIME_FIELD]: readAt },
+          arrivedAt,
+        ).field,
+      }).toEqual({ value, field: FLUENTD_EVENT_TIME_FIELD });
+      // "without it, at the time OneUptime receives it"
+      expect({
+        value,
+        read: FluentRecordTimeUtil.read(
+          { time: value, message: "x" },
+          arrivedAt,
+        ),
+      }).toEqual({
+        value,
+        read: {
+          timeUnixNano: `${arrivedAt.getTime()}000000`,
+          timeDate: arrivedAt,
+          field: null,
+        },
+      });
+    }
+  });
+
+  it("gives files that keep their batches on disk through a restart, at most 512 MB of them", () => {
+    for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
+      expect(output.code).toContain(
+        "    @type file\n    path /var/log/fluent/buffer/oneuptime\n    total_limit_size 512m\n",
+      );
+    }
+
+    const page: string = englishPage(FLUENTD);
+
+    expect(page).toContain(
+      "`@type file` keeps the batches still to send in the folder `path` names, so a restart of Fluentd loses none of them; a buffer in memory, Fluentd's default, loses what it holds.",
+    );
+    expect(page).toContain(
+      "`total_limit_size 512m` keeps at most 512 MB there; when it is full, Fluentd takes no more records until a batch is sent.",
+    );
+    // Fluentd refuses two file buffers on one path ("already use same buffer path").
+    expect(page).toContain(
+      "each with its own `x-oneuptime-service-name` and its own buffer `path`: Fluentd does not start with two buffers on one path.",
+    );
+    expect(
+      detailsAnswer(FLUENTD, "Fluentd logs `429`, `502`, `503` or `504`"),
+    ).toContain(
+      "With `@type file` in the `<buffer>` section, Fluentd also keeps the batch when it restarts.",
+    );
+  });
+
+  it("takes forwarded records from this host alone, and says how to take them from other hosts", () => {
+    const [, complete] = codeBlockTitled(FLUENTD, "fluentd.conf");
+    const receiver: Array<DocsFence> = codeBlockTitled(
+      FLUENTD,
+      "fluentd.conf on this host",
+    );
+    const sender: Array<DocsFence> = codeBlockTitled(
+      FLUENTD,
+      "fluentd.conf on each sender",
+    );
+
+    expect(complete!.code).toContain("  @type forward\n  port 24224\n");
+    expect(complete!.code).toContain("  bind 127.0.0.1\n");
+    expect(complete!.code).not.toContain("bind 0.0.0.0");
+    expect(englishPage(FLUENTD)).toContain(
+      "`bind 127.0.0.1` takes records from this host alone, such as those of Docker's `fluentd` log driver, which sends to `localhost:24224`.",
+    );
+    expect(
+      scanPage("en", FLUENTD).headings.map((heading: DocsHeading): string => {
+        return heading.text;
+      }),
+    ).toContain("Take records from other hosts");
+
+    // This host: every address, a shared key and TLS; each sender: the same key, over TLS.
+    expect(receiver.length).toBe(1);
+    expect(sender.length).toBe(1);
+    expect(receiver[0]!.code).toContain("  bind 0.0.0.0\n  <transport tls>\n");
+    expect(receiver[0]!.code).toContain("    shared_key YOUR_SHARED_KEY\n");
+    expect(sender[0]!.code).toContain("  transport tls\n");
+    expect(sender[0]!.code).toContain("    shared_key YOUR_SHARED_KEY\n");
   });
 
   it("gives files that send a batch again when OneUptime is busy or restarting", () => {

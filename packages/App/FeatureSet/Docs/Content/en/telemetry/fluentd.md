@@ -82,6 +82,10 @@ Add a `<match>` section that sends records to OneUptime. Replace `YOUR_SERVICE_T
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Add a `<match>` section that sends records to OneUptime. Replace `YOUR_SERVICE_T
 
 `json_array true` sends each buffer chunk as one JSON array, and `flush_interval 10s` sends the buffer every 10 seconds. `chunk_limit_size 900k` keeps each request under 1 MB, the most OneUptime accepts on this endpoint.
 
+`@type file` keeps the batches still to send in the folder `path` names, so a restart of Fluentd loses none of them; a buffer in memory, Fluentd's default, loses what it holds. Fluentd's user must be able to write that folder: `/var/log/fluent` is fluent-package's, `/var/log/td-agent` td-agent's, and `/fluentd/log` the `fluent/fluentd` image's. `total_limit_size 512m` keeps at most 512 MB there; when it is full, Fluentd takes no more records until a batch is sent.
+
 `retryable_response_codes 429,502,503,504` sends a batch again when OneUptime is busy (`429`) or restarting (`502`, `503`, `504`); without it, Fluentd drops a batch on any answer but `503`. `retry_max_interval 30s` waits at most 30 seconds between tries, and `retry_timeout 72h` drops a batch it still cannot send after 72 hours. The `record_transformer` filter adds the time Fluentd gave each record, as `fluentd_time`: the HTTP output sends only the record, and OneUptime reads a log's time from it.
 
 ### Restart Fluentd
@@ -113,7 +119,7 @@ Within a few seconds of the next flush, the logs appear under **Products → Log
 
 ## Complete example
 
-This configuration receives records over Fluentd's forward protocol on port `24224` and sends them all to OneUptime:
+This configuration receives records over Fluentd's forward protocol on port `24224`, from this host alone, and sends them all to OneUptime:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ This configuration receives records over Fluentd's forward protocol on port `242
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ This configuration receives records over Fluentd's forward protocol on port `242
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ This configuration receives records over Fluentd's forward protocol on port `242
 </label>
 ```
 
-To send different sources as different services, use one `<match>` section per tag, each with its own `x-oneuptime-service-name`.
+`bind 127.0.0.1` takes records from this host alone, such as those of Docker's `fluentd` log driver, which sends to `localhost:24224`. To send different sources as different services, use one `<match>` section per tag, each with its own `x-oneuptime-service-name` and its own buffer `path`: Fluentd does not start with two buffers on one path.
+
+## Take records from other hosts
+
+With `bind 0.0.0.0` and no `<security>` section, anyone who can reach port `24224` can send logs to OneUptime under your ingestion key. To take records from Fluentd or Fluent Bit on other hosts, listen on every address, ask each sender for a shared key, and use TLS. Replace the `<source>` section of the complete example with:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` and `private_key_path` are a certificate for this host's name, `fluentd.example.com` here, and its key, which Fluentd's user must be able to read. Fluentd warns when the key has no passphrase; `private_key_passphrase` sets one. Replace `YOUR_SHARED_KEY` with a long random secret, such as one from `openssl rand -base64 32`, and give each sender the same:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Fluent Bit's `forward` output takes the same settings: `Shared_Key`, `Self_Hostname`, `tls On` and `tls.ca_file`.
+
+A sender without the key, or without TLS, is turned away. The key never crosses the network: each side proves that it holds it. Without TLS, anyone on the network between the hosts can read the records. Open port `24224` in the host's firewall only to the hosts that send. If Fluentd runs from the logs guide's Docker Compose file, publish the port on every address there too, `"24224:24224"`, and mount the certificate's folder into the container.
 
 ## How records are read
 
@@ -209,11 +274,15 @@ The request is over 1 MB, the most OneUptime accepts on this endpoint. Set `chun
 :::
 
 :::details Fluentd logs `429`, `502`, `503` or `504`
-OneUptime is busy or restarting. With `retryable_response_codes 429,502,503,504` in the `<match>` section, as in the configuration above, Fluentd keeps the batch and sends it again; without it, Fluentd drops the batch.
+OneUptime is busy or restarting. With `retryable_response_codes 429,502,503,504` in the `<match>` section, as in the configuration above, Fluentd keeps the batch and sends it again; without it, Fluentd drops the batch. With `@type file` in the `<buffer>` section, Fluentd also keeps the batch when it restarts.
 :::
 
 :::details Logs show the time OneUptime received them, not their own
-OneUptime reads a log's time from its record, and Fluentd's HTTP output sends only the record. A `<parse>` section takes the `time` field out of a record: add `keep_time_key true` to it. Add the `record_transformer` filter of the configuration above too: it adds the time Fluentd gave each record, as `fluentd_time`.
+OneUptime reads a log's time from its record, and Fluentd's HTTP output sends only the record. A `<parse>` section takes the `time` field out of a record, as the event's time: add `time_key fluentd_time` to it, so that it reads no record's time and leaves `time` as it is. Add the `record_transformer` filter of the configuration above too: it adds the time Fluentd gave each record, as `fluentd_time`.
+:::
+
+:::details A JSON line whose `time` is `null`, `true`, a list or an object never arrives
+Fluentd's `json` parser reads a line's `time` field as the event's time, and drops a line whose `time` is neither text nor a number, without a warning. Add `time_key fluentd_time` to its `<parse>` section, as above: Fluentd then leaves `time` in the record as it is. With the `record_transformer` filter above, OneUptime stores the log at the time Fluentd read it, `fluentd_time`; without it, at the time OneUptime receives it.
 :::
 
 :::details Logs arrive under the `Fluentd` service
