@@ -668,7 +668,7 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * monitor's charts and the metric it stores, and the words under each of
    * the Database catalog's groups. Every monitor metric catalog marks its
    * descriptions - the four above and these eight. These mark nothing else:
-   * their metric names are drawn as written for now, and the attribute
+   * their metric names are no keys yet (#8353, #8354), and the attribute
    * names, values and units a description gives stay as written in every
    * language (MonitorMetricDescriptionsInLocales).
    */
