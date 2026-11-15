@@ -64,7 +64,7 @@ type CapturedActionButton = {
   onClick?:
     | ((
         item: NetworkDeviceDiscoveryScan,
-        onCompleteAction: VoidFunction,
+        onCompleteAction: () => void,
       ) => Promise<void>)
     | undefined;
 };
