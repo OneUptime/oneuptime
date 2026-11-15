@@ -209,7 +209,7 @@ service:
 ## 다음 단계
 
 :::cards
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 알림을 받습니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 경고를 받습니다.
 - [대시보드 작성](/docs/dashboards/authoring): 차트를 나란히 놓습니다.
 - [검색 구문](/docs/telemetry/search-syntax): 검색 상자가 이해하는 모든 필터.
 :::

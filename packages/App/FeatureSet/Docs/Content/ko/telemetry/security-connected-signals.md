@@ -131,6 +131,6 @@ OneUptime AI의 케이스 분류는 그 케이스의 연결된 신호, 즉 케�
 :::cards
 - [보안 케이스 및 플레이북](/docs/telemetry/security-cases): 케이스를 처리하고 그로부터 인시던트를 선언합니다.
 - [보안 이벤트(SIEM)](/docs/telemetry/security-events): 케이스 뒤에 있는 이벤트와 그 이벤트를 읽어 온 로그.
-- [엔티티 위험 (위험 기반 알림)](/docs/telemetry/security-entity-risk): 엔티티 페이지, 그 위험도, 그리고 OneUptime에서 그것이 있는 곳.
+- [엔티티 위험 (위험 기반 경고)](/docs/telemetry/security-entity-risk): 엔티티 페이지, 그 위험도, 그리고 OneUptime에서 그것이 있는 곳.
 - [보안의 OneUptime AI](/docs/telemetry/security-ai): 분류가 케이스가 가리키는 것을 읽는 방법.
 :::

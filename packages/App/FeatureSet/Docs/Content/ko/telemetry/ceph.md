@@ -19,7 +19,7 @@ flowchart TB
     daemons["모니터, mgr,<br/>OSD 데몬"]
     collector["Collector"] -->|"30초마다<br/>스크레이프"| mgrs
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"인시던트나 알림을<br/>조사"| ai["Ceph AI 에이전트"]
+    oneuptime -->|"인시던트나 경고를<br/>조사"| ai["Ceph AI 에이전트"]
     ai -->|"읽기 전용<br/>ceph 명령"| daemons
 ```
 

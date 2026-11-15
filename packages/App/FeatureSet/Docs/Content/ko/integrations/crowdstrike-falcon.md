@@ -11,11 +11,11 @@
 
 ## 작동 방식
 
-```mermaid title="Falcon 알림에서 보안 이벤트까지"
+```mermaid title="Falcon 경고에서 보안 이벤트까지"
 flowchart TB
-    falcon["Falcon이<br/>알림 발생"] --> poll["OneUptime이<br/>연결 간격마다<br/>폴링"]
+    falcon["Falcon이<br/>경고 발생"] --> poll["OneUptime이<br/>연결 간격마다<br/>폴링"]
     poll --> token["API 클라이언트로<br/>로그인"]
-    token --> list["지난번 이후<br/>생성된<br/>알림 조회"]
+    token --> list["지난번 이후<br/>생성된<br/>경고 조회"]
     list --> event["각각을 Detection<br/>Finding으로 저장"]
 ```
 

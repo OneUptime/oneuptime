@@ -28,7 +28,7 @@ sequenceDiagram
     B->>O: 콜백
     O->>E: Microsoft<br/>Graph 토큰 받기
     Note over O,AB: 연결된 후
-    O->>AB: 알림 카드 게시,<br/>아웃바운드 HTTPS
+    O->>AB: 경고 카드 게시,<br/>아웃바운드 HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 

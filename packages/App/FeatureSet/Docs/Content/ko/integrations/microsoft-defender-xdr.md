@@ -11,11 +11,11 @@
 
 ## 작동 방식
 
-```mermaid title="Defender 알림에서 보안 이벤트까지"
+```mermaid title="Defender 경고에서 보안 이벤트까지"
 flowchart TB
-    defender["Defender 워크로드가<br/>알림 발생"] --> poll["OneUptime이<br/>연결 간격마다<br/>폴링"]
+    defender["Defender 워크로드가<br/>경고 발생"] --> poll["OneUptime이<br/>연결 간격마다<br/>폴링"]
     poll --> token["앱 등록으로<br/>로그인"]
-    token --> list["지난번 이후<br/>생성된<br/>알림 조회"]
+    token --> list["지난번 이후<br/>생성된<br/>경고 조회"]
     list --> event["각각을 Detection<br/>Finding으로 저장"]
 ```
 
@@ -39,7 +39,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 2. **App registrations → New registration**으로 이동합니다. 이름을 `OneUptime Security Events`로 정하고, **Supported account types**는 **Accounts in this organizational directory only**로 두고, 리디렉션 URI는 비워 둔 채 **Register**를 선택합니다.
 3. 앱의 **Overview** 페이지에서 **애플리케이션(클라이언트) ID**와 **디렉터리(테넌트) ID**를 복사합니다.
 
-### 알림을 읽도록 허용
+### 경고를 읽도록 허용
 
 1. **API permissions → Add a permission → Microsoft Graph → Application permissions**로 이동해 `SecurityAlert.Read.All`을 고르고 **Add permissions**를 선택합니다. [List alerts_v2](https://learn.microsoft.com/en-us/graph/api/security-list-alerts_v2#permissions) 호출이 애플리케이션에 허용하는 가장 낮은 권한입니다. `SecurityAlert.ReadWrite.All`은 추가하지 마세요.
 2. 테넌트에 대해 **Grant admin consent for**를 선택하고 확인합니다. 권한의 상태가 **Granted**여야 합니다. 동의가 없으면 모든 읽기가 `403`으로 거부됩니다.
@@ -70,7 +70,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 가져오는 내용
 
-각 Defender XDR [알림](https://learn.microsoft.com/en-us/graph/api/resources/security-alert)은 공급업체 `Microsoft`, 제품 `Microsoft Defender XDR`인 Detection Finding 이벤트 하나(OCSF 클래스 `2004`)가 되며, 텔레메트리 서비스 `Microsoft Defender XDR`에 귀속됩니다:
+각 Defender XDR [경고](https://learn.microsoft.com/en-us/graph/api/resources/security-alert)은 공급업체 `Microsoft`, 제품 `Microsoft Defender XDR`인 Detection Finding 이벤트 하나(OCSF 클래스 `2004`)가 되며, 텔레메트리 서비스 `Microsoft Defender XDR`에 귀속됩니다:
 
 | OCSF 열 | 경고 필드 |
 | --- | --- |
@@ -102,7 +102,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 - **첫 폴링은 24시간 전까지 거슬러 올라가므로**, 새 연결에서 최근 경고가 바로 보입니다.
 - **이후의 모든 폴링은 저장된 커서보다 1분 앞에서 시작하므로**, 두 구간의 경계에서 생성된 경고는 두 번 읽히지만 한 번만 가져옵니다.
 - **한 번의 폴링은 커서 이후 최대 24시간까지 읽습니다.** 워커가 멈췄거나 테넌트가 요청 제한을 받는 동안 커서가 뒤처진 연결은 24시간 구간을 연달아 읽으며 따라잡습니다.
-- **중복은 알림의 `id`로 걸러집니다.** `Microsoft` / `Microsoft Defender XDR`에서 온 프로젝트의 이벤트 안에서 걸러지므로, 겹치는 부분, 다시 시도한 구간, 가져오기 중 어느 것도 경고를 두 번 저장하지 않습니다.
+- **중복은 경고의 `id`로 걸러집니다.** `Microsoft` / `Microsoft Defender XDR`에서 온 프로젝트의 이벤트 안에서 걸러지므로, 겹치는 부분, 다시 시도한 구간, 가져오기 중 어느 것도 경고를 두 번 저장하지 않습니다.
 - **실패한 실행은 아무것도 바꾸지 않습니다.** 네트워크 오류나 Graph의 오류 상태 뒤에는 커서와 구간 길이가 그대로 유지되고, 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다.
 
 ### 한 번의 폴링으로 다 읽을 수 없는 구간

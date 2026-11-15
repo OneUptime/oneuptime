@@ -10,7 +10,7 @@ En egendefinert kanal sender vakttilkallinger til en tjeneste du selv drifter: b
 - [Hva tjenesten din mottar](#hva-tjenesten-din-mottar): Én signert JSON-forespørsel per person per tilkalling.
 - [Handle på en tilkalling](#handle-på-en-tilkalling): Bekreft, eskaler eller løs fra din egen app.
 - [Levering og nye forsøk](#levering-og-nye-forsøk): Hva som skjer når tjenesten din er nede.
-- [Andre varsler](#andre-varsler): Varsler til eiere, notater og vakter, for dem som vil ha dem.
+- [Andre varslinger](#andre-varslinger): Varslinger til eiere, notater og vakter, for dem som vil ha dem.
 - [Uten lisens](#uten-lisens): Hva som stopper, og hva som beholdes.
 :::
 
@@ -22,7 +22,7 @@ flowchart TB
     Service["Tjenesten din"]
     App["Appen din"]
     OneUptime -->|"signert JSON-forespørsel"| Service
-    Service -->|"varsel"| App
+    Service -->|"varsling"| App
     App -->|"Bekreft, Eskaler, Løs"| Service
     Service -->|"POST til handlingslenken"| OneUptime
 ```
@@ -31,16 +31,16 @@ Når en vaktpolicy tilkaller noen og vaktregelen deres bruker kanalen, sender On
 
 ## Legg til en kanal
 
-1. Åpne **Innstillinger** i Admin Dashboard, deretter **Varsler > Egendefinerte kanaler** i sidemenyen (**Varsler** er slått sammen fra start), og velg **Add**.
+1. Åpne **Innstillinger** i Admin Dashboard, deretter **Varslinger > Egendefinerte kanaler** i sidemenyen (**Varslinger** er slått sammen fra start), og velg **Add**.
 2. Fyll ut i trinnet **Channel**:
-   - **Navn**: det folk ser i varselmetodene og vaktreglene sine, for eksempel `CorpoApp`.
+   - **Navn**: det folk ser i varslingsmetodene og vaktreglene sine, for eksempel `CorpoApp`.
    - **Webhook URL**: hvor OneUptime sender hver tilkalling. Den kan ligge på det private nettverket ditt.
    - **Signeringshemmelighet**: OneUptime lager en for deg. Kopier den inn i tjenesten din, som kontrollerer hver forespørsel med den. Du kan se den igjen ved å redigere kanalen.
 3. Lagre i trinnet **Delivery**, og velg deretter **Send test** for å sende tjenesten din en [testforespørsel](#testforespørsler).
 
 I trinnet **Delivery** er **Page everyone through this channel** slått på. OneUptime legger da kanalen til i alles vaktregler i hvert prosjekt, og i reglene til alle som blir med i et prosjekt senere, og bruker den til å nå en vakthavende som ikke har noen regel for det som utløste tilkallingen. Slå det av for å la folk legge til kanalen i reglene sine selv.
 
-Folk ser kanalen under **Brukerinnstillinger**, deretter **Varselmetoder**, deretter **Egendefinerte kanaler**, med en knapp **Send test**, og velger den i vaktreglene sine som `Custom Channel: CorpoApp`. De setter ikke opp noe: Tjenesten din får vite hvem hver tilkalling er til.
+Folk ser kanalen under **Brukerinnstillinger**, deretter **Varslingsmetoder**, deretter **Egendefinerte kanaler**, med en knapp **Send test**, og velger den i vaktreglene sine som `Custom Channel: CorpoApp`. De setter ikke opp noe: Tjenesten din får vite hvem hver tilkalling er til.
 
 For å slutte å sende uten å endre noens regler velger du **Deaktiver** i kanalens ⋯-meny, eller redigerer kanalen og slår av **På**; **Aktiver** i samme meny slår den på igjen. Tilkallinger som ville ha gått til den, registreres i vaktloggen som ikke sendt. Sletter du en kanal, slettes alle vaktregler som bruker den.
 
@@ -91,9 +91,9 @@ Hver tilkalling er en `POST`-forespørsel med en JSON-body:
 | Felt | Hva det er |
 | --- | --- |
 | `version` | `1`. Denne versjonen får bare nye felt lagt til. |
-| `event` | `on-call.incident.created`, `on-call.alert.created`, `on-call.incidentEpisode.created`, `on-call.alertEpisode.created`, `notification` for [andre varsler](#andre-varsler), eller `test` |
+| `event` | `on-call.incident.created`, `on-call.alert.created`, `on-call.incidentEpisode.created`, `on-call.alertEpisode.created`, `notification` for [andre varsler](#andre-varslinger), eller `test` |
 | `notificationId` | Én per person per tilkalling. Bruk den til å forkaste en forespørsel du allerede har behandlet. |
-| `title`, `message` | Klare til å vises, slik et push-varsel ville vist dem |
+| `title`, `message` | Klare til å vises, slik en push-varsling ville vist dem |
 | `user` | Hvem tilkallingen er til. Finn kontoen i appen din ut fra `email` eller `id`. |
 | `team` | Teamet personen ble tilkalt gjennom, eller `null` når personen ble tilkalt direkte |
 | `recordType`, `record` | Hva tilkallingen gjelder: en `incident`, `alert`, `incidentEpisode` eller `alertEpisode` |
@@ -149,11 +149,11 @@ Svaret forteller hva som skjedde, med ord appen din kan vise som de er:
 
 `result` er en av `acknowledged`, `alreadyAcknowledged`, `escalated`, `notEscalated`, `resolved` og `alreadyResolved`. En utløpt eller feil lenke avvises med en 4xx-status og en melding.
 
-## Andre varsler
+## Andre varslinger
 
-Tilkallinger er ikke de eneste varslene folk får: OneUptime forteller dem også når en hendelse de eier, endrer tilstand, når et notat blir publisert, når vakten deres begynner, og mer. Hver person velger hvor hvert av dem skal, under **Brukerinnstillinger > Varselinnstillinger**, som har en kolonne **Egendefinerte kanaler** så lenge en kanal er slått på. Den er slått av for alle til de slår den på selv.
+Tilkallinger er ikke de eneste varslingene folk får: OneUptime forteller dem også når en hendelse de eier, endrer tilstand, når et notat blir publisert, når vakten deres begynner, og mer. Hver person velger hvor hvert av dem skal, under **Brukerinnstillinger > Varslingsinnstillinger**, som har en kolonne **Egendefinerte kanaler** så lenge en kanal er slått på. Den er slått av for alle til de slår den på selv.
 
-Et varsel går til hver kanal som er slått på, som én forespørsel per kanal, med `event` satt til `notification`:
+En varsling går til hver kanal som er slått på, som én forespørsel per kanal, med `event` satt til `notification`:
 
 ```json title="A notification"
 {
@@ -179,7 +179,7 @@ Et varsel går til hver kanal som er slått på, som én forespørsel per kanal,
 }
 ```
 
-`title` og `message` er det personens push-varsel ville sagt. `notificationType` navngir innstillingen det ble sendt for, og `url` lenker til det varselet gjelder, eller er `null`. Det er ingenting å handle på, så `actions` er `null`.
+`title` og `message` er det personens push-varsling ville sagt. `notificationType` navngir innstillingen det ble sendt for, og `url` lenker til den varslingen gjelder, eller er `null`. Det er ingenting å handle på, så `actions` er `null`.
 
 ## Levering og nye forsøk
 
@@ -189,16 +189,16 @@ Utfallet av hvert forsøk står i personens vaktlogg, med kanalens navn og statu
 
 ## Testforespørsler
 
-**Send test**, på siden i Admin Dashboard eller i en persons varselmetoder, sender en forespørsel med `event` satt til `test`, personen som trykket, som `user`, og `notificationId`, `record` og `actions` satt til `null`. Bruk den til å prøve tjenesten din før en ekte tilkalling kommer.
+**Send test**, på siden i Admin Dashboard eller i en persons varslingsmetoder, sender en forespørsel med `event` satt til `test`, personen som trykket, som `user`, og `notificationId`, `record` og `actions` satt til `null`. Bruk den til å prøve tjenesten din før en ekte tilkalling kommer.
 
 ## Uten lisens
 
 Egendefinerte kanaler virker i Enterprise Editions prøveperiode på 14 dager og i fristen på 30 dager etter at en lisens har utløpt. Etter det, eller med en lisens som ikke omfatter dem:
 
 - **Ingenting sendes til en egendefinert kanal.** En tilkalling som ville ha gått til en, registreres i personens vaktlogg som ikke sendt, og det samme gjør en test.
-- **Kanaler tilbys ikke lenger.** De forsvinner fra folks varselmetoder, vaktregler og varselinnstillinger, og beredskapen og reserveløsningen slutter å telle dem med.
+- **Kanaler tilbys ikke lenger.** De forsvinner fra folks varslingsmetoder, vaktregler og varslingsinnstillinger, og beredskapen og reserveløsningen slutter å telle dem med.
 - **Teamets samsvar kontrollerer ikke egendefinerte kanaler.** En samsvarsregel for et team som krever en egendefinert kanal, viser **Ikke kontrollert**, og medlemmer kontrolleres ikke for den før en egendefinert kanal igjen kan bære en tilkalling.
-- **Siden er skrivebeskyttet.** Du kan se og slette kanaler, men ikke legge til eller endre dem, og ingen kan peke en regel eller en varselinnstilling mot en kanal.
+- **Siden er skrivebeskyttet.** Du kan se og slette kanaler, men ikke legge til eller endre dem, og ingen kan peke en regel eller en varslingsinnstilling mot en kanal.
 - **Ingenting slettes.** Kanalene, og vaktreglene og innstillingene som bruker dem, beholdes.
 
 Alt fortsetter så snart en lisens er aktivert, uten omstart. Folk som ble med i et prosjekt mens egendefinerte kanaler var stoppet, får ikke en kanal som tilkaller alle, i reglene sine: De kan legge den til selv.

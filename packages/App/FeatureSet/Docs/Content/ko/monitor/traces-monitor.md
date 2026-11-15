@@ -16,7 +16,7 @@ flowchart TB
     App["서비스"] -->|OpenTelemetry| Store[("OneUptime의 스팬")]
     Store --> Count["시간 창 안에서 일치하는<br/>스팬 세기"]
     Count --> Check{"기준 충족?"}
-    Check -->|"첫 번째 일치"| Act["상태 변경,<br/>알림 또는 인시던트"]
+    Check -->|"첫 번째 일치"| Act["상태 변경,<br/>경고 또는 인시던트"]
     Check -->|없음| Default["기본 상태"]
 ```
 
@@ -64,7 +64,7 @@ OneUptime은 매분 모니터의 필터와 일치하고 시간 창 안에서 시
 :::
 
 > [!TIP]
-> AI 기능이 잘못 응답할 때(실패, 거부, 잘림, 빈 응답, 플래그 지정, 느린 응답) 알림을 받으려면 대신 **텔레메트리** 아래의 **AI / LLM**을 선택하세요. 이 모니터는 트레이스 안의 AI 호출을 대신 읽어 주므로 스팬 필터를 직접 작성할 필요가 없습니다. [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability#ai가-잘못-답할-때-알림-받기)를 참고하세요.
+> AI 기능이 잘못 응답할 때(실패, 거부, 잘림, 빈 응답, 플래그 지정, 느린 응답) 알림을 받으려면 대신 **텔레메트리** 아래의 **AI / LLM**을 선택하세요. 이 모니터는 트레이스 안의 AI 호출을 대신 읽어 주므로 스팬 필터를 직접 작성할 필요가 없습니다. [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability#ai가-잘못-답할-때-경고-받기)를 참고하세요.
 
 ## 조회 대상
 
@@ -175,5 +175,5 @@ API나 Terraform으로 기준 없이 만든 트레이스 모니터는 다음 기
 - [예외 모니터](/docs/monitor/exceptions-monitor): 서비스가 기록하는 예외에 대해 경고를 받습니다.
 - [로그 모니터](/docs/monitor/logs-monitor): 로그의 양과 내용에 대해 경고를 받습니다.
 - [검색 구문](/docs/telemetry/search-syntax): 트레이스 탐색기에서 스팬 이름과 상태를 찾습니다.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 유용한 경고 제목과 설명을 작성합니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 유용한 경고 제목과 설명을 작성합니다.
 :::

@@ -12,7 +12,7 @@ OneUptime은 보안 이벤트를 로그, 트레이스, 메트릭 옆에 보관�
 
 ## 작동 방식
 
-```mermaid title="보안 소스에서 알림까지"
+```mermaid title="보안 소스에서 경고까지"
 flowchart TB
     subgraph sources["소스"]
         direction LR
@@ -22,7 +22,7 @@ flowchart TB
     normalize --> events["보안 이벤트"]
     events --> rules["탐지 규칙<br/>(Sigma)"]
     events --> monitors["보안 이벤트<br/>모니터"]
-    rules --> act["케이스, 알림,<br/>탐지 결과"]
+    rules --> act["케이스, 경고,<br/>탐지 결과"]
     monitors --> act
 ```
 
@@ -359,7 +359,7 @@ flowchart TB
     tick["매분: 간격이 된<br/>규칙을 실행"] --> query["규칙의 마지막 실행<br/>이후의 이벤트"]
     query --> count["Group By Field의<br/>값마다 개수를 셈"]
     count --> check{"개수가<br/>Match Count Threshold에<br/>도달했는가?"}
-    check -->|"예"| fire["케이스, 알림,<br/>선택적 인시던트,<br/>Detection Finding"]
+    check -->|"예"| fire["케이스, 경고,<br/>선택적 인시던트,<br/>Detection Finding"]
     check -->|"아니요"| wait["다음 실행까지<br/>아무것도 안 함"]
 ```
 
@@ -514,7 +514,7 @@ OneUptime은 매분, 마지막 실행 이후 간격이 지난 활성화된 규�
 > [!TIP]
 > 경고 심각도의 이름을 Sigma 수준(Critical, High, Medium, Low, Informational)에 맞춰 두면, 규칙마다 설정하지 않아도 모든 규칙이 알맞은 심각도에 배정됩니다.
 
-### 알림과 탐지 결과
+### 경고와 탐지 결과
 
 발동한 그룹마다 제목이 `[Detection] <rule name> — <group value>` 인 경고가, Group By Field가 없는 규칙에서는 `[Detection] <rule name>` 인 경고가 열립니다. 경고가 열려 있는 동안에는 그 그룹의 일치가 더 있어도 새 경고가 열리지 않습니다. 규칙은 일치만 볼 뿐 공격이 멈췄는지는 알 수 없으므로, 경고는 누군가 해결할 때까지 열려 있습니다.
 

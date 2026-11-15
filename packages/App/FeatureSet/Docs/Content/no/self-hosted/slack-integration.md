@@ -178,7 +178,7 @@ En app som er installert for en hel organisasjon på Slack Enterprise Grid, tren
 
 | Trafikk | Nødvendig tilgang |
 | --- | --- |
-| OneUptime til Slack | DNS og utgående HTTPS på TCP 443 til `slack.com` for Web API-kall og utveksling av OAuth-token; `hooks.slack.com` for svar-URL-er fra kommandoer og varsler via incoming webhooks, når de brukes |
+| OneUptime til Slack | DNS og utgående HTTPS på TCP 443 til `slack.com` for Web API-kall og utveksling av OAuth-token; `hooks.slack.com` for svar-URL-er fra kommandoer og varslinger via incoming webhooks, når de brukes |
 | Slack til OneUptime | Offentlig HTTPS på TCP 443 til de fire POST-rutene nedenfor, for hele integrasjonen |
 | Brukerens nettleser til OneUptime | Tilgang til dashbordet og OAuth-omdirigeringer til `/api/slack/auth/:projectId/:userId` og `/api/slack/auth/:projectId/:userId/user`; disse kan fortsatt nås via brukerens VPN |
 
@@ -221,7 +221,7 @@ Unnta callback-rutene fra nettleser-SSO, CAPTCHA og proxyens påloggingssider, o
 
 :::steps
 1. Bekreft forespørsels-URL-en under **Event Subscriptions** i Slack-appen. Slack sender en [POST-challenge og kontrollerer TLS](https://docs.slack.dev/apis/events-api/using-http-request-urls/).
-2. Send et testvarsel, kjør en skråstrekkommando, trykk på en knapp i en hendelsesmelding, og utløs en abonnert hendelse.
+2. Send en testvarsling, kjør en skråstrekkommando, trykk på en knapp i en hendelsesmelding, og utløs en abonnert hendelse.
 3. Sjekk loggene til gatewayen og OneUptime for mislykkede leveranser, uten å logge hemmeligheter.
 :::
 
@@ -256,8 +256,8 @@ Når Slack sender deg tilbake og tilkoblingen ikke ble opprettet, viser Slack-si
 OneUptime svarer bare på Slacks challenge når `SLACK_APP_SIGNING_SECRET` er satt og forespørselen når fram. Angi signing secret, ta i bruk konfigurasjonen, og prøv bekreftelsen på nytt. Hvis den fortsatt mislykkes, kontrollerer du at `POST /api/slack/events` kan nås fra internett med et offentlig klarert sertifikat.
 :::
 
-:::details Knapper og skråstrekkommandoer gjør ingenting, men varslene kommer fram
-Varsler er utgående og fungerer derfor uten innkommende tilgang. Knapper, snarveier og kommandoer er innkommende: Kontroller at Slack kan nå `POST /api/slack/interactive` og `POST /api/slack/command`, og at gatewayen bevarer bodyen og headerne `X-Slack-Signature` og `X-Slack-Request-Timestamp`.
+:::details Knapper og skråstrekkommandoer gjør ingenting, men varslingene kommer fram
+Varslinger er utgående og fungerer derfor uten innkommende tilgang. Knapper, snarveier og kommandoer er innkommende: Kontroller at Slack kan nå `POST /api/slack/interactive` og `POST /api/slack/command`, og at gatewayen bevarer bodyen og headerne `X-Slack-Signature` og `X-Slack-Request-Timestamp`.
 :::
 
 :::details Appen sier at Slack-kontoen min ikke er koblet til OneUptime

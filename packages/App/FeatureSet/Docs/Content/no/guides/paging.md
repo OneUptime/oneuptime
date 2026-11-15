@@ -17,9 +17,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Push-varsler er gratis på alle planer. SMS og anrop betales fra prosjektets saldo, som starter på 0.00 USD, og når du legger til et telefonnummer, sendes det en SMS, så saldoen må først være over 1.00 USD. Når du legger til saldo, belastes prosjektets kort. Free-planen har plass til én person og én eskaleringsregel: bare du blir tilkalt, og tilkallingen gjentas i stedet for å gå videre til noen andre.
+Push-varslinger er gratis på alle planer. SMS og anrop betales fra prosjektets saldo, som starter på 0.00 USD, og når du legger til et telefonnummer, sendes det en SMS, så saldoen må først være over 1.00 USD. Når du legger til saldo, belastes prosjektets kort. Free-planen har plass til én person og én eskaleringsregel: bare du blir tilkalt, og tilkallingen gjentas i stedet for å gå videre til noen andre.
 @tab Selvdriftet
-Serveren din må kunne sende e-post, SMS og anrop. Hovedadministratoren setter dem opp på `/admin/setup`, med en test for hver, slik [Selv-hosting-veiledning](/docs/installation/self-hosting-guide) viser. Push-varsler når appen gjennom OneUptimes push-relé, uten noe å sette opp.
+Serveren din må kunne sende e-post, SMS og anrop. Hovedadministratoren setter dem opp på `/admin/setup`, med en test for hver, slik [Selv-hosting-veiledning](/docs/installation/self-hosting-guide) viser. Push-varslinger når appen gjennom OneUptimes push-relé, uten noe å sette opp.
 :::
 
 ## Trinn
@@ -33,7 +33,7 @@ På siden **Hjem** i prosjektet ditt klikker du på **Sett opp en vaktpolicy** i
 
 ### Last ned appen på telefonen din
 
-Installer OneUptime On-Call fra App Store eller Google Play, og logg inn: da registreres telefonen din for push-varsler. Tilbake i oppsettet klikker du på **Kontroller på nytt**: **Mobilapp eller nettleser** under **Hvordan skal vi nå deg?** viser nå telefonen din.
+Installer OneUptime On-Call fra App Store eller Google Play, og logg inn: da registreres telefonen din for push-varslinger. Tilbake i oppsettet klikker du på **Kontroller på nytt**: **Mobilapp eller nettleser** under **Hvordan skal vi nå deg?** viser nå telefonen din.
 
 ### Slå på SMS og anrop
 

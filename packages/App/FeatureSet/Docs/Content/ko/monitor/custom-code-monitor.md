@@ -181,9 +181,9 @@ return {
 | **결과 값** | 스크립트가 반환한 `data`. 숫자이면 숫자로 비교합니다. | 위와 같은 조건과 보다 큼, 보다 작음, 이상, 이하, 참, 거짓 |
 | **실행 시간(ms)** | 스크립트가 실행된 시간. | 숫자 비교 |
 
-기본 기준은 **오류** 가 비어 있으면 모니터를 온라인으로, 비어 있지 않으면 오프라인으로 표시합니다(스크립트가 다시 성공하면 저절로 해결되는 인시던트와 함께). 인시던트와 경고 템플릿에서는 실행 내용을 `{{result}}`, `{{scriptError}}`, `{{logMessages}}`, `{{executionTimeInMs}}` 로 사용할 수 있습니다. [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+기본 기준은 **오류** 가 비어 있으면 모니터를 온라인으로, 비어 있지 않으면 오프라인으로 표시합니다(스크립트가 다시 성공하면 저절로 해결되는 인시던트와 함께). 인시던트와 경고 템플릿에서는 실행 내용을 `{{result}}`, `{{scriptError}}`, `{{logMessages}}`, `{{executionTimeInMs}}` 로 사용할 수 있습니다. [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
-### 반환된 데이터로 알림 받기
+### 반환된 데이터로 경고 받기
 
 스크립트가 `data` 로 반환한 값이 모니터의 **결과 값** 이며, 기준에서 이를 비교할 수 있습니다. 예를 들어 _결과 값 같음 `UP`_ 처럼 씁니다.
 
@@ -257,5 +257,5 @@ return {
 :::cards
 - [합성 모니터](/docs/monitor/synthetic-monitor): API를 호출하는 대신 실제 브라우저를 조작합니다.
 - [모니터 시크릿](/docs/monitor/monitor-secrets): 스크립트가 사용하는 자격 증명을 저장합니다.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 스크립트의 결과와 로그를 인시던트에 넣습니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 스크립트의 결과와 로그를 인시던트에 넣습니다.
 :::

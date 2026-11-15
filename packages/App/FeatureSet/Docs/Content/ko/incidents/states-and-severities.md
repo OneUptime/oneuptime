@@ -142,7 +142,7 @@ API와 Terraform에서 순서는 `order` 열입니다. 작은 번호가 먼저 �
 | **주요 인시던트**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
 | **경미한 인시던트**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
-심각도는 인시던트를 선언할 때 필수이고, 모니터 기준의 각 인시던트 명세에서도 필수이므로, 수동이든 자동이든 모든 인시던트는 심각도를 갖고 들어옵니다. 선언 흐름은 [인시던트 선언](/docs/incidents/declaring-incidents)을, 모니터에서 만들어지는 경로는 [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+심각도는 인시던트를 선언할 때 필수이고, 모니터 기준의 각 인시던트 명세에서도 필수이므로, 수동이든 자동이든 모든 인시던트는 심각도를 갖고 들어옵니다. 선언 흐름은 [인시던트 선언](/docs/incidents/declaring-incidents)을, 모니터에서 만들어지는 경로는 [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
 ## 심각도 편집하기
 

@@ -136,7 +136,7 @@ Regler, egendefinerte felt og målinger krever **Prosjekteier** eller **Prosjekt
 :::
 
 :::details Eierne fikk ingen påminnelse
-Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Påminnelse om vedlikehold** er på i varselinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
+Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Påminnelse om vedlikehold** er på i varslingsinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
 :::
 
 ## Neste steg
@@ -145,5 +145,5 @@ Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påmin
 - [Vedlikeholdstilstander](/docs/scheduled-maintenance/states): Siden Vedlikeholdsstatus, og hva hver tilstand gjør.
 - [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates): Siden Vedlikeholdsmaler, i dybden.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): Regelskjemaet, trinn for trinn.
-- [Varselinnstillinger](/docs/notifications/notification-settings): Hvordan hver eier velger hva som når frem til dem.
+- [Varslingsinnstillinger](/docs/notifications/notification-settings): Hvordan hver eier velger hva som når frem til dem.
 :::
