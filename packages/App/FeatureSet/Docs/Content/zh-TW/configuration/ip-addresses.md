@@ -64,6 +64,6 @@ services:
 ## 後續步驟
 
 :::cards
-- [自訂探針](/docs/probe/custom-probe): 在您自己的網路中執行探測器，而不是開啟防火牆。
+- [自訂探測器](/docs/probe/custom-probe): 在您自己的網路中執行探測器，而不是開啟防火牆。
 - [建立監測器](/docs/monitor/create-monitor): 開始檢查網站、API 或伺服器。
 :::

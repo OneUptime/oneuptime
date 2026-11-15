@@ -25,8 +25,8 @@ host's older buckets with a lower reading, so a table that reduced the wrong way
 draw the wrong colors. The fixture's readings are on the page's record, and the suite
 works out every cell from them with the same rules the widget uses
 (`Common/Utils/Dashboard/TableThresholds`). A save is kept for the tab, so a reload opens
-what was saved. `?theme=dark`, `?lang=de` and `?lang=fa` set the theme and the
-Dashboard's words.
+what was saved. `?theme=dark`, `?lang=de`, `?lang=fa` and `?lang=ar` set the
+theme and the Dashboard's words.
 
 Desktop (1280px) Chromium covers: every cell of both host tables colored as the rules read
 the number on screen (a fraction shown and compared as a percent, 79.96% at one decimal
@@ -42,8 +42,13 @@ column with no thresholds asking for a value, the card in the dark theme and Ger
 the card in a window 390px wide, its fields stacked. Phone (Pixel 5, 390px) Chromium runs
 the board, its widgets one under another, each the screen's width: a dashboard is edited
 on a laptop. Both run a table's title keeping its line, the row search beside it at 1280
-and under it on the phone, and the public dashboard, Light and Dark. Screenshots are
-under `output/playwright/dashboard-table-thresholds-ui`.
+and under it on the phone, and the public dashboard, Light and Dark. Both also run
+**Errors by service** (four grid columns wide, grouped by `service.name`), whose one
+long service name gives way to its Errors column (#7524): the name cut at its own end on
+one line, the number inside the widget with nothing to swipe sideways, in English and in
+Arabic, where the English name reads left to right; at 1280 every short host name is
+still drawn whole. Screenshots are under
+`output/playwright/dashboard-table-thresholds-ui`.
 
 This checks real browser rendering and the widget's handling of its readings; the API,
 the database and the deployed app's routing are outside this fixture.

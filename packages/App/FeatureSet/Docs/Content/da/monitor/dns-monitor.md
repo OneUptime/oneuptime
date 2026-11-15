@@ -173,6 +173,6 @@ Serveren i **DNS-server (valgfri)** validerer ikke DNSSEC og sætter derfor aldr
 :::cards
 - [DNSSEC-monitor](/docs/monitor/dnssec-monitor): Validér tillidskæden i en signeret zone.
 - [Domæne-monitor](/docs/monitor/domain-monitor): Hold øje med domænets registrering og udløb.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Slå op i interne DNS-servere fra dit eget netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Slå op i interne DNS-servere fra dit eget netværk.
 - [Hændelser – Oversigt](/docs/incidents/index): Hvad der sker, efter at monitoren har erklæret en.
 :::

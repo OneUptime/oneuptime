@@ -28,7 +28,9 @@ import DashboardResourceListBase, {
   RESOURCE_LIST_COUNT_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardResourceListBase";
 import {
+  getNoStatusYetText,
   getStandaloneText,
+  getUnnamedSiteText,
   getUnnamedText,
   getUnsetText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetFallbackWords";
@@ -969,8 +971,16 @@ describe("the words a widget draws for what it does not have", () => {
       expect(getUnnamedText(translator)).toBe(words["Unnamed"]);
       expect(getStandaloneText(translator)).toBe(words["Standalone"]);
       expect(getUnsetText(translator)).toBe(words["(unset)"]);
+      expect(getUnnamedSiteText(translator)).toBe(words["Unnamed site"]);
+      expect(getNoStatusYetText(translator)).toBe(words["No status yet"]);
 
-      for (const key of ["Unnamed", "Standalone", "(unset)"]) {
+      for (const key of [
+        "Unnamed",
+        "Standalone",
+        "(unset)",
+        "Unnamed site",
+        "No status yet",
+      ]) {
         expect({
           language,
           key,
@@ -984,12 +994,16 @@ describe("the words a widget draws for what it does not have", () => {
     expect(getUnnamedText()).toBe("Unnamed");
     expect(getStandaloneText()).toBe("Standalone");
     expect(getUnsetText()).toBe("(unset)");
+    expect(getUnnamedSiteText()).toBe("Unnamed site");
+    expect(getNoStatusYetText()).toBe("No status yet");
 
     await inLanguage("de");
 
     expect(getUnnamedText()).toBe("Unbenannt");
     expect(getStandaloneText()).toBe("Eigenständig");
     expect(getUnsetText()).toBe("(nicht gesetzt)");
+    expect(getUnnamedSiteText()).toBe("Unbenannter Standort");
+    expect(getNoStatusYetText()).toBe("Noch kein Status");
   });
 });
 
@@ -1056,7 +1070,7 @@ describe("the widgets' source", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("no widget writes Unnamed, Standalone or (unset) itself", () => {
+  test("no widget writes Unnamed, Standalone, (unset), Unnamed site or No status yet itself", () => {
     const offenders: Array<string> = [];
 
     for (const entry of SOURCES) {
@@ -1071,6 +1085,9 @@ describe("the widgets' source", () => {
         '"Standalone"',
         '"(unset)"',
         ">(unset)<",
+        // The Network Map's (#7520).
+        '"Unnamed site"',
+        '"No status yet"',
       ]) {
         if (code.includes(word)) {
           offenders.push(`${path.basename(entry.file)}: ${word}`);

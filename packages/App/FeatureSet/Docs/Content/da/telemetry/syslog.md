@@ -28,7 +28,7 @@ flowchart TB
 OneUptime svarer, så snart den har læst beskederne fra requesten, og fortolker og gemmer dem et øjeblik senere. Beskedteksten bliver i loggens indhold; alt andet bliver til attributter.
 
 > [!TIP]
-> Netværksenheder kan sende deres syslog direkte til en OneUptime-probe over UDP eller TCP uden relay – OneUptime læser så hver leverandørs beskeder som begivenheder på enheden. Se [Netværksbegivenheder](/docs/monitor/network-events).
+> Netværksenheder kan sende deres syslog direkte til en OneUptime-sonde over UDP eller TCP uden relay – OneUptime læser så hver leverandørs beskeder som begivenheder på enheden. Se [Netværksbegivenheder](/docs/monitor/network-events).
 
 ## Før du begynder
 

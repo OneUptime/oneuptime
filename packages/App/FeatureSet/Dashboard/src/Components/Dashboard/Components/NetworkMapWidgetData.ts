@@ -27,6 +27,19 @@ import {
   screenLengthToViewportLength,
 } from "../../NetworkSite/Geo/GeoViewport";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import {
+  formatInline,
+  formatList,
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
+import {
+  getNoStatusYetText,
+  getUnnamedSiteText,
+} from "./DashboardWidgetFallbackWords";
 
 /*
  * Pure, react-free view-model for the Network Map dashboard widget:
@@ -45,6 +58,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
  *
  * Everything here is deterministic: same input, same output, no randomness
  * and no clock access.
+ *
+ * Its words are the reader's (#7520): a site with no name or no status yet,
+ * a default status's name, a cluster's tooltip and the coverage line are
+ * written with the translator the widget hands in (useTranslator), or the
+ * page's when none is given, as a list widget's rows are.
  */
 
 /*
@@ -75,13 +93,30 @@ export interface NetworkMapLegendEntry {
 
 /*
  * Legend entries in the order a reader scans for trouble: healthy first,
- * then the two degrees of "look at me", then the absence of data.
+ * then the two degrees of "look at me", then the absence of data. Each
+ * label is English, looked up where the legend is drawn.
  */
 export const NETWORK_MAP_LEGEND: Array<NetworkMapLegendEntry> = [
-  { key: "ok", label: "Operational", color: NETWORK_MAP_COLORS.ok },
-  { key: "mixed", label: "Degraded", color: NETWORK_MAP_COLORS.mixed },
-  { key: "down", label: "Offline", color: NETWORK_MAP_COLORS.down },
-  { key: "none", label: "No status", color: NETWORK_MAP_COLORS.none },
+  {
+    key: "ok",
+    label: translationKey("Operational"),
+    color: NETWORK_MAP_COLORS.ok,
+  },
+  {
+    key: "mixed",
+    label: translationKey("Degraded"),
+    color: NETWORK_MAP_COLORS.mixed,
+  },
+  {
+    key: "down",
+    label: translationKey("Offline"),
+    color: NETWORK_MAP_COLORS.down,
+  },
+  {
+    key: "none",
+    label: translationKey("No status"),
+    color: NETWORK_MAP_COLORS.none,
+  },
 ];
 
 /*
@@ -129,9 +164,6 @@ export interface NetworkMapSitesResult {
   unplacedCount: number;
 }
 
-export const UNNAMED_SITE_LABEL: string = "Unnamed site";
-export const UNKNOWN_STATUS_LABEL: string = "No status yet";
-
 const asCoordinate: (value: unknown, limit: number) => number | null = (
   value: unknown,
   limit: number,
@@ -156,14 +188,22 @@ const asText: (value: unknown, fallback: string) => string = (
  * or linked. A row that has an id but no usable position is counted as
  * unplaced, so the widget can say how much of the network is missing from
  * the picture instead of pretending the map is complete.
+ *
+ * A site with no name is the reader's "Unnamed site", one with no status
+ * yet their "No status yet", and a status a new project starts with
+ * ("Operational", "Degraded", "Offline") reads in their words; a name the
+ * project gave a site or a status is drawn as written.
  */
 export const toNetworkMapSites: (
   rows: Array<NetworkMapSiteInput>,
+  translator?: Translator,
 ) => NetworkMapSitesResult = (
   rows: Array<NetworkMapSiteInput>,
+  translator: Translator = getGlobalTranslator(),
 ): NetworkMapSitesResult => {
   const sites: Array<NetworkMapSite> = [];
   let unplacedCount: number = 0;
+  const unnamedSite: string = getUnnamedSiteText(translator);
 
   for (const row of rows || []) {
     const id: string = asText(row?.id, "");
@@ -183,14 +223,21 @@ export const toNetworkMapSites: (
     }
 
     const statusPriority: unknown = row?.statusPriority;
+    const statusName: string = asText(row?.statusName, "");
 
     sites.push({
       id: id,
-      name: asText(row?.name, UNNAMED_SITE_LABEL),
+      name: asText(row?.name, unnamedSite),
       siteType: asText(row?.siteType, ""),
       latitude: latitude,
       longitude: longitude,
-      statusName: asText(row?.statusName, UNKNOWN_STATUS_LABEL),
+      statusName: statusName
+        ? translateRecordName(
+            translator,
+            StateListType.MonitorStatus,
+            statusName,
+          )
+        : getNoStatusYetText(translator),
       statusColor: asText(row?.statusColor, "") || null,
       statusPriority:
         typeof statusPriority === "number" && Number.isFinite(statusPriority)
@@ -307,12 +354,20 @@ export interface NetworkMapMarker {
   tooltip: string;
 }
 
+/*
+ * What a marker says under the pointer, in the reader's words: a site's
+ * name, type and status, set apart as their language does ("·", "•" in
+ * Persian), or a cluster's count and its first names, as the Network Map
+ * page words them.
+ */
 const clusterTooltip: (
   cluster: GeoCluster,
   siteById: Map<string, NetworkMapSite>,
+  translator: Translator,
 ) => string = (
   cluster: GeoCluster,
   siteById: Map<string, NetworkMapSite>,
+  translator: Translator,
 ): string => {
   if (cluster.ids.length === 1) {
     const site: NetworkMapSite | undefined = siteById.get(cluster.ids[0]!);
@@ -324,19 +379,29 @@ const clusterTooltip: (
       parts.push(site.siteType);
     }
     parts.push(site.statusName);
-    return parts.join(" · ");
+    return formatInline(parts, translator);
   }
 
   const names: Array<string> = cluster.ids
     .slice(0, 5)
     .map((id: string): string => {
-      return siteById.get(id)?.name || UNNAMED_SITE_LABEL;
+      return siteById.get(id)?.name || getUnnamedSiteText(translator);
     });
   const more: number = cluster.ids.length - names.length;
 
-  return `${cluster.totalCount} sites: ${names.join(", ")}${
-    more > 0 ? `, +${more} more` : ""
-  }`;
+  return more > 0
+    ? translator.translateTemplate(
+        "{{count}} sites: {{names}}, +{{more}} more",
+        {
+          count: translator.formatNumber(cluster.totalCount),
+          names: formatList(names, translator),
+          more: translator.formatNumber(more),
+        },
+      )
+    : translator.translateTemplate("{{count}} sites: {{names}}", {
+        count: translator.formatNumber(cluster.totalCount),
+        names: formatList(names, translator),
+      });
 };
 
 export interface BuildNetworkMapMarkersInput {
@@ -356,6 +421,8 @@ export interface BuildNetworkMapMarkersInput {
    * on a zoomed-in frame — so the layout cannot be decided without it.
    */
   zoom: number;
+  // The reader's words for the tooltips: the page's when left out.
+  translator?: Translator | undefined;
 }
 
 /**
@@ -379,6 +446,7 @@ export const buildNetworkMapMarkers: (
 ) => Array<NetworkMapMarker> = (
   input: BuildNetworkMapMarkersInput,
 ): Array<NetworkMapMarker> => {
+  const translator: Translator = input.translator || getGlobalTranslator();
   const siteById: Map<string, NetworkMapSite> = new Map<
     string,
     NetworkMapSite
@@ -479,7 +547,7 @@ export const buildNetworkMapMarkers: (
         color: NETWORK_MAP_COLORS[colorKey],
         label: showLabels && single ? truncateMarkerLabel(single.name) : "",
         labelPlacement: null,
-        tooltip: clusterTooltip(cluster, siteById),
+        tooltip: clusterTooltip(cluster, siteById, translator),
       };
     },
   );
@@ -576,13 +644,6 @@ export const networkMapStatusSummary: (
   };
 };
 
-const pluralize: (count: number, singular: string) => string = (
-  count: number,
-  singular: string,
-): string => {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
-};
-
 export interface NetworkMapCoverageInput {
   // Sites the widget drew.
   siteCount: number;
@@ -604,27 +665,58 @@ export interface NetworkMapCoverageInput {
  * A count that quietly shrinks as somebody zooms reads as sites
  * disappearing, so once the frame stops holding everything the line says
  * what it does hold.
+ *
+ * Each fact is a sentence of its own in the reader's language, its counts
+ * in their digits and plural forms, and the facts are set apart as their
+ * language sets them (formatInline): "3 of 12 sites in view · 4 without
+ * coordinates" in English, as it always read.
  */
 export const describeNetworkMapCoverage: (
   input: NetworkMapCoverageInput,
-) => string = (input: NetworkMapCoverageInput): string => {
+  translator?: Translator,
+) => string = (
+  input: NetworkMapCoverageInput,
+  translator: Translator = getGlobalTranslator(),
+): string => {
   const parts: Array<string> = [];
 
   if (input.inViewCount < input.siteCount) {
-    parts.push(`${input.inViewCount} of ${input.siteCount} sites in view`);
+    parts.push(
+      translator.translatePlural(
+        {
+          one: "{{inView}} of {{count}} site in view",
+          other: "{{inView}} of {{count}} sites in view",
+        },
+        input.siteCount,
+        { inView: translator.formatNumber(input.inViewCount) },
+      ),
+    );
   } else {
-    parts.push(`${pluralize(input.siteCount, "site")} mapped`);
+    parts.push(
+      translator.translatePlural(
+        { one: "{{count}} site mapped", other: "{{count}} sites mapped" },
+        input.siteCount,
+      ),
+    );
   }
 
   if (input.unplacedCount > 0) {
-    parts.push(`${input.unplacedCount} without coordinates`);
+    parts.push(
+      translator.translatePlural(
+        {
+          one: "{{count}} without coordinates",
+          other: "{{count}} without coordinates",
+        },
+        input.unplacedCount,
+      ),
+    );
   }
 
   if (input.isTruncated) {
-    parts.push("more sites not shown");
+    parts.push(translator.translateText("more sites not shown") as string);
   }
 
-  return parts.join(" · ");
+  return formatInline(parts, translator);
 };
 
 /**

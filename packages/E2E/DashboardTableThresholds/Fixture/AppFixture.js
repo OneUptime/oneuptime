@@ -9,7 +9,8 @@
  * (sessionStorage), so a reload opens what was saved. Steered by the query
  * string, read before the app starts:
  *
- *   - lang=de|fa   the Dashboard's German or Persian (right-to-left) words
+ *   - lang=de|fa|ar   the Dashboard's German, Persian or Arabic words (the
+ *                     two read right to left)
  *   - theme=dark   (read by server.js) the dark theme
  *
  * Everything the page asks for is recorded on
@@ -49,6 +50,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import {
   CPU_OVER_TIME,
   DASHBOARD_ID,
@@ -64,7 +66,7 @@ const USER_ID = "40000000-0000-4000-8000-000000005231";
 const BOARD_KEY = "dashboard-table-thresholds-fixture-board";
 
 const params = new URLSearchParams(window.location.search);
-const language = ["de", "fa"].includes(params.get("lang"))
+const language = ["de", "fa", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -297,6 +299,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     fa: { translation: FA },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -305,7 +308,8 @@ await i18next.use(initReactI18next).init({
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
 document.documentElement.lang = language;
-document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+document.documentElement.dir =
+  language === "fa" || language === "ar" ? "rtl" : "ltr";
 
 // ---- the page ------------------------------------------------------------------
 

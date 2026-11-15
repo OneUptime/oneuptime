@@ -1,6 +1,6 @@
 # IoT-apparaat-monitor
 
-Een IoT-apparaat-monitor houdt één vloot apparaten in de gaten en laat je weten wanneer een apparaat offline gaat, de batterij bijna leeg is, het signaal zwakker wordt, het oververhit raakt of de CPU bezet blijft. Hij leest de metrieken `iot_*` die je apparaten via OpenTelemetry of MQTT naar OneUptime sturen, dus er wordt niets van buitenaf gecontroleerd en er komt geen probe aan te pas.
+Een IoT-apparaat-monitor houdt één vloot apparaten in de gaten en laat je weten wanneer een apparaat offline gaat, de batterij bijna leeg is, het signaal zwakker wordt, het oververhit raakt of de CPU bezet blijft. Hij leest de metrieken `iot_*` die je apparaten via OpenTelemetry of MQTT naar OneUptime sturen, dus er wordt niets van buitenaf gecontroleerd en er komt geen sonde aan te pas.
 
 :::cards
 - [De monitor maken](#een-iot-apparaat-monitor-maken): Zes stappen in het dashboard.
