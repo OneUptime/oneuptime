@@ -87,7 +87,7 @@ Sotto i record, Segnali collegati cerca nei tuoi registri e nelle tue tracce, su
 
 ## Chi vede cosa
 
-- Segnali collegati e la scheda **Sicurezza** di un record richiedono un ruolo che può leggere gli eventi di sicurezza: Security Admin, Security Member, Security Viewer, Project Owner o Project Admin. Nessun altro vede dati di sicurezza in alcuna pagina. Vedi [Ruoli](/docs/permissions/reference#ruoli).
+- Segnali collegati e la scheda **Sicurezza** di un record richiedono un ruolo che può leggere gli eventi di sicurezza: Amministratore della sicurezza, Membro della sicurezza, Visualizzatore della sicurezza, Proprietario del progetto o Amministratore del progetto. Nessun altro vede dati di sicurezza in alcuna pagina. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 - La scheda **Sicurezza** di un incidente richiede un ruolo che può leggere i casi di sicurezza.
 - Ogni record viene letto con il tuo ruolo, e così ciò che contiene: un ruolo che non può leggere le pianificazioni di reperibilità non vede quelle di un membro. Un tipo di record che il tuo ruolo non può leggere viene omesso, e la pagina lo dice; uno che non è stato possibile leggere al momento lo dice anch'esso, con **Riprova**.
 - La pagina di un record mostra la sua scheda **Sicurezza** solo in un progetto che usa Security Events: uno che ha ricevuto un evento di sicurezza negli ultimi 7 giorni.
@@ -123,7 +123,7 @@ La scheda compare per un monitor che controlla un host, un indirizzo o un URL: u
 :::
 
 :::details La pagina dice che il tuo ruolo non può vedere un tipo di record
-Ogni record viene letto con il tuo ruolo. Chiedi a un Project Owner o a un Project Admin un ruolo che possa leggere quel tipo di record.
+Ogni record viene letto con il tuo ruolo. Chiedi a un Proprietario del progetto o a un Amministratore del progetto un ruolo che possa leggere quel tipo di record.
 :::
 
 ## Passi successivi

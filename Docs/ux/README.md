@@ -667,9 +667,13 @@ work out, starts from a default for everything else, and folds what most people 
   translator.formatNumber(index + 1) })`), a `translatePlural` for a count, or a `TranslatedSentence`
   around an element. Two whole sentences side by side, a label that carries its own colon and its
   value, facts set apart by " · ", a path and an aside in brackets are no sentence built from
-  pieces. Enforced by
+  pieces. The same goes for JSX: `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in
+  English's order in Japanese, and a status page's "posted on" sat before its date in every
+  language (#8290). A label whose colon the code wrote (`{t("Capabilities")}:`) takes it from a key
+  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
-  which reads template literals, `+` and `join()`.
+  which reads template literals, `+`, `join()` and an element's children, and follows a name that
+  holds a translation (`const label = t("Key")`).
 
 ### In every language
 
@@ -692,9 +696,12 @@ then `npm run i18n:validate` from the root.
   for the import screens (the label rule import, the CSV upload, the JSON import's editor,
   Network's Auto Import Rules) and the docs that name their buttons,
   [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts),
-  and, for the metric query form (the metric picker, its attribute filter, the series and group
+  for the metric query form (the metric picker, its attribute filter, the series and group
   colour pickers, a formula's row), which was English in twelve languages (#8310),
-  [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts).
+  [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts),
+  and, for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
+  the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
+  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a

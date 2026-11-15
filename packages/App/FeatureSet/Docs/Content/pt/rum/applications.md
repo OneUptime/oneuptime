@@ -145,7 +145,7 @@ Para apagar os dados de uma pessoa em vez de uma aplicação inteira, registre u
 
 ## Permissões
 
-Qualquer pessoa com a função Viewer do projeto pode ver as aplicações RUM e a telemetria delas. A reprodução de sessões fica fora dessa função de propósito: listar gravações, assistir a uma e ver quem a assistiu são permissões separadas. Os proprietários e administradores do projeto têm todas elas. Os seletores de permissão mostram cada permissão pelo seu título, aqui em itálico.
+Qualquer pessoa com a função Visualizador do projeto pode ver as aplicações RUM e a telemetria delas. A reprodução de sessões fica fora dessa função de propósito: listar gravações, assistir a uma e ver quem a assistiu são permissões separadas. Os proprietários e administradores do projeto têm todas elas. Os seletores de permissão mostram cada permissão pelo seu título, aqui em itálico.
 
 | Permissão | Permite que um membro |
 | --- | --- |

@@ -16,7 +16,7 @@ import { spawnSync, SpawnSyncReturns } from "child_process";
 const COMPILER_OPTIONS: string = JSON.stringify({
   // ts-node's compilerOptions in Common's and App's tsconfig.json.
   module: "commonjs",
-  target: "es2017",
+  target: "es2018",
   esModuleInterop: true,
   experimentalDecorators: true,
   emitDecoratorMetadata: true,

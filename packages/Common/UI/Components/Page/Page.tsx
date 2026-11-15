@@ -65,8 +65,8 @@ export interface ComponentProps {
   title?: string | undefined;
   /*
    * The title is in the reader's words already: a front end's own keyed
-   * text (the Admin Dashboard's t("pages.settings.title"), a status page's
-   * t("incidents.title")), a sentence the page built around a value, or a
+   * text (the Admin Dashboard's "pages.settings.title" key, a status page's
+   * "incidents.title" key), a sentence the page built around a value, or a
    * word another control put in the reader's language (the products menu's
    * name for a product). Drawn as given - the heading, the browser tab's
    * fallback title and a record page's title term - never looked up again:

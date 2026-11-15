@@ -45,7 +45,7 @@ L'enregistrement d'une relecture de session contient le texte des pages que les 
 
 Le prompt d'un appel d'IA porte toute la conversation qui précède le dernier message de la personne, c'est pourquoi jusqu'à 16 384 caractères de chaque valeur d'un appel d'IA sont lus. Quand des conversations IA contiennent des données sensibles, deux choses de plus en découlent : le fournisseur d'IA auquel les appels sont allés devient un flux de ces données, et [Des données sensibles sont envoyées à un fournisseur d'IA](/docs/data-security/checks-and-issues#ia) échoue sur le magasin de données.
 
-Les conversations d'un [outil d'IA de l'entreprise](/docs/telemetry/ai-company-tools) sont exclues. Seuls les Project Owners et les Project Admins peuvent les lire, et une détection arrive là où la lit quiconque lit Sécurité des données : les spans de ces services ne sont donc jamais lus, et leurs conversations IA sont signalées comme non lues.
+Les conversations d'un [outil d'IA de l'entreprise](/docs/telemetry/ai-company-tools) sont exclues. Seuls les Propriétaires du projet et les Administrateurs du projet peuvent les lire, et une détection arrive là où la lit quiconque lit Sécurité des données : les spans de ces services ne sont donc jamais lus, et leurs conversations IA sont signalées comme non lues.
 
 ## Comment une analyse échantillonne
 
@@ -101,7 +101,7 @@ Certaines détections ne peuvent pas être nettoyées par une règle, et **Netto
 - L'un de vos propres types de données : ajoutez vous-même une règle de nettoyage personnalisée avec son motif.
 - Les détails propres d'une session (`sessions.*`) : l'ingestion des relectures de session n'applique aucune règle de nettoyage.
 
-**Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Project Owners et les Project Admins peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, et des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA.
+**Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Propriétaires du projet et les Administrateurs du projet peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, et des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA.
 
 ## Ce qui compte comme nettoyé
 

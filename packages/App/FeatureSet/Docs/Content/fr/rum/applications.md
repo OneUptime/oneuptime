@@ -145,7 +145,7 @@ Pour effacer les données d'une personne plutôt que toute une application, dép
 
 ## Autorisations
 
-Toute personne ayant le rôle Viewer du projet peut voir les applications RUM et leur télémétrie. La relecture de session ne fait délibérément pas partie de ce rôle : lister les enregistrements, en regarder un et lire qui a regardé sont des autorisations distinctes. Les propriétaires et administrateurs du projet les ont toutes. Les sélecteurs d'autorisations listent chaque autorisation par son titre, indiqué ici en italique.
+Toute personne ayant le rôle Lecteur du projet peut voir les applications RUM et leur télémétrie. La relecture de session ne fait délibérément pas partie de ce rôle : lister les enregistrements, en regarder un et lire qui a regardé sont des autorisations distinctes. Les propriétaires et administrateurs du projet les ont toutes. Les sélecteurs d'autorisations listent chaque autorisation par son titre, indiqué ici en italique.
 
 | Autorisation | Permet à un membre de |
 | --- | --- |

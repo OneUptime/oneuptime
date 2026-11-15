@@ -43,7 +43,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Uma função que possa configurá-la.** As funções Project Owner, Project Admin e Security Admin alteram as configurações da Segurança de dados. A função Security Member trata problemas e varre repositórios, e a função Security Viewer lê o que ela encontrou. As outras funções não veem nada disso, a menos que a equipe delas receba as permissões: quais buckets guardam números de cartão é exatamente o que um invasor quer saber. Veja [Funções](/docs/permissions/reference#funções).
+- **Uma função que possa configurá-la.** As funções Proprietário do projeto, Administrador do projeto e Administrador de segurança alteram as configurações da Segurança de dados. A função Membro de segurança trata problemas e varre repositórios, e a função Visualizador de segurança lê o que ela encontrou. As outras funções não veem nada disso, a menos que a equipe delas receba as permissões: quais buckets guardam números de cartão é exatamente o que um invasor quer saber. Veja [Funções](/docs/permissions/reference#funções).
 - **Uma conta de nuvem para ler, ou um banco de dados.** A Segurança de dados lê uma conta de nuvem por meio de uma [conexão de nuvem](/docs/telemetry/cloud-accounts), e um banco de dados que você executa por meio de uma string de conexão somente leitura. A telemetria não precisa de nada: ela é varrida a cada hora.
 
 ## Início rápido

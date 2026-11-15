@@ -176,7 +176,7 @@ Træk statussen i dens håndtag. En status længere nede på listen regnes som v
 En status gør intet, før et kriterium flytter monitorer ind i den. Vælg den i **Skift overvågningsstatus til** på det kriterium, der skal sætte den.
 :::
 
-Den driftsklare status og offline-statussen er markeret som **Indbygget**: du kan omdøbe dem og ændre deres farve, men ikke slette dem. På OneUptime Cloud kræver det Growth-planen at oprette eller ændre en status. At administrere statusser kræver rollen Project Owner, Project Admin eller Monitor Admin, eller en brugerdefineret rolle med den tilsvarende tilladelse til monitorstatusser.
+Den driftsklare status og offline-statussen er markeret som **Indbygget**: du kan omdøbe dem og ændre deres farve, men ikke slette dem. På OneUptime Cloud kræver det Growth-planen at oprette eller ændre en status. At administrere statusser kræver rollen Projektejer, Projektadministrator eller Monitoradministrator, eller en brugerdefineret rolle med den tilsvarende tilladelse til monitorstatusser.
 
 ### Statustidslinjen
 

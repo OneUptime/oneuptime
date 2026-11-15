@@ -1092,7 +1092,7 @@ Comme le marquage atteint chaque service par lequel une requête du navigateur e
 
 ## Qui peut regarder un enregistrement
 
-Regarder un enregistrement est une autorisation distincte de celle de lister les sessions, et aucune des deux n'est accordée par le rôle Viewer du projet. Les propriétaires et administrateurs du projet les ont toutes.
+Regarder un enregistrement est une autorisation distincte de celle de lister les sessions, et aucune des deux n'est accordée par le rôle Lecteur du projet. Les propriétaires et administrateurs du projet les ont toutes.
 
 | Autorisation | Donne accès à |
 | --- | --- |

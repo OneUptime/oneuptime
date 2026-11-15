@@ -25,7 +25,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
+- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les Propriétaires du projet et les Administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Un fichier d'Uptime Kuma.** Dans Uptime Kuma 1, la sauvegarde JSON contient chaque moniteur avec ses réglages. Uptime Kuma 2 n'a pas de sauvegarde : enregistrez plutôt sa page de métriques, qui donne le nom, le type et l'adresse de chaque moniteur, mais pas la fréquence de vérification ni ce qu'il recherche.
 - **Un moyen de paiement, sur OneUptime Cloud.** Les moniteurs qui effectuent des vérifications sont facturés à l'usage, même avec l'offre Free : ajoutez-en un dans **Paramètres du projet** > **Facturation et factures** > **Facturation** avant l'import. Sans lui, ces moniteurs sont affichés comme non importés.
 
@@ -80,7 +80,7 @@ Un import crée au plus 2 000 enregistrements, et au plus 1 000 moniteurs. Un fi
 
 Sur OneUptime Cloud, les moniteurs qui effectuent des vérifications ont besoin d'un moyen de paiement, et ce pour quoi votre offre n'a plus de place est affiché comme non importé, avec ce qu'il lui faut.
 
-Un aperçu est conservé un jour. Seule la personne qui a lu le fichier peut cocher et lancer l'import. Les propriétaires et administrateurs du projet voient la progression et le rapport de chaque import.
+Un aperçu est conservé un jour. Seule la personne qui a lu le fichier peut cocher et lancer l'import. Les Propriétaires du projet et les Administrateurs du projet voient la progression et le rapport de chaque import.
 
 ## Terminer la migration
 

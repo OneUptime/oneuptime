@@ -30,7 +30,7 @@ Ouvrez **Produits → Événements de sécurité → Risque des entités** : cha
 
 - Des événements de sécurité qui arrivent, et des règles de détection, du renseignement sur les menaces ou des produits connectés qui y trouvent quelque chose. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started).
 - Des règles de détection qui regroupent selon un champ qui nomme quelqu'un : **Champ de regroupement**, par exemple `principalUser`, `principalHost` ou `principalIp`, ou les champs selon lesquels une corrélation regroupe. Une règle qui ne regroupe selon rien n'ajoute aucun risque.
-- Pour modifier **Notation du risque** : Project Owner ou Project Admin pour son interrupteur et son seuil, et un rôle qui peut créer des règles de détection pour sa liste d'entités. Security Viewer lit tout. Voir [Rôles](/docs/permissions/reference#rôles).
+- Pour modifier **Notation du risque** : Propriétaire du projet ou Administrateur du projet pour son interrupteur et son seuil, et un rôle qui peut créer des règles de détection pour sa liste d'entités. Lecteur de la sécurité lit tout. Voir [Rôles](/docs/permissions/reference#rôles).
 
 ## Comment un score est compté
 

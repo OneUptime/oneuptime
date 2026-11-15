@@ -11,7 +11,7 @@ OneUptime finner trusler i data du allerede har - loggene dine, sikkerhetsverkt�
 
 ## Før du begynner
 
-Det kreves rollen Project Owner, Project Admin eller Security Admin for å sette opp sikkerhet. Rollene Security Member og Security Viewer leser det som blir funnet; se [Roller](/docs/permissions/reference#roller).
+Det kreves rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator for å sette opp sikkerhet. Rollene Sikkerhetsmedlem og Sikkerhetsleser leser det som blir funnet; se [Roller](/docs/permissions/reference#roller).
 
 ## Sett det opp
 
@@ -84,7 +84,7 @@ Jobber teamet ditt allerede i et SIEM, sender OneUptime funnene sine dit også. 
 ## Feilsøking
 
 :::details Turn on recommended er nedtonet
-Rollen din kan ikke legge til deteksjonsregler, playbooks eller loggkilden. Spør en Project Owner, en Project Admin eller en Security Admin, eller be dem gi deg rollen Security Admin.
+Rollen din kan ikke legge til deteksjonsregler, playbooks eller loggkilden. Spør en Prosjekteier, en Prosjektadministrator eller en Sikkerhetsadministrator, eller be dem gi deg rollen Sikkerhetsadministrator.
 :::
 
 :::details Turn on recommended kunne ikke slå på alt

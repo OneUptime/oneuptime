@@ -27,7 +27,7 @@ Una classificazione si limita a leggere. Usa l'IA del progetto stesso: **Abilita
 
 - **Abilita IA** attivo, in **Impostazioni del progetto → IA → Funzionalità IA**. Se è spento, la sicurezza non mostra nulla di OneUptime AI e non parte nulla.
 - Un provider LLM che OneUptime AI possa usare, in **Impostazioni del progetto → IA → Provider LLM**. OneUptime Cloud ne fornisce uno.
-- Un ruolo che possa lavorare i casi di sicurezza, per avviare una classificazione: Project Owner, Project Admin, Security Admin o Security Member. Security Viewer legge ogni classificazione, ma non può avviarne. Vedi [Ruoli](/docs/permissions/reference#ruoli).
+- Un ruolo che possa lavorare i casi di sicurezza, per avviare una classificazione: Proprietario del progetto, Amministratore del progetto, Amministratore della sicurezza o Membro della sicurezza. Visualizzatore della sicurezza legge ogni classificazione, ma non può avviarne. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 
 ## Classificare un caso
 
@@ -40,7 +40,7 @@ Apri un caso: la scheda **OneUptime AI** è in cima alla sua pagina.
 | Una lettura, come **Probabilmente dannoso** | La classificazione è finita. **Classifica di nuovo** rilegge il caso da capo. |
 | **La classificazione non è terminata** | L'esecuzione si è interrotta. **Riprova** ne avvia un'altra. |
 
-Un Security Viewer legge la stessa scheda: **Classifica con l'IA** e **Riprova** restano in grigio accanto a una riga che dice chi può avviare una classificazione, e **Classifica di nuovo** e **Imposta la priorità** non vengono offerti.
+Un Visualizzatore della sicurezza legge la stessa scheda: **Classifica con l'IA** e **Riprova** restano in grigio accanto a una riga che dice chi può avviare una classificazione, e **Classifica di nuovo** e **Imposta la priorità** non vengono offerti.
 
 Una classificazione legge:
 
@@ -82,7 +82,7 @@ Eventi, avvisi e valori delle entità arrivano dall'esterno del progetto, e un a
 
 ## Classificare automaticamente i nuovi casi
 
-Apri **Prodotti → Eventi di sicurezza → IA → Impostazioni** e attiva **Classifica i nuovi casi**: da quel momento ogni caso aperto da un rilevamento viene classificato appena si apre. L'interruttore salva appena lo sposti. Project Owner e Project Admin possono cambiarlo.
+Apri **Prodotti → Eventi di sicurezza → IA → Impostazioni** e attiva **Classifica i nuovi casi**: da quel momento ogni caso aperto da un rilevamento viene classificato appena si apre. L'interruttore salva appena lo sposti. Proprietario del progetto e Amministratore del progetto possono cambiarlo.
 
 I nuovi progetti partono con l'opzione attiva; un progetto creato prima la tiene spenta finché qualcuno non la attiva. Un caso aperto a mano, e il caso dell'attacco di prova di **Invia un attacco di prova**, vengono classificati quando qualcuno fa clic su **Classifica con l'IA**.
 

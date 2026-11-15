@@ -27,7 +27,7 @@ flowchart TB
 - För ett TAXII-flöde: en TAXII 2.1-server som publicerar STIX 2.1-objekt av typen `indicator`, och ID:t för samlingen som ska hämtas. Ett TAXII-flöde loggar in anonymt, med en bearer-token eller med HTTP Basic-autentisering.
 - För ett Google SecOps-flöde: en [Google SecOps-anslutning](/docs/integrations/google-secops#konfigurera-den-hanterade-anslutningen) vars tjänstkonto får söka bland indikatorträffar: rollen `roles/chronicle.viewer` får det.
 - Servrar som kräver ett TLS-klientcertifikat (mutual TLS), till exempel CISA AIS, stöds inte. MITRE:s offentliga ATT&CK-server publicerar tekniker och grupper i stället för indikatorer, så ett flöde som pekar på den förblir tomt.
-- En roll som kan skapa flöden: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer kan läsa flöden och indikatorer. Se [Roller](/docs/permissions/reference#roller).
+- En roll som kan skapa flöden: Projektägare, Projektadministratör, Säkerhetsadministratör eller Säkerhetsmedlem. Säkerhetstittare kan läsa flöden och indikatorer. Se [Roller](/docs/permissions/reference#roller).
 
 ## Lägg till en gratislista
 

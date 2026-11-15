@@ -23,7 +23,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 
 ## Antes de empezar
 
-- En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
+- En OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
 - Un administrador de Okta que pueda ver el System Log, para crear el token. Un token puede hacer lo que puede su administrador, así que usa un Read-only Administrator: lee el System Log y no cambia nada. Un administrador de solo lectura también ve usuarios, grupos, aplicaciones y ajustes, así que guarda el token tan bien como una contraseña.
 - Idealmente, una cuenta de servicio para ese administrador. Okta desactiva un token cuando su administrador se desactiva, y cuando pasa 30 días sin usarse. El sondeo lo usa cada pocos minutos, así que sigue en uso mientras la conexión está habilitada.
 - Si tu organización solo acepta llamadas a la API desde una zona de red, una zona que contenga las direcciones desde las que llama OneUptime: en OneUptime Cloud, sus direcciones salientes, y en una instalación autoalojada, la dirección pública de tus hosts de aplicación y de workers.

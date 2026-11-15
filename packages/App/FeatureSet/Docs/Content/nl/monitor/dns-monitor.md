@@ -28,7 +28,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de DNS-server kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Om een DNS-server in een privénetwerk op te vragen, zoals een interne resolver, gebruikt u een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk.
 
 ## Een DNS-monitor maken

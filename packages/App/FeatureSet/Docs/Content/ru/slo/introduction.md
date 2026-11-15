@@ -40,7 +40,7 @@ flowchart TB
 
 ## Создание SLO
 
-Вам нужна роль, которой разрешено создавать SLO: Project Owner, Project Admin или пользовательская роль с разрешением Create Service Level Objective.
+Вам нужна роль, которой разрешено создавать SLO: Владелец проекта, Администратор проекта или пользовательская роль с разрешением Create Service Level Objective.
 
 :::steps
 ### Откройте SLO

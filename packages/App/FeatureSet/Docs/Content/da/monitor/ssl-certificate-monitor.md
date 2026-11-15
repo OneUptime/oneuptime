@@ -30,7 +30,7 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En sonde, der kan nå værten og porten.** Dit projekts standardsonder vælges for hver ny monitor. En tjeneste på et privat netværk kræver en [brugerdefineret sonde](/docs/probe/custom-probe) i det netværk.
 
 ## Opret en SSL-certifikat-monitor

@@ -37,7 +37,7 @@ Under **Medlemsincidenter** tar **Ta bort** på en rad, eller på de markerade r
 
 ## En episod per incident
 
-En incident kan finnas i flera episoder samtidigt. För att hålla varje incident i högst en episod slår du på **En incident kan bara ingå i en episod** under **Incidenter → Inställningar → Medlemskap i episoder**. För larm heter reglaget **Ett larm kan bara ingå i en episod**, under **Larm → Inställningar → Medlemskap i episoder**. Båda är avslagna tills du slår på dem, och bara Project Owners och Project Admins kan ändra dem.
+En incident kan finnas i flera episoder samtidigt. För att hålla varje incident i högst en episod slår du på **En incident kan bara ingå i en episod** under **Incidenter → Inställningar → Medlemskap i episoder**. För larm heter reglaget **Ett larm kan bara ingå i en episod**, under **Larm → Inställningar → Medlemskap i episoder**. Båda är avslagna tills du slår på dem, och bara Projektägare och Projektadministratörer kan ändra dem.
 
 Så länge det är påslaget läggs en incident som finns i en episod inte till i någon annan:
 
@@ -51,7 +51,7 @@ Att slå på det tar inte ut någon incident ur en episod: en incident som redan
 
 ## Vem kan lägga till
 
-Att lägga till kräver behörighet att lägga till incidenter i en episod, vilket rollerna Project Owner, Project Admin, Project Member, Incident Admin och Incident Member har, liksom en anpassad roll med Create Incident Episode Member. Du kan bara lägga till incidenter som du kan se: en privat incident kan bara läggas till av sina ägare och av projektets ägare och administratörer. Lägg till i ny episod kräver också behörighet att skapa en episod. När du inte kan använda en åtgärd är den låst, och dess verktygstips nämner behörigheten som saknas.
+Att lägga till kräver behörighet att lägga till incidenter i en episod, vilket rollerna Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör och Incidentmedlem har, liksom en anpassad roll med Create Incident Episode Member. Du kan bara lägga till incidenter som du kan se: en privat incident kan bara läggas till av sina ägare och av projektets ägare och administratörer. Lägg till i ny episod kräver också behörighet att skapa en episod. När du inte kan använda en åtgärd är den låst, och dess verktygstips nämner behörigheten som saknas.
 
 ## Med API:et
 

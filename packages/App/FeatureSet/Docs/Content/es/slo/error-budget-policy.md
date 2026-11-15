@@ -295,7 +295,7 @@ Los niveles en sí son un recurso propio, `/api/service-level-objective-error-bu
 | **Edit SLO Error Budget Policy Tier** | Cambiar niveles, y activarlos o desactivarlos. |
 | **Delete SLO Error Budget Policy Tier** | Quitar niveles. |
 
-Estos permisos están en el grupo SLO de un rol. Los roles Project Owner y Project Admin los tienen todos, y los roles Project Member y Viewer pueden leer los niveles.
+Estos permisos están en el grupo SLO de un rol. Los roles Propietario del proyecto y Administrador del proyecto los tienen todos, y los roles Miembro del proyecto y Visor pueden leer los niveles.
 
 ## Aún no disponible
 

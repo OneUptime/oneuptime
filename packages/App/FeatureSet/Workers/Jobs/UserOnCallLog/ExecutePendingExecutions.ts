@@ -481,6 +481,8 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         {
           waitsForAClaimInFlight:
             settlement === OnCallRuleClaimSettlement.NotYet,
+          isLastTry:
+            (failures?.failedTries || 0) + 1 >= ON_CALL_POLICY_RUN_MAX_TRIES,
         },
       );
     } catch (err) {
@@ -641,6 +643,8 @@ type RunPendingNotificationLogFunction = (
      * (OnCallRuleClaimsInFlight): the log is not done until it is settled.
      */
     waitsForAClaimInFlight: boolean;
+    // This is its last try (OnCallPolicyRunRetry): what fails now ends it.
+    isLastTry: boolean;
   },
 ) => Promise<void>;
 
@@ -653,7 +657,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
         rulesRead: NotificationRulesRead;
       }
     | undefined,
-  options: { waitsForAClaimInFlight: boolean },
+  options: { waitsForAClaimInFlight: boolean; isLastTry: boolean },
 ): Promise<void> => {
   const page: {
     recordStates: OnCallRecordStates;
@@ -972,6 +976,33 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
   const executedClaimKeys: Array<string> = Object.keys(
     pendingNotificationLog.executedNotificationRules! || {},
   );
+
+  /*
+   * No rule of the person's matches the page, and nothing was ever sent
+   * for it - its start never got as far as counting their rules, or the
+   * fallback to their verified methods failed for a moment (issues #8469,
+   * #8470). It used to complete here having paged nobody. The start's
+   * no-rule handling runs for it now - an opt-out, the project's switch,
+   * the fallback - and ends it as the start would have; a fallback that
+   * fails for a moment is tried again at the log's next try.
+   */
+  if (
+    notificationRules.length === 0 &&
+    executedClaimKeys.length === 0 &&
+    !options.waitsForAClaimInFlight
+  ) {
+    await UserOnCallLogService.sendToLogWithNoRules({
+      log: pendingNotificationLog,
+      notificationRuleType: ruleType,
+      incidentSeverityId:
+        incident?.severityId || incidentEpisode?.severityId || undefined,
+      alertSeverityId:
+        alert?.severityId || alertEpisode?.severityId || undefined,
+      isLastTry: options.isLastTry,
+    });
+
+    return;
+  }
 
   /*
    * Each delivery sent below is timed from when its rule's schedule

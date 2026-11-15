@@ -188,10 +188,10 @@ Un filtre que vous écrivez vous-même tient sur une ligne d'au plus 500 caract�
 
 | Autorisation | Permet de | Qui l'a par défaut |
 | --- | --- | --- |
-| **Start Packet Capture** | Démarrer des captures, et les arrêter | Project Owner, Project Admin |
-| **Download Packet Capture** | Télécharger les fichiers de capture | Project Owner, Project Admin |
-| **Delete Packet Capture** | Supprimer des captures et leurs fichiers | Project Owner, Project Admin |
-| **Read Packet Capture** | Voir les captures : quand elles ont tourné, sur quelle sonde et avec quel filtre | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Démarrer des captures, et les arrêter | Propriétaire du projet, Administrateur du projet |
+| **Download Packet Capture** | Télécharger les fichiers de capture | Propriétaire du projet, Administrateur du projet |
+| **Delete Packet Capture** | Supprimer des captures et leurs fichiers | Propriétaire du projet, Administrateur du projet |
+| **Read Packet Capture** | Voir les captures : quand elles ont tourné, sur quelle sonde et avec quel filtre | Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur |
 
 Pour donner **Start Packet Capture** ou **Download Packet Capture** à une équipe, ouvrez-la sous **Paramètres → Équipes** et ajoutez l'autorisation sur sa page **Autorisations**. Voir [Autorisations](/docs/permissions/index).
 

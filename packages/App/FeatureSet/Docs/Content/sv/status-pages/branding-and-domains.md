@@ -217,7 +217,7 @@ Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligg
 
 En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan adress lägger du till den och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
 
-Att lägga till en domän i projektet kräver behörighet att skapa projektdomäner (**Create Domain**, eller Project Owner eller Project Admin), och att verifiera den kräver **Edit Domain**. Utan dem säger dialogrutan vem som kan göra det.
+Att lägga till en domän i projektet kräver behörighet att skapa projektdomäner (**Create Domain**, eller Projektägare eller Projektadministratör), och att verifiera den kräver **Edit Domain**. Utan dem säger dialogrutan vem som kan göra det.
 
 ### DNS-inställning och verifiering
 
@@ -301,9 +301,9 @@ Leta efter en CAA-post på din domän som utesluter `letsencrypt.org`, och kontr
 
 ### Vem som kan kontrollera och utfärda på nytt
 
-**Kontrollera nu**, beställning av en domäns certifikat och **Reissue SSL** ändrar domänen, så de kräver behörighet att redigera den: **Edit Status Page Domain**, eller en roll som innehåller den (Project Owner, Project Admin, Project Member, Status Page Admin eller Status Page Member).
+**Kontrollera nu**, beställning av en domäns certifikat och **Reissue SSL** ändrar domänen, så de kräver behörighet att redigera den: **Edit Status Page Domain**, eller en roll som innehåller den (Projektägare, Projektadministratör, Projektmedlem, Statussidadministratör eller Statussidmedlem).
 
-Den som bara kan läsa domänen, som en Viewer eller en Status Page Viewer, ser fortfarande kolumnen **Status** och posten som ska läggas till i **DNS-inställning**. För dem är **Kontrollera nu** och **Reissue SSL** låsta och säger vilken behörighet som krävs. OneUptime fortsätter i vilket fall som helst att kontrollera varje domän och beställa dess certifikat på egen hand.
+Den som bara kan läsa domänen, som en Tittare eller en Statussidtittare, ser fortfarande kolumnen **Status** och posten som ska läggas till i **DNS-inställning**. För dem är **Kontrollera nu** och **Reissue SSL** låsta och säger vilken behörighet som krävs. OneUptime fortsätter i vilket fall som helst att kontrollera varje domän och beställa dess certifikat på egen hand.
 
 Detsamma gäller API-nycklar. En nyckel som bara kan läsa statussidedomäner kan inte anropa `verify-cname`, `check-dns`, `order-ssl` eller `reissue-ssl` på `/status-page-domain`. Ge den **Read Status Page Domain** och **Edit Status Page Domain** om den behöver det. När posten inte hittas avvisar `verify-cname` anropet med vad den slog upp och vad som kom tillbaka, med samma ord som **DNS-inställning** visar; `check-dns` svarar för varje post den slog upp i båda fallen.
 

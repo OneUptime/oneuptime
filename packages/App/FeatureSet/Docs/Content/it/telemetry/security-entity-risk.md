@@ -30,7 +30,7 @@ Apri **Prodotti → Eventi di sicurezza → Rischio delle entità**: ogni utente
 
 - Eventi di sicurezza in arrivo, e regole di rilevamento, intelligence sulle minacce o prodotti collegati che vi trovano qualcosa. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started).
 - Regole di rilevamento che raggruppano per un campo che nomina qualcuno: **Campo di raggruppamento**, come `principalUser`, `principalHost` o `principalIp`, o i campi per cui raggruppa una correlazione. Una regola che non raggruppa per nulla non aggiunge rischio.
-- Per modificare **Valutazione del rischio**: Project Owner o Project Admin per il suo interruttore e la sua soglia, e un ruolo che può creare regole di rilevamento per il suo elenco di entità. Security Viewer legge tutto. Vedi [Ruoli](/docs/permissions/reference#ruoli).
+- Per modificare **Valutazione del rischio**: Proprietario del progetto o Amministratore del progetto per il suo interruttore e la sua soglia, e un ruolo che può creare regole di rilevamento per il suo elenco di entità. Visualizzatore della sicurezza legge tutto. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 
 ## Come si conta un punteggio
 

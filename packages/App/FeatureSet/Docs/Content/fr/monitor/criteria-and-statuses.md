@@ -176,7 +176,7 @@ Faites glisser le statut par sa poignée. Un statut plus bas dans la liste est c
 Un statut ne fait rien tant qu'aucun critère n'y place de moniteurs. Choisissez-le dans **Modifier le statut du moniteur en** sur le critère qui doit le définir.
 :::
 
-Les statuts opérationnel et hors ligne sont marqués **Intégré** : vous pouvez les renommer et changer leur couleur, mais pas les supprimer. Sur OneUptime Cloud, créer ou modifier un statut nécessite le plan Growth. Gérer les statuts demande le rôle Project Owner, Project Admin ou Monitor Admin, ou un rôle personnalisé avec l'autorisation de statut de moniteur correspondante.
+Les statuts opérationnel et hors ligne sont marqués **Intégré** : vous pouvez les renommer et changer leur couleur, mais pas les supprimer. Sur OneUptime Cloud, créer ou modifier un statut nécessite le plan Growth. Gérer les statuts demande le rôle Propriétaire du projet, Administrateur du projet ou Administrateur des moniteurs, ou un rôle personnalisé avec l'autorisation de statut de moniteur correspondante.
 
 ### La chronologie des statuts
 

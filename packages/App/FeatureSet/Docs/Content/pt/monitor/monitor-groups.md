@@ -37,8 +37,8 @@ Um grupo de monitores não é um grupo de página de status. Um grupo de página
 ## Antes de começar
 
 - **O seu plano.** No OneUptime Cloud, grupos de monitores exigem o plano Scale.
-- **A chave.** Os grupos de monitores ficam ocultos até que **Grupos de monitores** seja ativado para o projeto (veja abaixo). Ativá-lo exige o papel Project Owner, ou um papel personalizado com a permissão Edit Project ou Manage Billing.
-- **O seu papel.** Criar, alterar e excluir grupos exige o papel Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou um papel personalizado com as permissões de grupo de monitores correspondentes. Um Viewer pode ver os grupos, mas não alterá-los.
+- **A chave.** Os grupos de monitores ficam ocultos até que **Grupos de monitores** seja ativado para o projeto (veja abaixo). Ativá-lo exige o papel Proprietário do projeto, ou um papel personalizado com a permissão Edit Project ou Manage Billing.
+- **O seu papel.** Criar, alterar e excluir grupos exige o papel Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou um papel personalizado com as permissões de grupo de monitores correspondentes. Um Visualizador pode ver os grupos, mas não alterá-los.
 
 ## Ativar os grupos de monitores
 

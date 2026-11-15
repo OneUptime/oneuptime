@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - Microsoft Defender XDR लाइसेंस वाला एक Microsoft Entra टेनेंट: Microsoft Defender पोर्टल पर ऑनबोर्ड किया गया कोई भी Defender वर्कलोड, जैसे Defender for Endpoint, for Identity, for Office 365 या for Cloud Apps।
 - ऐप्लिकेशन रजिस्टर कर सकने वाला कोई Entra रोल, जैसे Application Administrator, और एडमिन सहमति देने के लिए एक Global Administrator या Privileged Role Administrator।
 - OneUptime ऐप और वर्कर से `login.microsoftonline.com` और `graph.microsoft.com` तक आउटबाउंड HTTPS, या Azure Government के लिए `login.microsoftonline.us` और `graph.microsoft.us` तक।

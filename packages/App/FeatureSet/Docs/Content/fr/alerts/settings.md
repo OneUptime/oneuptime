@@ -161,7 +161,7 @@ La mesure **Délai de prise en compte après l'alerte** compte à partir de **Qu
 
 ### Appartenance aux épisodes
 
-**Alertes → Paramètres → Appartenance aux épisodes** décide si une alerte peut faire partie de plusieurs épisodes. Activez **Une alerte ne peut faire partie que d'un seul épisode**, et une alerte qui fait partie d'un épisode n'est ajoutée à aucun autre, ni depuis le tableau de bord, ni par l'API, un workflow ou une règle de regroupement, si elle n'est pas d'abord retirée de cet épisode. L'interrupteur est désactivé tant que vous ne l'activez pas, et seuls les Project Owners et les Project Admins peuvent le changer. L'activer ne retire aucune alerte d'un épisode. Voir [Un seul épisode par incident](/docs/incidents/episodes#un-seul-épisode-par-incident), qui fonctionne de la même façon pour les alertes.
+**Alertes → Paramètres → Appartenance aux épisodes** décide si une alerte peut faire partie de plusieurs épisodes. Activez **Une alerte ne peut faire partie que d'un seul épisode**, et une alerte qui fait partie d'un épisode n'est ajoutée à aucun autre, ni depuis le tableau de bord, ni par l'API, un workflow ou une règle de regroupement, si elle n'est pas d'abord retirée de cet épisode. L'interrupteur est désactivé tant que vous ne l'activez pas, et seuls les Propriétaires du projet et les Administrateurs du projet peuvent le changer. L'activer ne retire aucune alerte d'un épisode. Voir [Un seul épisode par incident](/docs/incidents/episodes#un-seul-épisode-par-incident), qui fonctionne de la même façon pour les alertes.
 
 ### Numérotation
 
@@ -171,7 +171,7 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevront la procha
 
 ### Rétention des données
 
-**Alertes → Paramètres → Rétention des données** supprime les alertes une fois qu'elles sont résolues depuis assez longtemps, comme le fait [Rétention des données](/docs/incidents/settings#rétention-des-données) pour les incidents. Sa carte **Alertes résolues** demande **Supprimer après**, **Jamais** tant que vous ne choisissez pas de durée, et demande confirmation avant de supprimer davantage, avec **Supprimer les anciennes alertes**. Une alerte reste tant qu'elle n'est pas résolue, tant qu'elle fait partie d'un épisode encore ouvert ou résolu plus récemment, et aussi longtemps que reste un incident auquel elle est liée. Seuls les Project Owners et les Project Admins peuvent le modifier ; dans l'API, c'est le champ `alertRetentionInDays` du projet.
+**Alertes → Paramètres → Rétention des données** supprime les alertes une fois qu'elles sont résolues depuis assez longtemps, comme le fait [Rétention des données](/docs/incidents/settings#rétention-des-données) pour les incidents. Sa carte **Alertes résolues** demande **Supprimer après**, **Jamais** tant que vous ne choisissez pas de durée, et demande confirmation avant de supprimer davantage, avec **Supprimer les anciennes alertes**. Une alerte reste tant qu'elle n'est pas résolue, tant qu'elle fait partie d'un épisode encore ouvert ou résolu plus récemment, et aussi longtemps que reste un incident auquel elle est liée. Seuls les Propriétaires du projet et les Administrateurs du projet peuvent le modifier ; dans l'API, c'est le champ `alertRetentionInDays` du projet.
 
 > [!NOTE]
 > Sur OneUptime Cloud, les modèles de notes et les champs personnalisés nécessitent l'offre **Growth** ou supérieure.
@@ -182,7 +182,7 @@ Chaque modèle d'alerte a des déclencheurs et des actions de workflow, nommés 
 
 ## Qui peut les modifier
 
-Les règles, les champs personnalisés et les mesures exigent un Project Owner ou un Project Admin, ou un rôle personnalisé disposant de l'autorisation propre à cette règle. **Membre des alertes** travaille avec les alertes et les épisodes, leurs notes, propriétaires et chronologies d'état, ainsi qu'avec les modèles de notes, et **Administrateur des alertes** gère en plus les états et les gravités d'alerte. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
+Les règles, les champs personnalisés et les mesures exigent un Propriétaire du projet ou un Administrateur du projet, ou un rôle personnalisé disposant de l'autorisation propre à cette règle. **Membre des alertes** travaille avec les alertes et les épisodes, leurs notes, propriétaires et chronologies d'état, ainsi qu'avec les modèles de notes, et **Administrateur des alertes** gère en plus les états et les gravités d'alerte. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Étapes suivantes
 

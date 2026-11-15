@@ -15,15 +15,15 @@ Instrumentpaneler följer ditt projekts [behörigheter](/docs/permissions/index)
 
 | För att | Krävs |
 | --- | --- |
-| Läsa instrumentpaneler | `ReadDashboard`, eller en projektroll: Project Owner, Project Admin, Project Member, Viewer eller en Settings-roll |
-| Skapa instrumentpaneler | `CreateDashboard`, Project Owner eller Project Admin |
-| Ändra en instrumentpanel: dess widgetar, variabler, delning och varumärke, och arkivera den | `EditDashboard`, Project Owner eller Project Admin |
-| Ta bort en instrumentpanel | `DeleteDashboard`, Project Owner eller Project Admin |
-| Lägga till och ta bort ägare | Behörigheterna för instrumentpanelsägare, Project Owner, Project Admin eller Project Member |
-| Lägga till och ändra anpassade domäner | Behörigheterna för instrumentpanelsdomäner, Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member |
-| Skapa ägarregler och etikettregler | Behörigheterna för regler, Project Owner eller Project Admin |
+| Läsa instrumentpaneler | `ReadDashboard`, eller en projektroll: Projektägare, Projektadministratör, Projektmedlem, Tittare eller en Settings-roll |
+| Skapa instrumentpaneler | `CreateDashboard`, Projektägare eller Projektadministratör |
+| Ändra en instrumentpanel: dess widgetar, variabler, delning och varumärke, och arkivera den | `EditDashboard`, Projektägare eller Projektadministratör |
+| Ta bort en instrumentpanel | `DeleteDashboard`, Projektägare eller Projektadministratör |
+| Lägga till och ta bort ägare | Behörigheterna för instrumentpanelsägare, Projektägare, Projektadministratör eller Projektmedlem |
+| Lägga till och ändra anpassade domäner | Behörigheterna för instrumentpanelsdomäner, Projektägare, Projektadministratör, Projektmedlem, Inställningsadministratör eller Inställningsmedlem |
+| Skapa ägarregler och etikettregler | Behörigheterna för regler, Projektägare eller Projektadministratör |
 
-En Project Member läser alltså alla instrumentpaneler, men behöver `CreateDashboard` och `EditDashboard` för att bygga dem. Läsning, redigering och borttagning kan var och en begränsas till de instrumentpaneler som ett team äger, eller till instrumentpaneler med vissa etiketter: se [Omfattning: hur långt en tillåten behörighet når](/docs/permissions/index#omfattning-hur-långt-en-tillåten-behörighet-når).
+En Projektmedlem läser alltså alla instrumentpaneler, men behöver `CreateDashboard` och `EditDashboard` för att bygga dem. Läsning, redigering och borttagning kan var och en begränsas till de instrumentpaneler som ett team äger, eller till instrumentpaneler med vissa etiketter: se [Omfattning: hur långt en tillåten behörighet når](/docs/permissions/index#omfattning-hur-långt-en-tillåten-behörighet-når).
 
 Tilldela dem på ett teams sida **Behörigheter**: öppna **Produkter → Team** och välj teamet.
 
