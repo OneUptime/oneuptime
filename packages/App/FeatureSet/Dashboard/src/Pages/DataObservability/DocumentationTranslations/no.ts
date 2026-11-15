@@ -182,11 +182,11 @@ Hver innsamling skriver disse for hver tabell, slik at du kan vise dem i diagram
 | \`oneuptime.data.table.schema_changes\` | Kolonner som er endret siden forrige innsamling |
 | \`oneuptime.data.table.breaking_schema_changes\` | Kolonner som er fjernet, har fått nytt navn eller en annen type siden forrige innsamling |
 
-Hver rad har \`oneuptime.data.store.id\`, \`oneuptime.data.store.name\`, \`oneuptime.data.table.id\`, \`oneuptime.data.table.schema\`, \`oneuptime.data.table.name\` og \`oneuptime.data.table.key\` (\`schema.table\`). En måledataovervåking gruppert etter \`oneuptime.data.table.key\` varsler én gang per tabell, og filtrene **Unormalt høy** og **Unormalt lav** sammenligner hver tabell med dens egen vanlige verdi for den timen i uken, så ingen terskel må settes.
+Hver rad har \`oneuptime.data.store.id\`, \`oneuptime.data.store.name\`, \`oneuptime.data.table.id\`, \`oneuptime.data.table.schema\`, \`oneuptime.data.table.name\` og \`oneuptime.data.table.key\` (\`schema.table\`). En målingsmonitor gruppert etter \`oneuptime.data.table.key\` varsler én gang per tabell, og filtrene **Unormalt høy** og **Unormalt lav** sammenligner hver tabell med dens egen vanlige verdi for den timen i uken, så ingen terskel må settes.
 
 ## Varsler
 
-En database du kobler til, åpner på sine **Anbefalte varsler**; senere velger du dem for den under **Databaser**. Hver anbefaling er én måledataovervåking for hele databasen som varsler én gang per tabell, så også en tabell som opprettes senere, overvåkes:
+En database du kobler til, åpner på sine **Anbefalte varsler**; senere velger du dem for den under **Databaser**. Hver anbefaling er én målingsmonitor for hele databasen som varsler én gang per tabell, så også en tabell som opprettes senere, overvåkes:
 
 | Varsel | Utløses når |
 | --- | --- |
@@ -196,7 +196,7 @@ En database du kobler til, åpner på sine **Anbefalte varsler**; senere velger 
 | **Skjema endret** | Kolonner i en tabell fjernes, får nytt navn eller en annen type. En kolonne som legges til, ødelegger ingenting og blir på tidslinjen |
 | **Tabelltilstand rapporterer ikke lenger** | Ingen tabell i databasen er lest på femten minutter |
 
-Velg alvorlighetsgrader, vaktpolicyer, eiere og etiketter når du oppretter dem. Deretter er de vanlige overvåkinger: rediger dem, demp dem eller legg dem på en statusside som alle andre.
+Velg alvorlighetsgrader, vaktpolicyer, eiere og etiketter når du oppretter dem. Deretter er de vanlige monitorer: rediger dem, demp dem eller legg dem på en statusside som alle andre.
 
 En backfill eller en migrering bør ikke tilkalle noen. Oppgi databasen under **Data Observability Databaser** på en vedlikeholdshendelse, eller legg databaseserveren dens i en, så holder datavarslene seg stille mens hendelsen pågår.
 
@@ -220,8 +220,8 @@ Menneskene som bruker data (analytikere, økonomi, ledere, AI-agenter), tenker i
 Hvert femte minutt sammenlignes tabellene i hvert produkt med SLA-en. Produktet er **Sen** når en av tabellene er det, og dataene er fra den eldste siste endringen blant dem. Det skriver \`oneuptime.data.product.late_tables\` og \`oneuptime.data.product.data_age\`, slik at du kan vise ferskheten til hvert produkt side om side.
 
 Når du lagrer et produkt, opprettes også, som deg og med dine tillatelser:
-- **En overvåking**, som er produktet på en statusside. Den er redusert mens en tabell er sen, og åpner en hendelse og et varsel på prosjektets minst alvorlige nivå, som løser seg selv. Legg den til på en statusside, privat eller offentlig, som en ressurs: forbrukere som abonnerer, får vite når produktet er sent, og når det er ferskt igjen.
-- **En SLO** over den overvåkingen: andelen av tiden dataene er i rute, målt mot produktets SLA-mål over 30 dager, med varslene for rask og langsom burn rate som hver SLO starter med.
+- **En monitor**, som er produktet på en statusside. Den er redusert mens en tabell er sen, og åpner en hendelse og et varsel på prosjektets minst alvorlige nivå, som løser seg selv. Legg den til på en statusside, privat eller offentlig, som en ressurs: forbrukere som abonnerer, får vite når produktet er sent, og når det er ferskt igjen.
+- **En SLO** over den monitoren: andelen av tiden dataene er i rute, målt mot produktets SLA-mål over 30 dager, med varslene for rask og langsom burn rate som hver SLO starter med.
 
 Når du sletter produktet, slettes begge. Hvert produkt har også et **merke** som sier når dataene er fra, grønt så lenge de er i rute og ravgult med "late" når de ikke er det. Bygg det inn i et BI-dashbord, en wikiside eller en README fra produktets oversikt. Lenken krever ingen pålogging, så behandle den som en delt lenke; **Tilbakestill merkelenke** lager en ny og trekker tilbake den gamle.
 
@@ -258,7 +258,7 @@ Sett **Varsle når** for å varsle på en sjekk:
 - **Uvanlig høy** eller **Uvanlig lav** sammenligner hver verdi med dens egen lærte grunnlinje for den timen i uken.
 - **Over** eller **Under** sammenligner den med en terskel.
 
-Når du lagrer sjekken, opprettes en måledataovervåking for den, som deg, med dine tillatelser. Hvis du tømmer betingelsen, fjernes overvåkingen.
+Når du lagrer sjekken, opprettes en målingsmonitor for den, som deg, med dine tillatelser. Hvis du tømmer betingelsen, fjernes monitoren.
 
 **Rader som feiler** teller radene som en skrivebeskyttet SELECT fra deg returnerer: radene som ikke burde finnes. 0 er sunt.
 
@@ -282,7 +282,7 @@ Den har en toleranse: et **Absolutt** beløp eller en **Prosent** av kildens ver
 Hver side leses av en egen datasjekk, som avstemmingen oppretter og holder ved like, med databasens innsamling: hos OneUptime eller på databasens sonde. En avstemming kan derfor sammenligne en PostgreSQL-tabell i nettverket ditt med kopien i Snowflake eller BigQuery. Sjekkene vises på fanen Sjekker for hver tabell og endres bare fra avstemmingen.
 
 De to verdiene sammenlignes så snart begge er lest innen 15 minutter fra hverandre, og begge sidene planlegges deretter til å leses sammen igjen. En avstemming skriver:
-- \`oneuptime.data.reconciliation.drifted\`: 1 når de to har drevet fra hverandre utover toleransen, 0 når de stemmer. Overvåkingen leser dette og varsler når de driver fra hverandre.
+- \`oneuptime.data.reconciliation.drifted\`: 1 når de to har drevet fra hverandre utover toleransen, 0 når de stemmer. Monitoren leser dette og varsler når de driver fra hverandre.
 - \`oneuptime.data.reconciliation.difference\`: målets verdi minus kildens.
 - \`oneuptime.data.reconciliation.difference_percent\`: differansen som prosentandel av kildens verdi.
 
@@ -310,7 +310,7 @@ Datasett kobles til tabeller etter navnespesifikasjonen i OpenLineage: \`postgre
 
 Hver pipeline lærer av sine egne kjøringer hvor lang tid en kjøring vanligvis tar (medianen av de siste 20 fullførte kjøringene) og hvor lang tid det går mellom kjøringer etter tidsplanen (det lengste gapet mellom de siste 50 startene som ikke er et enkelttilfelle). Begge er kjent etter fem kjøringer, og passer like godt for en jobb som kjører hvert femte minutt, som for en som kjører om natten. Når scheduleren din sender facetten \`nominalTime\` fra OpenLineage, slik Airflow gjør, står det planlagte tidspunktet for en kjøring for starten, slik at en backfill fortsatt leses som tidsplanen.
 
-Siden for en pipeline anbefaler tre overvåkinger, hver opprettet med ett klikk:
+Siden for en pipeline anbefaler tre monitorer, hver opprettet med ett klikk:
 - **Pipeline-kjøring mislyktes**: en kjøring mislyktes eller ble avbrutt.
 - **Pipeline-kjøring uvanlig lang**: en kjøring har tatt dobbelt så lang tid som vanlig, eller mer. Det sjekkes hvert femte minutt mens kjøringen pågår, så en kjøring som henger, oppdages før den slutter.
 - **Pipeline er sen**: ingen kjøring har startet på lengre tid enn tidsplanen tillater, med en fjerdedel av intervallet og minst femten minutters slingringsmonn.
@@ -352,7 +352,7 @@ Den virkelige virkningen av dårlige data er dashbordet noen åpner. Under **BI-
 
 Hver time, og når et verktøy legges til eller du velger **Les nå**, leser OneUptime hvert dashbord og tabellene bak det: tabellen til et kort og SQL-en til et innebygd spørsmål (Metabase), tabellen til et datasett eller SQL-en til et virtuelt datasett (Superset), oppstrømstabellene i Metadata API (Tableau), explore for hver flis (Looker) og datasettet til hver rapport (Power BI, fra en skanning av arbeidsområdet). Hver tabell kobles til en overvåket tabell ut fra database, skjema og navn; et navn som fortsatt passer på to overvåkede tabeller, forblir ukoblet. Fanen **Opphav** for en tabell, kortet **Data** i varslene og Produksjonsgjennomgang viser dashbordene som er bygget på den, og på tabellene som er bygget fra den. Bare navn og lenker leses, aldri dataene i et dashbord.
 
-Et Power BI-verktøy kan også varsle om mislykkede oppdateringer av datasettene sine. Med **Varsle ved mislykkede oppdateringer** slått på, slik det er for et verktøy som legges til nå, holder OneUptime én overvåking for verktøyet som åpner et varsel for hvert datasett der den siste oppdateringen mislyktes eller ble avbrutt, navngitt i tittelen på varselet, og løser det så snart en senere oppdatering er fullført. Den leser \`oneuptime.data.bi.refresh_failed\`, merket med \`oneuptime.data.bi.dataset.name\` og \`oneuptime.data.bi.workspace.name\`: hvert femte minutt skriver hvert datasett som den timevise lesingen fant feilende, 1, og 0 i timen etter at en senere oppdatering er fullført. En oppdatering som fortsatt kjører, endrer ingenting, så én feil er ett varsel, uansett hvor mange timevise lesinger som ser den.
+Et Power BI-verktøy kan også varsle om mislykkede oppdateringer av datasettene sine. Med **Varsle ved mislykkede oppdateringer** slått på, slik det er for et verktøy som legges til nå, holder OneUptime én monitor for verktøyet som åpner et varsel for hvert datasett der den siste oppdateringen mislyktes eller ble avbrutt, navngitt i tittelen på varselet, og løser det så snart en senere oppdatering er fullført. Den leser \`oneuptime.data.bi.refresh_failed\`, merket med \`oneuptime.data.bi.dataset.name\` og \`oneuptime.data.bi.workspace.name\`: hvert femte minutt skriver hvert datasett som den timevise lesingen fant feilende, 1, og 0 i timen etter at en senere oppdatering er fullført. En oppdatering som fortsatt kjører, endrer ingenting, så én feil er ett varsel, uansett hvor mange timevise lesinger som ser den.
 
 ## Jobber i tracene dine
 

@@ -16,6 +16,7 @@ import SloRequestCounting from "../../../../Server/Utils/Slo/SloRequestCounting"
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import {
   SloReleaseCheckMeasurement as SloReleaseCheckMeasurementResult,
@@ -209,7 +210,7 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
     );
   });
 
-  test("a target out of range, or the Metric type, is refused", async () => {
+  test("a target out of range, or an SLI type OneUptime does not measure, is refused", async () => {
     await expectRefused(
       SloReleaseCheckMeasurement.measure({
         slo: makeSlo({ targetPercentage: 100 }),
@@ -221,7 +222,7 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
 
     await expectRefused(
       SloReleaseCheckMeasurement.measure({
-        slo: makeSlo({ sliType: SliType.Metric }),
+        slo: makeSlo({ sliType: "Availability" as SliType }),
         options: optionsOf(),
         now: NOW,
       }),
@@ -397,5 +398,81 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
       expect(message).toMatch(/\.$/);
       expect(message.split(". ").length).toBeGreaterThan(1);
     }
+  });
+});
+
+/*
+ * A Metric SLO's release (#8445) is judged on its metric's events in the
+ * window, as the SLO counts them: the same metric, kind and good
+ * condition, with the canary's version, and never a request filter.
+ */
+describe("SloReleaseCheckMeasurement - a Metric SLO", () => {
+  const COUNTER: JSONObject = {
+    metricName: "http_requests_total",
+    kind: "Counter",
+    goodFilter: "@http.response.status_code:<500",
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("counts its metric's recent events, with the release's version", async () => {
+    const count: SpyInstance<typeof SloRequestCounting.countRecentRequests> =
+      jest
+        .spyOn(SloRequestCounting, "countRecentRequests")
+        .mockResolvedValue({ goodCount: 990, totalCount: 1000 });
+
+    const measurement: SloReleaseCheckMeasurementResult =
+      await SloReleaseCheckMeasurement.measure({
+        slo: makeSlo({
+          sliType: SliType.Metric,
+          metricQueryConfig: COUNTER,
+          requestFilter: "@http.route:/checkout*",
+        }),
+        options: optionsOf({ serviceVersion: "2.0.1" }),
+        now: NOW,
+      });
+
+    const args: Parameters<typeof SloRequestCounting.countRecentRequests>[0] =
+      count.mock.calls[0]![0];
+
+    expect(args.config.sliType).toBe(SliType.Metric);
+    expect(args.config.metricQueryConfig).toEqual(COUNTER);
+    expect(args.config.requestFilter).toBeNull();
+    expect(args.serviceVersion).toBe("2.0.1");
+    expect(measurement.totalRequestCount).toBe(1000);
+    // 1% bad against a 0.1% budget: burning ten times too fast.
+    expect(measurement.burnRate).toBeCloseTo(10, 6);
+  });
+
+  test("no services is refused, saying there are no events to check", async () => {
+    await expectRefused(
+      SloReleaseCheckMeasurement.measure({
+        slo: makeSlo({
+          sliType: SliType.Metric,
+          metricQueryConfig: COUNTER,
+          services: [],
+        }),
+        options: optionsOf(),
+        now: NOW,
+      }),
+      SLO_RELEASE_CHECK_MEASUREMENT_ERRORS.noServicesForMetric,
+    );
+  });
+
+  test("a metric it cannot count is refused, saying what is missing", async () => {
+    await expectRefused(
+      SloReleaseCheckMeasurement.measure({
+        slo: makeSlo({ sliType: SliType.Metric }),
+        options: optionsOf(),
+        now: NOW,
+      }),
+      "Choose the metric this SLO counts",
+    );
+  });
+
+  test("reads the metric with the SLO", () => {
+    expect(SLO_RELEASE_CHECK_SELECT.metricQueryConfig).toBe(true);
   });
 });

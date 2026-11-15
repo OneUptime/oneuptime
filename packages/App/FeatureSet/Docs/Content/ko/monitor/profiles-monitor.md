@@ -18,7 +18,7 @@ flowchart TB
     Store --> Count["시간 창에서<br/>일치하는 프로필"]
     Share --> Check{"기준 충족?"}
     Count --> Check
-    Check -->|"첫 번째 일치"| Act["상태 변경,<br/>알림 또는 인시던트"]
+    Check -->|"첫 번째 일치"| Act["상태 변경,<br/>경고 또는 인시던트"]
     Check -->|없음| Default["기본 상태"]
 ```
 

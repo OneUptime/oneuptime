@@ -1,13 +1,13 @@
 # Android-installasjon
 
-Installer **OneUptime On-Call** på en Android-telefon eller et Android-nettbrett, koble appen til ditt OneUptime, og logg inn. Send deg selv et testvarsel etterpå, og la akutte vaktvarsler ringe gjennom lydløs og Ikke forstyrr.
+Installer **OneUptime On-Call** på en Android-telefon eller et Android-nettbrett, koble appen til ditt OneUptime, og logg inn. Send deg selv en testvarsling etterpå, og la akutte vaktvarslinger ringe gjennom lydløs og Ikke forstyrr.
 
 :::cards
 - [Installer appen](#installer-appen): Fra Google Play, eller APK-en på en telefon uten Google Play.
 - [Logg inn](#logg-inn): Adressen til ditt OneUptime, deretter kontoen din.
 - [Sjekk at varsler når telefonen](#sjekk-at-varsler-når-telefonen): Finn telefonen i dashbordet, og test den.
 - [Ring gjennom lydløs](#ring-gjennom-lydløs): Kritiske varsler og alarmlyden.
-- [Feilsøking](#feilsøking): Problemer med innlogging, varsler og installasjon.
+- [Feilsøking](#feilsøking): Problemer med innlogging, varslinger og installasjon.
 :::
 
 ## Før du begynner
@@ -41,7 +41,7 @@ flowchart TB
     Address["Du skriver inn adressen<br/>til ditt OneUptime"]
     Check["Appen sjekker at ditt<br/>OneUptime svarer"]
     SignIn["Du logger inn: passord,<br/>tilgangsnøkkel eller SSO"]
-    Allow["Du tillater varsler"]
+    Allow["Du tillater varslinger"]
     Register["Appen registrerer<br/>telefonen i hvert av<br/>prosjektene dine"]
     Rules["Hvert prosjekt viser<br/>telefonen, med<br/>standard vaktregler"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
@@ -60,8 +60,8 @@ Bruk måten kontoen din logger inn på:
 
 Med tofaktorautentisering slått på skriver du inn den sekssifrede koden fra autentiseringsappen din, eller en av reservekodene dine. En sikkerhetsnøkkel kan ikke brukes i appen. Krever administratoren din tofaktorautentisering, og du ikke har satt den opp ennå, setter appen først opp en autentiseringsapp sammen med deg.
 
-### Tillat varsler
-Når Android spør om OneUptime On-Call kan sende varsler, trykker du på **Tillat**. Android 13 og nyere spør; eldre versjoner tillater dem så lenge du ikke slår dem av.
+### Tillat varslinger
+Når Android spør om OneUptime On-Call kan sende varslinger, trykker du på **Tillat**. Android 13 og nyere spør; eldre versjoner tillater dem så lenge du ikke slår dem av.
 
 Appen registrerer deretter telefonen i hvert av prosjektene dine. Hvert prosjekt viser den blant push-enhetene dine med standard vaktregler, så varslene dine når den fra nå av.
 :::
@@ -72,10 +72,10 @@ Appen viser ett prosjekt om gangen: trykk på prosjektets navn øverst på en sk
 
 :::steps
 ### Finn telefonen i dashbordet
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i dashbordet. Telefonen står under **Enheter for push-varsler** med modellnavnet sitt. Hvert prosjekt har sin egen liste.
+Åpne **Brukerinnstillinger → Varslingsmetoder** og fanen **Push-varslinger** i dashbordet. Telefonen står under **Enheter for push-varslinger** med modellnavnet sitt. Hvert prosjekt har sin egen liste.
 
 ### Send en test
-Klikk på **Testvarsel** i telefonens rad. Et varsel kommer frem på telefonen; trykk på det for å åpne appen.
+Klikk på **Testvarsling** i telefonens rad. En varsling kommer frem på telefonen; trykk på det for å åpne appen.
 :::
 
 Vaktreglene dine bestemmer hvilke varsler som går til telefonen, og hvor raskt: se **Brukerinnstillinger → Slik når man meg**. En ny telefon får de samme standardreglene som enhver annen metode du legger til.
@@ -109,14 +109,14 @@ Android åpner listen **Tilgang til Ikke forstyrr**. Slå på tilgangen for OneU
 Trykk på **Alarm sound** under bryteren. I tillegg til telefonens egen lyd tilbyr appen Klaxon, Siren, Digital alarm, Smoke alarm og Rising alarm, som starter lavt og blir sterkere. Trykk på spill av ved siden av en lyd for å høre den. Et kritisk varsel spilles med telefonens alarmvolum, så hold det skrudd opp.
 :::
 
-Bare vaktvarsler ringer gjennom, og bare fra vaktregler satt til **Kritisk varsel**, standarden. En regel satt til **Normal** følger telefonens innstillinger uansett hva bryteren sier, så du kan bli vekket av en kritisk hendelse og varslet stille om en mindre. Send et **Testvarsel** med telefonen på lydløs for å høre hva et varsel vil gjøre.
+Bare vaktvarsler ringer gjennom, og bare fra vaktregler satt til **Kritisk varsel**, standarden. En regel satt til **Normal** følger telefonens innstillinger uansett hva bryteren sier, så du kan bli vekket av en kritisk hendelse og varslet stille om en mindre. Send en **Testvarsling** med telefonen på lydløs for å høre hva et varsel vil gjøre.
 
 ## Unngå at varsler kommer for sent
 
 OneUptime sender vaktvarsler med høy prioritet, som Android leverer selv til en telefon som har ligget i ro i timevis. En telefon som begrenser appens batteribruk, kan likevel holde dem tilbake:
 
 - Åpne **Innstillinger → Apper → OneUptime On-Call → Batteri**, og velg **Ubegrenset**. Noen telefoner kaller det **Appens batteribruk**.
-- Sjekk at appens varsler er på, under **Innstillinger → Apper → OneUptime On-Call → Varsler**.
+- Sjekk at appens varslinger er på, under **Innstillinger → Apper → OneUptime On-Call → Varslinger**.
 - Hold OneUptime On-Call utenfor enhver liste over batterisparing eller sovende apper som telefonen din har.
 
 ## Lås appen
@@ -127,7 +127,7 @@ Slå på **Biometrics Login** under **Settings** i appen, så spør appen om fin
 
 - **Oppdater.** Google Play oppdaterer appen. For APK-en installerer du den nyeste over den. Appens versjon står nederst på skjermen **Settings**.
 - **Logg ut.** **Settings → Log Out** logger deg ut og fjerner telefonen fra push-enhetene dine i alle prosjekter, sammen med vaktreglene. Logger du inn igjen, kommer den tilbake med standardreglene.
-- **Avinstaller.** Fjern appen som enhver annen. Var du fortsatt logget inn, blir telefonen stående i listen din til et push til den mislykkes: OneUptime merker den da som **Mottar ikke varsler**. Slett den oppføringen med **Slett**: installerer du appen igjen og logger inn, legges telefonen til som en ny oppføring med standardreglene.
+- **Avinstaller.** Fjern appen som enhver annen. Var du fortsatt logget inn, blir telefonen stående i listen din til et push til den mislykkes: OneUptime merker den da som **Mottar ikke varslinger**. Slett den oppføringen med **Slett**: installerer du appen igjen og logger inn, legges telefonen til som en ny oppføring med standardreglene.
 
 ## Feilsøking
 
@@ -135,16 +135,16 @@ Slå på **Biometrics Login** under **Settings** i appen, så spør appen om fin
 Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inkludert `https://`. Er ditt OneUptime på et privat nettverk, kobler du telefonen til det først, for eksempel via VPN. Åpne den adressen i telefonens nettleser: den viser `{"status":"ok"}` når telefonen når OneUptime.
 :::
 
-:::details Det kommer ingen varsler
+:::details Det kommer ingen varslinger
 - Sjekk i Android-innstillingene at varsler er på for appen, og at Ikke forstyrr er av eller kritiske varsler er på.
-- Sjekk at telefonen står under **Push-varsler** i **Brukerinnstillinger → Varselmetoder**, og send den et **Testvarsel**.
-- Er telefonen merket **Mottar ikke varsler**, åpner du appen mens du er logget inn. Den registrerer telefonen på nytt; se [Når en telefon må registreres på nytt](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-må-registreres-på-nytt).
+- Sjekk at telefonen står under **Push-varslinger** i **Brukerinnstillinger → Varslingsmetoder**, og send den en **Testvarsling**.
+- Er telefonen merket **Mottar ikke varslinger**, åpner du appen mens du er logget inn. Den registrerer telefonen på nytt; se [Når en telefon må registreres på nytt](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-må-registreres-på-nytt).
 - Sjekk vaktreglene dine under **Brukerinnstillinger → Slik når man meg**.
-- På et selvdriftet OneUptime sjekker du at serveren din når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).
+- På et selvdriftet OneUptime sjekker du at serveren din når push-reléet sitt: se [Push-varslinger](/docs/self-hosted/push-notifications#nettverkstilgang).
 :::
 
 :::details Kritiske varsler er stille i Ikke forstyrr
-Åpne **Settings** i appen: linjen under **Critical On-Call Alerts** sier hva som mangler. Som oftest ble ikke tilgang til Ikke forstyrr tillatt: tillat den under **Innstillinger → Varsler → Tilgang til Ikke forstyrr**, og gå tilbake til appen. Har du valgt en alarmlyd, må også den lydens varselkanal få overstyre Ikke forstyrr.
+Åpne **Settings** i appen: linjen under **Critical On-Call Alerts** sier hva som mangler. Som oftest ble ikke tilgang til Ikke forstyrr tillatt: tillat den under **Innstillinger → Varslinger → Tilgang til Ikke forstyrr**, og gå tilbake til appen. Har du valgt en alarmlyd, må også den lydens varselkanal få overstyre Ikke forstyrr.
 :::
 
 :::details «Appen ble ikke installert» når du installerer APK-en
@@ -161,5 +161,5 @@ Bryteren vises når opplåsing med fingeravtrykk eller ansikt er satt opp i Andr
 - [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting): Hva du gjør når en telefon slutter å få varsler.
 - [iOS-installasjon](/docs/mobile-desktop-apps/ios-installation): Den samme appen på en iPhone eller iPad.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som varsles, og når.
-- [Push-varsler](/docs/self-hosted/push-notifications): Slik sender et selvdriftet OneUptime varsler til telefoner.
+- [Push-varslinger](/docs/self-hosted/push-notifications): Slik sender et selvdriftet OneUptime varslinger til telefoner.
 :::

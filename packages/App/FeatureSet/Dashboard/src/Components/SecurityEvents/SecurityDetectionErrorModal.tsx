@@ -45,6 +45,8 @@ const SecurityDetectionErrorModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.itemName}
+      // The record's own name, as written: never looked up as an English key.
+      isTitleTranslated={true}
       description={
         hasFailure
           ? "Copy this message when contacting support. Credentials are redacted."

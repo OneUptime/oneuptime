@@ -563,6 +563,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
               testItem.name ||
               getSecurityEventConnectorTitle(testItem.provider),
           })}
+          isTitleTranslated={true}
           providerTitle={getSecurityEventConnectorTitle(testItem.provider)}
           runTest={() => {
             return runConnectionTestRequest({

@@ -508,6 +508,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate("Test {{name}}", {
             name: testItem.name || "",
           })}
+          isTitleTranslated={true}
           description="A small read with the saved settings. Nothing is imported or stored."
           modalWidth={ModalWidth.Medium}
           closeButtonText="Close"

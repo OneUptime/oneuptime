@@ -211,7 +211,7 @@ OneUptime이 이 기본값을 바꾸기 전에 만든 모니터는 만들 때의
 
 | 옵션 | 일어나는 일 | 용도 |
 | --- | --- | --- |
-| **Ignore**(기본값) | 기준이 일치하지 않습니다. | 일반적인 임계값 알림. |
+| **Ignore**(기본값) | 기준이 일치하지 않습니다. | 일반적인 임계값 경고. |
 | **트리거** | 데이터가 없는 것 자체를 문제로 봅니다. | 침묵 자체가 장애인 확인. |
 | **Treat As Zero** | 기간을 하나의 0으로 비교합니다. | 이벤트가 없으면 정말로 0을 뜻하는 카운터. |
 
@@ -250,5 +250,5 @@ API가 본문이 있거나 메서드가 `GET` 또는 `HEAD`가 아닌 요청을 
 - [JavaScript 표현식](/docs/monitor/javascript-expression): JSON 응답 깊숙한 곳의 필드를 확인합니다.
 - [모니터 시크릿](/docs/monitor/monitor-secrets): API 키와 토큰을 모니터 설정에 두지 않습니다.
 - [웹사이트 모니터](/docs/monitor/website-monitor): 엔드포인트 대신 웹 페이지를 확인합니다.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 응답 세부 정보를 인시던트와 경고 제목에 넣습니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 응답 세부 정보를 인시던트와 경고 제목에 넣습니다.
 :::

@@ -1190,6 +1190,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                */
               <Button
                 title={t("Reload page")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 onClick={() => {
                   Navigation.reload();
@@ -1198,6 +1199,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             ) : (
               <Button
                 title={t("Try again")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 onClick={() => {
                   setAttempt((previous: number): number => {
@@ -1302,7 +1304,6 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
    * explorer has no subtitle, and read "api, K8s Pod" in every language
    * (#8260).
    */
-  const description: string = props.traffic?.subtitle || typeMeta.label;
   const spokenDescription: string =
     props.traffic?.subtitle || t(typeMeta.label);
   const focusLine: string = formatList(
@@ -1316,8 +1317,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
    */
   return (
     <SideOver
+      // The entity's own name, and its kind in the reader's words: as given.
       title={displayName}
-      description={description}
+      isTitleTranslated={true}
+      description={spokenDescription}
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
@@ -1360,6 +1364,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
               <div className="flex flex-wrap gap-2">
                 <Button
                   title={t(props.focusButtonLabel || "Explore connections")}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   onClick={() => {
                     props.onFocus?.(entityKey);

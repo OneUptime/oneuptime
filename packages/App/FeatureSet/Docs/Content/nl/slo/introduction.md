@@ -49,7 +49,7 @@ Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste
 
 ### Kiezen wat de SLO meet
 
-Laat onder **Wat het meet** de keuze **Beschikbaarheid van monitoren** staan om te meten welk deel van de tijd monitoren beschikbaar zijn. Kies **Succes van aanvragen** of **Latentie van aanvragen** om in plaats daarvan de aanvragen van services te meten, en kies hun **Services**: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). Klik op **Volgende**.
+Laat onder **Wat het meet** de keuze **Beschikbaarheid van monitoren** staan om te meten welk deel van de tijd monitoren beschikbaar zijn. Kies **Succes van aanvragen** of **Latentie van aanvragen** om in plaats daarvan de aanvragen van services te meten, en kies hun **Services**: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). Kies **Metriek** om de goede gebeurtenissen te tellen in een teller of een histogram dat uw services sturen: zie [SLO's op basis van een metriek](/docs/slo/request-slos#slos-op-basis-van-een-metriek). Klik op **Volgende**.
 
 ### Een naam en een doel geven
 
@@ -201,7 +201,7 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
-| **Wat het meet** | **Wat het meet**, **Services**, **Latentiedrempel (ms)** en **Aanvraagfilter**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
+| **Wat het meet** | **Wat het meet**, **Services**, **Latentiedrempel (ms)**, **Aanvraagfilter** en **Metriek**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
 | **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen". |
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
 | **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Alleen SLO's voor monitorbeschikbaarheid. Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
@@ -265,6 +265,8 @@ Een banner bovenaan de pagina's van de SLO zegt wat hem verhindert te meten:
 | **Geen services gekozen** | Een SLO voor aanvragen heeft geen services, dus er zijn geen aanvragen om te tellen. | Kies zijn services onder **Instellingen** → **Wat het meet**. |
 | **Geen latentiedrempel** | Een SLO voor latentie van aanvragen heeft geen drempel, dus geen enkele aanvraag kan als snel genoeg tellen. | Stel de **Latentiedrempel (ms)** in onder **Instellingen** → **Wat het meet**. |
 | **Wachten op aanvragen** | Geen van de services van een SLO voor aanvragen heeft in zijn venster al een aanvraag afgehandeld. | Controleer of de services traces naar OneUptime sturen. De cijfers verschijnen na de volgende evaluatie die een aanvraag telt. |
+| **Geen metriek om te tellen** | Een SLO voor een metriek heeft geen metriek die hij kan tellen: er is geen metriek gekozen, of er is niet ingesteld hoe zijn goede gebeurtenissen van de andere worden onderscheiden. | Kies de metriek, en de voorwaarde of waarde voor zijn goede gebeurtenissen, onder **Instellingen** → **Wat het meet**. |
+| **Wachten op de metriek** | Geen van de services van een SLO voor een metriek heeft in zijn venster al een gebeurtenis van zijn metriek gestuurd. | Controleer of de services de metriek naar OneUptime sturen, onder de naam die de SLO telt. De cijfers verschijnen na de volgende evaluatie die een gebeurtenis telt. |
 
 ## Volgende stappen
 

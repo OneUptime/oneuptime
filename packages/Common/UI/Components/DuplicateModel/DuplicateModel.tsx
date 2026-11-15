@@ -347,6 +347,7 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
               : undefined
           }
           title={duplicateTitle}
+          isTitleTranslated={true}
           isLoading={isLoading}
           error={formError || undefined}
           onSubmit={(values: TBaseModel) => {

@@ -597,6 +597,7 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate("Add {{itemsName}} to Episode", {
         itemsName: itemsTitle,
       })}
+      isTitleTranslated={true}
       description={translator.translateTemplate(
         "Pick the {{itemsName}} that belong to this episode. The ones already in it are not listed.",
         { itemsName },

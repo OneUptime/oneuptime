@@ -1334,6 +1334,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
                       ),
                     },
                   )}
+                  isTitleTranslated={true}
                   buttonSize={ButtonSize.Small}
                   buttonStyle={ButtonStyleType.NORMAL}
                   dataTestId="multi-snmp-walk-keep-first"

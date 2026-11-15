@@ -41,18 +41,14 @@ export const NOTIFICATIONS_NAV_GROUP_AFTER: string = "On-Call";
 /*
  * The group's title in each docs language is the Dashboard's own word for
  * "Notifications" (its Project Settings section), except where that word is
- * already the title of another group of the same section. The Norwegian
- * Dashboard reads "Varsler" for Notifications and Alerts alike, and the
- * Alerts group is "Varsler", so the Notifications group takes the word the
- * Norwegian User Settings menu uses for it in "Varsler og notifikasjoner"
- * (Alerts & Notifications): two groups called "Varsler" side by side would
- * leave a reader guessing.
+ * already the title of another group of the same section. None is now: the
+ * Norwegian Dashboard read "Varsler" for Notifications and Alerts alike, so
+ * the group was "Notifikasjoner" until Notifications became "Varslinger"
+ * there (#8719). OneAlertWordPerLanguage keeps every language's two apart.
  */
 export const NOTIFICATIONS_GROUP_TITLE_OVERRIDES: Readonly<
   Record<string, string>
-> = {
-  no: "Notifikasjoner",
-};
+> = {};
 
 /*
  * Bold words every language writes as the English does: the names of the

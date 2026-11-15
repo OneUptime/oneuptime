@@ -74,10 +74,10 @@ Alt annet kobler seg bare utover når du slår det på, og hver har en side som 
 
 | Utgående tilkobling | Brukes til | Les mer |
 | --- | --- | --- |
-| E-post (SMTP, eller API-et til SendGrid) | Varsler og invitasjoner | [SMTP](/docs/emails/smtp) |
+| E-post (SMTP, eller API-et til SendGrid) | Varslinger og invitasjoner | [SMTP](/docs/emails/smtp) |
 | Twilio | SMS og telefonsamtaler | [Twilio-integrasjon](/docs/self-hosted/twilio-integration) |
-| Push-reléet til OneUptime, eller Expo | Mobile push-varsler | [Push-varsler](/docs/self-hosted/push-notifications) |
-| Slack og Microsoft Teams | Varsler og handlinger i arbeidsområdet | [Slack-integrasjon](/docs/self-hosted/slack-integration) |
+| Push-reléet til OneUptime, eller Expo | Mobile push-varslinger | [Push-varslinger](/docs/self-hosted/push-notifications) |
+| Slack og Microsoft Teams | Varslinger og handlinger i arbeidsområdet | [Slack-integrasjon](/docs/self-hosted/slack-integration) |
 | En LLM-leverandør, som OpenAI, Anthropic, Microsoft Foundry eller en modell du kjører selv | OneUptime AI | [LLM-leverandører](/docs/ai/llm-provider) |
 | `oneuptime.com` | Aktivere en Enterprise-lisens på nett | [Enterprise Edition](/docs/self-hosted/enterprise) |
 

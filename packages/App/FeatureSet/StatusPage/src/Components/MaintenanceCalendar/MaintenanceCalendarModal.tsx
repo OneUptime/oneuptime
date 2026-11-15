@@ -88,6 +88,7 @@ const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
           ? t("scheduledEvents.calendar.subscribeTitle")
           : t("scheduledEvents.calendar.eventTitle")
       }
+      isTitleTranslated={true}
       description={
         isSubscribe
           ? t("scheduledEvents.calendar.subscribeDescription")

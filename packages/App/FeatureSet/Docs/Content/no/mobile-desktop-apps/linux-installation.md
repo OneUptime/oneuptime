@@ -1,12 +1,12 @@
 # Linux-installasjon
 
-OneUptime-dashbordet installeres på Linux som en app, fra Google Chrome, Chromium eller Microsoft Edge. Det åpnes i sitt eget vindu, med en egen oppføring i appstarteren på skrivebordet ditt, og kan vise varsler. Det er ingenting å laste ned: appen er dashbordet til ditt OneUptime, og den er oppdatert så snart ditt OneUptime er det.
+OneUptime-dashbordet installeres på Linux som en app, fra Google Chrome, Chromium eller Microsoft Edge. Det åpnes i sitt eget vindu, med en egen oppføring i appstarteren på skrivebordet ditt, og kan vise varslinger. Det er ingenting å laste ned: appen er dashbordet til ditt OneUptime, og den er oppdatert så snart ditt OneUptime er det.
 
 :::cards
 - [Installer appen](#installer-appen): Fra Chrome, Chromium eller Edge.
 - [Åpne den fra appstarteren](#åpne-den-fra-appstarteren): Som en hvilken som helst annen skrivebordsapp.
-- [Få varsler på denne datamaskinen](#få-varsler-på-denne-datamaskinen): Registrer nettleseren for push-varsler.
-- [Feilsøking](#feilsøking): Ingen installeringsikon, ingen varsler, ingen oppføring i appstarteren.
+- [Få varslinger på denne datamaskinen](#få-varslinger-på-denne-datamaskinen): Registrer nettleseren for push-varslinger.
+- [Feilsøking](#feilsøking): Ingen installeringsikon, ingen varslinger, ingen oppføring i appstarteren.
 :::
 
 ## Slik fungerer skrivebordsappen
@@ -21,7 +21,7 @@ flowchart TB
     App -->|"henter dashbordet<br/>hver gang den åpnes"| OneUptime
 ```
 
-Den installerte appen deler innlogging, innstillinger og varseltillatelse med nettleseren sin. Lukk nettleseren, og appen fortsetter i sitt eget vindu.
+Den installerte appen deler innlogging, innstillinger og varslingstillatelse med nettleseren sin. Lukk nettleseren, og appen fortsetter i sitt eget vindu.
 
 ## Før du begynner
 
@@ -48,24 +48,24 @@ Installer fra en dashbordside etter at du har logget inn: innloggingssiden er ik
 
 Nettleseren legger til en skrivebordsoppføring for appen, en `.desktop`-fil i `~/.local/share/applications`, så OneUptime vises i GNOME, KDE Plasma og andre appstartere. Fest den til docken eller panelet derfra, som en hvilken som helst annen app.
 
-## Få varsler på denne datamaskinen
+## Få varslinger på denne datamaskinen
 
-Appen viser varsler gjennom nettleseren sin, når du har registrert nettleseren for push-varsler i hvert prosjekt du vil ha dem fra.
+Appen viser varslinger gjennom nettleseren sin, når du har registrert nettleseren for push-varslinger i hvert prosjekt du vil ha dem fra.
 
 :::steps
 ### Åpne push-enhetene dine
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i appen.
+Åpne **Brukerinnstillinger → Varslingsmetoder** og fanen **Push-varslinger** i appen.
 
 ### Registrer denne nettleseren
-Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Chrome on Linux`, eller endre det, og klikk på **Registrer enhet** igjen. Når nettleseren spør om OneUptime kan vise varsler, velger du **Tillat**.
+Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Chrome on Linux`, eller endre det, og klikk på **Registrer enhet** igjen. Når nettleseren spør om OneUptime kan vise varslinger, velger du **Tillat**.
 
 ### Send en test
-Klikk på **Send testvarsel** i dialogen **Nettleser registrert**. Skrivebordet ditt viser det gjennom varslingstjenesten sin; vises ingenting, se [Feilsøking](#feilsøking).
+Klikk på **Send testvarsling** i dialogen **Nettleser registrert**. Skrivebordet ditt viser det gjennom varslingstjenesten sin; vises ingenting, se [Feilsøking](#feilsøking).
 :::
 
 En nettleser kan ikke ringe gjennom Ikke forstyrr på skrivebordet ditt. Bruk mobilappen med kritiske varsler for varsler som må vekke deg: se [Android-installasjon](/docs/mobile-desktop-apps/android-installation#ring-gjennom-lydløs).
 
-På et selvdriftet OneUptime trenger nettleservarsler serverens VAPID-nøkler: se [Push-varsler](/docs/self-hosted/push-notifications#selvhostet-oppsett).
+På et selvdriftet OneUptime trenger nettleservarslinger serverens VAPID-nøkler: se [Push-varslinger](/docs/self-hosted/push-notifications#selvhostet-oppsett).
 
 ## Oppdateringer
 
@@ -80,7 +80,7 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 Åpne `edge://apps` i Edge, velg **Detaljer** for OneUptime, og deretter **Avinstaller**.
 :::
 
-Å avinstallere appen avregistrerer ikke nettleseren: den får fortsatt varsler. For å stoppe dem sletter du nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, med **Slett**.
+Å avinstallere appen avregistrerer ikke nettleseren: den får fortsatt varslinger. For å stoppe dem sletter du nettleseren under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**, med **Slett**.
 
 ## Feilsøking
 
@@ -88,10 +88,10 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 Åpne en dashbordside etter innlogging, ikke innloggingssiden, og sjekk at adressen begynner med `https://`: nettlesere installerer bare apper fra sikre nettsteder. Vises ikonet fortsatt ikke, bruker du nettleserens meny som over. Andre nettlesere installerer kanskje ikke nettsteder som apper; bruk Chrome, Chromium eller Edge.
 :::
 
-:::details Det vises ingen varsler
-- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at denne nettleseren står i listen, og send den et **Testvarsel**.
+:::details Det vises ingen varslinger
+- Sjekk under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**, at denne nettleseren står i listen, og send den en **Testvarsling**.
 - Sjekk at Ikke forstyrr på skrivebordet er av, og at varslingsinnstillingene tillater nettleseren.
-- Blokkerer nettleseren varsler for OneUptime, klikker du på ikonet til venstre i adresselinjen, tillater varsler for nettstedet og registrerer nettleseren på nytt.
+- Blokkerer nettleseren varslinger for OneUptime, klikker du på ikonet til venstre i adresselinjen, tillater varslinger for nettstedet og registrerer nettleseren på nytt.
 - På et selvdriftet OneUptime sier dialogen **Registrer enhet** fra når serveren ikke har VAPID-nøkler.
 :::
 

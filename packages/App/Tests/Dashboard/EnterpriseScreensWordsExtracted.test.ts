@@ -41,9 +41,19 @@ const SCREENS: ReadonlyArray<string> = [
   "ee/Dashboard/Identity",
   "ee/Dashboard/TelemetryRetention",
   "ee/Dashboard/EnterpriseSettings",
+  // Every other screen the Dashboard draws from ee/Dashboard (#8634).
+  "ee/Dashboard/CustomRoles",
+  "ee/Dashboard/AuditLogExport",
+  "ee/Dashboard/IpAllowlists",
+  "ee/Dashboard/License",
+  "ee/Dashboard/StatusPageAccessControls",
+  "ee/Dashboard/StatusPageBranding",
 ];
 
 const CATALOG: string = "packages/Common/Types/Team/ComplianceRule.ts";
+
+// What the compliance page says about a rule and a member (#8632).
+const FINDINGS: string = "packages/Common/Types/Team/TeamComplianceFindings.ts";
 
 const rootOf: (directory: string) => SourceRoot = (
   directory: string,
@@ -139,6 +149,54 @@ describe("the roots the extractor reads", () => {
     }
   });
 
+  test("what the compliance page says about a rule and a member is read for the words it marks (#8632)", () => {
+    expect(rootOf(FINDINGS).kind).toBe("keys");
+
+    const texts: Set<string> = textsOf(FINDINGS);
+
+    for (const text of [
+      "This rule type is not recognised, so it is not checked.",
+      "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+      "No verified phone number configured for call notifications",
+      "an unverified phone number for calls",
+      "No {{channel}} rule for incident severities: {{severities}}",
+      "Opted out of alert episode notifications for: {{severities}}",
+    ]) {
+      expect({ text, found: texts.has(text) }).toEqual({ text, found: true });
+    }
+  });
+
+  /*
+   * Every Enterprise screen the Dashboard draws is a root, and none of them
+   * draws a word no translator sees (#8634): the extractor's hard-coded
+   * scan finds nothing in any of them.
+   */
+  test("every directory of ee/Dashboard the Dashboard draws is read, and none draws a hard-coded word", () => {
+    const drawn: Array<string> = fs
+      .readdirSync(path.join(REPOSITORY_ROOT, "ee/Dashboard"), {
+        withFileTypes: true,
+      })
+      .filter((entry: fs.Dirent): boolean => {
+        return entry.isDirectory();
+      })
+      .map((entry: fs.Dirent): string => {
+        return `ee/Dashboard/${entry.name}`;
+      })
+      .sort();
+
+    expect([...SCREENS, "ee/Dashboard/AuditLogs"].sort()).toEqual(drawn);
+
+    for (const directory of SCREENS) {
+      const hardcoded: Array<string> = scanSourceRoots([
+        rootOf(directory),
+      ]).hardcoded.map((entry: { file: string; text: string }): string => {
+        return `${entry.file}: ${entry.text}`;
+      });
+
+      expect({ directory, hardcoded }).toEqual({ directory, hardcoded: [] });
+    }
+  });
+
   test("the license server's own words stay out of every locale", () => {
     expect(
       SKIPPED_SOURCE_FILES.has(
@@ -182,6 +240,9 @@ describe("the words the Enterprise screens draw", () => {
       "Set. It works until {{date}}, and is never shown again.",
       "No details available",
       "Status Message: {{message}}",
+      // What the reset dialog says when a token cannot be made, or is refused (#8634).
+      "This browser cannot generate a secure bearer token. Please use a current browser and try again.",
+      "A new bearer token must be at least 32 characters long.",
     ],
     "ee/Dashboard/TelemetryRetention": [
       "Per-severity overrides",
@@ -193,6 +254,7 @@ describe("the words the Enterprise screens draw", () => {
       "Set the default retention for telemetry collected from this {{resource}}.",
       "Retention overrides apply as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, new telemetry is kept for the project's default retention until an Enterprise license is activated in the Admin Dashboard.",
     ],
+    "ee/Dashboard/CustomRoles": ["Roles"],
     "ee/Dashboard/EnterpriseSettings": [
       "Enterprise license required: custom roles cannot be created or changed.",
       "Activate or renew the Enterprise license in the Admin Dashboard to change this again.",
@@ -233,7 +295,7 @@ describe("the words the Enterprise screens draw", () => {
     );
   });
 
-  test.each([...SCREENS, CATALOG])(
+  test.each([...SCREENS, CATALOG, FINDINGS])(
     "every word found in %s is a key of the English locale",
     (directory: string) => {
       const missing: Array<string> = [];
@@ -260,7 +322,7 @@ describe("the words the Enterprise screens draw", () => {
     (language: string) => {
       const unworded: Array<string> = [];
 
-      for (const directory of [...SCREENS, CATALOG]) {
+      for (const directory of [...SCREENS, CATALOG, FINDINGS]) {
         for (const key of keysOf(directory)) {
           if (
             key.endsWith("_one") &&

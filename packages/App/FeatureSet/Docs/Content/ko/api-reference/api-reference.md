@@ -284,7 +284,7 @@ Episode cannot transition to Acknowledged state from Resolved state because Ackn
 
 실수로 설정한 상태는 레코드의 상태 타임라인에서 해당 행을 삭제해 바로잡습니다. [순서는 표시 취향이 아니라 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다)를 참조하세요.
 
-### 인시던트나 알림이 속한 에피소드
+### 인시던트나 경고가 속한 에피소드
 
 인시던트의 `incidentEpisodeId`와 경고의 `alertEpisodeId`(그리고 그 관계인 `incidentEpisode`와 `alertEpisode`)는 레코드가 마지막으로 추가되어 아직 구성원으로 있는 에피소드를 지정하거나, 아무것도 지정하지 않습니다. 이 필드들은 읽기 전용이며, OneUptime이 에피소드의 구성원으로부터 설정합니다. 인시던트를 에피소드에 넣으려면 Incident Episode Member를 만드세요(`incidentEpisodeId`와 `incidentId`를 지정한 `POST /api/incident-episode-member`). 빼려면 그 구성원을 삭제하며, 그러면 인시던트는 아직 속한 최신 에피소드를 지정하거나 아무것도 지정하지 않습니다. 경고도 Alert Episode Members(`alertEpisodeId`와 `alertId`를 지정한 `/api/alert-episode-member`)를 통해 같은 방식으로 작동합니다. 그룹화 규칙도 같은 방식으로 인시던트와 경고를 에피소드에 추가합니다. 에피소드를 보내는 인시던트나 경고의 만들기나 업데이트는 API, Terraform, MCP 도구, 워크플로 중 누가 보내든 거부됩니다. Terraform에서 `incident_episode_id`와 `alert_episode_id`는 읽을 수 있지만 설정할 수는 없으며, 구성원 자격은 `oneuptime_incident_episode_member`와 `oneuptime_alert_episode_member` 리소스로 관리합니다.
 

@@ -5,6 +5,7 @@ Et forespørsels-SLO måler det brukerne dine får fra en tjeneste: andelen av f
 :::cards
 - [Opprett et forespørsels-SLO](#opprett-et-forespørsels-slo): Tjenestene, en latensgrense og et mål.
 - [Tell bare noen forespørsler](#tell-bare-noen-forespørsler): Ett endepunkt, eller alle forespørsler unntatt helsesjekker.
+- [SLO-er ut fra en måling](#slo-er-ut-fra-en-måling): En teller eller et histogram, for tjenester som ikke sender spor.
 - [Slik telles forespørsler](#slik-telles-forespørsler): Hvilke spans som teller, og når.
 - [Utgivelseskontroller](/docs/slo/release-checks): Rull tilbake en utgivelse som brenner opp feilbudsjettet.
 :::
@@ -76,6 +77,22 @@ Et forespørsels-SLO teller alle forespørslene fra tjenestene sine. Et **Foresp
 Alle betingelser må samsvare, så `@http.route:/checkout* -@http.route:/checkout/health` teller checkout-forespørslene unntatt helsesjekken deres. En betingelse med `@` er et attributt på spannet til forespørselen, og `name:` er navnet på spannet. Fritekst og de andre feltene i utforskeren, som `status:` og `duration:`, er ikke filtre her: SLO-et avgjør allerede hvilke forespørsler som er dårlige eller trege. Et filter kan ha opptil 10 betingelser på høyst 500 tegn.
 
 **Oversikt** viser filteret under tjenestene til SLO-et, og **Innstillinger** viser det under **Hva den måler**. Endrer du det, telles forespørslene til SLO-et på nytt fra starten.
+
+## SLO-er ut fra en måling
+
+Når tjenestene dine allerede teller forespørslene sine som målinger, eller ikke sender spor, måler du heller SLO-et ut fra en teller eller et histogram. Under **Hva den måler** velger du **Måling** og under **Tjenester** tjenestene som sender målingen, og deretter fyller du ut trinnet **Måling**:
+
+| Felt | Det du angir |
+| --- | --- |
+| **Måling** | Navnet på målingen, valgt blant målingene i prosjektet ditt eller skrevet inn, som `http_requests_total` eller `http.server.request.duration`. |
+| **Gode hendelser** | **En teller, ut fra en betingelse** eller **Et histogram, ut fra en verdi**. |
+| **God når** | For en teller: hendelsene som er gode, som et søk i attributtene dens, for eksempel `@http.response.status_code:<500`. |
+| **God på eller under** | For et histogram: verdien en god observasjon ligger på eller under, i målingens egen enhet, for eksempel `0.3` for 300 ms i et histogram i sekunder. Bruk en av bucketgrensene dets. |
+| **Målingsfilter** | Valgfritt: seriene som teller, for eksempel `-@http.route:/health`. |
+
+Hendelsene til en teller er det den vokste med i hvert steg på 5 minutter, slik Prometheus' `increase()` leser en teller: en teller som starter på nytt, teller fra null igjen, og både kumulative tellere og deltatellere teller. Hendelsene til et histogram er observasjonene dets, og de gode er dem i bucketene på eller under verdien. Bare målingens egne punkter teller, og bare fra tjenestene til SLO-et: en gauge med samme navn teller ikke i det hele tatt.
+
+Derfra fungerer et målings-SLO som et forespørsels-SLO, men med feilbudsjettet, forbruksratereglene og utgivelseskontrollene i hendelser. Endrer du målingen, telles hendelsene dens på nytt fra starten.
 
 ## Slik telles forespørsler
 

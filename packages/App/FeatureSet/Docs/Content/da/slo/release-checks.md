@@ -42,6 +42,7 @@ Ved en forbrugsrate på 1 ramte vinduet præcis SLO'ets mål, så standardværdi
 Hvad tjekket læser, afhænger af, hvad SLO'et måler:
 
 - Et [anmodnings-SLO](/docs/slo/request-slos) bedømmes ud fra dets tjenesters anmodninger i vinduet, læst fra deres spans, efterhånden som de ankommer. Tilføj `serviceVersion` for kun at bedømme den nye versions anmodninger: OneUptime matcher værdien mod spannenes ressourceattribut `service.version`, som et OpenTelemetry-SDK sætter ud fra `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Så bedømmes canaryen på sine egne anmodninger og udvandes ikke af den gamle versions.
+- Et [metrik-SLO](/docs/slo/request-slos#sloer-ud-fra-en-metrik) bedømmes ud fra metrikkens begivenheder i vinduet, talt på samme måde som dets SLI tæller dem, så `minimumRequestCount`, `goodRequestCount` og `totalRequestCount` er begivenheder. Med `serviceVersion` tæller kun de af metrikkens punkter, hvis ressourceattribut `service.version` har den værdi: Et OpenTelemetry-SDK sætter den på sine metrikker, ligesom det gør på sine spans.
 - Et SLO for monitoroppetid bedømmes ud fra dets monitorers statustidslinjer over vinduet. `minimumRequestCount` gælder ikke for det, og et tjek med `serviceVersion` afvises: Monitorer har ingen versioner.
 
 ## Før du begynder
@@ -126,7 +127,7 @@ Svarets felter:
 | `deploymentsAllowed` og `errorBudgetPolicyTier` | Om SLO'ets fejlbudgetpolitik tillader udrulninger, og det niveau, SLO'et er i. |
 | `checkedAt` | Hvornår tjekket blev målt. |
 
-Et SLO, der ikke kan måles – et anmodnings-SLO uden tjenester, et latens-SLO uden grænse, et SLO for monitoroppetid uden monitorer – får svaret HTTP 400 og besked om, hvad der skal rettes, så en udrulning stopper på en tydelig fejl i stedet for et gæt. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
+Et SLO, der ikke kan måles – et anmodnings-SLO uden tjenester, et latens-SLO uden grænse, et metrik-SLO uden en tællelig metrik, et SLO for monitoroppetid uden monitorer – får svaret HTTP 400 og besked om, hvad der skal rettes, så en udrulning stopper på en tydelig fejl i stedet for et gæt. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
 
 ## Argo Rollouts
 

@@ -132,7 +132,7 @@ On **Rule**, enter a **Name**, such as "Fast burn". A new rule is on; to stop it
 
 ### Set the burn window
 
-On **Burn Window**, set the **Burn Rate Threshold** (for example `14.4`), the **Long Window (Minutes)** and **Short Window (Minutes)**, and optionally the **Re-fire Suppression (Minutes)**. A request SLO's rule also takes **Minimum Requests**, for example `100`: the rule skips a long window that holds fewer requests than that.
+On **Burn Window**, set the **Burn Rate Threshold** (for example `14.4`), the **Long Window (Minutes)** and **Short Window (Minutes)**, and optionally the **Re-fire Suppression (Minutes)**. A request SLO's rule also takes **Minimum Requests**, for example `100`: the rule skips a long window that holds fewer requests than that. A Metric SLO's rule takes **Minimum Events** the same way, in its metric's events.
 
 ### Choose what it declares
 
@@ -152,6 +152,7 @@ OneUptime checks a rule's numbers when you save it:
 | **Long Window (Minutes)** | Longer than the short window. |
 | **Re-fire Suppression (Minutes)** | 0 or more. Empty means the length of the long window. |
 | **Minimum Requests** | A whole number, 0 or more. Empty means no minimum. |
+| **Minimum Events** | A whole number, 0 or more. Empty means no minimum. |
 
 Every answer to **When it fires** opens something. The API refuses a rule that would create no alert and declare no incident, because it would be checked at every evaluation and never declare anything.
 

@@ -152,7 +152,7 @@ To varsler til leser notifikasjonene fra Proxmox VE selv, som klyngen sender som
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Advarsel | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
+| Backup Job Failed | Advarsling | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
 | Node Fenced | Kritisk | Notifikasjonslogger med `pve.notification.type = fencing`, per node, siste 30 minutter | Proxmox VE isolerer en node (fencing) | Den noden isoleres ikke igjen på 30 minutter |
 
 Hver node og hver sikkerhetskopijobb får sin egen hendelse og sitt eget varsel. Varselet for en mislykket sikkerhetskopijobb forblir åpent til en senere kjøring av samme jobb lykkes, uansett hvor lang tid det tar.

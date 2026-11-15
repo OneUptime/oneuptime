@@ -148,17 +148,27 @@ describe("a service's SLOs page", () => {
     );
   });
 
-  test("creates an SLO with the SLOs page's own two steps", () => {
+  test("creates an SLO with the SLOs page's own steps", () => {
     const props: TableProps = renderPage();
 
     expect(props["isCreateable"]).toBe(true);
     expect(props["isEditable"]).toBe(false);
     expect(props["isDeleteable"]).toBe(false);
     expect(props["formSteps"]).toBe(SLO_CREATE_FORM_STEPS);
+
+    type FieldKeys = {
+      field?: Record<string, unknown>;
+      overrideFieldKey?: string;
+    };
+
     expect(
-      (props["formFields"] as Array<{ field: Record<string, unknown> }>).map(
-        (field: { field: Record<string, unknown> }): string => {
-          return Object.keys(field.field)[0] as string;
+      (props["formFields"] as Array<FieldKeys>).map(
+        (field: FieldKeys): string => {
+          // A Metric SLO's metric is asked part by part, each by its own key (#8445).
+          return (
+            field.overrideFieldKey ||
+            (Object.keys(field.field || {})[0] as string)
+          );
         },
       ),
     ).toEqual([
@@ -167,6 +177,12 @@ describe("a service's SLOs page", () => {
       "latencyThresholdInMilliseconds",
       // Which of the service's requests count (#8444).
       "requestFilter",
+      "metricQueryConfig",
+      "sloMetricName",
+      "sloMetricKind",
+      "sloMetricGoodFilter",
+      "sloMetricGoodAtOrUnder",
+      "sloMetricFilter",
       "name",
       "targetPercentage",
       "description",

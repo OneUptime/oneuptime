@@ -163,7 +163,7 @@ JavaScript 표현식은 Website, API, 수신 요청, Incoming Email, SQL Query, 
 ## 다음 단계
 
 :::cards
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 같은 자리 표시자를 인시던트 제목과 설명에 사용합니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 같은 자리 표시자를 인시던트 제목과 설명에 사용합니다.
 - [API 모니터](/docs/monitor/api-monitor): HTTP 엔드포인트와 그 응답을 확인합니다.
 - [수신 요청 모니터](/docs/monitor/incoming-request-monitor): 다른 시스템이 보내는 요청을 평가합니다.
 :::

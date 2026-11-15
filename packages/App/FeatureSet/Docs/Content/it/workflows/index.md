@@ -108,7 +108,7 @@ Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo
 ```mermaid title="L'esempio completo"
 flowchart TB
     trigger["On Create Incident"] -->|"Successo"| post["Chiamata API POST (JSON)"]
-    post -->|"Errore"| log["Registro"]
+    post -->|"Errore"| log["Log"]
     post -->|"Successo"| done["L'esecuzione termina"]
 ```
 

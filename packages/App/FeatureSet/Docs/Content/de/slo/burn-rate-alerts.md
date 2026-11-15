@@ -132,7 +132,7 @@ Geben Sie unter **Regel** einen **Name** ein, etwa „Fast burn“. Eine neue Re
 
 ### Das Burn-Zeitfenster festlegen
 
-Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum Beispiel `14.4`), das **Langes Zeitfenster (Minuten)** und das **Kurzes Zeitfenster (Minuten)**, und optional die **Unterdrückung erneuter Auslösung (Minuten)**. Bei der Regel eines Anfrage-SLO kommt die **Mindestanzahl Anfragen** hinzu, zum Beispiel `100`: Die Regel überspringt ein langes Zeitfenster, das weniger Anfragen enthält als angegeben.
+Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum Beispiel `14.4`), das **Langes Zeitfenster (Minuten)** und das **Kurzes Zeitfenster (Minuten)**, und optional die **Unterdrückung erneuter Auslösung (Minuten)**. Bei der Regel eines Anfrage-SLO kommt die **Mindestanzahl Anfragen** hinzu, zum Beispiel `100`: Die Regel überspringt ein langes Zeitfenster, das weniger Anfragen enthält als angegeben. Bei der Regel eines Metrik-SLO kommt auf dieselbe Weise die **Mindestanzahl Ereignisse** hinzu, gezählt in den Ereignissen seiner Metrik.
 
 ### Festlegen, was sie meldet
 
@@ -152,6 +152,7 @@ OneUptime prüft die Zahlen einer Regel beim Speichern:
 | **Langes Zeitfenster (Minuten)** | Länger als das kurze Zeitfenster. |
 | **Unterdrückung erneuter Auslösung (Minuten)** | 0 oder mehr. Leer bedeutet die Länge des langen Zeitfensters. |
 | **Mindestanzahl Anfragen** | Eine ganze Zahl, 0 oder mehr. Leer bedeutet kein Minimum. |
+| **Mindestanzahl Ereignisse** | Eine ganze Zahl, 0 oder mehr. Leer bedeutet kein Minimum. |
 
 Jede Antwort auf **Wenn sie auslöst** öffnet etwas. Die API lehnt eine Regel ab, die weder eine Warnung erstellen noch einen Vorfall melden würde, denn sie würde bei jeder Auswertung geprüft und nie etwas melden.
 

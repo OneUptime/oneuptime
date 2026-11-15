@@ -60,7 +60,7 @@ Gå til **Hendelser** > **Arbeidsområde** > **Mattermost**, og opprett en regel
 
 Tilgangstokenet til boten lagres bare på OneUptime-serveren, kryptert sammen med prosjektets andre hemmeligheter, og vises aldri igjen. Serveradressen, teamene og brukernavnet til boten vises for alle i prosjektet, på innstillingssiden for Mattermost.
 
-Et prosjekt er koblet til én Mattermost-server. For å flytte det til en annen server kobler du det først fra: **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost**, deretter **⋯** > **Koble fra Mattermost**. Å koble fra kobler også fra hvert medlems egen Mattermost-konto, og fjerner Mattermost-varselmetodene deres og vaktreglene som bruker dem. Varslingsreglene og sammendragene dine beholdes til du kobler til igjen.
+Et prosjekt er koblet til én Mattermost-server. For å flytte det til en annen server kobler du det først fra: **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost**, deretter **⋯** > **Koble fra Mattermost**. Å koble fra kobler også fra hvert medlems egen Mattermost-konto, og fjerner Mattermost-varslingsmetodene deres og vaktreglene som bruker dem. Varslingsreglene og sammendragene dine beholdes til du kobler til igjen.
 
 ## Mer enn ett team
 
@@ -92,11 +92,11 @@ Tilkoblingen til kontoen din hører til dette prosjektet. I et annet prosjekt so
 
 ## Bli tilkalt i Mattermost
 
-For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost som en av varselmetodene dine:
+For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost som en av varslingsmetodene dine:
 
 :::steps
 1. Koble til din egen Mattermost-konto (se [Koble til din egen Mattermost-konto](#koble-til-din-egen-mattermost-konto)).
-2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Mattermost-konto**.
+2. Gå til **Brukerinnstillinger** > **Varslingsmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Mattermost-konto**.
 3. Klikk på **Send Test Message** i raden. Meldingen kommer som en direktemelding fra prosjektets bot.
 :::
 
@@ -129,7 +129,7 @@ OneUptime-boten legger dem til, slik den legger til personene i kanalen til en r
 
 - **Hvem som kan legge til personer.** Den som kan redigere posten: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Hendelsesadministrator** og **Hendelsesmedlem** for en hendelse, eller **Edit Incident** i en egendefinert rolle, og den samme tillatelsen for et varsel, en episode eller en vedlikeholdshendelse (for eksempel **Edit Alert**). Alle andre ser hvem som er i kanalen, og hvordan de kommer inn.
 - **Hvem som kan legges til.** Noen OneUptime finner i Mattermost, gjennom kontoen vedkommende har koblet til, eller ellers gjennom e-postadressen, når serveren din viser e-postadresser til boten, og som er i teamet til kanalen. En gjestekonto i det teamet kan også legges til: Mattermost lar medlemmene i en kanal legge til gjester. Kortet nevner hvem det ikke kunne legge til, og hvorfor.
-- **Hva som registreres.** Hvem som ble lagt til, og av hvem, i feeden til posten (**Kanalmedlem lagt til**) og under **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+- **Hva som registreres.** Hvem som ble lagt til, og av hvem, i feeden til posten (**Kanalmedlem lagt til**) og under **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger**, på fanen **Arbeidsområde**.
 - **En arkivert kanal.** Kortet viser fortsatt hvem som er i den, og legger ikke til noen før kanalen er hentet ut av arkivet i Mattermost.
 - **En kanal boten er fjernet fra.** Mattermost viser personene i en kanal bare til noen som er i den, også for en offentlig kanal, så kortet sier at det ikke kan se kanalen. Noen i kanalen kan legge til boten igjen i Mattermost. OneUptime blir også selv med i en offentlig kanal igjen neste gang det publiserer der.
 - **Å ta noen ut.** OneUptime legger bare til: fjern noen fra kanalen i Mattermost.
@@ -149,11 +149,11 @@ Meldingene fra OneUptime har knapper, og en meny **More actions** for det færre
 
 Hvis Mattermost-kontoen din ikke er koblet til ennå, sier en knapp fra om det, med en lenke til **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost**. Koble til kontoen din, og trykk deretter på knappen igjen.
 
-Hvert trykk registreres under **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**, med hvem som trykket.
+Hvert trykk registreres under **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger**, på fanen **Arbeidsområde**, med hvem som trykket.
 
 ## Godkjenne et offentlig notat
 
-Når prosjektets offentlige notater må godkjennes og du slår på Mattermost for **Godkjenning av offentlige notater** i varselinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, til direktemeldingene dine med OneUptimes bot: hvem som sendte det, hvilket trinn det venter på, notatet, **Approve**, **Reject** og en lenke til notatet i OneUptime. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** åpner et skjema som spør om begrunnelsen: en begrunnelse er påkrevd, og forfatteren av notatet ser den. Knappene handler som deg, etter de samme reglene som i OneUptime, og svarer i en melding bare du ser. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres meldingen til hver godkjenner om det, også din, så den sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Den beholder lenken sin til notatet i OneUptime, og **Approve** og **Reject** er borte. Hvis Mattermost-kontoen din ikke er koblet til, kobler du den til under **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost** og trykker så på knappen igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+Når prosjektets offentlige notater må godkjennes og du slår på Mattermost for **Godkjenning av offentlige notater** i varslingsinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, til direktemeldingene dine med OneUptimes bot: hvem som sendte det, hvilket trinn det venter på, notatet, **Approve**, **Reject** og en lenke til notatet i OneUptime. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** åpner et skjema som spør om begrunnelsen: en begrunnelse er påkrevd, og forfatteren av notatet ser den. Knappene handler som deg, etter de samme reglene som i OneUptime, og svarer i en melding bare du ser. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres meldingen til hver godkjenner om det, også din, så den sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Den beholder lenken sin til notatet i OneUptime, og **Approve** og **Reject** er borte. Hvis Mattermost-kontoen din ikke er koblet til, kobler du den til under **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost** og trykker så på knappen igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 ## Nettverk og selvhosting
 

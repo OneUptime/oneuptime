@@ -44,7 +44,7 @@ En samtale startes én gang per hendelse for hvert sted en samtale holdes. Regle
 
 Å opprette en hendelse venter aldri på en leverandør av videosamtaler. Samtalen startes etter at hendelsen er opprettet, så en treg eller feilende leverandør forsinker aldri hendelsen eller vakttilkallingene.
 
-Hvis leverandøren avviser (en utløpt hemmelighet, en manglende tillatelse, en slettet vert), sier hendelsens feed at regelens samtale ikke kunne startes, med leverandørens begrunnelse, så responders vet at de skal starte en fra hendelsens side. Regelens kjøring vises i workspacets varsellogger som **Start videosamtale**, og tilkoblingens rad i **Prosjektinnstillinger** > **Arbeidsområde** > **Videosamtaler** viser feilen til en samtale starter igjen.
+Hvis leverandøren avviser (en utløpt hemmelighet, en manglende tillatelse, en slettet vert), sier hendelsens feed at regelens samtale ikke kunne startes, med leverandørens begrunnelse, så responders vet at de skal starte en fra hendelsens side. Regelens kjøring vises i workspacets varslingslogger som **Start videosamtale**, og tilkoblingens rad i **Prosjektinnstillinger** > **Arbeidsområde** > **Videosamtaler** viser feilen til en samtale starter igjen.
 
 ### Private hendelser
 

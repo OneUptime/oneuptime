@@ -259,6 +259,7 @@ const VerifyEmail: () => JSX.Element = () => {
                       <Button
                         buttonStyle={ButtonStyleType.PRIMARY}
                         title={t("verifyEmail.tryAgain")}
+                        isTitleTranslated={true}
                         dataTestId="verify-email-try-again"
                         className="w-full justify-center"
                         style={{ width: "100%", marginInlineStart: "0px" }}

@@ -95,7 +95,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i Grafana OnCall
-Når OneUptime varsler de riktige personene, slår du av varslene i Grafana OnCall, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i Grafana OnCall, så ingen varsles to ganger.
 :::
 
 ## Feilsøking

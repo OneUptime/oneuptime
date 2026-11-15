@@ -362,6 +362,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         { one: "Create {{count}} Monitor", other: "Create {{count}} Monitors" },
         props.selectedRecommendations.length,
       )}
+      isTitleTranslated={true}
       description={
         props.description ||
         translator.translateTemplate(
@@ -369,6 +370,8 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
           { resourceName: resourceName },
         )
       }
+      // Both are in the reader's words already: the caller's, and this one.
+      isDescriptionTranslated={true}
       size={SideOverSize.Medium}
       submitButtonText={props.isCreating ? "Creating..." : "Create Monitors"}
       submitButtonIsLoading={props.isCreating}

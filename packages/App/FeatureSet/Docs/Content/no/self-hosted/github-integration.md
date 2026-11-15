@@ -103,7 +103,7 @@ OneUptime bruker to sett med hendelser, og de gjør ulike jobber.
 
 Hvis du ikke abonnerer på noen av disse, kobler GitHub-appen fortsatt til repositorier og åpner fortsatt rettingenes pull requests fra OneUptime — den svarer bare aldri på noe som skrives i GitHub. Det er den vanligste årsaken til «boten ignorerer meg». Se [Arbeid med OneUptime fra GitHub](/docs/ai/github-app) for hvilke kommandoer som finnes, og hvem som får gi dem.
 
-Andre hendelser (**Push**, **Workflow run**) bekreftes og ignoreres; å abonnere på dem slår ikke på varsler eller CI/CD-automatisering.
+Andre hendelser (**Push**, **Workflow run**) bekreftes og ignoreres; å abonnere på dem slår ikke på varslinger eller CI/CD-automatisering.
 
 ### Velg hvor appen kan installeres
 

@@ -424,6 +424,7 @@ const ToolImportReviewSection: FunctionComponent<SectionProps> = (
               { one: "Show {{count}} more", other: "Show {{count}} more" },
               Math.min(hiddenCount, TOOL_IMPORT_SECTION_PAGE_SIZE),
             )}
+            isTitleTranslated={true}
             buttonStyle={ButtonStyleType.LINK}
             onClick={() => {
               setShownCount(shownCount + TOOL_IMPORT_SECTION_PAGE_SIZE);

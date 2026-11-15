@@ -448,6 +448,7 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
         template: "Import {{itemsName}}",
         itemName: model.pluralName || "",
       })}
+      isTitleTranslated={true}
       description="Upload or paste a label rule JSON export. Review the validated rules before creating them in this project."
       modalWidth={ModalWidth.Large}
       onClose={isValidating ? undefined : props.onClose}

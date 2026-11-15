@@ -75,6 +75,8 @@ const REPOSITORY_KEY: string = "codeRepositoryId";
 
 interface IssueChangeModalProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description: string;
   submitButtonText: string;
   name: string;
@@ -102,6 +104,7 @@ const IssueChangeModal: FunctionComponent<IssueChangeModalProps> = (
   return (
     <BasicFormModal<JSONObject>
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       submitButtonText={props.submitButtonText}
       isLoading={props.isLoading}
