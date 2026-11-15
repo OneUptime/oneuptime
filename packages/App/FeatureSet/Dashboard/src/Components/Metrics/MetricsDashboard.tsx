@@ -1105,6 +1105,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                     <ColorSquareCube
                       color={summary.service.serviceColor || Black}
                       tooltip={serviceName}
+                      isTooltipUserContent={true}
                     />
                   </div>
                   <span
