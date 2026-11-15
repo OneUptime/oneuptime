@@ -40,7 +40,8 @@ const COMPONENTS_DIR: string = path.resolve(
 const FIGURE_CELLS: ReadonlyArray<string> = [
   "DashboardHostListComponent.tsx: {cpuMem}",
   "DashboardHostListComponent.tsx: {formatRelative(lastSeenAt)}",
-  "DashboardStorageArrayVolumeListComponent.tsx: {formatUsedOfProvisioned(r)}",
+  // A volume's sizes in its reader's sentence and digits (#7521).
+  "DashboardStorageArrayVolumeListComponent.tsx: {formatUsedOfProvisioned(r.usedBytes, r.capacityBytes, translator)}",
 ];
 
 const LIST_WIDGET_FILE_REGEX: RegExp = /^Dashboard\w*ListComponent\.tsx$/;
