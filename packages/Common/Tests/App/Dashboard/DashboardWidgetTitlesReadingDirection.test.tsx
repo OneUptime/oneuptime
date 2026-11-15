@@ -308,6 +308,17 @@ function expectOneLineReadLeftToRight(element: Element | null): void {
   expect(element).toHaveClass("truncate", LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
 }
 
+/*
+ * A Table's group name: its cell reads left to right, lined up as the
+ * board's lines are, and its one line is the name's own box, which gives
+ * way to the numbers and is cut at the name's end (#7524).
+ */
+function expectTableNameReadLeftToRight(cell: Element | null): void {
+  expect(cell).toHaveAttribute("dir", "ltr");
+  expect(cell).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  expect(cell?.firstElementChild).toHaveClass("line-clamp-1");
+}
+
 function expectDrawnAsItWas(element: Element | null): void {
   expect(element).not.toHaveAttribute("dir");
   expect(element).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
@@ -445,7 +456,7 @@ describe("a metric Table widget: its title and the names in its rows", () => {
 
       expect(title.tagName).toBe("H3");
       expectOneLineReadLeftToRight(title);
-      expectOneLineReadLeftToRight(
+      expectTableNameReadLeftToRight(
         cellsHolding(container, ENGLISH_SERVICE)[0] || null,
       );
       expectDrawnAsItWas(cellsHolding(container, ARABIC_SERVICE)[0] || null);
