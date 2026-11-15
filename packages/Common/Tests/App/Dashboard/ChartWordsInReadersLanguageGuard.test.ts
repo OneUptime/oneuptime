@@ -195,6 +195,18 @@ describe("the detector (ChartWordsScan), on small pages", () => {
     ).toEqual([]);
   });
 
+  test("negative control: a word marked as a key (translationKey) is still English, and is found", () => {
+    const marked: string = SPECS.replace(
+      'title: "Total Keys"',
+      'title: translationKey("Total Keys")',
+    );
+
+    expect(problemsOf("Page.tsx", marked)).toHaveLength(3);
+    expect(getChartWordTexts(readChartWords("Page.tsx", marked))).toContain(
+      "Total Keys",
+    );
+  });
+
   test("an empty title is no word; a card's own title is no chart's", () => {
     expect(
       problemsOf(

@@ -84,6 +84,16 @@ function kindOf(
     return { kind: literal ? "english" : "other", text: literal };
   }
 
+  // translationKey("...") marks a key for the locales: it is still English.
+  if (
+    ts.isCallExpression(node) &&
+    node.expression.getText(sourceFile) === "translationKey" &&
+    node.arguments[0] &&
+    stringOf(node.arguments[0]) !== undefined
+  ) {
+    return { kind: "english", text: stringOf(node.arguments[0]) };
+  }
+
   // `translator.translateText(x) || x` words its x.
   const expression: ts.Expression =
     ts.isBinaryExpression(node) &&

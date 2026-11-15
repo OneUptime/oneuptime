@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#numbers-dates-and-plurals
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { act, cleanup, render, screen } from "@testing-library/react";
