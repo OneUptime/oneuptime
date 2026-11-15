@@ -261,7 +261,7 @@ export default class SnmpTrapLogWriter {
       projectRetentionInDays: serviceMetadata.projectRetentionInDays,
     });
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       ingestionDate,
       retentionDays,
     );

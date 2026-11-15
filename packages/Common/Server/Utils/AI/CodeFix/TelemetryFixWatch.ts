@@ -382,7 +382,7 @@ export default class TelemetryFixWatch {
     texts: Array<string>;
     mergedAt: Date;
   }): Promise<TelemetryFixBaseline> {
-    const from: Date = OneUptimeDate.addRemoveDays(
+    const from: Date = OneUptimeDate.addRemoveDurationInDays(
       data.mergedAt,
       -TELEMETRY_FIX_THRESHOLDS.baselineDays,
     );

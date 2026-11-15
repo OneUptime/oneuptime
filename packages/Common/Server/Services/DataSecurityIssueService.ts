@@ -95,7 +95,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (
       until.getTime() >
-      OneUptimeDate.addRemoveDays(now, MAX_ACCEPTANCE_IN_DAYS).getTime()
+      OneUptimeDate.addRemoveDurationInDays(
+        now,
+        MAX_ACCEPTANCE_IN_DAYS,
+      ).getTime()
     ) {
       throw new BadDataException(
         "A risk can be accepted for at most a year; accept it again when it expires.",

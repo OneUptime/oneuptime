@@ -31,7 +31,7 @@ export default class DataObservabilityQualityReader {
     projectId: ObjectID,
     now: Date,
   ): Promise<DataObservabilityQuality> {
-    const since: Date = OneUptimeDate.addRemoveDays(
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -QUALITY_WINDOW_IN_DAYS,
     );
@@ -96,7 +96,7 @@ export default class DataObservabilityQualityReader {
         projectId,
         isDropped: false,
         lastCollectedAt: QueryHelper.greaterThanEqualTo(
-          OneUptimeDate.addRemoveDays(now, -1),
+          OneUptimeDate.addRemoveDurationInDays(now, -1),
         ),
       },
       props: { isRoot: true },

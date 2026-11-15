@@ -5978,10 +5978,11 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
               postmortemMetric.metricPointType = MetricPointType.Sum;
               const postmortemRetentionDays: number =
                 await this.getMetricRetentionDays();
-              postmortemMetric.retentionDate = OneUptimeDate.addRemoveDays(
-                OneUptimeDate.getCurrentDate(),
-                postmortemRetentionDays,
-              );
+              postmortemMetric.retentionDate =
+                OneUptimeDate.addRemoveDurationInDays(
+                  OneUptimeDate.getCurrentDate(),
+                  postmortemRetentionDays,
+                );
 
               await MutableMetricService.createMutableMetrics({
                 metrics: [postmortemMetric],
@@ -6198,10 +6199,11 @@ ${incidentSeverity.name}
               severityChangeMetric.metricPointType = MetricPointType.Sum;
               const severityRetentionDays: number =
                 await this.getMetricRetentionDays();
-              severityChangeMetric.retentionDate = OneUptimeDate.addRemoveDays(
-                OneUptimeDate.getCurrentDate(),
-                severityRetentionDays,
-              );
+              severityChangeMetric.retentionDate =
+                OneUptimeDate.addRemoveDurationInDays(
+                  OneUptimeDate.getCurrentDate(),
+                  severityRetentionDays,
+                );
 
               await MutableMetricService.createMutableMetrics({
                 metrics: [severityChangeMetric],
@@ -7115,7 +7117,7 @@ ${incidentSeverity.name}
             primaryEntityId: incident.id,
             primaryEntityType: ServiceType.Incident,
             metricNames: Object.values(IncidentMetricType),
-            retentionDate: OneUptimeDate.addRemoveDays(
+            retentionDate: OneUptimeDate.addRemoveDurationInDays(
               OneUptimeDate.getCurrentDate(),
               metricRetentionDays,
             ),
@@ -7530,7 +7532,7 @@ ${incidentSeverity.name}
       incident.createdAt || incident.declaredAt || now;
 
     const metricRetentionDays: number = await this.getMetricRetentionDays();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       metricRetentionDays,
     );
@@ -7700,10 +7702,11 @@ ${incidentSeverity.name}
       const itemsToSave: Array<MutableMetric> = [];
 
       const metricRetentionDays: number = await this.getMetricRetentionDays();
-      const incidentMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        metricRetentionDays,
-      );
+      const incidentMetricRetentionDate: Date =
+        OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          metricRetentionDays,
+        );
 
       // now we need to create new metrics for this incident - TimeToAcknowledge, TimeToResolve, IncidentCount, IncidentDuration
 

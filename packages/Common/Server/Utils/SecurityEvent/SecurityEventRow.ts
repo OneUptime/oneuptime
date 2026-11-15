@@ -55,7 +55,7 @@ export function buildSecurityEventDbRow(data: {
     >),
   };
 
-  const ageInDays: number = OneUptimeDate.getNumberOfDaysBetweenDates(
+  const ageInDays: number = OneUptimeDate.getWholeDaysOfTimeBetween(
     eventTime,
     ingestionDate,
   );
@@ -74,7 +74,7 @@ export function buildSecurityEventDbRow(data: {
     eventTime = ingestionDate;
   }
 
-  const retentionDate: Date = OneUptimeDate.addRemoveDays(
+  const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
     ingestionDate,
     retentionDays,
   );

@@ -81,7 +81,7 @@ export function buildBiRefreshMetricRow(data: {
     explicitBounds: [],
     value: data.value,
     retentionDate: OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.addRemoveDays(data.at, data.retentionDays),
+      OneUptimeDate.addRemoveDurationInDays(data.at, data.retentionDays),
     ),
   } as JSONObject;
 }

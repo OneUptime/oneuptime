@@ -82,7 +82,7 @@ export default class RecurrenceFixWatch {
       fix.productionBaseline?.recurrence;
 
     if (!baseline) {
-      const from: Date = OneUptimeDate.addRemoveDays(
+      const from: Date = OneUptimeDate.addRemoveDurationInDays(
         mergedAt,
         -RECURRENCE_FIX_THRESHOLDS.baselineDays,
       );
