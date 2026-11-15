@@ -893,6 +893,28 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkInterfaceWritesPostgres.test.ts --forceExit
 
+      # Clones the migrated NetworkEndpoint table into an isolated schema and
+      # runs the endpoint write's own statements against it, reading
+      # pg_stat_user_tables after each poll (issue #8092): no index names a
+      # column an unchanged endpoint's refresh changes; identical polls write
+      # each endpoint four times an hour, a third of each switch a poll, as
+      # HOT updates once the table has settled into its room (fillfactor
+      # 80), where the walk as it was (every other poll, all at once,
+      # lastSeenAt indexed) wrote it six times and none HOT; coarseLastSeenAt
+      # steps once a day; the backfill copies lastSeenAt into the rows no walk
+      # reached, and leaves a row a walk wrote first.
+      - name: Test which network endpoint writes repeated polls make against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_ENDPOINT_WRITE_TESTS: "true"
+          NETWORK_ENDPOINT_WRITE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_ENDPOINT_WRITE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_ENDPOINT_WRITE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkEndpointWritesPostgres.test.ts --forceExit
+
       # Clones the migrated NetworkEndpoint, NetworkDevice,
       # NetworkTopologySuppression and Project tables into isolated schemas
       # and runs the Discovered Devices list against them (issue #5775):

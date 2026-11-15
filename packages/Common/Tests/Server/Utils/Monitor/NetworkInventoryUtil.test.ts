@@ -1165,11 +1165,12 @@ describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
   });
 
   /*
-   * An endpoint the walk finds unchanged is written again after about two
-   * of the device's polls (getEndpointLastSeenRefreshMs), so the endpoint
-   * write is told how often this device is polled - read with the device.
+   * An endpoint the walk finds unchanged is written again once its own
+   * 15-minute window turns (EndpointAttachmentUtil.endpointRefreshSlot),
+   * whatever the device's polling interval, so the endpoint write is told
+   * no interval and the device is not read for one.
    */
-  test("tells the endpoint write how often the device is polled", async () => {
+  test("hands the endpoint write what the walk saw, and no polling interval", async () => {
     mockServices([], { pollingIntervalInMinutes: 10 });
 
     await runWalk({
@@ -1183,31 +1184,19 @@ describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
       ],
     });
 
-    expect(
-      endpointUpsertSpy.mock.calls[0][0]["devicePollingIntervalInMinutes"],
-    ).toBe(10);
-    expect(deviceFindSpy.mock.calls[0][0]["select"]).toMatchObject({
-      pollingIntervalInMinutes: true,
-    });
-  });
-
-  test("a device with no interval of its own passes none, for the default", async () => {
-    mockServices();
-
-    await runWalk({
-      arpEntries: [
-        {
-          ipAddress: "10.0.0.5",
-          macAddress: "aa:bb:cc:00:11:22",
-          interfaceIndex: 3,
-          entryType: "dynamic",
-        },
-      ],
-    });
-
-    expect(
-      endpointUpsertSpy.mock.calls[0][0]["devicePollingIntervalInMinutes"],
-    ).toBeUndefined();
+    expect(Object.keys(endpointUpsertSpy.mock.calls[0][0]).sort()).toEqual(
+      [
+        "attachments",
+        "deviceId",
+        "deviceSiteId",
+        "ipBindings",
+        "now",
+        "projectId",
+      ].sort(),
+    );
+    expect(deviceFindSpy.mock.calls[0][0]["select"]).not.toHaveProperty(
+      "pollingIntervalInMinutes",
+    );
   });
 });
 
