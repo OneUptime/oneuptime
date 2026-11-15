@@ -94,7 +94,8 @@
     "versionModalTitle": "Version OneUptime",
     "versionLabel": "Version",
     "commitLabel": "Commit",
-    "versionUnavailable": "Les données de version ne sont pas disponibles"
+    "versionUnavailable": "Les données de version ne sont pas disponibles",
+    "versionUnavailableWithError": "Les données de version ne sont pas disponibles : {{error}}"
   },
   "navbar": {
     "users": "Utilisateurs",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "Filtrer par {{field}}",
   "Something went wrong. Please try again.": "Une erreur s'est produite. Veuillez réessayer.",
   "More actions": "Plus d'actions",
-  "More actions for": "Plus d'actions pour",
+  "More actions for {{name}}": "Plus d'actions pour {{name}}",
+  "Clear {{filter}} filter": "Effacer le filtre {{filter}}",
+  "Clear {{filter}}": "Effacer {{filter}}",
   "Delete Error": "Erreur de suppression",
   "Refresh?": "Actualiser ?",
   "Updated": "Mis à jour",

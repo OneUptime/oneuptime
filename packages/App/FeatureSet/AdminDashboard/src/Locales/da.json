@@ -94,7 +94,8 @@
     "versionModalTitle": "OneUptime-version",
     "versionLabel": "Version",
     "commitLabel": "Commit",
-    "versionUnavailable": "Versionsdata er ikke tilgængelige"
+    "versionUnavailable": "Versionsdata er ikke tilgængelige",
+    "versionUnavailableWithError": "Versionsdata er ikke tilgængelige: {{error}}"
   },
   "navbar": {
     "users": "Brugere",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "Filtrér efter {{field}}",
   "Something went wrong. Please try again.": "Noget gik galt. Prøv igen.",
   "More actions": "Flere handlinger",
-  "More actions for": "Flere handlinger for",
+  "More actions for {{name}}": "Flere handlinger for {{name}}",
+  "Clear {{filter}} filter": "Ryd filteret {{filter}}",
+  "Clear {{filter}}": "Ryd {{filter}}",
   "Delete Error": "Sletningsfejl",
   "Refresh?": "Opdater?",
   "Updated": "Opdateret",

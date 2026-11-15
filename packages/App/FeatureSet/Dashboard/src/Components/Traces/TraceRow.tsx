@@ -150,7 +150,11 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           aria-label={translator.translateTemplate("Status: {{status}}", {
             status: translatableTerm(statusName),
           })}
-          title={`${plainStatusName}: ${translator.translateText(status.description)}`}
+          // The status, then what it means, with the reader's own colon.
+          title={translator.translateTemplate("{{label}}: {{identifier}}", {
+            label: translatableTerm(status.label),
+            identifier: translatableTerm(status.description),
+          })}
           className={`relative flex h-2 w-2 flex-shrink-0 items-center justify-center`}
         >
           <span

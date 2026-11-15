@@ -3802,19 +3802,26 @@ describe("CorrelateGraph edge names", () => {
     );
   });
 
-  test("translate the event word", async () => {
+  /*
+   * The edge's name is one plural sentence (#8076): a language words the
+   * count and orders the two ends as it does, never "events" looked up on
+   * its own and tacked on after the figure.
+   */
+  test("translate the edge's name as one sentence", async () => {
     mockI18n.language = "xx";
-    mockTranslations["event"] = "evt";
-    mockTranslations["events"] = "evts";
+    mockTranslations["{{from}} – {{to}}: {{count}} events"] =
+      "{{count}} evts: {{from}} → {{to}}";
+    mockTranslations["{{from}} – {{to}}: {{count}} events_one"] =
+      "{{count}} evt: {{from}} → {{to}}";
 
     await renderGraph();
 
     expect(
       getFlowEdge("class:Authentication->observable:alice").ariaLabel,
-    ).toBe("Authentication – alice: 2 evts");
+    ).toBe("2 evts: Authentication → alice");
     expect(
       getFlowEdge("class:Process Activity->observable:bash").ariaLabel,
-    ).toBe("Process Activity – bash: 1 evt");
+    ).toBe("1 evt: Process Activity → bash");
   });
 });
 

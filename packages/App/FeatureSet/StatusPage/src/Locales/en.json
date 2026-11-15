@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% uptime",
+    "uptimePercent": "{{percent}}% uptime",
     "operational": "Operational",
     "notMonitored": "Not monitored",
     "noResourcesInGroup": "No resources added to this group.",
@@ -114,6 +115,7 @@
     "noneDescription": "No incidents posted on this status page.",
     "postmortem": "Incident Postmortem",
     "declaredAt": "Declared at ",
+    "declaredAtTime": "Declared at {{time}}",
     "report": "Incident Report",
     "notFound": "Incident not found on this status page."
   },
@@ -130,6 +132,7 @@
     "none": "No Announcement",
     "noneDescription": "No announcements posted so far on this page.",
     "announcedAt": "Announced at ",
+    "announcedAtTime": "Announced at {{time}}",
     "notFound": "Announcement not found on this status page."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "No Scheduled Maintenance",
     "noneDescription": "No scheduled maintenance posted for this status page.",
     "scheduledAt": "Scheduled at ",
+    "scheduledAtTime": "Scheduled at {{time}}",
     "report": "Maintenance Event Report",
     "notFound": "No maintenance event found for this status page.",
     "calendar": {

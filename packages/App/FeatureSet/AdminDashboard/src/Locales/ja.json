@@ -94,7 +94,8 @@
     "versionModalTitle": "OneUptimeバージョン",
     "versionLabel": "バージョン",
     "commitLabel": "コミット",
-    "versionUnavailable": "バージョンデータは利用できません"
+    "versionUnavailable": "バージョンデータは利用できません",
+    "versionUnavailableWithError": "バージョンデータは利用できません: {{error}}"
   },
   "navbar": {
     "users": "ユーザー",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "{{field}} で絞り込み",
   "Something went wrong. Please try again.": "問題が発生しました。もう一度お試しください。",
   "More actions": "その他のアクション",
-  "More actions for": "その他のアクション:",
+  "More actions for {{name}}": "{{name}} のその他のアクション",
+  "Clear {{filter}} filter": "{{filter}} フィルターをクリア",
+  "Clear {{filter}}": "{{filter}} をクリア",
   "Delete Error": "削除エラー",
   "Refresh?": "更新しますか？",
   "Updated": "更新済み",
