@@ -396,7 +396,7 @@ export default class ResourceAiAgent {
           this.status.configProblems = [];
           this.status.phase = "starting";
           Logger.info(
-            `Read this ${AI_RESOURCE_TYPE_INFO[resourceType].displayName}'s name after ${attempts} attempts; starting.`,
+            `Read this ${AI_RESOURCE_TYPE_INFO[resourceType].sentenceName}'s name after ${attempts} attempts; starting.`,
           );
           await this.startServing(resourceType);
           return;
@@ -432,8 +432,8 @@ export default class ResourceAiAgent {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[resourceType];
     const isCloud: boolean = isCloudAiResourceType(resourceType);
     const missing: string = isCloud
-      ? `${info.identityEnvVars.join(" / ")} is not set, and the agent could not ask its cloud which ${info.displayName} it is in. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the ${info.displayName} the agent serves.`
-      : `${info.identityEnvVars.join(" / ")} is not set, and the agent could not read this ${info.displayName}'s name itself. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the name the ${info.displayName}'s collector reports.`;
+      ? `${info.identityEnvVars.join(" / ")} is not set, and the agent could not ask its cloud which ${info.sentenceName} it is in. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the ${info.sentenceName} the agent serves.`
+      : `${info.identityEnvVars.join(" / ")} is not set, and the agent could not read this ${info.sentenceName}'s name itself. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the name the ${info.sentenceName}'s collector reports.`;
 
     if (typeof this.executor.resolveResourceIdentifier !== "function") {
       return { problem: missing, retry: false };
@@ -450,9 +450,12 @@ export default class ResourceAiAgent {
       };
 
       if (options.quiet) {
-        Logger.debug(`Could not read this ${info.displayName}'s name`, details);
+        Logger.debug(
+          `Could not read this ${info.sentenceName}'s name`,
+          details,
+        );
       } else {
-        Logger.warn(`Could not read this ${info.displayName}'s name`, details);
+        Logger.warn(`Could not read this ${info.sentenceName}'s name`, details);
       }
 
       return { problem: retrying, retry: true };
@@ -467,7 +470,7 @@ export default class ResourceAiAgent {
 
     if (identifier.length > MAX_POSTURE_STRING_LENGTH) {
       return {
-        problem: `This ${info.displayName}'s own name is ${identifier.length} characters long; OneUptime accepts at most ${MAX_POSTURE_STRING_LENGTH}. Set ${info.identityEnvVars.join(" / ")} (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to a shorter name the collector also reports.`,
+        problem: `This ${info.sentenceName}'s own name is ${identifier.length} characters long; OneUptime accepts at most ${MAX_POSTURE_STRING_LENGTH}. Set ${info.identityEnvVars.join(" / ")} (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to a shorter name the collector also reports.`,
         retry: false,
       };
     }
@@ -478,8 +481,8 @@ export default class ResourceAiAgent {
 
     Logger.info(
       isCloud
-        ? `${info.identityEnvVars.join(" / ")} is not set; serving the ${info.displayName} "${identifier}", the one its cloud says it is in.`
-        : `${info.identityEnvVars.join(" / ")} is not set; serving this ${info.displayName} under its own name "${identifier}". It must match the name the collector reports.`,
+        ? `${info.identityEnvVars.join(" / ")} is not set; serving the ${info.sentenceName} "${identifier}", the one its cloud says it is in.`
+        : `${info.identityEnvVars.join(" / ")} is not set; serving this ${info.sentenceName} under its own name "${identifier}". It must match the name the collector reports.`,
     );
 
     const placeholder: string | null = describeDefaultIdentity({
@@ -643,18 +646,18 @@ export default class ResourceAiAgent {
     });
 
     if (posture.aiSettings) {
-      Logger.info(`What OneUptime AI may do on this ${info.displayName}`, {
+      Logger.info(`What OneUptime AI may do on this ${info.sentenceName}`, {
         investigation: posture.aiSettings.investigation ? "on" : "off",
         fixes: AGENT_AI_FIXES_SETTING_VALUES[posture.aiSettings.fixes],
         setBy: posture.aiSettings.isConfigured
           ? `this agent's .env (${AI_INVESTIGATION_ENV}, ${AI_FIXES_ENV})`
-          : `the agent's defaults: the .env sets neither ${AI_INVESTIGATION_ENV} nor ${AI_FIXES_ENV}, so a ${info.displayName} whose settings were chosen on its AI agent page keeps them`,
+          : `the agent's defaults: the .env sets neither ${AI_INVESTIGATION_ENV} nor ${AI_FIXES_ENV}, so the settings chosen on this ${info.sentenceName}'s AI agent page are kept`,
       });
     }
 
     if (!posture.reachable) {
       Logger.warn(
-        `The agent cannot reach this ${info.displayName} right now, so its commands will fail: ${
+        `The agent cannot reach this ${info.sentenceName} right now, so its commands will fail: ${
           posture.reachError || "no reason was given"
         }`,
       );

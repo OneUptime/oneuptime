@@ -256,14 +256,14 @@ Un [sito di rete](/docs/monitor/network-sites#valori-predefiniti-di-monitoraggio
 
 ## L'override con monitor associato
 
-Alcuni apparati nessuna sonda può raggiungerli o interrogarli utilmente con il ping: un dispositivo dietro un NAT, un'appliance la cui salute si giudica meglio con un controllo HTTP, un servizio il cui segnale reale è un controllo di porta. Per questi, **Modifica impostazioni** nella pagina **Impostazioni** del dispositivo ha un **Monitoring Method**:
+Alcuni apparati nessuna sonda può raggiungerli o interrogarli utilmente con il ping: un dispositivo dietro un NAT, un'appliance la cui salute si giudica meglio con un controllo HTTP, un servizio il cui segnale reale è un controllo di porta. Per questi, **Modifica impostazioni** nella pagina **Impostazioni** del dispositivo ha un **Metodo di monitoraggio**:
 
 | Metodo | Cosa significa |
 | --- | --- |
 | **Sonda** | Il predefinito. Riceve il ping dalla sonda assegnata secondo la sua pianificazione, e il walk SNMP quando ha le credenziali. |
-| **Bound monitor** | Lo stato di un monitor esistente è lo stato di questo dispositivo. |
+| **Monitor associato** | Lo stato di un monitor esistente è lo stato di questo dispositivo. |
 
-Passare un dispositivo a **Bound monitor** ne interrompe il polling. La sonda, l'intervallo e l'interruttore del polling lasciano la scheda **Polling & Data Collection**, i vecchi risultati di polling del dispositivo vengono cancellati e il suo stato viene dal monitor che associ. Associarne uno è facoltativo: finché non lo fai, il dispositivo risulta **In sospeso**, contrassegnato da **Nessun monitor**.
+Passare un dispositivo a **Monitor associato** ne interrompe il polling. La sonda, l'intervallo e l'interruttore del polling lasciano la scheda **Polling & Data Collection**, i vecchi risultati di polling del dispositivo vengono cancellati e il suo stato viene dal monitor che associ. Associarne uno è facoltativo: finché non lo fai, il dispositivo risulta **In sospeso**, contrassegnato da **Nessun monitor**.
 
 Tornare a **Sonda** ripristina il polling e chiede una sonda. Un monitor che era associato resta associato e continua a inviare avvisi; semplicemente non decide più lo stato del dispositivo.
 

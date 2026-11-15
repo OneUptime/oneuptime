@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import AppLink from "../../Components/AppLink/AppLink";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import PageMap from "../../Utils/PageMap";
@@ -67,7 +68,7 @@ const Stat: FunctionComponent<{
         {props.title}
       </div>
       <div className="mt-1 text-xl font-semibold text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </div>
     </div>
   );

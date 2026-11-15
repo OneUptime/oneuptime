@@ -241,7 +241,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
           value={
             total !== null && effective !== null
               ? `${translator.formatNumber(effective)}/${translator.formatNumber(total)}`
-              : "—"
+              : undefined
           }
           sublabel={
             total !== null && effective !== null && effective < total
@@ -307,7 +307,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
               ? headroom.canLoseAHost
                 ? tx("Covered")
                 : tx("Not covered")
-              : "—"
+              : undefined
           }
           sublabel={
             headroom

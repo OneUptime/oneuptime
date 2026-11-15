@@ -1,0 +1,11 @@
+{
+  /*
+   * The project every file in this directory belongs to: exactly
+   * ../../../tsconfig.tests.server-services.json, the whole of
+   * Tests/Server/Services, which `npm run compile-tests` checks in two parts
+   * by name (tsconfig.tests.server-services-a-m.json and -n-z.json). For
+   * editors and ESLint's typed linting, which pick a file's project by the
+   * nearest tsconfig.json. See ../../App/tsconfig.json.
+   */
+  "extends": "../../../tsconfig.tests.server-services.json"
+}

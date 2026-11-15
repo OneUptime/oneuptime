@@ -60,14 +60,14 @@ Commencez par **Declare an incident for each Zabbix problem**, ou par **Create a
 
 ### Ce que demandent les modèles
 
-- **Zabbix URL** : l'adresse à laquelle vous ouvrez Zabbix, comme `https://zabbix.example.com`, ou `https://example.com/zabbix` quand Zabbix tourne sous un chemin. Les liens vers un problème y mènent, et les modèles qui appellent Zabbix envoient leurs requêtes à son `api_jsonrpc.php`. Le champ refuse l'adresse d'une page de Zabbix.
+- **URL de Zabbix** : l'adresse à laquelle vous ouvrez Zabbix, comme `https://zabbix.example.com`, ou `https://example.com/zabbix` quand Zabbix tourne sous un chemin. Les liens vers un problème y mènent, et les modèles qui appellent Zabbix envoient leurs requêtes à son `api_jsonrpc.php`. Le champ refuse l'adresse d'une page de Zabbix.
 - **Zabbix API Token** : un jeton d'API de l'utilisateur Zabbix au nom duquel agit le flux de travail. [Créer le jeton d'API](#créer-le-jeton-dapi) montre comment. Il est enregistré comme variable secrète, et n'est envoyé qu'à Zabbix : dans l'en-tête `Authorization`, ou dans le corps de la requête sous Zabbix 6.0.
 
 ### Recevoir les problèmes avec le modèle
 
 :::steps
 1. Allez dans **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez **Zabbix** dans la liste de catégories, cliquez sur **Declare an incident for each Zabbix problem**, puis sur **Utiliser ce modèle**.
-2. Renseignez **Zabbix URL**. Sous **Who to page for High and Disaster problems**, choisissez les politiques d'astreinte à prévenir, ou aucune pour ne prévenir personne, et cliquez sur **Créer un flux de travail**. Le flux de travail s'ouvre dans le **Constructeur**, désactivé.
+2. Renseignez **URL de Zabbix**. Sous **Who to page for High and Disaster problems**, choisissez les politiques d'astreinte à prévenir, ou aucune pour ne prévenir personne, et cliquez sur **Créer un flux de travail**. Le flux de travail s'ouvre dans le **Constructeur**, désactivé.
 3. Cliquez sur le déclencheur **Webhook**, puis sur **Copier l'URL**, et gardez l'URL pour Zabbix.
 4. Activez **Activé** en haut du **Constructeur**. Un flux de travail désactivé répond à Zabbix par `400`.
 :::
@@ -76,7 +76,7 @@ Ensuite, [configurez Zabbix](#configurer-zabbix) pour qu'il envoie ses problème
 
 ### Ce que fait le flux de travail
 
-Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-event-1` lit l'`event` qu'envoie le type de média, et **Incident From Another Tool**, ou **Alert From Another Tool** dans le modèle des alertes, fait ce qu'il signifie, par l'ID d'événement du problème :
+Après le déclencheur **Webhook**, l'étape **Vérifier avec JavaScript** `read-event-1` lit l'`event` qu'envoie le type de média, et **Incident depuis un autre outil**, ou **Alerte depuis un autre outil** dans le modèle des alertes, fait ce qu'il signifie, par l'ID d'événement du problème :
 
 | Événement | Ce que fait le flux de travail |
 | --- | --- |
@@ -102,13 +102,13 @@ Dans un nouveau projet, le modèle fait correspondre les six sévérités de Zab
 Avec vos propres gravités, Disaster et High vont à la plus grave, Average et Warning à celle du milieu, et Information et Not classified à la moins grave. Zabbix numérote ses sévérités de 0 (Not classified) à 5 (Disaster), et le modèle lit le numéro : renommer une sévérité dans Zabbix ne change donc rien.
 
 - Pour faire correspondre une sévérité à l'une de vos gravités par son nom, modifiez `SEVERITY_BY_NAME` dans l'étape `read-event-1`, par exemple `{ 2: 'Minor Incident' }` pour Warning.
-- Pour prévenir aussi pour les problèmes Average, mettez **Comparer avec** de l'étape `if-page-1` **If / Else** à `3`.
+- Pour prévenir aussi pour les problèmes Average, mettez **Comparer avec** de l'étape `if-page-1` **Si / Sinon** à `3`.
 
 ### Renvoyer les prises en compte et les notes vers Zabbix
 
 :::steps
 1. [Créez le jeton d'API](#créer-le-jeton-dapi).
-2. Créez un flux de travail à partir de **Acknowledge or close the Zabbix problem with the incident**. Renseignez **Zabbix URL** et **Zabbix API Token**, cliquez sur **Créer un flux de travail**, et activez **Activé**.
+2. Créez un flux de travail à partir de **Acknowledge or close the Zabbix problem with the incident**. Renseignez **URL de Zabbix** et **Zabbix API Token**, cliquez sur **Créer un flux de travail**, et activez **Activé**.
 3. Si vous voulez aussi les notes dans Zabbix, faites de même avec **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -126,7 +126,7 @@ Le modèle d'état interroge d'abord Zabbix sur le problème : un problème que 
 
 ### Sous Zabbix 6.0
 
-Zabbix 6.0 lit le jeton d'API dans le corps de la requête, pas dans son en-tête `Authorization`. Dans l'étape **Update Zabbix Problem** de chaque modèle qui appelle Zabbix, activez **Zabbix 6.0**, sous **Plus de champs**. Zabbix 7.2 et plus récent refusent un jeton dans le corps : désactivez-le donc à nouveau lors de la mise à niveau.
+Zabbix 6.0 lit le jeton d'API dans le corps de la requête, pas dans son en-tête `Authorization`. Dans l'étape **Mettre à jour un problème Zabbix** de chaque modèle qui appelle Zabbix, activez **Zabbix 6.0**, sous **Plus de champs**. Zabbix 7.2 et plus récent refusent un jeton dans le corps : désactivez-le donc à nouveau lors de la mise à niveau.
 
 ## Recevoir les problèmes avec un moniteur
 
@@ -344,7 +344,7 @@ L'action a probablement deux opérations qui envoient au même utilisateur, par 
 ## Sécurité
 
 - **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser l'URL** dans le déclencheur **Webhook** du flux de travail, ou **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur. Mettez ensuite à jour **Send to** dans les médias de l'utilisateur Zabbix.
-- **Les liens mènent à votre Zabbix.** Le modèle renvoie à un problème sur le site que nomme son **Zabbix URL**, quoi que dise une requête, et écrit ce que Zabbix a envoyé comme du texte.
+- **Les liens mènent à votre Zabbix.** Le modèle renvoie à un problème sur le site que nomme son **URL de Zabbix**, quoi que dise une requête, et écrit ce que Zabbix a envoyé comme du texte.
 - **Limitez le jeton d'API à ce que fait le flux de travail.** C'est une variable secrète, masquée dans les journaux d'exécution et envoyée uniquement à Zabbix, dans l'en-tête `Authorization` sauf si **Zabbix 6.0** est activé. Donnez à son utilisateur un rôle qui ne permet rien de plus que les actions ci-dessus, et supprimez le jeton dans **Users → API tokens** s'il fuit.
 - **N'envoyez que ce qui mérite un incident.** Utilisez les conditions de l'action, ou les sévérités du média de l'utilisateur, pour garder dans Zabbix les problèmes de faible sévérité.
 - **Auto-hébergé ?** Laissez votre serveur Zabbix joindre votre OneUptime en HTTPS à travers votre pare-feu. Pour appeler un Zabbix sur un réseau privé, le flux de travail a besoin d'un [accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).

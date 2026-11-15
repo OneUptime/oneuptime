@@ -21,25 +21,25 @@ Pour ajouter le déclencheur, cliquez sur le bloc en pointillés **Choisissez ce
 | L'exécuter selon une planification récurrente | **Planification**           |
 | Qu'un autre système y envoie des données      | **Webhook**                 |
 | Le démarrer à partir d'un e-mail              | **E-mail entrant**          |
-| Agir sur les rapports d'incident Huntress     | **Huntress Incident Report** |
+| Agir sur les rapports d'incident Huntress     | **Rapport d'incident Huntress** |
 | Réagir à quelque chose dans OneUptime         | **Événement OneUptime**     |
 
-Un flux de travail ne peut avoir qu'un seul déclencheur. S'il vous faut deux façons de démarrer la même automatisation, construisez la logique commune dans un flux de travail avec un déclencheur **Manuel**, et démarrez-la depuis deux flux de travail « enveloppes » légers avec un bloc **Execute Workflow**.
+Un flux de travail ne peut avoir qu'un seul déclencheur. S'il vous faut deux façons de démarrer la même automatisation, construisez la logique commune dans un flux de travail avec un déclencheur **Manuel**, et démarrez-la depuis deux flux de travail « enveloppes » légers avec un bloc **Exécuter un autre flux de travail**.
 
 ## Manual
 
-Exécutez le flux de travail à la demande : cliquez sur **Exécuter le flux de travail** sur la page **Constructeur**, remplissez le **JSON** du déclencheur, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Un autre flux de travail peut aussi le démarrer, avec un bloc **Execute Workflow**.
+Exécutez le flux de travail à la demande : cliquez sur **Exécuter le flux de travail** sur la page **Constructeur**, remplissez le **JSON** du déclencheur, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Un autre flux de travail peut aussi le démarrer, avec un bloc **Exécuter un autre flux de travail**.
 
 Idéal pour : les automatisations en un clic pour lesquelles vous voulez un bouton, comme « faire tourner cette clé » ou « envoyer une alerte de test », et la logique que vous partagez entre flux de travail.
 
 **Returns** : **JSON** — ce avec quoi l'exécution a été lancée.
 
 - Depuis **Exécuter le flux de travail**, c'est le JSON que vous avez tapé. Pour en lire un champ, ajoutez le nom du champ à la référence, comme dans `{{local.components.manual-1.returnValues.value.name}}`.
-- Depuis un bloc **Execute Workflow**, chaque clé des **Arguments** du bloc devient une valeur à part entière. Avec `{"customerId": "42"}`, un bloc suivant lit `{{local.components.manual-1.returnValues.customerId}}`, où `manual-1` est l'ID du déclencheur Manual.
+- Depuis un bloc **Exécuter un autre flux de travail**, chaque clé des **Arguments** du bloc devient une valeur à part entière. Avec `{"customerId": "42"}`, un bloc suivant lit `{{local.components.manual-1.returnValues.customerId}}`, où `manual-1` est l'ID du déclencheur Manual.
 
 ## Schedule
 
-Exécutez le flux de travail selon une planification récurrente. Indiquez la fréquence dans **Schedule at** : choisissez l'une des **Planifications courantes**, écrivez une expression **Cron personnalisé**, ou choisissez une **Variable** qui en contient une. Sous le champ, la planification est décrite en toutes lettres avec ses **Prochaines exécutions**.
+Exécutez le flux de travail selon une planification récurrente. Indiquez la fréquence dans **Planifier à** : choisissez l'une des **Planifications courantes**, écrivez une expression **Cron personnalisé**, ou choisissez une **Variable** qui en contient une. Sous le champ, la planification est décrite en toutes lettres avec ses **Prochaines exécutions**.
 
 Idéal pour : le nettoyage nocturne, la synchronisation horaire, les rapports hebdomadaires.
 
@@ -93,7 +93,7 @@ sequenceDiagram
 | Valeur                   | Ce qu'elle contient                                                                                                     |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | **En-têtes de la requête**      | Chaque en-tête de la requête, par son nom en minuscules, comme `content-type`.                                          |
-| **Request Query Params** | Les paramètres de la chaîne de requête de l'URL, par leur nom.                                                          |
+| **Paramètres de requête** | Les paramètres de la chaîne de requête de l'URL, par leur nom.                                                          |
 | **Corps de la requête**         | Le corps envoyé par l'appelant. Un corps JSON, envoyé avec `Content-Type: application/json`, se lit champ par champ, tout comme du JSON envoyé en texte brut, comme le fait Amazon SNS. |
 
 Lisez un champ en ajoutant son nom à la référence, comme dans `{{local.components.webhook-1.returnValues.request-body.message}}`.
@@ -127,13 +127,13 @@ Chaque e-mail lance sa propre exécution. L'e-mail atteint le flux de travail qu
 | --------------- | -------------------------------------------------------------------------------------------------------- |
 | **De**        | L'adresse de l'expéditeur.                                                                               |
 | **À**          | Tous les destinataires de l'e-mail, sur une seule ligne, comme `ops@example.com, oncall@example.com`.    |
-| **CC**          | Tous les destinataires en copie, sur une seule ligne.                                                    |
+| **Cc**          | Tous les destinataires en copie, sur une seule ligne.                                                    |
 | **Objet**     | La ligne d'objet.                                                                                        |
 | **Corps**        | Le texte brut de l'e-mail.                                                                               |
-| **HTML Body**   | Le HTML de l'e-mail, s'il en a. Body et HTML Body sont chacun coupés à 1 MB.                             |
-| **Headers**     | Chaque en-tête de l'e-mail, par son nom en minuscules, comme `message-id`.                               |
+| **Corps HTML**   | Le HTML de l'e-mail, s'il en a. Body et HTML Body sont chacun coupés à 1 MB.                             |
+| **En-têtes**     | Chaque en-tête de l'e-mail, par son nom en minuscules, comme `message-id`.                               |
 | **Pièces jointes** | Le nom, le type et la taille de chaque fichier joint. Les fichiers eux-mêmes ne sont pas conservés.      |
-| **Received At** | Le moment où OneUptime a reçu l'e-mail.                                                                  |
+| **Reçu le** | Le moment où OneUptime a reçu l'e-mail.                                                                  |
 
 Une fois qu'un e-mail est arrivé, le sélecteur de valeurs de chaque bloc qui suit le déclencheur sait ce qu'il contenait : il liste chaque en-tête et chaque pièce jointe de l'e-mail, avec son contenu, pour que vous puissiez choisir `headers.message-id` au lieu de taper un chemin. D'ici là, il indique qu'aucun e-mail n'a encore atteint l'adresse. Voir [Utiliser des valeurs des blocs précédents](/docs/workflows/authoring#utiliser-des-valeurs-des-blocs-précédents).
 
@@ -159,7 +159,7 @@ OneUptime donne au flux de travail une URL qui lui est propre pour Huntress, le 
 
 Idéal pour : ouvrir un incident pour chaque rapport d'incident Huntress, alerter l'astreinte et suivre le rapport jusqu'à sa clôture. Le modèle **Open an incident for each Huntress incident report** fait les trois.
 
-Pour connecter Huntress, cliquez sur le déclencheur **Huntress Incident Report** sur le canevas : il affiche l'URL à donner à Huntress, enregistre le secret de signature du point de terminaison et indique quand Huntress a joint le flux de travail pour la dernière fois. Une requête qui n'est pas signée avec ce secret ne démarre rien : l'URL n'est donc pas un mot de passe. Voir [Huntress](/docs/integrations/huntress) pour la configuration dans Huntress, les valeurs que renvoie le déclencheur et ses paramètres.
+Pour connecter Huntress, cliquez sur le déclencheur **Rapport d'incident Huntress** sur le canevas : il affiche l'URL à donner à Huntress, enregistre le secret de signature du point de terminaison et indique quand Huntress a joint le flux de travail pour la dernière fois. Une requête qui n'est pas signée avec ce secret ne démarre rien : l'URL n'est donc pas un mot de passe. Voir [Huntress](/docs/integrations/huntress) pour la configuration dans Huntress, les valeurs que renvoie le déclencheur et ses paramètres.
 
 ## Déclencheurs d'événements OneUptime
 
@@ -172,7 +172,7 @@ Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, év
 
 C'est ainsi que vous construisez « quand X se produit dans OneUptime, faire Y » sans avoir à vérifier en boucle.
 
-**On Update** peut être restreint à certains champs avec **Fields to watch** : il ne se produit alors que lorsqu'une modification change l'un d'eux, vers n'importe quelle valeur — désactiver un interrupteur ou vider un champ compte. **On Create or Update** a le même **Fields to watch**, pour ses mises à jour seulement : chaque nouvel enregistrement le déclenche toujours.
+**On Update** peut être restreint à certains champs avec **Champs à surveiller** : il ne se produit alors que lorsqu'une modification change l'un d'eux, vers n'importe quelle valeur — désactiver un interrupteur ou vider un champ compte. **On Create or Update** a le même **Champs à surveiller**, pour ses mises à jour seulement : chaque nouvel enregistrement le déclenche toujours.
 
 ```mermaid title="Quand un déclencheur On Update se produit"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"Non"| nothing
 ```
 
-**On Create**, **On Update** et **On Create or Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide. Il en va de même d'un champ où l'enregistrement n'a rien, comme le moniteur d'une alerte qu'aucun moniteur n'a déclenchée.
+**On Create**, **On Update** et **On Create or Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Champs à transmettre** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide. Il en va de même d'un champ où l'enregistrement n'a rien, comme le moniteur d'une alerte qu'aucun moniteur n'a déclenchée.
 
-**On Create or Update** transmet aussi **Ce qui s'est passé** : `created` quand un nouvel enregistrement a lancé l'exécution, et `updated` quand c'est une modification, comme dans `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Pour traiter les deux différemment, comparez-le dans un bloc **If / Else**, ou prenez un chemin pour chacun avec **Switch / Case**.
+**On Create or Update** transmet aussi **Ce qui s'est passé** : `created` quand un nouvel enregistrement a lancé l'exécution, et `updated` quand c'est une modification, comme dans `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Pour traiter les deux différemment, comparez-le dans un bloc **Si / Sinon**, ou prenez un chemin pour chacun avec **Selon / Cas**.
 
-Une sauvegarde le déclenche une fois. Ce que OneUptime remplit pendant qu'il crée un enregistrement fait partie de la création : un nouvel enregistrement le déclenche donc une fois, comme `created`. Les modifications que OneUptime fait ensuite, comme lier le canal Slack d'un incident, sont des mises à jour comme les autres : pour les écarter, ajoutez à **Fields to watch** seulement les champs qui vous importent.
+Une sauvegarde le déclenche une fois. Ce que OneUptime remplit pendant qu'il crée un enregistrement fait partie de la création : un nouvel enregistrement le déclenche donc une fois, comme `created`. Les modifications que OneUptime fait ensuite, comme lier le canal Slack d'un incident, sont des mises à jour comme les autres : pour les écarter, ajoutez à **Champs à surveiller** seulement les champs qui vous importent.
 
 **On Delete** ne transmet que l'ID de l'enregistrement supprimé : l'enregistrement n'existe plus quand le flux de travail s'exécute, ses autres champs ne peuvent donc pas être lus.
 

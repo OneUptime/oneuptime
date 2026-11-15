@@ -49,11 +49,11 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **On Create Incident**。點選該觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **On Create Incident**。點選該觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
 
 ### 建立警示
 
-點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，並把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://api.opsgenie.com/v2/alerts`，在歐洲則設為 `https://api.eu.opsgenie.com/v2/alerts`。在 **更多欄位** 下，把 **請求標頭** 設為：
+點選 **新增元件**，新增一個 **API 呼叫 POST (JSON)** 區塊，並把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://api.opsgenie.com/v2/alerts`，在歐洲則設為 `https://api.eu.opsgenie.com/v2/alerts`。在 **更多欄位** 下，把 **請求標頭** 設為：
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ flowchart TB
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行。**API Post (JSON)** 步驟會顯示 `202` 回應，片刻之後警示會出現在 Opsgenie 中。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行。**API 呼叫 POST (JSON)** 步驟會顯示 `202` 回應，片刻之後警示會出現在 Opsgenie 中。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 Opsgenie 的認證方式是單字 `GenieKey`、一個空格，然後是金鑰。Opsgenie 把 `message` 限制為 130 個字元，它的優先順序從 `P1` 到 `P5`：要傳送每個事件自己的優先順序，請參閱 [對應優先順序](#對應優先順序)。
@@ -85,7 +85,7 @@ Opsgenie 的認證方式是單字 `GenieKey`、一個空格，然後是金鑰。
 :::steps
 ### 新增 On Update Incident 觸發器
 
-建立一個名為 `Close Opsgenie alerts` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **Fields to watch** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **Fields to pass on** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
+建立一個名為 `Close Opsgenie alerts` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **要關注的欄位** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **要傳遞的欄位** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Opsgenie 的認證方式是單字 `GenieKey`、一個空格，然後是金鑰。
 
 ### 檢查事件是否已解決
 
-在觸發器之後新增一個 **If / Else** 區塊。把 **要檢查的值** 設為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比較** 設為 **為真**。
+在觸發器之後新增一個 **如果 / 否則** 區塊。把 **要檢查的值** 設為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比較** 設為 **為真**。
 
 ### 關閉警示
 
-在 **是** 一側之後新增一個 **API Post (JSON)** 區塊，使用相同的 **請求標頭** 和以下 **URL**：
+在 **是** 一側之後新增一個 **API 呼叫 POST (JSON)** 區塊，使用相同的 **請求標頭** 和以下 **URL**：
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 ## 對應優先順序
 
-要把每個事件的嚴重程度作為 Opsgenie 優先順序傳送，請在觸發器和 **API Post (JSON)** 區塊之間新增一個 **Run Custom JavaScript** 區塊。
+要把每個事件的嚴重程度作為 Opsgenie 優先順序傳送，請在觸發器和 **API 呼叫 POST (JSON)** 區塊之間新增一個 **執行自訂 JavaScript** 區塊。
 
-1. 在觸發器的 **Fields to pass on** 中點選 **新增欄位**，展開 **事件嚴重性** 並選擇 **名稱**。
-2. 把該區塊的 **Arguments** 設為 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript 程式碼** 設為：
+1. 在觸發器的 **要傳遞的欄位** 中點選 **新增欄位**，展開 **事件嚴重性** 並選擇 **名稱**。
+2. 把該區塊的 **參數** 設為 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript 程式碼** 設為：
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie 在處理請求之前就回應 `202`，因此之後被拒絕的請求�
 :::
 
 :::details 工作流程從未執行
-檢查它是否已啟用：它的 **建構器** 頂部的 **已啟用**。然後開啟 **日誌 → 執行記錄**：走了 **If / Else** 區塊 **否** 一側的執行，是一次不是解決的更新。
+檢查它是否已啟用：它的 **建構器** 頂部的 **已啟用**。然後開啟 **日誌 → 執行記錄**：走了 **如果 / 否則** 區塊 **否** 一側的執行，是一次不是解決的更新。
 :::
 
 ## 後續步驟

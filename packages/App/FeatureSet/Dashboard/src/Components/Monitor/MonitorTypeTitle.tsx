@@ -24,6 +24,24 @@ export const getMonitorTypeTitle: (
   return typeProps?.title || monitorType;
 };
 
+/*
+ * The same title in the reader's language: "SSL-Zertifikat", "يدوي". Every
+ * place that names a monitor's type as text - the monitor list, the
+ * Overview, Home's Needs attention, the Monitor List widget - reads it from
+ * here, so none of them draws the stored English value (#8294).
+ */
+export const getMonitorTypeTitleInLanguage: (
+  monitorType: MonitorType | undefined,
+  translator: Translator,
+) => string = (
+  monitorType: MonitorType | undefined,
+  translator: Translator,
+): string => {
+  const title: string = getMonitorTypeTitle(monitorType);
+
+  return translator.translateText(title) || title;
+};
+
 export interface ComponentProps {
   monitorType: MonitorType | undefined;
 }
@@ -40,9 +58,10 @@ const MonitorTypeTitle: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const title: string = getMonitorTypeTitle(props.monitorType);
 
-  return <span>{translator.translateText(title) || title}</span>;
+  return (
+    <span>{getMonitorTypeTitleInLanguage(props.monitorType, translator)}</span>
+  );
 };
 
 export default MonitorTypeTitle;

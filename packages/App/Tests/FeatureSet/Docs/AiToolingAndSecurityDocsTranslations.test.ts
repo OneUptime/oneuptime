@@ -903,8 +903,16 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnPathSegment("da", ["Monitors", "Create Monitor"], 0)).toBe(
       drawnMenuItem("da", "Monitors"),
     );
-    expect(drawnMenuItem("da", "Monitors")).not.toBe(
+    // The menu says its page's title since #8229 (it said Overvågninger).
+    expect(drawnMenuItem("da", "Monitors")).toBe(
       drawnActionLabel("da", "Monitors"),
+    );
+    // Chat's page draws no title, so its menu item is a word of its own.
+    expect(drawnPathSegment("fa", ["Chat", "Monitors"], 0)).toBe(
+      drawnMenuItem("fa", "Chat"),
+    );
+    expect(drawnMenuItem("fa", "Chat")).not.toBe(
+      drawnActionLabel("fa", "Chat"),
     );
   });
 

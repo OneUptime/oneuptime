@@ -505,9 +505,16 @@ describe("the label helpers, on these pages' buttons", () => {
   });
 
   it("leave text no template draws in English", () => {
-    expect(isActionLabel("Send Message to Teams")).toBe(false);
+    // A record step's title is built from its model's name, and has no key yet.
+    expect(isActionLabel("On Create Incident")).toBe(false);
+    expect(drawnActionLabel("de", "On Create Incident")).toBe(
+      "On Create Incident",
+    );
+  });
+
+  it("read a built-in step's title as the Builder draws it (#8359)", () => {
     expect(drawnActionLabel("de", "Send Message to Teams")).toBe(
-      "Send Message to Teams",
+      "Nachricht an Teams senden",
     );
   });
 

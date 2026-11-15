@@ -4,6 +4,7 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 export const IRC_DEFAULT_NICKNAME: string = "OneUptime";
 export const IRC_DEFAULT_TLS_PORT: number = 6697;
@@ -26,41 +27,50 @@ export const IRC_MAX_LINES: number = 15;
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.IRCSendMessageToChannel,
-    title: "Send Message to IRC",
-    category: "IRC",
-    description: "Send message to IRC channel",
+    title: translationKey("Send Message to IRC"),
+    category: translationKey("IRC"),
+    description: translationKey("Send message to IRC channel"),
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: "server",
-        name: "IRC Server",
-        description:
+        name: translationKey("IRC Server"),
+        description: translationKey(
           "Host name of the IRC server, such as irc.libera.chat. The port goes in Port, under More fields.",
+        ),
         type: ComponentInputType.Text,
         required: true,
         placeholder: "irc.libera.chat",
       },
       {
         id: "channel",
-        name: "Channel",
-        description: "Channel to post in, such as #ops.",
+        name: translationKey("Channel"),
+        description: translationKey("Channel to post in, such as #ops."),
         type: ComponentInputType.Text,
         required: true,
         placeholder: "#ops",
       },
       {
         id: "text",
-        name: "Message Text",
-        description: `Message to send. Each line is sent as an IRC message of its own, at most ${IRC_MAX_LINES} of them, and IRC formatting codes work.`,
+        name: translationKey("Message Text"),
+        /*
+         * Written out, so the Dashboard's locales can word it; a test holds
+         * the number to the constant it names (WorkflowStepWords).
+         */
+        description: translationKey(
+          "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.",
+        ),
         type: ComponentInputType.LongText,
         required: true,
         placeholder: "Test IRC message from OneUptime",
       },
       {
         id: "nickname",
-        name: "Nickname",
-        description: `Nickname to post as. Defaults to ${IRC_DEFAULT_NICKNAME}. If it is taken, an underscore or a number is added.`,
+        name: translationKey("Nickname"),
+        description: translationKey(
+          "Nickname to post as. Defaults to OneUptime. If it is taken, an underscore or a number is added.",
+        ),
         type: ComponentInputType.Text,
         required: false,
         isAdvanced: true,
@@ -68,8 +78,10 @@ const components: Array<ComponentMetadata> = [
       },
       {
         id: "port",
-        name: "Port",
-        description: `Port of the IRC server. Defaults to ${IRC_DEFAULT_TLS_PORT}, or to ${IRC_DEFAULT_PLAIN_TEXT_PORT} with Disable TLS on.`,
+        name: translationKey("Port"),
+        description: translationKey(
+          "Port of the IRC server. Defaults to 6697, or to 6667 with Disable TLS on.",
+        ),
         type: ComponentInputType.Number,
         required: false,
         isAdvanced: true,
@@ -77,17 +89,18 @@ const components: Array<ComponentMetadata> = [
       },
       {
         id: "disable-tls",
-        name: "Disable TLS",
-        description:
+        name: translationKey("Disable TLS"),
+        description: translationKey(
           "Connect without encryption, for a server that does not offer TLS. Any password is then sent unencrypted.",
+        ),
         type: ComponentInputType.Boolean,
         required: false,
         isAdvanced: true,
       },
       {
         id: "channel-key",
-        name: "Channel Key",
-        description: "Key of a channel that has one (mode +k).",
+        name: translationKey("Channel Key"),
+        description: translationKey("Key of a channel that has one (mode +k)."),
         type: ComponentInputType.Password,
         required: false,
         isAdvanced: true,
@@ -95,18 +108,20 @@ const components: Array<ComponentMetadata> = [
       },
       {
         id: "send-without-joining",
-        name: "Send Without Joining",
-        description:
+        name: translationKey("Send Without Joining"),
+        description: translationKey(
           "Post without joining the channel, so the channel does not see the step join and leave. Only works where the channel takes messages from outside (no mode +n).",
+        ),
         type: ComponentInputType.Boolean,
         required: false,
         isAdvanced: true,
       },
       {
         id: "server-password",
-        name: "Server Password",
-        description:
+        name: translationKey("Server Password"),
+        description: translationKey(
           "Password the server or your bouncer asks for when connecting (PASS).",
+        ),
         type: ComponentInputType.Password,
         required: false,
         isAdvanced: true,
@@ -114,17 +129,18 @@ const components: Array<ComponentMetadata> = [
       },
       {
         id: "sasl-username",
-        name: "SASL Username",
-        description:
+        name: translationKey("SASL Username"),
+        description: translationKey(
           "Account to sign in to with SASL, such as a Libera.Chat account. Goes with SASL Password.",
+        ),
         type: ComponentInputType.Text,
         required: false,
         isAdvanced: true,
       },
       {
         id: "sasl-password",
-        name: "SASL Password",
-        description: "Password of the SASL account.",
+        name: translationKey("SASL Password"),
+        description: translationKey("Password of the SASL account."),
         type: ComponentInputType.Password,
         required: false,
         isAdvanced: true,
@@ -134,30 +150,32 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         id: "error",
-        name: "Error",
-        description: "Error, if there is any.",
+        name: translationKey("Error"),
+        description: translationKey("Error, if there is any."),
         type: ComponentInputType.Text,
         required: false,
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description:
+        title: translationKey("Success"),
+        description: translationKey(
           "Runs once the IRC server has taken every line of the message.",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description: "This is executed when there is an error",
+        title: translationKey("Error"),
+        description: translationKey("This is executed when there is an error"),
         id: "error",
       },
     ],

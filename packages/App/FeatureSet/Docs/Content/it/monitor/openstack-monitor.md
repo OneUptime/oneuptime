@@ -80,7 +80,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **Metrica OpenStack** | Metrica personalizzata | Una metrica dal [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Metrica personalizzata | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Ultimi 15 minuti**; i template impostano il proprio. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Un filtro restringe solo una serie che porta la sua etichetta: `openstack_nova_up` non ha un progetto, quindi un filtro sul progetto la lascia com'è.
 

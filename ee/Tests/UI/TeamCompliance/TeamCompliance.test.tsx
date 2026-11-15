@@ -797,7 +797,7 @@ describe("the verdict", () => {
       "2 need attention",
     );
     expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
-      "1 of 3 members meets every rule",
+      "1 of 3 members meet every rule",
     );
     expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
       /^Checked against 2 active rules · checked .+ ago$/,

@@ -755,7 +755,7 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
       built.executor.prepare(
         request("uptime", { payload: { resourceIdentifier: "db-host-2" } }),
       ),
-      /^Refused by the Host AI agent: this command is for Host "db-host-2", but this agent serves "web-host-1"\. Check HOST_NAME/,
+      /^Refused by the Host AI agent: this command is for host "db-host-2", but this agent serves "web-host-1"\. Check HOST_NAME/,
     );
     assert.deepStrictEqual(built.nsenter.calls, []);
   });
@@ -784,7 +784,7 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
       build().executor.prepare(
         request("uptime", { payload: { resourceType: "DockerHost" } }),
       ),
-      /this command is for a "DockerHost" resource, and this agent serves a Host/,
+      /this command is for another kind of resource \("DockerHost"\), and this agent serves only its own host\./,
     );
   });
 
@@ -895,7 +895,7 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
 
     expectRefused(
       built.executor.prepare(request("systemctl restart nginx")),
-      /^Refused by the Host AI agent: "systemctl restart nginx" changes the Host, and this agent is read-only \(ONEUPTIME_AI_ALLOW_WRITES is not set\)\. To let OneUptime AI apply fixes, set ONEUPTIME_AI_ALLOW_WRITES=true/,
+      /^Refused by the Host AI agent: "systemctl restart nginx" changes the host, and this agent is read-only \(ONEUPTIME_AI_ALLOW_WRITES is not set\)\. To let OneUptime AI apply fixes, set ONEUPTIME_AI_ALLOW_WRITES=true/,
     );
     assert.deepStrictEqual(built.nsenter.calls, []);
   });
@@ -1176,7 +1176,7 @@ describe("prepare: nothing runs unless pid 1 is the host's init", () => {
       }).executor.prepare(
         request("uptime", { payload: { resourceIdentifier: "db-host-2" } }),
       ),
-      /this command is for Host "db-host-2"/,
+      /this command is for host "db-host-2"/,
     );
   });
 });
@@ -2126,7 +2126,7 @@ describe("probePosture", () => {
         return record.message;
       });
     assert.deepStrictEqual(notes, [
-      'This agent serves the Host "web-host-1" (HOST_NAME), and this host\'s hostname is "ip-10-0-0-7". That is right only if the OpenTelemetry collector reports host.name "web-host-1" too; otherwise set HOST_NAME to the host.name the collector reports.',
+      'This agent serves the host "web-host-1" (HOST_NAME), and this host\'s hostname is "ip-10-0-0-7". That is right only if the OpenTelemetry collector reports host.name "web-host-1" too; otherwise set HOST_NAME to the host.name the collector reports.',
     ]);
   });
 

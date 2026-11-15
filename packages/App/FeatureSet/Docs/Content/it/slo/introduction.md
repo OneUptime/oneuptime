@@ -140,7 +140,7 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget è stato speso tutto, o superato. |
 | **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
-| **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione pianificata. Riprende da solo appena uno di essi torna a essere monitorato. |
+| **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione programmata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
 Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
 

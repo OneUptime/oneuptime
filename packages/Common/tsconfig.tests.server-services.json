@@ -1,0 +1,26 @@
+{
+  /*
+   * Tests/Server/Services as one program: the tests of Common's server
+   * services, and the server sources they import. Editors and ESLint's
+   * typed linting use it for the folder (its tsconfig.json extends this),
+   * and `npm run compile-tests` (Scripts/compile-tests.js) type-checks it in
+   * two parts by name, tsconfig.tests.server-services-a-m.json and
+   * tsconfig.tests.server-services-n-z.json. The folder was split from
+   * tsconfig.tests.server.json on 2026-11-15 (#8631), when that part used
+   * 87% of its heap.
+   *
+   * Everything but "include" is inherited, so these tests are held to
+   * exactly the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/Server/Services/**/*.ts",
+    "Tests/Server/Services/**/*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every program, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}

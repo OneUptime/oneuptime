@@ -256,14 +256,14 @@ Een [netwerklocatie](/docs/monitor/network-sites#monitoringstandaarden) heeft tw
 
 ## De override met gekoppelde monitor
 
-Sommige apparatuur kan geen sonde bereiken of zinvol pingen: een apparaat achter een NAT, een appliance waarvan de gezondheid beter met een HTTP-controle te beoordelen is, een dienst waarvan het echte signaal een poortcontrole is. Daarvoor heeft **Instellingen bewerken** op de pagina **Instellingen** van het apparaat een **Monitoring Method**:
+Sommige apparatuur kan geen sonde bereiken of zinvol pingen: een apparaat achter een NAT, een appliance waarvan de gezondheid beter met een HTTP-controle te beoordelen is, een dienst waarvan het echte signaal een poortcontrole is. Daarvoor heeft **Instellingen bewerken** op de pagina **Instellingen** van het apparaat een **Bewakingsmethode**:
 
 | Methode | Wat het betekent |
 | --- | --- |
 | **Sonde** | De standaard. Gepingd door de toegewezen sonde volgens haar schema, en via SNMP gewalkt als het inloggegevens heeft. |
-| **Bound monitor** | De status van een bestaande monitor is de status van dit apparaat. |
+| **Gekoppelde monitor** | De status van een bestaande monitor is de status van dit apparaat. |
 
-Een apparaat op **Bound monitor** zetten, stopt het pollen ervan. De sonde, het interval en de pollschakelaar verdwijnen van de kaart **Polling & Data Collection**, de oude pollresultaten van het apparaat worden gewist, en de status komt van de monitor die je koppelt. Er een koppelen is optioneel: tot je dat doet, toont het apparaat **In behandeling**, gemarkeerd met **Geen monitor**.
+Een apparaat op **Gekoppelde monitor** zetten, stopt het pollen ervan. De sonde, het interval en de pollschakelaar verdwijnen van de kaart **Polling & Data Collection**, de oude pollresultaten van het apparaat worden gewist, en de status komt van de monitor die je koppelt. Er een koppelen is optioneel: tot je dat doet, toont het apparaat **In behandeling**, gemarkeerd met **Geen monitor**.
 
 Terugzetten naar **Sonde** herstelt het pollen en vraagt om een sonde. Een monitor die gekoppeld was, blijft gekoppeld en blijft waarschuwen; hij bepaalt alleen niet langer de status van het apparaat.
 

@@ -224,7 +224,7 @@ Se [Topologi](/docs/telemetry/topology).
 
 Et pålitelighetsmål for det du overvåker, for eksempel tilgjengelig 99,9 % av tiden over 30 dager. OneUptime måler hvert SLO mot monitorene sine hvert 5. minutt.
 
-Også kalt: **Service Level Objective**. Se [SLO-er – Oversikt](/docs/slo/introduction).
+Også kalt: **Tjenestenivåmål**. Se [SLO-er – Oversikt](/docs/slo/introduction).
 
 ### Feilbudsjett
 

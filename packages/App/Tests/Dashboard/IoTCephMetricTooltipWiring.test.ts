@@ -295,8 +295,9 @@ describe("IoT fleet overview", () => {
     expect(code).toContain(
       "const onlineDevices: number = goldenStats?.onlineDevices ?? fleet.onlineDeviceCount ?? 0;",
     );
+    // No reading is no value: the tile draws its figure's quiet dash (#8264).
     expect(code).toContain(
-      'value={onlinePct === null ? "—" : `${onlineDevices}/${totalDevices}`}',
+      "value={ onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}` }",
     );
     expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
       "counted like the Online Devices tile",

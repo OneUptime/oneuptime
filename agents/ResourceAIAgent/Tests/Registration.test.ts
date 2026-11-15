@@ -303,7 +303,7 @@ describe("the retry schedule", () => {
     assert.strictEqual(notFound.delayMs, OPERATOR_ACTION_RETRY_MS);
     assert.match(
       notFound.message,
-      /Check DATABASE_SERVER_ID: it must name a Database server of the project this key belongs to/,
+      /Check DATABASE_SERVER_ID: it must be the name of this database server in the project this key belongs to/,
     );
 
     const cap: RegistrationRetryPlan = plan({

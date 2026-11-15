@@ -410,7 +410,7 @@ Hver nøgles side under **Projektindstillinger → Telemetri og APM → Indtagel
 | **Aktiveret** | Slå den fra for straks at holde op med at acceptere data, der sendes med nøglen, uden at slette den. |
 | **Udløber den** | Efter denne dato afvises nøglen. Tom betyder, at den aldrig udløber. |
 | **Requests Per Minute Limit** | Det højeste antal OTLP/HTTP-forespørgsler pr. minut, nøglen accepteres for, på tværs af alle klienter, der bruger den. Tom betyder ingen grænse på en servernøgle og 6.000 på en browsernøgle. |
-| **Last Used At** | Hvornår der sidst blev accepteret data med nøglen. Brug den til at finde nøgler, der trygt kan roteres eller slettes. |
+| **Senest brugt den** | Hvornår der sidst blev accepteret data med nøglen. Brug den til at finde nøgler, der trygt kan roteres eller slettes. |
 
 **Nulstil hemmelig nøgle** på nøglens side erstatter hemmeligheden. Alle applikationer og collectors, der sender med den gamle, afvises, indtil du opdaterer dem. Om browsernøgler, sikker udskiftning af en nøgle og hvad hver afvisning betyder, se [Indtagelsesnøgler](/docs/telemetry/ingestion-keys).
 
