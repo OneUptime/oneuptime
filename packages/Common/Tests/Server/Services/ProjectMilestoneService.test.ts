@@ -39,8 +39,12 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import logger from "../../../Server/Utils/Logger";
+import ProjectUsageCache, {
+  ProjectUsage,
+} from "../../../Server/Utils/ProjectProducts/ProjectUsageCache";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import ObjectID from "../../../Types/ObjectID";
+import ProductKey from "../../../Types/Product/ProductKey";
 
 const PROJECT_ID: string = "6d1f6a37-6a2c-4c8c-9a1f-6f1e2a3b4c5d";
 const OTHER_PROJECT_ID: string = "0a0b0c0d-1111-4222-8333-944455556666";
@@ -412,6 +416,109 @@ describe("ProjectMilestoneService", () => {
       });
 
       expect(insertCalls()[0]!.parameters[2]).toBe(at);
+    });
+  });
+
+  /*
+   * #7465: the products menu said "Logs - Not set up" after the first logs
+   * arrived - what a project uses was kept five minutes, and keeping the
+   * first logs' milestone did not tell it.
+   */
+  describe("the products menu hears a telemetry product's first data", () => {
+    let afterMilestoneReached: SpyInstance<
+      typeof ProjectUsageCache.afterMilestoneReached
+    >;
+
+    beforeEach(() => {
+      ProjectUsageCache.clear();
+      afterMilestoneReached = jest.spyOn(
+        ProjectUsageCache,
+        "afterMilestoneReached",
+      );
+    });
+
+    afterEach(() => {
+      ProjectUsageCache.clear();
+    });
+
+    test("the call that keeps the first logs tells ProjectUsageCache, once", async () => {
+      await ProjectMilestoneService.reach({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.FirstLogsReceived,
+      });
+      await ProjectMilestoneService.reach({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.FirstLogsReceived,
+      });
+
+      expect(afterMilestoneReached).toHaveBeenCalledTimes(1);
+      expect(afterMilestoneReached.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.FirstLogsReceived,
+      });
+    });
+
+    test("a milestone another server kept tells it nothing here: that server did", async () => {
+      keptPairs.add(`${PROJECT_ID}:first_logs_received`);
+
+      await ProjectMilestoneService.reach({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.FirstLogsReceived,
+      });
+
+      expect(afterMilestoneReached).not.toHaveBeenCalled();
+    });
+
+    test("a milestone that could not be kept, or a sample project's, tells it nothing", async () => {
+      failNextInserts = 1;
+      await ProjectMilestoneService.reach({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.FirstLogsReceived,
+      });
+
+      isSampleProjectSpy.mockResolvedValue(true);
+      await ProjectMilestoneService.reach({
+        projectId: OTHER_PROJECT_ID,
+        milestone: ActivationMilestone.FirstTracesReceived,
+      });
+
+      expect(afterMilestoneReached).not.toHaveBeenCalled();
+    });
+
+    test("end to end: the usage kept before the first logs is read again after them", async () => {
+      let logsArrived: boolean = false;
+      let reads: number = 0;
+
+      const usage: () => Promise<ProjectUsage> =
+        async (): Promise<ProjectUsage> => {
+          return await ProjectUsageCache.getUsage({
+            projectId: PROJECT_ID,
+            read: async (): Promise<ProjectUsage> => {
+              reads++;
+              return { [ProductKey.Logs]: logsArrived };
+            },
+          });
+        };
+
+      expect((await usage())[ProductKey.Logs]).toBe(false);
+
+      logsArrived = true;
+      ProjectMilestoneService.reachInBackground({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.FirstLogsReceived,
+      });
+      await flush();
+
+      expect((await usage())[ProductKey.Logs]).toBe(true);
+      expect(reads).toBe(2);
+
+      // A milestone that says nothing of what is in use changes nothing.
+      await ProjectMilestoneService.reach({
+        projectId: PROJECT_ID,
+        milestone: ActivationMilestone.SecondMemberJoined,
+      });
+      await usage();
+      expect(reads).toBe(2);
     });
   });
 
