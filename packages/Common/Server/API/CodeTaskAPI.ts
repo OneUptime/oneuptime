@@ -567,9 +567,10 @@ export default class CodeTaskAPI {
       await CodeTaskPresenter.summarize({ projectId, tasks, props });
 
     /*
-     * "totalCount", not "count": a body holding count, skip and limit
-     * together reads as a list envelope to the Dashboard's HTTPResponse,
-     * which then looks for the rows under "data" and finds none.
+     * "totalCount": the name this answer has always had (CodeApi.listTasks
+     * reads it). It was chosen while HTTPResponse took any body holding
+     * count, skip and limit for a list envelope and looked for rows under
+     * "data"; it takes only a real envelope for one now (issue #7794).
      */
     return {
       tasks: summaries as unknown as Array<JSONObject>,

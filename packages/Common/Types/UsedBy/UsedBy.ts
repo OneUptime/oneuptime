@@ -302,11 +302,11 @@ export interface UsedBySummary {
 }
 
 /*
- * One page of one relation's rows. Where it starts and how long it is are
- * pageStart and pageSize, never skip and limit: HTTPResponse reads an
- * answer holding count, skip and limit as a list of models in `data`, and
- * a page that held all three failed to read in the browser ("array is not
- * iterable").
+ * One page of one relation's rows: where it starts and how long it is are
+ * pageStart and pageSize. (They were named so while HTTPResponse took any
+ * answer holding count, skip and limit for a list of models in `data`; it
+ * reads only a real list envelope that way now - issue #7794 - and keeps
+ * every other answer whole.)
  */
 export interface UsedByPage {
   recordKind: UsedByRecordKind;
