@@ -144,6 +144,30 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
         },
       ],
     },
+    /*
+     * An on-call policy is a "policy di reperibilità", as the On-Call
+     * menu (Reperibilità) and its Policy di reperibilità list say it; 48
+     * Dashboard strings said "criterio di reperibilità" (#8435).
+     */
+    {
+      title: "On-Call",
+      word: /reperibilità/i,
+      others: /criteri[oi] di reperibilità/i,
+    },
+  ],
+  /*
+   * "Plantão" is the On-Call menu's name, so a menu's path keeps its
+   * capital ("Plantão > Prontidão"), and so does a label in Title Case
+   * ("Minhas Políticas de Plantão"); in the middle of a name in sentence
+   * case it is a common noun: "ID da política de plantão", as "Políticas
+   * de plantão" says it (#8435).
+   */
+  pt: [
+    {
+      title: "On-Call",
+      word: /plantão/i,
+      others: /(?:^|\s)\p{Ll}\S* d[eoa] Plantão/u,
+    },
   ],
   da: [
     {
@@ -256,6 +280,17 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Metrics",
       word: /måling/i,
       others: /metrikk/i,
+    },
+    /*
+     * An on-call policy is a "vaktretningslinje", as the On-Call Policies
+     * menu (Vaktretningslinjer) says it; some 180 strings of the
+     * Dashboard, the Admin Dashboard and the server said "vaktpolicy"
+     * (#8435).
+     */
+    {
+      title: "On-Call",
+      word: /vakt/i,
+      others: /vaktpolic/i,
     },
   ],
 };

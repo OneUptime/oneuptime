@@ -19591,7 +19591,7 @@
   "Enter one or more valid emails separated by a comma.": "Enter one or more valid emails separated by a comma.",
   "Error-severity log volume rose from zero in the second half of the window ({{first}} → {{second}}).": "Error-severity log volume rose from zero in the second half of the window ({{first}} → {{second}}).",
   "Error-severity log volume rose {{ratio}} in the second half of the window ({{first}} → {{second}}).": "Error-severity log volume rose {{ratio}} in the second half of the window ({{first}} → {{second}}).",
-  "Escalation Rule:": "Escalation Rule:",
+  "Escalation Rule:": "Eskalationsregel:",
   "Every log written during the latest occurrence's trace, within {{minutes}} minutes either side of it.": "Every log written during the latest occurrence's trace, within {{minutes}} minutes either side of it.",
   "Every occurrence carries {{key}} = {{value}} — the strongest single clue on this page about which input or path triggers it.": "Every occurrence carries {{key}} = {{value}} — the strongest single clue on this page about which input or path triggers it.",
   "Every {{minutes}} min": "Alle {{minutes}} Min.",
