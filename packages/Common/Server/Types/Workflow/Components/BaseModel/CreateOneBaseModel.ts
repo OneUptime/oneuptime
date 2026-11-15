@@ -22,6 +22,9 @@ import { AFFECTED_RESOURCES_ARGUMENT_ID } from "../../../../../Types/Workflow/Af
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import logComponentError from "./LogComponentError";
 import { assertIdsAreResolved } from "./UnresolvedIdReference";
+import OwnersOnCreateArgument, {
+  OwnersOnCreate,
+} from "./OwnersOnCreateArgument";
 
 export default class CreateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -165,6 +168,29 @@ export default class CreateOneBaseModel<
       });
 
       /*
+       * Create One Incident's and Create One Alert's Owner Users and Owner
+       * Teams: handed over with the create, as the REST create takes them,
+       * so the record's service asks whether the step may add them before
+       * anything is saved, and its Created notification reaches them
+       * (OwnersOnCreateArgument). One that names nobody is said in the run
+       * log; it never fails the step.
+       */
+      const owners: OwnersOnCreate = await OwnersOnCreateArgument.read({
+        args: args,
+        tableName: this.modelService.getModel().tableName || undefined,
+        projectId: options.projectId,
+        props: props,
+        log: (message: string): void => {
+          options.log(message);
+        },
+      });
+
+      const miscDataProps: JSONObject | undefined =
+        owners.ownerUsers || owners.ownerTeams
+          ? (owners as unknown as JSONObject)
+          : undefined;
+
+      /*
        * Declared from the template by the record's own service, as the step
        * - it applies the template the way the server applies one anywhere,
        * and records which template it was (IncidentService).
@@ -174,10 +200,12 @@ export default class CreateOneBaseModel<
             templateId: templateId,
             data: data,
             props: props,
+            ...(miscDataProps ? { miscDataProps: miscDataProps } : {}),
           })
         : ((await this.modelService.create({
             data: data,
             props: props,
+            ...(miscDataProps ? { miscDataProps: miscDataProps } : {}),
           })) as TBaseModel);
 
       return {

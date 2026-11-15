@@ -589,6 +589,94 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
     ).toBe("guided-setup-policy-deleted");
     expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
   });
+
+  /*
+   * #8432: the policy the run made was archived in another tab; the test
+   * step's Continue reads it again, and step 2 says so in their words - its
+   * own sentence, not the deleted one's - first in its polite live region.
+   */
+  test("the run's policy archived meanwhile: step 2 says why in their words (#8432)", async () => {
+    window.localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({
+        monitorId: MONITOR_ID,
+        policyId: POLICY_ID,
+        testExecutionLogId: "log-1",
+      }),
+    );
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("guided-setup-step-test").querySelector("button")!,
+      );
+    });
+    api["loadPolicy"]!.mockResolvedValue({
+      id: POLICY_ID,
+      name: "Default on-call policy",
+      responders: ["Ada Lovelace"],
+      isArchived: true,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-test-continue"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-policy-archived"),
+      ).toBeInTheDocument();
+    });
+
+    const sentence: string = withoutIsolateMarks(
+      screen.getByTestId("guided-setup-policy-archived").textContent || "",
+    );
+
+    expect(sentence).toBe(fill(language, WEBSITE_DOWN_COPY.policyArchived, {}));
+    expect(sentence).not.toBe(
+      fill(language, WEBSITE_DOWN_COPY.policyDeleted, {}),
+    );
+    expect(sentence).not.toMatch(/archived|pages no one|told again/iu);
+    expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+    expect(
+      screen
+        .getByTestId("guided-setup-who-region")
+        .firstElementChild?.getAttribute("data-testid"),
+    ).toBe("guided-setup-policy-archived");
+    expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+  });
+});
+
+/*
+ * The sentence for an archived policy is worded in every Dashboard
+ * language (#8432): a value of its own in each, apart from the deleted
+ * sentence, ended as its language ends a sentence.
+ */
+describe("the website-down sentence for an archived policy, in every Dashboard language (#8432)", () => {
+  test("English has it, as itself", () => {
+    expect(readDashboardLocale("en")[WEBSITE_DOWN_COPY.policyArchived]).toBe(
+      WEBSITE_DOWN_COPY.policyArchived,
+    );
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words it, apart from its deleted sentence",
+    (code: string) => {
+      const locale: Record<string, string> = readDashboardLocale(code);
+      const text: string | undefined = locale[WEBSITE_DOWN_COPY.policyArchived];
+
+      expect({
+        code,
+        worded: Boolean(
+          text && text.trim() && text !== WEBSITE_DOWN_COPY.policyArchived,
+        ),
+      }).toEqual({ code, worded: true });
+      expect(text).not.toBe(locale[WEBSITE_DOWN_COPY.policyDeleted]);
+      expect(text).toMatch(/[.。।]$/u);
+    },
+  );
 });
 
 /*

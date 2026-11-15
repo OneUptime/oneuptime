@@ -110,6 +110,61 @@ export const areWhoIsToldCountsKnown: (
   );
 };
 
+/*
+ * An on-call rule, read with the policies it runs: their ids, and whether
+ * each is archived.
+ */
+export interface OnCallRuleWithPolicies {
+  onCallDutyPolicies?:
+    | ReadonlyArray<
+        | {
+            id?: unknown;
+            _id?: unknown;
+            isArchived?: boolean | null | undefined;
+          }
+        | null
+        | undefined
+      >
+    | null
+    | undefined;
+}
+
+/*
+ * Whether an on-call rule pages anyone: it runs at least one policy in
+ * service. An archived policy pages no one (#8234), so a rule whose only
+ * policies are archived - or that runs none - leaves its incidents and
+ * alerts unpaged, and does not count as the project paging people already
+ * (#8433), as WhoIsToldService and Setup Health judge a project. A policy
+ * whose isArchived was not read counts as in service, as the server does.
+ */
+export const doesRuleRunPolicyInService: (
+  rule: OnCallRuleWithPolicies | null | undefined,
+) => boolean = (rule: OnCallRuleWithPolicies | null | undefined): boolean => {
+  return (rule?.onCallDutyPolicies || []).some(
+    (
+      policy:
+        | {
+            id?: unknown;
+            _id?: unknown;
+            isArchived?: boolean | null | undefined;
+          }
+        | null
+        | undefined,
+    ): boolean => {
+      return Boolean(policy && (policy.id || policy._id) && !policy.isArchived);
+    },
+  );
+};
+
+// How many of these on-call rules page anyone (doesRuleRunPolicyInService).
+export const countRulesRunningPolicyInService: (
+  rules: ReadonlyArray<OnCallRuleWithPolicies | null | undefined>,
+) => number = (
+  rules: ReadonlyArray<OnCallRuleWithPolicies | null | undefined>,
+): number => {
+  return rules.filter(doesRuleRunPolicyInService).length;
+};
+
 export const getWhoIsToldMode: (facts: WhoIsToldFacts) => WhoIsToldMode = (
   facts: WhoIsToldFacts,
 ): WhoIsToldMode => {
@@ -183,4 +238,50 @@ export const buildFirstOnCallPolicy: (data: {
         : {}),
     },
   };
+};
+
+/*
+ * WHY A GUIDED SETUP'S OWN POLICY NO LONGER SERVES IT. The on-call and the
+ * website-down setups keep the policy they set up in the browser, and read
+ * it again before a step that needs it moves on, and when the page opens.
+ * Deleted - in another tab, or by a teammate - it is gone (#7516, #8235).
+ * Archived, it is still there, but pages no one: incidents and alerts that
+ * use it skip it (#8432). Either way the run forgets it and sets up who is
+ * paged again, saying which of the two happened.
+ */
+export enum SetupPolicyGone {
+  Deleted = "deleted",
+  Archived = "archived",
+}
+
+/*
+ * Why the run's policy, as just read, no longer serves it: Deleted when it
+ * read as null (gone, or no longer readable by this person), Archived when
+ * it was archived since. Null while it is in service.
+ */
+export const getSetupPolicyGone: (
+  policy: { isArchived?: boolean | null | undefined } | null | undefined,
+) => SetupPolicyGone | null = (
+  policy: { isArchived?: boolean | null | undefined } | null | undefined,
+): SetupPolicyGone | null => {
+  if (!policy) {
+    return SetupPolicyGone.Deleted;
+  }
+
+  if (policy.isArchived) {
+    return SetupPolicyGone.Archived;
+  }
+
+  return null;
+};
+
+// Whether the run's policy, as just read, still serves the run.
+export const isSetupPolicyInService: <
+  T extends { isArchived?: boolean | null | undefined },
+>(
+  policy: T | null | undefined,
+) => policy is T = <T extends { isArchived?: boolean | null | undefined }>(
+  policy: T | null | undefined,
+): policy is T => {
+  return getSetupPolicyGone(policy) === null;
 };

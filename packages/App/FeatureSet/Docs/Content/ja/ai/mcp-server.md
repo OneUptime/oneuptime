@@ -497,7 +497,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | セキュリティ | Security Event, Threat Intel Indicator |
 | 変更とコスト | Change Event, Kubernetes Cost Allocation |
 
-ツールの名前はスネークケースです: `create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident`、`count_incidents`。テレメトリなら `list_logs` や `count_spans` です。
+ツールの名前はスネークケースです: `create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident`、`count_incidents`。テレメトリなら `list_logs` や `count_spans` です。`create_incident` と `create_alert` は `ownerUsers` と `ownerTeams` も受け取ります。最初からレコードを所有するユーザーとチームの ID で、彼らには作成されたことが知らされます。
 
 ## 次のステップ
 

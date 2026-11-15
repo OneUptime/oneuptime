@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (brukt filter)",
   "{{filter}}, locked filter": "{{filter}}, låst filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Trykk Enter for å kopiere søkesyntaksen.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Vaktpolicyen dette oppsettet opprettet, er arkivert, så den varsler ingen. Velg på nytt hvem som skal få beskjed.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Vaktpolicyen dette oppsettet brukte, er arkivert, så den varsler ingen. Velg eller opprett en på nytt.",
   "{{summary}} - view session details": "{{summary}} - se øktdetaljer",
   "Account blocked by a server admin": "Konto blokkert av en serveradministrator",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "Revisjonslogging registrerer som innstilt i den {{trialDays}} dager lange prøveperioden for en installasjon uten lisens, eller i nådeperioden på {{graceDays}} dager etter at en lisens er utløpt. Når den er over, registreres ingenting mer før en Enterprise-lisens aktiveres i Admin-dashbordet. Oppføringer som er registrert til nå, beholdes.",

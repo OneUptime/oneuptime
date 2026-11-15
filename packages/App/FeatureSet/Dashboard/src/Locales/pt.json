@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (filtro aplicado)",
   "{{filter}}, locked filter": "{{filter}}, filtro bloqueado",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtro bloqueado. Pressione Enter para copiar a sintaxe de pesquisa.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "A política de plantão que esta configuração criou foi arquivada, então não aciona ninguém. Escolha novamente quem deve ser avisado.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "A política de plantão que esta configuração usava foi arquivada, então não aciona ninguém. Escolha ou crie uma novamente.",
   "{{summary}} - view session details": "{{summary}} - ver detalhes da sessão",
   "Account blocked by a server admin": "Conta bloqueada por um administrador do servidor",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "O registro de auditoria grava conforme configurado durante o teste de {{trialDays}} dias de uma instalação sem licença, ou durante o período de carência de {{graceDays}} dias após a expiração de uma licença. Quando ele termina, nada mais é registrado até que uma licença Enterprise seja ativada no Painel de administração. As entradas registradas até agora são mantidas.",

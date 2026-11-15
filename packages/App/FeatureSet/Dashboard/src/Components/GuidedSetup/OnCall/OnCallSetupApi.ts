@@ -499,8 +499,9 @@ export default class OnCallSetupApi {
 
   /*
    * A policy as the setup shows it: its escalation rules in order, who each
-   * pages, how often it repeats, and how many enabled on-call rules run it.
-   * Null when it is gone.
+   * pages, how often it repeats, how many enabled on-call rules run it, and
+   * whether it is archived - there, but paging no one (#8432). Null when it
+   * is gone.
    */
   public static async loadPolicy(
     id: string,
@@ -516,6 +517,7 @@ export default class OnCallSetupApi {
           name: true,
           repeatPolicyIfNoOneAcknowledges: true,
           repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+          isArchived: true,
         },
       });
 
@@ -685,6 +687,7 @@ export default class OnCallSetupApi {
       repeatTimes: getOnCallPolicyRepeatsAllowed(policy),
       incidentRuleCount: incidentRules.data.filter(namesPolicy).length,
       alertRuleCount: alertRules.data.filter(namesPolicy).length,
+      isArchived: Boolean(policy.isArchived),
     };
   }
 

@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (angewendeter Filter)",
   "{{filter}}, locked filter": "{{filter}}, gesperrter Filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, gesperrter Filter. Drücken Sie die Eingabetaste, um seine Suchsyntax zu kopieren.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Die Bereitschaftsrichtlinie, die diese Einrichtung erstellt hat, wurde archiviert und alarmiert daher niemanden. Wähle erneut, wer informiert werden soll.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Die Bereitschaftsrichtlinie, die diese Einrichtung verwendet hat, wurde archiviert und alarmiert daher niemanden. Wähle oder erstelle erneut eine.",
   "{{summary}} - view session details": "{{summary}} - Sitzungsdetails ansehen",
   "Account blocked by a server admin": "Konto von einem Server-Administrator gesperrt",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "Während der {{trialDays}}-tägigen Testphase einer Installation ohne Lizenz oder der {{graceDays}}-tägigen Kulanzfrist nach Ablauf einer Lizenz zeichnet die Audit-Protokollierung wie eingestellt auf. Danach wird nichts mehr erfasst, bis im Admin-Dashboard eine Enterprise-Lizenz aktiviert wird. Bisher erfasste Einträge bleiben erhalten.",

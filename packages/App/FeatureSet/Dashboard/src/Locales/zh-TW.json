@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}}（已套用的篩選器）",
   "{{filter}}, locked filter": "{{filter}}，已鎖定的篩選器",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}，已鎖定的篩選器。按 Enter 複製其搜尋語法。",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "此設定建立的待命策略已被封存，不會呼叫任何人。請重新選擇要通知誰。",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "此設定所用的待命策略已被封存，不會呼叫任何人。請重新選擇或建立一個。",
   "{{summary}} - view session details": "{{summary}} - 檢視工作階段詳細資料",
   "Account blocked by a server admin": "帳戶已被伺服器管理員封鎖",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "在未安裝授權的部署的 {{trialDays}} 天試用期內，或授權過期後的 {{graceDays}} 天寬限期內，稽核日誌會依設定記錄。期限結束後，在管理後台啟用 Enterprise 授權之前，不會再記錄任何內容。目前已記錄的項目會保留。",
