@@ -1484,6 +1484,8 @@ describe("the page's own pause in the reader's language", () => {
         },
         translatorFor(DE, "de"),
       ),
-    ).toBe(worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1\u00A0Min." }));
+    ).toBe(
+      worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1\u00A0Min." }),
+    );
   });
 });
