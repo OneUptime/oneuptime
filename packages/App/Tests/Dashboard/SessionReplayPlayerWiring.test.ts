@@ -1444,7 +1444,11 @@ describe("this user's other sessions", () => {
     );
 
     expect(next).toContain("adjacentUserSessions.newer");
-    expect(next).toContain("describeReplayUserSession(newer, Date.now())");
+    /* In the reader's language and digits, as the menu's rows are (#8298). */
+    expect(next).toContain(
+      "describeReplayUserSession(newer, Date.now(), translator)",
+    );
+    expect(next).toContain("[adjacentUserSessions, translator.language]");
     expect(next).toContain("sessionId: newer.sessionId,");
     /*
      * Its facts are set on one line in the reader's language when the card
