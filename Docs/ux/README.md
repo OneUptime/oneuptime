@@ -616,6 +616,14 @@ then `npm run i18n:validate` from the root.
   [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
   and
   [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+- **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
+  and a page's title name a thing, and every count, sentence and button on its pages says the same
+  noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
+  called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
+  status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
+  product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
+  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). Enforced by
+  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
