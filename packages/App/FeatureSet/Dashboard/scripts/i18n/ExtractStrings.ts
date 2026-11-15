@@ -394,6 +394,19 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The workflow builder's step catalogue (#8359): each step's title and
+   * what it does, each setting's name, help and choices, each output's
+   * name and help, each returned value's name and what it holds, and the
+   * Add Component panel's groups. The canvas, the settings panel, the
+   * value picker and the run log look each one up as they draw it. Only
+   * the words the files mark are read: ids, the references a workflow
+   * stores ({{local.components...}}), example values and a Switch / Case's
+   * cases (people name them) stay as written. A record step's words, built
+   * from its model's name, are not marked yet.
+   */
+  { directory: "packages/Common/Types/Workflow/Components", kind: "keys" },
+  { directory: "packages/Common/Types/Workflow/Components.ts", kind: "keys" },
+  /*
    * A naming rule's name pattern and lookup table (issue #6619): what each
    * placeholder is, and what is wrong with a pattern or a table, as the
    * rule form says it. Only the sentences the files mark are read: the
