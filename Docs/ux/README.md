@@ -784,7 +784,10 @@ then `npm run i18n:validate` from the root.
   whose 186 texts had no entry in its locales and read English in every language (#8227),
   [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),
   with the texts those pages drew as written, which no lookup read (#8555),
-  [AdminOwnPagesDrawnAsWrittenGuard](../../packages/App/Tests/AdminDashboard/AdminOwnPagesDrawnAsWrittenGuard.test.ts).
+  [AdminOwnPagesDrawnAsWrittenGuard](../../packages/App/Tests/AdminDashboard/AdminOwnPagesDrawnAsWrittenGuard.test.ts),
+  and the sentences the extractor could not see there, kept in a variable or handed to a prop it
+  does not know (#8636),
+  [AdminUnseenTextsGuard](../../packages/App/Tests/AdminDashboard/AdminUnseenTextsGuard.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
