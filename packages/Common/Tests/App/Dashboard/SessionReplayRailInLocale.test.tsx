@@ -1402,9 +1402,12 @@ describe("the page's own pause in the reader's language", () => {
         offsetMs: edge === "paused" ? 330_000 : 1_710_000,
         idlePauseEdge: edge,
         pausedAtUnixMs: START_UNIX_MS + 330_000,
-        resumedAtUnixMs:
-          edge === "resumed" ? START_UNIX_MS + 1_710_000 : undefined,
-        pausedAtOffsetMs: edge === "resumed" ? 330_000 : undefined,
+        ...(edge === "resumed"
+          ? {
+              resumedAtUnixMs: START_UNIX_MS + 1_710_000,
+              pausedAtOffsetMs: 330_000,
+            }
+          : {}),
         pauseReason: "page",
       },
       { startTimeUnixMs: START_UNIX_MS },

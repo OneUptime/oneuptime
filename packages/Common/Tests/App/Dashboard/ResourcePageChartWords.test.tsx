@@ -626,9 +626,13 @@ describe.each(
   }),
 )("%s, drawn", (_name: string, group: PageGroup) => {
   test.each(
-    group.pages.map((page: PageGroup["pages"][number]) => {
-      return [page.name, page];
-    }),
+    group.pages.map(
+      (
+        page: PageGroup["pages"][number],
+      ): [string, PageGroup["pages"][number]] => {
+        return [page.name, page];
+      },
+    ),
   )(
     "the %s page: English as the page wrote it; German and Arabic in their words, metric and unit untouched",
     async (_page: string, page: PageGroup["pages"][number]) => {

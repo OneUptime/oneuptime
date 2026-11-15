@@ -566,7 +566,7 @@ const SURFACES: ReadonlyArray<Surface> = [
 
 describe("in Persian, every figure the player draws is in Persian digits", () => {
   test.each(
-    SURFACES.map((surface: Surface) => {
+    SURFACES.map((surface: Surface): [string, Surface] => {
       return [surface.name, surface];
     }),
   )("%s", async (_name: string, surface: Surface) => {

@@ -32,7 +32,6 @@ import RemediationStep, {
   VERIFIED_FIX_SAVED_AS_RUNBOOK,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
-import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -56,6 +55,7 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
+  PermissionCheckableModel,
   PermissionGateOptions,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -149,7 +149,7 @@ beforeEach(() => {
     .spyOn(PermissionGate, "check")
     .mockImplementation(
       (
-        model: BaseModel,
+        model: PermissionCheckableModel,
         action: ModelAction,
         options?: PermissionGateOptions,
       ): PermissionGateResult => {

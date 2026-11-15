@@ -455,7 +455,8 @@ describe("#7522: the column a component's or a volume's array is in", () => {
               "list",
             );
 
-      const last: string = headers(result.container).at(-1) as string;
+      const columns: Array<string> = headers(result.container);
+      const last: string = columns[columns.length - 1] as string;
 
       expect({ language, last }).toEqual({
         language,
