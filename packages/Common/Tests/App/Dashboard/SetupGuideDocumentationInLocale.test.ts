@@ -56,6 +56,14 @@ const CODE_SPAN: RegExp = /`[^`\n]+`/g;
 
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 
+/*
+ * A run in single asterisks: a guide writes another product's own menus
+ * that way, as that product draws them (vSphere's *Configure → System →
+ * Advanced System Settings*), so an "Advanced" there is not this guide's
+ * section.
+ */
+const ITALIC_SPAN: RegExp = /(?<![*\w])\*(?!\*)[^*\n]+?(?<!\*)\*(?![*\w])/g;
+
 // A letter of the Arabic script: Arabic's and Persian's words.
 const ARABIC_SCRIPT: RegExp = /\p{Script=Arabic}/u;
 
@@ -601,7 +609,7 @@ describe.each(
           for (const section of ["Advanced", "Troubleshooting"]) {
             if (
               new RegExp(`\\b${section}\\b`).test(
-                english.replace(CODE_SPAN, ""),
+                english.replace(CODE_SPAN, "").replace(ITALIC_SPAN, ""),
               )
             ) {
               expect({
@@ -753,5 +761,24 @@ describe("the checks above (negative control)", () => {
       ),
     ).toEqual([]);
     expect(boldMarksThatShow("`a**b` **`ceph-1`**: ok")).toEqual([]);
+  });
+
+  test("another product's italic menu path is set aside, and a bold run or the guide's own section is not", () => {
+    const strip: (text: string) => string = (text: string): string => {
+      return text.replace(ITALIC_SPAN, "");
+    };
+
+    expect(
+      strip("open *Configure → System → Advanced System Settings*, set it"),
+    ).toBe("open , set it");
+    expect(strip("see **OneUptime AI agent** under Advanced")).toBe(
+      "see **OneUptime AI agent** under Advanced",
+    );
+    expect(strip("a VM is *powered on*; one is *powered off*")).toBe(
+      "a VM is ; one is ",
+    );
+    expect(strip("`a*b` and 2 * 3 under Troubleshooting")).toBe(
+      "`a*b` and 2 * 3 under Troubleshooting",
+    );
   });
 });
