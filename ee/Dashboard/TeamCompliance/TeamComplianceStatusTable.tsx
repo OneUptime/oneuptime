@@ -15,6 +15,7 @@ import {
   getRuleLabel,
   getRuleTitle,
   getInvitedNote,
+  getIssueReasonText,
   getSelfFixKey,
   getSelfFixes,
   summarizeCompliance,
@@ -30,6 +31,10 @@ import type {
   TeamComplianceStatusJSON,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
@@ -208,11 +213,14 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
             const issue: TeamComplianceIssueJSON | undefined =
               getMemberIssueForRule(props.member, rule.settingId);
             const ruleLabel: string = getRuleLabel(rule, translator);
-            // Why it is not met is the server's own sentence, as it came.
+            // Why it is not met, worded from what the server found (#8632).
+            const reason: string = issue
+              ? getIssueReasonText(issue, rule, translator)
+              : "";
             const label: string = issue
               ? translator.translateTemplate("{{rule}}: not met. {{reason}}", {
                   rule: ruleLabel,
-                  reason: issue.reason,
+                  reason: reason,
                 })
               : translator.translateTemplate("{{rule}}: met", {
                   rule: ruleLabel,
@@ -230,7 +238,7 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
                       </p>
                       <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
                         {issue
-                          ? issue.reason
+                          ? reason
                           : translator.translateText("Meets this rule.")}
                       </p>
                     </div>
@@ -319,6 +327,21 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
 
     return getRuleTitle(
       rule || { ruleType: issue.ruleType, notificationChannels: [] },
+      translator,
+    );
+  };
+
+  // Why the member fails the rule, in the reader's words (#8632).
+  const getReasonForIssue: (issue: TeamComplianceIssueJSON) => string = (
+    issue: TeamComplianceIssueJSON,
+  ): string => {
+    return getIssueReasonText(
+      issue,
+      props.status.complianceSettings.find(
+        (candidate: TeamComplianceRuleJSON): boolean => {
+          return candidate.settingId === issue.settingId;
+        },
+      ),
       translator,
     );
   };
@@ -475,7 +498,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
                         <span className="font-medium text-gray-900">
                           {getRuleTitleForIssue(issue)}:
                         </span>{" "}
-                        {issue.reason}
+                        {getReasonForIssue(issue)}
                       </span>
                     </li>
                   );
@@ -759,23 +782,24 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             </span>
             {/*
              * Its words are a count worded here, so the button draws them
-             * as given: Button would look its title up a second time.
+             * as given (isTitleTranslated): looked up a second time, a
+             * translation can come back as another word.
              */}
-            <button
-              type="button"
-              data-testid="compliance-members-show-more"
+            <Button
+              title={translator.translatePlural(
+                SHOW_MORE_MEMBERS,
+                Math.min(remaining, MEMBER_PAGE_SIZE),
+              )}
+              isTitleTranslated={true}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              dataTestId="compliance-members-show-more"
               onClick={() => {
                 setVisibleCount((count: number): number => {
                   return count + MEMBER_PAGE_SIZE;
                 });
               }}
-              className="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              {translator.translatePlural(
-                SHOW_MORE_MEMBERS,
-                Math.min(remaining, MEMBER_PAGE_SIZE),
-              )}
-            </button>
+            />
           </div>
         ) : (
           <></>

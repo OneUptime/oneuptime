@@ -27,9 +27,11 @@ import ComplianceRule, {
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
+  TeamComplianceFindingKind,
   TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningKind,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
 import { getWhoCanTurnOnSentence } from "Common/Utils/Project/NotificationChannels";
@@ -2721,6 +2723,15 @@ describe("on-call rules for several channels", () => {
         settingId: callAndPush.settingId,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason: NO_PUSH,
+        findings: [
+          {
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Push,
+            severities: [
+              expect.objectContaining({ name: "Critical Incident" }),
+            ],
+          },
+        ],
       },
     ]);
     // One failure for the one rule, however many of its channels are missing.
@@ -2729,6 +2740,22 @@ describe("on-call rules for several channels", () => {
         settingId: callAndPush.settingId,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason: `${NO_CALL}. ${NO_PUSH}`,
+        findings: [
+          {
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Call,
+            severities: [
+              expect.objectContaining({ name: "Critical Incident" }),
+            ],
+          },
+          {
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Push,
+            severities: [
+              expect.objectContaining({ name: "Critical Incident" }),
+            ],
+          },
+        ],
       },
     ]);
   });
@@ -2874,6 +2901,7 @@ describe("evaluate - the status payload", () => {
       "settingId",
       "severities",
       "severityKind",
+      "warningDetails",
       "warnings",
     ]);
     expect(Object.keys(onlyRule(result).severities[0]!).sort()).toEqual([
@@ -2891,7 +2919,7 @@ describe("evaluate - the status payload", () => {
     ]);
     expect(
       Object.keys(statusOf(result, ADA).nonCompliantRules[0]!).sort(),
-    ).toEqual(["reason", "ruleType", "settingId"]);
+    ).toEqual(["findings", "reason", "ruleType", "settingId"]);
   });
 
   test("absent optional values are OMITTED, not sent as undefined", () => {
@@ -2952,6 +2980,7 @@ describe("evaluate - the status payload", () => {
       compliantCount: 0,
       nonCompliantCount: 1,
       warnings: [],
+      warningDetails: [],
     });
   });
 
@@ -2977,6 +3006,7 @@ describe("evaluate - the status payload", () => {
       compliantCount: 1,
       nonCompliantCount: 0,
       warnings: [],
+      warningDetails: [],
     });
   });
 
@@ -2999,6 +3029,7 @@ describe("evaluate - the status payload", () => {
       compliantCount: 0,
       nonCompliantCount: 1,
       warnings: [],
+      warningDetails: [],
     });
   });
 
@@ -3030,6 +3061,7 @@ describe("evaluate - the status payload", () => {
       compliantCount: 0,
       nonCompliantCount: 1,
       warnings: [],
+      warningDetails: [],
     });
   });
 
@@ -3114,6 +3146,12 @@ describe("evaluate - the status payload", () => {
         settingId: sms.settingId,
         ruleType: ComplianceRuleType.HasNotificationSMSMethod,
         reason: "No verified phone number configured for SMS notifications",
+        findings: [
+          {
+            kind: TeamComplianceFindingKind.MethodMissing,
+            channel: ComplianceNotificationChannel.SMS,
+          },
+        ],
       },
     ]);
   });
@@ -3156,12 +3194,24 @@ describe("evaluate - the status payload", () => {
         settingId: call.settingId,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason: "No Call rule for incident severities: Critical Incident",
+        findings: [
+          expect.objectContaining({
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Call,
+          }),
+        ],
       },
       {
         settingId: push.settingId,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason:
           "No Push notification rule for incident severities: Critical Incident",
+        findings: [
+          expect.objectContaining({
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Push,
+          }),
+        ],
       },
     ]);
   });
@@ -3212,6 +3262,7 @@ describe("evaluate - the status payload", () => {
       compliantCount: 0,
       nonCompliantCount: 0,
       warnings: [UNKNOWN_RULE_TYPE_WARNING],
+      warningDetails: [{ kind: TeamComplianceWarningKind.UnknownRuleType }],
     });
     expect(UNKNOWN_RULE_TYPE_WARNING).toBe(
       "This rule type is not recognised, so it is not checked.",
@@ -3327,7 +3378,7 @@ describe("evaluate - rule warnings", () => {
       projectSwitch: ProjectChannelSwitch,
       label: string,
     ) => {
-      const warning: string = `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`;
+      const warning: string = `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`;
 
       expect(
         TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel),
@@ -3424,7 +3475,7 @@ describe("evaluate - rule warnings", () => {
     });
 
     expect(WHATSAPP_SWITCHED_OFF_WARNING).toBe(
-      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
 
     expect(
@@ -3470,7 +3521,7 @@ describe("evaluate - rule warnings", () => {
       expect(
         TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel),
       ).toBe(
-        `${channel} notifications are switched off for this project, so members will not be notified by ${channel} even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`,
+        `${channel} notifications are switched off for this project, so members will not be notified by ${channel} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`,
       );
     },
   );
@@ -3510,7 +3561,7 @@ describe("evaluate - rule warnings", () => {
   });
 
   const CALL_AND_SMS_OFF: string =
-    "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+    "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 
   /*
    * A rule on several switched-off channels says so in ONE sentence for the
@@ -3524,7 +3575,7 @@ describe("evaluate - rule warnings", () => {
       "Call alone keeps the one-channel sentence",
       [ComplianceNotificationChannel.Call],
       [
-        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
       ],
     ],
     [
@@ -3540,7 +3591,7 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.Telegram,
       ],
       [
-        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
       ],
     ],
     [
@@ -3565,7 +3616,7 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.WhatsApp,
       ],
       [
-        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
         WHATSAPP_SWITCHED_OFF_WARNING,
       ],
     ],
@@ -3578,7 +3629,7 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.Telegram,
       ],
       [
-        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
         WHATSAPP_SWITCHED_OFF_WARNING,
       ],
     ],
@@ -3650,7 +3701,7 @@ describe("evaluate - rule warnings", () => {
         enableTelegramNotifications: false,
       }),
     ).toEqual([
-      "SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+      "SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     ]);
     expect(
       warningsFor({
@@ -4073,7 +4124,7 @@ describe("a switched-off channel's warning says who can turn it on", () => {
         warning.endsWith(getWhoCanTurnOnSentence("it")),
     ).toBe(true);
     expect(warning).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can turn",
     );
     expect(warning.toLowerCase()).not.toContain("project admin");
     expect(warning).not.toMatch(/\. Turn (it|them) on/);
@@ -4091,7 +4142,7 @@ describe("a switched-off channel's warning says who can turn it on", () => {
 
     for (const warning of warnings) {
       expect(warning).toContain(
-        "A project owner, a Billing Admin or someone with Manage Billing can turn",
+        "A Project Owner, a Billing Admin or someone with Manage Billing can turn",
       );
       expect(warning).toContain(
         "in Project Settings > Notifications > Notification Channels.",

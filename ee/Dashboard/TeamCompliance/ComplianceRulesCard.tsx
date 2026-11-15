@@ -12,6 +12,7 @@ import {
   getRulePassRate,
   getRulePassRateText,
   getRuleSentence,
+  getRuleWarningTexts,
   getRuleTitle,
   getSeverityList,
   hasNoChannelToCheck,
@@ -759,6 +760,8 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
      * explanation, so it is not repeated behind a "Warning" chip as well.
      */
     const noSeveritiesLeft: boolean = hasNoSeveritiesLeft(rule);
+    // What is wrong with the rule, in the reader's words (#8632).
+    const warningTexts: Array<string> = getRuleWarningTexts(rule, translator);
     /*
      * Active as the switch shows it: known, with severities and a channel to
      * check, and on (or being turned on).
@@ -821,14 +824,18 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                     {translator.translateText("Paused")}
                   </span>
                 )}
-                {rule.warnings.length > 0 && !noSeveritiesLeft ? (
-                  <Tooltip text={rule.warnings.join(" ")}>
+                {warningTexts.length > 0 && !noSeveritiesLeft ? (
+                  <Tooltip
+                    text={warningTexts.join(" ")}
+                    // Worded already, from what the server found (#8632).
+                    isTextTranslated={true}
+                  >
                     <span
                       tabIndex={0}
                       data-testid="compliance-rule-warning-chip"
                       aria-label={translator.translateTemplate(
                         "Warning: {{warnings}}",
-                        { warnings: rule.warnings.join(" ") },
+                        { warnings: warningTexts.join(" ") },
                       )}
                       className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     >
@@ -836,11 +843,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                         icon={IconProp.Alert}
                         className="h-3 w-3 text-amber-500"
                       />
-                      {rule.warnings.length === 1
+                      {warningTexts.length === 1
                         ? translator.translateText("Warning")
                         : translator.translatePlural(
                             WARNINGS,
-                            rule.warnings.length,
+                            warningTexts.length,
                           )}
                     </span>
                   </Tooltip>
@@ -866,7 +873,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
                   />
                   <span>
-                    {rule.warnings.join(" ") ||
+                    {warningTexts.join(" ") ||
                       translator.translateText(NO_SEVERITIES_LEFT_WARNING)}
                   </span>
                 </div>

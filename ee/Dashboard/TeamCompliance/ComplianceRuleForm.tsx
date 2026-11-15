@@ -277,15 +277,15 @@ const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
  * a language gives "it" and "them" the gender of the channels they stand for.
  */
 const WHATSAPP_SWITCH_NOTE: string = translationKey(
-  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
 );
 
 const CHANNEL_SWITCH_NOTE: string = translationKey(
-  "{{channel}} notifications also have to be switched on for the project, or nobody will be reached this way. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+  "{{channel}} notifications also have to be switched on for the project, or nobody will be reached this way. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
 );
 
 const CHANNELS_SWITCH_NOTE: string = translationKey(
-  "{{channels}} notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+  "{{channels}} notifications also have to be switched on for the project, or nobody will be reached those ways. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
 );
 
 export const getProjectSwitchNote: (
