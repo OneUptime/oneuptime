@@ -185,6 +185,29 @@ export function calendarDaysBetween(
 }
 
 /*
+ * The last `count` days of the reader's calendar, in `timezone` (UTC's when
+ * none is given), oldest first and today's the last: "the last 30 days" of
+ * a chart of a bar a day, each bar a whole day. The first starts at the
+ * reader's midnight `count` - 1 days before today's, stepped in that zone.
+ * Read from `now` - 30 x 24 hours instead, the Security overview drew 31
+ * bars, the first holding only the part of its day after that instant
+ * (issue #8474).
+ */
+export function getLastCalendarDays(
+  now: Date,
+  count: number,
+  timezone?: Timezone | undefined,
+): Array<CalendarDay> {
+  const days: number = Math.max(1, Math.trunc(count) || 1);
+
+  return calendarDaysBetween(
+    OneUptimeDate.addRemoveDays(now, -(days - 1), calendarZoneOf(timezone)),
+    now,
+    timezone,
+  ).slice(-days);
+}
+
+/*
  * Every day from the day of `start` to the day of `end`, oldest first: the
  * reader's days in `timezone`, UTC's when none is given.
  */

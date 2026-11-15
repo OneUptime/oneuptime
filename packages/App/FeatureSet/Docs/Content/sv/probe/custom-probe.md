@@ -1,4 +1,4 @@
-# Anpassade probes
+# Anpassade sonder
 
 En anpassad sond är en liten agent som du kör i ditt eget nätverk. Den kontrollerar de monitorer du lägger till den i, till exempel interna webbplatser, API:er och servrar bakom din brandvägg, och skickar resultaten till OneUptime. Den öppnar bara utgående anslutningar över HTTPS, så ingenting i ditt nätverk behöver ta emot anslutningar från internet. För att välja mellan en sond, en agent, en collector och en Runner, se [Vilken ska jag använda?](/docs/introduction/which-one#sond-agent-collector-eller-runner).
 
@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **Sonden ansluter utåt.** Varje förfrågan går från sonden till `ONEUPTIME_URL` över HTTPS. Ingenting utifrån behöver nå sonden.
 - **Den kontrollerar bara sina egna monitorer.** Sonden ber OneUptime om de monitorer den är tillagd i, kontrollerar var och en när det är dags och skickar tillbaka resultatet. OneUptime avgör utifrån resultaten om en monitors status ändras.
-- **OneUptime håller koll på att den körs.** Varje förfrågan från sonden räknas som ett livstecken, och sonden skickar minst en per minut. Efter ungefär tre minuter utan någon visar sonden **Frånkopplad**, och dess ägare får besked. Har en sond inga ägare får projektets ägare besked. För att larmas som vid vilket avbrott som helst, med en incident tills sonden är tillbaka, lägger du till en [probstatusmonitor](/docs/monitor/probe-status-monitor): **Övervaka den här proben** på sondens sida skapar en.
+- **OneUptime håller koll på att den körs.** Varje förfrågan från sonden räknas som ett livstecken, och sonden skickar minst en per minut. Efter ungefär tre minuter utan någon visar sonden **Frånkopplad**, och dess ägare får besked. Har en sond inga ägare får projektets ägare besked. För att larmas som vid vilket avbrott som helst, med en incident tills sonden är tillbaka, lägger du till en [sondstatusmonitor](/docs/monitor/probe-status-monitor): **Övervaka den här sonden** på sondens sida skapar en.
 
 ## Innan du börjar
 
@@ -42,7 +42,7 @@ sequenceDiagram
 
 ### Kopiera dess ID och nyckel
 
-Sonden behöver sitt ID och sin nyckel för att ansluta. För att kopiera dem öppnar du sondens meny i tabellen **Anpassade probes** och väljer **Visa ID och nyckel**. Alla som ser tabellen kan kopiera en sonds ID; nyckeln visas bara för projektägare och -administratörer, som ser **Visa ID och nyckel** där de andra ser **Visa ID**.
+Sonden behöver sitt ID och sin nyckel för att ansluta. För att kopiera dem öppnar du sondens meny i tabellen **Anpassade sonder** och väljer **Visa ID och nyckel**. Alla som ser tabellen kan kopiera en sonds ID; nyckeln visas bara för projektägare och -administratörer, som ser **Visa ID och nyckel** där de andra ser **Visa ID**.
 
 Projektägare och -administratörer kan också klicka på sonden: kortet **Set up your Custom Probe** på dess sida visar Docker-kommandot med ID och nyckel redan ifyllda.
 
@@ -108,7 +108,7 @@ Med värdnätverk (`--network host`, `network_mode: host`) använder sonden vär
 
 ### Kontrollera att den ansluter
 
-Inom en minut eller två visar sondens **Status** i tabellen **Anpassade probes** **Ansluten**. Visar den fortfarande **Frånkopplad** står orsaken i sondens logg: se [Felsök en frånkopplad sond](#felsök-en-frånkopplad-sond).
+Inom en minut eller två visar sondens **Status** i tabellen **Anpassade sonder** **Ansluten**. Visar den fortfarande **Frånkopplad** står orsaken i sondens logg: se [Felsök en frånkopplad sond](#felsök-en-frånkopplad-sond).
 
 ### Låt sonden kontrollera en monitor
 

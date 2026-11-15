@@ -300,7 +300,7 @@ På fanen **Budsjetter** klikker du på **Opprett LLM Cost Budget**. Gi det et n
 
 ### Varsle på det
 
-Opprett en [metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på `oneuptime.llm.budget.id` (navnet endres når du gir budsjettet nytt navn). Legg til et kriterium `>= 80` som utløser en advarsel, og ett `>= 100` som utløser et kritisk varsel.
+Opprett en [målingsovervåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på `oneuptime.llm.budget.id` (navnet endres når du gir budsjettet nytt navn). Legg til et kriterium `>= 80` som utløser en advarsel, og ett `>= 100` som utløser et kritisk varsel.
 
 ### Utvid vinduet
 
@@ -311,7 +311,7 @@ Et budsjettvarsel kan også kjøre en arbeidsflyt som stopper en løpsk agent: s
 
 ## Dashboards og varsler på målinger
 
-GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.duration` kommer inn som vanlige OpenTelemetry-målinger. Vis dem i et [dashboard](/docs/dashboards/index), eller varsle på dem med en [metrikk-overvåking](/docs/monitor/metrics-monitor), for eksempel når p95 for `gen_ai.client.operation.duration` krysser en terskel, gruppert etter modell.
+GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.duration` kommer inn som vanlige OpenTelemetry-målinger. Vis dem i et [dashboard](/docs/dashboards/index), eller varsle på dem med en [målingsovervåking](/docs/monitor/metrics-monitor), for eksempel når p95 for `gen_ai.client.operation.duration` krysser en terskel, gruppert etter modell.
 
 ## Personvern og maskering
 

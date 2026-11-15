@@ -46,7 +46,7 @@ flowchart TB
 
 ## Før du begynner
 
-- Logger som kommer inn i OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en probe.
+- Logger som kommer inn i OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en sonde.
 - Tillatelse til å endre pipelines. Prosjekteiere og administratorer har den; alle andre trenger tillatelsene **Create Log Pipeline** og **Create Log Pipeline Processor**.
 
 ## Opprette en pipeline
@@ -110,7 +110,7 @@ De to skilletegnene må være forskjellige, kan ikke inneholde hverandre og kan 
 
 ### Eksempel: Sophos XGS-brannmur
 
-OneUptime leser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Nettverkshendelser](/docs/monitor/network-events)); dette eksempelet bygger det samme for hånd, slik du ville gjort for et format det ikke kjenner. Når en Sophos XGS-brannmur sender syslog til en [probe](/docs/monitor/network-device-monitor), lagres hver melding som en logg for nettverksenheten, med syslog-meldingen som tekst. Slik tolker du den:
+OneUptime leser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Nettverkshendelser](/docs/monitor/network-events)); dette eksempelet bygger det samme for hånd, slik du ville gjort for et format det ikke kjenner. Når en Sophos XGS-brannmur sender syslog til en [sonde](/docs/monitor/network-device-monitor), lagres hver melding som en logg for nettverksenheten, med syslog-meldingen som tekst. Slik tolker du den:
 
 :::steps
 #### Opprett en pipeline for brannmuren

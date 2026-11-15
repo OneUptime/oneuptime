@@ -1,12 +1,12 @@
 # Podman-agent
 
-OneUptime Podman-agenten er én container du kjører på en Podman-vert. Den leser statistikken og loggfilene til hver container på verten og sender dem til OneUptime, der verten vises med containerne, metrikkene og loggene sine. En andre container, Podman-AI-agenten, lar OneUptime AI undersøke verten. [Podman-monitorer](/docs/monitor/podman-monitor) varsler på det agenten sender.
+OneUptime Podman-agenten er én container du kjører på en Podman-vert. Den leser statistikken og loggfilene til hver container på verten og sender dem til OneUptime, der verten vises med containerne, målingene og loggene sine. En andre container, Podman-AI-agenten, lar OneUptime AI undersøke verten. [Podman-monitorer](/docs/monitor/podman-monitor) varsler på det agenten sender.
 
 :::cards
 - [Installer agenten](#installer-agenten): To containere, med `podman run` eller Podman Compose.
-- [Hva agenten samler inn](#hva-agenten-samler-inn): Metrikkene og loggene til hver container.
+- [Hva agenten samler inn](#hva-agenten-samler-inn): Målingene og loggene til hver container.
 - [Containerlogger trenger k8s-file](#containerlogger-trenger-loggdriveren-k8s-file): Podman logger til journald med mindre du bytter.
-- [Feilsøking](#feilsøking): Omstartsløkker, manglende metrikker, manglende logger.
+- [Feilsøking](#feilsøking): Omstartsløkker, manglende målinger, manglende logger.
 :::
 
 ## Slik fungerer det
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn verten i OneUptime
 
-Åpne **Produkter → Infrastruktur → Podman → Alle verter**. Verten vises under sitt `PODMAN_HOST_NAME` innen et minutt eller så, med containerne, metrikkene og loggene sine. AI-agenten vises som tilkoblet på vertens side **AI-agent**, og nederst på **Oversikt**. Vertens side **Topologi** tegner Compose-prosjektene og containerne på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
+Åpne **Produkter → Infrastruktur → Podman → Alle verter**. Verten vises under sitt `PODMAN_HOST_NAME` innen et minutt eller så, med containerne, målingene og loggene sine. AI-agenten vises som tilkoblet på vertens side **AI-agent**, og nederst på **Oversikt**. Vertens side **Topologi** tegner Compose-prosjektene og containerne på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Miljøvariabler
@@ -147,12 +147,12 @@ For å endre en verdi, fjern agenten og kjør kommandoen på nytt (Podman CLI), 
 
 | Data | Hva det er |
 | --- | --- |
-| Containermetrikker | CPU (bruk, prosentandel, struping), minne (bruk, grense, prosentandel), nettverks- og blokk-I/O, oppetid, omstarter og antall prosesser, per container, hvert 30. sekund. |
+| Containermålinger | CPU (bruk, prosentandel, struping), minne (bruk, grense, prosentandel), nettverks- og blokk-I/O, oppetid, omstarter og antall prosesser, per container, hvert 30. sekund. |
 | Containerlogger | Stdout og stderr fra hver container, fra filen `ctr.log` som loggdriveren `k8s-file` skriver. |
 
-Metrikkene og loggene til hver container lagres under en tjeneste oppkalt etter containeren. Hver logglinje får en alvorlighetsgrad fra nivået den nevner, som `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje som ikke nevner noe, får strømmens: stderr er `ERROR`, stdout er `INFO`. Linjer som begynner med mellomrom eller en lukkende parentes, slås sammen med linjen før, så en stakksporing kommer inn som én post. Agentens egne logger utelates.
+Målingene og loggene til hver container lagres under en tjeneste oppkalt etter containeren. Hver logglinje får en alvorlighetsgrad fra nivået den nevner, som `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje som ikke nevner noe, får strømmens: stderr er `ERROR`, stdout er `INFO`. Linjer som begynner med mellomrom eller en lukkende parentes, slås sammen med linjen før, så en stakksporing kommer inn som én post. Agentens egne logger utelates.
 
-[Podman-overvåking](/docs/monitor/podman-monitor#innsamlede-metrikker) lister hver metrikk og hva den betyr.
+[Podman-overvåking](/docs/monitor/podman-monitor#innsamlede-målinger) lister hver måling og hva den betyr.
 
 ## Hva vertens sider viser
 
@@ -166,7 +166,7 @@ Agenten leser bare containere som kjører, så en container som allerede var sto
 
 ## Containerlogger trenger loggdriveren k8s-file
 
-Agenten følger `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, filene loggdriveren `k8s-file` i Podman skriver (`json-file` er den samme driveren i Podman). Standarddriveren for rootful Podman er `journald`, som ikke etterlater noen fil å lese, og det gjør heller ikke en ekstern driver som `syslog`. Metrikkene til en slik container kommer fortsatt inn; loggene gjør det ikke.
+Agenten følger `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, filene loggdriveren `k8s-file` i Podman skriver (`json-file` er den samme driveren i Podman). Standarddriveren for rootful Podman er `journald`, som ikke etterlater noen fil å lese, og det gjør heller ikke en ekstern driver som `syslog`. Målingene til en slik container kommer fortsatt inn; loggene gjør det ikke.
 
 Sjekk loggdriveren til en container, og standarden i Podman:
 
@@ -284,7 +284,7 @@ Agenten må kjøre som root for å lese `/run/podman/podman.sock`. Sjekk at `--u
 4. Sjekk at verten kan nå OneUptime-URL-en din over nettverket.
 :::
 
-:::details Ingen metrikker vises
+:::details Ingen målinger vises
 1. Sjekk at Podman-socketen er montert i agenten. Imaget har ikke noe skall, så se fra en engangscontainer som deler monteringene: `podman run --rm --volumes-from oneuptime-podman-agent alpine:3.19 ls -la /run/podman/podman.sock`
 2. Se etter eksportfeil i loggene: `podman logs oneuptime-podman-agent 2>&1 | tail -100`
 3. Sjekk at inntaksnøkkelen er gyldig og ikke har utløpt.
@@ -298,7 +298,7 @@ En eldre agent sender mottakeren `docker_stats` sitt eget CPU-tall, som trenger 
 En eldre agent sender ikke `container.restarts.increase`, omstartene siden dens forrige måling av hver container, som malen legger sammen. [Oppgrader agenten](#oppgradere-agenten): fra dens andre måling av hver container teller hver omstart. En monitor som ble laget fra malen før oppgraderingen, leser i stedet hvor mye `container.restarts` vokste innenfor hvert minutt, og går glipp av omtrent halvparten av omstartene i en løkke: slett den og opprett den på nytt fra malen.
 :::
 
-:::details Metrikker kommer inn, men ingen containerlogger
+:::details Målinger kommer inn, men ingen containerlogger
 Containerne dine bruker mest sannsynlig `journald`, standardloggdriveren i Podman. Sjekk hvilke filer agenten overvåker, og hvilken driver en container bruker:
 
 ```bash

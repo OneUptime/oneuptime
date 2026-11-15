@@ -365,7 +365,7 @@ export class TelemetryAttributeService {
   }
 
   private static getLookbackStartDate(): Date {
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       -TelemetryAttributeService.LOOKBACK_WINDOW_IN_DAYS,
     );

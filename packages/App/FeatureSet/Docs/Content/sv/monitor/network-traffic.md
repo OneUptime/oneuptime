@@ -241,7 +241,7 @@ Ett namn kommer från den första av dessa källor som namnger adressen:
 | 3 | Värdar | En värd vars agent rapporterar adressen |
 | 4 | Molnresurser | En molnresurs som ert molnkonto anger adressen för |
 | 5 | Kubernetes | En nod med adressen, sedan en podd (en podd i sin nods eget nätverk har nodens adress) |
-| 6 | DNS | Adressens omvända DNS-namn, uppslaget av proben som tog emot flödena |
+| 6 | DNS | Adressens omvända DNS-namn, uppslaget av sonden som tog emot flödena |
 
 En post namnger bara trafiken från en tid då den fanns: en värd som sågs först efter tidsintervallet, eller en podd som försvann före det, namnger inte trafiken i det intervallet. Ett namn som någon gav ett delnät - `10.18.167.0/24` är ”Kontoret i Mumbai” - visas bredvid varje adress i det, aldrig i stället för adressens eget namn; där namngivna delnät överlappar visas det smalaste.
 
@@ -259,11 +259,11 @@ Klicka på en adress, eller sök fram den, så smalnar sidan av till den, med et
 
 **Nätverk** -> **Inställningar** -> **Adressnamn** visar de namn som personer har gett adresser och delnät som inget annat namnger: en partners VPN-gateway, en SaaS-slutpunkt, gäst-wifi:t. **Skapa Adressnamn** frågar efter namnet och efter en IP-adress (`10.0.0.5`, `2001:db8::5`) eller ett delnät (`10.18.167.0/24`). Ett delnät sparas som sin första adress och sin längd, så `10.18.167.35/24` sparas som `10.18.167.0/24`. Varje adress eller delnät har ett namn.
 
-### DNS-namn från proben
+### DNS-namn från sonden
 
-DNS-namn slås upp av proben som tog emot flödena, med den resolver som dess värd använder: inne i ert nätverk, där privata adresser har namn. Proben behåller bara ett namn när namnets egna A- eller AAAA-poster pekar tillbaka på adressen, så en inaktuell eller förfalskad omvänd post namnger inget, och ett namn i hosts-filen på probens värd används som det är. Den skickar namnen med flödena, och de sparas med dem: ett tidsintervall visar de namn dess adresser hade då.
+DNS-namn slås upp av sonden som tog emot flödena, med den resolver som dess värd använder: inne i ert nätverk, där privata adresser har namn. Sonden behåller bara ett namn när namnets egna A- eller AAAA-poster pekar tillbaka på adressen, så en inaktuell eller förfalskad omvänd post namnger inget, och ett namn i hosts-filen på sondens värd används som det är. Den skickar namnen med flödena, och de sparas med dem: ett tidsintervall visar de namn dess adresser hade då.
 
-Uppslagen håller aldrig upp flödena. De mest trafikerade adresserna slås upp först, högst 300 i minuten och åtta åt gången; ett namn sparas i en timme, en adress utan namn i 30 minuter, och ett uppslag som misslyckades görs om efter 5 minuter. Loopback-, länklokala, multicast- och broadcast-adresser slås aldrig upp. De globala proberna i en driftad OneUptime, som alla konton delar, slår bara upp offentliga adresser; era egna prober, och proberna i er egen OneUptime-installation, slår även upp privata adresser.
+Uppslagen håller aldrig upp flödena. De mest trafikerade adresserna slås upp först, högst 300 i minuten och åtta åt gången; ett namn sparas i en timme, en adress utan namn i 30 minuter, och ett uppslag som misslyckades görs om efter 5 minuter. Loopback-, länklokala, multicast- och broadcast-adresser slås aldrig upp. De globala sonderna i en driftad OneUptime, som alla konton delar, slår bara upp offentliga adresser; era egna sonder, och sonderna i er egen OneUptime-installation, slår även upp privata adresser.
 
 | Variabel                            | Vad den gör                                                         | Standard |
 | ----------------------------------- | ------------------------------------------------------------------- | -------- |
@@ -302,7 +302,7 @@ Om en adress inte visar något namn:
 
 - **Ge den ett.** Klicka på adressen och sedan på **Ge adressen ett namn** på kortet ovanför siffrorna.
 - **Dess DNS-namn.** Namnets egen A- eller AAAA-post måste peka tillbaka på adressen; en reverse-post räcker inte ensam. Ett namn som läggs till i DNS namnger de flöden som kommer efter det.
-- **Probens resolver.** Om probens värd inte ser er interna DNS anger ni `PROBE_FLOW_NAME_DNS_SERVERS` till en DNS-server som har era reverse-zoner.
+- **Sondens resolver.** Om sondens värd inte ser er interna DNS anger ni `PROBE_FLOW_NAME_DNS_SERVERS` till en DNS-server som har era reverse-zoner.
 
 Om en Meraki-anslutning säger att den inte kan läsa:
 

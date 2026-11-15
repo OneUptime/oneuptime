@@ -51,7 +51,7 @@ Typ uw mobiele nummer met landcode bij **Je telefoonnummer**, bijvoorbeeld `+155
 
 ![De stap "Wie is er nog meer bereikbaar?", met "Opslaan en doorgaan" omcirkeld](screen:paging-who-else)
 
-Onder **Wie is er nog meer bereikbaar?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om naast u nog anderen op te roepen, en klik daarna op **Opslaan en doorgaan**. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het beleid `Default on-call policy` aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
+Onder **Wie is er nog meer bereikbaar?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om naast u nog anderen op te roepen, en klik daarna op **Opslaan en doorgaan**. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
 
 ### Bepalen wat er gebeurt als niemand antwoordt
 

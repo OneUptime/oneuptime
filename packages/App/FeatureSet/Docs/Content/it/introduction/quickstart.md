@@ -56,7 +56,7 @@ Con il piano Free di OneUptime Cloud, i monitor vengono addebitati in base all'u
 
 ### Scegliere chi viene avvisato
 
-In **Chi deve essere avvisato?**, sei già in **Chi viene chiamato**. Fai clic su **Salva e continua**: così viene creata `Default on-call policy`, che ti chiama per ogni nuovo incidente e ogni nuovo avviso del progetto, via e-mail per cominciare. Per chiamare anche membri del team che sono già nel progetto, fai prima clic su **Aggiungi membri del team**.
+In **Chi deve essere avvisato?**, sei già in **Chi viene chiamato**. Fai clic su **Salva e continua**: così viene creata la **Policy di reperibilità predefinita**, che ti chiama per ogni nuovo incidente e ogni nuovo avviso del progetto, via e-mail per cominciare. Per chiamare anche membri del team che sono già nel progetto, fai prima clic su **Aggiungi membri del team**.
 
 ### Inviarti un test
 
@@ -69,7 +69,7 @@ Per controllare anche un'API, e sapere cosa fare quando il primo controllo non t
 
 ## Essere avvisati quando va giù
 
-La configurazione del sito web ha già creato `Default on-call policy`, che ti chiama via e-mail per ogni nuovo incidente e ogni nuovo avviso, quindi l'elenco segna **Configura una policy di reperibilità** come completato. La sua configurazione guidata aggiunge comunque il tuo telefono, le persone chiamate insieme a te e cosa succede quando nessuno risponde.
+La configurazione del sito web ha già creato la **Policy di reperibilità predefinita**, che ti chiama via e-mail per ogni nuovo incidente e ogni nuovo avviso, quindi l'elenco segna **Configura una policy di reperibilità** come completato. La sua configurazione guidata aggiunge comunque il tuo telefono, le persone chiamate insieme a te e cosa succede quando nessuno risponde.
 
 :::steps
 ### Aprire la configurazione della reperibilità
@@ -84,7 +84,7 @@ In **Come dobbiamo raggiungerti?**, la tua e-mail di accesso è già elencata. P
 
 ### Scegliere chi altro viene chiamato
 
-In **Chi altro è reperibile?**, lascia `Default on-call policy` in **Policy di reperibilità**. Per chiamare membri del team insieme a te, aggiungili in **Aggiungi alla prima regola di escalation**. Fai clic su **Salva e continua**.
+In **Chi altro è reperibile?**, lascia la **Policy di reperibilità predefinita** in **Policy di reperibilità**. Per chiamare membri del team insieme a te, aggiungili in **Aggiungi alla prima regola di escalation**. Fai clic su **Salva e continua**.
 
 ### Decidere cosa succede se nessuno risponde
 

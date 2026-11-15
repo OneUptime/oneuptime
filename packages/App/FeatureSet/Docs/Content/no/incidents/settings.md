@@ -491,7 +491,7 @@ Det er nettopp poenget. `Declared At` registrerer når OneUptime fikk vite om de
 
 OneUptime registrerer det øyeblikket på hendelsen, og på varselet, som `First Paged At`, én gang, og flytter det aldri. Bare en tilkalling som faktisk ble sendt, teller: i **Tidslinje for utførelsen** for en vaktpolicy eller en direkte tilkalling, en person hvis tilkalling ble sendt, bekreftet eller eskalert. Et steg som ble **Hoppet over** eller endte med **Feil**, teller ikke, og det gjør heller ikke en policy som startet, men ikke tilkalte noen, for eksempel en der ingen hadde vakt i vaktplanen. Hendelser der noen ble tilkalt før `First Paged At` fantes, får tidspunktet sitt fra vaktutførelsene sine.
 
-En hendelse der ingen ble tilkalt, har ingen verdi: **Ikke startet ennå** mens den er åpen, og **Ikke nådd** når den er løst. Diagrammet kan deles opp etter alvorlighetsgrad, så du kan se hvor raskt det blir svart for hver alvorlighetsgrad når noen er tilkalt. Hendelsens side sier det også: under tiden til bekreftelse legger den til hvor lenge etter den første tilkallingen hendelsen ble bekreftet, for eksempel **4 minutter etter tilkalling**. Metrikken for tid til bekreftelse og MTTA i sammendragene i Slack og Microsoft Teams teller fortsatt fra hendelsen ble erklært.
+En hendelse der ingen ble tilkalt, har ingen verdi: **Ikke startet ennå** mens den er åpen, og **Ikke nådd** når den er løst. Diagrammet kan deles opp etter alvorlighetsgrad, så du kan se hvor raskt det blir svart for hver alvorlighetsgrad når noen er tilkalt. Hendelsens side sier det også: under tiden til bekreftelse legger den til hvor lenge etter den første tilkallingen hendelsen ble bekreftet, for eksempel **4 minutter etter tilkalling**. Målingen for tid til bekreftelse og MTTA i sammendragene i Slack og Microsoft Teams teller fortsatt fra hendelsen ble erklært.
 
 ### Rett et feil tidsstempel
 
@@ -501,11 +501,11 @@ Feltet **Begynner den** på en oppføring i tilstandstidslinjen kan redigeres. B
 
 ### Diagrammer, API og Terraform
 
-Velg **Vis diagram** på en måling for å åpne diagrammet i metrikkutforskeren, over den siste måneden, oppsummert på dens måte. Hver aktiverte måling skriver en metrikk med navnet `oneuptime.incident.measurement.<key>`, som du også kan legge til på et hvilket som helst dashbord. Varsler bruker `oneuptime.alert.measurement.<key>`, og planlagt vedlikehold bruker `oneuptime.scheduled-maintenance.measurement.<key>`. Listens kolonne **Nøkkel**, skjult som standard, viser nøkkelen til hver måling.
+Velg **Vis diagram** på en måling for å åpne diagrammet i målingsutforskeren, over den siste måneden, oppsummert på dens måte. Hver aktiverte måling skriver en måling med navnet `oneuptime.incident.measurement.<key>`, som du også kan legge til på et hvilket som helst dashbord. Varsler bruker `oneuptime.alert.measurement.<key>`, og planlagt vedlikehold bruker `oneuptime.scheduled-maintenance.measurement.<key>`. Listens kolonne **Nøkkel**, skjult som standard, viser nøkkelen til hver måling.
 
 Definisjoner er vanlige API-ressurser, så Terraform-leverandøren administrerer dem som `oneuptime_incident_measurement`, `oneuptime_alert_measurement` og `oneuptime_scheduled_maintenance_measurement`. Beregnede verdier er skrivebeskyttede og vises som datakilder. Utelatt tar alternativene under **Flere felt** de samme standardene som i dashbordet: `unit` er `seconds` (eller `minutes`, `hours`, `days`), `aggregation_type` er `Avg` (eller `P50`, `P90`, `P95`, `P99`, `Max`, `Min`), og `start_state_occurrence` og `end_state_occurrence` er `First` (eller `Last`). `show_on_incident_view` (`show_on_alert_view`, `show_on_scheduled_maintenance_view`) er `true`.
 
-**Nøkkelen** er permanent fordi den er en del av metrikkens navn — å endre den ville etterlate serien foreldreløs. Gi målingen nytt navn så mye du vil; nøkkelen blir.
+**Nøkkelen** er permanent fordi den er en del av målingens navn — å endre den ville etterlate serien foreldreløs. Gi målingen nytt navn så mye du vil; nøkkelen blir.
 
 Via API-et og i Terraform kan nøkkelen også utelates: den dannes fra navnet, med `-2`, `-3` og så videre lagt til når en annen måling i prosjektet allerede har den. En nøkkel du sender, beholdes slik du skrev den. Den må bestå av små bokstaver, tall og bindestreker, starte med en bokstav eller et tall, være høyst 50 tegn lang, og ingen annen måling i prosjektet kan ha den.
 

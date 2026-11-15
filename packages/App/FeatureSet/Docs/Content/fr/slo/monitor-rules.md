@@ -129,7 +129,7 @@ La page d'un moniteur liste les SLO qui le mesurent : ouvrez le moniteur et alle
 Les versions précédentes avaient un réglage **Auto-Add Monitors With Labels** dans le formulaire du SLO. À la mise à niveau, chaque SLO qui l'utilisait reçoit une règle de moniteurs activée nommée **Auto-add monitors with labels**, qui correspond aux mêmes étiquettes, et continue ainsi de mesurer exactement les mêmes moniteurs. Le champ `monitorLabels` de l'API des SLO est déprécié : utilisez plutôt les règles de moniteurs des SLO.
 
 :::details Et si quelque chose enregistre encore l'ancien réglage ?
-Un onglet du tableau de bord ouvert avant la mise à niveau, ou un client d'API ou un workflow écrit pour la version précédente, peut encore enregistrer l'ancien réglage. Pour qu'un SLO ne perde pas des moniteurs sans rien dire de cette façon :
+Un onglet du tableau de bord ouvert avant la mise à niveau, ou un client d'API ou un flux de travail écrit pour la version précédente, peut encore enregistrer l'ancien réglage. Pour qu'un SLO ne perde pas des moniteurs sans rien dire de cette façon :
 
 - **Un SLO sans règles de moniteurs** transforme les étiquettes enregistrées en une règle **Auto-add monitors with labels**, et ses moniteurs sont réévalués aussitôt. Enregistrer une liste vide détache les moniteurs que le réglage avait rattachés, comme avant.
 - **Un SLO qui a des règles de moniteurs**, activées ou non, ignore les étiquettes enregistrées par l'ancien réglage, car ce sont ses règles qui décident de ce qu'il mesure.

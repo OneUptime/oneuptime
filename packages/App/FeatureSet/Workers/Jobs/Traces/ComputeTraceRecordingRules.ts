@@ -352,7 +352,7 @@ function buildDerivedMetricRow(args: {
   }
 
   const now: Date = OneUptimeDate.getCurrentDate();
-  const retentionDate: Date = OneUptimeDate.addRemoveDays(now, 15);
+  const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(now, 15);
 
   return {
     _id: ObjectID.generateTimeOrdered().toString(),

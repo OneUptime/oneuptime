@@ -91,7 +91,7 @@ L'avis indique l'heure prévue et l'état que l'événement n'a pas encore attei
 
 ## L'ordre est imposé
 
-Chaque changement d'état est vérifié par rapport à la liste, quel qu'en soit l'auteur : le tableau de bord, Slack, Microsoft Teams, l'API, Terraform, un workflow ou OneUptime lui-même.
+Chaque changement d'état est vérifié par rapport à la liste, quel qu'en soit l'auteur : le tableau de bord, Slack, Microsoft Teams, l'API, Terraform, un flux de travail ou OneUptime lui-même.
 
 - **Les retours en arrière sont refusés**, avec un message qui nomme les deux états : "Scheduled Maintenance cannot transition to Scheduled state from Ongoing state because Scheduled is before Ongoing in the order of scheduled maintenance states."
 - **Passer à l'état dans lequel il est déjà est refusé** : "Scheduled Maintenance state cannot be same as previous state."
