@@ -36,6 +36,8 @@
  * it on the templates' own text.
  */
 
+import moment from "moment-timezone";
+
 // One action item as a note lists it.
 export interface PostmortemNoteActionItem {
   // The action, as written, without its Markdown marks.
@@ -44,8 +46,12 @@ export interface PostmortemNoteActionItem {
   isDone: boolean;
   // Who the note says owns it (an Owner column, or "Owner: Ana"), as written.
   ownerText?: string | undefined;
-  // When the note says it is due, when written as a date (2026-11-20).
-  dueDate?: Date | undefined;
+  /*
+   * The day the note says it is due, when written as a date: "2026-11-20".
+   * A day, not a time: whoever tracks the item places it in the reader's
+   * time zone, as the Due Date picker does (toDueDate).
+   */
+  dueDay?: string | undefined;
 }
 
 // The longest action item title kept: the title column's length.
@@ -584,17 +590,34 @@ export default class PostmortemNoteActionItems {
       item.ownerText = ownerText;
     }
 
-    const dueDate: Date | null = PostmortemNoteActionItems.toDate(dueText);
+    const dueDay: string | null = PostmortemNoteActionItems.toDay(dueText);
 
-    if (dueDate) {
-      item.dueDate = dueDate;
+    if (dueDay) {
+      item.dueDay = dueDay;
     }
 
     return item;
   }
 
-  // A date written YYYY-MM-DD, as that day at midnight UTC; anything else is no date.
-  private static toDate(text: string): Date | null {
+  /*
+   * A due day as the Due Date picker stores one: the start of that day in
+   * the reader's time zone (an IANA name, "Europe/Berlin"). A zone this
+   * build does not know reads as UTC. Null for anything that is not a day.
+   */
+  public static toDueDate(dueDay: string, timezone: string): Date | null {
+    const day: string | null = PostmortemNoteActionItems.toDay(dueDay);
+
+    if (!day) {
+      return null;
+    }
+
+    const zone: string = moment.tz.zone(timezone) ? timezone : "UTC";
+
+    return moment.tz(day, "YYYY-MM-DD", true, zone).toDate();
+  }
+
+  // A date written YYYY-MM-DD, as that day; anything else, 2026-02-30 too, is no day.
+  private static toDay(text: string): string | null {
     const match: RegExpMatchArray | null = text.match(ISO_DATE_REGEX);
 
     if (!match) {
@@ -611,11 +634,10 @@ export default class PostmortemNoteActionItems {
       date.getUTCMonth() !== month - 1 ||
       date.getUTCDate() !== day
     ) {
-      // 2026-02-30 is no date.
       return null;
     }
 
-    return date;
+    return `${match[1]}-${match[2]}-${match[3]}`;
   }
 
   /*

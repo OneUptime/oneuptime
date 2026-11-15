@@ -1406,6 +1406,12 @@ enum Permission {
   DeleteIncidentInternalNote = "DeleteIncidentInternalNote",
   ReadIncidentInternalNote = "ReadIncidentInternalNote",
 
+  // Postmortem Action Items (what a postmortem says the team will do, and who does it)
+  CreateIncidentPostmortemActionItem = "CreateIncidentPostmortemActionItem",
+  EditIncidentPostmortemActionItem = "EditIncidentPostmortemActionItem",
+  DeleteIncidentPostmortemActionItem = "DeleteIncidentPostmortemActionItem",
+  ReadIncidentPostmortemActionItem = "ReadIncidentPostmortemActionItem",
+
   CreateAlertInternalNote = "CreateAlertInternalNote",
   EditAlertInternalNote = "EditAlertInternalNote",
   DeleteAlertInternalNote = "DeleteAlertInternalNote",
@@ -6408,6 +6414,48 @@ export class PermissionHelper {
         title: "Read Incident Internal Note",
         description:
           "This permission can read Incident Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Postmortem Action Item Permissions
+      {
+        permission: Permission.CreateIncidentPostmortemActionItem,
+        title: "Create Postmortem Action Item",
+        description:
+          "This permission can add action items to the postmortems of incidents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentPostmortemActionItem,
+        title: "Delete Postmortem Action Item",
+        description:
+          "This permission can delete action items of the postmortems of incidents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentPostmortemActionItem,
+        title: "Edit Postmortem Action Item",
+        description:
+          "This permission can edit action items of the postmortems of incidents of this project: rename them, give them an owner and a due date, and mark them done.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentPostmortemActionItem,
+        title: "Read Postmortem Action Item",
+        description:
+          "This permission can read action items of the postmortems of incidents of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

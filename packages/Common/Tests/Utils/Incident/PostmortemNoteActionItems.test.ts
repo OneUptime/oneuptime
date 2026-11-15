@@ -110,7 +110,7 @@ describe("the outlines OneUptime AI fills in", () => {
         title: "Add a monitor for the queue depth",
         isDone: false,
         ownerText: "Ana Silva",
-        dueDate: new Date(Date.UTC(2026, 10, 20)),
+        dueDay: "2026-11-20",
       },
       // A placeholder owner is no owner, and "next week" is no date.
       {
@@ -322,12 +322,12 @@ describe("the items of a section", () => {
         title: "Increase the pool",
         isDone: false,
         ownerText: "Ana Silva",
-        dueDate: new Date(Date.UTC(2026, 10, 20)),
+        dueDay: "2026-11-20",
       },
       {
         title: "Ship the fix",
         isDone: false,
-        dueDate: new Date(Date.UTC(2026, 11, 1)),
+        dueDay: "2026-12-01",
       },
       { title: "Write the runbook", isDone: false, ownerText: "Kim" },
     ]);
@@ -415,7 +415,7 @@ describe("a table of action items", () => {
         title: "Add a canary",
         isDone: true,
         ownerText: "Ana",
-        dueDate: new Date(Date.UTC(2026, 10, 20)),
+        dueDay: "2026-11-20",
       },
       { title: "Tune the alert", isDone: false, ownerText: "Kim" },
       { title: "Retire the old host", isDone: true, ownerText: "Lee" },
@@ -450,6 +450,28 @@ describe("a table of action items", () => {
 | Still | not |`;
 
     expect(PostmortemNoteActionItems.read(note)).toEqual([]);
+  });
+});
+
+describe("a due day, placed as the Due Date picker places one", () => {
+  test("is the start of that day in the reader's time zone", () => {
+    expect(
+      PostmortemNoteActionItems.toDueDate("2026-11-20", "Asia/Kolkata"),
+    ).toEqual(new Date("2026-11-19T18:30:00.000Z"));
+    expect(
+      PostmortemNoteActionItems.toDueDate("2026-11-20", "America/New_York"),
+    ).toEqual(new Date("2026-11-20T05:00:00.000Z"));
+  });
+
+  test("is the start of that day in UTC for a zone this build does not know", () => {
+    expect(
+      PostmortemNoteActionItems.toDueDate("2026-11-20", "Mars/Olympus_Mons"),
+    ).toEqual(new Date("2026-11-20T00:00:00.000Z"));
+  });
+
+  test("is no date for anything that is not a day", () => {
+    expect(PostmortemNoteActionItems.toDueDate("next week", "UTC")).toBeNull();
+    expect(PostmortemNoteActionItems.toDueDate("2026-02-30", "UTC")).toBeNull();
   });
 });
 
