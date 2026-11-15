@@ -11,11 +11,11 @@ Een domeinmonitor leest volgens een schema de registratie van uw domein, om de v
 
 ## Hoe het werkt
 
-Bij elke controle zoekt een sonde de registratie van het domein op via RDAP of WHOIS, afhankelijk van de **Lookup Method**, en normaliseert wat ze vindt: de vervaldatum, de registrar, de naamservers en de statuscodes. Een opzoeking die mislukt, wordt opnieuw geprobeerd, tot het aantal nieuwe pogingen dat u instelt. Daarna beoordeelt OneUptime de registratie met de criteria van de monitor.
+Bij elke controle zoekt een sonde de registratie van het domein op via RDAP of WHOIS, afhankelijk van de **Opzoekmethode**, en normaliseert wat ze vindt: de vervaldatum, de registrar, de naamservers en de statuscodes. Een opzoeking die mislukt, wordt opnieuw geprobeerd, tot het aantal nieuwe pogingen dat u instelt. Daarna beoordeelt OneUptime de registratie met de criteria van de monitor.
 
 ```mermaid title="Hoe een opzoeking de registratie leest"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto of RDAP"| rdap["De RDAP-server<br/>van het TLD vragen"]
+    method{"Opzoekmethode"} -->|"Auto of RDAP"| rdap["De RDAP-server<br/>van het TLD vragen"]
     method -->|"WHOIS"| whois["De WHOIS-server<br/>van het TLD vragen"]
     rdap -->|"Registratie<br/>gevonden"| record["Registratie<br/>van het domein"]
     rdap -->|"Geen RDAP of een fout,<br/>met Auto"| whois
@@ -56,7 +56,7 @@ Voer een **Naam** in, zoals `example.com registration`, en klik op **Volgende**.
 
 ### Het domein invoeren
 
-Voer de **Domeinnaam** in, zoals `example.com`. Laat **Lookup Method** op **Auto** staan, tenzij u een reden hebt om dat niet te doen (zie [Opzoekmethoden](#opzoekmethoden)).
+Voer de **Domeinnaam** in, zoals `example.com`. Laat **Opzoekmethode** op **Auto** staan, tenzij u een reden hebt om dat niet te doen (zie [Opzoekmethoden](#opzoekmethoden)).
 
 ### Hem testen
 
@@ -76,7 +76,7 @@ Behoud of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **El
 | Veld | Standaard | Wat u invult |
 | --- | --- | --- |
 | **Domeinnaam** | Geen | Het geregistreerde domein, zoals `example.com`. Een geplakt adres werkt ook: `https://example.com/pricing` wordt gelezen als `example.com`. |
-| **Lookup Method** | **Auto** | **Auto**, **RDAP** of **WHOIS**. Zie [Opzoekmethoden](#opzoekmethoden). |
+| **Opzoekmethode** | **Auto** | **Auto**, **RDAP** of **WHOIS**. Zie [Opzoekmethoden](#opzoekmethoden). |
 | **Time-out (ms)** (onder **Meer velden**) | `10000` | Hoe lang op elke registratie-opzoeking wordt gewacht, in milliseconden. |
 | **Nieuwe pogingen** (onder **Meer velden**) | `3` | Nieuwe pogingen nadat de eerste mislukt. `0` betekent één enkele poging. |
 
@@ -163,11 +163,11 @@ Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben
 ## Problemen oplossen
 
 :::details De WHOIS-server "answered without any registration data"
-De WHOIS-host van het TLD is buiten gebruik, remt de sonde af, of heeft een korte storing. Een buiten gebruik gestelde host, zoals de host die nog voor de TLD's van Identity Digital is ingesteld, antwoordt elke keer `TLD is not supported.`. Blijft de fout bestaan met **Lookup Method** op **WHOIS**, schakel dan over naar **Auto**, zodat de sonde de RDAP-dienst van het TLD leest waar die bestaat.
+De WHOIS-host van het TLD is buiten gebruik, remt de sonde af, of heeft een korte storing. Een buiten gebruik gestelde host, zoals de host die nog voor de TLD's van Identity Digital is ingesteld, antwoordt elke keer `TLD is not supported.`. Blijft de fout bestaan met **Opzoekmethode** op **WHOIS**, schakel dan over naar **Auto**, zodat de sonde de RDAP-dienst van het TLD leest waar die bestaat.
 :::
 
 :::details De controle mislukt met "No RDAP service is published"
-De monitor gebruikt **RDAP**, en het TLD publiceert geen RDAP-dienst, zoals veel ccTLD's. Zet **Lookup Method** op **Auto**, dat op WHOIS terugvalt.
+De monitor gebruikt **RDAP**, en het TLD publiceert geen RDAP-dienst, zoals veel ccTLD's. Zet **Opzoekmethode** op **Auto**, dat op WHOIS terugvalt.
 :::
 
 :::details Het domein wordt als niet geregistreerd gemeld

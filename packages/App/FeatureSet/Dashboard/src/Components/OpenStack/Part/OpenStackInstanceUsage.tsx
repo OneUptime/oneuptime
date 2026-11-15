@@ -44,6 +44,7 @@ import { getOpenStackMetricQuery } from "./OpenStackMetricQueries";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import { OpenStackPart } from "./UseOpenStackPart";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
+import { chartWordsInReadersLanguage } from "../../Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * What an instance is really doing, beside its flavor's size. A flavor says what it was
@@ -410,106 +411,109 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
       )}
       {isOpenStackUsageChartable(gap) ? (
         <ResourceMetricsTab
-          queryConfigs={[
-            chart({
-              variable: "instance_cpu",
-              title: translationKey("CPU in use"),
-              description: translationKey(
-                "This instance's CPU as a share of its own vCPUs. 100 is every vCPU busy.",
-              ),
-              metricName: OpenStackInstanceMetric.CpuUtilization,
-              legend: translationKey("CPU"),
-              format: formatPercentValue,
-            }),
-            chart({
-              variable: "instance_cpu_waiting",
-              title: translationKey("CPU waiting"),
-              description: translationKey(
-                "How much of the time its vCPUs wanted to run and the hypervisor made them wait.",
-              ),
-              metricName: OpenStackInstanceMetric.CpuContention,
-              legend: translationKey("Waiting"),
-              format: formatPercentValue,
-            }),
-            chart({
-              variable: "instance_memory",
-              title: translationKey("Memory in use"),
-              description: translationKey(
-                "What the guest says it is using. A guest with no balloon driver has no such reading.",
-              ),
-              metricName: OpenStackInstanceMetric.MemoryUsage,
-              legend: translationKey("In use"),
-              format: formatOpenStackChartBytes,
-            }),
-            chart({
-              variable: "instance_memory_held",
-              title: translationKey("Memory on its hypervisor"),
-              description: translationKey(
-                "What this instance really holds of its hypervisor's memory.",
-              ),
-              metricName: OpenStackInstanceMetric.MemoryResident,
-              legend: translationKey("Held"),
-              format: formatOpenStackChartBytes,
-            }),
-            chart({
-              variable: "instance_disk_read",
-              title: translationKey("Disk reads"),
-              description: translationKey("Bytes per second read, per disk."),
-              metricName: OpenStackInstanceMetric.DiskReadRate,
-              legend: translationKey("Read"),
-              format: formatBytesPerSecond,
-            }),
-            chart({
-              variable: "instance_disk_write",
-              title: translationKey("Disk writes"),
-              description: translationKey(
-                "Bytes per second written, per disk.",
-              ),
-              metricName: OpenStackInstanceMetric.DiskWriteRate,
-              legend: translationKey("Written"),
-              format: formatBytesPerSecond,
-            }),
-            chart({
-              variable: "instance_disk_read_latency",
-              title: translationKey("Disk read latency"),
-              description: translationKey(
-                "How long a read took, per disk. A disk with no reads has no reading.",
-              ),
-              metricName: OpenStackInstanceMetric.DiskReadLatency,
-              legend: translationKey("Read latency"),
-              format: formatMilliseconds,
-            }),
-            chart({
-              variable: "instance_disk_write_latency",
-              title: translationKey("Disk write latency"),
-              description: translationKey(
-                "How long a write took, per disk. A disk with no writes has no reading.",
-              ),
-              metricName: OpenStackInstanceMetric.DiskWriteLatency,
-              legend: translationKey("Write latency"),
-              format: formatMilliseconds,
-            }),
-            chart({
-              variable: "instance_network_receive",
-              title: translationKey("Network received"),
-              description: translationKey(
-                "Bytes per second reaching this instance, per interface.",
-              ),
-              metricName: OpenStackInstanceMetric.NetworkReceiveRate,
-              legend: translationKey("Received"),
-              format: formatBytesPerSecond,
-            }),
-            chart({
-              variable: "instance_network_transmit",
-              title: translationKey("Network sent"),
-              description: translationKey(
-                "Bytes per second leaving this instance, per interface.",
-              ),
-              metricName: OpenStackInstanceMetric.NetworkTransmitRate,
-              legend: translationKey("Sent"),
-              format: formatBytesPerSecond,
-            }),
-          ]}
+          queryConfigs={chartWordsInReadersLanguage(
+            [
+              chart({
+                variable: "instance_cpu",
+                title: translationKey("CPU in use"),
+                description: translationKey(
+                  "This instance's CPU as a share of its own vCPUs. 100 is every vCPU busy.",
+                ),
+                metricName: OpenStackInstanceMetric.CpuUtilization,
+                legend: translationKey("CPU"),
+                format: formatPercentValue,
+              }),
+              chart({
+                variable: "instance_cpu_waiting",
+                title: translationKey("CPU waiting"),
+                description: translationKey(
+                  "How much of the time its vCPUs wanted to run and the hypervisor made them wait.",
+                ),
+                metricName: OpenStackInstanceMetric.CpuContention,
+                legend: translationKey("Waiting"),
+                format: formatPercentValue,
+              }),
+              chart({
+                variable: "instance_memory",
+                title: translationKey("Memory in use"),
+                description: translationKey(
+                  "What the guest says it is using. A guest with no balloon driver has no such reading.",
+                ),
+                metricName: OpenStackInstanceMetric.MemoryUsage,
+                legend: translationKey("In use"),
+                format: formatOpenStackChartBytes,
+              }),
+              chart({
+                variable: "instance_memory_held",
+                title: translationKey("Memory on its hypervisor"),
+                description: translationKey(
+                  "What this instance really holds of its hypervisor's memory.",
+                ),
+                metricName: OpenStackInstanceMetric.MemoryResident,
+                legend: translationKey("Held"),
+                format: formatOpenStackChartBytes,
+              }),
+              chart({
+                variable: "instance_disk_read",
+                title: translationKey("Disk reads"),
+                description: translationKey("Bytes per second read, per disk."),
+                metricName: OpenStackInstanceMetric.DiskReadRate,
+                legend: translationKey("Read"),
+                format: formatBytesPerSecond,
+              }),
+              chart({
+                variable: "instance_disk_write",
+                title: translationKey("Disk writes"),
+                description: translationKey(
+                  "Bytes per second written, per disk.",
+                ),
+                metricName: OpenStackInstanceMetric.DiskWriteRate,
+                legend: translationKey("Written"),
+                format: formatBytesPerSecond,
+              }),
+              chart({
+                variable: "instance_disk_read_latency",
+                title: translationKey("Disk read latency"),
+                description: translationKey(
+                  "How long a read took, per disk. A disk with no reads has no reading.",
+                ),
+                metricName: OpenStackInstanceMetric.DiskReadLatency,
+                legend: translationKey("Read latency"),
+                format: formatMilliseconds,
+              }),
+              chart({
+                variable: "instance_disk_write_latency",
+                title: translationKey("Disk write latency"),
+                description: translationKey(
+                  "How long a write took, per disk. A disk with no writes has no reading.",
+                ),
+                metricName: OpenStackInstanceMetric.DiskWriteLatency,
+                legend: translationKey("Write latency"),
+                format: formatMilliseconds,
+              }),
+              chart({
+                variable: "instance_network_receive",
+                title: translationKey("Network received"),
+                description: translationKey(
+                  "Bytes per second reaching this instance, per interface.",
+                ),
+                metricName: OpenStackInstanceMetric.NetworkReceiveRate,
+                legend: translationKey("Received"),
+                format: formatBytesPerSecond,
+              }),
+              chart({
+                variable: "instance_network_transmit",
+                title: translationKey("Network sent"),
+                description: translationKey(
+                  "Bytes per second leaving this instance, per interface.",
+                ),
+                metricName: OpenStackInstanceMetric.NetworkTransmitRate,
+                legend: translationKey("Sent"),
+                format: formatBytesPerSecond,
+              }),
+            ],
+            translator,
+          )}
         />
       ) : (
         <></>

@@ -238,12 +238,12 @@ const SERVERS: Array<NginxServer> = parseServers(NGINX_SOURCE);
  */
 const MAIN_SERVER: NginxServer = ((): NginxServer => {
   const server: NginxServer | undefined = SERVERS.find((s: NginxServer) => {
-    return s.serverName.includes("${HOST_WITHOUT_PORT}");
+    return s.serverName.includes("${HOST_SERVER_NAME}");
   });
 
   if (!server) {
     throw new Error(
-      `No server block with server_name containing \${HOST_WITHOUT_PORT}. Found: ${SERVERS.map(
+      `No server block with server_name containing \${HOST_SERVER_NAME}. Found: ${SERVERS.map(
         (s: NginxServer) => {
           return `"${s.serverName}"`;
         },

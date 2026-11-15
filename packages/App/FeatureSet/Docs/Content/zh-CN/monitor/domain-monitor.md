@@ -11,11 +11,11 @@
 
 ## 工作原理
 
-每次检查时，探测器根据 **Lookup Method** 通过 RDAP 或 WHOIS 查询域名的注册记录，并将查到的内容规范化：到期日期、注册商、域名服务器和状态码。查询失败时会重试，最多重试您设置的次数。然后 OneUptime 用监视器的条件评估该记录。
+每次检查时，探测器根据 **查询方式** 通过 RDAP 或 WHOIS 查询域名的注册记录，并将查到的内容规范化：到期日期、注册商、域名服务器和状态码。查询失败时会重试，最多重试您设置的次数。然后 OneUptime 用监视器的条件评估该记录。
 
 ```mermaid title="查询如何读取注册信息"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto 或 RDAP"| rdap["询问该 TLD 的<br/>RDAP 服务器"]
+    method{"查询方式"} -->|"Auto 或 RDAP"| rdap["询问该 TLD 的<br/>RDAP 服务器"]
     method -->|"WHOIS"| whois["询问该 TLD 的<br/>WHOIS 服务器"]
     rdap -->|"找到记录"| record["注册记录"]
     rdap -->|"没有 RDAP 或出错，<br/>使用 Auto 时"| whois
@@ -56,7 +56,7 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 
 ### 输入域名
 
-输入 **域名**，例如 `example.com`。除非有理由，否则请将 **Lookup Method** 保持为 **Auto**（参见 [查询方式](#查询方式)）。
+输入 **域名**，例如 `example.com`。除非有理由，否则请将 **查询方式** 保持为 **Auto**（参见 [查询方式](#查询方式)）。
 
 ### 测试
 
@@ -76,7 +76,7 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 | 字段 | 默认值 | 要填写的内容 |
 | --- | --- | --- |
 | **域名** | 无 | 已注册的域名，例如 `example.com`。粘贴的地址也可以：`https://example.com/pricing` 会被读作 `example.com`。 |
-| **Lookup Method** | **Auto** | **Auto**、**RDAP** 或 **WHOIS**。参见 [查询方式](#查询方式)。 |
+| **查询方式** | **Auto** | **Auto**、**RDAP** 或 **WHOIS**。参见 [查询方式](#查询方式)。 |
 | **超时（ms）**（在 **更多字段** 下） | `10000` | 等待每次注册查询的时间，单位为毫秒。 |
 | **重试**（在 **更多字段** 下） | `3` | 第一次尝试失败后的重试次数。`0` 表示只尝试一次。 |
 
@@ -163,11 +163,11 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 ## 故障排查
 
 :::details WHOIS 服务器“answered without any registration data”
-该 TLD 的 WHOIS 主机已停用、正在对探测器限速，或暂时出现故障。已停用的主机（例如 Identity Digital 的 TLD 仍映射到的那台）每次都回答 `TLD is not supported.`。如果在 **Lookup Method** 为 **WHOIS** 时故障持续存在，请切换到 **Auto**，让探测器在有 RDAP 服务的地方读取该 TLD 的 RDAP 服务。
+该 TLD 的 WHOIS 主机已停用、正在对探测器限速，或暂时出现故障。已停用的主机（例如 Identity Digital 的 TLD 仍映射到的那台）每次都回答 `TLD is not supported.`。如果在 **查询方式** 为 **WHOIS** 时故障持续存在，请切换到 **Auto**，让探测器在有 RDAP 服务的地方读取该 TLD 的 RDAP 服务。
 :::
 
 :::details 检查失败，提示“No RDAP service is published”
-监视器使用的是 **RDAP**，而该 TLD 没有发布 RDAP 服务，许多 ccTLD 都是如此。请将 **Lookup Method** 切换为会回退到 WHOIS 的 **Auto**。
+监视器使用的是 **RDAP**，而该 TLD 没有发布 RDAP 服务，许多 ccTLD 都是如此。请将 **查询方式** 切换为会回退到 WHOIS 的 **Auto**。
 :::
 
 :::details 域名被报告为未注册

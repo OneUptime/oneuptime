@@ -348,7 +348,9 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
   /*
    * A root cause a monitor wrote, in the reader's language as far as it
    * goes: OneUptime's own labels, and each finding the evaluation details
-   * hold as a sentence (MonitorRootCauseWording). The rest reads as stored.
+   * hold as a sentence (MonitorRootCauseWording). The rest reads as stored,
+   * each value set apart from the label worded before it, so a line reads
+   * the way its label does on an Arabic or Persian page.
    */
   const rootCause: string = isOpenedByRootCause(storedRootCause)
     ? ""
@@ -357,6 +359,7 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
         translator: translator,
         findings: evaluationDetails?.filters,
         options: EVALUATION_TEXT_OPTIONS,
+        setsValuesApart: true,
       });
 
   return (
