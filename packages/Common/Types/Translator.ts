@@ -1,6 +1,7 @@
 import escapeRegExp from "../Utils/RegExpEscape";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
+import { withNoBreakSpaces } from "./NoBreakSpaces";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -1181,6 +1182,19 @@ export const createTranslator: (
     return punctuateInLanguage(words, activeLanguage);
   };
 
+  /*
+   * The reader's language's own wording of `english`, as it sets a line:
+   * punctuated, each number kept with its unit, and French's marks kept
+   * with their words (Types/NoBreakSpaces). Never a value's: it is set
+   * before the values go in.
+   */
+  const setWording: (wording: string, english: string) => string = (
+    wording: string,
+    english: string,
+  ): string => {
+    return withNoBreakSpaces(punctuate(wording), english, activeLanguage);
+  };
+
   // The stored wording for `key`, or undefined when nothing has one.
   const find: (key: string) => string | undefined = (
     key: string,
@@ -1224,7 +1238,7 @@ export const createTranslator: (
 
     return stored === undefined
       ? withMeaningKeyAsItsWord(text)
-      : punctuate(stored);
+      : setWording(stored, text);
   };
 
   const hasTranslation: (text: string) => boolean = (text: string): boolean => {
@@ -1239,7 +1253,11 @@ export const createTranslator: (
       return "";
     }
 
-    const translated: string = find(text) ?? withMeaningKeyAsItsWord(text);
+    const stored: string | undefined = find(text);
+    const translated: string =
+      stored === undefined
+        ? withMeaningKeyAsItsWord(text)
+        : withNoBreakSpaces(stored, text, activeLanguage);
 
     if (!options?.inSentence) {
       return translated.trim();
@@ -1347,14 +1365,14 @@ export const createTranslator: (
 
     return setsValuesApart
       ? fillSettingValuesApart(
-          punctuate(stored),
+          setWording(stored, english),
           translatedValues(values),
           readerDirection,
           setsSlotsApart,
           activeLanguage,
         )
       : fillSentenceValues(
-          punctuate(stored),
+          setWording(stored, english),
           translatedValues(values),
           activeLanguage,
         );
