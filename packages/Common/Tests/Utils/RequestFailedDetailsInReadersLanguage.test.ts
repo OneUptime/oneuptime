@@ -4,7 +4,7 @@ import EgressGuardException, {
 import RequestFailedDetails, {
   RequestFailedPhase,
 } from "../../Types/Probe/RequestFailedDetails";
-import API from "../../Utils/API";
+import RequestFailedDetailsUtil from "../../Utils/RequestFailedDetailsUtil";
 import {
   getRequestFailureDescriptionText,
   readRequestFailureDescription,
@@ -25,7 +25,7 @@ import {
  * THE WEBSITE AND API CHECKS' ERROR DETAILS, READ IN THE READER'S LANGUAGE
  * (#8001).
  *
- * API.getRequestFailedDetails writes what a failed request means - the
+ * RequestFailedDetailsUtil.getRequestFailedDetails writes what a failed request means - the
  * Error Details of a Website or API summary, the root cause's "- Error
  * Description:". Each explanation it writes is one of
  * RequestFailureDescriptions', so the summaries read it back and draw it in
@@ -261,11 +261,10 @@ const FAILED_REQUESTS: Array<FailedRequest> = [
   },
 ];
 
-describe("API.getRequestFailedDetails writes every explanation from the table", () => {
+describe("RequestFailedDetailsUtil.getRequestFailedDetails writes every explanation from the table", () => {
   test.each(FAILED_REQUESTS)("$name", (request: FailedRequest) => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      request.error,
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(request.error);
 
     expect(readRequestFailureDescription(details.errorDescription)).toEqual({
       description: request.description,
@@ -274,9 +273,10 @@ describe("API.getRequestFailedDetails writes every explanation from the table", 
   });
 
   test("a fixed one is the table's English, character for character", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      codeError("ECONNREFUSED", "connect ECONNREFUSED 203.0.113.7:443"),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        codeError("ECONNREFUSED", "connect ECONNREFUSED 203.0.113.7:443"),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
     expect(details.errorDescription).toBe(
@@ -305,9 +305,10 @@ describe("API.getRequestFailedDetails writes every explanation from the table", 
   });
 
   test("a network that cannot be reached, named by its errno alone", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      codeError("ENETUNREACH", "network unreachable"),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        codeError("ENETUNREACH", "network unreachable"),
+      );
 
     expect(readRequestFailureDescription(details.errorDescription)).toEqual({
       description: RequestFailureDescription.NetworkUnreachable,
@@ -321,7 +322,7 @@ describe("what a German and a Persian reader see as Error Details", () => {
     "in %s: every explanation the check writes reads in the reader's language",
     (language: string) => {
       for (const request of FAILED_REQUESTS) {
-        const stored: string = API.getRequestFailedDetails(
+        const stored: string = RequestFailedDetailsUtil.getRequestFailedDetails(
           request.error,
         ).errorDescription;
         const drawn: string = getRequestFailureDescriptionText({
@@ -340,7 +341,7 @@ describe("what a German and a Persian reader see as Error Details", () => {
 
   test("in English: as the probe stored it", () => {
     for (const request of FAILED_REQUESTS) {
-      const stored: string = API.getRequestFailedDetails(
+      const stored: string = RequestFailedDetailsUtil.getRequestFailedDetails(
         request.error,
       ).errorDescription;
 

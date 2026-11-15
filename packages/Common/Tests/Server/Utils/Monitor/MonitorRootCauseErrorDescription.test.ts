@@ -7,7 +7,7 @@ jest.mock("isolated-vm", () => {
 });
 
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
-import API from "../../../../Utils/API";
+import RequestFailedDetailsUtil from "../../../../Utils/RequestFailedDetailsUtil";
 import EgressGuardException, {
   EgressFailureReason,
 } from "../../../../Types/Exception/EgressGuardException";
@@ -65,7 +65,8 @@ async function requestSections(error: unknown): Promise<string> {
     monitoredAt: new Date("2026-11-15T09:15:00.000Z"),
     isOnline: false,
     isTimeout: false,
-    requestFailedDetails: API.getRequestFailedDetails(error),
+    requestFailedDetails:
+      RequestFailedDetailsUtil.getRequestFailedDetails(error),
   };
 
   const context: MarkdownText | null = await Evaluator.buildRootCauseContext({
