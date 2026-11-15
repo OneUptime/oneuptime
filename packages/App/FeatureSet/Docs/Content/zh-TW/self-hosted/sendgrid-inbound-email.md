@@ -2,7 +2,7 @@
 
 OneUptime 的 **Incoming Email Monitor** 讓你可以根據寄到唯一、依監測器區分的電子郵件地址的郵件來建立和解決警示。這對於整合舊系統、警示工具或任何能夠寄送郵件的服務都很有用。
 
-同樣的設定也讓工作流程可以接收郵件：帶有 **傳入電子郵件** 觸發器的工作流程會在同一個網域上取得自己的地址，寄到該地址的每封郵件都會啟動該工作流程。請參閱[觸發器](/docs/workflows/triggers#incoming-email)。
+同樣的設定也讓工作流程可以接收郵件：帶有 **傳入電子郵件** 觸發器的工作流程會在同一個網域上取得自己的地址，寄到該地址的每封郵件都會啟動該工作流程。請參閱[觸發器](/docs/workflows/triggers#傳入電子郵件)。
 
 本指南說明如何設定 SendGrid Inbound Parse，把傳入郵件轉寄到你的自架 OneUptime 執行個體。OneUptime Cloud 不需要這些設定：它的地址開箱即用。
 
@@ -118,7 +118,7 @@ inboundEmail:
 
 然後套用它們：在 Docker Compose 上執行 `npm run start`，它會用新值重新建立容器；在 Kubernetes 上則升級 Helm 發行版本。
 
-### 建立 Incoming Email 監測器
+### 建立 傳入電子郵件 監測器
 
 [建立 Incoming Email 監測器](/docs/monitor/incoming-email-monitor#建立傳入郵件監測器)。它的 **概覽** 頁面會顯示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的條件決定哪些郵件建立警示、哪些郵件解決警示。
 
@@ -137,7 +137,7 @@ inboundEmail:
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 為傳入郵件設定的子網域。設定之前，傳入郵件處於關閉狀態。 | 是 | 空 |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Webhook URL 最後一段 `/incoming-email/sendgrid/YOUR_SECRET` 必須與之相符的密鑰。只要它為空或是預留位置，每封郵件都會被拒絕。 | 是 | 空 |
 
-Incoming Email 監測器可以依據哪些內容進行比對——主旨、寄件者、本文、收件者，以及郵件是否準時到達——請參閱[可用的篩選器類型](/docs/monitor/incoming-email-monitor#可用的篩選器類型)。
+傳入電子郵件 監測器可以依據哪些內容進行比對——主旨、寄件者、本文、收件者，以及郵件是否準時到達——請參閱[可用的篩選器類型](/docs/monitor/incoming-email-monitor#可用的篩選器類型)。
 
 ## 疑難排解
 
@@ -156,7 +156,7 @@ Incoming Email 監測器可以依據哪些內容進行比對——主旨、寄�
 
 :::details 監測器不建立警示
 1. **核對條件：** 檢查你的警示建立條件是否與郵件內容相符，在使用模式比對之前先用精確字串測試。
-2. **檢查監測器：** 確認它沒有被停用，並且類型是 Incoming Email。
+2. **檢查監測器：** 確認它沒有被停用，並且類型是 傳入電子郵件。
 3. **查看監測器的摘要：** 檢查郵件是否已接收並處理，並閱讀評估記錄，了解條件是如何相符的。
 :::
 

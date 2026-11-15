@@ -2,7 +2,7 @@
 
 O **Incoming Email Monitor** do OneUptime permite criar e resolver alertas com base em e-mails enviados para endereços únicos, específicos de cada monitor. Isso é útil para integrar sistemas legados, ferramentas de alerta ou qualquer serviço capaz de enviar e-mails.
 
-A mesma configuração permite que workflows recebam e-mail: um workflow com o gatilho **E-mail recebido** recebe um endereço próprio no mesmo domínio, e cada e-mail enviado a ele inicia o workflow. Veja [Gatilhos](/docs/workflows/triggers#incoming-email).
+A mesma configuração permite que workflows recebam e-mail: um workflow com o gatilho **E-mail recebido** recebe um endereço próprio no mesmo domínio, e cada e-mail enviado a ele inicia o workflow. Veja [Gatilhos](/docs/workflows/triggers#e-mail-recebido).
 
 Este guia explica como configurar o SendGrid Inbound Parse para encaminhar e-mails recebidos para a sua instância auto-hospedada do OneUptime. O OneUptime Cloud não precisa de nada disso: os endereços funcionam de imediato.
 
@@ -118,7 +118,7 @@ inboundEmail:
 
 Depois aplique-as: execute `npm run start` no Docker Compose, o que recria os contêineres com os novos valores, ou atualize a release do Helm no Kubernetes.
 
-### Crie um monitor Incoming Email
+### Crie um monitor E-mail recebido
 
 [Crie um monitor Incoming Email](/docs/monitor/incoming-email-monitor#criar-um-monitor-de-e-mails-recebidos). A página **Visão geral** dele mostra o endereço, como `monitor-abc123def456@inbound.yourdomain.com`, e os critérios dele decidem quais e-mails criam um alerta e quais o resolvem.
 
@@ -137,7 +137,7 @@ Envie um e-mail para o endereço do monitor, com um assunto que corresponda aos 
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | O subdomínio configurado para e-mails recebidos. O recebimento de e-mail fica desligado até que ele seja definido. | Sim | Vazio |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Segredo ao qual o último segmento da URL do webhook deve corresponder: `/incoming-email/sendgrid/YOUR_SECRET`. Todo e-mail é recusado enquanto ele estiver vazio ou for um marcador. | Sim | Vazio |
 
-Em que um monitor Incoming Email pode se basear – o assunto, o remetente, o corpo, o destinatário e se um e-mail chegou a tempo – está em [Tipos de filtro disponíveis](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponíveis).
+Em que um monitor E-mail recebido pode se basear – o assunto, o remetente, o corpo, o destinatário e se um e-mail chegou a tempo – está em [Tipos de filtro disponíveis](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponíveis).
 
 ## Solução de problemas
 
@@ -156,7 +156,7 @@ Em que um monitor Incoming Email pode se basear – o assunto, o remetente, o co
 
 :::details O monitor não cria alertas
 1. **Confira os critérios:** verifique se os seus critérios de criação de alertas correspondem ao conteúdo do e-mail, e teste primeiro com textos exatos antes de usar padrões.
-2. **Verifique o monitor:** confirme que ele não está desativado e que o tipo dele é Incoming Email.
+2. **Verifique o monitor:** confirme que ele não está desativado e que o tipo dele é E-mail recebido.
 3. **Revise o resumo do monitor:** verifique se o e-mail foi recebido e processado, e leia os logs de avaliação para ver como os critérios corresponderam.
 :::
 

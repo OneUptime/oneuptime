@@ -37,7 +37,7 @@ sequenceDiagram
 
 Gå til **Monitorer**, og klik på **Opret monitor**.
 
-### Vælg Incoming Email
+### Vælg Indgående e-mail
 
 Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Indgående e-mail** under **Indgående overvågning** eller skrive `email` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
@@ -266,7 +266,7 @@ Disse hændelser forbliver åbne, indtil nogen løser dem. Med **Løs hændelse 
 > [!WARNING]
 > **Alle, der kender adressen, kan åbne hændelser.** Hold adressen privat, filtrér på afsenderen som ovenfor, og [nulstil adressen](#nulstil-eller-tilpas-e-mailadressen), hvis den slipper ud. En afsenders adresse kan forfalskes, så filteret holder vildfaren post ude, ikke nogen, der er fast besluttet på at komme ind.
 
-For mere kontrol, såsom en alvorlighed læst fra emnet eller et team valgt ud fra afsenderen, så start i stedet en arbejdsgang fra hver e-mail: se [Incoming Email-triggeren](/docs/workflows/triggers#incoming-email).
+For mere kontrol, såsom en alvorlighed læst fra emnet eller et team valgt ud fra afsenderen, så start i stedet en arbejdsgang fra hver e-mail: se [Incoming Email-triggeren](/docs/workflows/triggers#indgående-e-mail).
 
 ## Brugsscenarier
 

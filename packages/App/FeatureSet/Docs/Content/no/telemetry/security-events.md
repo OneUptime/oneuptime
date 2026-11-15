@@ -67,7 +67,7 @@ flowchart TB
 
 ## Før du begynner
 
-Sikkerhetsdata kan bare leses av rollene Prosjekteier og Prosjektadministrator og av de tre Security-rollene; andre roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Sikkerhetsdata kan bare leses av rollene Prosjekteier og Prosjektadministrator og av de tre Security-rollene; andre roller ser ingenting i Sikkerhetshendelser. Se [Roller](/docs/permissions/reference#roller).
 
 | Rolle | Hva den kan gjøre |
 | --- | --- |
@@ -571,10 +571,10 @@ level: high
 - **Eksporter verdier** laster ned verdiene i en liste som en CSV-fil med kolonnene `value`, `note` og `expires`, som **Importer verdier** leser inn igjen. En fil der den første linjen nevner disse kolonnene, gir hver verdi sitt notat og når den utløper: en dato som `2026-12-31`, eller en dato og et klokkeslett i UTC.
 - En liste kan i stedet leses fra en fil på en https-adresse, på nytt **Hver time**, **Hver 6. time** eller **Hver dag**: Velg **En fil på en adresse** under **Flere felt** når du oppretter den. Hver lesing gjør listen til det filen inneholder, lest slik en import leser den. En mislykket lesing endrer ingen verdier, og siden til listen sier hvorfor, og **Les nå** leser den med en gang.
 - I stedet for å holde verdier kan en liste med IP-adresser, filhasher, domener eller URL-er følge en feed med trusselsinformasjon: Verdiene er da de aktive indikatorene i feeden av listens type, holdt oppdatert etter hvert som feeden leses.
-- `expand` brukes alene, siden verdiene i listen avgjør hvordan de treffer. Et felt med flere verdier, som `observables`, treffer når en av dem står på listen. **Leses av** nevner reglene, Security Events-monitorene og hunts som leser hver liste, og under YAML-en til en regel nevner skjemaet listene regelen leser.
+- `expand` brukes alene, siden verdiene i listen avgjør hvordan de treffer. Et felt med flere verdier, som `observables`, treffer når en av dem står på listen. **Leses av** nevner reglene, Sikkerhetshendelser-monitorene og hunts som leser hver liste, og under YAML-en til en regel nevner skjemaet listene regelen leser.
 - En regel nevner en liste uansett store og små bokstaver. En regel, en monitor eller en hunt som nevner en liste prosjektet ikke har, avvises når du lagrer den, og en liste som en av dem leser, kan ikke gis nytt navn eller slettes før ingenting leser den.
 - En endring i en liste når alle regler som leser den, ved regelens neste kjøring. Korrelasjonsregler og **Kjør på tidligere hendelser** leser også lister.
-- En Security Events-monitor leser lister i sin **Filtrer etter overvåkingslister**, og et søk under **Hendelser** eller i en hunt leser en som `user:%vip_users%`. Et minus foran, som i `-ip:%admin_addresses%`, beholder hendelsene der feltet ikke står på listen.
+- En Sikkerhetshendelser-monitor leser lister i sin **Filtrer etter overvåkingslister**, og et søk under **Hendelser** eller i en hunt leser en som `user:%vip_users%`. Et minus foran, som i `-ip:%admin_addresses%`, beholder hendelsene der feltet ikke står på listen.
 - En liste har høyst 5 000 verdier, av dem høyst 100 med `*` og 100 områder, og et prosjekt har høyst 200 lister: Følg en feed med trusselsinformasjon for en lengre liste. Den som kan opprette, redigere eller slette deteksjonsregler, kan gjøre det samme med lister, og den som kan redigere deteksjonsregler, legger til, endrer og fjerner verdiene deres. Alle Security-roller kan lese dem, og hver endring lagres i prosjektets revisjonslogg.
 
 ### Kjør på tidligere hendelser

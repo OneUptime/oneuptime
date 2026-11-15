@@ -44,7 +44,7 @@ flowchart TB
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj IoT Device
+### Välj IoT-enhet
 
 Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT-enhet** under **Infrastruktur**, eller skriv `iot` i sökfältet. Ange ett **Namn** - det används i titlarna på incidenter och larm - och klicka på **Nästa**.
 

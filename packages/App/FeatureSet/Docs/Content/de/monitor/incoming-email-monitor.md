@@ -37,7 +37,7 @@ sequenceDiagram
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**.
 
-### Incoming Email wählen
+### Eingehende E-Mail wählen
 
 Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Eingehende E-Mail** unter **Eingehende Überwachung**, oder tippen Sie `email` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
@@ -266,7 +266,7 @@ Diese Vorfälle bleiben offen, bis jemand sie behebt. Mit eingeschaltetem **Vorf
 > [!WARNING]
 > **Wer die Adresse kennt, kann Vorfälle eröffnen.** Halten Sie die Adresse geheim, filtern Sie wie oben nach dem Absender und [setzen Sie die Adresse zurück](#die-e-mail-adresse-zurücksetzen-oder-anpassen), wenn sie bekannt wird. Die Adresse eines Absenders lässt sich fälschen, daher hält der Filter verirrte E-Mails fern, aber niemanden, der es darauf anlegt.
 
-Für mehr Kontrolle, etwa einen aus dem Betreff gelesenen Schweregrad oder ein nach Absender gewähltes Team, starten Sie stattdessen mit jeder E-Mail einen Workflow: siehe [Incoming-Email-Trigger](/docs/workflows/triggers#incoming-email).
+Für mehr Kontrolle, etwa einen aus dem Betreff gelesenen Schweregrad oder ein nach Absender gewähltes Team, starten Sie stattdessen mit jeder E-Mail einen Workflow: siehe [Incoming-Email-Trigger](/docs/workflows/triggers#eingehende-e-mail).
 
 ## Anwendungsfälle
 

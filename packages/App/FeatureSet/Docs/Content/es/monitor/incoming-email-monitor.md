@@ -37,7 +37,7 @@ sequenceDiagram
 
 Vaya a **Monitores** y haga clic en **Crear monitor**.
 
-### Elegir Incoming Email
+### Elegir Correo entrante
 
 En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Correo entrante** en **Monitoreo entrante**, o escriba `email` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
 
@@ -266,7 +266,7 @@ Estos incidentes siguen abiertos hasta que alguien los resuelve. Con **Resolver 
 > [!WARNING]
 > **Cualquiera que conozca la dirección puede abrir incidentes.** Mantenga la dirección en privado, filtre por el remitente como arriba y [restablezca la dirección](#restablecer-o-personalizar-la-dirección-de-correo) si se filtra. La dirección de un remitente se puede falsificar, así que el filtro deja fuera el correo perdido, no a alguien decidido a entrar.
 
-Para tener más control, como una gravedad leída del asunto o un equipo elegido según el remitente, inicie en su lugar un workflow con cada correo: consulte el [disparador Incoming Email](/docs/workflows/triggers#incoming-email).
+Para tener más control, como una gravedad leída del asunto o un equipo elegido según el remitente, inicie en su lugar un workflow con cada correo: consulte el [disparador Incoming Email](/docs/workflows/triggers#correo-entrante).
 
 ## Casos de uso
 

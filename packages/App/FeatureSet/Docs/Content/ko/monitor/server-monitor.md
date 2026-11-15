@@ -1,9 +1,9 @@
 # 서버 / VM 모니터
 
-Server / VM 모니터는 OneUptime 인프라 에이전트(`oneuptime-infrastructure-agent`)를 통해 머신 한 대를 감시합니다. 이 에이전트는 30초마다 CPU, 메모리, 디스크, 부하, 네트워크, 실행 중인 프로세스를 OneUptime에 보고하는 작은 서비스입니다. 이 페이지에서는 에이전트를 Server / VM 모니터에 연결하는 방법, 에이전트가 보고하는 내용, 그리고 서버가 온라인인지 오프라인인지 판단하는 기준을 작성하는 방법을 설명합니다.
+서버 / VM 모니터는 OneUptime 인프라 에이전트(`oneuptime-infrastructure-agent`)를 통해 머신 한 대를 감시합니다. 이 에이전트는 30초마다 CPU, 메모리, 디스크, 부하, 네트워크, 실행 중인 프로세스를 OneUptime에 보고하는 작은 서비스입니다. 이 페이지에서는 에이전트를 서버 / VM 모니터에 연결하는 방법, 에이전트가 보고하는 내용, 그리고 서버가 온라인인지 오프라인인지 판단하는 기준을 작성하는 방법을 설명합니다.
 
 > [!IMPORTANT]
-> **모니터 생성** 에서는 더 이상 **서버 / VM** 을 선택할 수 없습니다. 이미 있는 Server / VM 모니터는 계속 작동하며, 이 페이지의 모든 내용이 적용됩니다. 새 서버를 감시하려면 대신 [호스트 모니터](/docs/monitor/host-monitor)를 만드세요. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)가 보내는 호스트 메트릭으로 경고를 보냅니다.
+> **모니터 생성** 에서는 더 이상 **서버 / VM** 을 선택할 수 없습니다. 이미 있는 서버 / VM 모니터는 계속 작동하며, 이 페이지의 모든 내용이 적용됩니다. 새 서버를 감시하려면 대신 [호스트 모니터](/docs/monitor/host-monitor)를 만드세요. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)가 보내는 호스트 메트릭으로 경고를 보냅니다.
 
 :::cards
 - [에이전트 연결](#에이전트-연결): 설치하고, 모니터의 비밀 키를 전달한 뒤 시작합니다.
@@ -16,7 +16,7 @@ Server / VM 모니터는 OneUptime 인프라 에이전트(`oneuptime-infrastruct
 
 에이전트는 시스템 서비스로 실행됩니다. 30초마다 보고서를 수집해 모니터의 비밀 키로 서명한 뒤 OneUptime URL로 보냅니다. OneUptime은 수치를 모니터의 메트릭으로 저장하고 보고서를 모니터의 기준과 대조합니다.
 
-무응답은 따로 확인합니다. OneUptime은 매분 3분 이상 보고가 없는 모든 Server / VM 모니터의 **온라인 여부** 기준을 다시 평가하며, 기준이 허용하는 시간(기본값 3분)보다 오래 응답이 없는 서버를 오프라인으로 간주합니다. **온라인 여부** 기준이 없는 모니터는 에이전트가 응답하지 않는다는 이유만으로는 오프라인으로 표시되지 않습니다. 이 무응답에는 OneUptime이 데이터를 받고 있던 시간만 포함됩니다. OneUptime 자체가 재시작, 업그레이드, 밀린 작업 처리 중이던 시간은 포함되지 않으며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
+무응답은 따로 확인합니다. OneUptime은 매분 3분 이상 보고가 없는 모든 서버 / VM 모니터의 **온라인 여부** 기준을 다시 평가하며, 기준이 허용하는 시간(기본값 3분)보다 오래 응답이 없는 서버를 오프라인으로 간주합니다. **온라인 여부** 기준이 없는 모니터는 에이전트가 응답하지 않는다는 이유만으로는 오프라인으로 표시되지 않습니다. 이 무응답에는 OneUptime이 데이터를 받고 있던 시간만 포함됩니다. OneUptime 자체가 재시작, 업그레이드, 밀린 작업 처리 중이던 시간은 포함되지 않으며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
 
 ```mermaid title="Server / VM 모니터가 데이터를 받는 방식"
 flowchart TB
@@ -28,7 +28,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- 프로젝트에 있는 Server / VM 모니터.
+- 프로젝트에 있는 서버 / VM 모니터.
 - 모니터를 편집할 수 있는 권한. 비밀 키와 이를 포함한 설정 명령은 모니터를 편집할 수 있는 사람에게만 표시됩니다.
 - 서버의 root 권한(Linux, macOS) 또는 관리자 권한(Windows). 에이전트는 자신을 시스템 서비스로 설치합니다.
 - 서버에서 OneUptime URL로 나가는 HTTPS 연결(직접 또는 HTTP 프록시를 통해).
@@ -40,7 +40,7 @@ flowchart TB
 :::steps
 ### 모니터의 설정 명령 열기
 
-**모니터** 로 이동해 Server / VM 모니터를 열고 **문서** 를 선택합니다. **Set up your Server Monitor (Linux/Mac)** 및 **Set up your Server Monitor (Windows)** 카드에 이 모니터용 명령이 있습니다. 에이전트가 처음 보고하기 전까지는 모니터의 **개요** 에도 표시됩니다.
+**모니터** 로 이동해 서버 / VM 모니터를 열고 **문서** 를 선택합니다. **Set up your Server Monitor (Linux/Mac)** 및 **Set up your Server Monitor (Windows)** 카드에 이 모니터용 명령이 있습니다. 에이전트가 처음 보고하기 전까지는 모니터의 **개요** 에도 표시됩니다.
 
 ### 에이전트 설치
 

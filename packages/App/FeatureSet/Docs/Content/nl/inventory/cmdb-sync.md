@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-De `descriptiveAttributes` van elk netwerkapparaat bevatten zijn hostnaam, IP-adres, serienummer, MAC-adres, merk, model, firmware, besturingssysteem, rol, site en locatie: zie [Assetattributen van netwerkapparaten](#assetattributen-van-netwerkapparaten) hieronder. Wat de poller verder weet, zoals interfaces en buren, staat op het Network Device-record zelf: volg `resourceId` naar `/api/network-device/:id/get-item`, of haal `/api/network-device/get-list` direct op.
+De `descriptiveAttributes` van elk netwerkapparaat bevatten zijn hostnaam, IP-adres, serienummer, MAC-adres, merk, model, firmware, besturingssysteem, rol, site en locatie: zie [Assetattributen van netwerkapparaten](#assetattributen-van-netwerkapparaten) hieronder. Wat de poller verder weet, zoals interfaces en buren, staat op het Netwerkapparaat-record zelf: volg `resourceId` naar `/api/network-device/:id/get-item`, of haal `/api/network-device/get-list` direct op.
 
 ### Als CSV
 
@@ -184,7 +184,7 @@ Attributen worden aangevuld en nooit leeggemaakt: een attribuut dat niet meer wo
 
 ## Assetattributen van netwerkapparaten
 
-Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Network Device-record, en zijn `descriptiveAttributes` gebruiken dezelfde sleutels die een host voor dezelfde gegevens gebruikt, dus één CMDB-kolom bevat het serienummer, of de rij nu een server of een switch is:
+Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Netwerkapparaat-record, en zijn `descriptiveAttributes` gebruiken dezelfde sleutels die een host voor dezelfde gegevens gebruikt, dus één CMDB-kolom bevat het serienummer, of de rij nu een server of een switch is:
 
 | Veld | Sleutel | Waar het vandaan komt |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ Een waarde die op het apparaat is opgeslagen, ingetypt of via de API ingesteld, 
 
 De hostnaam is nooit het IP-adres. Een apparaat dat alleen zijn adres benoemt, heeft `host.ip` en geen `host.name`. Zodra zijn SNMP-walk een systeemnaam meldt, volgt `host.name` bij de volgende ronde.
 
-Deze waarden worden elke vijftien minuten uit het Network Device-record gekopieerd, en ze **vervangen** de vorige waarden in plaats van ze aan te vullen, dus een waarde die op het apparaat is gewist (een verwijderd MAC-adres, bijvoorbeeld) verdwijnt ook uit het inventarisitem.
+Deze waarden worden elke vijftien minuten uit het Netwerkapparaat-record gekopieerd, en ze **vervangen** de vorige waarden in plaats van ze aan te vullen, dus een waarde die op het apparaat is gewist (een verwijderd MAC-adres, bijvoorbeeld) verdwijnt ook uit het inventarisitem.
 
 Er is geen versie voor een *beschikbare upgrade*: SNMP heeft daar geen standaardobject voor, dus OneUptime legt de versie vast die op het apparaat draait.
 

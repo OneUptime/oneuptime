@@ -452,17 +452,17 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 
 ### Moniteurs de métriques et d'infrastructure
 
-Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array et IoT Device ont une variable qui leur est propre :
+Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Baie de stockage et Appareil IoT ont une variable qui leur est propre :
 
 | Variable | Ce qu'elle contient | Type |
 | --- | --- | --- |
 | `metricName` | Le nom de la métrique que lit la première requête du moniteur, comme `container.cpu.time`. | `string` |
 
-Groupés, ils ont aussi la valeur de chaque attribut **Regrouper par**, et `seriesLabels` : voir [Valeurs d'un moniteur groupé](#valeurs-dun-moniteur-groupé). Les modèles du moniteur IoT Device regroupent par appareil : un moniteur créé à partir de l'un d'eux a donc aussi `{{device.id}}`.
+Groupés, ils ont aussi la valeur de chaque attribut **Regrouper par**, et `seriesLabels` : voir [Valeurs d'un moniteur groupé](#valeurs-dun-moniteur-groupé). Les modèles du moniteur Appareil IoT regroupent par appareil : un moniteur créé à partir de l'un d'eux a donc aussi `{{device.id}}`.
 
 ### Autres types de moniteurs
 
-Les moniteurs Logs, Traces, Exceptions, Security Events, AI / LLM et SQL Query n'ont pas de variables propres. Utilisez les [variables de tous les moniteurs](#variables-de-tous-les-moniteurs), et sur un moniteur Logs groupé les [valeurs de groupe](#valeurs-dun-moniteur-groupé).
+Les moniteurs Logs, Traces, Exceptions, Événements de sécurité, IA / LLM et Requête SQL n'ont pas de variables propres. Utilisez les [variables de tous les moniteurs](#variables-de-tous-les-moniteurs), et sur un moniteur Logs groupé les [valeurs de groupe](#valeurs-dun-moniteur-groupé).
 
 ## Exemples
 

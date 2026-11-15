@@ -6,7 +6,7 @@ Ein Trigger ist der erste Baustein eines Workflows – er entscheidet, wann der 
 - [Manuell](#manual): Den Workflow aus dem Editor oder aus einem anderen Workflow starten.
 - [Zeitplan](#schedule): Ihn nach einem wiederkehrenden Zeitplan ausführen, geschrieben als Cron-Ausdruck.
 - [Webhook](#webhook): Ein anderes System ihn starten lassen, indem es eine URL aufruft.
-- [Eingehende E-Mail](#incoming-email): Ihn mit jeder E-Mail an seine eigene Adresse starten.
+- [Eingehende E-Mail](#eingehende-e-mail): Ihn mit jeder E-Mail an seine eigene Adresse starten.
 - [Huntress](#huntress): Ihn für jedes Ereignis starten, das Huntress zu einer Vorfallsmeldung sendet.
 - [OneUptime-Ereignis-Trigger](#oneuptime-ereignis-trigger): Reagieren, wenn ein Datensatz angelegt, geändert oder gelöscht wird.
 :::
@@ -111,7 +111,7 @@ Gelangt die URL nach außen, klicken Sie an derselben Stelle auf **URL zurückse
 > [!WARNING]
 > Behandeln Sie die URL wie ein Passwort. Jeder, der sie hat, kann Ihren Workflow starten, ohne sich anzumelden.
 
-## Incoming Email
+## Eingehende E-Mail
 
 OneUptime gibt dem Workflow eine eigene E-Mail-Adresse. Jede E-Mail an diese Adresse startet den Workflow, und die E-Mail wird weitergereicht: wer sie gesendet hat, an wen sie ging, der Betreff, Text und HTML, die Header und die Namen etwaiger Anhänge.
 
@@ -139,7 +139,7 @@ Ist eine E-Mail eingetroffen, weiß die Werteauswahl in jedem Baustein nach dem 
 
 Um den Workflow auszuprobieren, ohne eine E-Mail zu senden, klicken Sie auf der Seite **Editor** auf **Arbeitsablauf ausführen** und füllen einen Absender, einen Betreff und einen Body aus. Die Werte, die Sie weglassen, kommen leer an.
 
-E-Mails starten den Workflow nur, solange er an ist. Eine E-Mail an einen Workflow, der aus ist, wird ignoriert, ebenso eine E-Mail an einen Workflow, dessen Trigger nicht mehr Incoming Email ist.
+E-Mails starten den Workflow nur, solange er an ist. Eine E-Mail an einen Workflow, der aus ist, wird ignoriert, ebenso eine E-Mail an einen Workflow, dessen Trigger nicht mehr Eingehende E-Mail ist.
 
 ### Die Adresse privat halten
 

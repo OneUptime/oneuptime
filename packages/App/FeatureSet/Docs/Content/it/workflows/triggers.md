@@ -6,7 +6,7 @@ Un trigger è il primo blocco di un flusso di lavoro: decide quando il flusso di
 - [Manuale](#manual): Avvia il flusso di lavoro dal Costruttore o da un altro flusso di lavoro.
 - [Pianificazione](#schedule): Eseguilo con una pianificazione ricorrente, scritta come espressione cron.
 - [Webhook](#webhook): Lascia che un altro sistema lo avvii chiamando un URL.
-- [Email in arrivo](#incoming-email): Avvialo con ogni email inviata al suo indirizzo.
+- [Email in arrivo](#email-in-arrivo): Avvialo con ogni email inviata al suo indirizzo.
 - [Huntress](#huntress): Avvialo per ogni evento che Huntress invia su un rapporto di incidente.
 - [Trigger di eventi OneUptime](#trigger-di-eventi-oneuptime): Reagisci quando un record viene creato, aggiornato o eliminato.
 :::
@@ -111,13 +111,13 @@ Se l'URL trapela, fai clic su **Reimposta URL** nello stesso punto: il flusso di
 > [!WARNING]
 > Tratta l'URL come una password. Chiunque lo abbia può avviare il tuo flusso di lavoro, senza accedere.
 
-## Incoming Email
+## Email in arrivo
 
 OneUptime assegna al flusso di lavoro un indirizzo email tutto suo. Ogni email inviata a quell'indirizzo avvia il flusso di lavoro, passandogli l'email: chi l'ha inviata, a chi era destinata, l'oggetto, il testo e l'HTML, gli header e i nomi degli allegati.
 
 Ideale per: agire sulle email di sistemi che non possono chiamare un webhook — avvisi di vecchi strumenti di monitoraggio, comunicazioni di stato di un fornitore, il report che un job notturno invia via email.
 
-Per ottenere l'indirizzo, fai clic sul trigger Incoming Email sulla tela. L'indirizzo si trova in cima alle sue impostazioni, con un pulsante **Copia indirizzo**. Dallo a ciò che deve avviare il flusso di lavoro: uno strumento che sa solo inviare email, le impostazioni di notifica di un fornitore o una regola di inoltro della tua casella di posta.
+Per ottenere l'indirizzo, fai clic sul trigger Email in arrivo sulla tela. L'indirizzo si trova in cima alle sue impostazioni, con un pulsante **Copia indirizzo**. Dallo a ciò che deve avviare il flusso di lavoro: uno strumento che sa solo inviare email, le impostazioni di notifica di un fornitore o una regola di inoltro della tua casella di posta.
 
 Ogni email avvia la propria esecuzione. L'email raggiunge il flusso di lavoro sia che l'indirizzo sia in A o in Cc, sia in copia nascosta, sia che passi per una regola di inoltro. Un'email che nomina l'indirizzo due volte avvia una sola esecuzione.
 
@@ -139,7 +139,7 @@ Una volta arrivata un'email, il selettore dei valori di ogni blocco dopo il trig
 
 Per provare il flusso di lavoro senza inviare un'email, fai clic su **Esegui flusso di lavoro** nella pagina **Costruttore** e compila un mittente, un oggetto e un corpo. I valori che tralasci arrivano vuoti.
 
-Le email avviano il flusso di lavoro solo mentre è attivo. Le email a un flusso di lavoro disattivato vengono ignorate, così come quelle a un flusso di lavoro il cui trigger non è più Incoming Email.
+Le email avviano il flusso di lavoro solo mentre è attivo. Le email a un flusso di lavoro disattivato vengono ignorate, così come quelle a un flusso di lavoro il cui trigger non è più Email in arrivo.
 
 ### Mantieni privato l'indirizzo
 

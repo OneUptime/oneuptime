@@ -6,7 +6,7 @@ Un déclencheur est le premier bloc d'un flux de travail : il décide quand le f
 - [Manuel](#manual): Démarrez le flux de travail depuis le Constructeur, ou depuis un autre flux de travail.
 - [Planification](#schedule): Exécutez-le selon une planification récurrente, écrite sous forme d'expression cron.
 - [Webhook](#webhook): Laissez un autre système le démarrer en appelant une URL.
-- [E-mail entrant](#incoming-email): Démarrez-le à chaque e-mail envoyé à sa propre adresse.
+- [E-mail entrant](#e-mail-entrant): Démarrez-le à chaque e-mail envoyé à sa propre adresse.
 - [Huntress](#huntress): Démarrez-le pour chaque événement que Huntress envoie à propos d'un rapport d'incident.
 - [Déclencheurs d'événements OneUptime](#déclencheurs-dévénements-oneuptime): Réagissez quand un enregistrement est créé, modifié ou supprimé.
 :::
@@ -111,13 +111,13 @@ Si l'URL fuite, cliquez sur **Réinitialiser l'URL** au même endroit : le flux 
 > [!WARNING]
 > Traitez l'URL comme un mot de passe. Quiconque la possède peut démarrer votre flux de travail, sans se connecter.
 
-## Incoming Email
+## E-mail entrant
 
 OneUptime donne au flux de travail une adresse e-mail qui lui est propre. Chaque e-mail envoyé à cette adresse démarre le flux de travail, en lui transmettant l'e-mail : qui l'a envoyé, à qui il était destiné, l'objet, le texte et le HTML, les en-têtes et le nom des pièces jointes.
 
 Idéal pour : agir sur les e-mails de systèmes qui ne savent pas appeler un webhook — les alertes d'anciens outils de supervision, les avis d'état d'un fournisseur, le rapport qu'une tâche nocturne envoie par e-mail.
 
-Pour obtenir l'adresse, cliquez sur le déclencheur Incoming Email sur le canevas. L'adresse figure en haut de ses paramètres, avec un bouton **Copier l'adresse**. Donnez-la à ce qui doit démarrer le flux de travail : un outil qui ne sait qu'envoyer des e-mails, les paramètres de notification d'un fournisseur, ou une règle de transfert dans votre propre boîte aux lettres.
+Pour obtenir l'adresse, cliquez sur le déclencheur E-mail entrant sur le canevas. L'adresse figure en haut de ses paramètres, avec un bouton **Copier l'adresse**. Donnez-la à ce qui doit démarrer le flux de travail : un outil qui ne sait qu'envoyer des e-mails, les paramètres de notification d'un fournisseur, ou une règle de transfert dans votre propre boîte aux lettres.
 
 Chaque e-mail lance sa propre exécution. L'e-mail atteint le flux de travail que l'adresse figure en À ou en Cc, en copie cachée, ou qu'il passe par une règle de transfert. Un e-mail qui nomme l'adresse deux fois lance une seule exécution.
 
@@ -139,7 +139,7 @@ Une fois qu'un e-mail est arrivé, le sélecteur de valeurs de chaque bloc qui s
 
 Pour essayer le flux de travail sans envoyer d'e-mail, cliquez sur **Exécuter le flux de travail** sur la page **Constructeur** et renseignez un expéditeur, un objet et un corps. Les valeurs que vous laissez de côté arrivent vides.
 
-Les e-mails ne démarrent le flux de travail que s'il est activé. Un e-mail adressé à un flux de travail désactivé est ignoré, de même qu'un e-mail adressé à un flux de travail dont le déclencheur n'est plus Incoming Email.
+Les e-mails ne démarrent le flux de travail que s'il est activé. Un e-mail adressé à un flux de travail désactivé est ignoré, de même qu'un e-mail adressé à un flux de travail dont le déclencheur n'est plus E-mail entrant.
 
 ### Gardez l'adresse privée
 

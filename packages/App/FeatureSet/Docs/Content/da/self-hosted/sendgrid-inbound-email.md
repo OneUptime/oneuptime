@@ -2,7 +2,7 @@
 
 OneUptimes **Incoming Email Monitor** lader dig oprette og løse alarmer ud fra e-mails, der sendes til unikke, monitorspecifikke e-mailadresser. Det er nyttigt til at integrere ældre systemer, alarmeringsværktøjer eller enhver tjeneste, der kan sende e-mails.
 
-Den samme opsætning lader også arbejdsgange modtage e-mail: En arbejdsgang med triggeren **Indgående e-mail** får sin egen adresse på det samme domæne, og hver e-mail til den starter arbejdsgangen. Se [Triggere](/docs/workflows/triggers#incoming-email).
+Den samme opsætning lader også arbejdsgange modtage e-mail: En arbejdsgang med triggeren **Indgående e-mail** får sin egen adresse på det samme domæne, og hver e-mail til den starter arbejdsgangen. Se [Triggere](/docs/workflows/triggers#indgående-e-mail).
 
 Denne vejledning forklarer, hvordan du sætter SendGrid Inbound Parse op til at videresende indgående e-mails til din selvhostede OneUptime-instans. OneUptime Cloud har ikke brug for noget af det: Dér virker adresserne med det samme.
 
@@ -118,7 +118,7 @@ inboundEmail:
 
 Anvend dem derefter: Kør `npm run start` på Docker Compose, hvilket genskaber containerne med de nye værdier, eller opgrader Helm-releasen på Kubernetes.
 
-### Opret en Incoming Email-monitor
+### Opret en Indgående e-mail-monitor
 
 [Opret en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opret-en-monitor-for-indgående-e-mail). Dens side **Oversigt** viser dens adresse, f.eks. `monitor-abc123def456@inbound.yourdomain.com`, og dens kriterier afgør, hvilke e-mails der opretter en alarm, og hvilke der løser den.
 
@@ -137,7 +137,7 @@ Send en e-mail til monitorens adresse med et emne, der matcher dens kriterier. M
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Det underdomæne, der er sat op til indgående e-mail. Indgående e-mail er slået fra, indtil det er sat. | Ja | Tom |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighed, som det sidste segment af webhook-URL'en skal matche: `/incoming-email/sendgrid/YOUR_SECRET`. Hver e-mail afvises, så længe den er tom eller en pladsholder. | Ja | Tom |
 
-Hvad en Incoming Email-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
+Hvad en Indgående e-mail-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
 
 ## Fejlfinding
 

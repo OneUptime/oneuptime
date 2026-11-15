@@ -172,7 +172,7 @@ Cada item de `monitor_steps` é uma coisa a verificar:
 | `tls_client_key_passphrase` | string (sensível) | Site, API | A frase secreta da chave privada. |
 | `request_timeout_in_ms` | number | Verificações feitas por uma sonda | Quanto tempo uma tentativa pode levar, em milissegundos. A sonda reduz qualquer valor acima de 60000 para 60000. |
 | `retry_count` | number | Verificações feitas por uma sonda | Novas tentativas depois de uma primeira tentativa que falhou: `0` verifica uma vez, `3` até quatro vezes. A sonda reduz qualquer valor acima de 3 para 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | O script que a etapa executa. |
+| `custom_code` | string | Código JavaScript personalizado, Synthetic | O script que a etapa executa. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` e `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` e `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Novas tentativas quando o script falha: `0` o executa uma vez. |

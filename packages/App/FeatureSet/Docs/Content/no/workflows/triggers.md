@@ -6,7 +6,7 @@ En trigger er den første blokken i en arbeidsflyt — den avgjør når arbeidsf
 - [Manuell](#manual): Start arbeidsflyten fra Bygger eller fra en annen arbeidsflyt.
 - [Tidsplan](#schedule): Kjør den etter en gjentakende tidsplan, skrevet som et cron-uttrykk.
 - [Webhook](#webhook): La et annet system starte den ved å kalle en URL.
-- [Innkommende e-post](#incoming-email): Start den med hver e-post som sendes til dens egen adresse.
+- [Innkommende e-post](#innkommende-e-post): Start den med hver e-post som sendes til dens egen adresse.
 - [Huntress](#huntress): Start den for hver begivenhet Huntress sender om en hendelsesrapport.
 - [OneUptime-begivenhetstriggere](#oneuptime-begivenhetstriggere): Reager når en post opprettes, oppdateres eller slettes.
 :::
@@ -111,13 +111,13 @@ Lekker URL-en, klikker du på **Tilbakestill URL** på samme sted: arbeidsflyten
 > [!WARNING]
 > Behandle URL-en som et passord. Alle som har den, kan starte arbeidsflyten din uten å logge inn.
 
-## Incoming Email
+## Innkommende e-post
 
 OneUptime gir arbeidsflyten sin egen e-postadresse. Hver e-post som sendes til den adressen, starter arbeidsflyten og sender e-posten med: hvem som sendte den, hvem den var til, emnet, teksten og HTML-en, headerne og navnene på eventuelle vedlegg.
 
 Bra for: å handle på e-post fra systemer som ikke kan kalle en webhook — varsler fra eldre overvåkingsverktøy, statusmeldinger fra en leverandør, rapporten en nattlig jobb sender ut.
 
-For å få adressen klikker du på Incoming Email-triggeren på lerretet. Adressen står øverst i innstillingene, med en knapp **Kopier adresse**. Gi den til det som skal starte arbeidsflyten: et verktøy som bare kan sende e-post, varslingsinnstillingene til en leverandør eller en videresendingsregel i din egen postkasse.
+For å få adressen klikker du på Innkommende e-post-triggeren på lerretet. Adressen står øverst i innstillingene, med en knapp **Kopier adresse**. Gi den til det som skal starte arbeidsflyten: et verktøy som bare kan sende e-post, varslingsinnstillingene til en leverandør eller en videresendingsregel i din egen postkasse.
 
 Hver e-post starter sin egen kjøring. E-posten når arbeidsflyten uansett om adressen står i Til eller Kopi, er en blindkopi eller nås gjennom en videresendingsregel. En e-post som nevner adressen to ganger, starter én kjøring.
 

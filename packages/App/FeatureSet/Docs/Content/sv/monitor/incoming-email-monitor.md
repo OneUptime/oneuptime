@@ -37,7 +37,7 @@ sequenceDiagram
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Incoming Email
+### Välj Inkommande e-post
 
 Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Inkommande e-post** under **Inkommande övervakning**, eller skriver `email` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
@@ -266,7 +266,7 @@ Dessa incidenter förblir öppna tills någon löser dem. Med **Lös incident au
 > [!WARNING]
 > **Alla som känner till adressen kan öppna incidenter.** Håll adressen privat, filtrera på avsändaren som ovan och [återställ adressen](#återställa-eller-anpassa-e-postadressen) om den läcker. En avsändares adress kan förfalskas, så filtret håller borta vilsen e-post, inte någon som är fast besluten att ta sig in.
 
-För mer kontroll, som en allvarlighetsgrad läst från ämnet eller ett team valt efter avsändare, startar du i stället ett arbetsflöde från varje e-postmeddelande: se [Incoming Email-utlösaren](/docs/workflows/triggers#incoming-email).
+För mer kontroll, som en allvarlighetsgrad läst från ämnet eller ett team valt efter avsändare, startar du i stället ett arbetsflöde från varje e-postmeddelande: se [Incoming Email-utlösaren](/docs/workflows/triggers#inkommande-e-post).
 
 ## Användningsfall
 

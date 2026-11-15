@@ -1,21 +1,21 @@
 # 数据库健康监控
 
-Database Health 监视器按计划连接到 PostgreSQL、MySQL 或 Microsoft SQL Server，并报告服务器自身的健康信号——连接余量、被阻塞的会话、复制延迟、缓存命中率、数据库大小、事务 ID 回卷，以及另外三十多项——这样你就可以像在网站宕机时收到警报那样，针对这些信号设置警报。
+数据库健康状况 监视器按计划连接到 PostgreSQL、MySQL 或 Microsoft SQL Server，并报告服务器自身的健康信号——连接余量、被阻塞的会话、复制延迟、缓存命中率、数据库大小、事务 ID 回卷，以及另外三十多项——这样你就可以像在网站宕机时收到警报那样，针对这些信号设置警报。
 
 你不需要编写 SQL。探测器按数据库引擎运行一组固定的只读目录查询，并报告少量带名称的数值。
 
 :::cards
 - [创建监控用户](#创建监控用户): 每种引擎需要的权限。这是最重要的一步。
-- [创建监视器](#创建-database-health-监视器): 让探测器指向数据库，并选择要收集的内容。
+- [创建监视器](#创建-数据库健康状况-监视器): 让探测器指向数据库，并选择要收集的内容。
 - [收集的指标](#收集的指标): 每个序列，以及报告它的引擎。
 - [设置条件](#设置条件): 针对连接、阻塞、延迟和回卷发出警报。
 :::
 
-## Database Health 还是 SQL Query？
+## 数据库健康状况 还是 SQL 查询？
 
 这两种数据库监视器类型回答不同的问题，设计上就是配合使用的。
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | 数据库健康状况 | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | 回答的问题 | “数据库本身健康吗？” | “我的数据符合预期吗？” |
 | 查询 | 内置，按引擎区分，只读 | 你自己的 |
@@ -23,7 +23,7 @@ Database Health 监视器按计划连接到 PostgreSQL、MySQL 或 Microsoft SQL
 | 典型警报 | 已用连接超过 90% | 最近五分钟内取消的订单超过 50 个 |
 | 所需权限 | 读取统计信息/DMV——参见[创建监控用户](#创建监控用户) | 对查询涉及的表的 `SELECT` |
 
-如果想针对业务条件发出警报，请使用 SQL Query 监视器。如果想在业务条件还没机会出错之前，就知道服务器的连接快要耗尽，请使用这个监视器。
+如果想针对业务条件发出警报，请使用 SQL 查询 监视器。如果想在业务条件还没机会出错之前，就知道服务器的连接快要耗尽，请使用这个监视器。
 
 ## 支持的数据库
 
@@ -37,7 +37,7 @@ Azure SQL Database 和 Azure SQL Managed Instance 以 **Microsoft SQL Server** �
 
 使用相同线路协议的 PostgreSQL 兼容和 MySQL 兼容引擎通常也能工作，但它们提供的统计视图可能更少；这时受影响的指标会被报告为不可用，而不会被收集。只有上面三种引擎经过官方测试。
 
-你的应用、集群和主机使用的每个数据库（这三种引擎以及许多其他引擎）都有自己的页面，展示其引擎指标、日志以及调用它的服务：参见[数据库](/docs/telemetry/databases)。如果 Database Health 监视器连接的主机和端口是某个数据库的端点之一，该监视器的警报和事件也会出现在那个数据库的页面上（参见[数据库上的警报](/docs/telemetry/databases#数据库的警报)）。
+你的应用、集群和主机使用的每个数据库（这三种引擎以及许多其他引擎）都有自己的页面，展示其引擎指标、日志以及调用它的服务：参见[数据库](/docs/telemetry/databases)。如果 数据库健康状况 监视器连接的主机和端口是某个数据库的端点之一，该监视器的警报和事件也会出现在那个数据库的页面上（参见[数据库上的警报](/docs/telemetry/databases#数据库的警报)）。
 
 ## 工作原理
 
@@ -155,7 +155,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - **连接按数据库计算。** 使用 `VIEW DATABASE STATE` 时，Azure SQL Database 只显示被监控数据库的会话，所以 **连接** 统计的是该数据库，而不是逻辑服务器。请分别监控你关心的每个数据库。
 - **在弹性池中，“TempDB 可用空间”是整个池的值。** 池中的数据库共享同一个 tempdb。
 
-## 创建 Database Health 监视器
+## 创建 数据库健康状况 监视器
 
 :::steps
 ### 新建监视器
@@ -191,7 +191,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **主机** | 探测器可以访问的数据库主机（例如 `db.internal`）。 |
 | **端口** | 数据库端口。 |
 | **数据库名称** | 要连接的数据库。数据库范围的指标（大小、缓存命中率、溢出到临时文件）针对这个数据库报告；服务器范围的指标（连接、运行时间、复制）针对整个服务器报告——Azure SQL Database 除外，在那里只统计被监控数据库的连接。 |
-| **认证** | 仅限 Microsoft SQL Server：默认的 **用户名和密码**，或以探测器进程身份登录的 **Windows Integrated Authentication**。参见 SQL Query 监视器页面上的 [Windows 集成身份验证](/docs/monitor/sql-monitor#windows-集成身份验证)——设置方法完全相同。 |
+| **认证** | 仅限 Microsoft SQL Server：默认的 **用户名和密码**，或以探测器进程身份登录的 **Windows Integrated Authentication**。参见 SQL 查询 监视器页面上的 [Windows 集成身份验证](/docs/monitor/sql-monitor#windows-集成身份验证)——设置方法完全相同。 |
 | **用户名** | 监控用户。除非使用 Windows 集成身份验证，否则必填。 |
 | **密码** | 密码。请用 `{{monitorSecrets.name}}` 引用[监视器密钥](/docs/monitor/monitor-secrets)，而不是以明文输入（参见[使用监视器密钥](#用监视器密钥保存密码)）。 |
 | **Use SSL/TLS** | 通过 TLS 连接。启用后，对于自签名证书，可以关闭 **Verify server certificate**。 |
@@ -205,7 +205,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **Connection Timeout (ms)** | `10000` | `30000` | 建立连接时等待的时长。 |
 | **Statement Timeout (ms)** | `10000` | `60000` | 每条目录查询的时间上限。 |
 
-语句超时的默认值有意比 SQL Query 监视器更严：在健康的服务器上，这些查询几毫秒就会返回，所以如果 `pg_stat_activity` 花了十秒，有用的信号是“这台服务器有麻烦了”，而不是再多等一会儿。超过最大值的值会被降到最大值。
+语句超时的默认值有意比 SQL 查询 监视器更严：在健康的服务器上，这些查询几毫秒就会返回，所以如果 `pg_stat_activity` 花了十秒，有用的信号是“这台服务器有麻烦了”，而不是再多等一会儿。超过最大值的值会被降到最大值。
 
 ## 用监视器密钥保存密码
 
@@ -381,7 +381,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### JavaScript 表达式变量
 
-对于 Database Health 监视器，表达式可以访问：
+对于 数据库健康状况 监视器，表达式可以访问：
 
 | 变量 | 类型 | 说明 |
 |---|---|---|

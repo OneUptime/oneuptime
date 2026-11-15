@@ -37,7 +37,7 @@ sequenceDiagram
 
 Andate in **Monitor** e fate clic su **Crea monitor**.
 
-### Scegliere Incoming Email
+### Scegliere Email in arrivo
 
 In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Email in arrivo** sotto **Monitoraggio in entrata**, oppure digitate `email` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
@@ -266,7 +266,7 @@ Questi incidenti restano aperti finché qualcuno non li risolve. Con **Risoluzio
 > [!WARNING]
 > **Chiunque conosca l'indirizzo può aprire incidenti.** Tenete l'indirizzo riservato, filtrate sul mittente come sopra e [reimpostate l'indirizzo](#reimpostare-o-personalizzare-lindirizzo-email) se trapela. L'indirizzo di un mittente si può falsificare, quindi il filtro tiene fuori la posta vagante, non chi è deciso a entrare.
 
-Per avere più controllo, come una gravità letta dall'oggetto o un team scelto in base al mittente, avviate invece un flusso di lavoro da ogni email: vedete il [trigger Incoming Email](/docs/workflows/triggers#incoming-email).
+Per avere più controllo, come una gravità letta dall'oggetto o un team scelto in base al mittente, avviate invece un flusso di lavoro da ogni email: vedete il [trigger Incoming Email](/docs/workflows/triggers#email-in-arrivo).
 
 ## Casi d'uso
 

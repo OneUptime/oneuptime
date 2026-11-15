@@ -2,7 +2,7 @@
 
 Le **Incoming Email Monitor** de OneUptime vous permet de créer et de résoudre des alertes à partir d'e-mails envoyés à des adresses uniques, propres à chaque moniteur. C'est utile pour intégrer des systèmes anciens, des outils d'alerte ou tout service capable d'envoyer des e-mails.
 
-La même configuration permet aussi aux flux de travail de recevoir des e-mails : un flux de travail doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le flux de travail. Voir [Déclencheurs](/docs/workflows/triggers#incoming-email).
+La même configuration permet aussi aux flux de travail de recevoir des e-mails : un flux de travail doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le flux de travail. Voir [Déclencheurs](/docs/workflows/triggers#e-mail-entrant).
 
 Ce guide explique comment configurer SendGrid Inbound Parse pour transférer les e-mails entrants vers votre instance OneUptime auto-hébergée. OneUptime Cloud n'en a pas besoin : ses adresses fonctionnent d'emblée.
 
@@ -118,7 +118,7 @@ inboundEmail:
 
 Appliquez-les ensuite : exécutez `npm run start` sous Docker Compose, ce qui recrée les conteneurs avec les nouvelles valeurs, ou mettez à niveau la release Helm sous Kubernetes.
 
-### Créer un moniteur Incoming Email
+### Créer un moniteur E-mail entrant
 
 [Créez un moniteur Incoming Email](/docs/monitor/incoming-email-monitor#créer-un-moniteur-de-mails-entrants). Sa page **Vue d'ensemble** affiche son adresse, par exemple `monitor-abc123def456@inbound.yourdomain.com`, et ses critères décident quels e-mails créent une alerte et lesquels la résolvent.
 
@@ -137,7 +137,7 @@ Envoyez un e-mail à l'adresse du moniteur, avec un objet qui correspond à ses 
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Le sous-domaine configuré pour les e-mails entrants. La réception des e-mails est désactivée tant qu'il n'est pas défini. | Oui | Vide |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secret auquel le dernier segment de l'URL du webhook doit correspondre : `/incoming-email/sendgrid/YOUR_SECRET`. Chaque e-mail est refusé tant qu'il est vide ou un espace réservé. | Oui | Vide |
 
-Ce sur quoi un moniteur Incoming Email peut porter – l'objet, l'expéditeur, le corps, le destinataire et l'arrivée ou non d'un e-mail à temps – est décrit dans [Types de filtres disponibles](/docs/monitor/incoming-email-monitor#types-de-filtre-disponibles).
+Ce sur quoi un moniteur E-mail entrant peut porter – l'objet, l'expéditeur, le corps, le destinataire et l'arrivée ou non d'un e-mail à temps – est décrit dans [Types de filtres disponibles](/docs/monitor/incoming-email-monitor#types-de-filtre-disponibles).
 
 ## Dépannage
 
@@ -156,7 +156,7 @@ Ce sur quoi un moniteur Incoming Email peut porter – l'objet, l'expéditeur, l
 
 :::details Le moniteur ne crée pas d'alertes
 1. **Vérifier les critères :** assurez-vous que vos critères de création d'alerte correspondent au contenu de l'e-mail, et testez d'abord avec des chaînes exactes avant d'utiliser des motifs.
-2. **Vérifier le moniteur :** assurez-vous qu'il n'est pas désactivé et que son type est Incoming Email.
+2. **Vérifier le moniteur :** assurez-vous qu'il n'est pas désactivé et que son type est E-mail entrant.
 3. **Consulter le résumé du moniteur :** vérifiez si l'e-mail a été reçu et traité, et lisez les logs d'évaluation pour voir comment les critères ont correspondu.
 :::
 

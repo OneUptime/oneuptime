@@ -41,11 +41,11 @@ Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있
 :::steps
 ### 모니터 만들기
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-경고-받기)의 안내대로 Incoming Request 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-경고-받기)의 안내대로 수신 요청 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
 
 ### 클라우드에 연결하기
 
-모니터의 **개요 → 연결된 리소스**를 열고 OpenStack 클라우드를 추가합니다. 그러면 각 인시던트가 해당 클라우드의 **인시던트** 페이지에 표시됩니다. Incoming Request 모니터 자체의 설정에는 클라우드가 지정되지 않으므로, 클라우드마다 Alertmanager용 모니터가 따로 필요합니다. 클라우드는 첫 데이터가 도착하면 그 목록에 나타나므로, 아래 단계를 마친 뒤에 하거나 **OpenStack → All Clouds**에서 먼저 클라우드를 추가하세요.
+모니터의 **개요 → 연결된 리소스**를 열고 OpenStack 클라우드를 추가합니다. 그러면 각 인시던트가 해당 클라우드의 **인시던트** 페이지에 표시됩니다. 수신 요청 모니터 자체의 설정에는 클라우드가 지정되지 않으므로, 클라우드마다 Alertmanager용 모니터가 따로 필요합니다. 클라우드는 첫 데이터가 도착하면 그 목록에 나타나므로, 아래 단계를 마친 뒤에 하거나 **OpenStack → All Clouds**에서 먼저 클라우드를 추가하세요.
 :::
 
 Kolla-Ansible가 고정한 버전의 Alertmanager가 정확히 이 형태로 전송하는 것을 기록했으며, 전송된 내용은 실행 중인 OneUptime에서 인시던트를 하나 열었고 Alertmanager 자체의 `resolved` 상태가 이를 해결했습니다.

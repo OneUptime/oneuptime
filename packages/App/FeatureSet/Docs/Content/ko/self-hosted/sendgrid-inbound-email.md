@@ -2,7 +2,7 @@
 
 OneUptime의 **Incoming Email Monitor**를 사용하면 모니터마다 고유한 이메일 주소로 보낸 이메일을 바탕으로 경고를 만들고 해결할 수 있습니다. 레거시 시스템, 경고 도구, 이메일을 보낼 수 있는 모든 서비스와 연동할 때 유용합니다.
 
-같은 설정으로 워크플로도 이메일을 받을 수 있습니다. **수신 이메일** 트리거가 있는 워크플로는 같은 도메인에 자체 주소를 받고, 그 주소로 온 이메일마다 워크플로가 시작됩니다. [트리거](/docs/workflows/triggers#incoming-email)를 참고하세요.
+같은 설정으로 워크플로도 이메일을 받을 수 있습니다. **수신 이메일** 트리거가 있는 워크플로는 같은 도메인에 자체 주소를 받고, 그 주소로 온 이메일마다 워크플로가 시작됩니다. [트리거](/docs/workflows/triggers#수신-이메일)를 참고하세요.
 
 이 가이드는 수신 이메일을 자체 호스팅한 OneUptime 인스턴스로 전달하도록 SendGrid Inbound Parse를 설정하는 방법을 설명합니다. OneUptime Cloud에는 이런 설정이 필요 없으며, 주소가 바로 동작합니다.
 
@@ -118,7 +118,7 @@ inboundEmail:
 
 그런 다음 적용하세요. Docker Compose에서는 `npm run start`를 실행하면 새 값으로 컨테이너를 다시 만들고, Kubernetes에서는 Helm 릴리스를 업그레이드합니다.
 
-### Incoming Email 모니터 만들기
+### 수신 이메일 모니터 만들기
 
 [Incoming Email 모니터를 만드세요](/docs/monitor/incoming-email-monitor#수신-이메일-모니터-만들기). 그 **개요** 페이지에는 `monitor-abc123def456@inbound.yourdomain.com` 같은 주소가 표시되고, 기준에 따라 어떤 이메일이 경고를 만들고 어떤 이메일이 해결하는지가 정해집니다.
 
@@ -137,7 +137,7 @@ inboundEmail:
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 수신 이메일용으로 설정한 하위 도메인. 설정하기 전까지 수신 이메일은 꺼져 있습니다. | 예 | 비어 있음 |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | 웹훅 URL의 마지막 세그먼트 `/incoming-email/sendgrid/YOUR_SECRET`이 일치해야 하는 시크릿. 비어 있거나 자리 표시자인 동안 모든 이메일이 거부됩니다. | 예 | 비어 있음 |
 
-Incoming Email 모니터가 기준으로 삼을 수 있는 것 - 제목, 보낸 사람, 본문, 받는 사람, 그리고 이메일이 제시간에 도착했는지 여부 - 은 [사용 가능한 필터 유형](/docs/monitor/incoming-email-monitor#사용할-수-있는-필터-유형)에 있습니다.
+수신 이메일 모니터가 기준으로 삼을 수 있는 것 - 제목, 보낸 사람, 본문, 받는 사람, 그리고 이메일이 제시간에 도착했는지 여부 - 은 [사용 가능한 필터 유형](/docs/monitor/incoming-email-monitor#사용할-수-있는-필터-유형)에 있습니다.
 
 ## 문제 해결
 
@@ -156,7 +156,7 @@ Incoming Email 모니터가 기준으로 삼을 수 있는 것 - 제목, 보낸 
 
 :::details 모니터가 경고를 만들지 않음
 1. **기준 확인하기:** 경고 생성 기준이 이메일 내용과 일치하는지 확인하고, 패턴을 쓰기 전에 먼저 정확한 문자열로 테스트하세요.
-2. **모니터 확인하기:** 비활성화되어 있지 않은지, 유형이 Incoming Email인지 확인하세요.
+2. **모니터 확인하기:** 비활성화되어 있지 않은지, 유형이 수신 이메일인지 확인하세요.
 3. **모니터 요약 살펴보기:** 이메일이 수신되어 처리되었는지 확인하고, 평가 로그에서 기준이 어떻게 일치했는지 읽어 보세요.
 :::
 

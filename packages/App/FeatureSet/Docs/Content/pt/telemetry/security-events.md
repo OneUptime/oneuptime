@@ -67,7 +67,7 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 
 ## Antes de começar
 
-Os dados de segurança só são lidos pelos papéis Proprietário do projeto e Administrador do projeto e pelos três papéis de segurança; os outros papéis não veem nada em Security Events. Veja [Papéis](/docs/permissions/reference#funções).
+Os dados de segurança só são lidos pelos papéis Proprietário do projeto e Administrador do projeto e pelos três papéis de segurança; os outros papéis não veem nada em Eventos de segurança. Veja [Papéis](/docs/permissions/reference#funções).
 
 | Papel | O que pode fazer |
 | --- | --- |
@@ -574,7 +574,7 @@ level: high
 - `expand` é usado sozinho, porque os valores da lista dizem como correspondem. Um campo que contém vários valores, como `observables`, corresponde quando algum deles está na lista. **Lida por** nomeia as regras, os monitores Security Events e as caçadas que leem cada lista, e abaixo do YAML de uma regra seu formulário nomeia as listas que a regra lê.
 - Uma regra nomeia uma lista sem diferenciar maiúsculas e minúsculas. Uma regra, um monitor ou uma caçada que nomeia uma lista que o projeto não tem é recusado ao salvar, e uma lista que algum deles lê não pode ser renomeada nem excluída até que nada a leia.
 - Uma mudança em uma lista chega a toda regra que a lê na próxima execução da regra. As regras de correlação e **Executar em eventos passados** também leem listas.
-- Um monitor Security Events lê listas no seu **Filtrar por listas de observação**, e uma pesquisa em **Eventos** ou em uma caçada lê uma como `user:%vip_users%`. Um sinal de menos na frente, como em `-ip:%admin_addresses%`, mantém os eventos cujo campo não está na lista.
+- Um monitor Eventos de segurança lê listas no seu **Filtrar por listas de observação**, e uma pesquisa em **Eventos** ou em uma caçada lê uma como `user:%vip_users%`. Um sinal de menos na frente, como em `-ip:%admin_addresses%`, mantém os eventos cujo campo não está na lista.
 - Uma lista tem no máximo 5.000 valores, dos quais no máximo 100 com `*` e 100 intervalos, e um projeto tem no máximo 200 listas: para uma lista mais longa, siga um feed de inteligência de ameaças. Quem pode criar, editar ou excluir regras de detecção pode fazer o mesmo com as listas, e quem pode editar regras de detecção adiciona, altera e remove seus valores. Toda função de Security pode lê-las, e cada alteração fica no log de auditoria do projeto.
 
 ### Executar em eventos passados

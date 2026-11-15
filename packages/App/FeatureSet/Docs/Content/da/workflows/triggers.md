@@ -6,7 +6,7 @@ En trigger er den første blok i en arbejdsgang — den afgør, hvornår arbejds
 - [Manuel](#manual): Start arbejdsgangen fra Bygger eller fra en anden arbejdsgang.
 - [Tidsplan](#schedule): Kør det efter en tilbagevendende tidsplan, skrevet som et cron-udtryk.
 - [Webhook](#webhook): Lad et andet system starte det ved at kalde en URL.
-- [Indgående e-mail](#incoming-email): Start det med hver e-mail, der sendes til dets egen adresse.
+- [Indgående e-mail](#indgående-e-mail): Start det med hver e-mail, der sendes til dets egen adresse.
 - [Huntress](#huntress): Start det for hver begivenhed, Huntress sender om en hændelsesrapport.
 - [OneUptime-begivenhedstriggere](#oneuptime-begivenhedstriggere): Reager, når en post oprettes, opdateres eller slettes.
 :::
@@ -111,13 +111,13 @@ Lækker URL'en, så klik på **Nulstil URL** samme sted: arbejdsgangen får en n
 > [!WARNING]
 > Behandl URL'en som en adgangskode. Alle, der har den, kan starte din arbejdsgang uden at logge ind.
 
-## Incoming Email
+## Indgående e-mail
 
 OneUptime giver arbejdsgangen sin egen e-mailadresse. Hver e-mail, der sendes til den adresse, starter arbejdsgangen og sender e-mailen med: hvem der sendte den, hvem den var til, emnet, teksten og HTML'en, headerne og navnene på eventuelle vedhæftede filer.
 
 God til: at handle på e-mails fra systemer, der ikke kan kalde en webhook — advarsler fra ældre overvågningsværktøjer, en leverandørs statusmeddelelser, den rapport, et natligt job mailer ud.
 
-For at få adressen klikker du på Incoming Email-triggeren på lærredet. Adressen står øverst i dens indstillinger, med en knap **Kopiér adresse**. Giv den til det, der skal starte arbejdsgangen: et værktøj, der kun kan sende e-mail, en leverandørs notifikationsindstillinger eller en videresendelsesregel i din egen postkasse.
+For at få adressen klikker du på Indgående e-mail-triggeren på lærredet. Adressen står øverst i dens indstillinger, med en knap **Kopiér adresse**. Giv den til det, der skal starte arbejdsgangen: et værktøj, der kun kan sende e-mail, en leverandørs notifikationsindstillinger eller en videresendelsesregel i din egen postkasse.
 
 Hver e-mail starter sin egen kørsel. E-mailen når arbejdsgangen, uanset om adressen står i Til eller Cc, er en bcc eller nås gennem en videresendelsesregel. En e-mail, der nævner adressen to gange, starter én kørsel.
 
