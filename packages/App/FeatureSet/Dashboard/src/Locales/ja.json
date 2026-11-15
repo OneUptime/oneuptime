@@ -52398,5 +52398,9 @@
   "Change (schema change)": "変更内容",
   "Table (database object)": "テーブル",
   "View (database object)": "ビュー",
-  "{{wait}}. Change when this step is sent.": "{{wait}}。このステップを送信するタイミングを変更します。"
+  "{{wait}}. Change when this step is sent.": "{{wait}}。このステップを送信するタイミングを変更します。",
+  "more sites not shown": "表示されていないサイトがあります",
+  "{{count}} without coordinates": "座標なし {{count}} 件",
+  "{{count}} without coordinates_one": "座標なし {{count}} 件",
+  "{{used}} of {{capacity}}": "{{capacity}} 中 {{used}}"
 }

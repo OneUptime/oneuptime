@@ -52398,5 +52398,9 @@
   "Change (schema change)": "Change (schema change)",
   "Table (database object)": "Table (database object)",
   "View (database object)": "View (database object)",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent.",
+  "more sites not shown": "more sites not shown",
+  "{{count}} without coordinates": "{{count}} without coordinates",
+  "{{count}} without coordinates_one": "{{count}} without coordinates",
+  "{{used}} of {{capacity}}": "{{used}} of {{capacity}}"
 }

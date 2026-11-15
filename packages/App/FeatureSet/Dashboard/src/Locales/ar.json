@@ -52398,5 +52398,9 @@
   "Change (schema change)": "التغيير",
   "Table (database object)": "جدول",
   "View (database object)": "طريقة عرض",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة.",
+  "more sites not shown": "مواقع أخرى غير معروضة",
+  "{{count}} without coordinates": "بلا إحداثيات: {{count}}",
+  "{{count}} without coordinates_one": "{{count}} بلا إحداثيات",
+  "{{used}} of {{capacity}}": "{{used}} من {{capacity}}"
 }

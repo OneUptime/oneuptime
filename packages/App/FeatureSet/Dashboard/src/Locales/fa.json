@@ -52398,5 +52398,9 @@
   "Change (schema change)": "تغییر",
   "Table (database object)": "جدول",
   "View (database object)": "نما",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. تعیین کنید این گام کی فرستاده شود."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. تعیین کنید این گام کی فرستاده شود.",
+  "more sites not shown": "سایت‌های بیشتری نشان داده نشده است",
+  "{{count}} without coordinates": "{{count}} بدون مختصات",
+  "{{count}} without coordinates_one": "{{count}} بدون مختصات",
+  "{{used}} of {{capacity}}": "{{used}} از {{capacity}}"
 }
