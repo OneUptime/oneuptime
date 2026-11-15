@@ -1,11 +1,4 @@
-import {
-  expect,
-  Locator,
-  Page,
-  Response,
-  test,
-  TestInfo,
-} from "@playwright/test";
+import { expect, Locator, Page, Response, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
@@ -211,8 +204,9 @@ export interface PageLanguagesBlock {
 
 /*
  * A suite's block of checks that each page loads its own language alone,
- * English and every language the fixture draws: in the suite's first project
- * only, since a page loads its language the same at every width.
+ * English and every language the fixture draws, in each of the suite's
+ * projects. (Skipped from inside a test, a phone project's run would leave
+ * the page blank for the suite's own afterEach, which reads the page.)
  */
 export function describePageLanguages(block: PageLanguagesBlock): void {
   test.describe("the page's language, loaded as the Dashboard loads it", () => {
@@ -221,12 +215,7 @@ export function describePageLanguages(block: PageLanguagesBlock): void {
         page,
       }: {
         page: Page;
-      }, testInfo: TestInfo) => {
-        test.skip(
-          testInfo.project.name !== testInfo.config.projects[0]?.name,
-          "A page loads its language the same at every width.",
-        );
-
+      }) => {
         await expectPageLoadsOnlyItsLanguage(
           page,
           {
