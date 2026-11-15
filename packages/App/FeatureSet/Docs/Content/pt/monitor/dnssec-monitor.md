@@ -130,11 +130,11 @@ Os critérios padrão não acompanham sozinhos o vencimento das assinaturas nem 
 ## Solução de problemas
 
 :::details A cadeia aparece como quebrada, mas a zona valida com o `dig`
-Um dos resolvedores de **Resolvedores** não retornou a flag AD: ele não estava alcançável a partir da sonda, ou não valida DNSSEC. A tabela **Resolver Checks**, em **Resultado do Teste do Monitor** e no resumo de cada verificação, mostra a resposta e o erro de cada resolvedor. Remova os resolvedores que a sonda não alcança, e informe só resolvedores validadores.
+Um dos resolvedores de **Resolvedores** não retornou a flag AD: ele não estava alcançável a partir da sonda, ou não valida DNSSEC. A tabela **Verificações de resolvedores**, em **Resultado do Teste do Monitor** e no resumo de cada verificação, mostra a resposta e o erro de cada resolvedor. Remova os resolvedores que a sonda não alcança, e informe só resolvedores validadores.
 :::
 
 :::details Os servidores de nomes aparecem como inconsistentes logo depois de uma mudança
-Os secundários podem ficar atrás do primário por um tempo depois que a zona muda. A tabela **Nameserver Consistency** no resumo da verificação mostra o número de série SOA de cada servidor de nomes. Se um continua atrás, esse secundário parou de receber transferências. Se todos os servidores de nomes mostram um erro, a sonda pode estar impedida de consultá-los diretamente: desative **Verificar consistência do servidor de nomes**.
+Os secundários podem ficar atrás do primário por um tempo depois que a zona muda. A tabela **Consistência dos servidores de nomes** no resumo da verificação mostra o número de série SOA de cada servidor de nomes. Se um continua atrás, esse secundário parou de receber transferências. Se todos os servidores de nomes mostram um erro, a sonda pode estar impedida de consultá-los diretamente: desative **Verificar consistência do servidor de nomes**.
 :::
 
 :::details A verificação informa um tempo limite esgotado
