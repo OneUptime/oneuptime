@@ -54,7 +54,17 @@ export interface ModalSecondaryButton {
 }
 
 export interface ComponentProps {
+  // In English, looked up here - unless isTitleTranslated says otherwise.
   title: string;
+  /*
+   * The title is in the reader's words already: a sentence the page built
+   * around a value ("SCIM URLs - {{name}}", "Restore the backup of
+   * {{time}}"), or a front end's own keyed text. It is drawn as given:
+   * looked up again, a translation that is itself an English key reads as
+   * another word, as the Spanish "Red" (Network) read "Rojo" (#8224,
+   * #8633). Left out, the title is English, looked up here.
+   */
+  isTitleTranslated?: boolean | undefined;
   /*
    * A line under the title. An element can carry a link - to the page where
    * what the dialog picks from is made (Add a Custom Role's Roles page) -
@@ -218,7 +228,10 @@ const Modal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
   const translator: Translator = useTranslator();
-  const translatedTitle: string = translateString(props.title) || props.title;
+  // Looked up once: English here, a title in the reader's words as given.
+  const translatedTitle: string = props.isTitleTranslated
+    ? props.title
+    : translateString(props.title) || props.title;
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
   const translatedSubmitButtonText: string | undefined = translateString(

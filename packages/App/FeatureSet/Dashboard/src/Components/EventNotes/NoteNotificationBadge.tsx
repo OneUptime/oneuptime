@@ -146,6 +146,7 @@ const NoteNotificationBadge: FunctionComponent<ComponentProps> = (
       {isDetailsOpen && dialogStep === "details" && (
         <ConfirmModal
           title={tx(props.kindLabel)}
+          isTitleTranslated={true}
           description={
             <div className="space-y-3" data-testid="note-notification-details">
               <span className={className}>{content}</span>
@@ -206,6 +207,7 @@ const NoteNotificationBadge: FunctionComponent<ComponentProps> = (
                 ? SubscriberNotificationResendCopy.resendConfirmTitle
                 : SubscriberNotificationResendCopy.retryConfirmTitle,
             )}
+            isTitleTranslated={true}
             description={
               <div
                 className="space-y-3"

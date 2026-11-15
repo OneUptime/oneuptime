@@ -175,6 +175,7 @@ const OfflineLicenseTokenCard: FunctionComponent<ComponentProps> = (
         {showModal ? (
           <BasicFormModal<OfflineTokenFormValues>
             title={t("pages.enterpriseLicenseView.offlineTokenModalTitle")}
+            isTitleTranslated={true}
             description={t(
               "pages.enterpriseLicenseView.offlineTokenModalDescription",
             )}

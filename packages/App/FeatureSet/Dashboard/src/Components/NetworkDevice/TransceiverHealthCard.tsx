@@ -379,6 +379,7 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
                         sorted.length,
                       )
                 }
+                isTitleTranslated={true}
                 dataTestId="transceiver-show-all"
                 ariaExpanded={showAll}
                 onClick={() => {
@@ -804,11 +805,13 @@ const TransceiverDetails: FunctionComponent<DetailsProps> = (
       title={translator.translateTemplate("Transceiver in {{port}}", {
         port: port,
       })}
+      isTitleTranslated={true}
       description={
         optic ||
         translator.translateText("The optic reports no identity.") ||
         ""
       }
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Medium}
     >

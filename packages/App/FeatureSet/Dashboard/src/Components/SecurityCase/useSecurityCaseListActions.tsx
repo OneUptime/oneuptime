@@ -642,6 +642,7 @@ export default function useSecurityCaseListActions(
             title={translator.translateTemplate(ASSIGN_TO_ME_FAILED, {
               case: assignToMeFailure.caseName,
             })}
+            isTitleTranslated={true}
             description={assignToMeFailure.reason}
             submitButtonText="Close"
             onSubmit={() => {

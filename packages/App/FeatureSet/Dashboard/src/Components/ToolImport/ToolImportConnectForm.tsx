@@ -601,6 +601,7 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
                   toolValues,
                 )
           }
+          isTitleTranslated={true}
           type={ButtonType.Submit}
           buttonStyle={ButtonStyleType.PRIMARY}
           icon={IconProp.InboxArrowDown}

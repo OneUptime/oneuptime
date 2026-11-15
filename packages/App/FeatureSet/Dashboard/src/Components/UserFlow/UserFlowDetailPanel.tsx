@@ -429,6 +429,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
                   { page: targetLabel },
                   { setsValuesApart: true },
                 )}
+                isTitleTranslated={true}
                 icon={IconProp.ArrowRight}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -446,6 +447,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
                   { page: sourceLabel },
                   { setsValuesApart: true },
                 )}
+                isTitleTranslated={true}
                 icon={IconProp.ArrowLeft}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}

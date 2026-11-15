@@ -1783,6 +1783,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate("Add a monitor to {{name}}", {
             name: title,
           })}
+          isTitleTranslated={true}
           description="Pick the monitor visitors will see the status of here."
           submitButtonText="Add Monitor"
           initialValues={initialValuesForCreate}

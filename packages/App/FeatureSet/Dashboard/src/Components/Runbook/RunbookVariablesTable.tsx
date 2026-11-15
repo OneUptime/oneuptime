@@ -585,6 +585,7 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate(REPLACE_VALUE_OF_TITLE, {
             name: replacing.name || "",
           })}
+          isTitleTranslated={true}
           description={REPLACE_VALUE_DESCRIPTION}
           name="Runbook Variable > Replace Value"
           isLoading={isReplacing}

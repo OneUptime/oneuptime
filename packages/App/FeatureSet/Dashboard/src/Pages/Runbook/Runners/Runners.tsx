@@ -231,6 +231,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ProjectDefaultRunnerCopy.stopDefaultConfirmTitle,
               { runner: name },
             )}
+            isTitleTranslated={true}
             description={ProjectDefaultRunnerCopy.stopDefaultConfirmDescription}
             submitButtonText={ProjectDefaultRunnerCopy.stopDefaultConfirmButton}
             submitButtonType={ButtonStyleType.PRIMARY}
@@ -272,6 +273,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ProjectDefaultRunnerCopy.makeDefaultConfirmTitle,
             { runner: name },
           )}
+          isTitleTranslated={true}
           description={translator.translateTemplate(description.template, {
             current: description.current || "",
           })}

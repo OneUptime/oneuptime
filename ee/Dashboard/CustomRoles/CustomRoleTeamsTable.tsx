@@ -119,8 +119,7 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
     ? translator.translateTemplate("Give {{role}} to a Team", {
         role: props.roleName,
       })
-    : translator.translateText("Give this role to a team") ||
-      "Give this role to a team";
+    : (translator.translateText("Give this role to a team") as string);
 
   return (
     <Fragment>
@@ -214,6 +213,7 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
       {isGiving ? (
         <ModelFormModal<TeamCustomRole>
           title={giveTitle}
+          isTitleTranslated={true}
           name="Give a custom role to a team"
           description="Its members get everything this role allows, from now on."
           modelType={TeamCustomRole}

@@ -13,6 +13,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   title?: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   message: string;
 }
 
@@ -37,6 +39,7 @@ const PageError: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || UnexplainedErrorWords.pageDidNotLoadTitle}
+      isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
       onSubmit={() => {
         Navigation.reload();
       }}

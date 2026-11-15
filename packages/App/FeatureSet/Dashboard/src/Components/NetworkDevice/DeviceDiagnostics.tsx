@@ -578,7 +578,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
       <>
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            title={translateString("Ping") || "Ping"}
+            title="Ping"
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}
             dataTestId="network-device-diagnostic-ping"
@@ -590,7 +590,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
             }}
           />
           <Button
-            title={translateString("Traceroute") || "Traceroute"}
+            title="Traceroute"
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}
             dataTestId="network-device-diagnostic-traceroute"

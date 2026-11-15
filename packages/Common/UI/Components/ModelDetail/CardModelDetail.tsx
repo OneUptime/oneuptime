@@ -419,7 +419,13 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
       {showModel ? (
         <ModelFormModal<TBaseModel>
-          title={props.editModalTitle || editTitle}
+          title={
+            props.editModalTitle
+              ? translator.translateText(props.editModalTitle) ||
+                props.editModalTitle
+              : editTitle
+          }
+          isTitleTranslated={true}
           description={props.editModalDescription}
           modalWidth={props.createEditModalWidth}
           modelAPI={props.modelAPI}
