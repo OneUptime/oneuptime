@@ -201,6 +201,14 @@ export interface IncomingRequestIngestJobData {
   ingestionTimestamp: Date;
   receivedViaProbeId?: string | undefined;
   /*
+   * The SHA-256 of each incoming request secret the request presented, for
+   * its project's secret requirement (IncomingRequestSecretGate). The secret
+   * itself never reaches the queue: the endpoint takes X-OneUptime-Secret off
+   * the request. Absent on a job queued before the requirement existed; the
+   * worker then reads what the headers carry.
+   */
+  presentedSecretHashes?: Array<string> | undefined;
+  /*
    * Set only when the request was queued with same-monitor coalescing: its id
    * in IncomingRequestLatestPayloadStore. It tells the worker to evaluate the
    * monitor's newest stored request, which may be newer than this copy. The
@@ -1399,6 +1407,8 @@ export default class TelemetryQueueService {
      * queue got around to it.
      */
     receivedAt?: Date | undefined;
+    // See IncomingRequestIngestJobData.presentedSecretHashes.
+    presentedSecretHashes?: Array<string> | undefined;
   }): Promise<void> {
     try {
       const incomingRequestData: IncomingRequestIngestJobData = {
@@ -1408,6 +1418,7 @@ export default class TelemetryQueueService {
         requestMethod: data.requestMethod,
         ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
         receivedViaProbeId: data.receivedViaProbeId,
+        presentedSecretHashes: data.presentedSecretHashes,
       };
 
       /*

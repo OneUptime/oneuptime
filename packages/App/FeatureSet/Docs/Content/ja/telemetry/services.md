@@ -43,7 +43,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているテレメトリ** に `service.name` が含まれていること。[OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。`OTEL_SERVICE_NAME` で設定できます。
-- **サービスを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Settings Admin、Settings Member、Settings Viewer のいずれか、または Read Service 権限を持つカスタムロール。サービスの作成、変更、削除には、Project Owner、Project Admin、Project Member、Settings Admin、Settings Member のいずれか、または対応するサービスの権限が必要です。
+- **サービスを読み取れるロール。** プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者、設定管理者、設定メンバー、設定閲覧者のいずれか、または Read Service 権限を持つカスタムロール。サービスの作成、変更、削除には、プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、設定管理者、設定メンバーのいずれか、または対応するサービスの権限が必要です。
 
 ## サービスを探す
 

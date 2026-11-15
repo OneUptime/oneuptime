@@ -95,7 +95,15 @@ import {
   matchesEventName,
   matchesPagePattern,
   readCustomSignals,
+  readPathAsWritten,
 } from "../src/CustomSignals";
+import { sanitizeRoute } from "../src/Sanitize";
+import UrlScrubber from "../../../../Common/Utils/Rum/UrlScrubber";
+import {
+  PAGES_WITH_PERSONAL_DATA,
+  PAGES_WITH_SECRETS,
+  PageSpellingCase,
+} from "../../../../Common/Tests/Helpers/PageSpellings";
 
 /*
  * True only when the two types are identical - same members, same
@@ -398,6 +406,127 @@ describe("published SDK wire contract", () => {
         );
       }
     });
+
+    /*
+     * #8195: a pattern is compared with a path in the spelling a person
+     * reads, "/café" whatever the escapes - Common's
+     * UrlScrubber.normalizePathSpelling(path, true), which this recorder
+     * carries a copy of (readPathAsWritten). The two read every spelling
+     * the same, and the matchers match on it alike.
+     */
+    test("reads a path's spelling, and matches a spelled page, exactly as Common does", () => {
+      const random: SeededRandom = seededRandom(8195);
+      const pieces: Array<string> = [
+        "/",
+        "*",
+        "a",
+        "E",
+        "%C3%A9",
+        "%c3%a9",
+        "%CC%81",
+        "%cc%81",
+        "é",
+        "É",
+        "e",
+        "%C3%89",
+        "%2F",
+        "%2f",
+        "%25",
+        "%E9",
+        "%e2%84%aa",
+        "%D8%B3",
+        "س",
+        "%",
+        "%4",
+        "%zz",
+        "%F0%9F%98%80",
+        String.fromCharCode(0x301),
+      ];
+
+      const text: (maxPieces: number) => string = (
+        maxPieces: number,
+      ): string => {
+        let value: string = "";
+        const count: number = random(maxPieces + 1);
+
+        for (let index: number = 0; index < count; index++) {
+          value += pieces[random(pieces.length)];
+        }
+
+        return value;
+      };
+
+      let matched: number = 0;
+
+      for (let iteration: number = 0; iteration < 4000; iteration++) {
+        const pattern: string = `/${text(5)}`;
+        const path: string = `/${text(6)}`;
+
+        expect([path, readPathAsWritten(path)]).toEqual([
+          path,
+          UrlScrubber.normalizePathSpelling(path, true),
+        ]);
+
+        const common: boolean = matchesSessionReplayPagePattern(pattern, path);
+
+        expect([pattern, path, matchesPagePattern(pattern, path)]).toEqual([
+          pattern,
+          path,
+          common,
+        ]);
+
+        if (common) {
+          matched++;
+        }
+      }
+
+      // The sweep reaches both sides of the rule.
+      expect(matched).toBeGreaterThan(100);
+
+      for (const [pattern, path, expected] of [
+        ["/café", "/caf%C3%A9", true],
+        ["/café", "/caf%c3%a9", true],
+        ["/café", "/cafe%CC%81", true],
+        ["/CAFÉ", "/caf%C3%A9", true],
+        ["/caf%C3%A9", "/cafe%CC%81", true],
+        ["/a%2Fb", "/a/b", false],
+      ] as Array<[string, string, boolean]>) {
+        expect([pattern, path, matchesPagePattern(pattern, path)]).toEqual([
+          pattern,
+          path,
+          expected,
+        ]);
+      }
+    });
+  });
+
+  /*
+   * The route rule (sanitizeRoute) is a copy of the path rule Common's
+   * UrlScrubber holds every address to, so a screen is redacted alike in
+   * the recording and in what the server keeps of it. Both read the shared
+   * table the browser recorder and the server read (#8197, #8385): a route
+   * sent as the path in `sent` is the page in `page`.
+   */
+  test("redacts a route as Common's scrubber redacts a path", () => {
+    for (const row of [...PAGES_WITH_PERSONAL_DATA, ...PAGES_WITH_SECRETS]) {
+      expect([row.name, sanitizeRoute(row.sent)]).toEqual([
+        row.name,
+        (row as PageSpellingCase).page,
+      ]);
+    }
+
+    for (const route of [
+      "/auth/callback/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+      "/users/someone%2540example.com",
+      "/files/report-2026-11-15.pdf",
+      "/a%2Fb/someone%40example.com",
+      "/x/%25zz-off",
+    ]) {
+      expect([route, sanitizeRoute(route)]).toEqual([
+        route,
+        UrlScrubber.scrubPath(route),
+      ]);
+    }
   });
 
   test("marks a rotated session with the tag the browser recorder uses", () => {

@@ -37,7 +37,7 @@ Unter **Mitglieder-Vorfälle** nimmt **Entfernen** in einer Zeile, oder für die
 
 ## Eine Episode pro Vorfall
 
-Ein Vorfall kann gleichzeitig in mehreren Episoden sein. Damit jeder Vorfall in höchstens einer Episode ist, schalten Sie **Ein Vorfall kann nur in einer Episode sein** unter **Vorfälle → Einstellungen → Episodenzugehörigkeit** ein. Für Warnungen heißt der Schalter **Eine Warnung kann nur in einer Episode sein**, unter **Warnungen → Einstellungen → Episodenzugehörigkeit**. Beide sind aus, bis Sie sie einschalten, und nur Project Owners und Project Admins können sie ändern.
+Ein Vorfall kann gleichzeitig in mehreren Episoden sein. Damit jeder Vorfall in höchstens einer Episode ist, schalten Sie **Ein Vorfall kann nur in einer Episode sein** unter **Vorfälle → Einstellungen → Episodenzugehörigkeit** ein. Für Warnungen heißt der Schalter **Eine Warnung kann nur in einer Episode sein**, unter **Warnungen → Einstellungen → Episodenzugehörigkeit**. Beide sind aus, bis Sie sie einschalten, und nur Projektinhaber und Projektadministratoren können sie ändern.
 
 Solange er an ist, wird ein Vorfall, der in einer Episode ist, keiner anderen hinzugefügt:
 
@@ -51,7 +51,7 @@ Das Einschalten nimmt keinen Vorfall aus einer Episode heraus: Ein Vorfall, der 
 
 ## Wer hinzufügen darf
 
-Zum Hinzufügen braucht man die Berechtigung, Vorfälle zu einer Episode hinzuzufügen. Die Rollen Project Owner, Project Admin, Project Member, Incident Admin und Incident Member haben sie, ebenso eine eigene Rolle mit Create Incident Episode Member. Sie können nur Vorfälle hinzufügen, die Sie sehen können: Einen privaten Vorfall können nur seine Eigentümer und die Eigentümer und Admins des Projekts hinzufügen. Zu neuer Episode hinzufügen braucht außerdem die Berechtigung, eine Episode zu erstellen. Können Sie eine Aktion nicht nutzen, ist sie gesperrt, und ihr Tooltip nennt die fehlende Berechtigung.
+Zum Hinzufügen braucht man die Berechtigung, Vorfälle zu einer Episode hinzuzufügen. Die Rollen Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator und Vorfall-Mitglied haben sie, ebenso eine eigene Rolle mit Create Incident Episode Member. Sie können nur Vorfälle hinzufügen, die Sie sehen können: Einen privaten Vorfall können nur seine Eigentümer und die Eigentümer und Admins des Projekts hinzufügen. Zu neuer Episode hinzufügen braucht außerdem die Berechtigung, eine Episode zu erstellen. Können Sie eine Aktion nicht nutzen, ist sie gesperrt, und ihr Tooltip nennt die fehlende Berechtigung.
 
 ## Mit der API
 

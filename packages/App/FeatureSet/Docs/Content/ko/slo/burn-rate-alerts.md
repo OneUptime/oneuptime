@@ -212,8 +212,8 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{targetPercentage}}` | SLO의 목표(퍼센트). | `99.9` |
 | `{{currentSliPercentage}}` | SLO의 준수 기간에서 측정한 SLI(퍼센트). | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | 아직 쓸 수 있는 오류 예산의 비율(퍼센트). 예산을 초과하면 음수입니다. | `42.5` |
-| `{{errorBudgetRemaining}}` | 아직 쓸 수 있는 오류 예산(기간). 예산을 초과하면 빼기 기호로 시작합니다. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | 아직 쓸 수 있는 오류 예산(분). | `18.37` |
+| `{{errorBudgetRemaining}}` | 아직 쓸 수 있는 오류 예산(기간). 요청 SLO에서는 아직 허용되는 실패하거나 느린 요청의 수입니다. 예산을 초과하면 빼기 기호로 시작합니다. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | 아직 쓸 수 있는 오류 예산(분). 예산을 요청 수로 세는 요청 SLO에서는 비어 있습니다. | `18.37` |
 | `{{windowDescription}}` | SLO의 준수 기간을 말로 표현한 것. | `rolling 30-day window` |
 | `{{policyTier}}` | 이번 평가 후 SLO가 있는 오류 예산 정책 단계의 이름. 어떤 단계에도 없으면 "None". | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | 그 단계의 남은 예산 임계값(퍼센트). SLO가 어떤 단계에도 없으면 비어 있습니다. | `25` |

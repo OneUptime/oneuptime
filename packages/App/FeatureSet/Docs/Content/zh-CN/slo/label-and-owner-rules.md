@@ -98,7 +98,7 @@ SLO 的所有者是会收到其状态变化通知的人：请参阅[错误预算
 | 运行标签规则 | **Edit SLO Label Rule** 和 **Edit Service Level Objective** |
 | 运行所有者规则 | **Edit SLO Owner Rule**、**Edit Service Level Objective**、**Create SLO User Owner** 和 **Create SLO Team Owner** |
 
-这些权限位于角色的 SLO 组中，Project Owner 和 Project Admin 角色拥有全部权限。一次运行会更改项目中的每个 SLO，因此仅限于部分标签或您拥有的 SLO 的权限不足以运行规则。
+这些权限位于角色的 SLO 组中，项目所有者和项目管理员角色拥有全部权限。一次运行会更改项目中的每个 SLO，因此仅限于部分标签或您拥有的 SLO 的权限不足以运行规则。
 
 ## 后续步骤
 

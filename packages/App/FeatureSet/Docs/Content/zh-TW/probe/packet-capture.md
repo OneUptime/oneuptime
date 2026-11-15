@@ -188,10 +188,10 @@ spec:
 
 | 權限 | 允許 | 預設擁有者 |
 | --- | --- | --- |
-| **Start Packet Capture** | 開始擷取以及停止擷取 | Project Owner, Project Admin |
-| **Download Packet Capture** | 下載擷取檔案 | Project Owner, Project Admin |
-| **Delete Packet Capture** | 刪除擷取及其檔案 | Project Owner, Project Admin |
-| **Read Packet Capture** | 查看擷取：何時執行、在哪個探測器上、使用哪個篩選器 | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | 開始擷取以及停止擷取 | 專案擁有者、專案管理員 |
+| **Download Packet Capture** | 下載擷取檔案 | 專案擁有者、專案管理員 |
+| **Delete Packet Capture** | 刪除擷取及其檔案 | 專案擁有者、專案管理員 |
+| **Read Packet Capture** | 查看擷取：何時執行、在哪個探測器上、使用哪個篩選器 | 專案擁有者、專案管理員、專案成員、檢視者 |
 
 要給團隊 **Start Packet Capture** 或 **Download Packet Capture**，請在 **設定 → 團隊** 下開啟該團隊，並在其 **權限** 頁面上加入該權限。請參閱 [權限](/docs/permissions/index)。
 

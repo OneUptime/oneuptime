@@ -21,7 +21,9 @@ import { JSONArray } from "Common/Types/JSON";
 import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
-import AuditLogChangesModal from "./AuditLogChangesModal";
+import AuditLogChangesModal, {
+  AUDIT_LOG_FIELDS_CHANGED,
+} from "./AuditLogChangesModal";
 import {
   AuditLogsStoppedCopy,
   getAuditLogsStoppedCopy,
@@ -36,6 +38,7 @@ import {
   ResourceMeta,
   getActorCredentialLabel,
   getActorInitials,
+  getActorTypeLabel,
   getAuditLogsQuery,
   getResourceLink,
   getResourceMeta,
@@ -53,7 +56,11 @@ import {
   isSessionAuditLogAction,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -88,6 +95,96 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * server records as configured, so the table says nothing about the license.
  */
 export type ComponentProps = AuditLogsTableProps;
+
+/*
+ * The words the table draws itself - its notices, empty states, actor lines
+ * and field counts - as keys of the Dashboard's locales, looked up in the
+ * reader's language (#8319). They were JSX text and template literals no
+ * locale had, so they read English beside the translated Action and
+ * Resource columns.
+ */
+export const AUDIT_LOGS_TABLE_WORDS: Readonly<{
+  notRecordingNotIncluded: string;
+  notRecordingLicenseRequired: string;
+  loggingOff: string;
+  loggingOffHint: string;
+  turnOn: string;
+  turnedOffTitle: string;
+  turnedOffDescription: string;
+  openSettings: string;
+  noEntriesTitle: string;
+  noEntriesDescription: string;
+  unnamed: string;
+  apiKey: string;
+  apiRequest: string;
+  workflow: string;
+  system: string;
+  automatedChange: string;
+  unknownUser: string;
+  noFieldsRecorded: string;
+  viewSessionDetails: string;
+}> = {
+  notRecordingNotIncluded: translationKey(
+    "Audit logging is not recording: not included in your Enterprise license",
+  ),
+  notRecordingLicenseRequired: translationKey(
+    "Audit logging is not recording: Enterprise license required",
+  ),
+  loggingOff: translationKey("Audit logging is off"),
+  loggingOffHint: translationKey(
+    "New changes to this project are not being recorded until audit logging is turned on in Settings.",
+  ),
+  turnOn: translationKey("Turn on"),
+  turnedOffTitle: translationKey("Audit logging is turned off"),
+  turnedOffDescription: translationKey(
+    "Changes to this project are not being recorded. Turn on audit logging to start keeping a history of who changed what, and who signed in.",
+  ),
+  openSettings: translationKey("Open Audit Logs settings"),
+  noEntriesTitle: translationKey("No audit entries yet"),
+  noEntriesDescription: translationKey(
+    "Changes made to resources in this project, and every time its members sign in or out, will appear here automatically. Create, update, or delete a resource to see an entry.",
+  ),
+  unnamed: translationKey("Unnamed"),
+  apiKey: translationKey("API Key"),
+  apiRequest: translationKey("API request"),
+  workflow: translationKey("Workflow"),
+  system: translationKey("System"),
+  automatedChange: translationKey("Automated change"),
+  unknownUser: translationKey("Unknown user"),
+  noFieldsRecorded: translationKey("No fields recorded"),
+  viewSessionDetails: translationKey("{{summary}} - view session details"),
+};
+
+/*
+ * How many fields an entry that is no update kept (a created or deleted
+ * record's snapshot), in the reader's plural forms and digits. An update's
+ * count is the changes dialog's own (AUDIT_LOG_FIELDS_CHANGED).
+ */
+export const AUDIT_LOG_FIELDS_CAPTURED: PluralTemplate = {
+  one: "{{count}} field captured",
+  other: "{{count}} fields captured",
+};
+
+/*
+ * What the Changes column's button says of an entry's fields: how many an
+ * update changed, or how many any other entry kept.
+ */
+export const getAuditLogFieldCountLabel: (data: {
+  action: string | undefined;
+  count: number;
+  translator: Translator;
+}) => string = (data: {
+  action: string | undefined;
+  count: number;
+  translator: Translator;
+}): string => {
+  return data.translator.translatePlural(
+    data.action === "Update"
+      ? AUDIT_LOG_FIELDS_CHANGED
+      : AUDIT_LOG_FIELDS_CAPTURED,
+    data.count,
+  );
+};
 
 interface ActionStyle {
   label: string;
@@ -295,6 +392,13 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
   const licenseStoppedCopy: AuditLogsStoppedCopy | null =
     getAuditLogsStoppedCopy(licenseMode);
 
+  // A word of the table's own, in the reader's language.
+  const translate: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
+  const words: typeof AUDIT_LOGS_TABLE_WORDS = AUDIT_LOGS_TABLE_WORDS;
+
   const isAuditLoggingOff: boolean = isAuditLoggingEnabled === false;
 
   const auditLogSettingsRoute: Route = RouteUtil.populateRouteParams(
@@ -311,7 +415,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
       <div
         data-testid="audit-logging-license-notice"
         role="status"
-        title={`${licenseStoppedCopy.title} ${licenseStoppedCopy.description}`}
+        title={translate(licenseStoppedCopy.description)}
         className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-red-200 bg-red-50 py-1 pl-2 pr-3 text-xs text-red-800"
       >
         <Icon
@@ -321,9 +425,11 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
           className="h-3.5 w-3.5 flex-shrink-0 text-red-600"
         />
         <span className="truncate">
-          {licenseMode === EnterpriseLicenseMode.NotIncluded
-            ? "Audit logging is not recording: not included in your Enterprise license"
-            : "Audit logging is not recording: Enterprise license required"}
+          {translate(
+            licenseMode === EnterpriseLicenseMode.NotIncluded
+              ? words.notRecordingNotIncluded
+              : words.notRecordingLicenseRequired,
+          )}
         </span>
       </div>
     ) : undefined;
@@ -332,7 +438,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     <div
       data-testid="audit-logging-disabled-notice"
       role="status"
-      title="New changes to this project are not being recorded until audit logging is turned on in Settings."
+      title={translate(words.loggingOffHint)}
       className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 py-1 pl-2 pr-3 text-xs text-amber-800"
     >
       <Icon
@@ -341,12 +447,12 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         thick={ThickProp.Thick}
         className="h-3.5 w-3.5 flex-shrink-0 text-amber-600"
       />
-      <span className="truncate">Audit logging is off</span>
+      <span className="truncate">{translate(words.loggingOff)}</span>
       <AppLink
         to={auditLogSettingsRoute}
         className="flex-shrink-0 font-semibold text-amber-900 underline-offset-2 hover:underline"
       >
-        Turn on
+        {translate(words.turnOn)}
       </AppLink>
     </div>
   ) : undefined;
@@ -364,10 +470,10 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         />
       </div>
       <div className="text-sm font-medium text-gray-900">
-        {licenseStoppedCopy.title}
+        {translate(licenseStoppedCopy.title)}
       </div>
       <div className="text-xs text-gray-500 mt-1 max-w-sm">
-        {licenseStoppedCopy.description}
+        {translate(licenseStoppedCopy.description)}
       </div>
     </div>
   ) : null;
@@ -387,17 +493,16 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         />
       </div>
       <div className="text-sm font-medium text-gray-900">
-        Audit logging is turned off
+        {translate(words.turnedOffTitle)}
       </div>
       <div className="text-xs text-gray-500 mt-1 max-w-sm">
-        Changes to this project are not being recorded. Turn on audit logging to
-        start keeping a history of who changed what, and who signed in.
+        {translate(words.turnedOffDescription)}
       </div>
       <AppLink
         to={auditLogSettingsRoute}
         className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
       >
-        Open Audit Logs settings
+        {translate(words.openSettings)}
       </AppLink>
     </div>
   ) : (
@@ -410,12 +515,10 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         />
       </div>
       <div className="text-sm font-medium text-gray-900">
-        No audit entries yet
+        {translate(words.noEntriesTitle)}
       </div>
       <div className="text-xs text-gray-500 mt-1 max-w-sm">
-        Changes made to resources in this project, and every time its members
-        sign in or out, will appear here automatically. Create, update, or
-        delete a resource to see an entry.
+        {translate(words.noEntriesDescription)}
       </div>
     </div>
   );
@@ -560,7 +663,9 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const nameEl: ReactElement = (
                 <span className="text-sm font-medium text-gray-900 truncate">
                   {name || (
-                    <span className="italic text-gray-400">Unnamed</span>
+                    <span className="italic text-gray-400">
+                      {translate(words.unnamed)}
+                    </span>
                   )}
                 </span>
               );
@@ -588,7 +693,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                     to={route}
                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline truncate"
                   >
-                    {name || "Unnamed"}
+                    {name || translate(words.unnamed)}
                   </AppLink>
                 );
               }
@@ -629,7 +734,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 !item.apiKeyName;
 
               if (isApi) {
-                const apiName: string = item.apiKeyName || "API Key";
+                const apiName: string =
+                  item.apiKeyName || translate(words.apiKey);
                 return (
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-700">
@@ -645,7 +751,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                         {apiName}
                       </span>
                       <span className="text-[11px] text-gray-500">
-                        API request
+                        {translate(words.apiRequest)}
                       </span>
                     </div>
                   </div>
@@ -657,7 +763,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                * workflow itself is the actor, named as it was at the time.
                */
               if (userType === "Workflow") {
-                const workflowName: string = item.workflowName || "Workflow";
+                const workflowName: string =
+                  item.workflowName || translate(words.workflow);
                 return (
                   <div
                     className="flex items-center gap-2.5 min-w-0"
@@ -676,7 +783,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                         {workflowName}
                       </span>
                       <span className="text-[11px] text-gray-500">
-                        Workflow
+                        {translate(words.workflow)}
                       </span>
                     </div>
                   </div>
@@ -696,10 +803,10 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-sm font-medium text-gray-900">
-                        System
+                        {translate(words.system)}
                       </span>
                       <span className="text-[11px] text-gray-500">
-                        Automated change
+                        {translate(words.automatedChange)}
                       </span>
                     </div>
                   </div>
@@ -707,7 +814,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               }
 
               const displayName: string =
-                item.userName || item.userEmail || "Unknown user";
+                item.userName || item.userEmail || translate(words.unknownUser);
               const initials: string = getActorInitials(
                 item.userName || item.userEmail,
               );
@@ -715,11 +822,14 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                * A person's change that came through something other than the
                * dashboard: an MCP client they connected, or the master key.
                */
-              const credentialLabel: string | null = getActorCredentialLabel({
-                userType: item.userType,
-                apiKeyName: item.apiKeyName,
-                mcpClientName: item.mcpClientName,
-              });
+              const credentialLabel: string | null = getActorCredentialLabel(
+                {
+                  userType: item.userType,
+                  apiKeyName: item.apiKeyName,
+                  mcpClientName: item.mcpClientName,
+                },
+                translator,
+              );
               return (
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
@@ -735,7 +845,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       </span>
                     ) : (
                       <span className="text-[11px] text-gray-500">
-                        {userType || "User"}
+                        {translate(getActorTypeLabel(userType))}
                       </span>
                     )}
                     {credentialLabel ? (
@@ -774,7 +884,10 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     data-testid="audit-log-session-summary"
-                    title={`${summary} - view session details`}
+                    title={translator.translateTemplate(
+                      words.viewSessionDetails,
+                      { summary: summary },
+                    )}
                     onClick={() => {
                       setDetailItem(item);
                     }}
@@ -795,20 +908,20 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const count: number = Array.isArray(rawChanges)
                 ? rawChanges.length
                 : 0;
-              const action: string = item.action || "";
-              const isUpdate: boolean = action === "Update";
 
               if (count === 0) {
                 return (
                   <span className="text-xs text-gray-400 italic">
-                    No fields recorded
+                    {translate(words.noFieldsRecorded)}
                   </span>
                 );
               }
 
-              const label: string = isUpdate
-                ? `${count} field${count === 1 ? "" : "s"} changed`
-                : `${count} field${count === 1 ? "" : "s"} captured`;
+              const label: string = getAuditLogFieldCountLabel({
+                action: item.action,
+                count: count,
+                translator: translator,
+              });
 
               return (
                 <button

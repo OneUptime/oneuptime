@@ -78,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Ersätt `https://oneuptime.com` med URL:en till din OneUptime-instans om du självhostar.
 
-Skicka **GET**- eller **POST**-förfrågningar till den här URL:en. HEAD godtas och behandlas som GET; PUT, PATCH och DELETE returnerar 404. Den hemliga nyckeln i sökvägen är den enda inloggningsuppgiften — det krävs ingen header eller token. Frågesträngar ignoreras: skicka det som kriterierna ska läsa i kroppen eller i headerna.
+Skicka **GET**- eller **POST**-förfrågningar till den här URL:en. HEAD godtas och behandlas som GET; PUT, PATCH och DELETE returnerar 404. Den hemliga nyckeln i sökvägen är inloggningsuppgiften: det krävs ingen header eller token, om inte projektet [kräver en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran). Frågesträngar ignoreras: skicka det som kriterierna ska läsa i kroppen eller i headerna.
 
 > [!WARNING]
 > Alla som känner till den här URL:en kan markera monitorn som frisk, så behandla den som en hemlighet. Om den läcker öppnar du monitorns sida **Inställningar** och klickar på **Återställ hemlig nyckel för inkommande begäran**, och sedan uppdaterar du varje avsändare. Monitorns översikt visar den senaste förfrågan så som dess loggar behåller den: med hemligheter och personuppgifter maskerade, och utan headers eller brödtext när **Behåll förfrågans innehåll** är avstängt. Maskeringen hittar bara de namn och mönster den känner till, så skicka inte API-nycklar eller token till den här slutpunkten.
 
 > [!IMPORTANT]
-> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram.
+> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram. Det enda undantaget är ett projekt som kräver en hemlighet vid varje begäran: en begäran utan hemlighet besvaras med `401`.
 
 ### Skicka en förfrågningskropp
 
@@ -188,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Kräv en hemlighet vid varje begäran
+
+Alla som har en monitors URL kan skicka begäranden till den. En projektägare eller -administratör kan låta varje monitor för inkommande begäranden i projektet även kräva en av projektets egna hemligheter, oavsett vem som satte upp monitorn: slå på **Kräv en hemlighet vid varje begäran**. En begäran utan hemlighet avvisas med `401` och orsaken, innan den räknas som heartbeat, sparas som monitorns senaste begäran eller når några kriterier. En begäran med hemlighet går vidare till monitorns egna kriterier, som tidigare.
+
+:::steps
+### Skapa en hemlighet
+
+Gå till **Monitorer → Inställningar → Hemligheter för inkommande begäranden** och skapa en hemlighet. Ge den ett namn så genererar OneUptime värdet; kopiera det från listan.
+
+### Skicka den från varje avsändare
+
+Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange.
+
+### Slå på kravet
+
+Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime sparar aldrig hemligheten: den tar bort headern från begäran och maskerar en Bearer-token som är en av projektets hemligheter innan den sparar något.
+
+> [!TIP]
+> För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas, och den sista kan inte tas bort medan kravet är på.
 
 ## Övervakningskriterier
 
@@ -393,6 +425,10 @@ Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller va
 
 :::details Min avsändare får en 200, men ingenting visas på monitorn
 `200` skickas innan förfrågan valideras, så den bevisar inte att förfrågan godtogs. Kontrollera att den hemliga nyckeln i URL:en stämmer med monitorns **Heartbeat URL**, och att monitorn inte är inaktiverad. Titta sedan på monitorns tidslinje för att se om förfrågningarna kommer fram.
+:::
+
+:::details Min avsändare får 401
+Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn.
 :::
 
 :::details Monitorn blir aldrig offline när heartbeats upphör

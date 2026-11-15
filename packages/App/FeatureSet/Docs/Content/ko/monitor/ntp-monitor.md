@@ -33,7 +33,7 @@ sequenceDiagram
 
 ## 시작하기 전에
 
-- **모니터를 만들 수 있는 역할**: Project Owner, Project Admin, Project Member, Monitor Admin 또는 Monitor Member, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
+- **모니터를 만들 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 모니터 관리자 또는 모니터 구성원, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
 - **서버의 UDP 포트 123에 도달할 수 있는 프로브.** 공용 타임 서버는 어떤 프로브로든 검사할 수 있습니다. 사설 네트워크의 서버에는 그 네트워크 안의 [사용자 지정 프로브](/docs/probe/custom-probe)를 사용하세요. 서버 앞의 방화벽은 [OneUptime Cloud 프로브의 IP 주소](/docs/configuration/ip-addresses) 또는 사용자 지정 프로브에서 오는 TCP뿐 아니라 UDP도 통과시켜야 합니다.
 
 ## NTP 모니터 만들기

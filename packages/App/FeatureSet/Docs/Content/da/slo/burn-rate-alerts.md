@@ -212,8 +212,8 @@ For at skrive din egen tekst bruger du skabelonvariabler i titlen, beskrivelsen 
 | `{{targetPercentage}}` | SLO'ets mål, i procent. | `99.9` |
 | `{{currentSliPercentage}}` | SLI'en målt over SLO'ets compliancevindue, i procent. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Andelen af fejlbudgettet, der stadig er til rådighed, i procent. Negativ, når budgettet er overskredet. | `42.5` |
-| `{{errorBudgetRemaining}}` | Fejlbudget, der stadig er til rådighed, som varighed. Starter med et minustegn, når budgettet er overskredet. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Fejlbudget, der stadig er til rådighed, i minutter. | `18.37` |
+| `{{errorBudgetRemaining}}` | Fejlbudget, der stadig er til rådighed, som varighed eller, for et anmodnings-SLO, som de fejlede eller langsomme anmodninger, det stadig tillader. Starter med et minustegn, når budgettet er overskredet. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Fejlbudget, der stadig er til rådighed, i minutter. Tom for et anmodnings-SLO, hvis budget tælles i anmodninger. | `18.37` |
 | `{{windowDescription}}` | SLO'ets compliancevindue, med ord. | `rolling 30-day window` |
 | `{{policyTier}}` | Navnet på det niveau i fejlbudgetpolitikken, som SLO'et er i efter denne evaluering. "None", når det ikke er i noget niveau. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Niveauets tærskel for resterende budget, i procent. Tom, når SLO'et ikke er i noget niveau. | `25` |

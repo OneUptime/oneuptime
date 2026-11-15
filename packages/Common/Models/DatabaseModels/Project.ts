@@ -4788,6 +4788,49 @@ export default class Project extends TenantModel {
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
 
   /*
+   * Require a secret on every incoming request (issue #7526): while it is on,
+   * a request to any Incoming Request monitor of the project is refused,
+   * before it counts as a heartbeat or reaches the monitor's criteria, unless
+   * it sends one of the project's incoming request secrets
+   * (IncomingRequestSecret; Types/Monitor/IncomingMonitor/IncomingRequestSecret
+   * says how). Everyone in the project reads it, so a monitor's page can say
+   * its senders need a secret; only owners and admins change it, as only they
+   * manage the secrets. It cannot be turned on while the project has no
+   * secret (ProjectService), so turning it on never refuses every sender at
+   * once by mistake.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: false,
+    title: "Require Incoming Request Secret",
+    description:
+      "When on, requests to this project's Incoming Request monitors are refused with 401 unless they send one of the project's incoming request secrets, in the X-OneUptime-Secret header or as a Bearer token. Needs at least one incoming request secret to turn on.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public requireIncomingRequestSecret?: boolean = undefined;
+
+  /*
    * Use global Runners (Runbooks -> Runners): one switch for the whole
    * project, on by default, like global probes. While it is on, a step that
    * picked no Runner of its own runs on one of the Runners OneUptime runs

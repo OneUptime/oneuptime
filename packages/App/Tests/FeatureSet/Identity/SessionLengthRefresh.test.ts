@@ -27,6 +27,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
   LONGEST_INACTIVITY_FIELD,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   SessionEndReason,
   SessionLengths,
 } from "Common/Types/UserSession/SessionLength";
@@ -1144,5 +1145,98 @@ describe("when the lengths cannot be decided", () => {
     expect(outcome.refused).toBeNull();
     expect(renewedWith().lengths).toBeNull();
     expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime());
+  });
+});
+
+/*
+ * Issue #8188: a renewal from a page that renews while its person uses it
+ * says so, and the session keeps what its last renewal said - the sweep
+ * records an idle timeout soon after it ran out only for a session whose
+ * browser said it (UserSessionService.endSessionsThatRanOut).
+ */
+describe("what a renewal says of renewing while in use", () => {
+  // What the renewal asked the session to keep beside what it holds.
+  const keptAdditionalInfo: () => JSONObject = (): JSONObject => {
+    return (
+      renewSessionWithNewRefreshToken.mock.calls[0]![0] as {
+        additionalInfo: JSONObject;
+      }
+    ).additionalInfo;
+  };
+
+  beforeEach(() => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: HOUR_IN_MS,
+        lastActiveAgoMs: 4 * MINUTE_IN_MS,
+      }),
+    );
+  });
+
+  it("a tab that renews while in use says so, and the session keeps it", async () => {
+    const outcome: Outcome = await renew({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 3,
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
+    });
+
+    expect(outcome.refused).toBeNull();
+    expect(keptAdditionalInfo()).toEqual({
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
+    });
+    // Its activity as the tab said it.
+    expect(renewedWith().lastActiveAt.getTime()).toBe(NOW.getTime() - 3000);
+  });
+
+  it("a renewal that does not say so - the mobile app, a tab of an earlier release - keeps that it did not", async () => {
+    await renew({ [INACTIVE_FOR_IN_SECONDS_FIELD]: 3 });
+
+    expect(keptAdditionalInfo()).toEqual({
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: false,
+    });
+  });
+
+  it.each([["true"], [1], [{}], [null], ["yes"]])(
+    "only true says so, never %p",
+    async (value: unknown) => {
+      await renew({
+        [INACTIVE_FOR_IN_SECONDS_FIELD]: 3,
+        [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: value as never,
+      });
+
+      expect(keptAdditionalInfo()).toEqual({
+        [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: false,
+      });
+    },
+  );
+
+  it("without an idle timeout set, it is kept all the same: the sweep asks it only while one is", async () => {
+    fake.userSessionLengths = null;
+
+    await renew({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 3,
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
+    });
+
+    expect(keptAdditionalInfo()).toEqual({
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
+    });
+  });
+
+  it("a renewal that ends the session keeps nothing: there is no session to keep it on", async () => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({
+        signedInAgoMs: 3 * HOUR_IN_MS,
+        lastActiveAgoMs: 45 * MINUTE_IN_MS,
+      }),
+    );
+
+    const outcome: Outcome = await renew({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 45 * 60,
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
+    });
+
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
   });
 });

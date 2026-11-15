@@ -4,9 +4,13 @@ import {
   ExportChartSeries,
   chartHasData,
   chartIsTimeBased,
+  describeExportBucketTimezone,
   formatChartValue,
+  getExportChartBucketTimezone,
   toExportChartSeries,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
+import OneUptimeDate from "Common/Types/Date";
+import Timezone from "Common/Types/Timezone";
 import PdfDocument, { PDF_COLORS } from "./PdfDocument";
 import {
   getLocaleClockHourOption,
@@ -97,7 +101,18 @@ function niceTicks(min: number, max: number, count: number): Array<number> {
   return ticks.length > 0 ? ticks : [min, max];
 }
 
-export function formatTimeLabel(date: Date, spanMs: number): string {
+/*
+ * A tick of the time axis, read in `timeZone`: the reader's (the zone User
+ * Settings picked, else the browser's), as every other time on the page -
+ * or, for a chart of day buckets, the zone they were cut in, so each day is
+ * named by the day it counted (issue #8206). The browser's own zone named
+ * them before, whatever the reader had picked.
+ */
+export function formatTimeLabel(
+  date: Date,
+  spanMs: number,
+  timeZone: string = OneUptimeDate.getCurrentTimezone(),
+): string {
   const TWO_HOURS: number = 2 * 60 * 60 * 1000;
   const TWO_DAYS: number = 2 * 24 * 60 * 60 * 1000;
   const TWO_YEARS: number = 2 * 365 * 24 * 60 * 60 * 1000;
@@ -110,30 +125,47 @@ export function formatTimeLabel(date: Date, spanMs: number): string {
     getReaderDateLocale(),
   );
 
-  if (spanMs <= TWO_HOURS) {
-    return date.toLocaleTimeString(getReaderDateLocale(), {
-      hour,
-      minute: "2-digit",
-    });
-  }
-  if (spanMs <= TWO_DAYS) {
-    return date.toLocaleString(getReaderDateLocale(), {
-      month: "short",
-      day: "numeric",
-      hour,
-      minute: "2-digit",
-    });
-  }
-  if (spanMs <= TWO_YEARS) {
+  const write: (zone: string | undefined) => string = (
+    zone: string | undefined,
+  ): string => {
+    const inZone: { timeZone?: string } = zone ? { timeZone: zone } : {};
+
+    if (spanMs <= TWO_HOURS) {
+      return date.toLocaleTimeString(getReaderDateLocale(), {
+        hour,
+        minute: "2-digit",
+        ...inZone,
+      });
+    }
+    if (spanMs <= TWO_DAYS) {
+      return date.toLocaleString(getReaderDateLocale(), {
+        month: "short",
+        day: "numeric",
+        hour,
+        minute: "2-digit",
+        ...inZone,
+      });
+    }
+    if (spanMs <= TWO_YEARS) {
+      return date.toLocaleDateString(getReaderDateLocale(), {
+        month: "short",
+        day: "numeric",
+        ...inZone,
+      });
+    }
     return date.toLocaleDateString(getReaderDateLocale(), {
       month: "short",
-      day: "numeric",
+      year: "numeric",
+      ...inZone,
     });
+  };
+
+  try {
+    return write(timeZone);
+  } catch {
+    // A zone this browser's Intl does not know: its own, rather than none.
+    return write(undefined);
   }
-  return date.toLocaleDateString(getReaderDateLocale(), {
-    month: "short",
-    year: "numeric",
-  });
 }
 
 export default class PdfChart {
@@ -322,7 +354,13 @@ export default class PdfChart {
       this.drawLines(series, toX, toY);
     }
 
-    // ---- X labels ------------------------------------------------------
+    /*
+     * ---- X labels ------------------------------------------------------
+     * Day buckets by their day where they were cut (issue #8206).
+     */
+    const bucketTimezone: Timezone | undefined =
+      getExportChartBucketTimezone(widget);
+
     this.drawXLabels({
       useCategoryAxis: useCategoryAxis,
       isTime: isTime,
@@ -333,9 +371,18 @@ export default class PdfChart {
       plotWidth: plotWidth,
       plotY1: plotY1,
       slotWidth: slotWidth,
+      timeZone: bucketTimezone || OneUptimeDate.getCurrentTimezone(),
     });
 
     this.pdf.y = plotY1 + X_AXIS_HEIGHT + 6;
+
+    // Whose days they are: the file is read anywhere.
+    if (bucketTimezone && isTime) {
+      this.pdf.paragraph(describeExportBucketTimezone(bucketTimezone), {
+        size: TICK_FONT_SIZE,
+        color: PDF_COLORS.faint,
+      });
+    }
   }
 
   private drawLines(
@@ -475,6 +522,7 @@ export default class PdfChart {
     plotWidth: number;
     plotY1: number;
     slotWidth: number;
+    timeZone: string;
   }): void {
     this.pdf.setStyle({ size: TICK_FONT_SIZE, color: PDF_COLORS.muted });
 
@@ -486,7 +534,7 @@ export default class PdfChart {
         const date: Date = new Date(category);
         const text: string =
           layout.isTime && !isNaN(date.getTime())
-            ? formatTimeLabel(date, layout.timeSpan)
+            ? formatTimeLabel(date, layout.timeSpan, layout.timeZone)
             : category;
 
         labels.push({
@@ -500,7 +548,11 @@ export default class PdfChart {
         const ratio: number = sampleCount === 1 ? 0 : i / (sampleCount - 1);
         const time: number = layout.timeMin + layout.timeSpan * ratio;
         labels.push({
-          text: formatTimeLabel(new Date(time), layout.timeSpan),
+          text: formatTimeLabel(
+            new Date(time),
+            layout.timeSpan,
+            layout.timeZone,
+          ),
           x: layout.plotX0 + layout.plotWidth * ratio,
         });
       }

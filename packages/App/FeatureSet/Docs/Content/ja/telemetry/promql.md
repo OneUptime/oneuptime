@@ -24,7 +24,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているメトリクス。** [OpenTelemetry](/docs/telemetry/open-telemetry) で送るか、[ホスト用 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) などのエージェントから送ります。
-- **メトリクスを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Metrics 権限を持つカスタムロール。一部のサービスに限定されたロールは、それらのサービスのメトリクスだけを読み取ります。
+- **メトリクスを読み取れるロール。** プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者、テレメトリ管理者、テレメトリメンバー、テレメトリ閲覧者のいずれか、または Read Metrics 権限を持つカスタムロール。一部のサービスに限定されたロールは、それらのサービスのメトリクスだけを読み取ります。
 - **Grafana やスクリプトから使う場合は、プロジェクトの API キー。** 上記のロールのいずれか、または Read Metrics 権限を持つキーが必要です。[API キーを作成する](/docs/api-reference/api-reference#api-キーを作成する) を参照してください。OneUptime Cloud では、API キーには **Growth** プランが必要です。
 
 ## クエリを書く

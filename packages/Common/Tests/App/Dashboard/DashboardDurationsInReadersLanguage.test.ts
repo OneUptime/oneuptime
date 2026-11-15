@@ -3,31 +3,19 @@ import { formatCloudSeconds } from "../../../../App/FeatureSet/Dashboard/src/Com
 import { formatReviewDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewCopy";
 import { formatTraceListDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceListComponent";
 import { formatLatencyUsec as formatWidgetLatencyUsec } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/StorageArrayWidgetData";
-import {
-  formatDurationMs as formatTraceChartDurationMs,
-  formatDurationMsInLanguage as formatTraceDurationMsInLanguage,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
+import { formatDurationMsInLanguage as formatTraceDurationMsInLanguage } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { formatLlmDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationFormat";
-import {
-  formatMessageQueueDurationMs,
-  formatMessageQueueDurationMsInLanguage,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
+import { formatMessageQueueDurationMsInLanguage } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 import {
   describePingResult,
   formatRoundTrip,
   PingResultSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
-import {
-  formatLatency as formatMerakiChartLatency,
-  formatLatencyInLanguage as formatMerakiLatency,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiTrafficRows";
+import { formatLatencyInLanguage as formatMerakiLatency } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiTrafficRows";
 import { getOpenStackCheckDurationText } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Checks/OpenStackChecksView";
 import { formatCloudTopologySeconds } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/Builders/CloudAccountTopology";
 import { formatDuration as formatConnectorTestDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorTestReportView";
-import {
-  formatDurationMs as formatTelemetryChartDurationMs,
-  formatDurationMsInLanguage as formatTelemetryDurationMs,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
+import { formatDurationMsInLanguage as formatTelemetryDurationMs } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
 import { formatDurationMs as formatTopologyDurationMs } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyMeta";
 import { formatAppServiceCpuTime } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformResource";
 import { formatDatabaseMetricAxisValue } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
@@ -148,9 +136,16 @@ describe("traces", () => {
     expect(formatTraceListDuration(500, translators["fa"]!)).toBe("500ns");
   });
 
-  test("a chart's value axis keeps the Latin figure and 'ms'", () => {
-    expect(formatTraceChartDurationMs(5)).toBe("5.0 ms");
-    expect(formatTraceChartDurationMs(42.4)).toBe("42 ms");
+  // A chart's value axis and tooltip write it as the tiles beside them do (#8349).
+  test("a chart's value axis writes the reader's words too", () => {
+    expect(
+      inEachLanguage((t: Translator): string => {
+        return formatTraceDurationMsInLanguage(42.4, t);
+      }),
+    ).toEqual(milliseconds(FORTY_TWO));
+    expect(formatTraceDurationMsInLanguage(5, translators["en"]!)).toBe(
+      "5.0 ms",
+    );
   });
 });
 
@@ -171,8 +166,13 @@ describe("databases and queues", () => {
     ).toBe("—");
   });
 
-  test("a chart's axis: English figures, in any language", () => {
-    expect(formatMessageQueueDurationMs(5)).toBe("5.0 ms");
+  // A chart's axis writes the reader's words, as the tiles beside it do (#8349).
+  test("a chart's axis: the reader's words, English with no translator", () => {
+    expect(
+      inEachLanguage((t: Translator): string => {
+        return formatDatabaseMetricAxisValue(0.042, "s", t);
+      }),
+    ).toEqual(milliseconds(FORTY_TWO));
     expect(formatDatabaseMetricAxisValue(0.0042, "s")).toBe("4.2 ms");
   });
 });
@@ -184,7 +184,7 @@ describe("telemetry and topology", () => {
         return formatTelemetryDurationMs(5, t);
       }),
     ).toEqual(milliseconds(FIVE_TENTHS));
-    expect(formatTelemetryChartDurationMs(5)).toBe("5.0 ms");
+    expect(formatTelemetryDurationMs(5, translators["en"]!)).toBe("5.0 ms");
   });
 
   test("a topology call's average", () => {
@@ -317,8 +317,6 @@ describe("infrastructure", () => {
     expect(formatMerakiLatency(1.2, translators["en"]!)).toBe(
       `1.2${noBreakSpace}ms`,
     );
-    // The comparison chart's axis keeps the English figures.
-    expect(formatMerakiChartLatency(1.2)).toBe(`1.2${noBreakSpace}ms`);
   });
 });
 

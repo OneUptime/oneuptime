@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53451,
-    "untranslated": 8855
+    "keys": 53571,
+    "untranslated": 8815
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -542,6 +542,7 @@
     "{{name}} (monitor: {{monitor}})",
     "{{observation}} in {{readings}}",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",

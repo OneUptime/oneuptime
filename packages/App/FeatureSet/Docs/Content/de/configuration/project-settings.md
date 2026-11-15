@@ -24,7 +24,7 @@ flowchart LR
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die das Projekt ändern darf.** Project Owners und Project Admins ändern die meisten dieser Einstellungen. Abrechnung, Benachrichtigungskanäle und das Löschen des Projekts erfordern mehr, wie jeder Abschnitt sagt.
+- **Eine Rolle, die das Projekt ändern darf.** Projektinhaber und Projektadministratoren ändern die meisten dieser Einstellungen. Abrechnung, Benachrichtigungskanäle und das Löschen des Projekts erfordern mehr, wie jeder Abschnitt sagt.
 - **In OneUptime Cloud, der Tarif, der eine Einstellung enthält.** Manche Einstellungen brauchen einen Tarif: siehe [Einstellungen, die einen Tarif brauchen](/docs/configuration/billing#einstellungen-die-einen-tarif-brauchen).
 
 ## Eine Einstellung finden
@@ -50,11 +50,11 @@ flowchart LR
 
 **Projektdetails** zeigt den Namen des Projekts und seine ID:
 
-- **Projektname**: Klicken Sie auf **Projekt bearbeiten**, um das Projekt umzubenennen. Ein Name hat mindestens 2 Zeichen. Umbenennen erfordert einen Project Owner oder die Berechtigung, das Projekt zu bearbeiten oder die Abrechnung zu verwalten.
+- **Projektname**: Klicken Sie auf **Projekt bearbeiten**, um das Projekt umzubenennen. Ein Name hat mindestens 2 Zeichen. Umbenennen erfordert einen Projektinhaber oder die Berechtigung, das Projekt zu bearbeiten oder die Abrechnung zu verwalten.
 - **Projekt-ID**: Kopieren Sie sie für die API, die CLI und Terraform, oder wenn Sie dem Support schreiben.
 - **Datenresidenz**: in OneUptime Cloud, wo die Daten Ihres Projekts liegen sollen, wenn OneUptime das erfasst hat. Nur OneUptime setzt sie.
 
-**Kundensupport-Zugriff** entscheidet in OneUptime Cloud, ob das Support-Team von OneUptime das Projekt öffnen darf. Schalten Sie **OneUptime-Support Zugriff auf dieses Projekt gewähren** ein, wenn Sie Hilfe möchten: OneUptime fragt vorher, weil der Support dann alles im Projekt sehen und ändern kann, und Sie klicken auf **Support hereinlassen**. Schalten Sie es aus, sobald er fertig ist: Das wird sofort gespeichert. Project Owners und Project Admins ändern es.
+**Kundensupport-Zugriff** entscheidet in OneUptime Cloud, ob das Support-Team von OneUptime das Projekt öffnen darf. Schalten Sie **OneUptime-Support Zugriff auf dieses Projekt gewähren** ein, wenn Sie Hilfe möchten: OneUptime fragt vorher, weil der Support dann alles im Projekt sehen und ändern kann, und Sie klicken auf **Support hereinlassen**. Schalten Sie es aus, sobald er fertig ist: Das wird sofort gespeichert. Projektinhaber und Projektadministratoren ändern es.
 
 ## Produkte
 
@@ -96,7 +96,7 @@ Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Men
 
 **Projekteinstellungen → Benachrichtigungen** enthält, wie das Projekt Benachrichtigungen sendet:
 
-- **Benachrichtigungskanäle**: Die Karte **Benachrichtigungskanäle** schaltet SMS, Telefonanrufe, WhatsApp und Telegram für das Projekt ein oder aus. Alle vier sind anfangs aus. Ein Project Owner, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie. Die Seite enthält auch, eingeklappt unter **Weitere Einstellungen**, die eigenen Mailserver des Projekts unter **Benutzerdefinierte SMTP-Konfigurationen** (siehe [SMTP](/docs/emails/smtp)) und sein eigenes Twilio-Konto (siehe [Twilio-Integration](/docs/self-hosted/twilio-integration)). In OneUptime Cloud enthält sie das Guthaben, aus dem diese Nachrichten bezahlt werden: siehe [Vorausbezahltes Guthaben](/docs/configuration/billing#vorausbezahltes-guthaben).
+- **Benachrichtigungskanäle**: Die Karte **Benachrichtigungskanäle** schaltet SMS, Telefonanrufe, WhatsApp und Telegram für das Projekt ein oder aus. Alle vier sind anfangs aus. Ein Projektinhaber, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie. Die Seite enthält auch, eingeklappt unter **Weitere Einstellungen**, die eigenen Mailserver des Projekts unter **Benutzerdefinierte SMTP-Konfigurationen** (siehe [SMTP](/docs/emails/smtp)) und sein eigenes Twilio-Konto (siehe [Twilio-Integration](/docs/self-hosted/twilio-integration)). In OneUptime Cloud enthält sie das Guthaben, aus dem diese Nachrichten bezahlt werden: siehe [Vorausbezahltes Guthaben](/docs/configuration/billing#vorausbezahltes-guthaben).
 - **Benachrichtigungsprotokolle**: jede Benachrichtigung, die das Projekt gesendet hat, mit einem Tab pro Kanal: **E-Mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anruf**, **Push** und **Arbeitsbereich**.
 - **Mobile Apps**: wo Sie die Apps für iOS und Android bekommen. Siehe [Apps – Übersicht](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Klicken Sie auf **Projekt löschen**. OneUptime löscht das Projekt und nimmt Si
 :::
 
 > [!CAUTION]
-> Das Löschen des Projekts lässt sich nicht rückgängig machen. Es erfordert einen Project Owner oder die Berechtigung, das Projekt zu löschen.
+> Das Löschen des Projekts lässt sich nicht rückgängig machen. Es erfordert einen Projektinhaber oder die Berechtigung, das Projekt zu löschen.
 
 In OneUptime Cloud kündigen Sie den Tarif eines Projekts, indem Sie es löschen: Die Abrechnung endet, wenn das Projekt gelöscht ist. Ein Projekt, das über einen Cloud-Marketplace abgerechnet wird, erhält eine letzte Belastung für seine Nutzung, und sein Kauf auf dem Marketplace bleibt aktiv, bis Sie ihn dort kündigen.
 
@@ -138,7 +138,7 @@ Jeder Abschnitt außer **Grundlegend** ist anfangs eingeklappt. Klicken Sie auf 
 :::
 
 :::details Projekt bearbeiten ist gesperrt
-Umbenennen erfordert einen Project Owner oder die Berechtigung, das Projekt zu bearbeiten oder die Abrechnung zu verwalten. Die gesperrte Schaltfläche nennt die Berechtigung, die Sie brauchen.
+Umbenennen erfordert einen Projektinhaber oder die Berechtigung, das Projekt zu bearbeiten oder die Abrechnung zu verwalten. Die gesperrte Schaltfläche nennt die Berechtigung, die Sie brauchen.
 :::
 
 :::details Projekt löschen bleibt im Dialog gesperrt

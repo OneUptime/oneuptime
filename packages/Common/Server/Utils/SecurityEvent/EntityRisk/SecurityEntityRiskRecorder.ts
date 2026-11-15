@@ -637,7 +637,11 @@ export default class SecurityEntityRiskRecorder {
         query: {
           riskScore: 0,
           lastRiskAt: QueryHelper.lessThan(
-            OneUptimeDate.addRemoveDays(now, -ENTITY_RISK_HISTORY_IN_DAYS),
+            // A length of time, the same on every server (issue #8236).
+            OneUptimeDate.addRemoveDurationInDays(
+              now,
+              -ENTITY_RISK_HISTORY_IN_DAYS,
+            ),
           ),
         },
         limit: LIMIT_PER_PROJECT,

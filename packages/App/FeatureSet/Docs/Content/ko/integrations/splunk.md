@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - Splunk Enterprise 9.0.1 이상을 실행하는 검색 헤드 또는 Splunk Cloud Platform. OneUptime은 관리 포트(보통 `8089`)에서 REST API와 통신합니다. 포트 `8000`의 Splunk Web은 REST API를 제공하지 않습니다.
 - OneUptime용 Splunk 사용자. 그 역할에 `search` 기능이 있고, 검색이 읽는 인덱스(notable event의 경우 `notable`)를 읽을 수 있어야 합니다. Enterprise Security의 `ess_analyst`와 `ess_user` 역할은 둘 다 부여합니다. 연결은 읽기만 하므로 역할에 그 밖의 것은 필요 없습니다.
 - OneUptime이 HTTPS로 접근할 수 있는 검색 헤드. OneUptime Cloud는 인터넷에서 연결하므로 검색 헤드에 공개 주소가 필요하며, 사설 주소는 거부됩니다. 자체 호스팅 OneUptime은 앱과 워커 컨테이너에서 연결하며, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`가 `true`가 아닌 한 사설 네트워크의 검색 헤드에도 접근할 수 있습니다.
