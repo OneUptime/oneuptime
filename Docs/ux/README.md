@@ -664,13 +664,16 @@ then `npm run i18n:validate` from the root.
   in "10.16.0.0/16"` in English, its quotes jumping on a Persian page (#7931, #7958). Draw an
   attribute filter with `DictionaryFilterSentence` and a rule with `RuleCriteriaSummary`: each
   condition is one sentence with its field and value as slots, the value set apart as typed, inside
-  the language's own quotes; an operator that is a symbol (=, >) stays one. And an empty dropdown
-  says so in the reader's words ("No matches found", "No options available"), never react-select's
-  English "No options" (#7805). Enforced by
+  the language's own quotes; an operator that is a symbol (=, >) stays one. A monitor's criteria
+  list words each filter the same way, every part of it a sentence of the locale around the part
+  it holds: it read `Check if "Response Time (in ms)" is greater than 500ms and,` under a Persian
+  form (#8350). And an empty dropdown says so in the reader's words ("No matches found", "No
+  options available"), never react-select's English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
-  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,

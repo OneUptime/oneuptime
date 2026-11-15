@@ -39,7 +39,11 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatDurationUnit,
+  formatReaderFigure,
+  isEnglishDateLanguage,
+} from "Common/Types/DateLanguage";
 import { formatMilliseconds } from "../../Milliseconds";
 
 /*
@@ -688,16 +692,33 @@ export default class CriteriaFilterUtil {
                     units: [unit],
                   });
             }),
+            /*
+             * "3 days" as the sentence's language writes a length in full
+             * (Intl: "3 Tage", "3 أيام", "۳ روز"), its plural forms all
+             * its own; English, and an engine Intl cannot write it in, as
+             * the plural keys word it.
+             */
             horizon: composedValue((sentence: Translator): string => {
-              return isInDays
-                ? sentence.translatePlural(
-                    CRITERIA_FORECAST_DAYS,
-                    horizonInHours / 24,
-                  )
-                : sentence.translatePlural(
-                    CRITERIA_FORECAST_HOURS,
-                    horizonInHours,
-                  );
+              const count: number = isInDays
+                ? horizonInHours / 24
+                : horizonInHours;
+              const written: string | null = isEnglishDateLanguage(
+                sentence.language,
+              )
+                ? null
+                : formatDurationUnit({
+                    part: { count: count, unit: isInDays ? "day" : "hour" },
+                    locale: sentence.language,
+                    unitDisplay: "long",
+                  });
+
+              return (
+                written ||
+                sentence.translatePlural(
+                  isInDays ? CRITERIA_FORECAST_DAYS : CRITERIA_FORECAST_HOURS,
+                  count,
+                )
+              );
             }),
           },
         );
