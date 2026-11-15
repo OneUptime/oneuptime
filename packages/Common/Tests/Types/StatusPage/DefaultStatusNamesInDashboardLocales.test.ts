@@ -8,6 +8,7 @@ import {
   isWordedInDashboardLocale,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { STATUS_PAGE_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * ONEUPTIME'S DEFAULT NAMES ARE WORDS OF THE DASHBOARD, IN EVERY LANGUAGE
@@ -134,6 +135,83 @@ interface SurfaceWords {
   words: DefaultNameWords;
 }
 
+/*
+ * Every language a default name is read in, on any of the three: a
+ * language one of them adds is checked the day it is added.
+ */
+const EVERY_LANGUAGE: ReadonlyArray<string> = Array.from(
+  new Set<string>([
+    "en",
+    ...DASHBOARD_LANGUAGES,
+    ...STATUS_PAGE_LANGUAGES,
+    ...Object.keys(SERVER_LOCALES),
+  ]),
+);
+
+type LocaleTree = { [key: string]: string | LocaleTree };
+
+const readStatusPageLocale: (language: string) => LocaleTree = (
+  language: string,
+): LocaleTree => {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(STATUS_PAGE_SOURCE, "Locales", `${language}.json`),
+      "utf8",
+    ),
+  ) as LocaleTree;
+};
+
+// The value at a dotted key of a status page locale ("overview.operational").
+const valueAt: (tree: LocaleTree, key: string) => string | undefined = (
+  tree: LocaleTree,
+  key: string,
+): string | undefined => {
+  let node: string | LocaleTree | undefined = tree;
+
+  for (const part of key.split(".")) {
+    if (!node || typeof node === "string") {
+      return undefined;
+    }
+
+    node = node[part];
+  }
+
+  return typeof node === "string" ? node : undefined;
+};
+
+/*
+ * The status page's keys, outside statusNames, whose English is a default
+ * name as written: "overview.operational", what a resource with no status
+ * reads (Overview, MonitorOverview), beside a monitor in the default
+ * Operational status, which reads statusNames.operational.
+ */
+const readStatusPageKeysNamingADefault: () => Array<{
+  key: string;
+  name: string;
+}> = (): Array<{ key: string; name: string }> => {
+  const found: Array<{ key: string; name: string }> = [];
+  const walk: (tree: LocaleTree, prefix: string) => void = (
+    tree: LocaleTree,
+    prefix: string,
+  ): void => {
+    for (const [key, value] of Object.entries(tree)) {
+      const dotted: string = prefix ? `${prefix}.${key}` : key;
+
+      if (typeof value !== "string") {
+        if (dotted !== "statusNames") {
+          walk(value, dotted);
+        }
+      } else if (DEFAULT_STATUS_NAMES.includes(value)) {
+        found.push({ key: dotted, name: value });
+      }
+    }
+  };
+
+  walk(readStatusPageLocale("en"), "");
+
+  return found;
+};
+
 // The default names' words in `language`, everywhere a reader meets them.
 const readWordsOfEverySurface: (language: string) => Array<SurfaceWords> = (
   language: string,
@@ -196,7 +274,23 @@ describe("OneUptime's default names read alike wherever they are read", () => {
     expect(new Set(Object.values(keys)).size).toBe(DEFAULT_STATUS_NAMES.length);
   });
 
-  test.each(["en", ...DASHBOARD_LANGUAGES])(
+  test("the Dashboard, a status page and the server's messages are read in the same languages", () => {
+    const sorted: (languages: ReadonlyArray<string>) => Array<string> = (
+      languages: ReadonlyArray<string>,
+    ): Array<string> => {
+      return [...languages].sort();
+    };
+
+    expect(sorted(["en", ...DASHBOARD_LANGUAGES])).toEqual(
+      sorted(EVERY_LANGUAGE),
+    );
+    expect(sorted(["en", ...STATUS_PAGE_LANGUAGES])).toEqual(
+      sorted(EVERY_LANGUAGE),
+    );
+    expect(sorted(Object.keys(SERVER_LOCALES))).toEqual(sorted(EVERY_LANGUAGE));
+  });
+
+  test.each(EVERY_LANGUAGE)(
     "%s words every default name alike on the Dashboard, on a status page and in the server's messages",
     (language: string) => {
       const surfaces: Array<SurfaceWords> = readWordsOfEverySurface(language);
@@ -229,7 +323,7 @@ describe("OneUptime's default names read alike wherever they are read", () => {
     },
   );
 
-  test.each(["en", ...DASHBOARD_LANGUAGES])(
+  test.each(EVERY_LANGUAGE)(
     "%s gives no two default names one word, on the Dashboard, on a status page or in the server's messages",
     (language: string) => {
       const shared: Array<string> = [];
@@ -262,6 +356,36 @@ describe("OneUptime's default names read alike wherever they are read", () => {
       }
 
       expect({ language, shared }).toEqual({ language, shared: [] });
+    },
+  );
+
+  test("a status page names a default by the word its statusNames give it wherever else it says the name", () => {
+    const found: Array<{ key: string; name: string }> =
+      readStatusPageKeysNamingADefault();
+
+    // overview.operational is one, so the walk reads the file.
+    expect(found).toContainEqual({
+      key: "overview.operational",
+      name: "Operational",
+    });
+  });
+
+  test.each(EVERY_LANGUAGE)(
+    "%s words a default name alike wherever a status page says it",
+    (language: string) => {
+      const locale: LocaleTree = readStatusPageLocale(language);
+      const words: DefaultNameWords = readStatusPageWords(language);
+      const apart: Array<string> = [];
+
+      for (const { key, name } of readStatusPageKeysNamingADefault()) {
+        const word: string | undefined = valueAt(locale, key);
+
+        if (word !== words[name]) {
+          apart.push(`${key} is ${word}, ${name} is ${words[name]}`);
+        }
+      }
+
+      expect({ language, apart }).toEqual({ language, apart: [] });
     },
   );
 });
