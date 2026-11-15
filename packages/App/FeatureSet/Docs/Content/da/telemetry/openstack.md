@@ -946,14 +946,14 @@ Intet er optaget om en database, der nåede `ACTIVE`, fordi Nova afviste gæsten
 
 ## Gnocchi
 
-En cloud, der kører Gnocchi, får dens API på **Tjenester** af sig selv, og en, der ikke gør, viser intet spor af det. Gnocchi har ingen dele, nogen åbner én ad gangen, så det, den siger, står på det API's egen side: hvor mange målinger og metrikker der venter, og hvor mange processorer den har.
+En cloud, der kører Gnocchi, får dens API på **Tjenester** af sig selv, og en, der ikke gør, viser intet spor af det. Gnocchi har ingen dele, nogen åbner én ad gangen, så det, den siger, står på det API's egen side: hvor mange metrikker og metrikker der venter, og hvor mange processorer den har.
 
 Ingen processorer når **Kræver opmærksomhed**, og det gør også en bagstand over 10.000 målinger. Gnocchis API bliver ved med at svare og tage imod målinger med `gnocchi-metricd` stoppet, optaget, så dens processorer er det eneste sted, der viser det. Intet går tabt, så længe det varer, men intet nyere kan læses.
 
 | Hvad | Agent, Fuld visning | Sonde, Fuld visning | Alt mindre |
 | --- | --- | --- | --- |
 | Om dens API svarer | Ja | Ja | Intet: se nedenfor |
-| Hvor mange målinger og metrikker der venter, og hvor mange processorer den har | Ja | Ja | Nej |
+| Hvor mange metrikker og metrikker der venter, og hvor mange processorer den har | Ja | Ja | Nej |
 
 Exporteren læser Gnocchis status, som kun en admin må. Gnocchi afviser alt mindre, og exporteren læser en afvisning på samme måde som en stoppet Gnocchi: `openstack_gnocchi_up` læses 0. Så en legitimation, der aldrig én gang har læst Gnocchi, får det at vide frem for, at Gnocchi er nede, og tilbydes ikke dens advarsler. En sonde skelner de to: Gnocchi svarede, så dens API læses oppe, og forbindelsestesten siger, at den blev afvist.
 

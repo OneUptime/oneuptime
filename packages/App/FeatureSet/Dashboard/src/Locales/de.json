@@ -962,7 +962,7 @@
   "more Runners": "weitere Runbook-Agenten",
   "Incident": "Vorfall",
   "Alert": "Warnung",
-  "Monitor": "Überwachung",
+  "Monitor": "Monitor",
   "Workflow": "Arbeitsablauf",
   "Label": "Beschriftung",
   "Probe": "Sonde",
@@ -55688,5 +55688,6 @@
   "Valid (OAuth token)": "Gültig",
   "Yes / No": "Ja / Nein",
   "which led to {{steps}}": "was zu {{steps}} führte",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ist noch nicht gelaufen. Seine Felder erscheinen hier, sobald er gelaufen ist."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ist noch nicht gelaufen. Seine Felder erscheinen hier, sobald er gelaufen ist.",
+  "Insights (explorer analytics)": "Einblicke"
 }

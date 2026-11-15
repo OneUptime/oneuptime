@@ -43,21 +43,21 @@ Under **Detaljer om vedligeholdelse** udfylder du den **Titel** og den **Beskriv
 
 ### Vælg, hvad den påvirker
 
-Under **Berørte ressourcer** vælger du **Monitorer**, **Skift overvågningsstatus til** for dem, eventuelle **Andre berørte ressourcer**, statussiderne under **Vis begivenhed på disse statussider** og **Notifikationer til abonnenter**.
+Under **Berørte ressourcer** vælger du **Monitorer**, **Skift monitorstatus til** for dem, eventuelle **Andre berørte ressourcer**, statussiderne under **Vis begivenhed på disse statussider** og **Notifikationer til abonnenter**.
 
 ### Beslut, om den gentages
 
 Under **Tilbagevendende** lader du **Tilbagevendende begivenhed** være slået fra for en skabelon, du bruger manuelt, eller slår den til og udfylder dens tidsplan. Klik på **Næste** for at gennemgå oversigten, og opret derefter skabelonen.
 :::
 
-En skabelon spørger om **Skift overvågningsstatus til**, selv når den ikke nævner nogen monitorer: statussen gælder også de monitorer, du tilføjer, når du planlægger en begivenhed ud fra den. Under **Andre berørte ressourcer** tager en skabelon værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester.
+En skabelon spørger om **Skift monitorstatus til**, selv når den ikke nævner nogen monitorer: statussen gælder også de monitorer, du tilføjer, når du planlægger en begivenhed ud fra den. Under **Andre berørte ressourcer** tager en skabelon værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester.
 
 ## Hvad en skabelon udfylder
 
 | Del af begivenheden                                 | Opret fra skabelon                   | En tilbagevendende begivenhed   |
 | --------------------------------------------------- | ------------------------------------ | ------------------------------- |
 | **Titel** og **Beskrivelse**                        | Udfyldt, og du kan ændre dem         | Kopieret                        |
-| **Monitorer** og **Skift overvågningsstatus til**   | Udfyldt                              | Kopieret                        |
+| **Monitorer** og **Skift monitorstatus til**   | Udfyldt                              | Kopieret                        |
 | **Andre berørte ressourcer**                        | Udfyldt                              | Kopieret                        |
 | Statussiderne og **Notifikationer til abonnenter**  | Udfyldt                              | Kopieret                        |
 | **Ejere** og **Etiketter**                          | Udfyldt                              | Kopieret                        |
@@ -109,7 +109,7 @@ Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons
 Åbn en skabelon fra listen for at se dens side:
 
 - **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Detaljer om vedligeholdelse**, **Statussider** og **Tilbagevendende**.
-- **Berørte ressourcer** rummer dens **Monitorer**, deres **Skift overvågningsstatus til** og dens **Andre berørte ressourcer**, med sin egen **Rediger**.
+- **Berørte ressourcer** rummer dens **Monitorer**, deres **Skift monitorstatus til** og dens **Andre berørte ressourcer**, med sin egen **Rediger**.
 - **Ejere** viser de personer og teams, der ejer hver begivenhed, der planlægges ud fra den.
 
 Ændringer gælder de begivenheder, der oprettes, efter du har gemt dem; begivenheder, der allerede er oprettet, beholder deres egne værdier. For at stoppe en tidsplan slår du **Tilbagevendende begivenhed** fra under **Rediger** eller sletter skabelonen. En skabelon, der er slået fra, beholder sin tidsplan: slår du den til igen, fortsætter den ved tidsplanens næste tidspunkt og springer de tidspunkter over, hvor den var slået fra. Sletter du en skabelon, bliver de begivenheder, den har oprettet, stående.

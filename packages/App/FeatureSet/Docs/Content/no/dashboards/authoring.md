@@ -104,7 +104,7 @@ For å endre en widget senere klikker du på den mens du redigerer. Innstillinge
 
 I visningsmodus angir verktøylinjens tidsintervallvelger vinduet som alle diagram-, tall-, logg- og sporwidgets leser. Velg en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, eller en egendefinert start og slutt. Dashbordet åpnes på standardtidsrommet sitt: den siste timen, med mindre noen som redigerer det, velger et annet.
 
-Lister over hendelser, varsler, overvåkinger og ressurser viser den nåværende tilstanden sin, uansett tidsintervall.
+Lister over hendelser, varsler, monitorer og ressurser viser den nåværende tilstanden sin, uansett tidsintervall.
 
 Ved siden av tidsintervallet leser menyen for automatisk oppdatering hver widget på nytt med 5 sekunders, 10 sekunders, 30 sekunders, 1 minutts, 5 minutters eller 15 minutters mellomrom, med en nedtelling til neste oppdatering. La den være av mens du feilsøker, slik at visningen står stille. Dashbordet åpnes med den automatiske standardoppdateringen sin: av, med mindre noen som redigerer det, velger en annen.
 

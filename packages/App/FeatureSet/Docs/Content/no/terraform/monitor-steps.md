@@ -351,7 +351,7 @@ Provideren sjekker `check_on`, `filter_type` og de andre faste listene når den 
 
 ### Sammenligne ett felt i resultatet fra et skript
 
-Skriptet i en Egendefinert kode-overvåking eller en Synthetic-monitor returnerer `data`, og et filter `Result Value` sammenligner det. Når `data` er et objekt eller en matrise, angir `custom_code_monitor_options` det ene feltet i det som skal sammenlignes: **Feltsti** i dashbordets Result Value-filter. Bruk punktum for nestede felt og `[n]` for elementer i en matrise, og utelat attributtet for å sammenligne hele verdien:
+Skriptet i en Egendefinert kode-monitor eller en Synthetic-monitor returnerer `data`, og et filter `Result Value` sammenligner det. Når `data` er et objekt eller en matrise, angir `custom_code_monitor_options` det ene feltet i det som skal sammenlignes: **Feltsti** i dashbordets Result Value-filter. Bruk punktum for nestede felt og `[n]` for elementer i en matrise, og utelat attributtet for å sammenligne hele verdien:
 
 ```hcl
 monitor_steps = [{

@@ -55688,5 +55688,6 @@
   "Valid (OAuth token)": "Geldig",
   "Yes / No": "Ja / Nee",
   "which led to {{steps}}": "wat leidde naar {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} is nog niet uitgevoerd. De velden verschijnen hier zodra dat gebeurd is."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} is nog niet uitgevoerd. De velden verschijnen hier zodra dat gebeurd is.",
+  "Insights (explorer analytics)": "Inzichten"
 }

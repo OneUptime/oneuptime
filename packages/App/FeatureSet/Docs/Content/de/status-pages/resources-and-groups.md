@@ -65,7 +65,7 @@ Der Dialog **Add a monitor to {group}** öffnet sich. Er besteht aus einer Seite
 
 ### Den Monitor wählen
 
-Wählen Sie ihn in **Überwachung** (Platzhalter **Überwachung auswählen**). **Anzeigename**, der Text, den Besucher lesen, wird mit dem Namen des Monitors gefüllt und folgt, wenn Sie einen anderen Monitor wählen, bis Sie einen eigenen Namen eingeben. Er wird getrennt vom Namen des Monitors gespeichert; eine Umbenennung hier ändert also nichts an der Überwachung.
+Wählen Sie ihn in **Monitor** (Platzhalter **Überwachung auswählen**). **Anzeigename**, der Text, den Besucher lesen, wird mit dem Namen des Monitors gefüllt und folgt, wenn Sie einen anderen Monitor wählen, bis Sie einen eigenen Namen eingeben. Er wird getrennt vom Namen des Monitors gespeichert; eine Umbenennung hier ändert also nichts an der Überwachung.
 
 ### Die Anzeigeoptionen festlegen, wenn Sie möchten
 
@@ -79,7 +79,7 @@ Klicken Sie auf **Monitor hinzufügen**. Die Zeile erscheint in der Gruppe und a
 In einer Rastergruppe fragt der Dialog über **Weitere Felder** außerdem nach der Zeile und der Spalte, in die der Monitor kommt; siehe [Listenlayout oder Rasterlayout](#listenlayout-oder-rasterlayout).
 
 > [!TIP]
-> Um mehrere Prüfungen als eine Zeile zu zeigen, fügen Sie eine [Monitor-Gruppe](/docs/monitor/monitor-groups) hinzu. Ist der Schalter **Monitor-Gruppen** eingeschaltet (**Projekteinstellungen** > **Erweitert** > **Feature-Flags**, der speichert, sobald Sie ihn umlegen), steht unter der Auswahlliste ein Link **Fügen Sie stattdessen eine Monitor-Gruppe hinzu.** Klicken Sie darauf, und aus **Überwachung** wird **Monitor-Gruppe** (**Überwachungsgruppe auswählen**); **Fügen Sie stattdessen einen Monitor hinzu.** schaltet zurück.
+> Um mehrere Prüfungen als eine Zeile zu zeigen, fügen Sie eine [Monitor-Gruppe](/docs/monitor/monitor-groups) hinzu. Ist der Schalter **Monitor-Gruppen** eingeschaltet (**Projekteinstellungen** > **Erweitert** > **Feature-Flags**, der speichert, sobald Sie ihn umlegen), steht unter der Auswahlliste ein Link **Fügen Sie stattdessen eine Monitor-Gruppe hinzu.** Klicken Sie darauf, und aus **Monitor** wird **Monitor-Gruppe** (**Überwachungsgruppe auswählen**); **Fügen Sie stattdessen einen Monitor hinzu.** schaltet zurück.
 
 ### Mehrere auf einmal hinzufügen
 

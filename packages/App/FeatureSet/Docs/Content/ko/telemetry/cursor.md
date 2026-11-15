@@ -189,5 +189,5 @@ Cursor의 지출은 로그가 아니라 메트릭에서 옵니다. Cursor의 메
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 모든 코딩 어시스턴트에서 지출이 귀속되는 방식.
 - [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#cursor): 관리자 API 키로 Cursor 팀의 사용량과 Cursor가 청구한 금액을 읽습니다.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): 자체 앱이 하는 모델 호출의 전체 트레이스와 프롬프트.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): `cursor.cost.usage`, `cursor.token.usage`, `cursor.tool.calls`에 알림을 설정합니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): `cursor.cost.usage`, `cursor.token.usage`, `cursor.tool.calls`에 경고를 설정합니다.
 :::
