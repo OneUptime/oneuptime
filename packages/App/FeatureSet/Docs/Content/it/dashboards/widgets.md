@@ -146,8 +146,8 @@ I widget delle tracce contano solo gli span radice, come fa l'esploratore delle 
 
 | Widget | Che cosa mostra | Filtri |
 | --- | --- | --- |
-| **Elenco incidenti** | Gli incidenti con il loro stato e la loro gravità. | Non risolti, presi in carico o risolti; gravità, stato, monitor ed etichette. |
-| **Elenco avvisi** | Gli avvisi con il loro stato e la loro gravità. | Non risolti, presi in carico o risolti; gravità, stato, monitor ed etichette. |
+| **Elenco incidenti** | Gli incidenti con il loro stato e la loro gravità. | Non risolti, riconosciuti o risolti; gravità, stato, monitor ed etichette. |
+| **Elenco avvisi** | Gli avvisi con il loro stato e la loro gravità. | Non risolti, riconosciuti o risolti; gravità, stato, monitor ed etichette. |
 | **Elenco monitor** | I monitor con il loro stato attuale. | Operativi o no, stato, tipo di monitor ed etichette, oppure una **Variabile etichetta** che i visualizzatori scelgono nella barra degli strumenti. |
 
 Come la maggior parte dei widget di elenco, questi tre possono disegnare un alveare di celle colorate per stato al posto di una tabella: sceglilo in **Modalità di visualizzazione**. Mostrano lo stato attuale, qualunque sia l'intervallo di tempo della dashboard.

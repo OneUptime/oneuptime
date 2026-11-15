@@ -87,7 +87,7 @@ Under posterne søger Forbundne signaler i dine protokoller og spor, i det samme
 
 ## Hvem ser hvad
 
-- Forbundne signaler og en posts **Sikkerhed**-kort kræver en rolle, der kan læse sikkerhedsbegivenheder: Security Admin, Security Member, Security Viewer, Project Owner eller Project Admin. Alle andre ser ingen sikkerhedsdata på nogen side. Se [Roller](/docs/permissions/reference#roller).
+- Forbundne signaler og en posts **Sikkerhed**-kort kræver en rolle, der kan læse sikkerhedsbegivenheder: Sikkerhedsadministrator, Sikkerhedsmedlem, Sikkerhedsseer, Projektejer eller Projektadministrator. Alle andre ser ingen sikkerhedsdata på nogen side. Se [Roller](/docs/permissions/reference#roller).
 - En hændelses **Sikkerhed**-kort kræver en rolle, der kan læse sikkerhedssager.
 - Hver post læses med din egen rolle, og det samme gør det, der er på den: en rolle, der ikke kan læse vagtplaner, får ikke et medlems vist. En slags post, din rolle ikke kan læse, udelades, og siden siger det; en, der ikke kunne læses lige nu, siger det også, med **Prøv igen**.
 - En posts side viser kun sit **Sikkerhed**-kort i et projekt, der bruger Security Events: et, der har modtaget en sikkerhedsbegivenhed i de seneste 7 dage.
@@ -123,7 +123,7 @@ Kortet vises for en monitor, der tjekker en vært, en adresse eller en URL: en m
 :::
 
 :::details Siden siger, at din rolle ikke kan se en slags post
-Hver post læses med din egen rolle. Bed en Project Owner eller Project Admin om en rolle, der kan læse den slags post.
+Hver post læses med din egen rolle. Bed en Projektejer eller Projektadministrator om en rolle, der kan læse den slags post.
 :::
 
 ## Næste skridt

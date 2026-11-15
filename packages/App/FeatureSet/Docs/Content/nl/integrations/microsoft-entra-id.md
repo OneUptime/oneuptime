@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Voor aanmeldingen en risicodetecties: Microsoft Entra ID P1 of P2, die in Microsoft 365 E3, E5 en Business Premium zitten: Microsoft Graph geeft ze alleen aan zulke tenants, en P2 geeft de details van elke risicodetectie. Directorywijzigingen worden in elke tenant gelezen.
 - Een Entra-rol die toepassingen mag registreren, zoals Toepassingsbeheerder, en een Globale beheerder of Beheerder met bevoorrechte rol om beheerderstoestemming te verlenen.
 - Voor het Microsoft 365-auditlogboek: auditing ingeschakeld voor de tenant, wat standaard zo is: in de [Microsoft Purview-portal](https://purview.microsoft.com) mag **Audit** geen **Start recording user and admin activity** aanbieden.

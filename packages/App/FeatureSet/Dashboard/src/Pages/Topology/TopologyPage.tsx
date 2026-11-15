@@ -27,7 +27,7 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { writeReaderTimeOfDay } from "Common/UI/Utils/ReaderMoments";
 import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
@@ -441,9 +441,7 @@ const TopologyPage: FunctionComponent<
               title={
                 activeTab?.loadedAt
                   ? translator.translateTemplate("Last refreshed: {{time}}", {
-                      time: activeTab.loadedAt.toLocaleTimeString(
-                        getReaderDateLocale(),
-                      ),
+                      time: writeReaderTimeOfDay(activeTab.loadedAt),
                     })
                   : undefined
               }

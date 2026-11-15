@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "٪ زمان کارکرد",
-    "uptimePercent": "{{percent}}٪ زمان کارکرد",
+    "uptimePercent": "{{percent}} زمان کارکرد",
     "operational": "عملیاتی",
     "notMonitored": "پایش نشده",
     "noResourcesInGroup": "هیچ منبعی به این گروه اضافه نشده است.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "منابع تحت تأثیر",
-    "stateChangedTo": "وضعیت تغییر کرد به",
     "view": "مشاهده {{eventType}}",
     "updateTo": "به‌روزرسانی این {{eventType}}",
-    "postedOn": "منتشر شده در"
+    "postedOnDate": "منتشر شده در {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} روز پیش",
@@ -473,5 +472,6 @@
     "warning": "هشدار"
   },
   "No options available": "گزینه‌ای در دسترس نیست",
-  "No matches found": "موردی پیدا نشد"
+  "No matches found": "موردی پیدا نشد",
+  "{{eventType}} state changed to {{state}}": "وضعیت {{eventType}} به {{state}} تغییر کرد"
 }

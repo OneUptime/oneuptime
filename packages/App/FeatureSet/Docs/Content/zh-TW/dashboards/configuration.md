@@ -15,15 +15,15 @@
 
 | 操作 | 所需權限 |
 | --- | --- |
-| 閱讀儀表板 | `ReadDashboard` ，或專案角色：Project Owner、Project Admin、Project Member、Viewer 或某個 Settings 角色 |
-| 建立儀表板 | `CreateDashboard` 、Project Owner 或 Project Admin |
-| 修改儀表板：它的小工具、變數、分享、品牌，以及封存它 | `EditDashboard` 、Project Owner 或 Project Admin |
-| 刪除儀表板 | `DeleteDashboard` 、Project Owner 或 Project Admin |
-| 新增和移除擁有者 | 儀表板擁有者權限、Project Owner、Project Admin 或 Project Member |
-| 新增和修改自訂網域 | 儀表板網域權限、Project Owner、Project Admin、Project Member、Settings Admin 或 Settings Member |
-| 建立擁有者規則和標籤規則 | 規則權限、Project Owner 或 Project Admin |
+| 閱讀儀表板 | `ReadDashboard` ，或專案角色：專案擁有者、專案管理員、專案成員、檢視者或某個 Settings 角色 |
+| 建立儀表板 | `CreateDashboard` 、專案擁有者或專案管理員 |
+| 修改儀表板：它的小工具、變數、分享、品牌，以及封存它 | `EditDashboard` 、專案擁有者或專案管理員 |
+| 刪除儀表板 | `DeleteDashboard` 、專案擁有者或專案管理員 |
+| 新增和移除擁有者 | 儀表板擁有者權限、專案擁有者、專案管理員或專案成員 |
+| 新增和修改自訂網域 | 儀表板網域權限、專案擁有者、專案管理員、專案成員、設定管理員或設定成員 |
+| 建立擁有者規則和標籤規則 | 規則權限、專案擁有者或專案管理員 |
 
-因此，Project Member 可以閱讀所有儀表板，但要建構儀表板需要 `CreateDashboard` 和 `EditDashboard` 。閱讀、編輯和刪除都可以分別限制在團隊擁有的儀表板上，或帶有某些標籤的儀表板上：請參閱 [範圍：一條允許權限能涵蓋多遠](/docs/permissions/index#範圍一條允許權限能涵蓋多遠) 。
+因此，專案成員可以閱讀所有儀表板，但要建構儀表板需要 `CreateDashboard` 和 `EditDashboard` 。閱讀、編輯和刪除都可以分別限制在團隊擁有的儀表板上，或帶有某些標籤的儀表板上：請參閱 [範圍：一條允許權限能涵蓋多遠](/docs/permissions/index#範圍一條允許權限能涵蓋多遠) 。
 
 在團隊的 **權限** 頁面上指派它們：開啟 **產品 → 團隊** 並選擇該團隊。
 

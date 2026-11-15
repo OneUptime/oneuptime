@@ -139,9 +139,9 @@ OneUptime은 확인되지 않은 모든 도메인을 15분마다 검사하며, �
 
 ### 확인하고 재발급할 수 있는 사람
 
-**지금 확인**, 도메인 인증서 주문, **Reissue SSL**은 도메인을 바꾸므로 도메인을 편집할 권한이 필요합니다. **Edit Dashboard Domain** 또는 그것을 포함하는 역할(Project Owner, Project Admin, Project Member, Settings Admin, Settings Member)입니다.
+**지금 확인**, 도메인 인증서 주문, **Reissue SSL**은 도메인을 바꾸므로 도메인을 편집할 권한이 필요합니다. **Edit Dashboard Domain** 또는 그것을 포함하는 역할(프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 설정 관리자, 설정 구성원)입니다.
 
-도메인을 읽기만 할 수 있는 사람(예: Viewer나 Settings Viewer)도 **상태** 열과 **DNS 설정**에서 추가할 레코드는 봅니다. 그런 사람에게 **지금 확인**과 **Reissue SSL**은 잠겨 있으며, 필요한 권한을 알려 줍니다. 어느 경우든 OneUptime은 스스로 모든 도메인을 계속 확인하고 인증서를 주문합니다.
+도메인을 읽기만 할 수 있는 사람(예: 뷰어나 설정 뷰어)도 **상태** 열과 **DNS 설정**에서 추가할 레코드는 봅니다. 그런 사람에게 **지금 확인**과 **Reissue SSL**은 잠겨 있으며, 필요한 권한을 알려 줍니다. 어느 경우든 OneUptime은 스스로 모든 도메인을 계속 확인하고 인증서를 주문합니다.
 
 API 키도 마찬가지입니다. 대시보드 도메인을 읽기만 할 수 있는 키는 `/dashboard-domain`에서 `verify-cname`, `order-ssl`, `reissue-ssl`을 호출할 수 없습니다. 필요하다면 **Read Dashboard Domain**과 **Edit Dashboard Domain**을 부여하세요.
 

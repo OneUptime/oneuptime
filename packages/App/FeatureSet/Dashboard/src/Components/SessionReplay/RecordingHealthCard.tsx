@@ -25,9 +25,11 @@ import {
   createTranslator,
   DEFAULT_LANGUAGE,
   formatList,
+  translatableTerm,
   translationKey,
   Translator,
 } from "Common/Types/Translator";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -474,7 +476,11 @@ function RecorderDiagnosticsExplanationView(props: {
             (fact: ExplainedRecorderFact, index: number): ReactElement => {
               return (
                 <div key={index} className="flex gap-2">
-                  <dt className="shrink-0 text-gray-500">{fact.label}:</dt>
+                  <dt className="shrink-0 text-gray-500">
+                    {translator.translateTemplate(LABEL_WITH_COLON, {
+                      label: fact.label,
+                    })}
+                  </dt>
                   <dd className="min-w-0 break-words text-gray-900">
                     {fact.value}
                   </dd>
@@ -485,7 +491,9 @@ function RecorderDiagnosticsExplanationView(props: {
           {explanation.capabilities.length > 0 && (
             <div className="flex gap-2">
               <dt className="shrink-0 text-gray-500">
-                {translator.translateText("Capabilities")}:
+                {translator.translateTemplate(LABEL_WITH_COLON, {
+                  label: translatableTerm("Capabilities"),
+                })}
               </dt>
               <dd className="min-w-0 break-words text-gray-900">
                 {formatList(explanation.capabilities, translator)}

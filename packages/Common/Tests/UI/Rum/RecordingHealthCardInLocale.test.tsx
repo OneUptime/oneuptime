@@ -485,10 +485,11 @@ describe("the paste box in the reader's language", () => {
       ),
     );
     expect(explanation).toHaveTextContent(
-      `${marked("Session")}:${marked("none: no session was started on this page")}`,
+      // A label's colon is the language's, looked up with it (#8290).
+      `${marked(`${marked("Session")}:`)}${marked("none: no session was started on this page")}`,
     );
     expect(explanation).toHaveTextContent(
-      `${marked("Capabilities")}:click-events`,
+      `${marked(`${marked("Capabilities")}:`)}click-events`,
     );
     expect(explanation).toHaveTextContent(
       marked(

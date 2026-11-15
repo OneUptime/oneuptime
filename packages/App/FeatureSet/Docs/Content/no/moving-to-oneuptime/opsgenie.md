@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En Opsgenie-API-nøkkel med tilgangene Read og Configuration access.** Configuration access er det som lar en nøkkel lese brukere, team, vaktplaner og eskaleringer. Importen skriver aldri til Opsgenie.
 - **Opsgenie-regionen din.** Hvis du logger inn på `app.eu.opsgenie.com`, ligger kontoen din i Europa. Ellers ligger den i USA.
 
@@ -76,7 +76,7 @@ En vaktplan der rotasjonene setter to personer på vakt samtidig, blir én OneUp
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 

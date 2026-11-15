@@ -11,9 +11,9 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 
 ## 시작하기 전에
 
-- **Runbook을 작성할 수 있는 역할.** Project Owner, Project Admin, Runbook Admin은 Runbook을 만들고 단계를 저장할 수 있습니다. 세분화된 권한을 쓰는 경우 **Create Runbook**과 **Edit Runbook**이 필요합니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
+- **Runbook을 작성할 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 런북 관리자는 Runbook을 만들고 단계를 저장할 수 있습니다. 세분화된 권한을 쓰는 경우 **Create Runbook**과 **Edit Runbook**이 필요합니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
 - **Bash, SSH, kubectl 단계를 위한 Runner.** 이 단계들은 OneUptime Worker가 아니라 자체 인프라의 [Runner](/docs/runbooks/agents)에서 실행됩니다. 먼저 하나를 설치하세요. Runner를 고르지 않은 단계는 설정해 두었다면 [프로젝트 기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)에서 실행되고, 그렇지 않으면 JavaScript 단계는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)에서 실행됩니다.
-- **SSH와 kubectl 단계를 위한 시크릿 변수.** 단계가 로그인에 쓰는 키, 비밀번호 또는 kubeconfig는 시크릿 [Runbook 변수](/docs/runbooks/variables)입니다. 변수는 Project Owner와 Project Admin이 만들고, Runbook Admin은 자신이 작성하는 단계에서 변수를 고릅니다. kubectl 단계는 대신 Runner 자체 액세스를 사용할 수 있습니다.
+- **SSH와 kubectl 단계를 위한 시크릿 변수.** 단계가 로그인에 쓰는 키, 비밀번호 또는 kubeconfig는 시크릿 [Runbook 변수](/docs/runbooks/variables)입니다. 변수는 프로젝트 소유자와 프로젝트 관리자가 만들고, 런북 관리자는 자신이 작성하는 단계에서 변수를 고릅니다. kubectl 단계는 대신 Runner 자체 액세스를 사용할 수 있습니다.
 - **AI 단계를 위한 LLM 공급자.** [LLM 공급자](/docs/ai/llm-provider)를 참조하세요.
 
 ## Runbook 만들기

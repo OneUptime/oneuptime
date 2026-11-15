@@ -25,7 +25,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
+- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en Projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
 - **Een alleen-lezen REST-API-sleutel van PagerDuty.** Beheerders en accounteigenaren in PagerDuty kunnen er een maken. De import schrijft nooit naar PagerDuty, dus de sleutel heeft alleen leestoegang nodig.
 - **Uw PagerDuty-regio.** Als u zich aanmeldt op een adres dat eindigt op `eu.pagerduty.com`, staat uw account in Europa. Anders staat het in de Verenigde Staten.
 
@@ -77,7 +77,7 @@ Eén import maakt hooguit 2.000 records aan: hooguit 500 personen, 200 teams, 20
 
 In OneUptime Cloud worden records die uw abonnement niet bevat, getoond als niet overgenomen, met het abonnement dat ze nodig hebben.
 
-Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en projectbeheerders zien de voortgang en het rapport van elke import.
+Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en Projectbeheerders zien de voortgang en het rapport van elke import.
 
 ## Rond de overstap af
 

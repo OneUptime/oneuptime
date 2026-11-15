@@ -21,10 +21,13 @@ import {
   buildParentBySpanId,
   chartHasData,
   computeSpanDepth,
+  describeExportBucketTimezone,
   formatChartValue,
+  formatExportPointTime,
   formatStatValue,
   formatTableCell,
   formatToolArguments,
+  getExportChartBucketTimezone,
   getExportedResourceCardFacts,
   isChartWidget,
   isEntityListWidget,
@@ -32,10 +35,8 @@ import {
   toExportChartSeries,
   totalTraceDuration,
 } from "./ChatWidgetData";
-import {
-  getReaderDateLocale,
-  getReaderNumberLocale,
-} from "../../../Types/DateLanguage";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
+import Timezone from "../../../Types/Timezone";
 
 /*
  * Renders the inline artifacts of an assistant message — widgets, tool actions
@@ -83,6 +84,9 @@ function chartToMarkdown(widget: AIChatWidget): Array<string> {
   const kind: string =
     widget.type === AIChatWidgetType.BarChart ? "Bar chart" : "Line chart";
   const lines: Array<string> = [`_${kind}_`, ""];
+  // Day buckets are named by their day where they were cut (issue #8206).
+  const bucketTimezone: Timezone | undefined =
+    getExportChartBucketTimezone(widget);
 
   /*
    * One table per series rather than a single wide table keyed by x: series
@@ -108,7 +112,7 @@ function chartToMarkdown(widget: AIChatWidget): Array<string> {
         item.points.map((point: ExportChartPoint) => {
           return [
             point.date
-              ? point.date.toLocaleString(getReaderDateLocale())
+              ? formatExportPointTime(point.date, bucketTimezone)
               : point.x,
             formatChartValue(point.y, widget.data.unit),
           ];
@@ -116,6 +120,10 @@ function chartToMarkdown(widget: AIChatWidget): Array<string> {
       ),
       "",
     );
+  }
+
+  if (bucketTimezone) {
+    lines.push(`_${describeExportBucketTimezone(bucketTimezone)}_`, "");
   }
 
   return lines;

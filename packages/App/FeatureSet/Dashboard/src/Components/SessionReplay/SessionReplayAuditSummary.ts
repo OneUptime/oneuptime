@@ -10,6 +10,7 @@ import {
 } from "Common/Types/Rum/SessionReplayApi";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { readStoredAddress } from "Common/Utils/Rum/UserFlow";
 import { APP_API_URL } from "Common/UI/Config";
 import { formatSessionDuration } from "./SessionReplayPlayability";
 
@@ -135,8 +136,13 @@ export async function fetchSessionReplayAuditSummaries(data: {
   return summaries;
 }
 
+/*
+ * The page a session entered on: its path and query, and a React Native
+ * screen stored as "null/<route>" before #8384 by its route
+ * (readStoredAddress).
+ */
 export function sessionReplayEntryPath(entryUrl: string): string {
-  const value: string = entryUrl.trim();
+  const value: string = readStoredAddress(entryUrl.trim());
 
   if (!value) {
     return "";

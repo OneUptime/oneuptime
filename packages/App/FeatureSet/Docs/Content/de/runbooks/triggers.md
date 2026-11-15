@@ -163,7 +163,7 @@ return { host };
 
 ## Wer Auslöser einrichten darf
 
-Ein Zeitplan oder ein Webhook startet Läufe, ohne dass jemand dabei ist; deshalb braucht das Einrichten die Berechtigung, das Runbook zu bearbeiten und auszuführen: Project Owner, Project Admin oder Runbook Admin, oder **Edit Runbook** zusammen mit Project Member, Runbook Member oder **Create Runbook Execution**. Die Beschriftungen, auf die eine Rolle beschränkt ist, zählen, wie bei **Jetzt ausführen**. Die Webhook-URL zu sehen oder zurückzusetzen braucht dasselbe.
+Ein Zeitplan oder ein Webhook startet Läufe, ohne dass jemand dabei ist; deshalb braucht das Einrichten die Berechtigung, das Runbook zu bearbeiten und auszuführen: Projektinhaber, Projektadministrator oder Runbook-Administrator, oder **Edit Runbook** zusammen mit Projektmitglied, Runbook-Mitglied oder **Create Runbook Execution**. Die Beschriftungen, auf die eine Rolle beschränkt ist, zählen, wie bei **Jetzt ausführen**. Die Webhook-URL zu sehen oder zurückzusetzen braucht dasselbe.
 
 Einen Zeitplan oder einen Webhook auszuschalten startet nichts und braucht daher nur die Berechtigung, das Runbook zu bearbeiten. Wer das Runbook bearbeiten, aber nicht ausführen darf, sieht die Seite **Auslöser** mit gesperrtem **Zeitplan einrichten** und erfährt, wer die Webhook-URL sehen kann.
 
@@ -178,7 +178,7 @@ Ein Lauf lief noch, und der Zeitplan überspringt solche Zeitpunkte, oder OneUpt
 :::
 
 :::details Das Speichern eines Zeitplans schlägt fehl mit "You do not have permission to set up this runbook's schedule or webhook."
-Das Einrichten eines Auslösers braucht die Berechtigung, das Runbook auszuführen und es zu bearbeiten. Bitten Sie um Runbook Admin, oder um Runbook Member oder **Create Runbook Execution** zusätzlich zu **Edit Runbook**.
+Das Einrichten eines Auslösers braucht die Berechtigung, das Runbook auszuführen und es zu bearbeiten. Bitten Sie um Runbook-Administrator, oder um Runbook-Mitglied oder **Create Runbook Execution** zusätzlich zu **Edit Runbook**.
 :::
 
 :::details Ein Aufruf wird mit "No runbook webhook answers at this URL." beantwortet

@@ -22,7 +22,7 @@ Jeder Weg normalisiert, was ankommt, nach [OCSF](https://schema.ocsf.io/), dem O
 
 ## Bevor Sie beginnen
 
-- Für den verwalteten Connector in OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer können Verbindungen lesen, aber nicht anlegen.
+- Für den verwalteten Connector in OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter können Verbindungen lesen, aber nicht anlegen.
 - Für den Webhook und die UDM-Weiterleitung einen Aufnahmeschlüssel: Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Aufnahmeschlüssel erstellen**.
 - Für den verwalteten Connector das Recht, ein Google-Cloud-Dienstkonto anzulegen, in dem Projekt, an das Ihre SecOps-Instanz gebunden ist.
 

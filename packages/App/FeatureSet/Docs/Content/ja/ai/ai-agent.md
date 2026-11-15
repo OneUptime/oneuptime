@@ -283,7 +283,7 @@ Runner を別の場所、たとえばリポジトリに近いマシンで実行�
 :::steps
 ### Runner を作成する
 
-**Runbook → Runner** で Runner を作成し、その行の **セットアップ手順を表示** をクリックします。コマンドには Runner のシークレットキーが含まれており、これを読めるのは Project Owner、Project Admin、Runbook Admin だけです。次のようになります:
+**Runbook → Runner** で Runner を作成し、その行の **セットアップ手順を表示** をクリックします。コマンドには Runner のシークレットキーが含まれており、これを読めるのはプロジェクト所有者、プロジェクト管理者、Runbook 管理者だけです。次のようになります:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

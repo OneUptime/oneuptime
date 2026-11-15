@@ -30,7 +30,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   title?: string | undefined;
   /*
    * The title is in the reader's words already - the Admin Dashboard's
-   * t("pages.users.title"): drawn as given in the heading, the browser tab
+   * "pages.users.title" key: drawn as given in the heading, the browser tab
    * and the record's heading ("Usuarios - jane"), never looked up again
    * (Page's isTitleTranslated, #8224).
    */

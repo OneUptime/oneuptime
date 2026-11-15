@@ -58,7 +58,7 @@ Runbook の実行は次の 5 つの方法で作成されます。
 3. 実行ページが開きます。
 :::
 
-実行を開始するには、Project Owner、Project Admin、Project Member、Runbook Admin、Runbook Member のいずれか、または **Create Runbook Execution** 権限が必要です。Runbook Viewer と Viewer には、 **今すぐ実行** が理由付きでロックされて表示されます。[権限](/docs/runbooks/configuration#権限) を参照してください。
+実行を開始するには、プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、Runbook 管理者、Runbook メンバーのいずれか、または **Create Runbook Execution** 権限が必要です。Runbook 閲覧者と閲覧者には、 **今すぐ実行** が理由付きでロックされて表示されます。[権限](/docs/runbooks/configuration#権限) を参照してください。
 
 ## 実行ビュー
 
@@ -128,7 +128,7 @@ Runbook の **監査ログ** ページには、各実行を誰が開始したか
 ## トラブルシューティング
 
 :::details 今すぐ実行がロックされている
-あなたのロールは Runbook を読めますが実行はできません。ボタンには「このプロジェクトで Runbook の実行を開始する権限がありません。」と表示されます。Runbook Member または **Create Runbook Execution** 権限を依頼してください。
+あなたのロールは Runbook を読めますが実行はできません。ボタンには「このプロジェクトで Runbook の実行を開始する権限がありません。」と表示されます。Runbook メンバーまたは **Create Runbook Execution** 権限を依頼してください。
 :::
 
 :::details 実行の開始が「Runbook is disabled」または「Runbook has no steps to run」で失敗する

@@ -42,7 +42,7 @@ Du ser alla körningar, startade av en regel eller inte, under **Runbooks → K�
 ## Innan du börjar
 
 - **Ett runbook som kan köras.** Det behöver minst ett steg och **Kör det här runbooket** påslaget på sin sida **Inställningar**. Se [Skriva ett runbook](/docs/runbooks/authoring).
-- **Behörighet att hantera regler.** Project Owner, Project Admin och Runbook Admin skapar runbook-regler, liksom alla med behörigheten **Create Runbook Rule**.
+- **Behörighet att hantera regler.** Projektägare, Projektadministratör och Runbook-administratör skapar runbook-regler, liksom alla med behörigheten **Create Runbook Rule**.
 
 ## Skapa en runbook-regel
 

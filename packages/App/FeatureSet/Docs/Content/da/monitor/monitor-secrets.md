@@ -25,7 +25,7 @@ Den sonde, der udfører kontrollen, modtager værdien, så en monitor, der bruge
 ## Før du starter
 
 - **Growth-abonnementet eller højere**, på OneUptime Cloud. Selvhostede installationer har ingen abonnementer.
-- **En rolle, der kan administrere hemmeligheder**: Project Owner, Project Admin eller en brugerdefineret rolle med tilladelsen Create Monitor Secret.
+- **En rolle, der kan administrere hemmeligheder**: Projektejer, Projektadministrator eller en brugerdefineret rolle med tilladelsen Create Monitor Secret.
 
 ## Arbejd med hemmeligheder
 

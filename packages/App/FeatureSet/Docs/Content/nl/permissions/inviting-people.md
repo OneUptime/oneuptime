@@ -26,7 +26,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een rol die mensen mag uitnodigen.** Project Owner, Project Admin of een rol met de machtiging **Invite New Members**. U kunt mensen alleen uitnodigen voor een team waarvan u zelf de machtigingen hebt, omdat een uitnodiging hun de toegang van het team geeft.
+- **Een rol die mensen mag uitnodigen.** Projecteigenaar, Projectbeheerder of een rol met de machtiging **Invite New Members**. U kunt mensen alleen uitnodigen voor een team waarvan u zelf de machtigingen hebt, omdat een uitnodiging hun de toegang van het team geeft.
 - **In OneUptime Cloud: ruimte in uw abonnement.** Iedereen in het project is een plaats op de factuur, vanaf het moment van de uitnodiging. Het Free-abonnement heeft ruimte voor één persoon. Zie [Facturering en gebruik](/docs/configuration/billing#uw-abonnement-en-plaatsen).
 - **Geen SCIM Push Groups.** Zolang uw identiteitsprovider de teams van het project via SCIM Push Groups beheert, nodigt u mensen daar uit en verwijdert u ze daar, niet in OneUptime.
 
@@ -47,7 +47,7 @@ Vul het adres in bij **E-mail**. Gebruikt nog geen OneUptime-account dit adres, 
 
 ### Het team kiezen
 
-**Team** begint bij het ledenteam van het project: het team dat Project Member voor het hele project heeft, of anders het team met de naam Members. Kies een ander team om meer of minder toegang te geven. **Team** blijft leeg als het project zo'n team niet heeft, of als u zelf niemand voor dat team zou mogen uitnodigen.
+**Team** begint bij het ledenteam van het project: het team dat Projectlid voor het hele project heeft, of anders het team met de naam Members. Kies een ander team om meer of minder toegang te geven. **Team** blijft leeg als het project zo'n team niet heeft, of als u zelf niemand voor dat team zou mogen uitnodigen.
 
 ### De uitnodiging versturen
 
@@ -86,7 +86,7 @@ Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de 
 | --- | --- |
 | **Profiel** | Naam, e-mailadres, foto en gebruikers-ID. |
 | **Teams** | De teams waarin die persoon zit. Voeg hier een team toe of verwijder er een. |
-| **Gereedheid**, **Meldingsmethoden**, **Hoe ik bereikbaar ben** | Of die persoon kan worden opgeroepen, en hoe. Zichtbaar voor Project Owners, Project Admins, de persoon zelf en iedereen die de meldingsregels van anderen mag lezen. Zie [Gereedheid en rapporten](/docs/on-call/readiness). |
+| **Gereedheid**, **Meldingsmethoden**, **Hoe ik bereikbaar ben** | Of die persoon kan worden opgeroepen, en hoe. Zichtbaar voor Projecteigenaren, Projectbeheerders, de persoon zelf en iedereen die de meldingsregels van anderen mag lezen. Zie [Gereedheid en rapporten](/docs/on-call/readiness). |
 | **Aangepaste velden** | De aangepaste velden van het project voor personen, als het die heeft. |
 | **Verwijderen uit project** | Die persoon uit het project halen. |
 

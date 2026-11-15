@@ -25,7 +25,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Ein OneUptime-Projekt und das Recht, das Übernommene zu erstellen.** Projektinhaber und Projektadmins können alles übernehmen. Andere Rollen können ebenfalls importieren und übernehmen die Arten von Datensätzen, die sie erstellen dürfen. Alles andere wird mit Begründung als nicht übernommen angezeigt.
+- **Ein OneUptime-Projekt und das Recht, das Übernommene zu erstellen.** Projektinhaber und Projektadministratoren können alles übernehmen. Andere Rollen können ebenfalls importieren und übernehmen die Arten von Datensätzen, die sie erstellen dürfen. Alles andere wird mit Begründung als nicht übernommen angezeigt.
 - **Ein Statuspage-API-Schlüssel.** Nur ein Kontoinhaber kann einen erstellen. Der Import schreibt nie in Statuspage und liest jede Seite, die der Schlüssel sehen kann.
 - **Platz für Ihre Seiten, in OneUptime Cloud.** Ihr Tarif hat Platz für eine bestimmte Zahl von Statusseiten und Abonnenten. Was nicht passt, wird als nicht übernommen angezeigt. Die Komponenten werden zu manuellen Monitoren, die kostenlos sind.
 
@@ -73,7 +73,7 @@ Ein Import erstellt höchstens 2.000 Datensätze: höchstens 1.000 Monitore und 
 
 In OneUptime Cloud werden Statusseiten und Abonnenten, für die Ihr Tarif keinen Platz hat, als nicht übernommen angezeigt, mit dem, was sie brauchen.
 
-Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eingelesen hat, kann auswählen und den Import starten. Projektinhaber und Projektadmins sehen den Fortschritt und den Bericht jedes Imports.
+Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eingelesen hat, kann auswählen und den Import starten. Projektinhaber und Projektadministratoren sehen den Fortschritt und den Bericht jedes Imports.
 
 ## Den Wechsel abschließen
 

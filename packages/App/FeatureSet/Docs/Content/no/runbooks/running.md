@@ -58,7 +58,7 @@ Slik starter du en manuelt:
 3. Kjøringssiden åpnes.
 :::
 
-For å starte en kjøring trenger du Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member, eller tillatelsen **Create Runbook Execution**. Runbook Viewer og Viewer ser **Kjør nå** låst, med begrunnelsen. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
+For å starte en kjøring trenger du Prosjekteier, Prosjektadministrator, Prosjektmedlem, Runbook-administrator eller Runbook-medlem, eller tillatelsen **Create Runbook Execution**. Runbook-leser og Leser ser **Kjør nå** låst, med begrunnelsen. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
 
 ## Kjøringsvisningen
 
@@ -128,7 +128,7 @@ En kjøring er en engangs, uforanderlig post. Klikk **Kjør igjen** på en avslu
 ## Feilsøking
 
 :::details Run Now er låst
-Rollen din leser runbooks, men kjører dem ikke: knappen sier "Du har ikke tillatelse til å starte runbook-kjøringer i dette prosjektet." Be om Runbook Member eller tillatelsen **Create Runbook Execution**.
+Rollen din leser runbooks, men kjører dem ikke: knappen sier "Du har ikke tillatelse til å starte runbook-kjøringer i dette prosjektet." Be om Runbook-medlem eller tillatelsen **Create Runbook Execution**.
 :::
 
 :::details Oppstart av en kjøring feiler med "Runbook is disabled" eller "Runbook has no steps to run"

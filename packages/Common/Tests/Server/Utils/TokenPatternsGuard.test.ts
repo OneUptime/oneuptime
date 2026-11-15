@@ -40,6 +40,17 @@ const RUN_START: string = "(?<![A-Za-z0-9_-])";
 const LINEAR_FOR_ANOTHER_REASON: Record<string, string> = {
   "packages/Common/UI/Utils/ErrorSupportBundle.ts":
     "a token there may end after any of its segments, so the first start in a run ends in a match at the run's end and nothing is read twice",
+  /*
+   * The path rule of Session Replay's scrubber and the React Native
+   * recorder's copy of it (#8385): a token is tested against one path
+   * segment, anchored at both of its ends, so it is tried from the
+   * segment's start alone. No look-behind either: the browser recorder runs
+   * where a browser without one would refuse the whole bundle.
+   */
+  "packages/Common/Utils/Rum/UrlScrubber.ts":
+    "anchored at both ends of one path segment, so it is tried once, from the segment's start, and no part holds a dot",
+  "packages/App/FeatureSet/MobileRecorder/src/Sanitize.ts":
+    "anchored at both ends of one route segment, so it is tried once, from the segment's start, and no part holds a dot",
 };
 
 interface FoundPattern {

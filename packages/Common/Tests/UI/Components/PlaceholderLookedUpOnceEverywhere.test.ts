@@ -457,9 +457,9 @@ describe("every nav title, menu word, aria label and empty value's words written
       }).length,
     ).toBeGreaterThanOrEqual(26);
     /*
-     * The Subscription page's "no limit" values: the Active Monitors card's
-     * and the Users card's (d685c940983). Each is found, and each is looked
-     * up once; a card the page gains later is held to the same.
+     * Every placeholder the subscription page draws is looked up once and
+     * said translated - however many it has: it gained a second, for a
+     * project with no user limit, after this was first written.
      */
     const subscriptionPlaceholders: Array<PlaceholderSite> = sitesIn(
       "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx",
@@ -467,12 +467,13 @@ describe("every nav title, menu word, aria label and empty value's words written
       return site.handedTo === "<PlaceholderText text>";
     });
 
-    expect(subscriptionPlaceholders.length).toBeGreaterThanOrEqual(2);
-    expect(
-      subscriptionPlaceholders.filter((site: PlaceholderSite): boolean => {
-        return !site.isLookedUp || !site.isSaidTranslated;
-      }),
-    ).toEqual([]);
+    expect(subscriptionPlaceholders.length).toBeGreaterThanOrEqual(1);
+
+    for (const site of subscriptionPlaceholders) {
+      expect(site).toEqual(
+        expect.objectContaining({ isLookedUp: true, isSaidTranslated: true }),
+      );
+    }
   });
 });
 

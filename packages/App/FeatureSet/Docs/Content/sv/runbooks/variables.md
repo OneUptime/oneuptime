@@ -33,7 +33,7 @@ Ett namn används en gång, oavsett stora och små bokstäver, bland projektets 
 
 ## Innan du börjar
 
-- **En roll som hanterar variabler.** Project Owner och Project Admin, eller behörigheten **Create Runbook Variable**. Runbook Admin läser variabler för att välja dem i de steg den skriver, men ändrar dem inte.
+- **En roll som hanterar variabler.** Projektägare och Projektadministratör, eller behörigheten **Create Runbook Variable**. Runbook-administratör läser variabler för att välja dem i de steg den skriver, men ändrar dem inte.
 - **En plan som innehåller dem.** På OneUptime Cloud kräver runbook-variabler planen **Growth** eller högre.
 
 ## Skapa en variabel

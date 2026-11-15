@@ -98,7 +98,7 @@ Hver gang en regel ændrer et SLO, registrerer SLO'ets **Feed**, hvilke regler d
 | Køre en etiketregel | **Edit SLO Label Rule** og **Edit Service Level Objective** |
 | Køre en ejerregel | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** og **Create SLO Team Owner** |
 
-Disse tilladelser ligger i en rolles SLO-gruppe, og rollerne Project Owner og Project Admin har dem alle. En kørsel ændrer hvert SLO i projektet, så en tilladelse, der er begrænset til nogle etiketter eller til de SLO'er, du ejer, er ikke nok til at køre en regel.
+Disse tilladelser ligger i en rolles SLO-gruppe, og rollerne Projektejer og Projektadministrator har dem alle. En kørsel ændrer hvert SLO i projektet, så en tilladelse, der er begrænset til nogle etiketter eller til de SLO'er, du ejer, er ikke nok til at køre en regel.
 
 ## Næste trin
 

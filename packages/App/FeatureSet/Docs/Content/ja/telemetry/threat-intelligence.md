@@ -27,7 +27,7 @@ flowchart TB
 - TAXII フィードの場合は、STIX 2.1 の `indicator` オブジェクトを公開する TAXII 2.1 サーバーと、ポーリングするコレクションの ID。TAXII フィードは匿名、bearer トークン、または HTTP の Basic 認証でサインインします。
 - Google SecOps フィードの場合は、サービスアカウントがインジケーターの一致を検索できる [Google SecOps 接続](/docs/integrations/google-secops#マネージドコネクターを設定する) 。 `roles/chronicle.viewer` ロールなら検索できます。
 - CISA AIS のように TLS クライアント証明書 (相互 TLS) を必要とするサーバーには対応していません。MITRE の公開 ATT&CK サーバーはインジケーターではなく手法とグループを公開しているので、そこを指したフィードは空のままです。
-- フィードを作成できるロール: Project Owner、Project Admin、Security Admin、Security Member。Security Viewer はフィードとインジケーターを閲覧できます。 [ロール](/docs/permissions/reference#ロール) を参照してください。
+- フィードを作成できるロール: プロジェクト所有者、プロジェクト管理者、セキュリティ管理者、セキュリティメンバー。セキュリティ閲覧者はフィードとインジケーターを閲覧できます。 [ロール](/docs/permissions/reference#ロール) を参照してください。
 
 ## 無料のリストを追加する
 

@@ -330,7 +330,8 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
               field: {
                 startsAt: true,
               },
-              title: "From",
+              // When a status began, never a message's sender (#8201).
+              title: "From (range start)",
               type: FieldType.Date,
             },
           ]}
@@ -368,7 +369,7 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
               field: {
                 startsAt: true,
               },
-              title: "From",
+              title: "From (range start)",
               type: FieldType.DateTime,
             },
             /*

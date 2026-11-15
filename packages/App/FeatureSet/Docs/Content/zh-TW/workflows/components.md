@@ -473,7 +473,7 @@ Zabbix 接受了更新時觸發 **已更新**；無法連線到 Zabbix 或 Zabbi
 
 工作流程就是這樣讀取和變更 OneUptime 資料的。例如，來自 CI 工具的 Webhook 可以用 **Create One Incident** 開立一個帶有失敗詳細資訊的事件。
 
-這些元件以工作流程所在專案的 Project Admin 身分執行：Project Admin 不允許做的事，或你的方案不包含的事，會被拒絕，執行的日誌會說明原因。請參閱 [工作流程步驟可以做什麼](/docs/workflows/configuration#工作流程步驟可以做什麼)。
+這些元件以工作流程所在專案的專案管理員身分執行：專案管理員不允許做的事，或你的方案不包含的事，會被拒絕，執行的日誌會說明原因。請參閱 [工作流程步驟可以做什麼](/docs/workflows/configuration#工作流程步驟可以做什麼)。
 
 ### 依據範本宣告事件
 

@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - Falcon 고객 ID(CID)와, API 클라이언트를 관리할 수 있는 Falcon 콘솔 사용자. Falcon Administrator 역할이나, API clients and keys 권한이 있는 사용자 지정 역할이 필요합니다.
 - OneUptime 앱과 워커에서 Falcon 클라우드의 API 호스트로 나가는 아웃바운드 HTTPS. 호스트는 아래 **Falcon 클라우드**에 나와 있습니다.
 

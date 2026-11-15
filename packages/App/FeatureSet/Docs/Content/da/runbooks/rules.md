@@ -42,7 +42,7 @@ Du kan se alle kørsler, startet af en regel eller ej, under **Runbooks → Udf�
 ## Før du går i gang
 
 - **Et runbook, der kan køre.** Det skal have mindst ét trin og **Kør dette runbook** slået til på dets side **Indstillinger**. Se [Skriv et runbook](/docs/runbooks/authoring).
-- **Tilladelse til at administrere regler.** Project Owner, Project Admin og Runbook Admin opretter runbook-regler, ligesom alle med tilladelsen **Create Runbook Rule**.
+- **Tilladelse til at administrere regler.** Projektejer, Projektadministrator og Runbook-administrator opretter runbook-regler, ligesom alle med tilladelsen **Create Runbook Rule**.
 
 ## Opret en runbook-regel
 
