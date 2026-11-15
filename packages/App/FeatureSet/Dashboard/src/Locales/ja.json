@@ -55878,5 +55878,8 @@
   "an unverified push notification device": "未確認のプッシュ通知デバイス",
   "{{channels}} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "このプロジェクトでは {{channels}} の通知がオフのため、メンバーがこのルールを満たしていてもこれらのチャネルで通知されません。プロジェクト所有者または「請求管理者」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 > 通知 > 通知チャネル」でオンにできます。",
   "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "このプロジェクトでは {{channel}} の通知がオフのため、メンバーがこのルールを満たしていても {{channel}} で通知されません。プロジェクト所有者または「請求管理者」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 > 通知 > 通知チャネル」でオンにできます。",
+  "Record the serial number, make, model and firmware version": "シリアル番号、メーカー、モデル、ファームウェアのバージョンを記録",
+  "Stamp the hardware facts no detector can read onto the host's Inventory item.": "どの検出器も読み取れないハードウェア情報を、ホストのインベントリ項目に書き込みます。",
+  "Upgrade the collector": "コレクターをアップグレード",
   "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "SLO がエラーバジェットを速く消費しすぎたときに、機能フラグをオフにするなどの対応を取ります。"
 }

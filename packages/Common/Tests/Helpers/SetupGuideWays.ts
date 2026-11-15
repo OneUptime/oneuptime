@@ -51,6 +51,10 @@ import {
   getDatabaseHealthMonitorCreateUrl,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { DatabaseAgentEngine } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
+import {
+  HOST_INSTALL_METHODS,
+  getHostSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -364,6 +368,29 @@ export function getDatabaseSetupGuideWays(): Array<SetupGuideWay> {
         databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
           "/dashboard/1/monitors/create",
         ),
+      });
+    },
+  });
+}
+
+/*
+ * The Host guide varies by install method (Docker, a Debian or RHEL
+ * package, the Linux tarball, macOS, Windows), and Kubernetes nodes take
+ * the Kubernetes agent's steps instead. A host has no Documentation tab of
+ * its own, so there is no name to install for.
+ */
+export function getHostSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: HOST_INSTALL_METHODS,
+    names: [],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof HOST_INSTALL_METHODS)[number]["key"],
+    ): SetupGuideContent => {
+      return getHostSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        method: option,
       });
     },
   });

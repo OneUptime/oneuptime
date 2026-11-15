@@ -69,6 +69,7 @@ import VMwareDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pa
 import VMwareDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/DocumentationCard";
 import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
 import DatabaseDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard";
+import HostDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Host/DocumentationCard";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -118,6 +119,11 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import {
+  HostInstallMethod,
+  getHostSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -145,6 +151,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   StorageArray: {},
   VMware: {},
   Database: {},
+  Host: {},
 };
 
 /*
@@ -243,6 +250,15 @@ function vmwareGuide(
  * the engine picked (PostgreSQL until another is), its Database Health
  * monitor link in the current project as the card builds it.
  */
+// The Host guide a reader meets before a key is picked: Docker unless another method is picked.
+function hostGuide(method: HostInstallMethod = "docker"): SetupGuideContent {
+  return getHostSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    method: method,
+  });
+}
+
 function databaseGuide(system: string = "postgresql"): SetupGuideContent {
   return getDatabaseAgentSetupGuide({
     oneuptimeUrl: READER_URL,
@@ -385,6 +401,9 @@ beforeAll(async () => {
     ).default;
     WORDS["Database"]![language] = (
       await DATABASE_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["Host"]![language] = (
+      await HOST_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -1270,6 +1289,103 @@ describe("Databases > Help > Documentation", () => {
       });
     }
   });
+});
+
+/*
+ * Hosts > Help > Documentation folds the manual guide under the default
+ * one-command install: the card it folds away is drawn here on its own.
+ */
+describe("Hosts > Help > Documentation, the collector you install yourself", () => {
+  const KEY_STEP: string =
+    "The collector sends this host's metrics to OneUptime with this key. Pick an existing key or create a new one — the config below updates to use it.";
+
+  // The card in `language`, an install method picked, every topic and tab open.
+  async function drawWithMethod(
+    language: string,
+    method: HostInstallMethod,
+  ): Promise<void> {
+    await act(async () => {
+      await i18next.changeLanguage(language);
+    });
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <HostDocumentationCard
+            title="Install the collector yourself"
+            description=""
+            isBare={true}
+          />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`setup-guide-option-${method}`));
+    });
+    await settle();
+    await openEveryTopic();
+    await openEveryVariant();
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the Docker guide, its question and its key step in the reader's words, its flags and paths as written",
+    async (language: string) => {
+      await drawWithMethod(language, "docker");
+
+      expectGuideInReadersWords("Host", hostGuide(), language);
+
+      // The card's question and its key step come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["How do you want to install the collector?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Save the collector config"]!),
+      ).toBeInTheDocument();
+      expect(locale[KEY_STEP]).not.toBe(KEY_STEP);
+      expect(screen.getByText(locale[KEY_STEP]!)).toBeInTheDocument();
+      expect(screen.queryByText(KEY_STEP)).toBeNull();
+
+      // The collector's flags and the attributes it sets are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`--network host`");
+      expect(drawn).toContain("`host.name`");
+      expect(drawn).toContain("`oneuptime.label.`");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each([
+    ["de", "linux-deb"],
+    ["ar", "linux-tarball"],
+    ["de", "macos"],
+    ["ar", "windows"],
+  ] as Array<[string, HostInstallMethod]>)(
+    "in %s, picking %s draws that install method's steps and topics in the reader's words",
+    async (language: string, method: HostInstallMethod) => {
+      await drawWithMethod(language, method);
+
+      expectGuideInReadersWords("Host", hostGuide(method), language);
+    },
+  );
+
+  /*
+   * Kubernetes nodes take the Kubernetes agent's steps, not a collector's:
+   * the Kubernetes guide's own pieces, in the Host guide's words.
+   */
+  test.each(["de", "ar"])(
+    "in %s, picking Kubernetes draws the Kubernetes agent's steps in the reader's words",
+    async (language: string) => {
+      await drawWithMethod(language, "kubernetes");
+
+      expectGuideInReadersWords("Host", hostGuide("kubernetes"), language);
+      expect(drawnTexts().join("\n")).toContain("aiAgent.enabled");
+    },
+  );
 });
 
 describe("Podman > Help > Documentation", () => {
