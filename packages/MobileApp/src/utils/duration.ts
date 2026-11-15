@@ -9,40 +9,30 @@
  * a blank.
  *
  * Everything here is pure and takes `now` as an argument so a test can pin it.
- * Nothing here calls toLocaleString: a responder reading "Tue, 9:00 AM" on one
- * handset and "9:00" on another cannot compare two screenshots of the same
- * shift, and the format is small enough to write out.
+ *
+ * A shift's date and time of day are the phone's, as every other date in the
+ * app is (issue #8232): on its 12- or 24-hour clock, in its language, in its
+ * zone, written by utils/date - "Today 9:00 AM" on a 12-hour phone, "Today
+ * 09:00" on a 24-hour one, "Tue 9:00 AM", "Di., 09:00". They were written by
+ * hand on a 12-hour English clock, so that two handsets' screenshots of one
+ * shift would read alike; but the same phone then read "09:00" on an
+ * incident's Created row and "9:00 AM" on the shift card beside it, and two
+ * handsets in two zones never read alike anyway. The app's own words -
+ * "Today", "Tomorrow", "Yesterday", "From", "Until" - stay English, as every
+ * other word of the app's does.
  */
+
+import {
+  writeDateTime,
+  writeTimeOfDay,
+  writeWeekdayTime,
+  type TimeTextOptions,
+} from "./date";
 
 const MILLISECONDS_PER_SECOND: number = 1000;
 const MILLISECONDS_PER_MINUTE: number = 60 * MILLISECONDS_PER_SECOND;
 const MILLISECONDS_PER_HOUR: number = 60 * MILLISECONDS_PER_MINUTE;
 const MILLISECONDS_PER_DAY: number = 24 * MILLISECONDS_PER_HOUR;
-
-export const WEEKDAY_NAMES: Array<string> = [
-  "Sun",
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat",
-];
-
-export const MONTH_NAMES: Array<string> = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
 
 /**
  * Parses an ISO timestamp into epoch milliseconds, or null when the value is
@@ -194,15 +184,6 @@ export function millisecondsUntil(
   return Math.max(0, timestamp - now);
 }
 
-function formatClock(date: Date): string {
-  const hours24: number = date.getHours();
-  const hours12: number = hours24 % 12 === 0 ? 12 : hours24 % 12;
-  const minutes: string = String(date.getMinutes()).padStart(2, "0");
-  const meridiem: string = hours24 < 12 ? "AM" : "PM";
-
-  return `${hours12}:${minutes} ${meridiem}`;
-}
-
 function isSameCalendarDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -214,15 +195,20 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 /**
  * A wall-clock stamp anchored to the reader's day: "Today 9:00 AM",
  * "Tomorrow 9:00 AM", "Tue 9:00 AM" inside the coming week, and
- * "12 Mar, 9:00 AM" beyond it.
+ * "Mar 12, 9:00 AM" beyond it - on a 24-hour phone "Today 09:00", "Tue
+ * 09:00" and "Mar 12, 09:00", and the weekday, the date and the time of day
+ * in the phone's language ("Di., 09:00", "12. März, 09:00").
  *
  * The relative day names are what make a handoff readable at a glance - a bare
  * date makes the reader do the arithmetic that the screen exists to do for
  * them - and they stop at a week because "Tue" a fortnight out is a trap.
+ *
+ * `options.locale` is the phone's own when undefined; tests name one.
  */
 export function formatShiftTime(
   value: string | null | undefined,
   now: number = Date.now(),
+  options: TimeTextOptions = {},
 ): string | null {
   const timestamp: number | null = toTimestamp(value);
 
@@ -232,7 +218,7 @@ export function formatShiftTime(
 
   const date: Date = new Date(timestamp);
   const today: Date = new Date(now);
-  const clock: string = formatClock(date);
+  const clock: string = writeTimeOfDay(date, options);
 
   if (isSameCalendarDay(date, today)) {
     return `Today ${clock}`;
@@ -255,14 +241,15 @@ export function formatShiftTime(
   const differenceInDays: number = (timestamp - now) / MILLISECONDS_PER_DAY;
 
   if (differenceInDays > 0 && differenceInDays < 7) {
-    return `${WEEKDAY_NAMES[date.getDay()]} ${clock}`;
+    return writeWeekdayTime(date, options);
   }
 
-  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]}, ${clock}`;
+  return writeDateTime(date, { showYear: false, locale: options.locale });
 }
 
 /**
- * A shift window as one line: "Today 9:00 AM → Tomorrow 9:00 AM".
+ * A shift window as one line: "Today 9:00 AM → Tomorrow 9:00 AM", or on a
+ * 24-hour phone "Today 09:00 → Tomorrow 09:00".
  *
  * An open-ended half (a schedule with a start but no computed handoff, which
  * is what a never-ending rotation looks like) renders the half that exists
@@ -272,9 +259,10 @@ export function formatShiftWindow(
   startsAt: string | null | undefined,
   endsAt: string | null | undefined,
   now: number = Date.now(),
+  options: TimeTextOptions = {},
 ): string | null {
-  const start: string | null = formatShiftTime(startsAt, now);
-  const end: string | null = formatShiftTime(endsAt, now);
+  const start: string | null = formatShiftTime(startsAt, now, options);
+  const end: string | null = formatShiftTime(endsAt, now, options);
 
   if (start && end) {
     return `${start} → ${end}`;

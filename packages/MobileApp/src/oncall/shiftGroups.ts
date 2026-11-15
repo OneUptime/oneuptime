@@ -1,6 +1,6 @@
 import type { MyOnCallShift } from "../api/types";
 import type { CreateOnCallOverrideParams } from "../navigation/types";
-import { MONTH_NAMES, WEEKDAY_NAMES } from "../utils/duration";
+import { writeDay, type TimeTextOptions } from "../utils/date";
 
 /*
  * The "Your shifts" list, as the server materializes it.
@@ -9,7 +9,7 @@ import { MONTH_NAMES, WEEKDAY_NAMES } from "../utils/duration";
  * from the roster-derived "current and next per schedule" the tab started
  * with: a fortnight of a daily rotation is fourteen rows, and fourteen rows
  * with a date on each is a wall. Grouping by day is what makes it readable -
- * the reader scans "Today", "Tomorrow", "Thu 12 Sep" and stops at the one
+ * the reader scans "Today", "Tomorrow", "Thu, Sep 12" and stops at the one
  * they were looking for.
  *
  * All of it is pure and takes `now` as an argument so a test can pin it.
@@ -21,7 +21,7 @@ export interface ShiftDayGroup {
   /* Local calendar day, "YYYY-MM-DD"; stable across re-renders. */
   key: string;
 
-  /* "Today", "Tomorrow", or "Thu 12 Sep". */
+  /* "Today", "Tomorrow", or "Thu, Sep 12" (in the phone's language). */
   label: string;
 
   shifts: MyOnCallShift[];
@@ -44,10 +44,17 @@ export function dayKey(date: Date): string {
 }
 
 /**
- * "Today", "Tomorrow", otherwise "Thu 12 Sep". The weekday is kept even far
- * out because a shift list is read against a week, not against a date.
+ * "Today", "Tomorrow", otherwise the weekday and the date in the phone's
+ * language, as the shift cards under it write them (utils/date writeDay):
+ * "Thu, Sep 12", "Thu 12 Sep", "Do., 12. Sept." (issue #8232). The weekday
+ * is kept even far out because a shift list is read against a week, not
+ * against a date. `options.locale` is the phone's own when undefined.
  */
-export function dayLabel(date: Date, now: number): string {
+export function dayLabel(
+  date: Date,
+  now: number,
+  options: TimeTextOptions = {},
+): string {
   const day: Date = startOfLocalDay(date.getTime());
   const today: Date = startOfLocalDay(now);
 
@@ -67,9 +74,7 @@ export function dayLabel(date: Date, now: number): string {
     return "Yesterday";
   }
 
-  return `${WEEKDAY_NAMES[day.getDay()]} ${day.getDate()} ${
-    MONTH_NAMES[day.getMonth()]
-  }`;
+  return writeDay(day, options);
 }
 
 export function toTimestamp(value: string): number {
