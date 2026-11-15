@@ -1,3 +1,4 @@
+import { StateListType } from "../../../Utils/StateOrder";
 import { describe, expect, test } from "@jest/globals";
 import {
   FIRST_STRONG_ISOLATE,
@@ -101,7 +102,11 @@ describe("in German", () => {
   test("a page: the record with its severity, the project, the title and the link, in one GSM-7 part", () => {
     const sms: OnCallPageSms = page({
       language: GERMAN,
-      severityName: getOnCallPageStateName(translator, "Critical Incident"),
+      severityName: getOnCallPageStateName(
+        translator,
+        StateListType.IncidentSeverity,
+        "Critical Incident",
+      ),
     });
 
     expect(sms.text).toBe(
@@ -241,7 +246,11 @@ describe("an observer's page", () => {
     const sms: OnCallPageSms = page({
       language: languageOf("de"),
       isObserverPage: true,
-      severityName: getOnCallPageStateName(translator, "Critical Incident"),
+      severityName: getOnCallPageStateName(
+        translator,
+        StateListType.IncidentSeverity,
+        "Critical Incident",
+      ),
     });
 
     expect(sms.text).toBe(

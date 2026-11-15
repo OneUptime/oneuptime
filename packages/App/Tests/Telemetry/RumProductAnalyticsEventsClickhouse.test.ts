@@ -19,9 +19,13 @@ import {
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import { RumSessionErasureRequestType } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import {
+  PRODUCT_ANALYTICS_WIRE_VERSION,
+  ProductAnalyticsBatchParseResult,
   ProductAnalyticsEventKind,
   ProductAnalyticsParsedEvent,
+  parseProductAnalyticsBatch,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
+import { CAFE_PAGE, CAFE_SPELLINGS } from "Common/Tests/Helpers/PageSpellings";
 import {
   ProductAnalyticsEventBreakdownDto,
   ProductAnalyticsEventField,
@@ -326,6 +330,67 @@ const batches: Array<BatchFixture> = [
     countryCode: "US",
     project: otherProjectId,
     events: [sessionStart(at(1, 9, 59)), custom("Signed up", at(1, 10, 0))],
+  },
+];
+
+/*
+ * #8017: the rows recorders stored before the ingest wrote one spelling, in
+ * an application of their own. The café page in every spelling a recorder
+ * sent (CAFE_SPELLINGS, the table the recorder's and the parser's suites
+ * read), one session each on days 1 to 6, each followed five minutes later
+ * by an order on that page; the first visitor came back for the last one,
+ * so the page has one person fewer than spellings. And one session through
+ * pages that name others: "/a%2fb" (an escaped slash) and "/a/b", "/Cart"
+ * and "/cart".
+ */
+const spellingApplicationId: ObjectID = new ObjectID(
+  "6600000000000000000000d3",
+);
+
+function pageView(name: string, time: number): ProductAnalyticsParsedEvent {
+  return {
+    kind: ProductAnalyticsEventKind.Page,
+    name: name,
+    time: time,
+    page: name,
+    properties: {},
+  };
+}
+
+const spellingBatches: Array<BatchFixture> = [
+  ...CAFE_SPELLINGS.map((spelling: string, index: number): BatchFixture => {
+    const time: number = at(Math.min(index + 1, 6), 12);
+    const isLast: boolean = index === CAFE_SPELLINGS.length - 1;
+
+    return {
+      sessionId: hex(`3${index}`, 32),
+      visitorId: hex(isLast ? "50" : `5${index}`, 32),
+      ...desktop,
+      countryCode: "US",
+      application: spellingApplicationId,
+      events: [
+        sessionStart(time - MINUTE_MS),
+        pageView(spelling, time),
+        {
+          ...custom("Ordered", time + 5 * MINUTE_MS),
+          page: spelling,
+        },
+      ],
+    };
+  }),
+  {
+    sessionId: hex("3f", 32),
+    visitorId: hex("5f", 32),
+    ...desktop,
+    countryCode: "US",
+    application: spellingApplicationId,
+    events: [
+      sessionStart(at(3, 8)),
+      pageView("/a%2fb", at(3, 9)),
+      pageView("/a/b", at(3, 9, 1)),
+      pageView("/Cart", at(3, 9, 2)),
+      pageView("/cart", at(3, 9, 3)),
+    ],
   },
 ];
 
@@ -1040,6 +1105,235 @@ for (const analyzer of [1, 0]) {
             period: ProductAnalyticsRetentionPeriod.Day,
           }),
         ).toEqual(["2026-02-01", "2026-02-02"]);
+      });
+
+      /*
+       * #8017: one page written several ways ("/caf%c3%a9", "/cafe%CC%81",
+       * "/caf%C3%A9") is stored as each, by the recorders that sent them
+       * before the ingest wrote one spelling, and those rows stay for
+       * PRODUCT_ANALYTICS_RETENTION_MONTHS: the page is in the table's sort
+       * key, which ClickHouse never rewrites. Every read matches and groups
+       * them as one page, and names it in the one spelling.
+       */
+      describe("a page in its one spelling", () => {
+        const spellingScope: {
+          projectId: ObjectID;
+          rumApplicationId: ObjectID;
+          startTime: Date;
+          endTime: Date;
+        } = {
+          projectId: projectId,
+          rumApplicationId: spellingApplicationId,
+          startTime: rangeStart,
+          endTime: rangeEnd,
+        };
+
+        const cafe: ProductAnalyticsEventRef = {
+          kind: ProductAnalyticsEventKind.Page,
+          name: CAFE_PAGE,
+        };
+        const ordered: ProductAnalyticsEventRef = {
+          kind: ProductAnalyticsEventKind.Custom,
+          name: "Ordered",
+        };
+
+        beforeAll(async (): Promise<void> => {
+          for (let index: number = 0; index < spellingBatches.length; index++) {
+            await RumProductAnalyticsEventService.insertJsonRows(
+              rowsOfBatch(spellingBatches[index]!, 100 + index),
+              { clickhouseSettings: { wait_for_async_insert: 1 } },
+            );
+          }
+        });
+
+        test("the old rows are stored as their recorders sent them", async () => {
+          expect(
+            await count(
+              `SELECT toUInt64(uniqExact(name)) AS rows FROM ${database}.RumProductAnalyticsEventV1 WHERE rumApplicationId = '${spellingApplicationId.toString()}' AND kind = 'page' AND name LIKE '/caf%'`,
+            ),
+          ).toBe(CAFE_SPELLINGS.length);
+        });
+
+        test("the events list names the page once, with every spelling's events and people", async () => {
+          const list: ProductAnalyticsEventNamesDto =
+            await RumProductAnalyticsEventReadService.listEventNames(
+              spellingScope,
+            );
+
+          const pages: Array<ProductAnalyticsEventNameDto> = list.events.filter(
+            (event: ProductAnalyticsEventNameDto): boolean => {
+              return event.kind === ProductAnalyticsEventKind.Page;
+            },
+          );
+
+          expect(
+            pages.map((event: ProductAnalyticsEventNameDto): string => {
+              return `${event.name} ${event.events} ${event.users}`;
+            }),
+          ).toEqual([
+            /*
+             * Every spelling, one event each, and one person viewed it in
+             * two: a person counts once.
+             */
+            `${CAFE_PAGE} ${CAFE_SPELLINGS.length} ${CAFE_SPELLINGS.length - 1}`,
+            // What names another page stays its own.
+            "/Cart 1 1",
+            "/a%2Fb 1 1",
+            "/a/b 1 1",
+            "/cart 1 1",
+          ]);
+          expect(pages[0]?.lastSeenAt).toBe(at(6, 12));
+
+          const pageOnly: ProductAnalyticsEventNamesDto =
+            await RumProductAnalyticsEventReadService.listEventNames({
+              ...spellingScope,
+              kind: ProductAnalyticsEventKind.Page,
+            });
+
+          expect(namesOf(pageOnly)).toEqual([
+            `page:${CAFE_PAGE}`,
+            "page:/Cart",
+            "page:/a%2Fb",
+            "page:/a/b",
+            "page:/cart",
+          ]);
+        });
+
+        test("a page view is counted in every spelling, whichever spelling the read names", async () => {
+          for (const name of [CAFE_PAGE, "/caf%c3%a9", "/cafe%CC%81"]) {
+            const trend: ProductAnalyticsEventTrendDto =
+              await RumProductAnalyticsEventReadService.getEventTrend({
+                ...spellingScope,
+                event: { kind: ProductAnalyticsEventKind.Page, name: name },
+                filters: [],
+                timeZone: "UTC",
+              });
+
+            expect([name, trend.totalEvents, trend.totalUsers]).toEqual([
+              name,
+              CAFE_SPELLINGS.length,
+              CAFE_SPELLINGS.length - 1,
+            ]);
+          }
+
+          // A page apart is counted apart.
+          const slash: ProductAnalyticsEventTrendDto =
+            await RumProductAnalyticsEventReadService.getEventTrend({
+              ...spellingScope,
+              event: { kind: ProductAnalyticsEventKind.Page, name: "/a%2Fb" },
+              filters: [],
+              timeZone: "UTC",
+            });
+
+          expect(slash.totalEvents).toBe(1);
+        });
+
+        test("a breakdown by page names the page once, and a segment on it holds every spelling", async () => {
+          const breakdown: ProductAnalyticsEventBreakdownDto =
+            await RumProductAnalyticsEventReadService.getEventBreakdown({
+              ...spellingScope,
+              event: ordered,
+              filters: [],
+              breakdown: { field: ProductAnalyticsEventField.Page, key: "" },
+              limit: 10,
+            });
+
+          expect(breakdown.rows).toEqual([
+            {
+              value: CAFE_PAGE,
+              events: CAFE_SPELLINGS.length,
+              users: CAFE_SPELLINGS.length - 1,
+            },
+          ]);
+          expect(breakdown.totalEvents).toBe(CAFE_SPELLINGS.length);
+
+          const segmented: ProductAnalyticsEventTrendDto =
+            await RumProductAnalyticsEventReadService.getEventTrend({
+              ...spellingScope,
+              event: ordered,
+              filters: [
+                {
+                  field: ProductAnalyticsEventField.Page,
+                  key: "",
+                  value: CAFE_PAGE,
+                },
+              ],
+              timeZone: "UTC",
+            });
+
+          expect(segmented.totalEvents).toBe(CAFE_SPELLINGS.length);
+        });
+
+        test("a funnel from the page reads every spelling of it", async () => {
+          const funnel: ProductAnalyticsFunnelDto =
+            await RumProductAnalyticsEventReadService.getFunnel({
+              ...spellingScope,
+              steps: [cafe, ordered],
+              filters: [],
+              windowMs: 24 * HOUR_MS,
+              now: now,
+            });
+
+          expect(
+            funnel.steps.map((step: { people: number }): number => {
+              return step.people;
+            }),
+          ).toEqual([CAFE_SPELLINGS.length - 1, CAFE_SPELLINGS.length - 1]);
+        });
+
+        test("what the ingest stores from now on is the one spelling", () => {
+          const parsed: ProductAnalyticsBatchParseResult =
+            parseProductAnalyticsBatch(
+              {
+                v: PRODUCT_ANALYTICS_WIRE_VERSION,
+                batchId: hex("9a", 32),
+                sessionId: hex("9b", 32),
+                visitorId: hex("9c", 32),
+                consentState: "NotRequired",
+                sentAt: now.getTime(),
+                context: {
+                  deviceType: "desktop",
+                  browserName: "Chrome",
+                  osName: "Linux",
+                  appVersion: "",
+                },
+                events: CAFE_SPELLINGS.map((spelling: string): JSONObject => {
+                  return {
+                    kind: ProductAnalyticsEventKind.Page,
+                    name: spelling,
+                    page: spelling,
+                    at: now.getTime(),
+                  };
+                }),
+                metrics: [],
+              },
+              { receivedAtUnixMs: now.getTime(), allowedUserPropertyKeys: [] },
+            );
+
+          expect(parsed.isValid).toBe(true);
+
+          const rows: Array<JSONObject> = rowsOfBatch(
+            {
+              sessionId: hex("9b", 32),
+              visitorId: hex("9c", 32),
+              ...desktop,
+              countryCode: "US",
+              application: spellingApplicationId,
+              events: parsed.isValid ? parsed.batch.events : [],
+            },
+            199,
+          );
+
+          expect(
+            Array.from(
+              new Set(
+                rows.map((row: JSONObject): string => {
+                  return `${row["name"]} ${row["page"]}`;
+                }),
+              ),
+            ),
+          ).toEqual([`${CAFE_PAGE} ${CAFE_PAGE}`]);
+        });
       });
 
       describe("erasure", () => {

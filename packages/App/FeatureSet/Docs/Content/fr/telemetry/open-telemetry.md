@@ -52,7 +52,7 @@ flowchart TB
 2. Dans le menu latéral, ouvrez **Télémétrie & APM** et sélectionnez **Clés d'ingestion**.
 3. Cliquez sur **Créer une clé d'ingestion**. La fenêtre remplit un nom et choisit le type de clé **Serveur**, celui avec lequel une application ou un collector envoie. Renommez-la si vous le souhaitez, puis cliquez sur **Créer une clé d'ingestion**.
 
-![La page Clés d'ingestion de télémétrie dans les paramètres du projet](/docs/static/images/TelemetryIngestionKeys.png)
+![La liste « Clés d'ingestion », avec « Créer une clé d'ingestion » entouré](screen:ingestion-keys)
 
 La nouvelle clé s'ouvre sur sa propre page. Copiez sa **Clé secrète** — c'est le jeton que vous envoyez dans `x-oneuptime-token`.
 

@@ -120,7 +120,7 @@ Varje gång en medlem i projektet loggar in i OneUptime registrerar granskningsl
 
 En posts **Resurs** är sessionen, som får namn efter enheten den loggade in från, till exempel `Chrome 130 on macOS`. Dess **Aktör** är personen som sessionen tillhör, så om du filtrerar efter **Användares e-post** hittar du alla personens inloggningar och sessioner. Detaljerna anger hur personen loggade in och med vilken andra faktor, IP-adressen och platsen, och för en session som har slutat när den loggade in, när den senast användes och när tiden gick ut. Ett projekts egen SSO-leverantör namnges bara i det projektets granskningslogg.
 
-Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid registreras när personens öppna flik eller mobilappen nästa gång når OneUptime.
+Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid registreras när personens webbläsare eller mobilappen nästa gång når OneUptime: från en flik som står öppen, eller när personen öppnar OneUptime igen.
 
 ## Hur länge poster behålls
 

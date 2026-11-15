@@ -471,10 +471,20 @@ describe("the Admin Dashboard's Email and API key cards say what they are for", 
     expect(page).not.toContain('title: "Sendgrid API Key"');
   });
 
-  test("the SMTP card reads its sign-in as the dialog's answer, in the reader's language", () => {
+  /*
+   * #7458: in the dialog's own sentence (getSmtpSignInSentence), which
+   * knows that a server given no username or password sends without
+   * signing in - not the stored Authentication Type, which read "Username
+   * and Password" there.
+   */
+  test("the SMTP card says its sign-in as the dialog does, in the reader's language", () => {
     const page: string = read(ADMIN, "Pages", "Settings", "Email", "Index.tsx");
 
-    expect(page).toContain("t(getSmtpAuthTypeTitle(item.smtpAuthType))");
+    expect(page).toContain("t(getSmtpSignInText(item))");
+    expect(page).toContain(
+      "getSmtpSignInSentence(item, GLOBAL_SMTP_CONFIG_FORM_COLUMNS)",
+    );
+    expect(page).not.toContain("getSmtpAuthTypeTitle");
   });
 });
 

@@ -177,7 +177,7 @@ Fra nå av starter hver ny hendelse i prosjektet en kjøring. Du finner dem alle
 ## Slik passer arbeidsflyter inn i resten av OneUptime
 
 - **Monitorer** oppdager problemet. **Hendelser** og **varsler** registrerer det. **Arbeidsflyter** reagerer på det.
-- **Runbooks** er beredskapsprosedyrer teamet ditt går gjennom ved en hendelse, et varsel eller et vedlikehold: manuelle trinn, godkjenninger og skript, med mennesker involvert. Arbeidsflyter kjører uten tilsyn. Bruk en [runbook](/docs/runbooks/index) når en person må ta beslutninger underveis, og en arbeidsflyt når hvert trinn er automatisk.
+- **Runbooks** er beredskapsprosedyrer teamet ditt går gjennom ved en hendelse, et varsel eller en vedlikeholdshendelse: manuelle trinn, godkjenninger og skript, med mennesker involvert. Arbeidsflyter kjører uten tilsyn. Bruk en [runbook](/docs/runbooks/index) når en person må ta beslutninger underveis, og en arbeidsflyt når hvert trinn er automatisk.
 - **Arbeidsområdetilkoblinger** kobler et prosjekt til Slack og Microsoft Teams for hendelseskanaler og varslinger. Arbeidsflytenes Slack- og Microsoft Teams-blokker bruker dem ikke: hver blokk poster via sin egen innkommende webhook-URL.
 
 ## Neste trinn

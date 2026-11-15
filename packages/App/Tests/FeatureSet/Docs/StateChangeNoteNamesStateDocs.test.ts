@@ -1,3 +1,4 @@
+import { StateListType } from "Common/Utils/StateOrder";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import StateChangePublicNote from "Common/Server/Utils/StatusPage/StateChangePublicNote";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -74,10 +75,14 @@ const MAINTENANCE_SUBJECT: string =
     stateName: "Ongoing",
     eventTitle: "<title>",
   });
-const RESOLVED_LINE: string =
-  StateChangeNoteMessage.getChatStatusLine("Resolved").toString();
-const ONGOING_LINE: string =
-  StateChangeNoteMessage.getChatStatusLine("Ongoing").toString();
+const RESOLVED_LINE: string = StateChangeNoteMessage.getChatStatusLine(
+  StateListType.IncidentState,
+  "Resolved",
+).toString();
+const ONGOING_LINE: string = StateChangeNoteMessage.getChatStatusLine(
+  StateListType.ScheduledMaintenanceState,
+  "Ongoing",
+).toString();
 
 describe("the code the guides quote", () => {
   test("the subjects, SMS and chat lines are the ones the jobs send", () => {

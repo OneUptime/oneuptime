@@ -198,6 +198,8 @@ export interface OnCallPageSmsLanguage {
     projectName: string;
     isPageAgain: boolean;
     lead: string;
+    // The lead says a person started an on-call policy for the record.
+    isPolicyLead?: boolean | undefined;
   }) => string;
   // The words before the link: "Ack or escalate:".
   action: string;
@@ -237,6 +239,12 @@ export interface OnCallPageSmsInput {
    * about. Never cut.
    */
   lead?: string | null | undefined;
+  /*
+   * The lead says a person started an on-call policy for the record
+   * (OnCallPolicyStartedByHand) - "Alice Kim started Database escalation" -
+   * so it is for what the page is about, not about it.
+   */
+  isPolicyLead?: boolean | undefined;
   /*
    * An observer's page (OnCallObserverPage): the text says it is for their
    * information - "FYI (observer)" after the product, unless a person's page
@@ -278,6 +286,8 @@ interface PageParts {
   isPageAgain: boolean;
   // Who paged whom, for a page a person asked for. Empty for none.
   lead: string;
+  // The lead says a person started an on-call policy for the record.
+  isPolicyLead: boolean;
   // An observer's page: for their information, and its link marks it seen.
   isObserverPage: boolean;
   // The words of a language other than English, or none for English.
@@ -355,7 +365,7 @@ const compose: (
   }
 
   let head: string = parts.lead
-    ? `${parts.productName}: ${parts.lead} about ${parts.what}`
+    ? `${parts.productName}: ${parts.lead} ${parts.isPolicyLead ? "for" : "about"} ${parts.what}`
     : parts.isObserverPage
       ? `${parts.productName} ${ON_CALL_OBSERVER_PAGE_SMS_LEAD}: ${parts.what}`
       : `${parts.productName}: ${parts.what}`;
@@ -434,6 +444,7 @@ const composeInLanguage: (
       projectName: options.withProject ? parts.projectName : "",
       isPageAgain: parts.isPageAgain,
       lead: parts.lead,
+      isPolicyLead: parts.isPolicyLead,
     }),
   )}`;
 
@@ -564,6 +575,7 @@ export const buildOnCallPageSms: (
     link: input.link.trim(),
     isPageAgain: input.isPageAgain === true,
     lead: toValue(input.lead),
+    isPolicyLead: input.isPolicyLead === true && Boolean(toValue(input.lead)),
     isObserverPage: input.isObserverPage === true,
     language: input.language,
     writesWordsInGsm7: Boolean(input.language) && !isWrittenInUcs2,

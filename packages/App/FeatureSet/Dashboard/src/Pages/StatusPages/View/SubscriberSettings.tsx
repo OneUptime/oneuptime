@@ -37,7 +37,7 @@ import {
 import Color from "Common/Types/Color";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import { getSubscriberNotificationEventTypeOptions } from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -572,9 +572,8 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
             title: "Event Type",
             type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationEventType,
-            ),
+            // Each as its name, as the Event Type column draws it.
+            filterDropdownOptions: getSubscriberNotificationEventTypeOptions(),
           },
           {
             field: {

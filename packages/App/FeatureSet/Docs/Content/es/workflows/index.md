@@ -177,7 +177,7 @@ A partir de ahora, cada incidente nuevo del proyecto inicia una ejecución. Las 
 ## Cómo encajan los flujos de trabajo con el resto de OneUptime
 
 - Los **monitores** detectan el problema. Los **incidentes** y las **alertas** lo registran. Los **flujos de trabajo** reaccionan a él.
-- Los **runbooks** son procedimientos de respuesta que tu equipo sigue ante un incidente, una alerta o un mantenimiento: pasos manuales, aprobaciones y scripts, con personas en el proceso. Los flujos de trabajo se ejecutan sin supervisión. Usa un [runbook](/docs/runbooks/index) cuando una persona tenga que tomar decisiones por el camino, y un flujo de trabajo cuando todos los pasos sean automáticos.
+- Los **runbooks** son procedimientos de respuesta que tu equipo sigue ante un incidente, una alerta o un evento de mantenimiento: pasos manuales, aprobaciones y scripts, con personas en el proceso. Los flujos de trabajo se ejecutan sin supervisión. Usa un [runbook](/docs/runbooks/index) cuando una persona tenga que tomar decisiones por el camino, y un flujo de trabajo cuando todos los pasos sean automáticos.
 - Las **conexiones del espacio de trabajo** vinculan un proyecto con Slack y Microsoft Teams para los canales de incidentes y las notificaciones. Los bloques de Slack y Microsoft Teams de los flujos de trabajo no las usan: cada bloque publica a través de su propia URL de webhook entrante.
 
 ## Siguientes pasos

@@ -1,26 +1,26 @@
 # Formularer – overblik
 
-En formular er en side, som alle med dens link kan udfylde, uden en OneUptime-konto. Hver indsendelse opretter noget i dit projekt: en **hændelse**, til fejlrapporter, eller en **vedligeholdelsesbegivenhed**, til ændrings- og vedligeholdelsesanmodninger. Du bygger formularens spørgsmål i en træk-og-slip-editor, bestemmer, hvordan svarene bliver til posten, og deler linket med dem, der skal bruge den.
+En formular er en side, som alle med dens link kan udfylde, uden en OneUptime-konto. Hver indsendelse opretter noget i dit projekt: en **hændelse**, til fejlrapporter, eller en **vedligeholdelseshændelse**, til ændrings- og vedligeholdelsesanmodninger. Du bygger formularens spørgsmål i en træk-og-slip-editor, bestemmer, hvordan svarene bliver til posten, og deler linket med dem, der skal bruge den.
 
 Brug en formular, når de mennesker, der opdager et problem eller har brug for en ændring, ikke er dem, der håndterer dine hændelser og din vedligeholdelse: supportmedarbejdere, kolleger i en anden afdeling, en butikschef, en kundes driftsteam. De åbner linket, besvarer dine spørgsmål og trykker på **Indsend**. Dit team får en almindelig hændelse eller begivenhed med svarene i dens felter og en privat note, der registrerer, hvem der sendte den.
 
 :::cards
 - [Opret din første formular](#opret-din-første-formular): Fra en tom formular til et link, du kan dele.
 - [Byg en formular](/docs/forms/building): Spørgsmål, svartyper, skjulte spørgsmål, skabeloner og branding.
-- [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne bliver til en hændelse eller en vedligeholdelsesbegivenhed.
+- [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne bliver til en hændelse eller en vedligeholdelseshændelse.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Linket, IP-tilladelseslisten, hastighedsgrænser og fejlfinding.
 :::
 
 ## Sådan fungerer en formular
 
-```mermaid title="Fra en udfyldt formular til en hændelse eller en vedligeholdelsesbegivenhed"
+```mermaid title="Fra en udfyldt formular til en hændelse eller en vedligeholdelseshændelse"
 flowchart TB
     submitter["Nogen med linket,<br/>uden konto"] --> page["Formularens side"]
     page -->|Indsend| checks["Beskyttelse og<br/>kontrol af svar"]
     checks --> submission["Indsendelse, gemt<br/>med formularen"]
     submission --> target{"Hver indsendelse opretter"}
     target -->|Hændelse| incident["Hændelse, skjult<br/>på statussider"]
-    target -->|Planlagt vedligeholdelse| event["Vedligeholdelsesbegivenhed,<br/>skjult medmindre angivet"]
+    target -->|Planlagt vedligeholdelse| event["Vedligeholdelseshændelse,<br/>skjult medmindre angivet"]
     incident --> response["Vagtpolitikker og<br/>regler kører"]
     incident --> note["Privat note: hvem der sendte,<br/>øvrige svar"]
     event --> note
@@ -34,7 +34,7 @@ Hver anmodning går først gennem formularens beskyttelse: dens egen side, hasti
 - **Ingen konto nødvendig**: alle med linket kan åbne formularen og indsende den uden at logge ind.
 - **En editor, ikke en indstillingsside**: tilføj dine egne spørgsmål (korte svar, afsnit, rullelister, datoer, afkrydsningsfelter og mere), felterne for det, formularen opretter (titel, beskrivelse, alvorsgrad, monitorer, etiketter, start og slut), dine brugerdefinerede felter samt indsenderens navn og e-mail. Træk dem i rækkefølge, forhåndsvis formularen, og gem.
 - **Du bestemmer, hvor hver værdi kommer fra**: siden **Ved indsendelse** viser hvert felt i den nye hændelse eller begivenhed ved siden af dets kilde: et svar, en standardværdi, en indstilling, der altid gælder, eller hændelsesskabelonen.
-- **Skjult, indtil nogen offentliggør det**: hændelser fra en formular vises aldrig på statussider eller sendes til abonnenter, når de oprettes; vedligeholdelsesbegivenheder heller ikke, medmindre formularen siger det.
+- **Skjult, indtil nogen offentliggør det**: hændelser fra en formular vises aldrig på statussider eller sendes til abonnenter, når de oprettes; vedligeholdelseshændelser heller ikke, medmindre formularen siger det.
 - **Beskyttet i lag**: en kontakt **Modtager indsendelser**, en valgfri **IP-tilladelsesliste**, afvisning af anmodninger fra andre websteder, hastighedsgrænser, instansens captcha og størrelsesgrænser for hvert svar.
 - **Hver indsendelse gemmes**: hver formulars side **Indsendelser**, og **Formularer → Indsendelser** for dem alle, viser svarene og linker til det, hver indsendelse oprettede.
 - **Din egen branding**: upload et logo til toppen af formularens side og et favicon til browserfanen i sektionen **Branding** på siden **Byg**. Indtil da viser formularen OneUptimes.
@@ -49,7 +49,7 @@ Når du opretter en formular, vælger du, hvad **Hver indsendelse opretter**. Du
 | Hver indsendelse opretter | Bruges til | Hvad der sker |
 | --- | --- | --- |
 | **Hændelse** | Fejlrapporter | En hændelse oprettes med det samme, så dine vagtpolitikker og regler kører, og de vagthavende får besked. Den holdes væk fra statussider, indtil en, der håndterer den, offentliggør den. |
-| **Planlagt vedligeholdelse** | Ændrings- og vedligeholdelsesanmodninger | En vedligeholdelsesbegivenhed planlægges for det tidsrum, indsenderen beder om. Medmindre formularen siger andet, holdes den væk fra sine statussider og giver ingen abonnenter besked. |
+| **Planlagt vedligeholdelse** | Ændrings- og vedligeholdelsesanmodninger | En vedligeholdelseshændelse planlægges for det tidsrum, indsenderen beder om. Medmindre formularen siger andet, holdes den væk fra sine statussider og giver ingen abonnenter besked. |
 
 Formularer starter med disse to, og flere slags poster følger.
 
@@ -127,7 +127,7 @@ Indsendelser skrives af formularen, aldrig manuelt, og kan ikke redigeres. Når 
 
 ## Tilladelser
 
-Formularer lader folk uden for dit team oprette hændelser og vedligeholdelsesbegivenheder i dit projekt, så de styres af projektejere og -administratorer samt af de roller, du giver tilladelserne **Form**. De står i gruppen **Form** i [Tilladelsesreference](/docs/permissions/reference):
+Formularer lader folk uden for dit team oprette hændelser og vedligeholdelseshændelser i dit projekt, så de styres af projektejere og -administratorer samt af de roller, du giver tilladelserne **Form**. De står i gruppen **Form** i [Tilladelsesreference](/docs/permissions/reference):
 
 | Tilladelse | Hvad den tillader | Hvem har den som standard |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ Hvert spørgsmål har sit eget `id` (bogstaver, cifre, `-` og `_`), en `source`,
 | `source` | Hvad det spørger om |
 | --- | --- |
 | `Question` | Et af formularens egne spørgsmål, besvaret efter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En rulleliste viser sine `dropdownOptions`, én pr. linje. |
-| `TargetField` | Et felt i det, formularen opretter, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hændelse; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedligeholdelsesbegivenhed. Et felt, der besvares ved at vælge, viser de poster, det tilbyder, i `allowedOptionIds`. |
+| `TargetField` | Et felt i det, formularen opretter, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hændelse; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedligeholdelseshændelse. Et felt, der besvares ved at vælge, viser de poster, det tilbyder, i `allowedOptionIds`. |
 | `TargetCustomField` | Et af hændelsens eller begivenhedens brugerdefinerede felter, angivet med `customFieldId`. |
 | `Submitter` | Indsenderens `Name` eller `Email`, angivet med `submitterField`. |
 
@@ -207,7 +207,7 @@ Et spørgsmål med `isHidden` sat til `true` vises ikke på den offentlige side,
 
 En formulars skabeloner er dens kolonne `templates`, en JSON-liste i den rækkefølge, formularen viser dem. Hver skabelon har sit eget `id` (bogstaver, cifre, `-` og `_`), et `name` på op til 100 tegn, entydigt i formularen, og `answers` efter spørgsmåls-id, hver som en indsendelse sender det: tekst, et tal, `true` eller `false`, en valgmuligheds værdi eller en liste af værdier til flere valg. `isDefault` sat til `true` gør den til den skabelon, formularen åbner med; en formular har højst én og op til 50 skabeloner.
 
-`fieldSettings`, også efter spørgsmåls-id, angiver, hvordan skabelonen stiller et spørgsmål: `Required`, `Optional` eller `Hidden`. Et spørgsmål, den ikke nævner (eller nævner som `null`), stilles, som formularen stiller det, og en vedligeholdelsesbegivenheds spørgsmål `startsAt` og `endsAt` kan kun være `Required`:
+`fieldSettings`, også efter spørgsmåls-id, angiver, hvordan skabelonen stiller et spørgsmål: `Required`, `Optional` eller `Hidden`. Et spørgsmål, den ikke nævner (eller nævner som `null`), stilles, som formularen stiller det, og en vedligeholdelseshændelses spørgsmål `startsAt` og `endsAt` kan kun være `Required`:
 
 ```json
 {
@@ -278,7 +278,7 @@ De gamle dashboardsider viderestiller til de nye.
 
 :::cards
 - [Byg en formular](/docs/forms/building): Spørgsmål, svartyper, tilknyttede felter, brugerdefinerede felter og forhåndsvisningen.
-- [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne under Ved indsendelse bliver til en hændelse eller en vedligeholdelsesbegivenhed.
+- [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne under Ved indsendelse bliver til en hændelse eller en vedligeholdelseshændelse.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Linket, IP-tilladelseslisten, hastighedsgrænser, captcha og fejlfinding.
 - [Opret en hændelse](/docs/incidents/declaring-incidents): De andre måder at oprette hændelser på.
 :::
