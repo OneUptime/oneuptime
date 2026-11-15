@@ -52,7 +52,7 @@ Klik på **Opret din første overvågning** i tjeklisten. Det åbner den guidede
 
 Under **Hvad skal vi tjekke?** indtaster du hele adressen på dit websted i **Adresse på website eller API**, for eksempel `https://example.com`, og klikker på **Start tjekket**. Sonderne tjekker det med det samme og derefter hvert 5. minut: Når webstedet ikke svarer, eller svarer med en fejl, skifter monitoren til **Offline** og erklærer en hændelse. Klik på **Fortsæt**.
 
-På Free-planen i OneUptime Cloud faktureres monitorer efter forbrug, så projektet skal have en betalingsmetode, før det kan tjekke dit websted: uden en beder trinnet dig om at [tilføje en betalingsmetode](/docs/configuration/billing#betalingsmetoder).
+På Free-planen i OneUptime Cloud faktureres monitorer efter forbrug, så projektet skal have en betalingsmetode, før det kan tjekke dit websted: uden en siger trinnet det før **Start tjekket**, med **Tilføj betalingsmetode** til at [tilføje en](/docs/configuration/billing#betalingsmetoder).
 
 ### Vælg, hvem der får besked
 

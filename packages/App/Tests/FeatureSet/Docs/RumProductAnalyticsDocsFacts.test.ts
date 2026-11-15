@@ -10,7 +10,12 @@
  */
 
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
-import { readPage, scanMarkdown } from "./DocsContentSupport";
+import {
+  DOCS_LANGUAGES,
+  listPages,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { cardLines } from "./DocsTranslationChecks";
 import { sectionInLanguage } from "./NetworkDocsLabels";
@@ -35,7 +40,7 @@ import {
 import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/SessionReplay";
 import { PRODUCT_ANALYTICS_SOURCE_PERSON_KEY_SQL } from "Common/Models/AnalyticsModels/RumProductAnalyticsSession";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
-import Permission from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { PRODUCT_ANALYTICS_SAVED_VIEWS_PER_APPLICATION_MAX } from "Common/Types/Rum/ProductAnalyticsSavedViews";
 import {
   WIDGET_CATALOG,
@@ -72,6 +77,75 @@ const TITLE: RegExp = /title: "([^"]+)"/g;
 // A Permission.ts entry: the enum member, then its title.
 const PERMISSION_TITLE: RegExp =
   /permission: Permission\.(\w+),\s*title: "([^"]+)"/g;
+
+/*
+ * Issue #7319: names the docs gave a permission that no roles screen lists,
+ * "the identity permission" in each language's words, and the Dashboard's
+ * own retired names for it (SessionReplayPermissionNames). The grant is
+ * Watch Session Replays.
+ */
+const MADE_UP_PERMISSION_NAMES: Record<string, ReadonlyArray<string>> = {
+  en: ["identity permission"],
+  da: ["identitetstilladelse", "tilladelsen til slutbrugeridentitet"],
+  de: ["Identitätsberechtigung", "Berechtigung für Endbenutzeridentitäten"],
+  es: ["permiso de identidad"],
+  fa: ["مجوز هویتی", "دسترسی هویت"],
+  fr: ["permission d'identité", "autorisation d'identité"],
+  hi: ["पहचान की अनुमति", "पहचान अनुमति"],
+  it: [
+    "permesso di identità",
+    "autorizzazione per l'identità",
+    "autorizzazione all'identità",
+  ],
+  ja: ["身元の権限", "身元に関する権限"],
+  ko: ["신원 권한"],
+  nl: [
+    "identiteitsrechten",
+    "machtiging voor identiteit",
+    "machtiging voor eindgebruikersidentiteit",
+  ],
+  no: ["identitetstillatelse", "tillatelsen for sluttbrukeridentitet"],
+  pt: ["permissão de identidade"],
+  ru: ["разрешение на идентичность", "право на просмотр личности"],
+  sv: ["identitetsbehörighet", "behörigheten för slutanvändaridentitet"],
+  "zh-CN": ["身份权限"],
+  "zh-TW": ["身分權限"],
+};
+
+// Each made-up name a page's text gives, in its language.
+function madeUpPermissionNamesIn(
+  language: string,
+  text: string,
+): Array<string> {
+  const lower: string = text.toLowerCase();
+
+  return (MADE_UP_PERMISSION_NAMES[language] || []).filter(
+    (name: string): boolean => {
+      return lower.includes(name.toLowerCase());
+    },
+  );
+}
+
+// The clause of the sentence each language's page held before #7319.
+const RETIRED_SENTENCES: Record<string, string> = {
+  en: "takes the identity permission described in [Who can watch a recording]",
+  da: "kræver den identitetstilladelse, som [Hvem kan se en optagelse] beskriver.",
+  de: "erfordert die Identitätsberechtigung, die [Wer eine Aufzeichnung ansehen kann] beschreibt.",
+  es: "requiere el permiso de identidad que se describe en [Quién puede ver una grabación]",
+  fa: "به مجوز هویتی نیاز دارد که در [چه کسی می‌تواند ضبطی را تماشا کند] توضیح داده شده است.",
+  fr: "demande la permission d'identité décrite dans [Qui peut regarder un enregistrement]",
+  hi: "[रिकॉर्डिंग कौन देख सकता है] में बताई गई पहचान की अनुमति चाहिए।",
+  it: "richiede il permesso di identità descritto in [Chi può guardare una registrazione]",
+  ja: "[録画を視聴できるユーザー] で説明している身元の権限が必要です。",
+  ko: "[녹화를 시청할 수 있는 사람]에 설명된 신원 권한이 필요합니다.",
+  nl: "vraagt de identiteitsrechten die [Wie een opname kan bekijken] beschrijft.",
+  no: "krever identitetstillatelsen som [Hvem kan se et opptak] beskriver.",
+  pt: "exige a permissão de identidade descrita em [Quem pode assistir a uma gravação]",
+  ru: "нужно разрешение на идентичность, описанное в разделе [Кто может смотреть запись]",
+  sv: "kräver den identitetsbehörighet som [Vem kan titta på en inspelning] beskriver.",
+  "zh-CN": "需要 [谁可以观看录制] 中所述的身份权限。",
+  "zh-TW": "需要 [誰可以觀看錄製] 中所述的身分權限。",
+};
 
 function source(name: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[name] as string), "utf8");
@@ -548,6 +622,83 @@ describe("Product Analytics: privacy, retention and who can see it", () => {
     expect(who).toContain(
       "(/docs/telemetry/session-replay#who-can-watch-a-recording)",
     );
+  });
+
+  /*
+   * Issue #7319: the page named "the identity permission", which no roles
+   * screen lists. Seeing who a signed-in user is takes Watch Session
+   * Replays (SESSION_REPLAY_IDENTITY_PERMISSIONS), which the sentence names
+   * by its catalogue title, in English in every language, as the roles
+   * screen and the Dashboard's Session Replay lines write it.
+   */
+  it("names the grant that shows who a signed-in user is by its catalogue title, in every language", () => {
+    const watch: string = PermissionHelper.getTitle(
+      Permission.ReadRumSessionReplayPayload,
+    );
+    const list: string = PermissionHelper.getTitle(
+      Permission.ReadRumSessionReplay,
+    );
+
+    expect(watch).toBe("Watch Session Replays");
+    expect(who).toContain(
+      `Seeing who a signed-in user is, and searching people by name, takes \`ReadRumSessionReplayPayload\` (_${watch}_), as [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) describes.`,
+    );
+
+    for (const language of DOCS_LANGUAGES) {
+      const lines: Array<string> = sectionInLanguage(
+        language,
+        PRODUCT_ANALYTICS,
+        "## Who can see it",
+      )
+        .split("\n")
+        .filter((candidate: string): boolean => {
+          return candidate.includes("`ReadRumSessionReplay`");
+        });
+
+      expect({ language, lines: lines.length }).toEqual({ language, lines: 1 });
+
+      const line: string = lines[0] as string;
+
+      // Read with either grant; who someone is, with Watch alone.
+      expect({
+        language,
+        list: line.split(`\`ReadRumSessionReplay\` (_${list}_)`).length - 1,
+        watch:
+          line.split(`\`ReadRumSessionReplayPayload\` (_${watch}_)`).length - 1,
+        link: line.includes("(/docs/telemetry/session-replay#"),
+      }).toEqual({ language, list: 1, watch: 2, link: true });
+    }
+  });
+
+  it("no docs page, in any language, names a permission no role lists", () => {
+    expect(Object.keys(MADE_UP_PERMISSION_NAMES).sort()).toEqual(
+      [...DOCS_LANGUAGES].sort(),
+    );
+
+    for (const language of DOCS_LANGUAGES) {
+      const found: Array<string> = [];
+
+      for (const page of listPages(language)) {
+        found.push(
+          ...madeUpPermissionNamesIn(language, readPage(language, page)).map(
+            (name: string): string => {
+              return `${page}: ${name}`;
+            },
+          ),
+        );
+      }
+
+      expect({ language, found }).toEqual({ language, found: [] });
+    }
+  });
+
+  it("the check finds the name the page used to give, in each language", () => {
+    for (const [language, sentence] of Object.entries(RETIRED_SENTENCES)) {
+      expect({
+        language,
+        found: madeUpPermissionNamesIn(language, sentence).length > 0,
+      }).toEqual({ language, found: true });
+    }
   });
 });
 

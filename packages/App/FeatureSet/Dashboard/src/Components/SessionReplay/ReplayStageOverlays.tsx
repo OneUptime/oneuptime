@@ -196,10 +196,15 @@ export function describeIdleSkip(
         { duration: duration },
       );
     case "paused":
-      return translator.translateTemplate(
-        "Skipped {{duration}}: recording paused while the page was idle",
-        { duration: duration },
-      );
+      return band.pauseReason === "page"
+        ? translator.translateTemplate(
+            "Skipped {{duration}}: recording paused by the page",
+            { duration: duration },
+          )
+        : translator.translateTemplate(
+            "Skipped {{duration}}: recording paused while the page was idle",
+            { duration: duration },
+          );
     case "idle":
       return translator.translateTemplate("Skipped {{duration}} idle", {
         duration: duration,
@@ -254,6 +259,18 @@ export function describeIdleBandChip(
 export const REPLAY_PAUSED_BAND_EXPLANATION: string = translationKey(
   "Nobody touched the page, so the recorder paused and nothing was recorded until the next input.",
 );
+
+/* The same, for a stretch the page paused recording through (#7498). */
+export const REPLAY_PAGE_PAUSED_BAND_EXPLANATION: string = translationKey(
+  "The page paused recording, so nothing was recorded until it resumed.",
+);
+
+// The tooltip's reason for a paused band, by whose pause it was.
+export function pausedBandExplanation(band: ReplayIdleBand): string {
+  return band.pauseReason === "page"
+    ? REPLAY_PAGE_PAUSED_BAND_EXPLANATION
+    : REPLAY_PAUSED_BAND_EXPLANATION;
+}
 
 /* The session the ended card offers next: the user's next newer session. */
 export interface ReplayNextUserSession {
@@ -1191,7 +1208,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                 }`}
                 title={joinSentences([
                   idleBand.kind === "paused"
-                    ? translateLine(REPLAY_PAUSED_BAND_EXPLANATION, translator)
+                    ? translateLine(pausedBandExplanation(idleBand), translator)
                     : "",
                   canSkipIdle
                     ? translateLine("Skip past this stretch (s)", translator)

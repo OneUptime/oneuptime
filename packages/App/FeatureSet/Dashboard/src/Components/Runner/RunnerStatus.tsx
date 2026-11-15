@@ -47,6 +47,7 @@ export const RunnerLiveStatusBubble: FunctionComponent<
   const status: RunnerLiveStatus = props.status;
   const label: string = getRunnerLiveStatusLabel(status);
   const translated: string = translateString(label) || label;
+  // In the reader's words already: the bubble draws it as given (#8067).
   const text: string = props.suffix
     ? `${translated} · ${props.suffix}`
     : translated;
@@ -55,6 +56,7 @@ export const RunnerLiveStatusBubble: FunctionComponent<
     return (
       <Statusbubble
         text={text}
+        isUserContent={true}
         color={Green}
         shouldAnimate={props.isConnectedAnimated !== false}
       />
@@ -67,10 +69,24 @@ export const RunnerLiveStatusBubble: FunctionComponent<
    * production teaches people to ignore the colour.
    */
   if (status === RunnerLiveStatus.NeverConnected) {
-    return <Statusbubble text={text} color={Gray500} shouldAnimate={false} />;
+    return (
+      <Statusbubble
+        text={text}
+        isUserContent={true}
+        color={Gray500}
+        shouldAnimate={false}
+      />
+    );
   }
 
-  return <Statusbubble text={text} color={Red} shouldAnimate={false} />;
+  return (
+    <Statusbubble
+      text={text}
+      isUserContent={true}
+      color={Red}
+      shouldAnimate={false}
+    />
+  );
 };
 
 /*

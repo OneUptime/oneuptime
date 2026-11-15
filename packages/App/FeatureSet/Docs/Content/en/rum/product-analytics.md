@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Before the recorder has loaded, push the same calls onto `window.OneUptimeReplayQueue` as `["track", name, properties]` and `["metric", name, value, attributes]` (see [JavaScript API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Every session, recorded or not.** The replay sample and the upload policy decide which sessions are recorded, not which are counted. Nothing is sent under Do Not Track or Global Privacy Control, and nothing is kept from an origin the application does not allow. When the policy requires consent, events wait for `grantConsent()`, at most 500 of them, and `revokeConsent()` drops them.
-- **Masked as the recording is.** Under _Mask all text_, property and attribute values are masked before they leave the page. A page is sent as its path, without its query or fragment.
+- **Masked as the recording is.** Under _Mask all text_, property and attribute values are masked before they leave the page, so a breakdown by one of them shows placeholders, not your values; event names, property keys and metric values are sent as written. A value you need to read under that mode goes in a session tag (`setTags()`), which is never masked, so keep personal data out of it. Tags show on the session and in a `tag:key=value` search of the session list, not in these pages' breakdowns. A page is sent as its path, without its query or fragment.
 - **In small batches**, every 5 seconds and when the tab is hidden. An event that reaches OneUptime more than 3 days after it happened is dropped, and a project may send 60,000 events and metric points a minute, all its applications together; past that, the recorder waits and sends them again.
 
 `metric()` sends nothing while the events are off, and `getDiagnostics().productAnalytics` says whether they are on (see [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ A saved funnel or retention table goes on a dashboard too: the **Funnel** and **
 
 ## Who can see it
 
-Reading these pages takes what reading the session list takes: `ReadRumSessionReplay` (_List Session Replays_) or `ReadRumSessionReplayPayload` (_Watch Session Replays_), which project owners and admins hold. Seeing who a signed-in user is, and searching people by name, takes the identity permission described in [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording).
+Reading these pages takes what reading the session list takes: `ReadRumSessionReplay` (_List Session Replays_) or `ReadRumSessionReplayPayload` (_Watch Session Replays_), which project owners and admins hold. Seeing who a signed-in user is, and searching people by name, takes `ReadRumSessionReplayPayload` (_Watch Session Replays_), as [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) describes.
 
 Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.
 

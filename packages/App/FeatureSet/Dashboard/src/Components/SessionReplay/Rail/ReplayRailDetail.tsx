@@ -1695,6 +1695,31 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
         </Note>
       );
     case "idle-pause":
+      /*
+       * The page's own pause (#7498): it paused recording and resumed it,
+       * and somebody may have used it all along, on a part not recorded.
+       */
+      if (detail.pauseReason === "page") {
+        return detail.idlePauseEdge === "resumed" ? (
+          <Note>
+            {typeof detail.pausedForMs === "number"
+              ? translator.translateTemplate(
+                  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+                  { duration: formatReplayDuration(detail.pausedForMs) },
+                )
+              : translator.translateText(
+                  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+                )}
+          </Note>
+        ) : (
+          <Note>
+            {translator.translateText(
+              "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.",
+            )}
+          </Note>
+        );
+      }
+
       return detail.idlePauseEdge === "resumed" ? (
         <Note>
           {typeof detail.pausedForMs === "number"

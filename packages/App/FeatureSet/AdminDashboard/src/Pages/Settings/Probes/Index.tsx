@@ -35,16 +35,19 @@ const Settings: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.globalProbes"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_PROBES] as Route,
           ),
@@ -206,6 +209,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 return (
                   <Statusbubble
                     text={t("common.connected")}
+                    isUserContent={true}
                     color={Green}
                     shouldAnimate={true}
                   />
@@ -215,6 +219,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               return (
                 <Statusbubble
                   text={t("common.disconnected")}
+                  isUserContent={true}
                   color={Red}
                   shouldAnimate={false}
                 />

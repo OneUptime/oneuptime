@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Sonder i flera regioner kontrollerar adressen, så den måste gå att nå från internet. Free-planen har 10 aktiva monitorer.
+Sonder i flera regioner kontrollerar adressen, så den måste gå att nå från internet, och en incident öppnas bara när alla finner den nere. Free-planen har 10 aktiva monitorer. De faktureras efter användning, så projektet behöver först en betalningsmetod: utan en säger det första steget det, med **Lägg till betalningsmetod**.
 @tab Egenvärdad
-Adressen kontrolleras från din servers egen sond, så den måste gå att nå därifrån. För att du ska få e-post måste servern kunna skicka e-post: serverns huvudadministratör konfigurerar det på `/admin/setup`, som sidan [Guide för självhosting](/docs/installation/self-hosting-guide) visar. Huvudadministratören blir inte ägare till det som hen skapar, så för att få e-post lägger hen till sig själv på monitorns sida **Ägare**.
+Adressen kontrolleras från din servers egen sond, så den måste gå att nå därifrån. För att du ska få e-post måste servern kunna skicka e-post: serverns huvudadministratör konfigurerar det på `/admin/setup`, som sidan [Guide för självhosting](/docs/installation/self-hosting-guide) visar.
 :::
 
 ## Steg

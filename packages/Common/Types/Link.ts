@@ -14,6 +14,15 @@ export default interface Link {
    */
   isRecordName?: boolean | undefined;
   /*
+   * The title is in the reader's words already: a front end's own keyed
+   * text, as the Admin Dashboard's crumbs are (t("breadcrumbs.settings")).
+   * Drawn as given - in the trail, the browser tab and the phone's menu -
+   * never looked up again: looked up again, a translation that is itself
+   * an English word reads as another word (#8075, as "Red" read "Rojo" in
+   * #7790). Left out, the title is English, looked up where it is drawn.
+   */
+  isTitleTranslated?: boolean | undefined;
+  /*
    * The name of the one record this crumb stands for - "Website: acme.com"
    * where the trail says "View Monitor" - shown in its place, as typed, and
    * in the browser tab's title. The title stays the page's own name, which

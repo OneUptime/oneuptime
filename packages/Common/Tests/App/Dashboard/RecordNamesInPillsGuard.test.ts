@@ -143,8 +143,181 @@ describe("the reader", () => {
   });
 });
 
+/*
+ * A BADGE GIVEN WORDS ALREADY IN THE READER'S LANGUAGE DRAWS THEM AS GIVEN
+ * (#8067).
+ *
+ * A page that words a badge's text itself - t("..."), a template, a
+ * plural, a helper handed the translator - hands it over in the reader's
+ * language already, and the badge looked it up a second time: where a
+ * translated word is also an English key it was swapped for that key's
+ * translation. So a badge's text, and its hover tip, either goes over in
+ * English for the badge to look up once, or says it is drawn as written
+ * (isUserContent, isTooltipUserContent) - plainly, never only some of the
+ * time - with every part of it in the reader's words.
+ */
+describe("the reader, for a badge's translated words (#8067)", () => {
+  test.each([
+    ['<Pill text={t("pages.settings.email.pillEnabled")} color={c} />'],
+    ['<Pill text={translator.translateText("Connected")} color={c} />'],
+    [
+      '<Pill text={translator.translateTemplate("{{planName}} Plan", { planName: plan })} color={c} />',
+    ],
+    [
+      "<Pill text={translator.translatePlural(OPEN_ALERTS, count)} color={c} />",
+    ],
+    ["<Pill text={formatOverdue(translator, seconds)} color={c} />"],
+    ["<Statusbubble text={translateString(label) || label} color={c} />"],
+    ['<Pill text={isOn ? t("common.on") : "Off"} color={c} />'],
+  ])("finds the translated words %s draws", (element: string) => {
+    const site: BadgeTextSite = onlySiteOf(`const x = (${element});`);
+
+    expect(site.isTranslated).toBe(true);
+    expect(site.isMarkedAsWritten).toBe(false);
+  });
+
+  test.each([
+    ['<Pill text="Active" color={c} />'],
+    ['<Pill text={isOn ? "On" : "Off"} color={c} />'],
+    ["<Pill text={label.name} isUserContent={true} color={c} />"],
+    ["<Pill text={STATUS_LABELS[status]} color={c} />"],
+    // A lookup the badge's text is chosen by, not drawn.
+    [
+      '<Pill text={translator.hasTranslation(x) ? "Known" : "New"} color={c} />',
+    ],
+  ])("passes English and names in %s", (element: string) => {
+    expect(onlySiteOf(`const x = (${element});`).isTranslated).toBe(false);
+  });
+
+  test("follows a variable to the lookup it is set with", () => {
+    const site: BadgeTextSite = onlySiteOf(`
+      function Row(): ReactElement {
+        const toneText: string = translator.translateText(ALL_CONNECTED);
+        return <Pill text={toneText} color={c} />;
+      }
+    `);
+
+    expect(site.isTranslated).toBe(true);
+  });
+
+  test("is marked as written only when it says so plainly", () => {
+    const sites: Array<BadgeTextSite> = sitesOf(`
+      const a = (<Pill text={t("x")} isUserContent color={c} />);
+      const b = (<Pill text={t("x")} isUserContent={true} color={c} />);
+      const d = (<Pill text={t("x")} isUserContent={false} color={c} />);
+      const e = (<Pill text={t("x")} isUserContent={isAsWritten} color={c} />);
+      function Row(): ReactElement {
+        const pillProps: PillProps = { color: c, text: t("y"), isUserContent: true };
+        return <Pill {...pillProps} />;
+      }
+    `);
+
+    expect(
+      sites.map((site: BadgeTextSite): boolean => {
+        return site.isMarkedAsWritten;
+      }),
+    ).toEqual([true, true, false, false, true]);
+  });
+
+  test("reads a badge's hover tip, from the badge or the object it is spread from, and its mark", () => {
+    const sites: Array<BadgeTextSite> = sitesOf(`
+      const a = (<Pill text="Live" tooltip={translator.translateText(TIP)} color={c} />);
+      const b = (<Pill text="Live" tooltip={translator.translateText(TIP)} isTooltipUserContent={true} color={c} />);
+      const d = (<Pill text="Live" tooltip={TIP} color={c} />);
+      function Label(): ReactElement {
+        const pillProps: PillProps = { color: c, text: label.name, isUserContent: true, tooltip: label.description, isTooltipUserContent: true };
+        return <Pill {...pillProps} />;
+      }
+    `);
+
+    expect(
+      sites.map((site: BadgeTextSite) => {
+        return [
+          site.tooltip,
+          site.isTooltipTranslated,
+          site.isTooltipMarkedAsWritten,
+        ];
+      }),
+    ).toEqual([
+      ["translator.translateText(TIP)", true, false],
+      ["translator.translateText(TIP)", true, true],
+      ["TIP", false, false],
+      ["label.description", false, true],
+    ]);
+  });
+
+  test("finds an English word beside a translation, but not a lookup's own fallback", () => {
+    const sites: Array<BadgeTextSite> = sitesOf(`
+      const a = (<Pill text={row.ok ? "succeeded" : translator.translateTemplate("failed (exit {{code}})", { code })} isUserContent={true} color={c} />);
+      const b = (<Pill text={translator.translateText("Sample") || "Sample"} isUserContent={true} color={c} />);
+      const d = (<Pill text={\`\${translated} · \${suffix}\`} isUserContent={true} color={c} />);
+      const e = (<Pill text={pct ? translator.translateTemplate("Sample {{pct}}%", { pct }) : "Sample"} isUserContent={true} color={c} />);
+    `);
+
+    expect(
+      sites.map((site: BadgeTextSite): boolean => {
+        return site.readsEnglish;
+      }),
+    ).toEqual([true, false, false, true]);
+  });
+});
+
 describe("the front ends", () => {
   const sites: Array<BadgeTextSite> = readAllBadgeTextSites();
+
+  // Where a badge is drawn, for a list of the ones that break a rule.
+  const placeOf: (site: BadgeTextSite) => string = (
+    site: BadgeTextSite,
+  ): string => {
+    return `${site.file}:${site.line} <${site.badge} text={${site.text}}>`;
+  };
+
+  test("draw dozens of badges given translated words, so the reader is reading them (#8067)", () => {
+    expect(
+      sites.filter((site: BadgeTextSite): boolean => {
+        return site.isTranslated;
+      }).length,
+    ).toBeGreaterThan(40);
+    expect(
+      sites.filter((site: BadgeTextSite): boolean => {
+        return site.tooltip !== "(none)";
+      }).length,
+    ).toBeGreaterThan(20);
+  });
+
+  test("every badge given translated words draws them as written, never looking them up again (#8067)", () => {
+    expect(
+      sites
+        .filter((site: BadgeTextSite): boolean => {
+          return site.isTranslated && !site.isMarkedAsWritten;
+        })
+        .map(placeOf),
+    ).toEqual([]);
+  });
+
+  test("every badge given a translated hover tip draws it as written (#8067)", () => {
+    expect(
+      sites
+        .filter((site: BadgeTextSite): boolean => {
+          return site.isTooltipTranslated && !site.isTooltipMarkedAsWritten;
+        })
+        .map((site: BadgeTextSite): string => {
+          return `${site.file}:${site.line} <${site.badge} tooltip={${site.tooltip}}>`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("a badge drawn as written has none of its words left in English (#8067)", () => {
+    expect(
+      sites
+        .filter((site: BadgeTextSite): boolean => {
+          return (
+            site.isTranslated && site.isMarkedAsWritten && site.readsEnglish
+          );
+        })
+        .map(placeOf),
+    ).toEqual([]);
+  });
 
   test("draw hundreds of badges, so the reader is reading them", () => {
     expect(sites.length).toBeGreaterThan(500);
