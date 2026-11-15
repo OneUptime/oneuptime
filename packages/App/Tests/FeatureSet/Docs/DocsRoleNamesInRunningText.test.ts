@@ -9,12 +9,10 @@ import {
   KEPT_IN_ENGLISH,
   KeptEnglish,
   NOT_A_ROLE_IN_ENGLISH,
-  ROLES_DRAWN_ON_EVERY_PAGE,
   englishRoleCounts,
   englishRoleNamesIn,
   isBuiltInRoleName,
   namesRoleAsDrawn,
-  namesRoleAsWritten,
   roleText,
   rolesLeftInEnglish,
   runningText,
@@ -47,25 +45,6 @@ import path from "path";
  * проекта", "프로젝트 구성원과"). A paraphrase - "Projektadmins",
  * "プロジェクトのオーナー" - is a name short.
  */
-
-/*
- * The incident pages #7514 rewrote in every language. A language whose
- * other pages are still being rewritten (#8315) is held on these.
- */
-const INCIDENT_PAGES: ReadonlyArray<string> = [
-  "incidents/index",
-  "incidents/declaring-incidents",
-  "incidents/states-and-severities",
-  "incidents/notes-owners-and-feed",
-  "incidents/linked-alerts",
-  "incidents/settings",
-];
-
-function pagesHeld(language: string): ReadonlyArray<string> {
-  return ROLES_DRAWN_ON_EVERY_PAGE.includes(language)
-    ? listPages(language)
-    : INCIDENT_PAGES;
-}
 
 // "page: role -> drawn name", as a failure lists it.
 function finding(language: string, page: string, role: string): string {
@@ -235,32 +214,6 @@ describe("the role checks", () => {
     ).toBe(2);
   });
 
-  it("reads a role as each language's pages write it", () => {
-    expect(
-      namesRoleAsWritten("en", "Only Project Owners", "Project Owner"),
-    ).toBe(true);
-
-    for (const language of ROLES_DRAWN_ON_EVERY_PAGE) {
-      const drawn: string = writtenPermissionTitle(language, "Project Owner");
-
-      expect(namesRoleAsWritten(language, drawn, "Project Owner")).toBe(true);
-      expect(
-        namesRoleAsWritten(language, "Project Owner", "Project Owner"),
-      ).toBe(false);
-    }
-
-    // A language still waiting for #8315 writes it in English.
-    for (const language of TRANSLATED_LANGUAGES.filter(
-      (waiting: string): boolean => {
-        return !ROLES_DRAWN_ON_EVERY_PAGE.includes(waiting);
-      },
-    )) {
-      expect(
-        namesRoleAsWritten(language, "Project Owner", "Project Owner"),
-      ).toBe(true);
-    }
-  });
-
   it("keeps each piece of English for a reason, and finds it where it says", () => {
     for (const kept of KEPT_IN_ENGLISH) {
       expect(kept.why.length).toBeGreaterThan(20);
@@ -364,18 +317,11 @@ describe("the role checks", () => {
     }
   });
 
-  it("holds every translation, each on every page or on the incident pages", () => {
+  it("holds every translation, on every page", () => {
     expect(TRANSLATED_LANGUAGES).toHaveLength(16);
 
-    for (const language of ROLES_DRAWN_ON_EVERY_PAGE) {
-      expect(TRANSLATED_LANGUAGES).toContain(language);
-    }
-
     for (const language of TRANSLATED_LANGUAGES) {
-      for (const page of INCIDENT_PAGES) {
-        expect(pagesHeld(language)).toContain(page);
-        expect(hasPage(language, page)).toBe(true);
-      }
+      expect(listPages(language).length).toBeGreaterThan(90);
 
       // Every role has a name of its own in every translation.
       for (const role of BUILT_IN_ROLE_NAMES) {
@@ -404,7 +350,7 @@ describe.each(TRANSLATED_LANGUAGES)(
   "%s names the built-in roles as its Dashboard draws them",
   (language: string) => {
     it("writes no built-in role in English in its running text", () => {
-      const left: Array<string> = pagesHeld(language).flatMap(
+      const left: Array<string> = listPages(language).flatMap(
         (page: string): Array<string> => {
           return rolesLeftInEnglish(language, readPage(language, page)).map(
             (role: string): string => {
@@ -418,7 +364,7 @@ describe.each(TRANSLATED_LANGUAGES)(
     });
 
     it("names every role the English running text names, as drawn, as often", () => {
-      const missing: Array<string> = pagesHeld(language)
+      const missing: Array<string> = listPages(language)
         .filter((page: string): boolean => {
           return hasPage("en", page);
         })

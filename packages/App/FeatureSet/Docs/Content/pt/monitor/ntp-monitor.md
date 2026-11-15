@@ -33,7 +33,7 @@ Um servidor que responde não é consultado de novo, mesmo quando responde sem u
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma sonda que alcance a porta UDP 123 do servidor.** Qualquer sonda pode verificar um servidor de hora público. Para um servidor em uma rede privada, use uma [sonda personalizada](/docs/probe/custom-probe) dentro dessa rede. Um firewall na frente do servidor precisa deixar passar UDP, não apenas TCP, a partir dos [endereços IP das sondas do OneUptime Cloud](/docs/configuration/ip-addresses) ou da sua sonda personalizada.
 
 ## Criar um monitor NTP

@@ -89,8 +89,18 @@ import {
   AI_READ_RECORD_TABLE_PLURAL_SENTENCES,
   AI_READ_RECORD_TABLE_TERMS,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
+  AI_TOOL_CITATION_PLURALS,
+  AI_READ_SECURITY_VERDICTS,
 } from "../../../../Types/AI/AIReadTableWords";
-import { countFigure } from "./ReadTableWords";
+import {
+  countFigure,
+  citationSentence,
+  countedValue,
+  ToolCitation,
+  termCells,
+  termsByValue,
+} from "./ReadTableWords";
 import {
   getRecordTitleName,
   prepareRecordNamesInTitle,
@@ -229,6 +239,42 @@ export function readLookupValues(args: JSONObject): Array<string> {
         }),
     ),
   ).slice(0, MAX_LOOKUP_VALUES);
+}
+
+/*
+ * What a list of cases names under Sources, in the reader's language (issue
+ * #8311): which cases - open, closed or all - and about what.
+ */
+const SECURITY_CASES_CITATIONS: Record<string, { all: string; about: string }> =
+  {
+    open: {
+      all: AI_TOOL_CITATIONS.openSecurityCases,
+      about: AI_TOOL_CITATIONS.openSecurityCasesAbout,
+    },
+    closed: {
+      all: AI_TOOL_CITATIONS.closedSecurityCases,
+      about: AI_TOOL_CITATIONS.closedSecurityCasesAbout,
+    },
+    all: {
+      all: AI_TOOL_CITATIONS.allSecurityCases,
+      about: AI_TOOL_CITATIONS.allSecurityCasesAbout,
+    },
+  };
+
+export function getSecurityCasesCitation(data: {
+  status: string;
+  entity?: string | undefined;
+  count: number;
+}): ToolCitation {
+  const templates: { all: string; about: string } =
+    SECURITY_CASES_CITATIONS[data.status] || SECURITY_CASES_CITATIONS["all"]!;
+
+  return data.entity
+    ? citationSentence(templates.about, {
+        entity: data.entity,
+        count: countFigure(data.count),
+      })
+    : citationSentence(templates.all, { count: countFigure(data.count) });
 }
 
 function caseLabel(securityCase: SecurityCase): string {
@@ -382,7 +428,12 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Security cases (${status}${entity ? `, about ${entity}` : ""}) - ${serialized.rowCount} found`,
+      // In the reader's language (issue #8311).
+      ...getSecurityCasesCitation({
+        status,
+        entity,
+        count: serialized.rowCount,
+      }),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -395,6 +446,14 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
                   AI_READ_RECORD_TABLE_TITLES.securityCases,
                   { count: countFigure(rows.length) },
                 ),
+                /*
+                 * The AI's verdict, as the case's page says it (issue
+                 * #8313). The status and the priority are the project's
+                 * own names for them: data, as an incident's state is.
+                 */
+                cells: termCells(rows, {
+                  aiVerdict: termsByValue(AI_READ_SECURITY_VERDICTS),
+                }),
               },
               columns: [
                 { key: "case", title: translationKey("Case"), type: "text" },
@@ -589,7 +648,13 @@ async function readOneCase(
   return {
     dataForLlm: `Case:\n${caseText.text}\n\nDetections (latest first, at most ${MAX_CASE_DETECTIONS}):\n${detectionText.text}`,
     rowCount: 1 + detectionRows.length,
-    citationLabel: `Security case ${caseLabel(securityCase)} (${detectionRows.length} ${detectionRows.length === 1 ? "detection" : "detections"})`,
+    ...citationSentence(AI_TOOL_CITATIONS.securityCase, {
+      case: caseLabel(securityCase),
+      detections: countedValue(
+        AI_TOOL_CITATION_PLURALS.detections,
+        detectionRows.length,
+      ),
+    }),
     citationTarget: target,
     redactionCount: caseText.redactionCount + detectionText.redactionCount,
     isTruncated: caseText.isTruncated || detectionText.isTruncated,
@@ -694,7 +759,10 @@ export const LookupThreatIntelTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: best.size,
-      citationLabel: `Threat intel lookup of ${values.length} ${values.length === 1 ? "value" : "values"}: ${best.size} known-bad`,
+      ...citationSentence(AI_TOOL_CITATIONS.threatIntelLookup, {
+        values: countedValue(AI_TOOL_CITATION_PLURALS.values, values.length),
+        known: countFigure(best.size),
+      }),
       citationTarget: { type: AIChatCitationTargetType.ThreatIntel },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -841,7 +909,10 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
     return {
       dataForLlm: `Window: the last ${hours} hour(s), ${startTime.toISOString()} - ${endTime.toISOString()}.\n${serialized.text}`,
       rowCount: activity.length,
-      citationLabel: `Security activity of ${values.length} ${values.length === 1 ? "value" : "values"} over ${hours} ${hours === 1 ? "hour" : "hours"}`,
+      ...citationSentence(AI_TOOL_CITATIONS.securityActivity, {
+        values: countedValue(AI_TOOL_CITATION_PLURALS.values, values.length),
+        hours: countedValue(AI_TOOL_CITATION_PLURALS.hours, hours),
+      }),
       citationTarget: { type: AIChatCitationTargetType.SecurityEvents },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -1058,7 +1129,9 @@ export const QuerySecurityPlaybooksTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Security playbooks that are on (${serialized.rowCount})`,
+      ...citationSentence(AI_TOOL_CITATIONS.securityPlaybooksOn, {
+        count: countFigure(serialized.rowCount),
+      }),
       citationTarget: { type: AIChatCitationTargetType.SecurityPlaybooks },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -1170,7 +1243,9 @@ export const AddSecurityCaseNoteTool: ObservabilityTool = {
     return {
       dataForLlm: `Added a note to ${caseLabel(securityCase)} (note ${created.id?.toString() || ""}). It is on the case's timeline for everyone who can read the case.`,
       rowCount: 1,
-      citationLabel: `Note on ${caseLabel(securityCase)}`,
+      ...citationSentence(AI_TOOL_CITATIONS.securityCaseNote, {
+        case: caseLabel(securityCase),
+      }),
       citationTarget: target,
       redactionCount: 0,
       isTruncated: false,
@@ -1310,7 +1385,10 @@ export const RunSecurityPlaybookTool: ObservabilityTool = {
     return {
       dataForLlm: `Started the playbook "${playbook.name || ""}" on ${caseLabel(securityCase)} (run ${created.id?.toString() || ""}). Its steps: ${steps || "none"}. A step marked "needs approval" waits on the case for a person to approve it.`,
       rowCount: 1,
-      citationLabel: `Playbook ${playbook.name || ""} on ${caseLabel(securityCase)}`,
+      ...citationSentence(AI_TOOL_CITATIONS.securityCasePlaybook, {
+        playbook: playbook.name || "",
+        case: caseLabel(securityCase),
+      }),
       citationTarget: target,
       redactionCount: 0,
       isTruncated: false,

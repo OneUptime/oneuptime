@@ -28,7 +28,7 @@ flowchart TB
 OneUptime antwortet, sobald es die Nachrichten aus der Anfrage gelesen hat, und parst und speichert sie einen Moment später. Der Nachrichtentext bleibt im Log-Inhalt; alles andere wird zu einem Attribut.
 
 > [!TIP]
-> Netzwerkgeräte können ihr Syslog per UDP oder TCP direkt an eine OneUptime-Probe senden, ganz ohne Relay – OneUptime liest die Meldungen jedes Herstellers dann als Ereignisse am Gerät. Siehe [Netzwerkereignisse](/docs/monitor/network-events).
+> Netzwerkgeräte können ihr Syslog per UDP oder TCP direkt an eine OneUptime-Sonde senden, ganz ohne Relay – OneUptime liest die Meldungen jedes Herstellers dann als Ereignisse am Gerät. Siehe [Netzwerkereignisse](/docs/monitor/network-events).
 
 ## Bevor Sie beginnen
 

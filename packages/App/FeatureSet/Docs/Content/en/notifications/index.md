@@ -53,7 +53,7 @@ Open **User Settings**, on the right of the bar under the top bar. Its side menu
 
 **Get Started** and **Alerts & Notifications** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** shows only when the project has connected Slack, Microsoft Teams or Mattermost.
 
-Project owners and admins can look at your setup too: under **Users**, they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **How to Reach Me**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.
+Project Owners and Project Admins can look at your setup too: under **Users**, they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **How to Reach Me**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.
 
 ## What you start with
 
@@ -116,7 +116,7 @@ Open **User Settings → On-Call Logs**. No row for the incident means its on-ca
 :::
 
 :::details I get emails about records I never asked about
-You are an owner of the record, directly or through a team, or the record has no owners and you are a project owner. Switch the event off under **User Settings → Notification Settings**, or cut the volume under **User Settings → Email Preferences**.
+You are an owner of the record, directly or through a team, or the record has no owners and you are a Project Owner. Switch the event off under **User Settings → Notification Settings**, or cut the volume under **User Settings → Email Preferences**.
 :::
 
 :::details My pages are in English, though the dashboard is not

@@ -133,7 +133,7 @@ describe("the AI SRE page documents the project's own daily limits", () => {
     }
 
     expect(section()).toContain(
-      "Only a project owner or someone with **Manage Billing** can change the limits",
+      "Only a Project Owner or someone with **Manage Billing** can change the limits",
     );
   });
 

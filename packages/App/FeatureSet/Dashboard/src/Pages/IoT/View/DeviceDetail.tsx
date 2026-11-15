@@ -279,7 +279,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
     ) {
       summaryFields.push({
         title: "Signal Strength",
-        value: `${Number(row.latestSignalStrengthDbm).toFixed(0)} dBm`,
+        value: `${Number(row.latestSignalStrengthDbm).toFixed(0)}\u00A0dBm`,
         description: IOT_METRIC_DESCRIPTIONS.signalStrength,
       });
     }
@@ -290,7 +290,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
     ) {
       summaryFields.push({
         title: "Temperature",
-        value: `${Number(row.latestTemperatureCelsius).toFixed(1)} °C`,
+        value: `${Number(row.latestTemperatureCelsius).toFixed(1)}\u00A0°C`,
         description: IOT_METRIC_DESCRIPTIONS.temperature,
       });
     }

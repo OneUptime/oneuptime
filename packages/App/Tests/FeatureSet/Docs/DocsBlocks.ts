@@ -133,8 +133,11 @@ export function diagramWordsOf(line: string): string {
   return labels.join(" ").replace(/<br\s*\/?>/g, " ");
 }
 
-// A quote: "...", “...”, «...», each maybe in italics (_"..."_).
-const QUOTE: RegExp = /[_*]?["“«]([^"”»\n]+)["”»][_*]?/g;
+/*
+ * A quote: "...", “...”, «...», each maybe in italics (_"..."_).
+ * German opens with „ and closes with “.
+ */
+const QUOTE: RegExp = /[_*]?["“«„]([^"”»“\n]+)["”»“][_*]?/g;
 const BOLD: RegExp = /\*\*([^*\n]+)\*\*/g;
 
 // A name or a message: two words or more. One word is a noun of the sentence.
@@ -183,7 +186,10 @@ export function ownWordsOf(english: DocsBlock, translation: DocsBlock): string {
       return isAName(inner) && english.text.includes(bold) ? " " : inner;
     })
     .replace(QUOTE, (quote: string, inner: string): string => {
-      return isAName(inner) && english.text.includes(inner) ? " " : quote;
+      // French pads its quote marks: « This probe could not resolve ».
+      return isAName(inner) && english.text.includes(inner.trim())
+        ? " "
+        : quote;
     });
 }
 

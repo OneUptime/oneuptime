@@ -369,7 +369,7 @@ describe("a line's label", () => {
     ).toBe("2.0%");
     expect(
       getMessageQueueTopologyEdgeLabel(publish, "latency", 3600, false),
-    ).toBe("4.2 ms");
+    ).toBe("4.2\u00A0ms");
     // A line with no time has no label for it.
     expect(
       getMessageQueueTopologyEdgeLabel(consume, "latency", 3600, false),

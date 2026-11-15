@@ -1,6 +1,6 @@
 # Virksomhedens AI-værktøjer
 
-Se, hvad dine folk spørger de AI-værktøjer om, som din virksomhed betaler for, som samtaler pr. person. Forbind Claude Enterprise eller Microsoft 365 Copilot med legitimationsoplysninger, der kun kan læse, så henter OneUptime hver ny chat ind i **Samtaler** hvert 15. minut. Kun projektets ejere og administratorer kan læse dem, medmindre du vælger andet.
+Se, hvad dine folk spørger de AI-værktøjer om, som din virksomhed betaler for, som samtaler pr. person. Forbind Claude Enterprise eller Microsoft 365 Copilot med legitimationsoplysninger, der kun kan læse, så henter OneUptime hver ny chat ind i **Samtaler** hvert 15. minut. Kun Projektejere og Projektadministratorer kan læse dem, medmindre du vælger andet.
 
 :::cards
 - [Fortæl det først til dine folk](#fortæl-det-først-til-dine-folk): Deres chats er deres egne ord.

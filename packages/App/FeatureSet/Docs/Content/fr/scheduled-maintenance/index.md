@@ -46,7 +46,7 @@ Les annonces sont traitées dans [Abonnés et annonces](/docs/status-pages/subsc
 - **Une planification.** Un modèle récurrent crée un nouvel événement selon une planification, par exemple chaque semaine ou chaque mois, sans que personne n'ouvre le formulaire.
 - **Un formulaire.** Un formulaire dont les soumissions créent des événements de maintenance transforme une demande de changement en événement. Voir [Ce que crée une soumission](/docs/forms/on-submit#comment-une-soumission-devient-un-événement-de-maintenance).
 - **Le chat.** `/oneuptime maintenance` dans Slack, ou `maintenance` écrit au bot OneUptime dans Microsoft Teams, ouvre le formulaire dans votre outil de chat. Voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
-- **Le code.** L'API sous `/api/scheduled-maintenance`, la ressource Terraform `oneuptime_scheduled_maintenance_event` et l'étape **Create One Maintenance Event** d'un workflow.
+- **Le code.** L'API sous `/api/scheduled-maintenance`, la ressource Terraform `oneuptime_scheduled_maintenance_event` et l'étape **Create One Maintenance Event** d'un flux de travail.
 
 ## Où se trouve la maintenance dans le tableau de bord
 

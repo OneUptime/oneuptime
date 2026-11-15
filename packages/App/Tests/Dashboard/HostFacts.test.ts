@@ -416,21 +416,21 @@ describe("how the hero says how long the host has been up", () => {
 
 describe("sizes", () => {
   test("1024-based, one decimal under 10", () => {
-    expect(formatHostBytes(16 * GIB)).toBe("16 GiB");
-    expect(formatHostBytes(8 * GIB)).toBe("8.0 GiB");
-    expect(formatHostBytes(512)).toBe("512 B");
+    expect(formatHostBytes(16 * GIB)).toBe("16\u00A0GiB");
+    expect(formatHostBytes(8 * GIB)).toBe("8.0\u00A0GiB");
+    expect(formatHostBytes(512)).toBe("512\u00A0B");
     expect(formatHostBytes(null)).toBe("—");
     expect(formatHostBytes(Number.NaN)).toBe("—");
   });
 
   // A count of bytes is whole (issue #7417): never "0.0 B" or "5.0 B".
   test("plain bytes are whole, from zero to just under a KiB", () => {
-    expect(formatHostBytes(0)).toBe("0 B");
-    expect(formatHostBytes(5)).toBe("5 B");
-    expect(formatHostBytes(9)).toBe("9 B");
-    expect(formatHostBytes(1023)).toBe("1023 B");
+    expect(formatHostBytes(0)).toBe("0\u00A0B");
+    expect(formatHostBytes(5)).toBe("5\u00A0B");
+    expect(formatHostBytes(9)).toBe("9\u00A0B");
+    expect(formatHostBytes(1023)).toBe("1023\u00A0B");
     // From a KiB up, one decimal under ten as before.
-    expect(formatHostBytes(1024)).toBe("1.0 KiB");
-    expect(formatHostBytes(1536)).toBe("1.5 KiB");
+    expect(formatHostBytes(1024)).toBe("1.0\u00A0KiB");
+    expect(formatHostBytes(1536)).toBe("1.5\u00A0KiB");
   });
 });

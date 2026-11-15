@@ -1,6 +1,6 @@
 # Panoramica delle integrazioni
 
-OneUptime funziona con gli strumenti che il tuo team usa già. Gli strumenti di allerta vi aprono incidenti, e OneUptime apre ticket, chiamate di reperibilità e messaggi di chat in altri strumenti. Alcuni strumenti si collegano da un modulo, altri da un modello di workflow pronto all'uso. Qualsiasi altro strumento con un webhook o un'API si collega tramite un workflow che costruisci tu.
+OneUptime funziona con gli strumenti che il tuo team usa già. Gli strumenti di allerta vi aprono incidenti, e OneUptime apre ticket, chiamate di reperibilità e messaggi di chat in altri strumenti. Alcuni strumenti si collegano da un modulo, altri da un modello del flusso di lavoro pronto all'uso. Qualsiasi altro strumento con un webhook o un'API si collega tramite un flusso di lavoro che costruisci tu.
 
 :::cards
 - [Scegliere come collegarsi](#scegliere-come-collegarsi): I quattro modi di integrarsi e quando usare ciascuno.
@@ -11,26 +11,26 @@ OneUptime funziona con gli strumenti che il tuo team usa già. Gli strumenti di 
 
 ## Come funzionano le integrazioni
 
-Ogni integrazione sposta dati in una direzione o in entrambe. **In entrata**: un altro strumento segnala a OneUptime che qualcosa non va, e OneUptime apre un incidente o un avviso e chiama il team reperibile. **In uscita**: succede qualcosa in OneUptime, e un workflow lo comunica a un altro strumento: apre un ticket, chiama qualcuno o pubblica un messaggio.
+Ogni integrazione sposta dati in una direzione o in entrambe. **In entrata**: un altro strumento segnala a OneUptime che qualcosa non va, e OneUptime apre un incidente o un avviso e chiama il team reperibile. **In uscita**: succede qualcosa in OneUptime, e un flusso di lavoro lo comunica a un altro strumento: apre un ticket, chiama qualcuno o pubblica un messaggio.
 
 ```mermaid title="In entrata e in uscita"
 flowchart TB
     tool["Strumento di allerta<br/>o di sicurezza"] -->|"in entrata"| record["Incidente o avviso,<br/>reperibile chiamato"]
-    record -->|"in uscita"| workflow["Workflow, ad esempio<br/>On Create Incident"]
+    record -->|"in uscita"| workflow["Flusso di lavoro,<br/>ad esempio<br/>On Create Incident"]
     workflow -->|"chiamata API<br/>o messaggio"| other["Strumento di ticket,<br/>chiamata o chat"]
     other -.->|"webhook di ritorno"| record
 ```
 
-Un'integrazione bidirezionale, come Jira o Dynamics 365, usa entrambe le direzioni: un workflow invia l'incidente all'esterno, e un altro, avviato dal webhook dell'altro strumento, riporta indietro le modifiche.
+Un'integrazione bidirezionale, come Jira o Dynamics 365, usa entrambe le direzioni: un flusso di lavoro invia l'incidente all'esterno, e un altro, avviato dal webhook dell'altro strumento, riporta indietro le modifiche.
 
 ## Scegliere come collegarsi
 
 | Modo | Ideale per | Esempi |
 | --- | --- | --- |
 | Una connessione integrata | Strumenti a cui OneUptime si collega da solo. Compili un modulo e non c'è nulla da costruire. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), le connessioni di [Eventi di sicurezza](/docs/telemetry/security-events) |
-| Un modello di workflow | Strumenti di ticketing, sincronizzati in entrambe le direzioni, problemi di monitoraggio, rapporti di incidenti di sicurezza e messaggi di chat. Scegli un modello e compili poche impostazioni. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| Un monitor di richieste in arrivo | Strumenti di allerta che inviano un webhook. Ottieni un incidente per allerta, segnalato ai reperibili e risolto quando l'allerta rientra, senza workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
-| Un workflow che costruisci tu | Qualsiasi strumento con un webhook o un'API REST, e qualsiasi logica tua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
+| Un modello del flusso di lavoro | Strumenti di ticketing, sincronizzati in entrambe le direzioni, problemi di monitoraggio, rapporti di incidenti di sicurezza e messaggi di chat. Scegli un modello e compili poche impostazioni. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
+| Un monitor di richieste in arrivo | Strumenti di allerta che inviano un webhook. Ottieni un incidente per allerta, segnalato ai reperibili e risolto quando l'allerta rientra, senza flussi di lavoro. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Un flusso di lavoro che costruisci tu | Qualsiasi strumento con un webhook o un'API REST, e qualsiasi logica tua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 
@@ -91,7 +91,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | [IRC](/docs/integrations/irc) | In uscita | Pubblica gli aggiornamenti degli incidenti in un canale IRC. |
 
 > [!TIP]
-> Anche Slack e Microsoft Teams hanno passaggi di workflow. Usa la connessione integrata per i canali degli incidenti e la reperibilità, e un passaggio di workflow quando ti serve solo un messaggio in un canale.
+> Anche Slack e Microsoft Teams hanno passaggi dei flussi di lavoro. Usa la connessione integrata per i canali degli incidenti e la reperibilità, e un passaggio del flusso di lavoro quando ti serve solo un messaggio in un canale.
 
 ### Piattaforme di hosting
 
@@ -108,14 +108,14 @@ Per lasciare un altro strumento di reperibilità, di uptime o di pagine di stato
 
 ## Costruire la propria integrazione
 
-Uno strumento senza guida rientra comunque in uno di due schemi. Se può inviare un webhook, usa lo schema in entrata. Se ha un'API REST, usa lo schema in uscita. Entrambi sono workflow: vedi [Panoramica dei workflow](/docs/workflows/index) per iniziare.
+Uno strumento senza guida rientra comunque in uno di due schemi. Se può inviare un webhook, usa lo schema in entrata. Se ha un'API REST, usa lo schema in uscita. Entrambi sono flussi di lavoro: vedi [Panoramica dei flussi di lavoro](/docs/workflows/index) per iniziare.
 
 ### In entrata: un altro strumento invia dati a OneUptime
 
-Per uno strumento di allerta, parti da un [monitor di richieste in arrivo](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema): apre un incidente per allerta e lo risolve al rientro, senza nulla da costruire. Costruisci un workflow quando ti serve una logica tua:
+Per uno strumento di allerta, parti da un [monitor di richieste in arrivo](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema): apre un incidente per allerta e lo risolve al rientro, senza nulla da costruire. Costruisci un flusso di lavoro quando ti serve una logica tua:
 
 :::steps
-1. Apri **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Dai un nome al workflow e fai clic su **Crea flusso di lavoro**.
+1. Apri **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Dai un nome al flusso di lavoro e fai clic su **Crea flusso di lavoro**.
 2. Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Webhook**. Fai clic sul trigger, poi su **Copia URL**.
 3. Nell'altro strumento, invia il suo webhook a quell'URL come `POST` con `Content-Type: application/json`.
 4. Aggiungi i blocchi che agiscono su di esso. Leggono la richiesta con riferimenti come `{{local.components.webhook-1.returnValues.request-body.status}}`: un blocco **If / Else** per controllare un campo, poi **Create One Incident** per dichiarare un incidente.
@@ -128,7 +128,7 @@ L'URL è l'unica credenziale, quindi trattalo come una password. Vedi [Webhook](
 
 :::steps
 1. Salva la chiave API dello strumento come variabile globale segreta, come mostrato [più sotto](#proteggere-le-credenziali).
-2. Crea un workflow, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi da inviare, come **Descrizione**.
+2. Crea un flusso di lavoro, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi da inviare, come **Descrizione**.
 3. Fai clic su **Aggiungi componente** e aggiungi un blocco **API Post (JSON)**. Collegagli il punto **Successo** del trigger.
 4. Compila il suo **URL**, i suoi **Intestazioni della richiesta** con l'intestazione `Authorization` e il suo **Corpo della Richiesta** con i campi dell'incidente, come `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Fai clic su **Esegui flusso di lavoro**, scegli un incidente sotto **Incidente** ed eseguilo. Un'esecuzione di prova invia davvero la richiesta. Poi attiva **Abilitato**.
@@ -146,7 +146,7 @@ Non incollare mai una chiave API o un token in un blocco. Salvalo una volta come
 3. Incolla la chiave in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 :::
 
-Qualsiasi blocco la legge come `{{global.variables.JIRA_AUTH}}`. Il contenuto di una variabile non si può più rileggere una volta salvato, e quello di una variabile segreta viene sostituito da `[REDACTED]` nei log delle esecuzioni. Per i token che scadono, come quelli di Microsoft Entra ID, una [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli) ne ottiene uno nuovo da sola. Vedi [Variabili del workflow](/docs/workflows/variables#variabili-globali).
+Qualsiasi blocco la legge come `{{global.variables.JIRA_AUTH}}`. Il contenuto di una variabile non si può più rileggere una volta salvato, e quello di una variabile segreta viene sostituito da `[REDACTED]` nei log delle esecuzioni. Per i token che scadono, come quelli di Microsoft Entra ID, una [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli) ne ottiene uno nuovo da sola. Vedi [Variabili del flusso di lavoro](/docs/workflows/variables#variabili-globali).
 
 ### Promemoria sull'autenticazione
 
@@ -173,15 +173,15 @@ Usa `printf`, non `echo`: `echo` aggiunge un a capo, che viene codificato con il
 
 Un OneUptime self-hosted chiama gli altri strumenti dalla tua rete, e gli altri strumenti lo chiamano dalla loro:
 
-- **In uscita:** le richieste dei workflow verso indirizzi di rete privati vengono rifiutate a meno che un amministratore non le consenta. Vedi [Accesso di rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
+- **In uscita:** le richieste dei flussi di lavoro verso indirizzi di rete privati vengono rifiutate a meno che un amministratore non le consenta. Vedi [Accesso di rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 - **In entrata:** i webhook di uno strumento devono raggiungere il tuo OneUptime via HTTPS, quindi uno strumento nel cloud ha bisogno di un indirizzo pubblico da chiamare.
 - **Le integrazioni integrate** hanno ciascuna una guida di configurazione: [Slack](/docs/self-hosted/slack-integration), [Microsoft Teams](/docs/self-hosted/microsoft-teams-integration), [GitHub](/docs/self-hosted/github-integration), [Twilio](/docs/self-hosted/twilio-integration), [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email) e [Push Notifications](/docs/self-hosted/push-notifications).
 
 ## Prossimi passi
 
 :::cards
-- [Panoramica dei workflow](/docs/workflows/index): Come vengono eseguiti i workflow e come costruire il primo.
-- [Monitor richieste in arrivo](/docs/monitor/incoming-request-monitor): Ricevi allerte da qualsiasi strumento senza workflow.
+- [Panoramica dei flussi di lavoro](/docs/workflows/index): Come vengono eseguiti i flussi di lavoro e come costruire il primo.
+- [Monitor richieste in arrivo](/docs/monitor/incoming-request-monitor): Ricevi allerte da qualsiasi strumento senza flussi di lavoro.
 - [Jira](/docs/integrations/jira): Un'integrazione bidirezionale completa, a partire dai modelli.
-- [Variabili del workflow](/docs/workflows/variables): Passa dati tra i blocchi e tieni i segreti fuori da essi.
+- [Variabili del flusso di lavoro](/docs/workflows/variables): Passa dati tra i blocchi e tieni i segreti fuori da essi.
 :::

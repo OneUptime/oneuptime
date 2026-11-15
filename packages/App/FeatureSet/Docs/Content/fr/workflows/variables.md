@@ -1,11 +1,11 @@
-# Variables de workflow
+# Variables de flux de travail
 
-Les variables sont la façon dont les données circulent dans un workflow : du déclencheur au premier bloc, d'un bloc au suivant, et des valeurs que vous enregistrez une fois vers chaque bloc qui en a besoin. Le paramètre d'un bloc lit une valeur grâce à une référence entre doubles accolades, et le moteur d'exécution la remplit juste avant que le bloc s'exécute.
+Les variables sont la façon dont les données circulent dans un flux de travail : du déclencheur au premier bloc, d'un bloc au suivant, et des valeurs que vous enregistrez une fois vers chaque bloc qui en a besoin. Le paramètre d'un bloc lit une valeur grâce à une référence entre doubles accolades, et le moteur d'exécution la remplit juste avant que le bloc s'exécute.
 
 | Valeur                          | D'où elle vient                                                  | Comment un bloc la lit                                |
 | ------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
 | **Variable globale**            | Enregistrée sous **Flux de travail → Variables globales**         | `{{global.variables.NAME}}`                          |
-| **Variable de workflow**        | Enregistrée sur la page **Variables de flux de travail** d'un workflow | `{{local.variables.NAME}}`                      |
+| **Variable de flux de travail**        | Enregistrée sur la page **Variables de flux de travail** d'un flux de travail | `{{local.variables.NAME}}`                      |
 | **La valeur d'un bloc précédent** | Ce que le déclencheur ou un bloc précédent a renvoyé dans cette exécution | `{{local.components.BLOCK_ID.returnValues.VALUE_ID}}` |
 
 ```mermaid title="D'où viennent les valeurs d'un bloc"
@@ -13,7 +13,7 @@ flowchart TB
     subgraph saved["Enregistrées une fois"]
         direction LR
         global["Variables globales"]
-        local["Variables de workflow"]
+        local["Variables de flux de travail"]
     end
     trigger["Déclencheur"] -->|"renvoie"| earlier["Blocs précédents"]
     saved --> settings["Les paramètres du bloc"]
@@ -25,7 +25,7 @@ Vous tapez rarement une référence. Cliquez sur **{ }** au bout d'un paramètre
 
 ## Variables globales
 
-Des valeurs à l'échelle du projet, que vous enregistrez une fois et réutilisez dans chaque workflow : clés d'API, URL, noms de canaux — tout ce que vous ne voulez pas recopier dans dix workflows différents.
+Des valeurs à l'échelle du projet, que vous enregistrez une fois et réutilisez dans chaque flux de travail : clés d'API, URL, noms de canaux — tout ce que vous ne voulez pas recopier dans dix flux de travail différents.
 
 :::steps
 ### Ouvrir les variables globales
@@ -51,13 +51,13 @@ Cliquez sur **Suivant**.
 Cliquez sur **Créer : Variable de flux de travail**. Pour changer le nom ou la description avant cela, cliquez sur **Variable** dans la liste des étapes à côté du formulaire (affichée sur les écrans larges) ; ce que vous avez saisi dans chaque étape est conservé.
 :::
 
-Utilisez une variable globale dans n'importe quel workflow avec :
+Utilisez une variable globale dans n'importe quel flux de travail avec :
 
 ```text
 {{global.variables.NAME}}
 ```
 
-Par exemple, si vous avez enregistré votre clé PagerDuty sous `PAGERDUTY_KEY`, n'importe quel bloc peut l'utiliser sous la forme `{{global.variables.PAGERDUTY_KEY}}` — l'éditeur enregistre la référence, et la journalisation du workflow efface la valeur secrète résolue.
+Par exemple, si vous avez enregistré votre clé PagerDuty sous `PAGERDUTY_KEY`, n'importe quel bloc peut l'utiliser sous la forme `{{global.variables.PAGERDUTY_KEY}}` — l'éditeur enregistre la référence, et la journalisation du flux de travail efface la valeur secrète résolue.
 
 La liste affiche le nom et la description de chaque variable. Cliquez sur **Voir** sur une ligne pour ouvrir la page de la variable. Elle indique si la variable est statique ou OAuth 2.0, et c'est là que vous faites tout le reste :
 
@@ -70,17 +70,17 @@ La liste affiche le nom et la description de chaque variable. Cliquez sur **Voir
 
 Pour créer plutôt une variable **jeton d'accès OAuth 2.0**, ouvrez le menu **Plus** (**⋯**) à côté de **Créer : Variable de flux de travail** et choisissez **Créer une variable OAuth 2.0**. Les variables OAuth 2.0 ont [leur propre section](#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls) plus bas. Le type d'une variable ne peut pas être changé une fois enregistrée.
 
-Vous pouvez aussi mettre à jour une variable via l'API, ce qui est décrit [à la fin de cette page](#mettre-à-jour-une-variable-depuis-un-workflow). Les variables globales et de workflow sont une fonctionnalité du forfait Growth.
+Vous pouvez aussi mettre à jour une variable via l'API, ce qui est décrit [à la fin de cette page](#mettre-à-jour-une-variable-depuis-un-flux-de-travail). Les variables globales et de flux de travail sont une fonctionnalité du forfait Growth.
 
-## Variables de workflow locales
+## Variables de flux de travail locales
 
-Des variables propres à un seul workflow, gérées sous **Variables de flux de travail** dans le menu de ce workflow. Elles fonctionnent comme les variables globales : **Créer : Variable de flux de travail** crée une variable statique, le menu **Plus** (**⋯**) crée une variable OAuth 2.0, et **Voir** ouvre la page d'une variable. Faites-y référence avec :
+Des variables propres à un seul flux de travail, gérées sous **Variables de flux de travail** dans le menu de ce flux de travail. Elles fonctionnent comme les variables globales : **Créer : Variable de flux de travail** crée une variable statique, le menu **Plus** (**⋯**) crée une variable OAuth 2.0, et **Voir** ouvre la page d'une variable. Faites-y référence avec :
 
 ```text
 {{local.variables.NAME}}
 ```
 
-Utilisez-en une pour une valeur dont seul ce workflow a besoin, comme l'URL de webhook Slack d'un modèle. Les modèles qui demandent des paramètres les enregistrent comme variables de workflow, pour que vous puissiez les changer plus tard sans modifier les blocs.
+Utilisez-en une pour une valeur dont seul ce flux de travail a besoin, comme l'URL de webhook Slack d'un modèle. Les modèles qui demandent des paramètres les enregistrent comme variables de flux de travail, pour que vous puissiez les changer plus tard sans modifier les blocs.
 
 ## Variables OAuth 2.0 (des jetons qui se renouvellent seuls)
 
@@ -96,7 +96,7 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ```mermaid title="Avant une étape qui utilise la variable"
 sequenceDiagram
-    participant Runner as Moteur d'exécution<br/>des workflows
+    participant Runner as Moteur d'exécution<br/>des flux de travail
     participant Variable as Variable OAuth 2.0
     participant IdP as Fournisseur d'identité
     Runner->>Variable: Lit le jeton en cache
@@ -108,7 +108,7 @@ sequenceDiagram
     Runner->>Runner: Exécute l'étape avec un<br/>jeton qui n'a pas expiré
 ```
 
-- La première fois qu'un workflow utilise la variable, OneUptime demande un jeton d'accès au point de terminaison de jetons de votre fournisseur d'identité et le conserve.
+- La première fois qu'un flux de travail utilise la variable, OneUptime demande un jeton d'accès au point de terminaison de jetons de votre fournisseur d'identité et le conserve.
 - Avant chaque étape qui fait référence à la variable, le moteur d'exécution vérifie le jeton. S'il a expiré, ou expire dans la minute qui vient, un nouveau jeton est récupéré avant que l'étape s'exécute. Le composant reçoit toujours un jeton qui n'a pas expiré, quelle que soit la durée pendant laquelle la variable est restée inutilisée et quelle que soit la durée de l'exécution.
 - Seules les étapes qui font réellement référence à la variable déclenchent un renouvellement. Une exécution qui n'utilise jamais une variable ne récupère jamais son jeton, et n'échoue pas parce que ce fournisseur est en panne.
 - Quand beaucoup d'exécutions ont besoin d'un nouveau jeton au même moment, l'une d'elles le récupère et les autres l'utilisent.
@@ -125,7 +125,7 @@ sequenceDiagram
 
 **Créer une variable OAuth 2.0** demande une chose par étape :
 
-1. **Variable** : le nom par lequel les workflows y font référence, et une description.
+1. **Variable** : le nom par lequel les flux de travail y font référence, et une description.
 2. **Fournisseur** : choisissez votre **Fournisseur d'identité**, et OneUptime remplit son **URL du jeton** :
 
    | Fournisseur d'identité | URL du jeton qu'il remplit |
@@ -144,7 +144,7 @@ sequenceDiagram
 
 Sous certains champs, le formulaire ajoute une ligne d'aide pour le fournisseur choisi, par exemple l'endroit où Microsoft Entra ID affiche votre ID de locataire, et le fait que son secret client est la **Valeur** du secret, pas son **Secret ID**.
 
-Quand vous enregistrez une nouvelle variable OAuth 2.0, OneUptime récupère aussitôt son premier jeton et vous dit ce que le fournisseur a répondu. Une faute de frappe dans le secret ou dans l'URL se voit à ce moment-là, pas des heures plus tard dans une exécution en échec. Récupérer un jeton écrit dans la variable : cela demande donc l'autorisation de modifier les variables de workflow ; si vous pouvez créer des variables mais pas les modifier, c'est la première exécution de workflow qui utilise la variable qui récupère son jeton.
+Quand vous enregistrez une nouvelle variable OAuth 2.0, OneUptime récupère aussitôt son premier jeton et vous dit ce que le fournisseur a répondu. Une faute de frappe dans le secret ou dans l'URL se voit à ce moment-là, pas des heures plus tard dans une exécution en échec. Récupérer un jeton écrit dans la variable : cela demande donc l'autorisation de modifier les variables de flux de travail ; si vous pouvez créer des variables mais pas les modifier, c'est la première exécution de flux de travail qui utilise la variable qui récupère son jeton.
 
 La page de la variable (cliquez sur **Voir** sur sa ligne) comporte une carte **Paramètres OAuth 2.0**. **Modifier les paramètres** parcourt les mêmes étapes **Fournisseur** (URL du jeton), **Identifiants** (ID client) et **Avancé** (portée, paramètres supplémentaires, authentification du client). **Suivant** passe à l'étape suivante et **Enregistrer les modifications** se trouve à la dernière étape. Chaque étape est déjà remplie : la liste des étapes à côté du formulaire ouvre donc n'importe laquelle d'entre elles ; modifiez un paramètre à son étape, puis ouvrez la dernière étape et enregistrez. Le type d'autorisation est figé une fois enregistré.
 
@@ -155,12 +155,12 @@ La carte **Jeton d'accès** sur la page d'une variable OAuth 2.0 affiche l'un de
 | Statut                     | Ce que cela signifie                                                                                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Valide**                 | Le jeton en cache n'a pas encore expiré.                                                                                                   |
-| **Expiré**                 | Normal pour une variable qu'aucun workflow n'a utilisée récemment. La prochaine exécution qui l'utilise récupère un nouveau jeton.          |
+| **Expiré**                 | Normal pour une variable qu'aucun flux de travail n'a utilisée récemment. La prochaine exécution qui l'utilise récupère un nouveau jeton.          |
 | **Pas encore récupéré**    | Aucun jeton n'a été récupéré depuis la création de la variable ou la modification de ses paramètres.                                      |
 | **Aucune expiration indiquée** | Le fournisseur n'a pas dit quand le jeton expire : chaque exécution en récupère donc un nouveau.                                           |
 | **Échec de l'actualisation** | La dernière tentative pour obtenir un jeton a échoué. La raison donnée par le fournisseur est affichée en entier, avec le moment de l'échec. Le prochain renouvellement réussi l'efface. |
 
-**Actualiser maintenant**, sous le statut, récupère aussitôt un nouveau jeton. Utilisez-le pour vérifier de nouveaux paramètres sans exécuter de workflow. **Mettre à jour les identifiants**, sur la carte **Paramètres OAuth 2.0**, remplace le secret client ou le jeton d'actualisation, puis récupère un jeton avec eux. Modifier n'importe quel paramètre (URL du jeton, ID client, portée, etc.) supprime le jeton en cache, si bien que la prochaine exécution en récupère un avec les nouveaux paramètres.
+**Actualiser maintenant**, sous le statut, récupère aussitôt un nouveau jeton. Utilisez-le pour vérifier de nouveaux paramètres sans exécuter de flux de travail. **Mettre à jour les identifiants**, sur la carte **Paramètres OAuth 2.0**, remplace le secret client ou le jeton d'actualisation, puis récupère un jeton avec eux. Modifier n'importe quel paramètre (URL du jeton, ID client, portée, etc.) supprime le jeton en cache, si bien que la prochaine exécution en récupère un avec les nouveaux paramètres.
 
 ### Quand le fournisseur refuse
 
@@ -176,7 +176,7 @@ Si le renouvellement échoue alors que le jeton en cache n'a pas réellement exp
 
 ### Passer d'un jeton statique existant à OAuth 2.0
 
-Le type d'une variable est figé une fois enregistrée. Supprimez la variable statique et créez une variable OAuth 2.0 avec le **même nom**. Les workflows font référence aux variables par leur nom : ils prennent donc la nouvelle sans aucun changement.
+Le type d'une variable est figé une fois enregistrée. Supprimez la variable statique et créez une variable OAuth 2.0 avec le **même nom**. Les flux de travail font référence aux variables par leur nom : ils prennent donc la nouvelle sans aucun changement.
 
 ## Sorties des composants (données des blocs précédents)
 
@@ -245,12 +245,12 @@ Un webhook arrive avec un corps comme `{ "service": "checkout", "status": "faile
 
 ### Utiliser un secret dans un appel d'API
 
-Un workflow qui appelle PagerDuty :
+Un flux de travail qui appelle PagerDuty :
 
 1. Enregistrez `PAGERDUTY_KEY` comme variable globale secrète.
 2. Sur le bloc **API**, définissez l'en-tête `Authorization` sur `Token token={{global.variables.PAGERDUTY_KEY}}`.
 
-La clé reste hors du workflow et des journaux.
+La clé reste hors du flux de travail et des journaux.
 
 ### Enchaîner deux appels d'API
 
@@ -261,7 +261,7 @@ Le premier appel vous donne un ID dont le second a besoin :
 
 Si `lookup-order` échoue, c'est sa sortie **Erreur** qui se produit au lieu de **Succès**. Reliez-la à un bloc Email ou Slack pour que les échecs ne passent pas inaperçus.
 
-## Mettre à jour une variable depuis un workflow
+## Mettre à jour une variable depuis un flux de travail
 
 Un schéma courant consiste à faire tourner un identifiant selon une planification : récupérer un jeton neuf auprès d'un tiers, puis le réenregistrer dans la variable pour que la prochaine exécution le prenne. Faites-le avec un bloc **API** qui appelle l'API OneUptime.
 

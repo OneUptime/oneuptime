@@ -16,7 +16,7 @@ Esta página trata de los servidores a los que se conecta OneUptime AI. Para con
 - **OneUptime AI está activado** en el proyecto, con un proveedor de LLM que pueda usar: consulta [Proveedores de LLM](/docs/ai/llm-provider).
 - **La dirección MCP del servidor.** Funcionan tanto Streamable HTTP como el antiguo HTTP con SSE: OneUptime averigua cuál habla el servidor al conectarse.
 - **Cómo inicia sesión OneUptime en él:** un token de API, encabezados propios del servidor o credenciales de cliente OAuth de tu proveedor de identidad.
-- **Un Project Owner o un Project Admin** añade, cambia, prueba y elimina servidores; los Project Members y los Viewers pueden verlos. En OneUptime Cloud, añadir un servidor requiere el plan Growth o superior.
+- **Un Project Owner o un Project Admin** añade, cambia, prueba y elimina servidores; los Miembros del proyecto y los Visores pueden verlos. En OneUptime Cloud, añadir un servidor requiere el plan Growth o superior.
 
 ## Añadir un servidor
 

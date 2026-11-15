@@ -3,7 +3,7 @@
 En Server- / VM-monitor overvåker én maskin gjennom OneUptimes infrastrukturagent (`oneuptime-infrastructure-agent`), en liten tjeneste som hvert 30. sekund rapporterer CPU, minne, disker, belastning, nettverk og kjørende prosesser til OneUptime. Denne siden viser hvordan du kobler agenten til en Server- / VM-monitor, hva agenten rapporterer, og hvordan du skriver kriteriene som avgjør når serveren er tilkoblet eller frakoblet.
 
 > [!IMPORTANT]
-> **Opprett monitor** tilbyr ikke lenger **Server / VM**. Server- / VM-monitorer du allerede har, fortsetter å virke, og alt på denne siden gjelder for dem. For å overvåke en ny server oppretter du i stedet en [vertsmonitor](/docs/monitor/host-monitor): den varsler på vertsmetrikkene som [OpenTelemetry-collectoren på verten](/docs/telemetry/host-otel-collector) sender.
+> **Opprett monitor** tilbyr ikke lenger **Server / VM**. Server- / VM-monitorer du allerede har, fortsetter å virke, og alt på denne siden gjelder for dem. For å overvåke en ny server oppretter du i stedet en [vertsmonitor](/docs/monitor/host-monitor): den varsler på vertsmålingene som [OpenTelemetry-collectoren på verten](/docs/telemetry/host-otel-collector) sender.
 
 :::cards
 - [Koble til agenten](#koble-til-agenten): Installer den, gi den monitorens hemmelige nøkkel og start den.
@@ -14,7 +14,7 @@ En Server- / VM-monitor overvåker én maskin gjennom OneUptimes infrastrukturag
 
 ## Slik fungerer det
 
-Agenten kjører som en systemtjeneste. Hvert 30. sekund samler den en rapport og sender den til OneUptime-URL-en din, signert med monitorens hemmelige nøkkel. OneUptime lagrer tallene som monitorens metrikker og holder rapporten opp mot monitorens kriterier.
+Agenten kjører som en systemtjeneste. Hvert 30. sekund samler den en rapport og sender den til OneUptime-URL-en din, signert med monitorens hemmelige nøkkel. OneUptime lagrer tallene som monitorens målinger og holder rapporten opp mot monitorens kriterier.
 
 Stillhet kontrolleres for seg. Hvert minutt evaluerer OneUptime på nytt **Er tilkoblet**-kriteriene for hver Server- / VM-monitor som ikke har rapportert på 3 minutter eller mer, og en server som er stille lenger enn kriteriene tillater (3 minutter som standard), regnes som frakoblet. En monitor uten **Er tilkoblet**-kriterium blir aldri markert som frakoblet bare fordi agenten ble stille. Bare tid der OneUptime mottok data, teller med i den stillheten: tid der OneUptime selv startet på nytt, ble oppgradert eller tok igjen et etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -292,7 +292,7 @@ Bare et **Er tilkoblet**-kriterium markerer en stille server som frakoblet. Legg
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Monitoren for nye servere, bygget på OpenTelemetry-vertsmetrikker.
-- [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Send vertsmetrikker og logger fra Linux, macOS og Windows.
+- [Verts-overvåking](/docs/monitor/host-monitor): Monitoren for nye servere, bygget på OpenTelemetry-vertsmålinger.
+- [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Send vertsmålinger og logger fra Linux, macOS og Windows.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett CPU-, minne-, disk- og prosessdetaljer i hendelsestitler.
 :::

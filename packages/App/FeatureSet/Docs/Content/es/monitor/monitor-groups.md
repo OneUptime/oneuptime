@@ -37,8 +37,8 @@ Un grupo de monitores no es un grupo de una página de estado. Un grupo de una p
 ## Antes de empezar
 
 - **Su plan.** En OneUptime Cloud, los grupos de monitores requieren el plan Scale.
-- **El interruptor.** Los grupos de monitores están ocultos hasta que **Grupos de monitores** se activa para el proyecto (véase más abajo). Activarlo requiere el rol Project Owner, o un rol personalizado con el permiso Edit Project o Manage Billing.
-- **Su rol.** Crear, cambiar y eliminar grupos requiere el rol Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con los permisos de grupo de monitores correspondientes. Un Viewer puede ver los grupos, pero no cambiarlos.
+- **El interruptor.** Los grupos de monitores están ocultos hasta que **Grupos de monitores** se activa para el proyecto (véase más abajo). Activarlo requiere el rol Propietario del proyecto, o un rol personalizado con el permiso Edit Project o Manage Billing.
+- **Su rol.** Crear, cambiar y eliminar grupos requiere el rol Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con los permisos de grupo de monitores correspondientes. Un Visor puede ver los grupos, pero no cambiarlos.
 
 ## Activar los grupos de monitores
 

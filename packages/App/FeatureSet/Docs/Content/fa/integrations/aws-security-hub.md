@@ -23,7 +23,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ## پیش از شروع
 
-- در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
+- در OneUptime، نقش مالک پروژه، مدیر پروژه یا مدیر امنیت. عضو امنیت و بیننده امنیت می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
 - یک حساب AWS که Security Hub در منطقه‌ای که وصل می‌کنید در آن فعال است. Security Hub منطقه‌ای است: یک اتصال یافته‌هایی را می‌خواند که یک حساب در یک منطقه دارد.
 - برای خواندن یافته‌های همهٔ حساب‌ها و همهٔ منطقه‌ها از طریق یک اتصال، حساب مدیر واگذارشدهٔ Security Hub، در منطقهٔ اصلی‌اش، با [تجمیع میان‌منطقه‌ای](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) روشن. **Security Hub → Settings → Regions** منطقهٔ اصلی را نشان می‌دهد.
 - HTTPS خروجی از برنامه و کارگرهای OneUptime به `securityhub.<region>.amazonaws.com`، یا `securityhub.<region>.amazonaws.com.cn` در چین، و ساعت درست روی میزبان‌هایشان: AWS درخواستی را که با بیش از ۵ دقیقه اختلاف امضا شده باشد رد می‌کند.

@@ -41,7 +41,7 @@ Une signature à qui il reste moins d'un jour compte déjà comme rompue, donc v
 
 ## Avant de commencer
 
-- **Un rôle qui peut créer des moniteurs** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+- **Un rôle qui peut créer des moniteurs** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 - **Une zone signée.** La zone doit être signée, et son enregistrement DS publié chez le parent par votre registraire.
 - **Du DNS sortant depuis la sonde** vers les résolveurs que vous indiquez et, pour la vérification de cohérence des serveurs de noms, vers les serveurs de noms faisant autorité de la zone. Les sondes par défaut de votre projet sont choisies pour chaque nouveau moniteur.
 

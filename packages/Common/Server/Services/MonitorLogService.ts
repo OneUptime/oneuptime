@@ -20,7 +20,7 @@ export class Service extends AnalyticsDatabaseService<MonitorLog> {
       return null;
     }
 
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       monitorLog.createdAt,
       await MonitorLogUtil.getRetentionDays(),
     );

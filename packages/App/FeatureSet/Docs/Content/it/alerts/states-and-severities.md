@@ -85,7 +85,7 @@ Portate un avviso in uno stato vostro dal menu **⋯** nell'intestazione dell'av
 
 ## L'ordine è obbligatorio
 
-Ogni cambio di stato di un avviso viene confrontato con l'elenco, chiunque lo faccia: la dashboard, Slack, Microsoft Teams, l'API, Terraform, un workflow o OneUptime stesso.
+Ogni cambio di stato di un avviso viene confrontato con l'elenco, chiunque lo faccia: la dashboard, Slack, Microsoft Teams, l'API, Terraform, un flusso di lavoro o OneUptime stesso.
 
 - **I passi indietro vengono rifiutati**, con un messaggio che nomina entrambi gli stati: «Alert cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of alert states.»
 - **Passare allo stato in cui si trova già viene rifiutato**: «Alert state cannot be same as previous state.»

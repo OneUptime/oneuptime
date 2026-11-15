@@ -1,6 +1,6 @@
 # Runbooks – Oversigt
 
-Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og automatiserede trin, som du kører på en hændelse, en advarsel eller en vedligeholdelseshændelse. Det gør tråden "hvad gør vi nu?" til en tjekliste, som alle med vagt kan følge klokken 3 om natten, med scripts, API-kald og godkendelser allerede skrevet. Runbooks er til vagthavende ingeniører, der reagerer på hændelser, og til platformteams, der automatiserer den respons. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#arbejdsgang-runbook-playbook-eller-ai-regel) for at vælge mellem et runbook, et workflow, en playbook og en AI-regel.
+Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og automatiserede trin, som du kører på en hændelse, en advarsel eller en vedligeholdelseshændelse. Det gør tråden "hvad gør vi nu?" til en tjekliste, som alle med vagt kan følge klokken 3 om natten, med scripts, API-kald og godkendelser allerede skrevet. Runbooks er til vagthavende ingeniører, der reagerer på hændelser, og til platformteams, der automatiserer den respons. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#arbejdsgang-runbook-playbook-eller-ai-regel) for at vælge mellem et runbook, en arbejdsgang, en playbook og en AI-regel.
 
 :::cards
 - [Skriv et runbook](/docs/runbooks/authoring): Opret et runbook, og skriv dets trin.

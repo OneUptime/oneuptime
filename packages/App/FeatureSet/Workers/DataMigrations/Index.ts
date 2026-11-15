@@ -134,6 +134,7 @@ import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChe
 import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
+import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1159,6 +1160,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * and before the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new ScrubProductAnalyticsAddresses(),
+  /*
+   * Session Replay's headers and chunks keep a JSON Web Token, an address
+   * escaped twice or a token in standard base64 recorded before #8385 and
+   * #8489 (#8490): those segments are redacted in a session's entry and exit
+   * URLs and routes and a chunk's url and routes, the rest of each address
+   * as written; the product analytics scrub is queued again for the base64
+   * rule. ClickHouse mutations queued in the background, on the local tables
+   * ON CLUSTER; idempotent; after ScrubProductAnalyticsAddresses and before
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ScrubSessionReplayAddresses(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

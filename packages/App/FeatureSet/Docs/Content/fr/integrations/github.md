@@ -1,11 +1,11 @@
 # GitHub
 
-OneUptime fonctionne avec [GitHub](https://github.com) de deux façons. Connectez vos dépôts via l'application GitHub de OneUptime, et l'IA de OneUptime ouvre des pull requests qui corrigent ce qu'elle trouve, et répond quand vous la mentionnez dans une issue ou une pull request. Ou construisez un workflow qui ouvre une issue GitHub pour chaque incident, afin que le travail qui en découle soit suivi dans le dépôt propriétaire du service.
+OneUptime fonctionne avec [GitHub](https://github.com) de deux façons. Connectez vos dépôts via l'application GitHub de OneUptime, et l'IA de OneUptime ouvre des pull requests qui corrigent ce qu'elle trouve, et répond quand vous la mentionnez dans une issue ou une pull request. Ou construisez un flux de travail qui ouvre une issue GitHub pour chaque incident, afin que le travail qui en découle soit suivi dans le dépôt propriétaire du service.
 
 :::cards
-- [Choisir comment connecter](#choisir-comment-connecter): L'application GitHub ou un workflow, et ce que fait chacun.
+- [Choisir comment connecter](#choisir-comment-connecter): L'application GitHub ou un flux de travail, et ce que fait chacun.
 - [Connecter vos dépôts](#connecter-vos-dépôts): L'application GitHub, pour les pull requests de correction.
-- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-github-pour-chaque-incident): Un workflow, deux blocs.
+- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-github-pour-chaque-incident): Un flux de travail, deux blocs.
 - [Dépannage](#dépannage): Quand GitHub refuse une requête.
 :::
 
@@ -15,18 +15,18 @@ OneUptime fonctionne avec [GitHub](https://github.com) de deux façons. Connecte
 flowchart TB
     app["L'application GitHub"] --> repos["Vos dépôts,<br/>importés"]
     repos --> pr["Pull requests de<br/>correction de<br/>l'IA de OneUptime"]
-    declared["Incident déclaré"] --> workflow["Workflow :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> workflow["Flux de travail :<br/>On Create Incident"]
     workflow -->|"POST issues"| issue["Issue GitHub"]
 ```
 
-Les deux sont indépendantes, et vous pouvez utiliser l'une, l'autre ou les deux. L'application GitHub fonctionne dans les dépôts où vous l'installez. Le workflow n'a besoin que d'un jeton, et appelle l'[API REST](https://docs.github.com/en/rest/issues/issues#create-an-issue) de GitHub comme n'importe quelle autre API.
+Les deux sont indépendantes, et vous pouvez utiliser l'une, l'autre ou les deux. L'application GitHub fonctionne dans les dépôts où vous l'installez. Le flux de travail n'a besoin que d'un jeton, et appelle l'[API REST](https://docs.github.com/en/rest/issues/issues#create-an-issue) de GitHub comme n'importe quelle autre API.
 
 ## Choisir comment connecter
 
 | Façon | Ce qu'elle fait | Ce dont elle a besoin |
 | --- | --- | --- |
 | L'application GitHub | Importe vos dépôts. L'IA de OneUptime y ouvre des pull requests qui corrigent des exceptions, des traces lentes et les causes que trouvent ses investigations, et répond aux mentions dans les issues et les pull requests. | Une organisation ou un compte où installer l'application. Sur OneUptime Cloud, l'offre **Growth**. |
-| Un workflow | Ouvre une issue GitHub pour chaque incident, dans le dépôt que vous choisissez. | Un jeton GitHub qui peut créer des issues, et un workflow de deux blocs. |
+| Un flux de travail | Ouvre une issue GitHub pour chaque incident, dans le dépôt que vous choisissez. | Un jeton GitHub qui peut créer des issues, et un flux de travail de deux blocs. |
 
 ## Connecter vos dépôts
 
@@ -38,10 +38,10 @@ Une instance auto-hébergée a d'abord besoin de sa propre application GitHub : 
 
 ## Avant de commencer
 
-Le reste de cette page construit le workflow. Il faut :
+Le reste de cette page construit le flux de travail. Il faut :
 
 - Un jeton GitHub qui peut créer des issues dans le dépôt : un jeton d'accès personnel à granularité fine pour ce dépôt, avec la permission **Issues** réglée sur **Read and write**, ou un jeton classique avec le scope `repo`. Créez-en un dans les [paramètres des jetons](https://github.com/settings/tokens) de GitHub.
-- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
+- Dans OneUptime, le droit de créer des flux de travail et des variables globales. Sur OneUptime Cloud, les flux de travail nécessitent l'offre **Growth** ou supérieure.
 
 ## Enregistrer le jeton
 
@@ -56,7 +56,7 @@ Une variable secrète est remplacée par `[REDACTED]` dans les journaux d'exécu
 ## Ouvrir une issue GitHub pour chaque incident
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to GitHub` et cliquez sur **Créer un flux de travail**.
 
@@ -124,7 +124,7 @@ Le propriétaire ou le dépôt dans l'**URL** est faux, ou le jeton ne peut pas 
 
 :::cards
 - [GitHub App](/docs/ai/github-app): Demander à l'IA de OneUptime une modification, une révision ou une revue depuis GitHub même.
-- [GitLab](/docs/integrations/gitlab): Le même workflow, pour les issues GitLab.
-- [Composants de workflow](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
+- [GitLab](/docs/integrations/gitlab): Le même flux de travail, pour les issues GitLab.
+- [Composants de flux de travail](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
 - [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
 :::

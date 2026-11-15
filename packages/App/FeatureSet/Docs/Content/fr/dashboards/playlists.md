@@ -66,10 +66,10 @@ Les playlists ont leurs propres autorisations, détenues par l'intermédiaire d'
 
 | Pour | Il faut |
 | --- | --- |
-| Voir et lire les playlists | `ReadDashboardPlaylist`, ou un rôle de projet : Project Owner, Project Admin, Project Member, Viewer, ou un rôle Settings |
-| Créer des playlists | `CreateDashboardPlaylist`, Project Owner ou Project Admin |
-| Modifier une playlist : son nom, ses tableaux de bord et sa durée | `EditDashboardPlaylist`, Project Owner ou Project Admin |
-| Supprimer une playlist | `DeleteDashboardPlaylist`, Project Owner ou Project Admin |
+| Voir et lire les playlists | `ReadDashboardPlaylist`, ou un rôle de projet : Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, ou un rôle Settings |
+| Créer des playlists | `CreateDashboardPlaylist`, Propriétaire du projet ou Administrateur du projet |
+| Modifier une playlist : son nom, ses tableaux de bord et sa durée | `EditDashboardPlaylist`, Propriétaire du projet ou Administrateur du projet |
+| Supprimer une playlist | `DeleteDashboardPlaylist`, Propriétaire du projet ou Administrateur du projet |
 
 Une playlist ne montre jamais un tableau de bord à quelqu'un qui n'a pas le droit de le lire. Le lecteur ne lit que les tableaux de bord que la personne connectée à l'écran peut lire et qui ne sont pas archivés, et saute les autres : un tableau de bord supprimé, un tableau de bord archivé, ou un tableau de bord que ses autorisations lui interdisent. La page de la playlist indique pourquoi elle saute chacun d'eux. Enregistrer une playlist conserve les tableaux de bord qu'elle contient et que l'éditeur ne peut pas voir, si bien que rien de ce qu'une autre personne y a mis n'est perdu.
 
@@ -81,7 +81,7 @@ Une playlist ne montre jamais un tableau de bord à quelqu'un qui n'a pas le dro
 | Une lecture qui a échoué | **Impossible de charger cette playlist**, et il réessaie chaque minute, ou sur **Réessayer**. |
 
 > [!NOTE]
-> Le lecteur est destiné à une personne connectée à OneUptime. Pour faire tourner une playlist sur un écran, connectez-vous sur cet écran avec un compte qui peut lire la playlist et ses tableaux de bord, par exemple un membre d'équipe ayant le rôle Viewer.
+> Le lecteur est destiné à une personne connectée à OneUptime. Pour faire tourner une playlist sur un écran, connectez-vous sur cet écran avec un compte qui peut lire la playlist et ses tableaux de bord, par exemple un membre d'équipe ayant le rôle Lecteur.
 
 ## Prochaines étapes
 

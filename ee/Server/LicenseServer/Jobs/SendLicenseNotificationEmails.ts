@@ -249,7 +249,7 @@ RunCron(
           continue;
         }
 
-        const daysUntilExpiry: number = OneUptimeDate.getDaysBetweenTwoDates(
+        const daysUntilExpiry: number = OneUptimeDate.getWholeDaysOfTimeBetween(
           now,
           license.expiresAt,
         );

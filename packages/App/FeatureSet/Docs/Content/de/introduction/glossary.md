@@ -54,7 +54,7 @@ Siehe [Kriterien & Status](/docs/monitor/criteria-and-statuses).
 
 Ein Rechner, der die Prüfungen von Monitoren nach Zeitplan ausführt: Er ruft eine Seite ab, ruft eine API auf oder pingt einen Host an. OneUptime Cloud betreibt Sonden in mehreren Regionen, und eine benutzerdefinierte Sonde, die Sie in Ihrem eigenen Netzwerk betreiben, prüft, was nur dieses Netzwerk erreicht.
 
-Auch genannt: **Benutzerdefinierte Sonden**. Siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+Auch genannt: **Benutzerdefinierte Sonden**. Siehe [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 
 ### Vorfall
 

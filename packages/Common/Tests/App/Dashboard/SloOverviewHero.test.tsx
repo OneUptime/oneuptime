@@ -694,7 +694,7 @@ describe("SloOverviewHero - a request SLO", () => {
     ).toEqual(["Target", "Compliance window", "Services", "Owners"]);
     expect(getFactValues()).toEqual([
       "99.9%",
-      "Within 300 ms",
+      "Within 300\u00A0ms",
       "Rolling 30 days",
       "2 services",
       "No owners",

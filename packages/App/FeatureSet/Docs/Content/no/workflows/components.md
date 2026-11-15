@@ -487,6 +487,12 @@ Hendelsen registrerer malen den ble erklært ut fra, i `createdIncidentTemplateI
 
 En oppføring som ikke treffer noe, stopper ikke trinnet: posten opprettes likevel, og kjøringsloggen sier hva hver oppføring knyttet til og hvilke som ikke traff noe. Arkiverte ressurser knyttes ikke til. Monitorer slås ikke opp: navngi dem i **JSON Object** (`monitors` på en hendelse, `monitorId` på et varsel), fordi det å knytte en monitor til en hendelse setter overvåkingen dens på pause.
 
+### Hvem som eier den fra starten
+
+**Create One Incident** og **Create One Alert** har innstillingene **Eierbrukere** og **Eierteam**: personene og teamene som eier posten fra den opprettes. Velg dem, eller ta dem fra et tidligere trinn: en brukers id eller e-postadresse, et teams id, flere skilt med komma, eller en liste. Postens eiere får høre at den er opprettet omtrent ett minutt etter opprettelsen, alle eierne den har da: de som velges her, er alltid blant dem, mens eiere som et senere trinn legger til, går glipp av det når det trinnet kjører mer enn ett minutt senere, og prosjektets eiere får beskjed i stedet.
+
+Trinnet spør, som Prosjektadministrator for prosjektet til arbeidsflyten, om det kan legge dem til før posten lagres: eiere det ikke kan legge til, gjør at opprettelsen avvises. Den som ikke er medlem av prosjektet, eller et team som ikke er ett av prosjektets, utelates, og kjøringsloggen sier det: posten opprettes likevel. Eiere som legges til på denne måten, får ikke beskjed om at de er lagt til: beskjeden om at posten er opprettet, er den de får.
+
 ## Arbeide med poster
 
 Hvert felt på en datakomponent bruker postens egne **kolonne**navn — de samme navnene som API-et, ikke etikettene i dashbordets skjema. ID-kolonnen er `_id`. Stavemåten `id` godtas som alias overalt der du kan skrive et kolonnenavn, men `_id` er det en post returnerer, så det er det du skal lese på vei ut:

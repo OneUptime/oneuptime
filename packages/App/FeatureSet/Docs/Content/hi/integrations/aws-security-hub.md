@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - एक AWS खाता जिसमें उस क्षेत्र में Security Hub सक्षम हो जिसे आप जोड़ते हैं। Security Hub क्षेत्रीय है: एक कनेक्शन वे फ़ाइंडिंग पढ़ता है जो एक खाते के पास एक क्षेत्र में हैं।
 - एक ही कनेक्शन से हर खाते और हर क्षेत्र की फ़ाइंडिंग पढ़ने के लिए, Security Hub का डेलिगेटेड एडमिनिस्ट्रेटर खाता, उसके होम क्षेत्र में, [क्रॉस-रीजन एग्रीगेशन](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) चालू करके। **Security Hub → Settings → Regions** होम क्षेत्र दिखाता है।
 - OneUptime ऐप और वर्कर से `securityhub.<region>.amazonaws.com`, या चीन में `securityhub.<region>.amazonaws.com.cn`, तक आउटबाउंड HTTPS, और उनके होस्ट पर सही घड़ी: AWS 5 मिनट से ज़्यादा अंतर पर साइन किया गया अनुरोध अस्वीकार करता है।

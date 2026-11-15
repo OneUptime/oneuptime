@@ -38,7 +38,7 @@ flowchart TB
 | Datalager | Hvad det gemmer | Hvad der bestemmer størrelsen |
 | --- | --- | --- |
 | **ClickHouse** | Al telemetri – logs, metrikker, traces, exceptions, profiler | Telemetri: **indtagelseshastighed × opbevaring**. Det er ~95 % af dit lager og den største omkostning. |
-| **PostgreSQL** | Konfiguration og tilstand – monitorer, hændelser, alarmer, brugere, teams, projekter, workflows, statussider, dashboards | **Antal objekter og historik**, ikke telemetrimængden. Vokser langsomt. |
+| **PostgreSQL** | Konfiguration og tilstand – monitorer, hændelser, alarmer, brugere, teams, projekter, arbejdsgange, statussider, dashboards | **Antal objekter og historik**, ikke telemetrimængden. Vokser langsomt. |
 | **Valkey** | Cache, arbejdskøer og sessioner | **Kødybde og aktive sessioner**. Hukommelsesbundet og beskedent. Ikke en autoritativ datakilde. |
 
 OneUptime har aldrig brug for objektlager (S3, MinIO) for at køre, og det flytter ikke ældre telemetri til objektlager. Du skal kun bruge objektlager, hvis du vælger backups til objektlager: Barman Cloud-pluginet til CloudNativePG eller [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) til ClickHouse. Chartets egen CloudNativePG-backup (`postgresOperator.cnpg.backup`) tager volumen-snapshots og kræver intet objektlager. CloudNativePG sletter aldrig gamle snapshots: Ryd selv op i dem, ellers bliver de ved med at vokse.

@@ -209,7 +209,7 @@ The two AI actions need AI turned on for the project and a repository OneUptime 
 
 **Incidents → Action Items** lists every postmortem's action items across the project, soonest due first, with each one's incident, owner, due date and status. Filter it by **Status**, **Owner** and **Due Date**, and **View** on a row opens the incident's **Postmortem** page.
 
-Reading action items takes what reading the incident takes. Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, project admins and project owners.
+Reading action items takes what reading the incident takes. Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, Project Admins and Project Owners.
 
 ## Postmortems of episodes
 

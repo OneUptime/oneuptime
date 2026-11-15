@@ -13,7 +13,7 @@ flowchart TB
 ## O que você precisa
 
 - Pelo menos um monitor: uma página de status mostra monitores. Se você ainda não tem nenhum, a configuração guiada oferece antes **Configurar um monitor**.
-- A função de proprietário ou de administrador do projeto: criar a página exige permissão para criar páginas de status, e adicionar seu domínio, permissão para adicionar e verificar os domínios do projeto.
+- A função Proprietário do projeto ou Administrador do projeto: criar a página exige permissão para criar páginas de status, e adicionar seu domínio, permissão para adicionar e verificar os domínios do projeto.
 - Um domínio que você controla, e acesso aos registros DNS dele no seu provedor de DNS.
 
 :::tabs

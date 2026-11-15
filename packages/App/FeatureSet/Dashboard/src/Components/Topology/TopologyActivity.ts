@@ -7,6 +7,7 @@ import {
   RelativeDateUnit,
 } from "Common/Types/DateLanguage";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * "Is this resource part of the picture right now?"
@@ -121,7 +122,11 @@ export function isLastSeenKnown(
   return getLastSeenAge(lastSeenAt, now) !== null;
 }
 
-/** "just now", "12 min ago", "5 h ago", "3 days ago". */
+/*
+ * "just now", "12 min ago", "5 h ago", "3 days ago": English, each figure
+ * held to its unit (#8303). The graph's status line draws it as it is
+ * (#8418); formatLastSeenInLanguage words it in the reader's language.
+ */
 export function formatLastSeen(
   lastSeenAt: Date | undefined,
   now: Date = new Date(),
@@ -134,10 +139,10 @@ export function formatLastSeen(
     return "just now";
   }
   if (age.unit === "minute") {
-    return `${age.count} min ago`;
+    return `${age.count}${NO_BREAK_SPACE}min ago`;
   }
   if (age.unit === "hour") {
-    return `${age.count} h ago`;
+    return `${age.count}${NO_BREAK_SPACE}h ago`;
   }
   return `${age.count} days ago`;
 }

@@ -41,7 +41,7 @@ Uma assinatura com menos de um dia restante já conta como quebrada, então voc�
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma zona assinada.** A zona precisa estar assinada, e o seu registro DS publicado na zona pai através do seu registrador.
 - **DNS de saída a partir da sonda** para os resolvedores que você informar e, para a verificação de consistência dos servidores de nomes, para os servidores de nomes autoritativos da zona. As sondas padrão do seu projeto são escolhidas para cada monitor novo.
 

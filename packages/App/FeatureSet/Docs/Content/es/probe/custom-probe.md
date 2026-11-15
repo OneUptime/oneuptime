@@ -30,7 +30,7 @@ sequenceDiagram
 ## Antes de empezar
 
 - **El plan Growth, en OneUptime Cloud.** Crear una sonda lo requiere. Una instalación autoalojada no tiene límites de plan.
-- **Permiso para crear sondas.** Los propietarios, administradores y miembros del proyecto lo tienen, y también cualquiera cuyo rol le permita crear sondas.
+- **Permiso para crear sondas.** Los Propietarios del proyecto, Administradores del proyecto y Miembros del proyecto lo tienen, y también cualquiera cuyo rol le permita crear sondas.
 - **Una máquina en la red que quiere supervisar.** Necesita Docker, Docker Compose o Kubernetes, una ruta hasta los servicios que comprobará la sonda y HTTPS saliente hacia `ONEUPTIME_URL`.
 
 ## Instalar una sonda
@@ -42,9 +42,9 @@ Abra **Monitores → Ajustes → Sondas** y haga clic en **Crear Sonda**. Dele u
 
 ### Copiar su ID y su clave
 
-La sonda necesita su ID y su clave para conectarse. Para copiarlos, abra el menú de la sonda en la tabla **Sondas personalizadas** y elija **Mostrar ID y clave**. Cualquiera que vea la tabla puede copiar el ID de una sonda; su clave solo se muestra a los propietarios y administradores del proyecto, que ven **Mostrar ID y clave** donde los demás ven **Mostrar ID**.
+La sonda necesita su ID y su clave para conectarse. Para copiarlos, abra el menú de la sonda en la tabla **Sondas personalizadas** y elija **Mostrar ID y clave**. Cualquiera que vea la tabla puede copiar el ID de una sonda; su clave solo se muestra a los Propietarios del proyecto y Administradores del proyecto, que ven **Mostrar ID y clave** donde los demás ven **Mostrar ID**.
 
-Los propietarios y administradores del proyecto también pueden hacer clic en la sonda: la tarjeta **Configura tu sonda personalizada** de su página muestra el comando de Docker con su ID y su clave ya rellenados.
+Los Propietarios del proyecto y Administradores del proyecto también pueden hacer clic en la sonda: la tarjeta **Configura tu sonda personalizada** de su página muestra el comando de Docker con su ID y su clave ya rellenados.
 
 ### Ejecutar la sonda
 

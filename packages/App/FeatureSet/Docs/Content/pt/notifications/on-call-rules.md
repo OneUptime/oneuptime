@@ -130,12 +130,12 @@ A API pode salvar uma regra de exclusão, com `isOptOut` definido e sem método:
 :::
 
 :::details Desativar a alternativa para um projeto inteiro
-Um proprietário do projeto, ou alguém com **Manage Billing**, pode definir `disableOnCallNotificationFallback` do projeto pela API. Um acionamento que não encontra regra então não é entregue, e o registro dele diz que o usuário deve adicionar regras em **Configurações do usuário → Como me contatar**.
+Um Proprietário do projeto, ou alguém com **Manage Billing**, pode definir `disableOnCallNotificationFallback` do projeto pela API. Um acionamento que não encontra regra então não é entregue, e o registro dele diz que o usuário deve adicionar regras em **Configurações do usuário → Como me contatar**.
 :::
 
 ## As regras de um colega
 
-Proprietários e administradores do projeto podem ver e alterar a mesma página para qualquer pessoa do projeto: em **Usuários**, eles abrem a pessoa e depois **Como me contatar** na seção **Plantão**. **Prontidão**, ao lado, mostra se cada gravidade chega até ela. Quando outra pessoa adiciona, altera ou exclui as suas regras, você recebe um e-mail sobre isso, e cada mudança fica no log de auditoria do projeto.
+Proprietários do projeto e Administradores do projeto podem ver e alterar a mesma página para qualquer pessoa do projeto: em **Usuários**, eles abrem a pessoa e depois **Como me contatar** na seção **Plantão**. **Prontidão**, ao lado, mostra se cada gravidade chega até ela. Quando outra pessoa adiciona, altera ou exclui as suas regras, você recebe um e-mail sobre isso, e cada mudança fica no log de auditoria do projeto.
 
 ## Solução de problemas
 

@@ -3340,7 +3340,7 @@ export default class SessionReplayReadService {
     const endTime: Date = data.endTime || OneUptimeDate.getCurrentDate();
     const startTime: Date =
       data.startTime ||
-      OneUptimeDate.addRemoveDays(
+      OneUptimeDate.addRemoveDurationInDays(
         endTime,
         -DEFAULT_SESSION_REPLAY_FOR_EXCEPTION_WINDOW_DAYS,
       );

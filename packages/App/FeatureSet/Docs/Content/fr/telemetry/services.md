@@ -43,7 +43,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Une télémétrie qui arrive** avec un `service.name`. Voir [OpenTelemetry](/docs/telemetry/open-telemetry) : `OTEL_SERVICE_NAME` le définit.
-- **Un rôle qui peut lire les services.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member ou Settings Viewer, ou un rôle personnalisé avec la permission Read Service. Créer, modifier et supprimer des services demande Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member, ou les permissions de service correspondantes.
+- **Un rôle qui peut lire les services.** Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, Administrateur des paramètres, Membre des paramètres ou Lecteur des paramètres, ou un rôle personnalisé avec la permission Read Service. Créer, modifier et supprimer des services demande Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des paramètres ou Membre des paramètres, ou les permissions de service correspondantes.
 
 ## Trouver un service
 

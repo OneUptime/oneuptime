@@ -11,7 +11,7 @@ Betreiben Sie mit Docker Compose eine vollständige, kostenlose OneUptime-Instan
 
 ## So funktioniert es
 
-Docker Compose betreibt jeden Teil von OneUptime als Container auf Ihrem Server. Der gesamte Verkehr kommt über den Container `ingress` herein, der ihn an die `app` weiterleitet. Die App speichert ihre Daten in PostgreSQL, ClickHouse und Valkey. Eine mitgelieferte Probe führt die Prüfungen Ihrer Monitore aus und meldet die Ergebnisse über den Ingress zurück.
+Docker Compose betreibt jeden Teil von OneUptime als Container auf Ihrem Server. Der gesamte Verkehr kommt über den Container `ingress` herein, der ihn an die `app` weiterleitet. Die App speichert ihre Daten in PostgreSQL, ClickHouse und Valkey. Eine mitgelieferte Sonde führt die Prüfungen Ihrer Monitore aus und meldet die Ergebnisse über den Ingress zurück.
 
 ```mermaid title="Die Bereitstellung mit Docker Compose"
 flowchart TB
@@ -48,7 +48,7 @@ flowchart TB
 | --- | --- | --- |
 | `ingress` | `oneuptime/nginx` | Nimmt den gesamten Verkehr auf den Ports 80 und 443 an und leitet ihn an die App weiter. Liefert HTTPS aus, wenn OneUptime das Zertifikat verwaltet. |
 | `app` | `oneuptime/app` | Das Dashboard, die API, Statusseiten, die Telemetrieaufnahme und die Hintergrund-Worker. |
-| `probe-1` | `oneuptime/probe` | Eine globale Probe, die die Prüfungen Ihrer Monitore ausführt. Sie nutzt das Netzwerk des Hosts. |
+| `probe-1` | `oneuptime/probe` | Eine globale Sonde, die die Prüfungen Ihrer Monitore ausführt. Sie nutzt das Netzwerk des Hosts. |
 | `global-runner` | `oneuptime/runner` | Der mitgelieferte globale Runner, der die JavaScript-Schritte von Runbooks und die Codekorrekturen von OneUptime AI für jedes Projekt ausführt. |
 | `postgres` | `postgres:15` | Konfiguration und Zustand: Monitore, Vorfälle, Benutzer. Gespeichert im Volume `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetrie: Logs, Metriken, Traces und Exceptions. Gespeichert im Volume `clickhouse`. |
@@ -85,7 +85,7 @@ Außerdem brauchen Sie:
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Das Dashboard, die API, die Telemetrieaufnahme und die Validierung durch Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS für Ihre Instanz, wenn OneUptime das Zertifikat verwaltet, und für Statusseiten und Dashboards auf eigenen Domains. |
 | 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Lässt `npm run backup` und `restore.sh` PostgreSQL vom Server selbst aus erreichen. Er ist nur auf `127.0.0.1` veröffentlicht. |
-| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Der eigene Server der Probe. Nichts außerhalb des Servers braucht ihn. |
+| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Der eigene Server der Sonde. Nichts außerhalb des Servers braucht ihn. |
 
 Es gibt auch eine [Video-Anleitung](https://youtu.be/j1SWmMW2oL4) zur Installation.
 
@@ -157,8 +157,8 @@ Richten Sie den Server dann unter `/admin/setup` fertig ein, wo E-Mail, SMS und 
 | `ONEUPTIME_SECRET` | Aufrufe zwischen den eigenen Diensten von OneUptime. |
 | `ENCRYPTION_SECRET` | Die Geheimnisse, die OneUptime speichert, etwa Integrations-Tokens und SMTP-Passwörter, und die Anmelde-Tokens, die es ausstellt. |
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | Die drei Datenspeicher. |
-| `REGISTER_PROBE_KEY` | Das Registrieren von Probes bei Ihrer Instanz. |
-| `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Die globalen Probes, die Docker Compose betreiben kann (`probe-1` läuft standardmäßig). |
+| `REGISTER_PROBE_KEY` | Das Registrieren von Sonden bei Ihrer Instanz. |
+| `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Die globalen Sonden, die Docker Compose betreiben kann (`probe-1` läuft standardmäßig). |
 | `GLOBAL_RUNNER_KEY` | Den mitgelieferten globalen Runner, der die JavaScript-Schritte und KI-Code-Korrekturen aller Projekte ausführt. |
 
 > [!IMPORTANT]
@@ -234,7 +234,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-Die Probe nutzt das Netzwerk des Hosts und erreicht OneUptime über `http://localhost`. `npm start` verlegt sie auf den neuen Port des Ingress, `http://localhost:8080`, und sagt das.
+Die Sonde nutzt das Netzwerk des Hosts und erreicht OneUptime über `http://localhost`. `npm start` verlegt sie auf den neuen Port des Ingress, `http://localhost:8080`, und sagt das.
 
 #### OneUptime mitteilen, dass es hinter einem Proxy steht
 
@@ -518,7 +518,7 @@ Wenn etwas nicht funktioniert, führen Sie im Ordner `oneuptime` den Doctor aus:
 npm run doctor
 ```
 
-Er listet auf, was nicht stimmt, das Wichtigste zuerst, jede Zeile mit der genauen Lösung, und endet mit **Everything looks right.** oder der Zahl der Dinge, die zu beheben sind. Er prüft jeden Container und zeigt für jeden, der nicht läuft, die letzten Zeilen seines Logs, außerdem `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat, wenn `PROVISION_SSL` an ist, und den freien Speicherplatz. Er fragt auch OneUptime, was es über sich selbst sieht: PostgreSQL, ClickHouse und Valkey, die Migrationen, die Warteschlangen, die Version und die Einrichtungsschritte des Servers, etwa E-Mail und Probes. `npm start` endet mit denselben Prüfungen und nennt nur, was Aufmerksamkeit braucht.
+Er listet auf, was nicht stimmt, das Wichtigste zuerst, jede Zeile mit der genauen Lösung, und endet mit **Everything looks right.** oder der Zahl der Dinge, die zu beheben sind. Er prüft jeden Container und zeigt für jeden, der nicht läuft, die letzten Zeilen seines Logs, außerdem `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat, wenn `PROVISION_SSL` an ist, und den freien Speicherplatz. Er fragt auch OneUptime, was es über sich selbst sieht: PostgreSQL, ClickHouse und Valkey, die Migrationen, die Warteschlangen, die Version und die Einrichtungsschritte des Servers, etwa E-Mail und Sonden. `npm start` endet mit denselben Prüfungen und nennt nur, was Aufmerksamkeit braucht.
 
 Um zusätzlich die letzten Fehler jedes Dienstes zu sehen, jeweils mit dem Namen des Dienstes:
 
@@ -592,8 +592,8 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
-:::details Die mitgelieferte Probe zeigt Getrennt, nachdem Sie den Port des Ingress verlegt haben
-Das Admin Dashboard listet die Probe unter **Einstellungen > Überwachung > Globale Probes**. Sie erreicht OneUptime unter `GLOBAL_PROBE_1_ONEUPTIME_URL`, standardmäßig `http://localhost` (Port 80). `npm start` setzt diese URL auf den Port des Ingress, solange sie auf `localhost` zeigt. Haben Sie sie auf eine andere Adresse gesetzt oder OneUptime mit der Docker CLI gestartet, setzen Sie sie auf den neuen Port des Ingress, zum Beispiel `http://localhost:8080`, und starten Sie OneUptime neu.
+:::details Die mitgelieferte Sonde zeigt Getrennt, nachdem Sie den Port des Ingress verlegt haben
+Das Admin Dashboard listet die Sonde unter **Einstellungen > Überwachung > Globale Sonden**. Sie erreicht OneUptime unter `GLOBAL_PROBE_1_ONEUPTIME_URL`, standardmäßig `http://localhost` (Port 80). `npm start` setzt diese URL auf den Port des Ingress, solange sie auf `localhost` zeigt. Haben Sie sie auf eine andere Adresse gesetzt oder OneUptime mit der Docker CLI gestartet, setzen Sie sie auf den neuen Port des Ingress, zum Beispiel `http://localhost:8080`, und starten Sie OneUptime neu.
 :::
 
 ## Nächste Schritte

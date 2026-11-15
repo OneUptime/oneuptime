@@ -12,7 +12,7 @@ Diese Seite erklärt, wie Sie das bewusst und eng begrenzt erlauben. Drei Schalt
 | --- | --- | --- |
 | Workflows, Projekt-Webhooks, Benutzer-Webhooks der Bereitschaft | Die Umgebung des **API-Servers** | Private Adressen verweigert |
 | Datenquellen, LLM-Anbieter, SMTP-Server, OIDC-Discovery und andere Verbindungen | Die Umgebung des **API-Servers** | Private Adressen erlaubt |
-| **Monitore** vom Typ API, Website, External Status Page und Custom JavaScript Code | Die eigene Umgebung der **Probe** | Private Adressen verweigert |
+| **Monitore** vom Typ API, Website, External Status Page und Custom JavaScript Code | Die eigene Umgebung der **Sonde** | Private Adressen verweigert |
 
 ```mermaid title="Drei Schalter, jeder für seine eigene Art von Verbindung"
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
         Webhooks["Workflows<br/>und Webhooks"]
         Outbound["Datenquellen,<br/>LLM-Anbieter,<br/>SMTP und andere<br/>Verbindungen"]
     end
-    subgraph Probe["Jede Probe"]
+    subgraph Probe["Jede Sonde"]
         Monitors["Monitore vom Typ<br/>API, Website,<br/>External<br/>Status Page und<br/>Custom<br/>JavaScript Code"]
     end
     Private["Ihr privates<br/>Netzwerk"]
@@ -35,7 +35,7 @@ Netzwerknahe Monitortypen wie Ping, Port, SSL-Zertifikat, DNS, DNSSEC, SNMP / Ne
 :::cards
 - [Webhooks und Workflows](#webhooks-und-workflows): Einem Webhook erlauben, in Ihr Netzwerk zu senden.
 - [Andere ausgehende Verbindungen](#andere-ausgehende-verbindungen): Datenquellen, LLM-Anbieter und Mailserver.
-- [Probes und Monitore](#probes-und-monitore): Eine Probe private Sites prüfen lassen.
+- [Sonden und Monitore](#sonden-und-monitore): Eine Sonde private Sites prüfen lassen.
 - [Prüfen, ob es funktioniert](#prüfen-ob-es-funktioniert): Lesen, welchen Schalter eine Ablehnung nennt.
 :::
 
@@ -136,27 +136,27 @@ outboundConnections:
 
 Diese Einstellung gilt nicht für einen Globalen LLM-Anbieter, den ein Administrator statt eines Projekts konfiguriert (mit den Variablen `GLOBAL_LLM_PROVIDER_*`, dem Wert `vllm.globalProvider` des Helm-Charts oder im Admin-Dashboard unter **Einstellungen** > **Globale LLM-Anbieter**): Ein solcher Anbieter kann weiterhin private Adressen erreichen, wobei Loopback und Link-Local auch für ihn verweigert bleiben.
 
-Nur der genaue Wert `true` schaltet sie ein. Auf einer Instanz mit `BILLING_ENABLED=true` ist sie immer an, egal was Sie setzen. Sie ändert nicht, welche Ziele die Webhook-Einstellungen oben oder die Probe-Einstellung unten erlauben; jedes Tor wird für sich konfiguriert. Sie ändert aber, wie Ablehnungen formuliert sind, auch für Webhooks und Workflow-Anfragen: Ist sie an, wird ein abgelehnter Hostname gemeldet, ohne zu sagen, wozu er aufgelöst wurde (siehe [Prüfen, ob es funktioniert](#prüfen-ob-es-funktioniert)).
+Nur der genaue Wert `true` schaltet sie ein. Auf einer Instanz mit `BILLING_ENABLED=true` ist sie immer an, egal was Sie setzen. Sie ändert nicht, welche Ziele die Webhook-Einstellungen oben oder die Sondeneinstellung unten erlauben; jedes Tor wird für sich konfiguriert. Sie ändert aber, wie Ablehnungen formuliert sind, auch für Webhooks und Workflow-Anfragen: Ist sie an, wird ein abgelehnter Hostname gemeldet, ohne zu sagen, wozu er aufgelöst wurde (siehe [Prüfen, ob es funktioniert](#prüfen-ob-es-funktioniert)).
 
 Unter Docker Compose enthält `config.env` eine Zeile `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (fügen Sie sie hinzu, wenn Ihre `config.env` älter ist). Ändern Sie diese Zeile auf `true`, statt eine zweite hinzuzufügen, und führen Sie dann `npm run start` aus, damit die Container mit dem neuen Wert neu erstellt werden; `docker compose restart` liest `config.env` nicht neu ein. Unter Kubernetes setzen Sie den Wert in Ihrer Values-Datei und aktualisieren das Release; das Chart gibt ihn an die App- und Worker-Pods weiter.
 
 Ist sie an, wird ein abgelehnter Hostname gemeldet, ohne zu sagen, wozu er aufgelöst wurde, zum Beispiel _"LLM provider host ollama.internal could not be reached."_ Ein Name, der gar nicht aufgelöst wird, erhält dieselbe Meldung, sodass Projektmitglieder mit diesen Feldern nicht herausfinden können, welche internen Namen es gibt. Eine als IP eingegebene Adresse wird weiterhin zusammen mit dem Grund genannt, zum Beispiel _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Mit `LOG_LEVEL=DEBUG` protokolliert die App die Adresse, zu der jeder abgelehnte Name aufgelöst wurde.
 
-## Probes und Monitore
+## Sonden und Monitore
 
-Vier Monitortypen sind betroffen: **API**, **Website**, **Externe Statusseite** und **Benutzerdefinierter JavaScript-Code**. Auf einer Standard-Probe können sie öffentliche HTTP(S)-Ziele erreichen, verweigern aber privaten Adressraum. Monitore vom Typ API, Website und External Status Page validieren DNS-Ergebnisse für jede Verbindung, legen sie fest und prüfen jede Weiterleitung erneut; Custom JavaScript Code wendet dieselbe Adressrichtlinie in seiner Sandbox-Brücke an.
+Vier Monitortypen sind betroffen: **API**, **Website**, **Externe Statusseite** und **Benutzerdefinierter JavaScript-Code**. Auf einer Standard-Sonde können sie öffentliche HTTP(S)-Ziele erreichen, verweigern aber privaten Adressraum. Monitore vom Typ API, Website und External Status Page validieren DNS-Ergebnisse für jede Verbindung, legen sie fest und prüfen jede Weiterleitung erneut; Custom JavaScript Code wendet dieselbe Adressrichtlinie in seiner Sandbox-Brücke an.
 
-Den Schalter liest der **Probe-Prozess aus seiner eigenen Umgebung**, nicht aus der des API-Servers, und jede Probe liest ihn: die mit Docker Compose mitgelieferten, die vom Helm-Chart bereitgestellten und jede [eigene Probe](/docs/probe/custom-probe), die Sie selbst betreiben. Wer eine Probe bereitstellt, kontrolliert ihre Umgebung und weiß, welches Netzwerk diese Probe sehen kann – eine eigene Probe ist meist eine andere Maschine, oft von einer anderen Person betrieben, und sie liest nie die Konfiguration des API-Servers.
+Den Schalter liest der **Sondenprozess aus seiner eigenen Umgebung**, nicht aus der des API-Servers, und jede Sonde liest ihn: die mit Docker Compose mitgelieferten, die vom Helm-Chart bereitgestellten und jede [eigene Sonde](/docs/probe/custom-probe), die Sie selbst betreiben. Wer eine Sonde bereitstellt, kontrolliert ihre Umgebung und weiß, welches Netzwerk diese Sonde sehen kann – eine eigene Sonde ist meist eine andere Maschine, oft von einer anderen Person betrieben, und sie liest nie die Konfiguration des API-Servers.
 
 :::tabs
 @tab Docker Compose
-`config.env` enthält bereits eine Zeile `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false`: Ändern Sie diese Zeile auf `true`, statt eine zweite hinzuzufügen, denn wenn eine Variable zweimal vorkommt, gewinnt die spätere Zeile. Führen Sie dann `npm run start` aus, was die Container mit dem neuen Wert neu erstellt; `docker compose restart` liest `config.env` nicht neu ein. Jede mitgelieferte Probe liest diese eine Zeile, sie gilt also für `probe-1` und, wo Ihr Stack eine zweite Probe betreibt, für `probe-2`.
+`config.env` enthält bereits eine Zeile `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false`: Ändern Sie diese Zeile auf `true`, statt eine zweite hinzuzufügen, denn wenn eine Variable zweimal vorkommt, gewinnt die spätere Zeile. Führen Sie dann `npm run start` aus, was die Container mit dem neuen Wert neu erstellt; `docker compose restart` liest `config.env` nicht neu ein. Jede mitgelieferte Sonde liest diese eine Zeile, sie gilt also für `probe-1` und, wo Ihr Stack eine zweite Sonde betreibt, für `probe-2`.
 
 ```bash title="config.env"
 PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true
 ```
 @tab Kubernetes
-Setzen Sie den Wert pro Probe in Ihrer Values-Datei und aktualisieren Sie das Release. Jeder Eintrag unter `probes:` ist eine eigene Probe; setzen Sie ihn also bei jeder, die private Adressen erreichen soll:
+Setzen Sie den Wert pro Sonde in Ihrer Values-Datei und aktualisieren Sie das Release. Jeder Eintrag unter `probes:` ist eine eigene Sonde; setzen Sie ihn also bei jeder, die private Adressen erreichen soll:
 
 ```yaml title="values.yaml"
 probes:
@@ -165,18 +165,18 @@ probes:
 ```
 :::
 
-Auf einer eigenen Probe setzen Sie `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` in der eigenen Umgebung dieser Probe und starten sie neu. Der Wert muss genau `true` sein; alles andere, etwa `TRUE` oder `1`, lässt den Schalter aus, und die Probe sagt das in einer Warnung beim Start, egal auf welchen Wert `LOG_LEVEL` gesetzt ist.
+Auf einer eigenen Sonde setzen Sie `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` in der eigenen Umgebung dieser Sonde und starten sie neu. Der Wert muss genau `true` sein; alles andere, etwa `TRUE` oder `1`, lässt den Schalter aus, und die Sonde sagt das in einer Warnung beim Start, egal auf welchen Wert `LOG_LEVEL` gesetzt ist.
 
-Die mitgelieferten Probes sind **globale Probes**: Sie registrieren sich mit dem `REGISTER_PROBE_KEY` der Instanz, und jedes Projekt auf der Instanz kann sie auswählen. Den Schalter für eine mitgelieferte Probe einzuschalten, lässt daher Monitore aus **jedem Projekt auf der Instanz** über sie private Adressen erreichen. Das will eine Installation für ein einzelnes Team meist. Wo Projekte diese Reichweite nicht teilen sollen – getrennte Teams oder Kunden, die Sie hosten –, lassen Sie ihn auf den mitgelieferten Probes aus und stellen stattdessen in jedem Netzwerk eine private (eigene) Probe bereit, die nur dort eingeschaltet ist.
+Die mitgelieferten Sonden sind **globale Sonden**: Sie registrieren sich mit dem `REGISTER_PROBE_KEY` der Instanz, und jedes Projekt auf der Instanz kann sie auswählen. Den Schalter für eine mitgelieferte Sonde einzuschalten, lässt daher Monitore aus **jedem Projekt auf der Instanz** über sie private Adressen erreichen. Das will eine Installation für ein einzelnes Team meist. Wo Projekte diese Reichweite nicht teilen sollen – getrennte Teams oder Kunden, die Sie hosten –, lassen Sie ihn auf den mitgelieferten Sonden aus und stellen stattdessen in jedem Netzwerk eine private (eigene) Sonde bereit, die nur dort eingeschaltet ist.
 
-Es gibt eine Ausnahme. Eine Probe, die sich mit `REGISTER_PROBE_KEY` registriert und `BILLING_ENABLED=true` in ihrer eigenen Umgebung hat – eine globale Probe des gehosteten Produkts mit offener Registrierung, bei dem sich jeder anmelden kann und alle Projekte die globalen Probes teilen –, bleibt auch mit eingeschaltetem Schalter rein öffentlich und protokolliert beim Start eine Warnung, dass sie ihn nicht berücksichtigt. Die mit Docker Compose und dem Helm-Chart mitgelieferten Probes erhalten das `BILLING_ENABLED` der Instanz automatisch; geben Sie es jeder anderen `REGISTER_PROBE_KEY`-Probe, die Sie für eine solche Instanz betreiben. Auf andere Weise kann eine Probe nicht erkennen, dass sie global ist; eine im Admin-Dashboard angelegte und mit `PROBE_ID` und `PROBE_KEY` betriebene globale Probe beachtet den Schalter daher wie eine private: Schalten Sie ihn dort nicht ein, wenn Projekte das Netzwerk dieser Probe nicht teilen sollen. Eine private Probe beachtet den Schalter auf jeder Instanz.
+Es gibt eine Ausnahme. Eine Sonde, die sich mit `REGISTER_PROBE_KEY` registriert und `BILLING_ENABLED=true` in ihrer eigenen Umgebung hat – eine globale Sonde des gehosteten Produkts mit offener Registrierung, bei dem sich jeder anmelden kann und alle Projekte die globalen Sonden teilen –, bleibt auch mit eingeschaltetem Schalter rein öffentlich und protokolliert beim Start eine Warnung, dass sie ihn nicht berücksichtigt. Die mit Docker Compose und dem Helm-Chart mitgelieferten Sonden erhalten das `BILLING_ENABLED` der Instanz automatisch; geben Sie es jeder anderen `REGISTER_PROBE_KEY`-Sonde, die Sie für eine solche Instanz betreiben. Auf andere Weise kann eine Sonde nicht erkennen, dass sie global ist; eine im Admin-Dashboard angelegte und mit `PROBE_ID` und `PROBE_KEY` betriebene globale Sonde beachtet den Schalter daher wie eine private: Schalten Sie ihn dort nicht ein, wenn Projekte das Netzwerk dieser Sonde nicht teilen sollen. Eine private Sonde beachtet den Schalter auf jeder Instanz.
 
-Jede Probe protokolliert beim Start ihre wirksame Richtlinie für private Netzwerke: ob die Überwachung privater Netzwerke an oder aus ist, und warum. Ein Wert, der nicht berücksichtigt wird, und eine globale Probe, die der Schalter für jedes Projekt öffnet, werden auf jedem `LOG_LEVEL` als Warnungen protokolliert. Die normale Zeile „an“ oder „aus“ und das JSON „Probe environment“, das dieselbe Entscheidung unter `privateNetworkMonitors` festhält, werden bei `LOG_LEVEL=INFO` protokolliert, dem Standard des Helm-Charts; Docker Compose wird mit `LOG_LEVEL=ERROR` ausgeliefert, setzen Sie dort also `LOG_LEVEL=INFO`, um sie zu sehen. Prüfen Sie zuerst dieses Log, wenn ein Monitor auf einer gerade geänderten Probe weiterhin abgelehnt wird.
+Jede Sonde protokolliert beim Start ihre wirksame Richtlinie für private Netzwerke: ob die Überwachung privater Netzwerke an oder aus ist, und warum. Ein Wert, der nicht berücksichtigt wird, und eine globale Sonde, die der Schalter für jedes Projekt öffnet, werden auf jedem `LOG_LEVEL` als Warnungen protokolliert. Die normale Zeile „an“ oder „aus“ und das JSON „Probe environment“, das dieselbe Entscheidung unter `privateNetworkMonitors` festhält, werden bei `LOG_LEVEL=INFO` protokolliert, dem Standard des Helm-Charts; Docker Compose wird mit `LOG_LEVEL=ERROR` ausgeliefert, setzen Sie dort also `LOG_LEVEL=INFO`, um sie zu sehen. Prüfen Sie zuerst dieses Log, wenn ein Monitor auf einer gerade geänderten Sonde weiterhin abgelehnt wird.
 
-Das Einschalten öffnet Loopback, Link-Local und den Cloud-Metadaten-Endpunkt **nicht**. Diese bleiben auf jeder Probe verweigert, was vor allem für Probes zählt, die in einem Netzwerk laufen, das dem Autor des Monitors nicht gehört.
+Das Einschalten öffnet Loopback, Link-Local und den Cloud-Metadaten-Endpunkt **nicht**. Diese bleiben auf jeder Sonde verweigert, was vor allem für Sonden zählt, die in einem Netzwerk laufen, das dem Autor des Monitors nicht gehört.
 
 > [!WARNING]
-> Lassen Sie es auf Probes aus, die Sie im Auftrag anderer Personen betreiben.
+> Lassen Sie es auf Sonden aus, die Sie im Auftrag anderer Personen betreiben.
 
 ## Prüfen, ob es funktioniert
 
@@ -184,11 +184,11 @@ Führen Sie den Workflow oder Monitor erneut aus. Wird er weiterhin abgelehnt, n
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – die Einstellung des API-Servers fehlt.
 - _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_ oder _"...is not allowed. Use a webhook URL on the public internet."_ auf der Statusseite selbst – der Webhook gehört einem Abonnenten, der sich auf der Statusseite eingetragen hat, und dafür gibt es keine Einstellung. Lassen Sie ihn stattdessen von Ihrem Team als Webhook-Abonnenten hinzufügen, im Dashboard, mit einem API-Schlüssel oder per Workflow.
-- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – eine private (eigene) Probe hat den Monitor ausgeführt, und ihr Schalter ist aus. Beachten Sie, dass er auf der Probe gesetzt wird, nicht auf dem API-Server.
-- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – eine mitgelieferte (globale) Probe hat den Monitor ausgeführt, und ihr Schalter ist aus. Schalten Sie ihn wie oben beschrieben für diese Probe ein, wenn jedes Projekt auf der Instanz dieses Netzwerk erreichen darf; andernfalls wählen Sie für den Monitor eine private Probe.
-- _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – eine globale Probe mit `BILLING_ENABLED=true` in ihrer Umgebung hat den Monitor ausgeführt. Automatisch registrierte globale Probes bleiben dort rein öffentlich, egal was ihr Schalter sagt; stellen Sie eine private Probe im Netzwerk des Ziels bereit und wählen Sie sie für den Monitor.
-- _"Monitor target host ... could not be reached."_ – ein Monitor vom Typ API, Website oder External Status Page, dessen Ziel ein **Hostname** ist, meldet dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt, sodass sich mit einem Monitor nicht ermitteln lässt, welche internen Namen es gibt. Die zugehörigen Fehlerdetails nennen in beiden Fällen `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`; sie sagen nicht, welcher Fall vorlag. Zeigt der Name auf eine private Adresse, prüfen Sie im Start-Log der Probe deren Richtlinie für private Netzwerke; ist sie aus, ist die Lösung dieselbe wie bei den Meldungen oben. Mit `LOG_LEVEL=DEBUG` protokolliert die Probe außerdem den genauen Grund für jeden abgelehnten Namen.
-- _"Request URL could not be reached."_ – dieselbe Regel für einen Monitor vom Typ **Benutzerdefinierter JavaScript-Code**: Ein Skript, das einen **Hostnamen** anfragt, erhält dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt. Mit `LOG_LEVEL=DEBUG` protokolliert die Probe den genauen Grund.
+- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – eine private (eigene) Sonde hat den Monitor ausgeführt, und ihr Schalter ist aus. Beachten Sie, dass er auf der Sonde gesetzt wird, nicht auf dem API-Server.
+- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – eine mitgelieferte (globale) Sonde hat den Monitor ausgeführt, und ihr Schalter ist aus. Schalten Sie ihn wie oben beschrieben für diese Sonde ein, wenn jedes Projekt auf der Instanz dieses Netzwerk erreichen darf; andernfalls wählen Sie für den Monitor eine private Sonde.
+- _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – eine globale Sonde mit `BILLING_ENABLED=true` in ihrer Umgebung hat den Monitor ausgeführt. Automatisch registrierte globale Sonden bleiben dort rein öffentlich, egal was ihr Schalter sagt; stellen Sie eine private Sonde im Netzwerk des Ziels bereit und wählen Sie sie für den Monitor.
+- _"Monitor target host ... could not be reached."_ – ein Monitor vom Typ API, Website oder External Status Page, dessen Ziel ein **Hostname** ist, meldet dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt, sodass sich mit einem Monitor nicht ermitteln lässt, welche internen Namen es gibt. Die zugehörigen Fehlerdetails nennen in beiden Fällen `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`; sie sagen nicht, welcher Fall vorlag. Zeigt der Name auf eine private Adresse, prüfen Sie im Start-Log der Sonde deren Richtlinie für private Netzwerke; ist sie aus, ist die Lösung dieselbe wie bei den Meldungen oben. Mit `LOG_LEVEL=DEBUG` protokolliert die Sonde außerdem den genauen Grund für jeden abgelehnten Namen.
+- _"Request URL could not be reached."_ – dieselbe Regel für einen Monitor vom Typ **Benutzerdefinierter JavaScript-Code**: Ein Skript, das einen **Hostnamen** anfragt, erhält dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt. Mit `LOG_LEVEL=DEBUG` protokolliert die Sonde den genauen Grund.
 - _"Webhook URL could not be reached."_ oder, aus einem Workflow, _"Request URL could not be reached."_ – die Instanz läuft mit `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (oder `BILLING_ENABLED=true`), sodass ein abgelehnter **Hostname** nicht erklärt wird: Er wurde entweder zu einer abgelehnten Adresse aufgelöst oder gar nicht. Mit `LOG_LEVEL=DEBUG` protokolliert die App oder der Worker, welcher Fall es war, und die Adresse.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – das Ziel liegt in der verbotenen Stufe. Für einen Webhook nennen Sie den genauen Host oder CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`, wenn Sie ihn wirklich brauchen. Für einen Monitor gibt es keine Ausnahme.
 - _"...hostname could not be resolved via DNS."_ – der Container kann den Namen nicht auflösen. Prüfen Sie, ob er ein Netzwerk mit dem Ziel teilt.
@@ -201,12 +201,12 @@ Dies zu öffnen ändert tatsächlich, was Ihre OneUptime-Instanz erreichen kann;
 - **Wer einen Workflow oder einen Monitor vom Typ API, Website, External Status Page oder Custom JavaScript Code erstellen oder einer Statusseite einen Abonnenten hinzufügen kann, erreicht alles, was Sie erlaubt haben.** Behandeln Sie die Mitgliedschaft in diesen Projekten entsprechend.
 - **Der Antworttext kommt zurück.** Eine API-Komponente in einem Workflow gibt Status, Header und Body in das Workflow-Log zurück; ein erlaubter Host ist also lesbar, nicht nur beschreibbar.
 - **Weiterleitungen werden bei Webhook-Anfragen nie befolgt**, sodass ein erlaubter öffentlicher Host den Server nicht mit einem zweiten Sprung auf einen internen weiterleiten kann.
-- **Begrenzen Sie wo möglich pro Probe statt instanzweit.** Eine in einem Netzwerk bereitgestellte Probe ist eine engere Freigabe, als den ausgehenden Verkehr des API-Servers zu öffnen.
+- **Begrenzen Sie wo möglich pro Sonde statt instanzweit.** Eine in einem Netzwerk bereitgestellte Sonde ist eine engere Freigabe, als den ausgehenden Verkehr des API-Servers zu öffnen.
 
 ## Nächste Schritte
 
 :::cards
-- [Eigene Probes](/docs/probe/custom-probe): Eine Probe in dem Netzwerk betreiben, das sie prüfen soll.
+- [Eigene Sonden](/docs/probe/custom-probe): Eine Sonde in dem Netzwerk betreiben, das sie prüfen soll.
 - [Workflow-Konfiguration](/docs/workflows/configuration): Was Workflow-Schritte erreichen und tun können.
 - [LLM-Anbieter](/docs/ai/llm-provider): OneUptime AI mit einem Modell in Ihrem Netzwerk verbinden.
 - [Architektur](/docs/self-hosted/architecture): Welcher Teil einer selbst gehosteten Installation welche Verbindung herstellt.

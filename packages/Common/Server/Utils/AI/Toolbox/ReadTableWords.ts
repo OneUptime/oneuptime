@@ -17,6 +17,7 @@ import {
   AI_READ_WINDOW,
 } from "../../../../Types/AI/AIReadTableWords";
 import { PluralTemplate } from "../../../../Types/Translator";
+import { JSONObject } from "../../../../Types/JSON";
 
 /*
  * THE WORDS A READ'S TABLE AND ITS SOURCE CHIP SAY, BUILT FROM WHAT THE
@@ -61,16 +62,19 @@ export function yesOrNo(value: boolean): AIActionTableCell {
   return aiActionTerm(value ? AI_READ_CARD_VALUES.yes : AI_READ_CARD_VALUES.no);
 }
 
+// What a source chip says: its label in English, and its words.
+export interface ToolCitation {
+  citationLabel: string;
+  citationWords: AIActionSentence;
+}
+
 /*
  * A source chip's label and its words, from one sentence: the label is the
  * sentence in English - what the chip stores, what the model reads in a
  * turn's history and what the exports print - and the Dashboard says the
  * words in the reader's language (CitationChips).
  */
-export function citationOf(sentence: AIActionSentence): {
-  citationLabel: string;
-  citationWords: AIActionSentence;
-} {
+export function citationOf(sentence: AIActionSentence): ToolCitation {
   return {
     citationLabel: describeAIActionSentence(sentence),
     citationWords: sentence,
@@ -81,7 +85,7 @@ export function citationOf(sentence: AIActionSentence): {
 export function citationSentence(
   template: string,
   values?: Record<string, AIActionSentenceValue> | undefined,
-): { citationLabel: string; citationWords: AIActionSentence } {
+): ToolCitation {
   return citationOf(aiActionSentence(template, values));
 }
 
@@ -95,6 +99,56 @@ export function countedValue(
   count: number,
 ): AIActionSentenceValue {
   return { list: [aiActionPluralSentence(plural, count)] };
+}
+
+/*
+ * The cells of a table's rows that are words of OneUptime's (issue #8313):
+ * for each column named, a row's stored value, when the column's words
+ * name it, as that word's term - an insight's "ActionRequired" as "Needs
+ * Attention", a sensitivity as itself. A value they do not name - a name
+ * the project chose, a product's - stays data. Cells already worded
+ * (`base`, row by row) are kept, and the rows keep their order, as a
+ * table's cells must.
+ */
+export function termCells(
+  rows: ReadonlyArray<JSONObject>,
+  columns: Readonly<Record<string, Readonly<Record<string, string>>>>,
+  base?: ReadonlyArray<Record<string, AIActionTableCell>> | undefined,
+): Array<Record<string, AIActionTableCell>> {
+  return rows.map(
+    (row: JSONObject, index: number): Record<string, AIActionTableCell> => {
+      const cells: Record<string, AIActionTableCell> = {
+        ...(base?.[index] || {}),
+      };
+
+      for (const key of Object.keys(columns)) {
+        const stored: unknown = row[key];
+        const words: Readonly<Record<string, string>> = columns[key]!;
+
+        if (
+          typeof stored === "string" &&
+          Object.prototype.hasOwnProperty.call(words, stored)
+        ) {
+          cells[key] = aiActionTerm(words[stored]!);
+        }
+      }
+
+      return cells;
+    },
+  );
+}
+
+// Words that say themselves, for termCells: "Restricted" is "Restricted".
+export function termsByValue(
+  terms: ReadonlyArray<string>,
+): Record<string, string> {
+  const words: Record<string, string> = {};
+
+  for (const term of terms) {
+    words[term] = term;
+  }
+
+  return words;
 }
 
 // How many people a policy or the project's schedules page now.

@@ -1,6 +1,6 @@
 # Intégrations de Sécurité des données
 
-Sécurité des données n'a pas son propre système d'astreinte ni sa propre file de sécurité. Elle confie ce qu'elle trouve aux parties de OneUptime qui en ont déjà : un problème Critique devient un dossier de sécurité, il peut prévenir la personne d'astreinte ou déclarer un incident, et chaque nouveau problème est envoyé par e-mail aux propriétaires du magasin de données. Les workflows, OneUptime AI, l'API, Terraform et le serveur MCP accèdent à tout ce qu'elle conserve.
+Sécurité des données n'a pas son propre système d'astreinte ni sa propre file de sécurité. Elle confie ce qu'elle trouve aux parties de OneUptime qui en ont déjà : un problème Critique devient un dossier de sécurité, il peut prévenir la personne d'astreinte ou déclarer un incident, et chaque nouveau problème est envoyé par e-mail aux propriétaires du magasin de données. Les flux de travail, OneUptime AI, l'API, Terraform et le serveur MCP accèdent à tout ce qu'elle conserve.
 
 :::cards
 - [Opérations de sécurité](#opérations-de-sécurité): Un dossier de sécurité pour chaque magasin de données qui a un problème Critique.
@@ -20,7 +20,7 @@ flowchart TB
     critical -->|"Oui, si les alertes<br/>sont activées"| alert["Une alerte<br/>qui prévient<br/>la personne<br/>d'astreinte"]
     critical -->|"Oui, si les incidents<br/>sont activés"| incident["Un incident<br/>géré par<br/>votre processus"]
     issue --> owners["Un e-mail aux<br/>propriétaires<br/>du magasin<br/>de données"]
-    issue --> flows["Les<br/>workflows qui<br/>surveillent<br/>les problèmes"]
+    issue --> flows["Les<br/>flux de travail qui<br/>surveillent<br/>les problèmes"]
 ```
 
 Chacune de ces actions s'exécute quand une évaluation ouvre un problème, ou le rouvre. Chacune est faite au mieux : le problème est déjà ouvert et dans sa chronologie, donc une intégration qui échoue est journalisée et ignorée, jamais relancée au risque d'ouvrir un deuxième dossier ou de prévenir l'astreinte une deuxième fois. Ce que chacune a fait est écrit dans la **Chronologie** du problème, et la page du problème renvoie vers le dossier, l'alerte et l'incident qu'il a déclenchés.
@@ -77,22 +77,22 @@ Des règles définissent les propriétaires et les étiquettes à votre place, �
 
 Une règle correspond à un magasin de données par ses étiquettes, par un motif de son nom ou de sa description, ou par **Motif d'étiquette cloud** : un motif comparé à chacune des étiquettes cloud du magasin de données, écrites `key=value`. `^team=payments$` correspond à chaque magasin de données étiqueté `team=payments`, et `^env=` à chaque magasin de données qui a une étiquette `env`. Un nouveau magasin de données reçoit les règles du projet dès qu'il est trouvé, et le paramètre **Notifier les propriétaires** d'une règle de propriétaire indique si les propriétaires qu'elle ajoute sont prévenus. [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) explique comment chaque règle correspond et quand les règles s'exécutent.
 
-## Workflows
+## Flux de travail
 
-**Magasin de données** et **Problème de sécurité des données** sont des déclencheurs de workflow, chacun avec **À la création**, **À la mise à jour**, **À la création ou à la mise à jour** et **À la suppression**. Choisissez-les dans le panneau **Ajouter un déclencheur**, sous **Ressources OneUptime**.
+**Magasin de données** et **Problème de sécurité des données** sont des déclencheurs de flux de travail, chacun avec **À la création**, **À la mise à jour**, **À la création ou à la mise à jour** et **À la suppression**. Choisissez-les dans le panneau **Ajouter un déclencheur**, sous **Ressources OneUptime**.
 
 - **Problème de sécurité des données → À la création** s'exécute quand un problème s'ouvre pour la première fois. Lisez sa gravité dans un bloc **Si / Sinon**, et publiez ceux de gravité Critique dans un canal ou ouvrez un ticket dans votre outil de suivi.
 - **Problème de sécurité des données → À la mise à jour**, avec **Champs à surveiller** réglé sur son statut, s'exécute quand un problème est résolu, accepté ou s'ouvre à nouveau.
 - **Magasin de données → À la création** s'exécute quand la découverte trouve un magasin de données, par exemple pour informer une équipe de chaque nouveau bucket.
 
-Voir [Déclencheurs de workflow](/docs/workflows/triggers) pour les champs que transmet chaque déclencheur.
+Voir [Déclencheurs de flux de travail](/docs/workflows/triggers) pour les champs que transmet chaque déclencheur.
 
 ## OneUptime AI
 
 Deux actions sur un problème demandent de l'aide à OneUptime AI. Toutes deux envoient à OneUptime AI le titre et la gravité du problème, le nom, le type, la région et l'ID cloud du magasin de données, sa sensibilité et ses types de données, la preuve, pourquoi le contrôle est important et la correction pour le cloud du magasin de données - jamais les échantillons d'une détection. Toutes deux s'exécutent selon les interrupteurs et les limites de OneUptime AI du projet.
 
 - **Expliquer avec l'IA** rédige, pour le propriétaire du magasin de données, ce qui ne va pas, ce qui pourrait arriver et les étapes exactes pour le corriger sur son cloud. L'explication est conservée dans la **Chronologie** du problème. Quiconque peut lire Sécurité des données peut la demander.
-- **Corriger avec l'IA** demande à OneUptime AI de corriger le problème dans votre code d'infrastructure - Terraform, CloudFormation, Bicep ou équivalent - avec la plus petite modification qui fait réussir le contrôle, et d'ouvrir une pull request. Il faut que le dépôt qui contient le code d'infrastructure du magasin de données soit connecté sous **Code** : choisissez-le sous **Dépôt** quand le projet en a plusieurs. La pull request apparaît sous **Code** (voir [Code](/docs/ai/ai-agent)). Les Security Members et les rôles supérieurs peuvent la demander.
+- **Corriger avec l'IA** demande à OneUptime AI de corriger le problème dans votre code d'infrastructure - Terraform, CloudFormation, Bicep ou équivalent - avec la plus petite modification qui fait réussir le contrôle, et d'ouvrir une pull request. Il faut que le dépôt qui contient le code d'infrastructure du magasin de données soit connecté sous **Code** : choisissez-le sous **Dépôt** quand le projet en a plusieurs. La pull request apparaît sous **Code** (voir [Code](/docs/ai/ai-agent)). Les Membres de la sécurité et les rôles supérieurs peuvent la demander.
 
 ### Demander à l'IA
 
@@ -155,6 +155,6 @@ Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de 
 :::cards
 - [Dossiers de sécurité et playbooks (SOAR)](/docs/telemetry/security-cases): Traiter les dossiers qu'ouvre Sécurité des données.
 - [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules): Comment les règles correspondent, et quand elles s'exécutent.
-- [Déclencheurs de workflow](/docs/workflows/triggers): Exécuter un workflow quand un problème s'ouvre ou qu'un magasin de données est trouvé.
+- [Déclencheurs de flux de travail](/docs/workflows/triggers): Exécuter un flux de travail quand un problème s'ouvre ou qu'un magasin de données est trouvé.
 - [Contrôles et problèmes de Sécurité des données](/docs/data-security/checks-and-issues): Ce que signifie chaque problème, et comment le corriger.
 :::

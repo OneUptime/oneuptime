@@ -235,7 +235,7 @@ For example, the title `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 - **Add SLO Owners as Owners** also adds the SLO's owners, its owner users and the members of its owner teams, to everything the rule creates. SLO owners already hear about the SLO's own status changes, so this can notify them twice. It is off by default.
 - Each owner is added once: a user who already owns the alert or incident, for example through the project's owner rules, or who is in an owner team being added, is not added again.
 - **Alert Labels** and **Incident Labels** are added to the alert or incident, so filters, owner rules and workspace notification rules can match it.
-- A private alert or incident is visible only to its owners, project admins and project owners.
+- A private alert or incident is visible only to its owners, Project Admins and Project Owners.
 
 Labels, owner teams and on-call policies must belong to the SLO's project.
 

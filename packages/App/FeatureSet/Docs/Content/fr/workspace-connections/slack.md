@@ -123,7 +123,7 @@ Un canal reste lisible : chaque événement est publié une seule fois, et le pr
 
 **Paramètres du projet** > **Espace de travail** > **Slack** liste les canaux que OneUptime voit, avec **Envoyer le test** à côté de chacun. OneUptime rejoint de lui-même un canal public la première fois qu'il y publie. Un canal privé n'est listé, et ne peut recevoir de publication, qu'après que l'application OneUptime y a été invitée dans Slack.
 
-Une règle de notification peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
+Une règle de notification peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les Administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
 
 ### Messages d'astreinte
 

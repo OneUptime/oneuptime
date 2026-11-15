@@ -34,7 +34,7 @@ Une politique n'alerte personne tant que rien ne l'exécute. Chaque incident, al
 | Règles d'astreinte | **Incidents → Règles → Règles d'astreinte** et **Alertes → Règles → Règles d'astreinte** ajoutent les politiques de chaque règle qui correspond | [Règles d'astreinte des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents) |
 | Règles de regroupement | Une règle de regroupement exécute ses politiques quand elle ouvre un épisode | [Épisodes d'alertes et règles de regroupement](/docs/alerts/episodes) |
 | À la main | **Exécuter la politique d'astreinte**, dans le menu **Actions** d'un fil d'activité, ou sur un message Slack ou Microsoft Teams | [Le fil d'activité de l'incident](/docs/incidents/notes-owners-and-feed#le-fil-dactivité-de-lincident) |
-| Chat et workflows | `/oneuptime page` dans Slack ou Microsoft Teams, et l'étape **Page an On-Call Policy** d'un workflow | [Paging](/docs/workflows/components#paging) |
+| Chat et flux de travail | `/oneuptime page` dans Slack ou Microsoft Teams, et l'étape **Page an On-Call Policy** d'un flux de travail | [Paging](/docs/workflows/components#paging) |
 
 Une politique que plusieurs règles ajoutent ne s'exécute qu'une fois. Une gravité n'exécute jamais une politique à elle seule : c'est une règle d'astreinte correspondant à cette gravité qui le fait. Un incident ou une alerte créé déjà pris en compte ou résolu n'exécute aucune de ses politiques. Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre les politiques qu'elle ajoute jusqu'au début de ces heures.
 
@@ -112,15 +112,15 @@ flowchart TB
 | --- | --- |
 | **En attente** | Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre l'exécution jusqu'au début de ces heures : elle indique quand les alertes commencent, et n'alerte personne d'ici là. Elle se termine sans alerter si l'incident ou l'alerte est pris en compte ou résolu avant. Elle commence aussitôt à alerter si l'incident ou l'alerte change et correspond désormais à une règle d'astreinte qui alerte immédiatement. |
 | **Planifié**, **Démarrée** | L'exécution est en préparation. Une exécution encore là après 5 minutes n'a pas fini de démarrer : elle passe en **Exécution en cours** et alerte à partir de l'endroit où son démarrage s'est arrêté. Un appel direct ou un appel de test encore là est arrêté en **Erreur**. |
-| **Exécution en cours** | L'exécution alerte. OneUptime la fait avancer chaque minute. |
+| **Exécution en cours** | L'exécution alerte. OneUptime la fait avancer chaque minute. Une étape qui échoue un instant, par exemple parce que la base de données était injoignable, est retentée une minute plus tard, puis 2 et 4 minutes plus tard, puis toutes les 5 minutes. |
 | **Exécution terminée** | Quelqu'un a pris en compte, l'incident ou l'alerte a été résolu, chaque règle et chaque répétition ont été utilisées, ou la politique a été archivée. |
 | **Exécution terminée - personne n'a été notifié** | L'exécution a parcouru chaque règle sans alerter personne : en général un planning où personne n'est d'astreinte, ou un niveau sans intervenant. |
-| **Erreur** | L'exécution a échoué. **Voir le message de statut** indique pourquoi. |
+| **Erreur** | L'exécution a échoué : une étape a échoué d'une façon qu'un nouvel essai ne peut pas corriger, comme une règle d'escalade supprimée, ou a échoué 10 essais d'affilée, sur environ 37 minutes. **Voir le message de statut** indique pourquoi. |
 
 Vous trouvez les journaux d'exécution à trois endroits :
 
 - dans les propres **Journaux d'exécution** de la politique, sous **Journaux** ;
-- dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des workflows et du chat apparaissent comme **Appel direct** ;
+- dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des flux de travail et du chat apparaissent comme **Appel direct** ;
 - sur la page **Exécutions d'astreinte** d'un incident ou d'une alerte.
 
 Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **Voir la chronologie** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. **Notifié via** indique comment chaque alerte a atteint la personne : appel téléphonique, SMS, e-mail, notification push, etc. Un planning où personne n'est d'astreinte affiche **Personne n'était d'astreinte** au lieu d'une personne. Un niveau qui n'a alerté personne dit pourquoi, avec **Poursuivi sans attendre** en dessous : la politique ne l'a pas attendu. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.

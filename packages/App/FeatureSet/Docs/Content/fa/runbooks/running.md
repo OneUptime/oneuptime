@@ -58,7 +58,7 @@ stateDiagram-v2
 3. صفحه اجرا باز می‌شود.
 :::
 
-شروع یک اجرا به Project Owner، Project Admin، Project Member، Runbook Admin یا Runbook Member، یا مجوز **Create Runbook Execution** نیاز دارد. Runbook Viewer و Viewer دکمه **اجرا همین حالا** را قفل‌شده و همراه با دلیل می‌بینند. [دسترسی‌ها](/docs/runbooks/configuration#دسترسیها) را ببینید.
+شروع یک اجرا به مالک پروژه، مدیر پروژه، عضو پروژه، مدیر رانبوک‌ها یا عضو رانبوک‌ها، یا مجوز **Create Runbook Execution** نیاز دارد. بیننده رانبوک‌ها و بیننده دکمه **اجرا همین حالا** را قفل‌شده و همراه با دلیل می‌بینند. [دسترسی‌ها](/docs/runbooks/configuration#دسترسیها) را ببینید.
 
 ## نمای اجرا
 
@@ -128,7 +128,7 @@ stateDiagram-v2
 ## عیب‌یابی
 
 :::details Run Now قفل است
-نقش شما رانبوک‌ها را می‌خواند اما اجرایشان نمی‌کند: دکمه می‌گوید «شما اجازهٔ شروع اجرای رانبوک‌ها در این پروژه را ندارید.» نقش Runbook Member یا مجوز **Create Runbook Execution** را درخواست کنید.
+نقش شما رانبوک‌ها را می‌خواند اما اجرایشان نمی‌کند: دکمه می‌گوید «شما اجازهٔ شروع اجرای رانبوک‌ها در این پروژه را ندارید.» نقش عضو رانبوک‌ها یا مجوز **Create Runbook Execution** را درخواست کنید.
 :::
 
 :::details شروع یک اجرا با «Runbook is disabled» یا «Runbook has no steps to run» شکست می‌خورد

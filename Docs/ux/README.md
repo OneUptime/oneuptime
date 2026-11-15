@@ -635,16 +635,26 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
   every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
   p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
-  offset's sign. A chart's value axis and its tooltip write it so too; only the AI chat's PDF
-  export writes it in English (`formatMillisecondsInEnglish`). Enforced by
+  offset's sign. Its other units are `formatDurationInUnit` (microseconds, seconds, minutes,
+  hours, days, each language's own short unit), never `${x} s`, `${x}µs`, `${x}ns` or `${x} min`
+  by hand: a Persian row read "1.25 s" under "۴۲ میلی‌ثانیه" (#8348). A chart's value axis and its
+  tooltip write it so too; only the AI chat's PDF export writes it in English
+  (`formatMillisecondsInEnglish`). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
   "Verfügbarkeit (24" over "Std.)" (#8043). Wherever the English writes a number beside a unit's
   symbol ("{{minutes}} min", "{{percent}}%", "24h"), the space a translation puts after that number
-  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`). Write
-  the unit as its symbol after the number in the English, so the rule finds it. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts).
+  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`), and so
+  is the space English itself writes there ("Every 5 min", #8302). A unit a language writes in two
+  words, Arabic's "ملي ث", is held together after its number too (#8304). Write the unit as its
+  symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
+  itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
+  as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
+  plain space, listed with its reason. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  and
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
@@ -753,6 +763,18 @@ then `npm run i18n:validate` from the root.
   attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
   by
   [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+- **A product's Help > Documentation page reads in the reader's language, its code as written.** A
+  page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
+  Observability's does, #7531). A page that is a setup guide holds each language's words for every
+  piece of its markdown in `Pages/<Product>/DocumentationTranslations/<code>.ts`
+  (`SetupGuideTranslation`), one chunk per language: Docker's guide read "Replace `my-docker-host`
+  with a name for this host" under a German step title (#8341). Commands, code spans, field names
+  and product names stay as the English writes them; what the Dashboard draws (a tab, a page, a
+  guide's own topic) is named as the locale words it. A change to a guide's English changes every
+  language's words in the same pull request. Enforced by
+  [SetupGuideDocumentationInLocale](../../packages/Common/Tests/App/Dashboard/SetupGuideDocumentationInLocale.test.ts)
+  and
+  [DocumentationPagesInEveryLanguage](../../packages/Common/Tests/App/Dashboard/DocumentationPagesInEveryLanguage.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).

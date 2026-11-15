@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - Microsoft Sentinel सक्षम किया हुआ एक Log Analytics वर्कस्पेस, Azure पब्लिक क्लाउड में या Azure Government (US) में।
 - Microsoft Entra ID में ऐप रजिस्ट्रेशन और क्लाइंट सीक्रेट बनाने का अधिकार।
 - वर्कस्पेस वाले रिसोर्स ग्रुप पर रोल असाइन करने का अधिकार, जैसे Owner या User Access Administrator।

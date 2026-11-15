@@ -42,7 +42,7 @@ Geben Sie unter **Was sollen wir prüfen?** die Adresse in **Adresse der Website
 
 Was Sie unter **Wer soll informiert werden?** sehen, hängt vom Projekt ab:
 
-- Gibt es noch keine Bereitschaftsrichtlinie und keine Bereitschaftsregel, stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Teammitglieder hinzufügen**, um Personen hinzuzufügen, die schon im Projekt sind, und dann auf **Speichern und weiter**. Dabei wird die Richtlinie `Default on-call policy` angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert.
+- Gibt es noch keine Bereitschaftsrichtlinie und keine Bereitschaftsregel, stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Teammitglieder hinzufügen**, um Personen hinzuzufügen, die schon im Projekt sind, und dann auf **Speichern und weiter**. Dabei wird die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert.
 - Gibt es schon eine Bereitschaftsrichtlinie oder -regel, entscheiden die eigenen Regeln des Projekts, wer alarmiert wird: Klicken Sie auf **Weiter**.
 - Sind Sie Mitglied, dürfen Sie keine Alarmierung einrichten, und der Schritt sagt Ihnen, dass Sie als Eigentümer des Monitors per E-Mail benachrichtigt werden: Klicken Sie auf **Weiter**.
 

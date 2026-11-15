@@ -61,13 +61,13 @@ Cinq chemins mènent au même objet :
 - **Par l'API** — `POST /api/incident` avec une clé d'API. Le serveur renseigne pour vous `declaredAt`, l'état de création et le numéro d'incident.
 - **Via un formulaire** — une personne extérieure à votre équipe remplit un formulaire que vous avez partagé sous forme de lien, sans compte OneUptime. L'incident est déclaré masqué sur les pages de statut, à partir du modèle d'incident du formulaire s'il en a un. Voir [Formulaires](/docs/forms/index).
 
-Les workflows ouvrent aussi des incidents : le workflow [Huntress](/docs/integrations/huntress) transforme chaque rapport d'incident envoyé par son SOC en un incident, qui alerte la politique d'astreinte que vous choisissez. Voir [Déclarer un incident](/docs/incidents/declaring-incidents) pour le détail champ par champ.
+Les flux de travail ouvrent aussi des incidents : le flux de travail [Huntress](/docs/integrations/huntress) transforme chaque rapport d'incident envoyé par son SOC en un incident, qui alerte la politique d'astreinte que vous choisissez. Voir [Déclarer un incident](/docs/incidents/declaring-incidents) pour le détail champ par champ.
 
 ### 2. Les bonnes personnes sont informées
 
 À la création, OneUptime exécute l'automatisation que vous avez configurée : règles de confidentialité, règles de propriétaire, règles d'étiquettes, règles d'astreinte et règles de runbook. Toutes les politiques d'astreinte rattachées à l'incident — à la main, depuis un modèle, ou ajoutées par une règle d'astreinte qui correspond — sont exécutées en parallèle.
 
-Les propriétaires sont notifiés sur les canaux que chacun a activés dans **Paramètres utilisateur → Paramètres de notification** : e-mail, SMS, appel vocal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost ou webhook. Si un incident n'a aucun propriétaire, la notification se rabat sur les propriétaires du projet au lieu d'être perdue.
+Les propriétaires sont notifiés sur les canaux que chacun a activés dans **Paramètres utilisateur → Paramètres de notification** : e-mail, SMS, appel vocal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost ou webhook. Si un incident n'a aucun propriétaire, la notification se rabat sur les Propriétaires du projet au lieu d'être perdue.
 
 Si l'incident est visible sur une page de statut et que les notifications aux abonnés sont activées, les abonnés sont prévenus aussi : les abonnés de chaque page de statut qui liste l'un de ses moniteurs, ou seulement ceux des pages auxquelles vous l'avez limité. Voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience) pour donner à chaque public sa propre page de statut.
 
@@ -203,7 +203,7 @@ Ce que contient chacune :
 - **Les politiques d'astreinte se chargent d'alerter.** Rattachez des politiques à l'étape **Astreinte et rôles** de l'assistant de déclaration, sur un modèle, ou via **Incidents → Règles → Règles d'astreinte**. Chaque règle qui correspond se déclenche — l'ensemble exécuté est l'union de toutes les correspondances plus tout ce qui est rattaché directement, sans doublons.
 - **Les runbooks disent quoi faire.** Les règles de runbook rattachent automatiquement une procédure quand un incident correspondant est créé, et les intervenants peuvent en lancer un à la main depuis l'incident. Voir [Vue d'ensemble des Runbooks](/docs/runbooks/index).
 - **Les pages de statut informent les clients.** Un incident apparaît dans la liste active d'une page de statut quand la page liste l'un de ses moniteurs, que les incidents y sont activés, que l'incident est marqué visible sur la page de statut et que son état courant se situe au-dessus de l'état résolu. Un incident limité à certaines pages de statut n'apparaît que sur celles-ci. Les incidents privés sont masqués sur toutes les pages de statut, toujours. Voir [Vue d'ensemble des pages de statut](/docs/status-pages/index) et [Une page de statut par public](/docs/status-pages/one-status-page-per-audience).
-- **Les workflows automatisent autour.** Les déclencheurs **On Create Incident**, **On Update Incident**, **On Create or Update Incident** et **On Delete Incident** vous permettent de construire une automatisation sans code sur le cycle de vie de l'incident. Voir [Présentation des workflows](/docs/workflows/index).
+- **Les flux de travail automatisent autour.** Les déclencheurs **On Create Incident**, **On Update Incident**, **On Create or Update Incident** et **On Delete Incident** vous permettent de construire une automatisation sans code sur le cycle de vie de l'incident. Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ## Étapes suivantes
 

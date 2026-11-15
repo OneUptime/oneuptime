@@ -47,7 +47,7 @@ flowchart TB
 ## Antes de começar
 
 - Registros chegando ao OneUptime, por [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) ou uma sonda.
-- Permissão para alterar pipelines. Proprietários e administradores do projeto a têm; os demais precisam das permissões **Create Log Pipeline** e **Create Log Pipeline Processor**.
+- Permissão para alterar pipelines. Proprietários do projeto e Administradores do projeto a têm; os demais precisam das permissões **Create Log Pipeline** e **Create Log Pipeline Processor**.
 
 ## Criar um pipeline
 

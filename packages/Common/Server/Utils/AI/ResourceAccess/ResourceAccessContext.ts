@@ -17,6 +17,12 @@ import {
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
 } from "./ResourceAccessToolNames";
 
+import {
+  AI_ACTION_RESOURCE_NOUNS,
+  AIActionSentenceValue,
+  aiActionList,
+  aiActionResourceByName,
+} from "../../../../Types/AI/AIActionWords";
 /*
  * The prompt-side view of infrastructure access — the resource-agnostic
  * sibling of ClusterAccessContext, for the Docker and Podman hosts, Docker
@@ -53,6 +59,29 @@ export function describeResourceInSentence(
   status: ResourceAiAccessStatus,
 ): string {
   return `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
+}
+
+/*
+ * The same resource as a chip says it (#8511): its kind a word of the
+ * module when it is one of a resource's nouns, in the reader's language,
+ * and its name as named; else the English, as data.
+ */
+export function describeResourceWords(data: {
+  noun: string;
+  name: string;
+}): AIActionSentenceValue {
+  return AI_ACTION_RESOURCE_NOUNS.includes(data.noun)
+    ? aiActionList([aiActionResourceByName(data)])
+    : `${data.noun} ${JSON.stringify(data.name)}`;
+}
+
+export function describeResourceInSentenceWords(
+  status: ResourceAiAccessStatus,
+): AIActionSentenceValue {
+  return describeResourceWords({
+    noun: describeResourceNoun(status.resourceType),
+    name: status.resourceName,
+  });
 }
 
 // "the Docker AI agent" — who runs commands on this resource.

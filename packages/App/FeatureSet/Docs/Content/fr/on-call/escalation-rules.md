@@ -92,7 +92,7 @@ Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : 
 
 ### Comment chaque personne est jointe
 
-Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Comment me joindre**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Comment me joindre**. Voir [Comment me joindre](/docs/notifications/on-call-rules).
+Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Comment me joindre**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un Administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Comment me joindre**. Voir [Comment me joindre](/docs/notifications/on-call-rules).
 
 ```mermaid title="Qui un niveau alerte, et comment chaque personne est jointe"
 flowchart TB
@@ -176,7 +176,7 @@ Sur OneUptime Cloud, chaque SMS, appel, message WhatsApp et Telegram est payé s
 - Les alertes continuent de partir sur le solde restant tant que le rechargement automatique ne peut pas débiter la carte.
 
 > [!IMPORTANT]
-> Les SMS, les appels téléphoniques, WhatsApp et Telegram sont désactivés dans un nouveau projet : sur OneUptime Cloud, chaque message est payé sur le solde du projet, et une installation auto-hébergée a d'abord besoin d'un compte Twilio, d'une passerelle SMS et appels ou d'un bot Telegram configuré. Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode. Seul un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** peut en activer un, dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification** — un administrateur du projet ne le peut pas. Partout où un canal est désactivé, tous les autres apprennent exactement qui peut l'activer : au-dessus de leur propre liste de méthodes sur ce canal, dans leur liste de configuration et dans le message qu'ils reçoivent quand quelque chose en a besoin.
+> Les SMS, les appels téléphoniques, WhatsApp et Telegram sont désactivés dans un nouveau projet : sur OneUptime Cloud, chaque message est payé sur le solde du projet, et une installation auto-hébergée a d'abord besoin d'un compte Twilio, d'une passerelle SMS et appels ou d'un bot Telegram configuré. Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode. Seul un Propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** peut en activer un, dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification** — un Administrateur du projet ne le peut pas. Partout où un canal est désactivé, tous les autres apprennent exactement qui peut l'activer : au-dessus de leur propre liste de méthodes sur ce canal, dans leur liste de configuration et dans le message qu'ils reçoivent quand quelque chose en a besoin.
 
 ## Escalader vers la personne suivante de la rotation
 
@@ -243,7 +243,7 @@ La suite dépend des autres personnes encore alertées :
 
 Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend toujours que quelqu'un en accuse réception, et la personne qui l'a escaladée peut encore en accuser réception elle-même. Cette exécution ne l'alerte plus à ce sujet : un niveau suivant, ou une répétition, qui la nomme la passe. Une fois que tous ceux qu'elle a alertés l'ont escaladée et qu'il ne reste personne à alerter, les alertes s'arrêtent, et le fil d'activité de l'incident l'indique.
 
-Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
+Une alerte qu'un flux de travail envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
 Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**. Un niveau sauté pour un niveau plus loin est marqué **Ignoré** dans la **Chronologie d'exécution**, et le fil d'activité indique « On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it. »
 

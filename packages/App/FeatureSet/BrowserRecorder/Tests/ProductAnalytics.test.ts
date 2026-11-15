@@ -717,6 +717,8 @@ describe("ProductAnalytics", (): void => {
         expect(page).not.toContain("@");
         expect(page).not.toContain("eyJhbGci");
         expect(page).not.toContain("%2540");
+        expect(page).not.toContain("dGhpcyBp");
+        expect(page).not.toContain("k3J");
 
         const serverPages: Array<string> = [page, row.sent, addressOf(row)].map(
           (sentPage: string): string => {

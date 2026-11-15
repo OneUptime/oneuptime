@@ -51,7 +51,7 @@ Skriv ditt mobilnummer med landsnummer i **Ditt telefonnummer**, till exempel `+
 
 ![Steget ”Vem mer har jour?”, med ”Spara och fortsätt” markerad](screen:paging-who-else)
 
-Under **Vem mer har jour?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra tillsammans med dig, och klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget `Default on-call policy`, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
+Under **Vem mer har jour?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra tillsammans med dig, och klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 
@@ -83,7 +83,7 @@ Om policyn larmar någon annan kan du också följa eskaleringen: klicka på **�
 ## Vad som kan gå fel
 
 :::details Knappen Skicka en kod till mig via sms saknas
-Sms är avstängt eller kan inte skickas, och steget säger varför. Bara en projektägare, eller någon som hanterar faktureringen, ser **Slå på sms och samtal**. På OneUptime Cloud döljs fältet när saldot är 1.00 USD eller mindre. På en egenvärdad server som inte kan skicka sms ser huvudadministratören **Konfigurera sms och samtal**, som öppnar Admin Dashboard där Twilio läggs till: se [Twilio-integration](/docs/self-hosted/twilio-integration).
+Sms är avstängt eller kan inte skickas, och steget säger varför. Bara en Projektägare, eller någon som hanterar faktureringen, ser **Slå på sms och samtal**. På OneUptime Cloud döljs fältet när saldot är 1.00 USD eller mindre. På en egenvärdad server som inte kan skicka sms ser huvudadministratören **Konfigurera sms och samtal**, som öppnar Admin Dashboard där Twilio läggs till: se [Twilio-integration](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Fyll på saldo säger att ingen betalningsmetod hittades

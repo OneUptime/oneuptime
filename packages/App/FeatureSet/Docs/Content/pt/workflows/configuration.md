@@ -5,7 +5,7 @@ O que saber antes de colocar um workflow diante de tráfego real: como ligá-lo 
 :::cards
 - [Entrar em produção](#ligar-e-desligar-um-workflow): Teste com Executar fluxo de trabalho enquanto está desligado e depois ligue-o.
 - [Permissões](#permissões): Os papéis de workflow e as permissões individuais por trás deles.
-- [O que os passos podem fazer](#o-que-os-passos-de-um-workflow-podem-fazer): Os passos agem como Project Admin do projeto do workflow.
+- [O que os passos podem fazer](#o-que-os-passos-de-um-workflow-podem-fazer): Os passos agem como Administrador do projeto no projeto do workflow.
 - [Limites](#limites-do-plano): Execuções por plano, duração de uma execução e chamadas entre workflows.
 :::
 
@@ -147,7 +147,7 @@ Do que o bloco precisa, e quanto ele custa:
 
 - **Habilitar IA** precisa estar ligado, em **Configurações do projeto → IA → Recursos de IA**. No OneUptime Cloud, o projeto também precisa do plano Growth ou superior e de uma assinatura paga. Instalações self-hosted sem cobrança não têm restrição de plano.
 - As chamadas por um provedor global pago usam os créditos de IA do projeto.
-- Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#os-limites-diários-do-próprio-projeto), quando um proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Erro** sem contatar o modelo, até a meia-noite UTC.
+- Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#os-limites-diários-do-próprio-projeto), quando um Proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Erro** sem contatar o modelo, até a meia-noite UTC.
 
 | Limite                                                       | Valor                                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
@@ -170,7 +170,7 @@ Os workflows respeitam o controle de acesso baseado em papéis do seu projeto. O
 - **Membro de fluxos de trabalho** — usa workflows: abre os workflows e as execuções deles, e roda um workflow manualmente com **Executar fluxo de trabalho**. Um membro não pode criar, alterar nem excluir um workflow, nem rodar um dos passos dele sozinho. O **Construtor** mostra a eles um workflow como ele é, marcado como **Somente leitura**: um passo se abre para ser lido, e nada do que fizerem ali é salvo.
 - **Visualizador de fluxos de trabalho** — lê os workflows e as execuções deles.
 
-**Proprietário do projeto** e **Administrador do projeto** podem fazer tudo o que um Workflow Admin pode. **Membro do projeto** pode criar e excluir workflows, mas não alterá-los nem executá-los.
+**Proprietário do projeto** e **Administrador do projeto** podem fazer tudo o que um Administrador de fluxos de trabalho pode. **Membro do projeto** pode criar e excluir workflows, mas não alterá-los nem executá-los.
 
 As permissões individuais, para uma equipe ou uma chave de API que precisa de exatamente uma coisa:
 
@@ -185,18 +185,18 @@ Dê **Administrador de fluxos de trabalho** a quem monta a automação, e **Memb
 
 ## O que os passos de um workflow podem fazer
 
-Os passos que leem e alteram registros do OneUptime — os componentes Find, Create, Update e Delete, e os gatilhos On Create, On Update, On Create or Update e On Delete — agem como **Administrador do projeto** do projeto do workflow. Seja quem for que montou o workflow, um passo passa pelas mesmas verificações que um Project Admin passa no dashboard e na API:
+Os passos que leem e alteram registros do OneUptime — os componentes Find, Create, Update e Delete, e os gatilhos On Create, On Update, On Create or Update e On Delete — agem como **Administrador do projeto** do projeto do workflow. Seja quem for que montou o workflow, um passo passa pelas mesmas verificações que um Administrador do projeto passa no dashboard e na API:
 
 - **Só o projeto do próprio workflow.** Um passo lê e grava os registros do projeto ao qual o workflow pertence e de nenhum outro, e um Update nunca move um registro para outro projeto.
-- **Só o que um Project Admin pode fazer.** Um passo não pode fazer o que só **Proprietário do projeto** e as permissões de cobrança ou de exclusão do projeto permitem, e não pode ler quem criou uma sonda ou um agente de IA, o que só os proprietários do projeto veem.
-- **Não quem tem acesso.** Um passo não cria, não altera nem exclui equipes, membros de equipe, permissões de equipe, funções personalizadas ou permissões de chaves de API, mesmo que um Project Admin possa. Quem monta um workflow decide o que seus passos fazem, e pode ser um **Membro do projeto**, então um passo que pudesse fazer isso daria a quem o montou um acesso que não lhe foi dado, como **Administrador do projeto**. O passo é recusado, e o log da execução diz que uma pessoa que gerencia as equipes e as chaves de API do projeto precisa fazer a alteração. Gatilhos e passos Find sobre esses registros continuam funcionando.
-- **Não a leitura de configurações que guardam credenciais.** Um Project Admin pode ler servidores SMTP, provedores de chamadas e SMS, credenciais SNMP, conexões de videochamada e chaves de API, mas isso nunca é emprestado a um passo, não importa quem construiu ou salvou o workflow. Um passo não pode nomear uma dessas configurações, como o servidor SMTP com que uma página de status envia e-mails ou a chave de API a que uma permissão é concedida. O passo é recusado, e o log de execução dele diz que uma pessoa que pode lê-las (a permissão de leitura desse tipo de configuração, ou um Project Owner ou Project Admin) precisa fazer a alteração. Um passo que mantém a configuração que um registro já nomeia, ou a limpa, não é recusado.
+- **Só o que um Project Admin pode fazer.** Um passo não pode fazer o que só **Proprietário do projeto** e as permissões de cobrança ou de exclusão do projeto permitem, e não pode ler quem criou uma sonda ou um agente de IA, o que só os Proprietários do projeto veem.
+- **Não quem tem acesso.** Um passo não cria, não altera nem exclui equipes, membros de equipe, permissões de equipe, funções personalizadas ou permissões de chaves de API, mesmo que um Administrador do projeto possa. Quem monta um workflow decide o que seus passos fazem, e pode ser um **Membro do projeto**, então um passo que pudesse fazer isso daria a quem o montou um acesso que não lhe foi dado, como **Administrador do projeto**. O passo é recusado, e o log da execução diz que uma pessoa que gerencia as equipes e as chaves de API do projeto precisa fazer a alteração. Gatilhos e passos Find sobre esses registros continuam funcionando.
+- **Não a leitura de configurações que guardam credenciais.** Um Administrador do projeto pode ler servidores SMTP, provedores de chamadas e SMS, credenciais SNMP, conexões de videochamada e chaves de API, mas isso nunca é emprestado a um passo, não importa quem construiu ou salvou o workflow. Um passo não pode nomear uma dessas configurações, como o servidor SMTP com que uma página de status envia e-mails ou a chave de API a que uma permissão é concedida. O passo é recusado, e o log de execução dele diz que uma pessoa que pode lê-las (a permissão de leitura desse tipo de configuração, ou um Proprietário do projeto ou Administrador do projeto) precisa fazer a alteração. Um passo que mantém a configuração que um registro já nomeia, ou a limpa, não é recusado.
 - **Só o que o seu plano inclui.** No OneUptime Cloud, um passo que cria ou altera algo que o seu plano não inclui é recusado com o plano necessário, como no dashboard. Instalações self-hosted sem cobrança não têm limites de plano.
 - **Nada do que o OneUptime guarda para si.** Isto é recusado a todos, workflows incluídos:
   - editar ou excluir uma entrada de feed (os feeds de incidentes, alertas, episódios, monitores, políticas de plantão e manutenções agendadas);
   - gravar um log de notificação (os logs de SMS, chamadas, e-mail, WhatsApp, Telegram, push, webhook e mensagens de workspace);
   - os valores que o OneUptime define conforme as coisas acontecem: se o CNAME de um domínio personalizado está verificado, as chaves de proteção de uma equipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), qual papel de incidente é o principal e se ele pode ser excluído, se um proprietário ou membro foi notificado, os horários e contagens de lembretes, quem está de plantão agora e em seguida em uma escala, o andamento de uma execução de plantão, a taxa de consumo e o error budget atuais de um SLO, um monitor pausado por um incidente ou um evento de manutenção, o token de redefinição de senha e o último acesso de um usuário privado de uma página de status, os dados que um serviço informa sobre si mesmo (versão, runtime, nuvem) e a última execução de uma regra de detecção ou de um feed de ameaças;
-  - declarar um incidente a partir de um modelo enviando `createdIncidentTemplateId` para **Create One Incident** — escolha o modelo na configuração **Modelo de incidente** do passo: o passo então declara o incidente a partir dele, como Project Admin, e registra o modelo;
+  - declarar um incidente a partir de um modelo enviando `createdIncidentTemplateId` para **Create One Incident** — escolha o modelo na configuração **Modelo de incidente** do passo: o passo então declara o incidente a partir dele, como Administrador do projeto, e registra o modelo;
   - alterar a qual registro um registro pertence depois de criado, como o monitor de uma linha de proprietário ou o incidente de uma nota.
 - **Como ninguém.** Um registro que um workflow cria não nomeia criador, e o log de auditoria nomeia o workflow, com o nome que ele tinha na hora, como autor da alteração.
 

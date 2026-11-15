@@ -180,7 +180,7 @@ Med gruppering inställd är varje gateway en egen serie: blir WAN2 långsam öp
 - **Tidsstämplar kommer från loggarna.** En logg hamnar i minuten för sin egen tidsstämpel. En enhet vars klocka går mer än lite fel lägger sina loggar i fel minut, eller helt utanför fönstret.
 - **Ingen bakåtberäkning.** En ny regel börjar med minuten före sin första körning; äldre loggar beräknas inte.
 - **Att radera en regel** stoppar den. Punkterna den redan har skrivit ligger kvar tills de går ut.
-- **Inspelningsregler ser alla projektets loggar.** Den som kan läsa utdatamåttet ser tal som beräknats från varje logg som regelns filter matchar, så att skapa och redigera inspelningsregler för loggar är förbehållet projektägare, administratörer och behörigheterna **Create / Edit Log Recording Rule**.
+- **Inspelningsregler ser alla projektets loggar.** Den som kan läsa utdatamåttet ser tal som beräknats från varje logg som regelns filter matchar, så att skapa och redigera inspelningsregler för loggar är förbehållet Projektägare, Projektadministratörer och behörigheterna **Create / Edit Log Recording Rule**.
 
 ## Behörigheter
 
@@ -191,7 +191,7 @@ Med gruppering inställd är varje gateway en egen serie: blir WAN2 långsam öp
 | Delete Log Recording Rule | Att radera regler. |
 | Read Log Recording Rule | Att se regler och vad de beräknar. |
 
-Projektägare och administratörer kan göra allt detta. Projektmedlemmar, läsare och telemetrirollerna kan läsa regler.
+Projektägare och Projektadministratörer kan göra allt detta. Projektmedlemmar, Tittare och telemetrirollerna kan läsa regler.
 
 ## Nästa steg
 

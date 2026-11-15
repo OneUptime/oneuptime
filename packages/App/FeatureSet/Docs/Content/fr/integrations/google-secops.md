@@ -22,7 +22,7 @@ Chaque méthode normalise ce qui arrive en [OCSF](https://schema.ocsf.io/), l'Op
 
 ## Avant de commencer
 
-- Pour le connecteur géré, dans OneUptime, le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer peuvent lire les connexions, mais pas en créer.
+- Pour le connecteur géré, dans OneUptime, le rôle Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité. Les rôles Membre de la sécurité et Lecteur de la sécurité peuvent lire les connexions, mais pas en créer.
 - Pour le webhook et le transfert UDM, une clé d'ingestion : ouvrez **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et cliquez sur **Créer une clé d'ingestion**.
 - Pour le connecteur géré, le droit de créer un compte de service Google Cloud, dans le projet auquel votre instance SecOps est liée.
 
@@ -173,7 +173,7 @@ Chaque requête d'un test a un délai de 20 secondes. Les tests ne touchent ni a
 
 ## Prévisualiser, exécuter et importer à la demande
 
-Ouvrez **Diagnostics** sur une connexion pour voir les exécutions récentes et piloter le connecteur. Les propriétaires de projet, les administrateurs de projet et les administrateurs de sécurité peuvent lancer des opérations. Les membres et observateurs de sécurité peuvent lire l'historique.
+Ouvrez **Diagnostics** sur une connexion pour voir les exécutions récentes et piloter le connecteur. Les Propriétaires du projet, les Administrateurs du projet et les Administrateurs de la sécurité peuvent lancer des opérations. Les membres et observateurs de sécurité peuvent lire l'historique.
 
 - **Exécuter maintenant** met tout de suite une interrogation en file, avec le curseur et le chemin d'ingestion habituels, même quand l'interrogation planifiée est désactivée. Les états en file et en cours restent visibles pendant que le worker exécute la requête. Si une exécution reste en file, vérifiez que des workers traitent la file Worker ; la vérification **Background workers** de Tester la connexion dit si un processus le fait.
 - **Aperçu des détections** lit une plage de temps choisie sans importer ni changer le curseur. Utilisez la dernière heure, 24 heures, 7 jours, ou une plage personnalisée de 7 jours au plus. La plage correspond à la vue des alertes de SecOps, qui lit par heure de détection, et les deux passes de recherche lisent les détections créées dans la plage ainsi que celles dont l'heure de détection s'y trouve, un aperçu d'hier montre donc aussi les détections créées hier sur des événements plus anciens. L'aperçu montre l'heure de détection et l'heure de création séparément. Les résultats suivent la sélection **Données à importer** enregistrée de la connexion.

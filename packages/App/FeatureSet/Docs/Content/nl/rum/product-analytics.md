@@ -144,11 +144,11 @@ Een opgeslagen trechter of retentietabel kan ook op een dashboard: de widgets **
 
 ## Wie het kan zien
 
-Deze pagina's lezen vraagt wat de sessielijst lezen vraagt: `ReadRumSessionReplay` (_List Session Replays_) of `ReadRumSessionReplayPayload` (_Watch Session Replays_), die projecteigenaren en beheerders hebben. Zien wie een aangemelde gebruiker is, en mensen op naam zoeken, vraagt `ReadRumSessionReplayPayload` (_Watch Session Replays_), zoals [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) beschrijft.
+Deze pagina's lezen vraagt wat de sessielijst lezen vraagt: `ReadRumSessionReplay` (_List Session Replays_) of `ReadRumSessionReplayPayload` (_Watch Session Replays_), die Projecteigenaren en Projectbeheerders hebben. Zien wie een aangemelde gebruiker is, en mensen op naam zoeken, vraagt `ReadRumSessionReplayPayload` (_Watch Session Replays_), zoals [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) beschrijft.
 
 Opgeslagen trechters en retentietabellen opslaan, hernoemen en verwijderen vraagt dezelfde rechten als deze pagina's lezen, en een dashboardwidget toont er een alleen aan een lezer die ze heeft.
 
-De gebeurtenissen aan- of uitzetten vraagt `EditRumApplication` (_Edit RUM Application_) of de rol van projecteigenaar, beheerder of lid. Gebruikerseigenschappen opgeven vraagt `EditRumApplication` of de rol van eigenaar of beheerder, omdat het bepaalt wat er over aangemelde mensen wordt bewaard.
+De gebeurtenissen aan- of uitzetten vraagt `EditRumApplication` (_Edit RUM Application_) of de rol Projecteigenaar, Projectbeheerder of Projectlid. Gebruikerseigenschappen opgeven vraagt `EditRumApplication` of de rol van eigenaar of beheerder, omdat het bepaalt wat er over aangemelde mensen wordt bewaard.
 
 ## Volgende stappen
 

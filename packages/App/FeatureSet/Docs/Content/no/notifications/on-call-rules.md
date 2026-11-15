@@ -130,12 +130,12 @@ API-et kan lagre en reservasjonsregel, med `isOptOut` satt og uten metode: da bl
 :::
 
 :::details Slå av reserveløsningen for et helt prosjekt
-En prosjekteier, eller noen med **Manage Billing**, kan sette prosjektets `disableOnCallNotificationFallback` via API-et. En tilkalling som ikke finner noen regel, blir da ikke levert, og loggen dens sier at brukeren må legge til regler under **Brukerinnstillinger → Slik når man meg**.
+En Prosjekteier, eller noen med **Manage Billing**, kan sette prosjektets `disableOnCallNotificationFallback` via API-et. En tilkalling som ikke finner noen regel, blir da ikke levert, og loggen dens sier at brukeren må legge til regler under **Brukerinnstillinger → Slik når man meg**.
 :::
 
 ## Reglene til en kollega
 
-Prosjekteiere og administratorer kan se og endre den samme siden for alle i prosjektet: Under **Brukere** åpner de personen, og deretter **Slik når man meg** i seksjonen **Vakt**. **Beredskap**, rett ved siden av, viser om hver alvorlighetsgrad når personen. Når noen andre legger til, endrer eller sletter reglene dine, får du en e-post om det, og hver endring står i prosjektets revisjonslogg.
+Prosjekteiere og Prosjektadministratorer kan se og endre den samme siden for alle i prosjektet: Under **Brukere** åpner de personen, og deretter **Slik når man meg** i seksjonen **Vakt**. **Beredskap**, rett ved siden av, viser om hver alvorlighetsgrad når personen. Når noen andre legger til, endrer eller sletter reglene dine, får du en e-post om det, og hver endring står i prosjektets revisjonslogg.
 
 ## Feilsøking
 
