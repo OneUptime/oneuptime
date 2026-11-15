@@ -1,5 +1,5 @@
-import { JSONObject } from "../../../Types/JSON";
-import lookupTable from "../../LookupTable";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable, { readOwnValue, writeOwnValue } from "../../LookupTable";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
@@ -1251,10 +1251,15 @@ export default class WindowsEventLogParser {
       attributes["UserID"] = record.userSid;
     }
 
+    /*
+     * The event's own fields, never in place of the record's - read and
+     * written as the map's own keys: a plain read answered a field named
+     * "constructor" with the Object function, as if the record held it,
+     * and an assignment dropped one named "__proto__".
+     */
     for (const name of Object.keys(record.data)) {
-      // The event's own fields, never in place of the record's.
-      if (attributes[name] === undefined) {
-        attributes[name] = record.data[name]!;
+      if (readOwnValue(attributes, name) === undefined) {
+        writeOwnValue<JSONValue>(attributes, name, record.data[name]!);
       }
     }
 

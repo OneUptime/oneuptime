@@ -9,6 +9,7 @@ import { radius, spacing } from "../theme/tokens";
 import { withAlpha } from "../utils/color";
 import type { OnCallDutySummary } from "../oncall/duty";
 import type { OnCallShift } from "../api/types";
+import { onAPhoneThatReads } from "../__tests__/phoneClock";
 
 /*
  * This card is the answer to "am I on call, and until when". It is allowed to
@@ -88,6 +89,39 @@ describe("OnCallStatusCard on duty", () => {
     expect(screen.getByText("Handoff in 3h")).toBeTruthy();
     expect(screen.getByText("Today 3:00 PM")).toBeTruthy();
   });
+
+  /*
+   * The handoff on the phone's own clock (#8232): a 24-hour phone read
+   * "Today 3:00 PM" here and "15:00" on an incident's Created row.
+   */
+  test.each<[boolean, RegExp]>([
+    [true, /^Today 3:00\sPM$/],
+    [false, /^Today 15:00$/],
+  ])(
+    "writes the handoff on the phone's clock (12-hour: %p)",
+    async (twelveHour: boolean, handoff: RegExp): Promise<void> => {
+      onAPhoneThatReads(twelveHour);
+
+      await render(
+        <OnCallStatusCard
+          now={NOW}
+          summary={summary({
+            isOnCall: true,
+            activeShifts: [
+              shift({ endsAt: new Date(NOW + 3 * HOUR).toISOString() }),
+            ],
+            nextHandoffAt: new Date(NOW + 3 * HOUR).toISOString(),
+            scheduleAssignmentCount: 1,
+          })}
+        />,
+      );
+
+      expect(screen.getByText(handoff)).toBeTruthy();
+      expect(screen.getByText("Handoff in 3h")).toBeTruthy();
+
+      jest.restoreAllMocks();
+    },
+  );
 
   test("a standing assignment says so instead of inventing a handoff", async (): Promise<void> => {
     /*

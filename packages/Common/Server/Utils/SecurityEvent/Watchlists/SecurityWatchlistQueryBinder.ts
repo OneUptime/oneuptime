@@ -27,6 +27,7 @@ import {
   buildWatchlistTextMatch,
   getWatchlistsParameterUrlBytes,
 } from "./SecurityWatchlistMatch";
+import { writeOwnValue } from "../../../../Utils/LookupTable";
 
 /*
  * A SEARCH, A MONITOR OR A HUNT THAT READS A WATCHLIST, as a read of the
@@ -259,10 +260,11 @@ export default class SecurityWatchlistQueryBinder {
       ) {
         const attributes: Record<string, unknown> = {};
 
+        // An attribute's name is whoever wrote it: each the filter's own key.
         for (const [attributeKey, attributeValue] of Object.entries(
           value as Record<string, unknown>,
         )) {
-          attributes[attributeKey] = bindValue(attributeValue);
+          writeOwnValue(attributes, attributeKey, bindValue(attributeValue));
         }
 
         bound[key] = attributes;
