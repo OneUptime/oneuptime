@@ -491,11 +491,11 @@ describe("what a review that found nothing says", () => {
 
 describe("figures, as a review draws them", () => {
   test("a duration: milliseconds under a second, seconds to one place above", () => {
-    expect(formatReviewDuration(0, english)).toBe("0 ms");
-    expect(formatReviewDuration(840.4, english)).toBe("840 ms");
-    expect(formatReviewDuration(1234, english)).toBe("1.2 s");
-    expect(formatReviewDuration(61000, english)).toBe("61 s");
-    expect(formatReviewDuration(1234, german)).toBe("1,2 s");
+    expect(formatReviewDuration(0, english)).toBe("0\u00A0ms");
+    expect(formatReviewDuration(840.4, english)).toBe("840\u00A0ms");
+    expect(formatReviewDuration(1234, english)).toBe("1.2\u00A0s");
+    expect(formatReviewDuration(61000, english)).toBe("61\u00A0s");
+    expect(formatReviewDuration(1234, german)).toBe("1,2\u00A0s");
     expect(formatReviewDuration(-1, english)).toBe("");
     expect(formatReviewDuration(Number.NaN, english)).toBe("");
   });

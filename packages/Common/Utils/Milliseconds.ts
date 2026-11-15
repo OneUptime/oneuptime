@@ -67,8 +67,8 @@ export type DurationUnit = "ns" | "µs" | "ms" | "s" | "min" | "h";
 export interface DurationUnitKey {
   // The unit's key: the figure, a space and the unit's symbol.
   template: string;
-  // The key's placeholder for the figure.
-  placeholder: string;
+  // The name of the key's {{slot}} the figure goes in.
+  figureSlot: string;
   // The figure a duration in milliseconds is in this unit.
   toFigure: (milliseconds: number) => number;
 }
@@ -86,42 +86,42 @@ export const DURATION_UNIT_KEYS: Readonly<
 > = {
   ns: {
     template: translationKey("{{value}} ns"),
-    placeholder: "value",
+    figureSlot: "value",
     toFigure: (milliseconds: number): number => {
       return milliseconds * 1000000;
     },
   },
   µs: {
     template: translationKey("{{value}} µs"),
-    placeholder: "value",
+    figureSlot: "value",
     toFigure: (milliseconds: number): number => {
       return milliseconds * 1000;
     },
   },
   ms: {
     template: MILLISECONDS_TEMPLATE,
-    placeholder: "value",
+    figureSlot: "value",
     toFigure: (milliseconds: number): number => {
       return milliseconds;
     },
   },
   s: {
     template: translationKey("{{value}} s"),
-    placeholder: "value",
+    figureSlot: "value",
     toFigure: (milliseconds: number): number => {
       return milliseconds / 1000;
     },
   },
   min: {
     template: translationKey("{{minutes}} min"),
-    placeholder: "minutes",
+    figureSlot: "minutes",
     toFigure: (milliseconds: number): number => {
       return milliseconds / 60000;
     },
   },
   h: {
     template: translationKey("{{value}} h"),
-    placeholder: "value",
+    figureSlot: "value",
     toFigure: (milliseconds: number): number => {
       return milliseconds / 3600000;
     },
@@ -274,7 +274,7 @@ export const formatMilliseconds: (
     DURATION_UNIT_KEYS[options?.unit || "ms"] || DURATION_UNIT_KEYS.ms;
 
   return translator.translateTemplate(unit.template, {
-    [unit.placeholder]: formatFigure(
+    [unit.figureSlot]: formatFigure(
       translator,
       roundMilliseconds(
         unit.toFigure(milliseconds),

@@ -308,7 +308,7 @@ describe("the runtime charts' figures, in the reader's digits", () => {
     expect(formatDatabaseRuntimeAxisValue(1.25, "cores")).toBe("1.25");
     expect(formatDatabaseRuntimeAxisValue(12, "percent")).toBe("12%");
     expect(formatDatabaseRuntimeAxisValue(0.024, "percent")).toBe("0.024%");
-    expect(formatDatabaseRuntimeAxisValue(1048576, "bytes")).toBe("1.0 MiB");
+    expect(formatDatabaseRuntimeAxisValue(1048576, "bytes")).toBe("1.0\u00A0MiB");
     expect(formatDatabaseRuntimeAxisValue(2500, "cores")).toBe("2.5k");
     // Named English, or none at all, is the same.
     expect(formatDatabaseRuntimeAxisValue(0.025, "cores", "en")).toBe("0.025");
@@ -326,7 +326,7 @@ describe("the runtime charts' figures, in the reader's digits", () => {
       /^12\s%$/,
     );
     expect(formatDatabaseRuntimeAxisValue(1048576, "bytes", "de")).toBe(
-      "1,0 MiB",
+      "1,0\u00A0MiB",
     );
     expect(formatDatabaseRuntimeAxisValue(2500, "cores", "de")).toBe("2,5k");
   });
@@ -345,7 +345,7 @@ describe("the runtime charts' figures, in the reader's digits", () => {
     }
     expect(formatDatabaseRuntimeAxisValue(12, "percent", "fa")).toContain("٪");
     expect(formatDatabaseRuntimeAxisValue(1048576, "bytes", "fa")).toMatch(
-      / MiB$/,
+      /\u00A0MiB$/,
     );
   });
 
@@ -369,7 +369,7 @@ describe("the runtime charts' figures, in the reader's digits", () => {
     );
     expect(english[0]!.ticks["0.025"]).toBe("0.025");
     expect(english[0]!.ticks["1.25"]).toBe("1.25");
-    expect(english[1]!.ticks["1048576"]).toBe("1.0 MiB");
+    expect(english[1]!.ticks["1048576"]).toBe("1.0\u00A0MiB");
     cleanup();
 
     const german: Array<DrawnChart> = await drawSection(
@@ -378,7 +378,7 @@ describe("the runtime charts' figures, in the reader's digits", () => {
     );
     expect(german[0]!.ticks["0.025"]).toBe("0,025");
     expect(german[0]!.ticks["1.25"]).toBe("1,25");
-    expect(german[1]!.ticks["1048576"]).toBe("1,0 MiB");
+    expect(german[1]!.ticks["1048576"]).toBe("1,0\u00A0MiB");
     cleanup();
 
     const persian: Array<DrawnChart> = await drawSection(

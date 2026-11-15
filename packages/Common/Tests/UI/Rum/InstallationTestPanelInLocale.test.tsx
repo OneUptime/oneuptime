@@ -402,7 +402,7 @@ describe("buildInstallationCheckRows in the reader's language", () => {
       "⟦Uploads are paused: a byte budget was exhausted ⟦30m ago⟧⟧",
     );
     expect(rowByKey(reported, "bytes").detail).toBe(
-      "⟦10 MB of 1 GB used today across this project.⟧ ⟦3 GB of this application's 2\u00A0GB monthly budget used.⟧",
+      "⟦10\u00A0MB of 1\u00A0GB used today across this project.⟧ ⟦3\u00A0GB of this application's 2\u00A0GB monthly budget used.⟧",
     );
 
     const switchedOff: Array<CheckRow> = rowsOf(
@@ -472,7 +472,7 @@ describe("buildInstallationCheckRows in the reader's language", () => {
       "2 chunks dropped after acceptance in the last 24h",
     );
     expect(rowByKey(reported, "bytes").detail).toBe(
-      "10 MB of 1 GB used today across this project. 3 GB of this application's 2 GB monthly budget used.",
+      "10\u00A0MB of 1\u00A0GB used today across this project. 3\u00A0GB of this application's 2\u00A0GB monthly budget used.",
     );
     expect(rowByKey(reported, "budget-exceeded").title).toBe(
       "Uploads are paused: a byte budget was exhausted 30m ago",
@@ -506,7 +506,7 @@ describe("buildInstallationCheckRows in the reader's language", () => {
       "Uploads always, sampling 0%, consent required",
     );
     expect(rowByKey(recordsNothing, "bytes").detail).toBe(
-      "10 MB of 1 GB used today across this project. No monthly budget is set for this application (0 or blank means no ceiling).",
+      "10\u00A0MB of 1\u00A0GB used today across this project. No monthly budget is set for this application (0 or blank means no ceiling).",
     );
 
     expect(

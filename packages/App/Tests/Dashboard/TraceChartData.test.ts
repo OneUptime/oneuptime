@@ -742,10 +742,10 @@ describe("TraceChartData formatters", () => {
   });
 
   test("formatDurationMs picks a sensible unit", () => {
-    expect(formatDurationMs(0.5)).toBe("500 µs");
-    expect(formatDurationMs(5)).toBe("5.0 ms");
-    expect(formatDurationMs(1500)).toBe("1.50 s");
-    expect(formatDurationMs(90000)).toBe("1.5 min");
+    expect(formatDurationMs(0.5)).toBe("500\u00A0µs");
+    expect(formatDurationMs(5)).toBe("5.0\u00A0ms");
+    expect(formatDurationMs(1500)).toBe("1.50\u00A0s");
+    expect(formatDurationMs(90000)).toBe("1.5\u00A0min");
     expect(formatDurationMs(Infinity)).toBe("-");
   });
 

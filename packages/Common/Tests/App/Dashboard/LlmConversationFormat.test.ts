@@ -46,25 +46,25 @@ function nearBoundaries(boundaries: Array<number>): Array<number> {
 
 describe("formatLlmDuration", () => {
   test.each([
-    [Number.NaN, "0 ms"],
-    [Number.POSITIVE_INFINITY, "0 ms"],
-    [-5, "0 ms"],
-    [0, "0 ms"],
-    [0.4, "0 ms"],
-    [1, "1 ms"],
-    [850, "850 ms"],
-    [999.4, "999 ms"],
+    [Number.NaN, "0\u00A0ms"],
+    [Number.POSITIVE_INFINITY, "0\u00A0ms"],
+    [-5, "0\u00A0ms"],
+    [0, "0\u00A0ms"],
+    [0.4, "0\u00A0ms"],
+    [1, "1\u00A0ms"],
+    [850, "850\u00A0ms"],
+    [999.4, "999\u00A0ms"],
   ])("%p ms reads as milliseconds: %s", (ms: number, expected: string) => {
     expect(formatLlmDuration(ms)).toBe(expected);
   });
 
   test.each([
-    [999.6, "1.0 s"],
-    [1000, "1.0 s"],
-    [1049, "1.0 s"],
-    [1050, "1.1 s"],
-    [2345, "2.3 s"],
-    [9949, "9.9 s"],
+    [999.6, "1.0\u00A0s"],
+    [1000, "1.0\u00A0s"],
+    [1049, "1.0\u00A0s"],
+    [1050, "1.1\u00A0s"],
+    [2345, "2.3\u00A0s"],
+    [9949, "9.9\u00A0s"],
   ])(
     "%p ms reads as seconds with a tenth: %s",
     (ms: number, expected: string) => {
@@ -73,10 +73,10 @@ describe("formatLlmDuration", () => {
   );
 
   test.each([
-    [9950, "10 s"],
-    [10_000, "10 s"],
-    [42_000, "42 s"],
-    [59_499, "59 s"],
+    [9950, "10\u00A0s"],
+    [10_000, "10\u00A0s"],
+    [42_000, "42\u00A0s"],
+    [59_499, "59\u00A0s"],
   ])("%p ms reads as whole seconds: %s", (ms: number, expected: string) => {
     expect(formatLlmDuration(ms)).toBe(expected);
   });
@@ -107,7 +107,7 @@ describe("formatLlmDuration", () => {
     for (const ms of nearBoundaries([1000, 10_000, 60_000, 3_600_000])) {
       const text: string = formatLlmDuration(ms);
 
-      expect(text).not.toBe("1000 ms");
+      expect(text).not.toBe("1000\u00A0ms");
       expect(text).not.toBe("10.0 s");
       expect(text).not.toBe("60 s");
       expect(text).not.toMatch(/m 60s$/);

@@ -18,8 +18,10 @@ import { listSourceFiles, toRelativePath } from "../ForeignHiddenRuleGuard";
  *
  * This reads the shared UI, the shared helpers and the Dashboard through the
  * TypeScript AST (a comment is no code) and fails on a template whose figure
- * is followed by a space a line breaks at and a unit's symbol, and on a
- * figure joined with + to a string that starts so (`value + " ms"`). Code
+ * is followed by a space a line breaks at and a unit's symbol, or by such a
+ * space and a unit picked from a list (`${size} ${units[index]}`, the
+ * byte formatters' "MiB" and "GiB"), and on a figure joined with + to a
+ * string that starts so (`value + " ms"`). Code
  * joins them with a no-break space (`${size}\u00A0MB`) or writes them
  * through a key (formatMilliseconds), where the Translator holds them.
  *
@@ -51,6 +53,10 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "a template's description, stored for an operator to edit",
   "packages/Common/Utils/Suggestions/TracePerformanceFixSuggestion.ts":
     "the API's refusal, in the words the docs quote",
+  "packages/Common/Utils/SecurityEvent/TelemetryScan/FlowSignals.ts":
+    "a security signal's message, stored by the server's scan",
+  "packages/Common/Utils/AuditLog/AuditLogValues.ts":
+    "what an audit entry records in place of JSON too large to keep, stored and sent to syslog as written",
 };
 
 // Files another issue rewords whole, each with the issue.
@@ -144,6 +150,13 @@ const PLAIN_SPACE_BEFORE_A_UNIT: RegExp = new RegExp(
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+// A run of spaces a line breaks at, and nothing else.
+const ONLY_PLAIN_SPACES: RegExp = /^[ \u2000-\u2006\u2008-\u200A\u205F]+$/;
+
+// A unit picked from a list: `units[index]`, `BYTE_UNITS[unit]`.
+const UNIT_FROM_A_LIST: RegExp =
+  /^(?:[A-Z_]*UNITS|units)\[[^\]]+\](?:\s*as\s+string|!)?$/;
+
 interface UnitFinding {
   file: string;
   line: number;
@@ -180,9 +193,19 @@ const findPlainSpacesBeforeUnits: (data: {
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       ts.isTemplateExpression(node) &&
-      node.templateSpans.some((span: ts.TemplateSpan): boolean => {
-        return PLAIN_SPACE_BEFORE_A_UNIT.test(span.literal.text);
-      })
+      node.templateSpans.some(
+        (span: ts.TemplateSpan, index: number): boolean => {
+          const next: ts.TemplateSpan | undefined =
+            node.templateSpans[index + 1];
+
+          return (
+            PLAIN_SPACE_BEFORE_A_UNIT.test(span.literal.text) ||
+            (ONLY_PLAIN_SPACES.test(span.literal.text) &&
+              next !== undefined &&
+              UNIT_FROM_A_LIST.test(next.expression.getText(sourceFile)))
+          );
+        },
+      )
     ) {
       report(node);
     }
@@ -348,6 +371,8 @@ describe("negative controls: the scan catches what it is for", () => {
           "const g: string = `${temperature} °C`;",
           'const h: string = size + " GB";',
           "const i: string = `Collected in ${seconds}\\u2009s`;",
+          "const j: string = `${value.toFixed(1)} ${units[index]}`;",
+          "const k: string = `${rounded} ${BYTE_UNITS[unit] as string}`;",
         ].join("\n"),
       ),
     ).toEqual([
@@ -360,6 +385,8 @@ describe("negative controls: the scan catches what it is for", () => {
       "7 `${temperature} °C`",
       '8 size + " GB"',
       "9 `Collected in ${seconds}\\u2009s`",
+      "10 `${value.toFixed(1)} ${units[index]}`",
+      "11 `${rounded} ${BYTE_UNITS[unit] as string}`",
     ]);
   });
 
@@ -377,6 +404,10 @@ describe("negative controls: the scan catches what it is for", () => {
           "const h: string = `${value}${NO_BREAK_SPACE}GB`;",
           "// const i: string = `${value} ms`;",
           'const j: string = "Every " + " min";',
+          "const k: string = `${value}\\u00A0${units[index]}`;",
+          "const l: string = `${count} ${unit}s`;",
+          "const m: string = `systemctl ${verb} ${unit}`;",
+          "const n: string = `${value} ${units}`;",
         ].join("\n"),
       ),
     ).toEqual([]);

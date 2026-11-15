@@ -170,9 +170,9 @@ describe("the numbers", () => {
     expect(formatMessageQueueCount(null)).toBe("—");
     expect(formatMessageQueueErrorRate(4)).toBe("4.0%");
     expect(formatMessageQueueErrorRate(null)).toBe("—");
-    expect(formatMessageQueueDurationMs(0.85)).toBe("850 µs");
-    expect(formatMessageQueueDurationMs(12.3)).toBe("12 ms");
-    expect(formatMessageQueueDurationMs(1250)).toBe("1.25 s");
+    expect(formatMessageQueueDurationMs(0.85)).toBe("850\u00A0µs");
+    expect(formatMessageQueueDurationMs(12.3)).toBe("12\u00A0ms");
+    expect(formatMessageQueueDurationMs(1250)).toBe("1.25\u00A0s");
     expect(formatMessageQueueDurationMs(null)).toBe("—");
   });
 
@@ -188,7 +188,7 @@ describe("the numbers", () => {
     ).toBe("2.5 messages/s");
     expect(
       formatMessageQueueMetricValue(90, { unit: "s", kind: "gauge" }),
-    ).toBe("1.5 min");
+    ).toBe("1.5\u00A0min");
     expect(
       formatMessageQueueMetricValue(null, { unit: "messages", kind: "gauge" }),
     ).toBe("—");

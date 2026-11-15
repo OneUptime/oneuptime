@@ -277,13 +277,15 @@ describe("chart axes", () => {
   test("a unit word leaves the tick (it clipped to 'onnections'); short units stay", () => {
     expect(formatDatabaseMetricAxisValue(20, "connections")).toBe("20");
     expect(formatDatabaseMetricAxisValue(2.5, "rollbacks")).toBe("2.5");
-    expect(formatDatabaseMetricAxisValue(134217728, "bytes")).toBe("128 MiB");
+    expect(formatDatabaseMetricAxisValue(134217728, "bytes")).toBe(
+      "128\u00A0MiB",
+    );
     expect(formatDatabaseMetricAxisValue(0.85, "fraction")).toBe("85%");
     expect(formatDatabaseMetricAxisValue(12, "ms")).toBe("12 ms");
     // A sub-second lag reads in ms, not "0.0 s" on every tick.
-    expect(formatDatabaseMetricAxisValue(0.004, "s")).toBe("4 ms");
-    expect(formatDatabaseMetricAxisValue(0.012, "s")).toBe("12 ms");
-    expect(formatDatabaseMetricAxisValue(90, "s")).toBe("1.5 min");
+    expect(formatDatabaseMetricAxisValue(0.004, "s")).toBe("4\u00A0ms");
+    expect(formatDatabaseMetricAxisValue(0.012, "s")).toBe("12\u00A0ms");
+    expect(formatDatabaseMetricAxisValue(90, "s")).toBe("1.5\u00A0min");
     expect(formatDatabaseMetricValue(99, "%", "gauge")).toBe("99%");
     expect(formatDatabaseMetricAxisValue(null, "connections")).toBe("");
     expect(getDatabaseMetricAxisUnitLabel("connections")).toBe("connections");

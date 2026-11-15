@@ -456,7 +456,7 @@ describe("a virtual machine's page", () => {
       {
         key: "VirtualMachine:vm/db-primary-uuid",
         severity: "critical",
-        text: expect.stringContaining("1.5 GiB of memory swapped by the host"),
+        text: expect.stringContaining("1.5\u00A0GiB of memory swapped by the host"),
       },
     ]);
     expect(screen.getByTestId("vmware-vm-attention")).toHaveTextContent(

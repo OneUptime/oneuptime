@@ -214,13 +214,13 @@ describe("the status a pill shows agrees with ingest's health verdict", () => {
 
 describe("values are written the way storage admins read them", () => {
   test("bytes in binary units", () => {
-    expect(StorageArrayResourceUtils.formatBytes(512)).toBe("512 B");
-    expect(StorageArrayResourceUtils.formatBytes(1536)).toBe("1.5 KiB");
+    expect(StorageArrayResourceUtils.formatBytes(512)).toBe("512\u00A0B");
+    expect(StorageArrayResourceUtils.formatBytes(1536)).toBe("1.5\u00A0KiB");
     expect(StorageArrayResourceUtils.formatBytes(5 * 1024 ** 4)).toBe(
-      "5.0 TiB",
+      "5.0\u00A0TiB",
     );
     expect(StorageArrayResourceUtils.formatBytes(200 * 1024 ** 3)).toBe(
-      "200 GiB",
+      "200\u00A0GiB",
     );
     expect(StorageArrayResourceUtils.formatBytes(null)).toBe("—");
     expect(StorageArrayResourceUtils.formatBytes(Number.NaN)).toBe("—");
@@ -228,15 +228,21 @@ describe("values are written the way storage admins read them", () => {
 
   test("bandwidth per second", () => {
     expect(StorageArrayResourceUtils.formatBytesPerSec(10 * 1024 ** 2)).toBe(
-      "10.0 MiB/s",
+      "10.0\u00A0MiB/s",
     );
     expect(StorageArrayResourceUtils.formatBytesPerSec(undefined)).toBe("—");
   });
 
   test("latency in microseconds below a millisecond, milliseconds above", () => {
-    expect(StorageArrayResourceUtils.formatLatencyUsec(245.4)).toBe("245 µs");
-    expect(StorageArrayResourceUtils.formatLatencyUsec(1250)).toBe("1.25 ms");
-    expect(StorageArrayResourceUtils.formatLatencyUsec(250000)).toBe("250 ms");
+    expect(StorageArrayResourceUtils.formatLatencyUsec(245.4)).toBe(
+      "245\u00A0µs",
+    );
+    expect(StorageArrayResourceUtils.formatLatencyUsec(1250)).toBe(
+      "1.25\u00A0ms",
+    );
+    expect(StorageArrayResourceUtils.formatLatencyUsec(250000)).toBe(
+      "250\u00A0ms",
+    );
     expect(StorageArrayResourceUtils.formatLatencyUsec(null)).toBe("—");
   });
 
@@ -275,7 +281,9 @@ describe("values are written the way storage admins read them", () => {
   });
 
   test("temperature and percent", () => {
-    expect(StorageArrayResourceUtils.formatTemperature(41.6)).toBe("42 °C");
+    expect(StorageArrayResourceUtils.formatTemperature(41.6)).toBe(
+      "42\u00A0°C",
+    );
     expect(StorageArrayResourceUtils.formatPercent(83.456)).toBe("83.5%");
   });
 });

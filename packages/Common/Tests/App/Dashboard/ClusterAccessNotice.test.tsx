@@ -1300,7 +1300,7 @@ describe("the notes in brackets, drawn in one language", () => {
 
   test("French sets the semicolon between the notes apart with a space", () => {
     expect(usageIn("fr")).toBe(
-      "OneUptime AI a exécuté 3 commandes kubectl en lecture seule pendant cette enquête (2 ont renvoyé une erreur ; 2 autres n'ont pas pu s'exécuter — voir l'activité de l'enquête).",
+      "OneUptime AI a exécuté 3 commandes kubectl en lecture seule pendant cette enquête (2 ont renvoyé une erreur\u202F; 2 autres n'ont pas pu s'exécuter — voir l'activité de l'enquête).",
     );
   });
 });

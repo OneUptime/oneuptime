@@ -591,7 +591,9 @@ describe("#7521: a component's status in the reader's words", () => {
     expect(cellsOf(rowOf(result.container, "SH9.BAY3"))[2]).toBe("کاهش کارایی");
     expect(cellsOf(rowOf(result.container, "SH9.BAY4"))[2]).toBe("نصب‌نشده");
     // A drive's size beside it, in Persian digits as before.
-    expect(cellsOf(rowOf(result.container, "SH9.BAY3"))[3]).toBe("۳٫۵ TiB");
+    expect(cellsOf(rowOf(result.container, "SH9.BAY3"))[3]).toBe(
+      "۳٫۵\u00A0TiB",
+    );
   });
 
   test("a tile's Reported Status is the reader's word", async () => {
@@ -629,29 +631,29 @@ describe("#7521: a volume's sizes, latencies and IOPS in the reader's digits", (
   test.each([
     [
       "en",
-      "3.5 TiB of 10.0 TiB",
-      "420 µs / 2.35 ms",
+      "3.5\u00A0TiB of 10.0\u00A0TiB",
+      "420\u00A0µs / 2.35\u00A0ms",
       "1.5K",
       "Read 1.2K · Write 300",
     ],
     [
       "de",
-      "3,5 TiB von 10,0 TiB",
-      "420 µs / 2,35 ms",
+      "3,5\u00A0TiB von 10,0\u00A0TiB",
+      "420\u00A0µs / 2,35\u00A0ms",
       "1,5K",
       "Lesen 1,2K · Schreiben 300",
     ],
     [
       "ar",
-      "3.5 TiB من 10.0 TiB",
-      `${apart("420 µs")} / ${apart("2.35 ملي ث")}`,
+      "3.5\u00A0TiB من 10.0\u00A0TiB",
+      `${apart("420\u00A0م.ث.")} / ${apart("2.35\u00A0ملي\u00A0ث")}`,
       "1.5K",
       "القراءة 1.2K · الكتابة 300",
     ],
     [
       "fa",
-      "۳٫۵ TiB از ۱۰٫۰ TiB",
-      `${apart("۴۲۰ µs")} / ${apart("۲٫۳۵ میلی‌ثانیه")}`,
+      "۳٫۵\u00A0TiB از ۱۰٫۰\u00A0TiB",
+      `${apart("۴۲۰\u00A0میکروثانیه")} / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
       "۱٫۵K",
       `خواندن ۱٫۲K${getInlineSeparator("fa")}نوشتن ۳۰۰`,
     ],
@@ -714,8 +716,8 @@ describe("#7521: a volume's sizes, latencies and IOPS in the reader's digits", (
 
     for (const figure of [
       "۳٫۵ TiB از ۱۰٫۰ TiB",
-      "۴۲۰ µs",
-      // The Dashboard's duration, in Persian's own unit (#7418).
+      // The Dashboard's durations, in Persian's own units (#7418, #8348).
+      "۴۲۰ میکروثانیه",
       "۲٫۳۵ میلی‌ثانیه",
       "۱٫۲K",
       "۳۰۰",

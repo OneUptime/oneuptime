@@ -138,10 +138,10 @@ describe("volume latency", () => {
   );
 
   test("writes sub-millisecond latency in µs and the rest in ms", () => {
-    expect(formatLatencyUsec(420)).toBe("420 µs");
-    expect(formatLatencyUsec(999.4)).toBe("999 µs");
-    expect(formatLatencyUsec(1000)).toBe("1.00 ms");
-    expect(formatLatencyUsec(2345)).toBe("2.35 ms");
+    expect(formatLatencyUsec(420)).toBe("420\u00A0µs");
+    expect(formatLatencyUsec(999.4)).toBe("999\u00A0µs");
+    expect(formatLatencyUsec(1000)).toBe("1.00\u00A0ms");
+    expect(formatLatencyUsec(2345)).toBe("2.35\u00A0ms");
     expect(formatLatencyUsec(undefined)).toBe("—");
     expect(formatLatencyUsec("not a number")).toBe("—");
   });
@@ -164,13 +164,13 @@ describe("volume IOPS and capacity", () => {
   });
 
   test("writes bytes in binary units up to PiB", () => {
-    expect(formatStorageBytes(512)).toBe("512 B");
-    expect(formatStorageBytes(1024)).toBe("1.0 KiB");
-    expect(formatStorageBytes(5 * 1024 ** 3)).toBe("5.0 GiB");
-    expect(formatStorageBytes(3.84 * 1024 ** 4)).toBe("3.8 TiB");
-    expect(formatStorageBytes(2 * 1024 ** 5)).toBe("2.0 PiB");
+    expect(formatStorageBytes(512)).toBe("512\u00A0B");
+    expect(formatStorageBytes(1024)).toBe("1.0\u00A0KiB");
+    expect(formatStorageBytes(5 * 1024 ** 3)).toBe("5.0\u00A0GiB");
+    expect(formatStorageBytes(3.84 * 1024 ** 4)).toBe("3.8\u00A0TiB");
+    expect(formatStorageBytes(2 * 1024 ** 5)).toBe("2.0\u00A0PiB");
     // Past PiB it stays in PiB rather than inventing a unit.
-    expect(formatStorageBytes(4096 * 1024 ** 5)).toBe("4096.0 PiB");
+    expect(formatStorageBytes(4096 * 1024 ** 5)).toBe("4096.0\u00A0PiB");
     expect(formatStorageBytes(undefined)).toBe("—");
   });
 });
@@ -306,7 +306,7 @@ describe("hardware text", () => {
         kind: StorageArrayResourceKind.Drive,
         capacityBytes: 3.84 * 1024 ** 4,
       }),
-    ).toBe("3.8 TiB");
+    ).toBe("3.8\u00A0TiB");
     // A mode the widget knows is a word of the reader's language (#7091).
     expect(
       getHardwareDetail({
@@ -326,7 +326,7 @@ describe("hardware text", () => {
         kind: StorageArrayResourceKind.Hardware,
         temperatureCelsius: 27.6,
       }),
-    ).toBe("28 °C");
+    ).toBe("28\u00A0°C");
     // Nothing reported: a dash, never "undefined".
     expect(getHardwareDetail({ kind: StorageArrayResourceKind.Drive })).toBe(
       "—",
@@ -506,7 +506,7 @@ describe("the hardware list's words, in the reader's language", () => {
       persian,
     );
 
-    expect(detail).toBe("۲۸ °C");
+    expect(detail).toBe("۲۸\u00A0°C");
     expect(detail).not.toMatch(/[0-9]/);
     expect(
       getHardwareTypeText(
@@ -540,21 +540,23 @@ describe("the hardware list's words, in the reader's language", () => {
       capacityBytes: 3.84 * 1024 ** 4,
     };
 
-    expect(getHardwareDetail(drive, persian)).toBe("۳٫۸ TiB");
-    expect(getHardwareDetail(drive, german)).toBe("3,8 TiB");
+    expect(getHardwareDetail(drive, persian)).toBe("۳٫۸\u00A0TiB");
+    expect(getHardwareDetail(drive, german)).toBe("3,8\u00A0TiB");
     expect(getHardwareDetail(drive, createTranslator(undefined, "ar"))).toBe(
-      "3.8 TiB",
+      "3.8\u00A0TiB",
     );
-    expect(getHardwareDetail(drive)).toBe("3.8 TiB");
+    expect(getHardwareDetail(drive)).toBe("3.8\u00A0TiB");
   });
 
   test("formatStorageBytes writes the reader's number when it is handed a translator", () => {
-    expect(formatStorageBytes(512, persian)).toBe("۵۱۲ B");
-    expect(formatStorageBytes(2 * 1024 ** 5, german)).toBe("2,0 PiB");
-    expect(formatStorageBytes(4096 * 1024 ** 5, german)).toBe("4.096,0 PiB");
+    expect(formatStorageBytes(512, persian)).toBe("۵۱۲\u00A0B");
+    expect(formatStorageBytes(2 * 1024 ** 5, german)).toBe("2,0\u00A0PiB");
+    expect(formatStorageBytes(4096 * 1024 ** 5, german)).toBe(
+      "4.096,0\u00A0PiB",
+    );
     expect(formatStorageBytes(undefined, persian)).toBe("—");
     // Not handed one, it writes as it always has.
-    expect(formatStorageBytes(4096 * 1024 ** 5)).toBe("4096.0 PiB");
+    expect(formatStorageBytes(4096 * 1024 ** 5)).toBe("4096.0\u00A0PiB");
   });
 
   test("a translator with no words of its own writes English, as before", () => {
@@ -769,18 +771,19 @@ describe("a volume's figures, in the reader's digits", () => {
 
   /*
    * A millisecond figure is the Dashboard's duration (#7418): its unit is
-   * the reader's too ("۲٫۳۵ میلی‌ثانیه", "2.35 ملي ث"); a microsecond one
-   * keeps the symbol every language writes.
+   * the reader's too ("۲٫۳۵ میلی‌ثانیه", "2.35 ملي ث"), and so is a
+   * microsecond one ("۴۲۰ میکروثانیه", "420 م.ث."; #8348).
    */
   test("latency: the reader's digits and decimal sign, the unit as every language writes it", () => {
-    expect(formatLatencyUsec(420, german)).toBe("420 µs");
-    expect(formatLatencyUsec(2345, german)).toBe("2,35 ms");
-    expect(formatLatencyUsec(1_234_567, german)).toBe("1.234,57 ms");
-    expect(formatLatencyUsec(420, persian)).toBe("۴۲۰ µs");
-    expect(formatLatencyUsec(2345, persian)).toBe("۲٫۳۵ میلی‌ثانیه");
-    expect(formatLatencyUsec(420.4, persian)).toBe("۴۲۰ µs");
-    // Arabic writes Latin digits.
-    expect(formatLatencyUsec(2345, arabic)).toBe("2.35 ملي ث");
+    expect(formatLatencyUsec(420, german)).toBe("420\u00A0µs");
+    expect(formatLatencyUsec(2345, german)).toBe("2,35\u00A0ms");
+    expect(formatLatencyUsec(1_234_567, german)).toBe("1.234,57\u00A0ms");
+    expect(formatLatencyUsec(420, persian)).toBe("۴۲۰\u00A0میکروثانیه");
+    expect(formatLatencyUsec(2345, persian)).toBe("۲٫۳۵\u00A0میلی‌ثانیه");
+    expect(formatLatencyUsec(420.4, persian)).toBe("۴۲۰\u00A0میکروثانیه");
+    // Arabic writes Latin digits, and its milliseconds' two words held together.
+    expect(formatLatencyUsec(2345, arabic)).toBe("2.35\u00A0ملي\u00A0ث");
+    expect(formatLatencyUsec(420, arabic)).toBe("420\u00A0م.ث.");
     expect(formatLatencyUsec(undefined, persian)).toBe("—");
     expect(formatLatencyUsec("not a number", german)).toBe("—");
   });
@@ -798,22 +801,22 @@ describe("a volume's figures, in the reader's digits", () => {
 
   test("with no translator, or an English one, every figure is as before, a thousand milliseconds aside", () => {
     for (const translator of [undefined, english]) {
-      expect(formatLatencyUsec(420, translator)).toBe("420 µs");
-      expect(formatLatencyUsec(999.4, translator)).toBe("999 µs");
-      expect(formatLatencyUsec(1000, translator)).toBe("1.00 ms");
-      expect(formatLatencyUsec(2345, translator)).toBe("2.35 ms");
+      expect(formatLatencyUsec(420, translator)).toBe("420\u00A0µs");
+      expect(formatLatencyUsec(999.4, translator)).toBe("999\u00A0µs");
+      expect(formatLatencyUsec(1000, translator)).toBe("1.00\u00A0ms");
+      expect(formatLatencyUsec(2345, translator)).toBe("2.35\u00A0ms");
       // A thousand or more takes its separator, as every duration does (#7418).
-      expect(formatLatencyUsec(1_234_567, translator)).toBe("1,234.57 ms");
+      expect(formatLatencyUsec(1_234_567, translator)).toBe("1,234.57\u00A0ms");
       expect(formatIops(0, translator)).toBe("0");
       expect(formatIops(842.6, translator)).toBe("843");
       expect(formatIops(1500, translator)).toBe("1.5K");
       expect(formatIops(2_400_000, translator)).toBe("2.4M");
-      expect(formatStorageBytes(3.5 * TIB, translator)).toBe("3.5 TiB");
+      expect(formatStorageBytes(3.5 * TIB, translator)).toBe("3.5\u00A0TiB");
       expect(formatReadWriteLatencyUsec(420, 2345, translator)).toBe(
-        "420 µs / 2.35 ms",
+        "420\u00A0µs / 2.35\u00A0ms",
       );
       expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, translator)).toBe(
-        "3.5 TiB of 10.0 TiB",
+        "3.5\u00A0TiB of 10.0\u00A0TiB",
       );
       expect(formatReadWriteIops(1234, 300, translator)).toBe(
         "Read 1.2K · Write 300",
@@ -823,16 +826,16 @@ describe("a volume's figures, in the reader's digits", () => {
 
   test("used of provisioned: the sentence and its sizes in German, Persian and Arabic", () => {
     expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, german)).toBe(
-      "3,5 TiB von 10,0 TiB",
+      "3,5\u00A0TiB von 10,0\u00A0TiB",
     );
     expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, persian)).toBe(
-      "۳٫۵ TiB از ۱۰٫۰ TiB",
+      "۳٫۵\u00A0TiB از ۱۰٫۰\u00A0TiB",
     );
     expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, arabic)).toBe(
-      "3.5 TiB من 10.0 TiB",
+      "3.5\u00A0TiB من 10.0\u00A0TiB",
     );
     expect(formatUsedOfProvisioned(undefined, 10 * TIB, german)).toBe(
-      "— von 10,0 TiB",
+      "— von 10,0\u00A0TiB",
     );
   });
 
@@ -859,7 +862,7 @@ describe("a volume's figures, in the reader's digits", () => {
 
     expect(
       formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, persianWithoutTheSentence),
-    ).toBe("3.5 TiB of 10.0 TiB");
+    ).toBe("3.5\u00A0TiB of 10.0\u00A0TiB");
     // Persian's separator, whose zero is a dot (getInlineSeparator).
     expect(formatReadWriteIops(1234, 300, persianWithoutTheSentence)).toBe(
       `Read 1.2K${getInlineSeparator("fa")}Write 300`,
@@ -870,7 +873,7 @@ describe("a volume's figures, in the reader's digits", () => {
         10 * TIB,
         createTranslator(undefined, "de"),
       ),
-    ).toBe("3.5 TiB of 10.0 TiB");
+    ).toBe("3.5\u00A0TiB of 10.0\u00A0TiB");
   });
 
   test("read and write IOPS under the pointer, in the reader's sentence and digits", () => {
@@ -890,20 +893,20 @@ describe("a volume's figures, in the reader's digits", () => {
    */
   test("read and write latency: each set apart on a page read from the right, as before on one read from the left", () => {
     expect(formatReadWriteLatencyUsec(420, 2345, persian)).toBe(
-      `${apart("۴۲۰ µs")} / ${apart("۲٫۳۵ میلی‌ثانیه")}`,
+      `${apart("۴۲۰\u00A0میکروثانیه")} / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
     );
     expect(formatReadWriteLatencyUsec(420, 2345, arabic)).toBe(
-      `${apart("420 µs")} / ${apart("2.35 ملي ث")}`,
+      `${apart("420\u00A0م.ث.")} / ${apart("2.35\u00A0ملي\u00A0ث")}`,
     );
     expect(formatReadWriteLatencyUsec(420, 2345, german)).toBe(
-      "420 µs / 2,35 ms",
+      "420\u00A0µs / 2,35\u00A0ms",
     );
     // A latency the array did not report is the dash, which moves nothing.
     expect(formatReadWriteLatencyUsec(undefined, undefined, persian)).toBe(
       "— / —",
     );
     expect(formatReadWriteLatencyUsec(undefined, 2345, persian)).toBe(
-      `— / ${apart("۲٫۳۵ میلی‌ثانیه")}`,
+      `— / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
     );
   });
 

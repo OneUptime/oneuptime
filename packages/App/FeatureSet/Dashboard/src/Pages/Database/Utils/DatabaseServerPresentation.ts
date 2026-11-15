@@ -829,7 +829,7 @@ export function formatDatabaseMetricAxisValue(
   const cleanUnit: string = (unit || "").trim();
   if (cleanUnit === "bytes") {
     // A whole tick reads "0 B" or "5 GiB", not "0.0 B" or "5.0 GiB".
-    return formatDatabaseBytes(value).replace(/\.0 /, " ");
+    return formatDatabaseBytes(value).replace(/\.0(?=[ \u00A0])/, "");
   }
   if (cleanUnit === "s") {
     // Sub-second values in ms: "0.0 s" on every tick told nothing apart.
