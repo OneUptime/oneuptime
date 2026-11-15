@@ -93,7 +93,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny ping-monitor starter med to kriterier:
 
-- **Offline** — værten svarer ikke på nogen af ekkoanmodningerne eller kan slet ikke nås efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ is offline". Hændelsen løser sig selv, når værten svarer igen.
+- **Offline** — værten svarer ikke på nogen af ekkoanmodningerne eller kan slet ikke nås efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitornavn_ er offline". Hændelsen løser sig selv, når værten svarer igen.
 - **Oppe** — værten svarer. Monitoren markeres som **I drift**.
 
 Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad der sker. Når intet matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.

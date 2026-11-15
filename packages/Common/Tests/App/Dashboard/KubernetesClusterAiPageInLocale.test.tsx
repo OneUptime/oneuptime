@@ -886,7 +886,7 @@ describe("the AI agent page in the reader's language", () => {
       ).toHaveTextContent(
         wordingIn(
           code,
-          "A project owner or someone with Manage Billing can add AI credits.",
+          "A Project Owner or someone with Manage Billing can add AI credits.",
         ),
       );
       expect(

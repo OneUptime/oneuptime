@@ -2509,7 +2509,7 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
     });
 
-    test("with no SLO owners and no project owners nothing is sent and no stamp is written", async () => {
+    test("with no SLO owners and no Project Owners nothing is sent and no stamp is written", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       stubAtRisk();
       sloService.findOwners.mockResolvedValue([]);
@@ -2526,7 +2526,7 @@ describe("Slo:EvaluateSlos worker", () => {
       ).toHaveLength(0);
     });
 
-    test("project owners are notified when the SLO itself has none", async () => {
+    test("Project Owners are notified when the SLO itself has none", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       stubAtRisk();
       sloService.findOwners.mockResolvedValue([]);
@@ -5018,7 +5018,7 @@ describe("Slo:EvaluateSlos worker", () => {
 
       // The burn numbers are SLO data every reader of the SLO already has.
       expect(details).toContain(
-        "- **Visibility:** Private - only its owners and project admins can see this alert.",
+        "- **Visibility:** Private - only its owners and Project Admins can see this alert.",
       );
       expect(details).toContain("- **Threshold:** 14.4x");
       expect(items[0]!.postedAt?.getTime()).toBe(NOW.getTime());

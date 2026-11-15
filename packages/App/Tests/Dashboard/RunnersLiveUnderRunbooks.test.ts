@@ -463,7 +463,7 @@ describe("the messages people act on name Runbooks", () => {
       '"No secret variables yet. Add one under {{location}}, then pick it here."',
     );
     expect(copy).toContain(
-      '"No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here."',
+      '"No secret variables yet. Ask a Project Owner or Project Admin to add one under {{location}}, then pick it here."',
     );
     expect(steps).not.toContain("Settings › Credentials");
     expect(steps).not.toContain("Runbooks › Runners › Credentials");

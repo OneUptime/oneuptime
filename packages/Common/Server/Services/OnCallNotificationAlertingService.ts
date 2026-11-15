@@ -273,7 +273,7 @@ export class OnCallNotificationAlertingService extends BaseService {
 
       if (projectOwners.length === 0) {
         logger.error(
-          `OnCallNotificationAlertingService: project ${data.projectId.toString()} has no on-call policy owners and no project owners, so there is nobody to tell that a page to ${user.email?.toString() || data.userId.toString()} was undeliverable. Grant Permission.ProjectOwner to a team so alerts like this one have a destination.`,
+          `OnCallNotificationAlertingService: project ${data.projectId.toString()} has no on-call policy owners and no Project Owners, so there is nobody to tell that a page to ${user.email?.toString() || data.userId.toString()} was undeliverable. Grant Permission.ProjectOwner to a team so alerts like this one have a destination.`,
         );
 
         /*

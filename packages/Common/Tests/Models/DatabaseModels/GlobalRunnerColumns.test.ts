@@ -141,7 +141,7 @@ describe("Project.useGlobalRunners", () => {
     expect(facts.isDefaultValueColumn).toBe(true);
   });
 
-  test("a project admin turns it off or on, as with the global probes switch", () => {
+  test("a Project Admin turns it off or on, as with the global probes switch", () => {
     expect(facts.access?.update).toEqual(
       factsOf(new Project(), "doNotAddGlobalProbesByDefaultOnNewMonitors")
         .access?.update,

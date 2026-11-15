@@ -127,7 +127,7 @@ const masterAdminProps: () => DatabaseCommonInteractionProps =
   };
 
 const ADMINISTRATORS: Array<[string, Caller]> = [
-  ["a project owner", { name: "a project owner", props: ownerProps }],
+  ["a Project Owner", { name: "a Project Owner", props: ownerProps }],
   ["a master admin", { name: "a master admin", props: masterAdminProps }],
 ];
 

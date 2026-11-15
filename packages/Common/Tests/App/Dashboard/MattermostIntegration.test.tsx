@@ -631,7 +631,7 @@ describe("User Settings > Mattermost, project not connected", () => {
     expect(cardIn("mattermost-your-account")).toEqual({
       title: "Mattermost is not connected to this project yet",
       description:
-        "A project admin connects it under Project Settings → Workspace → Mattermost. Then you can connect your own Mattermost account here.",
+        "A Project Admin connects it under Project Settings → Workspace → Mattermost. Then you can connect your own Mattermost account here.",
       buttons: [],
     });
   });

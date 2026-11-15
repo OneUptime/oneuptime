@@ -23,6 +23,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { DOCS_DIR, DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
+import { defaultTitlesAsQuoted, isQuotedIn } from "./DocsDefaultTitles";
 
 /*
  * The NTP monitor page against the product it describes (#4617).
@@ -371,7 +372,10 @@ describe.each(DOCS_LANGUAGES)("the %s page", (lang: string) => {
   test("keeps the defaults the English page quotes", () => {
     expect(page).toContain(`\`${DEFAULT_NTP_PORT}\``);
     expect(page).toContain(`\`${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS}\``);
-    expect(page).toContain("is not serving good time");
+    // The incident a new monitor opens, in this language's words (#8526).
+    expect(
+      isQuotedIn(page, defaultTitlesAsQuoted(MonitorType.NTP, lang)[0]!),
+    ).toBe(true);
     expect(page).toContain("PROBE_MONITOR_RETRY_LIMIT");
   });
 });

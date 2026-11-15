@@ -10,6 +10,7 @@ import React, {
 import { useTranslation } from "react-i18next";
 import UserLanguageUtil from "Common/UI/Utils/UserLanguage";
 import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
+import { switchAdminDashboardLanguage } from "../../Utils/AdminDashboardLanguageSwitch";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -39,7 +40,15 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
     event: ChangeEvent<HTMLSelectElement>,
   ): void => {
     const nextLanguage: string = event.target.value;
-    i18n.changeLanguage(nextLanguage);
+    /*
+     * The language's words are a lazy chunk, loaded before the switch
+     * (AdminDashboardLanguageSwitch): the control shows the pick at once,
+     * and the languageChanged listener above confirms it once they arrive.
+     */
+    setCurrentLanguage(nextLanguage);
+    switchAdminDashboardLanguage(i18n, nextLanguage).catch((): void => {
+      // Worst case the language shown before simply stays.
+    });
     /*
      * A signed-in person's pick is theirs from then on, saved to their
      * account (Types/UserLanguage), as the Dashboard's language menu saves

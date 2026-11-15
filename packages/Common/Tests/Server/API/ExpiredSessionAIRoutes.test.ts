@@ -15,6 +15,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import LlmLogService from "../../../Server/Services/LlmLogService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
+import RunbookService from "../../../Server/Services/RunbookService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import SpanService from "../../../Server/Services/SpanService";
 import CodeFixReadiness from "../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
@@ -131,6 +132,7 @@ type SideEffect =
   | "suggestionTransition"
   | "commandPlanExecution"
   | "runbookStart"
+  | "runbookCreate"
   | "projectRead"
   | "llmLogsRead"
   | "readinessRead";
@@ -426,6 +428,18 @@ const AUTO_REMEDIATION_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "suggestionRead",
   },
+  /*
+   * Save a verified fix as a runbook (VerifiedFixRunbookSave, #6801): the
+   * fix is read under the person's own props first, and the runbook is
+   * created with their permissions.
+   */
+  {
+    uri: "/auto-remediation/save-as-runbook",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
 ];
 
 const CODE_FIX_RUN_ROUTES: Array<HumanOnlyRoute> = [
@@ -630,6 +644,9 @@ function stubSideEffects(): Record<SideEffect, jest.SpyInstance> {
       .mockResolvedValue(undefined as never),
     runbookStart: jest
       .spyOn(RunbookRuleEngineService, "startRunbookFor")
+      .mockResolvedValue(undefined as never),
+    runbookCreate: jest
+      .spyOn(RunbookService, "create")
       .mockResolvedValue(undefined as never),
     projectRead: jest
       .spyOn(ProjectService, "findOneById")

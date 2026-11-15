@@ -78,7 +78,7 @@ export const RULE_OWNING_TEAMS_FIELD_KEY: string = "ruleOwningTeams";
 export const RULE_OWNING_TEAMS_TITLE: string = translationKey("Owning Teams");
 
 export const RULE_OWNING_TEAMS_DESCRIPTION: string = translationKey(
-  "Only members of these teams, and project admins, can edit or delete this rule. Leave it empty and everyone who can edit rules can.",
+  "Only members of these teams, and Project Admins, can edit or delete this rule. Leave it empty and everyone who can edit rules can.",
 );
 
 /*
@@ -92,13 +92,13 @@ export const RULE_OWNED_REASONS: Readonly<{
   unnamedTeams: string;
 }> = {
   oneTeam: translationKey(
-    "This rule belongs to {{team}}: only its members, with its permissions, and project admins can change it.",
+    "This rule belongs to {{team}}: only its members, with its permissions, and Project Admins can change it.",
   ),
   severalTeams: translationKey(
-    "This rule belongs to {{teams}}: only their members, with their permissions, and project admins can change it.",
+    "This rule belongs to {{teams}}: only their members, with their permissions, and Project Admins can change it.",
   ),
   unnamedTeams: translationKey(
-    "This rule belongs to teams: only their members, with their permissions, and project admins can change it.",
+    "This rule belongs to teams: only their members, with their permissions, and Project Admins can change it.",
   ),
 };
 

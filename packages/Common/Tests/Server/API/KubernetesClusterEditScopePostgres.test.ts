@@ -1213,7 +1213,7 @@ describePostgres(
         );
       });
 
-      test("a project admin blocked from editing Production clusters is refused there too", async () => {
+      test("a Project Admin blocked from editing Production clusters is refused there too", async () => {
         await setTeamPermissions(memberTeamId, [
           { permission: Permission.ProjectAdmin },
           {
@@ -1408,7 +1408,7 @@ describePostgres(
         expect(kubectlRuns).toEqual([]);
       });
 
-      test("project owners and admins test every cluster", async () => {
+      test("Project Owners and Project Admins test every cluster", async () => {
         for (const permission of [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,

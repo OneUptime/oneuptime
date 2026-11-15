@@ -774,8 +774,8 @@ Een monitor die u niet vanuit een sjabloon bouwt, begint met twee criteria:
 
 | Volgorde | Criteria | Komt overeen wanneer | Dan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | De eerste query heeft het hele venster geen gegevens | Zet de monitor op **Offline** en meldt het incident "_monitor name_ is offline", dat vanzelf wordt opgelost zodra de monitor herstelt. |
-| 2 | Check if _monitor name_ is online | De eerste query heeft gegevens | Zet de monitor op **Operationeel**. |
+| 1 | Controleer of _monitornaam_ offline is | De eerste query heeft het hele venster geen gegevens | Zet de monitor op **Offline** en meldt het incident "_monitornaam_ is offline", dat vanzelf wordt opgelost zodra de monitor herstelt. |
+| 2 | Controleer of _monitornaam_ online is | De eerste query heeft gegevens | Zet de monitor op **Operationeel**. |
 
 > [!IMPORTANT]
 > Een waarde van `0` is gegevens, dus een metriek die vaak nul is, zoals herstarts of fouten, maakt de monitor niet offline. Om op een waarde te waarschuwen, begint u vanuit een sjabloon of voegt u een criterium met een drempel toe. Als er helemaal geen gegevens binnenkomen en geen criterium overeenkomt, behoudt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf niets ontving, is nooit "geen gegevens": een controle waarvan het venster die tijd bevat, wacht in plaats daarvan, zoals [Wanneer OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.

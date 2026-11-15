@@ -49,12 +49,14 @@
  * reads as the language's own wording (SAME_AS_ENGLISH_MARK in
  * Common/Types/Translator.ts). The page never reads the lists themselves.
  *
- * A frontend that bundles every locale whole (the Admin Dashboard, whose
- * i18n.ts imports all eighteen statically) passes shipsWholeLocales: each
+ * A frontend that bundles every locale whole passes shipsWholeLocales: each
  * locale then ships every entry its file holds, and the build only adds the
  * marks (getMarkedLocale). The trimmed copies are safe only where every
  * lookup has been shown to read the same from them as from the full files,
- * which Tests/App/Dashboard/DashboardRuntimeLocales does for the Dashboard.
+ * which Tests/App/Dashboard/DashboardRuntimeLocales does for the Dashboard
+ * and Tests/App/AdminDashboard/AdminRuntimeLocales for the Admin Dashboard.
+ * Both ship trimmed copies, English in the entry chunk and every other
+ * language a lazy chunk of its own; no frontend ships whole locales today.
  *
  * CommonJS, like esbuild-config.js: the frontends' esbuild.config.js files
  * are plain node scripts. Types for TypeScript callers are in

@@ -103,7 +103,7 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe DNSSEC-monitor begint met twee criteria:
 
-- **Keten gebroken** — **DNSSEC-keten is geldig** is **Onwaar**. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ DNSSEC chain is broken" gemaakt. Het incident lost zichzelf op zodra de keten weer geldig is.
+- **Keten gebroken** — **DNSSEC-keten is geldig** is **Onwaar**. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "DNSSEC-keten van _monitornaam_ is verbroken" gemaakt. Het incident lost zichzelf op zodra de keten weer geldig is.
 - **Keten geldig** — de monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden**, onder de criteria, een andere kiest.

@@ -252,7 +252,7 @@ class AlertPrivacyRuleEngineServiceClass
               ruleNames: ruleNames,
             });
 
-      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nAlert has been marked **private** — visible only to its owners, project admins, and project owners.`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nAlert has been marked **private** — visible only to its owners, Project Admins, and Project Owners.`;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id,

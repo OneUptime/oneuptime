@@ -1383,7 +1383,7 @@ describe("Databases (DatabaseServer) models", () => {
         "workloadIdentifier",
         "otelCollectorStatus",
       ])(
-        "an update of %s is refused even for a project owner",
+        "an update of %s is refused even for a Project Owner",
         (column: string) => {
           const data: DatabaseServer = new DatabaseServer();
           (data as unknown as Record<string, unknown>)[column] = "x";
@@ -1702,7 +1702,7 @@ describe("Databases (DatabaseServer) models", () => {
       );
     });
 
-    test("an endpoint cannot be rewritten in place, even by a project owner", () => {
+    test("an endpoint cannot be rewritten in place, even by a Project Owner", () => {
       const data: DatabaseServerEndpoint = new DatabaseServerEndpoint();
       data.endpoint = "somewhere-else:5432";
 

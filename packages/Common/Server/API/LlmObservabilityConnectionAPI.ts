@@ -181,7 +181,7 @@ export default class LlmObservabilityConnectionAPI extends BaseAPI<
       allowedPermissions:
         new LlmObservabilityConnection().getUpdatePermissions(),
       errorMessage:
-        "Project owners and project administrators can test and read AI connections.",
+        "Project Owners and project administrators can test and read AI connections.",
     });
   }
 

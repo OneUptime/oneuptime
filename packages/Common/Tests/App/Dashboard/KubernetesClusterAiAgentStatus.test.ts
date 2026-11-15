@@ -1181,7 +1181,9 @@ describe("the Needs attention card", () => {
   });
 
   test("tells a user without permission who to ask", () => {
-    expect(ASK_PROJECT_ADMIN_TEXT).toBe("Ask a project owner or admin.");
+    expect(ASK_PROJECT_ADMIN_TEXT).toBe(
+      "Ask a Project Owner or Project Admin.",
+    );
   });
 });
 
