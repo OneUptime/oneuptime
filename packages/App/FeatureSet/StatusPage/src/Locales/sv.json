@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% drifttid",
-    "uptimePercent": "{{percent}}% drifttid",
+    "uptimePercent": "{{percent}} drifttid",
     "operational": "Fungerar",
     "notMonitored": "Inte övervakad",
     "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
