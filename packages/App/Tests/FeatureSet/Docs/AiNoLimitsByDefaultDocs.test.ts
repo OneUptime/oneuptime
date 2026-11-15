@@ -148,7 +148,7 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   it: {
     ai: "IA",
-    insights: "Informazioni",
+    insights: "Insight",
     logs: "Registri",
     settings: "Impostazioni",
     rules: "Regole",

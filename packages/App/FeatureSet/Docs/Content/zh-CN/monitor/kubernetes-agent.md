@@ -214,7 +214,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Chart 会在每个节点上运行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 把 eBPF 程序加载到 Linux 内核中并观察每个 Pod 的网络流量，因此无需对应用做任何改动(没有 SDK，也没有 sidecar)就能重建 HTTP 和 HTTPS、gRPC 以及 SQL 和 Redis 调用。它把这些作为跟踪和请求指标发送到 OneUptime。
 
-一两分钟内，你的服务会出现在 **产品 → 跟踪** 下和服务地图上，`k8s.cluster.name` 设置为集群的名称，因此可以按集群过滤。
+一两分钟内，你的服务会出现在 **产品 → 追踪** 下和服务地图上，`k8s.cluster.name` 设置为集群的名称，因此可以按集群过滤。
 
 ### 何时关闭 eBPF
 

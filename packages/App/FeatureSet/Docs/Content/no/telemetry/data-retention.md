@@ -64,14 +64,14 @@ Overstyringer oppbevarer det du trenger lenger og resten kortere: feillogger i e
 
 ### For hele prosjektet
 
-Under standarden, sammenfoldet under **Flere innstillinger**, setter kortet **Oppbevaring etter telemetritype** dager for hver type telemetri. Klikk på **Edit Overrides**, fyll ut feltene du trenger, og la resten stå tomme:
+Under standarden, sammenfoldet under **Flere innstillinger**, setter kortet **Oppbevaring etter telemetritype** dager for hver type telemetri. Klikk på **Rediger overstyringer**, fyll ut feltene du trenger, og la resten stå tomme:
 
 | Type | Felt |
 | --- | --- |
-| Logger | **Logs default (days)**, og ett felt for hver loggalvorlighetsgrad |
-| Spor | **Traces default (days)**, og ett felt for hver span-status: Feil, OK og Ikke angitt |
-| Målinger | **Metrics default (days)** |
-| Profiler | **Profiles default (days)** |
+| Logger | **Standard for logger (dager)**, og ett felt for hver loggalvorlighetsgrad |
+| Spor | **Standard for traces (dager)**, og ett felt for hver span-status: Feil, OK og Ikke angitt |
+| Målinger | **Standard for metrikker (dager)** |
+| Profiler | **Standard for profiler (dager)** |
 
 Et felt som står tomt, faller tilbake på neste innstilling i rekkefølgen over, så en alvorlighetsgrad uten egne dager oppbevarer loggene sine etter standarden for logger.
 

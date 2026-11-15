@@ -36,6 +36,7 @@ import IngestionKeySelector from "./IngestionKeySelector";
 import ResourceConnectionWatch from "../ResourceOnboarding/ResourceConnectionWatch";
 import Service from "Common/Models/DatabaseModels/Service";
 import FrameworkGuideLinks from "./FrameworkGuideLinks";
+import { getProductsSetUpByGuide } from "./TelemetryGuideProducts";
 import { TelemetryGuideLanguageKey } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
 import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
@@ -2112,6 +2113,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 viewText={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].text}
                 ingestionKey={selectedKey}
                 dataPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].dataPage}
+                products={getProductsSetUpByGuide({
+                  telemetryType: telemetryType,
+                  everySignal: props.everySignal,
+                })}
               />
             </div>
           )}

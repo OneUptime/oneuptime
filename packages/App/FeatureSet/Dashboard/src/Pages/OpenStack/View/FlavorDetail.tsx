@@ -92,7 +92,7 @@ const FlavorOverview: FunctionComponent<{
           iconColor="blue"
           value={
             row.vcpuCapacity === undefined || row.vcpuCapacity === null
-              ? "—"
+              ? undefined
               : translator.formatNumber(row.vcpuCapacity)
           }
           description="What an instance of this flavor asks for."
@@ -104,7 +104,7 @@ const FlavorOverview: FunctionComponent<{
           value={
             row.memoryCapacityBytes === undefined ||
             row.memoryCapacityBytes === null
-              ? "—"
+              ? undefined
               : formatOpenStackBytes(row.memoryCapacityBytes)
           }
           description="What an instance of this flavor asks for."
@@ -116,7 +116,7 @@ const FlavorOverview: FunctionComponent<{
           value={
             row.diskCapacityBytes === undefined ||
             row.diskCapacityBytes === null
-              ? "—"
+              ? undefined
               : formatOpenStackBytes(row.diskCapacityBytes)
           }
           description="What an instance of this flavor asks for, on its hypervisor's local disk."
@@ -127,7 +127,7 @@ const FlavorOverview: FunctionComponent<{
           iconColor="sky"
           value={
             instances.data === null
-              ? "—"
+              ? undefined
               : translator.formatNumber(instances.data)
           }
           sublabel="of this flavor"

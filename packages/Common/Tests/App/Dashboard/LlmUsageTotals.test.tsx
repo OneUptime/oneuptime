@@ -70,6 +70,7 @@ import {
   emptyLlmUsageFigures,
   emptyLlmUsageResponse,
 } from "../../../Types/Telemetry/LlmUsageApi";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -159,7 +160,7 @@ describe("an instrumented app's AI calls", () => {
 
     await renderTiles();
 
-    expect(text("llm-usage-totals-cost-value")).toBe("—");
+    expect(text("llm-usage-totals-cost-value")).toBe(QUIET_DASH_TEXT);
     expect(text("llm-usage-totals-cost-hint")).toBe("No cost reported");
     expect(text("llm-usage-totals-input-value")).toBe("500");
     expect(text("llm-usage-totals-input-hint")).toBe("From AI calls");
@@ -175,7 +176,7 @@ describe("an instrumented app's AI calls", () => {
     await renderTiles();
 
     for (const tile of ["input", "output"]) {
-      expect(text(`llm-usage-totals-${tile}-value`)).toBe("—");
+      expect(text(`llm-usage-totals-${tile}-value`)).toBe(QUIET_DASH_TEXT);
       expect(text(`llm-usage-totals-${tile}-hint`)).toBe("No tokens reported");
     }
 
@@ -266,7 +267,7 @@ describe("a coding-assistant fleet (usage metrics only)", () => {
     expect(text("llm-usage-totals-calls-hint")).toBe(
       "AI calls come from your apps",
     );
-    expect(text("llm-usage-totals-input-value")).toBe("—");
+    expect(text("llm-usage-totals-input-value")).toBe(QUIET_DASH_TEXT);
     expect(text("llm-usage-totals-input-hint")).toBe("No tokens reported");
     expect(text("llm-usage-totals-cost-value")).toBe("$12.50");
     expect(text("llm-usage-totals-cost-hint")).toBe("From usage metrics");
@@ -369,7 +370,7 @@ describe("a read that failed", () => {
     await renderTiles();
 
     for (const tile of ["calls", "input", "output", "cost"]) {
-      expect(text(`llm-usage-totals-${tile}-value`)).toBe("—");
+      expect(text(`llm-usage-totals-${tile}-value`)).toBe(QUIET_DASH_TEXT);
       expect(text(`llm-usage-totals-${tile}-hint`)).toBe("Could not be loaded");
     }
 

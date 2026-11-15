@@ -3,6 +3,7 @@ import {
   LicenseSnapshot,
 } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { SeatTone } from "Common/UI/Components/EditionLabel/LicenseSeatUsage";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -526,15 +527,17 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
               <span
                 className={`text-3xl font-semibold leading-none tabular-nums ${
                   typeof effectiveUserCount !== "number"
-                    ? "text-gray-300"
+                    ? ""
                     : seatTone === "breached"
                       ? "text-red-700"
                       : "text-gray-900"
                 }`}
               >
-                {typeof effectiveUserCount === "number"
-                  ? translator.formatNumber(effectiveUserCount)
-                  : "—"}
+                {typeof effectiveUserCount === "number" ? (
+                  translator.formatNumber(effectiveUserCount)
+                ) : (
+                  <EmptyFigure />
+                )}
               </span>
               <span className="text-sm tabular-nums text-gray-500">
                 {typeof userLimit === "number" && userLimit > 0

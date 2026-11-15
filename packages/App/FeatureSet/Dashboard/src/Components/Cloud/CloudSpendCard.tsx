@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import {
   CloudAccountCostSummary,
   CloudCostTotals,
@@ -80,7 +81,7 @@ export const CloudCostFigure: FunctionComponent<{
         {translator.translateText(props.label)}
       </dt>
       <dd className="mt-1 break-words text-lg font-semibold text-gray-900">
-        <bdi>{props.value}</bdi>
+        <bdi>{getFigure(props.value)}</bdi>
       </dd>
     </div>
   );

@@ -24,7 +24,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 
 /*
  * Each of the Incident, Alert, and ScheduledMaintenance models exposes
@@ -332,7 +332,7 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
                 {card.isLoading ? (
                   <span className="text-gray-300">…</span>
                 ) : card.hasError ? (
-                  <TableEmptyValue />
+                  <EmptyFigure />
                 ) : (
                   formatCount(card.count)
                 )}

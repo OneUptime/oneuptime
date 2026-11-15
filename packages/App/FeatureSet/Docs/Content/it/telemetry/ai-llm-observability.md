@@ -58,7 +58,7 @@ La **Verifica della configurazione** in cima a **Collega** dice cosa porta ogni 
 | Nessuna app ha inviato una chiamata di IA | [Invia le chiamate di IA](#invia-le-chiamate-di-ia): gli account dei provider collegati portano utilizzo e costo giorno per giorno, mai una chiamata |
 | Un'app chiama l'API di un provider di IA e nessuna strumentazione GenAI la registra | Aggiungine una per il linguaggio dell'app: la verifica ha trovato gli span client HTTP dell'app verso `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` o l'API di un altro provider di IA |
 | Le chiamate arrivano senza prompt né risposte | [Registra cosa è stato detto](#registra-cosa-è-stato-detto), sugli span o come eventi di log |
-| Prompt e risposte arrivano come eventi di log | Niente: le conversazioni li leggono, e chi può leggere i log dell'app può leggerli anche nella pagina **Log** |
+| Prompt e risposte arrivano come eventi di log | Niente: le conversazioni li leggono, e chi può leggere i log dell'app può leggerli anche nella pagina **Registri** |
 | Le chiamate sono appena fuori dall'intervallo | L'elenco propone l'intervallo che contiene la più recente |
 | Un account del provider non legge alcun utilizzo | La sua riga indica l'ultimo giorno con utilizzo, o il primo giorno letto; una connessione Azure che non trova risorse ha bisogno di Monitoring Reader dove si trovano le risorse |
 
@@ -317,7 +317,7 @@ Le metriche GenAI come `gen_ai.client.token.usage` e `gen_ai.client.operation.du
 
 Le chiamate di IA vengono salvate come span di traccia, quindi le **Regole di mascheramento** e i **Filtri di scarto** delle tracce si applicano anche a loro: maschera un attributo, o scarta uno span, prima che venga salvato. Li trovi entrambi in **Tracce → Impostazioni**. La colonna dell'email del dipendente viene mascherata insieme all'attributo da cui è stata letta, quindi una regola che maschera le email copre anche questa.
 
-Prompt e risposte inviati come eventi di log vengono salvati come log, quindi si applicano a loro le **Regole di mascheramento** e i **Filtri di scarto** dei log, in **Log → Impostazioni**: una regola che maschera le email nelle tracce non le maschera negli eventi di log. Una conversazione li mostra solo a chi può leggere anche i log di quell'app, e chi può leggerli li trova anche nella pagina **Log**.
+Prompt e risposte inviati come eventi di log vengono salvati come log, quindi si applicano a loro le **Regole di mascheramento** e i **Filtri di scarto** dei log, in **Registri → Impostazioni**: una regola che maschera le email nelle tracce non le maschera negli eventi di log. Una conversazione li mostra solo a chi può leggere anche i log di quell'app, e chi può leggerli li trova anche nella pagina **Registri**.
 
 In entrambi i casi, una regola legge ogni testo dentro una lista o un valore strutturato, come i messaggi che una strumentazione invia come lista invece che come testo JSON, e mantiene la forma del valore: un indirizzo email in un prompt viene mascherato ovunque si trovi. Vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili).
 

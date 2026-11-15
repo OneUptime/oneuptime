@@ -184,7 +184,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         iconColor="blue"
         value={
           usage.cpuPercent === null
-            ? "—"
+            ? undefined
             : formatOpenStackPercent(usage.cpuPercent, {
                 language: translator.language,
               })
@@ -212,7 +212,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         title="Memory in use"
         icon={IconProp.SquareStack}
         iconColor="violet"
-        value={memory === null ? "—" : formatOpenStackBytes(memory)}
+        value={memory === null ? undefined : formatOpenStackBytes(memory)}
         sublabel={
           flavorMemory
             ? translator.translateTemplate(
@@ -239,7 +239,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         iconColor="amber"
         value={
           usage.contentionPercent === null
-            ? "—"
+            ? undefined
             : formatOpenStackPercent(usage.contentionPercent, {
                 language: translator.language,
               })
@@ -287,7 +287,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         iconColor="sky"
         value={
           diskLatency === null
-            ? "—"
+            ? undefined
             : formatMilliseconds(translator, diskLatency, ONE_DECIMAL)
         }
         sublabel={

@@ -1026,8 +1026,9 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
-    // A status no locale words is kept, not drawn.
-    expect(dashboardLabels(TOPOLOGY)).not.toContain("Entry point");
+    // A status every locale words since #8260 is drawn, not kept.
+    expect(dashboardLabels(TOPOLOGY)).toContain("Entry point");
+    expect(drawnActionLabel("de", "Entry point")).toBe("Einstiegspunkt");
     // A tab a locale words is drawn.
     expect(dashboardLabels(TOPOLOGY)).toContain("Infrastructure");
     expect(dashboardLabels(TOPOLOGY)).toContain("Service Map");

@@ -33,6 +33,7 @@ jest.mock(
         viewText: string;
         ingestionKey?: { name?: string } | null;
         dataPage?: string;
+        products?: ReadonlyArray<string>;
       }) => {
         return (
           <div
@@ -41,6 +42,7 @@ jest.mock(
             data-view-page={props.viewPage}
             data-key={props.ingestionKey?.name || ""}
             data-data-page={props.dataPage || ""}
+            data-products={(props.products || []).join(",")}
           >
             {props.viewText}
           </div>
@@ -152,6 +154,41 @@ describe("the Setup Guide tab's last step", () => {
       });
     },
   );
+
+  /*
+   * #8204: the products menu waits for what the guide sets up once the
+   * step sees the data arrive, rather than saying "Logs - Not set up"
+   * beside it.
+   */
+  test.each([
+    ["logs", "logs"],
+    ["metrics", "metrics"],
+    ["traces", "traces,topology"],
+    ["exceptions", "exceptions"],
+  ])(
+    "%s: the step tells the products menu to wait for %s",
+    (telemetryType: string, products: string) => {
+      renderGuide({ telemetryType: telemetryType as TelemetryType });
+
+      expect(screen.getByTestId("first-data-watch")).toHaveAttribute(
+        "data-products",
+        products,
+      );
+    },
+  );
+
+  test("a guide for a whole service waits for every signal's products", () => {
+    render(
+      <MemoryRouter>
+        <TelemetryDocumentation telemetryType="logs" everySignal={true} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("first-data-watch")).toHaveAttribute(
+      "data-products",
+      "logs,traces,topology,metrics",
+    );
+  });
 
   test("profiles have none: their guide listens for the first profile itself", () => {
     renderGuide({ telemetryType: "profiles" });

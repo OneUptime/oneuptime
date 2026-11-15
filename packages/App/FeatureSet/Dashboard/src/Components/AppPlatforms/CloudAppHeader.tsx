@@ -254,7 +254,7 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                   className="break-words text-xl font-semibold text-gray-900"
                   data-testid="cloud-app-name"
                 >
-                  {app.name || "—"}
+                  {app.name || translator.translateText("Unnamed")}
                 </h1>
                 <span
                   data-testid="cloud-app-header-state"
