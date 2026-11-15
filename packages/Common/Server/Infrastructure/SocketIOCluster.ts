@@ -48,7 +48,10 @@ export interface SocketIOClusterBus {
    * Hears every message on `channels`; resolves once it does. Throws when
    * it cannot listen.
    */
-  subscribe(channels: Array<string>, onMessage: ClusterBusHandler): Promise<void>;
+  subscribe(
+    channels: Array<string>,
+    onMessage: ClusterBusHandler,
+  ): Promise<void>;
   // Stops `onMessage` hearing `channels`.
   unsubscribe(
     channels: Array<string>,

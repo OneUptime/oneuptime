@@ -137,9 +137,12 @@ beforeAll(async () => {
 
   listener = connection();
   await listener.connect();
-  listener.on("pmessage", (_pattern: string, _channel: string, message: string) => {
-    traffic.push(message);
-  });
+  listener.on(
+    "pmessage",
+    (_pattern: string, _channel: string, message: string) => {
+      traffic.push(message);
+    },
+  );
   await listener.psubscribe(`${CHANNEL}*`);
 }, 30_000);
 

@@ -294,10 +294,10 @@ export async function startClusterServer(data: {
       redis: require("../../../../Server/Infrastructure/Redis").default,
       cluster: require("../../../../Server/Infrastructure/SocketIOCluster"),
       realtime: require("../../../../Server/Utils/Realtime").default,
-      sessions:
-        require("../../../../Server/Utils/Realtime/RealtimeSessions").default,
-      readers:
-        require("../../../../Server/Utils/Realtime/RealtimeReaders").default,
+      sessions: require("../../../../Server/Utils/Realtime/RealtimeSessions")
+        .default,
+      readers: require("../../../../Server/Utils/Realtime/RealtimeReaders")
+        .default,
       changes:
         require("../../../../Server/Utils/Realtime/RealtimeAccessChanges")
           .default,

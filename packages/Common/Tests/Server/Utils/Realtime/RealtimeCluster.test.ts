@@ -131,9 +131,9 @@ async function write(
   recordIds: Array<string>,
   options?: {
     eventType?: ModelEventType;
-    access?: FakeReadAccess | Awaited<
-      ReturnType<ClusterServer["realtime"]["snapshotReadAccess"]>
-    >;
+    access?:
+      | FakeReadAccess
+      | Awaited<ReturnType<ClusterServer["realtime"]["snapshotReadAccess"]>>;
   },
 ): Promise<void> {
   for (const recordId of recordIds) {
@@ -193,7 +193,6 @@ describe("a record written on one server reaches every reader who may read it", 
     const onB: Page = await page(serverB, READER);
 
     await write(serverA, [RECORD_A]);
-
 
     expect(
       await eventually((): boolean => {
@@ -301,9 +300,7 @@ describe("a delete, decided before the write", () => {
     readable(MEMBER_WHO_MAY_NOT);
 
     const reader: Page = await page(serverB, READER, [DELETE_ROOM]);
-    const mayNot: Page = await page(serverB, MEMBER_WHO_MAY_NOT, [
-      DELETE_ROOM,
-    ]);
+    const mayNot: Page = await page(serverB, MEMBER_WHO_MAY_NOT, [DELETE_ROOM]);
 
     // Before the delete, while its read still finds the row.
     const before: Awaited<
