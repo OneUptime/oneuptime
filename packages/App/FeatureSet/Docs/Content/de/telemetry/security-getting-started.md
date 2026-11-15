@@ -11,7 +11,7 @@ OneUptime findet Bedrohungen in Daten, die Sie bereits haben - Ihren Logs, den S
 
 ## Bevor Sie beginnen
 
-Zum Einrichten von Sicherheit braucht es die Rolle Project Owner, Project Admin oder Security Admin. Die Rollen Security Member und Security Viewer lesen, was gefunden wird; siehe [Rollen](/docs/permissions/reference#rollen).
+Zum Einrichten von Sicherheit braucht es die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Die Rollen Sicherheits-Mitglied und Sicherheits-Betrachter lesen, was gefunden wird; siehe [Rollen](/docs/permissions/reference#rollen).
 
 ## Einrichten
 
@@ -84,7 +84,7 @@ Arbeitet Ihr Team bereits in einem SIEM, sendet OneUptime seine Funde auch dorth
 ## Fehlerbehebung
 
 :::details Turn on recommended ist ausgegraut
-Ihre Rolle darf keine Erkennungsregeln, Playbooks oder die Log-Quelle hinzufügen. Wenden Sie sich an einen Project Owner, einen Project Admin oder einen Security Admin, oder lassen Sie sich von ihnen die Rolle Security Admin geben.
+Ihre Rolle darf keine Erkennungsregeln, Playbooks oder die Log-Quelle hinzufügen. Wenden Sie sich an einen Projektinhaber, einen Projektadministrator oder einen Sicherheits-Administrator, oder lassen Sie sich von ihnen die Rolle Sicherheits-Administrator geben.
 :::
 
 :::details Turn on recommended konnte nicht alles einschalten

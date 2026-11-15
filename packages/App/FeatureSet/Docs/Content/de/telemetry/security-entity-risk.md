@@ -30,7 +30,7 @@ flowchart TB
 
 - Eingehende Sicherheitsereignisse, und Erkennungsregeln, Threat Intelligence oder verbundene Produkte, die darin etwas finden. Siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started).
 - Erkennungsregeln, die nach einem Feld gruppieren, das jemanden nennt: **Nach Feld gruppieren**, etwa `principalUser`, `principalHost` oder `principalIp`, oder die Felder, nach denen eine Korrelation gruppiert. Eine Regel, die nach nichts gruppiert, fügt kein Risiko hinzu.
-- Um **Risikobewertung** zu ändern: Project Owner oder Project Admin für den Schalter und den Schwellenwert, und eine Rolle, die Erkennungsregeln erstellen darf, für die Liste der Entitäten. Security Viewer liest alles davon. Siehe [Rollen](/docs/permissions/reference#rollen).
+- Um **Risikobewertung** zu ändern: Projektinhaber oder Projektadministrator für den Schalter und den Schwellenwert, und eine Rolle, die Erkennungsregeln erstellen darf, für die Liste der Entitäten. Sicherheits-Betrachter liest alles davon. Siehe [Rollen](/docs/permissions/reference#rollen).
 
 ## So wird ein Wert gezählt
 

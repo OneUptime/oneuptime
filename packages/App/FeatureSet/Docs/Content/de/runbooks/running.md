@@ -58,7 +58,7 @@ So starten Sie einen von Hand:
 3. Die Ausführungsseite öffnet sich.
 :::
 
-Einen Lauf zu starten, erfordert Project Owner, Project Admin, Project Member, Runbook Admin oder Runbook Member oder die Berechtigung **Create Runbook Execution**. Runbook Viewer und Viewer sehen **Jetzt ausführen** gesperrt, mit dem Grund. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
+Einen Lauf zu starten, erfordert Projektinhaber, Projektadministrator, Projektmitglied, Runbook-Administrator oder Runbook-Mitglied oder die Berechtigung **Create Runbook Execution**. Runbook-Betrachter und Betrachter sehen **Jetzt ausführen** gesperrt, mit dem Grund. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
 
 ## Die Ausführungsansicht
 
@@ -128,7 +128,7 @@ Eine Ausführung ist ein einmaliger, unveränderlicher Datensatz. Um das Runbook
 ## Fehlerbehebung
 
 :::details Jetzt ausführen ist gesperrt
-Ihre Rolle liest Runbooks, führt sie aber nicht aus: Der Button sagt „Sie haben keine Berechtigung, in diesem Projekt Runbook-Ausführungen zu starten.“ Bitten Sie um Runbook Member oder um die Berechtigung **Create Runbook Execution**.
+Ihre Rolle liest Runbooks, führt sie aber nicht aus: Der Button sagt „Sie haben keine Berechtigung, in diesem Projekt Runbook-Ausführungen zu starten.“ Bitten Sie um Runbook-Mitglied oder um die Berechtigung **Create Runbook Execution**.
 :::
 
 :::details Der Start eines Laufs schlägt mit "Runbook is disabled" oder "Runbook has no steps to run" fehl

@@ -25,7 +25,7 @@ Die Nutzung eines Kontos ist das, was ihm in Rechnung gestellt wurde, Tag für T
 
 ## Bevor Sie beginnen
 
-- Die Rolle Project Owner oder Project Admin. Nur sie können ein Konto verbinden, ändern oder entfernen; alle, die die Telemetrie des Projekts lesen, sehen die Verbindungen und die Nutzung.
+- Die Rolle Projektinhaber oder Projektadministrator. Nur sie können ein Konto verbinden, ändern oder entfernen; alle, die die Telemetrie des Projekts lesen, sehen die Verbindungen und die Nutzung.
 - Zugangsdaten für das Konto, von jemandem, der es verwaltet. Der Abschnitt jedes Anbieters unten nennt, welche und wo sie erstellt werden.
 - Nichts zu installieren: OneUptime ruft die API des Anbieters von seinen eigenen Servern auf.
 

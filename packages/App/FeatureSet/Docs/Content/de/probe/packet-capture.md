@@ -188,10 +188,10 @@ Ein selbst geschriebener Filter ist eine Zeile mit höchstens 500 Zeichen aus Bu
 
 | Berechtigung | Erlaubt | Wer sie standardmäßig hat |
 | --- | --- | --- |
-| **Start Packet Capture** | Mitschnitte starten und stoppen | Project Owner, Project Admin |
-| **Download Packet Capture** | Mitschnittdateien herunterladen | Project Owner, Project Admin |
-| **Delete Packet Capture** | Mitschnitte und ihre Dateien löschen | Project Owner, Project Admin |
-| **Read Packet Capture** | Mitschnitte sehen: wann sie liefen, auf welcher Sonde und mit welchem Filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Mitschnitte starten und stoppen | Projektinhaber, Projektadministrator |
+| **Download Packet Capture** | Mitschnittdateien herunterladen | Projektinhaber, Projektadministrator |
+| **Delete Packet Capture** | Mitschnitte und ihre Dateien löschen | Projektinhaber, Projektadministrator |
+| **Read Packet Capture** | Mitschnitte sehen: wann sie liefen, auf welcher Sonde und mit welchem Filter | Projektinhaber, Projektadministrator, Projektmitglied, Betrachter |
 
 Um einem Team **Start Packet Capture** oder **Download Packet Capture** zu geben, öffnen Sie es unter **Einstellungen → Teams** und fügen Sie die Berechtigung auf seiner Seite **Berechtigungen** hinzu. Siehe [Berechtigungen](/docs/permissions/index).
 
