@@ -186,7 +186,7 @@ export default class PublicNoteApprovalRequest extends BaseModel {
     required: true,
     title: "Note ID",
     description:
-      "ID of the public note the approver was asked about, whatever its kind: an incident's, an episode's or a scheduled maintenance event's.",
+      "ID of the public note the approver was asked about, whatever its kind: an incident's, an episode's or a maintenance event's.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -298,7 +298,7 @@ export default class PublicNoteApprovalRequest extends BaseModel {
     modelType: ScheduledMaintenancePublicNote,
     title: "Scheduled Maintenance Public Note",
     description:
-      "The scheduled maintenance event's public note the approver was asked about.",
+      "The maintenance event's public note the approver was asked about.",
   })
   @ManyToOne(
     () => {
@@ -326,7 +326,7 @@ export default class PublicNoteApprovalRequest extends BaseModel {
     required: false,
     title: "Scheduled Maintenance Public Note ID",
     description:
-      "ID of the scheduled maintenance event's public note the approver was asked about.",
+      "ID of the maintenance event's public note the approver was asked about.",
   })
   @Column({
     type: ColumnType.ObjectID,

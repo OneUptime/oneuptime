@@ -140,6 +140,61 @@ export class HookFreeWriteScanner {
     return this.recording.has(`${file}#${name}`);
   }
 
+  /*
+   * Whether `caller`, a function of `file`, calls `callee` there: directly,
+   * or through the file's other functions (a bare name, `this.`, or their
+   * class), closures in its body included.
+   */
+  public callsInFile(file: string, caller: string, callee: string): boolean {
+    const functions: Array<ScannedFunction> =
+      this.functionsByFile.get(file) || [];
+    const seen: Set<string> = new Set<string>();
+    const queue: Array<string> = [caller];
+
+    while (queue.length > 0) {
+      const name: string = queue.shift()!;
+
+      if (seen.has(name)) {
+        continue;
+      }
+
+      seen.add(name);
+
+      for (const entry of functions) {
+        if (entry.name !== name) {
+          continue;
+        }
+
+        for (const call of entry.calls) {
+          for (const target of functions) {
+            const dot: number = target.name.lastIndexOf(".");
+            const ownName: string =
+              dot === -1 ? target.name : target.name.slice(dot + 1);
+            const ownClass: string | null =
+              dot === -1 ? null : target.name.slice(0, dot);
+
+            if (
+              ownName !== call.name ||
+              (call.receiver !== null &&
+                call.receiver !== "this" &&
+                call.receiver !== ownClass)
+            ) {
+              continue;
+            }
+
+            if (target.name === callee) {
+              return true;
+            }
+
+            queue.push(target.name);
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
   private isServerCode(file: string): boolean {
     const relative: string = path
       .relative(this.repoRoot, file)

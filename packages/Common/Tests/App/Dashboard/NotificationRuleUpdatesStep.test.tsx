@@ -62,6 +62,9 @@ const {
   PrivateNotes,
   Paging,
   Postmortem,
+  OnCallNow,
+  OnCallNext,
+  NobodyOnCall,
 } = NotificationRuleUpdateKind;
 
 const LOCALES_DIR: string = path.resolve(
@@ -356,6 +359,15 @@ describe("the step's words, one entry a kind of rule", () => {
     expect(
       UPDATES_COPY[NotificationRuleEventType.Alert].keyUpdatesDescription,
     ).toBe("Resolved and reopened, and severity changes.");
+    expect(
+      NotificationRuleUpdates.getKeyKinds(
+        NotificationRuleEventType.OnCallDutyPolicy,
+      ),
+    ).toEqual([OnCallNow, NobodyOnCall]);
+    expect(
+      UPDATES_COPY[NotificationRuleEventType.OnCallDutyPolicy]
+        .keyUpdatesDescription,
+    ).toBe("Who is on call now, and when nobody is.");
   });
 });
 
@@ -656,6 +668,150 @@ describe("the step, as the rule form draws it", () => {
       );
     },
   );
+});
+
+/*
+ * An on-call policy rule's step (#7549): its updates are who is on call,
+ * and a new rule starts on Key updates only - who is on call now, and when
+ * nobody is.
+ */
+describe("an on-call policy rule's step", () => {
+  const ON_CALL: UpdatesEventType = NotificationRuleEventType.OnCallDutyPolicy;
+
+  test("a new rule opens on Key updates only; one saved before, on Every update", async () => {
+    const instance: i18n = await dashboardIn(ENGLISH);
+
+    renderStep({
+      rule: {
+        ...ruleOf(),
+        ...NotificationRuleUpdates.getNewRuleUpdates(ON_CALL),
+      } as IncidentNotificationRule,
+      eventType: ON_CALL,
+      instance: instance,
+    });
+
+    expect(checkedAnswer()).toBe("Key updates only");
+    expect(answer("Key updates only")).toHaveAccessibleDescription(
+      "Who is on call now, and when nobody is.",
+    );
+    expect(answer("Every update")).toHaveAccessibleDescription(
+      "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.",
+    );
+
+    cleanup();
+
+    renderStep({ rule: ruleOf(), eventType: ON_CALL, instance: instance });
+
+    expect(checkedAnswer()).toBe("Every update");
+  });
+
+  test("its boxes say what each covers", async () => {
+    renderStep({
+      rule: ruleOf([OnCallNow]),
+      eventType: ON_CALL,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(box("Who is on call now")).toHaveAccessibleDescription(
+      "One line at each hand-off: who is on call, and until when.",
+    );
+    expect(box("Who is on call next")).toHaveAccessibleDescription(
+      "Who takes over at the next hand-off, and when.",
+    );
+    expect(box("Nobody on call")).toHaveAccessibleDescription(
+      "When a schedule is left with nobody on call, so alerts that reach it page no one.",
+    );
+    expect(box("User overrides")).toHaveAccessibleDescription(
+      "Overrides added, changed and taken back: who is away, and who covers.",
+    );
+    expect(box("Changes to the policy")).toHaveAccessibleDescription(
+      "Schedules, people and teams added to its escalation rules or taken out.",
+    );
+    expect(tickedBoxes()).toEqual(["Who is on call now"]);
+  });
+
+  test("ticking who is on call next adds it, in the order of the boxes", async () => {
+    const changes: Array<IncidentNotificationRule> = renderStep({
+      rule: ruleOf([OnCallNow, NobodyOnCall]),
+      eventType: ON_CALL,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    await userEvent.click(answer("Choose updates"));
+    await userEvent.click(box("Who is on call next"));
+
+    expect(
+      (changes[changes.length - 1] as { updatesToPost?: unknown })
+        .updatesToPost,
+    ).toEqual([OnCallNow, OnCallNext, NobodyOnCall]);
+  });
+
+  test("the card's row: Key updates only, and who is on call now and nobody on call", async () => {
+    render(
+      <I18nextProvider i18n={await dashboardIn(ENGLISH)}>
+        <UpdatesRuleSummary
+          rule={ruleOf([NobodyOnCall, OnCallNow])}
+          eventType={ON_CALL}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByTestId("notification-rule-updates-summary-title"),
+    ).toHaveTextContent("Key updates only");
+    expect(
+      screen.getByTestId("notification-rule-updates-summary-list"),
+    ).toHaveTextContent(
+      ["Who is on call now", "Nobody on call"].join(INLINE_SEPARATOR),
+    );
+  });
+
+  test("with every box cleared, the step and the card say it posts only when the policy is created", async () => {
+    const instance: i18n = await dashboardIn(ENGLISH);
+
+    renderStep({ rule: ruleOf([]), eventType: ON_CALL, instance: instance });
+
+    expect(
+      screen.getByTestId("notification-rule-updates-nothing-chosen"),
+    ).toHaveTextContent(
+      "With none ticked, the rule posts only when an on-call policy is created.",
+    );
+
+    cleanup();
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <UpdatesRuleSummary rule={ruleOf([])} eventType={ON_CALL} />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByTestId("notification-rule-updates-summary-title"),
+    ).toHaveTextContent("Only when an on-call policy is created");
+    expect(
+      screen.queryByTestId("notification-rule-updates-summary-list"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("German: a new rule's step, in German words", async () => {
+    const german: Locale = readLocale("de");
+
+    renderStep({
+      rule: ruleOf([OnCallNow, NobodyOnCall]),
+      eventType: ON_CALL,
+      instance: await dashboardIn("de"),
+    });
+
+    expect(checkedAnswer()).toBe("Nur wichtige Aktualisierungen");
+
+    await userEvent.click(answer("Aktualisierungen auswählen"));
+
+    expect(tickedBoxes()).toEqual([
+      german["Who is on call now"],
+      german["Nobody on call"],
+    ]);
+    expect(german["Who is on call now"]).not.toBe("Who is on call now");
+  });
 });
 
 describe("the step and the card's row in other languages", () => {

@@ -20,6 +20,7 @@ import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import ProbeMessageLine from "./ProbeMessageLine";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
   SummaryFact,
@@ -312,9 +313,13 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
             isWide={true}
             title="Error"
             value={
-              dbResponse?.connectionError ||
-              props.probeMonitorResponse.failureCause?.toString() ||
-              "-"
+              <ProbeMessageLine
+                message={
+                  dbResponse?.connectionError ||
+                  props.probeMonitorResponse.failureCause?.toString() ||
+                  ""
+                }
+              />
             }
           />
         ) : (

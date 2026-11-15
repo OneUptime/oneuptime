@@ -37,7 +37,7 @@ Trin kører **i rækkefølge**. Du ændrer rækkefølgen ved at trække et trin 
 
 ### Gem trinnene
 
-Klik på **Gem trin**. Indtil du gør det, viser editoren **Ikke-gemte ændringer**. Når de er gemt, ser du **Gemt**, og runbooket er klar til at [køre](/docs/runbooks/running).
+Klik på **Gem trin**. Indtil du gør det, viser editoren **Ikke-gemte ændringer**. Når de er gemt, ser du **Gemt**, og runbooket er klar til at [køre](/docs/runbooks/running). At forlade trinnene, før du har gemt, spørger først. Et link i sidemenuen, brødkrummestien eller topbjælken, eller browserens Tilbage- og Frem-knapper, åbner **Forlad uden at gemme?** med to valg: **Fortsæt med at redigere** bliver ved trinnene med dine ændringer, og **Kassér ændringer** fortsætter til den side, du var ved at åbne. Lukker eller genindlæser du fanen, spørger browseren med sin egen dialog.
 :::
 
 ## Et trins opbygning

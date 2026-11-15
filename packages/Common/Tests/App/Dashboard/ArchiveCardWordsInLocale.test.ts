@@ -118,7 +118,9 @@ const OWN_COPY_KINDS: ReadonlyArray<{
 
 /*
  * Each of those cards' sentences, live and archived, its dialogs', and the
- * sentence of their lists' bulk dialogs, whose title is worded too.
+ * sentence of their lists' bulk dialogs, whose title is worded too - and the
+ * banner across the top of an archived one's pages and its list's Archived
+ * page: their title, their sentence and the empty list's message (#7386).
  */
 const OWN_COPY_SENTENCES: ReadonlyArray<{ kind: string; key: string }> =
   OWN_COPY_KINDS.flatMap(
@@ -136,11 +138,37 @@ const OWN_COPY_SENTENCES: ReadonlyArray<{ kind: string; key: string }> =
         copy.unarchiveConfirmMessage,
         copy.bulkArchiveConfirmMessage,
         copy.bulkUnarchiveConfirmMessage,
+        copy.bannerTitle,
+        copy.bannerBody,
+        copy.archivedPageTitle,
+        copy.archivedPageDescription,
+        copy.noArchivedItemsMessage,
       ].map((key: string): { kind: string; key: string } => {
         return { kind: kind, key: key };
       });
     },
   );
+
+/*
+ * The other words an Archived page draws: the archived workflows' column
+ * and its two values, and the monitor table's search boxes and template
+ * column, with the file that says each.
+ */
+const ARCHIVED_PAGE_WORDS: ReadonlyArray<{ file: string; key: string }> = [
+  { file: "Pages/Workflow/Archived.tsx", key: "When Unarchived" },
+  { file: "Pages/Workflow/Archived.tsx", key: "Runs again" },
+  { file: "Pages/Workflow/Archived.tsx", key: "Stays disabled" },
+  { file: "Components/Monitor/MonitorTable.tsx", key: "Search templates..." },
+  { file: "Components/Monitor/MonitorTable.tsx", key: "Search statuses..." },
+  {
+    file: "Components/Monitor/MonitorTable.tsx",
+    key: "Search monitor types...",
+  },
+  {
+    file: "Components/Monitor/MonitorTable.tsx",
+    key: "The monitor template this monitor is linked to, if any.",
+  },
+];
 
 function sourceFiles(directory: string): Array<string> {
   const files: Array<string> = [];
@@ -217,6 +245,21 @@ describe("the pages the Archive card is read from", () => {
     expect(unnamed).toEqual([]);
   });
 
+  test("the Archived pages still draw the words checked below", () => {
+    for (const { file, key } of ARCHIVED_PAGE_WORDS) {
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD_SRC, file),
+        "utf8",
+      );
+
+      expect({ file, key, drawn: source.includes(`"${key}"`) }).toEqual({
+        file,
+        key,
+        drawn: true,
+      });
+    }
+  });
+
   test("the names read from them include an SLO and a service", () => {
     const names: Array<string> = literalCardNames();
 
@@ -252,12 +295,23 @@ describe.each(DASHBOARD_LANGUAGES)(
     });
 
     test.each(OWN_COPY_SENTENCES)(
-      "the $kind card's or list's own sentence is worded: $key",
+      "the $kind card's, banner's or list's own words are worded: $key",
       ({ key }: { kind: string; key: string }) => {
         expect({
           key,
           worded: isWordedInDashboardLocale(key, language),
         }).toEqual({ key, worded: true });
+      },
+    );
+
+    test.each(ARCHIVED_PAGE_WORDS)(
+      "the Archived page's $key is worded",
+      ({ key }: { file: string; key: string }) => {
+        expect({
+          key,
+          worded: isWordedInDashboardLocale(key, language),
+        }).toEqual({ key, worded: true });
+        expect(placeholdersOf(words[key]!)).toEqual(placeholdersOf(key));
       },
     );
 
@@ -330,7 +384,10 @@ describe.each(DASHBOARD_LANGUAGES)(
 );
 
 describe("the bulk dialog's title on a list with sentences of its own", () => {
-  // As useBulkArchiveActions says it: the list's names, in the reader's language.
+  /*
+   * As useBulkArchiveActions says it: the list's names, in the reader's
+   * language, cased as in the middle of a sentence (#7387).
+   */
   function bulkTitle(
     language: string,
     copy: ResourceArchiveCopy,
@@ -340,15 +397,18 @@ describe("the bulk dialog's title on a list with sentences of its own", () => {
       BULK_ARCHIVE_TITLE,
       count,
       {
-        itemName: translatableTerm(copy.singularName),
-        itemsName: translatableTerm(copy.pluralName),
+        itemName: translatableTerm(copy.singularName, { inSentence: true }),
+        itemsName: translatableTerm(copy.pluralName, { inSentence: true }),
       },
     );
   }
 
   test("names the workflows and dashboards in the reader's language", () => {
     expect(bulkTitle("ru", WORKFLOW_ARCHIVE_COPY, 3)).toBe(
-      "Архивировать элементы (рабочие процессы): 3?",
+      "Архивировать объекты (рабочие процессы): 3?",
+    );
+    expect(bulkTitle("fr", DASHBOARD_ARCHIVE_COPY, 3)).toBe(
+      "Archiver 3 tableaux de bord ?",
     );
     expect(bulkTitle("ko", DASHBOARD_ARCHIVE_COPY, 3)).toBe(
       "대시보드 3개를 보관하시겠습니까?",
@@ -389,10 +449,13 @@ describe("the card's title, a heading in every language", () => {
   }
 
   test("starts with a capital where Dutch puts the name first", () => {
-    // nl words "service" as "dienst" and "Archive {{itemName}}" as "{{itemName}} archiveren".
-    expect(readDashboardLocale("nl")["service"]).toBe("dienst");
-    expect(title("nl", "service")).toBe("Dienst archiveren");
-    expect(title("nl", "service", true)).toBe("Dienst uit archief halen");
+    /*
+     * nl words "service" as "service" - its Services list's own noun, not
+     * "dienst" (#7387) - and "Archive {{itemName}}" as "{{itemName}} archiveren".
+     */
+    expect(readDashboardLocale("nl")["service"]).toBe("service");
+    expect(title("nl", "service")).toBe("Service archiveren");
+    expect(title("nl", "service", true)).toBe("Service uit het archief halen");
   });
 
   test("keeps a name's own case: vCenter", () => {

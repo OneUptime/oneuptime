@@ -53,7 +53,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Scheduled Maintenance Measurement Values",
   icon: IconProp.Clock,
   tableDescription:
-    "The computed value of one measurement for one scheduled maintenance event. Written by OneUptime, never edited by hand.",
+    "The computed value of one measurement for one maintenance event. Written by OneUptime, never edited by hand.",
 })
 export default class ScheduledMaintenanceMeasurementValue extends BaseModel {
   @ColumnAccessControl({

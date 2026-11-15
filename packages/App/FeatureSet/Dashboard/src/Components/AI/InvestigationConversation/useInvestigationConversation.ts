@@ -7,6 +7,8 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -124,6 +126,17 @@ export default function useInvestigationConversation(options: {
   const requestCounterRef: React.MutableRefObject<number> = useRef<number>(0);
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const busyRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  /*
+   * The language the Dashboard is read in, sent with every question and
+   * every approval: a monitor OneUptime AI sets up names its criteria,
+   * incident and alert in it, as the guided setup does (#7247).
+   */
+  const translator: Translator = useTranslator();
+  const languageRef: React.MutableRefObject<string> = useRef<string>(
+    translator.language,
+  );
+  languageRef.current = translator.language;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -285,6 +298,7 @@ export default function useInvestigationConversation(options: {
         await post("/ai-investigation/conversation/send-message", {
           content,
           permissionMode,
+          language: languageRef.current,
         });
 
         if (subjectKeyRef.current !== requestedSubjectKey) {
@@ -339,6 +353,8 @@ export default function useInvestigationConversation(options: {
         await post("/ai-investigation/conversation/respond-to-approval", {
           assistantMessageId,
           decisions: decisions as unknown as JSONObject[],
+          // What an approved setup action writes its records in (#7247).
+          language: languageRef.current,
         } as JSONObject);
         busyRef.current = true;
         await refresh();

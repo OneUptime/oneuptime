@@ -100,7 +100,7 @@ Criar uma regra passa por até cinco etapas:
 | **Básico** | **Nome da regra** e **Descrição da regra**. |
 | **Condições** | A quais eventos a regra se aplica, por exemplo por gravidade, estado, rótulo, monitor ou palavras no título. Elas são verificadas quando um evento é criado e novamente a cada atualização que o OneUptime publica sobre ele, então uma regra para incidentes confirmados age quando um incidente é confirmado. Uma regra nova vale para todo evento, por exemplo **Todos os incidentes**. Para restringi-la, escolha **Somente os incidentes que atendem às condições** e adicione as condições. Com duas ou mais, **Condição de correspondência** diz se todas precisam corresponder ou se basta uma. |
 | **Destino** | Onde ela publica: **Publicar em canais existentes** com os nomes dos canais, **Criar um canal para cada incidente** (ou alerta, episódio, evento, monitor ou política de plantão) com quem entra nele, ou ambos. Abaixo da etapa, **O que esta regra faz** diz isso em frases, como o cartão da regra. |
-| **Atualizações** | Somente incidentes, alertas, episódios e manutenções agendadas: quais atualizações a regra publica depois da primeira mensagem do registro. **Todas as atualizações**, com que uma regra nova começa, publica todas elas. **Somente atualizações importantes** publica as que mais importam, que a etapa lista para cada tipo de registro: para um incidente, a resolução ou reabertura dele, as mudanças de gravidade, as notas públicas e o post-mortem. **Escolher atualizações** permite que você as marque uma a uma. Seja qual for a sua escolha, a regra publica a primeira mensagem do registro, e uma videochamada quando ela começa. |
+| **Atualizações** | Somente incidentes, alertas, episódios, manutenções agendadas e políticas de plantão: quais atualizações a regra publica depois da primeira mensagem do registro. **Todas as atualizações** publica todas elas, e uma regra nova começa com ela, exceto a de uma política de plantão. **Somente atualizações importantes** publica as que mais importam, que a etapa lista para cada tipo de registro: para um incidente, a resolução ou reabertura dele, as mudanças de gravidade, as notas públicas e o post-mortem; para uma política de plantão, quem está de plantão agora e quando não há ninguém, com que uma regra nova de política de plantão começa. **Escolher atualizações** permite que você as marque uma a uma. Seja qual for a sua escolha, a regra publica a primeira mensagem do registro, e uma videochamada quando ela começa. Veja [Mensagens de plantão](#mensagens-de-plantão). |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
 
 Cada condição se lê como uma frase: o campo, como ele é comparado e o valor. Os valores para escolher vêm das listas do próprio projeto, como seus estados, gravidades, rótulos e monitores. Uma regra de plantão escolhe suas políticas em **Política de plantão**, que continua correspondendo a uma política depois que ela é renomeada, enquanto **Nome da política de Plantão** procura palavras no nome de uma política. Cada tipo de evento que tem proprietários tem uma condição de proprietário, como **Proprietário do incidente**: escolha pessoas e equipes, e ela corresponde às pessoas e equipes registradas como proprietárias do evento. Fazer parte de uma equipe proprietária do evento não conta. Um proprietário adicionado depois faz a regra corresponder a partir dessa atualização, e uma regra que cria canais cria o canal nesse momento. Um valor arquivado, como uma gravidade ou uma política de plantão, não é oferecido para uma condição nova. Uma regra que já tem um o mantém, marcado como **Arquivado**, e continua correspondendo aos eventos que o têm. Uma pessoa, equipe ou política que o projeto não tem mais continua na condição, e o cartão da regra avisa isso.
@@ -124,6 +124,29 @@ Um canal continua legível: cada evento é publicado uma vez, e o primeiro estad
 **Configurações do projeto** > **Espaço de trabalho** > **Slack** lista os canais que o OneUptime consegue ver, com **Enviar teste** ao lado de cada um. O OneUptime entra sozinho em um canal público na primeira vez que publica nele. Um canal privado só é listado, e só pode receber publicações, depois que o app do OneUptime é convidado para ele no Slack.
 
 Uma regra de notificação pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
+
+### Mensagens de plantão
+
+A cada passagem de turno, os canais de uma política de plantão ficam sabendo quem está de plantão, em uma linha:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments leva à política no OneUptime. Quando a política aciona mais de um agendamento, a linha também nomeia o agendamento: Payments (Primary).
+- Uma pessoa é nomeada pelo nome no Slack depois de conectar a conta do Slack ao OneUptime, e pelo nome no OneUptime até lá. Os horários aparecem no fuso horário de cada leitor.
+- Quando várias regras de escalonamento da política acionam o mesmo agendamento, cada passagem de turno é publicada uma vez, e não uma vez por regra.
+
+Uma regra publica o que escolheu na etapa **Atualizações**, e uma regra nova começa com **Somente atualizações importantes**: quem está de plantão agora, e quando não há ninguém.
+
+| Atualização | O que o canal fica sabendo |
+| --- | --- |
+| **Quem está de plantão agora** | A linha acima, a cada passagem de turno. |
+| **Quem está de plantão a seguir** | Quem assume na próxima passagem de turno, e quando: no fim dessa linha, ou em uma linha própria para uma regra que não publica quem está de plantão agora. |
+| **Ninguém de plantão** | Um agendamento que fica sem ninguém de plantão, de modo que os alertas que chegam a ele não acionam ninguém: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Substituições de usuário** | Uma substituição adicionada, alterada ou desfeita: quem está ausente e quem cobre. |
+| **Mudanças na política** | Agendamentos, pessoas e equipes adicionados às suas regras de escalonamento ou removidos. |
+| **Proprietários** | Proprietários adicionados e removidos. |
+
+Um canal recebe uma mensagem por passagem de turno, mesmo quando duas regras publicam nele. Uma regra de plantão salva antes de as regras escolherem suas atualizações publica todas, como antes.
 
 ## Quem está no canal de um registro
 

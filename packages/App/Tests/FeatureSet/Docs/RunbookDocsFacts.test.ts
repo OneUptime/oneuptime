@@ -1334,6 +1334,35 @@ describe("a step's options on the authoring page", () => {
   });
 });
 
+describe("saving the steps on the authoring page", () => {
+  it("says leaving the steps before they are saved asks first, in the question the Steps page draws (issue #7401)", () => {
+    const question: string = readDashboard(
+      "Components/UnsavedChanges/LeaveWithoutSavingQuestion.tsx",
+    );
+
+    // Held while the steps differ from the ones last loaded or saved.
+    expect(STEPS_PAGE).toContain(
+      "return getRunbookStepsSignature(steps) !== savedStepsSignature;",
+    );
+    expect(STEPS_PAGE).toContain("useLeaveGuard(hasUnsaved)");
+    expect(STEPS_PAGE).toContain("useUnsavedChanges(hasUnsaved)");
+    expect(STEPS_PAGE).toContain("<LeaveWithoutSavingQuestion");
+    expect(STEPS_PAGE).toContain(
+      'title={isSaving ? "Saving..." : "Save Steps"}',
+    );
+    expect(question).toContain('title={"Leave without saving?"}');
+    expect(question).toContain('submitButtonText={"Discard Changes"}');
+    expect(question).toContain('closeButtonText={"Keep Editing"}');
+
+    expect(AUTHORING).toContain(
+      "Click **Save Steps**. Until you do, the editor says **Unsaved changes**.",
+    );
+    expect(AUTHORING).toContain(
+      "Leaving the steps before you save asks first. A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays on the steps with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.",
+    );
+  });
+});
+
 describe("running a runbook", () => {
   it("draws the run's states with the execution page's own labels", () => {
     const labels: Array<[string, string]> = statusLabels(

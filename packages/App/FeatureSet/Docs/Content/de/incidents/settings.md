@@ -537,7 +537,7 @@ Rollen sind nur Definitionen. Personen weisen Sie ihnen pro Vorfall zu – der M
 
 ### Eine Rolle archivieren
 
-Archivieren Sie eine Rolle, die Ihr Team nicht mehr verwendet, über das Menü **⋯** ihrer Zeile, statt sie zu löschen. Wer sie bei einem Vorfall innehat, behält sie, aber niemand kann sie erneut erhalten: Die Rollenauswahlen lassen sie weg oder zeigen sie nur mit den Personen, die sie innehaben, und die API lehnt sie ab. Die primäre Rolle und jede Rolle, die sich nicht löschen lässt, lassen sich nicht archivieren. Archivierte Rollen werden getrennt aufgeführt, im eingeklappten Abschnitt **Archivierte Vorfallsrollen**, wo **Aus Archiv entfernen** eine wiederherstellt.
+Archivieren Sie eine Rolle, die Ihr Team nicht mehr verwendet, über das Menü **⋯** ihrer Zeile, statt sie zu löschen. Wer sie bei einem Vorfall innehat, behält sie, aber niemand kann sie erneut erhalten: Die Rollenauswahlen lassen sie weg oder zeigen sie nur mit den Personen, die sie innehaben, und die API lehnt sie ab. Die primäre Rolle und jede Rolle, die sich nicht löschen lässt, lassen sich nicht archivieren. Archivierte Rollen werden getrennt aufgeführt, im eingeklappten Abschnitt **Archivierte Vorfallsrollen**, wo **Aus dem Archiv holen** eine wiederherstellt.
 
 ## Nummernpräfixe
 
@@ -736,7 +736,7 @@ Die Regeln, die die Seite selbst mitbringt, sollten Sie verinnerlichen:
 - Die Menge der tatsächlich ausgeführten Richtlinien ist die Vereinigung der Richtlinien jeder passenden Regel plus aller Richtlinien, die dem Vorfall von Hand oder durch eine Vorlage angehängt wurden, dedupliziert, sodass jede Richtlinie höchstens einmal läuft. Lösen zwei passende Regeln dieselbe Richtlinie aus, alarmiert sie, sobald eine von beiden es zulässt: Sofort hat Vorrang vor den Arbeitszeiten.
 
 > [!NOTE]
-> Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Critical Incident“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.
+> Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Kritischer Vorfall“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.
 
 ## Bereitschaftsrichtlinien direkt anhängen
 

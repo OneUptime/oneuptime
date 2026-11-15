@@ -31,11 +31,13 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * Only the kinds of rule that choose their updates have them
  * (NotificationRuleUpdates.canChooseUpdates): incidents, alerts, their
- * episodes and scheduled maintenance. Each has all its words in one entry
- * of UPDATES_COPY, so a kind of rule that starts choosing its updates adds
- * one entry here and its kinds in NotificationRuleUpdates. Every sentence
- * is whole in the locale files, one per kind of record where the record is
- * named, so it reads right in every language.
+ * episodes, scheduled maintenance and on-call policies - whose updates are
+ * who is on call, not what happened to a record (issue #7549). Each has
+ * all its words in one entry of UPDATES_COPY, so a kind of rule that
+ * starts choosing its updates adds one entry here and its kinds in
+ * NotificationRuleUpdates. Every sentence is whole in the locale files,
+ * one per kind of record where the record is named, so it reads right in
+ * every language.
  *
  * React-free, so App's tests can read it.
  */
@@ -45,7 +47,8 @@ export type UpdatesEventType =
   | NotificationRuleEventType.Alert
   | NotificationRuleEventType.IncidentEpisode
   | NotificationRuleEventType.AlertEpisode
-  | NotificationRuleEventType.ScheduledMaintenance;
+  | NotificationRuleEventType.ScheduledMaintenance
+  | NotificationRuleEventType.OnCallDutyPolicy;
 
 // One box of Choose updates: its name, and what it covers.
 export interface UpdateKindCopy {
@@ -390,12 +393,69 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       },
     },
   },
+  /*
+   * An on-call channel is for who is on call (issue #7549). A new rule
+   * starts on Key updates only (NotificationRuleUpdates
+   * .getNewRuleUpdatesToPost).
+   */
+  [NotificationRuleEventType.OnCallDutyPolicy]: {
+    sectionDescription: translationKey(
+      "The rule always posts when an on-call policy is created. Pick the updates it posts after that.",
+    ),
+    everyUpdateDescription: translationKey(
+      "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.",
+    ),
+    keyUpdatesDescription: translationKey(
+      "Who is on call now, and when nobody is.",
+    ),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts only when an on-call policy is created.",
+    ),
+    nothingChosenTitle: translationKey(
+      "Only when an on-call policy is created",
+    ),
+    kinds: {
+      [NotificationRuleUpdateKind.OnCallNow]: {
+        title: translationKey("Who is on call now"),
+        description: translationKey(
+          "One line at each hand-off: who is on call, and until when.",
+        ),
+      },
+      [NotificationRuleUpdateKind.OnCallNext]: {
+        title: translationKey("Who is on call next"),
+        description: translationKey(
+          "Who takes over at the next hand-off, and when.",
+        ),
+      },
+      [NotificationRuleUpdateKind.NobodyOnCall]: {
+        title: translationKey("Nobody on call"),
+        description: translationKey(
+          "When a schedule is left with nobody on call, so alerts that reach it page no one.",
+        ),
+      },
+      [NotificationRuleUpdateKind.Overrides]: {
+        title: translationKey("User overrides"),
+        description: translationKey(
+          "Overrides added, changed and taken back: who is away, and who covers.",
+        ),
+      },
+      [NotificationRuleUpdateKind.PolicyChanges]: {
+        title: translationKey("Changes to the policy"),
+        description: translationKey(
+          "Schedules, people and teams added to its escalation rules or taken out.",
+        ),
+      },
+      [NotificationRuleUpdateKind.Owners]: {
+        title: OWNERS,
+        description: OWNERS_ADDED_AND_REMOVED,
+      },
+    },
+  },
 };
 
 /*
  * The kinds of rule that choose their updates. Every other kind - monitors,
- * on-call policies, security and SLO rules - posts every update and has no
- * Updates step.
+ * security and SLO rules - posts every update and has no Updates step.
  */
 export function isUpdatesEventType(
   eventType: NotificationRuleEventType,

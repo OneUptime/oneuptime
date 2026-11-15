@@ -108,7 +108,7 @@ Uma origem é um esquema, um host e uma porta opcional: `https://app.example.com
 
 ## Trocar, desativar ou excluir uma chave
 
-A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trás de **Click to reveal**, e o seu **Last Used At**: a última vez que o OneUptime aceitou dados enviados com ela.
+A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trás de **Clique para mostrar**, e o seu **Last Used At**: a última vez que o OneUptime aceitou dados enviados com ela.
 
 | Para | Faça isto | O que os remetentes veem |
 | --- | --- | --- |

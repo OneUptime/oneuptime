@@ -135,6 +135,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 })
 @Index(["projectId", "currentIncidentStateId"]) // Active-incident counters on dashboard
+/*
+ * The Incidents list, newest first - the order every read of incidents takes
+ * when it asks for none (DatabaseService.getReadSort): the page's ids are
+ * read in this index's order, ten at a time, instead of sorting every
+ * incident of the project. It also serves every read by project and
+ * the ON DELETE CASCADE of a project, which is why the column has no bare
+ * index of its own.
+ */
+@Index(["projectId", "createdAt"])
 // The Postmortems list: its status chips and the count of each status.
 @Index(["projectId", "postmortemStatusId"])
 /*
@@ -218,7 +227,12 @@ export default class Incident extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  /*
+   * No bare @Index() here on purpose: the composites on the class lead with
+   * this column ("projectId", "createdAt" first), and serve every read by it
+   * and the ON DELETE CASCADE of a project. Another would cost every insert
+   * and every state change one more index write for nothing.
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,

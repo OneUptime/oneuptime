@@ -432,7 +432,7 @@ const CAPITALIZED_WORD_PATTERN: RegExp = /^\p{Lu}\p{Ll}+$/u;
 type NameInSentenceFunction = (name: string) => string;
 
 /*
- * A model's name in the middle of a sentence: "scheduled maintenance event",
+ * A model's name in the middle of a sentence: "maintenance event",
  * keeping a word that is not simply capitalized as it is ("IoT Fleet" keeps
  * IoT).
  */

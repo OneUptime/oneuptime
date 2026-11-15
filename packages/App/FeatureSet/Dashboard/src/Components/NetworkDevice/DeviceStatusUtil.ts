@@ -7,7 +7,8 @@ import DeviceReachabilityUtil, {
 } from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "Common/Types/ObjectID";
-import MonitoringOff from "Common/Utils/Monitor/MonitoringOff";
+import MonitorNotCheckedReason from "Common/Types/Monitor/MonitorNotCheckedReason";
+import { getBoundMonitorNotCheckedReason } from "Common/Utils/NetworkDevice/BoundMonitorNotChecked";
 import {
   translateTemplate,
   translationKey,
@@ -305,6 +306,37 @@ export const MONITOR_ARCHIVED_QUALIFIER: {
   ),
 };
 
+// What every surface draws for a bound monitor nothing checks.
+export interface MonitorNotCheckedQualifier {
+  // The gray pill's words.
+  text: string;
+  // The pill's tooltip: why, and what to do about it.
+  tooltip: string;
+  // The Pending verdict's tooltip, and the Network Map node's tooltip line.
+  pendingTooltip: string;
+}
+
+/**
+ * The qualifier for a reason nothing checks a bound monitor (archived, or
+ * its monitoring turned off), or null for none. The Network Map's drawer and
+ * node tooltip read it from the reason its device node carries
+ * (NetworkTopologyNode.monitorNotChecked); a reason this Dashboard does not
+ * know - from a newer server - is null, not a guess.
+ */
+export function getMonitorNotCheckedQualifier(
+  reason: MonitorNotCheckedReason | string | null | undefined,
+): MonitorNotCheckedQualifier | null {
+  if (reason === MonitorNotCheckedReason.MonitorArchived) {
+    return MONITOR_ARCHIVED_QUALIFIER;
+  }
+
+  if (reason === MonitorNotCheckedReason.MonitoringOff) {
+    return MONITORING_OFF_QUALIFIER;
+  }
+
+  return null;
+}
+
 /**
  * The qualifier for a monitor-backed device whose bound monitor is not
  * checked - archived, or its monitoring turned off - or null when it is
@@ -314,26 +346,14 @@ export const MONITOR_ARCHIVED_QUALIFIER: {
  *
  * Read only from the bound monitor's own two columns
  * (DEVICE_BOUND_MONITOR_SELECT); a row read without them reads as checked,
- * as MonitoringOff.isMonitored reads a monitor read without them.
+ * as MonitoringOff.isMonitored reads a monitor read without them. The rule
+ * is Common's getBoundMonitorNotCheckedReason, which the topology API reads
+ * too, so the map and the device pages cannot disagree.
  */
 export function getBoundMonitorNotCheckedQualifier(
   device: DeviceBoundMonitorRow,
-): { text: string; tooltip: string; pendingTooltip: string } | null {
-  if (
-    !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
-      device.monitoringMethod,
-    ) ||
-    !device.monitorId ||
-    MonitoringOff.isMonitored(device.monitor)
-  ) {
-    return null;
-  }
-
-  if (device.monitor?.isArchived === true) {
-    return MONITOR_ARCHIVED_QUALIFIER;
-  }
-
-  return MONITORING_OFF_QUALIFIER;
+): MonitorNotCheckedQualifier | null {
+  return getMonitorNotCheckedQualifier(getBoundMonitorNotCheckedReason(device));
 }
 
 /*

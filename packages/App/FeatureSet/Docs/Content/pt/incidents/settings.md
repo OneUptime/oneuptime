@@ -736,7 +736,7 @@ As regras que a própria página traz valem a pena ser internalizadas:
 - O conjunto de políticas que de fato é executado é a união das políticas de toda regra que corresponde, mais qualquer política anexada ao incidente manualmente ou por um modelo, sem duplicatas, para que cada política seja executada no máximo uma vez. Quando duas regras que correspondem acionam a mesma política, ela aciona assim que qualquer uma delas permitir: imediatamente vence o horário comercial.
 
 > [!NOTE]
-> A severidade é um critério de correspondência aqui e em nenhum outro lugar. Uma severidade de incidente não tem campo de plantão — escolher «Critical Incident» não aciona, por si só, ninguém. Se você quer que a severidade conduza o acionamento, escreva uma regra de plantão que corresponda a ela.
+> A severidade é um critério de correspondência aqui e em nenhum outro lugar. Uma severidade de incidente não tem campo de plantão — escolher «Incidente crítico» não aciona, por si só, ninguém. Se você quer que a severidade conduza o acionamento, escreva uma regra de plantão que corresponda a ela.
 
 ## Anexar políticas de plantão diretamente
 

@@ -1,6 +1,6 @@
 # Snabbstart
 
-Den här guiden tar dig från ett nytt konto till en fungerande konfiguration på ungefär femton minuter: en monitor som kontrollerar din webbplats var femte minut, en jourpolicy som larmar dig när webbplatsen går ner och en statussida som informerar dina kunder. Den följer checklistan **Välkommen till OneUptime 👋** på projektets startsida.
+Den här guiden tar dig från ett nytt konto till en fungerande konfiguration på ungefär femton minuter: en monitor som kontrollerar din webbplats var femte minut, en jourpolicy som larmar dig när webbplatsen går ner och en statussida som informerar dina kunder. Den följer checklistan **Välkommen till OneUptime 👋** på projektets startsida, och de guidade installationer som dess steg öppnar.
 
 Kommer du från ett annat verktyg? [Importera därifrån](/docs/introduction/getting-started#om-du-kommer-från-ett-annat-verktyg) först: dina monitorer, jourscheman och statussidor följer med.
 
@@ -42,69 +42,87 @@ Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **V�
 ## Övervaka din webbplats
 
 :::steps
-### Öppna skapandet av monitor
+### Öppna installationen för webbplatsen
 
-Klicka på **Skapa din första övervakare** i checklistan. Du kan också öppna **Monitorer** från menyn **Produkter** och klicka på **Skapa monitor**.
-
-### Välj Webbplats
-
-Under **Monitortyp** väljer du **Webbplats**. Ange ett **Namn**, till exempel `Website`, och klicka på **Nästa**.
+Klicka på **Skapa din första övervakare** i checklistan. Den öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, som kontrollerar din webbplats, väljer vem som får veta och skickar ett test, på en sida. Den som inte får skapa monitorer får i stället listan **Monitorer**.
 
 ### Ange adressen
 
-Ange webbplatsens fullständiga adress i **Webbplats-URL**, till exempel `https://example.com`. OneUptime lägger till kriterierna åt dig: monitorn blir **Offline** och deklarerar en incident när webbplatsen inte svarar, eller svarar med ett fel. Klicka på **Nästa**.
+![Steget ”Vad ska vi kontrollera?”, med ”Börja kontrollera” markerad](screen:website-down-address)
 
-### Skapa monitorn
+Under **Vad ska vi kontrollera?** skriver du in hela adressen till din webbplats i **Adress till webbplats eller API**, till exempel `https://example.com`, och klickar på **Börja kontrollera**. Sonderna kontrollerar den direkt och sedan var 5:e minut: när webbplatsen inte svarar, eller svarar med ett fel, går monitorn till **Offline** och deklarerar en incident. Klicka på **Fortsätt**.
 
-Behåll de valda **Sonder** och **Övervakningsintervall** **Var 5:e minut**, och klicka på **Skapa monitor**. Monitorns sida öppnas, och sonderna börjar kontrollera din webbplats.
+På Free-planen i OneUptime Cloud faktureras monitorer efter användning, så projektet behöver en betalningsmetod innan det kan kontrollera din webbplats: utan en ber steget dig att [lägga till en betalningsmetod](/docs/configuration/billing#betalningsmetoder).
+
+### Välj vem som får veta
+
+Under **Vem ska få veta?** står du redan i **Vem som larmas**. Klicka på **Spara och fortsätt**: det skapar `Default on-call policy`, som larmar dig vid varje ny incident och varje nytt larm i projektet, till att börja med via e-post. För att också larma teammedlemmar som redan finns i projektet klickar du först på **Lägg till teammedlemmar**.
+
+### Skicka ett test till dig själv
+
+Under **Skicka ett test** klickar du på **Skicka ett testlarm till mig**, väljer en **Allvarlighetsgrad** och klickar på **Skicka testlarm**. Öppna länken i e-postmeddelandet, där det står TEST, och bekräfta larmet där. Klicka sedan på **Klar** i dialogrutan, och på **Fortsätt**: installationen slutar med en sammanfattning av vad den har konfigurerat.
 :::
 
-Vill du prova kontrollen innan du sparar, klickar du på **Testa monitor** i det andra steget. Alla andra monitortyper beskrivs i [Skapa en monitor](/docs/monitor/create-monitor).
+För att ställa in varje alternativ själv, eller för att kontrollera något annat än en webbplats, öppnar du **Monitorer** från menyn **Produkter** och klickar på **Skapa monitor**. [Skapa en monitor](/docs/monitor/create-monitor) beskriver formuläret och varje monitortyp.
 
-För att också kontrollera ett API, välja vem som får veta och skicka ett testlarm som visar att meddelandet når fram till dig, följer du [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
+För att också kontrollera ett API, och se vad du gör när den första kontrollen aldrig kommer tillbaka, följer du [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
 
 ## Bli larmad när den går ner
 
-Som det är nu skickas en incident utan ägare med e-post till projektets ägare, och det inkluderar dig. För att bli larmad tills någon svarar skapar du en jourpolicy: den första i ett projekt utlöses vid varje ny incident och varje nytt larm.
+Installationen för webbplatsen har redan skapat `Default on-call policy`, som larmar dig via e-post vid varje ny incident och varje nytt larm, så checklistan bockar av **Konfigurera en jourpolicy** som klar. Dess guidade installation lägger ändå till din telefon, de personer som larmas med dig och vad som händer när ingen svarar.
 
 :::steps
-### Skapa en jourpolicy
+### Öppna jourinstallationen
 
-Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jour** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget och klicka på **Skapa Jourpolicy**.
-
-### Se regeln som utlöser den
-
-Reglaget lade till en jourregel för incidenter och en för larm. För att se din öppnar du **Incidenter** från menyn **Produkter**, fäller ut **Regler** i sidomenyn och väljer **Jourregler**: den matchar **Alla incidenter**. Vill du bara utlösa policyn för vissa incidenter, till exempel kritiska, redigerar du regeln där, eller klickar på **Skapa Incident On-Call Rule** för att lägga till en egen.
+Tryck på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged` och välj **Larma rätt person när något går sönder**. Så länge checklistan inte har bockat av **Konfigurera en jourpolicy** öppnar det steget samma guidade installation.
 
 ### Välj hur du nås
 
-E-postadressen du loggar in med är redan ett sätt att nå dig. För att också få SMS eller samtal öppnar du **Användarinställningar** i fältet under toppfältet, går till **Aviseringsmetoder** och lägger på fliken **Direktkontakt** till ditt nummer under **Telefonnummer för SMS-aviseringar** eller **Telefonnummer för samtalsaviseringar**. Klicka på **Verifiera** och ange koden som OneUptime skickar till dig. Ett verifierat nummer används för jourlarm direkt.
+![Steget ”Hur ska vi nå dig?”, med ”Slå på sms och samtal” markerad](screen:paging-reach-you)
+
+Under **Hur ska vi nå dig?** finns e-postadressen du loggar in med redan med. För pushaviseringar installerar du appen OneUptime On-Call från App Store eller Google Play, loggar in och klickar på **Kontrollera igen**. För att också få sms och samtal klickar du på **Slå på sms och samtal**, skriver ditt nummer i **Ditt telefonnummer** och klickar på **Skicka en kod till mig via sms**: på OneUptime Cloud betalas sms och samtal från projektets saldo, så steget ber dig fylla på saldot först. Klicka på **Fortsätt**.
+
+### Välj vem mer som larmas
+
+Under **Vem mer har jour?** behåller du `Default on-call policy` under **Jourpolicy**. För att larma teammedlemmar med dig lägger du till dem under **Lägg till i den första eskaleringsregeln**. Klicka på **Spara och fortsätt**.
+
+### Bestäm vad som händer om ingen svarar
+
+Under **Tänk om ingen svarar?** väljer du **Larma samma personer igen** så länge du är den enda personen i projektet. När teammedlemmar har tillkommit larmar **Larma någon annan** den person du väljer under **Larmas sedan**. I OneUptime Cloud erbjuder bara de betalda planerna det valet. Klicka på **Spara och fortsätt**.
+
+### Skicka ett testlarm
+
+Under **Skicka ett testlarm** klickar du på **Testa den här policyn**, väljer en **Allvarlighetsgrad** och klickar på **Skicka testlarm**. Bekräfta larmet från e-postmeddelandet, sms:et eller samtalet, och klicka sedan på **Klar** i dialogrutan, och på **Fortsätt**. Installationen slutar på **Larmningen är konfigurerad**.
 :::
 
 > [!NOTE]
 > SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Billing Admin eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringskanaler**.
 
-Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
+Två jourregler utlöser policyn: en vid varje ny incident och en vid varje nytt larm. För att se den första öppnar du **Incidenter** från menyn **Produkter**, fäller ut **Regler** i sidomenyn och väljer **Jourregler**: den matchar **Alla incidenter**. För att utlösa policyn bara vid vissa incidenter, till exempel kritiska, redigerar du regeln där, eller klickar på **Skapa Incident On-Call Rule** för att lägga till en egen.
 
-För att larmas via SMS, telefonsamtal och push, där nästa person larmas när ingen svarar och ett testlarm visar att det fungerar, följer du [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+För att i stället bygga en policy fält för fält öppnar du **Jour** från menyn **Produkter** och klickar på **Skapa Jourpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
+
+För varje skärm i installationen, och vad du gör när ett larm inte kommer fram, följer du [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
 
 ## Publicera en statussida
 
 :::steps
-### Skapa statussidan
+### Öppna installationen för statussidan
 
-Klicka på **Publicera en statussida** i checklistan, eller öppna **Statussidor** från menyn **Produkter**. Klicka på **Skapa statussida**, ange ett **Namn**, till exempel `Acme Status`, och klicka på **Skapa statussida**. Den nya sidan öppnas på sin **Översikt**.
+Klicka på **Publicera en statussida** i checklistan. Den öppnar den guidade installationen **Publicera en statussida**, som ger sidan ett namn, lägger din monitor på den och visar vad dina kunder ser. Den som inte får skapa statussidor får i stället listan **Statussidor**. Sammanfattningen i installationen för webbplatsen öppnar samma installation, som **Visa den på en statussida**.
 
-### Lägg till din monitor
+### Ge den ett namn och välj din monitor
 
-Klicka på **Lägg till monitorer** på **Översikt**, eller välj **Monitorer** under **Resurser** i sidans sidomeny; i projekt med monitorgrupper påslagna heter punkten **Resurser**. Klicka på **Lägg till monitor**, välj din webbplatsmonitor och klicka på **Lägg till monitor**. Raden visar monitorns namn för besökare; ändra det under **Visningsnamn** om du vill.
+![Steget ”Ge den ett namn och välj vad den visar”, med ”Skapa statussidan” markerad](screen:status-page-pick)
+
+Under **Ge den ett namn och välj vad den visar** behåller du det **Statussidans namn** som föreslås, eller skriver ett eget. Under **Vad den visar** bockar du för din webbplatsmonitor och klickar på **Skapa statussidan**. Från och med nu är sidan offentlig på sin länk: alla som har adressen kan öppna den.
 
 ### Öppna sidan
 
-Välj **Översikt** i sidomenyn. Kortet **Länk till statussidan** länkar till din statussida: öppna den, så visas din webbplats som fungerande.
+Under **Det här ser dina kunder** öppnar du adressen under **Offentlig länk**: din webbplats visas som i drift. Tillbaka i installationen klickar du på **Ser bra ut**. Installationen slutar med en sammanfattning av vad du kan göra härnäst.
 :::
 
-En ny statussida är offentlig: alla som har adressen kan öppna den. Se [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) för att ge den din egen domän, logotyp och dina egna färger.
+För att i stället skapa en sida för hand öppnar du **Statussidor** från menyn **Produkter** och klickar på **Skapa statussida**, och lägger sedan till din monitor med **Lägg till monitorer** på dess **Översikt**. Se [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) för att ge sidan din egen logotyp och dina egna färger.
 
 För att lägga statussidan på din egen domän, över HTTPS, följer du [Publicera en statussida](/docs/guides/status-page).
 

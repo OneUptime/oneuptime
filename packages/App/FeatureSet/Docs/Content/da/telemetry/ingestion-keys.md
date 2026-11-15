@@ -108,7 +108,7 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 
 ## Udskift, slå fra eller slet en nøgle
 
-En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Click to reveal** og dens **Last Used At**: sidste gang OneUptime accepterede data, der blev sendt med den.
+En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Last Used At**: sidste gang OneUptime accepterede data, der blev sendt med den.
 
 | For at | Gør dette | Hvad afsendere ser |
 | --- | --- | --- |

@@ -39,7 +39,7 @@ Skyressurser er ett av flere steder skyen din dukker opp:
 | Virtuelle maskiner med en OpenTelemetry Collector på | **Verter** | Vertens egne metrikker og logger. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
 | Køer og emner som applikasjonene dine bruker | **Køer** | Spenn, og de samme skymetrikkene. Se [Køer](/docs/telemetry/queues) |
 
-En ressurs kan vises på mer enn ett sted. En virtuell maskin med collectoren på er en **Vert**, og plattformmetrikkene dens (CPU-kreditter, disk og nettverk slik hypervisoren ser dem) gjør den også til en **Skyressurs**. En SQS-kø er en **Queue** og en **Skyressurs**. Hver visning viser det kilden dens vet.
+En ressurs kan vises på mer enn ett sted. En virtuell maskin med collectoren på er en **Vert**, og plattformmetrikkene dens (CPU-kreditter, disk og nettverk slik hypervisoren ser dem) gjør den også til en **Skyressurs**. En SQS-kø er en **Kø** og en **Skyressurs**. Hver visning viser det kilden dens vet.
 
 ## Før du begynner
 

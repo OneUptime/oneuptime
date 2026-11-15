@@ -69,6 +69,7 @@ import {
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
   SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
 } from "../../Types/OnCallDutyPolicy/OnCallPageLine";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -2273,6 +2274,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
 
+    // Its people, teams and schedules went with it.
+    await OnDutyPoliciesCache.forgetProjects([
+      resource?.projectId,
+      deleteBy.props.tenantId,
+    ]);
+
     if (
       !deleteBy.props.isRoot &&
       resource &&
@@ -2358,6 +2365,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     const move: RuleMove | null = (onUpdate.carryForward as RuleMove) || null;
+
+    // Its name or place, as the header shows them.
+    await OnDutyPoliciesCache.forgetProjects([
+      move?.projectId,
+      onUpdate.updateBy.props.tenantId,
+    ]);
 
     if (
       move &&

@@ -49,8 +49,8 @@ export const AI_SECURITY_CASE_TRIAGE_HEADING_TEXT: string =
  * How the runner's own first line of a follow-up check's report starts: the
  * report OneUptime AI writes when it checks an incident again after an alert
  * opened on its linked infrastructure ("**Checked again** after alert #12
- * (High CPU on web-1) opened on Host web-1, 2 minutes after this incident was
- * declared." - IncidentFollowUpCheck.buildReportLead). The server puts it
+ * opened on host web-1, 2 minutes after this incident was declared: High CPU
+ * on web-1." - IncidentFollowUpCheck.buildReportLead). The server puts it
  * right under the brand heading, before the model's analysis.
  */
 export const FOLLOW_UP_REPORT_LEAD_PREFIX: string = "**Checked again**";

@@ -100,7 +100,7 @@ Crear una regla recorre hasta cinco pasos:
 | **Básico** | **Nombre de la regla** y **Descripción de la regla**. |
 | **Condiciones** | A qué eventos se aplica la regla, por ejemplo por gravedad, estado, etiqueta, monitor o palabras del título. Se comprueban al crear un evento y de nuevo con cada actualización que OneUptime publica sobre él, así que una regla para incidentes reconocidos actúa cuando se reconoce un incidente. Una regla nueva se aplica a todos los eventos, por ejemplo **Todos los incidentes**. Para acotarla, elige **Solo los incidentes que cumplen las condiciones** y añade las condiciones. Con dos o más, **Condición de coincidencia** indica si deben coincidir todas o basta con una. |
 | **Destino** | Dónde publica: **Publicar en canales existentes** con los nombres de los canales, **Crear un canal para cada incidente** (o alerta, episodio, evento, monitor o política de guardia) con quién se une a él, o ambos. Bajo el paso, **Qué hace esta regla** lo dice en frases, como la tarjeta de la regla. |
-| **Actualizaciones** | Solo incidentes, alertas, episodios y mantenimientos programados: qué actualizaciones publica la regla después del primer mensaje del registro. **Todas las actualizaciones**, con la que empieza una regla nueva, las publica todas. **Solo actualizaciones clave** publica las que más importan, que el paso enumera para cada tipo de registro: para un incidente, su resolución o reapertura, los cambios de gravedad, las notas públicas y el post mortem. **Elegir actualizaciones** te deja marcarlas una a una. Elijas lo que elijas, la regla publica el primer mensaje del registro, y una videollamada cuando empieza. |
+| **Actualizaciones** | Solo incidentes, alertas, episodios, mantenimientos programados y políticas de guardia: qué actualizaciones publica la regla después del primer mensaje del registro. **Todas las actualizaciones** las publica todas, y una regla nueva empieza con ella, salvo la de una política de guardia. **Solo actualizaciones clave** publica las que más importan, que el paso enumera para cada tipo de registro: para un incidente, su resolución o reapertura, los cambios de gravedad, las notas públicas y el post mortem; para una política de guardia, quién está de guardia ahora y cuándo no hay nadie, con la que empieza una regla nueva de política de guardia. **Elegir actualizaciones** te deja marcarlas una a una. Elijas lo que elijas, la regla publica el primer mensaje del registro, y una videollamada cuando empieza. Consulta [Mensajes de guardia](#mensajes-de-guardia). |
 | **Videollamada** | Solo incidentes y alertas: iniciar una llamada para cada uno. Consulta [Videollamadas](/docs/workspace-connections/video-calls). |
 
 Cada condición se lee como una frase: el campo, cómo se compara y el valor. Los valores para elegir vienen de las listas del propio proyecto, como sus estados, gravedades, etiquetas y monitores. Una regla de guardia elige sus políticas en **Política de guardia**, que sigue coincidiendo con una política aunque se le cambie el nombre, mientras que **Nombre de la política de guardia** busca palabras en el nombre de una política. Cada tipo de evento que tiene propietarios tiene una condición de propietario, como **Propietario del incidente**: elige personas y equipos, y coincide con las personas y los equipos registrados como propietarios del evento. Pertenecer a un equipo propietario del evento no cuenta. Un propietario añadido más tarde hace que la regla coincida a partir de esa actualización, y una regla que crea canales crea el canal entonces. Un valor archivado, como una gravedad o una política de guardia, no se ofrece para una condición nueva. Una regla que ya tiene uno lo conserva, marcado como **Archivado**, y sigue coincidiendo con los eventos que lo tienen. Una persona, un equipo o una política que el proyecto ya no tiene se queda en la condición, y la tarjeta de la regla lo indica.
@@ -124,6 +124,29 @@ Un canal sigue siendo legible: cada evento se publica una vez, y el primer estad
 **Ajustes del proyecto** > **Espacio de trabajo** > **Slack** lista los canales que OneUptime ve, con **Enviar prueba** junto a cada uno. OneUptime se une por sí mismo a un canal público la primera vez que publica en él. Un canal privado solo aparece en la lista, y solo puede recibir publicaciones, después de invitar a la app de OneUptime en Slack.
 
 Una regla de notificación puede pertenecer a equipos. **Equipos responsables**, en **Más campos**, la reserva a los equipos que elija: solo sus miembros y los administradores del proyecto pueden editarla o eliminarla, y todos los demás que ven las reglas la ven en modo de solo lectura. Consulte [Reglas que pertenecen a equipos](/docs/permissions/index#reglas-que-pertenecen-a-equipos).
+
+### Mensajes de guardia
+
+En cada relevo, los canales de una política de guardia se enteran de quién está de guardia, en una línea:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments enlaza a la política en OneUptime. Cuando la política avisa a más de una programación, la línea también nombra la programación: Payments (Primary).
+- A una persona se la nombra por su nombre de Slack cuando ha conectado su cuenta de Slack a OneUptime, y por su nombre en OneUptime hasta entonces. Las horas se muestran en la zona horaria de cada lector.
+- Cuando varias reglas de escalado de la política avisan a la misma programación, cada relevo se publica una vez, no una vez por regla.
+
+Una regla publica lo que eligió en su paso **Actualizaciones**, y una regla nueva empieza con **Solo actualizaciones clave**: quién está de guardia ahora, y cuándo no hay nadie.
+
+| Actualización | Lo que oye el canal |
+| --- | --- |
+| **Quién está de guardia ahora** | La línea de arriba, en cada relevo. |
+| **Quién está de guardia después** | Quién toma el relevo en el próximo cambio de turno, y cuándo: al final de esa línea, o en una línea propia para una regla que no publica quién está de guardia ahora. |
+| **Nadie de guardia** | Una programación que se queda sin nadie de guardia, de modo que las alertas que le llegan no avisan a nadie: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Sustituciones de usuarios** | Una sustitución añadida, modificada o retirada: quién está ausente y quién cubre. |
+| **Cambios en la política** | Programaciones, personas y equipos añadidos a sus reglas de escalado o quitados. |
+| **Propietarios** | Propietarios añadidos y quitados. |
+
+Un canal recibe un solo mensaje por relevo, aunque dos reglas publiquen en él. Una regla de guardia guardada antes de que las reglas eligieran sus actualizaciones las publica todas, como antes.
 
 ## Quién está en el canal de un registro
 

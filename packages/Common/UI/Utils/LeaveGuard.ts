@@ -23,7 +23,25 @@
  * if the reader lets the work go, and takes it, or drops it to stay. Taking
  * it lets the guard go first, so nothing asks twice - the browser's dialog
  * included, for a step that loads a page in full.
+ *
+ * Back and Forward keep the page where it is scrolled to (issue #7404). A
+ * browser puts back the scroll position of the history entry a step
+ * reaches - the page before, usually at its top - right after popstate and
+ * before it next draws: Chromium, Firefox and WebKit alike. Taken back at
+ * once, the step left that position on the screen for a frame or more in
+ * Firefox and WebKit (the page shown at its top behind the question, then
+ * jumping back down), and in Chromium it left the page before with the
+ * guarded page's position: Discard Changes opened it scrolled down. So the
+ * step is taken back in the next animation frame instead, after the
+ * browser has put that entry's position back and before anything is drawn:
+ * the guard reads that position - the entry's own - and scrolls the page
+ * back to where the reader had it, so no frame shows the other one. The
+ * browser then keeps the page's position for the entry the step reached,
+ * as it leaves it; the guard remembers that entry's own, and puts it back
+ * when the tab arrives there again (Discard Changes, or Back later on).
  */
+
+import OldestKeyMap from "../../Utils/OldestKeyMap";
 
 // Takes the step the reader was asked about.
 export type LeavePageFunction = () => void;
@@ -78,6 +96,91 @@ const readShownEntry: () => GuardedEntry = (): GuardedEntry => {
 };
 
 /*
+ * A history entry, told apart from every other: react-router's key for it
+ * (the same address opened twice is two entries), or its address for an
+ * entry the router did not make.
+ */
+const readEntryKey: (state: unknown, href: string) => string = (
+  state: unknown,
+  href: string,
+): string => {
+  if (state && typeof state === "object") {
+    const key: unknown = (state as { key?: unknown }).key;
+
+    if (typeof key === "string" && key) {
+      return `key:${key}`;
+    }
+  }
+
+  return `href:${href}`;
+};
+
+const readShownEntryKey: () => string = (): string => {
+  return readEntryKey(window.history.state, window.location.href);
+};
+
+// Where the page is scrolled to.
+export interface ScrollPlace {
+  x: number;
+  y: number;
+}
+
+const readScrollPlace: () => ScrollPlace = (): ScrollPlace => {
+  return { x: window.scrollX || 0, y: window.scrollY || 0 };
+};
+
+const isSamePlace: (first: ScrollPlace, second: ScrollPlace) => boolean = (
+  first: ScrollPlace,
+  second: ScrollPlace,
+): boolean => {
+  return first.x === second.x && first.y === second.y;
+};
+
+const scrollPageTo: (place: ScrollPlace) => void = (
+  place: ScrollPlace,
+): void => {
+  if (!isSamePlace(place, readScrollPlace())) {
+    window.scrollTo(place.x, place.y);
+  }
+};
+
+/*
+ * How long a Back or Forward step waits for the next frame before it is
+ * taken back without one: a tab that is not shown draws no frames.
+ */
+export const SCROLL_RESTORE_WAIT_MS: number = 100;
+
+/*
+ * Runs `step` once the browser has put back the scroll position of the
+ * history entry it just reached. Browsers do that after popstate, before
+ * they next draw: so in the next animation frame, which runs before that
+ * frame is drawn - or, in a tab that draws none, after a short wait.
+ */
+const afterScrollRestore: (step: () => void) => void = (
+  step: () => void,
+): void => {
+  let isTaken: boolean = false;
+
+  const takeOnce: () => void = (): void => {
+    if (isTaken) {
+      return;
+    }
+
+    isTaken = true;
+    step();
+  };
+
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(takeOnce);
+  }
+
+  window.setTimeout(takeOnce, SCROLL_RESTORE_WAIT_MS);
+};
+
+// More entries than a reader walks Back and Forward through while editing.
+export const OWN_PLACES_MAX_ENTRIES: number = 25;
+
+/*
  * React Router reads `/a/b` and `/a/b/` as one place, so a step between them
  * stays on the page. Case is kept: a record's id in another case names
  * another record.
@@ -122,10 +225,30 @@ export default class LeaveGuard {
   private static guardedEntry: GuardedEntry | null = null;
 
   /*
-   * A Back or Forward step to another page was just taken back, and the
+   * A Back or Forward step to another page is being taken back, and the
    * browser has not landed on the guarded page again yet.
    */
   private static isTakingStepBack: boolean = false;
+
+  /*
+   * A step back waits for the next frame (afterScrollRestore) while
+   * isStepBackWaiting; reset() drops it by moving the turn on.
+   */
+  private static stepBackTurn: number = 0;
+
+  private static isStepBackWaiting: boolean = false;
+
+  // Where the page the guard holds is scrolled to, while it holds.
+  private static shownPlace: ScrollPlace | null = null;
+
+  /*
+   * Entries whose scroll position the browser no longer has, by entry: the
+   * guard scrolled the page back while the tab was on one, and the browser
+   * kept that position for it as it left. Its own, to put back when the tab
+   * arrives there again.
+   */
+  private static ownPlaces: OldestKeyMap<string, ScrollPlace> =
+    new OldestKeyMap<string, ScrollPlace>();
 
   private static isListeningForSteps: boolean = false;
 
@@ -225,6 +348,10 @@ export default class LeaveGuard {
   public static reset(): void {
     LeaveGuard.holds = [];
     LeaveGuard.stop();
+    LeaveGuard.ownPlaces.clear();
+    // A step back still waiting for its frame is dropped.
+    LeaveGuard.isStepBackWaiting = false;
+    LeaveGuard.stepBackTurn += 1;
   }
 
   private static getAskingHold(): LeaveGuardHold | undefined {
@@ -273,20 +400,89 @@ export default class LeaveGuard {
 
     LeaveGuard.guardedEntry = readShownEntry();
     LeaveGuard.isTakingStepBack = false;
+    LeaveGuard.shownPlace = readScrollPlace();
 
     // Back and Forward: heard all along (listenForBackAndForward).
     window.addEventListener("beforeunload", LeaveGuard.onBeforeUnload);
+    window.addEventListener("scroll", LeaveGuard.onScroll, { passive: true });
   }
 
   private static stop(): void {
     LeaveGuard.guardedEntry = null;
     LeaveGuard.isTakingStepBack = false;
+    LeaveGuard.shownPlace = null;
 
     if (typeof window === "undefined") {
       return;
     }
 
     window.removeEventListener("beforeunload", LeaveGuard.onBeforeUnload);
+    window.removeEventListener("scroll", LeaveGuard.onScroll);
+  }
+
+  /*
+   * The page the guard holds, scrolled: where to keep it should a step be
+   * taken back. Not while the tab is on another entry - the browser putting
+   * back that entry's position, or the guard scrolling the page back.
+   */
+  private static onScroll(): void {
+    const guardedEntry: GuardedEntry | null = LeaveGuard.guardedEntry;
+
+    if (
+      !guardedEntry ||
+      LeaveGuard.isTakingStepBack ||
+      !isSamePath(window.location.pathname, guardedEntry.pathname)
+    ) {
+      return;
+    }
+
+    LeaveGuard.shownPlace = readScrollPlace();
+  }
+
+  // An entry's own place, the first time the browser loses it to the guard.
+  private static rememberOwnPlace(entryKey: string, place: ScrollPlace): void {
+    if (LeaveGuard.ownPlaces.has(entryKey)) {
+      return;
+    }
+
+    LeaveGuard.ownPlaces.set(entryKey, place);
+
+    while (LeaveGuard.ownPlaces.size > OWN_PLACES_MAX_ENTRIES) {
+      const oldest: string | undefined = LeaveGuard.ownPlaces.oldestKey();
+
+      if (oldest === undefined) {
+        break;
+      }
+
+      LeaveGuard.ownPlaces.delete(oldest);
+    }
+  }
+
+  /*
+   * The tab arrived at an entry whose own place the browser lost to the
+   * guard: once the browser has put back the place it kept instead, the
+   * entry's own goes back. Once only: from then on, the browser keeps it.
+   */
+  private static putBackOwnPlace(): void {
+    if (LeaveGuard.ownPlaces.size === 0) {
+      return;
+    }
+
+    const entryKey: string = readShownEntryKey();
+    const place: ScrollPlace | undefined = LeaveGuard.ownPlaces.get(entryKey);
+
+    if (!place) {
+      return;
+    }
+
+    LeaveGuard.ownPlaces.delete(entryKey);
+
+    afterScrollRestore(() => {
+      // Not if the tab moved on meanwhile.
+      if (readShownEntryKey() === entryKey) {
+        scrollPageTo(place);
+      }
+    });
   }
 
   private static release(token: symbol): void {
@@ -313,6 +509,13 @@ export default class LeaveGuard {
     const hold: LeaveGuardHold | undefined = LeaveGuard.getAskingHold();
 
     if (!guardedEntry || !hold) {
+      /*
+       * Nothing to keep: the step goes to the router, as always. The entry
+       * it reached gets its own place back if the guard made the browser
+       * lose it (Discard Changes after Back, or Back once the work was
+       * saved).
+       */
+      LeaveGuard.putBackOwnPlace();
       return;
     }
 
@@ -334,19 +537,83 @@ export default class LeaveGuard {
 
     /*
      * A step to another page. The router must not hear it: it would show
-     * that page, and the unsaved work would go with this one.
+     * that page, and the unsaved work would go with this one. It is taken
+     * back once the browser has put back the position of the entry it
+     * reached (see the top of this file); a second step meanwhile (Back
+     * pressed twice) is taken back with it, from wherever the tab is then.
      */
     event.stopImmediatePropagation();
+    LeaveGuard.isTakingStepBack = true;
 
-    const stepIndex: number | null = readHistoryIndex(event.state);
+    if (LeaveGuard.isStepBackWaiting) {
+      return;
+    }
+
+    LeaveGuard.isStepBackWaiting = true;
+
+    const turn: number = LeaveGuard.stepBackTurn;
+
+    afterScrollRestore(() => {
+      if (turn === LeaveGuard.stepBackTurn) {
+        LeaveGuard.takeStepBack();
+      }
+    });
+  }
+
+  /*
+   * Takes the tab back to the page the guard holds from the entry a Back or
+   * Forward step reached, with the page where the reader had it, and asks.
+   */
+  private static takeStepBack(): void {
+    LeaveGuard.isStepBackWaiting = false;
+
+    const guardedEntry: GuardedEntry | null = LeaveGuard.guardedEntry;
+    const hold: LeaveGuardHold | undefined = LeaveGuard.getAskingHold();
+
+    if (!guardedEntry || !hold) {
+      // Let go meanwhile: the step was kept from the router; it hears it now.
+      LeaveGuard.isTakingStepBack = false;
+      window.dispatchEvent(
+        new PopStateEvent("popstate", { state: window.history.state }),
+      );
+      return;
+    }
+
+    if (isSamePath(window.location.pathname, guardedEntry.pathname)) {
+      // Back on the page already (Forward pressed meanwhile): nothing to ask.
+      LeaveGuard.isTakingStepBack = false;
+      return;
+    }
+
+    const reachedKey: string = readShownEntryKey();
+    /*
+     * The position the browser just put back: the reached entry's own -
+     * unless the guard made the browser lose that before, and remembers it.
+     */
+    const reachedPlace: ScrollPlace =
+      LeaveGuard.ownPlaces.get(reachedKey) || readScrollPlace();
+    const pagePlace: ScrollPlace | null = LeaveGuard.shownPlace;
+    const stepIndex: number | null = readHistoryIndex(window.history.state);
     const stepSize: number | null =
       stepIndex !== null && guardedEntry.index !== null
         ? stepIndex - guardedEntry.index
         : null;
 
     if (stepSize !== null && stepSize !== 0) {
+      /*
+       * The page where the reader had it, before anything is drawn. The
+       * browser keeps that position for the reached entry as the tab leaves
+       * it: its own is remembered, for when the tab comes back to it.
+       */
+      if (pagePlace && !isSamePlace(pagePlace, reachedPlace)) {
+        LeaveGuard.rememberOwnPlace(reachedKey, reachedPlace);
+      }
+
+      if (pagePlace) {
+        scrollPageTo(pagePlace);
+      }
+
       // Back where the page is shown, as many entries as the step went.
-      LeaveGuard.isTakingStepBack = true;
       window.history.go(-stepSize);
 
       hold.askToLeave(
@@ -360,9 +627,16 @@ export default class LeaveGuard {
     /*
      * How far the step went is not known (an entry the router did not
      * make): the guarded page's entry goes back on top, right after the one
-     * the step reached, and leaving goes back one entry, to that one.
+     * the step reached, and leaving goes back one entry, to that one. That
+     * entry keeps its own position as the new one goes on top; the page
+     * then goes back to where the reader had it.
      */
     window.history.pushState(guardedEntry.state, "", guardedEntry.href);
+    LeaveGuard.isTakingStepBack = false;
+
+    if (pagePlace) {
+      scrollPageTo(pagePlace);
+    }
 
     hold.askToLeave(
       LeaveGuard.letGoAndThen(() => {

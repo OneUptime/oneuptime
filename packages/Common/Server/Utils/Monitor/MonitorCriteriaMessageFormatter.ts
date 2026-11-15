@@ -56,9 +56,14 @@ export default class MonitorCriteriaMessageFormatter {
       index++;
     }
 
+    /*
+     * A count of bytes is a whole number: "0 B", "512 B", never "0.00 B"
+     * (issue #7417). From KB up, the figure keeps two decimals under ten.
+     */
     const formatted: string | null =
       MonitorCriteriaMessageFormatter.formatNumber(value, {
-        maximumFractionDigits: value >= 100 ? 0 : value >= 10 ? 1 : 2,
+        maximumFractionDigits:
+          index === 0 || value >= 100 ? 0 : value >= 10 ? 1 : 2,
       });
 
     if (!formatted) {

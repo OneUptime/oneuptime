@@ -2,12 +2,14 @@ import { AlertEpisodeFeedEventType } from "../../../../Models/DatabaseModels/Ale
 import { AlertFeedEventType } from "../../../../Models/DatabaseModels/AlertFeed";
 import { IncidentEpisodeFeedEventType } from "../../../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
+import { OnCallDutyPolicyFeedEventType } from "../../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { ScheduledMaintenanceFeedEventType } from "../../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import FeedUpdateKinds, {
   ALERT_EPISODE_FEED_UPDATE_KINDS,
   ALERT_FEED_UPDATE_KINDS,
   INCIDENT_EPISODE_FEED_UPDATE_KINDS,
   INCIDENT_FEED_UPDATE_KINDS,
+  ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS,
   SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS,
 } from "../../../../Server/Utils/Feed/FeedUpdateKinds";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
@@ -121,6 +123,18 @@ const TABLES: Array<FeedTable> = [
     service: "Server/Services/ScheduledMaintenanceFeedService.ts",
     feedEventTypeField: "scheduledMaintenanceFeedEventType",
     namedByWriters: [],
+  },
+  // An on-call policy's feed (#7549).
+  {
+    name: "ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS",
+    eventType: NotificationRuleEventType.OnCallDutyPolicy,
+    feedEventTypes: Object.values(OnCallDutyPolicyFeedEventType),
+    table: ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS,
+    createdEntry: OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated,
+    service: "Server/Services/OnCallDutyPolicyFeedService.ts",
+    feedEventTypeField: "onCallDutyPolicyFeedEventType",
+    // Who is next: the handoff's lines say it (OnCallHandoffPosts).
+    namedByWriters: [NotificationRuleUpdateKind.OnCallNext],
   },
 ];
 
@@ -301,6 +315,90 @@ describe("what the customer's quiet channel hears of an incident", () => {
   });
 });
 
+describe("what an on-call channel hears of its policy (#7549)", () => {
+  test("a handoff is who is on call now; a gap is nobody on call", () => {
+    expect(
+      ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS[
+        OnCallDutyPolicyFeedEventType.RosterHandoff
+      ],
+    ).toBe(NotificationRuleUpdateKind.OnCallNow);
+    expect(
+      ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS[
+        OnCallDutyPolicyFeedEventType.CoverageGapStarted
+      ],
+    ).toBe(NotificationRuleUpdateKind.NobodyOnCall);
+  });
+
+  test("overrides, changes to the policy and its owners are each an update of their own", () => {
+    for (const [entry, kind] of [
+      [
+        OnCallDutyPolicyFeedEventType.UserOverrideAdded,
+        NotificationRuleUpdateKind.Overrides,
+      ],
+      // An override edited: its cover or its times (#7630, #7631).
+      [
+        OnCallDutyPolicyFeedEventType.UserOverrideChanged,
+        NotificationRuleUpdateKind.Overrides,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
+        NotificationRuleUpdateKind.Overrides,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
+        NotificationRuleUpdateKind.PolicyChanges,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved,
+        NotificationRuleUpdateKind.PolicyChanges,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.UserAdded,
+        NotificationRuleUpdateKind.PolicyChanges,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.UserRemoved,
+        NotificationRuleUpdateKind.PolicyChanges,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.TeamAdded,
+        NotificationRuleUpdateKind.PolicyChanges,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.TeamRemoved,
+        NotificationRuleUpdateKind.PolicyChanges,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.OwnerUserAdded,
+        NotificationRuleUpdateKind.Owners,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
+        NotificationRuleUpdateKind.Owners,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.OwnerTeamAdded,
+        NotificationRuleUpdateKind.Owners,
+      ],
+      [
+        OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
+        NotificationRuleUpdateKind.Owners,
+      ],
+    ] as Array<[OnCallDutyPolicyFeedEventType, NotificationRuleUpdateKind]>) {
+      expect({
+        entry,
+        kind: ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS[entry],
+      }).toEqual({ entry, kind });
+    }
+  });
+
+  test("nothing of an on-call policy is Everything else, which its rules cannot tick", () => {
+    expect(Object.values(ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS)).not.toContain(
+      NotificationRuleUpdateKind.Other,
+    );
+  });
+});
+
 describe("FeedUpdateKinds.resolve", () => {
   test("is the kinds the writer named, when it named any", () => {
     const named: Array<NotificationRuleUpdateKind> = [
@@ -385,6 +483,102 @@ describe("the writers hand the kinds to the message they post", () => {
     expect(squeezed("Server/Services/IncidentService.ts")).toContain(
       "updateKinds.push(NotificationRuleUpdateKind.Postmortem);",
     );
+  });
+
+  test("an on-call policy's handoff lines say who is next where a rule wants that, and only there", () => {
+    const posts: string = squeezed("Server/Utils/OnCall/OnCallHandoffPosts.ts");
+
+    // The line with who is next, the line without, and who is next alone.
+    expect(posts).toContain(
+      "alsoWantedUpdateKinds:[NotificationRuleUpdateKind.OnCallNext]",
+    );
+    expect(posts).toContain(
+      "notWantedUpdateKinds:[NotificationRuleUpdateKind.OnCallNext]",
+    );
+    expect(posts).toContain(
+      "updateKinds:[NotificationRuleUpdateKind.OnCallNext],notWantedUpdateKinds:[NotificationRuleUpdateKind.OnCallNow]",
+    );
+    expect(
+      squeezed("Server/Services/OnCallDutyPolicyFeedService.ts"),
+    ).toContain("alsoWantedUpdateKinds:data.alsoWantedUpdateKinds");
+  });
+
+  test("every entry that names an escalation rule, or an override, gives the channels a short line instead", () => {
+    for (const [writer, written] of [
+      // Added and removed: an entry each, and a line each.
+      ["Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts", 2],
+      ["Server/Services/OnCallDutyPolicyEscalationRuleTeamService.ts", 2],
+      ["Server/Services/OnCallDutyPolicyEscalationRuleScheduleService.ts", 2],
+      // An override added, changed (#7630, #7631) and removed.
+      ["Server/Services/OnCallDutyPolicyUserOverrideService.ts", 3],
+    ] as Array<[string, number]>) {
+      const code: string = squeezed(writer);
+      const entries: number =
+        code.split(
+          "OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem(",
+        ).length - 1;
+      const lines: number = (
+        code.match(/chatInfoInMarkdown:[^,]*OnCallChatText\.\w+\(/g) || []
+      ).length;
+
+      expect({ writer, entries, lines }).toEqual({
+        writer,
+        entries: written,
+        lines: written,
+      });
+    }
+
+    // The override's three lines, one of each.
+    const overrides: string = squeezed(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+
+    for (const line of [
+      "OnCallChatText.overrideAdded(",
+      "OnCallChatText.overrideChanged(",
+      "OnCallChatText.overrideRemoved(",
+    ]) {
+      expect({ line, times: overrides.split(line).length - 1 }).toEqual({
+        line,
+        times: 1,
+      });
+    }
+  });
+
+  test("a person, team or schedule taken out of an escalation rule is a change to the policy, not an owner removed", () => {
+    // How a writer filed a removal as an owner's (before issue #7549).
+    const OWNER_REMOVED: RegExp =
+      /OnCallDutyPolicyFeedEventType\.Owner(User|Team)Removed/;
+
+    for (const [writer, entry] of [
+      [
+        "Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts",
+        "UserRemoved",
+      ],
+      [
+        "Server/Services/OnCallDutyPolicyEscalationRuleTeamService.ts",
+        "TeamRemoved",
+      ],
+      [
+        "Server/Services/OnCallDutyPolicyEscalationRuleScheduleService.ts",
+        "OnCallDutyScheduleRemoved",
+      ],
+    ] as Array<[string, string]>) {
+      const code: string = squeezed(writer);
+
+      expect({ writer, files: true, asOwner: false }).toEqual({
+        writer,
+        files: code.includes(
+          `onCallDutyPolicyFeedEventType:OnCallDutyPolicyFeedEventType.${entry},`,
+        ),
+        asOwner: OWNER_REMOVED.test(code),
+      });
+      expect(
+        ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS[
+          entry as OnCallDutyPolicyFeedEventType
+        ],
+      ).toBe(NotificationRuleUpdateKind.PolicyChanges);
+    }
   });
 
   test("an on-call policy's run message is Paging, wherever it is posted", () => {

@@ -165,7 +165,10 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
    * except the ones named below. The balance and notification-sent columns
    * are bookkeeping, Enable AI defaults to true in the column, and the
    * automatic-fix switches start off on purpose (the pull requests that are
-   * part of fixing are each auto remediation rule's).
+   * part of fixing are each auto remediation rule's). Notify Status Page
+   * Subscribers of New Incidents by Default is no AI switch at all: its
+   * description names OneUptime AI only as one of the ways an incident is
+   * declared, which follows it too.
    */
   it("covers every boolean AI feature switch on the Project model", () => {
     const project: Project = new Project();
@@ -176,6 +179,7 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
       "lowAiBalanceNotificationSentToOwners",
       "failedAiBalanceChargeNotificationSentToOwners",
       "notEnabledAiNotificationSentToOwners",
+      "notifyStatusPageSubscribersOfNewIncidentsByDefault",
       ...OFF_FOR_NEW_PROJECTS,
       ...APPROVAL_RULES,
     ];

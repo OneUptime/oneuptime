@@ -108,7 +108,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 輪替、停用或刪除金鑰
 
-金鑰的頁面會顯示它的 **狀態**、隱藏在 **Click to reveal** 後面的 **密鑰金鑰**，以及它的 **Last Used At**：OneUptime 最後一次接受以它傳送的資料的時間。
+金鑰的頁面會顯示它的 **狀態**、隱藏在 **按一下以顯示** 後面的 **密鑰金鑰**，以及它的 **Last Used At**：OneUptime 最後一次接受以它傳送的資料的時間。
 
 | 目的 | 操作 | 傳送端看到的結果 |
 | --- | --- | --- |

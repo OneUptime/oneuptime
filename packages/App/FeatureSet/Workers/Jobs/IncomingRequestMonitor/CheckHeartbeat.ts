@@ -9,10 +9,13 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import LatestIncomingRequest from "Common/Server/Utils/Monitor/LatestIncomingRequest";
+import MonitorHeartbeatState, {
+  HeartbeatKind,
+  HeartbeatWrite,
+} from "Common/Server/Utils/Monitor/MonitorHeartbeatState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",
@@ -25,24 +28,20 @@ RunCron(
         ),
     );
 
-    const sweepStartedAt: Date = OneUptimeDate.getCurrentDate();
-
     await runMonitorSweep({
       jobName: "IncomingRequestMonitor:CheckHeartbeat",
+      /*
+       * Every enabled incoming request monitor of an active project, once:
+       * the sweep's ID cursor visits each monitor once. Monitors used to be
+       * stamped as they were visited, and queried by that stamp so none was
+       * visited twice; the stamp is now written only every few minutes
+       * (stampStatusCheckedAt), so it no longer says who was visited.
+       */
       queries: [
         {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingRequest,
           project: { ...ProjectService.getActiveProjectStatusQuery() },
-          incomingRequestMonitorHeartbeatCheckedAt: QueryHelper.isNull(),
-        },
-        {
-          ...MonitorService.getEnabledMonitorQuery(),
-          monitorType: MonitorType.IncomingRequest,
-          project: { ...ProjectService.getActiveProjectStatusQuery() },
-          // Exclude monitors stamped in the never-checked phase above.
-          incomingRequestMonitorHeartbeatCheckedAt:
-            QueryHelper.lessThan(sweepStartedAt),
         },
       ],
       select: {
@@ -60,6 +59,8 @@ RunCron(
         incomingRequestSecretKey: true,
         createdAt: true,
         projectId: true,
+        // What its last evaluation found (MonitorHeartbeatState).
+        currentMonitorStatusId: true,
       },
       processMonitor: checkHeartBeat,
     });
@@ -79,30 +80,7 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       return;
     }
 
-    logger.debug(
-      `Updating incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
-    );
-
-    /*
-     * Heartbeat bookkeeping stamp, written for EVERY incoming-request
-     * monitor every 30 seconds. The full updateOneById pipeline costs ~3
-     * SELECTs + UPDATE and — because Monitor has @EnableWorkflow +
-     * @EnableAuditLog — fires an on-update workflow HTTP trigger and an
-     * audit-log row per monitor per tick. A scheduler timestamp should do
-     * none of that; single-statement UPDATE, same pattern as the heartbeat
-     * writes in MonitorResource.ts.
-     */
-    await MonitorService.updateColumnsByIdWithoutHooks({
-      id: monitor.id!,
-      data: {
-        incomingRequestMonitorHeartbeatCheckedAt:
-          OneUptimeDate.getCurrentDate(),
-      },
-    });
-
-    logger.debug(
-      `Updated incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
-    );
+    await stampStatusCheckedAt(monitor);
 
     /*
      * A copy people read that is still the request as it came - one a
@@ -178,6 +156,30 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       checkedAt: checkedAt,
     };
 
+    /*
+     * Evaluated only once a heartbeat window can have turned: a monitor
+     * whose latest request was already evaluated - against these criteria,
+     * at this status - and whose shortest "received in N minutes" window
+     * has not passed since would be judged exactly as it was
+     * (MonitorHeartbeatState.canSkipEvaluation). Every sweep after the
+     * window has passed evaluates it, as before, and so does a new request.
+     */
+    if (
+      await MonitorHeartbeatState.canSkipEvaluation({
+        kind: HeartbeatKind.IncomingRequest,
+        monitorId: monitor.id!,
+        receivedAt: incomingRequest.incomingRequestReceivedAt,
+        monitorSteps: monitor.monitorSteps,
+        monitorStatusId: monitor.currentMonitorStatusId,
+        now: checkedAt,
+      })
+    ) {
+      logger.debug(
+        `Incoming request monitor ${monitor.id?.toString()}: its latest request was evaluated and no heartbeat window has passed since. Skipping.`,
+      );
+      return;
+    }
+
     logger.debug(
       `Processing incoming request monitor: ${monitor.id?.toString()}`,
     );
@@ -193,6 +195,39 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
     );
     logger.error(error);
   }
+};
+
+/*
+ * "Monitor Status Check At", as the Dashboard shows it: written for every
+ * monitor every 30 seconds, it was a Monitor row write per monitor per
+ * sweep (single statement, no hooks). Now at most every few minutes
+ * (MonitorHeartbeatState.CHECK_STAMP_WRITE_EVERY_SECONDS) - a request the
+ * monitor receives also writes it, with the request.
+ */
+const stampStatusCheckedAt: (monitor: Monitor) => Promise<void> = async (
+  monitor: Monitor,
+): Promise<void> => {
+  if (
+    !(await MonitorHeartbeatState.isWriteDue({
+      monitorId: monitor.id!,
+      write: HeartbeatWrite.IncomingRequestCheck,
+    }))
+  ) {
+    return;
+  }
+
+  await MonitorService.updateColumnsByIdWithoutHooks({
+    id: monitor.id!,
+    data: {
+      incomingRequestMonitorHeartbeatCheckedAt: OneUptimeDate.getCurrentDate(),
+    },
+  });
+
+  await MonitorHeartbeatState.markWritten({
+    monitorId: monitor.id!,
+    write: HeartbeatWrite.IncomingRequestCheck,
+    everySeconds: MonitorHeartbeatState.CHECK_STAMP_WRITE_EVERY_SECONDS,
+  });
 };
 
 type ShouldProcessRequestFunction = (monitor: Monitor) => boolean;

@@ -24,6 +24,7 @@ import ProbeNetworkFailureUtil, {
 } from "Common/Utils/ProbeNetworkFailureUtil";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 /*
  * `timeout: false` is how the ping library is told there is to be no
@@ -937,10 +938,9 @@ export default class PingMonitor {
         return {
           isOnline: true,
           isTimeout: true,
-          failureCause:
-            "Request was tried " +
-            pingOptions.currentRetryCount +
-            " times and it timed out.",
+          failureCause: writeProbeTimeoutFailureCause(
+            pingOptions.currentRetryCount,
+          ),
           probeAttempts: pingOptions.attempts,
           totalAttempts: pingOptions.attempts.length,
         };

@@ -29,7 +29,7 @@ A partir dos quatro carimbos de tempo, a sonda calcula o **desvio do relógio**,
 > [!NOTE]
 > O desvio é medido em relação ao próprio relógio da sonda. As sondas do OneUptime Cloud mantêm seus relógios sincronizados. Em uma [sonda personalizada](/docs/probe/custom-probe), mantenha também o relógio do host sincronizado, com chrony ou systemd-timesyncd, ou um alerta de desvio pode ser sobre a sonda e não sobre o servidor.
 
-Um servidor que responde não é consultado de novo, mesmo quando responde sem uma hora confiável. Silêncio, uma porta recusada e uma consulta DNS com falha são repetidos com uma nova solicitação. Quando o servidor não responde de forma alguma, a sonda também traça a rota até ele e anexa o que encontrou como **Network Path at Time of Failure**. Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, então não pode marcar o seu servidor como offline.
+Um servidor que responde não é consultado de novo, mesmo quando responde sem uma hora confiável. Silêncio, uma porta recusada e uma consulta DNS com falha são repetidos com uma nova solicitação. Quando o servidor não responde de forma alguma, a sonda também traça a rota até ele e anexa o que encontrou como **Caminho de rede no momento da falha**. Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, então não pode marcar o seu servidor como offline.
 
 ## Antes de começar
 
@@ -133,7 +133,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponder
 ## Solução de problemas
 
 :::details O servidor está no ar, mas o monitor diz que ele não respondeu
-A solicitação ou a resposta se perdeu no caminho. Um firewall que permite TCP mas não UDP, uma regra `restrict` do ntpd ou `allow` do chrony que deixa de fora o endereço da sonda, ou um servidor que só escuta em uma interface interna, todos se parecem com isso. **Network Path at Time of Failure** mostra até onde a rota chegou. Libere a sonda ou verifique o servidor a partir de uma [sonda personalizada](/docs/probe/custom-probe) dentro da rede.
+A solicitação ou a resposta se perdeu no caminho. Um firewall que permite TCP mas não UDP, uma regra `restrict` do ntpd ou `allow` do chrony que deixa de fora o endereço da sonda, ou um servidor que só escuta em uma interface interna, todos se parecem com isso. **Caminho de rede no momento da falha** mostra até onde a rota chegou. Libere a sonda ou verifique o servidor a partir de uma [sonda personalizada](/docs/probe/custom-probe) dentro da rede.
 :::
 
 :::details O monitor diz que o servidor recusou a solicitação

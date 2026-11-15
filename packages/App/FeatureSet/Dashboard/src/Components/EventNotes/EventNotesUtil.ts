@@ -600,7 +600,7 @@ export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
   translationKey("incident"),
   translationKey("alert"),
   translationKey("episode"),
-  translationKey("scheduled maintenance event"),
+  translationKey("maintenance event"),
 ];
 
 /*
@@ -613,9 +613,9 @@ export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
  * Teams. The sentence names the event in its own word, as the chats' private
  * note line does ("only the people who can see the incident can read it",
  * WorkspaceNoteForm), and each event's sentence is a whole key: a language
- * words "this incident" and "this episode" each its own way. A scheduled
- * maintenance event is "this maintenance event", as the chats' option calls
- * it: the sentence takes two lines on a phone, not three.
+ * words "this incident" and "this episode" each its own way. A maintenance
+ * event's sentence says "this maintenance event": the record's name since
+ * #6817, and what the chats' option calls it.
  */
 export const PRIVATE_NOTE_AUDIENCE_HINTS: Record<string, string> = {
   incident: translationKey(
@@ -623,7 +623,7 @@ export const PRIVATE_NOTE_AUDIENCE_HINTS: Record<string, string> = {
   ),
   alert: translationKey("Only people who can see this alert can read this"),
   episode: translationKey("Only people who can see this episode can read this"),
-  "scheduled maintenance event": translationKey(
+  "maintenance event": translationKey(
     "Only people who can see this maintenance event can read this",
   ),
 };

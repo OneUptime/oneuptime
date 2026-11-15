@@ -44,6 +44,11 @@ export interface ComponentProps<T extends GenericObject> {
    * bound and pagination switches to a prev/next-only UI.
    */
   hasMore?: boolean | undefined;
+  /*
+   * Optional. Forwarded to Pagination: the count stopped at a cap, and
+   * totalItemsCount is that cap ("of 10,000+").
+   */
+  isCountCapped?: boolean | undefined;
   itemsOnPage: number;
   enableDragAndDrop?: boolean | undefined;
   dragDropIndexField?: keyof T | undefined;
@@ -327,6 +332,7 @@ const List: ListFunction = <T extends GenericObject>(
                 currentPageNumber={props.currentPageNumber}
                 totalItemsCount={props.totalItemsCount}
                 hasMore={props.hasMore}
+                isCountCapped={props.isCountCapped}
                 itemsOnCurrentPage={props.data.length}
                 itemsOnPage={props.itemsOnPage}
                 onNavigateToPage={props.onNavigateToPage}

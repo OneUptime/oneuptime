@@ -37,7 +37,7 @@ As etapas são executadas **em ordem**. Para mudar a ordem, arraste uma etapa pe
 
 ### Salvar as etapas
 
-Clique em **Salvar etapas**. Até fazer isso, o editor mostra **Alterações não guardadas**. Depois de salvar, você vê **Salvo**, e o runbook está pronto para [ser executado](/docs/runbooks/running).
+Clique em **Salvar etapas**. Até fazer isso, o editor mostra **Alterações não guardadas**. Depois de salvar, você vê **Salvo**, e o runbook está pronto para [ser executado](/docs/runbooks/running). Sair das etapas antes de salvar pergunta antes. Um link no menu lateral, na trilha de navegação ou na barra superior, ou os botões Voltar e Avançar do seu navegador, abrem **Sair sem salvar?** com duas opções: **Continuar Editando** fica nas etapas com suas alterações, e **Descartar alterações** segue para a página que você estava abrindo. Fechar ou recarregar a aba pergunta com a própria caixa de diálogo do navegador.
 :::
 
 ## Anatomia de uma etapa

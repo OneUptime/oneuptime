@@ -705,9 +705,15 @@ export default class NetworkInventoryUtil {
          * 101 statements for a 50-port switch, because _updateBy SELECTs
          * before every UPDATE — which is a hard wall once an operator raises
          * DEVICE_POLL_FETCH_LIMIT and the fleet actually polls on its
-         * configured interval. Interfaces that exist in inventory but were
-         * NOT in this walk are still left exactly as they were: nothing here
-         * deletes or ages them out.
+         * configured interval. A known interface is written only when it
+         * changed, a reading moved noticeably, or its fifteen-minute refresh
+         * came due (InterfaceInventoryUtil.needsWrite). Interfaces that
+         * exist in inventory but were NOT in this walk are still left
+         * exactly as they were: nothing here deletes or ages them out.
+         *
+         * Written after the poll's verdict on purpose: the verdict moves the
+         * device's lastSnmpSeenAt, which is how a walk processed later but
+         * received earlier knows to leave the rows this one confirmed.
          */
         const upsertResult: InterfaceWalkUpsertResult =
           await NetworkInterfaceService.upsertWalkedInterfaces({

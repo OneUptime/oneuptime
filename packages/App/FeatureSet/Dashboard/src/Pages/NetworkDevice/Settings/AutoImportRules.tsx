@@ -311,11 +311,16 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             field: { isExclusion: true },
             title: "Rule Type",
             type: FieldType.Boolean,
+            /*
+             * The rule's kind, named as a kind: "Import" alone is the
+             * Import button's key, which many languages word as a verb
+             * (Hindi आयात करें, "do import"; German Importieren).
+             */
             getElement: (item: NetworkDeviceAutoImportRule): ReactElement => {
               return item.isExclusion ? (
-                <Pill color={Red} text="Exclusion" />
+                <Pill color={Red} text="Exclusion rule" />
               ) : (
-                <Pill color={Blue} text="Import" />
+                <Pill color={Blue} text="Import rule" />
               );
             },
           },

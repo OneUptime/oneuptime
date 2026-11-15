@@ -473,7 +473,7 @@ export const EVENT_STATE_KINDS: Record<
     words: {
       changeStateTitle: translationKey("Change Scheduled Maintenance State"),
       changeStateBulkDescription: translationKey(
-        "Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",
+        "Select the state to change maintenance events to. Events already at or past the selected state will be skipped.",
       ),
       bulkNoteTitle: translationKey("Public Note"),
       bulkNoteDescription: translationKey(

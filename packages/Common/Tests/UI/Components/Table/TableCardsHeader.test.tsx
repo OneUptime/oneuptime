@@ -55,6 +55,7 @@ interface Incident extends GenericObject {
   title: string;
   declaredAt: string;
   owner: string;
+  severity?: string;
 }
 
 const COLUMNS: Columns<Incident> = [
@@ -235,6 +236,59 @@ describe("the band over a list's cards", () => {
     act(() => {
       fireEvent.click(
         screen.getByTestId(`${TABLE_CARDS_SORT_TEST_ID}-declaredAt`),
+      );
+    });
+
+    expect(sorted).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A severity, a state or a status picked in the menu runs worst first
+   * (Column's firstSortOrder, #8134), as its header's first click does,
+   * not in the order the list happened to be in.
+   */
+  test("a column with a first direction, picked, runs that way; picked when sorted by already, asks for nothing", () => {
+    const sorted: Mock<
+      (sortBy: keyof Incident | null, order: SortOrder) => void
+    > = jest.fn<(sortBy: keyof Incident | null, order: SortOrder) => void>();
+
+    const withSeverity: Columns<Incident> = [
+      ...COLUMNS,
+      {
+        key: "severity",
+        title: "Severity",
+        type: FieldType.Entity,
+        firstSortOrder: SortOrder.Descending,
+      },
+    ];
+
+    draw({
+      columns: withSeverity,
+      sortOrder: SortOrder.Ascending,
+      onSortChanged: sorted,
+    });
+    openSort();
+    act(() => {
+      fireEvent.click(
+        screen.getByTestId(`${TABLE_CARDS_SORT_TEST_ID}-severity`),
+      );
+    });
+
+    expect(sorted).toHaveBeenLastCalledWith("severity", SortOrder.Descending);
+
+    cleanup();
+    sorted.mockClear();
+
+    draw({
+      columns: withSeverity,
+      sortBy: "severity",
+      sortOrder: SortOrder.Ascending,
+      onSortChanged: sorted,
+    });
+    openSort();
+    act(() => {
+      fireEvent.click(
+        screen.getByTestId(`${TABLE_CARDS_SORT_TEST_ID}-severity`),
       );
     });
 

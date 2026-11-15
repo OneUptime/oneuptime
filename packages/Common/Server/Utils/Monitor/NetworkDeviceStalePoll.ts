@@ -22,8 +22,9 @@ import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/
  * So a worker job (NetworkDeviceMonitor:CheckStalePolls) looks for devices
  * whose last poll is older than three of their polling intervals (at least
  * ten minutes), and evaluates each monitor on them as a poll that found the
- * device unreachable, saying why no poll came. The next real poll evaluates
- * the monitor again, and a reachable device resolves what this opened.
+ * device unreachable, saying why no poll came - once per stale spell
+ * (NetworkDeviceStalePollReports). The next real poll evaluates the monitor
+ * again, and a reachable device resolves what this opened.
  *
  * A device whose polling someone turned off is left alone: the setting
  * pauses polling on purpose (a device watched by its traps alone, or one

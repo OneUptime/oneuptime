@@ -1,6 +1,7 @@
 import { EncryptionSecret, WorkflowHostname } from "../EnvironmentConfig";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import PagedFind from "../Infrastructure/Postgres/PagedFind";
+import CappedCount from "../Infrastructure/Postgres/CappedCount";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import AggregateBy, {
   AggregateColumn,
@@ -7259,6 +7260,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     props,
     groupBy,
     distinctOn,
+    upTo,
   }: CountBy<TBaseModel>): Promise<PositiveNumber> {
     try {
       if (groupBy && Object.keys(groupBy).length > 0) {
@@ -7313,6 +7315,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         count = await queryBuilder.getCount();
+      } else if (upTo !== undefined) {
+        /*
+         * No further than upTo + 1 records: more than upTo matched when
+         * that is the answer (CappedCount, BaseAPI.getList's countUpTo).
+         */
+        count = await CappedCount.count(
+          this.getRepository(),
+          { where: findBy.query as any },
+          upTo,
+        );
       } else {
         count = await this.getRepository().count({
           where: findBy.query as any,

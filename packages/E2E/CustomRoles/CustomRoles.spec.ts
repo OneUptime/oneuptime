@@ -1553,10 +1553,10 @@ test.describe("in another language", () => {
   }: {
     page: Page;
   }) => {
-    // The role's page: the end of the trail.
+    // The role's page: the end of the trail, named in German too.
     await page.goto(`${ROLES_ROUTE}/${ROLE_IDS["responder"]}?lang=de`);
     const trail: Locator = page.getByRole("navigation", {
-      name: "Breadcrumb",
+      name: "Navigationspfad",
     });
     await expect(trail).toContainText("Incident Responder");
     await expect(trail).not.toContainText(GERMAN_WORD_FOR_IT);

@@ -2,7 +2,10 @@
 import LeaveGuard, {
   AskToLeaveFunction,
   LeavePageFunction,
+  OWN_PLACES_MAX_ENTRIES,
+  SCROLL_RESTORE_WAIT_MS,
 } from "../../../UI/Utils/LeaveGuard";
+import { afterHistorySteps } from "../../Helpers/HistorySteps";
 import {
   afterEach,
   beforeEach,
@@ -61,16 +64,12 @@ const routerState: (idx: number) => {
 
 /*
  * jsdom takes a history step two tasks later, as browsers take it after the
- * current task: a step, the guard's step back and the step taken again
- * after the answer have all landed once a handful of tasks have run.
+ * current task, and the guard takes a step it keeps from the router back
+ * in the next animation frame: a step, the guard's step back and the step
+ * taken again after the answer have all landed once a handful of tasks and
+ * a frame or two have gone by (Tests/Helpers/HistorySteps).
  */
-const nextHistoryTask: () => Promise<void> = async (): Promise<void> => {
-  for (let task: number = 0; task < 8; task++) {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, 0);
-    });
-  }
-};
+const nextHistoryTask: () => Promise<void> = afterHistorySteps;
 
 const dispatchBeforeUnload: () => Event = (): Event => {
   const event: Event = new Event("beforeunload", { cancelable: true });
@@ -215,7 +214,8 @@ describe("LeaveGuard hears Back and Forward before the router", () => {
       addEventListener.mockRestore();
     }
 
-    expect(added).toEqual(["beforeunload"]);
+    // The browser's question, and where the page is scrolled to (#7404).
+    expect(added).toEqual(["beforeunload", "scroll"]);
   });
 });
 
@@ -582,5 +582,605 @@ describe("LeaveGuard and the browser's Back and Forward buttons", () => {
 
     expect(window.location.pathname).toBe("/dashboard/p1/dashboards");
     expect(routerHeard).toEqual(["/dashboard/p1/dashboards"]);
+  });
+});
+
+/*
+ * WHERE THE PAGE IS SCROLLED TO, ACROSS BACK AND FORWARD (issue #7404).
+ *
+ * A browser puts back the scroll position of the history entry a step
+ * reaches right after popstate, before it next draws (Chromium, Firefox
+ * and WebKit alike). Taken back at once, a step the guard keeps showed the
+ * page at the other entry's position for a frame or more (Firefox, WebKit),
+ * and left that entry with the page's position, so Discard Changes opened
+ * it scrolled down (Chromium). The guard now takes the step back in the
+ * next frame: it scrolls the page back to where the reader had it first,
+ * and puts the other entry's own position back when the tab arrives there.
+ *
+ * jsdom neither scrolls nor restores, so these play the browser: the page's
+ * position is set by hand (the reader scrolling, with its scroll event; the
+ * browser restoring an entry's position after popstate, before the frame),
+ * frames are drawn when a test says so, and every scrollTo, history.go and
+ * pushState the guard makes is recorded in order.
+ */
+describe("LeaveGuard keeps the page where the reader had it, across Back and Forward (#7404)", () => {
+  let calls: Array<string> = [];
+  let frames: Array<FrameRequestCallback> = [];
+  // spyOn types an overloaded method by its last signature: scrollTo(x, y).
+  let scrollToSpy: SpyInstance<(x: number, y: number) => void>;
+  let goSpy: SpyInstance<History["go"]>;
+  let pushStateSpy: SpyInstance<History["pushState"]>;
+  let frameSpy: SpyInstance<Window["requestAnimationFrame"]>;
+
+  const BOARD: string = "/dashboard/p1/dashboards/d1";
+  const LIST: string = "/dashboard/p1/dashboards";
+
+  const placePage: (y: number) => void = (y: number): void => {
+    (window as unknown as { scrollX: number }).scrollX = 0;
+    (window as unknown as { scrollY: number }).scrollY = y;
+  };
+
+  // The reader scrolls the page, and the browser says so.
+  const readerScrollsTo: (y: number) => void = (y: number): void => {
+    placePage(y);
+    window.dispatchEvent(new Event("scroll"));
+  };
+
+  /*
+   * The browser puts back the position it keeps for the entry the tab is
+   * on now: after popstate, before it draws. Its scroll event comes with
+   * the next frame, when `withScrollEvent` says so.
+   */
+  const browserRestores: (y: number, withScrollEvent?: boolean) => void = (
+    y: number,
+    withScrollEvent?: boolean,
+  ): void => {
+    placePage(y);
+
+    if (withScrollEvent) {
+      window.dispatchEvent(new Event("scroll"));
+    }
+  };
+
+  // The browser draws its next frame: what waits for it runs first.
+  const drawNextFrame: () => void = (): void => {
+    const due: Array<FrameRequestCallback> = frames;
+    frames = [];
+
+    for (const callback of due) {
+      callback(0);
+    }
+  };
+
+  // jsdom's history steps land a couple of tasks later.
+  const tasks: () => Promise<void> = async (): Promise<void> => {
+    for (let task: number = 0; task < 8; task++) {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
+  };
+
+  /*
+   * A step, as the browser takes it: popstate, then the position it keeps
+   * for the entry reached, then a frame, then the guard's step back
+   * landing.
+   */
+  const stepAndDraw: (
+    step: () => void,
+    restoredY: number,
+  ) => Promise<void> = async (
+    step: () => void,
+    restoredY: number,
+  ): Promise<void> => {
+    step();
+    await tasks();
+    browserRestores(restoredY);
+    drawNextFrame();
+    await tasks();
+  };
+
+  beforeEach(() => {
+    calls = [];
+    frames = [];
+    placePage(0);
+
+    scrollToSpy = jest.spyOn(window, "scrollTo").mockImplementation(((
+      x: number,
+      y: number,
+    ): void => {
+      calls.push(`scrollTo ${x},${y}`);
+      placePage(y);
+    }) as never);
+
+    const realGo: (delta?: number) => void = window.history.go.bind(
+      window.history,
+    );
+    goSpy = jest
+      .spyOn(window.history, "go")
+      .mockImplementation((delta?: number): void => {
+        calls.push(`go ${delta}`);
+        realGo(delta);
+      });
+
+    const realPushState: History["pushState"] = window.history.pushState.bind(
+      window.history,
+    );
+    pushStateSpy = jest
+      .spyOn(window.history, "pushState")
+      .mockImplementation(
+        (data: unknown, unused: string, url?: string | URL | null): void => {
+          calls.push(`pushState ${String(url)}`);
+          realPushState(data, unused, url);
+        },
+      );
+
+    frameSpy = jest
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback): number => {
+        frames.push(callback);
+        return frames.length;
+      });
+  });
+
+  afterEach(() => {
+    // Nothing waits on a frame into the next test.
+    LeaveGuard.reset();
+    frames = [];
+    scrollToSpy.mockRestore();
+    goSpy.mockRestore();
+    pushStateSpy.mockRestore();
+    frameSpy.mockRestore();
+    placePage(0);
+  });
+
+  test("Back: the page is scrolled back to where the reader had it before the browser draws, then taken back", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    window.history.back();
+    await tasks();
+
+    // Kept from the router, and nothing taken back before the frame.
+    expect(routerHeard).toEqual([]);
+    expect(calls).toEqual([]);
+    expect(asks.asked).toHaveLength(0);
+    expect(frames).toHaveLength(1);
+
+    // The browser puts back the list's own position: its top.
+    browserRestores(0);
+    drawNextFrame();
+
+    // Back where the reader had the board, before the step is taken back.
+    expect(calls).toEqual(["scrollTo 0,1000", "go 1"]);
+    expect(window.scrollY).toBe(1000);
+    expect(asks.asked).toHaveLength(1);
+
+    await tasks();
+
+    expect(window.location.pathname).toBe(BOARD);
+    expect(window.history.state).toEqual(routerState(1));
+    expect(routerHeard).toEqual([]);
+  });
+
+  test("the browser's own scroll event for the other entry does not move where the page is kept", async () => {
+    LeaveGuard.hold(recordAsks().askToLeave);
+    readerScrollsTo(1000);
+
+    window.history.back();
+    await tasks();
+    // Restored, and said so, while the tab shows the list's entry.
+    browserRestores(0, true);
+    drawNextFrame();
+
+    expect(calls).toEqual(["scrollTo 0,1000", "go 1"]);
+  });
+
+  test("the page where the step reached put it: nothing scrolls, and nothing is remembered", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(400);
+
+    await stepAndDraw(() => {
+      window.history.back();
+    }, 400);
+
+    expect(calls).toEqual(["go 1"]);
+
+    asks.asked[0]!.leave();
+    await tasks();
+    browserRestores(400);
+
+    // Nothing to put back on arrival: no frame is even asked for.
+    expect(frames).toHaveLength(0);
+    expect(calls).toEqual(["go 1", "go -1"]);
+    expect(window.location.pathname).toBe(LIST);
+  });
+
+  test("Discard Changes after Back opens the page before at its own position, not the board's", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    // The list was left at 300: the browser puts that back.
+    await stepAndDraw(() => {
+      window.history.back();
+    }, 300);
+
+    expect(calls).toEqual(["scrollTo 0,1000", "go 1"]);
+
+    asks.asked[0]!.leave();
+    await tasks();
+
+    /*
+     * The browser kept the board's position for the list as the guard took
+     * the step back, and puts that back now; the list's own goes back on.
+     */
+    expect(window.location.pathname).toBe(LIST);
+    browserRestores(1000);
+    drawNextFrame();
+
+    expect(calls).toEqual([
+      "scrollTo 0,1000",
+      "go 1",
+      "go -1",
+      "scrollTo 0,300",
+    ]);
+    expect(window.scrollY).toBe(300);
+    expect(routerHeard).toEqual([LIST]);
+  });
+
+  test("Forward, then Discard Changes: the page ahead opens at its own position", async () => {
+    // The list, the board (shown), then a monitor opened from it.
+    window.history.pushState(routerState(2), "", "/dashboard/p1/monitors/m1");
+    window.history.back();
+    await tasks();
+    routerHeard = [];
+    calls = [];
+
+    const asks: AskRecorder = recordAsks();
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(800);
+
+    await stepAndDraw(() => {
+      window.history.forward();
+    }, 120);
+
+    expect(calls).toEqual(["scrollTo 0,800", "go -1"]);
+    expect(window.location.pathname).toBe(BOARD);
+
+    asks.asked[0]!.leave();
+    await tasks();
+    browserRestores(800);
+    drawNextFrame();
+
+    expect(window.location.pathname).toBe("/dashboard/p1/monitors/m1");
+    expect(calls).toEqual([
+      "scrollTo 0,800",
+      "go -1",
+      "go 1",
+      "scrollTo 0,120",
+    ]);
+  });
+
+  test("Keep Editing, then Back again: the board stays where the reader has it now, and the page before keeps its own position", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    await stepAndDraw(() => {
+      window.history.back();
+    }, 300);
+
+    // Keep Editing: the answer is dropped. The reader scrolls on.
+    readerScrollsTo(1100);
+
+    // The browser now keeps the board's old position for the list.
+    await stepAndDraw(() => {
+      window.history.back();
+    }, 1000);
+
+    expect(calls).toEqual([
+      "scrollTo 0,1000",
+      "go 1",
+      "scrollTo 0,1100",
+      "go 1",
+    ]);
+    expect(asks.asked).toHaveLength(2);
+
+    asks.asked[1]!.leave();
+    await tasks();
+    browserRestores(1100);
+    drawNextFrame();
+
+    // The list's own position, as the reader left it before the board.
+    expect(calls[calls.length - 1]).toBe("scrollTo 0,300");
+    expect(window.location.pathname).toBe(LIST);
+  });
+
+  test("put back once: from then on the page before keeps the position the browser has for it", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    await stepAndDraw(() => {
+      window.history.back();
+    }, 300);
+
+    asks.asked[0]!.leave();
+    await tasks();
+    browserRestores(1000);
+    drawNextFrame();
+
+    expect(calls[calls.length - 1]).toBe("scrollTo 0,300");
+
+    // Forward to the board as saved, and Back to the list: the browser's.
+    window.history.forward();
+    await tasks();
+    browserRestores(1000);
+    window.history.back();
+    await tasks();
+    browserRestores(300);
+
+    expect(frames).toHaveLength(0);
+    expect(calls).toEqual([
+      "scrollTo 0,1000",
+      "go 1",
+      "go -1",
+      "scrollTo 0,300",
+    ]);
+  });
+
+  test("Keep Editing, then Save: Back later still finds the page before at its own position", async () => {
+    const asks: AskRecorder = recordAsks();
+    const release: () => void = LeaveGuard.hold(asks.askToLeave);
+
+    readerScrollsTo(1000);
+
+    await stepAndDraw(() => {
+      window.history.back();
+    }, 300);
+
+    // Keep Editing, then Save Changes: the page lets go.
+    release();
+
+    window.history.back();
+    await tasks();
+
+    // The router hears this one, as always.
+    expect(routerHeard).toEqual([LIST]);
+    browserRestores(1000);
+    drawNextFrame();
+
+    expect(calls).toEqual(["scrollTo 0,1000", "go 1", "scrollTo 0,300"]);
+  });
+
+  test("while no page holds the guard, Back scrolls nothing and asks for no frame", async () => {
+    readerScrollsTo(1000);
+
+    window.history.back();
+    await tasks();
+    browserRestores(300);
+
+    expect(frames).toHaveLength(0);
+    drawNextFrame();
+
+    expect(calls).toEqual([]);
+    expect(scrollToSpy).not.toHaveBeenCalled();
+    expect(routerHeard).toEqual([LIST]);
+    expect(window.scrollY).toBe(300);
+  });
+
+  test("Back pressed twice before the frame is taken back once, the whole way, with one question", async () => {
+    window.history.replaceState(routerState(0), "", "/dashboard/p1/home");
+    window.history.pushState(routerState(1), "", LIST);
+    window.history.pushState(routerState(2), "", BOARD);
+    calls = [];
+
+    const asks: AskRecorder = recordAsks();
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(900);
+
+    window.history.back();
+    await tasks();
+    browserRestores(200);
+    window.history.back();
+    await tasks();
+    browserRestores(0);
+
+    // One wait for one frame.
+    expect(frames).toHaveLength(1);
+    drawNextFrame();
+    await tasks();
+
+    expect(calls).toEqual(["scrollTo 0,900", "go 2"]);
+    expect(asks.asked).toHaveLength(1);
+    expect(window.location.pathname).toBe(BOARD);
+    expect(routerHeard).toEqual([]);
+  });
+
+  test("Forward back to the page before the frame: nothing is taken back, and nothing asks", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    window.history.back();
+    await tasks();
+    browserRestores(300);
+    window.history.forward();
+    await tasks();
+    browserRestores(1000);
+    drawNextFrame();
+    await tasks();
+
+    expect(calls).toEqual([]);
+    expect(asks.asked).toHaveLength(0);
+    expect(window.location.pathname).toBe(BOARD);
+    // The router heard neither step.
+    expect(routerHeard).toEqual([]);
+  });
+
+  test("a page that lets go while the step waits for its frame: the router hears the step, and nothing asks", async () => {
+    const asks: AskRecorder = recordAsks();
+    const release: () => void = LeaveGuard.hold(asks.askToLeave);
+
+    readerScrollsTo(1000);
+    window.history.back();
+    await tasks();
+
+    expect(routerHeard).toEqual([]);
+
+    release();
+    browserRestores(300);
+    drawNextFrame();
+    await tasks();
+
+    expect(asks.asked).toHaveLength(0);
+    expect(calls).toEqual([]);
+    expect(routerHeard).toEqual([LIST]);
+    expect(window.location.pathname).toBe(LIST);
+  });
+
+  test("a tab that draws no frames still takes the step back, after a short wait", async () => {
+    const asks: AskRecorder = recordAsks();
+
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    window.history.back();
+    await tasks();
+    browserRestores(0);
+
+    // No frame is drawn.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, SCROLL_RESTORE_WAIT_MS + 50);
+    });
+
+    expect(calls).toEqual(["scrollTo 0,1000", "go 1"]);
+    expect(asks.asked).toHaveLength(1);
+
+    // The frame that comes later does nothing a second time.
+    drawNextFrame();
+    expect(calls).toEqual(["scrollTo 0,1000", "go 1"]);
+  });
+
+  test("an entry the router did not number: the page's entry goes back on top, then the page is scrolled back", async () => {
+    // A bare hash link leaves an entry without the router's state.
+    window.history.pushState(null, "", `${BOARD}#notes`);
+    calls = [];
+
+    const asks: AskRecorder = recordAsks();
+    LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(1000);
+
+    // Two entries back at once, to the list: how far is not known.
+    await stepAndDraw(() => {
+      window.history.go(-2);
+    }, 300);
+
+    /*
+     * The list's entry keeps its own position as the board's goes on top:
+     * only then is the page scrolled back.
+     */
+    expect(calls).toEqual([
+      "go -2",
+      `pushState http://localhost${BOARD}#notes`,
+      "scrollTo 0,1000",
+    ]);
+
+    asks.asked[0]!.leave();
+    await tasks();
+    browserRestores(300);
+
+    // Nothing was lost, so nothing is put back.
+    expect(frames).toHaveLength(0);
+    expect(window.location.pathname).toBe(LIST);
+  });
+
+  test("the scroll listener is passive, added only while the guard is held, and let go with it", () => {
+    const addEventListener: SpyInstance<Window["addEventListener"]> =
+      jest.spyOn(window, "addEventListener");
+    const removeEventListener: SpyInstance<Window["removeEventListener"]> =
+      jest.spyOn(window, "removeEventListener");
+
+    try {
+      const release: () => void = LeaveGuard.hold(recordAsks().askToLeave);
+
+      const scrollCalls: Array<Array<unknown>> = addEventListener.mock.calls
+        .map((call: Array<unknown>): Array<unknown> => {
+          return call;
+        })
+        .filter((call: Array<unknown>): boolean => {
+          return call[0] === "scroll";
+        });
+
+      expect(scrollCalls).toHaveLength(1);
+      expect(scrollCalls[0]![2]).toEqual({ passive: true });
+
+      release();
+
+      expect(
+        removeEventListener.mock.calls.some((call: Array<unknown>) => {
+          return call[0] === "scroll" && call[1] === scrollCalls[0]![1];
+        }),
+      ).toBe(true);
+    } finally {
+      addEventListener.mockRestore();
+      removeEventListener.mockRestore();
+    }
+  });
+
+  test("it remembers the own positions of the most recent entries only", async () => {
+    // Pages 0 to N, then the board: a jump back reaches each once.
+    const count: number = OWN_PLACES_MAX_ENTRIES + 1;
+
+    window.history.replaceState(routerState(0), "", "/dashboard/p1/page-0");
+
+    for (let index: number = 1; index <= count; index++) {
+      window.history.pushState(
+        routerState(index),
+        "",
+        index === count ? BOARD : `/dashboard/p1/page-${index}`,
+      );
+    }
+
+    calls = [];
+
+    const asks: AskRecorder = recordAsks();
+    const release: () => void = LeaveGuard.hold(asks.askToLeave);
+    readerScrollsTo(5000);
+
+    // A jump back to each page, nearest first, kept each time.
+    for (let distance: number = 1; distance <= count; distance++) {
+      await stepAndDraw(() => {
+        window.history.go(-distance);
+      }, distance * 10);
+    }
+
+    expect(asks.asked).toHaveLength(count);
+    release();
+    calls = [];
+
+    // The nearest page was remembered first, and let go for the newest.
+    window.history.go(-1);
+    await tasks();
+    browserRestores(5000);
+    expect(frames).toHaveLength(0);
+
+    // The farthest was remembered last, and is put back.
+    window.history.go(-(count - 1));
+    await tasks();
+    expect(window.location.pathname).toBe("/dashboard/p1/page-0");
+    browserRestores(5000);
+    drawNextFrame();
+
+    expect(calls[calls.length - 1]).toBe(`scrollTo 0,${count * 10}`);
   });
 });

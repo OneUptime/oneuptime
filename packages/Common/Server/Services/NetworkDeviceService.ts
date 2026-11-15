@@ -59,13 +59,21 @@ import Select from "../Types/Database/Select";
 import { AggregateRow } from "../Types/Database/AggregateBy";
 import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
 import {
+  DEVICE_FLEET_SCAN_AGGREGATES,
+  DEVICE_FLEET_SCAN_GROUP_COLUMNS,
+  DEVICE_FLEET_SCAN_ORDER,
+  DEVICE_FLEET_SUMMARY_AGGREGATES,
   DEVICE_HEALTH_AGGREGATES,
   DEVICE_HEALTH_GROUP_COLUMNS,
   DEVICE_HEALTH_GROUP_ORDER,
   DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE,
   DEVICE_HEALTH_NOW_PARAMETER,
+  DEVICE_VENDOR_GROUP_COLUMN,
+  DeviceFleetScan,
+  DeviceFleetSummary,
   DeviceHealthGroup,
   parseDeviceHealthGroup,
+  readDeviceFleetScan,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import {
@@ -83,19 +91,11 @@ import {
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
 
-/**
- * The fleet-wide numbers the device summary strip and the network overview
- * both print. Counted in Postgres — see `Service.getFleetSummary`.
+/*
+ * The fleet's numbers, defined beside the scan that counts them
+ * (DeviceHealthAggregation) and named here too, where callers find them.
  */
-export interface DeviceFleetSummary {
-  devicesUp: number;
-  devicesDown: number;
-  devicesPending: number;
-  // Interfaces, not devices: a switch with three dark ports contributes three.
-  interfacesDown: number;
-  totalDevices: number;
-  devicesWithoutSite: number;
-}
+export type { DeviceFleetScan, DeviceFleetSummary };
 
 /*
  * Columns a NetworkSiteAssignmentRule's hostname pattern is matched against.
@@ -822,32 +822,7 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: data.projectId,
         isArchived: false,
       },
-      select: [
-        {
-          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = true)`,
-          alias: "devicesUp",
-        },
-        {
-          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = false)`,
-          alias: "devicesDown",
-        },
-        {
-          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" IS NULL)`,
-          alias: "devicesPending",
-        },
-        {
-          expression: `COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)`,
-          alias: "interfacesDown",
-        },
-        {
-          expression: `COUNT(*)`,
-          alias: "totalDevices",
-        },
-        {
-          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."siteId" IS NULL)`,
-          alias: "devicesWithoutSite",
-        },
-      ],
+      select: DEVICE_FLEET_SUMMARY_AGGREGATES,
       props: data.props,
     });
 
@@ -864,6 +839,55 @@ export class Service extends ProjectReferencesService<Model> {
         "devicesWithoutSite",
       ),
     };
+  }
+
+  /**
+   * The fleet, counted once: everything the Network Overview and the two
+   * summary strips need, from ONE scan of the project's devices.
+   *
+   * The Overview used to count the fleet four times at once - the health
+   * buckets (getHealthGroups), the vendors (getVendorBreakdown), the devices
+   * whose SNMP walk is failing (a count of its own) - and the Devices and
+   * Sites strips each a fifth time (getFleetSummary): every one a pass over
+   * every device of the project, each holding a connection. Here one GROUP
+   * BY reads them once, bucketing by the facts the health rule reads AND the
+   * vendor, and counting in each bucket its devices, their dark ports, those
+   * attached to no site and those answering ping with a failing walk
+   * (DeviceHealthAggregation's fleet-scan columns). Then:
+   *
+   *  - the health buckets are those buckets merged across vendors - exactly
+   *    the buckets getHealthGroups returns, in its order;
+   *  - the vendors are those buckets merged across health facts, biggest
+   *    first; the database orders the buckets by vendor, so a tie of counts
+   *    keeps the order getVendorBreakdown broke it by;
+   *  - the summary strip's numbers add up over every bucket: up, down and
+   *    pending by the bucket's isReachable, as getFleetSummary counts them.
+   *
+   * The buckets number a few per vendor: tens to hundreds of rows for a
+   * fleet of 100,000 devices. NetworkSummaryCache keeps the answer for half
+   * a minute, for the Overview and both strips together.
+   */
+  @CaptureSpan()
+  public async getFleetScan(data: {
+    projectId: ObjectID;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DeviceFleetScan> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      groupBy: DEVICE_FLEET_SCAN_GROUP_COLUMNS,
+      select: DEVICE_FLEET_SCAN_AGGREGATES,
+      orderBy: DEVICE_FLEET_SCAN_ORDER,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return readDeviceFleetScan(rows);
   }
 
   /**
@@ -885,12 +909,7 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: data.projectId,
         isArchived: false,
       },
-      groupBy: [
-        {
-          expression: `COALESCE(NULLIF(TRIM("NetworkDevice"."vendor"), ''), '')`,
-          alias: "vendor",
-        },
-      ],
+      groupBy: [DEVICE_VENDOR_GROUP_COLUMN],
       select: [
         {
           expression: `COUNT(*)`,

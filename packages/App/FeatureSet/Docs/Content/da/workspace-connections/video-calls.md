@@ -309,7 +309,7 @@ OneUptime kunne ikke sætte mødet i organisatorens kalender, så den startede o
 :::
 
 :::details OneUptime AI kunne ikke læse en transskription
-Kortet siger hvorfor: AI er slået fra for projektet, projektet har nået en daglig AI-grænse, eller AI-udbyderen afviste. Når det er ordnet, læser **Prøv igen** på kortet den igen.
+Kortet siger hvorfor: AI er slået fra for projektet, projektet har nået en daglig AI-grænse, eller projektets [LLM-udbyder](/docs/ai/llm-provider) afviste. Når det er ordnet, læser **Prøv igen** på kortet den igen.
 :::
 
 ## Næste trin

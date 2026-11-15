@@ -29,7 +29,7 @@ flowchart TB
 
 Spor forteller OneUptime at en kø finnes og hvordan applikasjoner bruker den, men ikke hvor full den er. Det kommer fra selve brokeren eller fra skyleverandørens overvåkings-API, eller, for [BullMQ](#bullmq), som holder jobbene sine i Redis og ikke har noen broker å spørre, fra en gauge som applikasjonen rapporterer.
 
-Du kan også legge til en kø manuelt: **Køer → Opprett Queue**, med meldingssystemet og navnet på destinasjonen og, for Azure Service Bus og Event Hubs, namespacet. Skjemaet spør om disse i første trinn, **Meldingssystem**, deretter om et valgfritt navn og en beskrivelse, med etiketter under **Flere felt** (**Køinformasjon**). La namespacet stå tomt bare for en kø som applikasjonene dine når via en emulator eller et egendefinert domenenavn: spanene deres navngir ikke noe namespace, og metrikkene fra Azure Monitor når aldri en slik kø (se [Begrensninger](#begrensninger)).
+Du kan også legge til en kø manuelt: **Køer → Opprett Kø**, med meldingssystemet og navnet på destinasjonen og, for Azure Service Bus og Event Hubs, namespacet. Skjemaet spør om disse i første trinn, **Meldingssystem**, deretter om et valgfritt navn og en beskrivelse, med etiketter under **Flere felt** (**Køinformasjon**). La namespacet stå tomt bare for en kø som applikasjonene dine når via en emulator eller et egendefinert domenenavn: spanene deres navngir ikke noe namespace, og metrikkene fra Azure Monitor når aldri en slik kø (se [Begrensninger](#begrensninger)).
 
 ## Kom i gang
 
@@ -1057,7 +1057,7 @@ Selvhostede installasjoner kan justere oppdagelsen med disse miljøvariablene p�
 - Navnet er et av dem OneUptime ignorerer (se [Hva som ignoreres](#hva-som-ignoreres)), eller bare SERVER-span navngir den.
 - Færre enn 3 av spanene kom inn de siste 15 minuttene, eller prosjektet har nådd [budsjettet for automatisk oppretting](#budsjettet-for-automatisk-oppretting).
 
-Når spanene faktisk navngir den, oppretter du den manuelt med samme system og destinasjon (**Køer → Opprett Queue**): fanen **Spor** fylles fra spanene som allerede er lagret.
+Når spanene faktisk navngir den, oppretter du den manuelt med samme system og destinasjon (**Køer → Opprett Kø**): fanen **Spor** fylles fra spanene som allerede er lagret.
 
 ### Brokerhelsen forblir tom
 

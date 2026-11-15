@@ -309,7 +309,7 @@ OneUptime non è riuscito a mettere la riunione nel calendario del suo organizza
 :::
 
 :::details OneUptime AI non è riuscita a leggere una trascrizione
-La scheda dice perché: l'AI è disattivata per il progetto, il progetto ha raggiunto un limite giornaliero di AI, o il provider di AI ha rifiutato. Una volta risolto, **Riprova** sulla scheda la rilegge.
+La scheda dice perché: l'AI è disattivata per il progetto, il progetto ha raggiunto un limite giornaliero di AI, o il [provider LLM](/docs/ai/llm-provider) del progetto ha rifiutato. Una volta risolto, **Riprova** sulla scheda la rilegge.
 :::
 
 ## Passaggi successivi

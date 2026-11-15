@@ -55,7 +55,7 @@ Ressourcen slås op med dine egne tilladelser: kan du ikke læse den, eller er d
 ### Trin 1 — Hændelsesdetaljer
 
 - **Titel** — påkrævet. Resuméet på én linje, som alle ser i listen, i Slack og (hvis hændelsen er synlig) på din statusside. Pladsholder: `Incident Title`.
-- **Hændelsesalvor** — påkrævet. En af de alvorsgrader, der er sat op for dit projekt; nye projekter får **Critical Incident**, **Major Incident** og **Minor Incident** på forhånd.
+- **Hændelsesalvor** — påkrævet. En af de alvorsgrader, der er sat op for dit projekt; nye projekter får **Kritisk hændelse**, **Større hændelse** og **Mindre hændelse** på forhånd.
 - **Beskrivelse** — valgfri, skrevet i Markdown. Det er dette felt, der vises på statussiden, så skriv det til kunderne og ikke til dit team. Et billede, du sætter ind i det, vises for alle, mens hændelsen er synlig på statussider, og kun for medlemmerne af dit projekt, mens den er skjult. Du kan redigere det senere fra **Beskrivelse** i hændelsens sidemenu.
 
 Under **Flere felter**:

@@ -16,7 +16,7 @@ En incident är posten ditt team arbetar utifrån när något går sönder: vad 
 
 - **En egen produkt** — öppna **Incidenter** från menyn **Produkter** i toppfältet; listan finns på `/dashboard/{projectId}/incidents`.
 - **Tre förskapade tillstånd** — **Identifierad**, **Bekräftad** och **Löst** skapas för varje nytt projekt. Du kan lägga till egna; de tre förskapade kan byta namn och färg men aldrig tas bort.
-- **Tre förskapade allvarlighetsgrader** — **Critical Incident**, **Major Incident** och **Minor Incident**. En allvarlighetsgrad är en etikett med en färg och en ordning — den har inget eget beteende.
+- **Tre förskapade allvarlighetsgrader** — **Kritisk incident**, **Stor incident** och **Mindre incident**. En allvarlighetsgrad är en etikett med en färg och en ordning — den har inget eget beteende.
 - **Fem vägar in** — guiden **Deklarera incident**, **Skapa från mall**, en kriterieregel på en monitor, `POST /api/incident` eller ett [formulär](/docs/forms/index) som alla med länken kan fylla i.
 - **Numrerade per projekt** — varje incident får ett incidentnummer från en räknare per projekt, som visas med projektets prefix: `INC-42` i ett nytt projekt, eller `#42` utan prefix. Numret står före incidentens titel på dess sidor, i webbläsarfliken, i sökningen och i dialogrutorna om den, så att incidenter med samma titel går att skilja åt.
 - **Två sorters anteckningar** — privata anteckningar (interna anteckningar) för ditt team, offentliga anteckningar för statussidans prenumeranter.
@@ -143,11 +143,11 @@ Varje nytt projekt får också tre allvarlighetsgrader:
 
 | Allvarlighetsgrad     | Ordning | Färg                     | Vad den betyder                                             |
 | --------------------- | ------- | ------------------------ | ----------------------------------------------------------- |
-| **Critical Incident** | 1       | Mörkröd (`#b70400`)      | Mycket stor påverkan på kunderna, som kräver omedelbar insats. |
-| **Major Incident**    | 2       | Röd (`#fd625e`)          | Betydande påverkan, som oftast kräver omedelbar insats.     |
-| **Minor Incident**    | 3       | Gul (`#ffbf53`)          | Liten påverkan, hanteras oftast under arbetstid.            |
+| **Kritisk incident** | 1       | Mörkröd (`#b70400`)      | Mycket stor påverkan på kunderna, som kräver omedelbar insats. |
+| **Stor incident**    | 2       | Röd (`#fd625e`)          | Betydande påverkan, som oftast kräver omedelbar insats.     |
+| **Mindre incident**    | 3       | Gul (`#ffbf53`)          | Liten påverkan, hanteras oftast under arbetstid.            |
 
-Allvarlighetsgrader har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor, och ingen kodväg behandlar "Critical Incident" annorlunda än någon annan rad. Allvarlighetsgraden är hur människor prioriterar, och den kan användas som matchningskriterium när du skriver jourregler — men att välja en allvarlighetsgrad larmar inte i sig någon.
+Allvarlighetsgrader har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor, och ingen kodväg behandlar "Kritisk incident" annorlunda än någon annan rad. Allvarlighetsgraden är hur människor prioriterar, och den kan användas som matchningskriterium när du skriver jourregler — men att välja en allvarlighetsgrad larmar inte i sig någon.
 
 Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställningar → Incidentallvar**. De fullständiga förskapade beskrivningarna finns i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
 

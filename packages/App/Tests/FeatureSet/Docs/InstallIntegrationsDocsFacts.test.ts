@@ -1731,7 +1731,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       "server_name localhost ingress ${HOST_WITHOUT_PORT};",
     );
     expect(readSource("ingressTemplates")).toContain(
-      'export HOST_WITHOUT_PORT="${HOST%%:*}"',
+      '*) export HOST_WITHOUT_PORT="${HOST%:*}" ;;',
     );
     expect(ingress).toContain("server_name  _; # All domains.");
     expect(page).toContain(

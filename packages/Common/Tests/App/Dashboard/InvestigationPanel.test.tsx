@@ -941,7 +941,7 @@ describe("InvestigationPanel card states", () => {
               eventType: AIRunEventType.ProgressLog,
               resultSummary: {
                 message:
-                  'Checking again: alert #12 opened on Host "web-1" after the first analysis',
+                  "Checking again: alert #12 opened on host web-1 after the first analysis",
                 severity: "Info",
                 followUpCheck: {
                   alertNumber: 12,

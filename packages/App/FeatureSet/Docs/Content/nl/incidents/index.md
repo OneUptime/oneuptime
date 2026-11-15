@@ -16,7 +16,7 @@ Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat 
 
 - **Een eigen product** — open **Incidenten** vanuit het menu **Producten** in de bovenbalk; de lijst staat op `/dashboard/{projectId}/incidents`.
 - **Drie vooraf aangemaakte statussen** — **Geïdentificeerd**, **Bevestigd** en **Opgelost** worden voor elk nieuw project aangemaakt. Je kunt er zelf statussen bij zetten; de drie vooraf aangemaakte statussen kun je hernoemen en een andere kleur geven, maar nooit verwijderen.
-- **Drie vooraf aangemaakte ernstniveaus** — **Critical Incident**, **Major Incident** en **Minor Incident**. Een ernst is een label met een kleur en een volgorde — het heeft geen eigen gedrag.
+- **Drie vooraf aangemaakte ernstniveaus** — **Kritiek incident**, **Belangrijk incident** en **Klein incident**. Een ernst is een label met een kleur en een volgorde — het heeft geen eigen gedrag.
 - **Vijf manieren om binnen te komen** — de wizard **Incident melden**, **Maken op basis van sjabloon**, een criteriaregel van een monitor, `POST /api/incident`, of een [formulier](/docs/forms/index) dat iedereen met de link kan invullen.
 - **Genummerd per project** — elk incident krijgt een incidentnummer uit een teller per project, getoond met het voorvoegsel van je project: `INC-42` in een nieuw project, of `#42` zonder voorvoegsel. Het nummer staat vóór de titel van het incident, op zijn pagina's, in het browsertabblad, in de zoekfunctie en in de dialoogvensters erover, zodat incidenten met dezelfde titel uit elkaar te houden zijn.
 - **Twee soorten notities** — privénotities (interne notities) voor je team, openbare notities voor de abonnees van de statuspagina.
@@ -143,11 +143,11 @@ Elk nieuw project krijgt ook drie ernstniveaus:
 
 | Ernst                 | Volgorde | Kleur                    | Wat het betekent                                             |
 | --------------------- | -------- | ------------------------ | ------------------------------------------------------------ |
-| **Critical Incident** | 1        | Donkerrood (`#b70400`)   | Zeer grote impact op klanten, die een directe respons vraagt. |
-| **Major Incident**    | 2        | Rood (`#fd625e`)         | Aanzienlijke impact, die meestal een directe respons vraagt.  |
-| **Minor Incident**    | 3        | Geel (`#ffbf53`)         | Kleine impact, meestal binnen werktijd af te handelen.        |
+| **Kritiek incident** | 1        | Donkerrood (`#b70400`)   | Zeer grote impact op klanten, die een directe respons vraagt. |
+| **Belangrijk incident**    | 2        | Rood (`#fd625e`)         | Aanzienlijke impact, die meestal een directe respons vraagt.  |
+| **Klein incident**    | 3        | Geel (`#ffbf53`)         | Kleine impact, meestal binnen werktijd af te handelen.        |
 
-Ernstniveaus hebben `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen, en geen enkel codepad behandelt "Critical Incident" anders dan een andere rij. Ernst is hoe mensen triëren, en het is beschikbaar als criterium wanneer je bereikbaarheidsregels schrijft — maar een ernst kiezen roept op zichzelf niemand op.
+Ernstniveaus hebben `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen, en geen enkel codepad behandelt "Kritiek incident" anders dan een andere rij. Ernst is hoe mensen triëren, en het is beschikbaar als criterium wanneer je bereikbaarheidsregels schrijft — maar een ernst kiezen roept op zichzelf niemand op.
 
 Bewerk of voeg ernstniveaus toe onder **Incidenten → Instellingen → Ernst van incident**. De volledige vooraf ingevulde beschrijvingen staan in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
 

@@ -162,6 +162,8 @@ import {
   FacetData,
 } from "../../../UI/Components/TelemetryViewer/types";
 import TelemetryEntityNameResolver from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
+import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const SERVICE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -560,14 +562,18 @@ const renderSpanTypeInLanguage: (language: string) => void = (
   );
 };
 
-// "About Span Type" as the language words it, the facet's name in it.
+/*
+ * "About Span Type" as the facet's (i) fills it (FacetHelpButton): through
+ * the Dashboard's Translator, the facet's name a term, so a Japanese
+ * sentence keeps no space where the name and its words meet in their own
+ * script, "スパンタイプについて" (#7864).
+ */
 const aboutSpanType: (language: string) => string = (
   language: string,
 ): string => {
-  return drawn(language, "About {{label}}").replace(
-    "{{label}}",
-    drawn(language, SPAN_TYPE),
-  );
+  return dashboardTranslator(language).translateTemplate("About {{label}}", {
+    label: translatableTerm(SPAN_TYPE),
+  });
 };
 
 // Each choice's name as written, and its sentence as the language words it.

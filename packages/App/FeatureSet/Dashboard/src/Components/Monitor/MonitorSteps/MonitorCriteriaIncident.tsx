@@ -9,6 +9,8 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { PeopleList } from "Common/UI/Components/PeoplePicker/PeopleList";
 import {
@@ -73,29 +75,25 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             placeholder: "No data entered",
             getElement: (item: CriteriaIncident): ReactElement => {
               if (item["incidentSeverityId"]) {
+                const severity: IncidentSeverity | undefined =
+                  props.incidentSeverityOptions.find(
+                    (option: IncidentSeverity) => {
+                      return (
+                        option.id?.toString() ===
+                        item["incidentSeverityId"]!.toString()
+                      );
+                    },
+                  );
+
                 return (
                   <Pill
                     isMinimal={true}
-                    color={
-                      (props.incidentSeverityOptions.find(
-                        (option: IncidentSeverity) => {
-                          return (
-                            option.id?.toString() ===
-                            item["incidentSeverityId"]!.toString()
-                          );
-                        },
-                      )?.color as Color) || Black
-                    }
-                    text={
-                      (props.incidentSeverityOptions.find(
-                        (option: IncidentSeverity) => {
-                          return (
-                            option.id?.toString() ===
-                            item["incidentSeverityId"]!.toString()
-                          );
-                        },
-                      )?.name as string) || ""
-                    }
+                    color={(severity?.color as Color) || Black}
+                    text={(severity?.name as string) || ""}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      severity?.name,
+                    )}
                   />
                 );
               }

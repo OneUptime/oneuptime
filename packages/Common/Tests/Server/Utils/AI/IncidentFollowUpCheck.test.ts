@@ -29,11 +29,15 @@ import IncidentFollowUpCheck, {
   MAX_INCIDENTS_PER_ALERT,
 } from "../../../../Server/Utils/AI/SRE/IncidentFollowUpCheck";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
-import { describeLinkedResource } from "../../../../Server/Utils/AI/SRE/LinkedInfrastructureContext";
+import {
+  LinkedInfrastructureResource,
+  describeLinkedResource,
+} from "../../../../Server/Utils/AI/SRE/LinkedInfrastructureContext";
 import logger from "../../../../Server/Utils/Logger";
 import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -671,7 +675,7 @@ describe("what the follow-up run is told, and says", () => {
      * inside it.
      */
     expect(markdown).toContain(
-      "**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared: \\[Host\\] High CPU Utilization (>80%) - web-1.",
+      "**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared: \\[Host\\] High CPU Utilization (>80%) - web-1.",
     );
     expect(markdown.indexOf("Checked again")).toBeLessThan(
       markdown.indexOf("**Summary**"),
@@ -698,7 +702,7 @@ describe("what the follow-up run is told, and says", () => {
       IncidentFollowUpCheck.buildActivityNote(await context());
 
     expect(note.message).toBe(
-      'Checking again: alert #12 opened on Host "web-1" after the first analysis',
+      "Checking again: alert #12 opened on host web-1 after the first analysis",
     );
     expect(note.followUpCheck).toEqual({
       alertNumber: 12,
@@ -707,6 +711,205 @@ describe("what the follow-up run is told, and says", () => {
       resourceName: "web-1",
       minutesAfterIncident: 2,
     });
+  });
+});
+
+/*
+ * The report's lead and the run's activity line are read by people - in the
+ * feed, the internal note, Slack and Teams, and by an API reader of the
+ * run's events - so they name the resource the alert opened on as a
+ * sentence names it, as the AI Investigation card does since #7940: "opened
+ * on host web-1", not the label's "Host" in the middle of the sentence, nor
+ * the context's quoted 'Host "web-1"' (#7952). The context the model reads
+ * keeps that label.
+ */
+describe("the resource the alert opened on, in the lines people read", () => {
+  function followUpOn(
+    resources: Array<LinkedInfrastructureResource>,
+  ): FollowUpCheckContext {
+    return {
+      incidentCreatedAt: DECLARED_AT,
+      alertId: ALERT_ID.toString(),
+      alertNumber: 12,
+      alertTitle: "High CPU on web-2",
+      alertOpenedAt: at(2),
+      resources,
+    };
+  }
+
+  test("a Docker host keeps Docker's capital, and only it; the model's context keeps the label", () => {
+    const followUp: FollowUpCheckContext = followUpOn([
+      {
+        type: LinkedAffectedResourceType.DockerHost,
+        id: HOST_A,
+        name: "web-2",
+      },
+    ]);
+
+    expect(IncidentFollowUpCheck.buildReportLead(followUp).toString()).toBe(
+      "**Checked again** after alert #12 opened on Docker host web-2, 2 minutes after this incident was declared: High CPU on web-2.",
+    );
+    expect(IncidentFollowUpCheck.buildActivityNote(followUp).message).toBe(
+      "Checking again: alert #12 opened on Docker host web-2 after the first analysis",
+    );
+    expect(
+      IncidentFollowUpCheck.buildContextSection(
+        followUpOn([
+          { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "web-1" },
+        ]),
+      ),
+    ).toContain('"High CPU on web-2" opened on Host "web-1" at');
+  });
+
+  test("a resource without a name is its kind; without a resource, the activity names the incident's infrastructure", () => {
+    const nameless: FollowUpCheckContext = followUpOn([
+      { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "" },
+    ]);
+
+    expect(IncidentFollowUpCheck.buildReportLead(nameless).toString()).toBe(
+      "**Checked again** after alert #12 opened on host, 2 minutes after this incident was declared: High CPU on web-2.",
+    );
+    expect(IncidentFollowUpCheck.buildActivityNote(nameless).message).toBe(
+      "Checking again: alert #12 opened on host after the first analysis",
+    );
+    expect(
+      IncidentFollowUpCheck.buildActivityNote(followUpOn([])).message,
+    ).toBe(
+      "Checking again: alert #12 opened on this incident's infrastructure after the first analysis",
+    );
+  });
+
+  /*
+   * The kind's noun and the name now go into the lead as one value: the
+   * name's Markdown is still escaped, so "swarm_*prod*" never turns the
+   * rest of the feed's line bold, and the noun is still cased for the
+   * sentence around it. The activity line is plain text and keeps the name
+   * as it is written.
+   */
+  test("a name with Markdown in it is escaped in the lead, and the noun is still cased for the sentence", () => {
+    const followUp: FollowUpCheckContext = followUpOn([
+      {
+        type: LinkedAffectedResourceType.DockerSwarmCluster,
+        id: HOST_A,
+        name: "swarm_*prod* [eu]",
+      },
+    ]);
+    const lead: string = IncidentFollowUpCheck.buildReportLead(followUp)
+      .toString()
+      .replace(/⁠/g, "");
+
+    expect(lead).toContain("opened on Docker Swarm cluster swarm");
+    expect(lead).toContain("\\*prod\\*");
+    expect(lead).toContain("\\[eu\\]");
+    expect(lead).not.toContain("*prod*");
+    expect(lead).not.toContain("Docker swarm");
+    expect(IncidentFollowUpCheck.buildActivityNote(followUp).message).toBe(
+      "Checking again: alert #12 opened on Docker Swarm cluster swarm_*prod* [eu] after the first analysis",
+    );
+
+    // The report's readers find the lead, and read the name back as written.
+    const parsed: { followUpLead?: string | undefined } =
+      parseInvestigationReport(
+        `## 🧠 AI — Automated Root Cause Analysis\n\n${IncidentFollowUpCheck.buildReportLead(followUp).toString()}\n\n**Summary** — x.`,
+      );
+
+    expect(parsed.followUpLead).toBe(
+      IncidentFollowUpCheck.buildReportLead(followUp).toString(),
+    );
+  });
+
+  /*
+   * An alert on more than one linked resource: the lines people read name
+   * the first, cased for the sentence, and the model's context lists every
+   * one by its label.
+   */
+  test("an alert on several resources: the lead and the activity name the first, the model's context lists all as labels", () => {
+    const followUp: FollowUpCheckContext = followUpOn([
+      {
+        type: LinkedAffectedResourceType.KubernetesCluster,
+        id: HOST_A,
+        name: "prod-eu",
+      },
+      { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "web-1" },
+    ]);
+
+    expect(IncidentFollowUpCheck.buildReportLead(followUp).toString()).toBe(
+      "**Checked again** after alert #12 opened on Kubernetes cluster prod-eu, 2 minutes after this incident was declared: High CPU on web-2.",
+    );
+    expect(IncidentFollowUpCheck.buildActivityNote(followUp).message).toBe(
+      "Checking again: alert #12 opened on Kubernetes cluster prod-eu after the first analysis",
+    );
+
+    const context: string = IncidentFollowUpCheck.buildContextSection(followUp);
+
+    expect(context).toContain('Kubernetes cluster "prod-eu", Host "web-1"');
+    expect(context).not.toContain("host web-1");
+  });
+
+  test("an alert by its prefix, or without a number, names the resource the same way", () => {
+    const host: LinkedInfrastructureResource = {
+      type: LinkedAffectedResourceType.Host,
+      id: HOST_A,
+      name: "web-1",
+    };
+
+    expect(
+      IncidentFollowUpCheck.buildReportLead({
+        ...followUpOn([host]),
+        alertNumberWithPrefix: "ALT-12",
+      }).toString(),
+    ).toBe(
+      "**Checked again** after alert ALT-12 opened on host web-1, 2 minutes after this incident was declared: High CPU on web-2.",
+    );
+    expect(
+      IncidentFollowUpCheck.buildActivityNote({
+        ...followUpOn([host]),
+        alertNumber: undefined,
+      }).message,
+    ).toBe(
+      "Checking again: an alert opened on host web-1 after the first analysis",
+    );
+  });
+
+  test("an App Platforms environment, a network device and a database read as the middle of a sentence", () => {
+    for (const [resource, words] of [
+      [
+        {
+          type: LinkedAffectedResourceType.CloudResource,
+          id: HOST_A,
+          name: "checkout",
+          cloudResourceKind: CloudResourceKind.Environment,
+        },
+        "cloud environment checkout",
+      ],
+      [
+        {
+          type: LinkedAffectedResourceType.NetworkDevice,
+          id: HOST_A,
+          name: "core-1",
+        },
+        "network device core-1",
+      ],
+      [
+        {
+          type: LinkedAffectedResourceType.DatabaseServer,
+          id: HOST_A,
+          name: "orders",
+        },
+        "database orders",
+      ],
+    ] as Array<[LinkedInfrastructureResource, string]>) {
+      expect(
+        IncidentFollowUpCheck.buildReportLead(
+          followUpOn([resource]),
+        ).toString(),
+      ).toContain(`opened on ${words}, 2 minutes after`);
+      expect(
+        IncidentFollowUpCheck.buildActivityNote(followUpOn([resource])).message,
+      ).toBe(
+        `Checking again: alert #12 opened on ${words} after the first analysis`,
+      );
+    }
   });
 });
 

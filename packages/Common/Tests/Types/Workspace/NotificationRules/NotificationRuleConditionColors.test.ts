@@ -193,7 +193,10 @@ describe("workspace rule condition options carry their colours", () => {
         checkOn: NotificationRuleConditionCheckOn.IncidentState,
       });
 
-    expect(options).toEqual([{ label: "Identified", value: "inc-state-1" }]);
+    // A new project's state: OneUptime's word, looked up (#7782).
+    expect(options).toEqual([
+      { label: "Identified", value: "inc-state-1", isUserContent: false },
+    ]);
   });
 
   test("the option value is the row's id, the same one a rule saves", () => {

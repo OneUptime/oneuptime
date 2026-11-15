@@ -68,19 +68,19 @@ const EVENT_WORDS: Record<string, Record<string, string>> = {
     incident: "this incident",
     alert: "this alert",
     episode: "this episode",
-    "scheduled maintenance event": "this maintenance event",
+    "maintenance event": "this maintenance event",
   },
   de: {
     incident: "diesen Vorfall",
     alert: "diese Warnung",
     episode: "diese Episode",
-    "scheduled maintenance event": "dieses Wartungsereignis",
+    "maintenance event": "dieses Wartungsereignis",
   },
   ar: {
     incident: "هذه الحادثة",
     alert: "هذا التنبيه",
     episode: "هذه الحلقة",
-    "scheduled maintenance event": "حدث الصيانة هذا",
+    "maintenance event": "حدث الصيانة هذا",
   },
 };
 
@@ -299,7 +299,7 @@ describe("the private note composer says who can read the note, naming its event
    */
   test("the badge wraps the sentence: nothing in it is cut off", async () => {
     await inLanguage("de");
-    renderComposer("private", "scheduled maintenance event");
+    renderComposer("private", "maintenance event");
 
     const badge: HTMLElement = screen.getByTestId("note-audience");
     const hint: HTMLElement = screen.getByTestId("note-audience-hint");
@@ -322,7 +322,7 @@ describe("the private note composer says who can read the note, naming its event
     for (const language of RENDERED_LANGUAGES) {
       await inLanguage(language);
 
-      for (const noun of ["incident", "scheduled maintenance event"]) {
+      for (const noun of ["incident", "maintenance event"]) {
         renderComposer("public", noun);
 
         expect(screen.getByTestId("note-audience-hint").textContent).toBe(

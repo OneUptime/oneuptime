@@ -280,7 +280,7 @@ export const FORMS_SHOWCASE: ResourceShowcase = {
   eyebrow: translationKey("Forms"),
   title: translationKey("Let anyone report a problem or ask for a change"),
   description: translationKey(
-    "A form is a page anyone with its link can fill in, without an account. Each answer creates an incident or a scheduled maintenance event.",
+    "A form is a page anyone with its link can fill in, without an account. Each answer creates an incident or a maintenance event.",
   ),
   highlights: [],
   steps: [

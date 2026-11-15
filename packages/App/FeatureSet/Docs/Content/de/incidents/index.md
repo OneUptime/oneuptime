@@ -16,7 +16,7 @@ Ein Vorfall ist der Datensatz, mit dem Ihr Team arbeitet, wenn etwas kaputtgeht:
 
 - **Ein eigenes Produkt** – öffnen Sie **Vorfälle** über das Menü **Produkte** in der oberen Leiste; die Liste liegt unter `/dashboard/{projectId}/incidents`.
 - **Drei vorangelegte Status** – **Identifiziert**, **Bestätigt** und **Behoben** werden für jedes neue Projekt angelegt. Sie können eigene ergänzen; die drei vorangelegten lassen sich umbenennen und umfärben, aber nie löschen.
-- **Drei vorangelegte Schweregrade** – **Critical Incident**, **Major Incident** und **Minor Incident**. Ein Schweregrad ist eine Beschriftung mit Farbe und Reihenfolge – er bringt kein eigenes Verhalten mit.
+- **Drei vorangelegte Schweregrade** – **Kritischer Vorfall**, **Schwerwiegender Vorfall** und **Geringfügiger Vorfall**. Ein Schweregrad ist eine Beschriftung mit Farbe und Reihenfolge – er bringt kein eigenes Verhalten mit.
 - **Fünf Wege hinein** – der Assistent **Vorfall melden**, **Aus Vorlage erstellen**, eine Kriterienregel eines Monitors, `POST /api/incident` oder ein [Formular](/docs/forms/index), das jeder mit dem Link ausfüllen kann.
 - **Pro Projekt nummeriert** – jeder Vorfall erhält eine Vorfallnummer aus einem Zähler pro Projekt, angezeigt mit dem Präfix Ihres Projekts: `INC-42` in einem neuen Projekt oder `#42` ohne Präfix. Die Nummer steht vor dem Titel des Vorfalls, auf seinen Seiten, im Browser-Tab, in der Suche und in den Dialogen über ihn, sodass sich Vorfälle mit demselben Titel unterscheiden lassen.
 - **Zwei Arten von Notizen** – private Notizen (interne Notizen) für Ihr Team, öffentliche Notizen für Statusseiten-Abonnenten.
@@ -143,11 +143,11 @@ Jedes neue Projekt erhält außerdem drei Schweregrade:
 
 | Schweregrad | Reihenfolge | Farbe | Bedeutung |
 | --------------------- | ----- | ------------------ | ---------------------------------------------------------- |
-| **Critical Incident** | 1 | Kastanienrot (`#b70400`) | Sehr hohe Auswirkung auf Kunden, sofortige Reaktion nötig. |
-| **Major Incident** | 2 | Rot (`#fd625e`) | Erhebliche Auswirkung, meist ist eine sofortige Reaktion nötig. |
-| **Minor Incident** | 3 | Gelb (`#ffbf53`) | Geringe Auswirkung, meist innerhalb der Arbeitszeit erledigt. |
+| **Kritischer Vorfall** | 1 | Kastanienrot (`#b70400`) | Sehr hohe Auswirkung auf Kunden, sofortige Reaktion nötig. |
+| **Schwerwiegender Vorfall** | 2 | Rot (`#fd625e`) | Erhebliche Auswirkung, meist ist eine sofortige Reaktion nötig. |
+| **Geringfügiger Vorfall** | 3 | Gelb (`#ffbf53`) | Geringe Auswirkung, meist innerhalb der Arbeitszeit erledigt. |
 
-Schweregrade haben `name`, `description`, `color` und `order` – und sonst nichts. Es gibt keine Flags, und kein Codepfad behandelt „Critical Incident“ anders als eine andere Zeile. Der Schweregrad ist das Mittel der Menschen zur Priorisierung und steht als Kriterium zur Verfügung, wenn Sie Bereitschaftsregeln schreiben – aber die Wahl eines Schweregrads alarmiert für sich genommen niemanden.
+Schweregrade haben `name`, `description`, `color` und `order` – und sonst nichts. Es gibt keine Flags, und kein Codepfad behandelt „Kritischer Vorfall“ anders als eine andere Zeile. Der Schweregrad ist das Mittel der Menschen zur Priorisierung und steht als Kriterium zur Verfügung, wenn Sie Bereitschaftsregeln schreiben – aber die Wahl eines Schweregrads alarmiert für sich genommen niemanden.
 
 Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen → Vorfallsschweregrad**. Die vollständigen vorangelegten Beschreibungen stehen unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
 

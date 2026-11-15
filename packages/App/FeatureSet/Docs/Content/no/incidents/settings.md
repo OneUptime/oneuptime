@@ -537,7 +537,7 @@ Roller er bare definisjoner. Du tildeler folk til dem per hendelse — erklærin
 
 ### Arkivere en rolle
 
-Arkiver en rolle teamet ditt ikke lenger bruker fra radens meny **⋯**, i stedet for å slette den. De som har den på en hendelse, beholder den, men ingen kan få den igjen: Rollevelgerne utelater den eller viser den bare med personene som har den, og API-et avviser den. Den primære rollen, og alle roller som ikke kan slettes, kan ikke arkiveres. Arkiverte roller vises for seg, i den sammenslåtte delen **Arkiverte hendelsesroller**, der **Fjern fra arkiv** setter en tilbake.
+Arkiver en rolle teamet ditt ikke lenger bruker fra radens meny **⋯**, i stedet for å slette den. De som har den på en hendelse, beholder den, men ingen kan få den igjen: Rollevelgerne utelater den eller viser den bare med personene som har den, og API-et avviser den. Den primære rollen, og alle roller som ikke kan slettes, kan ikke arkiveres. Arkiverte roller vises for seg, i den sammenslåtte delen **Arkiverte hendelsesroller**, der **Fjern fra arkivet** setter en tilbake.
 
 ## Nummerprefikser
 
@@ -736,7 +736,7 @@ Reglene siden selv har med, er verdt å gjøre til dine egne:
 - Settet med policyer som faktisk kjøres, er foreningen av policyene til hver samsvarende regel pluss alle policyer som er knyttet til hendelsen for hånd eller av en mal, uten duplikater, slik at hver policy kjører høyst én gang. Når to samsvarende regler tilkaller den samme policyen, tilkaller den så snart en av dem tillater det: med en gang vinner over arbeidstiden.
 
 > [!NOTE]
-> Alvorlighetsgraden er et treffkriterium her og ingen andre steder. Det finnes ikke noe vaktfelt på en alvorlighetsgrad for hendelser — å velge «Critical Incident» tilkaller ikke i seg selv noen. Vil du at alvorlighetsgraden skal styre tilkallingen, skriver du en vaktregel som samsvarer med den.
+> Alvorlighetsgraden er et treffkriterium her og ingen andre steder. Det finnes ikke noe vaktfelt på en alvorlighetsgrad for hendelser — å velge «Kritisk hendelse» tilkaller ikke i seg selv noen. Vil du at alvorlighetsgraden skal styre tilkallingen, skriver du en vaktregel som samsvarer med den.
 
 ## Knytt vaktpolicyer direkte
 

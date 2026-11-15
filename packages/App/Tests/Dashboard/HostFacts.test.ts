@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   HOST_DISK_FULL_PERCENT,
   HOST_DISK_NEAR_FULL_PERCENT,
@@ -12,6 +13,7 @@ import {
   HOST_LOAD_QUEUING_PERCENT,
   HostStatusFacts,
   formatHostBytes,
+  formatHostUptime,
   formatHostUsagePercent,
   getHostStatusFacts,
   getHostUptimeSeconds,
@@ -333,6 +335,85 @@ describe("how long the host has been up", () => {
   });
 });
 
+/*
+ * The hero's uptime chip (issue #7306): the largest unit and the one right
+ * below it, never days with seconds. A host booted 41 days and a second ago
+ * read "Up 41d 1s", and the HostPages browser suite, whose host boots
+ * exactly 41 days before its data is built, failed whenever the page drew
+ * more than a second later.
+ */
+describe("how the hero says how long the host has been up", () => {
+  const DAY_SECONDS: number = 24 * 60 * 60;
+  const HOUR_SECONDS: number = 60 * 60;
+
+  const LATIN_DIGIT: RegExp = /[0-9]/;
+  const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;
+
+  test.each([
+    [41 * DAY_SECONDS + 1, "41d"],
+    [41 * DAY_SECONDS + 59 * 60 + 59, "41d"],
+    [41 * DAY_SECONDS + 3 * HOUR_SECONDS, "41d 3h"],
+    [41 * DAY_SECONDS + 3 * HOUR_SECONDS + 7, "41d 3h"],
+    [12 * DAY_SECONDS + 4 * HOUR_SECONDS, "12d 4h"],
+    [3 * HOUR_SECONDS + 5, "3h"],
+    [3 * HOUR_SECONDS + 2 * 60 + 5, "3h 2m"],
+    [6 * 60 + 5, "6m 5s"],
+    [59, "59s"],
+    [0, "0s"],
+  ])("English: %p seconds read %p", (seconds: number, text: string) => {
+    expect(formatHostUptime(seconds, "en")).toBe(text);
+  });
+
+  test("English without a language reads the same", () => {
+    expect(formatHostUptime(41 * DAY_SECONDS + 1)).toBe("41d");
+  });
+
+  test.each(["de", "fa"])(
+    "%s: 41 d + 1 s reads as 41 whole days, in the language's own words",
+    (language: string) => {
+      const whole: string = formatHostUptime(41 * DAY_SECONDS, language);
+
+      expect(formatHostUptime(41 * DAY_SECONDS + 1, language)).toBe(whole);
+      expect(whole).not.toBe("41d");
+    },
+  );
+
+  test("German writes its own units", () => {
+    expect(formatHostUptime(41 * DAY_SECONDS + 1, "de")).toBe("41 Tg.");
+    expect(formatHostUptime(41 * DAY_SECONDS + 3 * HOUR_SECONDS, "de")).toBe(
+      "41 Tg., 3 Std.",
+    );
+    expect(formatHostUptime(3 * HOUR_SECONDS + 5, "de")).toBe("3 Std.");
+    expect(formatHostUptime(59, "de")).toBe("59 Sek.");
+  });
+
+  test("Persian writes Persian digits and its own units, and no Latin digit", () => {
+    const cases: Array<[number, string]> = [
+      [41 * DAY_SECONDS + 1, "۴۱ روز"],
+      [41 * DAY_SECONDS + 3 * HOUR_SECONDS, "۴۱ روز ۳ ساعت"],
+      [3 * HOUR_SECONDS + 5, "۳ ساعت"],
+      [59, "۵۹ ثانیه"],
+    ];
+
+    for (const [seconds, text] of cases) {
+      const persian: string = formatHostUptime(seconds, "fa");
+
+      expect({ seconds, persian }).toEqual({ seconds, persian: text });
+      expect(LATIN_DIGIT.test(persian)).toBe(false);
+      expect(PERSIAN_DIGIT.test(persian)).toBe(true);
+    }
+  });
+
+  test("the negative control: the error budgets' rule, the default, still names the second", () => {
+    expect(formatDurationCompactInLanguage(41 * DAY_SECONDS + 1, "en")).toBe(
+      "41d 1s",
+    );
+    expect(formatHostUptime(41 * DAY_SECONDS + 1, "en")).not.toBe(
+      formatDurationCompactInLanguage(41 * DAY_SECONDS + 1, "en"),
+    );
+  });
+});
+
 describe("sizes", () => {
   test("1024-based, one decimal under 10", () => {
     expect(formatHostBytes(16 * GIB)).toBe("16 GiB");
@@ -340,5 +421,16 @@ describe("sizes", () => {
     expect(formatHostBytes(512)).toBe("512 B");
     expect(formatHostBytes(null)).toBe("—");
     expect(formatHostBytes(Number.NaN)).toBe("—");
+  });
+
+  // A count of bytes is whole (issue #7417): never "0.0 B" or "5.0 B".
+  test("plain bytes are whole, from zero to just under a KiB", () => {
+    expect(formatHostBytes(0)).toBe("0 B");
+    expect(formatHostBytes(5)).toBe("5 B");
+    expect(formatHostBytes(9)).toBe("9 B");
+    expect(formatHostBytes(1023)).toBe("1023 B");
+    // From a KiB up, one decimal under ten as before.
+    expect(formatHostBytes(1024)).toBe("1.0 KiB");
+    expect(formatHostBytes(1536)).toBe("1.5 KiB");
   });
 });

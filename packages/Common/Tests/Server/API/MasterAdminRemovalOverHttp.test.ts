@@ -66,6 +66,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { clientTimeout } from "../TestingUtils/StatementFailures";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import {
   afterAll,
   afterEach,
@@ -348,6 +349,8 @@ beforeAll(async () => {
     ): Promise<UserTenantAccessPermission | null> => {
       return isMember(userId, projectId) ? memberPermissionIn(projectId) : null;
     }) as never);
+  // A request across projects, answered through the stubbed lookups above.
+  answerMultiTenantReadsProjectByProject();
   jest
     .spyOn(TeamMemberService, "getTeamIdsForUser")
     .mockResolvedValue([] as never);

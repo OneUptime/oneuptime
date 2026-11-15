@@ -51,7 +51,7 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 
 **Básico** fica aberta; as outras seções começam recolhidas até você clicar nelas.
 
-- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno.
+- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno. As regras dela para Slack, Microsoft Teams e Mattermost as publicam nos seus canais, uma passagem de turno em uma linha: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
 - Os **Proprietários** são as pessoas e as equipes responsáveis pela política. Quando um acionamento que ela envia não encontra regra para alguém, ou não pode ser entregue, eles recebem um e-mail; uma política sem proprietários escreve aos proprietários do projeto.
 - **Logs de notificação** lista cada mensagem que a política enviou, com uma aba por canal.
 - **Substituições de usuário** cobre pessoas só nesta política. Veja [Substituições de usuário](/docs/on-call/user-overrides).

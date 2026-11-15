@@ -29,6 +29,7 @@ import Help, {
   HELP_ASK_GROUP_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
 import DashboardKeyboardShortcuts from "../../../../App/FeatureSet/Dashboard/src/Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
+import HeaderSearch from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Search";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
@@ -51,6 +52,11 @@ import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName"
  * drawn (Spanish's General aside: it is the Spanish word). A negative
  * control draws Russian with one word put back to English, so the check is
  * known to catch it.
+ *
+ * The keys of a shortcut are said in the language too (#7484): the dialog's
+ * screen-reader label beside each row's keycaps ("Strg + K" in German,
+ * "Ctrl + K" in Russian, never "Control + K") and the header's Search
+ * button's tooltip, while the keycaps are drawn as before.
  */
 
 const navigateMock: MockFunction = getJestMockFunction();
@@ -248,6 +254,43 @@ function englishInDialog(dialog: HTMLElement, language: string): Array<string> {
   });
 }
 
+// What a screen reader hears for each row's keys: the label beside its keycaps.
+function spokenShortcuts(element: HTMLElement): Array<string> {
+  const groups: Array<HTMLElement> = [];
+
+  for (const keycap of Array.from(
+    element.querySelectorAll<HTMLElement>("kbd"),
+  )) {
+    const group: HTMLElement | null = keycap.parentElement;
+
+    if (group && !groups.includes(group)) {
+      groups.push(group);
+    }
+  }
+
+  return groups.map((group: HTMLElement): string => {
+    return group.querySelector(":scope > .sr-only")?.textContent || "";
+  });
+}
+
+// The keycaps as drawn, one text per keycap.
+function keycaps(element: HTMLElement): Array<string> {
+  return Array.from(element.querySelectorAll<HTMLElement>("kbd")).map(
+    (keycap: HTMLElement): string => {
+      return keycap.textContent || "";
+    },
+  );
+}
+
+// The English names of the keys the dialog says, where English is not the reader's.
+const ENGLISH_KEY_NAME: RegExp = /\b(?:Control|Escape)\b/;
+
+function englishKeyNames(said: Array<string>): Array<string> {
+  return said.filter((label: string): boolean => {
+    return ENGLISH_KEY_NAME.test(label);
+  });
+}
+
 function openDialog(): HTMLElement {
   act(() => {
     GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
@@ -323,6 +366,36 @@ describe("the check itself (negative control)", () => {
     ]);
   });
 
+  test("English says Control and Escape beside the keycaps, and the check finds them", async () => {
+    render(inLanguage(await instanceFor("en"), <DashboardKeyboardShortcuts />));
+
+    expect(englishKeyNames(spokenShortcuts(openDialog()))).toEqual([
+      "Control + K",
+      "Control + I",
+      "Escape",
+    ]);
+  });
+
+  test("Russian with Ctrl put back to English: the check finds it beside the keycaps and in the header's tooltip", async () => {
+    const russian: LocaleTree = readLocale("ru");
+    (russian["keyboardKeys"] as LocaleTree)["control"] = "Control";
+    const instance: i18n = await instanceFor("ru", russian);
+
+    render(inLanguage(instance, <DashboardKeyboardShortcuts />));
+
+    expect(englishKeyNames(spokenShortcuts(openDialog()))).toEqual([
+      "Control + K",
+      "Control + I",
+    ]);
+
+    cleanup();
+    render(inLanguage(instance, <HeaderSearch />));
+
+    expect(screen.getByRole("button").getAttribute("title")).toMatch(
+      ENGLISH_KEY_NAME,
+    );
+  });
+
   test("the stated same-as-English words are Spanish's alone, and still the same as English", () => {
     expect(Object.keys(SAME_AS_ENGLISH)).toEqual(["es"]);
     expect(valueOf(readLocale("es"), "keyboardShortcuts.groups.general")).toBe(
@@ -365,6 +438,46 @@ describe.each([...DASHBOARD_LANGUAGES])(
       ).toBeGreaterThan(5);
 
       expect(englishInDialog(dialog, language)).toEqual([]);
+    });
+
+    test("the dialog says each row's keys in the language, beside keycaps drawn as before", () => {
+      render(inLanguage(instance(), <DashboardKeyboardShortcuts />));
+
+      const dialog: HTMLElement = openDialog();
+      const control: string = valueOf(locale, "keyboardKeys.control");
+      const said: Array<string> = spokenShortcuts(dialog);
+
+      // Search, Ask AI, the list's search, the dialog itself and Escape, in that order.
+      expect(said.slice(0, 5)).toEqual([
+        `${control} + K`,
+        `${control} + I`,
+        "/",
+        "?",
+        valueOf(locale, "keyboardKeys.escape"),
+      ]);
+      expect(englishKeyNames(said)).toEqual([]);
+
+      // The keycaps are what keyboards print, the same in every language.
+      expect(keycaps(dialog).slice(0, 7)).toEqual([
+        "Ctrl",
+        "K",
+        "Ctrl",
+        "I",
+        "/",
+        "?",
+        "Esc",
+      ]);
+    });
+
+    test("the header's Search button spells its shortcut in the language, on hover and to a screen reader", () => {
+      render(inLanguage(instance(), <HeaderSearch />));
+
+      const label: string = valueOf(locale, "header.search");
+      const shortcut: string = `${valueOf(locale, "keyboardKeys.control")} + K`;
+      const button: HTMLElement = screen.getByRole("button");
+
+      expect(button).toHaveAttribute("title", `${label} · ${shortcut}`);
+      expect(button).toHaveAccessibleName(`${label} ${shortcut}`);
     });
 
     test("Help's ask group opens on the dialog's row, named as the dialog is, and choosing it opens the dialog", () => {

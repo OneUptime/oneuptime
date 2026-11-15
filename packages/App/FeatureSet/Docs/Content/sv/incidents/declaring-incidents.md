@@ -55,7 +55,7 @@ Resursen slås upp med dina egna behörigheter: kan du inte läsa den, eller har
 ### Steg 1 — Incidentdetaljer
 
 - **Titel** — obligatoriskt. Sammanfattningen på en rad som alla ser i listan, i Slack och (om incidenten är synlig) på din statussida. Platshållare: `Incident Title`.
-- **Incidentallvar** — obligatoriskt. En av de allvarlighetsgrader som är konfigurerade för ditt projekt; nya projekt får **Critical Incident**, **Major Incident** och **Minor Incident** i förväg.
+- **Incidentallvar** — obligatoriskt. En av de allvarlighetsgrader som är konfigurerade för ditt projekt; nya projekt får **Kritisk incident**, **Stor incident** och **Mindre incident** i förväg.
 - **Beskrivning** — valfritt, skrivet i Markdown. Det är det här fältet som visas på statussidan, så skriv det för kunderna och inte för ditt team. En bild som du lägger in i det visas för alla medan incidenten är synlig på statussidor, och bara för medlemmarna i ditt projekt medan den är dold. Du kan redigera det senare från **Beskrivning** i incidentens sidomeny.
 
 Under **Fler fält**:

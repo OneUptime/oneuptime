@@ -123,7 +123,10 @@ export interface SessionReplayConsolePayload {
 
 export interface SessionReplayNetworkPayload {
   method: string;
-  /* Scrubbed: origin + path, no query, no fragment. */
+  /*
+   * Scrubbed: origin + path, no query, and no fragment but a hash
+   * router's route (UrlScrubber.scrub).
+   */
   url: string;
   /* 0 when the request never completed. */
   status: number;

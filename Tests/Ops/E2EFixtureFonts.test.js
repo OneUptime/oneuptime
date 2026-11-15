@@ -29,7 +29,6 @@ const INTER_FILE = "InterVariable.woff2";
 const KNOWN_WITHOUT_INTER = [
   "Alerts/server.js",
   "Discovery/server.js",
-  "EventNotes/Fixture/server.js",
   "ExceptionDetail/Fixture/server.js",
   "HomeOverview/Fixture/server.js",
   "IncomingCallPolicies/Fixture/server.js",

@@ -736,7 +736,7 @@ Reglerna som sidan själv har med är värda att göra till dina egna:
 - Uppsättningen policyer som faktiskt körs är unionen av varje matchande regels policyer plus alla policyer som har kopplats till incidenten för hand eller av en mall, utan dubbletter, så att varje policy körs högst en gång. När två matchande regler larmar samma policy larmar den så snart någon av dem tillåter det: direkt vinner över arbetstid.
 
 > [!NOTE]
-> Allvarlighetsgraden är ett matchningskriterium här och ingen annanstans. Det finns inget jourfält på en allvarlighetsgrad för incidenter — att välja "Critical Incident" larmar inte i sig någon. Vill du att allvarlighetsgraden ska styra larmningen skriver du en jourregel som matchar på den.
+> Allvarlighetsgraden är ett matchningskriterium här och ingen annanstans. Det finns inget jourfält på en allvarlighetsgrad för incidenter — att välja "Kritisk incident" larmar inte i sig någon. Vill du att allvarlighetsgraden ska styra larmningen skriver du en jourregel som matchar på den.
 
 ## Koppla jourpolicyer direkt
 

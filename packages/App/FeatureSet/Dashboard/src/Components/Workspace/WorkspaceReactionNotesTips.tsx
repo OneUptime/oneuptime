@@ -14,7 +14,7 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   // Singular, lower case: "incident", "alert episode".
   resourceName: string;
-  // Only incidents and scheduled maintenance events have public notes.
+  // Only incidents and maintenance events have public notes.
   supportsPublicNotes: boolean;
 }
 
@@ -39,7 +39,7 @@ export const REACTION_PRIVATE_NOTE_LINES: Record<string, string> = {
   "alert episode": translationKey(
     "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the episode can read it).",
   ),
-  "scheduled maintenance event": translationKey(
+  "maintenance event": translationKey(
     "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the maintenance event can read it).",
   ),
 };

@@ -37,6 +37,7 @@
     "^react-beautiful-dnd$": "<rootDir>/node_modules/react-beautiful-dnd",
     "^recharts$": "<rootDir>/node_modules/recharts",
     "^recharts/(.*)$": "<rootDir>/node_modules/recharts/$1",
+    "^typescript$": "<rootDir>/node_modules/typescript",
     "^i18next-browser-languagedetector$": "<rootDir>/Tests/__mocks__/i18next-browser-languagedetector.js",
     "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
     "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",

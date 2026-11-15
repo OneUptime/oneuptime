@@ -1071,7 +1071,7 @@ describe("the review step", () => {
 
     expect(
       within(review).getByText(
-        "No monitors affected by this scheduled maintenance event.",
+        "No monitors affected by this maintenance event.",
       ),
     ).toBeInTheDocument();
     expect(await within(review).findByText("db-primary")).toBeInTheDocument();
@@ -1097,12 +1097,12 @@ describe("the review step", () => {
     ).toBeInTheDocument();
     expect(
       within(review).getByText(
-        "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+        "Status of the monitors will not be changed when this maintenance event starts.",
       ),
     ).toBeInTheDocument();
     expect(
       within(review).getByText(
-        "No other resources affected by this scheduled maintenance event.",
+        "No other resources affected by this maintenance event.",
       ),
     ).toBeInTheDocument();
   });

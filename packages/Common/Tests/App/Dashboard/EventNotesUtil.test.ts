@@ -721,7 +721,7 @@ describe("getNotesCopy", () => {
   test("private notes say who can read them: the people who can see the event", () => {
     const copy: ReturnType<typeof getNotesCopy> = getNotesCopy(
       "private",
-      "scheduled maintenance event",
+      "maintenance event",
     );
 
     expect(copy.title).toBe("Private notes");
@@ -729,7 +729,7 @@ describe("getNotesCopy", () => {
     expect(copy.audienceHint).toBe(
       "Only people who can see this maintenance event can read this",
     );
-    expect(copy.description).toContain("this scheduled maintenance event");
+    expect(copy.description).toContain("this maintenance event");
     expect(copy.description).toContain("never shown on a status page");
     expect(copy.deleteDescription).not.toContain("status page");
     expect(copy.submitLabel).toBe("Add note");
@@ -745,7 +745,7 @@ describe("getNotesCopy", () => {
     ["alert", "Only people who can see this alert can read this"],
     ["episode", "Only people who can see this episode can read this"],
     [
-      "scheduled maintenance event",
+      "maintenance event",
       "Only people who can see this maintenance event can read this",
     ],
   ])(

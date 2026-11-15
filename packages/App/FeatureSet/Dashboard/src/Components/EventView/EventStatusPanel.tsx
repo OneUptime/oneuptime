@@ -13,6 +13,8 @@ import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { StateMoveList } from "Common/Utils/StateMove";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, { FunctionComponent, ReactElement } from "react";
 import LiveDuration from "./LiveDuration";
 import { getEventStateMenuStates } from "./EventStateMenu";
@@ -208,6 +210,24 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     (state: EventStateItem) => {
       return state.id === props.currentStateId;
     },
+  );
+
+  /*
+   * How the state's and the severity's names read: OneUptime's default
+   * names looked up, the project's own as written - a state named "Open"
+   * is never the verb "Abrir" (Common/Utils/DefaultRecordNames). An
+   * incident's severity is one of the incident severities, an alert's of
+   * the alert severities; a scheduled maintenance event has none.
+   */
+  const isStateNameAsWritten: boolean = isRecordNameAsWritten(
+    props.stateList,
+    currentState?.name,
+  );
+  const isSeverityNameAsWritten: boolean = isRecordNameAsWritten(
+    props.stateList === StateListType.AlertState
+      ? StateListType.AlertSeverity
+      : StateListType.IncidentSeverity,
+    props.severity?.name,
   );
 
   /*
@@ -493,6 +513,11 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
               <MoreMenuItem
                 key={state.id}
                 text={state.name}
+                // As the state's badge reads it.
+                isUserContent={isRecordNameAsWritten(
+                  props.stateList,
+                  state.name,
+                )}
                 color={state.color}
                 onClick={() => {
                   props.onStateSelect!(state.id);
@@ -513,11 +538,19 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   const pillTexts: Array<string> = [];
 
   if (currentState) {
-    pillTexts.push(translateLabel(currentState.name));
+    pillTexts.push(
+      isStateNameAsWritten
+        ? currentState.name
+        : translateLabel(currentState.name),
+    );
   }
 
   if (props.severity) {
-    pillTexts.push(translateLabel(props.severity.name));
+    pillTexts.push(
+      isSeverityNameAsWritten
+        ? props.severity.name
+        : translateLabel(props.severity.name),
+    );
   }
 
   if (props.isPrivate) {
@@ -623,6 +656,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
               <Pill
                 color={currentState.color || Black}
                 text={currentState.name}
+                isUserContent={isStateNameAsWritten}
                 tooltip="Current state"
               />
             )}
@@ -630,6 +664,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
               <Pill
                 color={props.severity.color || Black}
                 text={props.severity.name}
+                isUserContent={isSeverityNameAsWritten}
                 tooltip="Severity"
               />
             )}
@@ -719,6 +754,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
           <div className="mt-4">
             <EventStateTrack
               states={states}
+              stateList={props.stateList}
               currentStateId={props.currentStateId}
             />
           </div>

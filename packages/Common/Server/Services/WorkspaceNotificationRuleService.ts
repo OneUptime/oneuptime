@@ -1813,6 +1813,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
      * nothing to show and Microsoft Teams says only that a card was sent.
      */
     notificationText?: string | undefined;
+    /*
+     * What a workspace is sent, where it is not feedInfoInMarkdown: an
+     * on-call handoff names the person on call as each workspace knows
+     * them - "@ana" where they connected their account there (issue
+     * #7549).
+     */
+    markdownByWorkspaceType?:
+      | Partial<Record<WorkspaceType, string>>
+      | undefined;
     workspaceNotification: {
       /*
        * Who did what the message says, as a OneUptime user id: their name
@@ -1833,6 +1842,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
        * Left out, wherever the record's messages go.
        */
       updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+      /*
+       * One of several messages about one change, each for the channels
+       * that want it said that way (getMessageDestinationsWanting): posted
+       * only where a rule also wants one of these updates...
+       */
+      alsoWantedUpdateKinds?:
+        | ReadonlyArray<NotificationRuleUpdateKind>
+        | undefined;
+      // ...and where no rule wants any of these.
+      notWantedUpdateKinds?:
+        | ReadonlyArray<NotificationRuleUpdateKind>
+        | undefined;
     };
   }): Promise<void> {
     /*
@@ -1878,6 +1899,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         userId: data.workspaceNotification.authorUserId,
         apiKeyName: data.workspaceNotification.authorApiKeyName,
         markdown: data.feedInfoInMarkdown,
+        markdownByWorkspaceType: data.markdownByWorkspaceType,
         projectId: data.projectId,
       });
 
@@ -1903,11 +1925,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
       const destinations: Array<WorkspaceMessagePayload> =
-        await this.getMessageDestinations({
+        await this.getMessageDestinationsWanting({
           projectId: data.projectId,
           notificationFor: data.notificationFor,
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
           updateKinds: data.workspaceNotification.updateKinds,
+          alsoWantedUpdateKinds:
+            data.workspaceNotification.alsoWantedUpdateKinds,
+          notWantedUpdateKinds: data.workspaceNotification.notWantedUpdateKinds,
         });
 
       for (const destination of destinations) {
@@ -2059,6 +2084,100 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     return destinations;
+  }
+
+  /*
+   * The destinations of one of several messages about one change, each
+   * said for the channels that want it said that way (issue #7549): where
+   * a rule wants one of updateKinds (getMessageDestinations) and, when
+   * given, a rule also wants one of alsoWantedUpdateKinds, and no rule
+   * wants any of notWantedUpdateKinds. An on-call handoff is one message
+   * in every channel: "now on call, then Bob" where a rule wants who is on
+   * call now and who is next, "now on call" where one wants only the first,
+   * "next on call" where one wants only the second - never two of them in
+   * one channel. A channel two rules name wants what either wants.
+   */
+  @CaptureSpan()
+  public async getMessageDestinationsWanting(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    workspaceType: WorkspaceType;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    alsoWantedUpdateKinds?:
+      | ReadonlyArray<NotificationRuleUpdateKind>
+      | undefined;
+    notWantedUpdateKinds?:
+      | ReadonlyArray<NotificationRuleUpdateKind>
+      | undefined;
+  }): Promise<Array<WorkspaceMessagePayload>> {
+    const destinations: Array<WorkspaceMessagePayload> =
+      await this.getMessageDestinations({
+        projectId: data.projectId,
+        notificationFor: data.notificationFor,
+        workspaceType: data.workspaceType,
+        updateKinds: data.updateKinds,
+      });
+
+    if (destinations.length === 0) {
+      return destinations;
+    }
+
+    // The destinations of a message of these kinds, by where each goes.
+    const getKeysWanting: (
+      kinds: ReadonlyArray<NotificationRuleUpdateKind>,
+    ) => Promise<Set<string>> = async (
+      kinds: ReadonlyArray<NotificationRuleUpdateKind>,
+    ): Promise<Set<string>> => {
+      return new Set<string>(
+        (
+          await this.getMessageDestinations({
+            projectId: data.projectId,
+            notificationFor: data.notificationFor,
+            workspaceType: data.workspaceType,
+            updateKinds: kinds,
+          })
+        ).map((destination: WorkspaceMessagePayload): string => {
+          return Service.getDestinationKey(destination);
+        }),
+      );
+    };
+
+    const alsoWanted: Set<string> | null =
+      data.alsoWantedUpdateKinds && data.alsoWantedUpdateKinds.length > 0
+        ? await getKeysWanting(data.alsoWantedUpdateKinds)
+        : null;
+
+    const notWanted: Set<string> | null =
+      data.notWantedUpdateKinds && data.notWantedUpdateKinds.length > 0
+        ? await getKeysWanting(data.notWantedUpdateKinds)
+        : null;
+
+    return destinations.filter(
+      (destination: WorkspaceMessagePayload): boolean => {
+        const key: string = Service.getDestinationKey(destination);
+
+        return (
+          (!alsoWanted || alsoWanted.has(key)) &&
+          (!notWanted || !notWanted.has(key))
+        );
+      },
+    );
+  }
+
+  /*
+   * Where a message goes, as one string: two destinations with the same
+   * key are the same channel or chat (getMessageDestinations).
+   */
+  public static getDestinationKey(
+    destination: WorkspaceMessagePayload,
+  ): string {
+    return JSON.stringify([
+      destination.workspaceType,
+      destination.teamId || "",
+      destination.channelIds || [],
+      destination.channelNames || [],
+      destination.chatIds || [],
+    ]);
   }
 
   /*

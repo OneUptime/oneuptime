@@ -13,6 +13,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -248,6 +250,15 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
+  // The status the monitor takes when no criteria is met, when one is picked.
+  const pickedDefaultMonitorStatus: MonitorStatus | undefined =
+    monitorStatusOptions.find((option: MonitorStatus) => {
+      return (
+        option.id?.toString() ===
+        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+      );
+    });
+
   /*
    * A telemetry monitor whose criteria are one rule says its status
    * otherwise in the rule's own summary (TelemetryRuleSummary).
@@ -312,22 +323,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 {props.monitorSteps.data?.defaultMonitorStatusId && (
                   <Statusbubble
                     color={
-                      (monitorStatusOptions.find((option: IncidentSeverity) => {
-                        return (
-                          option.id?.toString() ===
-                          props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                        );
-                      })?.color as Color) || Black
+                      (pickedDefaultMonitorStatus?.color as Color) || Black
                     }
                     shouldAnimate={false}
-                    text={
-                      (monitorStatusOptions.find((option: IncidentSeverity) => {
-                        return (
-                          option.id?.toString() ===
-                          props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                        );
-                      })?.name as string) || ""
-                    }
+                    text={(pickedDefaultMonitorStatus?.name as string) || ""}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.MonitorStatus,
+                      pickedDefaultMonitorStatus?.name,
+                    )}
                   />
                 )}
 
@@ -336,6 +339,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     <Statusbubble
                       color={defaultMonitorStatus.color!}
                       text={defaultMonitorStatus.name!}
+                      isUserContent={isRecordNameAsWritten(
+                        StateListType.MonitorStatus,
+                        defaultMonitorStatus.name,
+                      )}
                       shouldAnimate={false}
                     />
                   )}

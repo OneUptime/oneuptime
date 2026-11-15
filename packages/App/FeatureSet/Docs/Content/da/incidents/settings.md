@@ -535,9 +535,9 @@ Tilføj de andre roller, dit team bruger, som Responder, Communications Lead ell
 
 Roller er kun definitioner. Du tildeler folk til dem pr. hændelse — erklæringsguiden spørger på sit trin **Vagt og roller** med et felt **Tildel hændelsesroller**, og hver hændelse har en side **Roller** i sin sidemenu. En monitors kriterier og en grupperingsregel for hændelser kan vælge folk til dem på forhånd. Hver af de formularer spørger med de samme kort, ét pr. rolle: en rolle med mærket **Primær** er Hændelsesleder eller en anden primær rolle, og en rolle til én person fjerner sin vælger, når den har en. På en hændelses kort **Roller** tilbyder en rolle til flere personer **Add More**.
 
-### Arkivér en rolle
+### Arkiver en rolle
 
-Arkivér en rolle, som dit team ikke længere bruger, fra rækkens menu **⋯** i stedet for at slette den. De, der har den på en hændelse, beholder den, men ingen kan få den igen: Rollevælgerne udelader den eller viser den kun med de personer, der har den, og API'et afviser den. Den primære rolle og enhver rolle, der ikke kan slettes, kan ikke arkiveres. Arkiverede roller vises for sig, i den sammenfoldede sektion **Arkiverede hændelsesroller**, hvor **Fjern fra arkiv** sætter en tilbage.
+Arkiver en rolle, som dit team ikke længere bruger, fra rækkens menu **⋯** i stedet for at slette den. De, der har den på en hændelse, beholder den, men ingen kan få den igen: Rollevælgerne udelader den eller viser den kun med de personer, der har den, og API'et afviser den. Den primære rolle og enhver rolle, der ikke kan slettes, kan ikke arkiveres. Arkiverede roller vises for sig, i den sammenfoldede sektion **Arkiverede hændelsesroller**, hvor **Fjern fra arkivet** sætter en tilbage.
 
 ## Nummerpræfikser
 
@@ -736,7 +736,7 @@ De regler, siden selv kommer med, er værd at gøre til dine egne:
 - Det sæt politikker, der faktisk udføres, er foreningen af hver matchende regels politikker plus enhver politik, der er knyttet til hændelsen i hånden eller af en skabelon, uden dubletter, så hver politik kører højst én gang. Når to matchende regler tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: med det samme vinder over arbejdstiden.
 
 > [!NOTE]
-> Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Critical Incident" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.
+> Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Kritisk hændelse" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.
 
 ## Knyt vagtpolitikker direkte
 

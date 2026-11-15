@@ -1,6 +1,8 @@
 import FilePicker, {
   FILE_PICKER_ERROR_TEST_ID,
 } from "../../../UI/Components/FilePicker/FilePicker";
+import { FilePickerPlaceholder } from "../../../UI/Components/FilePicker/LazyFilePicker";
+import { CUSTOM_FIELD_FILES_HINT } from "../../../UI/Components/CustomFields/CustomFieldFormFields";
 import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -201,6 +203,130 @@ describe("a picker of several files holds no more than it may", () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByTestId("file-picker-full")).toBeInTheDocument();
     expect(screen.queryByText("two.png")).not.toBeInTheDocument();
+  });
+
+  /*
+   * A picker of at most one file, full, says so in the words for one - its
+   * noun as one, never "up to 1 files" - and the words for several are
+   * said for two and up (issue #7421).
+   */
+  test("full at one file, it says it holds one file", () => {
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={1}
+        mimeTypes={[MimeType.png]}
+        initialValue={[
+          heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+        ]}
+        dataTestId="picker"
+      />,
+    );
+
+    expect(screen.getByTestId("file-picker-full").textContent).toBe(
+      "This field holds one file. Remove it to add another.",
+    );
+  });
+
+  /*
+   * A picker of several that takes one file speaks as a picker of one
+   * (issue #7421): empty, it asks for a file, as its hint says one file;
+   * holding it, the file sits under the field with no "Chosen files" or
+   * "Uploaded files" heading over one file - before its picker arrives
+   * too, so nothing moves when it does.
+   */
+  test("taking one file, it asks for a file and heads no list of one", () => {
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={1}
+        mimeTypes={[MimeType.png]}
+        hint={CUSTOM_FIELD_FILES_HINT}
+        keepFilesInBrowser={true}
+      />,
+    );
+
+    expect(screen.getByText("Upload a file")).toBeInTheDocument();
+    expect(
+      screen.getByText("Click to choose a file or drag & drop."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Upload files")).not.toBeInTheDocument();
+    cleanup();
+
+    for (const keepFilesInBrowser of [true, false]) {
+      render(
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={1}
+          mimeTypes={[MimeType.png]}
+          keepFilesInBrowser={keepFilesInBrowser}
+          initialValue={[
+            heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+          ]}
+        />,
+      );
+
+      expect(screen.getByText("one.png")).toBeInTheDocument();
+      expect(screen.queryByText("Chosen files")).not.toBeInTheDocument();
+      expect(screen.queryByText("Uploaded files")).not.toBeInTheDocument();
+      cleanup();
+    }
+  });
+
+  test("taking two or more, it heads its list even when it holds one file", () => {
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={3}
+        mimeTypes={[MimeType.png]}
+        initialValue={[
+          heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+    expect(screen.getByText("Add more files")).toBeInTheDocument();
+  });
+
+  test("its stand-in draws the same: no heading box over one file, one over a list that may grow", () => {
+    const headingBoxes: (maxFiles: number) => number = (
+      maxFiles: number,
+    ): number => {
+      const { container } = render(
+        <FilePickerPlaceholder
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          mimeTypes={[MimeType.png]}
+          initialValue={[
+            heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+          ]}
+          loadError={null}
+        />,
+      );
+      // The heading's dimmed stand-in: a box the heading's size.
+      const count: number = container.querySelectorAll(".h-5.w-24").length;
+      cleanup();
+      return count;
+    };
+
+    expect(headingBoxes(1)).toBe(0);
+    expect(headingBoxes(3)).toBe(1);
+
+    render(
+      <FilePickerPlaceholder
+        isMultiFilePicker={true}
+        maxFiles={1}
+        mimeTypes={[MimeType.png]}
+        hint={CUSTOM_FIELD_FILES_HINT}
+        loadError={null}
+      />,
+    );
+
+    expect(screen.getByText("Upload a file")).toBeInTheDocument();
+    expect(
+      screen.getByText("Click to choose a file or drag & drop."),
+    ).toBeInTheDocument();
   });
 
   test("a file of a kind it does not take, dropped on it full, is refused out loud", async () => {
@@ -642,6 +768,54 @@ describe("what it says it takes", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Types:/)).not.toBeInTheDocument();
   });
+
+  /*
+   * A hint that names how many files the picker takes says the picker's
+   * own most files (issue #7421), in the words for that count - the same
+   * on the lazy picker's stand-in as on the picker it stands in for.
+   */
+  test.each([
+    [
+      3,
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      10,
+      "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+    [
+      1,
+      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    ],
+  ])(
+    "a picker of at most %p files says so in its hint",
+    (maxFiles: number, hint: string) => {
+      render(
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          mimeTypes={[MimeType.png, MimeType.pdf]}
+          hint={CUSTOM_FIELD_FILES_HINT}
+        />,
+      );
+
+      expect(screen.getByText(hint)).toBeInTheDocument();
+      expect(screen.queryByText(/^Types:/)).not.toBeInTheDocument();
+      cleanup();
+
+      render(
+        <FilePickerPlaceholder
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          mimeTypes={[MimeType.png, MimeType.pdf]}
+          hint={CUSTOM_FIELD_FILES_HINT}
+          loadError={null}
+        />,
+      );
+
+      expect(screen.getByText(hint)).toBeInTheDocument();
+    },
+  );
 
   test("without one, the list of types as before", () => {
     render(<FilePicker mimeTypes={[MimeType.png, MimeType.pdf]} />);

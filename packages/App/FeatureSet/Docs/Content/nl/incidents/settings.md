@@ -537,7 +537,7 @@ Rollen zijn alleen definities. Je wijst er per incident mensen aan toe — de me
 
 ### Een rol archiveren
 
-Archiveer een rol die uw team niet meer gebruikt via het menu **⋯** van de rij, in plaats van die te verwijderen. Wie de rol bij een incident heeft, behoudt hem, maar niemand kan hem nog krijgen: de rolkiezers laten hem weg, of tonen hem alleen met de mensen die hem hebben, en de API weigert hem. De primaire rol, en elke rol die niet kan worden verwijderd, kunnen niet worden gearchiveerd. Gearchiveerde rollen staan apart, in de ingeklapte sectie **Gearchiveerde incidentrollen**, waar **Uit archief halen** er een terugzet.
+Archiveer een rol die uw team niet meer gebruikt via het menu **⋯** van de rij, in plaats van die te verwijderen. Wie de rol bij een incident heeft, behoudt hem, maar niemand kan hem nog krijgen: de rolkiezers laten hem weg, of tonen hem alleen met de mensen die hem hebben, en de API weigert hem. De primaire rol, en elke rol die niet kan worden verwijderd, kunnen niet worden gearchiveerd. Gearchiveerde rollen staan apart, in de ingeklapte sectie **Gearchiveerde incidentrollen**, waar **Uit het archief halen** er een terugzet.
 
 ## Nummervoorvoegsels
 
@@ -736,7 +736,7 @@ De regels die de pagina zelf meebrengt, zijn het waard om je eigen te maken:
 - Het beleid dat daadwerkelijk wordt uitgevoerd, is de vereniging van het beleid van elke overeenkomende regel plus elk beleid dat met de hand of door een sjabloon aan het incident is gehangen, ontdubbeld zodat elk beleid hoogstens één keer draait. Roepen twee overeenkomende regels hetzelfde beleid op, dan roept het op zodra een van beide het toelaat: direct wint van werktijden.
 
 > [!NOTE]
-> Ernst is hier een criterium en nergens anders. Een incidenternst heeft geen bereikbaarheidsveld — "Critical Incident" kiezen roept op zichzelf niemand op. Wil je dat de ernst het oproepen stuurt, schrijf dan een bereikbaarheidsregel die erop filtert.
+> Ernst is hier een criterium en nergens anders. Een incidenternst heeft geen bereikbaarheidsveld — "Kritiek incident" kiezen roept op zichzelf niemand op. Wil je dat de ernst het oproepen stuurt, schrijf dan een bereikbaarheidsregel die erop filtert.
 
 ## Bereikbaarheidsbeleid rechtstreeks koppelen
 

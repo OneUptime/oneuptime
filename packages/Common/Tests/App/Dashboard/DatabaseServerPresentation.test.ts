@@ -356,6 +356,11 @@ describe("formatting", () => {
   test("bytes", () => {
     expect(formatDatabaseBytes(undefined)).toBe("—");
     expect(formatDatabaseBytes(512)).toBe("512 B");
+    // A count of bytes is whole (issue #7417): never "0.0 B" or "5.0 B".
+    expect(formatDatabaseBytes(0)).toBe("0 B");
+    expect(formatDatabaseBytes(5)).toBe("5 B");
+    expect(formatDatabaseBytes(1023)).toBe("1023 B");
+    expect(formatDatabaseBytes(1024)).toBe("1.0 KiB");
     expect(formatDatabaseBytes(1536)).toBe("1.5 KiB");
     expect(formatDatabaseBytes(5 * 1024 * 1024 * 1024)).toBe("5.0 GiB");
   });

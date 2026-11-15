@@ -37,7 +37,7 @@ Trinn kjører **i rekkefølge**. Du endrer rekkefølgen ved å dra et trinn i h�
 
 ### Lagre trinnene
 
-Klikk **Lagre trinn**. Inntil du gjør det, viser redigeringsverktøyet **Ulagrede endringer**. Når de er lagret, ser du **Lagret**, og runbooket er klart til å [kjøres](/docs/runbooks/running).
+Klikk **Lagre trinn**. Inntil du gjør det, viser redigeringsverktøyet **Ulagrede endringer**. Når de er lagret, ser du **Lagret**, og runbooket er klart til å [kjøres](/docs/runbooks/running). Å forlate trinnene før du har lagret, spør først. En lenke i sidemenyen, brødsmulestien eller topplinjen, eller nettleserens Tilbake- og Fremover-knapper, åpner **Forlate uten å lagre?** med to valg: **Fortsett å redigere** blir ved trinnene med endringene dine, og **Forkast endringer** går videre til siden du var på vei til. Lukker eller laster du inn fanen på nytt, spør nettleseren med sin egen dialog.
 :::
 
 ## Hvordan et trinn er bygd opp

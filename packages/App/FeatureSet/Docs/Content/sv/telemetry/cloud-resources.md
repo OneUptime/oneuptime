@@ -39,7 +39,7 @@ Molnresurser är en av flera platser där ditt moln dyker upp:
 | Virtuella maskiner med en OpenTelemetry Collector på | **Värdar** | Värdens egna mätvärden och loggar. Se [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector) |
 | Köer och ämnen som dina applikationer använder | **Köer** | Spann, och samma molnmätvärden. Se [Köer](/docs/telemetry/queues) |
 
-En resurs kan visas på mer än ett ställe. En virtuell maskin med collectorn på är en **Värd**, och dess plattformsmätvärden (CPU-krediter, disk och nätverk så som hypervisorn ser dem) gör den också till en **Molnresurs**. En SQS-kö är en **Queue** och en **Molnresurs**. Varje vy visar vad dess källa vet.
+En resurs kan visas på mer än ett ställe. En virtuell maskin med collectorn på är en **Värd**, och dess plattformsmätvärden (CPU-krediter, disk och nätverk så som hypervisorn ser dem) gör den också till en **Molnresurs**. En SQS-kö är en **Kö** och en **Molnresurs**. Varje vy visar vad dess källa vet.
 
 ## Innan du börjar
 

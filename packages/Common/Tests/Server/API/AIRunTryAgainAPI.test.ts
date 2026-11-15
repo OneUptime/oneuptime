@@ -26,6 +26,8 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../../Types/Exception/AiRunRefusalException";
+import { AiRunRefusalCode } from "../../../Types/AI/AiRunRefusal";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
@@ -261,6 +263,11 @@ describe("POST /ai-investigation/try-again", () => {
     });
 
     expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+    // Its code beside it, for the card to word (#7359).
+    expect(next.mock.calls[0]![0]).toMatchObject({
+      message: "Incident not found (or you do not have access to it).",
+      details: { refusalCode: AiRunRefusalCode.IncidentNotFound },
+    });
     expect(tryAgain).not.toHaveBeenCalled();
   });
 
@@ -335,11 +342,9 @@ describe("POST /ai-investigation/try-again", () => {
     },
   );
 
-  it("what stopped it is told in the server's own words", async () => {
+  it("what stopped it is told in the server's own words, with its code beside them", async () => {
     tryAgain.mockRejectedValue(
-      new BadDataException(
-        "This incident's investigation is queued or running already.",
-      ),
+      new AiRunRefusalException(AiRunRefusalCode.IncidentInvestigationRunning),
     );
 
     const next: NextMock = await call("/ai-investigation/try-again", {
@@ -351,6 +356,9 @@ describe("POST /ai-investigation/try-again", () => {
     expect((next.mock.calls[0]![0] as Error).message).toBe(
       "This incident's investigation is queued or running already.",
     );
+    expect(next.mock.calls[0]![0]).toMatchObject({
+      details: { refusalCode: "incident_investigation_running" },
+    });
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });

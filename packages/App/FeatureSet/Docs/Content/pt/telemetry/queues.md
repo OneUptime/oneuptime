@@ -29,7 +29,7 @@ flowchart TB
 
 Os traces dizem ao OneUptime que uma fila existe e como os aplicativos a usam, mas não o quanto ela está cheia. Isso vem do próprio broker ou da API de monitoramento do provedor de nuvem dele ou, no caso do [BullMQ](#bullmq), que guarda seus jobs no Redis e não tem um broker a quem perguntar, de um medidor que o aplicativo informa.
 
-Você também pode adicionar uma fila manualmente: **Filas → Criar: Queue**, com o sistema de mensageria e o nome do destino e, para Azure Service Bus e Event Hubs, o namespace. O formulário pede esses dados na primeira etapa, **Sistema de mensageria**, e depois um nome e uma descrição opcionais, com os rótulos em **Mais campos** (**Informações da fila**). Deixe o namespace vazio apenas para uma fila que seus aplicativos alcançam por um emulador ou por um nome de domínio personalizado: os spans deles não nomeiam nenhum namespace, e as métricas do Azure Monitor nunca chegam a essa fila (veja [Limitações](#limitações)).
+Você também pode adicionar uma fila manualmente: **Filas → Criar: Fila**, com o sistema de mensageria e o nome do destino e, para Azure Service Bus e Event Hubs, o namespace. O formulário pede esses dados na primeira etapa, **Sistema de mensageria**, e depois um nome e uma descrição opcionais, com os rótulos em **Mais campos** (**Informações da fila**). Deixe o namespace vazio apenas para uma fila que seus aplicativos alcançam por um emulador ou por um nome de domínio personalizado: os spans deles não nomeiam nenhum namespace, e as métricas do Azure Monitor nunca chegam a essa fila (veja [Limitações](#limitações)).
 
 ## Primeiros passos
 
@@ -1057,7 +1057,7 @@ Instalações auto-hospedadas podem ajustar a descoberta com estas variáveis de
 - O nome dela é um dos que o OneUptime ignora (veja [O que é ignorado](#o-que-é-ignorado)), ou só spans SERVER a nomeiam.
 - Menos de 3 spans dela chegaram nos últimos 15 minutos, ou o projeto atingiu o [limite de criação automática](#o-orçamento-de-criação-automática).
 
-Quando os spans dela a nomeiam de fato, crie-a manualmente com o mesmo sistema e destino (**Filas → Criar: Queue**): a guia **Traços** dela é preenchida com os spans já armazenados.
+Quando os spans dela a nomeiam de fato, crie-a manualmente com o mesmo sistema e destino (**Filas → Criar: Fila**): a guia **Traços** dela é preenchida com os spans já armazenados.
 
 ### A saúde do broker continua vazia
 

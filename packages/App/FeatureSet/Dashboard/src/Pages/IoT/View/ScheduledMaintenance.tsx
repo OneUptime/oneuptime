@@ -31,7 +31,7 @@ const IoTFleetScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.IoTFleet, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this fleet."
+        noItemsMessage="No maintenance events for this fleet."
       />
     </Fragment>
   );

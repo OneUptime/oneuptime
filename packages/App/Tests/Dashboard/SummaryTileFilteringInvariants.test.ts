@@ -128,13 +128,14 @@ const NETWORK_DEVICE_SERVICE: string = readSource(
 );
 
 /*
- * Just `getFleetSummary`'s aggregate — the file also holds several other
- * queries, and an assertion made against the whole of it could pass on a
- * predicate that belongs to a different one.
+ * Just `getFleetScan`'s aggregate - what the strip counts from (the fleet
+ * scan the Overview and the Sites strip share) - since the file also holds
+ * several other queries, and an assertion made against the whole of it could
+ * pass on a predicate that belongs to a different one.
  */
-const FLEET_SUMMARY_QUERY: string = ((): string | never => {
+const FLEET_SCAN_QUERY: string = ((): string | never => {
   const start: number = NETWORK_DEVICE_SERVICE.indexOf(
-    "public async getFleetSummary(",
+    "public async getFleetScan(",
   );
   const end: number = NETWORK_DEVICE_SERVICE.indexOf(
     "public async getVendorBreakdown(",
@@ -143,12 +144,33 @@ const FLEET_SUMMARY_QUERY: string = ((): string | never => {
 
   if (start === -1 || end === -1) {
     throw new Error(
-      "Could not slice getFleetSummary out of NetworkDeviceService.ts — the shape of the file changed, so these assertions are no longer pointing at what they name.",
+      "Could not slice getFleetScan out of NetworkDeviceService.ts — the shape of the file changed, so these assertions are no longer pointing at what they name.",
     );
   }
 
   return NETWORK_DEVICE_SERVICE.slice(start, end);
 })();
+
+// The scan's columns, and how its buckets add up to the strip's numbers.
+const DEVICE_HEALTH_AGGREGATION: string = readSource(
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "Server",
+    "Utils",
+    "NetworkDevice",
+  ),
+  "DeviceHealthAggregation.ts",
+);
+
+// The strip's endpoint.
+const NETWORK_SUMMARY_API: string = readSource(
+  path.join(__dirname, "..", "..", "FeatureSet", "BaseAPI", "API"),
+  "NetworkSummary.ts",
+);
 
 /**
  * The names a page destructures off useResourceOwners. Everything the facet bar
@@ -215,7 +237,7 @@ describe("the Devices page wires its table to the facet bar", () => {
    */
   test("the base query hides archived devices, as every count does", () => {
     expect(DEVICES_PAGE).toContain("isArchived: false");
-    expect(FLEET_SUMMARY_QUERY).toContain("isArchived: false");
+    expect(FLEET_SCAN_QUERY).toContain("isArchived: false");
   });
 
   /*
@@ -231,8 +253,21 @@ describe("the Devices page wires its table to the facet bar", () => {
     expect(DEVICE_CARDS).not.toContain("ModelAPI.getList");
     expect(DEVICE_CARDS).not.toContain("ModelAPI.count");
     expect(DEVICE_CARDS).not.toContain("LIMIT_PER_PROJECT");
-    expect(FLEET_SUMMARY_QUERY).toContain(
-      squash('COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)'),
+    // The strip prints the fleet scan's numbers...
+    expect(NETWORK_SUMMARY_API).toContain(
+      squash("devicesUp: scan.summary.devicesUp,"),
+    );
+    // ...whose buckets sum their dark ports, added up whole.
+    expect(FLEET_SCAN_QUERY).toContain(
+      squash("select: DEVICE_FLEET_SCAN_AGGREGATES,"),
+    );
+    expect(DEVICE_HEALTH_AGGREGATION).toContain(
+      squash(
+        'expression: `COALESCE(SUM(${column("interfacesDown")}), 0)`, alias: DeviceHealthGroupAlias.InterfacesDownTotal,',
+      ),
+    );
+    expect(DEVICE_HEALTH_AGGREGATION).toContain(
+      squash("summary.interfacesDown += bucket.interfacesDownTotal;"),
     );
   });
 
@@ -242,13 +277,17 @@ describe("the Devices page wires its table to the facet bar", () => {
    * the rows it counted.
    */
   test("the counts still partition the fleet on isReachable", () => {
-    for (const predicate of [
-      '"NetworkDevice"."isReachable" = true',
-      '"NetworkDevice"."isReachable" = false',
-      '"NetworkDevice"."isReachable" IS NULL',
-    ]) {
-      expect(FLEET_SUMMARY_QUERY).toContain(squash(predicate));
-    }
+    // The scan buckets by isReachable, and each bucket goes to one tile.
+    expect(DEVICE_HEALTH_AGGREGATION).toContain(
+      squash(
+        'expression: column("isReachable"), alias: DeviceHealthGroupAlias.IsReachable,',
+      ),
+    );
+    expect(DEVICE_HEALTH_AGGREGATION).toContain(
+      squash(
+        "if (bucket.isReachable === true) { summary.devicesUp += bucket.deviceCount; } else if (bucket.isReachable === false) { summary.devicesDown += bucket.deviceCount; } else { summary.devicesPending += bucket.deviceCount; }",
+      ),
+    );
   });
 
   /*

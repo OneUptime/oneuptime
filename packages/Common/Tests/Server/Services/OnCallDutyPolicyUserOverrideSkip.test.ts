@@ -546,6 +546,50 @@ describe("Booking time away with nobody picked to cover", () => {
     );
     expect(String(feed[0])).not.toContain("All alerts will be routed to");
   });
+
+  test("its channels hear it in one line: who is away, until when, and where their turns go (#7549)", async () => {
+    await bookTimeAway({
+      signedInAs: ALEX,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const chat: Array<unknown> = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as {
+        mock: { calls: Array<Array<{ chatInfoInMarkdown?: string }>> };
+      }
+    ).mock.calls.map((call: Array<{ chatInfoInMarkdown?: string }>) => {
+      return call[0]!.chatInfoInMarkdown;
+    });
+
+    expect(chat).toHaveLength(1);
+    expect(String(chat[0])).toMatch(
+      /^🔁 Added an override on \[Payments\]\(https:\/\/oneuptime\.example\/policy\): user-\S+ is away from \{\{DATE\(\S+, SHORT\)\}\} at \{\{TIME\(\S+\)\}\} to \{\{DATE\(2026-03-06T12:00:00Z, SHORT\)\}\} at \{\{TIME\(2026-03-06T12:00:00Z\)\}\}, and their turns go to the next person in the rotation\.$/,
+    );
+    expect(String(chat[0])).toContain(ALEX);
+  });
+
+  test("with a cover, its channels hear who covers for whom (#7549)", async () => {
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const chat: string = String(
+      (
+        OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as {
+          mock: { calls: Array<Array<{ chatInfoInMarkdown?: string }>> };
+        }
+      ).mock.calls[0]![0]!.chatInfoInMarkdown,
+    );
+
+    expect(chat).toContain(
+      `🔁 Added an override on [Payments](https://oneuptime.example/policy): user-${RIA} covers for user-${ALEX} from `,
+    );
+    expect(chat).not.toMatch(/GMT|UTC|routed/);
+  });
 });
 
 describe("A schedule pages the next person in the rotation while somebody is skipped", () => {

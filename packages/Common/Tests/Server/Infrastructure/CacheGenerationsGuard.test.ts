@@ -30,6 +30,10 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Services/ApiKeyPermissionService.ts",
   // What was merged into each exception, by project.
   "Server/Services/TelemetryExceptionService.ts",
+  // Each project's incident states and alert states.
+  "Server/Utils/Database/ProjectStateListCache.ts",
+  // The on-call policies each person is on duty for, by project.
+  "Server/Utils/OnCall/OnDutyPoliciesCache.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.

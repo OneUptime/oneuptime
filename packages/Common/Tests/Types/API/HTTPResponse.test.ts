@@ -172,4 +172,50 @@ describe("HTTPResponse", () => {
       expect(makeResponse(502).isServerError()).toBe(false);
     });
   });
+
+  /*
+   * A list read that asked for its count up to a cap (countUpTo) reads
+   * isCountCapped off the answer: set when more records match than the
+   * count says, undefined when the count is exact.
+   */
+  describe("a list's capped count", () => {
+    it("reads isCountCapped when the answer carries it", () => {
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        { data: [], count: 10000, skip: 0, limit: 10, isCountCapped: true },
+        {},
+      );
+
+      expect(response.count).toBe(10000);
+      expect(response.isCountCapped).toBe(true);
+      expect(response.hasMore).toBeUndefined();
+    });
+
+    it("leaves it undefined for an exact count, or anything but true", () => {
+      for (const extra of [
+        {},
+        { isCountCapped: false },
+        { isCountCapped: "true" },
+      ]) {
+        const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+          200,
+          { data: [], count: 240, skip: 0, limit: 10, ...extra } as JSONObject,
+          {},
+        );
+
+        expect(response.isCountCapped).toBeUndefined();
+        expect(response.count).toBe(240);
+      }
+    });
+
+    it("is not read off an answer that is not a list", () => {
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        { isCountCapped: true },
+        {},
+      );
+
+      expect(response.isCountCapped).toBeUndefined();
+    });
+  });
 });

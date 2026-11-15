@@ -26,6 +26,7 @@ import HttpMonitorRequest, {
 } from "../HttpMonitorRequest";
 import CertificateRevocationChecker from "../CertificateRevocation/CertificateRevocationChecker";
 import { TlsPeerCertificateRecorder } from "../CertificateRevocation/TlsPeerCertificates";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 // Five attempts, the same as before retries were counted after the first attempt.
 const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
@@ -493,10 +494,9 @@ export default class WebsiteMonitor {
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        probeWebsiteResponse.failureCause =
-          "Request was tried " +
-          options.currentRetryCount +
-          " times and it timed out.";
+        probeWebsiteResponse.failureCause = writeProbeTimeoutFailureCause(
+          options.currentRetryCount,
+        );
         probeWebsiteResponse.isOnline = false;
         probeWebsiteResponse.isTimeout = true;
 

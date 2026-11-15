@@ -672,10 +672,10 @@ describe("Create Scheduled Maintenance Event's Resources Affected step", () => {
     const rest: string = objectAround(source, "field: { hosts: true, }");
 
     expect(monitors).toContain(
-      '"No monitors affected by this scheduled maintenance event."',
+      '"No monitors affected by this maintenance event."',
     );
     expect(rest).toContain(
-      '"No other resources affected by this scheduled maintenance event."',
+      '"No other resources affected by this maintenance event."',
     );
     expect(source).not.toContain(
       '"No resources affected by this scheduled maintenance event."',
@@ -708,9 +708,9 @@ describe("the split's copy, in every language", () => {
     "Hosts, clusters, databases, cloud resources, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
     EVENT_STATUS_DESCRIPTION,
     STARTED_DESCRIPTION,
-    "No monitors affected by this scheduled maintenance event.",
-    "No other resources affected by this scheduled maintenance event.",
-    "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+    "No monitors affected by this maintenance event.",
+    "No other resources affected by this maintenance event.",
+    "Status of the monitors will not be changed when this maintenance event starts.",
     "Search and attach the monitors that events created from this template should pre-populate.",
     "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
     TEMPLATE_STATUS_DESCRIPTION,

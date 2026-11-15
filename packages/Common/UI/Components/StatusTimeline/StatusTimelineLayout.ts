@@ -32,6 +32,7 @@
  */
 
 import moment from "moment-timezone";
+import OneUptimeDate from "../../../Types/Date";
 import {
   ENGLISH_DATE_LANGUAGE,
   formatReaderFigure,
@@ -132,28 +133,6 @@ export const DEFAULT_BAND_WIDTH_PX: number = 800;
  * a hole between them.
  */
 export const MIN_GAP_MS: number = 1000;
-
-const WHITESPACE: RegExp = /\s+/;
-
-/*
- * A list comma left at the end of a duration cut to its two largest units:
- * German writes "26 Tg., 22 Std., 5 Min. und 3 Sek.", whose first four
- * words end "22 Std.,". Latin, Arabic-script and East Asian commas -
- * dropped one character at a time, with no pattern to backtrack over.
- */
-const LIST_COMMAS: Array<string> = [",", "\u060C", "\u3001", "\uFF0C"];
-
-const withoutTrailingListComma: (text: string) => string = (
-  text: string,
-): string => {
-  let end: number = text.length;
-
-  while (end > 0 && LIST_COMMAS.includes(text.charAt(end - 1))) {
-    end--;
-  }
-
-  return text.slice(0, end);
-};
 
 const time: (date: Date) => number = (date: Date): number => {
   return date.getTime();
@@ -931,20 +910,34 @@ export const formatStatusTimelineShare: (
   return write(rounded);
 };
 
+// The most units a legend's duration names: "29 days 23 hours".
+export const STATUS_TIMELINE_LEGEND_DURATION_UNITS: number = 2;
+
 /*
  * A duration for the legend: the timelines' own wording ("2 days 3 hours 4
- * mins 5 secs"), kept to its two largest units - "29 days 23 hours".
+ * mins 5 secs") in the reader's language, kept to its two largest units -
+ * "29 days 23 hours", "29 日23 時間", "29 Tg., 23 Std.".
+ *
+ * Cut by its units before it is written, never by its words. It used to be
+ * written whole and cut to its first four words, which took every unit to
+ * read "number word": Japanese writes no space between a unit and the next
+ * number ("30 日23 時間42 分40 秒"), so the legend drew "30 日23 時間42 分40"
+ * - the seconds' number without its unit - and Chinese, which writes the
+ * whole duration as one word, was never cut at all.
+ *
+ * Whole seconds; nothing (or no number) reads as zero seconds ("0 secs",
+ * "0 秒").
  */
 export const formatStatusTimelineCompactDuration: (
-  fullDuration: string,
-) => string = (fullDuration: string): string => {
-  const words: Array<string> = fullDuration.trim().split(WHITESPACE);
-
-  if (words.length <= 4) {
-    return words.join(" ");
-  }
-
-  return withoutTrailingListComma(words.slice(0, 4).join(" "));
+  seconds: number,
+) => string = (seconds: number): string => {
+  return OneUptimeDate.secondsToFormattedFriendlyTimeString(
+    isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0,
+    {
+      maxUnits: STATUS_TIMELINE_LEGEND_DURATION_UNITS,
+      writesZero: true,
+    },
+  );
 };
 
 /*

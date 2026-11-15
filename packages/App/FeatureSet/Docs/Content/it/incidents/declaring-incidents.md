@@ -55,7 +55,7 @@ La risorsa viene cercata con i vostri permessi: se non potete leggerla, o è sta
 ### Passaggio 1 — Dettagli dell'incidente
 
 - **Titolo** — obbligatorio. Il riepilogo di una riga che tutti vedranno nell'elenco, in Slack e (se l'incidente è visibile) sulla vostra pagina di stato. Testo segnaposto: `Incident Title`.
-- **Gravità incidente** — obbligatoria. Una delle gravità configurate per il vostro progetto; i nuovi progetti vengono creati con **Critical Incident**, **Major Incident** e **Minor Incident**.
+- **Gravità incidente** — obbligatoria. Una delle gravità configurate per il vostro progetto; i nuovi progetti vengono creati con **Incidente critico**, **Incidente grave** e **Incidente minore**.
 - **Descrizione** — facoltativa, scritta in Markdown. È il campo che compare sulla pagina di stato, quindi scrivetelo per i clienti anziché per il vostro team. Un'immagine che vi inserite viene mostrata a tutti mentre l'incidente è visibile sulle pagine di stato, e solo ai membri del vostro progetto mentre è nascosto. Potete modificarla in seguito da **Descrizione** nel menu laterale dell'incidente.
 
 Sotto **Altri campi**:

@@ -7,6 +7,7 @@ import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardMonitorListComponent from "../../../Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
+import ObjectID from "../../../Types/ObjectID";
 import DashboardMonitorListComponentUtil from "../../../Utils/Dashboard/Components/DashboardMonitorListComponent";
 import {
   getMonitorListQuery,
@@ -117,6 +118,96 @@ describe("which monitors a stored filter lists", () => {
       disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: true },
       currentMonitorStatusId: new Includes(STATUS_IDS),
+    });
+  });
+
+  /*
+   * Issue #8096: given the project the list is read in, "non-operational"
+   * asks for the status in that project too - the same monitors, read from
+   * the project's few problem statuses rather than from every monitor of
+   * the project. The board passes its project; the public policy does not.
+   */
+  describe("given the project the list is read in", () => {
+    const PROJECT_ID: string = "8b1d6a3e-3a52-4f1f-9b8e-0b5a3a3f00aa";
+
+    test("'non-operational' asks for the status in the project: the Not Operational rule, asked in it", () => {
+      for (const projectId of [new ObjectID(PROJECT_ID), PROJECT_ID]) {
+        expect(
+          getMonitorListQuery(
+            { statusFilter: MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL },
+            projectId,
+          ),
+        ).toEqual(NotOperationalMonitorQuery.getQuery(projectId));
+        expect(
+          getMonitorListQuery(
+            { statusFilter: MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL },
+            projectId,
+          ),
+        ).toEqual({
+          isArchived: false,
+          disableActiveMonitoring: false,
+          currentMonitorStatus: {
+            isOperationalState: false,
+            projectId: new ObjectID(PROJECT_ID),
+          },
+        });
+      }
+    });
+
+    test("beside picked statuses too", () => {
+      expect(
+        getMonitorListQuery(
+          {
+            statusFilter: MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL,
+            monitorStatusIds: STATUS_IDS,
+          },
+          PROJECT_ID,
+        ),
+      ).toEqual({
+        isArchived: false,
+        disableActiveMonitoring: false,
+        currentMonitorStatus: {
+          isOperationalState: false,
+          projectId: new ObjectID(PROJECT_ID),
+        },
+        currentMonitorStatusId: new Includes(STATUS_IDS),
+      });
+    });
+
+    test("with no project, the status alone, as the public policy asks it", () => {
+      for (const projectId of [undefined, null, ""]) {
+        expect(
+          getMonitorListQuery(
+            { statusFilter: MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL },
+            projectId,
+          ),
+        ).toEqual(
+          getMonitorListQuery({
+            statusFilter: MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL,
+          }),
+        );
+      }
+    });
+
+    /*
+     * Most monitors hold an operational status: starting from it would not
+     * narrow the read. Picked statuses are ids already, and the rest of the
+     * settings name no status.
+     */
+    test("every other setting is asked as before", () => {
+      for (const filter of [
+        {},
+        { statusFilter: MONITOR_LIST_STATUS_FILTER_OPERATIONAL },
+        { monitorStatusIds: STATUS_IDS },
+        {
+          statusFilter: MONITOR_LIST_STATUS_FILTER_OPERATIONAL,
+          monitorStatusIds: STATUS_IDS,
+        },
+      ]) {
+        expect(getMonitorListQuery(filter, PROJECT_ID)).toEqual(
+          getMonitorListQuery(filter),
+        );
+      }
     });
   });
 

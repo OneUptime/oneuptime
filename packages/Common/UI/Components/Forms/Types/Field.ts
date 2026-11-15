@@ -13,6 +13,7 @@ import type { DropdownChange } from "../../Dropdown/DropdownChange";
 import { BulkAddedLabel } from "../../EntityDropdown/EntityDropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
+import type { FilePickerHint } from "../../FilePicker/FilePickerLayout";
 import FormValues from "./FormValues";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../../Types/API/Route";
@@ -285,9 +286,10 @@ export default interface Field<TEntity> {
   maxFiles?: number | undefined;
   /*
    * File and MultipleFiles fields: what the picker says it takes, in place
-   * of its list of types, for a field that takes many kinds of file.
+   * of its list of types, for a field that takes many kinds of file - for
+   * a MultipleFiles field, a plural whose {{count}} is its maxFiles.
    */
-  fileHint?: string | undefined;
+  fileHint?: FilePickerHint | undefined;
   /*
    * File and MultipleFiles fields: keep the files in the browser rather than
    * uploading them, so the field's value is the files themselves, bytes and

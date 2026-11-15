@@ -1050,7 +1050,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       ],
       description: t(
         "navbar.items.formsDescription",
-        "Forms anyone can fill in that create incidents or scheduled maintenance events.",
+        "Forms anyone can fill in that create incidents or maintenance events.",
       ),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.FORMS] as Route),
       activeRoute: RouteMap[PageMap.FORMS],

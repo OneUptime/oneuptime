@@ -55,7 +55,7 @@ Die Ressource wird mit Ihren eigenen Berechtigungen nachgeschlagen: Können Sie 
 ### Schritt 1 — Vorfalldetails
 
 - **Titel** – Pflicht. Die einzeilige Zusammenfassung, die alle in der Liste, in Slack und (falls der Vorfall sichtbar ist) auf Ihrer Statusseite sehen. Platzhalter: `Incident Title`.
-- **Vorfallsschweregrad** – Pflicht. Einer der für Ihr Projekt konfigurierten Schweregrade; neue Projekte starten mit **Critical Incident**, **Major Incident** und **Minor Incident**.
+- **Vorfallsschweregrad** – Pflicht. Einer der für Ihr Projekt konfigurierten Schweregrade; neue Projekte starten mit **Kritischer Vorfall**, **Schwerwiegender Vorfall** und **Geringfügiger Vorfall**.
 - **Beschreibung** – optional, in Markdown. Dieses Feld erscheint auf der Statusseite, schreiben Sie es also für Kunden statt für Ihr Team. Ein Bild darin sehen alle, solange der Vorfall auf Statusseiten sichtbar ist, und nur die Mitglieder Ihres Projekts, solange er verborgen ist. Sie können sie später über **Beschreibung** im Seitenmenü des Vorfalls bearbeiten.
 
 Unter **Weitere Felder**:

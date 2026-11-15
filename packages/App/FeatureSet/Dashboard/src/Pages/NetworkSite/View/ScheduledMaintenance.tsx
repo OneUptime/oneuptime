@@ -40,7 +40,7 @@ const NetworkSiteScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.NetworkSite, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this site. Attach this site to an event to exclude its planned downtime from uptime."
+        noItemsMessage="No maintenance events for this site. Attach this site to an event to exclude its planned downtime from uptime."
       />
     </Fragment>
   );

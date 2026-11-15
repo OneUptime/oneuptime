@@ -74,6 +74,13 @@ Aggiungi una sezione `<match>` che invia i record a OneUptime. Sostituisci `YOUR
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` invia ogni blocco del buffer come un unico array JSON, e `flush_interval 10s` invia il buffer ogni 10 secondi. `chunk_limit_size 900k` mantiene ogni richiesta sotto 1 MB, il massimo che OneUptime accetta su questo endpoint.
@@ -123,6 +130,13 @@ Questa configurazione riceve i record con il protocollo forward di Fluentd sulla
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 Per inviare sorgenti diverse come servizi diversi, usa una sezione `<match>` per tag, ognuna con il proprio `x-oneuptime-service-name`.

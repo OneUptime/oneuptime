@@ -17,6 +17,8 @@ import {
 } from "Common/Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
+  toSessionListUrlPrefix,
+  toUserFlowPageKey,
   UserFlowAnalysis,
   UserFlowNode,
 } from "Common/Utils/Rum/UserFlow";
@@ -71,6 +73,10 @@ import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseSe
 import SessionReplayUserFlowReadService, {
   UserFlowJourneysScope,
 } from "Common/Server/Utils/SessionReplay/SessionReplayUserFlowReadService";
+import SessionReplayReadService, {
+  SessionReplayListItem,
+  SessionReplayListResult,
+} from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
@@ -158,6 +164,132 @@ const JANE_KEY: string = "1".repeat(64);
 const FORMER_KEY: string = "2".repeat(64);
 const VISITOR_ID: string = "b".repeat(32);
 
+/*
+ * The session list a User Flows row hands its page to ("show sessions"),
+ * in an application of its own. Each session went to one page, stored as
+ * the ingest stores it: in its routes, or in its entry URL alone, as a
+ * session from before route lists were stored has it.
+ */
+const pageApplicationId: string = "6600000000000000000000c9";
+
+const PAGE_SESSIONS: {
+  hashRoute: string;
+  hashbangRoute: string;
+  hashEntry: string;
+  home: string;
+  cafeUpper: string;
+  cafeLower: string;
+  cafeDecomposed: string;
+  cafeHashRoute: string;
+  slashEscaped: string;
+  slashEscapedLower: string;
+  slashPlain: string;
+  cartUpper: string;
+  cartLower: string;
+  notUtf8: string;
+} = {
+  // #7878: a hash router's routes, kept by the scrubber.
+  hashRoute: "c0000000000000000000000000000001",
+  hashbangRoute: "c0000000000000000000000000000002",
+  hashEntry: "c0000000000000000000000000000003",
+  home: "c0000000000000000000000000000004",
+  /*
+   * #7877: one page in each spelling a browser can give it, stored as it
+   * was before the scrubber wrote one, and pages a spelling must not join.
+   */
+  cafeUpper: "c0000000000000000000000000000005",
+  cafeLower: "c0000000000000000000000000000006",
+  cafeDecomposed: "c0000000000000000000000000000007",
+  cafeHashRoute: "c0000000000000000000000000000008",
+  slashEscaped: "c0000000000000000000000000000009",
+  slashEscapedLower: "c000000000000000000000000000000a",
+  slashPlain: "c000000000000000000000000000000b",
+  cartUpper: "c000000000000000000000000000000c",
+  cartLower: "c000000000000000000000000000000d",
+  notUtf8: "c000000000000000000000000000000e",
+};
+
+const PAGE_FIXTURES: Array<{
+  sessionId: string;
+  routes: Array<string>;
+  entryUrl: string;
+}> = [
+  {
+    sessionId: PAGE_SESSIONS.hashRoute,
+    routes: [`${ORIGIN}/#/orders`, `${ORIGIN}/#/settings`],
+    entryUrl: `${ORIGIN}/#/orders`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.hashbangRoute,
+    routes: [`${ORIGIN}/app/#!/orders/42`],
+    entryUrl: `${ORIGIN}/app/#!/orders/42`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.hashEntry,
+    routes: [],
+    entryUrl: `${ORIGIN}/#/orders/7`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.home,
+    routes: [`${ORIGIN}/`, `${ORIGIN}/pricing`],
+    entryUrl: `${ORIGIN}/`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cafeUpper,
+    routes: [`${ORIGIN}/caf%C3%A9`],
+    entryUrl: `${ORIGIN}/caf%C3%A9`,
+  },
+  {
+    // Lower-case hex, as .NET and WordPress write it.
+    sessionId: PAGE_SESSIONS.cafeLower,
+    routes: [`${ORIGIN}/`, `${ORIGIN}/caf%c3%a9/menu`],
+    entryUrl: `${ORIGIN}/`,
+  },
+  {
+    // The accent decomposed, in the entry URL alone.
+    sessionId: PAGE_SESSIONS.cafeDecomposed,
+    routes: [],
+    entryUrl: `${ORIGIN}/cafe%CC%81`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cafeHashRoute,
+    routes: [`${ORIGIN}/#/caf%c3%a9`],
+    entryUrl: `${ORIGIN}/#/caf%c3%a9`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.slashEscaped,
+    routes: [`${ORIGIN}/a%2Fb`],
+    entryUrl: `${ORIGIN}/a%2Fb`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.slashEscapedLower,
+    routes: [`${ORIGIN}/a%2fb`],
+    entryUrl: `${ORIGIN}/a%2fb`,
+  },
+  {
+    // An escape further on, so the list reads this path in one spelling too.
+    sessionId: PAGE_SESSIONS.slashPlain,
+    routes: [`${ORIGIN}/a/b/caf%C3%A9`],
+    entryUrl: `${ORIGIN}/a/b/caf%C3%A9`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cartUpper,
+    routes: [`${ORIGIN}/Cart`],
+    entryUrl: `${ORIGIN}/Cart`,
+  },
+  {
+    sessionId: PAGE_SESSIONS.cartLower,
+    routes: [`${ORIGIN}/cart`],
+    entryUrl: `${ORIGIN}/cart`,
+  },
+  {
+    // Bytes that are not UTF-8: cut short, and one no character starts with.
+    sessionId: PAGE_SESSIONS.notUtf8,
+    routes: [`${ORIGIN}/x%E0%A4`, `${ORIGIN}/caf%FF`],
+    entryUrl: `${ORIGIN}/x%E0%A4`,
+  },
+];
+
 const START: Record<string, Date> = {
   [SESSIONS.journey]: new Date(now - 10 * 60 * 1000),
   [SESSIONS.landing]: new Date(now - 20 * 60 * 1000),
@@ -167,6 +299,13 @@ const START: Record<string, Date> = {
   [LONG_SESSION]: new Date(now - 5 * 60 * 1000),
   [RETURN_IN_LAST_CHUNK]: new Date(now - 6 * 60 * 1000),
   [RETURN_KEPT]: new Date(now - 7 * 60 * 1000),
+  ...Object.fromEntries(
+    PAGE_FIXTURES.map(
+      (fixture: { sessionId: string }, index: number): [string, Date] => {
+        return [fixture.sessionId, new Date(now - (40 + index) * 60 * 1000)];
+      },
+    ),
+  ),
 };
 
 interface ChunkFixture {
@@ -375,6 +514,7 @@ function headerRow(data: {
   isFinalized?: boolean;
   chunkCount?: number;
   sealedReason?: string;
+  routes?: Array<string>;
 }): JSONObject {
   const sessionStart: Date = START[data.sessionId] as Date;
   const applicationId: string = data.rumApplicationId || rumApplicationId;
@@ -404,6 +544,7 @@ function headerRow(data: {
     errorCount: 0,
     entryUrl: data.entryUrl,
     exitUrl: data.entryUrl,
+    routes: data.routes ?? [],
     deviceType: data.deviceType,
     browserName: "Chrome",
     countryCode: "DK",
@@ -496,6 +637,20 @@ const headerFixtures: Array<JSONObject> = [
     entryUrl: `${ORIGIN}/inbox`,
     deviceType: "desktop",
   }),
+  ...PAGE_FIXTURES.map(
+    (fixture: (typeof PAGE_FIXTURES)[number]): JSONObject => {
+      return headerRow({
+        sessionId: fixture.sessionId,
+        rumApplicationId: pageApplicationId,
+        version: 1000,
+        entryUrl: fixture.entryUrl,
+        routes: fixture.routes,
+        deviceType: "desktop",
+        isFinalized: true,
+        chunkCount: 1,
+      });
+    },
+  ),
 ];
 
 async function createTable(
@@ -1041,6 +1196,130 @@ integration("User Flows journeys against ClickHouse", () => {
       for (const session of response.sessions) {
         expect(session.hasRecording).toBeUndefined();
       }
+    });
+  });
+
+  /*
+   * A row's "show sessions" hands its page to the session list as
+   * urlPrefix (toSessionListUrlPrefix), and the list matches it in SQL -
+   * so the match is proven here, by the read the endpoint runs.
+   */
+  describe("a page's sessions in the session list", () => {
+    const listed: (urlPrefix: string) => Promise<Array<string>> = async (
+      urlPrefix: string,
+    ): Promise<Array<string>> => {
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions({
+          projectId: projectId,
+          rumApplicationId: new ObjectID(pageApplicationId),
+          startTime: windowStart,
+          endTime: windowEnd,
+          filters: { urlPrefix: urlPrefix },
+          limit: 50,
+          includeIdentifiedUserLabel: false,
+        });
+
+      return result.sessions
+        .map((session: SessionReplayListItem): string => {
+          return session.sessionId;
+        })
+        .sort();
+    };
+
+    // What a User Flows row of the page at `url` asks the list for.
+    const showSessionsOf: (url: string) => string = (url: string): string => {
+      return toSessionListUrlPrefix(
+        toUserFlowPageKey(url, {
+          groupDynamicSegments: true,
+          includeHost: false,
+        }),
+      );
+    };
+
+    test("every session reads back without a filter", async () => {
+      expect(await listed("")).toEqual(
+        PAGE_FIXTURES.map((fixture: { sessionId: string }): string => {
+          return fixture.sessionId;
+        }).sort(),
+      );
+    });
+
+    /*
+     * #7878: ClickHouse's path() stops at the fragment, so a hash router's
+     * every page has the path "/" there. The route is matched as the page.
+     */
+    test("a hash router's route is found by its path, in a route or the entry URL", async () => {
+      expect(await listed("/orders")).toEqual(
+        [
+          PAGE_SESSIONS.hashRoute,
+          PAGE_SESSIONS.hashbangRoute,
+          PAGE_SESSIONS.hashEntry,
+        ].sort(),
+      );
+      expect(await listed("/settings")).toEqual([PAGE_SESSIONS.hashRoute]);
+      expect(await listed(showSessionsOf(`${ORIGIN}/#!/orders/42`))).toEqual(
+        [PAGE_SESSIONS.hashbangRoute, PAGE_SESSIONS.hashEntry].sort(),
+      );
+      // The page's own path still matches as it did.
+      expect(await listed("/app")).toEqual([PAGE_SESSIONS.hashbangRoute]);
+      expect(await listed("/pricing")).toEqual([PAGE_SESSIONS.home]);
+      // An absolute prefix still matches the whole URL.
+      expect(await listed(`${ORIGIN}/#/orders`)).toEqual(
+        [PAGE_SESSIONS.hashRoute, PAGE_SESSIONS.hashEntry].sort(),
+      );
+    });
+
+    /*
+     * #7877: a session recorded before the scrubber stored one spelling
+     * holds whichever the browser had. A row's key is in one spelling, and
+     * the list finds every spelling of it, in a route, a hash route or the
+     * entry URL - while "/a%2Fb" and "/a/b", and "/Cart" and "/cart", stay
+     * two pages.
+     */
+    test("every spelling of a row's page is listed, and only those", async () => {
+      const cafe: Array<string> = [
+        PAGE_SESSIONS.cafeUpper,
+        PAGE_SESSIONS.cafeLower,
+        PAGE_SESSIONS.cafeDecomposed,
+        PAGE_SESSIONS.cafeHashRoute,
+      ].sort();
+
+      for (const url of [
+        `${ORIGIN}/caf%C3%A9`,
+        `${ORIGIN}/caf%c3%a9`,
+        `${ORIGIN}/cafe%CC%81`,
+        `${ORIGIN}/café`,
+      ]) {
+        expect(showSessionsOf(url)).toBe("/caf%C3%A9");
+        expect(await listed(showSessionsOf(url))).toEqual(cafe);
+      }
+
+      // Typed in the search box in its letters, or in lower-case hex.
+      expect(await listed("/café")).toEqual(cafe);
+      expect(await listed("/caf%c3%a9")).toEqual(cafe);
+
+      expect(await listed(showSessionsOf(`${ORIGIN}/a%2fb`))).toEqual(
+        [PAGE_SESSIONS.slashEscaped, PAGE_SESSIONS.slashEscapedLower].sort(),
+      );
+      expect(await listed(showSessionsOf(`${ORIGIN}/a/b`))).toEqual([
+        PAGE_SESSIONS.slashPlain,
+      ]);
+      expect(await listed(showSessionsOf(`${ORIGIN}/Cart`))).toEqual([
+        PAGE_SESSIONS.cartUpper,
+      ]);
+      expect(await listed(showSessionsOf(`${ORIGIN}/cart`))).toEqual([
+        PAGE_SESSIONS.cartLower,
+      ]);
+    });
+
+    /*
+     * Bytes that are not UTF-8 are read as U+FFFD, since normalizeUTF8NFC
+     * refuses them and would fail the whole list.
+     */
+    test("an address that is not UTF-8 neither fails the list nor joins a page of words", async () => {
+      expect(await listed("/x%E0%A4")).toEqual([PAGE_SESSIONS.notUtf8]);
+      expect(await listed("/x%e0%a4")).toEqual([PAGE_SESSIONS.notUtf8]);
+      expect(await listed("/caf%C3%A9")).not.toContain(PAGE_SESSIONS.notUtf8);
     });
   });
 });

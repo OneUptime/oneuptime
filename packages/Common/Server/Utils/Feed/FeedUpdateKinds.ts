@@ -2,16 +2,19 @@ import { AlertEpisodeFeedEventType } from "../../../Models/DatabaseModels/AlertE
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { IncidentEpisodeFeedEventType } from "../../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
+import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 
 /*
  * WHICH UPDATE EACH FEED ENTRY IS, FOR THE RULES THAT CHOOSE THEIR UPDATES.
  *
- * Every kind of entry in an incident's, alert's, episode's or scheduled
- * maintenance event's feed is exactly one kind of update
- * (NotificationRuleUpdates): a rule that chose Key updates only posts a
- * public note and leaves a private one out because of this table. Each
+ * Every kind of entry in an incident's, alert's, episode's, scheduled
+ * maintenance event's or on-call policy's feed is exactly one kind of
+ * update (NotificationRuleUpdates): a rule that chose Key updates only
+ * posts a public note and leaves a private one out because of this table,
+ * and an on-call channel hears who is on call and not every override
+ * (issue #7549). Each
  * table is a Record of its feed's every event type, so a new kind of feed
  * entry does not compile until somebody says which update it is - and
  * FeedUpdateKinds.test holds every answer to the updates that kind of rule
@@ -269,6 +272,53 @@ export const SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.ChannelMemberAdded]:
     NotificationRuleUpdateKind.Other,
+};
+
+/*
+ * An on-call policy's feed (issue #7549). A roster handoff is who is on
+ * call now; the handoff code says when its entry is only who is next
+ * (OnCallHandoffPosts names OnCallNext). Every kind of entry the policy's
+ * rules can tell apart has an update of its own: nothing is Everything
+ * else.
+ */
+export const ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS: Readonly<
+  Record<OnCallDutyPolicyFeedEventType, NotificationRuleUpdateKind>
+> = {
+  [OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated]:
+    NotificationRuleUpdateKind.Created,
+  // Who is on call now; who is next when the handoff code says so.
+  [OnCallDutyPolicyFeedEventType.RosterHandoff]:
+    NotificationRuleUpdateKind.OnCallNow,
+  [OnCallDutyPolicyFeedEventType.CoverageGapStarted]:
+    NotificationRuleUpdateKind.NobodyOnCall,
+  [OnCallDutyPolicyFeedEventType.UserOverrideAdded]:
+    NotificationRuleUpdateKind.Overrides,
+  // An override's cover or times edited (issues #7630, #7631).
+  [OnCallDutyPolicyFeedEventType.UserOverrideChanged]:
+    NotificationRuleUpdateKind.Overrides,
+  [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]:
+    NotificationRuleUpdateKind.Overrides,
+  // Who and what the policy's escalation rules page.
+  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded]:
+    NotificationRuleUpdateKind.PolicyChanges,
+  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved]:
+    NotificationRuleUpdateKind.PolicyChanges,
+  [OnCallDutyPolicyFeedEventType.UserAdded]:
+    NotificationRuleUpdateKind.PolicyChanges,
+  [OnCallDutyPolicyFeedEventType.UserRemoved]:
+    NotificationRuleUpdateKind.PolicyChanges,
+  [OnCallDutyPolicyFeedEventType.TeamAdded]:
+    NotificationRuleUpdateKind.PolicyChanges,
+  [OnCallDutyPolicyFeedEventType.TeamRemoved]:
+    NotificationRuleUpdateKind.PolicyChanges,
+  [OnCallDutyPolicyFeedEventType.OwnerUserAdded]:
+    NotificationRuleUpdateKind.Owners,
+  [OnCallDutyPolicyFeedEventType.OwnerUserRemoved]:
+    NotificationRuleUpdateKind.Owners,
+  [OnCallDutyPolicyFeedEventType.OwnerTeamAdded]:
+    NotificationRuleUpdateKind.Owners,
+  [OnCallDutyPolicyFeedEventType.OwnerTeamRemoved]:
+    NotificationRuleUpdateKind.Owners,
 };
 
 export default class FeedUpdateKinds {

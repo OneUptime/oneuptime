@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51818,
-    "untranslated": 5255
+    "keys": 52236,
+    "untranslated": 5115
   },
   "sameAsEnglish": [
     " incidents",
@@ -446,6 +446,7 @@
     "Questions",
     "Quota",
     "Quotas",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -683,8 +684,6 @@
     "vertical pod autoscaler",
     "volume",
     "volumes",
-    "workflow",
-    "workflows",
     "writesets",
     "x86",
     "z",

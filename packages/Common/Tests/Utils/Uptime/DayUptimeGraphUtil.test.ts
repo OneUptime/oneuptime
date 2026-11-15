@@ -461,7 +461,7 @@ describe("DayUptimeGraphUtil.getDayAriaLabel", () => {
         incidentCount: 0,
         maintenanceCount: 1,
       }),
-    ).toBe("Oct 21 2026: 66.67% uptime, 1 scheduled maintenance event");
+    ).toBe("Oct 21 2026: 66.67% uptime, 1 maintenance event");
   });
 
   test("a day with several says how many, after the incidents", () => {
@@ -473,9 +473,7 @@ describe("DayUptimeGraphUtil.getDayAriaLabel", () => {
         incidentCount: 2,
         maintenanceCount: 3,
       }),
-    ).toBe(
-      "Oct 21 2026: 99.5% uptime, 2 incidents, 3 scheduled maintenance events",
-    );
+    ).toBe("Oct 21 2026: 99.5% uptime, 2 incidents, 3 maintenance events");
   });
 
   test("a day with no data still says what maintenance it had", () => {
@@ -487,7 +485,7 @@ describe("DayUptimeGraphUtil.getDayAriaLabel", () => {
         incidentCount: 1,
         maintenanceCount: 1,
       }),
-    ).toBe("Oct 21 2026: no data, 1 incidents, 1 scheduled maintenance event");
+    ).toBe("Oct 21 2026: no data, 1 incidents, 1 maintenance event");
   });
 
   test.each([0, -2, undefined])(
@@ -529,22 +527,22 @@ describe("DayUptimeGraphUtil.getDayAriaLabel", () => {
 describe("DayUptimeGraphUtil.getMaintenanceCountLabel", () => {
   test("one is said in words of its own", () => {
     expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 1 })).toBe(
-      "1 scheduled maintenance event",
+      "1 maintenance event",
     );
   });
 
   test("more are counted", () => {
     expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 12 })).toBe(
-      "12 scheduled maintenance events",
+      "12 maintenance events",
     );
   });
 
   test("a count that is not whole or not positive reads as what it can be", () => {
     expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 2.7 })).toBe(
-      "2 scheduled maintenance events",
+      "2 maintenance events",
     );
     expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: -1 })).toBe(
-      "0 scheduled maintenance events",
+      "0 maintenance events",
     );
   });
 

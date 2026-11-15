@@ -16,7 +16,7 @@ En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berø
 
 - **Et eget produkt** — åpne **Hendelser** fra menyen **Produkter** i topplinjen; listen ligger på `/dashboard/{projectId}/incidents`.
 - **Tre forhåndsopprettede tilstander** — **Identifisert**, **Bekreftet** og **Løst** opprettes for hvert nytt prosjekt. Du kan legge til dine egne; de tre forhåndsopprettede kan gis nytt navn og ny farge, men aldri slettes.
-- **Tre forhåndsopprettede alvorlighetsgrader** — **Critical Incident**, **Major Incident** og **Minor Incident**. En alvorlighetsgrad er en etikett med en farge og en rekkefølge — den har ingen egen atferd.
+- **Tre forhåndsopprettede alvorlighetsgrader** — **Kritisk hendelse**, **Større hendelse** og **Mindre hendelse**. En alvorlighetsgrad er en etikett med en farge og en rekkefølge — den har ingen egen atferd.
 - **Fem veier inn** — veiviseren **Erklær hendelse**, **Opprett fra mal**, en kriterieregel på en monitor, `POST /api/incident` eller et [skjema](/docs/forms/index) som alle med lenken kan fylle ut.
 - **Nummerert per prosjekt** — hver hendelse får et hendelsesnummer fra en teller per prosjekt, vist med prosjektets prefiks: `INC-42` i et nytt prosjekt, eller `#42` uten prefiks. Nummeret står foran tittelen på hendelsen på sidene dens, i nettleserfanen, i søket og i dialogene om den, så hendelser med samme tittel kan skilles fra hverandre.
 - **To slags notater** — private notater (interne notater) for teamet ditt, offentlige notater for statussidens abonnenter.
@@ -143,11 +143,11 @@ Hvert nytt prosjekt får også tre alvorlighetsgrader:
 
 | Alvorlighetsgrad      | Rekkefølge | Farge                    | Hva den betyr                                               |
 | --------------------- | ---------- | ------------------------ | ----------------------------------------------------------- |
-| **Critical Incident** | 1          | Mørkerød (`#b70400`)     | Svært stor påvirkning på kundene, som krever umiddelbar respons. |
-| **Major Incident**    | 2          | Rød (`#fd625e`)          | Betydelig påvirkning, som vanligvis krever umiddelbar respons. |
-| **Minor Incident**    | 3          | Gul (`#ffbf53`)          | Liten påvirkning, vanligvis håndtert i arbeidstiden.        |
+| **Kritisk hendelse** | 1          | Mørkerød (`#b70400`)     | Svært stor påvirkning på kundene, som krever umiddelbar respons. |
+| **Større hendelse**    | 2          | Rød (`#fd625e`)          | Betydelig påvirkning, som vanligvis krever umiddelbar respons. |
+| **Mindre hendelse**    | 3          | Gul (`#ffbf53`)          | Liten påvirkning, vanligvis håndtert i arbeidstiden.        |
 
-Alvorlighetsgrader har `name`, `description`, `color` og `order` og ingenting annet. Det finnes ingen flagg, og ingen kodebane behandler «Critical Incident» annerledes enn noen annen rad. Alvorlighetsgraden er hvordan mennesker prioriterer, og den kan brukes som treffkriterium når du skriver vaktregler — men å velge en alvorlighetsgrad tilkaller ikke i seg selv noen.
+Alvorlighetsgrader har `name`, `description`, `color` og `order` og ingenting annet. Det finnes ingen flagg, og ingen kodebane behandler «Kritisk hendelse» annerledes enn noen annen rad. Alvorlighetsgraden er hvordan mennesker prioriterer, og den kan brukes som treffkriterium når du skriver vaktregler — men å velge en alvorlighetsgrad tilkaller ikke i seg selv noen.
 
 Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger → Hendelsesalvor**. De fullstendige forhåndsopprettede beskrivelsene står i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities).
 

@@ -28,7 +28,12 @@ import {
   OnCallTestPageStatus,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 
 /*
  * GUIDED SETUP: KNOW WHEN MY WEBSITE OR API IS DOWN (issue #6804).
@@ -514,7 +519,28 @@ export const describeFirstCheck: (data: {
               "{{host}} did not answer from {{count}} locations: {{reason}}",
           },
           down.length,
-          { host: data.host, reason: first.failureCause },
+          {
+            host: data.host,
+            /*
+             * The probe's own timeout sentence in the sentence's language
+             * (English inside an English sentence), any other reason as
+             * written.
+             */
+            reason: composedValue((sentenceTranslator: Translator): string => {
+              return getProbeFailureCauseText({
+                translator: sentenceTranslator,
+                failureCause: first.failureCause,
+              });
+            }),
+          },
+          /*
+           * Drawn on the page and nothing else (the step's line and its
+           * done line), so each value is set apart: a reason left in
+           * English ("connect ECONNREFUSED 203.0.113.7:443.") keeps its
+           * full stop and its brackets at its own end in an Arabic or
+           * Persian sentence.
+           */
+          { setsValuesApart: true },
         )
       : translator.translatePlural(
           {
