@@ -364,7 +364,10 @@ const runDomain: RunDomainFunction = async (data: {
       const end: WalkEnd = await runMeasurement({
         domain: domain,
         measurement: measurement,
-        storedCursor: exactCursors.get(measurement._id!.toString()),
+        // Keyed by the id as Postgres writes a uuid: lowercase.
+        storedCursor: exactCursors.get(
+          measurement._id!.toString().toLowerCase(),
+        ),
         deadline: deadline,
       });
 
