@@ -653,7 +653,8 @@ describe("Overview.tsx wiring: tiles", () => {
     );
 
     expect(events).toContain('"spans, selected range"');
-    expect(events).toContain("formatCompact(m.total)");
+    // In the reader's digits (#8481).
+    expect(events).toContain("formatCompact(m.total, translator)");
   });
 
   /*
@@ -1018,7 +1019,7 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     );
 
     expect(errorRateTile).toContain(
-      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors), })',
+      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors, translator), })',
     );
     expect(D.errorRate).toContain("the line below is how many errored");
   });
