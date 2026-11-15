@@ -31,6 +31,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import {
   Translator,
   formatInline,
+  translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -1096,8 +1097,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     return (
       <span className="flex flex-wrap gap-1">
         {node.serviceKeys.slice(0, 3).map((key: string): ReactElement => {
-          const name: string =
-            model.serviceByKey.get(key)?.displayName || "service";
+          // Named as the model sorts it: by its key where it has no name.
+          const name: string = model.serviceByKey.get(key)?.displayName || key;
           return props.onOpenServiceMap ? (
             <button
               key={key}
@@ -1125,7 +1126,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         })}
         {node.serviceKeys.length > 3 && (
           <span className="px-1 text-xs text-gray-500">
-            +{node.serviceKeys.length - 3}
+            +{translator.formatNumber(node.serviceKeys.length - 3)}
           </span>
         )}
       </span>
@@ -1146,9 +1147,16 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     const typeLabel: string = metaForEntityType(
       node.entityType || undefined,
     ).label;
+    /*
+     * A group's kind is a sentence of the locale around the type's word
+     * ("Pod-Replikate"): `${typeLabel} replicas` was a key built at run
+     * time, which no locale holds, so every language read it in English.
+     */
     const kindText: string =
       node.kind === "group"
-        ? t(`${typeLabel} replicas`)
+        ? translator.translateTemplate("{{type}} replicas", {
+            type: translatableTerm(typeLabel),
+          })
         : node.kind === "collection"
           ? t("Collection")
           : t(typeLabel);
@@ -1867,29 +1875,29 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           {
-            label: "Resources",
+            label: translationKey("Resources"),
             count: resourcesShown,
-            hint: "Reporting in this time range",
+            hint: translationKey("Reporting in this time range"),
             icon: IconProp.Cube,
           },
           {
-            label: "Workloads",
+            label: translationKey("Workloads"),
             count: summary.workloadCount,
-            hint: "Deployments and groups of replicas",
+            hint: translationKey("Deployments and groups of replicas"),
             icon: IconProp.Squares,
           },
           {
-            label: "Services placed",
+            label: translationKey("Services placed"),
             count: summary.servicesPlaced,
-            hint: "Services with a known location",
+            hint: translationKey("Services with a known location"),
             icon: IconProp.SquareStack,
           },
           {
-            label: "Inactive not shown",
+            label: translationKey("Inactive not shown"),
             count: inactiveHidden,
             hint: props.includeInactive
-              ? "Inactive resources are included"
-              : "Silent in this time range",
+              ? translationKey("Inactive resources are included")
+              : translationKey("Silent in this time range"),
             icon: IconProp.Clock,
           },
         ].map(
@@ -1940,8 +1948,16 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             className="flex self-start rounded-lg bg-gray-100 p-1"
           >
             {[
-              { id: "list", label: "List", icon: IconProp.TableCells },
-              { id: "map", label: "Map", icon: IconProp.FlowDiagram },
+              {
+                id: "list",
+                label: translationKey("List"),
+                icon: IconProp.TableCells,
+              },
+              {
+                id: "map",
+                label: translationKey("Map"),
+                icon: IconProp.FlowDiagram,
+              },
             ].map(
               (option: {
                 id: string;

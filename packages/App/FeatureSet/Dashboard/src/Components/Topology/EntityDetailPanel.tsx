@@ -99,6 +99,10 @@ import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 export interface EntityTrafficSummary {
   inbound: TrafficTotals;
   outbound: TrafficTotals;
+  /*
+   * The map's status line, in the reader's language already ("2 aktive
+   * Vorfälle"): drawn as given, since a line with a count in it is no key.
+   */
   statusLabel: string;
   statusColor: string;
   subtitle: string;
@@ -843,13 +847,17 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           <div className="mt-1 grid grid-cols-3 gap-2">
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatCallRate(totals.calls, props.metricsWindowSeconds)}
+                {formatCallRate(
+                  totals.calls,
+                  props.metricsWindowSeconds,
+                  translator,
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("requests")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatErrorRate(totals.calls, totals.errors)}
+                {formatErrorRate(totals.calls, totals.errors, translator)}
               </p>
               <p className="text-[11px] text-gray-400">{t("errors")}</p>
             </div>
@@ -965,9 +973,17 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             {hasMetrics
               ? formatInline(
                   [
-                    formatCallRate(row.callCount!, props.metricsWindowSeconds),
+                    formatCallRate(
+                      row.callCount!,
+                      props.metricsWindowSeconds,
+                      translator,
+                    ),
                     translator.translateTemplate("{{rate}} errors", {
-                      rate: formatErrorRate(row.callCount, row.errorCount),
+                      rate: formatErrorRate(
+                        row.callCount,
+                        row.errorCount,
+                        translator,
+                      ),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
                       duration: formatDurationMs(row.avgDurationMs),
@@ -1277,7 +1293,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   aria-hidden={true}
                 />
                 <span data-testid="entity-detail-status">
-                  {t(props.traffic.statusLabel)}
+                  {props.traffic.statusLabel}
                 </span>
               </div>
             )}
