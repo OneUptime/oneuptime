@@ -316,21 +316,28 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   };
 
   /*
-   * A cell's value, read off the row the way its column says. Undefined for
-   * a column with nothing to draw (no key); an empty value is the quiet dash
-   * (TableEmptyValue), or the column's own words when it has some.
+   * A cell's value, read off the row the way its column says. Null for a
+   * column with nothing to draw (no element and no key); an empty value is
+   * the quiet dash (TableEmptyValue), or the column's own words when it has
+   * some.
+   *
+   * A column that draws its own element draws it, with a key or without:
+   * the key names the field a plain value is read from (and sorts by), and
+   * an element reads the whole row. Asked for a key first, the Admin
+   * Dashboard's Feedback page, whose columns had none, drew every answer as
+   * an empty row under "Showing 1 of 1 answer" (#7457).
    */
   const getColumnContent: (column: Column<T>) => React.ReactNode = (
     column: Column<T>,
   ): React.ReactNode => {
-    if (!column.key) {
-      return null;
-    }
-
     if (column.getElement) {
       const element: ReactElement = column.getElement(props.item);
 
       return isDashPlaceholder(element) ? <TableEmptyValue /> : element;
+    }
+
+    if (!column.key) {
+      return null;
     }
 
     const value: unknown = props.item[column.key];
