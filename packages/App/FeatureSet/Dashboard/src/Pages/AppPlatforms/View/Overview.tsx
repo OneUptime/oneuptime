@@ -486,7 +486,7 @@ const CloudEnvironmentOverview: FunctionComponent<
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "CPU",
-      value: instancesLoaded ? formatPercent(avgCpu) : "—",
+      value: instancesLoaded ? formatPercent(avgCpu, translator) : "—",
       valueNote: cpuNote,
       icon: IconProp.ChartBar,
       iconColor: "blue",
@@ -498,7 +498,8 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "Memory",
-      value: instancesLoaded && hasMemory ? formatBytes(totalMem) : "—",
+      value:
+        instancesLoaded && hasMemory ? formatBytes(totalMem, translator) : "—",
       valueNote: memoryNote,
       icon: IconProp.SquareStack,
       iconColor: "violet",
@@ -508,7 +509,9 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "Instances",
-      value: instancesLoaded ? formatCompact(liveInstances.length) : "—",
+      value: instancesLoaded
+        ? formatCompact(liveInstances.length, translator)
+        : "—",
       valueNote: instancesNote,
       icon: IconProp.Cube,
       iconColor: "amber",
@@ -523,7 +526,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "Requests",
-      value: m ? formatCompact(m.total) : "—",
+      value: m ? formatCompact(m.total, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Workflow,
       iconColor: "sky",
@@ -537,7 +540,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Alert,
       iconColor: "rose",
@@ -546,7 +549,7 @@ const CloudEnvironmentOverview: FunctionComponent<
         ? CLOUD_APP_LOAD_FAILED_SUBLABEL
         : m && !traceNote
           ? translator.translateTemplate("{{errors}} errored", {
-              errors: formatCompact(m.errors),
+              errors: formatCompact(m.errors, translator),
             })
           : undefined,
       percent: m && !traceNote ? m.errorRatePercent : null,
@@ -611,7 +614,7 @@ const CloudEnvironmentOverview: FunctionComponent<
           syncId={`cloud-${modelId.toString()}`}
           yLegend="Bytes"
           yFormatter={(n: number): string => {
-            return formatBytes(n);
+            return formatBytes(n, translator);
           }}
           loading={metricsLoading && memorySeries.length === 0}
           description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
@@ -741,6 +744,7 @@ const CloudEnvironmentOverview: FunctionComponent<
                           typeof i.latestCpuPercent === "number"
                             ? i.latestCpuPercent
                             : null,
+                          translator,
                         )}
                       </div>
                       <div className="w-24 text-right text-sm text-gray-500">
@@ -748,6 +752,7 @@ const CloudEnvironmentOverview: FunctionComponent<
                           typeof i.latestMemoryBytes === "number"
                             ? i.latestMemoryBytes
                             : null,
+                          translator,
                         )}
                       </div>
                     </div>

@@ -563,11 +563,19 @@ work out, starts from a default for everything else, and folds what most people 
   ("2.5k", "3.5 TiB") is put in the reader's language with `writeFigureInLanguage`, its scale letter
   and unit kept. Checked on the Host and Kubernetes pages, on a database's Runtime charts, on the
   Storage Arrays pages (a volume read "۳٫۵ TiB" on a dashboard and "3.5 TiB" on its page, #8272) and
-  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). Enforced by
+  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). The telemetry helpers (`formatCompact`,
+  `formatPercent`, `formatBytes`) take the reader's translator, and every Overview tile passes it: a
+  service's, a function's, a site's and a cloud app's Requests, Error rate and Memory read "1.2k" in
+  Latin digits beside a p95 tile in Persian (#8481). A figure's unit word is the reader's too: a
+  database's and a queue's engine metric tile counts in a plural sentence of the locale, its noun
+  agreeing with the number by the language's rules ("1 Verbindung", "24 Verbindungen",
+  "۲۴ اتصال"), never "۲۴ connections" (#8482). Enforced by
   [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
   [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx),
   [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx),
-  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts)
+  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts),
+  [TelemetryOverviewTileFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/TelemetryOverviewTileFiguresInReadersLanguage.test.tsx),
+  [EngineMetricTileUnitsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/EngineMetricTileUnitsInReadersLanguage.test.ts)
   and
   [StatusPageUptimeFiguresInLanguage](../../packages/Common/Tests/App/StatusPage/StatusPageUptimeFiguresInLanguage.test.ts).
 - **A chart's value axis, its legend and its tooltip write a figure as the tiles beside it do:** in
