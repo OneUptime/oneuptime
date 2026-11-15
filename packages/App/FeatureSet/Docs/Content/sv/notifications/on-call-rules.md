@@ -29,25 +29,25 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 
 ## En ordning för allt
 
-**Användarinställningar → Så når man mig** öppnas med din ordning: stegen varje larm provar, för incidenter, larm och episoder av alla allvarlighetsgrader. Varje steg är en av dina verifierade metoder och när den används, till exempel ett sms direkt och ett samtal efter 5 minuter. Steg med samma väntetid går ut tillsammans, så ordningen läses i den följd den larmar.
+**Användarinställningar → Så når man mig** öppnas med din ordning: numrerade steg som varje larm provar i tur och ordning, för incidenter, larm och episoder av alla allvarlighetsgrader. Varje steg är en tidpunkt, till exempel direkt eller efter 5 minuter, med de verifierade metoder som går ut tillsammans då. Ett senare steg går bara ut om ingen har bekräftat larmet innan dess.
 
 :::steps
 ### Lägg till ett sätt att nå dig
 
-Välj en av dina verifierade metoder i **Lägg till ett sätt att nå dig**. Ett nummer eller en adress som fortfarande väntar på sin kod står under **Inte verifierad än**, med **Verifiera**.
+Klicka på **Lägg till** vid ett steg för att skicka en av dina verifierade metoder vid stegets tidpunkt, eller på **Lägg till steg** för att börja ett nytt steg efter det sista. Ett nummer eller en adress som fortfarande väntar på sin kod står under **Inte verifierad än**, med **Verifiera**.
 
 ### Välj när den används
 
-Välj vid varje steg en väntetid från **Omedelbart** till **1 timme**. Ett push-steg säger också hur det låter och om det upprepas: se [Push-regler](#push-regler).
+Klicka på ett stegs tidpunkt, till exempel **Direkt**, och välj en annan, upp till en timme: hela steget flyttas. Ett push-steg säger också hur det låter och om det upprepas: se [Push-regler](#push-regler).
 
 ### Spara den
 
-Klicka på **Spara ordning**. Det skriver samma regler i varje kort på varje flik: de regler du skulle lägga till i varje kort för hand.
+Klicka på **Spara ändringar**, som visas så snart något har ändrats. Det skriver samma regler i varje kort på varje flik: de regler du skulle lägga till i varje kort för hand.
 :::
 
 **Testa dina larm**, längst ned på sidan, skickar ett testlarm till dig genom dem.
 
-När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader** flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**, och ordningen visar vad varje kort gör i stället. Avviker dina regler redan öppnas sidan på korten, med **Använd en ordning för allt**: när du sparar nämner den först de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
+När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader** under stegen flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**, och ordningen visar vad varje kort gör i stället. Avviker dina regler redan öppnas sidan på korten, med **Använd en ordning för allt**: när du sparar nämner den först de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
 
 En jourpolicy bestämmer vem som larmas och när dess nästa nivå kommer. Hur du nås är den här ordningen, för varje policy som larmar dig.
 
@@ -117,7 +117,7 @@ En regel som larmar en telefon bestämmer hur dess push låter:
 | **Kritiskt larm** | Ringer även när telefonen är på ljudlöst eller i Stör ej, när Critical On-Call Alerts är påslaget i appen OneUptime On-Call. En ny telefonregel börjar här. |
 | **Normal** | Följer telefonens inställningar för ljud, ljudlöst och Stör ej. |
 
-En push-regel, för en telefon eller en webbläsare, kan också skicka sin push igen tills någon bekräftar: **Upprepa inte**, standardvalet, eller **Varje minut**, **Varannan minut**, **Var 3:e minut**, **Var 5:e minut**, **Var 10:e minut**, **Var 15:e minut** eller **Var 30:e minut**. Den upprepas upp till 10 gånger till och stoppar så snart incidenten, larmet eller episoden har bekräftats. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
+En push-regel, för en telefon eller en webbläsare, kan också skicka sin push igen tills någon bekräftar: **Upprepa inte**, standardvalet, eller **Varje minut**, **Varannan minut**, **Var 3:e minut**, **Var 5:e minut**, **Var 10:e minut**, **Var 15:e minut** eller **Var 30:e minut**. Den upprepas upp till 10 gånger till och stoppar så snart incidenten, larmet eller episoden har bekräftats. Ett larm som fortsätter efter en bekräftelse, som ett nytt larm, upprepas tills någon det har larmat svarar eller incidenten, larmet eller episoden är löst: [När flera policyer larmar](/docs/on-call/policies#när-flera-policyer-larmar) räknar upp dem. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
 
 ## När en allvarlighetsgrad saknar regel
 

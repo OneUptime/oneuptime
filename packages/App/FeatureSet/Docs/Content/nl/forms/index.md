@@ -49,7 +49,7 @@ Wanneer u een formulier maakt, kiest u wat **Elke inzending maakt aan**. U kunt 
 | Elke inzending maakt aan | Gebruiken voor | Wat er gebeurt |
 | --- | --- | --- |
 | **Incident** | Probleemmeldingen | Er wordt meteen een incident gemeld, zodat uw dienstbeleid en regels worden uitgevoerd en de mensen met dienst worden ingelicht. Het blijft van statuspagina's af tot iemand die het afhandelt het publiceert. |
-| **Geplande onderhoud** | Wijzigings- en onderhoudsverzoeken | Er wordt een onderhoudsgebeurtenis gepland voor het tijdvak dat de inzender vraagt. Tenzij het formulier anders zegt, blijft ze van de statuspagina's af en licht ze geen abonnees in. |
+| **Gepland onderhoud** | Wijzigings- en onderhoudsverzoeken | Er wordt een onderhoudsgebeurtenis gepland voor het tijdvak dat de inzender vraagt. Tenzij het formulier anders zegt, blijft ze van de statuspagina's af en licht ze geen abonnees in. |
 
 Formulieren beginnen met deze twee; meer soorten records volgen.
 

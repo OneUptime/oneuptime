@@ -1,21 +1,20 @@
 import Input, { InputType } from "../Input/Input";
 import FieldType from "../Types/FieldType";
+import {
+  buildDateFilterValue,
+  DateFilterState,
+  readDateFilterValue,
+  toFilterDate,
+} from "./DateFilterValue";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
 import FilterOperator from "./Types/FilterOperator";
 import OperatorSelector from "./OperatorSelector";
-import InBetween from "../../../Types/BaseDatabase/InBetween";
-import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
-import LessThan from "../../../Types/BaseDatabase/LessThan";
-import EqualTo from "../../../Types/BaseDatabase/EqualTo";
-import IsNull from "../../../Types/BaseDatabase/IsNull";
-import NotNull from "../../../Types/BaseDatabase/NotNull";
-import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { getFilterPlaceholder } from "./FilterPlaceholder";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
@@ -36,121 +35,11 @@ const DATE_OPERATORS: Array<FilterOperator> = [
   FilterOperator.IsNotEmpty,
 ];
 
-type DateState = {
-  operator: FilterOperator;
-  start: Date | null;
-  end: Date | null;
-};
-
-type ToDateFunction = (value: unknown) => Date | null;
-
-const toDate: ToDateFunction = (value: unknown): Date | null => {
-  if (!value) {
-    return null;
-  }
-  if (value instanceof Date) {
-    return value;
-  }
-  try {
-    return OneUptimeDate.fromString(value as string);
-  } catch {
-    return null;
-  }
-};
-
-type DetectStateFunction = (rawValue: unknown) => DateState;
-
-const detectState: DetectStateFunction = (rawValue: unknown): DateState => {
-  if (rawValue instanceof InBetween) {
-    const start: Date | null = toDate(rawValue.startValue as unknown);
-    const end: Date | null = toDate(rawValue.endValue as unknown);
-
-    // If start/end match the bounds of a single day, treat as "Is".
-    if (start && end) {
-      const startOfDay: Date = OneUptimeDate.getStartOfDay(start);
-      const endOfDay: Date = OneUptimeDate.getEndOfDay(start);
-      if (
-        start.getTime() === startOfDay.getTime() &&
-        end.getTime() === endOfDay.getTime()
-      ) {
-        return { operator: FilterOperator.Is, start, end: null };
-      }
-    }
-
-    return { operator: FilterOperator.Between, start, end };
-  }
-  if (rawValue instanceof GreaterThan) {
-    return {
-      operator: FilterOperator.After,
-      start: toDate(rawValue.value as unknown),
-      end: null,
-    };
-  }
-  if (rawValue instanceof LessThan) {
-    return {
-      operator: FilterOperator.Before,
-      start: toDate(rawValue.value as unknown),
-      end: null,
-    };
-  }
-  if (rawValue instanceof EqualTo) {
-    return {
-      operator: FilterOperator.Is,
-      start: toDate(rawValue.value as unknown),
-      end: null,
-    };
-  }
-  if (rawValue instanceof IsNull) {
-    return { operator: FilterOperator.IsEmpty, start: null, end: null };
-  }
-  if (rawValue instanceof NotNull) {
-    return { operator: FilterOperator.IsNotEmpty, start: null, end: null };
-  }
-  return { operator: FilterOperator.Is, start: null, end: null };
-};
-
-type BuildValueFunction = (state: DateState, isDateTime: boolean) => unknown;
-
-const buildValue: BuildValueFunction = (
-  state: DateState,
-  isDateTime: boolean,
-): unknown => {
-  switch (state.operator) {
-    case FilterOperator.Is: {
-      if (!state.start) {
-        return undefined;
-      }
-      if (isDateTime) {
-        return new EqualTo(state.start as any);
-      }
-      return new InBetween(
-        OneUptimeDate.getStartOfDay(state.start) as any,
-        OneUptimeDate.getEndOfDay(state.start) as any,
-      );
-    }
-    case FilterOperator.Before:
-      return state.start ? new LessThan(state.start) : undefined;
-    case FilterOperator.After:
-      return state.start ? new GreaterThan(state.start) : undefined;
-    case FilterOperator.Between: {
-      if (!state.start || !state.end) {
-        return undefined;
-      }
-      return new InBetween(
-        (isDateTime
-          ? state.start
-          : OneUptimeDate.getStartOfDay(state.start)) as any,
-        (isDateTime ? state.end : OneUptimeDate.getEndOfDay(state.end)) as any,
-      );
-    }
-    case FilterOperator.IsEmpty:
-      return new IsNull();
-    case FilterOperator.IsNotEmpty:
-      return new NotNull();
-    default:
-      return undefined;
-  }
-};
+/*
+ * What each operator asks for - the whole minute, or the whole day for a
+ * date filter - is decided in DateFilterValue, which the list's query reads
+ * too (FilterDataToQuery), so the controls, the chip and the rows agree.
+ */
 
 // A date filter's controls. DateFilter below decides whether to draw them.
 const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
@@ -160,35 +49,61 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
   const filter: Filter<T> = props.filter;
 
   const isDateTime: boolean = filter.type === FieldType.DateTime;
-  const detected: DateState = detectState(props.filterData[filter.key]);
+  const value: unknown = props.filterData[filter.key];
 
-  const [localOperator, setLocalOperator] = useState<FilterOperator>(
-    detected.operator,
-  );
+  /*
+   * The operator and the moments as picked, whether or not they make a
+   * value yet. A Between with only one end picked asks the list for
+   * nothing, so the list's filter data holds nothing for it; read back from
+   * that, its first end was lost, and the second end could never complete
+   * it - Between never filtered anything.
+   */
+  const [draft, setDraft] = useState<DateFilterState>((): DateFilterState => {
+    return readDateFilterValue(value, isDateTime);
+  });
 
+  // The value these controls last handed the list.
+  const lastBuiltValue: React.MutableRefObject<unknown> =
+    useRef<unknown>(value);
+
+  /*
+   * A value the list was given from elsewhere - a saved view, a link, the
+   * chip's remove button - is shown as it reads: its operator and moments,
+   * or, once it is taken away, the operator with no moments.
+   */
   useEffect(() => {
-    const raw: unknown = props.filterData[filter.key];
-    if (raw !== undefined && raw !== null) {
-      setLocalOperator(detected.operator);
+    if (value === lastBuiltValue.current) {
+      return;
     }
-  }, [props.filterData[filter.key]]);
 
-  const state: DateState = { ...detected, operator: localOperator };
+    lastBuiltValue.current = value;
+
+    if (value !== undefined && value !== null) {
+      setDraft(readDateFilterValue(value, isDateTime));
+    } else {
+      setDraft((current: DateFilterState): DateFilterState => {
+        return { operator: current.operator, start: null, end: null };
+      });
+    }
+  }, [value]);
+
+  const state: DateFilterState = draft;
 
   const valuelessOperator: boolean =
     state.operator === FilterOperator.IsEmpty ||
     state.operator === FilterOperator.IsNotEmpty;
   const isBetween: boolean = state.operator === FilterOperator.Between;
 
-  type ApplyFunction = (nextState: DateState) => void;
+  type ApplyFunction = (nextState: DateFilterState) => void;
 
-  const apply: ApplyFunction = (nextState: DateState): void => {
+  const apply: ApplyFunction = (nextState: DateFilterState): void => {
     if (!filter.key) {
       return;
     }
-    setLocalOperator(nextState.operator);
+    setDraft(nextState);
     const next: FilterData<T> = { ...props.filterData };
-    const built: unknown = buildValue(nextState, isDateTime);
+    const built: unknown = buildDateFilterValue(nextState, isDateTime);
+    lastBuiltValue.current = built;
     if (built === undefined) {
       delete next[filter.key];
     } else {
@@ -219,7 +134,7 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
               isSearchOrFilter={true}
               key={`${filter.key as string}-start-${state.operator}`}
               onChange={(changed: string | Date) => {
-                const parsed: Date | null = toDate(changed);
+                const parsed: Date | null = toFilterDate(changed);
                 apply({ ...state, start: parsed });
               }}
               value={state.start || ""}
@@ -240,7 +155,7 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
                 isSearchOrFilter={true}
                 key={`${filter.key as string}-end-${state.operator}`}
                 onChange={(changed: string | Date) => {
-                  const parsed: Date | null = toDate(changed);
+                  const parsed: Date | null = toFilterDate(changed);
                   apply({ ...state, end: parsed });
                 }}
                 value={state.end || ""}

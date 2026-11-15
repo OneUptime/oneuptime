@@ -31,7 +31,7 @@ Fluentd sender poster i bunker som JSON, med inntaksnøkkelen din i headeren `x-
 
 Gå til **Produkter → Prosjektinnstillinger**, åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
 
-![Siden med inntaksnøkler for telemetri i prosjektinnstillingene](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
 
 ### Opprett en nøkkel
 

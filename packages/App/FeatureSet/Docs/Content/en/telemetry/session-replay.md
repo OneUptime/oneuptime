@@ -892,7 +892,7 @@ On the **Your own signals** card you name the moments that matter in your produc
 | **An event from your code** | A call to `OneUptimeReplay.track()` with that name, in any case. | Both recorders |
 | **An error** | An error whose message contains the text, in any case, such as `card declined`. | Both recorders |
 
-In a page pattern, `*` stands for any part of the path, slashes included. Write the path without the domain, `?` or `#`; case and a slash at the end are ignored. A page that routes after `#/` is matched on that route too, and a React Native app on the route it passes to `setRoute()`. An error signal reads uncaught errors, rejected promises and `console.error` output in the browser, and JavaScript errors and `captureError()` in React Native.
+In a page pattern, `*` stands for any part of the path, slashes included. Write the path without the domain, `?` or `#`; case and a slash at the end are ignored. A page that routes after `#/` or `#!/` is matched on that route too, and a React Native app on the route it passes to `setRoute()`. An error signal reads uncaught errors, rejected promises and `console.error` output in the browser, and JavaScript errors and `captureError()` in React Native.
 
 Each signal either **Counts as frustration**, joining the built-in four in the Frustration filter, sort and totals and starting a recording under _On error or frustration_, or is a **Marker**: a grey mark on the timeline and a badge on the session list, without calling the session frustrated. Each has its own switch, and **Edit** and **Delete** in its **⋯** menu. A name belongs to one signal: two cannot share it, whatever the case, and none can take a built-in signal's name.
 

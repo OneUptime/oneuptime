@@ -137,7 +137,7 @@ Une adresse peut recevoir 10 invitations par heure, aux projets et aux pages de 
 :::details L'e-mail d'invitation n'est pas arrivé, ou son lien a expiré
 L'invitation ne dépend pas de l'e-mail. Demandez à la personne de s'inscrire avec l'adresse invitée : OneUptime envoie à cette adresse un nouveau lien pour finir de créer le compte. Une personne qui a déjà un compte se connecte et trouve l'invitation qui l'attend.
 
-Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, l'inscription ne peut pas non plus envoyer de nouveau lien par e-mail : elle invite plutôt la personne à demander son lien d'invitation. Une fois que l'admin du serveur a [configuré l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire), l'inscription fonctionne comme ci-dessus. D'ici là, un administrateur principal peut retirer la personne du projet, l'inviter de nouveau et lui envoyer le nouveau lien d'invitation, qui fonctionne une fois, uniquement pour cette adresse, pendant 7 jours.
+Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, l'inscription ne peut pas non plus envoyer de nouveau lien par e-mail : elle invite plutôt la personne à demander son lien d'invitation. Une fois que l'admin du serveur a [configuré l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire), l'inscription fonctionne comme ci-dessus. D'ici là, un administrateur principal peut lui envoyer un nouveau lien, qui fonctionne une fois, uniquement pour cette adresse, pendant 7 jours : dans **Utilisateurs**, ouvrez le menu de la ligne de la personne, **⋯**, et cliquez sur **Obtenir le lien d'invitation**.
 :::
 
 :::details Inviter un utilisateur indique que les utilisateurs sont gérés par SCIM Push Groups
