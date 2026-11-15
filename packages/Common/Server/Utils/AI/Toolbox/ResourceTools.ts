@@ -30,6 +30,7 @@ import {
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -113,6 +114,7 @@ import {
 import GroupedMetricSeries, {
   GroupedMetricRead,
   MetricSeries,
+  describeBucketCalendar,
 } from "./GroupedMetricSeries";
 
 export type ResourceSignal = "metrics" | "logs" | "traces";
@@ -1056,6 +1058,8 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
           startTime,
           endTime,
           props: ctx.props,
+          // Days at the asker's midnight, as the chat draws them (#7922).
+          timezone: ctx.readerTimezone,
         });
         // The keys the series differ in: "state", not "state, cpu.mode".
         const by: string = GroupedMetricSeries.getShownGroupBy(
@@ -1096,6 +1100,16 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
               interval,
               startTime,
             }),
+            // The zone the read asked its buckets to follow, as it asked it.
+            describeBucketCalendar({
+              interval,
+              timezone: AggregationIntervalUtil.getTimezoneForWindow({
+                startDate: startTime,
+                endDate: endTime,
+                aggregationInterval: interval,
+                timezone: ctx.readerTimezone,
+              }),
+            }),
             "Counter Sum is a sum of exported samples, not a rate or increase.",
           ]
             .filter(Boolean)
@@ -1107,20 +1121,30 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       ) => Promise<AggregatedResult> = async (
         aggregationType: AggregationType,
       ): Promise<AggregatedResult> => {
-        return MetricService.aggregateBy({
-          query: query as never,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          aggregationType,
-          aggregationInterval: interval,
-          startTimestamp: startTime,
-          endTimestamp: endTime,
-          ...(!name ? { groupBy: { name: true } } : {}),
-          sort: { time: SortOrder.Ascending } as never,
-          limit: name ? 50 : limit,
-          skip: 0,
-          props: ctx.props,
-        });
+        /*
+         * A trend's day buckets start at the asker's midnight, where the
+         * chat's chart starts their days (#7922); a summary is one Total
+         * bucket, and finer buckets are the same in every zone.
+         */
+        return MetricService.aggregateBy(
+          AggregationIntervalUtil.withTimezone(
+            {
+              query: query as never,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              aggregationType,
+              aggregationInterval: interval,
+              startTimestamp: startTime,
+              endTimestamp: endTime,
+              ...(!name ? { groupBy: { name: true } } : {}),
+              sort: { time: SortOrder.Ascending } as never,
+              limit: name ? 50 : limit,
+              skip: 0,
+              props: ctx.props,
+            },
+            ctx.readerTimezone,
+          ),
+        );
       };
       const result: AggregatedResult = await aggregate(
         name ? (aggregation as AggregationType) : AggregationType.Count,
@@ -1187,13 +1211,25 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       const truncated: boolean = Boolean(
         result.truncated || counts.truncated || (!name && rows.length >= limit),
       );
+      // What a day bucket of the trend is, in the zone the read asked in.
+      const bucketNote: string = name
+        ? describeBucketCalendar({
+            interval,
+            timezone: AggregationIntervalUtil.getTimezoneForWindow({
+              startDate: startTime,
+              endDate: endTime,
+              aggregationInterval: interval,
+              timezone: ctx.readerTimezone,
+            }),
+          })
+        : "";
       return resultForRows({
         rows,
         label,
         target,
         widget,
         truncated,
-        note: `${note} ${name ? `Metric ${aggregation}; ${mode}; interval ${interval}.${resourceAggregation.explanation ? ` ${resourceAggregation.explanation}` : ""} Counter Sum is a sum of exported samples, not a rate or increase.${planNote ? ` ${planNote}` : ""}` : "Names are observed in this resource/window; an empty result does not prove that the resource exports no metrics."}${truncated ? " Result limit reached or query truncated; do not treat this as complete." : ""}`,
+        note: `${note} ${name ? `Metric ${aggregation}; ${mode}; interval ${interval}.${resourceAggregation.explanation ? ` ${resourceAggregation.explanation}` : ""} Counter Sum is a sum of exported samples, not a rate or increase.${planNote ? ` ${planNote}` : ""}${bucketNote ? ` ${bucketNote}` : ""}` : "Names are observed in this resource/window; an empty result does not prove that the resource exports no metrics."}${truncated ? " Result limit reached or query truncated; do not treat this as complete." : ""}`,
       });
     }
     /*

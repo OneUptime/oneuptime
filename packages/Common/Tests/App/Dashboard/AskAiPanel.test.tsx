@@ -46,8 +46,10 @@ import {
   AIChatToolActionStatus,
 } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelListCache from "../../../UI/Utils/ModelListCache";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -2519,6 +2521,117 @@ describe("the questions follow the incident on screen", () => {
 
     expect(screen.queryByTestId("ai-chat-context")).not.toBeInTheDocument();
     expect(suggestionTitles()).not.toContain("Prevent a repeat");
+  });
+});
+
+/*
+ * THE ZONE THE DASHBOARD'S CHARTS ARE READ IN GOES WITH THE TURN (#7922).
+ *
+ * A chart Ask AI draws over more than a week reads its days on the server,
+ * and the chat draws them on the reader's calendar, so the panel sends the
+ * reader's zone (User Settings', else the browser's) with every question,
+ * and again with an approval, whose turn goes on to read and draw. A zone
+ * the Timezone list does not name is not sent: the server would drop it.
+ */
+describe("the reader's time zone goes with every question and approval (#7922)", () => {
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  const approvalWaiting: () => void = (): void => {
+    server.messages.set(CONVERSATION_ID, [
+      message({
+        id: "a1111111-1111-4111-8111-111111111111",
+        role: AIChatMessageRole.User,
+        content: "Monitor https://acme.example",
+      }),
+      message({
+        id: "a5555555-5555-4555-8555-555555555555",
+        role: AIChatMessageRole.Assistant,
+        content: "",
+        status: AIChatMessageStatus.WaitingForApproval,
+        toolActions: [
+          {
+            id: "call_setup",
+            toolName: "set_up_website_monitoring",
+            title: "Set up website monitoring",
+            arguments: { url: "https://acme.example" },
+            isMutation: true,
+            requiresApproval: true,
+            status: AIChatToolActionStatus.Pending,
+          },
+        ],
+      }),
+    ]);
+  };
+
+  test.each([Timezone.AmericaNew_York, Timezone.AsiaKathmandu])(
+    "read in %s, a question carries it",
+    async (timezone: Timezone) => {
+      OneUptimeDate.setUserTimezone(timezone);
+      await renderAt();
+      await toggle();
+
+      await sendQuestion("Orders over the past month");
+
+      expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+        expect.objectContaining({
+          content: "Orders over the past month",
+          timezone: timezone,
+        }),
+      );
+    },
+  );
+
+  test("changed while the panel is open, the next question carries the new zone", async () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+    await renderAt();
+    await toggle();
+    OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
+
+    await sendQuestion("Orders over the past month");
+
+    expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+      expect.objectContaining({ timezone: Timezone.AsiaKolkata }),
+    );
+  });
+
+  test("a zone the list does not name is not sent", async () => {
+    const zone: jest.SpiedFunction<() => Timezone> = jest
+      .spyOn(OneUptimeDate, "getCurrentTimezone")
+      .mockReturnValue("Mars/Olympus_Mons" as Timezone);
+
+    try {
+      await renderAt();
+      await toggle();
+
+      await sendQuestion("Orders over the past month");
+
+      expect(sentRequests("/ai-chat/send-message")[0]!.data).not.toHaveProperty(
+        "timezone",
+      );
+    } finally {
+      zone.mockRestore();
+    }
+  });
+
+  test("the approval that resumes the answer carries it too", async () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+    approvalWaiting();
+    await renderAt();
+    await toggle({ conversationId: CONVERSATION_ID });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Run 1 action" }));
+    });
+    await settle();
+
+    expect(sentRequests("/ai-chat/respond-to-approval")[0]!.data).toEqual(
+      expect.objectContaining({
+        assistantMessageId: "a5555555-5555-4555-8555-555555555555",
+        timezone: Timezone.AmericaNew_York,
+      }),
+    );
   });
 });
 
