@@ -616,7 +616,7 @@ export const BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD: ModelField<ServiceLevelObjec
     },
     title: "Minimum Requests",
     description:
-      "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.",
+      "Skip the rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.",
     fieldType: FormFieldSchemaType.Number,
     required: false,
     placeholder: "100",
