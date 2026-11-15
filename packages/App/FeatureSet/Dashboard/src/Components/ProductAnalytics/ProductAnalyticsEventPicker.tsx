@@ -11,6 +11,7 @@ import {
   ProductAnalyticsEventNameDto,
   ProductAnalyticsEventRef,
 } from "Common/Types/Rum/ProductAnalyticsEventReads";
+import { getPathText } from "Common/Utils/Rum/PathText";
 import {
   PRODUCT_ANALYTICS_EVENT_GROUP_LABELS,
   SESSION_STARTED,
@@ -24,7 +25,9 @@ import {
  * range (issue #6444, part two): a session's start, its own events by the
  * names it sent, and its pages - each group in that order, the most
  * frequent first. An event the address names that the range does not hold
- * stays pickable, so a link never loses what it asked for.
+ * stays pickable, so a link never loses what it asked for. A page is drawn
+ * as User Flows draws it ("/café", PathText.getPathText); its option's value
+ * keeps the stored spelling.
  */
 
 export interface ProductAnalyticsEventPickerProps {
@@ -87,7 +90,14 @@ export function buildProductAnalyticsEventOptions(data: {
       options.push(
         kind === ProductAnalyticsEventKind.Session
           ? { value: value, label: SESSION_STARTED }
-          : { value: value, label: event.name, isUserContent: true },
+          : {
+              value: value,
+              label:
+                kind === ProductAnalyticsEventKind.Page
+                  ? getPathText(event.name)
+                  : event.name,
+              isUserContent: true,
+            },
       );
     }
 

@@ -26,6 +26,7 @@ import {
   toProductAnalyticsSegmentFilter,
 } from "Common/Types/Rum/ProductAnalyticsEventReads";
 import { ProductAnalyticsDimension } from "Common/Types/Rum/ProductAnalytics";
+import { getPathText } from "Common/Utils/Rum/PathText";
 import {
   NOT_REPORTED,
   describeProductAnalyticsValue,
@@ -68,6 +69,13 @@ export const SESSION_START_EVENT: ProductAnalyticsEventRef = {
  * page view as "Viewed /pricing", one of the application's own events by
  * the name it sent.
  *
+ * A page is drawn as User Flows draws it (PathText.getPathText, #8196): the
+ * page is stored as the browser escapes it ("/caf%C3%A9"), and reads
+ * "Viewed /café". Only the words are decoded: "/a%2Fb" keeps its escape,
+ * which names another page than "/a/b". A path with a letter read from the
+ * right ("/السلة") is set apart left to right, so its "/" stays first. The
+ * event itself, sent and compared, keeps the stored spelling.
+ *
  * A page's path is set apart from the sentence around it (setsValuesApart):
  * in "شاهد /pricing" its leading "/" sits between an Arabic word and a
  * Latin one and took the sentence's way, so a funnel's step and the Events
@@ -88,7 +96,7 @@ export function describeProductAnalyticsEvent(
   if (event.kind === ProductAnalyticsEventKind.Page) {
     return translator.translateTemplate(
       PAGE_VIEW_TEMPLATE,
-      { page: event.name },
+      { page: getPathText(event.name) },
       PAGE_VIEW_OPTIONS,
     );
   }
@@ -244,8 +252,11 @@ const DIMENSION_OF_FIELD: Partial<
 
 /*
  * A field's value as the reader reads it: a device type in their language,
- * a country by its name, anything else as the application sent it; "Not
- * reported" for an event that carried none.
+ * a country by its name, a page as User Flows draws it (its words decoded,
+ * and set apart when it has a letter read from the right: PathText), and
+ * anything else as the application sent it; "Not reported" for an event
+ * that carried none. Only drawn: a breakdown's row and a segment keep the
+ * stored value.
  */
 export function describeProductAnalyticsFieldValue(data: {
   field: ProductAnalyticsEventField;
@@ -263,9 +274,13 @@ export function describeProductAnalyticsFieldValue(data: {
     });
   }
 
-  return data.value.trim()
-    ? data.value
-    : data.translator.translateText(NOT_REPORTED) || NOT_REPORTED;
+  if (!data.value.trim()) {
+    return data.translator.translateText(NOT_REPORTED) || NOT_REPORTED;
+  }
+
+  return data.field === ProductAnalyticsEventField.Page
+    ? getPathText(data.value)
+    : data.value;
 }
 
 /*
