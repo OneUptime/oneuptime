@@ -73,12 +73,12 @@ describe("a unit with a symbol, beside its value", () => {
   });
 
   test("a span in minutes, hours or days reads as the seconds table writes one, in the reader's words", () => {
-    expect(ValueFormatter.formatValue(2, "h")).toBe("2 hours");
-    expect(ValueFormatter.formatValue(2, "hours")).toBe("2 hours");
+    expect(ValueFormatter.formatValue(2, "h")).toBe("2\u00A0hours");
+    expect(ValueFormatter.formatValue(2, "hours")).toBe("2\u00A0hours");
     expect(ValueFormatter.formatValue(5, "min")).toBe("5\u00A0min");
-    expect(ValueFormatter.formatValue(3, "d")).toBe("3 days");
+    expect(ValueFormatter.formatValue(3, "d")).toBe("3\u00A0days");
     expect(ValueFormatter.formatValue(2, "h", { language: "de" })).toBe(
-      "2 Stunden",
+      "2\u00A0Stunden",
     );
     expect(ValueFormatter.formatValue(5, "min", { language: "de" })).toBe(
       "5\u00A0Min.",
@@ -96,8 +96,8 @@ describe("a unit with a symbol, beside its value", () => {
 
   test("a unit with no symbol keeps its name: the reader's, when the caller names it", () => {
     // UCUM's "a" is a year (an annum), never an ampere; "K" sits too near "300K".
-    expect(ValueFormatter.formatValue(3, "a")).toBe("3 Amperes");
-    expect(ValueFormatter.formatValue(300, "K")).toBe("300 Kelvin");
+    expect(ValueFormatter.formatValue(3, "a")).toBe("3\u00A0Amperes");
+    expect(ValueFormatter.formatValue(300, "K")).toBe("300\u00A0Kelvin");
     expect(
       ValueFormatter.formatValue(300, "K", {
         language: "de",
@@ -105,7 +105,7 @@ describe("a unit with a symbol, beside its value", () => {
           return "Kelvin (de)";
         },
       }),
-    ).toBe("300 Kelvin (de)");
+    ).toBe("300\u00A0Kelvin (de)");
     expect(ValueFormatter.formatValue(5, "widgets")).toBe("5\u00A0widgets");
   });
 

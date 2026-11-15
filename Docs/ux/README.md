@@ -685,7 +685,7 @@ work out, starts from a default for everything else, and folds what most people 
   as `formatMilliseconds` does, and so does code that holds the unit in a variable or a property
   (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457): a holder
   named `unit` or `symbol` holds a unit's symbol, and a word is named for what it holds (`word`,
-  `noun`, `unitName`) and keeps its plain space ("2 hours", "5 minutes"). Text that is no page's -
+  `noun`, `unitName`) and keeps its plain space ("5 minutes", "2,340 groups"). Text that is no page's -
   a prompt, a Markdown export, a stored name, an API's answer the docs quote - keeps its plain
   space, listed with its reason, and a CSV export writes a plain one (`TableColumnsToCsv`). Intl
   writes a plain space there too ("5 Min.", "vor 5 Minuten", "2 Tage, 3 Stunden", #8456), so ask

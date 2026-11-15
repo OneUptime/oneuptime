@@ -54,7 +54,7 @@ describe("MetricValueFormatter", () => {
       );
       expect(
         MetricValueFormatter.format({ value: 3661, unit: "seconds" }),
-      ).toBe("1.02 hours");
+      ).toBe("1.02\u00A0hours");
       expect(MetricValueFormatter.format({ value: 1500, unit: "ns" })).toBe(
         "1.5\u00A0µs",
       );
@@ -83,13 +83,13 @@ describe("MetricValueFormatter", () => {
         "1.5\u00A0MB",
       );
       expect(MetricValueFormatter.format({ value: 36, unit: "hours" })).toBe(
-        "1.5 days",
+        "1.5\u00A0days",
       );
       expect(MetricValueFormatter.format({ value: 5, unit: "min" })).toBe(
         "5\u00A0min",
       );
       expect(MetricValueFormatter.format({ value: 90, unit: "min" })).toBe(
-        "1.5 hours",
+        "1.5\u00A0hours",
       );
     });
 
@@ -659,7 +659,7 @@ describe("MetricValueFormatter", () => {
 
     test("the ladder is what would otherwise mislead", () => {
       expect(ValueFormatter.formatValue(1750000000, "seconds")).toBe(
-        "20.25K days",
+        "20.25K\u00A0days",
       );
     });
 
@@ -705,7 +705,7 @@ describe("MetricValueFormatter", () => {
           unit: "seconds",
           metricName: "http.server.request.duration",
         }),
-      ).toBe("1.02 hours");
+      ).toBe("1.02\u00A0hours");
     });
 
     test("only suppresses the ladder, not the unit label", () => {

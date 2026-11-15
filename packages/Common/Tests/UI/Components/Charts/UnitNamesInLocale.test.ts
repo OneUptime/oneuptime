@@ -282,10 +282,12 @@ describe("getValueFormatterOptionsForReader", () => {
     );
     // A unit with no symbol is named in the reader's words.
     expect(ValueFormatter.formatValue(300, "K", german)).toBe(
-      `300 ${String(locale("de")["Kelvin"])}`,
+      `300\u00A0${String(locale("de")["Kelvin"])}`,
     );
-    expect(ValueFormatter.formatValue(300, "K", persian)).toBe("۳۰۰ کلوین");
-    expect(ValueFormatter.formatValue(3600, "s", german)).toBe("1 Stunde");
+    expect(ValueFormatter.formatValue(300, "K", persian)).toBe(
+      "۳۰۰\u00A0کلوین",
+    );
+    expect(ValueFormatter.formatValue(3600, "s", german)).toBe("1\u00A0Stunde");
     // A rate keeps the slash a chart writes it with (#8049).
     expect(ValueFormatter.formatValue(12.5, "1/s", german)).toBe("12,5/s");
     expect(ValueFormatter.formatValue(12.5, "{request}/s", german)).toBe(

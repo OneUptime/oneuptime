@@ -9,7 +9,12 @@ import MetricValueFormatter from "../../Utils/Monitor/MetricValueFormatter";
 import { toGsm7Text } from "../../Utils/Sms/Gsm7Text";
 import { describeDetectionOverflow } from "../../Utils/SecurityEvent/DetectionOverflow";
 import TableColumnsToCsv from "../../UI/Utils/TableColumnsToCsv";
-import { setDateDisplayLanguage } from "../../Types/DateLanguage";
+import {
+  formatUnitAmount,
+  getUnitAmountParts,
+  IntlTextPart,
+  setDateDisplayLanguage,
+} from "../../Types/DateLanguage";
 import { escapeRegExp } from "../../Utils/RegExpEscape";
 import { formatFileSize } from "../../Types/File/FileSize";
 import {
@@ -49,10 +54,12 @@ import ProfileUtil from "../../../App/FeatureSet/Dashboard/src/Utils/ProfileUtil
  * end with "12.5" and start the next with "MB".
  *
  * Each is read here in English, German, French, Arabic and Persian: the
- * figure is held to a unit's symbol by a space no line breaks at, and a
- * word the formatter spells ("2 hours", "6,91 Stunden", a unit's name)
- * keeps the plain space any word has. Text a machine or another file reads
- * keeps its plain space: a CSV, a text message's GSM-7.
+ * figure is held to its unit by a space no line breaks at, a unit's symbol
+ * and a unit ValueFormatter names in words alike ("2 hours", "6,91
+ * Stunden", as DateLanguage holds every amount Intl writes, #8456). A word
+ * that counts something in a sentence ("2,340 groups") keeps the plain
+ * space any word has, and so does text a machine or another file reads: a
+ * CSV, a text message's GSM-7.
  */
 
 const LANGUAGES: ReadonlyArray<string> = ["en", "de", "fr", "ar", "fa"];
@@ -172,10 +179,10 @@ describe("ValueFormatter, which writes every chart's and table's figures", () =>
     },
   );
 
-  test("negative control: a span of time spelled in words keeps the plain space a word has", () => {
-    expect(ValueFormatter.formatValue(7200, "seconds")).toBe("2 hours");
-    expect(ValueFormatter.formatValue(259200, "seconds")).toBe("3 days");
-    expect(ValueFormatter.formatValue(2, "h")).toBe("2 hours");
+  test("a span of time in words is held to its figure too, as DateLanguage holds Intl's", () => {
+    expect(ValueFormatter.formatValue(7200, "seconds")).toBe("2\u00A0hours");
+    expect(ValueFormatter.formatValue(259200, "seconds")).toBe("3\u00A0days");
+    expect(ValueFormatter.formatValue(2, "h")).toBe("2\u00A0hours");
 
     const german: FormattedValue = ValueFormatter.formatValueInParts(
       24876,
@@ -184,18 +191,37 @@ describe("ValueFormatter, which writes every chart's and table's figures", () =>
     );
 
     expect(german.unit).toBe("Stunden");
-    expect(german.formatted).toBe("6,91 Stunden");
+    expect(german.formatted).toBe("6,91\u00A0Stunden");
+
+    for (const language of LANGUAGES) {
+      for (const [value, unit] of [
+        [24876, "s"],
+        [259200, "seconds"],
+      ] as Array<[number, string]>) {
+        const parts: FormattedValue = ValueFormatter.formatValueInParts(
+          value,
+          unit,
+          { language },
+        );
+
+        expect({
+          language,
+          written: parts.formatted,
+          breaks: breaksBefore(parts.formatted, parts.unit),
+        }).toEqual({ language, written: parts.formatted, breaks: false });
+      }
+    }
   });
 
-  test("negative control: a unit's name in words keeps its plain space; a percent, a rate of nothing and no unit have none", () => {
-    expect(ValueFormatter.formatValue(300, "K")).toBe("300 Kelvin");
+  test("a unit's name is held as its symbol would be; negative control: a percent, a rate of nothing and no unit have no space", () => {
+    expect(ValueFormatter.formatValue(300, "K")).toBe("300\u00A0Kelvin");
     expect(
       ValueFormatter.formatValue(300, "K", {
         unitName: (): string => {
           return "Kelvin";
         },
       }),
-    ).toBe("300 Kelvin");
+    ).toBe("300\u00A0Kelvin");
     expect(ValueFormatter.formatValue(42, "%")).toBe("42.00%");
     expect(ValueFormatter.formatValue(5, "1/s")).toBe("5/s");
     expect(ValueFormatter.formatValue(5, "")).toBe("5");
@@ -230,6 +256,64 @@ describe("ValueFormatter, which writes every chart's and table's figures", () =>
     expect(
       ValueFormatter.isUnitSetApart(ValueFormatter.formatValueInParts(42, "%")),
     ).toBe(false);
+  });
+});
+
+describe("DateLanguage's amount of a unit, in the compact notation a scaled figure takes", () => {
+  test.each(LANGUAGES)(
+    "%s: a thousand and a half minutes in the language's scale, the unit held to it",
+    (language: string) => {
+      const compact: string | null = formatUnitAmount({
+        value: 1500,
+        unit: "minute",
+        locale: language,
+        unitDisplay: "short",
+        notation: "compact",
+        maximumFractionDigits: 2,
+      });
+      const standard: string | null = formatUnitAmount({
+        value: 1500,
+        unit: "minute",
+        locale: language,
+        unitDisplay: "short",
+        maximumFractionDigits: 2,
+      });
+
+      expect(compact).not.toBeNull();
+      // Negative control: the two notations are cached apart.
+      expect(compact).not.toBe(standard);
+
+      const parts: Array<IntlTextPart> = getUnitAmountParts({
+        value: 1500,
+        unit: "minute",
+        locale: language,
+        unitDisplay: "short",
+        notation: "compact",
+        maximumFractionDigits: 2,
+      })!;
+      const unitAt: number = parts.findIndex((part: IntlTextPart): boolean => {
+        return part.type === "unit";
+      });
+      const before: IntlTextPart | undefined = parts[unitAt - 1];
+
+      expect(unitAt).toBeGreaterThan(0);
+      if (before && before.type === "literal") {
+        expect(before.value).not.toMatch(new RegExp(BREAKING_SPACE));
+      }
+    },
+  );
+
+  test("English: the scale letter, then the unit held to it", () => {
+    expect(
+      formatUnitAmount({
+        value: 1500,
+        unit: "minute",
+        locale: "en",
+        unitDisplay: "short",
+        notation: "compact",
+        maximumFractionDigits: 2,
+      }),
+    ).toBe("1.5K\u00A0min");
   });
 });
 
@@ -367,10 +451,15 @@ describe("the figures Common/Types writes for a page", () => {
     ).toBe("A rate limit must be a number of MB per second.");
   });
 
-  test("an NTP reading on the incident's page", () => {
-    expect(NtpMonitorUtil.formatMilliseconds(12.34)).toBe("12.3\u00A0ms");
+  /*
+   * An NTP check's figures are stored in its root cause and read back
+   * exactly (RootCauseFacts), which draws them in the reader's words, held:
+   * the stored text keeps its plain space, and still reads back.
+   */
+  test("negative control: an NTP reading is stored with its plain space, and read back", () => {
+    expect(NtpMonitorUtil.formatMilliseconds(12.34)).toBe("12.3 ms");
     expect(NtpMonitorUtil.describeClockOffset(-1532.4)).toBe(
-      "1,532\u00A0ms behind the probe",
+      "1,532 ms behind the probe",
     );
     // Negative control: no figure, no unit.
     expect(NtpMonitorUtil.describeClockOffset(0)).toBe(

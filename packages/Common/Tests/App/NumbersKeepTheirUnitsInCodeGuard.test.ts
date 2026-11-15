@@ -90,6 +90,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "the AI chat's Markdown and PDF exports, in the unit the AI wrote",
   "packages/Common/Types/CloudConnection/CloudAiAgentCost.ts":
     "an estimate's description no page draws: the docs' facts test holds the docs' table to its words",
+  "packages/Common/Types/Monitor/NtpMonitor/NtpMonitorUtil.ts":
+    "an NTP check's figures, stored in its root cause and read back exactly by RootCauseFacts, which draws them held in the reader's words",
   "packages/Common/Types/Runbook/RunbookWebhook.ts":
     "a runbook webhook's answer to the system that called it",
   "packages/Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack.ts":
@@ -521,7 +523,6 @@ describe("a number code joins to its unit keeps it on its line", () => {
       "packages/Common/Types/InstallationHealth/InstallationHealth.ts",
       "packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
       "packages/Common/Types/Telemetry/TelemetryIngestionBudget.ts",
-      "packages/Common/Types/Monitor/NtpMonitor/NtpMonitorUtil.ts",
       "packages/Common/Types/PacketCapture/PacketCaptureLimits.ts",
     ]) {
       expect({
@@ -696,10 +697,11 @@ const INTL_HELPERS: ReadonlyArray<string> = [
   "packages/Common/Types/DateLanguage.ts",
 ];
 
-// Files another issue rewrites, each with the issue: a unit held in a variable.
-const INTL_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
-  "packages/Common/Utils/ValueFormatter.ts": "#8457",
-};
+/*
+ * Files another issue rewrites, each with the issue. ValueFormatter's time
+ * words go through getUnitAmountParts now (#8457), and none is left.
+ */
+const INTL_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {};
 
 // Every package, and ee, which is not in every checkout.
 const INTL_SCAN_SCOPES: ReadonlyArray<string> = ["packages", "ee"];
@@ -907,6 +909,8 @@ describe("a unit or a relative time is asked of Intl only where its number is he
       "packages/App/FeatureSet/StatusPage/src/Utils/LiveRefresh.ts",
       "packages/Common/UI/Components/Feed/FeedTime.ts",
       "packages/Common/Utils/Milliseconds.ts",
+      // The charts' time words, through getUnitAmountParts (#8457).
+      "packages/Common/Utils/ValueFormatter.ts",
     ]) {
       expect({
         file,

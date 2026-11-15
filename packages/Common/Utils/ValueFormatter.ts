@@ -5,11 +5,17 @@
  * A unit's symbol is held to its figure with a no-break space ("1 MB" is
  * "1\u00A0MB"), so a chart's tooltip, a table's cell or a Gauge's caption
  * never ends a line with the figure and starts the next with its unit
- * (#8457). A unit the formatter spells in words - "2 hours", "3 days", a
- * unit's name ("300 Kelvin") - keeps its plain space, as a word does.
+ * (#8457). So is a unit it names in words ("2 hours", "300 Kelvin"), as
+ * DateLanguage holds every amount Intl writes ("6,91 Stunden", #8456): all
+ * this formatter writes is a measurement.
  */
 
-import { getNumberLocale, isEnglishDateLanguage } from "../Types/DateLanguage";
+import {
+  getNumberLocale,
+  getUnitAmountParts,
+  IntlTextPart,
+  isEnglishDateLanguage,
+} from "../Types/DateLanguage";
 import { NO_BREAK_SPACE } from "../Types/NoBreakSpaces";
 
 export interface FormattedValue {
@@ -309,12 +315,6 @@ interface ScaledValue {
   unit: string; // e.g. "MB", "hours"
 }
 
-/*
- * The spans of time the threshold tables name in words ("2 hours", "3
- * days"), where the others are symbols ("5 min", "1.5 sec", "12 ms").
- */
-const TIME_WORDS: ReadonlySet<string> = new Set<string>(["days", "hours"]);
-
 function formatWithThresholds(
   value: number,
   thresholds: Array<UnitThreshold>,
@@ -528,8 +528,6 @@ const SCALE_EXPONENTS: Record<string, number> = {
 type IntlFormatOptions = Intl.NumberFormatOptions & {
   notation?: "standard" | "compact";
   compactDisplay?: "short" | "long";
-  unit?: string;
-  unitDisplay?: "long" | "short" | "narrow";
 };
 
 const languageCompactFormats: Map<string, Intl.NumberFormat | null> = new Map<
@@ -575,58 +573,6 @@ const TIME_UNIT_WORDS: Record<
   sec: { unit: "second", display: "short" },
 };
 
-const languageUnitFormats: Map<string, Intl.NumberFormat | null> = new Map<
-  string,
-  Intl.NumberFormat | null
->();
-
-function getLanguageUnitFormat(
-  language: string,
-  unit: string,
-  display: "long" | "short",
-  decimals: number,
-  isCompact: boolean,
-): Intl.NumberFormat | null {
-  const key: string = [
-    language,
-    unit,
-    display,
-    decimals,
-    isCompact ? "compact" : "standard",
-  ].join("|");
-
-  if (!languageUnitFormats.has(key)) {
-    let format: Intl.NumberFormat | null = null;
-
-    try {
-      const options: IntlFormatOptions = isCompact
-        ? {
-            style: "unit",
-            unit: unit,
-            unitDisplay: display,
-            notation: "compact",
-            compactDisplay: "short",
-            maximumFractionDigits: 2,
-          }
-        : {
-            style: "unit",
-            unit: unit,
-            unitDisplay: display,
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
-          };
-
-      format = new Intl.NumberFormat(getNumberLocale(language), options);
-    } catch {
-      format = null;
-    }
-
-    languageUnitFormats.set(key, format);
-  }
-
-  return languageUnitFormats.get(key) || null;
-}
-
 // A number this formatter wrote ("6.91", "1.5K"), as the number it is.
 function readWrittenNumber(text: string): {
   number: number;
@@ -655,7 +601,9 @@ function readWrittenNumber(text: string): {
  * The words `language` names a span of `timeWord` ("hours") with after
  * `written`, a number this formatter wrote, and what it puts between the
  * two: "Stunden" and a space after "6.91" in German, "ساعت" in Persian,
- * "時間" after a space in Japanese, "小时" with none in Chinese. Null where
+ * "時間" after a space in Japanese, "小时" with none in Chinese. The space
+ * is one no line breaks at: DateLanguage asks Intl for the amount and
+ * holds its unit to its number (getUnitAmountParts, #8456). Null where
  * there is nothing to rewrite - English, a word that is not a span of time,
  * a number it cannot read - and the English stands.
  */
@@ -678,21 +626,24 @@ function writeTimeWordInLanguage(
     return null;
   }
 
-  const partsOf: (number: number) => Array<Intl.NumberFormatPart> | null = (
+  const partsOf: (number: number) => Array<IntlTextPart> | null = (
     number: number,
-  ): Array<Intl.NumberFormatPart> | null => {
-    const format: Intl.NumberFormat | null = getLanguageUnitFormat(
-      (language || "").trim(),
-      timeUnit.unit,
-      timeUnit.display,
-      read.decimals,
-      read.isScaled,
-    );
-
-    return format ? format.formatToParts(number) : null;
+  ): Array<IntlTextPart> | null => {
+    return getUnitAmountParts({
+      value: number,
+      unit: timeUnit.unit,
+      locale: (language || "").trim(),
+      unitDisplay: timeUnit.display,
+      ...(read.isScaled
+        ? { notation: "compact", maximumFractionDigits: 2 }
+        : {
+            minimumFractionDigits: read.decimals,
+            maximumFractionDigits: read.decimals,
+          }),
+    });
   };
 
-  let parts: Array<Intl.NumberFormatPart> | null = partsOf(read.number);
+  let parts: Array<IntlTextPart> | null = partsOf(read.number);
 
   /*
    * Arabic names one hour or two in a word with no number in it ("ساعة",
@@ -702,7 +653,7 @@ function writeTimeWordInLanguage(
    */
   if (
     parts &&
-    !parts.some((part: Intl.NumberFormatPart): boolean => {
+    !parts.some((part: IntlTextPart): boolean => {
       return part.type === "integer";
     })
   ) {
@@ -713,32 +664,28 @@ function writeTimeWordInLanguage(
     return null;
   }
 
-  const unitAt: number = parts.findIndex(
-    (part: Intl.NumberFormatPart): boolean => {
-      return part.type === "unit";
-    },
-  );
-  const numberAt: number = parts.findIndex(
-    (part: Intl.NumberFormatPart): boolean => {
-      return part.type === "integer";
-    },
-  );
+  const unitAt: number = parts.findIndex((part: IntlTextPart): boolean => {
+    return part.type === "unit";
+  });
+  const numberAt: number = parts.findIndex((part: IntlTextPart): boolean => {
+    return part.type === "integer";
+  });
 
   if (unitAt < 0 || numberAt < 0) {
     return null;
   }
 
   const word: string = parts
-    .filter((part: Intl.NumberFormatPart): boolean => {
+    .filter((part: IntlTextPart): boolean => {
       return part.type === "unit";
     })
-    .map((part: Intl.NumberFormatPart): string => {
+    .map((part: IntlTextPart): string => {
       return part.value;
     })
-    .join(" ");
+    .join(NO_BREAK_SPACE);
   const isBefore: boolean = unitAt < numberAt;
   // The space a language sets between the number and its unit, or none.
-  const between: Intl.NumberFormatPart | undefined =
+  const between: IntlTextPart | undefined =
     parts[isBefore ? unitAt + 1 : unitAt - 1];
   const gap: string =
     between &&
@@ -858,26 +805,12 @@ function writeNumberInLanguage(
 type UnitStyle = "readable" | "compact";
 
 /*
- * Whether a unit is written as its symbol ("MB", "min", "°C", "req/s",
- * "Pa" as an exporter wrote it) or spelled as a word ("hours", "Kelvin").
- */
-type UnitWriting = "symbol" | "word";
-
-// A run of the spaces a line may break at (Types/NoBreakSpaces).
-const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
-
-/*
  * The separator rules formatValue has always used: percent joins with no
  * space, an empty unit contributes nothing, and everything else is set
- * apart by one space - a no-break one before a symbol, so the figure and
- * its unit share a line (#8457), and a plain one before a word, which a
- * line may break before as before any word.
+ * apart by one space - a no-break one, so the figure and its unit share a
+ * line (#8457): "1.5 MB", "2 hours", "300 Kelvin".
  */
-function joinValueAndUnit(
-  value: string,
-  unit: string,
-  writing: UnitWriting,
-): string {
+function joinValueAndUnit(value: string, unit: string): string {
   if (unit === "") {
     return value;
   }
@@ -888,7 +821,7 @@ function joinValueAndUnit(
   if (unit.startsWith("/")) {
     return `${value}${unit}`;
   }
-  return `${value}${writing === "word" ? " " : NO_BREAK_SPACE}${unit}`;
+  return `${value}${NO_BREAK_SPACE}${unit}`;
 }
 
 /*
@@ -948,7 +881,7 @@ function compactThresholdUnit(unit: string): string {
  * annotations, the Gauge, the metric list) and a table test pins every branch.
  * One branch changed on purpose: a rate it cannot scale reads "100 req/s",
  * not "100 req per Second", which no chart axis had room for (#8049). And
- * the space before a symbol is a no-break one (#8457): "1.5\u00A0MB".
+ * the space before a unit is a no-break one (#8457): "1.5\u00A0MB".
  */
 function formatValueParts(
   value: number,
@@ -958,14 +891,9 @@ function formatValueParts(
 ): FormattedValue {
   const trimmedUnit: string = (unit || "").trim();
 
-  const build: (
+  const build: (partValue: string, partUnit: string) => FormattedValue = (
     partValue: string,
     partUnit: string,
-    writing?: UnitWriting,
-  ) => FormattedValue = (
-    partValue: string,
-    partUnit: string,
-    writing: UnitWriting = "symbol",
   ): FormattedValue => {
     // In the reader's language, when one is given (#7094).
     const inLanguage: {
@@ -1002,36 +930,26 @@ function formatValueParts(
           : null;
 
       if (timeWord) {
-        /*
-         * A minute's or a second's short form ("Min.", "د", "دقیقه") is
-         * held to its figure as English's "min" and "sec" are; an hour or
-         * a day in full ("Stunden") keeps the space Intl writes.
-         */
-        const gap: string =
-          writing === "symbol"
-            ? timeWord.gap.replace(BREAKING_SPACES, NO_BREAK_SPACE)
-            : timeWord.gap;
-
         return {
           value: inLanguage.value,
           unit: timeWord.word,
           formatted: timeWord.isBefore
-            ? `${timeWord.word}${gap}${inLanguage.value}`
-            : `${inLanguage.value}${gap}${timeWord.word}`,
+            ? `${timeWord.word}${timeWord.gap}${inLanguage.value}`
+            : `${inLanguage.value}${timeWord.gap}${timeWord.word}`,
         };
       }
 
       return {
         value: inLanguage.value,
         unit: partUnit,
-        formatted: joinValueAndUnit(inLanguage.value, partUnit, writing),
+        formatted: joinValueAndUnit(inLanguage.value, partUnit),
       };
     }
 
     return {
       value: partValue,
       unit: partUnit,
-      formatted: joinValueAndUnit(partValue, partUnit, writing),
+      formatted: joinValueAndUnit(partValue, partUnit),
     };
   };
 
@@ -1080,14 +998,9 @@ function formatValueParts(
   if (thresholds) {
     const scaled: ScaledValue = formatWithThresholds(value, thresholds);
 
-    if (unitStyle === "compact") {
-      return build(scaled.value, compactThresholdUnit(scaled.unit));
-    }
-
     return build(
       scaled.value,
-      scaled.unit,
-      TIME_WORDS.has(scaled.unit) ? "word" : "symbol",
+      unitStyle === "compact" ? compactThresholdUnit(scaled.unit) : scaled.unit,
     );
   }
 
@@ -1135,34 +1048,15 @@ function formatValueParts(
    * unit with no symbol ("Kelvin", "widgets") keeps its name: the reader's,
    * when the caller can name it (unitName, #7518), English otherwise.
    *
-   * A symbol is held to its figure (#8457), and so is a unit the formatter
-   * does not know, written as the exporter wrote it ("101.3 kPa", "12
-   * widgets"): most are UCUM's symbols. A name it gives in words ("300
-   * Kelvin", "2 hours") keeps its plain space.
    */
-  if (unitStyle === "compact") {
-    return build(
-      formatNumber(value),
-      ValueFormatter.getCompactUnit(unit, options),
-    );
-  }
-
-  const symbol: string | undefined = getValueSymbol(trimmedUnit);
-
-  if (symbol !== undefined) {
-    return build(
-      formatNumber(value),
-      symbol,
-      TIME_WORDS.has(symbol) ? "word" : "symbol",
-    );
-  }
-
   return build(
     formatNumber(value),
-    options?.unitName
-      ? options.unitName(unit)
-      : ValueFormatter.getReadableUnit(unit),
-    readableUnitMap[normalizeUnit(trimmedUnit)] ? "word" : "symbol",
+    unitStyle === "compact"
+      ? ValueFormatter.getCompactUnit(unit, options)
+      : getValueSymbol(trimmedUnit) ??
+          (options?.unitName
+            ? options.unitName(unit)
+            : ValueFormatter.getReadableUnit(unit)),
   );
 }
 

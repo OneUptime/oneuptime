@@ -38,8 +38,8 @@ describe("ValueFormatter", () => {
   describe("formatValue - seconds", () => {
     test("scales seconds into larger units", () => {
       expect(ValueFormatter.formatValue(60, "seconds")).toBe("1\u00A0min");
-      expect(ValueFormatter.formatValue(3600, "seconds")).toBe("1 hours");
-      expect(ValueFormatter.formatValue(86400, "seconds")).toBe("1 days");
+      expect(ValueFormatter.formatValue(3600, "seconds")).toBe("1\u00A0hours");
+      expect(ValueFormatter.formatValue(86400, "seconds")).toBe("1\u00A0days");
     });
 
     test("scales sub-second values down", () => {
@@ -568,8 +568,8 @@ describe("ValueFormatter", () => {
       { value: 0, unit: "By", expected: "0\u00A0B" },
       { value: -2000, unit: "bytes", expected: "-2\u00A0KB" },
       { value: 90, unit: "s", expected: "1.5\u00A0min" },
-      { value: 3600, unit: "seconds", expected: "1 hours" },
-      { value: 86400, unit: "seconds", expected: "1 days" },
+      { value: 3600, unit: "seconds", expected: "1\u00A0hours" },
+      { value: 86400, unit: "seconds", expected: "1\u00A0days" },
       { value: 0, unit: "seconds", expected: "0\u00A0sec" },
       { value: 0.5, unit: "seconds", expected: "500\u00A0ms" },
       { value: 1500, unit: "ms", expected: "1.5\u00A0sec" },
@@ -961,7 +961,9 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValue(1536, "By", de)).toBe("1,54\u00A0KB");
       expect(ValueFormatter.formatValue(-2000, "bytes", de)).toBe("-2\u00A0KB");
       // A span of time in German's words, and a big number in its scale (#7518).
-      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe("1 Stunde");
+      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe(
+        "1\u00A0Stunde",
+      );
       expect(ValueFormatter.formatValue(1234, "1", de)).toBe("1230");
       expect(ValueFormatter.formatValue(119250000000, "", de)).toBe(
         `119,25${NBSP}Mrd.`,
@@ -1168,11 +1170,11 @@ describe("ValueFormatter", () => {
 
       expect(
         ValueFormatter.formatValueInParts(5, "K", { language: "de" }),
-      ).toEqual({ value: "5", unit: "Kelvin", formatted: "5 Kelvin" });
+      ).toEqual({ value: "5", unit: "Kelvin", formatted: "5\u00A0Kelvin" });
       expect(ValueFormatter.formatValueInParts(5, "K", naming)).toEqual({
         value: "5",
         unit: "«K»",
-        formatted: "5 «K»",
+        formatted: "5\u00A0«K»",
       });
       expect(ValueFormatter.formatValueInParts(5, "Hz", naming)).toEqual({
         value: "5",
@@ -1338,14 +1340,16 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValueInParts(3600, "s", de)).toEqual({
         value: "1",
         unit: "Stunde",
-        formatted: "1 Stunde",
+        formatted: "1\u00A0Stunde",
       });
       expect(ValueFormatter.formatValueInParts(6.91 * 3600, "s", de)).toEqual({
         value: "6,91",
         unit: "Stunden",
-        formatted: "6,91 Stunden",
+        formatted: "6,91\u00A0Stunden",
       });
-      expect(ValueFormatter.formatValue(2 * 86400, "s", de)).toBe("2 Tage");
+      expect(ValueFormatter.formatValue(2 * 86400, "s", de)).toBe(
+        "2\u00A0Tage",
+      );
       expect(ValueFormatter.formatValue(120, "sec", de)).toBe("2\u00A0Min.");
       expect(ValueFormatter.formatValue(1500, "ms", de)).toBe("1,5\u00A0Sek.");
       // A symbol reads as it is: milliseconds, bytes, a percentage.
@@ -1355,16 +1359,16 @@ describe("ValueFormatter", () => {
     test("in Persian and Arabic, its words; in Japanese and Chinese, set as they set them", () => {
       expect(
         ValueFormatter.formatValueInParts(3600, "seconds", { language: "fa" }),
-      ).toEqual({ value: "۱", unit: "ساعت", formatted: "۱ ساعت" });
+      ).toEqual({ value: "۱", unit: "ساعت", formatted: "۱\u00A0ساعت" });
       expect(
         ValueFormatter.formatValue(6.91 * 3600, "s", { language: "fa" }),
-      ).toBe("۶٫۹۱ ساعت");
+      ).toBe("۶٫۹۱\u00A0ساعت");
       expect(
         ValueFormatter.formatValue(6.91 * 3600, "s", { language: "ar" }),
-      ).toBe("6.91 ساعة");
+      ).toBe("6.91\u00A0ساعة");
       expect(
         ValueFormatter.formatValue(6.91 * 3600, "s", { language: "ja" }),
-      ).toBe("6.91 時間");
+      ).toBe("6.91\u00A0時間");
 
       const chinese: FormattedValue = ValueFormatter.formatValueInParts(
         6.91 * 3600,
@@ -1390,7 +1394,7 @@ describe("ValueFormatter", () => {
         );
 
         expect(parts.value).toBe(String(hours));
-        expect(parts.formatted).toBe(`${hours} ساعة`);
+        expect(parts.formatted).toBe(`${hours}\u00A0ساعة`);
       }
     });
 
@@ -1489,11 +1493,13 @@ describe("ValueFormatter", () => {
     test("a long span, scaled: in the language's scale and its words", () => {
       expect(
         ValueFormatter.formatValue(1500 * 86400, "s", { language: "de" }),
-      ).toBe("1500 Tage");
+      ).toBe("1500\u00A0Tage");
       expect(
         ValueFormatter.formatValue(1500 * 86400, "s", { language: "fa" }),
-      ).toBe(`۱٫۵${NBSP}هزار روز`);
-      expect(ValueFormatter.formatValue(1500 * 86400, "s")).toBe("1.5K days");
+      ).toBe(`۱٫۵${NBSP}هزار${NBSP}روز`);
+      expect(ValueFormatter.formatValue(1500 * 86400, "s")).toBe(
+        "1.5K\u00A0days",
+      );
     });
 
     test("a language Intl cannot read keeps English's letter and words", () => {
@@ -1501,7 +1507,7 @@ describe("ValueFormatter", () => {
         "1.23K",
       );
       expect(ValueFormatter.formatValue(3600, "s", { language: "!!" })).toBe(
-        "1 hours",
+        "1\u00A0hours",
       );
     });
   });
