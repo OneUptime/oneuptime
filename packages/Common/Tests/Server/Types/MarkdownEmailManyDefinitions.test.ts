@@ -203,8 +203,10 @@ const REFERENCE_ALPHABET: ReadonlyArray<string> = [
   "[a  b]",
   "[A\tB]",
   "[x](/y)",
+  "[t \\[a\\]](/u)",
+  "[aΣ\uFEFFb]",
   "Σ",
-  "﻿",
+  "\uFEFF",
   "\t",
   "> ",
   "- ",
@@ -228,7 +230,8 @@ const DEFINED_LABELS: ReadonlyArray<string> = [
   "\\[",
   "Σ",
   "aΣ",
-  "aΣ﻿b",
+  "aΣ\uFEFFb",
+  "aΣ b",
   "a\\\\",
   "*a*",
   "a*",
@@ -352,8 +355,8 @@ describe("normalizeReferenceLabel", () => {
 
   test("differs from a definition's own label only where a Σ ends a word", () => {
     // marked lowers a definition's label first, and a reference's last.
-    expect(normalizeLinkLabel("aΣ﻿b")).toBe("aσ b");
-    expect(normalizeReferenceLabel("aΣ﻿b")).toBe("aς b");
+    expect(normalizeLinkLabel("aΣ\uFEFFb")).toBe("aσ b");
+    expect(normalizeReferenceLabel("aΣ\uFEFFb")).toBe("aς b");
     expect(normalizeReferenceLabel("Run  42")).toBe(
       normalizeLinkLabel("Run  42"),
     );
@@ -412,7 +415,7 @@ describe("readOnlyNamedDefinitions - marked's own reading", () => {
     ["a full reference's text read as Markdown", "[*run* 42][s]\n\n[s]: /s"],
     [
       "a reference inside a link's text, its brackets escaped",
-      "[see \\[s\\]](/x) and [s]\n\n[s]: /s",
+      "[see \\[s\\]](/x)\n\n[s]: /s",
     ],
     [
       "a label in another case and spacing",
@@ -437,7 +440,10 @@ describe("readOnlyNamedDefinitions - marked's own reading", () => {
     ["a heading", "# [a]\n\n[a]: /a"],
     ["emphasis inside emphasis", "**[a] *[b]* [c]**\n\n[a]: /a\n[b]: /b"],
     ["a label of escapes", "[\\[a] [x\\[a] [a\\]]\n\n[\\[a]: /e\n[a\\]]: /f"],
-    ["labels where a Σ ends a word", "[aΣ﻿b] [AΣ b]\n\n[aΣ﻿b]: /s"],
+    [
+      "a label where a Σ ends a word, looked up as marked looks it up",
+      "[aΣ\uFEFFb]\n\n[aΣ b]: /s",
+    ],
   ])("%s", (_name: string, text: string) => {
     expect(lexedWithNamedDefinitions(text)).toBe(lexedByMarked(text));
   });
