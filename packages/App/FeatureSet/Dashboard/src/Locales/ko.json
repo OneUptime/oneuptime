@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "속성 {{count}}개를 {{format}} JSON으로 복사했습니다",
   "Copied {{count}} attributes as {{format}} JSON_one": "Copied {{count}} attribute as {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "{{name}}에 대한 참조 복사",
   "Copy {{count}} attributes as {{format}} JSON": "속성 {{count}}개를 {{format}} JSON으로 복사",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copy {{count}} attribute as {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "테스트",
   "UUID": "UUID",
   "Expected": "예상됨",
-  "Useful": "유용함"
+  "Useful": "유용함",
+  "The whole {{name}}": "{{name}} 전체"
 }

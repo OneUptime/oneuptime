@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "已将 {{count}} 个属性复制为 {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "Copied {{count}} attribute as {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "复制对 {{name}} 的引用",
   "Copy {{count}} attributes as {{format}} JSON": "将 {{count}} 个属性复制为 {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copy {{count}} attribute as {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "测试",
   "UUID": "UUID",
   "Expected": "符合预期",
-  "Useful": "有用"
+  "Useful": "有用",
+  "The whole {{name}}": "整个 {{name}}"
 }

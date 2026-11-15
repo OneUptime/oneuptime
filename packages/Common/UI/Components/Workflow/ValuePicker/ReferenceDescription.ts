@@ -8,9 +8,15 @@
  * so it can be seen and removed, but a warning one that says what is wrong.
  * These mirror GraphLint's rules, so the chip and the issues panel agree.
  *
+ * The step and its value are named in the reader's language, as the canvas
+ * and the step's settings panel name them, when the context has the
+ * reader's translator (ReturnValueNames); the reference itself, in the
+ * tooltip, is as stored.
+ *
  * Pure: no DOM, no API.
  */
 
+import { Translator } from "../../../../Types/Translator";
 import {
   NodeDataProp,
   ReturnValue,
@@ -28,6 +34,7 @@ import {
   pathAfter,
   pathPastReturnValue,
 } from "../../../../Types/Workflow/TemplateSyntax";
+import { returnValueName } from "../ReturnValueNames";
 
 export enum ReferenceKind {
   StepValue = "StepValue",
@@ -75,6 +82,11 @@ export interface ReferenceDescriptionContext {
   variableNames?:
     | { workflow: Array<string>; global: Array<string> }
     | undefined;
+  /*
+   * The reader's: the chip names a step and its value in their language
+   * with it, and in English without it.
+   */
+  translator?: Translator | undefined;
 }
 
 type SingleReferenceFunction = (text: string) => TemplateExpression | null;
@@ -243,7 +255,13 @@ export const describeReference: DescribeReferenceFunction = (
     steps.filter((candidate: NodeDataProp) => {
       return (candidate.metadata.title || candidate.id) === title;
     }).length > 1;
-  const source: string = sharesTitle ? `${title} (${step.id})` : title;
+  // The step as the canvas draws it: its catalogue name in the reader's words.
+  const drawnTitle: string = step.metadata.title
+    ? context.translator?.translateText(step.metadata.title) || title
+    : title;
+  const source: string = sharesTitle
+    ? `${drawnTitle} (${step.id})`
+    : drawnTitle;
 
   const returnValue: ReturnValue | undefined = (
     step.metadata.returnValues || []
@@ -252,7 +270,9 @@ export const describeReference: DescribeReferenceFunction = (
   });
 
   const parts: Array<string> = [
-    returnValue ? returnValue.name || returnValue.id : returnValueId,
+    returnValue
+      ? returnValueName(returnValue, context.translator)
+      : returnValueId,
     ...(deeper ? [deeper] : []),
   ];
 
