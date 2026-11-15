@@ -52377,6 +52377,8 @@
   "Nullability changed": "已更改可空性",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime 每 5 分钟检查一次。当检查它的每个位置都发现它宕机（没有响应，或响应出错）时，就会创建事件。",
   "Open (invoice status)": "未支付",
+  "Deleted (invoice status)": "已删除",
+  "Undefined (invoice status)": "未定义",
   "Paid": "已支付",
   "Partitioned Table": "分区表",
   "Recording paused by the page: {{label}}": "页面暂停了录制：{{label}}",

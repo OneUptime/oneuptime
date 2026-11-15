@@ -52377,6 +52377,8 @@
   "Nullability changed": "امکان NULL تغییر کرد",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime آن را هر ۵ دقیقه بررسی می‌کند. وقتی همهٔ مکان‌هایی که آن را بررسی می‌کنند آن را از کار افتاده ببینند، یعنی پاسخی نیاید یا پاسخ همراه با خطا باشد، یک حادثه باز می‌شود.",
   "Open (invoice status)": "پرداخت‌نشده",
+  "Deleted (invoice status)": "حذف‌شده",
+  "Undefined (invoice status)": "تعریف‌نشده",
   "Paid": "پرداخت‌شده",
   "Partitioned Table": "جدول پارتیشن‌بندی‌شده",
   "Recording paused by the page: {{label}}": "مکث ضبط به خواست صفحه: {{label}}",

@@ -52377,6 +52377,8 @@
   "Nullability changed": "NULL 許容を変更",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime は 5 分ごとに確認します。確認しているすべての拠点でダウン（応答なし、またはエラー応答）と判断されると、インシデントが作成されます。",
   "Open (invoice status)": "未払い",
+  "Deleted (invoice status)": "削除済み",
+  "Undefined (invoice status)": "未定義",
   "Paid": "支払い済み",
   "Partitioned Table": "パーティションテーブル",
   "Recording paused by the page: {{label}}": "ページによって録画が一時停止: {{label}}",

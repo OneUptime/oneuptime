@@ -52377,6 +52377,8 @@
   "Nullability changed": "NULL अनुमति बदली गई",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime इसे हर 5 मिनट में जाँचता है। जब इसे जाँचने वाला हर स्थान इसे डाउन पाता है, यानी जवाब नहीं आता या जवाब में त्रुटि आती है, तो एक घटना खुलती है।",
   "Open (invoice status)": "भुगतान बाकी",
+  "Deleted (invoice status)": "हटाया गया",
+  "Undefined (invoice status)": "अपरिभाषित",
   "Paid": "भुगतान किया गया",
   "Partitioned Table": "पार्टिशन टेबल",
   "Recording paused by the page: {{label}}": "पेज ने रिकॉर्डिंग रोकी: {{label}}",

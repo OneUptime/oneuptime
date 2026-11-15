@@ -77,15 +77,23 @@ const NOT_PAYABLE_INVOICE_STATUSES: Array<InvoiceStatus> = [
  * "Open (invoice status)", worded as the state: German "Offen", Spanish
  * "Pendiente". English reads it "Open", as Stripe words it
  * (Common/Types/MeaningKeys).
+ *
+ * Every status agrees with the invoice, which Spanish, French, Italian,
+ * Portuguese and Arabic make feminine: "Pagada", "Anulada". The bare
+ * "Deleted" and "Undefined" are words the whole Dashboard shares, worded
+ * masculine ("Eliminado", "Supprimé"), so a deleted invoice read
+ * "Eliminado" under a paid one's "Pagada" (#8181). They have keys of their
+ * own as well, worded for an invoice ("Eliminada", "Supprimée",
+ * "Indefinida"), which English reads "Deleted" and "Undefined".
  */
 const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   [InvoiceStatus.Paid]: translationKey("Paid"),
   [InvoiceStatus.Draft]: translationKey("Draft"),
   [InvoiceStatus.Void]: translationKey("Void"),
   [InvoiceStatus.Uncollectible]: translationKey("Uncollectible"),
-  [InvoiceStatus.Deleted]: translationKey("Deleted"),
+  [InvoiceStatus.Deleted]: translationKey("Deleted (invoice status)"),
   [InvoiceStatus.Open]: translationKey("Open (invoice status)"),
-  [InvoiceStatus.Undefined]: translationKey("Undefined"),
+  [InvoiceStatus.Undefined]: translationKey("Undefined (invoice status)"),
 };
 
 type GetInvoiceStatusLabelFunction = (status: string | undefined) => string;

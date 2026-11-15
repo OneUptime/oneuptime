@@ -52377,6 +52377,8 @@
   "Nullability changed": "NULL 허용 여부 변경됨",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime이 5분마다 확인합니다. 확인하는 모든 위치에서 다운(응답 없음 또는 오류 응답)으로 확인되면 인시던트가 열립니다.",
   "Open (invoice status)": "미결제",
+  "Deleted (invoice status)": "삭제됨",
+  "Undefined (invoice status)": "정의되지 않음",
   "Paid": "결제됨",
   "Partitioned Table": "파티션 테이블",
   "Recording paused by the page: {{label}}": "페이지가 녹화를 일시 중지함: {{label}}",

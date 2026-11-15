@@ -52377,6 +52377,8 @@
   "Nullability changed": "已變更可為空值設定",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime 每 5 分鐘檢查一次。當檢查它的每個位置都發現它當機（沒有回應，或回應錯誤）時，就會建立事件。",
   "Open (invoice status)": "未付款",
+  "Deleted (invoice status)": "已刪除",
+  "Undefined (invoice status)": "未定義",
   "Paid": "已付款",
   "Partitioned Table": "分割資料表",
   "Recording paused by the page: {{label}}": "頁面暫停了錄製：{{label}}",

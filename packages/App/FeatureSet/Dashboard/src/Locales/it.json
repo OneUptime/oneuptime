@@ -52377,6 +52377,8 @@
   "Nullability changed": "Nullabilità modificata",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime lo controlla ogni 5 minuti. Viene aperto un incidente quando ogni posizione che lo controlla lo trova non disponibile: nessuna risposta, o una risposta con un errore.",
   "Open (invoice status)": "Da pagare",
+  "Deleted (invoice status)": "Eliminata",
+  "Undefined (invoice status)": "Non definita",
   "Paid": "Pagata",
   "Partitioned Table": "Tabella partizionata",
   "Recording paused by the page: {{label}}": "Registrazione messa in pausa dalla pagina: {{label}}",

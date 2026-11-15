@@ -52377,6 +52377,8 @@
   "Nullability changed": "NULL-tillatelse endret",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime sjekker den hvert 5. minutt. En hendelse åpnes når alle plasseringer som sjekker den, finner den nede: ikke noe svar, eller et svar med en feil.",
   "Open (invoice status)": "Ubetalt",
+  "Deleted (invoice status)": "Slettet",
+  "Undefined (invoice status)": "Udefinert",
   "Paid": "Betalt",
   "Partitioned Table": "Partisjonert tabell",
   "Recording paused by the page: {{label}}": "Opptaket ble satt på pause av siden: {{label}}",

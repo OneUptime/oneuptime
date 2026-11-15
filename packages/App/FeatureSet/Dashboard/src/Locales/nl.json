@@ -52377,6 +52377,8 @@
   "Nullability changed": "Nullbaarheid gewijzigd",
   "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime controleert dit elke 5 minuten. Er wordt een incident geopend wanneer elke locatie die het controleert een storing ziet: geen antwoord, of een antwoord met een fout.",
   "Open (invoice status)": "Openstaand",
+  "Deleted (invoice status)": "Verwijderd",
+  "Undefined (invoice status)": "Ongedefinieerd",
   "Paid": "Betaald",
   "Partitioned Table": "Gepartitioneerde tabel",
   "Recording paused by the page: {{label}}": "Opname gepauzeerd door de pagina: {{label}}",

@@ -560,12 +560,16 @@ describe("Spanish invoices, filtered to the open ones: a state whose English is 
         "Draft",
         "Void",
         "Uncollectible",
-        "Deleted",
+        "Deleted (invoice status)",
         "Open (invoice status)",
-        "Undefined",
+        "Undefined (invoice status)",
       ].map(spanish),
     );
     expect(menu.options).not.toContain(spanish("Open"));
+    // #8181: a deleted invoice and one with no status agree with the invoice.
+    expect(menu.options).toContain("Eliminada");
+    expect(menu.options).toContain("Indefinida");
+    expect(menu.options).not.toContain(spanish("Deleted"));
   });
 
   test("in English, the open invoice still reads Open: the key's own English is never drawn", async () => {
