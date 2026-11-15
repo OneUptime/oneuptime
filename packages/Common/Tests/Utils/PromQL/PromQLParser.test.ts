@@ -404,6 +404,29 @@ describe("PromQL regular expressions", () => {
     ["(a(?i)b)c", "aBC", false],
     ["(?i)a(?-i)b", "Ab", true],
     ["(?i)a(?-i)b", "AB", false],
+    // Each later alternative starts under the flags the one before it set.
+    ["(?i)a|(?-i)b|c", "A", true],
+    ["(?i)a|(?-i)b|c", "B", false],
+    ["(?i)a|(?-i)b|c", "C", false],
+    ["(?i)a|(?-i)b|c", "c", true],
+    ["a(?i)b|c(?-i)d|e", "aB", true],
+    ["a(?i)b|c(?-i)d|e", "Cd", true],
+    ["a(?i)b|c(?-i)d|e", "CD", false],
+    ["a(?i)b|c(?-i)d|e", "E", false],
+    // A group's ")" ends its flag groups, and its alternatives share them.
+    ["(?i)(a(?-i)b|c)d", "AbD", true],
+    ["(?i)(a(?-i)b|c)d", "ABd", false],
+    ["(?i)(a(?-i)b|c)d", "Cd", false],
+    ["((?i)a|b)c", "Bc", true],
+    ["((?i)a|b)c", "aC", false],
+    ["(?:(?i)a)b", "Ab", true],
+    ["(?:(?i)a)b", "AB", false],
+    // A flag group inside (?flags: ... ) ends at that group's ")".
+    ["x(?i:a(?-i)b)c", "xAbc", true],
+    ["x(?i:a(?-i)b)c", "xABc", false],
+    ["x(?i:a(?-i)b)c", "xAbC", false],
+    ["(?-s)a(?s:.)b.", "a\nbc", true],
+    ["(?-s)a(?s:.)b.", "a\nb\n", false],
     // Set then cleared: cleared (parsePerlFlags).
     ["(?i-i)a", "A", false],
     // No flags at all: nothing changes (parsePerlFlags).
@@ -444,6 +467,11 @@ describe("PromQL regular expressions", () => {
     ["(?U)(a{1,3})(a*)", "aaaa", ["a", "aaa"]],
     ["(?U)(a{1,3}?)(a*)", "aaaa", ["aaa", "a"]],
     ["(?U)(a??)(a*)", "aa", ["a", "a"]],
+    ["(?U)(a+)(?-U)(a+)", "aaa", ["a", "aa"]],
+    ["(?U)(a+)(?-U:(a+))(a*)", "aaaa", ["a", "aaa", ""]],
+    // (?U) between an atom and its repeat: the repeat is lazy.
+    ["(a(?U)*)(a*)", "aaa", ["", "aaa"]],
+    ["(a(?i)b|c)d", "Cd", ["C"]],
     ["(.*)", "a\nb", ["a\nb"]],
   ])(
     "%s on %j captures %j, as in Prometheus",
