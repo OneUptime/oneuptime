@@ -30,7 +30,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ein verbundenes AWS-Konto.** Verbinden Sie es zuerst unter **Cloud → Verbinden**: siehe [Ein Cloud-Konto verbinden](/docs/telemetry/cloud-accounts).
-- **Ein Projektinhaber oder Admin.** Nur sie können einen Stream-Schlüssel erstellen und das Streaming beenden.
+- **Ein Projektinhaber oder Projektadministrator.** Nur sie können einen Stream-Schlüssel erstellen und das Streaming beenden.
 - **AWS CloudShell in diesem Konto**, angemeldet als jemand, der CloudFormation-Stacks und IAM-Rollen anlegen darf.
 - **Eine HTTPS-Adresse, bei einem selbst gehosteten OneUptime.** Firehose stellt nur an `https://`-Adressen auf Port 443 zu, mit einem Zertifikat, dem AWS vertraut, und die Adresse muss von AWS aus erreichbar sein.
 

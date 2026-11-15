@@ -95,7 +95,7 @@ Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla
 2. Si no tienes ninguno, un método de pago, en este orden: SMS, una llamada, WhatsApp, Telegram. Es el primero que tengas verificado, en un canal que el proyecto ha activado.
 3. Si tampoco tienes ninguno de esos, un webhook.
 
-Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Cómo contactarme](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
+Recibes un correo avisándote, y también los propietarios de la política de guardia, o los Propietarios del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Cómo contactarme](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
 
 ## El idioma de tus avisos
 

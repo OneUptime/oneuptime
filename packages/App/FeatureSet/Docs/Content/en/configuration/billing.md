@@ -138,7 +138,7 @@ On the page's **Current Balance** card, click **Recharge Balance**. Enter an amo
 On the **Auto Recharge** card, click **Edit Auto Recharge** and turn on **Enable Auto Recharge**. It starts off. Once it is on, OneUptime adds $20 whenever the balance falls to $10, or the amounts you pick.
 :::
 
-When a balance cannot pay, the message is not sent, or OneUptime AI stops, and the project's owners are emailed. See [When a page is not sent](/docs/on-call/escalation-rules#when-a-page-is-not-sent) and [When AI credits run out](/docs/ai/ai-sre#when-ai-credits-run-out).
+When a balance cannot pay, the message is not sent, or OneUptime AI stops, and the Project Owners are emailed. See [When a page is not sent](/docs/on-call/escalation-rules#when-a-page-is-not-sent) and [When AI credits run out](/docs/ai/ai-sre#when-ai-credits-run-out).
 
 ## Who can do what
 

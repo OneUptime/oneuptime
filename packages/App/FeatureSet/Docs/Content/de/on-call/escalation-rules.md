@@ -165,7 +165,7 @@ Eine nicht gesendete Alarmierung sagt unter **Bereitschaftsprotokolle** in den B
 - das Guthaben des Projekts konnte sie nicht bezahlen, und wer Guthaben aufladen kann;
 - der Kanal ist im Projekt ausgeschaltet, und wer ihn einschalten kann.
 
-Die Eigentümer des Projekts erhalten dazu einmal eine E-Mail, bis das Guthaben aufgeladen oder der Kanal wieder eingeschaltet ist.
+Die Projektinhaber erhalten dazu einmal eine E-Mail, bis das Guthaben aufgeladen oder der Kanal wieder eingeschaltet ist.
 
 Eine Alarmierung, die den Benachrichtigungsdienst von OneUptime nicht erreichen konnte, sagt `Could not reach the Notification service to send this (ECONNREFUSED).`, mit dem Code des Netzwerkfehlers in den Klammern. Eine Alarmierung, deren Versand nie fertig wurde, etwa weil ein Server während des Versands neu gestartet ist, sagt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Wird der Versand doch noch fertig, ersetzt sein Ergebnis diese Meldung.
 
