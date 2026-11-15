@@ -11,12 +11,12 @@ import ts from "typescript";
  * a placeholder (Input, TextArea, the dropdowns, the pickers, the code and
  * Markdown editors), an aria label (Button, Dropdown, MoreMenu, the
  * checkboxes and switches), a nav bar's titles and its products menu's
- * words, a page's breadcrumbs, a detail card's words for an empty value,
- * a badge's hover tip - and so does every
- * component that hands such a text on to one of them. A page that hands one
- * a text it has looked up already has it looked up twice, and where a
- * translation is itself an English key the reader sees the translation of
- * the translation: Spanish says "Red" for "Network", and "Rojo" for "Red".
+ * words, a page's breadcrumbs, a detail card's words for an empty value -
+ * and so does every component that hands such a text on to one of them.
+ * A page that hands one a text it has looked up already has it looked up
+ * twice, and where a translation is itself an English key the reader sees
+ * the translation of the translation: Spanish says "Red" for "Network",
+ * and "Rojo" for "Red".
  *
  * So a text is handed over in English, and the control looks it up, once.
  * A sentence the page builds around a value ("Filter by {{field}}") or a
