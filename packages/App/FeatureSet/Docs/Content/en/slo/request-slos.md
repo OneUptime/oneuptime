@@ -59,7 +59,7 @@ Enter a **Name**, for example "Checkout requests", and a **Target (%)**: the sha
 The first evaluation, within 5 minutes, counts the last 6 hours of requests, so the SLO has numbers at once. The evaluations after it count older requests too, until the compliance window is covered.
 :::
 
-To change what an SLO measures, its services or its threshold later, open its **Settings** and click **Edit What It Measures**.
+A service's own **SLOs** page lists the SLOs that measure it, and its **Create Service Level Objective** opens the same form with the service already chosen. To change what an SLO measures, its services or its threshold later, open its **Settings** and click **Edit What It Measures**.
 
 ## How requests are counted
 

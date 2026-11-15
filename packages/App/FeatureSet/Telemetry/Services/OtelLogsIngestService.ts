@@ -26,7 +26,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import LogEventName from "Common/Types/Log/LogEventName";
 import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, {
+  logSeverityFromNumber,
+  logSeverityNumberFromText,
+} from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -193,63 +196,6 @@ const SEVERITY_NUMBER_BY_OTLP_NAME: ReadonlyMap<string, number> = new Map([
 ]);
 
 const MAX_OTLP_SEVERITY_NUMBER: number = 24;
-
-/*
- * A log record's severityText, upper-cased, to the SeverityNumber it names,
- * for a record that sets the text and no number (issue #8248). The
- * OpenTelemetry Logs Data Model makes both fields optional, and a sender may
- * set only the text: a Node.js app that emits { severityText: "INFO" }, or a
- * log shipper that maps a level field to the text alone.
- *
- * The spec's short names come first - TRACE, DEBUG, INFO, WARN, ERROR and
- * FATAL, each with its numbered steps (INFO2, WARN4, ...): the name of each
- * step is its number's (Field: SeverityText; Displaying Severity). Then the
- * spellings other logging systems write, mapped as the spec's own table of
- * example mappings maps them (Appendix B: syslog, Windows Event Log, log4j,
- * zap, java.util.logging): `information` and `warning`, syslog's `notice`
- * (INFO2), `crit` / `critical` (ERROR2), `alert` (ERROR3) and `emerg` /
- * `emergency` (FATAL), and the like. A Map, like SEVERITY_NUMBER_BY_OTLP_NAME,
- * so "constructor" names nothing.
- */
-const SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
-  string,
-  number
->([
-  ...(
-    [
-      ["TRACE", 1],
-      ["DEBUG", 5],
-      ["INFO", 9],
-      ["WARN", 13],
-      ["ERROR", 17],
-      ["FATAL", 21],
-    ] as Array<[string, number]>
-  ).flatMap(([level, first]: [string, number]): Array<[string, number]> => {
-    return [0, 1, 2, 3].map((step: number): [string, number] => {
-      return [step === 0 ? level : `${level}${step + 1}`, first + step];
-    });
-  }),
-  // log4j, zap, java.util.logging, Windows Event Log and .NET spellings.
-  ["FINEST", 1],
-  ["VERBOSE", 5],
-  ["FINER", 5],
-  ["FINE", 6],
-  ["CONFIG", 7],
-  ["INFORMATION", 9],
-  ["INFORMATIONAL", 9],
-  ["WARNING", 13],
-  ["ERR", 17],
-  ["SEVERE", 17],
-  ["DPANIC", 18],
-  ["PANIC", 19],
-  // syslog's levels (RFC 5424), as the spec's appendix maps them.
-  ["NOTICE", 10],
-  ["CRIT", 18],
-  ["CRITICAL", 18],
-  ["ALERT", 19],
-  ["EMERG", 21],
-  ["EMERGENCY", 21],
-]);
 
 // Plain decimal digits only: no sign, fraction, exponent, hex or padding.
 const NUMERIC_SEVERITY_STRING: RegExp = /^[0-9]+$/;
@@ -2066,18 +2012,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   /*
    * The SeverityNumber a log record's severityText names, for a record that
    * sets no number (issue #8248): the spec's short names and their numbered
-   * steps, and the spellings in SEVERITY_NUMBER_BY_TEXT, in any case and
-   * with spaces around them. Anything else - text that names no severity,
-   * or a value that is not text - is UNSPECIFIED (0), as a record with
-   * neither field is: a severity is never guessed from a word that does not
-   * name one.
+   * steps, and the spellings other logging systems write, in any case and
+   * with spaces around them - the one table Fluent ingest and the severity
+   * remapper read too (LOG_SEVERITY_NUMBER_BY_TEXT, issue #8425). Anything
+   * else - text that names no severity, or a value that is not text - is
+   * UNSPECIFIED (0), as a record with neither field is: a severity is never
+   * guessed from a word that does not name one.
    */
   public static severityNumberFromText(severityText: unknown): number {
-    if (typeof severityText !== "string") {
-      return 0;
-    }
-
-    return SEVERITY_NUMBER_BY_TEXT.get(severityText.trim().toUpperCase()) ?? 0;
+    return logSeverityNumberFromText(severityText);
   }
 
   /*
@@ -2278,19 +2221,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {
-    if (severityNumber >= 1 && severityNumber <= 4) {
-      return LogSeverity.Trace;
-    } else if (severityNumber >= 5 && severityNumber <= 8) {
-      return LogSeverity.Debug;
-    } else if (severityNumber >= 9 && severityNumber <= 12) {
-      return LogSeverity.Information;
-    } else if (severityNumber >= 13 && severityNumber <= 16) {
-      return LogSeverity.Warning;
-    } else if (severityNumber >= 17 && severityNumber <= 20) {
-      return LogSeverity.Error;
-    } else if (severityNumber >= 21 && severityNumber <= 24) {
-      return LogSeverity.Fatal;
-    }
-    return LogSeverity.Unspecified;
+    return logSeverityFromNumber(severityNumber);
   }
 }

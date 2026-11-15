@@ -35,7 +35,16 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, {
+  LOG_SEVERITY_NUMBER_BY_TEXT,
+} from "Common/Types/Log/LogSeverity";
+import {
+  LOG_SEVERITY_WORDS,
+  LogSeverityWord,
+  OTHER_LOGGER_WORDS,
+  WORDS_THAT_NAME_NOTHING,
+  spellingsOf,
+} from "./Helpers/LogSeverityWords";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
@@ -945,28 +954,18 @@ const SEVERITY_TEXT_CASES: Array<SeverityCase> = SEVERITY_CASES.filter(
 
 /*
  * The spellings other logging systems write, as the spec's table of example
- * mappings (Logs Data Model, Appendix B) maps them to a SeverityNumber.
+ * mappings (Logs Data Model, Appendix B) maps them to a SeverityNumber: the
+ * table every log ingest reads (issue #8425), written out by hand in
+ * Helpers/LogSeverityWords - Fluent ingest and the remapper are held to
+ * the same one. `critical` is FATAL there, not ERROR2 (the helper and
+ * LOG_SEVERITY_NUMBER_BY_TEXT say why).
  */
-const OTHER_SPELLINGS: Array<[string, number, LogSeverity]> = [
-  ["finest", 1, LogSeverity.Trace],
-  ["verbose", 5, LogSeverity.Debug],
-  ["finer", 5, LogSeverity.Debug],
-  ["fine", 6, LogSeverity.Debug],
-  ["config", 7, LogSeverity.Debug],
-  ["information", 9, LogSeverity.Information],
-  ["informational", 9, LogSeverity.Information],
-  ["notice", 10, LogSeverity.Information],
-  ["warning", 13, LogSeverity.Warning],
-  ["err", 17, LogSeverity.Error],
-  ["severe", 17, LogSeverity.Error],
-  ["crit", 18, LogSeverity.Error],
-  ["critical", 18, LogSeverity.Error],
-  ["dpanic", 18, LogSeverity.Error],
-  ["alert", 19, LogSeverity.Error],
-  ["panic", 19, LogSeverity.Error],
-  ["emerg", 21, LogSeverity.Fatal],
-  ["emergency", 21, LogSeverity.Fatal],
-];
+const OTHER_SPELLINGS: Array<[string, number, LogSeverity]> =
+  OTHER_LOGGER_WORDS.map(
+    (word: LogSeverityWord): [string, number, LogSeverity] => {
+      return [word.word, word.severityNumber, word.severity];
+    },
+  );
 
 // Text that names no severity: stored as Unspecified, as before.
 const TEXT_THAT_NAMES_NOTHING: Array<[string, unknown]> = [
@@ -1066,6 +1065,76 @@ describe("a record that sets only its severityText (issue #8248)", () => {
       },
     );
   });
+
+  describe("every other logger's spelling, through every producer (issue #8425)", () => {
+    const matrix: Array<[string, string, number, LogSeverity, number]> = [];
+    ROUTES.forEach((route: Route, routeIndex: number) => {
+      for (const [spelling, severityNumber, text] of OTHER_SPELLINGS) {
+        matrix.push([route.label, spelling, severityNumber, text, routeIndex]);
+      }
+    });
+
+    test.each(matrix)(
+      "%s: severityText %s with no severityNumber is stored as %i (%s)",
+      async (
+        _label: string,
+        spelling: string,
+        severityNumber: number,
+        text: LogSeverity,
+        routeIndex: number,
+      ) => {
+        await ingestDecodedBody(
+          await ROUTES[routeIndex]!.decode(
+            otlpJsonRequest([
+              logRecordWithText({
+                severityText: spelling,
+                bodySeverity: severityNumber,
+              }),
+            ]),
+          ),
+        );
+
+        expectStoredSeverity({
+          severityNumber: severityNumber,
+          text: text,
+          bodyScanned: severityNumber >= 17,
+          bodySeverity: severityNumber,
+        });
+      },
+    );
+  });
+
+  /*
+   * The words the issue found the paths disagreeing on: `{"level":
+   * "critical"}` was Fatal through Fluent Bit and Error as an OTLP
+   * severityText. Now Fatal both ways, and scanned for an exception as any
+   * Fatal record is.
+   */
+  test.each([
+    ["critical", 21, LogSeverity.Fatal],
+    ["CRITICAL", 21, LogSeverity.Fatal],
+    ["crit", 18, LogSeverity.Error],
+    ["fatal", 21, LogSeverity.Fatal],
+    ["emergency", 21, LogSeverity.Fatal],
+    ["notice", 10, LogSeverity.Information],
+  ])(
+    "%s, a word Fluent and OTLP used to store differently, is stored as %i (%s)",
+    async (written: string, severityNumber: number, text: LogSeverity) => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityText: written,
+          bodySeverity: severityNumber,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: severityNumber,
+        text: text,
+        bodyScanned: severityNumber >= 17,
+        bodySeverity: severityNumber,
+      });
+    },
+  );
 
   test.each(OTHER_SPELLINGS)(
     "the spelling %s is stored as %i (%s), in any case and with spaces around it",
@@ -1331,6 +1400,31 @@ describe("a record that sets only its severityText (issue #8248)", () => {
 
     test("undefined -> 0", () => {
       expect(OtelLogsIngestService.severityNumberFromText(undefined)).toBe(0);
+    });
+
+    test("reads the one table every log ingest reads, and that table is the hand-written one, word for word", () => {
+      expect(Array.from(LOG_SEVERITY_NUMBER_BY_TEXT.entries()).sort()).toEqual(
+        LOG_SEVERITY_WORDS.map((word: LogSeverityWord): [string, number] => {
+          return [word.word.toUpperCase(), word.severityNumber];
+        }).sort(),
+      );
+
+      for (const word of LOG_SEVERITY_WORDS) {
+        for (const written of spellingsOf(word.word)) {
+          expect({
+            written,
+            severityNumber:
+              OtelLogsIngestService.severityNumberFromText(written),
+          }).toEqual({ written, severityNumber: word.severityNumber });
+        }
+      }
+
+      for (const [, written] of WORDS_THAT_NAME_NOTHING) {
+        expect({
+          written,
+          severityNumber: OtelLogsIngestService.severityNumberFromText(written),
+        }).toEqual({ written, severityNumber: 0 });
+      }
     });
 
     /*

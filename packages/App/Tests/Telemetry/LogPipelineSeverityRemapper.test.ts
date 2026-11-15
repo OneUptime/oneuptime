@@ -2,10 +2,16 @@ import LogPipelineService, {
   LoadedPipeline,
 } from "../../FeatureSet/Telemetry/Services/LogPipelineService";
 import evaluateFilter from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, { LogSeverityNumber } from "Common/Types/Log/LogSeverity";
 import LogPipelineProcessorType from "Common/Types/Log/LogPipelineProcessorType";
 import { JSONObject } from "Common/Types/JSON";
 import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
+import {
+  LOG_SEVERITY_WORDS,
+  LogSeverityWord,
+  WORDS_THAT_NAME_NOTHING,
+  spellingsOf,
+} from "./Helpers/LogSeverityWords";
 
 /*
  * The severity remapper writes straight onto the log row, after ingest has
@@ -221,4 +227,83 @@ describe("severity remapper writes only values a filter can match", () => {
       expect(withIt["severityNumber"]).toBe(13);
     },
   );
+});
+
+/*
+ * THE REMAPPER NAMES A SEVERITY WITH THE SAME WORDS INGEST DOES (issue
+ * #8425).
+ *
+ * The remapper used to know only the six level names, `information`,
+ * `warning` and `err`: a pipeline saved through the API with a severity of
+ * `critical`, `notice` or `crit` was ignored, while a log sent with that
+ * level was stored as Fatal, Information or Error. Now every word of the one
+ * table OTLP and Fluent ingest read (Helpers/LogSeverityWords, written out
+ * by hand) names, as a remapper target, the severity a log sent with that
+ * level is stored as - at that severity's own number, as every remapped row
+ * is.
+ */
+describe("severity remapper: the level words every log ingest reads", () => {
+  const remapTo: (severityText: string) => JSONObject = (
+    severityText: string,
+  ): JSONObject => {
+    return LogPipelineService.processLog(
+      {
+        severityText: LogSeverity.Unspecified,
+        severityNumber: 0,
+        attributes: { level: "oops" },
+      },
+      [
+        {
+          pipeline: { name: "test-pipeline" },
+          compiledFilter: { kind: "always-true" },
+          processors: [
+            {
+              name: "remap",
+              processorType: LogPipelineProcessorType.SeverityRemapper,
+              configuration: {
+                sourceKey: "level",
+                mappings: [
+                  { matchValue: "oops", severityText, severityNumber: 0 },
+                ],
+              },
+            },
+          ],
+        },
+      ] as unknown as Array<LoadedPipeline>,
+    );
+  };
+
+  test.each(
+    LOG_SEVERITY_WORDS.map((word: LogSeverityWord): [string, LogSeverity] => {
+      return [word.word, word.severity];
+    }),
+  )(
+    "a target of %s is written as %s, in any case and with spaces around it",
+    (word: string, severity: LogSeverity) => {
+      for (const written of spellingsOf(word)) {
+        const out: JSONObject = remapTo(written);
+
+        expect({ written, severityText: out["severityText"] }).toEqual({
+          written,
+          severityText: severity,
+        });
+        expect(out["severityNumber"]).toBe(LogSeverityNumber[severity]);
+      }
+    },
+  );
+
+  test.each(WORDS_THAT_NAME_NOTHING)(
+    "a target of %s (%p) is no severity: the row is left as ingest stored it",
+    (_label: string, written: string) => {
+      const out: JSONObject = remapTo(written);
+
+      expect(out["severityText"]).toBe(LogSeverity.Unspecified);
+      expect(out["severityNumber"]).toBe(0);
+    },
+  );
+
+  test("critical, the word the paths disagreed on, is Fatal here too", () => {
+    expect(remapTo("critical")["severityText"]).toBe(LogSeverity.Fatal);
+    expect(remapTo("crit")["severityText"]).toBe(LogSeverity.Error);
+  });
 });

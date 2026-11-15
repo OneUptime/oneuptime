@@ -254,10 +254,29 @@ export default class MonitorResourceUtil {
      * (the MonitorProbe row it is stored under, probe agreement).
      */
     if (reportingProbeId) {
-      ProbeReportIdentity.bindResultToSender(
-        dataToProcess as ProbeMonitorResponse,
-        reportingProbeId,
-      );
+      try {
+        ProbeReportIdentity.bindResultToSender(
+          dataToProcess as ProbeMonitorResponse,
+          reportingProbeId,
+        );
+      } catch (err) {
+        /*
+         * Logged once, at warn, naming the probe: the telemetry worker
+         * completes the job rather than retrying it - the result does not
+         * change between attempts (isNonActionableIngestError, issue
+         * #8424). Probe ingest holds a result to its sender before it gets
+         * here, so this is the line for a caller that does not.
+         */
+        logger.warn(
+          `Probe ${reportingProbeId.toString()} reported a check result for monitor ${dataToProcess.monitorId?.toString()} that names another probe. A probe can only report its own results, so the result was refused.`,
+          {
+            monitorId: dataToProcess.monitorId?.toString(),
+            probeId: reportingProbeId.toString(),
+          } as LogAttributes,
+        );
+
+        throw err;
+      }
     }
 
     let response: ProbeApiIngestResponse = {

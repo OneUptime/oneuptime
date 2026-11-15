@@ -22,8 +22,9 @@ import { INHERITED_PROPERTY_NAME_SPELLINGS } from "Common/Tests/Helpers/Inherite
  * "constructor" (or "CONSTRUCTOR", or "__proto__") found the Object function
  * or the prototype, which is truthy and has no number or text: the log was
  * stored with neither a severity number nor a severity text. The table is a
- * Map now (lookupTable): such a level is no severity it knows, and the log
- * is stored as Unspecified, as any other unknown level is.
+ * Map now - the one every log ingest reads, LOG_SEVERITY_NUMBER_BY_TEXT
+ * (issue #8425): such a level is no severity it knows, and the log is
+ * stored as Unspecified, as any other unknown level is.
  *
  * The persistence edges are replaced as in FluentLogsIngestRecordTime.
  */
@@ -205,7 +206,12 @@ describe("a Fluent record's level, named like what every object inherits", () =>
     expect(row!["severityText"]).toBe(LogSeverity.Unspecified);
   });
 
-  test("the levels the table lists still read as they did, in any case", async () => {
+  /*
+   * As the shared table reads them (issue #8425): `fatal` is FATAL (21)
+   * where Fluent's own table had 23, and `verbose` is the Windows Event
+   * Log's and ETW's Debug, where Fluent's own table did not know it.
+   */
+  test("the levels the table lists read as the table says, in any case", async () => {
     const rows: Array<JSONObject> = await ingest([
       { level: "ERROR", message: "a" },
       { level: "warn", message: "b" },
@@ -222,8 +228,8 @@ describe("a Fluent record's level, named like what every object inherits", () =>
       [17, LogSeverity.Error],
       [13, LogSeverity.Warning],
       [9, LogSeverity.Information],
-      [23, LogSeverity.Fatal],
-      [0, LogSeverity.Unspecified],
+      [21, LogSeverity.Fatal],
+      [5, LogSeverity.Debug],
     ]);
   });
 });

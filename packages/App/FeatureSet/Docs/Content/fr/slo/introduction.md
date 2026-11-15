@@ -146,7 +146,7 @@ Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel que
 
 ## La liste des SLO
 
-La page **SLOs** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires.
+La page **SLOs** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires. Sa colonne **Ce qui est mesuré** affiche les services d'un SLO de requêtes là où elle affiche les moniteurs d'un SLO de disponibilité, et le filtre **Services** trouve les SLO qui mesurent un service.
 
 - Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
 - Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, leur donner les [règles de taux de consommation recommandées](/docs/slo/burn-rate-alerts#les-ajouter-à-plusieurs-slo-à-la-fois) qui leur manquent, les archiver ou les supprimer, tous en même temps.
@@ -256,15 +256,15 @@ Un bandeau en haut des pages du SLO dit ce qui l'empêche de mesurer :
 | Bandeau | Signification | Que faire |
 | --- | --- | --- |
 | **Aucun moniteur rattaché** | Le SLO n'a aucun moniteur, il n'y a donc rien à mesurer. | Rattachez des moniteurs ou créez une règle de moniteurs. |
-| **Waiting for SLO evaluation** | Des moniteurs sont rattachés, mais la dernière évaluation n'avait aucune donnée de statut venant d'eux. | Vérifiez que les moniteurs sont bien vérifiés. Les chiffres apparaissent après la prochaine évaluation qui a des données. |
-| **Measurement is paused** | Chaque moniteur qu'il mesure est archivé ou a la surveillance active désactivée. | Réactivez la surveillance d'au moins un moniteur, ou attendez la fin de la maintenance. |
-| **The target is out of range** | L'objectif n'est pas supérieur à 0 et inférieur à 100. | Fixez un objectif comme 99,9 dans **Paramètres** → **Objectif**. |
-| **This SLO is disabled** | L'évaluation est désactivée. | Cliquez sur **Activer l'évaluation**. |
-| **This SLO is archived** | Le SLO est archivé. | Désarchivez-le dans **Paramètres**. |
+| **En attente de l'évaluation du SLO** | Des moniteurs sont rattachés, mais la dernière évaluation n'avait aucune donnée de statut venant d'eux. | Vérifiez que les moniteurs sont bien vérifiés. Les chiffres apparaissent après la prochaine évaluation qui a des données. |
+| **La mesure est en pause** | Chaque moniteur qu'il mesure est archivé ou a la surveillance active désactivée. | Réactivez la surveillance d'au moins un moniteur, ou attendez la fin de la maintenance. |
+| **L'objectif est hors limites** | L'objectif n'est pas supérieur à 0 et inférieur à 100. | Fixez un objectif comme 99,9 dans **Paramètres** → **Objectif**. |
+| **Ce SLO est désactivé** | L'évaluation est désactivée. | Cliquez sur **Activer l'évaluation**. |
+| **Ce SLO est archivé** | Le SLO est archivé. | Désarchivez-le dans **Paramètres**. |
 | **Pas encore évalué** | Le SLO vient d'être créé. | Attendez la première évaluation, quelques minutes au plus. |
 | **Aucun service choisi** | Un SLO de requêtes n'a aucun service, il n'a donc aucune requête à compter. | Choisissez ses services dans **Paramètres** → **Ce qui est mesuré**. |
-| **No latency threshold** | Un SLO de latence des requêtes n'a pas de seuil, aucune requête ne peut donc compter comme assez rapide. | Fixez le **Seuil de latence (ms)** dans **Paramètres** → **Ce qui est mesuré**. |
-| **Waiting for requests** | Aucun des services d'un SLO de requêtes n'a encore servi de requête dans sa fenêtre. | Vérifiez que les services envoient des traces à OneUptime. Les chiffres apparaissent après la prochaine évaluation qui compte une requête. |
+| **Aucun seuil de latence** | Un SLO de latence des requêtes n'a pas de seuil, aucune requête ne peut donc compter comme assez rapide. | Fixez le **Seuil de latence (ms)** dans **Paramètres** → **Ce qui est mesuré**. |
+| **En attente de requêtes** | Aucun des services d'un SLO de requêtes n'a encore servi de requête dans sa fenêtre. | Vérifiez que les services envoient des traces à OneUptime. Les chiffres apparaissent après la prochaine évaluation qui compte une requête. |
 
 ## Prochaines étapes
 

@@ -146,7 +146,7 @@ Um SLO desligado ou arquivado não é avaliado, então seu status fica como esta
 
 ## A lista de SLOs
 
-A página **SLOs** lista cada SLO não arquivado, com status, SLI, orçamento restante, taxa de consumo, meta, janela, monitores, rótulos e proprietários.
+A página **SLOs** lista cada SLO não arquivado, com status, SLI, orçamento restante, taxa de consumo, meta, janela, monitores, rótulos e proprietários. A coluna **O que mede** mostra os serviços de um SLO de requisições onde mostra os monitores de um SLO de disponibilidade, e o filtro **Serviços** encontra os SLOs que medem um serviço.
 
 - Os blocos acima da lista contam os SLOs por status: **Íntegro**, **Em risco**, **Orçamento esgotado**, **Mal configurado**, **Pausado** e **Desabilitado**. Eles aparecem assim que existe um SLO que não está arquivado. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
 - Selecione SLOs para adicionar ou remover rótulos e proprietários, ativá-los ou desativá-los, dar a eles as [regras de taxa de consumo recomendadas](/docs/slo/burn-rate-alerts#adicioná-las-a-vários-slos-de-uma-vez) que estiverem faltando, arquivá-los ou excluí-los, todos de uma vez.
@@ -256,15 +256,15 @@ Um banner no topo das páginas do SLO diz o que o impede de medir:
 | Banner | O que significa | O que fazer |
 | --- | --- | --- |
 | **Nenhum monitor vinculado** | O SLO não tem monitores, então não há nada para medir. | Associe monitores ou crie uma regra de monitor. |
-| **Waiting for SLO evaluation** | Há monitores associados, mas a última avaliação não tinha dados de status deles. | Confira se os monitores estão sendo verificados. Os números aparecem depois da próxima avaliação com dados. |
-| **Measurement is paused** | Todos os monitores que ele mede estão arquivados ou com o monitoramento ativo desligado. | Ligue de novo o monitoramento de pelo menos um monitor, ou espere a manutenção terminar. |
-| **The target is out of range** | A meta não é maior que 0 e menor que 100. | Defina uma meta como 99,9 em **Configurações** → **Objetivo**. |
-| **This SLO is disabled** | A avaliação está desligada. | Clique em **Ligar a avaliação**. |
-| **This SLO is archived** | O SLO está arquivado. | Desarquive-o em **Configurações**. |
+| **Aguardando a avaliação do SLO** | Há monitores associados, mas a última avaliação não tinha dados de status deles. | Confira se os monitores estão sendo verificados. Os números aparecem depois da próxima avaliação com dados. |
+| **A medição está pausada** | Todos os monitores que ele mede estão arquivados ou com o monitoramento ativo desligado. | Ligue de novo o monitoramento de pelo menos um monitor, ou espere a manutenção terminar. |
+| **A meta está fora do intervalo** | A meta não é maior que 0 e menor que 100. | Defina uma meta como 99,9 em **Configurações** → **Objetivo**. |
+| **Este SLO está desabilitado** | A avaliação está desligada. | Clique em **Ligar a avaliação**. |
+| **Este SLO está arquivado** | O SLO está arquivado. | Desarquive-o em **Configurações**. |
 | **Ainda não avaliado** | O SLO acabou de ser criado. | Espere a primeira avaliação, alguns minutos no máximo. |
 | **Nenhum serviço escolhido** | Um SLO de requisições não tem serviços, então não tem requisições para contar. | Escolha os serviços dele em **Configurações** → **O que mede**. |
-| **No latency threshold** | Um SLO de latência das requisições não tem limite, então nenhuma requisição pode contar como rápida o suficiente. | Defina o **Limite de latência (ms)** em **Configurações** → **O que mede**. |
-| **Waiting for requests** | Nenhum dos serviços de um SLO de requisições atendeu uma requisição na janela ainda. | Confira se os serviços enviam traços ao OneUptime. Os números aparecem depois da próxima avaliação que contar uma requisição. |
+| **Nenhum limite de latência** | Um SLO de latência das requisições não tem limite, então nenhuma requisição pode contar como rápida o suficiente. | Defina o **Limite de latência (ms)** em **Configurações** → **O que mede**. |
+| **Aguardando requisições** | Nenhum dos serviços de um SLO de requisições atendeu uma requisição na janela ainda. | Confira se os serviços enviam traços ao OneUptime. Os números aparecem depois da próxima avaliação que contar uma requisição. |
 
 ## Próximos passos
 
