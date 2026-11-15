@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "メンテナンスイベントの状態変更済み",
   "Subscriber Subscribed": "購読完了",
   "Subscriber Subscription Confirmation": "購読の確認",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「{{connectGitHub}}」からインストールしてください。"
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「{{connectGitHub}}」からインストールしてください。",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "「{{step}}」は「{{value}}」という名前の値を返しません。",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "「{{step}}」はこのフィールドを引き渡さないため、ここでは空です。{{setting}} に追加してください。",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "「{{step}}」はこのステップの後に実行されるため、ここではこの値は空です。",
+  "Global variable": "グローバル変数",
+  "Key / value": "キー / 値",
+  "Leads to {{steps}}": "進む先: {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "このワークフローに ID が「{{id}}」のステップはありません。",
+  "There is no global variable called \"{{name}}\".": "「{{name}}」という名前のグローバル変数はありません。",
+  "There is no workflow variable called \"{{name}}\".": "「{{name}}」という名前のワークフロー変数はありません。",
+  "This is this step's own value, which does not exist yet while its settings are read.": "これはこのステップ自身の値です。設定を読み込む時点ではまだ存在しません。",
+  "Yes / No": "はい / いいえ",
+  "which led to {{steps}}": "その後 {{steps}} に進みました",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。"
 }

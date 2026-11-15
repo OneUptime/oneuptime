@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "유지 관리 이벤트 상태 변경됨",
   "Subscriber Subscribed": "구독 완료",
   "Subscriber Subscription Confirmation": "구독 확인",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. '{{connectGitHub}}' 버튼으로 설치하세요."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. '{{connectGitHub}}' 버튼으로 설치하세요.",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "\"{{step}}\"은(는) \"{{value}}\"(이)라는 값을 반환하지 않습니다.",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "\"{{step}}\"은(는) 이 필드를 넘겨주지 않으므로 여기서는 비어 있습니다. {{setting}}에 추가하세요.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "\"{{step}}\"은(는) 이 단계 뒤에 실행되므로 여기서는 이 값이 비어 있습니다.",
+  "Global variable": "전역 변수",
+  "Key / value": "키 / 값",
+  "Leads to {{steps}}": "{{steps}}(으)로 이어짐",
+  "No step in this workflow has the ID \"{{id}}\".": "이 워크플로에는 ID가 \"{{id}}\"인 단계가 없습니다.",
+  "There is no global variable called \"{{name}}\".": "\"{{name}}\"(이)라는 전역 변수가 없습니다.",
+  "There is no workflow variable called \"{{name}}\".": "\"{{name}}\"(이)라는 워크플로 변수가 없습니다.",
+  "This is this step's own value, which does not exist yet while its settings are read.": "이 단계 자체의 값으로, 설정을 읽는 동안에는 아직 존재하지 않습니다.",
+  "Yes / No": "예 / 아니오",
+  "which led to {{steps}}": "그 뒤 {{steps}}(으)로 이어짐",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}}은(는) 아직 실행되지 않았습니다. 실행되면 여기에 필드가 표시됩니다."
 }

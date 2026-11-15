@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "وضعیت رویداد تعمیر و نگهداری تغییر کرد",
   "Subscriber Subscribed": "اشتراک انجام شد",
   "Subscriber Subscription Confirmation": "تأیید اشتراک",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «{{connectGitHub}}» نصب کنید."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «{{connectGitHub}}» نصب کنید.",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "«{{step}}» چیزی به نام «{{value}}» برنمی‌گرداند.",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "«{{step}}» این فیلد را به گام‌های بعد نمی‌فرستد، پس اینجا خالی است. آن را به {{setting}} آن گام اضافه کنید.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "«{{step}}» پس از این گام اجرا می‌شود، پس این مقدار اینجا خالی است.",
+  "Global variable": "متغیر سراسری",
+  "Key / value": "کلید / مقدار",
+  "Leads to {{steps}}": "می‌رسد به {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "هیچ گامی در این گردش کاری شناسهٔ «{{id}}» را ندارد.",
+  "There is no global variable called \"{{name}}\".": "هیچ متغیر سراسری به نام «{{name}}» وجود ندارد.",
+  "There is no workflow variable called \"{{name}}\".": "هیچ متغیر گردش کاری به نام «{{name}}» وجود ندارد.",
+  "This is this step's own value, which does not exist yet while its settings are read.": "این مقدار خود همین گام است که هنگام خواندن تنظیماتش هنوز وجود ندارد.",
+  "Yes / No": "بله / خیر",
+  "which led to {{steps}}": "که به {{steps}} رسید",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند."
 }

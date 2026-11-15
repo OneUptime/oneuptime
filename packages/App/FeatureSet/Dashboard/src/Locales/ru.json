@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "Состояние события обслуживания изменено",
   "Subscriber Subscribed": "Подписка оформлена",
   "Subscriber Subscription Confirmation": "Подтверждение подписки",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «{{connectGitHub}}»."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «{{connectGitHub}}».",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "«{{step}}» не возвращает ничего с именем «{{value}}».",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "«{{step}}» не передаёт это поле дальше, поэтому здесь оно пустое. Добавьте его в {{setting}} этого шага.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "«{{step}}» выполняется после этого шага, поэтому здесь это значение пустое.",
+  "Global variable": "Глобальная переменная",
+  "Key / value": "Ключ / значение",
+  "Leads to {{steps}}": "Ведёт к {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "Ни у одного шага этого рабочего процесса нет ID «{{id}}».",
+  "There is no global variable called \"{{name}}\".": "Нет глобальной переменной с именем «{{name}}».",
+  "There is no workflow variable called \"{{name}}\".": "Нет переменной рабочего процесса с именем «{{name}}».",
+  "This is this step's own value, which does not exist yet while its settings are read.": "Это собственное значение этого шага: его ещё нет, пока читаются его настройки.",
+  "Yes / No": "Да / Нет",
+  "which led to {{steps}}": "что привело к {{steps}}",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ещё не выполнялся. Его поля появятся здесь после выполнения."
 }

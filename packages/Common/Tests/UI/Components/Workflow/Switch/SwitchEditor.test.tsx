@@ -56,7 +56,14 @@ jest.mock("../../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import ArgumentsForm from "../../../../../UI/Components/Workflow/ArgumentsForm";
 import ComponentSettingsModal from "../../../../../UI/Components/Workflow/ComponentSettingsModal";
-import { SWITCH_TEST_IDS } from "../../../../../UI/Components/Workflow/Switch/SwitchEditor";
+import {
+  LEADS_TO_SENTENCE,
+  SWITCH_TEST_IDS,
+} from "../../../../../UI/Components/Workflow/Switch/SwitchEditor";
+import fs from "fs";
+import { createInstance, i18n } from "i18next";
+import path from "path";
+import { I18nextProvider } from "react-i18next";
 import { OutputConnections } from "../../../../../UI/Components/Workflow/Switch/SwitchModel";
 import {
   editorValue,
@@ -1132,5 +1139,80 @@ describe("in the settings dialog", () => {
     expect(
       screen.getByTestId("workflow-component-section-settings"),
     ).toHaveTextContent("Settings");
+  });
+});
+
+/*
+ * A case's arrow, read by a screen reader as one sentence of the reader's
+ * language with the steps a slot (#8570): Korean puts its verb after them.
+ */
+describe("where a case leads, in the reader's language", () => {
+  test("ko: the words stand after the steps, and only a screen reader reads them", async () => {
+    const korean: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../../App/FeatureSet/Dashboard/src/Locales/ko.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const instance: i18n = createInstance();
+
+    await instance.init({
+      lng: "ko",
+      fallbackLng: "en",
+      resources: { ko: { translation: korean } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    const node: NodeDataProp = step(
+      ComponentID.Switch,
+      SEVERITY_SWITCH,
+      "switch-1",
+    );
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <ArgumentsForm
+          component={node}
+          workflowId={new ObjectID("b0c3f6d2-5d2e-4c55-9a0e-6f1e2d3c4b5a")}
+          graphComponents={[webhook, node]}
+          valueSources={{
+            upstream: [webhook],
+            downstreamIds: [],
+            hasIncomingConnection: true,
+          }}
+          outputConnections={CONNECTIONS}
+          onHasFormValidationErrors={(): void => {}}
+          onFormChange={(): void => {}}
+        />
+      </I18nextProvider>,
+    );
+
+    const connection: HTMLElement = screen.getByTestId(
+      "switch-case-connection-0",
+    );
+    const words: Array<Element> = Array.from(
+      connection.querySelectorAll(
+        "[data-testid='workflow-switch-leads-to-words']",
+      ),
+    );
+    const text: string = connection.textContent || "";
+
+    expect(korean[LEADS_TO_SENTENCE]).toBe("{{steps}}(으)로 이어짐");
+    expect(words.length).toBeGreaterThan(0);
+
+    for (const word of words) {
+      expect(word).toHaveClass("sr-only");
+    }
+
+    expect(text).toContain("slack-critical");
+    expect(text.indexOf("이어짐")).toBeGreaterThan(
+      text.indexOf("slack-critical"),
+    );
+    expect(text).not.toContain("Leads to");
   });
 });

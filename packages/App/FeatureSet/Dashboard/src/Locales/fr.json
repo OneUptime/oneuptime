@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "État de l'événement de maintenance modifié",
   "Subscriber Subscribed": "Abonnement effectué",
   "Subscriber Subscription Confirmation": "Confirmation d'abonnement",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Votre compte GitHub ne gère encore aucune installation de l'application. Veuillez l'installer avec « {{connectGitHub}} »."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Votre compte GitHub ne gère encore aucune installation de l'application. Veuillez l'installer avec « {{connectGitHub}} ».",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "« {{step}} » ne renvoie rien qui s'appelle « {{value}} ».",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "« {{step}} » ne transmet pas ce champ, donc il est vide ici. Ajoutez-le à ses {{setting}}.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "« {{step}} » s'exécute après cette étape, donc cette valeur est vide ici.",
+  "Global variable": "Variable globale",
+  "Key / value": "Clé / valeur",
+  "Leads to {{steps}}": "Mène à {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "Aucune étape de ce flux de travail n'a l'ID « {{id}} ».",
+  "There is no global variable called \"{{name}}\".": "Aucune variable globale ne s'appelle « {{name}} ».",
+  "There is no workflow variable called \"{{name}}\".": "Aucune variable de flux de travail ne s'appelle « {{name}} ».",
+  "This is this step's own value, which does not exist yet while its settings are read.": "C'est la valeur de cette étape elle-même, qui n'existe pas encore pendant la lecture de ses réglages.",
+  "Yes / No": "Oui / Non",
+  "which led to {{steps}}": "qui a mené à {{steps}}",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ne s'est pas encore exécuté. Ses champs apparaissent ici une fois qu'il s'est exécuté."
 }

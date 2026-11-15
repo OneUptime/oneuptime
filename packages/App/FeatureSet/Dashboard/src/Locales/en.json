@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "Subscriber Scheduled Maintenance State Changed",
   "Subscriber Subscribed": "Subscriber Subscribed",
   "Subscriber Subscription Confirmation": "Subscriber Subscription Confirmation",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "\"{{step}}\" does not return anything called \"{{value}}\".",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "\"{{step}}\" runs after this step, so this value is empty here.",
+  "Global variable": "Global variable",
+  "Key / value": "Key / value",
+  "Leads to {{steps}}": "Leads to {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "No step in this workflow has the ID \"{{id}}\".",
+  "There is no global variable called \"{{name}}\".": "There is no global variable called \"{{name}}\".",
+  "There is no workflow variable called \"{{name}}\".": "There is no workflow variable called \"{{name}}\".",
+  "This is this step's own value, which does not exist yet while its settings are read.": "This is this step's own value, which does not exist yet while its settings are read.",
+  "Yes / No": "Yes / No",
+  "which led to {{steps}}": "which led to {{steps}}",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} hasn't run yet. Its fields show up here after it does."
 }
