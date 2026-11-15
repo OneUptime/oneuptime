@@ -30,6 +30,8 @@ import {
 import DashboardPages from "../../../../Server/Utils/AI/Docs/DashboardPages.json";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import fs from "fs";
+import path from "path";
 
 /*
  * get_setup_health (#6812): Ask AI answers "is my setup OK?" from the
@@ -224,6 +226,60 @@ describe("get_setup_health", () => {
     for (const fix of Object.values(SetupHealthFix)) {
       expect(SETUP_HEALTH_FIX_PAGES[fix].length).toBeGreaterThan(5);
     }
+  });
+
+  /*
+   * #8358: the guided setup was named "On-Call > Guided setup, which makes
+   * ...", a path through On-Call's side menu, which has no such entry. The
+   * page is reached from the finding's own button (and Search), so it is
+   * named by the title the page draws and the button's label, read here
+   * from the Dashboard's sources so neither can drift from it.
+   */
+  test("names the on-call guided setup, which no menu lists, by its title and the button that opens it, never as an On-Call path", () => {
+    const dashboard: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+    );
+    const setupCopy: string = fs.readFileSync(
+      path.join(
+        dashboard,
+        "Components",
+        "GuidedSetup",
+        "OnCall",
+        "OnCallSetup.ts",
+      ),
+      "utf8",
+    );
+    const setupHealthWords: string = fs.readFileSync(
+      path.join(dashboard, "Components", "SetupHealth", "SetupHealthWords.ts"),
+      "utf8",
+    );
+    const titlePattern: RegExp = new RegExp(
+      'pageTitle: translationKey\\("([^"]+)"\\)',
+    );
+    const buttonPattern: RegExp = new RegExp(
+      '\\[SetupHealthFix\\.OnCallGuidedSetup\\]: translationKey\\("([^"]+)"\\)',
+    );
+    const title: string | undefined = titlePattern.exec(setupCopy)?.[1];
+    const button: string | undefined =
+      buttonPattern.exec(setupHealthWords)?.[1];
+    const page: string =
+      SETUP_HEALTH_FIX_PAGES[SetupHealthFix.OnCallGuidedSetup];
+
+    expect(title).toBe("Page the right person when something breaks");
+    expect(button).toBe("Set Up Paging");
+    expect(page).toContain(`"${title}"`);
+    expect(page).toContain(button);
+    expect(page).toContain("first on-call policy");
+    expect(page).not.toMatch(/On-Call\s*(?:>|›|→)/);
   });
 
   test("is on Ask AI's belt, reads only, for everyone in the project", () => {
