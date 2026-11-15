@@ -126,6 +126,12 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-0000000000f1",
