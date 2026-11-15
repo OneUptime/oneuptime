@@ -40,7 +40,7 @@ Um orçamento de erros transforma a confiabilidade em algo que você pode gastar
 
 ## Criar um SLO
 
-Você precisa de uma função que possa criar SLOs: Project Owner, Project Admin ou uma função personalizada com a permissão Create Service Level Objective.
+Você precisa de uma função que possa criar SLOs: Proprietário do projeto, Administrador do projeto ou uma função personalizada com a permissão Create Service Level Objective.
 
 :::steps
 ### Abrir os SLOs

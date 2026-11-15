@@ -265,7 +265,10 @@ export class Service extends DatabaseService<Model> {
         await UserOnCallLogTimelineService.countBy({
           query: {
             userNotificationLogId: log.id!,
-            userNotificationRuleId: new ObjectID(claim.ruleId),
+            // The fallback has no rule: any notification of the log since is its own.
+            ...(claim.ruleId
+              ? { userNotificationRuleId: new ObjectID(claim.ruleId) }
+              : {}),
             // A little before: the row's moment is the database's, the claim's this process's.
             createdAt: QueryHelper.greaterThanEqualTo(
               OneUptimeDate.addRemoveSeconds(claim.claimedAt, -30),
@@ -406,6 +409,82 @@ export class Service extends DatabaseService<Model> {
 
       return true;
     }
+  }
+
+  /*
+   * A PERSON'S LOG WITH NO RULE FOR ITS PAGE, THAT NEVER SENT ANYTHING, AT
+   * THE PERSON'S-LOG WORKER (issues #8469, #8470).
+   *
+   * A log's start pages a person with no rule for the page through their
+   * verified methods (handleNoMatchingNotificationRule, the fallback). A
+   * start that never got as far - its process stopped, or the database
+   * failed before it counted the person's rules - was handed to the worker
+   * (TimeoutStuckExecutions), which found no rules and completed the log
+   * having sent nothing; a fallback that failed for a moment ended the log
+   * in Error. Either way the person was paged by nothing.
+   *
+   * The worker hands such a log here, once it has checked the record still
+   * needs somebody: the start's no-rule handling runs for it - an opt-out,
+   * the project's switch, the fallback - and ends it as the start would
+   * have. A fallback that fails for a moment is thrown for the worker's
+   * next try, and ended as failed, with its alert, at the worker's last.
+   */
+  @CaptureSpan()
+  public async sendToLogWithNoRules(data: {
+    log: Model;
+    notificationRuleType: NotificationRuleType;
+    incidentSeverityId?: ObjectID | undefined;
+    alertSeverityId?: ObjectID | undefined;
+    // The worker's last try of the log: a fallback that fails ends it.
+    isLastTry: boolean;
+  }): Promise<void> {
+    await this.handleNoMatchingNotificationRule({
+      createdItem: data.log,
+      notificationRuleType: data.notificationRuleType,
+      incidentSeverityId: data.incidentSeverityId,
+      alertSeverityId: data.alertSeverityId,
+      severityName: await this.readSeverityNameForMessage({
+        incidentSeverityId: data.incidentSeverityId,
+        alertSeverityId: data.alertSeverityId,
+      }),
+      onRetryableFailure: data.isLastTry ? "end" : "rethrow",
+    });
+  }
+
+  // The severity's name, for prose: "this severity" when it cannot be read.
+  private async readSeverityNameForMessage(data: {
+    incidentSeverityId?: ObjectID | undefined;
+    alertSeverityId?: ObjectID | undefined;
+  }): Promise<string> {
+    try {
+      if (data.incidentSeverityId) {
+        const severity: IncidentSeverity | null =
+          await IncidentSeverityService.findOneById({
+            id: data.incidentSeverityId,
+            select: { name: true },
+            props: { isRoot: true },
+          });
+
+        return severity?.name || "this severity";
+      }
+
+      if (data.alertSeverityId) {
+        const severity: AlertSeverity | null =
+          await AlertSeverityService.findOneById({
+            id: data.alertSeverityId,
+            select: { name: true },
+            props: { isRoot: true },
+          });
+
+        return severity?.name || "this severity";
+      }
+    } catch (err) {
+      logger.debug(
+        `Could not read the name of a severity for an on-call message; it says "this severity": ${err}`,
+      );
+    }
+
+    return "this severity";
   }
 
   /*
@@ -1206,6 +1285,13 @@ export class Service extends DatabaseService<Model> {
     incidentSeverityId: ObjectID | undefined;
     alertSeverityId: ObjectID | undefined;
     severityName: string;
+    /*
+     * A fallback that failed before anything of it reached a sender, and
+     * can be tried again (issue #8469): handed to the person's-log worker
+     * as the log starts, thrown for the worker's next try when it is the
+     * worker's, ended as failed at the worker's last try.
+     */
+    onRetryableFailure?: "hand-to-worker" | "rethrow" | "end" | undefined;
   }): Promise<void> {
     const createdItem: Model = data.createdItem;
 
@@ -1332,6 +1418,37 @@ export class Service extends DatabaseService<Model> {
      * nothing about them needs fixing, so the log says so and no owner is
      * told a page went undelivered.
      */
+    /*
+     * The fallback failed before it sent anything, for a reason a retry can
+     * outlast - the database lost as it read the person's methods - and its
+     * claim was given back (issue #8469): it is tried again rather than the
+     * log ended in Error, and the person paged by nothing. As the log starts,
+     * the person's-log worker takes it from here (sendToLogWithNoRules), and
+     * tries it a few more times before it ends it.
+     */
+    if (fallbackResult?.toTryAgainAfter && data.onRetryableFailure !== "end") {
+      if (data.onRetryableFailure === "rethrow") {
+        throw fallbackResult.toTryAgainAfter;
+      }
+
+      logger.error(
+        `On-call fallback for UserOnCallLog ${createdItem.id?.toString()} failed before it sent anything; the person's-log worker tries it again.`,
+      );
+      logger.error(fallbackResult.toTryAgainAfter);
+
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          status: UserNotificationExecutionStatus.Executing,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
+
     if (
       fallbackResult &&
       fallbackResult.outcome === FallbackNotificationOutcome.NotAProjectMember

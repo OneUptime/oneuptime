@@ -40,7 +40,7 @@ flowchart TB
 
 ## ساختن یک SLO
 
-به نقشی نیاز دارید که بتواند SLO بسازد: Project Owner، Project Admin یا نقشی سفارشی با دسترسی Create Service Level Objective.
+به نقشی نیاز دارید که بتواند SLO بسازد: مالک پروژه، مدیر پروژه یا نقشی سفارشی با دسترسی Create Service Level Objective.
 
 :::steps
 ### باز کردن SLOها

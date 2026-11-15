@@ -409,3 +409,60 @@ describe("the worker settling a claim whose page never finished", () => {
     expect(Object.keys(executed)).toEqual([RULE_ID]);
   });
 });
+
+/*
+ * The fallback to a person's verified methods claims the log under a key of
+ * its own, and pages through rules it never saves (issue #8469): its claim
+ * has no rule, and any notification of the log since the claim is its own.
+ */
+describe("the fallback's claim in flight", () => {
+  const FALLBACK: string = "__fallback__";
+
+  test("is kept and read back with no rule", async () => {
+    await OnCallRuleClaimsInFlight.keep(
+      LOG_ID,
+      claim({ claimKey: FALLBACK, ruleId: "" }),
+    );
+
+    expect(
+      (await OnCallRuleClaimsInFlight.read([LOG_ID])).get(LOG_ID.toString()),
+    ).toEqual(claim({ claimKey: FALLBACK, ruleId: "" }));
+  });
+
+  test("is settled by looking for any notification of the log since it was taken", async () => {
+    executed = { [FALLBACK]: CLAIMED_AT.toISOString() };
+
+    await expect(
+      UserOnCallLogService.settleRuleClaimInFlight({
+        log: logAsRead(),
+        claim: claim({ claimKey: FALLBACK, ruleId: "" }),
+        now: minutesAfterTheClaim(3),
+      }),
+    ).resolves.toBe(OnCallRuleClaimSettlement.GivenBack);
+
+    const query: Record<string, unknown> = (
+      (UserOnCallLogTimelineService.countBy as jest.Mock).mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+      }
+    ).query;
+
+    expect(String(query["userNotificationLogId"])).toBe(LOG_ID.toString());
+    expect(query["userNotificationRuleId"]).toBeUndefined();
+    expect(executed).toEqual({});
+  });
+
+  test("one whose fallback wrote a notification keeps its claim", async () => {
+    executed = { [FALLBACK]: CLAIMED_AT.toISOString() };
+    rowsSinceTheClaim = 1;
+
+    await expect(
+      UserOnCallLogService.settleRuleClaimInFlight({
+        log: logAsRead(),
+        claim: claim({ claimKey: FALLBACK, ruleId: "" }),
+        now: minutesAfterTheClaim(3),
+      }),
+    ).resolves.toBe(OnCallRuleClaimSettlement.Settled);
+
+    expect(Object.keys(executed)).toEqual([FALLBACK]);
+  });
+});

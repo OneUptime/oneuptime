@@ -47,7 +47,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - OneUptime में आ रहे लॉग — [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) या किसी प्रोब के ज़रिए।
-- पाइपलाइन बदलने की अनुमति। प्रोजेक्ट के स्वामी और व्यवस्थापकों के पास यह होती है; बाकी सभी को **Create Log Pipeline** और **Create Log Pipeline Processor** अनुमतियां चाहिए।
+- पाइपलाइन बदलने की अनुमति। प्रोजेक्ट स्वामी और प्रोजेक्ट एडमिन के पास यह होती है; बाकी सभी को **Create Log Pipeline** और **Create Log Pipeline Processor** अनुमतियां चाहिए।
 
 ## पाइपलाइन बनाएं
 

@@ -42,7 +42,7 @@ Funzionano entrambi con un accesso di sola lettura, e rispondono come la persona
 | `POST /api/data-observability/checks/apply` | Fa corrispondere i controlli del progetto a un file, come fa `oneuptime data-checks apply`, con `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Una chiave API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Il badge «data as of» di un prodotto di dati | Il token proprio del badge |
 
-Tabelle, controlli, riconciliazioni, pipeline, prodotti di dati, connessioni BI e job del warehouse sono anche normali risorse dell'[API](/docs/api-reference/api-reference), che si leggono e si modificano con una chiave API che abbia le autorizzazioni corrispondenti, e del server MCP e dei workflow.
+Tabelle, controlli, riconciliazioni, pipeline, prodotti di dati, connessioni BI e job del warehouse sono anche normali risorse dell'[API](/docs/api-reference/api-reference), che si leggono e si modificano con una chiave API che abbia le autorizzazioni corrispondenti, e del server MCP e dei flussi di lavoro.
 
 ## Metriche
 

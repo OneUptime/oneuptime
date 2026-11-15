@@ -217,7 +217,7 @@ Clique em **Continuar**. Se o projeto já verificou o domínio em que o endereç
 
 O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro endereço, adicione esse e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.
 
-Adicionar um domínio ao projeto exige permissão para criar domínios do projeto (**Create Domain**, ou Project Owner ou Project Admin), e verificá-lo exige **Edit Domain**. Sem elas, a caixa de diálogo diz quem pode fazer isso.
+Adicionar um domínio ao projeto exige permissão para criar domínios do projeto (**Create Domain**, ou Proprietário do projeto ou Administrador do projeto), e verificá-lo exige **Edit Domain**. Sem elas, a caixa de diálogo diz quem pode fazer isso.
 
 ### Configuração de DNS e verificação
 
@@ -301,9 +301,9 @@ Procure no seu domínio um registro CAA que deixe `letsencrypt.org` de fora e, e
 
 ### Quem pode verificar e reemitir
 
-**Verificar agora**, pedir o certificado de um domínio e **Reissue SSL** alteram o domínio, então exigem permissão para editá-lo: **Edit Status Page Domain**, ou um papel que a inclua (Project Owner, Project Admin, Project Member, Status Page Admin ou Status Page Member).
+**Verificar agora**, pedir o certificado de um domínio e **Reissue SSL** alteram o domínio, então exigem permissão para editá-lo: **Edit Status Page Domain**, ou um papel que a inclua (Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de páginas de status ou Membro de páginas de status).
 
-Quem só pode ler o domínio, como um Viewer ou um Status Page Viewer, ainda vê a coluna **Status** e o registro a adicionar em **Configuração de DNS**. Para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados e dizem qual permissão é necessária. O OneUptime continua verificando cada domínio e pedindo o certificado dele sozinho de qualquer forma.
+Quem só pode ler o domínio, como um Visualizador ou um Visualizador de páginas de status, ainda vê a coluna **Status** e o registro a adicionar em **Configuração de DNS**. Para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados e dizem qual permissão é necessária. O OneUptime continua verificando cada domínio e pedindo o certificado dele sozinho de qualquer forma.
 
 O mesmo vale para as chaves de API. Uma chave que só pode ler os domínios das páginas de status não consegue chamar `verify-cname`, `check-dns`, `order-ssl` nem `reissue-ssl` em `/status-page-domain`. Dê a ela **Read Status Page Domain** e **Edit Status Page Domain** se precisar. Quando o registro não é encontrado, `verify-cname` recusa informando o que consultou e o que voltou, com as mesmas palavras que a **Configuração de DNS** mostra; `check-dns` responde de qualquer forma para cada registro que consultou.
 

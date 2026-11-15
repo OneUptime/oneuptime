@@ -119,16 +119,22 @@ describe("SloWidgetFormat", () => {
 
   describe("formatErrorBudgetRemainingSeconds", () => {
     it("converts remaining seconds to whole minutes", () => {
-      expect(formatErrorBudgetRemainingSeconds(2580)).toBe("43 min remaining");
+      expect(formatErrorBudgetRemainingSeconds(2580)).toBe(
+        "43\u00A0min remaining",
+      );
     });
 
     it("rounds to the nearest minute", () => {
-      expect(formatErrorBudgetRemainingSeconds(2609)).toBe("43 min remaining");
-      expect(formatErrorBudgetRemainingSeconds(2611)).toBe("44 min remaining");
+      expect(formatErrorBudgetRemainingSeconds(2609)).toBe(
+        "43\u00A0min remaining",
+      );
+      expect(formatErrorBudgetRemainingSeconds(2611)).toBe(
+        "44\u00A0min remaining",
+      );
     });
 
     it("states an exactly exhausted budget as 0 min remaining", () => {
-      expect(formatErrorBudgetRemainingSeconds(0)).toBe("0 min remaining");
+      expect(formatErrorBudgetRemainingSeconds(0)).toBe("0\u00A0min remaining");
     });
 
     it("does not round a sub-minute remainder down to a misleading 0 min", () => {
@@ -139,7 +145,7 @@ describe("SloWidgetFormat", () => {
 
     it("renders an overspent budget plainly with a minus sign", () => {
       expect(formatErrorBudgetRemainingSeconds(-2520)).toBe(
-        `${MINUS_SIGN}42 min over budget`,
+        `${MINUS_SIGN}42\u00A0min over budget`,
       );
     });
 
@@ -498,7 +504,7 @@ describe("SloWidgetFormat", () => {
           sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
           slo: makeSlo({ errorBudgetRemainingSeconds: 2580 }),
         }).subline,
-      ).toBe("43 min remaining");
+      ).toBe("43\u00A0min remaining");
     });
 
     it("states an overspent budget as an over-budget subline", () => {
@@ -511,7 +517,7 @@ describe("SloWidgetFormat", () => {
       });
 
       expect(display.value).toBe("-12.5%");
-      expect(display.subline).toBe(`${MINUS_SIGN}42 min over budget`);
+      expect(display.subline).toBe(`${MINUS_SIGN}42\u00A0min over budget`);
     });
 
     it("renders a fully exhausted budget as 0% rather than not evaluated", () => {
@@ -525,7 +531,7 @@ describe("SloWidgetFormat", () => {
 
       expect(display.isEvaluated).toBe(true);
       expect(display.value).toBe("0%");
-      expect(display.subline).toBe("0 min remaining");
+      expect(display.subline).toBe("0\u00A0min remaining");
     });
 
     it("keeps the percentage when only the seconds column is missing", () => {

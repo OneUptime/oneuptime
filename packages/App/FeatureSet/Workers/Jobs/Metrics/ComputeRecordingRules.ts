@@ -372,7 +372,7 @@ function buildDerivedMetricRow(args: {
    * Derived rows inherit project default retention since they may span
    * many services. 15 days matches the Service default.
    */
-  const retentionDate: Date = OneUptimeDate.addRemoveDays(now, 15);
+  const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(now, 15);
 
   return {
     _id: ObjectID.generateTimeOrdered().toString(),

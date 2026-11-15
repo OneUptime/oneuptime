@@ -37,7 +37,7 @@ flowchart TB
 ## Перед началом
 
 - Сервисы отправляют трассировки в OneUptime: см. [OpenTelemetry](/docs/telemetry/open-telemetry). Каждый из них есть в [каталоге сервисов](/docs/telemetry/services) под своим `service.name`.
-- Роль, которой разрешено создавать SLO: Project Owner, Project Admin или пользовательская роль с разрешением Create Service Level Objective.
+- Роль, которой разрешено создавать SLO: Владелец проекта, Администратор проекта или пользовательская роль с разрешением Create Service Level Objective.
 
 ## Создание SLO по запросам
 

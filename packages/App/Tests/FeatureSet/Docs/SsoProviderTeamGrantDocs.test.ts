@@ -148,13 +148,13 @@ describe("in English", () => {
 
   it("the notes on roles and teams say why, that every save checks again, that earlier providers keep working, and that a provider can always be switched off", () => {
     expect(rolesAndTeamsParagraphs("en")).toContain(
-      "A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.",
+      "A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a Project Owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.",
     );
   });
 
   it("the SCIM page says who may add or change a connection, and why, before the steps", () => {
     expect(scimLeadIn("en")).toBe(
-      "Only a project owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project.",
+      "Only a Project Owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project.",
     );
   });
 });

@@ -98,7 +98,7 @@ OneUptime 每 15 分鐘檢查一次每個未驗證的網域，找到記錄後，
 
 ### 誰可以管理網域
 
-專案擁有者和管理員，以及擁有 **Edit Form** 的任何人，都可以新增表單的網域、檢查它們、重新核發它們的憑證並刪除它們。僅針對表單網域的權限也可以，例如 **Edit Form Domain**：[表單概覽](/docs/forms/index#權限) 列出了這些權限。能讀取表單的人都能看到它的網域、網域的 **狀態** 以及 **DNS 設定** 中的記錄；對他們來說，**立即檢查** 和 **Reissue SSL** 處於鎖定狀態，並會說明需要哪項權限。API 金鑰在 `/form-domain` 上的運作方式相同：`verify-cname`、`order-ssl` 和 `reissue-ssl` 需要 **Edit Form Domain** 或 **Edit Form**。
+專案擁有者和專案管理員，以及擁有 **Edit Form** 的任何人，都可以新增表單的網域、檢查它們、重新核發它們的憑證並刪除它們。僅針對表單網域的權限也可以，例如 **Edit Form Domain**：[表單概覽](/docs/forms/index#權限) 列出了這些權限。能讀取表單的人都能看到它的網域、網域的 **狀態** 以及 **DNS 設定** 中的記錄；對他們來說，**立即檢查** 和 **Reissue SSL** 處於鎖定狀態，並會說明需要哪項權限。API 金鑰在 `/form-domain` 上的運作方式相同：`verify-cname`、`order-ssl` 和 `reissue-ssl` 需要 **Edit Form Domain** 或 **Edit Form**。
 
 ## 什麼在保護表單
 

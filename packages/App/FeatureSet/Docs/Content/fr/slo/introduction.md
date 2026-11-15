@@ -40,7 +40,7 @@ Un budget d'erreur fait de la fiabilité quelque chose que vous pouvez dépenser
 
 ## Créer un SLO
 
-Il vous faut un rôle autorisé à créer des SLO : Project Owner, Project Admin ou un rôle personnalisé avec la permission Create Service Level Objective.
+Il vous faut un rôle autorisé à créer des SLO : Propriétaire du projet, Administrateur du projet ou un rôle personnalisé avec la permission Create Service Level Objective.
 
 :::steps
 ### Ouvrir les SLO

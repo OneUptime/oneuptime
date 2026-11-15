@@ -82,7 +82,7 @@ describe("summarizeCloudFleet", () => {
     expect(tileByTitle(tiles, "Live instances")).toEqual({
       title: "Live instances",
       value: "0",
-      sublabel: "seen in the last 15 min",
+      sublabel: "seen in the last 15\u00A0min",
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.liveInstances,
     });
   });

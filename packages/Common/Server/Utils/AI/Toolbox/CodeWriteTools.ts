@@ -78,6 +78,11 @@ import {
 import { describeCodeFilesUnseenForReviewer } from "./CodeChangeReviewerNote";
 import logger from "../../Logger";
 
+import {
+  AI_TOOL_CITATIONS,
+  AI_TOOL_CITATION_PLURALS,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countedValue } from "./ReadTableWords";
 /*
  * Tools that let the chat agent WRITE code: commit to a branch, and open a
  * pull request.
@@ -770,7 +775,12 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
         `This commit is NOT merged and NOT on the default branch. Tell the user it is on ${branchName} and still needs review.`,
       ].join("\n"),
       rowCount: changes.length,
-      citationLabel: `Commit ${commit.commitSha.slice(0, 7)} on ${branchName} (${changes.length} file${changes.length === 1 ? "" : "s"})`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.commit, {
+        sha: commit.commitSha.slice(0, 7),
+        branch: branchName,
+        files: countedValue(AI_TOOL_CITATION_PLURALS.files, changes.length),
+      }),
       redactionCount: 0,
       isTruncated: false,
       // Ask AI now knows each file on the branch as it wrote it (issue #6313).
@@ -1033,7 +1043,12 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
         `It is NOT merged. Give the user the link and say it needs their review.`,
       ].join("\n"),
       rowCount: changes.length,
-      citationLabel: `${writer.provider === CodeRepositoryType.GitLab ? "MR" : "PR"} ${label}: ${title}`,
+      ...citationSentence(
+        writer.provider === CodeRepositoryType.GitLab
+          ? AI_TOOL_CITATIONS.mergeRequest
+          : AI_TOOL_CITATIONS.pullRequest,
+        { number: label, title },
+      ),
       redactionCount: 0,
       isTruncated: false,
       // Ask AI now knows each file on the new branch as it wrote it (issue #6313).

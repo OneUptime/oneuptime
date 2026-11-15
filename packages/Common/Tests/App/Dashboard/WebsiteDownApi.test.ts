@@ -48,6 +48,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { createTranslator } from "../../../Types/Translator";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -745,27 +746,240 @@ describe("who is told", () => {
       });
   };
 
+  // An on-call rule, read with its policies: each one's isArchived given.
+  const rule: <T>(
+    type: { new (): T },
+    policiesArchived: Array<boolean | undefined>,
+  ) => T = <T>(
+    type: { new (): T },
+    policiesArchived: Array<boolean | undefined>,
+  ): T => {
+    return model(type, {
+      _id: ObjectID.generate().toString(),
+      onCallDutyPolicies: policiesArchived.map(
+        (isArchived: boolean | undefined): OnCallDutyPolicy => {
+          return model(OnCallDutyPolicy, {
+            _id: ObjectID.generate().toString(),
+            ...(isArchived === undefined ? {} : { isArchived: isArchived }),
+          });
+        },
+      ),
+    });
+  };
+
+  // The project's on-call rules, as a list of them answers.
+  const serveRules: (rules: {
+    incident?: Array<Array<boolean | undefined>>;
+    alert?: Array<Array<boolean | undefined>>;
+  }) => void = (rules: {
+    incident?: Array<Array<boolean | undefined>>;
+    alert?: Array<Array<boolean | undefined>>;
+  }): void => {
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      if (args.modelType === IncidentOnCallRule) {
+        return list(
+          (rules.incident || []).map(
+            (policies: Array<boolean | undefined>): IncidentOnCallRule => {
+              return rule(IncidentOnCallRule, policies);
+            },
+          ),
+        );
+      }
+
+      if (args.modelType === AlertOnCallRule) {
+        return list(
+          (rules.alert || []).map(
+            (policies: Array<boolean | undefined>): AlertOnCallRule => {
+              return rule(AlertOnCallRule, policies);
+            },
+          ),
+        );
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+  };
+
   test("counts the project's policies and both kinds of on-call rules, and reads the permissions", async () => {
     allow(true);
     countSpy.mockImplementation((async (args: {
       modelType: { new (): unknown };
     }) => {
-      return args.modelType === OnCallDutyPolicy
-        ? 0
-        : args.modelType === IncidentOnCallRule
-          ? 2
-          : args.modelType === AlertOnCallRule
-            ? 3
-            : -1;
+      return args.modelType === OnCallDutyPolicy ? 1 : -1;
     }) as unknown as (...args: Array<never>) => Promise<unknown>);
+    serveRules({
+      incident: [[false], [false, true]],
+      alert: [[false], [false], [false]],
+    });
 
     expect(await WebsiteDownApi.loadWhoIsToldFacts()).toEqual({
-      policyCount: 0,
+      policyCount: 1,
       incidentRuleCount: 2,
       alertRuleCount: 3,
       mayCreatePolicy: true,
       mayAddEscalationRules: true,
       mayAddRules: true,
+    });
+  });
+
+  /*
+   * An on-call rule pages people only through a policy in service (#8433).
+   * Counted whatever it ran, a project whose only policy was archived, with
+   * the rules that run it, was told its own policies and rules decide who
+   * is paged, and the setup made nothing: nobody was paged when the monitor
+   * opened an incident. The rules are read with their policies, and one
+   * counts only when it runs a policy in service, as WhoIsToldService and
+   * Setup Health judge a project.
+   */
+  describe("on-call rules count only when they run a policy in service (#8433)", () => {
+    const facts: (data: {
+      policies: number;
+      incident?: Array<Array<boolean | undefined>>;
+      alert?: Array<Array<boolean | undefined>>;
+    }) => Promise<WhoIsToldFacts> = async (data: {
+      policies: number;
+      incident?: Array<Array<boolean | undefined>>;
+      alert?: Array<Array<boolean | undefined>>;
+    }): Promise<WhoIsToldFacts> => {
+      allow(true);
+      countSpy.mockImplementation((async (args: {
+        modelType: { new (): unknown };
+      }) => {
+        return args.modelType === OnCallDutyPolicy ? data.policies : -1;
+      }) as unknown as (...args: Array<never>) => Promise<unknown>);
+      serveRules({ incident: data.incident, alert: data.alert });
+
+      return await WebsiteDownApi.loadWhoIsToldFacts();
+    };
+
+    test("the rules are read with each policy's archived flag, one list each, never just counted", async () => {
+      await facts({ policies: 0 });
+
+      for (const type of [IncidentOnCallRule, AlertOnCallRule]) {
+        const calls: Array<Array<unknown>> = getListSpy.mock.calls.filter(
+          (call: Array<unknown>): boolean => {
+            return (call[0] as { modelType: unknown }).modelType === type;
+          },
+        );
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]![0]).toEqual(
+          expect.objectContaining({
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              onCallDutyPolicies: { _id: true, isArchived: true },
+            },
+          }),
+        );
+      }
+
+      // Only the policies are counted: a rule's count says nothing of what it runs.
+      expect(
+        countSpy.mock.calls.map((call: Array<unknown>): unknown => {
+          return (call[0] as { modelType: unknown }).modelType;
+        }),
+      ).toEqual([OnCallDutyPolicy]);
+    });
+
+    test("the issue's project: its only policy archived, and the two rules that run it - none count, and the setup makes a policy", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 0,
+        incident: [[true]],
+        alert: [[true]],
+      });
+
+      expect(read.incidentRuleCount).toBe(0);
+      expect(read.alertRuleCount).toBe(0);
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.CreatePolicy);
+    });
+
+    test("a rule running several policies, all archived, does not count", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 0,
+        incident: [[true, true, true]],
+      });
+
+      expect(read.incidentRuleCount).toBe(0);
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.CreatePolicy);
+    });
+
+    test("a rule that runs no policy at all pages no one, and does not count", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 0,
+        incident: [[]],
+        alert: [[]],
+      });
+
+      expect(read.incidentRuleCount).toBe(0);
+      expect(read.alertRuleCount).toBe(0);
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.CreatePolicy);
+    });
+
+    test("a rule running an archived policy beside one in service counts", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 1,
+        incident: [[true, false]],
+      });
+
+      expect(read.incidentRuleCount).toBe(1);
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.ExistingPolicy);
+    });
+
+    test("only the rules that page anyone are counted, kind by kind", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 2,
+        incident: [[false], [true], [], [true, false], [false, false]],
+        alert: [[true], [false]],
+      });
+
+      expect(read.incidentRuleCount).toBe(3);
+      expect(read.alertRuleCount).toBe(1);
+    });
+
+    test("a policy read with no archived flag counts as in service, as the server reads it", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 1,
+        alert: [[undefined]],
+      });
+
+      expect(read.alertRuleCount).toBe(1);
+    });
+
+    test("an alert rule alone that runs a policy in service still means the project pages people already", async () => {
+      const read: WhoIsToldFacts = await facts({
+        policies: 0,
+        alert: [[false]],
+      });
+
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.ExistingPolicy);
+    });
+
+    test("rules that cannot be read are unknown, never none: nothing is made on a guess", async () => {
+      allow(true);
+      countSpy.mockResolvedValue(0 as never);
+      getListSpy.mockRejectedValue(new Error("offline"));
+
+      const read: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(read.incidentRuleCount).toBeNull();
+      expect(read.alertRuleCount).toBeNull();
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.OwnerEmailOnly);
+    });
+
+    test("a list that answers without its rows is unknown too", async () => {
+      allow(true);
+      countSpy.mockResolvedValue(0 as never);
+      getListSpy.mockResolvedValue({} as never);
+
+      const read: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(read.incidentRuleCount).toBeNull();
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.OwnerEmailOnly);
     });
   });
 
@@ -778,24 +992,23 @@ describe("who is told", () => {
   describe("only policies in service count (#8234)", () => {
     const serve: (
       policies: Array<{ isArchived: boolean }>,
-      rules?: { incident: number; alert: number },
+      rules?: {
+        incident?: Array<Array<boolean>>;
+        alert?: Array<Array<boolean>>;
+      },
     ) => void = (
       policies: Array<{ isArchived: boolean }>,
-      rules?: { incident: number; alert: number },
+      rules?: {
+        incident?: Array<Array<boolean>>;
+        alert?: Array<Array<boolean>>;
+      },
     ): void => {
       allow(true);
+      serveRules(rules || {});
       countSpy.mockImplementation((async (args: {
         modelType: { new (): unknown };
         query: Record<string, unknown>;
       }) => {
-        if (args.modelType === IncidentOnCallRule) {
-          return rules?.incident ?? 0;
-        }
-
-        if (args.modelType === AlertOnCallRule) {
-          return rules?.alert ?? 0;
-        }
-
         return policies.filter((policy: Record<string, unknown>): boolean => {
           return Object.entries(args.query).every(
             ([column, value]: [string, unknown]): boolean => {
@@ -851,12 +1064,32 @@ describe("who is told", () => {
       expect(getWhoIsToldMode(facts)).toBe(WhoIsToldMode.ExistingPolicy);
     });
 
-    test("an on-call rule still means the project pages people already", async () => {
-      serve([{ isArchived: true }], { incident: 1, alert: 0 });
+    /*
+     * The rules that run the archived policy page no one either (#8433):
+     * the project's only policy archived, its rule with it, is one with no
+     * policy yet.
+     */
+    test("an on-call rule that runs only the archived policy does not mean the project pages people", async () => {
+      serve([{ isArchived: true }], { incident: [[true]] });
 
-      expect(getWhoIsToldMode(await WebsiteDownApi.loadWhoIsToldFacts())).toBe(
-        WhoIsToldMode.ExistingPolicy,
-      );
+      const read: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(read.incidentRuleCount).toBe(0);
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.CreatePolicy);
+    });
+
+    test("one in service beside archived ones, its rule with it: the project's policies and rules decide", async () => {
+      serve([{ isArchived: true }, { isArchived: false }], {
+        incident: [[true]],
+        alert: [[false]],
+      });
+
+      const read: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(read.policyCount).toBe(1);
+      expect(read.incidentRuleCount).toBe(0);
+      expect(read.alertRuleCount).toBe(1);
+      expect(getWhoIsToldMode(read)).toBe(WhoIsToldMode.ExistingPolicy);
     });
   });
 
@@ -967,6 +1200,7 @@ describe("who is told", () => {
       id: id(50).toString(),
       name: "Default on-call policy",
       responders: ["Ada Lovelace", "grace@example.com", "Platform"],
+      isArchived: false,
     });
   });
 
@@ -974,6 +1208,63 @@ describe("who is told", () => {
     jest.spyOn(ModelAPI, "getItem").mockResolvedValue(null);
 
     expect(await WebsiteDownApi.loadPolicy(id(50).toString())).toBeNull();
+  });
+
+  // An archived policy pages no one: the read tells it apart (#8432).
+  describe("a policy archived since (#8432)", () => {
+    test("the read asks whether the policy is archived", async () => {
+      const getItem: LooseSpy = jest
+        .spyOn(ModelAPI, "getItem")
+        .mockResolvedValue(
+          model(OnCallDutyPolicy, { _id: id(50).toString(), name: "Ops" }),
+        ) as unknown as LooseSpy;
+
+      await WebsiteDownApi.loadPolicy(id(50).toString());
+
+      expect(
+        (getItem.mock.calls[0]![0] as unknown as { select: unknown }).select,
+      ).toEqual({ _id: true, name: true, isArchived: true });
+    });
+
+    test("an archived policy reads as archived - there, not gone - with who it pages", async () => {
+      jest.spyOn(ModelAPI, "getItem").mockResolvedValue(
+        model(OnCallDutyPolicy, {
+          _id: id(50).toString(),
+          name: "Default on-call policy",
+          isArchived: true,
+        }),
+      );
+      getListSpy.mockImplementation((async (args: {
+        modelType: { new (): unknown };
+      }) => {
+        return args.modelType === OnCallDutyPolicyEscalationRuleUser
+          ? list([
+              model(OnCallDutyPolicyEscalationRuleUser, {
+                user: model(User, { name: "Ada Lovelace" }),
+              }),
+            ])
+          : list([]);
+      }) as unknown as (...args: Array<never>) => Promise<unknown>);
+
+      expect(await WebsiteDownApi.loadPolicy(id(50).toString())).toEqual({
+        id: id(50).toString(),
+        name: "Default on-call policy",
+        responders: ["Ada Lovelace"],
+        isArchived: true,
+      });
+    });
+
+    test("read with no archived flag, it is in service, never undefined", async () => {
+      jest
+        .spyOn(ModelAPI, "getItem")
+        .mockResolvedValue(
+          model(OnCallDutyPolicy, { _id: id(50).toString(), name: "Ops" }),
+        );
+
+      expect(
+        (await WebsiteDownApi.loadPolicy(id(50).toString()))!.isArchived,
+      ).toBe(false);
+    });
   });
 });
 

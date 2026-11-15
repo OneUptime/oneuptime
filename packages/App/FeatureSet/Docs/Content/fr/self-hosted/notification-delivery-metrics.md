@@ -155,7 +155,7 @@ Les statuts n'arrivent que là où le fournisseur peut les signaler :
 | --- | --- |
 | `monitor_data_received` | Quand OneUptime a reçu les données qui ont déclenché le moniteur : une requête entrante, le rapport d'un agent serveur, un e-mail entrant, la vérification d'une sonde, un trap SNMP ou l'interrogation d'un équipement réseau. Elle inclut le temps que les données ont attendu dans la file avant d'être évaluées. |
 | `record_created` | Quand l'incident, l'alerte ou l'épisode a été créé : par un moniteur de télémétrie, une règle ou une personne, et pour une vérification d'absence, comme un heartbeat qui s'est arrêté. |
-| `page_started` | Quand une alerte a démarré plus tard : une personne, un workflow ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
+| `page_started` | Quand une alerte a démarré plus tard : une personne, un flux de travail ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
 
 Pour une requête entrante, la durée part de la dernière requête reçue par le point de terminaison, elle peut donc être un peu courte.
 

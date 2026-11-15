@@ -19,7 +19,7 @@ flowchart TB
 :::cards
 - [Configurare una policy](#configurare-una-policy): Dal tuo account Twilio a una chiamata di prova, in sette passaggi.
 - [Come viene instradata una chiamata](#come-viene-instradata-una-chiamata): Chi squilla, per quanto tempo e che cosa sente chi chiama.
-- [Chiamate perse](#chiamate-perse): Chi viene informato e come reagire in un workflow.
+- [Chiamate perse](#chiamate-perse): Chi viene informato e come reagire in un flusso di lavoro.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Chiamate che non arrivano mai o che non raggiungono mai nessuno.
 :::
 
@@ -160,7 +160,7 @@ Una regola fa squillare una persona sul numero che ha verificato per le chiamate
 
 Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
-I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**.
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un Proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**.
 
 ## Messaggi vocali e impostazioni della policy
 
@@ -198,15 +198,15 @@ Una chiamata è persa quando termina senza raggiungere nessuno: il suo stato è 
 
 ### Chi viene avvisato
 
-Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gli utenti e i membri dei team aggiunti nella pagina **Proprietari** della policy. Se la policy non ha proprietari, vengono avvisati invece i proprietari del progetto.
+Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gli utenti e i membri dei team aggiunti nella pagina **Proprietari** della policy. Se la policy non ha proprietari, vengono avvisati invece i Proprietari del progetto.
 
 L'avviso dice chi ha chiamato, quale numero ha composto, perché nessuno ha risposto, chi ha squillato e come è finito ogni tentativo. Collega la chiamata nel registro chiamate.
 
 I proprietari ricevono un'email per impostazione predefinita. Ognuno può scegliere altri canali (SMS, chiamata, push e altro) o disattivarlo in **Impostazioni utente** > **Impostazioni notifiche**, in **Reperibilità** > **Policy chiamate in entrata** > **Chiamata persa**. Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 
-### Reagire alle chiamate perse in un workflow
+### Reagire alle chiamate perse in un flusso di lavoro
 
-I registri delle chiamate in entrata sono disponibili come trigger dei workflow:
+I registri delle chiamate in entrata sono disponibili come trigger dei flussi di lavoro:
 
 - **On Create Incoming Call Log** si attiva quando arriva una chiamata.
 - **On Update Incoming Call Log** si attiva mentre la chiamata procede. L'aggiornamento che imposta **Ended At** è la fine della chiamata.
@@ -219,7 +219,7 @@ Per agire solo sulle chiamate perse, ad esempio per pubblicarle in Slack o Micro
 3. Collega i tuoi passaggi alla porta **Sì**.
 :::
 
-Un workflow può leggere i registri chiamate con **Find One** e **Find Many**, ma non può crearli né modificarli.
+Un flusso di lavoro può leggere i registri chiamate con **Find One** e **Find Many**, ma non può crearli né modificarli.
 
 ## Chi può aggiungere e rilasciare numeri di telefono
 
@@ -283,6 +283,6 @@ Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto se
 :::cards
 - [Regole di escalation](/docs/on-call/escalation-rules): Come una policy di reperibilità avvisa le persone, livello per livello.
 - [Pianificazioni di reperibilità](/docs/on-call/schedules): Costruisci le rotazioni che le tue regole fanno squillare.
-- [Workflow](/docs/workflows/index): Reagisci alle chiamate perse: pubblicale in un canale o apri un ticket.
+- [Flussi di lavoro](/docs/workflows/index): Reagisci alle chiamate perse: pubblicale in un canale o apri un ticket.
 - [Integrazione SMS e voce di Twilio](/docs/self-hosted/twilio-integration): Configura Twilio per un'installazione self-hosted.
 :::

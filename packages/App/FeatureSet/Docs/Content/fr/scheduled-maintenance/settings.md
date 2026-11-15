@@ -115,9 +115,9 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevra le prochain
 > [!NOTE]
 > Sur OneUptime Cloud, les champs personnalisés requièrent le forfait **Growth** ou supérieur, tout comme l'ajout et la modification d'états de maintenance et de modèles.
 
-## Workflows
+## Flux de travail
 
-Chaque modèle de maintenance a des déclencheurs et des actions de workflow, nommés d'après lui : **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** et **On Delete Maintenance Event**, de même pour **Scheduled Maintenance State Timeline** et les autres, et des actions comme **Create One Maintenance Event** et **Update One Maintenance Event**. Les définitions de champs personnalisés et les valeurs de mesure sont les exceptions : elles n'ont aucune étape de workflow. Voir [Présentation des workflows](/docs/workflows/index).
+Chaque modèle de maintenance a des déclencheurs et des actions de flux de travail, nommés d'après lui : **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** et **On Delete Maintenance Event**, de même pour **Scheduled Maintenance State Timeline** et les autres, et des actions comme **Create One Maintenance Event** et **Update One Maintenance Event**. Les définitions de champs personnalisés et les valeurs de mesure sont les exceptions : elles n'ont aucune étape de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ## Qui peut les modifier
 

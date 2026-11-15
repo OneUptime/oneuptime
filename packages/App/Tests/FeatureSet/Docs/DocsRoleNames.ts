@@ -244,39 +244,6 @@ function drawnRolePattern(language: string, role: string): string {
 }
 
 /*
- * The languages whose every page names the built-in roles as drawn in its
- * running text too (#8315). The other translations are rewritten a few
- * languages at a time; until theirs are, their pages still write a role
- * in English in sentences and table cells.
- */
-export const ROLES_DRAWN_ON_EVERY_PAGE: ReadonlyArray<string> = [
-  "da",
-  "de",
-  "ja",
-  "ko",
-  "nl",
-  "no",
-  "sv",
-  "zh-CN",
-  "zh-TW",
-];
-
-/*
- * Whether running text in this language names a role as its pages write
- * it: as drawn (namesRoleAsDrawn) in a language rewritten for #8315, in
- * English in one still waiting.
- */
-export function namesRoleAsWritten(
-  language: string,
-  text: string,
-  role: string,
-): boolean {
-  return language === "en" || !ROLES_DRAWN_ON_EVERY_PAGE.includes(language)
-    ? text.includes(role)
-    : namesRoleAsDrawn(language, text, role);
-}
-
-/*
  * Whether a bold name is a permission's own title - which every language
  * keeps in English, as the permission picker draws it - and not a built-in
  * role's name, which reads in the page's language.

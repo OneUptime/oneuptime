@@ -367,7 +367,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
-      value: m ? formatCompact(m.total) : "—",
+      value: m ? formatCompact(m.total, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Workflow,
       iconColor: "sky",
@@ -381,7 +381,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Alert,
       iconColor: "rose",
@@ -390,7 +390,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
         ? CLOUD_APP_LOAD_FAILED_SUBLABEL
         : m && !traceNote
           ? translator.translateTemplate("{{errors}} errored", {
-              errors: formatCompact(m.errors),
+              errors: formatCompact(m.errors, translator),
             })
           : undefined,
       percent: m && !traceNote ? m.errorRatePercent : null,
@@ -414,7 +414,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Instances",
-      value: formatCompact(liveInstances.length),
+      value: formatCompact(liveInstances.length, translator),
       valueNote: instancesNote,
       icon: IconProp.Cube,
       iconColor: "amber",
@@ -431,7 +431,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const usageTiles: Array<ResourceOverviewTile> = [
     {
       title: "CPU",
-      value: formatPercent(avgCpu),
+      value: formatPercent(avgCpu, translator),
       valueNote: cpuNote,
       icon: IconProp.ChartBar,
       iconColor: "blue",
@@ -441,7 +441,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Memory",
-      value: hasMemory ? formatBytes(totalMemory) : "—",
+      value: hasMemory ? formatBytes(totalMemory, translator) : "—",
       valueNote: memoryNote,
       icon: IconProp.SquareStack,
       iconColor: "violet",

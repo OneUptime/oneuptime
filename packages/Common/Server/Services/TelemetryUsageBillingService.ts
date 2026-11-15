@@ -579,7 +579,10 @@ export class Service extends DatabaseService<Model> {
 
     const usageDate: Date = data.usageDate
       ? OneUptimeDate.fromString(data.usageDate)
-      : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1);
+      : OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          -1,
+        );
 
     const billingStartsAt: Date | undefined =
       await PayAsYouGoBillingService.getTelemetryBillingStartDate(

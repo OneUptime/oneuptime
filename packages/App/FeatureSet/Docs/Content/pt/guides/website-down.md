@@ -42,7 +42,7 @@ Em **O que devemos verificar?**, digite o endereço em **Endereço do site ou da
 
 Em **Quem deve ser avisado?**, o que você vê depende do projeto:
 
-- Se ainda não há nenhuma política de plantão nem regra de plantão, você já está em **Quem é acionado**. Clique em **Adicionar membros da equipe** para incluir pessoas que já estão no projeto e depois em **Salvar e continuar**. Isso cria a `Default on-call policy`, que aciona todos vocês a cada novo incidente e a cada novo alerta do projeto.
+- Se ainda não há nenhuma política de plantão nem regra de plantão, você já está em **Quem é acionado**. Clique em **Adicionar membros da equipe** para incluir pessoas que já estão no projeto e depois em **Salvar e continuar**. Isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta do projeto.
 - Se já há uma política ou regra de plantão, as próprias regras do projeto decidem quem é acionado: clique em **Continuar**.
 - Como membro, você não pode configurar acionamentos, então aparece que você vai receber e-mails como proprietário do monitor: clique em **Continuar**.
 

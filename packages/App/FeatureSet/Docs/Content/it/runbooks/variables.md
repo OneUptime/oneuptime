@@ -33,7 +33,7 @@ Un nome si usa una sola volta, senza distinzione tra maiuscole e minuscole, tra 
 
 ## Prima di iniziare
 
-- **Un ruolo che gestisce le variabili.** Project Owner e Project Admin, oppure il permesso **Create Runbook Variable**. Runbook Admin legge le variabili, per sceglierle nei passaggi che scrive, ma non le modifica.
+- **Un ruolo che gestisce le variabili.** Proprietario del progetto e Amministratore del progetto, oppure il permesso **Create Runbook Variable**. Amministratore dei runbook legge le variabili, per sceglierle nei passaggi che scrive, ma non le modifica.
 - **Un piano che le includa.** Su OneUptime Cloud, le variabili dei runbook richiedono il piano **Growth** o superiore.
 
 ## Creare una variabile
@@ -56,7 +56,7 @@ Se una variabile è un segreto non si può cambiare in seguito. Eliminala invece
 
 ## I valori segreti sono di sola scrittura
 
-Il valore di un segreto è cifrato a riposo e l'API **non lo restituisce mai**: né alla dashboard, né a un workflow, né a un'esportazione. L'elenco mostra **Segreto** dove una variabile semplice mostra il suo valore, e la sua colonna **Agenti di runbook** dice quali Runner ricevono ogni segreto. Per cambiarlo, fai clic su **Sostituisci valore** nella sua riga: il nuovo valore viene cifrato, quello vecchio sparisce per sempre e i passaggi ricevono quello nuovo alla prossima esecuzione.
+Il valore di un segreto è cifrato a riposo e l'API **non lo restituisce mai**: né alla dashboard, né a un flusso di lavoro, né a un'esportazione. L'elenco mostra **Segreto** dove una variabile semplice mostra il suo valore, e la sua colonna **Agenti di runbook** dice quali Runner ricevono ogni segreto. Per cambiarlo, fai clic su **Sostituisci valore** nella sua riga: il nuovo valore viene cifrato, quello vecchio sparisce per sempre e i passaggi ricevono quello nuovo alla prossima esecuzione.
 
 Quando un passaggio stampa un segreto ricevuto, il Runner lo sostituisce con `[REDACTED]` prima che l'output lasci il suo host, e OneUptime lo fa di nuovo prima di salvare l'output. Anche una riga di una chiave privata, o il token di un kubeconfig, viene nascosta. Un segreto più corto di 4 caratteri non viene cercato.
 

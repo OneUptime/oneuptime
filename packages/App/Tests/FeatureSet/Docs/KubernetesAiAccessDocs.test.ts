@@ -1100,7 +1100,7 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
   it("says the Cloud global provider needs AI credits, and who adds them", () => {
     expect(enabling).toContain("the project needs AI credits");
     expect(enabling).toContain(
-      "a project owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**",
+      "a Project Owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**",
     );
     expect(enabling).not.toContain("or auto-recharge");
   });

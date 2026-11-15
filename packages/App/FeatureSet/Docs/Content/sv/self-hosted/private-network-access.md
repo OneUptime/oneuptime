@@ -12,7 +12,7 @@ Den här sidan förklarar hur du tillåter det, medvetet och snävt. Tre reglage
 | --- | --- | --- |
 | Arbetsflöden, projektwebhooks, användarwebhooks för jour | Miljön för **API-servern** | Privata adresser nekas |
 | Datakällor, LLM-leverantörer, SMTP-servrar, OIDC-discovery och andra anslutningar | Miljön för **API-servern** | Privata adresser tillåts |
-| **Monitorer** av typen API, Website, External Status Page och Custom JavaScript Code | **Probens** egen miljö | Privata adresser nekas |
+| **Monitorer** av typen API, Website, External Status Page och Custom JavaScript Code | **Sondens** egen miljö | Privata adresser nekas |
 
 ```mermaid title="Tre reglage, vart och ett för sin typ av anslutning"
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
         Webhooks["Arbetsflöden<br/>och webhooks"]
         Outbound["Datakällor,<br/>LLM-leverantörer,<br/>SMTP och andra<br/>anslutningar"]
     end
-    subgraph Probe["Varje prob"]
+    subgraph Probe["Varje sond"]
         Monitors["Monitorer<br/>av typen<br/>API, Website,<br/>External<br/>Status Page och<br/>Custom<br/>JavaScript Code"]
     end
     Private["Ditt privata<br/>nätverk"]
@@ -35,7 +35,7 @@ Nätverksnära monitortyper som Ping, Port, SSL-certifikat, DNS, DNSSEC, SNMP / 
 :::cards
 - [Webhooks och arbetsflöden](#webhooks-och-arbetsflöden): Låt en webhook posta in i ditt nätverk.
 - [Andra utgående anslutningar](#andra-utgående-anslutningar): Datakällor, LLM-leverantörer och e-postservrar.
-- [Prober och monitorer](#prober-och-monitorer): Låt en prob kontrollera privata webbplatser.
+- [Sonder och monitorer](#sonder-och-monitorer): Låt en sond kontrollera privata webbplatser.
 - [Kontrollera att det fungerar](#kontrollera-att-det-fungerar): Läs vilket reglage ett avslag nämner.
 :::
 
@@ -136,27 +136,27 @@ outboundConnections:
 
 Den här inställningen gäller inte en global LLM-leverantör, som en administratör konfigurerar i stället för ett projekt (med variablerna `GLOBAL_LLM_PROVIDER_*`, Helm-chartets värde `vllm.globalProvider`, eller i Administratörspanel under **Inställningar** > **Globala LLM-leverantörer**): en sådan leverantör kan fortfarande nå privata adresser, även om loopback och link-local förblir nekade även för den.
 
-Bara det exakta värdet `true` slår på den. På en instans med `BILLING_ENABLED=true` är den alltid på, oavsett vad du sätter. Den ändrar inte vilka mål webhook-inställningarna ovan eller probinställningen nedan tillåter; varje spärr konfigureras för sig. Däremot ändrar den hur avslag formuleras, även för webhooks och arbetsflödesbegäranden: när den är på rapporteras ett nekat värdnamn utan att det sägs vad det slogs upp till (se [Kontrollera att det fungerar](#kontrollera-att-det-fungerar)).
+Bara det exakta värdet `true` slår på den. På en instans med `BILLING_ENABLED=true` är den alltid på, oavsett vad du sätter. Den ändrar inte vilka mål webhook-inställningarna ovan eller sondinställningen nedan tillåter; varje spärr konfigureras för sig. Däremot ändrar den hur avslag formuleras, även för webhooks och arbetsflödesbegäranden: när den är på rapporteras ett nekat värdnamn utan att det sägs vad det slogs upp till (se [Kontrollera att det fungerar](#kontrollera-att-det-fungerar)).
 
 På Docker Compose har `config.env` en rad `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (lägg till den om din `config.env` är äldre). Ändra den raden till `true` i stället för att lägga till en rad till, och kör sedan `npm run start` så att containrarna återskapas med det nya värdet; `docker compose restart` läser inte om `config.env`. På Kubernetes sätter du den i din values-fil och uppgraderar releasen; chartet skickar den vidare till app- och worker-poddarna.
 
 När den är på rapporteras ett nekat värdnamn utan att det sägs vad det slogs upp till, till exempel _"LLM provider host ollama.internal could not be reached."_ Ett namn som inte går att slå upp alls får samma meddelande, så att projektmedlemmar inte kan använda de här fälten för att ta reda på vilka interna namn som finns. En adress som skrivits som IP anges fortfarande tillsammans med orsaken, till exempel _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Med `LOG_LEVEL=DEBUG` loggar appen den adress som varje nekat namn slogs upp till.
 
-## Prober och monitorer
+## Sonder och monitorer
 
-Fyra monitortyper påverkas: **API**, **Webbplats**, **Extern statussida** och **Anpassad JavaScript-kod**. På en standardprob kan de nå publika HTTP(S)-mål, men nekar privat adressrymd. Monitorer av typen API, Website och External Status Page validerar och fäster DNS-resultat för varje anslutning och validerar om varje omdirigering; Custom JavaScript Code tillämpar samma adresspolicy i bryggan till sin sandlåda.
+Fyra monitortyper påverkas: **API**, **Webbplats**, **Extern statussida** och **Anpassad JavaScript-kod**. På en standardsond kan de nå publika HTTP(S)-mål, men nekar privat adressrymd. Monitorer av typen API, Website och External Status Page validerar och fäster DNS-resultat för varje anslutning och validerar om varje omdirigering; Custom JavaScript Code tillämpar samma adresspolicy i bryggan till sin sandlåda.
 
-Reglaget läses av **probprocessen från dess egen miljö**, inte från API-serverns, och varje prob läser det: de som följer med Docker Compose, de som Helm-chartet driftsätter och varje [egen prob](/docs/probe/custom-probe) som du kör själv. Den som driftsätter en prob styr dess miljö och vet vilket nätverk proben kan se – en egen prob är oftast en annan maskin, ofta driven av en annan person, och den läser aldrig API-serverns konfiguration.
+Reglaget läses av **sondprocessen från dess egen miljö**, inte från API-serverns, och varje sond läser det: de som följer med Docker Compose, de som Helm-chartet driftsätter och varje [egen sond](/docs/probe/custom-probe) som du kör själv. Den som driftsätter en sond styr dess miljö och vet vilket nätverk sonden kan se – en egen sond är oftast en annan maskin, ofta driven av en annan person, och den läser aldrig API-serverns konfiguration.
 
 :::tabs
 @tab Docker Compose
-`config.env` har redan en rad `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false`: ändra den raden till `true` i stället för att lägga till en rad till, för när en variabel förekommer två gånger vinner den senare raden. Kör sedan `npm run start`, som återskapar containrarna med det nya värdet; `docker compose restart` läser inte om `config.env`. Varje medföljande prob läser den enda raden, så den gäller för `probe-1` och, där din stack kör en prob till, för `probe-2`.
+`config.env` har redan en rad `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false`: ändra den raden till `true` i stället för att lägga till en rad till, för när en variabel förekommer två gånger vinner den senare raden. Kör sedan `npm run start`, som återskapar containrarna med det nya värdet; `docker compose restart` läser inte om `config.env`. Varje medföljande sond läser den enda raden, så den gäller för `probe-1` och, där din stack kör en sond till, för `probe-2`.
 
 ```bash title="config.env"
 PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true
 ```
 @tab Kubernetes
-Sätt den per prob i din values-fil och uppgradera releasen. Varje post under `probes:` är en separat prob, så sätt den på varje prob som ska nå privata adresser:
+Sätt den per sond i din values-fil och uppgradera releasen. Varje post under `probes:` är en separat sond, så sätt den på varje sond som ska nå privata adresser:
 
 ```yaml title="values.yaml"
 probes:
@@ -165,18 +165,18 @@ probes:
 ```
 :::
 
-På en egen prob sätter du `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` i den probens egen miljö och startar om den. Värdet måste vara exakt `true`; allt annat, som `TRUE` eller `1`, lämnar reglaget av, och proben säger det i en varning vid start, oavsett vad `LOG_LEVEL` är satt till.
+På en egen sond sätter du `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` i den sondens egen miljö och startar om den. Värdet måste vara exakt `true`; allt annat, som `TRUE` eller `1`, lämnar reglaget av, och sonden säger det i en varning vid start, oavsett vad `LOG_LEVEL` är satt till.
 
-De medföljande proberna är **globala prober**: de registrerar sig med instansens `REGISTER_PROBE_KEY`, och alla projekt på instansen kan välja dem. Att slå på reglaget för en medföljande prob låter därför monitorer från **alla projekt på instansen** nå privata adresser genom den. Det är oftast vad en installation för ett enda team vill. Där projekt inte ska dela den räckvidden – separata team eller kunder som du hostar – lämnar du det av på de medföljande proberna och driftsätter i stället en privat (egen) prob i varje nätverk, påslagen bara där.
+De medföljande sonderna är **globala sonder**: de registrerar sig med instansens `REGISTER_PROBE_KEY`, och alla projekt på instansen kan välja dem. Att slå på reglaget för en medföljande sond låter därför monitorer från **alla projekt på instansen** nå privata adresser genom den. Det är oftast vad en installation för ett enda team vill. Där projekt inte ska dela den räckvidden – separata team eller kunder som du hostar – lämnar du det av på de medföljande sonderna och driftsätter i stället en privat (egen) sond i varje nätverk, påslagen bara där.
 
-Det finns ett undantag. En prob som registrerar sig med `REGISTER_PROBE_KEY` och har `BILLING_ENABLED=true` i sin egen miljö – en global prob i den hostade produkten med öppen registrering, där vem som helst kan registrera sig och alla projekt delar de globala proberna – förblir enbart publik även med reglaget på, och loggar vid start en varning om att den bortser från det. Proberna som följer med Docker Compose och Helm-chartet får instansens `BILLING_ENABLED` automatiskt; ge det till varje annan `REGISTER_PROBE_KEY`-prob som du kör för en sådan instans. En prob kan inte på något annat sätt veta att den är global, så en global prob som skapats i Administratörspanel och körs med `PROBE_ID` och `PROBE_KEY` följer reglaget som en privat: slå inte på det där om projekt inte ska dela den probens nätverk. En privat prob följer reglaget på vilken instans som helst.
+Det finns ett undantag. En sond som registrerar sig med `REGISTER_PROBE_KEY` och har `BILLING_ENABLED=true` i sin egen miljö – en global sond i den hostade produkten med öppen registrering, där vem som helst kan registrera sig och alla projekt delar de globala sonderna – förblir enbart publik även med reglaget på, och loggar vid start en varning om att den bortser från det. Sonderna som följer med Docker Compose och Helm-chartet får instansens `BILLING_ENABLED` automatiskt; ge det till varje annan `REGISTER_PROBE_KEY`-sond som du kör för en sådan instans. En sond kan inte på något annat sätt veta att den är global, så en global sond som skapats i Administratörspanel och körs med `PROBE_ID` och `PROBE_KEY` följer reglaget som en privat: slå inte på det där om projekt inte ska dela den sondens nätverk. En privat sond följer reglaget på vilken instans som helst.
 
-Varje prob loggar vid start sin gällande policy för privata nätverk: om övervakning av privata nätverk är på eller av, och varför. Ett värde som det bortses från, och en global prob som reglaget öppnar för alla projekt, loggas som varningar på alla `LOG_LEVEL`. Den vanliga raden på eller av, och JSON-posten "Probe environment" som registrerar samma beslut under `privateNetworkMonitors`, loggas vid `LOG_LEVEL=INFO`, Helm-chartets standard; Docker Compose levereras med `LOG_LEVEL=ERROR`, så sätt `LOG_LEVEL=INFO` för att se dem där. Kontrollera den loggen först när en monitor på en prob du nyss ändrat fortfarande nekas.
+Varje sond loggar vid start sin gällande policy för privata nätverk: om övervakning av privata nätverk är på eller av, och varför. Ett värde som det bortses från, och en global sond som reglaget öppnar för alla projekt, loggas som varningar på alla `LOG_LEVEL`. Den vanliga raden på eller av, och JSON-posten "Probe environment" som registrerar samma beslut under `privateNetworkMonitors`, loggas vid `LOG_LEVEL=INFO`, Helm-chartets standard; Docker Compose levereras med `LOG_LEVEL=ERROR`, så sätt `LOG_LEVEL=INFO` för att se dem där. Kontrollera den loggen först när en monitor på en sond du nyss ändrat fortfarande nekas.
 
-Att slå på det öppnar **inte** loopback, link-local eller slutpunkten för molnmetadata. De förblir nekade på alla prober, vilket betyder mest för prober som körs i ett nätverk som monitorns författare inte äger.
+Att slå på det öppnar **inte** loopback, link-local eller slutpunkten för molnmetadata. De förblir nekade på alla sonder, vilket betyder mest för sonder som körs i ett nätverk som monitorns författare inte äger.
 
 > [!WARNING]
-> Låt det vara av på prober som du driver åt andra personer.
+> Låt det vara av på sonder som du driver åt andra personer.
 
 ## Kontrollera att det fungerar
 
@@ -184,11 +184,11 @@ Kör arbetsflödet eller monitorn igen. Om det fortfarande nekas anger felmeddel
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – API-serverns inställning saknas.
 - _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, eller _"...is not allowed. Use a webhook URL on the public internet."_ på själva statussidan – webhooken tillhör en prenumerant som registrerade sig på statussidan, och sådana omfattas inte av någon inställning. Låt i stället ditt team lägga till den som webhook-prenumerant, från instrumentpanelen, med en API-nyckel eller via ett arbetsflöde.
-- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – en privat (egen) prob körde monitorn, och dess reglage är av. Observera att det sätts på proben, inte på API-servern.
-- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – en medföljande (global) prob körde monitorn, och dess reglage är av. Slå på det för den proben enligt beskrivningen ovan om alla projekt på instansen får nå det nätverket; välj annars en privat prob för monitorn.
-- _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – en global prob med `BILLING_ENABLED=true` i sin miljö körde monitorn. Automatiskt registrerade globala prober förblir enbart publika där, vad deras reglage än säger; driftsätt en privat prob inne i målets nätverk och välj den för monitorn.
-- _"Monitor target host ... could not be reached."_ – en monitor av typen API, Website eller External Status Page vars mål är ett **värdnamn** rapporterar detta både när namnet slås upp till en nekad adress och när DNS misslyckas, så att en monitor inte kan användas för att kartlägga vilka interna namn som finns. Feldetaljerna som visas tillsammans med det nämner `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` i båda fallen; de säger inte vilket fall det var. Om namnet pekar på en privat adress kontrollerar du probens policy för privata nätverk i dess startlogg; om den är av är lösningen densamma som för meddelandena ovan. Med `LOG_LEVEL=DEBUG` loggar proben också den exakta orsaken för varje nekat namn.
-- _"Request URL could not be reached."_ – samma regel för en monitor av typen **Anpassad JavaScript-kod**: ett skript som begär ett **värdnamn** får detta både när namnet slås upp till en nekad adress och när DNS misslyckas. Med `LOG_LEVEL=DEBUG` loggar proben den exakta orsaken.
+- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – en privat (egen) sond körde monitorn, och dess reglage är av. Observera att det sätts på sonden, inte på API-servern.
+- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – en medföljande (global) sond körde monitorn, och dess reglage är av. Slå på det för den sonden enligt beskrivningen ovan om alla projekt på instansen får nå det nätverket; välj annars en privat sond för monitorn.
+- _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – en global sond med `BILLING_ENABLED=true` i sin miljö körde monitorn. Automatiskt registrerade globala sonder förblir enbart publika där, vad deras reglage än säger; driftsätt en privat sond inne i målets nätverk och välj den för monitorn.
+- _"Monitor target host ... could not be reached."_ – en monitor av typen API, Website eller External Status Page vars mål är ett **värdnamn** rapporterar detta både när namnet slås upp till en nekad adress och när DNS misslyckas, så att en monitor inte kan användas för att kartlägga vilka interna namn som finns. Feldetaljerna som visas tillsammans med det nämner `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` i båda fallen; de säger inte vilket fall det var. Om namnet pekar på en privat adress kontrollerar du sondens policy för privata nätverk i dess startlogg; om den är av är lösningen densamma som för meddelandena ovan. Med `LOG_LEVEL=DEBUG` loggar sonden också den exakta orsaken för varje nekat namn.
+- _"Request URL could not be reached."_ – samma regel för en monitor av typen **Anpassad JavaScript-kod**: ett skript som begär ett **värdnamn** får detta både när namnet slås upp till en nekad adress och när DNS misslyckas. Med `LOG_LEVEL=DEBUG` loggar sonden den exakta orsaken.
 - _"Webhook URL could not be reached."_ eller, från ett arbetsflöde, _"Request URL could not be reached."_ – instansen körs med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (eller `BILLING_ENABLED=true`), så ett nekat **värdnamn** förklaras inte: det slogs antingen upp till en nekad adress eller inte alls. Med `LOG_LEVEL=DEBUG` loggar appen eller workern vilket av de två, och adressen.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – målet ligger i den förbjudna nivån. För en webhook anger du exakt värd eller CIDR i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` om du verkligen behöver det. För en monitor finns det inget undantag.
 - _"...hostname could not be resolved via DNS."_ – containern kan inte slå upp namnet. Kontrollera att den delar ett nätverk med målet.
@@ -201,12 +201,12 @@ Att öppna för detta ändrar på riktigt vad din OneUptime-instans kan förmås
 - **Den som kan skapa ett arbetsflöde eller en monitor av typen API, Website, External Status Page eller Custom JavaScript Code, eller lägga till en prenumerant på en statussida, kan nå allt du har tillåtit.** Behandla medlemskap i de projekten därefter.
 - **Svarets innehåll kommer tillbaka.** En API-komponent i ett arbetsflöde returnerar status, huvuden och innehåll till arbetsflödets logg, så en tillåten värd går att läsa, inte bara skriva till.
 - **Omdirigeringar följs aldrig** för webhook-begäranden, så en tillåten publik värd kan inte studsa servern vidare till en intern värd i ett andra hopp.
-- **Avgränsa per prob i stället för för hela instansen där du kan.** En prob som driftsatts inne i ett nätverk är en snävare behörighet än att öppna API-serverns utgående trafik.
+- **Avgränsa per sond i stället för för hela instansen där du kan.** En sond som driftsatts inne i ett nätverk är en snävare behörighet än att öppna API-serverns utgående trafik.
 
 ## Nästa steg
 
 :::cards
-- [Egna prober](/docs/probe/custom-probe): Kör en prob i det nätverk den ska kontrollera.
+- [Egna sonder](/docs/probe/custom-probe): Kör en sond i det nätverk den ska kontrollera.
 - [Konfiguration av arbetsflöden](/docs/workflows/configuration): Vad arbetsflödessteg kan nå och göra.
 - [LLM-leverantörer](/docs/ai/llm-provider): Anslut OneUptime AI till en modell i ditt nätverk.
 - [Arkitektur](/docs/self-hosted/architecture): Vilken del av en egeninstallation som gör vilken anslutning.

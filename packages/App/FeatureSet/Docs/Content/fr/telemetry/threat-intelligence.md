@@ -27,7 +27,7 @@ flowchart TB
 - Pour un flux TAXII, un serveur TAXII 2.1 qui publie des objets STIX 2.1 de type `indicator`, et l'ID de la collection à interroger. Un flux TAXII se connecte de façon anonyme, avec un jeton bearer ou avec l'authentification HTTP basique.
 - Pour un flux Google SecOps, une [connexion Google SecOps](/docs/integrations/google-secops#configurer-le-connecteur-géré) dont le compte de service peut rechercher les correspondances d'indicateurs : le rôle `roles/chronicle.viewer` le peut.
 - Les serveurs qui exigent un certificat client TLS (TLS mutuel), comme CISA AIS, ne sont pas pris en charge. Le serveur ATT&CK public de MITRE publie des techniques et des groupes plutôt que des indicateurs, donc un flux qui pointe vers lui reste vide.
-- Un rôle qui peut créer des flux : Project Owner, Project Admin, Security Admin ou Security Member. Security Viewer peut lire les flux et les indicateurs. Voir [Rôles](/docs/permissions/reference#rôles).
+- Un rôle qui peut créer des flux : Propriétaire du projet, Administrateur du projet, Administrateur de la sécurité ou Membre de la sécurité. Lecteur de la sécurité peut lire les flux et les indicateurs. Voir [Rôles](/docs/permissions/reference#rôles).
 
 ## Ajouter une liste gratuite
 

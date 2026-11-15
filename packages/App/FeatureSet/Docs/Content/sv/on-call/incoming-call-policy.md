@@ -160,7 +160,7 @@ En regel ringer en person på det nummer som personen har verifierat för inkomm
 
 Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder. Se [Aviseringsmetoder](/docs/notifications/notification-methods).
 
-Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler**.
+Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En Projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler**.
 
 ## Röstmeddelanden och policyinställningar
 
@@ -198,7 +198,7 @@ Ett samtal är missat när det slutar utan att nå någon: dess status är **Ing
 
 ### Vem som aviseras
 
-När ett samtal missas aviserar OneUptime policyns ägare: användarna och medlemmarna i de team som har lagts till på policyns sida **Ägare**. Om policyn inte har några ägare aviseras projektets ägare i stället.
+När ett samtal missas aviserar OneUptime policyns ägare: användarna och medlemmarna i de team som har lagts till på policyns sida **Ägare**. Om policyn inte har några ägare aviseras Projektägare i stället.
 
 Aviseringen säger vem som ringde, vilket nummer personen slog, varför ingen svarade, och vem som ringdes upp och hur varje försök slutade. Den länkar till samtalet i samtalsloggen.
 

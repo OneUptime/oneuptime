@@ -1064,7 +1064,7 @@ Houd er rekening mee dat de sessierij samen met haar opname verloopt: foutaantal
 
 ### Sessies wissen
 
-Om aan een verwijderverzoek te voldoen, dien je via de OneUptime-API een wisverzoek in — de resource `/rum-session-erasure-request`; er is nog geen formulier in het dashboard voor. Een verzoek vereist `CreateRumSessionErasureRequest` (of een projecteigenaar / -beheerder) en neemt:
+Om aan een verwijderverzoek te voldoen, dien je via de OneUptime-API een wisverzoek in — de resource `/rum-session-erasure-request`; er is nog geen formulier in het dashboard voor. Een verzoek vereist `CreateRumSessionErasureRequest` (of een Projecteigenaar / Projectbeheerder) en neemt:
 
 | Veld | Waarden |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Omdat de markering elke service bereikt waar een browserverzoek doorheen ging, v
 
 ## Wie een opname kan bekijken
 
-Een opname bekijken is een andere machtiging dan sessies opvragen, en geen van beide wordt verleend door de Kijker-rol voor het hele project. Projecteigenaren en -beheerders hebben ze allemaal.
+Een opname bekijken is een andere machtiging dan sessies opvragen, en geen van beide wordt verleend door de Kijker-rol voor het hele project. Projecteigenaren en Projectbeheerders hebben ze allemaal.
 
 | Machtiging | Ontgrendelt |
 | --- | --- |

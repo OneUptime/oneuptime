@@ -43,7 +43,7 @@ flowchart TB
 ## پیش از شروع
 
 - **تله‌متری در حال رسیدن** با یک `service.name`. [OpenTelemetry](/docs/telemetry/open-telemetry) را ببینید: `OTEL_SERVICE_NAME` آن را تنظیم می‌کند.
-- **نقشی که سرویس‌ها را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Settings Admin، Settings Member یا Settings Viewer، یا یک نقش سفارشی با مجوز Read Service. ساختن، تغییر دادن و حذف سرویس‌ها به Project Owner، Project Admin، Project Member، Settings Admin یا Settings Member، یا مجوزهای متناظر سرویس نیاز دارد.
+- **نقشی که سرویس‌ها را بخواند.** مالک پروژه، مدیر پروژه، عضو پروژه، بیننده، مدیر تنظیمات، عضو تنظیمات یا بیننده تنظیمات، یا یک نقش سفارشی با مجوز Read Service. ساختن، تغییر دادن و حذف سرویس‌ها به مالک پروژه، مدیر پروژه، عضو پروژه، مدیر تنظیمات یا عضو تنظیمات، یا مجوزهای متناظر سرویس نیاز دارد.
 
 ## یافتن یک سرویس
 

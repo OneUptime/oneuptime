@@ -13,7 +13,7 @@ flowchart TB
 ## Was Sie brauchen
 
 - Mindestens einen Monitor: Eine Statusseite zeigt Monitore. Gibt es noch keinen, bietet die geführte Einrichtung zuerst **Monitor einrichten** an.
-- Die Rolle eines Projekteigentümers oder Admins: Für die Seite brauchen Sie die Berechtigung, Statusseiten zu erstellen, und für Ihre Domain die Berechtigung, Domains des Projekts hinzuzufügen und zu verifizieren.
+- Die Rolle Projektinhaber oder Projektadministrator: Für die Seite brauchen Sie die Berechtigung, Statusseiten zu erstellen, und für Ihre Domain die Berechtigung, Domains des Projekts hinzuzufügen und zu verifizieren.
 - Eine Domain, die Sie verwalten, und Zugriff auf ihre DNS-Einträge bei Ihrem DNS-Anbieter.
 
 :::tabs

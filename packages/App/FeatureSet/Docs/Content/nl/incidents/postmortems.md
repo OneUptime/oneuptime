@@ -209,7 +209,7 @@ De twee AI-acties vereisen dat AI voor het project is ingeschakeld, en een repos
 
 **Incidenten → Actiepunten** toont de actiepunten van alle postmortems in het hele project, met de eerstvolgende vervaldatum bovenaan, elk met het incident, de eigenaar, de vervaldatum en de status. Filter de lijst op **Status**, **Eigenaar** en **Vervaldatum**, en **Bekijken** op een rij opent de pagina **Postmortem** van het incident.
 
-Actiepunten lezen vereist hetzelfde als het incident lezen. Ze toevoegen, wijzigen en verwijderen vereist de rol Projecteigenaar, Projectbeheerder, Projectlid, Incidentbeheerder of Incidentlid, of een aangepaste rol met de bijbehorende machtiging voor postmortem-actiepunten. De actiepunten van een privé-incident zijn, net als het incident zelf, alleen zichtbaar voor de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, projectbeheerders en projecteigenaren.
+Actiepunten lezen vereist hetzelfde als het incident lezen. Ze toevoegen, wijzigen en verwijderen vereist de rol Projecteigenaar, Projectbeheerder, Projectlid, Incidentbeheerder of Incidentlid, of een aangepaste rol met de bijbehorende machtiging voor postmortem-actiepunten. De actiepunten van een privé-incident zijn, net als het incident zelf, alleen zichtbaar voor de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, Projectbeheerders en Projecteigenaren.
 
 ## Postmortems van episodes
 

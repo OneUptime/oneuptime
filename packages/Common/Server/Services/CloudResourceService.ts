@@ -898,7 +898,7 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   public async archiveUnseenMonitoredResources(): Promise<number> {
     const now: Date = OneUptimeDate.getCurrentDate();
-    const cutoff: Date = OneUptimeDate.addRemoveDays(
+    const cutoff: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -this.getMonitoredResourceAutoArchiveDays(),
     );

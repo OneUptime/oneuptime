@@ -103,7 +103,7 @@ Um TLS stattdessen an einem eigenen Ingress-Controller zu beenden, lassen Sie `s
 
 ## Den Server fertig einrichten
 
-Die Seite **Server-Einrichtung** des Admin Dashboards unter `/admin/setup` listet auf, was ein neuer Server braucht, das Wichtigste zuerst. E-Mail, HTTPS und wer sich registrieren darf, sind Pflicht. SMS und Anrufe, eine globale Probe, Backups und Update-Prüfungen werden empfohlen. Jeder Punkt hat eine Schaltfläche, die die Stelle öffnet, an der er eingestellt wird, und `npm start` gibt am Ende die Adresse dieser Seite aus.
+Die Seite **Server-Einrichtung** des Admin Dashboards unter `/admin/setup` listet auf, was ein neuer Server braucht, das Wichtigste zuerst. E-Mail, HTTPS und wer sich registrieren darf, sind Pflicht. SMS und Anrufe, eine globale Sonde, Backups und Update-Prüfungen werden empfohlen. Jeder Punkt hat eine Schaltfläche, die die Stelle öffnet, an der er eingestellt wird, und `npm start` gibt am Ende die Adresse dieser Seite aus.
 
 :::steps
 ### E-Mail einrichten
@@ -137,7 +137,7 @@ Führen Sie im Ordner `oneuptime` den Doctor aus:
 npm run doctor
 ```
 
-Er prüft jeden Container, `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat und den freien Speicherplatz, und fragt OneUptime, was es von sich selbst sieht, etwa E-Mail und Probes. Zu jedem Problem nennt er die Lösung: siehe [Ihre Installation prüfen](/docs/installation/docker-compose#ihre-installation-prüfen).
+Er prüft jeden Container, `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat und den freien Speicherplatz, und fragt OneUptime, was es von sich selbst sieht, etwa E-Mail und Sonden. Zu jedem Problem nennt er die Lösung: siehe [Ihre Installation prüfen](/docs/installation/docker-compose#ihre-installation-prüfen).
 @tab Kubernetes
 Führen Sie das Diagnoseskript des Charts gegen Ihren Cluster aus, wie die [Fehlerbehebungsanleitung des Charts](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) zeigt. Es liest nur und endet mit einer Zusammenfassung dessen, was es gefunden hat, das Schlimmste zuerst.
 :::

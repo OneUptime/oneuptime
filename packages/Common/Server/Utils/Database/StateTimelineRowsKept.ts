@@ -123,7 +123,7 @@ export default class StateTimelineRowsKept {
 
         return {
           parameters: {
-            [historyFrom]: OneUptimeDate.addRemoveDays(
+            [historyFrom]: OneUptimeDate.addRemoveDurationInDays(
               now(),
               -KEPT_STATUS_HISTORY_DAYS,
             ),

@@ -1064,7 +1064,7 @@ Be aware that the session row expires with its footage: error counts, frustratio
 
 ### Erasing sessions
 
-To satisfy a deletion request, file an erasure request through the OneUptime API — the `/rum-session-erasure-request` resource; there is no dashboard form for it yet. A request needs `CreateRumSessionErasureRequest` (or a project owner / admin) and takes:
+To satisfy a deletion request, file an erasure request through the OneUptime API — the `/rum-session-erasure-request` resource; there is no dashboard form for it yet. A request needs `CreateRumSessionErasureRequest` (or a Project Owner or Project Admin) and takes:
 
 | Field | Values |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Because stamping reaches every service a browser request passed through, an eras
 
 ## Who can watch a recording
 
-Watching a recording is a separate permission from listing sessions, and neither is granted by the project-wide Viewer role. Project owners and admins hold all of them.
+Watching a recording is a separate permission from listing sessions, and neither is granted by the project-wide Viewer role. Project Owners and Project Admins hold all of them.
 
 | Permission | Unlocks |
 | --- | --- |

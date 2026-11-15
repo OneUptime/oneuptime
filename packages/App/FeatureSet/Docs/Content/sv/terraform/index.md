@@ -105,7 +105,7 @@ Providern har en resurs för varje slags post som du kan skapa via OneUptimes AP
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | Incidenter, deras allvarlighetsgrader och deras tillstånd |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | Larm, deras allvarlighetsgrader och deras tillstånd |
 | `oneuptime_scheduled_maintenance_event` | Ett schemalagt underhållsfönster |
-| `oneuptime_probe` | En egen probe, som kontrollerar från ditt nätverk |
+| `oneuptime_probe` | En egen sond, som kontrollerar från ditt nätverk |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) visar varje resurs med alla dess attribut.
 

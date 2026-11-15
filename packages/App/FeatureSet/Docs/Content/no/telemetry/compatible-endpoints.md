@@ -3,10 +3,10 @@
 Kjører du allerede Prometheus, en Loki-klient, en Splunk-forwarder, Datadog Agent eller et Sentry-SDK? Behold det. OneUptime tar imot det hvert av disse verktøyene sender, på stiene verktøyet allerede bruker, og lagrer det som OpenTelemetry-data. Å prøve OneUptime krever bare en ny URL og nøkkel, ikke ny instrumentering, og drop-filtrene, scrub-reglene, loggpipelinene, dataoppbevaringen og inntaksbudsjettene dine gjelder for disse dataene som for alle andre.
 
 :::cards
-- [Prometheus remote write](#prometheus-remote-write): Metrikker fra Prometheus, Grafana Alloy eller en hvilken som helst annen avsender av remote write.
+- [Prometheus remote write](#prometheus-remote-write): Målinger fra Prometheus, Grafana Alloy eller en hvilken som helst annen avsender av remote write.
 - [Loki](#loki): Logger fra Promtail, Grafana Alloy, Fluent Bit eller Vector.
-- [Splunk HTTP Event Collector](#splunk-http-event-collector): Logger og metrikkhendelser fra en hvilken som helst HEC-klient.
-- [Datadog Agent](#datadog-agent): Metrikker og logger fra Datadog Agent.
+- [Splunk HTTP Event Collector](#splunk-http-event-collector): Logger og målingshendelser fra en hvilken som helst HEC-klient.
+- [Datadog Agent](#datadog-agent): Målinger og logger fra Datadog Agent.
 - [Sentry-SDK-er](#sentry-sdk-er): Feil, transaksjoner og logger fra et hvilket som helst Sentry-SDK.
 :::
 
@@ -24,7 +24,7 @@ flowchart TB
     end
     tools -->|"Sin egen protokoll + inntaksnøkkelen din"| endpoint["Kompatible endepunkter i OneUptime"]
     endpoint --> otlp["Lagret som OpenTelemetry-data"]
-    otlp --> signals["Logger, metrikker, traces og unntak"]
+    otlp --> signals["Logger, målinger, traces og unntak"]
 ```
 
 Hvert endepunkt svarer slik verktøyet selv forventer — en `204` til Prometheus og Loki, HECs `{"text": "Success", "code": 0}`, Datadogs `202`, Sentrys hendelses-ID — så verktøyet melder suksess og feil slik det alltid har gjort. Deretter behandles dataene nøyaktig som data fra et OpenTelemetry-SDK.
@@ -76,7 +76,7 @@ Remote write 1.0 og 2.0 tas begge imot, snappy-komprimert slik alle avsendere se
 
 ### Hva en serie blir til
 
-- **Navnet og etikettene beholdes.** `http_requests_total{job="checkout", code="500"}` er metrikken `http_requests_total` med attributtene `job` og `code`, så en spørring som flyttes fra Grafana, finner den.
+- **Navnet og etikettene beholdes.** `http_requests_total{job="checkout", code="500"}` er målingen `http_requests_total` med attributtene `job` og `code`, så en spørring som flyttes fra Grafana, finner den.
 - **Jobben er tjenesten.** Hver `job` blir en tjeneste, og hver `instance` blir tjenesteinstansen dens, slik OpenTelemetrys Prometheus-regler kartlegger dem.
 - **Typene beholdes.** Tellere, og bøttene og antallene i et histogram, er kumulative summer, så ratene deres vises riktig i diagrammer. En type kommer fra metadataene avsenderen sender med; uten dem er et navn som slutter på `_total`, en teller, og en `_bucket` med en `le`-etikett en histogrambøtte.
 - **Native histogrammer** blir eksponentielle histogrammer, og native histogrammer med egendefinerte bøtter blir vanlige histogrammer.
@@ -143,12 +143,12 @@ En `200` med `{"text": "Success", "code": 0}` betyr at hendelsen ble tatt imot. 
 - **En logg**, med `time` fra hendelsen som tidsstempel. Er hendelsen en streng, er den innholdet; er den et objekt, er `message`, `msg`, `log`, `line` eller `text` innholdet, og de andre feltene er attributter.
 - **Metadataene beholdes:** `host` er verten, og `source`, `sourcetype` og `index` beholdes som `com.splunk.source`, `com.splunk.sourcetype` og `com.splunk.index`. `host`, `source`, `sourcetype` og `index` i spørrestrengen fyller inn det en hendelse utelater.
 - **Feltene er attributter.** Et `service.name`-felt angir tjenesten, og det gjør også `service`-feltet i en logg.
-- **Metrikkhendelser** (`"event": "metric"`, med `metric_name` og `_value`, eller `metric_name:<name>`-felter) lagres som metrikker, aldri som logger.
+- **Målingshendelser** (`"event": "metric"`, med `metric_name` og `_value`, eller `metric_name:<name>`-felter) lagres som målinger, aldri som logger.
 - **Tilbys ikke:** indexer acknowledgement. En klient som ber om det, får ingen `ackId`.
 
 ## Datadog Agent
 
-Pek metrikkene og loggene til Agenten mot OneUptime, med inntaksnøkkelen din som API-nøkkel:
+Pek målingene og loggene til Agenten mot OneUptime, med inntaksnøkkelen din som API-nøkkel:
 
 ```yaml title="datadog.yaml"
 api_key: YOUR_TELEMETRY_KEY_WITHOUT_HYPHENS
@@ -168,9 +168,9 @@ Agenten legger til sine egne stier på `dd_url`, og sender logger til `/api/v2/l
 
 ### Hva dataene fra Agenten blir til
 
-- **Metrikker** beholder navnene sine. Gauges forblir gauges, counts blir summer, og rates blir gauges av verdien per sekund.
+- **Målinger** beholder navnene sine. Gauges forblir gauges, counts blir summer, og rates blir gauges av verdien per sekund.
 - **Distributions** blir summaries med antall, sum, minimum og maksimum.
-- **Service checks** blir en metrikk oppkalt etter sjekken, der verdien er statusen til sjekken: 0 OK, 1 advarsel, 2 kritisk, 3 ukjent.
+- **Service checks** blir en måling oppkalt etter sjekken, der verdien er statusen til sjekken: 0 OK, 1 advarsel, 2 kritisk, 3 ukjent.
 - **Logger** beholder melding, status, vert og tjeneste, og resten av feltene som attributter.
 - **Tagger er attributter**, og taggene `service`, `env` og `version` angir tjenesten, miljøet og versjonen.
 - **Leses ikke ennå:** APM-traces, prosesser, containere, nettverksdata og profiler. La dem være slått av i `datadog.yaml`, som ovenfor.
@@ -210,7 +210,7 @@ Ettallet `1` på slutten av DSN-en kreves av SDK-ene til Sentry og leses ikke. D
 ## Grenser og inntaksbudsjetter
 
 - **Requeststørrelse** – ingressen i OneUptime godtar requester på opptil 4 MB under `/telemetry`, og innholdet i hver request kan være på høyst 64 MB dekomprimert.
-- **Inntaksbudsjetter** – Prometheus remote write og Loki sjekkes mot budsjettet for metrikker eller logger før innholdet leses, og avvises med `403` når det er brukt opp. En HEC-batch, en Datadog-nyttelast eller en Sentry-konvolutt kan inneholde flere signaler, så hvert signal telles mot sitt eget budsjett når det lagres, og forkastes når det budsjettet er brukt opp.
+- **Inntaksbudsjetter** – Prometheus remote write og Loki sjekkes mot budsjettet for målinger eller logger før innholdet leses, og avvises med `403` når det er brukt opp. En HEC-batch, en Datadog-nyttelast eller en Sentry-konvolutt kan inneholde flere signaler, så hvert signal telles mot sitt eget budsjett når det lagres, og forkastes når det budsjettet er brukt opp.
 
 ## Feilsøking
 
@@ -222,7 +222,7 @@ Nøkkelen kom ikke fram der endepunktet ser etter den, eller den er ikke en nøk
 
 SDK-ene til Sentry avviser en DSN der nøkkelen har bindestreker. Skriv nøkkelen som sine 32 heksadesimale sifre, uten bindestrekene.
 
-### Datadog-metrikker kommer fram, men ikke logger
+### Datadog-målinger kommer fram, men ikke logger
 
 Sjekk at `logs_config.use_http` er `true`, og at `logs_config.logs_dd_url` er en vert og en port, ikke en URL. Agenten sender logger over TCP når `use_http` ikke er satt.
 

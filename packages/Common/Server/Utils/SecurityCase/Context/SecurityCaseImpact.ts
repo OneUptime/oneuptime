@@ -810,7 +810,7 @@ export default class SecurityCaseImpact {
     }
 
     const time: InBetween<Date> = new InBetween(
-      OneUptimeDate.addRemoveDays(
+      OneUptimeDate.addRemoveDurationInDays(
         data.scope.window.start,
         -IMPACT_CHANGE_LOOKBACK_IN_DAYS,
       ),

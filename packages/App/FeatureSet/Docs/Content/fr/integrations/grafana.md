@@ -3,7 +3,7 @@
 Envoyez les alertes de [Grafana](https://grafana.com) à OneUptime, pour que chaque alerte qui se déclenche devienne un incident qui prévient votre équipe d'astreinte et soit résolu quand l'alerte se rétablit. Grafana envoie ses alertes par un point de contact webhook, il n'y a donc rien à installer d'un côté comme de l'autre.
 
 :::cards
-- [Choisir comment OneUptime reçoit les alertes](#choisir-comment-oneuptime-reçoit-les-alertes): Un moniteur de requêtes entrantes, ou un workflow à vous.
+- [Choisir comment OneUptime reçoit les alertes](#choisir-comment-oneuptime-reçoit-les-alertes): Un moniteur de requêtes entrantes, ou un flux de travail à vous.
 - [Recevoir les alertes avec un moniteur](#recevoir-les-alertes-avec-un-moniteur): Un incident par alerte, résolu au rétablissement.
 - [Configurer Grafana](#configurer-grafana): Un point de contact webhook, et la politique qui l'utilise.
 - [Dépannage](#dépannage): Quand les alertes n'arrivent pas, ou que les incidents restent ouverts.
@@ -25,7 +25,7 @@ Les politiques de notification de Grafana regroupent les alertes qui se déclenc
 ## Avant de commencer
 
 - Grafana 9 ou plus récent, avec Grafana Alerting, la valeur par défaut depuis Grafana 9. Il doit pouvoir joindre votre OneUptime en HTTPS.
-- Dans OneUptime, le droit de créer des moniteurs, ou des workflows si vous prenez cette voie.
+- Dans OneUptime, le droit de créer des moniteurs, ou des flux de travail si vous prenez cette voie.
 
 ## Choisir comment OneUptime reçoit les alertes
 
@@ -34,7 +34,7 @@ Configurez d'abord OneUptime : il vous donne l'URL à laquelle Grafana envoie.
 | Façon | Utilisez-la quand |
 | --- | --- |
 | Un moniteur de requêtes entrantes (recommandé) | Vous voulez que chaque alerte devienne un incident qui prévient l'astreinte et soit résolu quand l'alerte se rétablit. Il n'y a rien à construire. |
-| Un workflow avec un déclencheur Webhook | Il vous faut une logique propre : filtrer les alertes, les remanier ou appeler d'abord d'autres systèmes. Un workflow ouvre un incident par notification, pas par alerte, et ne le résout pas au rétablissement. |
+| Un flux de travail avec un déclencheur Webhook | Il vous faut une logique propre : filtrer les alertes, les remanier ou appeler d'abord d'autres systèmes. Un flux de travail ouvre un incident par notification, pas par alerte, et ne le résout pas au rétablissement. |
 
 Les deux reçoivent le même JSON du même point de contact, vous pouvez donc commencer par l'un et changer plus tard en modifiant une URL dans Grafana.
 
@@ -110,12 +110,12 @@ Grafana envoie `Content-Type: application/json`, dont le moniteur a besoin pour 
 1. Dans Grafana, ouvrez le point de contact `OneUptime` et cliquez sur **Test**. Grafana envoie une alerte de test déclenchée, et un incident s'ouvre dans OneUptime. Une alerte de test ne se rétablit jamais, résolvez donc cet incident à la main.
 2. Laissez une vraie règle d'alerte se déclencher, par exemple en abaissant un instant son seuil, et regardez son incident s'ouvrir, puis se résoudre quand vous rétablissez le seuil.
 
-## Recevoir les alertes avec un workflow
+## Recevoir les alertes avec un flux de travail
 
-Utilisez un [workflow](/docs/workflows/index) quand il vous faut vos propres étapes entre Grafana et l'incident.
+Utilisez un [flux de travail](/docs/workflows/index) quand il vous faut vos propres étapes entre Grafana et l'incident.
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Grafana alerts` et cliquez sur **Créer un flux de travail**.
 
@@ -140,9 +140,9 @@ Ajoutez un bloc **Create One Incident** et reliez-y le côté **Oui** du bloc **
 
 Sans modèle, **JSON Object** doit aussi contenir `incidentSeverityId`, l'ID de l'une des gravités d'incident du projet.
 
-### Activer le workflow
+### Activer le flux de travail
 
-Activez **Activé** en haut du **Constructeur**. Un workflow désactivé répond à Grafana par `400`.
+Activez **Activé** en haut du **Constructeur**. Un flux de travail désactivé répond à Grafana par `400`.
 :::
 
 Une exécution traite une notification, elle déclare donc un seul incident, quel que soit le nombre d'alertes de la notification. Une notification `resolved` prend le côté **Non** du bloc **If / Else**, où rien n'est relié, l'exécution s'arrête donc là. Pour un incident par alerte, résolu au rétablissement, utilisez le moniteur.
@@ -152,7 +152,7 @@ Une exécution traite une notification, elle déclare donc un seul incident, que
 :::details Rien n'arrive dans OneUptime
 - Cliquez sur **Test** sur le point de contact : Grafana affiche une erreur quand il ne peut pas joindre l'URL. Le journal du serveur Grafana donne les détails.
 - Le moniteur répond `200` immédiatement, avant de vérifier quoi que ce soit, même avec une clé secrète erronée. Consultez la chronologie du moniteur pour voir si les notifications arrivent.
-- Un workflow désactivé répond `400`. Activez **Activé** en haut de son **Constructeur**.
+- Un flux de travail désactivé répond `400`. Activez **Activé** en haut de son **Constructeur**.
 :::
 
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
@@ -166,14 +166,14 @@ Vous avez regroupé selon un label identique pour toutes les alertes d'une notif
 :::
 
 :::details L'incident affiche une référence au lieu d'une valeur
-Une référence à un champ que la notification n'a pas est laissée telle qu'elle est écrite, accolades comprises. Comparez le nom du champ avec ce que Grafana a envoyé : pour un workflow, ouvrez l'exécution dans **Journaux → Exécutions** et comparez avec ce que le déclencheur a reçu.
+Une référence à un champ que la notification n'a pas est laissée telle qu'elle est écrite, accolades comprises. Comparez le nom du champ avec ce que Grafana a envoyé : pour un flux de travail, ouvrez l'exécution dans **Journaux → Exécutions** et comparez avec ce que le déclencheur a reçu.
 :::
 
 Le guide [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#dépannage) couvre d'autres cas, et ils s'appliquent aussi aux notifications de Grafana.
 
 ## Sécurité
 
-- **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur, ou **Réinitialiser l'URL** dans le déclencheur **Webhook** du workflow. Mettez ensuite à jour l'**URL** du point de contact dans Grafana.
+- **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur, ou **Réinitialiser l'URL** dans le déclencheur **Webhook** du flux de travail. Mettez ensuite à jour l'**URL** du point de contact dans Grafana.
 - **Auto-hébergé ?** Laissez Grafana joindre votre OneUptime en HTTPS à travers votre pare-feu.
 
 ## Étapes suivantes

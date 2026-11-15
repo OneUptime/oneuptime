@@ -87,6 +87,18 @@ const DASHBOARD_WORDS: Readonly<
   "zh-TW": { probe: "探測器", probes: "探測器" },
   da: { probe: "Sonde", probes: "Sonder" },
   nl: { probe: "Sonde", probes: "Sondes" },
+  // #8306: the other eleven docs languages.
+  de: { probe: "Sonde", probes: "Sonden" },
+  no: { probe: "Sonde", probes: "Sonder" },
+  sv: { probe: "Sond", probes: "Sonder" },
+  it: { probe: "Sonda", probes: "Sonde" },
+  pt: { probe: "Sonda", probes: "Sondas" },
+  ru: { probe: "Зонд", probes: "Зонды" },
+  fr: { probe: "Sonde", probes: "Sondes" },
+  es: { probe: "Sonda", probes: "Sondas" },
+  ko: { probe: "프로브", probes: "프로브" },
+  ja: { probe: "プローブ", probes: "プローブ" },
+  hi: { probe: "प्रोब", probes: "प्रोब" },
 };
 
 // English that names a OneUptime probe: not a cloud's, a kernel's or a query.
@@ -97,10 +109,15 @@ const SAYS_EXPLORER: RegExp = /explor/i;
 // The Persian Dashboard's word for an explorer.
 const PERSIAN_EXPLORER: RegExp = /کاوشگر/;
 
-// The Dashboard's word for a probe in a language, as its locale says it.
+/*
+ * The Dashboard's word for a probe in a language, one or many, as its
+ * locale says it: Italian's one sonda is no stem of its sonde.
+ */
 function dashboardWordOf(language: string): RegExp {
+  const words: Record<string, string> = readDashboardLocale(language);
+
   return new RegExp(
-    escapeRegExp(readDashboardLocale(language)["Probe"]!),
+    `${escapeRegExp(words["Probe"]!)}|${escapeRegExp(words["Probes"]!)}`,
     "iu",
   );
 }
@@ -453,6 +470,118 @@ describe("Persian keeps کاوشگر for an explorer", () => {
         return !SAYS_EXPLORER.test(block.english.text);
       }),
     ).toEqual([]);
+  });
+});
+
+// #8306: the other eleven docs languages, each beside its Dashboard's word.
+describe("the other eleven languages' old words (controls)", () => {
+  test.each([
+    ["de", "Starten Sie eine Probe in Ihrem Netz.", "Probe"],
+    ["de", "Die Probes sind verbunden.", "Probe"],
+    ["de", "Den Probe-Schlüssel kopieren.", "Probe"],
+    ["no", "Proben er tilkoblet.", "Probe"],
+    ["no", "Se probestatusmonitoren.", "probe"],
+    ["sv", "Om den inte bevakar någon prob.", "prob"],
+    ["sv", "Proberna är anslutna.", "Prob"],
+    ["it", "Una probe legge il catalogo.", "probe"],
+    ["pt", "Uma probe dentro da sua rede.", "probe"],
+    ["ru", "Проба читает каталог.", "Проба"],
+    ["ru", "Запустите её на собственной пробе.", "пробе"],
+    ["ru", "Пользовательские probes", "probe"],
+    ["fr", "Une probe collecte le cloud.", "probe"],
+    ["es", "Una probe en tu red.", "probe"],
+    ["ja", "Probes で確認してください。", "Probes"],
+    ["ko", "Probes 페이지를 확인하세요.", "Probes"],
+    ["hi", "Probes पेज पर जाँचें।", "Probes"],
+  ])("%s: %p says %p", (language: string, text: string, says: string) => {
+    expect(otherProbeWordIn(language, "", text)).toBe(says);
+  });
+
+  test.each([
+    ["de", "Starten Sie eine Sonde; die Sonden antworten."],
+    ["no", "En sonde; sondene svarer; sondestatusmonitoren."],
+    ["sv", "En sond; sonderna svarar; sondstatusmonitorn."],
+    ["it", "Una sonda legge; le sonde rispondono."],
+    ["pt", "Uma sonda lê; as sondas respondem."],
+    ["ru", "Зонд читает каталог; на собственном зонде."],
+    ["fr", "Une sonde collecte; les sondes répondent."],
+    ["ja", "プローブで確認してください。"],
+    ["hi", "प्रोब पेज पर जाँचें।"],
+  ])("%s: %p is the Dashboard's word", (language: string, text: string) => {
+    expect(otherProbeWordIn(language, "", text)).toBeNull();
+  });
+
+  test("each language keeps its own words that only look alike", () => {
+    // German: a sample, a trial run, a test drive.
+    expect(
+      otherProbeWordIn(
+        "de",
+        "",
+        "Eine Stichprobe der Abfrage-Stichproben, ein Probelauf und eine Probefahrt.",
+      ),
+    ).toBeNull();
+    // Swedish: a problem; Russian: a space, a trial, to try.
+    expect(otherProbeWordIn("sv", "", "Ett problem med sonden.")).toBeNull();
+    expect(
+      otherProbeWordIn(
+        "ru",
+        "",
+        "Без пробелов; пробный запуск; попробуйте снова.",
+      ),
+    ).toBeNull();
+    // A cloud's startup probe and an option drawn in English keep their word.
+    expect(
+      otherProbeWordIn(
+        "de",
+        "",
+        "Die Erweiterung beantwortet die Startup-Probe.",
+      ),
+    ).toBeNull();
+    expect(
+      otherProbeWordIn(
+        "no",
+        "",
+        "Bytt til Probe ovenfor for at en sonde skal pinge den.",
+      ),
+    ).toBeNull();
+    expect(
+      otherProbeWordIn(
+        "ru",
+        "",
+        "Множество проб одного сканера — это одна строка.",
+      ),
+    ).toBeNull();
+  });
+
+  test("a quote the English has word for word is English kept as written, however its language marks it", () => {
+    const english: DocsBlock = block(
+      ':::details The check fails with "This probe could not resolve" for the host',
+    );
+
+    expect(
+      ownWordsOf(
+        english,
+        block(
+          ":::details Die Prüfung schlägt fehl mit „This probe could not resolve“ für den Host",
+        ),
+      ),
+    ).not.toMatch(/probe/);
+    expect(
+      ownWordsOf(
+        english,
+        block(
+          ":::details La vérification échoue avec « This probe could not resolve » pour l'hôte",
+        ),
+      ),
+    ).not.toMatch(/probe/);
+  });
+});
+
+describe("the Dashboard's word, one or many (controls)", () => {
+  test("Italian reads sonde as the Dashboard's word too", () => {
+    expect(dashboardWordOf("it").test("Le sonde di OneUptime")).toBe(true);
+    expect(dashboardWordOf("it").test("Una sonda legge")).toBe(true);
+    expect(dashboardWordOf("it").test("Una probe legge")).toBe(false);
   });
 });
 

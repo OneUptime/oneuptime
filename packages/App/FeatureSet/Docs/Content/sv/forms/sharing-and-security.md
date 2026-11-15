@@ -98,7 +98,7 @@ Servern måste svara på port 80, där Let's Encrypt kontrollerar varje domän. 
 
 ### Vem som kan hantera domäner
 
-Projektets ägare och administratörer, och alla med **Edit Form**, kan lägga till ett formulärs domäner, kontrollera dem, utfärda deras certifikat på nytt och ta bort dem. Det kan även behörigheterna för enbart ett formulärs domäner, som **Edit Form Domain**: [Formulär – översikt](/docs/forms/index#behörigheter) listar dem. Alla som kan läsa ett formulär ser dess domäner, deras **Status** och posten i **DNS-inställning**; för dem är **Kontrollera nu** och **Reissue SSL** låsta och säger vilken behörighet som krävs. En API-nyckel fungerar på samma sätt på `/form-domain`: `verify-cname`, `order-ssl` och `reissue-ssl` kräver **Edit Form Domain** eller **Edit Form**.
+Projektägare och Projektadministratörer, och alla med **Edit Form**, kan lägga till ett formulärs domäner, kontrollera dem, utfärda deras certifikat på nytt och ta bort dem. Det kan även behörigheterna för enbart ett formulärs domäner, som **Edit Form Domain**: [Formulär – översikt](/docs/forms/index#behörigheter) listar dem. Alla som kan läsa ett formulär ser dess domäner, deras **Status** och posten i **DNS-inställning**; för dem är **Kontrollera nu** och **Reissue SSL** låsta och säger vilken behörighet som krävs. En API-nyckel fungerar på samma sätt på `/form-domain`: `verify-cname`, `order-ssl` och `reissue-ssl` kräver **Edit Form Domain** eller **Edit Form**.
 
 ## Vad som skyddar ett formulär
 

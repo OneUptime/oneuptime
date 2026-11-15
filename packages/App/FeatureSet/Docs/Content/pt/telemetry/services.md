@@ -43,7 +43,7 @@ Cada vez que a telemetria chega, o **Visto pela última vez** do serviço avanç
 ## Antes de começar
 
 - **Telemetria chegando** com um `service.name`. Veja [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` define esse valor.
-- **Uma função que possa ler serviços.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member ou Settings Viewer, ou uma função personalizada com a permissão Read Service. Criar, alterar e excluir serviços exige Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member, ou as permissões de serviço correspondentes.
+- **Uma função que possa ler serviços.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de configurações, Membro de configurações ou Visualizador de configurações, ou uma função personalizada com a permissão Read Service. Criar, alterar e excluir serviços exige Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de configurações ou Membro de configurações, ou as permissões de serviço correspondentes.
 
 ## Encontrar um serviço
 

@@ -716,7 +716,7 @@ export default class SetupHealthService {
       return [];
     }
 
-    const windowEnd: Date = OneUptimeDate.addRemoveDays(
+    const windowEnd: Date = OneUptimeDate.addRemoveDurationInDays(
       data.now,
       SCHEDULE_GAP_LOOKAHEAD_IN_DAYS,
     );

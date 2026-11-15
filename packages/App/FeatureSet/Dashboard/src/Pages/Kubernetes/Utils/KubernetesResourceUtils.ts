@@ -357,20 +357,20 @@ export default class KubernetesResourceUtils {
       return `${formatReaderFigure(bytes, {
         decimals: 1,
         dropTrailingZeros: true,
-      })} B`;
+      })}\u00A0B`;
     }
 
     if (bytes < 1024 * 1024) {
-      return `${formatReaderFigure(bytes / 1024, { decimals: 1 })} KB`;
+      return `${formatReaderFigure(bytes / 1024, { decimals: 1 })}\u00A0KB`;
     }
 
     if (bytes < 1024 * 1024 * 1024) {
-      return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })} MB`;
+      return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })}\u00A0MB`;
     }
 
     return `${formatReaderFigure(bytes / (1024 * 1024 * 1024), {
       decimals: 2,
-    })} GB`;
+    })}\u00A0GB`;
   }
 
   /**
@@ -436,18 +436,18 @@ export default class KubernetesResourceUtils {
     const absValue: number = Math.abs(value);
 
     if (absValue < 1024) {
-      return `${value.toFixed(0)} B`;
+      return `${value.toFixed(0)}\u00A0B`;
     }
 
     if (absValue < 1024 * 1024) {
-      return `${(value / 1024).toFixed(1)} KB`;
+      return `${(value / 1024).toFixed(1)}\u00A0KB`;
     }
 
     if (absValue < 1024 * 1024 * 1024) {
-      return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(value / (1024 * 1024)).toFixed(1)}\u00A0MB`;
     }
 
-    return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    return `${(value / (1024 * 1024 * 1024)).toFixed(2)}\u00A0GB`;
   }
 
   public static formatBytesPerSecForChart(value: number): string {
@@ -458,18 +458,18 @@ export default class KubernetesResourceUtils {
     const absValue: number = Math.abs(value);
 
     if (absValue < 1024) {
-      return `${value.toFixed(0)} B/s`;
+      return `${value.toFixed(0)}\u00A0B/s`;
     }
 
     if (absValue < 1024 * 1024) {
-      return `${(value / 1024).toFixed(1)} KB/s`;
+      return `${(value / 1024).toFixed(1)}\u00A0KB/s`;
     }
 
     if (absValue < 1024 * 1024 * 1024) {
-      return `${(value / (1024 * 1024)).toFixed(1)} MB/s`;
+      return `${(value / (1024 * 1024)).toFixed(1)}\u00A0MB/s`;
     }
 
-    return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB/s`;
+    return `${(value / (1024 * 1024 * 1024)).toFixed(2)}\u00A0GB/s`;
   }
 
   /*

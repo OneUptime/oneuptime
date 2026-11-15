@@ -450,16 +450,16 @@ describe("getEvidenceEmptyRowsMessage", () => {
 
 describe("formatEvidenceDuration", () => {
   test.each([
-    [0, "0 ms"],
-    [340, "340 ms"],
-    [999.4, "999 ms"],
-    [1000, "1 s"],
-    [1234, "1.2 s"],
-    [59_949, "59.9 s"],
-    [59_999, "1 min"],
-    [60_000, "1 min"],
-    [125_000, "2 min 5 s"],
-    [3_600_000, "60 min"],
+    [0, "0\u00A0ms"],
+    [340, "340\u00A0ms"],
+    [999.4, "999\u00A0ms"],
+    [1000, "1\u00A0s"],
+    [1234, "1.2\u00A0s"],
+    [59_949, "59.9\u00A0s"],
+    [59_999, "1\u00A0min"],
+    [60_000, "1\u00A0min"],
+    [125_000, "2\u00A0min 5\u00A0s"],
+    [3_600_000, "60\u00A0min"],
   ])("%p ms reads as %p", (durationInMs: number, expected: string) => {
     expect(formatEvidenceDuration(durationInMs)).toBe(expected);
   });
@@ -840,7 +840,7 @@ describe("formatEvidenceLabel", () => {
     ])(
       "leaves an impossible timestamp (%s) as written",
       (_case: string, timestamp: string) => {
-        const label: string = `Logs ${timestamp} (1 shown)`;
+        const label: string = `Logs ${timestamp} (1\u00A0shown)`;
 
         expect(formatEvidenceLabel(label, H24)).toBe(label);
       },

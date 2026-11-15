@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Um search head com Splunk Enterprise 9.0.1 ou posterior, ou Splunk Cloud Platform. O OneUptime fala com a API REST dele na porta de gerenciamento, normalmente `8089`. O Splunk Web, na porta `8000`, não serve a API REST.
 - Um usuário do Splunk para o OneUptime, cuja função tenha a capacidade `search` e possa ler o índice que a pesquisa lê: `notable` para os eventos notáveis. As funções `ess_analyst` e `ess_user` do Enterprise Security concedem as duas coisas. A conexão só lê, então a função não precisa de mais nada.
 - Um search head que o OneUptime consiga alcançar por HTTPS. O OneUptime Cloud se conecta pela internet, então o search head precisa de um endereço público: endereços privados são recusados. Um OneUptime auto-hospedado se conecta a partir dos contêineres do aplicativo e dos workers, e consegue alcançar um search head na sua rede privada, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`.

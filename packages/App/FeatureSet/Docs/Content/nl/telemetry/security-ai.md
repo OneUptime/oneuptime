@@ -123,7 +123,7 @@ Controleer of **AI inschakelen** aan staat, en ook **Nieuwe zaken beoordelen** o
 :::
 
 :::details De kaart zegt dat het project geen AI-tegoed meer heeft, of zijn dagelijkse AI-limiet heeft bereikt
-Een projecteigenaar of iemand met Manage Billing kan tegoed toevoegen onder **Projectinstellingen → AI → AI-tegoeden**, of de limiet verhogen of verwijderen onder **Projectinstellingen → AI → AI-functies**. Klik daarna op de zaak op **Beoordelen met AI**.
+Een Projecteigenaar of iemand met Manage Billing kan tegoed toevoegen onder **Projectinstellingen → AI → AI-tegoeden**, of de limiet verhogen of verwijderen onder **Projectinstellingen → AI → AI-functies**. Klik daarna op de zaak op **Beoordelen met AI**.
 :::
 
 :::details De kaart zegt dat tekst in de zaak leest als instructies aan een AI

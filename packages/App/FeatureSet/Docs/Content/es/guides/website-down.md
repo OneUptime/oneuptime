@@ -42,7 +42,7 @@ En **¿Qué debemos comprobar?**, escribe la dirección en **Dirección del siti
 
 En **¿A quién hay que avisar?**, lo que ves depende del proyecto:
 
-- Si aún no hay ninguna política de guardia ni ninguna regla de guardia, ya estás en **A quién se avisa**. Haz clic en **Añadir miembros del equipo** para incluir a personas que ya están en el proyecto y, después, en **Guardar y continuar**. Esto crea `Default on-call policy`, que avisa a todos con cada nuevo incidente y cada nueva alerta del proyecto.
+- Si aún no hay ninguna política de guardia ni ninguna regla de guardia, ya estás en **A quién se avisa**. Haz clic en **Añadir miembros del equipo** para incluir a personas que ya están en el proyecto y, después, en **Guardar y continuar**. Esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta del proyecto.
 - Si ya hay una política o una regla de guardia, las propias reglas del proyecto deciden a quién se avisa: haz clic en **Continuar**.
 - Si eres miembro, como no puedes configurar los avisos, se te indica que recibirás correos como propietario del monitor: haz clic en **Continuar**.
 

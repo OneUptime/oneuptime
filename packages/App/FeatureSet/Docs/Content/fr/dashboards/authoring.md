@@ -11,7 +11,7 @@ Pour créer un tableau de bord, ouvrez **Produits → Tableaux de bord** et cliq
 
 ## Avant de commencer
 
-Les propriétaires et administrateurs du projet peuvent créer et modifier tous les tableaux de bord. Les autres ont besoin d'une autorisation d'équipe : `CreateDashboard` pour créer des tableaux de bord, et `EditDashboard` pour les modifier. Les membres et observateurs du projet peuvent lire les tableaux de bord sans l'une ni l'autre. Une personne qui ne peut pas modifier un tableau de bord ouvre quand même son menu **⋯**, où **Modifier le tableau de bord** est verrouillé et indique l'autorisation nécessaire.
+Les Propriétaires du projet et Administrateurs du projet peuvent créer et modifier tous les tableaux de bord. Les autres ont besoin d'une autorisation d'équipe : `CreateDashboard` pour créer des tableaux de bord, et `EditDashboard` pour les modifier. Les Membres du projet et les Lecteurs du projet peuvent lire les tableaux de bord sans l'une ni l'autre. Une personne qui ne peut pas modifier un tableau de bord ouvre quand même son menu **⋯**, où **Modifier le tableau de bord** est verrouillé et indique l'autorisation nécessaire.
 
 ## Créer le tableau de bord
 

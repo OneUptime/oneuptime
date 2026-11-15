@@ -124,7 +124,7 @@ Hver rad er en kohort og hvor mange personer den har, og hver celle andelen av d
 
 ## Dashbord og varsler
 
-Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinger, og hvert kall til `metric()` er et punkt i en egen måling, under navnet kallet oppgir. Vis dem i diagram på applikasjonens side **Målinger**, legg dem til i et dashbord, eller varsle på dem med en metrikk-overvåking; **Åpne Målinger** under **Alle hendelser** åpner siden.
+Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinger, og hvert kall til `metric()` er et punkt i en egen måling, under navnet kallet oppgir. Vis dem i diagram på applikasjonens side **Målinger**, legg dem til i et dashbord, eller varsle på dem med en målingsovervåking; **Åpne Målinger** under **Alle hendelser** åpner siden.
 
 | Måling | Hva den teller | Etter |
 | --- | --- | --- |
@@ -144,11 +144,11 @@ En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgete
 
 ## Hvem kan se det
 
-Å lese disse sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som prosjekteiere og administratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
+Å lese disse sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som Prosjekteiere og Prosjektadministratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
 
 Å lagre, gi nytt navn til og slette lagrede trakter og lojalitetstabeller krever de samme tillatelsene som å lese disse sidene, og en dashbord-widget viser en bare til en leser som har dem.
 
-Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen som prosjekteier, administrator eller medlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer.
+Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen Prosjekteier, Prosjektadministrator eller Prosjektmedlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer.
 
 ## Neste steg
 

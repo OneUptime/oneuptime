@@ -31,6 +31,7 @@ import {
 import { OPENSTACK_QUIET_LABEL } from "./OpenStackStatus";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { formatDurationInUnit } from "../../Utils/Milliseconds";
 
 /*
  * One OpenStack service in one region, in its own words: the API from Keystone's catalog
@@ -272,9 +273,13 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                 >
                   {seconds !== null
                     ? translator.translateTemplate("Collected in {{seconds}}", {
-                        seconds: `${translator.formatNumber(
-                          Math.round(seconds * 100) / 100,
-                        )} s`,
+                        // "1.25 s", "۱٫۲۵ ثانیه" (issue #8348).
+                        seconds: formatDurationInUnit(
+                          translator,
+                          seconds,
+                          "second",
+                          { decimals: 2, dropTrailingZeros: true },
+                        ),
                       })
                     : ""}
                 </div>

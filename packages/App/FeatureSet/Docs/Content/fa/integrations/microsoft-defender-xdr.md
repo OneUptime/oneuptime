@@ -23,7 +23,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ## پیش از شروع
 
-- در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
+- در OneUptime، نقش مالک پروژه، مدیر پروژه یا مدیر امنیت. عضو امنیت و بیننده امنیت می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
 - یک مستأجر Microsoft Entra با پروانهٔ Microsoft Defender XDR: هر بار کاری Defender که به درگاه Microsoft Defender پیوسته باشد، مانند Defender for Endpoint، for Identity، for Office 365 یا for Cloud Apps.
 - یک نقش Entra که بتواند برنامه ثبت کند، مانند Application Administrator، و یک Global Administrator یا Privileged Role Administrator برای اعطای رضایت مدیر.
 - HTTPS خروجی از برنامه و کارگرهای OneUptime به `login.microsoftonline.com` و `graph.microsoft.com`، یا برای Azure Government به `login.microsoftonline.us` و `graph.microsoft.us`.

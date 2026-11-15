@@ -51,6 +51,7 @@ import {
   AI_READ_RECORD_TABLE_CELLS,
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
 import {
@@ -972,7 +973,8 @@ export const QuerySlosTool: ObservabilityTool = {
             SloStatus,
           ).join(", ")}.`,
           rowCount: 0,
-          citationLabel: "SLOs (invalid status filter)",
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.slosInvalidStatus),
           redactionCount: 0,
           isTruncated: false,
         };

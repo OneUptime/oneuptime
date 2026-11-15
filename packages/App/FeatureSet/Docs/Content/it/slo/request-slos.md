@@ -37,7 +37,7 @@ Per il resto uno SLO di richieste funziona come qualsiasi altro. Il suo stato, l
 ## Prima di iniziare
 
 - I servizi inviano tracce a OneUptime: vedi [OpenTelemetry](/docs/telemetry/open-telemetry). Ognuno compare nel [catalogo servizi](/docs/telemetry/services) con il suo `service.name`.
-- Un ruolo che possa creare SLO: Project Owner, Project Admin o un ruolo personalizzato con il permesso Create Service Level Objective.
+- Un ruolo che possa creare SLO: Proprietario del progetto, Amministratore del progetto o un ruolo personalizzato con il permesso Create Service Level Objective.
 
 ## Creare uno SLO di richieste
 

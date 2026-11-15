@@ -48,7 +48,7 @@ export function formatBytesBilled(bytes: number | null | undefined): string {
     unit++;
   }
 
-  return `${scaled >= 100 || unit === 0 ? Math.round(scaled) : scaled.toFixed(1)} ${units[unit]}`;
+  return `${scaled >= 100 || unit === 0 ? Math.round(scaled) : scaled.toFixed(1)}\u00A0${units[unit]}`;
 }
 
 export function formatCredits(credits: number | null | undefined): string {

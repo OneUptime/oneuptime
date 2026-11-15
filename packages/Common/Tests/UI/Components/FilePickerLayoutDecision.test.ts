@@ -170,12 +170,12 @@ describe("the prompt's words", () => {
   test("the words it is given win over its own", () => {
     const words: FilePickerPromptWords = wordsOf({
       placeholder: "Add your logo",
-      hint: "PDF, pictures or ZIP, up to 10 MB.",
+      hint: "PDF, pictures or ZIP, up to 10\u00A0MB.",
       mimeTypes: [MimeType.png],
     });
 
     expect(words.label).toBe("Add your logo");
-    expect(words.hint).toBe("PDF, pictures or ZIP, up to 10 MB.");
+    expect(words.hint).toBe("PDF, pictures or ZIP, up to 10\u00A0MB.");
   });
 
   test("it names the types it takes, each once", () => {

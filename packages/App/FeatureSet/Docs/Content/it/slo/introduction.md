@@ -40,7 +40,7 @@ Un budget di errore trasforma l'affidabilità in qualcosa che puoi spendere. Se 
 
 ## Creare uno SLO
 
-Ti serve un ruolo che possa creare SLO: Project Owner, Project Admin o un ruolo personalizzato con il permesso Create Service Level Objective.
+Ti serve un ruolo che possa creare SLO: Proprietario del progetto, Amministratore del progetto o un ruolo personalizzato con il permesso Create Service Level Objective.
 
 :::steps
 ### Aprire gli SLO

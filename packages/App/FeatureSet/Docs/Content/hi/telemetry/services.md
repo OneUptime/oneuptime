@@ -43,7 +43,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आती हुई टेलीमेट्री** जिसमें `service.name` हो। देखें [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` इसे सेट करता है।
-- **सेवाएं पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member या Settings Viewer, या Read Service अनुमति वाली कस्टम भूमिका। सेवाएं बनाने, बदलने और हटाने के लिए Project Owner, Project Admin, Project Member, Settings Admin या Settings Member, या संबंधित सेवा अनुमतियाँ चाहिए।
+- **सेवाएं पढ़ सकने वाली भूमिका।** प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, दर्शक, सेटिंग्स एडमिन, सेटिंग्स सदस्य या सेटिंग्स दर्शक, या Read Service अनुमति वाली कस्टम भूमिका। सेवाएं बनाने, बदलने और हटाने के लिए प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, सेटिंग्स एडमिन या सेटिंग्स सदस्य, या संबंधित सेवा अनुमतियाँ चाहिए।
 
 ## सेवा ढूँढना
 

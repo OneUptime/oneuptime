@@ -40,7 +40,7 @@ Un presupuesto de errores convierte la fiabilidad en algo que puedes gastar. Si 
 
 ## Crear un SLO
 
-Necesitas un rol que pueda crear SLO: Project Owner, Project Admin o un rol personalizado con el permiso Create Service Level Objective.
+Necesitas un rol que pueda crear SLO: Propietario del proyecto, Administrador del proyecto o un rol personalizado con el permiso Create Service Level Objective.
 
 :::steps
 ### Abrir los SLO

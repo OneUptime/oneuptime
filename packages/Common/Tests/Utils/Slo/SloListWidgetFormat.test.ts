@@ -220,7 +220,7 @@ describe("SloListWidgetFormat", () => {
         sli: "99.95%",
         target: "target 99.9%",
         budget: "42.5%",
-        budgetTime: "60 min remaining",
+        budgetTime: "60\u00A0min remaining",
         budgetFillPercent: 42.5,
         burnRate: "1.25×",
         burnRateTone: SloBurnRateTone.Elevated,
@@ -249,7 +249,7 @@ describe("SloListWidgetFormat", () => {
       );
 
       expect(display.budget).toBe("-12.5%");
-      expect(display.budgetTime).toBe("−10 min over budget");
+      expect(display.budgetTime).toBe("−10\u00A0min over budget");
       expect(display.budgetFillPercent).toBe(0);
       expect(display.statusColor).toBe(Red);
     });

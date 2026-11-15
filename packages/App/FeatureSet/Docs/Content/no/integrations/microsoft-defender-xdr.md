@@ -1,6 +1,6 @@
 # Microsoft Defender XDR
 
-Importer varslene fra hver [Microsoft Defender XDR](https://learn.microsoft.com/en-us/defender-xdr/)-arbeidsbelastning, fra endepunkter, identiteter, e-post og skyapper, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem gjennom sikkerhets-API-et i Microsoft Graph med en appregistrering som du oppretter: ingen agent, playbook eller Sentinel-arbeidsområde trengs.
+Importer varslene fra hver [Microsoft Defender XDR](https://learn.microsoft.com/en-us/defender-xdr/)-arbeidsbelastning, fra endepunkter, identiteter, e-post og skyapper, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem gjennom sikkerhets-API-et i Microsoft Graph med en appregistrering som du oppretter: ingen agent, playbook eller Sentinel-arbeidsområde trengs.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En appregistrering, én tillatelse og skjemaet for tilkoblingen.
@@ -188,7 +188,7 @@ Overlappingen på 1 minutt er ikke årsaken: den andre lesingen telles som et du
 
 ## Hva du får
 
-- **Søk.** Filtrer Defender-varsler etter alvorlighetsgrad, status, MITRE-teknikk, vert, bruker, IP eller en hvilken som helst observable i utforskeren for sikkerhetshendelser, ved siden av loggene og metrikkene for den verten.
+- **Søk.** Filtrer Defender-varsler etter alvorlighetsgrad, status, MITRE-teknikk, vert, bruker, IP eller en hvilken som helst observable i utforskeren for sikkerhetshendelser, ved siden av loggene og målingene for den verten.
 - **Korrelasjon.** Bevisene i hvert varsel, enhetene, brukerne, IP-ene, filene og URL-ene, indekseres som observables, så ett søk finner alt som nevner en vert, på tvers av alle kilder.
 - **Deteksjonsregler.** Sigma-regler som kjører etter en tidsplan over sikkerhetshendelsene dine, og åpner varsler som varsler vakten.
 - **Monitorer.** Monitorer for sikkerhetshendelser teller samsvarende hendelser, og åpner hendelser eller varsler over en terskel.

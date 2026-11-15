@@ -54,7 +54,7 @@ Haga clic en **Guardar cambios**. La tarjeta muestra la nota y los adjuntos. El 
 
 Cada cambio de la nota queda registrado en el feed del incidente, y se publica en el canal de Slack o de Microsoft Teams del incidente si tiene uno. Mientras el post mortem no esté publicado, ningún suscriptor de la página de estado sabe de él.
 
-Escribir un post mortem requiere el rol Project Owner, Project Admin, Project Member, Incident Admin o Incident Member, o un rol personalizado con el permiso Edit Incident. Quien puede leer el incidente puede leer su post mortem.
+Escribir un post mortem requiere el rol Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de incidentes o Miembro de incidentes, o un rol personalizado con el permiso Edit Incident. Quien puede leer el incidente puede leer su post mortem.
 
 ## Partir de una plantilla o de un borrador de IA
 
@@ -72,7 +72,7 @@ Haga clic en **Generar con IA**. El diálogo **Generar post mortem con IA** ofre
 
 Haga clic en **Generar con IA** al final del diálogo. OneUptime AI lee el incidente (su descripción, su causa raíz y su remediación, su cronología de estados, sus notas públicas y privadas, los mensajes de su canal de Slack o de Microsoft Teams, y lo que se dijo en [sus llamadas](/docs/workspace-connections/video-calls#transcripciones-de-llamadas)) y escribe el post mortem con su esquema. Después el editor se abre con él.
 
-Generarlo requiere que la IA esté activada para el proyecto, en **Ajustes del proyecto → IA → Funciones de IA**, y un proveedor de LLM: consulte [Proveedores de LLM](/docs/ai/llm-provider). También requiere el rol Project Owner o Project Admin, o un rol personalizado con el permiso Edit Incident: otros roles pueden escribir el post mortem, pero no generarlo.
+Generarlo requiere que la IA esté activada para el proyecto, en **Ajustes del proyecto → IA → Funciones de IA**, y un proveedor de LLM: consulte [Proveedores de LLM](/docs/ai/llm-provider). También requiere el rol Propietario del proyecto o Administrador del proyecto, o un rol personalizado con el permiso Edit Incident: otros roles pueden escribir el post mortem, pero no generarlo.
 
 ### Dejar que OneUptime AI lo redacte cuando se resuelve un incidente
 
@@ -92,7 +92,7 @@ Sin reglas, cada incidente resuelto recibe un borrador, con el esquema estándar
 - Su **Proveedor de LLM**, en **Más campos**, es el proveedor con el que OneUptime AI escribe el borrador y elige su plantilla. Si no se elige ninguno, es el proveedor predeterminado del proyecto o, si no hay, el global. La publicación del borrador en el feed nombra el proveedor que eligió una regla, o el que se usó en su lugar y por qué. Consulte [Qué proveedor de LLM usa una regla](/docs/ai/ai-sre#qué-proveedor-de-llm-usa-una-regla).
 - Decide la primera regla habilitada que coincide con el incidente, empezando por arriba de la lista: arrastre una regla para cambiar su posición. Un incidente con el que no coincide ninguna regla no recibe borrador, y tampoco ningún incidente mientras no se puedan leer las reglas.
 - **Redactar un post mortem cuando se resuelve un incidente** sigue siendo el único interruptor que desactiva los borradores. Las reglas solo deciden los borradores que OneUptime AI escribe por su cuenta: **Generar con IA** ofrece todos los esquemas, digan lo que digan.
-- Crear, editar y reordenar reglas requiere el rol Project Owner o Project Admin. En OneUptime Cloud, las plantillas requieren el plan Growth: por debajo de él, las reglas siguen decidiendo qué incidentes reciben un borrador, y cada borrador sigue el esquema estándar.
+- Crear, editar y reordenar reglas requiere el rol Propietario del proyecto o Administrador del proyecto. En OneUptime Cloud, las plantillas requieren el plan Growth: por debajo de él, las reglas siguen decidiendo qué incidentes reciben un borrador, y cada borrador sigue el esquema estándar.
 
 ## Publicarlo en su página de estado
 
@@ -158,7 +158,7 @@ Si su proceso tiene un paso propio, como una revisión, añada un estado para é
 
 La posición de un estado decide cómo cuenta, y se muestra en **Cuenta como**: por encima de **Borrador**, **No iniciado**; desde **Borrador** hacia abajo, **En curso**; desde **Completado** hacia abajo, **Hecho**, y ya no queda pendiente. **En revisión**, entre ambos, sigue pendiente; **No necesario**, debajo de **Completado**, no.
 
-**No iniciado**, **Borrador** y **Completado** son predefinidos, porque OneUptime mueve los post mortem a ellos: puede cambiarles el nombre y el color, pero no eliminarlos ni archivarlos, y conservan su orden. Archive un estado que ya no use desde el menú **⋯** de su fila: nadie puede volver a mover un post mortem a él, los post mortem que tiene siguen ahí hasta que alguien los mueva, y la lista sigue filtrando por él. **Estados de post mortem archivados**, plegado bajo la tabla, los muestra, con **Desarchivar** para recuperar uno. Crear, editar y eliminar estados requiere el rol Project Owner, Project Admin o Incident Admin, o un rol personalizado con el permiso correspondiente sobre los estados de post mortem.
+**No iniciado**, **Borrador** y **Completado** son predefinidos, porque OneUptime mueve los post mortem a ellos: puede cambiarles el nombre y el color, pero no eliminarlos ni archivarlos, y conservan su orden. Archive un estado que ya no use desde el menú **⋯** de su fila: nadie puede volver a mover un post mortem a él, los post mortem que tiene siguen ahí hasta que alguien los mueva, y la lista sigue filtrando por él. **Estados de post mortem archivados**, plegado bajo la tabla, los muestra, con **Desarchivar** para recuperar uno. Crear, editar y eliminar estados requiere el rol Propietario del proyecto, Administrador del proyecto o Administrador de incidentes, o un rol personalizado con el permiso correspondiente sobre los estados de post mortem.
 
 ## Ver todos los post mortem
 
@@ -209,13 +209,13 @@ Las dos acciones de IA necesitan que la IA esté activada para el proyecto y un 
 
 **Incidentes → Acciones de seguimiento** reúne las acciones de seguimiento de todos los post mortem del proyecto, primero la que vence antes, con el incidente, el propietario, la fecha de vencimiento y el estado de cada una. Filtre la lista por **Estado**, **Propietario** y **Fecha de vencimiento**, y **Ver** en una fila abre la página **Post mortem** del incidente.
 
-Leer las acciones de seguimiento requiere lo mismo que leer el incidente. Añadirlas, cambiarlas y eliminarlas requiere el rol Project Owner, Project Admin, Project Member, Incident Admin o Incident Member, o un rol personalizado con el permiso correspondiente sobre las acciones de seguimiento. Igual que el incidente, las acciones de seguimiento de un incidente privado solo son visibles para sus usuarios propietarios, los miembros de sus equipos propietarios, los administradores y los propietarios del proyecto.
+Leer las acciones de seguimiento requiere lo mismo que leer el incidente. Añadirlas, cambiarlas y eliminarlas requiere el rol Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de incidentes o Miembro de incidentes, o un rol personalizado con el permiso correspondiente sobre las acciones de seguimiento. Igual que el incidente, las acciones de seguimiento de un incidente privado solo son visibles para sus usuarios propietarios, los miembros de sus equipos propietarios, los Administradores del proyecto y los Propietarios del proyecto.
 
 ## Post mortem de los episodios
 
 Un episodio de incidentes también tiene una página **Post mortem**, en **Investigación**: un solo informe para todos los incidentes del episodio. Haga clic en **Editar análisis post mortem** para escribirlo. **Aplicar plantilla** y **Generar con IA** funcionan como en un incidente, y la IA lee el episodio y sus incidentes miembros.
 
-El post mortem de un episodio es solo la nota: no tiene adjuntos, y ninguna página de estado lo muestra. OneUptime AI no redacta uno por sí mismo cuando se resuelve un episodio. Generarlo requiere el rol Project Owner o Project Admin, o un rol personalizado con el permiso Edit Incident Episode. Tampoco tiene estado, y la lista de post mortem no lo incluye.
+El post mortem de un episodio es solo la nota: no tiene adjuntos, y ninguna página de estado lo muestra. OneUptime AI no redacta uno por sí mismo cuando se resuelve un episodio. Generarlo requiere el rol Propietario del proyecto o Administrador del proyecto, o un rol personalizado con el permiso Edit Incident Episode. Tampoco tiene estado, y la lista de post mortem no lo incluye.
 
 Las alertas y los eventos de mantenimiento no tienen post mortem.
 
@@ -242,7 +242,7 @@ El proyecto aún no tiene una plantilla de post mortem, o su rol no puede leerla
 :::
 
 :::details Generar con IA indica que la IA está desactivada, o que le falta el permiso
-Active la IA en **Ajustes del proyecto → IA → Funciones de IA**. Generarlo requiere el rol Project Owner o Project Admin, o un rol personalizado con el permiso Edit Incident, incluso para quien puede editar el post mortem.
+Active la IA en **Ajustes del proyecto → IA → Funciones de IA**. Generarlo requiere el rol Propietario del proyecto o Administrador del proyecto, o un rol personalizado con el permiso Edit Incident, incluso para quien puede editar el post mortem.
 :::
 
 :::details El post mortem no aparece en la página de estado

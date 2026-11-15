@@ -225,12 +225,12 @@ export function formatBytesForCopy(
   if (gb >= 1) {
     const figure: number = Number.isInteger(gb) ? gb : Math.round(gb * 10) / 10;
 
-    return `${translator ? translator.formatNumber(figure) : Number.isInteger(gb) ? String(gb) : gb.toFixed(1)} GB`;
+    return `${translator ? translator.formatNumber(figure) : Number.isInteger(gb) ? String(gb) : gb.toFixed(1)}\u00A0GB`;
   }
 
   const mb: number = Math.round(bytes / (1024 * 1024));
 
-  return `${translator ? translator.formatNumber(mb) : String(mb)} MB`;
+  return `${translator ? translator.formatNumber(mb) : String(mb)}\u00A0MB`;
 }
 
 /* ISO string -> unix ms, or null when absent or unparseable. */

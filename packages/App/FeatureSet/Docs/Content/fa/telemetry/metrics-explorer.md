@@ -37,7 +37,7 @@ flowchart TB
 ## پیش از شروع
 
 - **متریک‌های در حال رسیدن.** آن‌ها را با [OpenTelemetry](/docs/telemetry/open-telemetry) بفرستید، یا از یک ایجنت مانند [کالکتور OpenTelemetry میزبان](/docs/telemetry/host-otel-collector) یا [ایجنت Kubernetes](/docs/telemetry/kubernetes-agent).
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Metrics. برای اینکه کدام متریک‌ها را می‌خواند، [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
+- **نقشی که تله‌متری را بخواند.** مالک پروژه، مدیر پروژه، عضو پروژه، بیننده، مدیر تله‌متری، عضو تله‌متری یا بیننده تله‌متری، یا یک نقش سفارشی با مجوز Read Metrics. برای اینکه کدام متریک‌ها را می‌خواند، [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
 
 ## یافتن یک متریک
 

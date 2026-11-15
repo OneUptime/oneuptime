@@ -30,7 +30,7 @@ Abra **Productos → Eventos de seguridad → Riesgo de entidades**: cada usuari
 
 - Eventos de seguridad que llegan, y reglas de detección, inteligencia de amenazas o productos conectados que encuentran algo en ellos. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started).
 - Reglas de detección que agrupan por un campo que nombra a alguien: **Campo de agrupación**, como `principalUser`, `principalHost` o `principalIp`, o los campos por los que agrupa una correlación. Una regla que no agrupa por nada no suma riesgo.
-- Para cambiar **Puntuación de riesgo**: Project Owner o Project Admin para su interruptor y su umbral, y un rol que pueda crear reglas de detección para su lista de entidades. Security Viewer lo lee todo. Consulte [Roles](/docs/permissions/reference#roles).
+- Para cambiar **Puntuación de riesgo**: Propietario del proyecto o Administrador del proyecto para su interruptor y su umbral, y un rol que pueda crear reglas de detección para su lista de entidades. Visor de seguridad lo lee todo. Consulte [Roles](/docs/permissions/reference#roles).
 
 ## Cómo se cuenta una puntuación
 

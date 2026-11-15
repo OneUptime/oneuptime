@@ -169,7 +169,7 @@ describe("getEmptyReason precedence", () => {
 
     expect(reason?.variant).toBe("budget");
     expect(reason?.title).toContain("Uploads paused");
-    expect(reason?.detail).toContain("2 GB monthly budget");
+    expect(reason?.detail).toContain("2\u00A0GB monthly budget");
     expect(reason?.action?.kind).toBe("health");
   });
 

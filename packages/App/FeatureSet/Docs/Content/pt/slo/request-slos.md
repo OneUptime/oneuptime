@@ -37,7 +37,7 @@ A partir daí, um SLO de requisições funciona como qualquer outro. O status, a
 ## Antes de começar
 
 - Os serviços enviam traços ao OneUptime: veja [OpenTelemetry](/docs/telemetry/open-telemetry). Cada um aparece no [catálogo de serviços](/docs/telemetry/services) com o seu `service.name`.
-- Uma função que possa criar SLOs: Project Owner, Project Admin ou uma função personalizada com a permissão Create Service Level Objective.
+- Uma função que possa criar SLOs: Proprietário do projeto, Administrador do projeto ou uma função personalizada com a permissão Create Service Level Objective.
 
 ## Criar um SLO de requisições
 
