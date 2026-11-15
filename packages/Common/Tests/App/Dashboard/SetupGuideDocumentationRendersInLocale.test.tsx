@@ -63,6 +63,7 @@ import DockerSwarmDocumentationPage from "../../../../App/FeatureSet/Dashboard/s
 import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Documentation";
 import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Documentation";
 import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
+import StorageArrayDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Documentation";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -89,6 +90,8 @@ import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages
 import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
 import { getKubernetesSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
+import { getStorageArraySetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -105,6 +108,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   Ceph: {},
   IoT: {},
   Kubernetes: {},
+  StorageArray: {},
 };
 
 /*
@@ -125,6 +129,15 @@ function dockerSwarmGuide(): SetupGuideContent {
     oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "install-script",
+  });
+}
+
+function storageArrayGuide(): SetupGuideContent {
+  return getStorageArraySetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    platform: "flasharray",
   });
 }
 
@@ -268,6 +281,9 @@ beforeAll(async () => {
     ).default;
     WORDS["Kubernetes"]![language] = (
       await KUBERNETES_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["StorageArray"]![language] = (
+      await STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -453,6 +469,63 @@ describe("Docker Swarm > Help > Documentation", () => {
 
       // The install script is the English's, in every language.
       expect(drawn).toContain("install.sh");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+});
+
+describe("Storage Array > Help > Documentation", () => {
+  test.each(["de", "ar"])(
+    "in %s, the Storage Array guide, its title, its platforms and both ways through each step in the reader's words, the Purity commands as written",
+    async (language: string) => {
+      await drawIn(language, <StorageArrayDocumentationPage {...PAGE_PROPS} />);
+
+      /*
+       * Two steps offer two ways each (Purity CLI or the FlashArray GUI,
+       * the install script or Docker Compose), one drawn at a time: draw
+       * every one.
+       */
+      for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+        await act(async () => {
+          fireEvent.click(tab);
+        });
+      }
+      await settle();
+
+      const drawn: string = drawnTexts().join("\n");
+
+      for (const piece of getSetupGuideWordPieces(storageArrayGuide())) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: false,
+        });
+      }
+      for (const piece of getSetupGuideWordPieces(
+        inLanguage("StorageArray", storageArrayGuide(), language),
+      )) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: true,
+        });
+      }
+
+      // The card's own words, its platforms and its tabs come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a Storage Array"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a Storage Array")).toBeNull();
+      expect(
+        screen.getByText(locale["FlashArray, older Purity"]!),
+      ).toBeInTheDocument();
+      expect(screen.getByText(locale["FlashArray GUI"]!)).toBeInTheDocument();
+      // The Purity commands, and the array's own menus, are the English's.
+      expect(drawn).toContain("pureadmin create --role readonly oneuptime");
+      expect(drawn).toContain("Settings → Users and Policies");
       for (const markdown of mockDrawnMarkdown) {
         expect(markdown.readingDirection).toBe(
           language === "ar" ? "rtl" : "ltr",

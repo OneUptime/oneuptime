@@ -13,8 +13,11 @@ import { IOT_INGESTION_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pag
 import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
 import { KUBERNETES_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
+import { STORAGE_ARRAY_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getStorageArraySetupGuideWays,
   getKubernetesSetupGuideWays,
   getIoTSetupGuideWays,
   getCephSetupGuideWays,
@@ -190,6 +193,22 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "EKS Fargate",
         "OpenShift",
         "Red Hat OpenShift",
+      ],
+    }),
+    product({
+      name: "StorageArray",
+      translations: STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS",
+      ways: getStorageArraySetupGuideWays,
+      options: STORAGE_ARRAY_PLATFORMS,
+      dashboardWords: [
+        "Storage Arrays",
+        "Logs",
+        "Agent Version",
+        "FlashArray, older Purity",
+        "Volumes",
+        "Hosts",
+        "Directories",
       ],
     }),
   ];

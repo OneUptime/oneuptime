@@ -28,6 +28,10 @@ import {
   KUBERNETES_PLATFORMS,
   getKubernetesSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  STORAGE_ARRAY_PLATFORMS,
+  getStorageArraySetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -222,6 +226,32 @@ export function getKubernetesSetupGuideWays(): Array<SetupGuideWay> {
         apiKey: reader.apiKey,
         platform: option,
         clusterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * The Storage Array guide varies by platform (FlashArray native, FlashArray
+ * through Pure's exporter, FlashBlade), by whether a key is picked (the
+ * install script's prompts) and by the array a Documentation tab installs
+ * for.
+ */
+export function getStorageArraySetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: STORAGE_ARRAY_PLATFORMS,
+    names: ["array-1", "Prod Array 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof STORAGE_ARRAY_PLATFORMS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getStorageArraySetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        platform: option,
+        arrayName: name,
       });
     },
   });
