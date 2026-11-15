@@ -293,7 +293,9 @@ describe("formatLastSeenInLanguage, shortened", () => {
     expect(formatLastSeenInLanguage(at, now, "de", { style: "long" })).toBe(
       "vor 12\u00A0Minuten",
     );
-    expect(formatLastSeenInLanguage(at, now, "de", {})).toBe("vor 12\u00A0Minuten");
+    expect(formatLastSeenInLanguage(at, now, "de", {})).toBe(
+      "vor 12\u00A0Minuten",
+    );
   });
 
   test("English reads as formatLastSeen does, whatever the style", () => {

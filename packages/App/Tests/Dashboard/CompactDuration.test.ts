@@ -29,9 +29,13 @@ describe("formatCompactDurationInMinutes", () => {
   });
 
   test("other languages use their own short unit names, the two largest units", () => {
-    expect(formatCompactDurationInMinutes(264, "ru")).toBe("4\u00A0ч 24\u00A0мин");
+    expect(formatCompactDurationInMinutes(264, "ru")).toBe(
+      "4\u00A0ч 24\u00A0мин",
+    );
     expect(formatCompactDurationInMinutes(51, "ru")).toBe("51\u00A0мин");
-    expect(formatCompactDurationInMinutes(264, "ja")).toBe("4\u00A0時間 24\u00A0分");
+    expect(formatCompactDurationInMinutes(264, "ja")).toBe(
+      "4\u00A0時間 24\u00A0分",
+    );
     expect(formatCompactDurationInMinutes(264, "ko")).toBe("4시간 24분");
 
     // German: hours and minutes by their German abbreviations.

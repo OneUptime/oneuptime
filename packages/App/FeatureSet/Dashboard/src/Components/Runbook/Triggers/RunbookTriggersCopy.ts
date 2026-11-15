@@ -11,10 +11,7 @@ import {
   getFeedZoneName,
 } from "Common/UI/Components/Feed/FeedTime";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  formatRelativeAmount,
-  getHourOption,
-} from "Common/Types/DateLanguage";
+import { formatRelativeAmount, getHourOption } from "Common/Types/DateLanguage";
 import {
   RUNBOOK_SCHEDULE_DAY_ORDER,
   RUNBOOK_SCHEDULE_HOUR_INTERVALS,

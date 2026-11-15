@@ -349,8 +349,8 @@ describe("a run's status, duration and size", () => {
         translator: ENGLISH,
       }),
     ).toEqual([
-      { title: "PostgreSQL", size: "4.1 MB" },
-      { title: "ClickHouse", size: "2.2 MB" },
+      { title: "PostgreSQL", size: "4.1\u00A0MB" },
+      { title: "ClickHouse", size: "2.2\u00A0MB" },
     ]);
     expect(
       describeBackupContents({
@@ -494,7 +494,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["6 seconds", "4.1 MB"]);
+    ).toEqual(["6\u00A0seconds", "4.1\u00A0MB"]);
     expect(
       describeStepFacts({
         step: {
@@ -506,7 +506,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["2 minutes", "2 MB of 8 MB"]);
+    ).toEqual(["2\u00A0minutes", "2\u00A0MB of 8\u00A0MB"]);
     // A dump in progress: what is written, not "of" the database's size.
     expect(
       describeStepFacts({
@@ -519,7 +519,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["1 minute", "2 MB"]);
+    ).toEqual(["1\u00A0minute", "2\u00A0MB"]);
     /*
      * ClickHouse says its backup's total only at the end: a step in
      * progress says what it wrote, as the status card does, never "of"
@@ -540,7 +540,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["2 minutes", "1.3 GB", "233 files"]);
+    ).toEqual(["2\u00A0minutes", "1.3\u00A0GB", "233 files"]);
     expect(
       describeStepFacts({
         step: {
@@ -553,7 +553,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["2 minutes", "1 file"]);
+    ).toEqual(["2\u00A0minutes", "1 file"]);
     // A skipped step took no time.
     expect(
       describeStepFacts({

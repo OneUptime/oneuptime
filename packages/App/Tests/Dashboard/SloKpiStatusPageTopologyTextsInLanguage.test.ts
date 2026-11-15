@@ -484,21 +484,27 @@ describe("the KPI strip's words in the reader's language", () => {
       DE,
     );
 
-    expect(left).toMatch(/^Noch 12\u00A0Min\., 30\u00A0Sek\. von 43\u00A0Min\., 12\u00A0Sek\.$/);
+    expect(left).toMatch(
+      /^Noch 12\u00A0Min\., 30\u00A0Sek\. von 43\u00A0Min\., 12\u00A0Sek\.$/,
+    );
 
     const over: string | null = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: -300, totalSeconds: 2592 },
       DE,
     );
 
-    expect(over).toBe("5\u00A0Min. über dem Budget · 43\u00A0Min., 12\u00A0Sek. erlaubt");
+    expect(over).toBe(
+      "5\u00A0Min. über dem Budget · 43\u00A0Min., 12\u00A0Sek. erlaubt",
+    );
 
     const sliver: string | null = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: 0.3, totalSeconds: 2592 },
       DE,
     );
 
-    expect(sliver).toBe("Noch unter 1\u00A0Sek. von 43\u00A0Min., 12\u00A0Sek.");
+    expect(sliver).toBe(
+      "Noch unter 1\u00A0Sek. von 43\u00A0Min., 12\u00A0Sek.",
+    );
 
     const arabic: string = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: 750, totalSeconds: 2592 },
