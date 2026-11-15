@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "团队需要了解的关于此监视器的一切。",
   "Archived Storage Arrays": "已归档的存储阵列",
   "Array": "数组",
-  "Array Health": "Array Health",
+  "Array Health": "阵列健康状况",
   "Array appears under the wrong name": "Array appears under the wrong name",
   "Array shows as \"Disconnected\"": "Array shows as \"Disconnected\"",
   "Asks for approval": "请求批准",
@@ -55687,5 +55687,8 @@
   "Valid (OAuth token)": "有效",
   "Yes / No": "是 / 否",
   "which led to {{steps}}": "随后进入 {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未运行。运行后，其字段会显示在这里。"
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未运行。运行后，其字段会显示在这里。",
+  "HA": "HA",
+  "Key Manager": "密钥管理器",
+  "PG": "PG"
 }

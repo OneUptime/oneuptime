@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "このモニターについてチームが知っておくべきこと。",
   "Archived Storage Arrays": "アーカイブ済みのストレージアレイ",
   "Array": "配列",
-  "Array Health": "Array Health",
+  "Array Health": "アレイのヘルス",
   "Array appears under the wrong name": "Array appears under the wrong name",
   "Array shows as \"Disconnected\"": "Array shows as \"Disconnected\"",
   "Asks for approval": "承認を求める",
@@ -55687,5 +55687,8 @@
   "Valid (OAuth token)": "有効",
   "Yes / No": "はい / いいえ",
   "which led to {{steps}}": "その後 {{steps}} に進みました",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。"
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。",
+  "HA": "HA",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

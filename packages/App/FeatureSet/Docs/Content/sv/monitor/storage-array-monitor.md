@@ -118,8 +118,8 @@ Ett kriterium utlöser bara när villkoret gäller för **varje** värde i föns
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Tillgänglighet | Kritisk | `purefa_info`, Count, senaste 10 minuterna | Inga data under hela fönstret — Storage Array Agent har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, eller så har arrayen slutat svara den; återhämtar när data kommer in igen |
-| Critical Array Alert | Array Health | Kritisk | `purefa_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen kritiskt larm (en trasig komponent, en kapacitetskris, ett replikeringsfel). En incident per larm; återhämtar när larmet stängs |
-| Warning Array Alert | Array Health | Varning | `purefa_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
+| Critical Array Alert | Arrayhälsa | Kritisk | `purefa_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen kritiskt larm (en trasig komponent, en kapacitetskris, ett replikeringsfel). En incident per larm; återhämtar när larmet stängs |
+| Warning Array Alert | Arrayhälsa | Varning | `purefa_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
 | Capacity Above 80% | Kapacitet | Varning | `purefa_array_space_utilization`, Max, senaste 15 minuterna | > 80 — Pures egen första kapacitetströskel; återhämtar vid ≤ 72 |
 | Capacity Above 90% | Kapacitet | Kritisk | `purefa_array_space_utilization`, Max, senaste 5 minuterna | > 90 — arrayen är nära att avvisa skrivningar; återhämtar vid ≤ 81 |
 | High Read Latency | Prestanda | Varning | `purefa_array_performance_latency_usec` filtrerat till `dimension=usec_per_read_op`, Avg, senaste 10 minuterna | > 5000 µs (5 ms) — läsningar på en FlashArray tar normalt långt under 1 ms; återhämtar vid ≤ 4500 |
@@ -135,8 +135,8 @@ Ett kriterium utlöser bara när villkoret gäller för **varje** värde i föns
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Tillgänglighet | Kritisk | `purefb_info`, Count, senaste 10 minuterna | Inga data under hela fönstret — agenten, dess exporter eller FlashBladen har slutat svara; återhämtar när data kommer in igen |
-| Critical Array Alert | Array Health | Kritisk | `purefb_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen kritiskt larm. En incident per larm; återhämtar när larmet stängs |
-| Warning Array Alert | Array Health | Varning | `purefb_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
+| Critical Array Alert | Arrayhälsa | Kritisk | `purefb_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen kritiskt larm. En incident per larm; återhämtar när larmet stängs |
+| Warning Array Alert | Arrayhälsa | Varning | `purefb_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
 | Capacity Above 80% | Kapacitet | Varning | `purefb_array_space_utilization` filtrerat till `type=array`, Max, senaste 15 minuterna | > 80; återhämtar vid ≤ 72 |
 | Capacity Above 90% | Kapacitet | Kritisk | `purefb_array_space_utilization` filtrerat till `type=array`, Max, senaste 5 minuterna | > 90 — skrivningar misslyckas för varje klient när den blir full; återhämtar vid ≤ 81 |
 | Hardware Component Unhealthy | Hårdvara | Kritisk | `purefb_hardware_health`, Min per `name`, senaste 5 minuterna | < 1 — ett blad, en fabric-modul, ett nätaggregat eller en fläkt har problem (en tom plats rapporterar 2). En incident per komponent; återhämtar vid ≥ 1 |
@@ -157,14 +157,14 @@ Det finns ingen mall för varje volyms latens, eftersom rätt tröskel beror på
 
 Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som monitorformuläret erbjuder. Varje värde är en gauge som arrayen själv beräknar - latenser är mikrosekunder per operation och genomströmning är per sekund -, så ingen frekvensberäkning behövs. **Filter** är etikettfiltret som ger serien den betydelse som raden anger; formuläret tillämpar det åt dig.
 
-### Array Health
+### Arrayhälsa
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | En serie per öppen varning på arrayen (värde 1), med etiketterna `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` och `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | En serie per öppen varning på FlashBladen (värde 1), med etiketterna `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` och `kburl` (Pures artikel i kunskapsbasen) |
 
-### Capacity
+### Kapacitet
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | FlashBladens oanvända kapacitet |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | Datareduktion över hela FlashBladen |
 
-### Performance
+### Prestanda
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Lästa byte per sekund över alla protokoll |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Skrivna byte per sekund över alla protokoll |
 
-### Volumes
+### Volymer
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | Fysiskt utrymme som varje volym använder efter datareduktion |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | Varje volyms datareduktionskvot |
 
-### Hosts
+### Värdar
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | Läsoperationer per sekund för varje värd |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | Skrivoperationer per sekund för varje värd |
 
-### Replication
+### Replikering
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | Replikeringstrafiken för varje podd, med etiketterna `direction` och `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | Genomsnittlig latens för speglade skrivningar för varje ActiveCluster-podd |
 
-### Hardware
+### Hårdvara
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Fel per sekund på varje Ethernet- och Fibre Channel-gränssnitt — ihållande fel betyder oftast en dålig kabel, optik eller switchport |
 | `purefb_hardware_health` | — | FlashBlade | — | Hälsan för varje hårdvarukomponent (blad, fabric-moduler, nätaggregat, fläktar, ...): 1 = frisk, 2 = oanvänd, 0 = inte frisk. Ta minimum per `name` |
 
-### File Systems
+### Filsystem
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |

@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Alt teamet ditt bør vite om denne monitoren.",
   "Archived Storage Arrays": "Arkiverte lagringsarrayer",
   "Array": "Matrise",
-  "Array Health": "Array Health",
+  "Array Health": "Arrayets helse",
   "Array appears under the wrong name": "Array appears under the wrong name",
   "Array shows as \"Disconnected\"": "Array shows as \"Disconnected\"",
   "Asks for approval": "Ber om godkjenning",
@@ -55687,5 +55687,8 @@
   "Valid (OAuth token)": "Gyldig",
   "Yes / No": "Ja / Nei",
   "which led to {{steps}}": "som førte til {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} har ikke kjørt ennå. Feltene vises her når det har kjørt."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} har ikke kjørt ennå. Feltene vises her når det har kjørt.",
+  "HA": "HA",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

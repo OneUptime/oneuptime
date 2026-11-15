@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8369
+    "keys": 55650,
+    "untranslated": 8290
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -183,6 +183,7 @@
     "Jitter",
     "Job",
     "Kelvin",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",

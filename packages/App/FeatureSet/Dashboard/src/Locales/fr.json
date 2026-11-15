@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Tout ce que votre équipe doit savoir sur ce moniteur.",
   "Archived Storage Arrays": "Baies de stockage archivées",
   "Array": "Tableau",
-  "Array Health": "Array Health",
+  "Array Health": "Santé de la baie",
   "Array appears under the wrong name": "Array appears under the wrong name",
   "Array shows as \"Disconnected\"": "Array shows as \"Disconnected\"",
   "Asks for approval": "Demande une approbation",
@@ -55687,5 +55687,8 @@
   "Valid (OAuth token)": "Valide",
   "Yes / No": "Oui / Non",
   "which led to {{steps}}": "qui a mené à {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ne s'est pas encore exécuté. Ses champs apparaissent ici une fois qu'il s'est exécuté."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ne s'est pas encore exécuté. Ses champs apparaissent ici une fois qu'il s'est exécuté.",
+  "HA": "HA",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Tutto ciò che il tuo team dovrebbe sapere su questo monitor.",
   "Archived Storage Arrays": "Array di storage archiviati",
   "Array": "Array",
-  "Array Health": "Array Health",
+  "Array Health": "Salute dell'array",
   "Array appears under the wrong name": "Array appears under the wrong name",
   "Array shows as \"Disconnected\"": "Array shows as \"Disconnected\"",
   "Asks for approval": "Chiede l'approvazione",
@@ -55687,5 +55687,8 @@
   "Valid (OAuth token)": "Valido",
   "Yes / No": "Sì / No",
   "which led to {{steps}}": "che ha portato a {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} non è ancora stato eseguito. I suoi campi compaiono qui dopo che è stato eseguito."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} non è ancora stato eseguito. I suoi campi compaiono qui dopo che è stato eseguito.",
+  "HA": "HA",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

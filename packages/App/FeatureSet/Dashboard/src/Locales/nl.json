@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Alles wat uw team over deze monitor moet weten.",
   "Archived Storage Arrays": "Gearchiveerde opslagarrays",
   "Array": "Array",
-  "Array Health": "Array Health",
+  "Array Health": "Arraygezondheid",
   "Array appears under the wrong name": "Array appears under the wrong name",
   "Array shows as \"Disconnected\"": "Array shows as \"Disconnected\"",
   "Asks for approval": "Vraagt om goedkeuring",
@@ -55687,5 +55687,8 @@
   "Valid (OAuth token)": "Geldig",
   "Yes / No": "Ja / Nee",
   "which led to {{steps}}": "wat leidde naar {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} is nog niet uitgevoerd. De velden verschijnen hier zodra dat gebeurd is."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} is nog niet uitgevoerd. De velden verschijnen hier zodra dat gebeurd is.",
+  "HA": "HA",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

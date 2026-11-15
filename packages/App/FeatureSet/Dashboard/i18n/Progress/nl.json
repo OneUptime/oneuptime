@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8427
+    "keys": 55650,
+    "untranslated": 8349
   },
   "sameAsEnglish": [
     " is",
@@ -257,6 +257,7 @@
     "Journeys",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kibibytes",
     "Kilobits",

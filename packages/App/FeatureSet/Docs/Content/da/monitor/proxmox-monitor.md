@@ -199,7 +199,7 @@ CPU- og hukommelsesserierne rapporteres også for hver gæst, på id'erne `qemu/
 | `pve_onboot_status` | antal | 1, når gæsten starter ved nodens opstart. En stoppet gæst med denne indstilling er som regel uplanlagt nedetid. |
 | `pve_lock_state` | — | Den lås, Proxmox VE holder på en gæst, mens en opgave ændrer den, én serie pr. lås (`backup`, `migrate`, `snapshot`, …), 1 på den, der holdes. Filtrér på etiketten `state`. |
 
-### Lager
+### Lagerplads
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
