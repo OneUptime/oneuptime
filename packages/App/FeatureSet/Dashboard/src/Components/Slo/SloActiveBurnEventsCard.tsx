@@ -22,6 +22,8 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -269,9 +271,22 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
               { modelId: new ObjectID(incident._id.toString()) },
             ),
             startedAt: toDate(incident.declaredAt || incident.createdAt),
-            severityName: incident.incidentSeverity?.name,
+            /*
+             * Its severity and state by their lists
+             * (Common/Utils/DefaultRecordNames): the ones a project starts
+             * with in the reader's words, a project's own as written.
+             */
+            severityName: translateRecordName(
+              translator,
+              StateListType.IncidentSeverity,
+              incident.incidentSeverity?.name,
+            ),
             severityColor: incident.incidentSeverity?.color,
-            stateName: incident.currentIncidentState?.name,
+            stateName: translateRecordName(
+              translator,
+              StateListType.IncidentState,
+              incident.currentIncidentState?.name,
+            ),
           });
         }
 
@@ -290,9 +305,17 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
               { modelId: new ObjectID(alert._id.toString()) },
             ),
             startedAt: toDate(alert.createdAt),
-            severityName: alert.alertSeverity?.name,
+            severityName: translateRecordName(
+              translator,
+              StateListType.AlertSeverity,
+              alert.alertSeverity?.name,
+            ),
             severityColor: alert.alertSeverity?.color,
-            stateName: alert.currentAlertState?.name,
+            stateName: translateRecordName(
+              translator,
+              StateListType.AlertState,
+              alert.currentAlertState?.name,
+            ),
           });
         }
 

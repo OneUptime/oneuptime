@@ -40,6 +40,8 @@ import {
   ChangeEventAttribute,
   ChangeEventSource,
 } from "Common/Utils/Telemetry/ChangeEventFields";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   CloudChangeTitleFacts,
   CloudHealthTitleFacts,
@@ -155,6 +157,51 @@ export function getChangeEventMarkerTitle(
 // The line under a change marker's title in its hover card.
 export const CHANGE_EVENT_MARKER_SUBTITLE: string =
   translationKey("Change event");
+
+/*
+ * The line under an incident's marker in its hover card: "Incident ·
+ * Critical Incident". The severity is read by its list
+ * (Common/Utils/DefaultRecordNames): one a project starts with in the
+ * reader's words - "Vorfall · Kritischer Vorfall" - a project's own as
+ * written, set apart so a right-to-left page keeps a Latin name in order.
+ */
+export function getIncidentMarkerSubtitle(
+  severityName: string | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (!severityName) {
+    return translator.translateTemplate("Incident");
+  }
+
+  return translator.translateTemplate(
+    "Incident · {{severity}}",
+    {
+      severity: recordNameInSentence(
+        StateListType.IncidentSeverity,
+        severityName,
+      ),
+    },
+    { setsValuesApart: true },
+  );
+}
+
+// The same for an alert's marker: "Alert · High".
+export function getAlertMarkerSubtitle(
+  severityName: string | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (!severityName) {
+    return translator.translateTemplate("Alert");
+  }
+
+  return translator.translateTemplate(
+    "Alert · {{severity}}",
+    {
+      severity: recordNameInSentence(StateListType.AlertSeverity, severityName),
+    },
+    { setsValuesApart: true },
+  );
+}
 
 export function getChangeEventMarkerLabel(
   eventType: string | undefined,
@@ -486,11 +533,7 @@ export default function useEventTimeReferenceLines(input: {
             title: truncateEventMarkerTitle(incident.title || ""),
           }),
           kind: ChartEventKind.Incident,
-          subtitle: incident.incidentSeverity?.name
-            ? translateTemplate("Incident · {{severity}}", {
-                severity: incident.incidentSeverity.name,
-              })
-            : translateTemplate("Incident"),
+          subtitle: getIncidentMarkerSubtitle(incident.incidentSeverity?.name),
           color:
             incident.incidentSeverity?.color?.toString() ||
             INCIDENT_MARKER_COLOR,
@@ -514,11 +557,7 @@ export default function useEventTimeReferenceLines(input: {
             title: truncateEventMarkerTitle(alert.title || ""),
           }),
           kind: ChartEventKind.Alert,
-          subtitle: alert.alertSeverity?.name
-            ? translateTemplate("Alert · {{severity}}", {
-                severity: alert.alertSeverity.name,
-              })
-            : translateTemplate("Alert"),
+          subtitle: getAlertMarkerSubtitle(alert.alertSeverity?.name),
           color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
           route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW]!, {
             modelId: alert.id,
