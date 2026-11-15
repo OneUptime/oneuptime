@@ -3030,6 +3030,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertEpisode: alertEpisode,
         incidentEpisode: incidentEpisode,
         pageAgain: pageAgain,
+        personPage: personPage,
         isObserverPage: isObserverPage,
       });
 
@@ -3809,6 +3810,12 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode | null;
     incidentEpisode: IncidentEpisode | null;
     pageAgain: OnCallPageAgainNotice | undefined;
+    /*
+     * A page a person asked for (OnCallPersonPage), or a policy a person
+     * started by hand (OnCallPolicyStartedByHand): its title and message say
+     * who paged, as the push it stands in for does.
+     */
+    personPage?: OnCallPersonPageNotice | undefined;
     // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
     isObserverPage?: boolean | undefined;
   }): Promise<boolean> {
@@ -3903,6 +3910,8 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode | null;
     incidentEpisode: IncidentEpisode | null;
     pageAgain: OnCallPageAgainNotice | undefined;
+    // A person's page, or a policy started by hand: who paged, and why.
+    personPage?: OnCallPersonPageNotice | undefined;
     // An observer's page (OnCallObserverPage): worded for their information.
     isObserverPage?: boolean | undefined;
   }): Promise<CustomChannelPagedRecord | null> {
@@ -3936,6 +3945,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentId: incident.id!.toString(),
           projectId: incident.projectId!.toString(),
           pageAgain: data.pageAgain,
+          personPage: data.personPage,
           isObserverPage: data.isObserverPage,
         });
 
@@ -3978,6 +3988,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: alert.id!.toString(),
           projectId: alert.projectId!.toString(),
           pageAgain: data.pageAgain,
+          personPage: data.personPage,
           isObserverPage: data.isObserverPage,
         });
 
@@ -4026,6 +4037,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertEpisodeId: alertEpisode.id!.toString(),
           projectId: alertEpisode.projectId!.toString(),
           pageAgain: data.pageAgain,
+          personPage: data.personPage,
           isObserverPage: data.isObserverPage,
         });
 
@@ -4076,6 +4088,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisodeId: incidentEpisode.id!.toString(),
           projectId: incidentEpisode.projectId!.toString(),
           pageAgain: data.pageAgain,
+          personPage: data.personPage,
           isObserverPage: data.isObserverPage,
         });
 
