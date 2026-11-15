@@ -1022,6 +1022,18 @@ A device not seen for 30 days is removed from the list and the map, unless it is
 
 Project Owners and Project Admins choose the default: switch to a layout and select **Make default for everyone**. Every view of the device map then opens on it: **Device Topology**, a site on the **Map**, and the **Network** tab of **Topology**. On the default layout, **Clear default** returns each map to its own default. Dragged positions are saved for each layout in your browser, so the map opens with the arrangement you made in that layout.
 
+### Find your way around a large network
+
+In the **Parent and child** layout, a device with six or more devices that have nothing below them draws them as a compact grid under it instead of one long row, joined to it by right-angle lines that never cross a device or its name. The layout picks the grid shape that fits the whole map on screen at the largest size.
+
+A device with something below it has a `−` button under its name: select it to collapse the branch to the device and the number of devices it holds, such as `+24`, and select the number to expand it again. **Collapse all branches** and **Expand all branches**, beside the zoom buttons, fold the map down to its outline and open it again. Your browser remembers collapsed branches for each site.
+
+To look at one branch on its own, click its device and select **Show only this branch**. The map shows that device and everything below it, with the path from the top of the network at the top of the map: select a step to widen the view to that device's branch, or **Show whole map** to see everything again.
+
+The search moves the map to the devices it finds. The arrows beside the number of matches, or Enter in the search box, go to each match in turn and ring it. In the **Parent and child** layout, the path from the top of the network down to each match stays lit, and a match in a collapsed branch is counted too, with a button that opens the branches it is in.
+
+Once you have dragged devices, a switch at the top of the map moves between **Custom layout · 2 moved** and **Original layout**: the original layout is the map as OneUptime lays it out, and your custom layout is kept until you switch back. **Reset layout** discards it.
+
 ### Export the map as a PDF
 
 **Export PDF**, at the top of the map, downloads the map you are looking at as a PDF you can attach to an assessment, a change request or an incident review, or read offline. Every view of the device map has it: **Device Topology**, a site on the **Map**, and the **Network** tab of **Topology**.
