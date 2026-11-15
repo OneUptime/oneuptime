@@ -47,7 +47,7 @@ Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, 
 
 **Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
-**Un calendario, invece.** I visitatori che vogliono solo la vostra manutenzione pianificata nel proprio calendario non hanno bisogno di iscriversi: **Iscriviti al calendario** nella pagina **Manutenzione programmata** la aggiunge a Google Calendar, Calendario Apple o Outlook, e il calendario si aggiorna da solo. Non invia nulla e non dipende dai canali qui sopra, e una pagina privata non lo offre. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
+**Un calendario, invece.** I visitatori che vogliono solo la vostra manutenzione programmata nel proprio calendario non hanno bisogno di iscriversi: **Iscriviti al calendario** nella pagina **Manutenzione programmata** la aggiunge a Google Calendar, Calendario Apple o Outlook, e il calendario si aggiorna da solo. Non invia nulla e non dipende dai canali qui sopra, e una pagina privata non lo offre. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
 
 ## Disattivare tutte le notifiche
 

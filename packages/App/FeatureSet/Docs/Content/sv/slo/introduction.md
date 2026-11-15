@@ -140,7 +140,7 @@ OneUptime ger varje utvärderat SLO en status:
 | **I riskzonen** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
 | **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden. |
 | **Felkonfigurerad** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. Ett SLO för begäranden är felkonfigurerat utan tjänster, utan latensgräns eller innan dess tjänster har besvarat en begäran i fönstret. |
-| **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av planerat underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
+| **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av schemalagt underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
 
 Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget).
 

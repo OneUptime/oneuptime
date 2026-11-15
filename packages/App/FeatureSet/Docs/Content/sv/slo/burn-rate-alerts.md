@@ -48,7 +48,7 @@ flowchart TB
     short -->|"Ja"| fire["Utlös larmet,<br/>deklarera incidenten<br/>eller båda"]
 ```
 
-En regel kan inte utlösas förrän SLO:et har ett helt långt fönster med övervakningshistorik: annars skulle en monitors allra första misslyckade kontroll, delad med några minuters historik, ge en enorm förbrukningstakt. Ett nytt SLO kan därför inte utlösa sin regel **Fast burn** under den första timmen, sin regel **Slow burn** under de första sex eller sin regel **Slow leak** under de första tre dagarna. Om ett SLO senare inte längre har så mycket historik, till exempel efter att dess monitorer bytts ut mot nya, löser regeln det den hade öppnat i stället för att lämna det hängande. En regel utlöses inte heller medan någon av SLO:ets monitorer är under planerat underhåll: se [Planerat underhåll](#planerat-underhåll).
+En regel kan inte utlösas förrän SLO:et har ett helt långt fönster med övervakningshistorik: annars skulle en monitors allra första misslyckade kontroll, delad med några minuters historik, ge en enorm förbrukningstakt. Ett nytt SLO kan därför inte utlösa sin regel **Fast burn** under den första timmen, sin regel **Slow burn** under de första sex eller sin regel **Slow leak** under de första tre dagarna. Om ett SLO senare inte längre har så mycket historik, till exempel efter att dess monitorer bytts ut mot nya, löser regeln det den hade öppnat i stället för att lämna det hängande. En regel utlöses inte heller medan någon av SLO:ets monitorer är under schemalagt underhåll: se [Schemalagt underhåll](#schemalagt-underhåll).
 
 ## Standardregler
 
@@ -253,7 +253,7 @@ Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess in
 - att SLO:et går över till **Pausad** eller **Felkonfigurerad**, eftersom det då inte mäter något;
 - att regeln förlorar sin tröskel eller sina fönster, eller att SLO:et inte längre har ett helt långt fönster med historik.
 
-## Planerat underhåll
+## Schemalagt underhåll
 
 Medan en av SLO:ets monitorer ingår i en pågående underhållshändelse utlöser dess regler för förbrukningstakt inga larm och deklarerar inga incidenter: planerat arbete ska inte larma någon. Det som reglerna redan hade öppnat löses fortfarande som vanligt. Tiden räknas fortfarande in i felbudgeten, enligt SLO:ets driftstoppsstatusar.
 

@@ -47,7 +47,7 @@ Varje kanal har också en egen lista i statussidans sidomeny under **Prenumerant
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
-**En kalender i stället.** Besökare som bara vill ha ditt planerade underhåll i sin egen kalender behöver inte prenumerera: **Prenumerera på kalender** på sidans sida **Schemalagt underhåll** lägger till det i Google Kalender, Apple Kalender eller Outlook, och kalendern håller sig själv uppdaterad. Den skickar ingenting och beror inte på kanalerna ovan, och en privat sida erbjuder den inte. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
+**En kalender i stället.** Besökare som bara vill ha ditt schemalagda underhåll i sin egen kalender behöver inte prenumerera: **Prenumerera på kalender** på sidans sida **Schemalagt underhåll** lägger till det i Google Kalender, Apple Kalender eller Outlook, och kalendern håller sig själv uppdaterad. Den skickar ingenting och beror inte på kanalerna ovan, och en privat sida erbjuder den inte. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
 ## Stänga av alla aviseringar
 

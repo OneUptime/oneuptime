@@ -134,7 +134,7 @@ Formulär låter personer utanför ditt team skapa incidenter och underhållshä
 | **Create Form** | Skapa formulär och duplicera dem. | Projektägare, Projektadministratör |
 | **Edit Form** | Ändra ett formulär: dess frågor, varumärke, mallar, inställningar under Vid inlämning, **Tar emot inlämningar**, dess länk och **IP-tillåtelselista**. | Projektägare, Projektadministratör |
 | **Delete Form** | Ta bort ett formulär, och därmed dess inlämningar. | Projektägare, Projektadministratör |
-| **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Projektmedlem, Tittare och rollerna för incidenter och planerat underhåll |
+| **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Projektmedlem, Tittare och rollerna för incidenter och schemalagt underhåll |
 | **Read Form Submission** | Se inlämningarna och deras svar. | Projektägare, Projektadministratör |
 | **Delete Form Submission** | Ta bort inlämningar. | Projektägare, Projektadministratör |
 | **Create Form Domain** | Lägga till en [anpassad domän](/docs/forms/sharing-and-security#anpassade-domäner) i ett formulär. | Projektägare, Projektadministratör och **Edit Form** |
