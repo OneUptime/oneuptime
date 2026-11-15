@@ -45,7 +45,7 @@ Verder werkt een SLO voor aanvragen zoals elke andere SLO. Zijn status, regels v
 :::steps
 ### SLO's openen
 
-Open **SLOs** via het menu **Producten** in de bovenbalk en klik op **Service Level Objective aanmaken**.
+Open **SLOs** via het menu **Producten** in de bovenbalk en klik op **Serviceniveaudoelstelling aanmaken**.
 
 ### Kiezen wat de SLO meet
 
@@ -53,14 +53,14 @@ Kies onder **Wat het meet** de optie **Succes van aanvragen** of **Latentie van 
 
 ### Een naam en een doel geven
 
-Vul een **Naam** in, bijvoorbeeld "Checkout requests", en een **Doel (%)**: het deel van de aanvragen dat goed moet zijn. Klik op **Service Level Objective aanmaken**.
+Vul een **Naam** in, bijvoorbeeld "Checkout requests", en een **Doel (%)**: het deel van de aanvragen dat goed moet zijn. Klik op **Serviceniveaudoelstelling aanmaken**.
 
 ### De eerste cijfers zien binnenkomen
 
 De eerste evaluatie, binnen 5 minuten, telt de aanvragen van de laatste 6 uur, zodat de SLO meteen cijfers heeft. De evaluaties daarna tellen ook oudere aanvragen, totdat het hele compliancevenster gedekt is.
 :::
 
-De eigen pagina **SLOs** van een service toont de SLO's die hem meten, en zijn **Service Level Objective aanmaken** opent hetzelfde formulier met de service al gekozen. Om later te wijzigen wat een SLO meet, welke services hij telt, wat zijn drempel is of wat zijn filter is, opent u zijn **Instellingen** en klikt u op **Bewerken wat het meet**.
+De eigen pagina **SLOs** van een service toont de SLO's die hem meten, en zijn **Serviceniveaudoelstelling aanmaken** opent hetzelfde formulier met de service al gekozen. Om later te wijzigen wat een SLO meet, welke services hij telt, wat zijn drempel is of wat zijn filter is, opent u zijn **Instellingen** en klikt u op **Bewerken wat het meet**.
 
 ## Alleen sommige aanvragen tellen
 
