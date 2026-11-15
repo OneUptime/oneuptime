@@ -28,7 +28,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "It installs to `/opt/oneuptime-ceph-agent`, writes a `0600` `.env` file and starts the agent with Docker Compose. Running the script again reuses everything in that `.env` instead of asking again, so it is also how you upgrade.":
     "Si installa in `/opt/oneuptime-ceph-agent`, scrive un file `.env` con `0600` e avvia l'agente con Docker Compose. Eseguire di nuovo lo script riusa tutto ciò che c'è in quel `.env` invece di chiedere di nuovo, ed è anche il modo di aggiornare.",
   "Look for `Everything is ready. Begin running and processing data.` in the logs. The cluster then appears automatically in the **Ceph** section, usually within a minute or so.":
-    "Cerca `Everything is ready. Begin running and processing data.` nei registri. Poi il cluster appare automaticamente nella sezione **Ceph**, di solito entro un minuto circa.",
+    "Cerca `Everything is ready. Begin running and processing data.` nei log. Poi il cluster appare automaticamente nella sezione **Ceph**, di solito entro un minuto circa.",
   "Docker Compose also runs **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.":
     "Docker Compose esegue anche **`oneuptime-ceph-ai-agent`**, l'agente IA di OneUptime. Se lo script di installazione ha creato il suo client Ceph, funziona già; altrimenti ne attende uno; vedi **Agente AI di OneUptime** in Avanzato.",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `ceph` commands, and changes nothing unless you allow fixes.":
@@ -56,14 +56,14 @@ const TRANSLATION: SetupGuideTranslation = {
   "This is the full `otel-collector-config.yaml` the agent runs; the `.env` file supplies the `${env:...}` values:":
     "Questo è l'`otel-collector-config.yaml` completo che l'agente esegue; il file `.env` fornisce i valori `${env:...}`:",
   "The agent can tail `/var/log/ceph/ceph.log` and ship it to OneUptime, which fills the **Cluster Log** page. It is off by default because the agent must run on a host that has the cluster log — a mon host by default.":
-    "L'agente può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, che riempie la pagina **Registro del cluster**. È disattivato per impostazione predefinita perché l'agente deve girare su un host che ha il registro del cluster, per impostazione predefinita un host mon.",
+    "L'agente può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, che riempie la pagina **Log del cluster**. È disattivato per impostazione predefinita perché l'agente deve girare su un host che ha il log del cluster, per impostazione predefinita un host mon.",
   "1. In `otel-collector-config.yaml`, uncomment the `filelog` receiver and the `logs` pipeline.":
     "1. In `otel-collector-config.yaml`, togli il commento al receiver `filelog` e alla pipeline `logs`.",
   "2. In `docker-compose.yml`, uncomment the `/var/log/ceph:/var/log/ceph:ro` volume.":
     "2. In `docker-compose.yml`, togli il commento al volume `/var/log/ceph:/var/log/ceph:ro`.",
   "3. Apply both:": "3. Applica entrambi:",
   "Lines ship verbatim; OneUptime parses the ceph.log format (timestamp, daemon, INF/WRN/ERR level, message) when it reads them, and the `resource` processor stamps `ceph.cluster.name` so the log lands on this cluster.":
-    "Le righe vengono inviate così come sono; OneUptime analizza il formato di ceph.log (timestamp, daemon, livello INF/WRN/ERR, messaggio) quando le legge, e il processor `resource` appone `ceph.cluster.name` perché il registro finisca su questo cluster.",
+    "Le righe vengono inviate così come sono; OneUptime analizza il formato di ceph.log (timestamp, daemon, livello INF/WRN/ERR, messaggio) quando le legge, e il processor `resource` appone `ceph.cluster.name` perché il log finisca su questo cluster.",
   "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on the cluster: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `ceph.cluster.name`:":
     "Ogni attributo di risorsa con prefisso `oneuptime.label.` diventa un'etichetta di progetto sul cluster: `oneuptime.label.<dimension>=<value>` è l'etichetta `<dimension>:<value>`. Aggiungili al processor `resource` in `otel-collector-config.yaml`, accanto a `ceph.cluster.name`:",
   "Then restart the collector so it reads the new config:":
@@ -107,7 +107,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "It ends with a verdict naming the most likely cause.":
     "Termina con un verdetto che nomina la causa più probabile.",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
-    "1. Controlla i registri del collector: `docker logs oneuptime-ceph-agent`; cerca errori di esportazione (`401` significa una chiave di ingestione errata, connection refused significa un `ONEUPTIME_URL` errato).",
+    "1. Controlla i log del collector: `docker logs oneuptime-ceph-agent`; cerca errori di esportazione (`401` significa una chiave di ingestione errata, connection refused significa un `ONEUPTIME_URL` errato).",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
     "2. Verifica che un endpoint mgr fornisca metriche: `curl http://<active-mgr>:9283/metrics | head`; dovresti vedere righe di metriche `ceph_*`. Altrimenti, abilita il modulo: `ceph mgr module enable prometheus`.",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
@@ -115,7 +115,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Check that the agent is running: `docker ps --filter name=oneuptime-ceph-agent`":
     "1. Verifica che l'agente sia in esecuzione: `docker ps --filter name=oneuptime-ceph-agent`",
   "2. Check the agent logs for errors: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`":
-    "2. Cerca errori nei registri dell'agente: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`",
+    "2. Cerca errori nei log dell'agente: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
     "3. Verifica che l'URL di OneUptime e la chiave di ingestione siano corretti.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
