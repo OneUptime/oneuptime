@@ -42,6 +42,12 @@ describe("sanitizeRoute reads a long segment in time in line with its length", (
     ],
     ["headers over and over", repeat("eyJabcdefgh.", LENGTH)],
     ["escapes of escapes", repeat("%2525", LENGTH)],
+    // #8489: standard base64's "+", and "=" that is no padding.
+    [
+      "a token in standard base64, then too many =",
+      repeat("a+", LENGTH) + "===",
+    ],
+    ["equals signs", repeat("=", LENGTH)],
   ])("%s", (_label: string, segment: string) => {
     const startedAt: number = Date.now();
 
@@ -97,4 +103,31 @@ describe("sanitizeRoute takes a JSON Web Token out", () => {
   ])("keeps %s, which names no one", (route: string) => {
     expect(sanitizeRoute(route)).toBe(route);
   });
+});
+
+/*
+ * #8489: a token in standard base64 keeps its "+" and its "=" padding in a
+ * route, and the token rule read base64url alone.
+ */
+describe("sanitizeRoute takes a token in standard base64 out", () => {
+  test.each([
+    [
+      "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+      "/verify/[redacted]",
+    ],
+    ["/reset/k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8", "/reset/[redacted]"],
+    [
+      "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+      "/confirm/[redacted]/done",
+    ],
+  ])("%s", (route: string, scrubbed: string) => {
+    expect(sanitizeRoute(route)).toBe(scrubbed);
+  });
+
+  test.each(["/learn/c++", "/filter/size=large", "/a/b=c=d"])(
+    "keeps %s, which names no one",
+    (route: string) => {
+      expect(sanitizeRoute(route)).toBe(route);
+    },
+  );
 });

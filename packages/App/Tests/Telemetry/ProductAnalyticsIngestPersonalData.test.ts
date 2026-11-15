@@ -288,6 +288,9 @@ const PERSONAL_DATA: Array<string> = [
   // #8385: a JSON Web Token's header, and an address escaped twice.
   "eyJhbGci",
   "%2540",
+  // #8489: tokens in standard base64.
+  "dGhpcyBp",
+  "k3J",
 ];
 
 function buildPolicy(): SessionReplayGatePolicy {
