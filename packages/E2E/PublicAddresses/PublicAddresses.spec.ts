@@ -9,6 +9,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Where visitors find a status page or a public dashboard, in real Chromium,
@@ -1419,4 +1420,18 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
       await screenshot(page, `custom-domain-two-records-${variant.name}`);
     }
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? STATUS_PAGE : `${STATUS_PAGE}?lang=${language}`;
+  },
 });

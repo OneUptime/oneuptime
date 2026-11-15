@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * "On Alert/Incident creation - I don't see a way to add the team of the
@@ -1486,4 +1487,20 @@ test.describe("in dark mode and in German", () => {
 
     await screenshot(page, "incident-owners-german-1280");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en"
+      ? INCIDENT_PATH
+      : `${INCIDENT_PATH}?lang=${language}`;
+  },
 });

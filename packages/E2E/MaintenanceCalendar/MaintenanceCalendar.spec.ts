@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Scheduled Maintenance > Calendar > Maintenance Calendar, end to end in a
@@ -2089,4 +2090,18 @@ test.describe("in other languages", () => {
     ).toHaveText("この期間に定期メンテナンスはありません。");
     await expect(periodLabel(page)).toHaveText("2026年10月");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Japanese whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? "/" : `/?lang=${language}`;
+  },
 });

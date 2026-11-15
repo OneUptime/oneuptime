@@ -5,6 +5,7 @@ import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The Hosts product's pages, in a browser, against the offline fixture
@@ -1207,4 +1208,18 @@ test.describe("a host's Overview", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "host-overview-persian-phone");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? HOSTS_PATH : `${HOSTS_PATH}?lang=${language}`;
+  },
 });
