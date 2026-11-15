@@ -719,6 +719,25 @@ const resumeLevelInFlight: (data: {
   const currentRuleId: string =
     data.run.lastExecutedEscalationRuleId?.toString().toLowerCase() || "";
 
+  /*
+   * A page again whose start failed or stopped before its rule was
+   * recorded (issue #8514): it is started now, from where it starts, the
+   * person who acknowledged first - once its start, if it may still be
+   * under way somewhere, has shown no sign of life for a while.
+   */
+  if (data.level.pageAgain && !currentRuleId) {
+    if (!OnCallLevelsInFlight.isToResume(data.level, data.now)) {
+      return false;
+    }
+
+    await OnCallDutyPolicyExecutionLogService.startHandedOverPageAgain({
+      run: data.run,
+      level: data.level,
+    });
+
+    return true;
+  }
+
   if (data.level.ruleId.toLowerCase() !== currentRuleId) {
     await OnCallLevelsInFlight.forget(data.run.id);
     return false;

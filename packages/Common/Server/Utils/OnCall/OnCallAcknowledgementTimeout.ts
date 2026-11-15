@@ -1007,30 +1007,56 @@ export default class OnCallAcknowledgementTimeout {
       { projectId: run.projectId?.toString() } as LogAttributes,
     );
 
-    const pageAgainRunId: ObjectID | null =
-      await OnCallDutyPolicyExecutionLogService.startPageAgain({
-        projectId: run.projectId!,
-        onCallDutyPolicyId: run.onCallDutyPolicyId,
-        triggeredByIncidentId: run.triggeredByIncidentId,
-        triggeredByAlertId: run.triggeredByAlertId,
-        triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
-        userNotificationEventType: run.userNotificationEventType!,
-        pageAgainNumber: pageAgainNumber,
-        minutes: minutes,
-        recordKind: record.kind,
-        startAtRuleId: run.lastExecutedEscalationRuleId || undefined,
-        acknowledgedByUserId: acknowledgedByUserId || undefined,
-        /*
-         * Its page is timed from when the clock ran out - the moment this
-         * worker decided it is due by (isOnCallAcknowledgementTimeoutDue),
-         * however late the worker got to it (OnCallPageTiming, issue #6708).
-         */
-        dueAt: getOnCallAcknowledgementTimeoutDueAt({
-          startedAt: startedAt,
+    /*
+     * The page again's run, once it is written. One that never was - the
+     * database failed as it was written - has nobody to page and no run to
+     * hand on, and the clock stopped above would never run out again: it
+     * is given back, so the next tick pages again (issue #8514).
+     */
+    const created: { runId: ObjectID | null } = { runId: null };
+    let pageAgainRunId: ObjectID | null;
+
+    try {
+      pageAgainRunId = await OnCallDutyPolicyExecutionLogService.startPageAgain(
+        {
+          projectId: run.projectId!,
+          onCallDutyPolicyId: run.onCallDutyPolicyId,
+          triggeredByIncidentId: run.triggeredByIncidentId,
+          triggeredByAlertId: run.triggeredByAlertId,
+          triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+          userNotificationEventType: run.userNotificationEventType!,
+          pageAgainNumber: pageAgainNumber,
           minutes: minutes,
-        }),
-      });
+          recordKind: record.kind,
+          startAtRuleId: run.lastExecutedEscalationRuleId || undefined,
+          acknowledgedByUserId: acknowledgedByUserId || undefined,
+          /*
+           * Its page is timed from when the clock ran out - the moment this
+           * worker decided it is due by (isOnCallAcknowledgementTimeoutDue),
+           * however late the worker got to it (OnCallPageTiming, issue #6708).
+           */
+          dueAt: getOnCallAcknowledgementTimeoutDueAt({
+            startedAt: startedAt,
+            minutes: minutes,
+          }),
+          onRunCreated: (pageAgainRunIdCreated: ObjectID): void => {
+            created.runId = pageAgainRunIdCreated;
+          },
+        },
+      );
+    } catch (err) {
+      if (!created.runId) {
+        await OnCallDutyPolicyExecutionLogService.restartAcknowledgementTimeoutClock(
+          {
+            executionLogId: runId,
+            startedAt: startedAt,
+          },
+        );
+      }
+
+      throw err;
+    }
 
     return {
       runId: runId,
