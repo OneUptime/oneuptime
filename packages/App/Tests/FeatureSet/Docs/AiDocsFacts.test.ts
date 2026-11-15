@@ -2185,9 +2185,11 @@ describe("MCP Server", () => {
      * checks on their values (Data Check), its settings, and what is built
      * on tables: pipelines, data products, reconciliations, BI tools and
      * dashboards, and warehouse jobs; and Cloud's monthly budgets (Cloud
-     * Budget), so agents manage them as people do.
+     * Budget), so agents manage them as people do; and a postmortem's action
+     * items (Postmortem Action Item, #6801), so an agent can track what an
+     * incident's postmortem says the team will do.
      */
-    expect(records()).toHaveLength(53);
+    expect(records()).toHaveLength(54);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [
