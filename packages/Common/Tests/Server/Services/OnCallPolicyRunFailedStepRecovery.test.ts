@@ -369,8 +369,8 @@ describe("giving back a claim to move a run on that paged nobody", () => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
       .mockResolvedValue(
         storedRun({
-          lastExecutedEscalationRuleId: undefined,
-        } as Partial<OnCallDutyPolicyExecutionLog>),
+          lastExecutedEscalationRuleId: undefined as unknown as ObjectID,
+        }),
       );
 
     await expect(

@@ -929,10 +929,10 @@ describe("SloKpiStrip - a request SLO", () => {
     render(
       <SloKpiStrip
         slo={buildRequestSlo({
-          lastEvaluatedAt: undefined,
-          firstAccumulatedBucketStartAt: undefined,
-          lastAccumulatedBucketEndAt: undefined,
-        } as Partial<ServiceLevelObjective>)}
+          lastEvaluatedAt: undefined as unknown as Date,
+          firstAccumulatedBucketStartAt: undefined as unknown as Date,
+          lastAccumulatedBucketEndAt: undefined as unknown as Date,
+        })}
         lowestEnabledBurnRateThreshold={2}
         now={NOW}
       />,

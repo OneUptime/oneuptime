@@ -325,7 +325,10 @@ describe("Admin > Project > Subscription > Change Plan", () => {
     );
     mockGetItem.mockReset();
     getJestSpyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
-    putSpy = jest.spyOn(BaseAPI, "put");
+    // put is generic; its spy is the one instantiation the suite reads.
+    putSpy = jest.spyOn(BaseAPI, "put") as unknown as SpyInstance<
+      typeof BaseAPI.put
+    >;
     changesGoThrough();
   });
 
