@@ -50,7 +50,7 @@ Dove un percorso qui sotto riporta `{statusPageIdOrDomain}`, puoi inviare l'ID d
 
 | Endpoint | Metodi | Restituisce |
 | -------- | ------- | ------- |
-| `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Tutto ciò che mostra la panoramica: lo stato complessivo, le risorse e i gruppi, gli incidenti e gli episodi attivi, la manutenzione pianificata, gli annunci in corso e i dati delle barre di disponibilità. |
+| `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Tutto ciò che mostra la panoramica: lo stato complessivo, le risorse e i gruppi, gli incidenti e gli episodi attivi, la manutenzione programmata, gli annunci in corso e i dati delle barre di disponibilità. |
 | `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | La pagina in breve: lo stato generale, lo stato di ogni risorsa e se una manutenzione in corso la riguarda, gli incidenti attivi, e la manutenzione in corso e in arrivo. |
 | `/uptime/{statusPageId}` | `POST` | Le percentuali di disponibilità per risorsa e per gruppo, in un intervallo di date. |
 | `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | Gli incidenti che la pagina elenca, con le loro note pubbliche e i cambi di stato. |
@@ -65,7 +65,7 @@ Dove un percorso qui sotto riporta `{statusPageIdOrDomain}`, puoi inviare l'ID d
 Gli endpoint seguono le impostazioni della pagina stessa, nella scheda **Cosa mostra la tua pagina di stato** (vedi [Scegliere che cosa compare sulla pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina)):
 
 - Un elenco disattivato rifiuta il suo endpoint, ad esempio con `Incidents are not enabled on this status page.`
-- Ogni elenco risale fino a dove indica la sua impostazione **Mostra … giorni di cronologia** (14 per impostazione predefinita). L'elenco degli incidenti include anche ogni incidente non ancora risolto, e quello della manutenzione pianificata ogni evento in arrivo o in corso.
+- Ogni elenco risale fino a dove indica la sua impostazione **Mostra … giorni di cronologia** (14 per impostazione predefinita). L'elenco degli incidenti include anche ogni incidente non ancora risolto, e quello della manutenzione programmata ogni evento in arrivo o in corso.
 - Con il suo ID, un incidente, un episodio, un evento o un annuncio viene restituito qualunque sia la sua età, quindi un link a uno più vecchio continua a funzionare. Uno che la pagina non mostra affatto, come un incidente su un monitor che non è nella pagina, torna come elenco vuoto, e un episodio come `404`.
 
 **Quali incidenti restituisce una pagina.** L'endpoint degli incidenti restituisce gli incidenti sui monitor della pagina, meno quelli limitati ad altre pagine di stato, e meno ogni incidente non limitato a questa pagina se la pagina mostra solo gli incidenti limitati a lei (vedi [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience)). Le pagine a cui un incidente è limitato non fanno mai parte della risposta.

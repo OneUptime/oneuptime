@@ -940,11 +940,16 @@ then `npm run i18n:validate` from the root.
   "Network"; the email provider Resend read "Reenviar". Draw an option through
   `getDropdownOptionText`. A stored value is offered in the words its rows draw it in, never as it
   is stored: a runbook run waiting on a manual step read "Esperando" in its pill and
-  "WaitingForManualStep" in the Status filter (#7781). Enforced by
+  "WaitingForManualStep" in the Status filter (#7781). A name the API takes is no reason to
+  draw it as stored: a subscriber template's event type read "Subscriber Incident Note
+  Created" in every language, in the filters, the form's field and the cells. It is a key
+  whose English is the stored name, so English reads what the API and Terraform take and
+  every other language its own words ("Vorfallsnotiz erstellt", #8179). Enforced by
   [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts),
-  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx)
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx),
+  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx)
   and
-  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx).
+  [SubscriberNotificationEventTypesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/SubscriberNotificationEventTypesInReadersLanguage.test.tsx).
 - **A name reads as written, in a badge, a menu, a picker, a sentence and a line of text.** A label,
   a monitor or a state is named by its project, and a name is never looked up: in Spanish a label
   named "Network" read "Red", and a state a project named "Open" read "Abrir", the verb, in its badge,
