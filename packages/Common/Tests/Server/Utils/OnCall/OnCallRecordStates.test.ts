@@ -401,7 +401,7 @@ describe("answering each record as its own reads did", () => {
 
   test("a record with no current state is neither acknowledged nor resolved", async () => {
     const record: Incident = incident(1, 1);
-    record.currentIncidentStateId = undefined;
+    delete record.currentIncidentStateId;
 
     const states: OnCallRecordStates = await OnCallRecordStates.read({
       rows: [{ triggeredByIncidentId: record.id! }],

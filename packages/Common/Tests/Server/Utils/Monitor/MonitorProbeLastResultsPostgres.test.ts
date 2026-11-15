@@ -49,7 +49,7 @@ import {
 } from "@jest/globals";
 import { DataSource } from "typeorm";
 
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MONITOR_RESULT_PATH_TESTS"] === "true"
     ? describe
     : describe.skip;

@@ -133,6 +133,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const processMonitorStepMock: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;
@@ -142,6 +143,14 @@ const storeAndReadMock: jest.Mock =
 
 const readProbesMock: jest.Mock =
   MonitorProbeLastResults.readProbes as unknown as jest.Mock;
+
+/*
+ * MonitorResourceUtil.checkProbeAgreement is private: the part of its input
+ * these tests read, so they can spy on it.
+ */
+type CheckProbeAgreement = (input: {
+  monitorProbes: Array<MonitorProbe>;
+}) => Promise<unknown>;
 
 // What each probe's check says: the criteria it meets, by name.
 const UP: string = "Up";
@@ -428,8 +437,10 @@ describe("MonitorResourceUtil.monitorResource and the monitor's probe rows", () 
 
     probeRows.set([reporting, peerDown, peerUp]);
 
-    const agreement: jest.SpiedFunction<() => unknown> = jest.spyOn(
-      MonitorResourceUtil as never,
+    const agreement: SpyInstance<CheckProbeAgreement> = jest.spyOn(
+      MonitorResourceUtil as unknown as {
+        checkProbeAgreement: CheckProbeAgreement;
+      },
       "checkProbeAgreement",
     );
 
@@ -447,11 +458,8 @@ describe("MonitorResourceUtil.monitorResource and the monitor's probe rows", () 
         { reportingProbeId: reporting.probeId! },
       );
 
-    const probesJudged: Array<MonitorProbe> = (
-      agreement.mock.calls[0]![0] as unknown as {
-        monitorProbes: Array<MonitorProbe>;
-      }
-    ).monitorProbes;
+    const probesJudged: Array<MonitorProbe> =
+      agreement.mock.calls[0]![0].monitorProbes;
 
     const byProbe: (row: MonitorProbe) => MonitorProbe = (
       row: MonitorProbe,
@@ -514,8 +522,10 @@ describe("MonitorResourceUtil.monitorResource and the monitor's probe rows", () 
 
     probeRows.set([reporting, disabled, disconnected]);
 
-    const agreement: jest.SpiedFunction<() => unknown> = jest.spyOn(
-      MonitorResourceUtil as never,
+    const agreement: SpyInstance<CheckProbeAgreement> = jest.spyOn(
+      MonitorResourceUtil as unknown as {
+        checkProbeAgreement: CheckProbeAgreement;
+      },
       "checkProbeAgreement",
     );
 
@@ -530,11 +540,8 @@ describe("MonitorResourceUtil.monitorResource and the monitor's probe rows", () 
         { reportingProbeId: reporting.probeId! },
       );
 
-    const probesJudged: Array<MonitorProbe> = (
-      agreement.mock.calls[0]![0] as unknown as {
-        monitorProbes: Array<MonitorProbe>;
-      }
-    ).monitorProbes;
+    const probesJudged: Array<MonitorProbe> =
+      agreement.mock.calls[0]![0].monitorProbes;
 
     for (const probe of probesJudged) {
       if (probe.probeId!.toString() !== reporting.probeId!.toString()) {
