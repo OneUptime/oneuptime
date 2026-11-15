@@ -7,8 +7,9 @@ import {
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import {
-  DashboardLink,
-  readLinksAsDashboard,
+  DashboardReading,
+  DashboardSpan,
+  readAsDashboard,
   renderAsDashboard,
 } from "./DashboardMarkdownRenderer";
 import { Token, Tokens, marked } from "marked";
@@ -39,9 +40,9 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 
 const PARSERS: ReadonlyArray<OverLongTextParser> = ["marked", "remark"];
 
-const HELD_OPEN: string = "";
-const HELD_CLOSE: string = "";
-const TOKEN: RegExp = /(\d+)/g;
+const HELD_OPEN: string = "\uE005";
+const HELD_CLOSE: string = "\uE006";
+const TOKEN: RegExp = /\uE005(\d+)\uE006/g;
 
 const FILLER: string = "log line text ".repeat(5000);
 const RUNS: string = "run ".repeat(400);
@@ -91,21 +92,33 @@ const holdBack: (text: string, parser: OverLongTextParser) => HeldLine = (
   return {
     heldText: heldText,
     held: held,
-    inView: heldText.split(/\d+/),
+    inView: heldText.split(/\uE005\d+\uE006/),
   };
 };
 
-interface SourceLink {
-  href: string;
+// Where something is written in a text: from `start` up to `end`.
+interface SourceSpan {
   start: number;
   end: number;
 }
 
-// The links marked reads in a text - its paragraphs' own - with where each is written.
-const readLinksAsMarked: (markdown: string) => Array<SourceLink> = (
+interface SourceLink extends SourceSpan {
+  href: string;
+}
+
+interface SourceReading {
+  links: Array<SourceLink>;
+  codeSpans: Array<SourceSpan>;
+}
+
+/*
+ * The links marked reads in a text - its paragraphs' own - and the code
+ * spans outside them, with where each is written.
+ */
+const readAsMarked: (markdown: string) => SourceReading = (
   markdown: string,
-): Array<SourceLink> => {
-  const links: Array<SourceLink> = [];
+): SourceReading => {
+  const reading: SourceReading = { links: [], codeSpans: [] };
   let at: number = 0;
 
   for (const block of marked.lexer(markdown)) {
@@ -113,12 +126,15 @@ const readLinksAsMarked: (markdown: string) => Array<SourceLink> = (
       let inlineAt: number = at;
 
       for (const token of (block as Tokens.Paragraph).tokens as Array<Token>) {
+        const span: SourceSpan = {
+          start: inlineAt,
+          end: inlineAt + token.raw.length,
+        };
+
         if (token.type === "link" || token.type === "image") {
-          links.push({
-            href: (token as Tokens.Link).href,
-            start: inlineAt,
-            end: inlineAt + token.raw.length,
-          });
+          reading.links.push({ ...span, href: (token as Tokens.Link).href });
+        } else if (token.type === "codespan") {
+          reading.codeSpans.push(span);
         }
 
         inlineAt += token.raw.length;
@@ -128,7 +144,7 @@ const readLinksAsMarked: (markdown: string) => Array<SourceLink> = (
     at += block.raw.length;
   }
 
-  return links;
+  return reading;
 };
 
 const renderAsMarked: (markdown: string) => string = (
@@ -176,13 +192,16 @@ const codeSpansOf: (html: string) => Array<string> = (
 /*
  * How the parser read a text and its held line, for one check: the links
  * of the text but those wholly in the held middle, the held line's links
- * with what their tokens stand for, and both HTMLs.
+ * with what their tokens stand for, the code spans of the text that one
+ * end of the middle parts - one end held back, the other in view - and
+ * both HTMLs.
  */
 interface Reading {
   // Every link the parser alone reads.
   aloneLinks: Array<string>;
   expectedLinks: Array<string>;
   heldLinks: Array<string>;
+  partedCodeSpans: Array<SourceSpan>;
   html: string;
   heldHtml: string;
 }
@@ -190,14 +209,14 @@ interface Reading {
 const readAs: (data: {
   text: string;
   heldLine: HeldLine;
-  links: Array<SourceLink>;
+  alone: SourceReading;
   heldLinks: Array<SourceLink>;
   html: string;
   heldHtml: string;
 }) => Reading = (data: {
   text: string;
   heldLine: HeldLine;
-  links: Array<SourceLink>;
+  alone: SourceReading;
   heldLinks: Array<SourceLink>;
   html: string;
   heldHtml: string;
@@ -206,12 +225,25 @@ const readAs: (data: {
   const middleStart: number = inView[0]!.length;
   const middleEnd: number =
     data.text.length - inView[inView.length - 1]!.length;
+  const links: Array<SourceLink> = data.alone.links;
 
   return {
-    aloneLinks: data.links.map((link: SourceLink): string => {
+    partedCodeSpans: data.alone.codeSpans.filter(
+      (span: SourceSpan): boolean => {
+        return (
+          (span.start < middleStart &&
+            span.end > middleStart &&
+            span.end <= middleEnd) ||
+          (span.start >= middleStart &&
+            span.start < middleEnd &&
+            span.end > middleEnd)
+        );
+      },
+    ),
+    aloneLinks: links.map((link: SourceLink): string => {
       return link.href;
     }),
-    expectedLinks: data.links
+    expectedLinks: links
       .filter((link: SourceLink): boolean => {
         return !(link.start >= middleStart && link.end <= middleEnd);
       })
@@ -236,8 +268,9 @@ const countLinkMarkdown: (html: string) => number = (html: string): number => {
 /*
  * What a held line must keep of how the parser alone read its text: the
  * same links, no link's Markdown in view where the parser alone shows
- * none, and no token after a backslash, or inside a code span the parser
- * alone does not read. The problems found, empty when there are none.
+ * none, no code span the parser alone reads parted by a cut, and no
+ * token after a backslash, or inside a code span the parser alone does not
+ * read. The problems found, empty when there are none.
  */
 const problemsOf: (
   reading: Reading,
@@ -279,10 +312,16 @@ const problemsOf: (
     problems.push("a link's Markdown shows");
   }
 
-  for (const match of heldLine.heldText.matchAll(/(\\*)/g)) {
+  for (const match of heldLine.heldText.matchAll(/(\\*)\uE005/g)) {
     if (match[1]!.length % 2 === 1) {
       problems.push("a token after a backslash");
     }
+  }
+
+  if (reading.partedCodeSpans.length > 0) {
+    problems.push(
+      `a code span parted at ${JSON.stringify(reading.partedCodeSpans)}`,
+    );
   }
 
   const aloneCode: Array<string> = codeSpansOf(reading.html);
@@ -339,7 +378,7 @@ const readWithBothParsers: (
       return lines.remark.heldText;
     },
   );
-  const remarkLinks: Array<Array<DashboardLink>> = readLinksAsDashboard([
+  const remarkReadings: Array<DashboardReading> = readAsDashboard([
     ...aloneTexts,
     ...remarkHeldTexts,
   ]);
@@ -355,11 +394,24 @@ const readWithBothParsers: (
     ): Record<OverLongTextParser, { reading: Reading; heldLine: HeldLine }> => {
       const markedHeld: HeldLine = heldLines[index]!.marked;
       const remarkHeld: HeldLine = heldLines[index]!.remark;
-      const shifted: (links: Array<SourceLink>) => Array<SourceLink> = (
-        links: Array<SourceLink>,
-      ): Array<SourceLink> => {
-        return item.shift ? links.map(item.shift) : links;
+      // Where what the parser read in a shortened text is in the text it stands for.
+      const shifted: (alone: SourceReading) => SourceReading = (
+        alone: SourceReading,
+      ): SourceReading => {
+        const shift: Shift | undefined = item.shift;
+
+        if (!shift) {
+          return alone;
+        }
+
+        return {
+          links: alone.links.map((link: SourceLink): SourceLink => {
+            return { ...shift(link), href: link.href };
+          }),
+          codeSpans: alone.codeSpans.map(shift),
+        };
       };
+      const remarkAlone: DashboardReading = remarkReadings[index]!;
 
       return {
         marked: {
@@ -367,8 +419,8 @@ const readWithBothParsers: (
           reading: readAs({
             text: item.text,
             heldLine: markedHeld,
-            links: shifted(readLinksAsMarked(aloneTexts[index]!)),
-            heldLinks: readLinksAsMarked(markedHeld.heldText),
+            alone: shifted(readAsMarked(aloneTexts[index]!)),
+            heldLinks: readAsMarked(markedHeld.heldText).links,
             html: renderAsMarked(aloneTexts[index]!),
             heldHtml: renderAsMarked(markedHeld.heldText),
           }),
@@ -378,8 +430,15 @@ const readWithBothParsers: (
           reading: readAs({
             text: item.text,
             heldLine: remarkHeld,
-            links: shifted(remarkLinks[index]!),
-            heldLinks: remarkLinks[texts.length + index]!,
+            alone: shifted({
+              links: remarkAlone.links,
+              codeSpans: remarkAlone.codeSpans.map(
+                (span: DashboardSpan): SourceSpan => {
+                  return span;
+                },
+              ),
+            }),
+            heldLinks: remarkReadings[texts.length + index]!.links,
             html: remarkHtml[index]!,
             heldHtml: remarkHtml[texts.length + index]!,
           }),
@@ -389,8 +448,8 @@ const readWithBothParsers: (
   );
 };
 
-// Where a link read in a shortened text is in the text it stands for.
-type Shift = (link: SourceLink) => SourceLink;
+// Where something read in a shortened text is in the text it stands for.
+type Shift = (span: SourceSpan) => SourceSpan;
 
 // A link's text across the end's cut, or the start's: the same text crosses each.
 const atTheEnd: (text: string, suffix: string) => string = (
@@ -471,6 +530,7 @@ const SHAPES: ReadonlyArray<
     `run \`\`co\`de ${RUNS}code\`\` x`,
     REMARK_ONLY,
   ],
+  ["a code span of two backticks", `run \`\`code ${RUNS}code\`\` x`, BOTH],
   [
     "a code span of three backticks",
     `run \`\`\`code ${RUNS}code\`\`\` x`,
@@ -639,6 +699,12 @@ const CASES: ReadonlyArray<Case> = [
     links: NEITHER,
   },
   {
+    // Its code span closes past it, where the middle holds the closing backticks.
+    name: "a full reference's label holding a code span, across the start",
+    text: `[${RUNS}][run \`\`42] then ${"w ".repeat(60)}\`\` x ${FILLER} \`\`tail\`\` now`,
+    links: NEITHER,
+  },
+  {
     name: "a text whose nested brackets never close, across the end",
     text: `${FILLER}see [run [42 ${RUNS} x](/runs/42) now`,
     links: BOTH,
@@ -794,6 +860,23 @@ describe("OverLongText - where the token for a link's text stands (#8238)", () =
       );
 
       expect(holdBack(line, parser).inView[2]).toBe(" x](/runs/42) now");
+    },
+  );
+
+  /*
+   * marked's link rule reads "``" as an empty code span, so the text reads
+   * plainly at the cut as the rule reads it; but the text, once found, is
+   * read as a code span closes, and that one closes past the cut.
+   */
+  test.each(PARSERS)(
+    "a code span of two backticks across each cut, read by %s: the piece takes it in whole",
+    (parser: OverLongTextParser) => {
+      const text: string = `run \`\`code ${RUNS}code\`\` x`;
+      const atEnd: string = atTheEnd(text, "](/runs/42)");
+      const atStart: string = atTheStart(text, "](/runs/42)");
+
+      expect(holdBack(atEnd, parser).inView[2]).toBe(" x](/runs/42) now");
+      expect(holdBack(atStart, parser).inView[0]).toBe("[run ");
     },
   );
 
@@ -1210,11 +1293,10 @@ describe("OverLongText - links whose text crosses a cut at a place drawn at rand
     return {
       text: text,
       aloneText: aloneText,
-      shift: (link: SourceLink): SourceLink => {
+      shift: (span: SourceSpan): SourceSpan => {
         return {
-          href: link.href,
-          start: link.start >= shiftFrom ? link.start + shiftBy : link.start,
-          end: link.end > shiftFrom ? link.end + shiftBy : link.end,
+          start: span.start >= shiftFrom ? span.start + shiftBy : span.start,
+          end: span.end > shiftFrom ? span.end + shiftBy : span.end,
         };
       },
       startCut: OVER_LONG_LINE_KEPT_LENGTH,
@@ -1409,7 +1491,7 @@ describe("OverLongText - lines of brackets, backticks and backslashes at random 
         expect(LONE_LOW_SURROGATE.test(piece)).toBe(false);
       }
 
-      for (const match of heldLine.heldText.matchAll(/(\\*)/g)) {
+      for (const match of heldLine.heldText.matchAll(/(\\*)\uE005/g)) {
         expect(match[1]!.length % 2).toBe(0);
       }
     }

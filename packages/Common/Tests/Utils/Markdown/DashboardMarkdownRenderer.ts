@@ -65,10 +65,10 @@ export const renderAsDashboard: RenderAsDashboardFunction = (
 };
 
 /*
- * The links of a text as the dashboard's parser reads them, with where
- * each is written: remark's own tree (mdast, from micromark and its GitHub
- * extensions, as react-markdown builds it). A reference's address is its
- * definition's.
+ * The links and the code spans of a text as the dashboard's parser reads
+ * them, with where each is written: remark's own tree (mdast, from
+ * micromark and its GitHub extensions, as react-markdown builds it). A
+ * reference's address is its definition's.
  */
 const LINKS_SCRIPT: string = `
   import { fromMarkdown } from "mdast-util-from-markdown";
@@ -95,6 +95,7 @@ const LINKS_SCRIPT: string = `
           });
           const definitions = new Map();
           const found = [];
+          const codeSpans = [];
           // A stack, not recursion: in the order the text is written.
           const stack = [tree];
 
@@ -109,6 +110,13 @@ const LINKS_SCRIPT: string = `
               found.push(node);
             }
 
+            if (node.type === "inlineCode") {
+              codeSpans.push({
+                start: node.position.start.offset,
+                end: node.position.end.offset,
+              });
+            }
+
             const children = node.children || [];
 
             for (let index = children.length - 1; index >= 0; index--) {
@@ -116,7 +124,7 @@ const LINKS_SCRIPT: string = `
             }
           }
 
-          return found
+          const links = found
             .map((node) => {
               return {
                 href: node.url ?? definitions.get(node.identifier) ?? null,
@@ -127,27 +135,38 @@ const LINKS_SCRIPT: string = `
             .filter((link) => {
               return link.href !== null;
             });
+
+          return { links: links, codeSpans: codeSpans };
         }),
       ),
     );
   });
 `;
 
-// A link, an image or a reference to one, and where it is written.
-export interface DashboardLink {
-  href: string;
+// Where something is written in a text: from `start` up to `end`.
+export interface DashboardSpan {
   start: number;
   end: number;
 }
 
-export type ReadLinksAsDashboardFunction = (
-  texts: Array<string>,
-) => Array<Array<DashboardLink>>;
+// A link, an image or a reference to one, and where it is written.
+export interface DashboardLink extends DashboardSpan {
+  href: string;
+}
 
-// The links the dashboard's parser reads in each text, in order.
-export const readLinksAsDashboard: ReadLinksAsDashboardFunction = (
+export interface DashboardReading {
+  links: Array<DashboardLink>;
+  codeSpans: Array<DashboardSpan>;
+}
+
+export type ReadAsDashboardFunction = (
   texts: Array<string>,
-): Array<Array<DashboardLink>> => {
+) => Array<DashboardReading>;
+
+// The links and the code spans the dashboard's parser reads in each text, in order.
+export const readAsDashboard: ReadAsDashboardFunction = (
+  texts: Array<string>,
+): Array<DashboardReading> => {
   return JSON.parse(
     childProcess.execFileSync(
       process.execPath,
@@ -160,7 +179,7 @@ export const readLinksAsDashboard: ReadLinksAsDashboardFunction = (
         maxBuffer: 64 * 1024 * 1024,
       },
     ),
-  ) as Array<Array<DashboardLink>>;
+  ) as Array<DashboardReading>;
 };
 
 export type HrefsOfFunction = (html: string) => Array<string>;
