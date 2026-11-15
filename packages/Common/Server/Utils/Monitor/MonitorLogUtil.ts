@@ -156,7 +156,7 @@ export default class MonitorLogUtil {
         const logTimestamp: string =
           OneUptimeDate.toClickhouseDateTime(logIngestionDate);
 
-        const retentionDate: Date = OneUptimeDate.addRemoveDays(
+        const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
           logIngestionDate,
           retentionDays,
         );

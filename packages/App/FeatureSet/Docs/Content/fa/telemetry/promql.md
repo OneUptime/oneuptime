@@ -24,7 +24,7 @@ flowchart TB
 ## پیش از شروع
 
 - **متریک‌های در حال رسیدن.** آن‌ها را با [OpenTelemetry](/docs/telemetry/open-telemetry) بفرستید، یا از یک ایجنت مانند [کالکتور OpenTelemetry میزبان](/docs/telemetry/host-otel-collector).
-- **نقشی که متریک‌ها را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Metrics. نقشی که به برخی سرویس‌ها محدود است فقط متریک‌های همان سرویس‌ها را می‌خواند.
+- **نقشی که متریک‌ها را بخواند.** مالک پروژه، مدیر پروژه، عضو پروژه، بیننده، مدیر تله‌متری، عضو تله‌متری یا بیننده تله‌متری، یا یک نقش سفارشی با مجوز Read Metrics. نقشی که به برخی سرویس‌ها محدود است فقط متریک‌های همان سرویس‌ها را می‌خواند.
 - **برای Grafana یا یک اسکریپت: یک کلید API پروژه** با یکی از این نقش‌ها یا مجوز Read Metrics. [یک کلید API بسازید](/docs/api-reference/api-reference#یک-کلید-api-بسازید) را ببینید. در OneUptime Cloud، کلیدهای API به طرح **Growth** نیاز دارند.
 
 ## نوشتن یک کوئری

@@ -188,10 +188,10 @@ spec:
 
 | Право | Позволяет | У кого есть по умолчанию |
 | --- | --- | --- |
-| **Start Packet Capture** | Запускать захваты и останавливать их | Project Owner, Project Admin |
-| **Download Packet Capture** | Скачивать файлы захватов | Project Owner, Project Admin |
-| **Delete Packet Capture** | Удалять захваты и их файлы | Project Owner, Project Admin |
-| **Read Packet Capture** | Видеть захваты: когда они выполнялись, на каком зонде и с каким фильтром | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Запускать захваты и останавливать их | Владелец проекта, Администратор проекта |
+| **Download Packet Capture** | Скачивать файлы захватов | Владелец проекта, Администратор проекта |
+| **Delete Packet Capture** | Удалять захваты и их файлы | Владелец проекта, Администратор проекта |
+| **Read Packet Capture** | Видеть захваты: когда они выполнялись, на каком зонде и с каким фильтром | Владелец проекта, Администратор проекта, Участник проекта, Зритель |
 
 Чтобы дать команде **Start Packet Capture** или **Download Packet Capture**, откройте её в разделе **Настройки → Команды** и добавьте право на её странице **Права доступа**. См. [Права доступа](/docs/permissions/index).
 

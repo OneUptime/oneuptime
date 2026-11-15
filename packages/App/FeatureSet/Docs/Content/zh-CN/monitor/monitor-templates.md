@@ -27,7 +27,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建模板的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor Template 权限的自定义角色。修改模板需要相同的角色，或 Edit Monitor Template 权限。
+- **可以创建模板的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor Template 权限的自定义角色。修改模板需要相同的角色，或 Edit Monitor Template 权限。
 - **更新已关联监视器的权限。** 同步会以您的身份写入每个已关联的监视器，并跳过您的权限未覆盖的监视器。
 
 ## 创建模板

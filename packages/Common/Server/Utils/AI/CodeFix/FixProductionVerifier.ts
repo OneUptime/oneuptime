@@ -320,7 +320,7 @@ export default class FixProductionVerifier {
         FixProductionVerifier.countOccurrences({
           exception,
           fingerprints,
-          start: OneUptimeDate.addRemoveDays(
+          start: OneUptimeDate.addRemoveDurationInDays(
             mergedAt,
             -FIX_PRODUCTION_THRESHOLDS.baselineDays,
           ),

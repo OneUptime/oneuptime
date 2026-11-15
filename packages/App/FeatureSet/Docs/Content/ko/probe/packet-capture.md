@@ -188,10 +188,10 @@ spec:
 
 | 권한 | 할 수 있는 일 | 기본으로 가진 역할 |
 | --- | --- | --- |
-| **Start Packet Capture** | 캡처 시작과 중지 | Project Owner, Project Admin |
-| **Download Packet Capture** | 캡처 파일 다운로드 | Project Owner, Project Admin |
-| **Delete Packet Capture** | 캡처와 그 파일 삭제 | Project Owner, Project Admin |
-| **Read Packet Capture** | 캡처 보기: 언제, 어느 프로브에서, 어떤 필터로 실행됐는지 | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | 캡처 시작과 중지 | 프로젝트 소유자, 프로젝트 관리자 |
+| **Download Packet Capture** | 캡처 파일 다운로드 | 프로젝트 소유자, 프로젝트 관리자 |
+| **Delete Packet Capture** | 캡처와 그 파일 삭제 | 프로젝트 소유자, 프로젝트 관리자 |
+| **Read Packet Capture** | 캡처 보기: 언제, 어느 프로브에서, 어떤 필터로 실행됐는지 | 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어 |
 
 팀에 **Start Packet Capture** 또는 **Download Packet Capture**를 주려면 **설정 → 팀**에서 팀을 열고 **권한** 페이지에서 권한을 추가하세요. [권한](/docs/permissions/index)을 참고하세요.
 

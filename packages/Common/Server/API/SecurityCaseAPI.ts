@@ -21,10 +21,12 @@ import SecurityCaseValues, {
 } from "../Utils/SecurityCase/SecurityCaseValues";
 import SecurityPlaybookRunStatus from "../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
+  CalendarDay,
   OverviewCaseRow,
   OverviewDetectionRow,
   SecurityOverviewMetrics,
   computeSecurityOverviewMetrics,
+  getLastCalendarDays,
 } from "../../Utils/SecurityCase/SecurityOverviewMetrics";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import IncidentSeverityService from "../Services/IncidentSeverityService";
@@ -1264,14 +1266,26 @@ export default class SecurityCaseAPI extends BaseAPI<
   }): Promise<JSONObject> {
     const { projectId, props } = data;
     const now: Date = OneUptimeDate.getCurrentDate();
-    const windowStart: Date = OneUptimeDate.addRemoveDays(
+    /*
+     * The last 30 and 14 days are the reader's 30 and 14 days, today's the
+     * last, a bar each, and every figure "in the window" counts them: from
+     * the reader's midnight 29 and 13 days before today's, stepped in their
+     * zone, so the same on every server (issue #8236). Read from now - 30 x
+     * 24 hours, the charts drew 31 and 15 bars, the first only the part of
+     * its day after that instant (issue #8474).
+     */
+    const caseDays: Array<CalendarDay> = getLastCalendarDays(
       now,
-      -SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS,
+      SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS,
+      data.timezone,
     );
-    const detectionWindowStart: Date = OneUptimeDate.addRemoveDays(
+    const detectionDays: Array<CalendarDay> = getLastCalendarDays(
       now,
-      -SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
+      SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
+      data.timezone,
     );
+    const windowStart: Date = new Date(caseDays[0]!.startMs);
+    const detectionWindowStart: Date = new Date(detectionDays[0]!.startMs);
 
     // The project's priorities and statuses: what the counts are by.
     const values: ProjectSecurityCaseValues =

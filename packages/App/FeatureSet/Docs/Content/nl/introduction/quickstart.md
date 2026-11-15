@@ -56,7 +56,7 @@ Met het Free-abonnement van OneUptime Cloud worden monitoren naar gebruik gefact
 
 ### Kiezen wie er wordt ingelicht
 
-Onder **Wie moet er op de hoogte worden gesteld?** staat u al in **Wie wordt opgeroepen**. Klik op **Opslaan en doorgaan**: dat maakt `Default on-call policy` aan, dat u oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project, om te beginnen per e-mail. Om ook teamleden op te roepen die al in het project zitten, klikt u eerst op **Teamleden toevoegen**.
+Onder **Wie moet er op de hoogte worden gesteld?** staat u al in **Wie wordt opgeroepen**. Klik op **Opslaan en doorgaan**: dat maakt het **Standaard bereikbaarheidsbeleid** aan, dat u oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project, om te beginnen per e-mail. Om ook teamleden op te roepen die al in het project zitten, klikt u eerst op **Teamleden toevoegen**.
 
 ### Uzelf een test sturen
 
@@ -69,7 +69,7 @@ Wilt u ook een API controleren, en weten wat u moet doen als de eerste controle 
 
 ## Opgeroepen worden bij uitval
 
-De website-installatie heeft al `Default on-call policy` aangemaakt, dat u per e-mail oproept bij elk nieuw incident en elke nieuwe waarschuwing, dus vinkt de checklist **Stel een bereikbaarheidsbeleid in** als gedaan af. De begeleide installatie daarvan voegt toch nog uw telefoon toe, de mensen die met u worden opgeroepen en wat er gebeurt als niemand antwoordt.
+De website-installatie heeft al het **Standaard bereikbaarheidsbeleid** aangemaakt, dat u per e-mail oproept bij elk nieuw incident en elke nieuwe waarschuwing, dus vinkt de checklist **Stel een bereikbaarheidsbeleid in** als gedaan af. De begeleide installatie daarvan voegt toch nog uw telefoon toe, de mensen die met u worden opgeroepen en wat er gebeurt als niemand antwoordt.
 
 :::steps
 ### De bereikbaarheidsinstallatie openen
@@ -84,7 +84,7 @@ Onder **Hoe moeten we je bereiken?** staat uw inlog-e-mail er al. Voor pushmeldi
 
 ### Kiezen wie er nog meer wordt opgeroepen
 
-Houd onder **Wie is er nog meer bereikbaar?** `Default on-call policy` aan bij **Bereikbaarheidsbeleid**. Om teamleden met u op te roepen, voegt u ze toe onder **Toevoegen aan de eerste escalatieregel**. Klik op **Opslaan en doorgaan**.
+Houd onder **Wie is er nog meer bereikbaar?** het **Standaard bereikbaarheidsbeleid** aan bij **Bereikbaarheidsbeleid**. Om teamleden met u op te roepen, voegt u ze toe onder **Toevoegen aan de eerste escalatieregel**. Klik op **Opslaan en doorgaan**.
 
 ### Bepalen wat er gebeurt als niemand antwoordt
 
@@ -96,7 +96,7 @@ Klik onder **Een testoproep sturen** op **Dit beleid testen**, kies een **Ernst*
 :::
 
 > [!NOTE]
-> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
+> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Factureringsbeheerder of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
 
 Twee bereikbaarheidsregels activeren het beleid: een bij elk nieuw incident en een bij elke nieuwe waarschuwing. Om de eerste te zien, opent u **Incidenten** vanuit het menu **Producten**, klapt u **Regels** in het zijmenu uit en kiest u **Bereikbaarheidsregels**: die komt overeen met **Alle incidenten**. Om het beleid alleen bij sommige incidenten te activeren, zoals kritieke, bewerkt u de regel daar, of klikt u op **Incident On-Call Rule aanmaken** om er zelf een toe te voegen.
 

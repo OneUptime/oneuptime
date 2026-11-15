@@ -29,7 +29,7 @@ Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, 
 
 ## Bevor Sie beginnen
 
-- Die Rolle Project Owner oder Project Admin. Nur sie können ein Tool verbinden, ändern oder entfernen.
+- Die Rolle Projektinhaber oder Projektadministrator. Nur sie können ein Tool verbinden, ändern oder entfernen.
 - Eine Administratorin oder ein Administrator des Tools, um die Zugangsdaten zu erstellen: Der Abschnitt jedes Tools unten nennt, wer.
 - Ihre Leute informiert, und die Antwort Ihrer Rechts- oder Personalabteilung.
 

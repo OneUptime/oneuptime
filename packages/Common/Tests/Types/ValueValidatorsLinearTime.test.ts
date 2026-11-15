@@ -77,6 +77,37 @@ describe("UrlScrubber.scrub reads a long path segment quickly", () => {
     expect(scrubbed).not.toContain("bob.smith@example.com");
     expect(scrubbed).toContain("[redacted]");
   });
+
+  /*
+   * #8385: a token's parts are joined by dots, and a segment is read twice,
+   * decoded once and once more. Neither reads a long segment more than a
+   * bounded number of times.
+   */
+  test.each([
+    ["a header then dotted parts", "eyJ" + repeat("a.", LENGTH)],
+    ["a header then dots", "eyJabcdefgh" + repeat(".", LENGTH)],
+    [
+      "a long header then one part too many",
+      `eyJ${repeat("a", LENGTH)}.a.b.c.d.e`,
+    ],
+    ["headers over and over", repeat("eyJabcdefgh.", LENGTH)],
+    ["escapes of escapes", repeat("%2525", LENGTH)],
+    ["an escaped address escaped again", repeat("a%2540", LENGTH)],
+    // #8489: standard base64's "+", and "=" that is no padding.
+    [
+      "a token in standard base64, then too many =",
+      repeat("a+", LENGTH) + "===",
+    ],
+    ["equals signs", repeat("=", LENGTH)],
+  ])("decides %s quickly", (_label: string, segment: string) => {
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        UrlScrubber.scrub(`https://example.com/${segment}`);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
+  });
 });
 
 describe("OnCallCalendarFeedUtil.getDisplayName reads a long name quickly", () => {

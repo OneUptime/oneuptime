@@ -11,9 +11,9 @@ Du skriver et runbook som en ordnet liste af trin på dets side **Trin**. Denne 
 
 ## Før du går i gang
 
-- **En rolle, der skriver runbooks.** Project Owner, Project Admin og Runbook Admin opretter runbooks og gemmer deres trin. Med detaljerede tilladelser skal du have **Create Runbook** og **Edit Runbook**. Se [Tilladelser](/docs/runbooks/configuration#tilladelser).
+- **En rolle, der skriver runbooks.** Projektejer, Projektadministrator og Runbook-administrator opretter runbooks og gemmer deres trin. Med detaljerede tilladelser skal du have **Create Runbook** og **Edit Runbook**. Se [Tilladelser](/docs/runbooks/configuration#tilladelser).
 - **En Runner, til Bash-, SSH- og kubectl-trin.** Disse trin kører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installer en først. Et trin, der ikke vælger nogen Runner, kører på [projektets standard-Runner](/docs/runbooks/agents#projektets-standard-runner), hvis du har angivet en; ellers kører et JavaScript-trin på en [global Runner](/docs/runbooks/agents#globale-runnere).
-- **En hemmelig variabel, til SSH- og kubectl-trin.** Den nøgle, adgangskode eller kubeconfig, som et trin logger ind med, er en hemmelig [runbook-variabel](/docs/runbooks/variables). Project Owner og Project Admin opretter variabler, og Runbook Admin vælger dem i de trin, den skriver. Et kubectl-trin kan i stedet bruge Runnerens egen adgang.
+- **En hemmelig variabel, til SSH- og kubectl-trin.** Den nøgle, adgangskode eller kubeconfig, som et trin logger ind med, er en hemmelig [runbook-variabel](/docs/runbooks/variables). Projektejer og Projektadministrator opretter variabler, og Runbook-administrator vælger dem i de trin, den skriver. Et kubectl-trin kan i stedet bruge Runnerens egen adgang.
 - **En LLM-udbyder, til AI-trin.** Se [LLM-udbydere](/docs/ai/llm-provider).
 
 ## Opret et runbook

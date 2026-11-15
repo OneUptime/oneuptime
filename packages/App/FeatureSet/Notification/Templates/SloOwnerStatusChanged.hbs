@@ -14,7 +14,16 @@
 {{> DetailBoxField title="Target:" text=(concat targetPercentage "%") }}
 {{> DetailBoxField title="Current SLI:" text=(concat currentSliPercentage "%") }}
 {{> DetailBoxField title="Error Budget Remaining:" text=(concat errorBudgetRemainingPercentage "%") }}
+{{!--
+  A Monitor Uptime SLO's budget is time, a request SLO's is the failed or
+  slow requests it still allows ("1,234 failed requests"): the worker sends
+  one of the two.
+--}}
+{{#if errorBudgetRemainingRequests}}
+{{> DetailBoxField title="Error Budget Remaining (Requests):" text=errorBudgetRemainingRequests }}
+{{else}}
 {{> DetailBoxField title="Error Budget Remaining (Minutes):" text=errorBudgetRemainingMinutes }}
+{{/if}}
 {{> DetailBoxField title="Project Name:" text=projectName }}
 {{> DetailBoxEnd this }}
 

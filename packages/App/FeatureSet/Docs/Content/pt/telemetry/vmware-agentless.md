@@ -61,6 +61,8 @@ O nome padrão é o nome de host do vCenter. Clique em **Conectar vCenter** para
 
 A **Visão geral** do vCenter mostra um cartão **Coleta de dados**. Ele mostra **Verificando** até a primeira coleta, que começa em até um minuto, depois **Coletando**, e o inventário é preenchido.
 
+Se nenhuma sonda vier buscar o vCenter por 20 minutos, porque está offline ou é antiga demais, o cartão mostra **Sem coleta** e informa isso, qualquer que seja o resultado da última coleta. Quando nenhuma sonda pode coletar o vCenter, ele mostra na hora **Sem coleta**, com o motivo e o que mudar: nenhuma senha está salva, falta o endereço ou o nome de usuário do vCenter, nenhuma sonda está definida para coletá-lo, a sonda dele não pode coletá-lo (uma sonda compartilhada no OneUptime Cloud, ou a de outro projeto), ou a sonda dele está desconectada. **Próxima coleta** é a hora em que uma sonda o coleta da próxima vez, **Previsto agora** enquanto ele espera por uma, **Atrasado** quando nenhuma veio por 20 minutos, e **Não agendado** enquanto nenhuma sonda pode coletá-lo. Um vCenter arquivado continua sendo coletado.
+
 ## Certificados
 
 A sonda nunca pula a verificação de certificados. Cada conexão completa um handshake TLS inteiro, e então:

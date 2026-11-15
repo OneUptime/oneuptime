@@ -430,7 +430,7 @@ curl https://oneuptime.com/mcp/tools
 | کاری که عامل انجام می‌دهد | آنچه در **دسترسی** انتخاب می‌کنید |
 | --- | --- |
 | فقط می‌خواند | **بیننده**، یا افزودن دسترسی‌های خواندن در صفحهٔ کلید |
-| ساخت، به‌روزرسانی و حذف هم انجام می‌دهد | **مدیر پروژه**، یا افزودن نقش Project Admin در صفحهٔ کلید |
+| ساخت، به‌روزرسانی و حذف هم انجام می‌دهد | **مدیر پروژه**، یا افزودن نقش مدیر پروژه در صفحهٔ کلید |
 
 به هر کلید کمترین دسترسی‌ای را که نیاز دارد بدهید، کلیدها را مرتب بچرخانید، برای هر محیط کلید جداگانه‌ای نگه دارید و کارهایی را که هر کلید در OneUptime انجام می‌دهد زیر نظر بگیرید.
 
@@ -497,7 +497,7 @@ curl https://oneuptime.com/mcp/tools
 | امنیت | Security Event, Threat Intel Indicator |
 | تغییرات و هزینه | Change Event, Kubernetes Cost Allocation |
 
-نام ابزارها به سبک snake case است: `create_incident`، `get_incident`، `list_incidents`، `update_incident`، `delete_incident` و `count_incidents`، یا برای تله‌متری `list_logs` و `count_spans`.
+نام ابزارها به سبک snake case است: `create_incident`، `get_incident`، `list_incidents`، `update_incident`، `delete_incident` و `count_incidents`، یا برای تله‌متری `list_logs` و `count_spans`. `create_incident` و `create_alert` همچنین `ownerUsers` و `ownerTeams` را می‌گیرند: شناسه‌های کاربران و تیم‌هایی که از آغاز مالک رکوردند و از ایجاد آن باخبر می‌شوند.
 
 ## گام‌های بعدی
 

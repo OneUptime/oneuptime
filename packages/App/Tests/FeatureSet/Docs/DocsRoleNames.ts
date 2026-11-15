@@ -67,12 +67,82 @@ export function runningText(markdown: string): string {
 }
 
 /*
+ * ENGLISH A TRANSLATED PAGE KEEPS, THOUGH IT HAS A ROLE'S WORDS (#8315).
+ *
+ * A few names in running text have a built-in role's name in them but are
+ * no OneUptime role: another product's role or window, which that product
+ * names in English. And a few sentences are quoted as the product writes
+ * them, in English whatever the reader's language. A translated page keeps
+ * each as it is, so the role checks read past them, on the English page as
+ * on the translations.
+ */
+export interface KeptEnglish {
+  text: string;
+  why: string;
+}
+
+export const KEPT_IN_ENGLISH: ReadonlyArray<KeptEnglish> = [
+  {
+    text: "Monitoring Viewer",
+    why: "Google Cloud's IAM role, which the service account that reads Cloud Monitoring needs.",
+  },
+  {
+    text: "Event Viewer",
+    why: "The Windows Event Viewer, whose menus the host collector page quotes as Windows names them.",
+  },
+  {
+    text: "Workflow steps can do only what a Project Admin of this project can do",
+    why: "A refused step's reason, which the run log shows as the server writes it (LogComponentError), in English.",
+  },
+];
+
+/*
+ * English that uses a role's word for something else - the people who
+ * viewed a Power BI report, the logs and traces explorers' viewer - so an
+ * English page names no role there, and a translation words it as prose.
+ */
+export const NOT_A_ROLE_IN_ENGLISH: ReadonlyArray<KeptEnglish> = [
+  {
+    text: "Viewers are named as Power BI names them",
+    why: "The people who viewed a Power BI report, as Power BI's activity log names them.",
+  },
+  {
+    text: "Open the Viewer",
+    why: "The logs and traces explorers' viewer, a step's heading.",
+  },
+  {
+    text: "in the Viewer to see these",
+    why: "The logs explorer's viewer, where a key shows the shortcuts.",
+  },
+  {
+    text: "the Viewer opens on the past hour",
+    why: "The logs explorer's viewer, which opens on the past hour.",
+  },
+];
+
+/*
+ * The running text the role checks read: without the English kept on
+ * purpose, and without the English that uses a role's word for something
+ * else.
+ */
+export function roleText(markdown: string): string {
+  return [...KEPT_IN_ENGLISH, ...NOT_A_ROLE_IN_ENGLISH].reduce(
+    (text: string, kept: KeptEnglish): string => {
+      return text.split(kept.text).join(" ");
+    },
+    runningText(markdown),
+  );
+}
+
+/*
  * A built-in role's English name in running text, as a whole name, an
  * English plural "s" allowed ("Project Admins"); the longest name first, so
- * "Incident Viewer" is not also read as "Viewer".
+ * "Incident Viewer" is not also read as "Viewer". A name a compound ends
+ * with is another thing's ("Trace-Viewer", the German page's trace
+ * viewer), while a compound it starts is the role's ("Viewer-Rolle").
  */
 const ENGLISH_ROLE_NAME: RegExp = new RegExp(
-  `(?<![A-Za-z])(${[...BUILT_IN_ROLE_NAMES]
+  `(?<![A-Za-z]|[A-Za-z]-)(${[...BUILT_IN_ROLE_NAMES]
     .sort((first: string, second: string): number => {
       return second.length - first.length;
     })
@@ -85,17 +155,23 @@ const ENGLISH_ROLE_NAME: RegExp = new RegExp(
 
 // The built-in roles running text names in English, each once, in order.
 export function englishRoleNamesIn(text: string): Array<string> {
-  const names: Array<string> = [];
+  return [...englishRoleCounts(text).keys()];
+}
+
+/*
+ * How often running text names each built-in role in English, the roles
+ * in the order the text first names them.
+ */
+export function englishRoleCounts(text: string): Map<string, number> {
+  const counts: Map<string, number> = new Map();
 
   for (const match of text.matchAll(ENGLISH_ROLE_NAME)) {
     const name: string = match[1] as string;
 
-    if (!names.includes(name)) {
-      names.push(name);
-    }
+    counts.set(name, (counts.get(name) || 0) + 1);
   }
 
-  return names;
+  return counts;
 }
 
 /*
@@ -106,7 +182,7 @@ export function rolesLeftInEnglish(
   language: string,
   markdown: string,
 ): Array<string> {
-  return englishRoleNamesIn(runningText(markdown)).filter(
+  return englishRoleNamesIn(roleText(markdown)).filter(
     (name: string): boolean => {
       return writtenPermissionTitle(language, name) !== name;
     },
@@ -128,12 +204,33 @@ export function namesRoleAsDrawn(
   text: string,
   role: string,
 ): boolean {
+  return new RegExp(drawnRolePattern(language, role), "u").test(text);
+}
+
+/*
+ * How often running text names a role as this language's Dashboard draws
+ * it, inflected as namesRoleAsDrawn allows: a page that names a role in
+ * English five times names it as drawn five times, not once and then
+ * "Projektadmins" or "プロジェクトのオーナー" (#8315).
+ */
+export function timesRoleNamedAsDrawn(
+  language: string,
+  text: string,
+  role: string,
+): number {
+  return Array.from(
+    text.matchAll(new RegExp(drawnRolePattern(language, role), "gu")),
+  ).length;
+}
+
+function drawnRolePattern(language: string, role: string): string {
   const words: Array<string> = writtenPermissionTitle(language, role)
     .split(/\s+/)
     .filter((word: string): boolean => {
       return word.length > 0;
     });
-  const pattern: string = words
+
+  return words
     .map((word: string): string => {
       const letters: Array<string> = Array.from(word);
       const kept: string =
@@ -144,8 +241,6 @@ export function namesRoleAsDrawn(
       return escapeRegExp(kept) + (letters.length <= 3 ? "" : WORD_LETTERS);
     })
     .join("[\\s\\u200c]+");
-
-  return new RegExp(pattern, "u").test(text);
 }
 
 /*

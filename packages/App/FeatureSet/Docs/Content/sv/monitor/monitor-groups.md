@@ -37,8 +37,8 @@ En monitorgrupp är inte en statussidegrupp. En statussidegrupp är en rubrik p�
 ## Innan du börjar
 
 - **Din plan.** På OneUptime Cloud kräver monitorgrupper Scale-planen.
-- **Brytaren.** Monitorgrupper är dolda tills **Monitorgrupper** har slagits på för projektet (se nedan). Att slå på den kräver rollen Project Owner, eller en anpassad roll med behörigheten Edit Project eller Manage Billing.
-- **Din roll.** Att skapa, ändra och ta bort grupper kräver rollen Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med motsvarande behörigheter för monitorgrupper. En Viewer kan se grupper men inte ändra dem.
+- **Brytaren.** Monitorgrupper är dolda tills **Monitorgrupper** har slagits på för projektet (se nedan). Att slå på den kräver rollen Projektägare, eller en anpassad roll med behörigheten Edit Project eller Manage Billing.
+- **Din roll.** Att skapa, ändra och ta bort grupper kräver rollen Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med motsvarande behörigheter för monitorgrupper. En Tittare kan se grupper men inte ändra dem.
 
 ## Slå på monitorgrupper
 

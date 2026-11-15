@@ -41,7 +41,7 @@ En detalle, OneUptime lee estos ajustes en este orden, y decide el primero que e
 
 ## Antes de empezar
 
-- **Un rol que modifique el proyecto.** Project Owner o Project Admin cambian la retención del proyecto. La retención de un servicio o recurso requiere el rol que cambia sus demás ajustes.
+- **Un rol que modifique el proyecto.** Propietario del proyecto o Administrador del proyecto cambian la retención del proyecto. La retención de un servicio o recurso requiere el rol que cambia sus demás ajustes.
 - **Para las anulaciones, la Edición Enterprise o el plan Scale.** Una instalación autoalojada necesita una licencia Enterprise, y un proyecto de OneUptime Cloud el plan Scale o superior. La retención predeterminada del proyecto existe en todas las ediciones y planes.
 
 ## Cambiar la retención del proyecto

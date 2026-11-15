@@ -31,7 +31,7 @@ Os filtros de descarte e as regras de mascaramento de registros valem igualmente
 ## Antes de começar
 
 - **Registros ou spans chegando.** Veja [OpenTelemetry](/docs/telemetry/open-telemetry).
-- **Uma função que altere as configurações de telemetria.** Project Owner ou Project Admin, ou uma função personalizada com a permissão para o que você altera, como Create Log Drop Filter ou Create Trace Scrub Rule. As funções de Telemetry podem ver os filtros e as regras, mas não alterá-los.
+- **Uma função que altere as configurações de telemetria.** Proprietário do projeto ou Administrador do projeto, ou uma função personalizada com a permissão para o que você altera, como Create Log Drop Filter ou Create Trace Scrub Rule. As funções de Telemetry podem ver os filtros e as regras, mas não alterá-los.
 
 ## Descartar ou amostrar entradas
 

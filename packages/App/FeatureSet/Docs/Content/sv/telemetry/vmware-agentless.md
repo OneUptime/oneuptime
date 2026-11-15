@@ -61,6 +61,8 @@ Namnet är som standard vCenters värdnamn. Klicka på **Anslut vCenter** för a
 
 vCenterns **Översikt** visar ett kort **Datainsamling**. Det visar **Kontrollerar** fram till den första insamlingen, som börjar inom en minut, sedan **Samlar in**, och inventariet fylls i.
 
+Om ingen sond kommer för vCentern på 20 minuter, eftersom den är offline eller för gammal, visar kortet **Samlar inte in** och det anges, oavsett vad den senaste insamlingen fann. När ingen sond får samla in vCentern visar kortet direkt **Samlar inte in**, med orsaken och vad som behöver ändras: inget lösenord är sparat, vCenters adress eller användarnamn saknas, ingen sond är vald för att samla in den, dess sond får inte samla in den (en delad sond på OneUptime Cloud, eller ett annat projekts), eller dess sond är frånkopplad. **Nästa insamling** är tiden då en sond samlar in den nästa gång, **På tur nu** medan den väntar på en, **Försenad** när ingen har kommit på 20 minuter, och **Inte schemalagd** så länge ingen sond får samla in den. En arkiverad vCenter samlas fortfarande in.
+
 ## Certifikat
 
 Sonden hoppar aldrig över certifikatkontrollen. Varje anslutning genomför ett fullständigt TLS-handslag, och sedan gäller:
@@ -113,7 +115,7 @@ Sondens nätverk når inte vCenter på TCP 443. Tillåt trafiken genom brandväg
 :::
 
 :::details Sonden plockade inte upp detta
-Sonden är offline, eller kör en OneUptime-version som är äldre än VMware-insamlingen. Kontrollera att den är ansluten i tabellen **Anpassade probes**, och uppdatera den.
+Sonden är offline, eller kör en OneUptime-version som är äldre än VMware-insamlingen. Kontrollera att den är ansluten i tabellen **Anpassade sonder**, och uppdatera den.
 :::
 
 :::details Denna vCenter är för stor för att samlas in av en sond

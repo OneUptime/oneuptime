@@ -151,7 +151,7 @@ Le solite autorizzazioni decidono ancora chi può fare cosa, esattamente come co
 
 Su OneUptime Cloud, le chiavi API di un progetto funzionano solo finché il progetto è su **Growth** o superiore, e le sue connessioni SCIM - quelle del progetto e quelle delle sue pagine di stato - funzionano pienamente solo finché è su **Scale** o superiore. Quando il progetto scende sotto quel piano:
 
-- Ogni richiesta fatta con una delle chiavi API del progetto viene rifiutata con `402 Payment Required`, qualunque cosa chieda: l'API REST e tutto ciò che la chiama con una chiave API - Terraform, la CLI `oneuptime`, i client MCP collegati con una chiave API, i workflow che ne inviano una in un'intestazione di richiesta e i tuoi script. Il messaggio nomina il piano: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
+- Ogni richiesta fatta con una delle chiavi API del progetto viene rifiutata con `402 Payment Required`, qualunque cosa chieda: l'API REST e tutto ciò che la chiama con una chiave API - Terraform, la CLI `oneuptime`, i client MCP collegati con una chiave API, i flussi di lavoro che ne inviano una in un'intestazione di richiesta e i tuoi script. Il messaggio nomina il piano: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
 - Le sue connessioni SCIM si limitano a rimuovere persone. Disattivare ed eliminare persone, e toglierle dai gruppi, funziona ancora, quindi chi se ne va perde comunque il suo accesso; ogni richiesta SCIM che aggiungerebbe o modificherebbe persone o gruppi viene rifiutata con `402`, nel formato di errore SCIM, così il tuo provider di identità mostra il perché ([SCIM sotto il piano Scale](/docs/identity/scim#sotto-il-piano-scale)).
 
 Niente viene eliminato o disattivato. Le chiavi e le connessioni vengono conservate e tornano a funzionare pienamente, così come sono, appena il progetto torna sul piano: nessuna nuova chiave da creare, niente da riconfigurare nel provider di identità. Un cambio di piano ha effetto entro un minuto.
@@ -168,7 +168,7 @@ Le richieste che leggono, modificano o eliminano una risorsa la nominano con il 
 
 ### I record che una richiesta nomina
 
-Molte risorse nominano altri record: un monitor le sue etichette e sonde, un iscritto a una pagina di stato la sua pagina di stato, un dispositivo di rete il suo sito, un membro di un incidente l'incidente e il ruolo. Ogni regola qui sotto vale allo stesso modo per l'API, Terraform e i workflow:
+Molte risorse nominano altri record: un monitor le sue etichette e sonde, un iscritto a una pagina di stato la sua pagina di stato, un dispositivo di rete il suo sito, un membro di un incidente l'incidente e il ruolo. Ogni regola qui sotto vale allo stesso modo per l'API, Terraform e i flussi di lavoro:
 
 | Quando una richiesta | deve | Altrimenti |
 | --- | --- | --- |
@@ -182,7 +182,7 @@ Molte risorse nominano altri record: un monitor le sue etichette e sonde, un isc
 
 #### Ogni ID deve essere del tuo progetto
 
-Ogni ID che invii per un record nominato da una risorsa deve essere un record del tuo progetto — i selettori della dashboard non offrono altro — e le richieste di Terraform e dei workflow seguono la stessa regola. Un ID di un record di un altro progetto e un ID che non esiste vengono rifiutati allo stesso modo, con un `400` che nomina il campo e l'ID:
+Ogni ID che invii per un record nominato da una risorsa deve essere un record del tuo progetto — i selettori della dashboard non offrono altro — e le richieste di Terraform e dei flussi di lavoro seguono la stessa regola. Un ID di un record di un altro progetto e un ID che non esiste vengono rifiutati allo stesso modo, con un `400` che nomina il campo e l'ID:
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
@@ -246,13 +246,13 @@ Entrambi i nomi vengono verificati allo stesso modo. Le regole sul record che no
 
 ### Interruttori
 
-Un campo attivo o disattivo - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` e ogni altro campo `true` o `false` - accetta `true` o `false`. Il testo e i numeri che il database legge come uno di essi vengono presi come quel valore, allo stesso modo per l'API, Terraform e i workflow: `"true"`, `"yes"`, `"on"`, `"1"` e `1` sono `true`, e `"false"`, `"no"`, `"off"`, `"0"` e `0` sono `false`, in maiuscolo o minuscolo. Tutto ciò che OneUptime fa con il record lo tratta anch'esso come quel valore: un evento di manutenzione inviato con `"isVisibleOnStatusPage": "true"` mostra le sue immagini sulla pagina di stato, e `"isEnabled": "false"` disattiva una risorsa sotto il suo piano come fa `false`. Qualsiasi altro valore, come `"maybe"`, `""` o `2`, viene rifiutato con un `400` che nomina il campo:
+Un campo attivo o disattivo - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` e ogni altro campo `true` o `false` - accetta `true` o `false`. Il testo e i numeri che il database legge come uno di essi vengono presi come quel valore, allo stesso modo per l'API, Terraform e i flussi di lavoro: `"true"`, `"yes"`, `"on"`, `"1"` e `1` sono `true`, e `"false"`, `"no"`, `"off"`, `"0"` e `0` sono `false`, in maiuscolo o minuscolo. Tutto ciò che OneUptime fa con il record lo tratta anch'esso come quel valore: un evento di manutenzione inviato con `"isVisibleOnStatusPage": "true"` mostra le sue immagini sulla pagina di stato, e `"isEnabled": "false"` disattiva una risorsa sotto il suo piano come fa `false`. Qualsiasi altro valore, come `"maybe"`, `""` o `2`, viene rifiutato con un `400` che nomina il campo:
 
 ```text
 isVisibleOnStatusPage must be true or false.
 ```
 
-Un aggiornamento che scrive i valori di un record così come sono già non cambia nulla: non avvia i workflow **On Update** del record, non invia aggiornamenti in tempo reale e non aggiunge una voce al registro di audit. `false` scritto sopra `false` conta come lo stesso valore, e così `"false"` scritto sopra `false`, un numero scritto come testo, un orario scritto come lo stesso istante in un altro formato ed etichette scritte come le stesse etichette in qualsiasi ordine. Quando un aggiornamento modifica alcuni valori e ne riscrive altri così come sono, la sua voce del registro di audit elenca solo i valori modificati, e il **Fields to watch** di un workflow sente solo quelli.
+Un aggiornamento che scrive i valori di un record così come sono già non cambia nulla: non avvia i flussi di lavoro **On Update** del record, non invia aggiornamenti in tempo reale e non aggiunge una voce al registro di audit. `false` scritto sopra `false` conta come lo stesso valore, e così `"false"` scritto sopra `false`, un numero scritto come testo, un orario scritto come lo stesso istante in un altro formato ed etichette scritte come le stesse etichette in qualsiasi ordine. Quando un aggiornamento modifica alcuni valori e ne riscrive altri così come sono, la sua voce del registro di audit elenca solo i valori modificati, e il **Fields to watch** di un flusso di lavoro sente solo quelli.
 
 ### Dove è stato acquistato un progetto
 
@@ -264,7 +264,7 @@ User is not allowed to create on resellerId column of Project. No permission all
 
 ### Chi ha creato un record
 
-OneUptime registra chi ha creato un record — e chi lo ha archiviato, risolto, riconosciuto o attivato — dalla richiesta stessa: la persona che ha effettuato l'accesso, o nessuno quando la richiesta arriva con una chiave API o da un workflow. Questi campi (`createdByUserId` e gli altri campi che terminano con `ByUserId`, con le loro relazioni come `createdByUser`) sono di sola lettura, così come il momento in cui un record è stato archiviato o risolto (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): attivare `isArchived` o `isResolved` registra chi l'ha fatto e quando, e disattivarlo cancella entrambi. Inviare un interruttore così come sta già conserva chi lo ha cambiato, e quando.
+OneUptime registra chi ha creato un record — e chi lo ha archiviato, risolto, riconosciuto o attivato — dalla richiesta stessa: la persona che ha effettuato l'accesso, o nessuno quando la richiesta arriva con una chiave API o da un flusso di lavoro. Questi campi (`createdByUserId` e gli altri campi che terminano con `ByUserId`, con le loro relazioni come `createdByUser`) sono di sola lettura, così come il momento in cui un record è stato archiviato o risolto (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): attivare `isArchived` o `isResolved` registra chi l'ha fatto e quando, e disattivarlo cancella entrambi. Inviare un interruttore così come sta già conserva chi lo ha cambiato, e quando.
 
 Il riferimento API contrassegna questi campi come di sola lettura. Un valore che una richiesta invia per uno di essi insieme ad altre modifiche viene ignorato, così il resto della modifica va a buon fine; un aggiornamento che non invia nient'altro viene rifiutato con un messaggio che nomina i campi. I record che OneUptime crea da sé per conto di qualcuno — una nota pubblicata da Slack o Microsoft Teams, un account creato da un invito — nominano quella persona.
 
@@ -286,7 +286,7 @@ Uno stato impostato per errore si corregge eliminando la sua riga dalla cronolog
 
 ### L'episodio in cui si trova un incidente o un avviso
 
-`incidentEpisodeId` di un incidente e `alertEpisodeId` di un avviso — e le loro relazioni `incidentEpisode` e `alertEpisode` — nominano l'ultimo episodio a cui è stato aggiunto e di cui è ancora membro, oppure niente. Sono di sola lettura: OneUptime li imposta a partire dai membri dell'episodio. Per mettere un incidente in un episodio, crea un Incident Episode Member (`POST /api/incident-episode-member` con `incidentEpisodeId` e `incidentId`); per toglierlo, elimina quel membro, e l'incidente nomina allora l'ultimo episodio in cui si trova ancora, o nessuno. Gli avvisi funzionano allo stesso modo tramite gli Alert Episode Members (`/api/alert-episode-member`, con `alertEpisodeId` e `alertId`). Le regole di raggruppamento aggiungono incidenti e avvisi agli episodi allo stesso modo. Una creazione o un aggiornamento di un incidente o di un avviso che invia il suo episodio viene rifiutato, chiunque lo invii — l'API, Terraform, gli strumenti MCP o un workflow. In Terraform, `incident_episode_id` e `alert_episode_id` si possono leggere ma non impostare; le risorse `oneuptime_incident_episode_member` e `oneuptime_alert_episode_member` gestiscono l'appartenenza.
+`incidentEpisodeId` di un incidente e `alertEpisodeId` di un avviso — e le loro relazioni `incidentEpisode` e `alertEpisode` — nominano l'ultimo episodio a cui è stato aggiunto e di cui è ancora membro, oppure niente. Sono di sola lettura: OneUptime li imposta a partire dai membri dell'episodio. Per mettere un incidente in un episodio, crea un Incident Episode Member (`POST /api/incident-episode-member` con `incidentEpisodeId` e `incidentId`); per toglierlo, elimina quel membro, e l'incidente nomina allora l'ultimo episodio in cui si trova ancora, o nessuno. Gli avvisi funzionano allo stesso modo tramite gli Alert Episode Members (`/api/alert-episode-member`, con `alertEpisodeId` e `alertId`). Le regole di raggruppamento aggiungono incidenti e avvisi agli episodi allo stesso modo. Una creazione o un aggiornamento di un incidente o di un avviso che invia il suo episodio viene rifiutato, chiunque lo invii — l'API, Terraform, gli strumenti MCP o un flusso di lavoro. In Terraform, `incident_episode_id` e `alert_episode_id` si possono leggere ma non impostare; le risorse `oneuptime_incident_episode_member` e `oneuptime_alert_episode_member` gestiscono l'appartenenza.
 
 ## Cosa può raggiungere una richiesta
 
@@ -308,7 +308,7 @@ Incident not found.
 You do not have permission to update this incident.
 ```
 
-Un'eliminazione che non raggiungeva nulla rispondeva prima `200`. Gli aggiornamenti e le eliminazioni tramite query, come i passaggi di aggiornamento ed eliminazione di un workflow, rispondono con quanti record hanno modificato, `0` quando non ne hanno raggiunto nessuno. Terraform interpreta un `404` durante `terraform destroy` come una risorsa già sparita.
+Un'eliminazione che non raggiungeva nulla rispondeva prima `200`. Gli aggiornamenti e le eliminazioni tramite query, come i passaggi di aggiornamento ed eliminazione di un flusso di lavoro, rispondono con quanti record hanno modificato, `0` quando non ne hanno raggiunto nessuno. Terraform interpreta un `404` durante `terraform destroy` come una risorsa già sparita.
 
 La telemetria segue la stessa regola. Un'eliminazione di log, tracce, metriche, eccezioni, profili o registrazioni di sessione raggiunge le righe delle risorse - servizi, host, cluster e simili - la cui telemetria puoi sia leggere sia eliminare, e avviene un progetto alla volta: una richiesta su tutti i tuoi progetti viene rifiutata. Un'eliminazione di una riga tramite il suo ID che non raggiunge nulla risponde `404` o `422` come sopra.
 

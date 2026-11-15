@@ -15,6 +15,10 @@ import { MonitorOverviewSetupKind } from "Common/Utils/Monitor/MonitorOverviewFa
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
+import { INCOMING_REQUEST_SECRET_PLACEHOLDER } from "../../IncomingRequestSecret/IncomingRequestSecretsCopy";
+import useIncomingRequestSecretRequirement from "../../IncomingRequestSecret/UseIncomingRequestSecretRequirement";
+import { INCOMING_REQUEST_SECRET_HEADER } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -46,6 +50,26 @@ const HIDDEN_SETUP_DESCRIPTION: Record<MonitorOverviewSetupKind, string> = {
   [MonitorOverviewSetupKind.ServerAgent]: translationKey(
     "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.",
   ),
+};
+
+/*
+ * The example request on the setup card: the heartbeat URL, and the
+ * project's incoming request secret header while the project requires one,
+ * with a placeholder for the secret - whoever reads the card may not be
+ * allowed to read the secrets themselves.
+ */
+export const getHeartbeatExampleCommand: (data: {
+  url: string;
+  isSecretRequired: boolean;
+}) => string = (data: { url: string; isSecretRequired: boolean }): string => {
+  if (!data.isSecretRequired) {
+    return `curl -X POST "${data.url}"`;
+  }
+
+  return [
+    `curl -X POST "${data.url}" \\`,
+    `  -H "${INCOMING_REQUEST_SECRET_HEADER}: ${INCOMING_REQUEST_SECRET_PLACEHOLDER}"`,
+  ].join("\n");
 };
 
 export const getSetupSecretKey: (data: {
@@ -82,6 +106,8 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
     kind: props.kind,
     monitor: props.monitor,
   });
+  // Whether the project refuses requests without one of its secrets.
+  const isSecretRequired: boolean = useIncomingRequestSecretRequirement();
 
   if (!secretKey) {
     return (
@@ -139,7 +165,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           <div className="mt-1">
             <CodeBlock
               language="bash"
-              code={`curl -X POST "${url}"`}
+              code={getHeartbeatExampleCommand({ url, isSecretRequired })}
               showCopyButton={true}
             />
           </div>
@@ -149,6 +175,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
             "GET and POST both work. Headers and body are available to your criteria.",
           )}
         </p>
+        <IncomingRequestSecretNote isRequired={isSecretRequired} />
         <SloOverviewActionLink
           variant="text"
           title="Full setup instructions"

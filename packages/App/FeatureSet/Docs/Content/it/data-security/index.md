@@ -43,7 +43,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Un ruolo che può configurarla.** I Project Owner, i Project Admin e i Security Admin modificano le impostazioni di Sicurezza dei dati. I Security Member gestiscono i problemi e scansionano gli archivi, e i Security Viewer leggono ciò che ha trovato. Gli altri ruoli non ne vedono nulla, a meno che al loro team non vengano dati i suoi permessi: sapere quali bucket contengono numeri di carta è esattamente ciò che vuole un attaccante. Vedi [Ruoli](/docs/permissions/reference#ruoli).
+- **Un ruolo che può configurarla.** I Proprietari del progetto, gli Amministratori del progetto e gli Amministratori della sicurezza modificano le impostazioni di Sicurezza dei dati. I Membri della sicurezza gestiscono i problemi e scansionano gli archivi, e i Visualizzatori della sicurezza leggono ciò che ha trovato. Gli altri ruoli non ne vedono nulla, a meno che al loro team non vengano dati i suoi permessi: sapere quali bucket contengono numeri di carta è esattamente ciò che vuole un attaccante. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 - **Un account cloud da leggere, o un database.** Sicurezza dei dati legge un account cloud tramite una [connessione cloud](/docs/telemetry/cloud-accounts), e un database che gestisci tramite una stringa di connessione di sola lettura. La telemetria non richiede nulla: viene scansionata ogni ora.
 
 ## Avvio rapido
@@ -96,5 +96,5 @@ La **Cronologia** di un archivio dice cosa gli è successo, e chi l'ha fatto: qu
 - [Configurare Sicurezza dei dati](/docs/data-security/setup): I tre livelli, i permessi che concede ciascuno e la scansione dei tuoi database.
 - [Tipi di dati sensibili](/docs/data-security/data-types): Come viene trovato un valore, e ogni tipo di dati che Sicurezza dei dati conosce.
 - [Controlli e problemi di Sicurezza dei dati](/docs/data-security/checks-and-issues): Ogni controllo, il punteggio di rischio e cosa succede a un problema.
-- [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations): Casi di sicurezza, avvisi, proprietari, workflow e OneUptime AI.
+- [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations): Casi di sicurezza, avvisi, proprietari, flussi di lavoro e OneUptime AI.
 :::

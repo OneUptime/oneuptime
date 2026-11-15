@@ -34,7 +34,7 @@ En politik tilkalder ingen, før noget kører den. Hver hændelse, advarsel og e
 | Vagtregler | **Hændelser → Regler → Vagtregler** og **Advarsler → Regler → Vagtregler** tilføjer politikkerne fra hver regel, der matcher | [Vagtregler for hændelser](/docs/incidents/settings#vagtregler-for-hændelser) |
 | Grupperingsregler | En grupperingsregel kører sine politikker, når den åbner en episode | [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes) |
 | Manuelt | **Udfør vagtpolitik**, i menuen **Handlinger** i et feed, eller på en besked i Slack eller Microsoft Teams | [Hændelsens feed](/docs/incidents/notes-owners-and-feed#hændelsens-feed) |
-| Chat og workflows | `/oneuptime page` i Slack eller Microsoft Teams, og et workflows trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
+| Chat og arbejdsgange | `/oneuptime page` i Slack eller Microsoft Teams, og en arbejdsgangs trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
 
 En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører aldrig en politik af sig selv: det gør en vagtregel, der matcher alvorligheden. En hændelse eller advarsel, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker. En vagtregel sat til **Kun i arbejdstiden** lader de politikker, den tilføjer, vente, til arbejdstiden begynder.
 
@@ -111,16 +111,16 @@ flowchart TB
 | Status | Hvad den betyder |
 | --- | --- |
 | **Venter** | En vagtregel sat til **Kun i arbejdstiden** lader kørslen vente, til arbejdstiden begynder: den siger, hvornår tilkaldelsen starter, og tilkalder ingen indtil da. Den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. Den begynder at tilkalde straks, hvis hændelsen eller advarslen ændrer sig og nu matcher en vagtregel, der tilkalder med det samme. |
-| **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
-| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
+| **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, blev ikke færdig med at starte: den går videre til **Udføres** og tilkalder derfra, hvor starten stoppede. Et direkte tilkald eller et testtilkald, der stadig står her, stoppes som **Fejl**. |
+| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. Et skridt, der fejler et øjeblik, for eksempel fordi databasen ikke kunne nås, prøves igen et minut senere, så 2 og 4 minutter senere, og derefter hvert 5. minut. |
 | **Udførelse fuldført** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |
 | **Udførelse fuldført - ingen underrettet** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt, eller et niveau uden modtagere. |
-| **Fejl** | Kørslen mislykkedes. **Vis statusbesked** siger hvorfor. |
+| **Fejl** | Kørslen mislykkedes: et skridt fejlede på en måde, som et nyt forsøg ikke kan rette, for eksempel en slettet eskaleringsregel, eller fejlede 10 forsøg i træk over omkring 37 minutter. **Vis statusbesked** siger hvorfor. |
 
 Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
-- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
+- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra arbejdsgange og chat står som **Direkte tilkald**;
 - på en hændelses eller en advarsels side **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. **Notificeret via** viser, hvordan hvert tilkald nåede frem til personen: telefonopkald, SMS, e-mail, push-notifikation og så videre. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.

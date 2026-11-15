@@ -87,7 +87,7 @@ Abaixo dos itens, Sinais conectados procura nos seus registros e traços, no mes
 
 ## Quem vê o quê
 
-- Sinais conectados e o cartão **Segurança** de um item exigem uma função que possa ler eventos de segurança: Security Admin, Security Member, Security Viewer, Project Owner ou Project Admin. Ninguém mais vê dados de segurança em nenhuma página. Veja [Funções](/docs/permissions/reference#funções).
+- Sinais conectados e o cartão **Segurança** de um item exigem uma função que possa ler eventos de segurança: Administrador de segurança, Membro de segurança, Visualizador de segurança, Proprietário do projeto ou Administrador do projeto. Ninguém mais vê dados de segurança em nenhuma página. Veja [Funções](/docs/permissions/reference#funções).
 - O cartão **Segurança** de um incidente exige uma função que possa ler casos de segurança.
 - Cada item é lido com a sua própria função, e também o que há nele: uma função que não pode ler agendamentos de plantão não vê os de um membro. Um tipo de item que a sua função não pode ler é deixado de fora, e a página diz isso; um que não pôde ser lido agora também diz, com **Tentar novamente**.
 - A página de um item mostra o seu cartão **Segurança** apenas num projeto que usa o Security Events: um que recebeu um evento de segurança nos últimos 7 dias.
@@ -123,7 +123,7 @@ O cartão aparece para um monitor que verifica um host, um endereço ou uma URL:
 :::
 
 :::details A página diz que a sua função não pode ver um tipo de item
-Cada item é lido com a sua própria função. Peça a um Project Owner ou a um Project Admin uma função que possa ler esse tipo de item.
+Cada item é lido com a sua própria função. Peça a um Proprietário do projeto ou a um Administrador do projeto uma função que possa ler esse tipo de item.
 :::
 
 ## Próximos passos

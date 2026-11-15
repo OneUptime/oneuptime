@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - Til logins og risikoregistreringer: Microsoft Entra ID P1 eller P2, som Microsoft 365 E3, E5 og Business Premium indeholder: Microsoft Graph giver dem kun til sådanne lejere, og P2 giver detaljerne for hver risikoregistrering. Mappeændringer læses i enhver lejer.
 - En Entra-rolle, der kan registrere programmer, som Programadministrator, og en Global administrator eller Administrator af privilegerede roller til at give administratorsamtykke.
 - Til Microsoft 365-auditloggen: overvågning slået til for lejeren, som den er som standard: i [Microsoft Purview-portalen](https://purview.microsoft.com) må **Audit** ikke tilbyde **Start recording user and admin activity**.

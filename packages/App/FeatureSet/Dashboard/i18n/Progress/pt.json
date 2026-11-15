@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53451,
-    "untranslated": 8886
+    "keys": 53571,
+    "untranslated": 8847
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -84,6 +84,7 @@
     "Deployment",
     "DeploymentConfigs",
     "Desktop",
+    "Docker CLI",
     "Docker Compose",
     "Docs",
     "Down + In",
@@ -218,6 +219,8 @@
     "Pod",
     "Pod · data",
     "Pod · production",
+    "Podman CLI",
+    "Podman Compose",
     "Pods",
     "Pool",
     "Pool {{name}}",
@@ -246,6 +249,7 @@
     "RegionOne",
     "Runbook",
     "Runbook \"{{name}}\"",
+    "Runbook {{id}}",
     "Runbook: {{name}}",
     "Runbooks",
     "Runbooks ({{count}})",
@@ -469,6 +473,8 @@
     "{{count}} buckets",
     "{{count}} cluster",
     "{{count}} clusters",
+    "{{count}} commit",
+    "{{count}} commits",
     "{{count}} datacenter",
     "{{count}} datacenters",
     "{{count}} datastore",
@@ -513,6 +519,7 @@
     "{{minutes}} min",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",

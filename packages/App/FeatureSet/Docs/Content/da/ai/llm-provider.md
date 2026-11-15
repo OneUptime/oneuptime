@@ -15,7 +15,7 @@ En LLM-udbyder er modellen bag hver AI-funktion i OneUptime: undersøgelser, Sp�
 - **Spørgsmål**: **Spørg AI** svarer ud fra dit projekts data, med en kilde til hver påstand. Se [Spørg AI](/docs/ai/ask-ai).
 - **Udkast**: **Udkast med AI** i noterne til hændelser, advarsler og planlagt vedligeholdelse samt postmortems, skrevet på forespørgsel eller når en hændelse løses.
 - **Kode**: pull requests, der retter undtagelser, langsomme spor og de årsager, undersøgelser finder, fra OneUptime eller fra GitHub. Se [Kode](/docs/ai/ai-agent).
-- **Alt andet**: triage i AI Insights, AI-trinene i workflows og runbooks samt svar i Slack og Microsoft Teams.
+- **Alt andet**: triage i AI Insights, AI-trinene i arbejdsgange og runbooks samt svar i Slack og Microsoft Teams.
 
 ## Hvilken udbyder AI bruger
 

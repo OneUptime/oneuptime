@@ -43,7 +43,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **En rolle som kan sette det opp.** Project Owner, Project Admin og Security Admin endrer innstillingene for Datasikkerhet. Security Member behandler problemer og skanner datalagre, og Security Viewer leser det den har funnet. Andre roller ser ingenting av det med mindre teamet deres får tillatelsene for det: hvilke bucketer som inneholder kortnumre, er nøyaktig det en angriper vil vite. Se [Roller](/docs/permissions/reference#roller).
+- **En rolle som kan sette det opp.** Prosjekteier, Prosjektadministrator og Sikkerhetsadministrator endrer innstillingene for Datasikkerhet. Sikkerhetsmedlem behandler problemer og skanner datalagre, og Sikkerhetsleser leser det den har funnet. Andre roller ser ingenting av det med mindre teamet deres får tillatelsene for det: hvilke bucketer som inneholder kortnumre, er nøyaktig det en angriper vil vite. Se [Roller](/docs/permissions/reference#roller).
 - **En skykonto å lese, eller en database.** Datasikkerhet leser en skykonto gjennom en [skytilkobling](/docs/telemetry/cloud-accounts), og en database du drifter selv gjennom en skrivebeskyttet tilkoblingsstreng. Telemetri trenger ingenting: den skannes hver time.
 
 ## Kom i gang

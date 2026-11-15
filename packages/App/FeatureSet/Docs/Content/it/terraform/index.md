@@ -59,7 +59,7 @@ Le versioni del provider seguono quelle di OneUptime: il provider {{TERRAFORM_PR
 
 ## Lasciala scrivere alla dashboard
 
-Non devi scrivere a mano una risorsa che hai già. Ogni risorsa della dashboard OneUptime (un monitor, una pagina di stato, un workflow, una politica di reperibilità e le altre) ha una sezione **Sviluppatori** nel menu laterale, chiusa finché non la apri. La sua pagina **Terraform** scrive la configurazione al posto tuo, compilata con il tuo progetto.
+Non devi scrivere a mano una risorsa che hai già. Ogni risorsa della dashboard OneUptime (un monitor, una pagina di stato, un flusso di lavoro, una politica di reperibilità e le altre) ha una sezione **Sviluppatori** nel menu laterale, chiusa finché non la apri. La sua pagina **Terraform** scrive la configurazione al posto tuo, compilata con il tuo progetto.
 
 :::steps
 ### Aprire la risorsa

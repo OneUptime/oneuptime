@@ -41,6 +41,12 @@ import Select from "Common/Server/Types/Database/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OnCallAcknowledgementTimeout from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import OnCallPolicyRunRetries from "Common/Server/Utils/OnCall/OnCallPolicyRunRetries";
+import OnCallLevelsInFlight, {
+  OnCallLevelInFlight,
+} from "Common/Server/Utils/OnCall/OnCallLevelsInFlight";
+import OnCallMoveOnsInFlight, {
+  OnCallMoveOnInFlight,
+} from "Common/Server/Utils/OnCall/OnCallMoveOnsInFlight";
 import OnCallRunFailure, {
   OnCallRunFailureKind,
 } from "Common/Server/Utils/OnCall/OnCallRunFailure";
@@ -204,6 +210,29 @@ export const executePendingPolicyRuns: (
           }),
         );
 
+      /*
+       * The page's runs with an escalation level still in flight - maybe one
+       * whose paging stopped part way (OnCallLevelsInFlight, issue #8406):
+       * one read for the page.
+       */
+      const levelsInFlight: Map<string, OnCallLevelInFlight> =
+        await OnCallLevelsInFlight.read(
+          runs.map((run: OnCallDutyPolicyExecutionLog): ObjectID | null => {
+            return run.id;
+          }),
+        );
+
+      /*
+       * And the page's runs with a move on still in flight - maybe one whose
+       * process stopped after its claim (OnCallMoveOnsInFlight, issue #8410).
+       */
+      const moveOnsInFlight: Map<string, OnCallMoveOnInFlight> =
+        await OnCallMoveOnsInFlight.read(
+          runs.map((run: OnCallDutyPolicyExecutionLog): ObjectID | null => {
+            return run.id;
+          }),
+        );
+
       await forEachWithConcurrency<OnCallDutyPolicyExecutionLog>({
         items: runs,
         concurrency: POLICY_RUN_CONCURRENCY,
@@ -213,6 +242,8 @@ export const executePendingPolicyRuns: (
             executionLog,
             recordStates,
             failures.get(executionLog.id?.toString() || "") || null,
+            levelsInFlight.get(executionLog.id?.toString() || "") || null,
+            moveOnsInFlight.get(executionLog.id?.toString() || "") || null,
           );
         },
       });
@@ -256,12 +287,18 @@ type WorkOnRunFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
   recordStates: OnCallRecordStates,
   failures: OnCallPolicyRunFailures | null,
+  // Its escalation level in flight, if it has one (OnCallLevelsInFlight).
+  levelInFlight?: OnCallLevelInFlight | null,
+  // Its move on in flight, if it has one (OnCallMoveOnsInFlight).
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ) => Promise<void>;
 
 const workOnRun: WorkOnRunFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
   recordStates: OnCallRecordStates,
   failures: OnCallPolicyRunFailures | null,
+  levelInFlight?: OnCallLevelInFlight | null,
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ): Promise<void> => {
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -276,7 +313,12 @@ const workOnRun: WorkOnRunFunction = async (
     if (executionLog.status === OnCallDutyPolicyStatus.Waiting) {
       await startOrEndWaitingRun(executionLog, recordStates);
     } else {
-      await executeOnCallPolicy(executionLog, recordStates);
+      await executeOnCallPolicy(
+        executionLog,
+        recordStates,
+        levelInFlight || null,
+        moveOnInFlight || null,
+      );
     }
   } catch (err) {
     await onRunStepFailed({
@@ -411,12 +453,16 @@ const endsWhenAnsweredOrResolved: (
 type ExecuteOnCallPolicyFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
   recordStates: OnCallRecordStates,
+  levelInFlight?: OnCallLevelInFlight | null,
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ) => Promise<void>;
 
 // What a run that pages needs this minute. What a failure means is workOnRun's.
 const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
   recordStates: OnCallRecordStates,
+  levelInFlight?: OnCallLevelInFlight | null,
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ): Promise<void> => {
   logger.debug(`Executing on-call policy execution log: ${executionLog.id}`);
 
@@ -538,6 +584,37 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
   const currentDate: Date = OneUptimeDate.getCurrentDate();
 
+  /*
+   * A move on whose process stopped after its claim, before its next rule
+   * (issue #8410): its claim restarted the wait of the rule the run is on,
+   * and the run would wait that whole wait again before it moved on. The
+   * claim is given back, and the run moves on below, now.
+   */
+  if (moveOnInFlight) {
+    await settleMoveOnInFlight({
+      run: executionLog,
+      moveOn: moveOnInFlight,
+      now: currentDate,
+    });
+  }
+
+  /*
+   * The level it is on stopped paging part way - a database error, or a
+   * process that stopped, in the middle of its people (issue #8406): the
+   * people it did not get to are paged now, once, and the run waits out
+   * the level's wait from when it started, as it would have.
+   */
+  if (
+    levelInFlight &&
+    (await resumeLevelInFlight({
+      run: executionLog,
+      level: levelInFlight,
+      now: currentDate,
+    }))
+  ) {
+    return;
+  }
+
   logger.debug(
     `Current date: ${currentDate}, Last executed at: ${getOnCallEscalationWaitStartedAt(executionLog)}, Waiting for ${getOnCallEscalationWaitInMinutes(executionLog)} minutes.`,
   );
@@ -570,6 +647,88 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   });
 
   return;
+};
+
+/*
+ * Settles a run's move on in flight that never finished
+ * (OnCallMoveOnsInFlight): left to it while it may still be under way;
+ * then its claim is given back while the run is as the claim left it -
+ * on `run`, as the worker read it, too, so the run moves on this minute -
+ * and it is forgotten. One whose next rule started keeps its claim: some
+ * of its people may be paged, and its level is resumed if it stopped
+ * (OnCallLevelsInFlight). Throws as the database does, and the move on
+ * stays in flight for the run's next try.
+ */
+const settleMoveOnInFlight: (data: {
+  run: OnCallDutyPolicyExecutionLog;
+  moveOn: OnCallMoveOnInFlight;
+  now: Date;
+}) => Promise<void> = async (data: {
+  run: OnCallDutyPolicyExecutionLog;
+  moveOn: OnCallMoveOnInFlight;
+  now: Date;
+}): Promise<void> => {
+  if (!OnCallMoveOnsInFlight.isToGiveBack(data.moveOn, data.now)) {
+    return;
+  }
+
+  const givenBack: boolean = await OnCallEscalationAdvance.giveBackMoveOnClaim({
+    runId: data.run.id!,
+    moveOn: data.moveOn,
+  });
+
+  await OnCallMoveOnsInFlight.forget(data.run.id);
+
+  if (!givenBack) {
+    return;
+  }
+
+  logger.warn(
+    `On-call execution log ${data.run.id?.toString()}: its move on, claimed at ${data.moveOn.claimedAt.toISOString()}, never finished; its claim is given back, and it moves on now.`,
+  );
+
+  if (data.moveOn.previousLastEscalationRuleExecutedAt) {
+    data.run.lastEscalationRuleExecutedAt =
+      data.moveOn.previousLastEscalationRuleExecutedAt;
+  } else {
+    delete data.run.lastEscalationRuleExecutedAt;
+  }
+};
+
+/*
+ * Resumes a run's level in flight that never finished paging
+ * (OnCallLevelsInFlight): one that stopped, or shows no sign of life. One
+ * still paging is left to it, and one of a rule the run is no longer on is
+ * over, one way or another. Returns whether it was resumed; throws as
+ * paging does, and the level is resumed at the run's next try.
+ */
+const resumeLevelInFlight: (data: {
+  run: OnCallDutyPolicyExecutionLog;
+  level: OnCallLevelInFlight;
+  now: Date;
+}) => Promise<boolean> = async (data: {
+  run: OnCallDutyPolicyExecutionLog;
+  level: OnCallLevelInFlight;
+  now: Date;
+}): Promise<boolean> => {
+  const currentRuleId: string =
+    data.run.lastExecutedEscalationRuleId?.toString().toLowerCase() || "";
+
+  if (data.level.ruleId.toLowerCase() !== currentRuleId) {
+    await OnCallLevelsInFlight.forget(data.run.id);
+    return false;
+  }
+
+  if (!OnCallLevelsInFlight.isToResume(data.level, data.now)) {
+    return false;
+  }
+
+  await OnCallEscalationAdvance.resumeLevel({
+    run: data.run,
+    level: data.level,
+  });
+
+  return true;
 };
 
 /*

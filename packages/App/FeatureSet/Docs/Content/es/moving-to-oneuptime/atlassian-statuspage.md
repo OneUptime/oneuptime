@@ -25,7 +25,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un proyecto de OneUptime y el derecho a crear lo que traes.** Los propietarios y administradores del proyecto pueden traerlo todo. Otros roles también pueden ejecutar una importación y traer los tipos de registros que pueden crear. Lo demás se muestra como no traído, con el motivo.
+- **Un proyecto de OneUptime y el derecho a crear lo que traes.** Los Propietarios del proyecto y los Administradores del proyecto pueden traerlo todo. Otros roles también pueden ejecutar una importación y traer los tipos de registros que pueden crear. Lo demás se muestra como no traído, con el motivo.
 - **Una clave de API de Statuspage.** Solo un propietario de la cuenta puede crearla. La importación nunca escribe en Statuspage y lee cada página que la clave puede ver.
 - **Espacio para tus páginas, en OneUptime Cloud.** Tu plan tiene espacio para un número de páginas de estado y suscriptores. Lo que no cabe se muestra como no traído. Los componentes se convierten en monitores manuales, que son gratuitos.
 
@@ -73,7 +73,7 @@ Una importación crea como máximo 2.000 registros: como máximo 1.000 monitores
 
 En OneUptime Cloud, las páginas de estado y los suscriptores que no caben en tu plan se muestran como no traídos, con lo que necesitan.
 
-Una vista previa se guarda un día. Solo la persona que leyó la cuenta puede marcar elementos e iniciarla. Los propietarios y administradores del proyecto ven el progreso y el informe de cada importación.
+Una vista previa se guarda un día. Solo la persona que leyó la cuenta puede marcar elementos e iniciarla. Los Propietarios del proyecto y los Administradores del proyecto ven el progreso y el informe de cada importación.
 
 ## Completa el cambio
 

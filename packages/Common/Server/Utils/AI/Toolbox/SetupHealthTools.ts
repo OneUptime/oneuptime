@@ -15,6 +15,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * "IS MY SETUP OK?" (#6812): the project's Setup health - what would stop
  * the right people from being told when something breaks, worst first,
@@ -144,7 +146,8 @@ export const GetSetupHealthTool: ObservabilityTool = {
     return {
       dataForLlm: JSON.stringify(data, null, 1),
       rowCount: answer.findings.length,
-      citationLabel: "Setup Health",
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.setupHealth),
       citationTarget: {
         type: AIChatCitationTargetType.DashboardPage,
         params: { path: SETUP_HEALTH_DASHBOARD_PATH, title: "Setup Health" },

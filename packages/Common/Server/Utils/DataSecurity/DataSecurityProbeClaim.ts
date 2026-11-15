@@ -142,6 +142,52 @@ INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
 ORDER BY "due"."dueAt" ASC`;
 
 /*
+ * The one store, if its probe may still scan its content: the claim's rule
+ * (getContentScannableSql) for the store named, through the probe named,
+ * whatever its due time. A probe scans in the customer's network for
+ * minutes after its claim (up to DATA_SECURITY_PROBE_SCAN_TIME_LIMIT_IN_
+ * SECONDS), and the result route asks this before it records anything of
+ * that scan (OneUptime issue #8391): a store whose Scan Content, or whose
+ * project's, was turned off in that time, or whose project was suspended,
+ * blocked or deleted, keeps no finding and no masked sample of it, as the
+ * workers' scan and the telemetry scan keep none (#8323, #8325).
+ * Parameters: $1 the store, $2 the probe, $3 the self-managed provider,
+ * $4 the kinds a probe samples, $5 the served subscription statuses.
+ */
+export const DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT: string = `SELECT ds."_id" AS "_id"
+FROM "DataStore" ds
+INNER JOIN "Project" p ON ds."projectId" = p."_id"
+INNER JOIN "Probe" pr ON ds."scanProbeId" = pr."_id"
+LEFT JOIN "DataSecuritySetting" s
+  ON s."projectId" = ds."projectId" AND s."deletedAt" IS NULL
+WHERE ds."_id" = $1
+  AND ds."scanProbeId" = $2
+  AND ${getContentScannableSql({
+    providerParameter: "$3",
+    kindsParameter: "$4",
+    statusesParameter: "$5",
+  })}`;
+
+// Whether this probe may still scan this store's content, and keep what it found.
+export async function isDataStoreContentScannableByProbe(data: {
+  probeId: ObjectID;
+  dataStoreId: ObjectID;
+}): Promise<boolean> {
+  const rows: unknown = await DataStoreService.getRepository().manager.query(
+    DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT,
+    [
+      data.dataStoreId.toString(),
+      data.probeId.toString(),
+      DataStoreProvider.SelfManaged,
+      [...PROBE_SCANNABLE_KINDS],
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+    ],
+  );
+
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+/*
  * Sets aside the probe's due stores whose content nothing may scan now
  * (Utils/Probe/ClaimSetAside): content scanning off on the store or for the
  * project, archived, not self-managed or of a kind a probe cannot sample,

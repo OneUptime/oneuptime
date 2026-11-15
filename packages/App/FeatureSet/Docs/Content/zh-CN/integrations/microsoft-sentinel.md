@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个启用了 Microsoft Sentinel 的 Log Analytics 工作区，位于 Azure 公有云或 Azure Government (US) 中。
 - 在 Microsoft Entra ID 中创建应用注册和客户端密码的权限。
 - 在包含该工作区的资源组上分配角色的权限，例如 Owner 或 User Access Administrator。

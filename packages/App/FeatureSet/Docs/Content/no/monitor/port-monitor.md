@@ -31,7 +31,7 @@ Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, 
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når porten.** Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran tjenesten, tillater du [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses) å koble til porten. En tjeneste på et privat nettverk, som en database, trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket.
 
 ## Opprett en port-monitor
@@ -181,5 +181,5 @@ Port-monitorer åpner bare TCP-tilkoblinger. For en DNS-server bruker du en [DNS
 - [Ping-overvåking](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
 - [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
 - [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
 :::

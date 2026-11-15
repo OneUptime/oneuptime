@@ -33,7 +33,7 @@ Ein Server, der antwortet, wird nicht erneut gefragt, auch wenn er ohne gute Zei
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member, oder eine eigene Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied, oder eine eigene Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die UDP-Port 123 auf dem Server erreicht.** Jede Sonde kann einen öffentlichen Zeitserver prüfen. Für einen Server in einem privaten Netzwerk verwenden Sie eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk. Eine Firewall vor dem Server muss UDP durchlassen, nicht nur TCP, und zwar von den [IP-Adressen der Sonden von OneUptime Cloud](/docs/configuration/ip-addresses) oder von Ihrer benutzerdefinierten Sonde.
 
 ## Einen NTP-Monitor erstellen

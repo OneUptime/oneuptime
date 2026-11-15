@@ -33,7 +33,7 @@ Et navn bruges én gang, uanset store og små bogstaver, blandt projektets globa
 
 ## Før du begynder
 
-- **En rolle, der administrerer variabler.** Project Owner og Project Admin eller tilladelsen **Create Runbook Variable**. Runbook Admin læser variabler for at vælge dem i de trin, den skriver, men ændrer dem ikke.
+- **En rolle, der administrerer variabler.** Projektejer og Projektadministrator eller tilladelsen **Create Runbook Variable**. Runbook-administrator læser variabler for at vælge dem i de trin, den skriver, men ændrer dem ikke.
 - **Et abonnement, der omfatter dem.** På OneUptime Cloud kræver runbook-variabler abonnementet **Growth** eller højere.
 
 ## Opret en variabel
@@ -56,7 +56,7 @@ Om en variabel er en hemmelighed, kan ikke ændres senere. Slet den i stedet, og
 
 ## Hemmelige værdier kan kun skrives
 
-En hemmeligheds værdi er krypteret i hvile, og API'et **returnerer den aldrig**: hverken til dashboardet, til et workflow eller til en eksport. Listen viser **Hemmelighed**, hvor en almindelig variabel viser sin værdi, og dens kolonne **Runbook-agenter** viser, hvilke Runnere der får hver hemmelighed. For at ændre den skal du klikke på **Erstat værdi** i dens række: den nye værdi krypteres, den gamle er væk for altid, og trin får den nye næste gang de kører.
+En hemmeligheds værdi er krypteret i hvile, og API'et **returnerer den aldrig**: hverken til dashboardet, til en arbejdsgang eller til en eksport. Listen viser **Hemmelighed**, hvor en almindelig variabel viser sin værdi, og dens kolonne **Runbook-agenter** viser, hvilke Runnere der får hver hemmelighed. For at ændre den skal du klikke på **Erstat værdi** i dens række: den nye værdi krypteres, den gamle er væk for altid, og trin får den nye næste gang de kører.
 
 Når et trin udskriver en hemmelighed, det har fået, erstatter Runneren den med `[REDACTED]`, før outputtet forlader dens vært, og OneUptime gør det igen, før det gemmer outputtet. En linje af en privat nøgle eller tokenet i en kubeconfig skjules også. Der søges ikke efter en hemmelighed på under 4 tegn.
 

@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Um workspace do Log Analytics com o Microsoft Sentinel habilitado, na nuvem pública do Azure ou no Azure Government (US).
 - No Microsoft Entra ID, permissão para criar um registro de aplicativo e um segredo do cliente.
 - No grupo de recursos que contém o workspace, permissão para atribuir funções, como Proprietário ou Administrador de Acesso do Usuário.

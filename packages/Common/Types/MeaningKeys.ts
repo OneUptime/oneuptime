@@ -62,6 +62,15 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * Matriz, Tableau, 배열, 数组, Matrise).
    */
   "Array (storage array)",
+  /*
+   * The two ends of a range: a date or number filter's "is between", a
+   * custom time range, a dashboard's time range and a facet's date range
+   * (#8201). The bare "From" and "To" are a message's sender and recipient
+   * - the notification logs' columns - so a German filter read "Von" ...
+   * "An" (to someone), a Japanese one 差出人 ... 宛先.
+   */
+  "From (range start)",
+  "To (range end)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

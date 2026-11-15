@@ -723,7 +723,7 @@ export default class NetworkTrafficUsageSummaryUtil {
               data.page.readScope,
               null,
             ),
-            since: OneUptimeDate.addRemoveDays(
+            since: OneUptimeDate.addRemoveDurationInDays(
               data.now,
               -LINKABLE_APPLIANCE_DAYS,
             ),

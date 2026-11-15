@@ -144,7 +144,7 @@ export default class NetworkDeviceMetricUtil {
 
     const retentionDays: number =
       await NetworkDeviceMetricUtil.getRetentionDays();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       retentionDays,
     );

@@ -28,7 +28,7 @@ flowchart LR
 ## Перед началом
 
 - **Поступающая телеметрия.** Карте сервисов нужны трассировки: см. [OpenTelemetry](/docs/telemetry/open-telemetry). Представлению инфраструктуры нужен хост или кластер, отправляющий данные: см. [агент Kubernetes](/docs/telemetry/kubernetes-agent). Сетевому представлению нужны сетевые устройства: см. [Мониторинг сетевых устройств](/docs/monitor/network-device-monitor).
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Inventory Item.
+- **Роль, которая читает телеметрию.** Владелец проекта, Администратор проекта, Участник проекта, Зритель, Администратор телеметрии, Участник телеметрии или Зритель телеметрии либо пользовательская роль с разрешением Read Inventory Item.
 
 ## Открыть топологию
 

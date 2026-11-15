@@ -27,7 +27,7 @@ flowchart TB
 
 ## 開始之前
 
-- **可以建立範本的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者擁有 Create Monitor Template 權限的自訂角色。修改範本需要相同的角色，或 Edit Monitor Template 權限。
+- **可以建立範本的角色**：專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員，或者擁有 Create Monitor Template 權限的自訂角色。修改範本需要相同的角色，或 Edit Monitor Template 權限。
 - **更新已連結監測器的權限。** 同步會以您的身分寫入每個已連結的監測器，並略過您的權限未涵蓋的監測器。
 
 ## 建立範本

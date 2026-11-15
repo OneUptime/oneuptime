@@ -1,4 +1,5 @@
 import { MicrosoftTeamsMonitorActionType } from "./ActionTypes";
+import MicrosoftTeamsTimezone from "../MicrosoftTeamsTimezone";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "../Botbuilder";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -77,7 +78,7 @@ export default class MicrosoftTeamsMonitorActions {
       }
 
       const message: string =
-        mdText`**Monitor Details**\n\n**Name:** ${monitor.name}\n**Description:** ${FeedMarkdown.asChatMarkdown(monitor.description || "No description")}\n**Type:** ${monitor.monitorType}\n**Status:** ${monitor.currentMonitorStatus?.name || "Unknown"}\n**Enabled:** ${monitor.disableActiveMonitoring ? "No" : "Yes"}\n**Created At:** ${monitor.createdAt ? new Date(monitor.createdAt).toLocaleString("en-US") : "Unknown"}`.toString();
+        mdText`**Monitor Details**\n\n**Name:** ${monitor.name}\n**Description:** ${FeedMarkdown.asChatMarkdown(monitor.description || "No description")}\n**Type:** ${monitor.monitorType}\n**Status:** ${monitor.currentMonitorStatus?.name || "Unknown"}\n**Enabled:** ${monitor.disableActiveMonitoring ? "No" : "Yes"}\n**Created At:** ${monitor.createdAt ? MicrosoftTeamsTimezone.formatForActivity(monitor.createdAt, turnContext.activity) : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;

@@ -176,6 +176,8 @@ Uma varredura lê um pouco de um repositório, dentro dos limites do projeto, e 
 
 Cada varredura guarda um registro do que leu, por nome: os objetos, tabelas ou serviços, nunca o conteúdo deles. O que ela não conseguiu ler - uma requisição que a nuvem recusou, o prazo, o limite de bytes - vira um aviso na varredura, e a varredura é marcada como **Concluído parcialmente**.
 
+A **Visão geral** de um repositório diz quando o conteúdo dele é varrido da próxima vez. **Próxima varredura de conteúdo** é a hora em que algo o varre, **Previsto agora** enquanto ele espera a vez, e **Atrasado** quando está pendente há uma hora. Caso contrário, diz por que nada o varrerá: **Desativado** enquanto **Varrer conteúdo** estiver desativado para o repositório ou o projeto, ou enquanto o repositório não for mais encontrado; **Sem varredura** quando o OneUptime não consegue tirar amostras desse tipo de repositório, ou a sonda dele não consegue varrê-lo; e **Aguardando** enquanto a sonda dele estiver desconectada. A telemetria de um serviço é varrida **A cada hora**, com a varredura de telemetria do projeto. **Varrer agora** fica desativado, com o motivo, para um repositório que nada varreria. Uma varredura em andamento quando a varredura de conteúdo é desativada, ou quando o projeto é suspenso, não guarda nada do que encontrou.
+
 ## Varrer um banco de dados que você executa
 
 A Segurança de dados amostra bancos de dados PostgreSQL, MySQL e SQL Server, de uma de duas formas. Um banco de dados que o produto Database monitora, ou um com que os seus serviços se comunicam no mapa de serviços, já é um repositório. Um banco de dados que nenhuma varredura encontra, adicione você mesmo como repositório.

@@ -212,8 +212,8 @@ Pour écrire les vôtres, utilisez des variables de modèle dans le titre, la de
 | `{{targetPercentage}}` | L'objectif du SLO, en pourcentage. | `99.9` |
 | `{{currentSliPercentage}}` | Le SLI mesuré sur la fenêtre de conformité du SLO, en pourcentage. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Part du budget d'erreur qui reste, en pourcentage. Négative une fois le budget dépassé. | `42.5` |
-| `{{errorBudgetRemaining}}` | Budget d'erreur qui reste, en durée. Commence par un signe moins une fois le budget dépassé. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Budget d'erreur qui reste, en minutes. | `18.37` |
+| `{{errorBudgetRemaining}}` | Budget d'erreur qui reste, en durée, ou, pour un SLO de requêtes, en requêtes en échec ou lentes qu'il autorise encore. Commence par un signe moins une fois le budget dépassé. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Budget d'erreur qui reste, en minutes. Vide pour un SLO de requêtes, dont le budget se compte en requêtes. | `18.37` |
 | `{{windowDescription}}` | La fenêtre de conformité du SLO, en toutes lettres. | `rolling 30-day window` |
 | `{{policyTier}}` | Nom du palier de la politique de budget d'erreur dans lequel se trouve le SLO après cette évaluation. « None » quand il n'est dans aucun palier. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Seuil de budget restant de ce palier, en pourcentage. Vide quand le SLO n'est dans aucun palier. | `25` |

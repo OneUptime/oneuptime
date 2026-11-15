@@ -30,7 +30,7 @@ flowchart TB
 
 ## 開始之前
 
-- **可以建立監測器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者擁有 Create Monitor 權限的自訂角色。
+- **可以建立監測器的角色**：專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員，或者擁有 Create Monitor 權限的自訂角色。
 - **能夠連到該主機和連接埠的探測器。** 每個新的監測器都會選取您專案的預設探測器。私有網路中的服務需要該網路內的 [自訂探測器](/docs/probe/custom-probe)。
 
 ## 建立 SSL 憑證監測器

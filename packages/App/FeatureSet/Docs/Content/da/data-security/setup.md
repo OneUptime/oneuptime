@@ -176,6 +176,8 @@ En scanning læser lidt af et datalager inden for projektets grænser og stopper
 
 Hver scanning gemmer en oversigt over det, den læste, efter navn: objekterne, tabellerne eller tjenesterne, aldrig deres indhold. Det, den ikke kunne læse - en forespørgsel, som cloud-tjenesten afviste, tidsfristen, bytebudgettet - er en advarsel på scanningen, og scanningen markeres som **Delvist gennemført**.
 
+Et datalagers **Oversigt** siger, hvornår dets indhold scannes næste gang. **Næste indholdsscanning** er tidspunktet, hvor noget scanner det, **Står for tur nu**, mens det venter på sin tur, og **Forsinket**, når det har stået for tur i en time. Ellers siger den, hvorfor intet vil scanne det: **Fra**, mens **Scan indhold** er slået fra for datalageret eller projektet, eller mens datalageret ikke længere findes; **Scannes ikke**, når OneUptime ikke kan tage prøver af denne slags datalager, eller dets sonde ikke kan scanne det; og **Venter**, mens dets sonde er afbrudt. En tjenestes telemetri scannes **Hver time** med projektets telemetriscanning. **Scan nu** er slået fra, med årsagen, for et datalager, som intet ville scanne. En scanning, der er i gang, når indholdsscanning slås fra, eller når projektet suspenderes, gemmer intet af det, den fandt.
+
 ## Scan en database, du selv driver
 
 Datasikkerhed tager prøver af PostgreSQL-, MySQL- og SQL Server-databaser på en af to måder. En database, som produktet Database overvåger, eller en, som dine tjenester taler med på tjenestekortet, er allerede et datalager. En database, som ingen scanning finder, tilføjer du selv som et datalager.

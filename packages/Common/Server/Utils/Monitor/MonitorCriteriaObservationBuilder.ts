@@ -1295,7 +1295,7 @@ export default class MonitorCriteriaObservationBuilder {
       return "SSL certificate expiration time was unavailable.";
     }
 
-    const daysRemaining: number = OneUptimeDate.getDaysBetweenTwoDates(
+    const daysRemaining: number = OneUptimeDate.getWholeDaysOfTimeBetween(
       OneUptimeDate.getCurrentDate(),
       sslResponse.expiresAt,
     );

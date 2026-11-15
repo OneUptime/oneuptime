@@ -78,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Sostituite `https://oneuptime.com` con l'URL della vostra istanza di OneUptime se è self-hosted.
 
-Inviate richieste **GET** o **POST** a questo URL. HEAD viene accettato e trattato come GET; PUT, PATCH e DELETE restituiscono 404. La chiave segreta nel percorso è l'unica credenziale: non serve alcuna intestazione né token. Le query string vengono ignorate: inviate ciò che i criteri devono leggere nel corpo o nelle intestazioni.
+Inviate richieste **GET** o **POST** a questo URL. HEAD viene accettato e trattato come GET; PUT, PATCH e DELETE restituiscono 404. La chiave segreta nel percorso è la credenziale: non serve alcuna intestazione né token, a meno che il progetto non [richieda un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Le query string vengono ignorate: inviate ciò che i criteri devono leggere nel corpo o nelle intestazioni.
 
 > [!WARNING]
 > Chiunque conosca questo URL può segnare il monitor come sano, quindi trattatelo come un segreto. Se trapela, aprite la pagina **Impostazioni** del monitor e fate clic su **Reimposta la chiave segreta della richiesta in arrivo**, poi aggiornate ogni mittente. La panoramica del monitor mostra l'ultima richiesta così come la conservano i suoi log: con segreti e dati personali mascherati, e senza intestazioni né corpo quando **Conserva il contenuto della richiesta** è disattivato. Il mascheramento riconosce i nomi e i modelli che conosce, quindi non inviate chiavi API o token verso questo endpoint.
 
 > [!IMPORTANT]
-> OneUptime risponde subito `200` con un oggetto JSON vuoto (`{}`) ed elabora la richiesta in una coda. Quella risposta viene scritta prima di qualsiasi convalida, quindi un `200` **non** conferma che la richiesta sia stata accettata: anche una chiave segreta sbagliata, un monitor eliminato e un monitor disattivato restituiscono `200`. Controllate la cronologia del monitor per confermare che le richieste arrivino.
+> OneUptime risponde subito `200` con un oggetto JSON vuoto (`{}`) ed elabora la richiesta in una coda. Quella risposta viene scritta prima di qualsiasi convalida, quindi un `200` **non** conferma che la richiesta sia stata accettata: anche una chiave segreta sbagliata, un monitor eliminato e un monitor disattivato restituiscono `200`. Controllate la cronologia del monitor per confermare che le richieste arrivino. L'unica eccezione è un progetto che richiede un segreto a ogni richiesta: una richiesta senza segreto riceve `401`.
 
 ### Inviare un corpo della richiesta
 
@@ -188,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Richiedere un segreto a ogni richiesta
+
+Chiunque abbia l'URL di un monitor può inviargli richieste. Un proprietario o un amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
+
+:::steps
+### Create un segreto
+
+Andate in **Monitor → Impostazioni → Segreti per richieste in arrivo** e create un segreto. Dategli un nome e OneUptime genera il valore; copiatelo dall'elenco.
+
+### Inviatelo da ogni mittente
+
+Inviate il segreto nell'intestazione `X-OneUptime-Secret`, o come token Bearer nell'intestazione `Authorization`, secondo ciò che il vostro mittente sa impostare.
+
+### Attivate il requisito
+
+Attivate **Richiedi un segreto a ogni richiesta**. Non si può attivare finché il progetto non ha alcun segreto, così nessun mittente viene rifiutato per errore.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime non conserva mai il segreto: toglie l'intestazione dalla richiesta e maschera un token Bearer che sia uno dei segreti del progetto prima di conservare qualsiasi cosa.
+
+> [!TIP]
+> Per sostituire un segreto senza rifiutare nessuno, createne un secondo, spostate i vostri mittenti su di esso, poi eliminate quello vecchio quando il suo **Ultimo utilizzo** smette di cambiare. Qualsiasi segreto del progetto viene accettato, e l'ultimo non si può eliminare finché il requisito è attivo.
 
 ## Criteri di monitoraggio
 
@@ -393,6 +425,10 @@ Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprie
 
 :::details Il mittente riceve un 200, ma sul monitor non compare nulla
 Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimostra che sia stata accettata. Controllate che la chiave segreta nell'URL corrisponda all'**Heartbeat URL** del monitor, e che il monitor non sia disattivato. Poi guardate la cronologia del monitor per vedere se le richieste arrivano.
+:::
+
+:::details Il mio mittente riceve un 401
+Il progetto richiede un segreto a ogni richiesta, e la richiesta non ne ha inviato nessuno, o ne ha inviato uno che non è del progetto: la risposta dice quale dei due. Inviate uno dei segreti del progetto nell'intestazione `X-OneUptime-Secret` o come token Bearer, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Una richiesta rifiutata non raggiunge mai il monitor.
 :::
 
 :::details Il monitor non va mai offline quando gli heartbeat si fermano

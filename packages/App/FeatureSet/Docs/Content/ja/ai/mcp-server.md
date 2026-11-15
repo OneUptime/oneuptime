@@ -430,7 +430,7 @@ curl https://oneuptime.com/mcp/tools
 | エージェントがすること | **アクセス** で選ぶもの |
 | --- | --- |
 | 読み取るだけ | **閲覧者**、またはキーのページで読み取り権限を追加 |
-| 作成・更新・削除も行う | **プロジェクト管理者**、またはキーのページで Project Admin のロールを追加 |
+| 作成・更新・削除も行う | **プロジェクト管理者**、またはキーのページでプロジェクト管理者のロールを追加 |
 
 各キーには必要最小限の権限を与え、キーを定期的にローテーションし、環境ごとに別のキーを使い、各キーが何をしているかを OneUptime で確認してください。
 
@@ -497,7 +497,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | セキュリティ | Security Event, Threat Intel Indicator |
 | 変更とコスト | Change Event, Kubernetes Cost Allocation |
 
-ツールの名前はスネークケースです: `create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident`、`count_incidents`。テレメトリなら `list_logs` や `count_spans` です。
+ツールの名前はスネークケースです: `create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident`、`count_incidents`。テレメトリなら `list_logs` や `count_spans` です。`create_incident` と `create_alert` は `ownerUsers` と `ownerTeams` も受け取ります。最初からレコードを所有するユーザーとチームの ID で、彼らには作成されたことが知らされます。
 
 ## 次のステップ
 

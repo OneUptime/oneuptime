@@ -41,7 +41,7 @@ Nel dettaglio, OneUptime legge queste impostazioni in quest'ordine, e decide la 
 
 ## Prima di iniziare
 
-- **Un ruolo che modifica il progetto.** Project Owner o Project Admin cambiano la conservazione del progetto. La conservazione di un servizio o di una risorsa richiede il ruolo che ne modifica le altre impostazioni.
+- **Un ruolo che modifica il progetto.** Proprietario del progetto o Amministratore del progetto cambiano la conservazione del progetto. La conservazione di un servizio o di una risorsa richiede il ruolo che ne modifica le altre impostazioni.
 - **Per le sostituzioni, l'Edizione Enterprise o il piano Scale.** Un'installazione self-hosted ha bisogno di una licenza Enterprise, e un progetto OneUptime Cloud del piano Scale o superiore. La conservazione predefinita del progetto c'è in ogni edizione e piano.
 
 ## Cambiare la conservazione del progetto

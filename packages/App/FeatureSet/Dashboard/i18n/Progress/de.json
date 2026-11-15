@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53450,
-    "untranslated": 2535
+    "keys": 53571,
+    "untranslated": 2523
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -176,6 +176,7 @@
     "Curaçao",
     "Cursor",
     "Customize → Connectors",
+    "Cyan",
     "Côte d'Ivoire",
     "DB.*maintenance",
     "DE",
@@ -298,6 +299,7 @@
     "In Slack",
     "In {{status}}",
     "Index",
+    "Indigo",
     "Info",
     "Initiator",
     "Integration",
@@ -439,6 +441,7 @@
     "Panama",
     "Panics",
     "Paraguay",
+    "Passkey",
     "Passkeys",
     "Passthrough",
     "Payload",
@@ -510,6 +513,7 @@
     "Router",
     "Router Discovery - Region 1100",
     "Runbook",
+    "Runbook {{id}}",
     "Runbook: {{name}}",
     "Runbooks",
     "Runbooks ({{count}})",
@@ -589,6 +593,7 @@
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",
     "Team",
+    "Team {{id}}",
     "Team {{name}}",
     "Team: {{name}}",
     "Teams",
@@ -679,6 +684,7 @@
     "Website",
     "WhatsApp: ",
     "Widgets",
+    "Workflow {{id}}",
     "Workload",
     "Workloads",
     "Zone",
@@ -826,6 +832,7 @@
     "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
+    "{{rate}}/s",
     "{{size}} in {{duration}}",
     "{{value}} ms",
     "{{value}} s",

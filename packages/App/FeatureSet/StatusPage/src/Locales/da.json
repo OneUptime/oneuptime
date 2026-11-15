@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
-    "uptimePercent": "{{percent}}% oppetid",
+    "uptimePercent": "{{percent}} oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåget",
     "noResourcesInGroup": "Der er ikke tilføjet nogen ressourcer til denne gruppe.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Berørte ressourcer",
-    "stateChangedTo": "status ændret til",
     "view": "Se {{eventType}}",
     "updateTo": "Opdatering til denne {{eventType}}",
-    "postedOn": "offentliggjort den"
+    "postedOnDate": "offentliggjort den {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "for {{days}} dage siden",
@@ -473,5 +472,6 @@
     "warning": "Advarsel"
   },
   "No options available": "Ingen tilgængelige muligheder",
-  "No matches found": "Ingen match fundet"
+  "No matches found": "Ingen match fundet",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status ændret til {{state}}"
 }

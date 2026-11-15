@@ -28,7 +28,7 @@ flowchart LR
 ## शुरू करने से पहले
 
 - **आती हुई टेलीमेट्री।** सेवा मैप को ट्रेस चाहिए: देखें [OpenTelemetry](/docs/telemetry/open-telemetry)। इंफ्रास्ट्रक्चर व्यू को डेटा भेजने वाला कोई होस्ट या क्लस्टर चाहिए: देखें [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent)। नेटवर्क व्यू को नेटवर्क डिवाइस चाहिए: देखें [नेटवर्क डिवाइस मॉनिटर](/docs/monitor/network-device-monitor)।
-- **ऐसी भूमिका जो टेलीमेट्री पढ़े।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Inventory Item अनुमति वाली कोई कस्टम भूमिका।
+- **ऐसी भूमिका जो टेलीमेट्री पढ़े।** प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, दर्शक, टेलीमेट्री एडमिन, टेलीमेट्री सदस्य या टेलीमेट्री दर्शक, या Read Inventory Item अनुमति वाली कोई कस्टम भूमिका।
 
 ## टोपोलॉजी खोलें
 

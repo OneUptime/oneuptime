@@ -32,7 +32,7 @@ Internationalisierte Domainnamen werden in beiden Formen angenommen: `münchen.d
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Ausgehender Zugriff von der Sonde** auf die Registries. Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt; eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) muss Folgendes erreichen:
 
 | Ziel | Protokoll | Verwendet für |

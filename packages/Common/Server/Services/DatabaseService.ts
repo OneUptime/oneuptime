@@ -314,6 +314,17 @@ interface ColumnsByIdUpdateStatement {
 }
 
 /*
+ * The types TypeORM takes for a Postgres timestamp column, as a model may
+ * spell them (see DatabaseService.isTimestampColumn).
+ */
+const TIMESTAMP_COLUMN_TYPES: ReadonlyArray<string> = [
+  "timestamptz",
+  "timestamp",
+  "timestamp with time zone",
+  "timestamp without time zone",
+];
+
+/*
  * An atomic add to one row by id (atomicAddToColumnsByIdWithoutHooks and
  * atomicAddToColumnsByIdAndGetValuesWithoutHooks): its SET clause, its
  * parameters (the id last), and the columns it adds to, which the second
@@ -2323,6 +2334,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     templateId: ObjectID;
     data: TBaseModel;
     props: DatabaseCommonInteractionProps;
+    // What the create carries beside the record: the owners the step names.
+    miscDataProps?: JSONObject | undefined;
   }): Promise<TBaseModel> {
     throw new BadDataException(
       `${this.model.singularName || "This record"} cannot be created from a template.`,
@@ -11368,7 +11381,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * the WHERE clause with null-safe equality, so the update is skipped if
      * another writer changed the row after the caller read it. Password-hash
      * upgrades use this to avoid overwriting a concurrently changed
-     * credential with a re-hash of the old password.
+     * credential with a re-hash of the old password. A Date on a timestamp
+     * column is compared to the millisecond, as a read gives it (see
+     * buildColumnsByIdUpdateStatement).
      */
     expectedData?: PartialEntity<TBaseModel>;
     /*
@@ -11539,9 +11554,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         );
       }
 
-      params.push(driver.preparePersistentValue(value, column));
+      const expected: unknown = driver.preparePersistentValue(value, column);
+
+      params.push(expected);
+
+      /*
+       * A Date read from a timestamp column is that column to the
+       * millisecond: node-postgres drops the microseconds Postgres keeps. A
+       * value a statement stamps with now() or CURRENT_TIMESTAMP keeps them,
+       * so compared exactly, a guard on what was read never matched it, and
+       * the write was refused on every attempt with no error (#8173). So a
+       * Date is compared with the column cut to the millisecond, the
+       * precision the caller read it at. A value written from JavaScript has
+       * whole milliseconds, which the cut leaves as they are: a guard on one
+       * holds exactly as before. A null, or a value of any other kind (text
+       * the caller chose, to the microsecond or not), is compared as it is.
+       */
       whereClauses.push(
-        `"${column.databaseName}" IS NOT DISTINCT FROM $${params.length}`,
+        expected instanceof Date && DatabaseService.isTimestampColumn(column)
+          ? `date_trunc('milliseconds', "${column.databaseName}") IS NOT DISTINCT FROM $${params.length}`
+          : `"${column.databaseName}" IS NOT DISTINCT FROM $${params.length}`,
       );
     }
 
@@ -11552,6 +11584,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       whereSql: whereClauses.join(" AND "),
       params: params,
     };
+  }
+
+  /*
+   * A column Postgres keeps as a timestamp, to the microsecond: every
+   * spelling TypeORM takes for one. The metadata keeps the type as the
+   * model declares it - ColumnType.Date is "timestamptz" - and a Date
+   * property with no type is the Date constructor.
+   */
+  private static isTimestampColumn(column: ColumnMetadata): boolean {
+    return (
+      column.type === Date ||
+      (typeof column.type === "string" &&
+        TIMESTAMP_COLUMN_TYPES.includes(column.type.toLowerCase()))
+    );
   }
 
   /*

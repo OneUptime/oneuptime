@@ -146,7 +146,7 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 | `userId`, `userName`, `userEmail`, `userType` | Chi ha fatto la modifica. |
 | `apiKeyId`, `apiKeyName` | La chiave API con cui è stata fatta, se c'è. |
 | `mcpOAuthGrantId`, `mcpClientName` | Il client MCP tramite cui è stata fatta, se c'è. |
-| `workflowId`, `workflowName` | Il workflow che l'ha fatta, se c'è. |
+| `workflowId`, `workflowName` | Il flusso di lavoro che l'ha fatta, se c'è. |
 | `changes` | Ogni campo modificato: `field`, con `oldValue` e `newValue`, e nella versione 2 `summary`. |
 
 Un file contiene una voce per riga, compresso con gzip, ed è archiviato sotto l'ora della sua prima voce: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
@@ -159,8 +159,8 @@ Chiavi, token e password non escono mai: vengono registrati come `[REDACTED]`, e
 
 | Versione | Cosa invia |
 | --- | --- |
-| `2` | Ogni modifica porta anche `summary`: cosa è cambiato, nelle righe che mostra il registro di audit, come `Added "Send Email" (send-email-1)` per un passaggio di un workflow o il percorso cambiato nel JSON, altrimenti `null`. Le righe nominano impostazioni e percorsi, mai valori. |
-| `1` | La voce com'era inviata all'inizio, senza `summary`. I passaggi di un workflow escono come la loro dimensione prima e dopo, come `3 steps and 2 connections`. |
+| `2` | Ogni modifica porta anche `summary`: cosa è cambiato, nelle righe che mostra il registro di audit, come `Added "Send Email" (send-email-1)` per un passaggio di un flusso di lavoro o il percorso cambiato nel JSON, altrimenti `null`. Le righe nominano impostazioni e percorsi, mai valori. |
+| `1` | La voce com'era inviata all'inizio, senza `summary`. I passaggi di un flusso di lavoro escono come la loro dimensione prima e dopo, come `3 steps and 2 connections`. |
 
 Una nuova esportazione invia la versione 2. Un'esportazione salvata prima della versione 2 continua a inviare la versione 1, quindi ciò che la legge non deve cambiare nulla: quando è pronto per `summary`, fai clic su **Modifica** sull'esportazione e scegli la versione 2 in **Versione del record**, sotto **Altri campi**. La versione vale per le voci inviate da quel momento, e ogni voce indica la propria in `schemaVersion`.
 

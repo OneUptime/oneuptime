@@ -161,7 +161,7 @@ Die **Zeit bis zur Bestätigung nach der Alarmierung** zählt ab **Jemand wird z
 
 ### Episodenzugehörigkeit
 
-**Warnungen → Einstellungen → Episodenzugehörigkeit** legt fest, ob eine Warnung in mehr als einer Episode sein kann. Schalten Sie **Eine Warnung kann nur in einer Episode sein** ein, wird eine Warnung, die in einer Episode ist, keiner anderen hinzugefügt, weder im Dashboard noch über die API, einen Workflow oder eine Gruppierungsregel, bis sie aus dieser Episode entfernt ist. Der Schalter ist aus, bis Sie ihn einschalten, und nur Project Owners und Project Admins können ihn ändern. Das Einschalten nimmt keine Warnung aus einer Episode heraus. Siehe [Eine Episode pro Vorfall](/docs/incidents/episodes#eine-episode-pro-vorfall), was für Warnungen genauso funktioniert.
+**Warnungen → Einstellungen → Episodenzugehörigkeit** legt fest, ob eine Warnung in mehr als einer Episode sein kann. Schalten Sie **Eine Warnung kann nur in einer Episode sein** ein, wird eine Warnung, die in einer Episode ist, keiner anderen hinzugefügt, weder im Dashboard noch über die API, einen Workflow oder eine Gruppierungsregel, bis sie aus dieser Episode entfernt ist. Der Schalter ist aus, bis Sie ihn einschalten, und nur Projektinhaber und Projektadministratoren können ihn ändern. Das Einschalten nimmt keine Warnung aus einer Episode heraus. Siehe [Eine Episode pro Vorfall](/docs/incidents/episodes#eine-episode-pro-vorfall), was für Warnungen genauso funktioniert.
 
 ### Nummerierung
 
@@ -171,7 +171,7 @@ Die Karte **Nächste Nummer** darunter legt die Nummer fest, die die nächste Wa
 
 ### Datenaufbewahrung
 
-**Warnungen → Einstellungen → Datenaufbewahrung** löscht Warnungen, sobald sie lange genug behoben sind, wie es [Datenaufbewahrung](/docs/incidents/settings#datenaufbewahrung) für Vorfälle tut. Die Karte **Behobene Warnungen** fragt nach **Löschen nach**, **Nie**, bis Sie eine Dauer wählen, und fragt nach, bevor mehr gelöscht wird, mit **Alte Warnungen löschen**. Eine Warnung bleibt, solange sie nicht behoben ist, solange sie in einer Episode ist, die noch offen ist oder vor kürzerer Zeit behoben wurde, und so lange, wie ein mit ihr verknüpfter Vorfall bleibt. Nur Project Owners und Project Admins können sie ändern; über die API ist es `alertRetentionInDays` des Projekts.
+**Warnungen → Einstellungen → Datenaufbewahrung** löscht Warnungen, sobald sie lange genug behoben sind, wie es [Datenaufbewahrung](/docs/incidents/settings#datenaufbewahrung) für Vorfälle tut. Die Karte **Behobene Warnungen** fragt nach **Löschen nach**, **Nie**, bis Sie eine Dauer wählen, und fragt nach, bevor mehr gelöscht wird, mit **Alte Warnungen löschen**. Eine Warnung bleibt, solange sie nicht behoben ist, solange sie in einer Episode ist, die noch offen ist oder vor kürzerer Zeit behoben wurde, und so lange, wie ein mit ihr verknüpfter Vorfall bleibt. Nur Projektinhaber und Projektadministratoren können sie ändern; über die API ist es `alertRetentionInDays` des Projekts.
 
 > [!NOTE]
 > In OneUptime Cloud brauchen Notiz-Vorlagen und benutzerdefinierte Felder den Plan **Growth** oder höher.
@@ -182,7 +182,7 @@ Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **O
 
 ## Wer das ändern kann
 
-Regeln, benutzerdefinierte Felder und Messungen brauchen einen Project Owner oder Project Admin oder eine eigene Rolle mit der eigenen Berechtigung dieser Regel. **Warnungs-Mitglied** arbeitet mit Warnungen und Episoden, ihren Notizen, Eigentümern und Statuszeitachsen sowie mit Notiz-Vorlagen, und **Warnungs-Administrator** verwaltet zusätzlich Warnungsstatus und Schweregrade. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Regeln, benutzerdefinierte Felder und Messungen brauchen einen Projektinhaber oder Projektadministrator oder eine eigene Rolle mit der eigenen Berechtigung dieser Regel. **Warnungs-Mitglied** arbeitet mit Warnungen und Episoden, ihren Notizen, Eigentümern und Statuszeitachsen sowie mit Notiz-Vorlagen, und **Warnungs-Administrator** verwaltet zusätzlich Warnungsstatus und Schweregrade. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Nächste Schritte
 

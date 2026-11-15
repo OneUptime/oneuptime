@@ -3,6 +3,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { Green, LightGray, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   SecurityConnectorCheck,
@@ -234,8 +235,13 @@ export function formatConnectionLocalDate(
     return "";
   }
 
-  // On the language's own clock, a 12-hour hour without its zero (#7279).
-  return date.toLocaleString(getReaderDateLocale(), {
+  /*
+   * On the language's own clock, a 12-hour hour without its zero (#7279),
+   * in the reader's zone - the one they picked in User Settings, else the
+   * browser's - and named. It was the browser's, whatever they had picked
+   * (issue #8231).
+   */
+  const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
     month: "short",
     day: "2-digit",
@@ -243,7 +249,20 @@ export function formatConnectionLocalDate(
     minute: "2-digit",
     second: "2-digit",
     timeZoneName: "short",
-  });
+  };
+
+  try {
+    return date.toLocaleString(getReaderDateLocale(), {
+      ...options,
+      timeZone: OneUptimeDate.getCurrentTimezone(),
+    });
+  } catch {
+    // A zone this browser's Intl does not know: UTC, named, as the value is.
+    return date.toLocaleString(getReaderDateLocale(), {
+      ...options,
+      timeZone: "UTC",
+    });
+  }
 }
 
 const LOCAL_TIME_TITLE: string = translationKey("Local time: {{time}}");

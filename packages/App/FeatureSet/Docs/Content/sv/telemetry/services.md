@@ -43,7 +43,7 @@ Varje gång telemetri kommer in flyttas tjänstens **Senast sedd** fram, och des
 ## Innan du börjar
 
 - **Telemetri som kommer in** med ett `service.name`. Se [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` sätter det.
-- **En roll som får läsa tjänster.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member eller Settings Viewer, eller en anpassad roll med behörigheten Read Service. Att skapa, ändra och ta bort tjänster kräver Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member, eller motsvarande tjänstebehörigheter.
+- **En roll som får läsa tjänster.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Inställningsadministratör, Inställningsmedlem eller Inställningstittare, eller en anpassad roll med behörigheten Read Service. Att skapa, ändra och ta bort tjänster kräver Projektägare, Projektadministratör, Projektmedlem, Inställningsadministratör eller Inställningsmedlem, eller motsvarande tjänstebehörigheter.
 
 ## Hitta en tjänst
 

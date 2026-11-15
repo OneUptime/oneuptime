@@ -61,7 +61,20 @@ export const usePageBreadcrumbLinks: (links: Array<Link> | null) => void = (
 };
 
 export interface ComponentProps {
+  // In English, looked up here - unless isTitleTranslated says otherwise.
   title?: string | undefined;
+  /*
+   * The title is in the reader's words already: a front end's own keyed
+   * text (the Admin Dashboard's "pages.settings.title" key, a status page's
+   * "incidents.title" key), a sentence the page built around a value, or a
+   * word another control put in the reader's language (the products menu's
+   * name for a product). Drawn as given - the heading, the browser tab's
+   * fallback title and a record page's title term - never looked up again:
+   * looked up again, a translation that is itself an English key reads as
+   * another word, as the Spanish "Red" (Network) read "Rojo" (#8224).
+   * Left out, the title is English, looked up here.
+   */
+  isTitleTranslated?: boolean | undefined;
   /*
    * Optional one-line subtitle rendered under the title. Use it to say what the
    * page is for when the title alone is not self-explanatory. Kept optional so
@@ -101,6 +114,11 @@ export interface ComponentProps {
 export interface PageRecordTitle {
   // What the record is, in English: "Cloud Environment", drawn in the reader's language.
   title: string;
+  /*
+   * The title is in the reader's words already (ModelPage's own
+   * isTitleTranslated): drawn as given, never looked up again (#8224).
+   */
+  isTitleTranslated?: boolean | undefined;
   // The record's name as typed: "prod-eu-1".
   name: string;
 }
@@ -204,7 +222,10 @@ const Page: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedTitle: string | undefined = translateString(props.title);
+  // Looked up once: English here, a title in the reader's words as given.
+  const translatedTitle: string | undefined = props.isTitleTranslated
+    ? props.title
+    : translateString(props.title);
   const translatedDescription: string | undefined = translateString(
     props.description,
   );
@@ -354,7 +375,9 @@ const Page: FunctionComponent<ComponentProps> = (
                       <TranslatedSentence
                         template={PAGE_RECORD_TITLE_SENTENCE}
                         values={{
-                          title: translatableTerm(recordTitle.title),
+                          title: recordTitle.isTitleTranslated
+                            ? recordTitle.title
+                            : translatableTerm(recordTitle.title),
                         }}
                         slots={{
                           name: (

@@ -51,7 +51,7 @@ Skriv inn mobilnummeret ditt med landskode i **Telefonnummeret ditt**, for eksem
 
 ![Steget «Hvem andre har vakt?», med «Lagre og fortsett» uthevet](screen:paging-who-else)
 
-Under **Hvem andre har vakt?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre sammen med deg, og klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes `Default on-call policy`, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
+Under **Hvem andre har vakt?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre sammen med deg, og klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
 
 ### Bestem hva som skjer hvis ingen svarer
 

@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Ein Log-Analytics-Arbeitsbereich mit aktiviertem Microsoft Sentinel, in der öffentlichen Azure-Cloud oder in Azure Government (US).
 - In Microsoft Entra ID das Recht, eine App-Registrierung und einen geheimen Clientschlüssel anzulegen.
 - Für die Ressourcengruppe, die den Arbeitsbereich enthält, das Recht, Rollen zuzuweisen, etwa als Besitzer oder Benutzerzugriffsadministrator.

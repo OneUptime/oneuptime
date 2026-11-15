@@ -88,7 +88,7 @@ Para desligar o incluído, defina `GLOBAL_RUNNER_REPLICAS=0` no `config.env` do 
 ## Antes de começar
 
 - **Um host com Docker** dentro da sua infraestrutura, que alcance a URL do seu OneUptime por HTTPS e os sistemas sobre os quais suas etapas agem.
-- **Uma função que cria Runners.** Project Owner, Project Admin, Project Member e Runbook Admin podem criar um. Só um Project Owner, Project Admin ou Runbook Admin pode ver a chave de um Runner, que o comando de instalação contém.
+- **Uma função que cria Runners.** Proprietário do projeto, Administrador do projeto, Membro do projeto e Administrador de runbooks podem criar um. Só um Proprietário do projeto, Administrador do projeto ou Administrador de runbooks pode ver a chave de um Runner, que o comando de instalação contém.
 
 ## Instalar um Runner
 
@@ -109,7 +109,7 @@ Um Runner aplica uma mudança nas suas capacidades no próximo heartbeat; não �
 
 Na linha do Runner, clique em **Mostrar instruções de configuração**. A caixa de diálogo **Configuração do Agente de Runbook** mostra um comando `docker run` já preenchido com o ID e a chave deste Runner. O mesmo comando está na página do Runner, em **Instruções de configuração**.
 
-Só um Project Owner, Project Admin ou Runbook Admin pode ler a chave. Os demais veem "Você não tem permissão para visualizar a chave deste agente de runbook" no lugar do comando.
+Só um Proprietário do projeto, Administrador do projeto ou Administrador de runbooks pode ler a chave. Os demais veem "Você não tem permissão para visualizar a chave deste agente de runbook" no lugar do comando.
 
 ### 3. Executá-lo em um host da sua infraestrutura
 
@@ -293,7 +293,7 @@ O gerenciamento de agentes fica no grupo de permissões Runbooks existente:
 
 Disparar um runbook (e com isso enviar suas etapas aos Runners) exige uma função que executa runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` ou `RunbookMember` — ou `CreateRunbookExecution`; concluir, pular ou cancelar uma execução também aceita `EditRunbookExecution`. Uma função só executa os runbooks que seu escopo alcança.
 
-A chave de um Runner só pode ser lida por Project Owners, Project Admins e Runbook Admins.
+A chave de um Runner só pode ser lida por Proprietários do projeto, Administradores do projeto e Administradores de runbooks.
 
 ## API do agente
 

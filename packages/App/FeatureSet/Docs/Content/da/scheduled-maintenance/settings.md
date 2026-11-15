@@ -115,9 +115,9 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste begivenhed f�
 > [!NOTE]
 > På OneUptime Cloud kræver brugerdefinerede felter abonnementet **Growth** eller højere, og det samme gør tilføjelse og ændring af vedligeholdelsestilstande og skabeloner.
 
-## Workflows
+## Arbejdsgange
 
-Hver vedligeholdelsesmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen workflow-trin. Se [Workflows – Oversigt](/docs/workflows/index).
+Hver vedligeholdelsesmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen arbejdsgangstrin. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

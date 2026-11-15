@@ -27,7 +27,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Vorlagen erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor Template. Eine Vorlage zu ändern erfordert dieselben Rollen oder die Berechtigung Edit Monitor Template.
+- **Eine Rolle, die Vorlagen erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor Template. Eine Vorlage zu ändern erfordert dieselben Rollen oder die Berechtigung Edit Monitor Template.
 - **Die Berechtigung, die verknüpften Monitore zu aktualisieren.** Eine Synchronisierung schreibt in Ihrem Namen in jeden verknüpften Monitor und überspringt die Monitore, die Ihre Berechtigungen nicht abdecken.
 
 ## Eine Vorlage erstellen

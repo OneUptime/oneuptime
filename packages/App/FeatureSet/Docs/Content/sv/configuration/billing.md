@@ -35,7 +35,7 @@ flowchart TB
 ## Innan du börjar
 
 - **OneUptime Cloud.** Avsnittet **Fakturering och fakturor** i **Projektinställningar** finns bara i OneUptime Cloud och är hopfällt från början: klicka på rubriken för att öppna det.
-- **En roll som får läsa faktureringen.** Project Owners, personer med **Manage Billing** och de tre faktureringsrollerna läser alla faktureringssidor. Se [Vem får göra vad](#vem-får-göra-vad).
+- **En roll som får läsa faktureringen.** Projektägare, personer med **Manage Billing** och de tre faktureringsrollerna läser alla faktureringssidor. Se [Vem får göra vad](#vem-får-göra-vad).
 
 ## Din plan och dina platser
 
@@ -144,13 +144,13 @@ När ett saldo inte räcker skickas inte meddelandet, eller så stoppas OneUptim
 
 | För att | Krävs |
 | --- | --- |
-| Läsa faktureringssidorna: planen, fakturor, användning, saldon och betalningsmetoder | Project Owner, **Manage Billing**, **Faktureringsadministratör**, **Faktureringsmedlem** eller **Faktureringstittare** |
-| Ladda ner en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Faktureringsadministratör** eller **Faktureringsmedlem** |
-| Ändra faktureringsadressen och faktura-e-posten | Project Owner, **Manage Billing**, **Faktureringsadministratör** eller **Faktureringsmedlem** |
-| Slå på eller av SMS, samtal, WhatsApp eller Telegram | Project Owner, **Manage Billing** eller **Faktureringsadministratör** |
-| Lägga till en betalningsmetod | Project Owner, **Manage Billing** eller **Create Payment Method** |
-| Betala en faktura | Project Owner, **Manage Billing** eller **Edit Invoices** |
-| Byta plan, fylla på ett saldo eller ändra automatisk påfyllning | Project Owner eller **Manage Billing** |
+| Läsa faktureringssidorna: planen, fakturor, användning, saldon och betalningsmetoder | Projektägare, **Manage Billing**, **Faktureringsadministratör**, **Faktureringsmedlem** eller **Faktureringstittare** |
+| Ladda ner en faktura | Projektägare, Projektadministratör, **Manage Billing**, **Read Invoices**, **Faktureringsadministratör** eller **Faktureringsmedlem** |
+| Ändra faktureringsadressen och faktura-e-posten | Projektägare, **Manage Billing**, **Faktureringsadministratör** eller **Faktureringsmedlem** |
+| Slå på eller av SMS, samtal, WhatsApp eller Telegram | Projektägare, **Manage Billing** eller **Faktureringsadministratör** |
+| Lägga till en betalningsmetod | Projektägare, **Manage Billing** eller **Create Payment Method** |
+| Betala en faktura | Projektägare, **Manage Billing** eller **Edit Invoices** |
+| Byta plan, fylla på ett saldo eller ändra automatisk påfyllning | Projektägare eller **Manage Billing** |
 
 En knapp som du inte får använda visas låst och säger vem som får. Se [Användare, team och behörigheter](/docs/permissions/index#team) för faktureringsrollerna.
 

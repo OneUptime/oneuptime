@@ -43,7 +43,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die sie einrichten darf.** Project Owners, Project Admins und Security Admins ändern die Einstellungen der Datensicherheit. Security Members bearbeiten Probleme und scannen Datenspeicher, und Security Viewers lesen, was sie gefunden hat. Andere Rollen sehen nichts davon, sofern ihr Team nicht die entsprechenden Berechtigungen erhält: Welche Buckets Kartennummern enthalten, ist genau das, was ein Angreifer wissen will. Siehe [Rollen](/docs/permissions/reference#rollen).
+- **Eine Rolle, die sie einrichten darf.** Projektinhaber, Projektadministratoren und Sicherheits-Administratoren ändern die Einstellungen der Datensicherheit. Sicherheits-Mitglieder bearbeiten Probleme und scannen Datenspeicher, und Sicherheits-Betrachter lesen, was sie gefunden hat. Andere Rollen sehen nichts davon, sofern ihr Team nicht die entsprechenden Berechtigungen erhält: Welche Buckets Kartennummern enthalten, ist genau das, was ein Angreifer wissen will. Siehe [Rollen](/docs/permissions/reference#rollen).
 - **Ein Cloud-Konto zum Lesen oder eine Datenbank.** Datensicherheit liest ein Cloud-Konto über eine [Cloud-Verbindung](/docs/telemetry/cloud-accounts) und eine Datenbank, die Sie betreiben, über eine schreibgeschützte Verbindungszeichenfolge. Telemetrie braucht nichts: Sie wird jede Stunde gescannt.
 
 ## Schnellstart

@@ -25,7 +25,7 @@ La sonda que ejecuta la comprobación recibe el valor, así que un monitor que u
 ## Antes de empezar
 
 - **El plan Growth o superior**, en OneUptime Cloud. Las instalaciones autoalojadas no tienen planes.
-- **Un rol que pueda gestionar secretos**: Project Owner, Project Admin, o un rol personalizado con el permiso Create Monitor Secret.
+- **Un rol que pueda gestionar secretos**: Propietario del proyecto, Administrador del proyecto, o un rol personalizado con el permiso Create Monitor Secret.
 
 ## Trabajar con secretos
 

@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - En AWS-konto med Security Hub aktiveret i den region, du forbinder. Security Hub er regionalt: en forbindelse læser de fund, én konto har i én region.
 - For at læse hver kontos og hver regions fund gennem én forbindelse: Security Hubs delegerede administratorkonto, i dens hjemmeregion, med [krydsregional aggregering](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) slået til. **Security Hub → Settings → Regions** viser hjemmeregionen.
 - Udgående HTTPS fra OneUptime-appen og -workerne til `securityhub.<region>.amazonaws.com`, eller `securityhub.<region>.amazonaws.com.cn` i Kina, og et korrekt ur på deres værter: AWS afviser en anmodning, der er signeret med mere end 5 minutters afvigelse.

@@ -54,7 +54,7 @@ Siehe [Kriterien & Status](/docs/monitor/criteria-and-statuses).
 
 Ein Rechner, der die Prüfungen von Monitoren nach Zeitplan ausführt: Er ruft eine Seite ab, ruft eine API auf oder pingt einen Host an. OneUptime Cloud betreibt Sonden in mehreren Regionen, und eine benutzerdefinierte Sonde, die Sie in Ihrem eigenen Netzwerk betreiben, prüft, was nur dieses Netzwerk erreicht.
 
-Auch genannt: **Benutzerdefinierte Sonden**. Siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+Auch genannt: **Benutzerdefinierte Sonden**. Siehe [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 
 ### Vorfall
 
@@ -436,7 +436,7 @@ Siehe [Grundkonzepte](/docs/introduction/core-concepts#die-arten-von-regeln).
 
 ### Rolle
 
-Vier verschiedene Dinge: die Berechtigungen, die ein Team gewährt, etwa Project Owner oder Project Admin; eine **Benutzerdefinierte Rolle**, die Sie aus Berechtigungen zusammenstellen; eine **Vorfallsrolle**, also die Rolle, die jemand in einem Vorfall übernimmt; und eine **Netzwerkgeräterolle**, also das, was ein Gerät in Ihrem Netzwerk tut.
+Vier verschiedene Dinge: die Berechtigungen, die ein Team gewährt, etwa Projektinhaber oder Projektadministrator; eine **Benutzerdefinierte Rolle**, die Sie aus Berechtigungen zusammenstellen; eine **Vorfallsrolle**, also die Rolle, die jemand in einem Vorfall übernimmt; und eine **Netzwerkgeräterolle**, also das, was ein Gerät in Ihrem Netzwerk tut.
 
 Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 

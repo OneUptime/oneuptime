@@ -32,7 +32,7 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma sonda que alcance o host**, com ICMP permitido no caminho. As sondas padrão do seu projeto são escolhidas para cada monitor novo. Se um firewall protege o host, libere as requisições de eco ICMP dos [endereços IP das sondas do OneUptime Cloud](/docs/configuration/ip-addresses). Um host em uma rede privada precisa de uma [sonda personalizada](/docs/probe/custom-probe) dentro dessa rede.
 
 ## Criar um monitor de ping

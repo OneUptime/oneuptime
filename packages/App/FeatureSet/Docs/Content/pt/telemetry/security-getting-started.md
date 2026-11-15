@@ -11,7 +11,7 @@ O OneUptime encontra ameaças em dados que você já tem - seus logs, as ferrame
 
 ## Antes de começar
 
-Configurar a segurança exige a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer leem o que é encontrado; consulte [Funções](/docs/permissions/reference#funções).
+Configurar a segurança exige a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança leem o que é encontrado; consulte [Funções](/docs/permissions/reference#funções).
 
 ## Configurar
 
@@ -84,7 +84,7 @@ Se a sua equipe já trabalha em um SIEM, o OneUptime também envia para lá o qu
 ## Solução de problemas
 
 :::details Turn on recommended está desativado
-A sua função não pode adicionar regras de detecção, playbooks nem a origem de logs. Peça a um Project Owner, um Project Admin ou um Security Admin, ou peça que lhe deem a função Security Admin.
+A sua função não pode adicionar regras de detecção, playbooks nem a origem de logs. Peça a um Proprietário do projeto, um Administrador do projeto ou um Administrador de segurança, ou peça que lhe deem a função Administrador de segurança.
 :::
 
 :::details Turn on recommended não conseguiu ativar tudo

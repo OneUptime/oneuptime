@@ -1,10 +1,10 @@
 # GitLab
 
-Apri una issue [GitLab](https://gitlab.com) per ogni incidente di OneUptime, così il lavoro che ne segue viene tracciato nel progetto a cui appartiene il servizio. Un workflow chiama la [Issues API](https://docs.gitlab.com/api/issues/#new-issue) di GitLab, su GitLab.com o su un tuo GitLab.
+Apri una issue [GitLab](https://gitlab.com) per ogni incidente di OneUptime, così il lavoro che ne segue viene tracciato nel progetto a cui appartiene il servizio. Un flusso di lavoro chiama la [Issues API](https://docs.gitlab.com/api/issues/#new-issue) di GitLab, su GitLab.com o su un tuo GitLab.
 
 :::cards
-- [Salvare il token](#salvare-il-token): Tieni il token di GitLab fuori dai tuoi workflow.
-- [Aprire una issue per ogni incidente](#aprire-una-issue-gitlab-per-ogni-incidente): Un workflow, due blocchi.
+- [Salvare il token](#salvare-il-token): Tieni il token di GitLab fuori dai tuoi flussi di lavoro.
+- [Aprire una issue per ogni incidente](#aprire-una-issue-gitlab-per-ogni-incidente): Un flusso di lavoro, due blocchi.
 - [Suggerimenti](#suggerimenti): Un tuo GitLab, percorsi dei progetti e assegnatari.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando GitLab rifiuta una richiesta.
 :::
@@ -14,19 +14,19 @@ Apri una issue [GitLab](https://gitlab.com) per ogni incidente di OneUptime, cos
 
 ## Come funziona
 
-```mermaid title="Un workflow, una issue GitLab"
+```mermaid title="Un flusso di lavoro, una issue GitLab"
 flowchart TB
-    declared["Incidente dichiarato"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>On Create Incident"]
     workflow -->|"POST issues"| issue["Issue GitLab"]
 ```
 
-Il workflow viene eseguito una volta per ogni nuovo incidente. Il suo blocco **API Post (JSON)** invia il titolo e la descrizione dell'incidente alle issue del progetto, firmati con un token di accesso.
+Il flusso di lavoro viene eseguito una volta per ogni nuovo incidente. Il suo blocco **API Post (JSON)** invia il titolo e la descrizione dell'incidente alle issue del progetto, firmati con un token di accesso.
 
 ## Prima di iniziare
 
 - L'ID del progetto GitLab. Nella pagina di panoramica del progetto, seleziona il menu delle azioni, i tre puntini verticali, poi **Copy project ID**.
 - Un token di accesso GitLab con lo scope `api`, per un utente o un bot il cui ruolo nel progetto possa creare issue: un token di accesso di progetto, di gruppo o personale. Crealo in **Settings → Access tokens** nel progetto, nel gruppo o nelle impostazioni del tuo utente.
-- In OneUptime, il permesso di creare workflow e variabili globali. Su OneUptime Cloud, i workflow richiedono il piano **Growth** o superiore.
+- In OneUptime, il permesso di creare flussi di lavoro e variabili globali. Su OneUptime Cloud, i flussi di lavoro richiedono il piano **Growth** o superiore.
 
 ## Salvare il token
 
@@ -41,7 +41,7 @@ Una variabile segreta viene sostituita da `[REDACTED]` nei log delle esecuzioni,
 ## Aprire una issue GitLab per ogni incidente
 
 :::steps
-### Creare il workflow
+### Creare il flusso di lavoro
 
 Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Chiamalo `Incidents to GitLab` e fai clic su **Crea flusso di lavoro**.
 
@@ -106,8 +106,8 @@ GitLab non riesce a leggere il corpo: manca `title`, oppure un campo ha il tipo 
 ## Prossimi passi
 
 :::cards
-- [GitHub](/docs/integrations/github): Lo stesso workflow per GitHub, e la GitHub App.
-- [Componenti del workflow](/docs/workflows/components#api): Ogni impostazione dei blocchi API.
-- [Esecuzioni del workflow](/docs/workflows/runs-and-logs): Leggi cosa ha inviato e ricevuto ogni richiesta.
+- [GitHub](/docs/integrations/github): Lo stesso flusso di lavoro per GitHub, e la GitHub App.
+- [Componenti del flusso di lavoro](/docs/workflows/components#api): Ogni impostazione dei blocchi API.
+- [Esecuzioni del flusso di lavoro](/docs/workflows/runs-and-logs): Leggi cosa ha inviato e ricevuto ogni richiesta.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli schemi dietro ogni integrazione.
 :::

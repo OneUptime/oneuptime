@@ -61,6 +61,8 @@ Der Name ist standardmäßig der Hostname von vCenter. Klicken Sie auf **vCenter
 
 Die **Übersicht** des vCenter zeigt eine Karte **Datenerfassung**. Sie zeigt **Wird geprüft** bis zur ersten Erfassung, die innerhalb einer Minute beginnt, dann **Wird erfasst**, und das Inventar füllt sich.
 
+Kommt 20 Minuten lang keine Sonde für das vCenter, weil sie offline oder zu alt ist, zeigt die Karte **Wird nicht erfasst** und sagt das, unabhängig davon, was die letzte Erfassung ergeben hat. Darf keine Sonde das vCenter erfassen, zeigt sie sofort **Wird nicht erfasst** und sagt, warum und was zu ändern ist: Es ist kein Passwort gespeichert, die Adresse oder der Benutzername von vCenter fehlt, keine Sonde ist für die Erfassung eingestellt, seine Sonde darf es nicht erfassen (eine gemeinsame Sonde auf OneUptime Cloud oder die eines anderen Projekts), oder seine Sonde ist getrennt. **Nächste Erfassung** nennt die Zeit, zu der eine Sonde es als Nächstes erfasst, **Jetzt fällig**, solange es auf eine wartet, **Überfällig**, sobald 20 Minuten lang keine gekommen ist, und **Nicht geplant**, solange keine Sonde es erfassen darf. Ein archiviertes vCenter wird weiter erfasst.
+
 ## Zertifikate
 
 Die Sonde überspringt die Zertifikatsprüfung nie. Jede Verbindung durchläuft einen vollständigen TLS-Handshake, und dann gilt:

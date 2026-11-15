@@ -291,5 +291,5 @@ Giv appen **Issues: Read and write**, og abonnér den på de interaktive events 
 :::cards
 - [Arbejd med OneUptime fra GitHub](/docs/ai/github-app): De kommandoer, man kan give appen, og hvem der må give dem.
 - [Kode](/docs/ai/ai-agent): Hvordan AI-agenten åbner rettelsers pull requests.
-- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
+- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad arbejdsgange og webhooks nå interne værktøjer.
 :::

@@ -1,10 +1,10 @@
 # IP-adresser
 
-Probene til OneUptime Cloud sjekker nettstedene, API-ene og serverne dine fra et fast sett IP-adresser. Står det en brannmur eller en tillatelsesliste foran det du overvåker, må du tillate disse adressene så sjekkene kommer gjennom.
+Sondene til OneUptime Cloud sjekker nettstedene, API-ene og serverne dine fra et fast sett IP-adresser. Står det en brannmur eller en tillatelsesliste foran det du overvåker, må du tillate disse adressene så sjekkene kommer gjennom.
 
 ```mermaid title="Hvor tillatelseslisten gjelder"
 flowchart TB
-    P["OneUptime-prober"] -->|"sjekker fra de oppførte IP-ene"| F["Brannmuren din"]
+    P["OneUptime-sonder"] -->|"sjekker fra de oppførte IP-ene"| F["Brannmuren din"]
     F -->|"tillatt"| S["Nettstedet, API-et eller serveren din"]
 ```
 
@@ -39,7 +39,7 @@ curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
 
 ## Selvhostet OneUptime
 
-På din egen instans viser denne siden og endepunktet `/ip-whitelist` adressene fra instansens innstilling `IP_WHITELIST`, en kommaseparert liste. Oppgi adressene som dine egne prober sender sjekkene sine fra.
+På din egen instans viser denne siden og endepunktet `/ip-whitelist` adressene fra instansens innstilling `IP_WHITELIST`, en kommaseparert liste. Oppgi adressene som dine egne sonder sender sjekkene sine fra.
 
 :::tabs
 @tab Kubernetes
@@ -64,6 +64,6 @@ Når ingenting er angitt, viser denne siden **No IP addresses configured.**, og 
 ## Neste steg
 
 :::cards
-- [Egendefinerte probes](/docs/probe/custom-probe): Kjør en probe i ditt eget nettverk i stedet for å åpne brannmuren.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Kjør en sonde i ditt eget nettverk i stedet for å åpne brannmuren.
 - [Opprett en monitor](/docs/monitor/create-monitor): Begynn å sjekke et nettsted, et API eller en server.
 :::

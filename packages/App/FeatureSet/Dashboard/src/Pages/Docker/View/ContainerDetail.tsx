@@ -299,6 +299,7 @@ const DockerHostContainerDetail: FunctionComponent<
             "Container Metrics: {{containerName}}",
             { containerName: containerName },
           )}
+          isTitleTranslated={true}
           description="CPU and memory usage for this container."
           queryConfigs={metricQueryConfigs}
         />

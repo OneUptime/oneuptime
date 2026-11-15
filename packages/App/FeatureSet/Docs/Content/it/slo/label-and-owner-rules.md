@@ -98,7 +98,7 @@ Ogni volta che una regola cambia uno SLO, il **Feed** dello SLO registra quali r
 | Eseguire una regola per etichette | **Edit SLO Label Rule** e **Edit Service Level Objective** |
 | Eseguire una regola del proprietario | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** e **Create SLO Team Owner** |
 
-Questi permessi si trovano nel gruppo SLO di un ruolo, e i ruoli Project Owner e Project Admin li hanno tutti. Un'esecuzione cambia ogni SLO del progetto, quindi un permesso limitato ad alcune etichette, o agli SLO di cui sei proprietario, non basta per eseguire una regola.
+Questi permessi si trovano nel gruppo SLO di un ruolo, e i ruoli Proprietario del progetto e Amministratore del progetto li hanno tutti. Un'esecuzione cambia ogni SLO del progetto, quindi un permesso limitato ad alcune etichette, o agli SLO di cui sei proprietario, non basta per eseguire una regola.
 
 ## Passi successivi
 

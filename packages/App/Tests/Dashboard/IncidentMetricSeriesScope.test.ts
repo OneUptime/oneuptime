@@ -208,7 +208,16 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
     expect(ROOT_CAUSE_METRICS).toContain(
       "telemetryQuery: readSnapshot(row.telemetryQuery),",
     );
-    expect(ROOT_CAUSE_CHART).toContain("? getRootCauseMetrics(event)");
+    /*
+     * Read once to decide there is a card, then worked out as it is drawn,
+     * so its line follows the reader's language (#8269).
+     */
+    expect(ROOT_CAUSE_CHART).toContain(
+      "Boolean(event && getRootCauseMetrics(event))",
+    );
+    expect(ROOT_CAUSE_CHART).toContain(
+      "getRootCauseMetrics({ ...readEvent, unsetLabel: unsetLabel })",
+    );
     expect(
       selectBlockAfter(INCIDENT_ROOT_CAUSE_READER, "modelType: Incident, id:"),
     ).toContain("telemetryQuery: true,");
@@ -262,9 +271,7 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
       ).length - 1,
     ).toBe(2);
     // The card says it, as the Overview's does.
-    expect(ROOT_CAUSE_CHART).toContain(
-      "seriesSummary={card.metrics.seriesSummary}",
-    );
+    expect(ROOT_CAUSE_CHART).toContain("seriesSummary={metrics.seriesSummary}");
     expectThePanelSaysTheNarrowing();
   });
 });

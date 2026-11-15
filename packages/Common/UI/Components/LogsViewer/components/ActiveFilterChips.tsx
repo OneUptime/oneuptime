@@ -11,7 +11,10 @@ import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import { formatDictionaryValueForDisplay } from "../../Dictionary/DictionaryFilterOperator";
-import LockedFilterChip from "../../TelemetryViewer/components/LockedFilterChip";
+import DictionaryFilterSentence from "../../Dictionary/DictionaryFilterSentence";
+import LockedFilterChip, {
+  getLockedFilterSentence,
+} from "../../TelemetryViewer/components/LockedFilterChip";
 import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
 import {
   EXCLUDED_FILTER_CHIP_TEST_ID,
@@ -44,8 +47,11 @@ export interface ActiveFilterChipsProps {
  * "Something went wrong" card in place of the form and no way to reach Save.
  *
  * Callers are expected to format their own text (see the log viewer's base
- * chips); this is the backstop that keeps a mistyped value a bad-looking chip
- * instead of a lost page.
+ * chips); this is the backstop that keeps a mistyped value a chip instead of
+ * a lost page. Its text is English - the operator's label glued before the
+ * value - so it is only ever a key, or what removal is called with: a chip
+ * whose value is an operator's says it as one sentence in the reader's
+ * language (getFilterValue, #8309).
  */
 const chipText: (value: string) => string = (value: string): string => {
   if (typeof value === "string") {
@@ -53,6 +59,27 @@ const chipText: (value: string) => string = (value: string): string => {
   }
 
   return formatDictionaryValueForDisplay(value);
+};
+
+/*
+ * The stored filter a chip says as one sentence: the one its builder handed
+ * (ActiveFilter.filterValue), or an operator's value that reached the chip
+ * as its display value.
+ */
+const getFilterValue: (filter: ActiveFilter) => unknown = (
+  filter: ActiveFilter,
+): unknown => {
+  if (filter.filterValue !== undefined) {
+    return filter.filterValue;
+  }
+
+  const displayValue: unknown = filter.displayValue;
+
+  return displayValue !== null &&
+    displayValue !== undefined &&
+    typeof displayValue === "object"
+    ? displayValue
+    : undefined;
 };
 
 const renderOpenAffordance: (
@@ -112,6 +139,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
             key={chipKey}
             displayKey={filter.displayKey}
             displayValue={chipText(filter.displayValue)}
+            filterValue={getFilterValue(filter)}
             lockedDetail={filter.lockedDetail}
             signal={signal}
             trailing={renderOpenAffordance(
@@ -135,6 +163,8 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
           value: chipText(filter.value),
         });
         const isExcluded: boolean = reading?.state === FacetValueState.Excluded;
+        // An operator's filter, said as one sentence (see getFilterValue).
+        const filterValue: unknown = getFilterValue(filter);
         const keyText: string = getFilterChipKeyText(
           filter.displayKey,
           isExcluded,
@@ -150,24 +180,38 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                 : "inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
             }
           >
-            <span
-              className={
-                isExcluded
-                  ? "font-medium text-red-600"
-                  : "font-medium text-indigo-500"
-              }
-            >
-              {keyText}:
-            </span>
-            {/*
-             * The value as its telemetry wrote it - a service, a host, a
-             * message - read its own way on a page read the other way. In a
-             * span of the page's direction, so a value long enough to wrap
-             * still wraps from the chip's side.
-             */}
-            <span>
-              <IsolatedText text={chipText(filter.displayValue)} />
-            </span>
+            {filterValue !== undefined ? (
+              <DictionaryFilterSentence
+                attributeKey={keyText}
+                value={filterValue}
+                keyClassName={
+                  isExcluded
+                    ? "font-medium text-red-600"
+                    : "font-medium text-indigo-500"
+                }
+              />
+            ) : (
+              <>
+                <span
+                  className={
+                    isExcluded
+                      ? "font-medium text-red-600"
+                      : "font-medium text-indigo-500"
+                  }
+                >
+                  {keyText}:
+                </span>
+                {/*
+                 * The value as its telemetry wrote it - a service, a host, a
+                 * message - read its own way on a page read the other way. In
+                 * a span of the page's direction, so a value long enough to
+                 * wrap still wraps from the chip's side.
+                 */}
+                <span>
+                  <IsolatedText text={chipText(filter.displayValue)} />
+                </span>
+              </>
+            )}
             {renderOpenAffordance(
               filter,
               isExcluded
@@ -191,19 +235,28 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                  */
                 props.onRemove(filter.facetKey, chipText(filter.value));
               }}
-              title={translator.translateTemplate("Remove {{key}}: {{value}}", {
-                // In the sentence's language, so it never mixes two.
-                key: isExcluded
-                  ? composedValue((sentence: Translator): string => {
-                      return getFilterChipKeyText(
+              title={
+                filterValue !== undefined
+                  ? translator.translateTemplate("Remove {{filter}}", {
+                      filter: getLockedFilterSentence(
                         filter.displayKey,
-                        true,
-                        sentence,
-                      );
+                        filterValue,
+                      ),
                     })
-                  : translatableTerm(filter.displayKey),
-                value: chipText(filter.displayValue),
-              })}
+                  : translator.translateTemplate("Remove {{key}}: {{value}}", {
+                      // In the sentence's language, so it never mixes two.
+                      key: isExcluded
+                        ? composedValue((sentence: Translator): string => {
+                            return getFilterChipKeyText(
+                              filter.displayKey,
+                              true,
+                              sentence,
+                            );
+                          })
+                        : translatableTerm(filter.displayKey),
+                      value: chipText(filter.displayValue),
+                    })
+              }
             >
               <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
             </button>

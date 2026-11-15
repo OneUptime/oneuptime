@@ -276,6 +276,7 @@ import MonitorOwnerUser from "./MonitorOwnerUser";
 import MonitorProbe from "./MonitorProbe";
 import MonitorNetworkDevice from "./MonitorNetworkDevice";
 import MonitorSecret from "./MonitorSecret";
+import IncomingRequestSecret from "./IncomingRequestSecret";
 import MonitorStatus from "./MonitorStatus";
 import MonitorStatusTimeline from "./MonitorStatusTimeline";
 // On-Call Duty
@@ -395,6 +396,7 @@ import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
 import WorkspacePublicNoteApprovalMessage from "./WorkspacePublicNoteApprovalMessage";
 import WorkspaceHomeChoice from "./WorkspaceHomeChoice";
+import OwnerNotificationDelivery from "./OwnerNotificationDelivery";
 // Status Page
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -793,6 +795,7 @@ const AllModelTypes: Array<{
 
   Monitor,
   MonitorSecret,
+  IncomingRequestSecret,
   MonitorStatus,
   MonitorCustomField,
   MonitorTemplate,
@@ -1025,6 +1028,7 @@ const AllModelTypes: Array<{
   WorkspaceLiveMessage,
   WorkspacePublicNoteApprovalMessage,
   WorkspaceHomeChoice,
+  OwnerNotificationDelivery,
   CallLog,
   EmailLog,
 

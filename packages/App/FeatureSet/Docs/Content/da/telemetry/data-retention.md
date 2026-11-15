@@ -41,7 +41,7 @@ Helt præcist læser OneUptime disse indstillinger i denne rækkefølge, og den 
 
 ## Før du begynder
 
-- **En rolle, der ændrer projektet.** Project Owner eller Project Admin ændrer projektets opbevaring. En tjenestes eller ressources opbevaring kræver den rolle, der ændrer dens andre indstillinger.
+- **En rolle, der ændrer projektet.** Projektejer eller Projektadministrator ændrer projektets opbevaring. En tjenestes eller ressources opbevaring kræver den rolle, der ændrer dens andre indstillinger.
 - **Til tilsidesættelser, Enterprise Edition eller Scale-abonnementet.** En selvhostet installation kræver en Enterprise-licens, og et OneUptime Cloud-projekt Scale-abonnementet eller højere. Projektets standardopbevaring findes i alle udgaver og abonnementer.
 
 ## Ændr projektets opbevaring

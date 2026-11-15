@@ -167,9 +167,9 @@ describe("ValueFormatter", () => {
   });
 
   describe("formatValue - unknown units", () => {
-    test("formats number and appends a readable unit name", () => {
-      expect(ValueFormatter.formatValue(10, "hz")).toBe("10 Hertz");
-      expect(ValueFormatter.formatValue(5, "v")).toBe("5 Volts");
+    test("formats number and appends the unit's symbol (#8284)", () => {
+      expect(ValueFormatter.formatValue(10, "hz")).toBe("10 Hz");
+      expect(ValueFormatter.formatValue(5, "v")).toBe("5 V");
     });
 
     test("keeps the original unit when unrecognized", () => {
@@ -557,7 +557,7 @@ describe("ValueFormatter", () => {
     }
 
     const cases: Array<NoDriftCase> = [
-      { value: 23.5, unit: "Cel", expected: "23.5 Celsius" },
+      { value: 23.5, unit: "Cel", expected: "23.5 °C" },
       { value: 12, unit: "ug/m3", expected: "12 ug/m3" },
       { value: 23.5, unit: "%", expected: "23.50%" },
       { value: 1536, unit: "By", expected: "1.54 KB" },
@@ -581,9 +581,9 @@ describe("ValueFormatter", () => {
       { value: 1500000, unit: "By/s", expected: "1.5 MB/s" },
       { value: 2000, unit: "bytes/s", expected: "2 KB/s" },
       { value: 5, unit: "requests/s", expected: "5 requests/s" },
-      { value: 98.6, unit: "[degF]", expected: "98.6 Fahrenheit" },
-      { value: 10, unit: "hz", expected: "10 Hertz" },
-      { value: 5, unit: "v", expected: "5 Volts" },
+      { value: 98.6, unit: "[degF]", expected: "98.6 °F" },
+      { value: 10, unit: "hz", expected: "10 Hz" },
+      { value: 5, unit: "v", expected: "5 V" },
       { value: 5, unit: "widgets", expected: "5 widgets" },
       { value: 7, unit: "St", expected: "7 St" },
       { value: 42, unit: "", expected: "42" },
@@ -1147,10 +1147,12 @@ describe("ValueFormatter", () => {
     });
 
     /*
-     * A unit the formatter names in English words it has no translation
-     * of ("Hertz", "Celsius") is named by its caller, who knows the reader
-     * (unitName). Left to itself, it writes the English. A rate keeps its
-     * slash, as a chart writes it (#8049), whatever the caller names.
+     * A unit with a symbol is written by it, whatever the caller names
+     * ("Hz", "°C"; #8284). A unit the formatter names in English words and
+     * has no symbol for ("Kelvin": "300 K" would sit one space from the
+     * "300K" a big count reads) is named by its caller, who knows the
+     * reader (unitName). Left to itself, it writes the English. A rate keeps
+     * its slash, as a chart writes it (#8049), whatever the caller names.
      */
     test("a unit's name in words is the caller's to give, English when it gives none", () => {
       const naming: ValueFormatterOptions = {
@@ -1161,13 +1163,21 @@ describe("ValueFormatter", () => {
       };
 
       expect(
-        ValueFormatter.formatValueInParts(5, "Hz", { language: "de" }),
-      ).toEqual({ value: "5", unit: "Hertz", formatted: "5 Hertz" });
+        ValueFormatter.formatValueInParts(5, "K", { language: "de" }),
+      ).toEqual({ value: "5", unit: "Kelvin", formatted: "5 Kelvin" });
+      expect(ValueFormatter.formatValueInParts(5, "K", naming)).toEqual({
+        value: "5",
+        unit: "«K»",
+        formatted: "5 «K»",
+      });
       expect(ValueFormatter.formatValueInParts(5, "Hz", naming)).toEqual({
         value: "5",
-        unit: "«Hz»",
-        formatted: "5 «Hz»",
+        unit: "Hz",
+        formatted: "5 Hz",
       });
+      expect(
+        ValueFormatter.formatValueInParts(5, "Hz", { language: "de" }),
+      ).toEqual({ value: "5", unit: "Hz", formatted: "5 Hz" });
       expect(
         ValueFormatter.formatValueInParts(5, "requests/s", naming),
       ).toEqual({

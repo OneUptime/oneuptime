@@ -47,8 +47,8 @@ Sollevate un avviso quando il vostro team deve guardare prima che qualcuno all'e
 - **Chiedi all'IA.** In [Chiedi all'IA](/docs/ai/ask-ai), chiedete un avviso: lo crea a vostro nome, collegato alla risorsa dalla cui pagina avete chiesto, come quella di un host. Per registrare un problema di cui qualcuno si sta già occupando, o che è già finito, chiedetelo già riconosciuto o risolto: parte da quello stato e non chiama nessuno. Vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
 - **Il tasso di consumo di uno SLO.** Una regola sul tasso di consumo può creare un avviso quando uno SLO spende il suo budget di errori troppo in fretta. Vedere [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts).
 - **Siti di rete ed eventi di sicurezza.** Un sito di rete impostato per avvisare quando non è in salute apre un avviso quando il suo riepilogo smette di essere operativo, e anche le vostre regole di rilevamento degli eventi di sicurezza aprono avvisi. Vedere [Siti di rete (riepilogo dello stato e uptime)](/docs/monitor/network-sites) e [Eventi di sicurezza (SIEM)](/docs/telemetry/security-events).
-- **Una chiamata.** `/oneuptime page` in Slack o Microsoft Teams, ovunque tranne nel canale proprio di un incidente o di un avviso, apre un avviso il cui titolo è il vostro messaggio, e chiama le persone che indicate. I blocchi di chiamata di un workflow fanno lo stesso con il titolo e il messaggio che fornite loro. Vedere [Chiamare qualcuno da Slack](/docs/workspace-connections/slack#chiamare-qualcuno-da-slack) e [Paging](/docs/workflows/components#paging).
-- **L'API, Terraform e i workflow.** Gli avvisi sono una risorsa come le altre: `/api/alert`, la risorsa Terraform `oneuptime_alert` e il passaggio **Create One Alert** di un workflow.
+- **Una chiamata.** `/oneuptime page` in Slack o Microsoft Teams, ovunque tranne nel canale proprio di un incidente o di un avviso, apre un avviso il cui titolo è il vostro messaggio, e chiama le persone che indicate. I blocchi di chiamata di un flusso di lavoro fanno lo stesso con il titolo e il messaggio che fornite loro. Vedere [Chiamare qualcuno da Slack](/docs/workspace-connections/slack#chiamare-qualcuno-da-slack) e [Paging](/docs/workflows/components#paging).
+- **L'API, Terraform e i flussi di lavoro.** Gli avvisi sono una risorsa come le altre: `/api/alert`, la risorsa Terraform `oneuptime_alert` e il passaggio **Create One Alert** di un flusso di lavoro.
 
 ## Dove si trovano gli avvisi nella dashboard
 
@@ -95,7 +95,7 @@ Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avvi
 
 Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in quest'ordine:
 
-1. **Riceve un numero e uno stato.** Il numero dell'avviso viene da un contatore per progetto ed è mostrato con il vostro prefisso (`ALT-42`). L'avviso parte dal vostro stato di creazione, a meno che il modulo, l'API, un workflow o Chiedi all'IA non ne abbia scelto un altro.
+1. **Riceve un numero e uno stato.** Il numero dell'avviso viene da un contatore per progetto ed è mostrato con il vostro prefisso (`ALT-42`). L'avviso parte dal vostro stato di creazione, a meno che il modulo, l'API, un flusso di lavoro o Chiedi all'IA non ne abbia scelto un altro.
 2. **Le regole di privacy girano per prime**, così tutto ciò che viene dopo sa se l'avviso è privato.
 3. **Il feed e i vostri strumenti di chat lo vengono a sapere.** Una voce **Avviso creato** viene scritta in **Feed dell'avviso**, e i canali indicati dalle vostre regole di Slack e Microsoft Teams vengono informati; una regola può creare un canale per l'avviso.
 4. **Vengono aggiunti proprietari ed etichette**: quelli indicati dai criteri del monitor o dalla richiesta, poi quelli delle regole del proprietario e delle etichette che corrispondono.
@@ -104,7 +104,9 @@ Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in 
 7. **Le regole di raggruppamento lo mettono in un episodio**, quando una corrisponde. Vedere [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes).
 8. **I promemoria vengono pianificati**, quando corrisponde una regola di promemoria, e **OneUptime AI** indaga sull'avviso quando **Indaga sui nuovi avvisi** è attivo in **Avvisi → IA → Impostazioni**, e lo corregge quando **Correggi automaticamente i nuovi avvisi** è attivo. Vedere [AI SRE](/docs/ai/ai-sre).
 
-Un job in background informa i proprietari dell'avviso entro un minuto, e il trigger di workflow **On Create Alert** avvia ogni workflow costruito su di esso.
+Un job in background informa i proprietari dell'avviso circa un minuto dopo la sua creazione, tutti quelli che ha a quel punto, e il trigger del flusso di lavoro **On Create Alert** avvia ogni flusso di lavoro costruito su di esso.
+
+Per rendere persone e team proprietari dell'avviso fin dalla sua creazione, così che questa notifica arrivi a loro e non ai proprietari del progetto, passateli con la creazione: tramite l'API, inviate i loro id in `miscDataProps`, come `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, con `POST /api/alert`; in un flusso di lavoro, sceglieteli in **Utenti proprietari** e **Team proprietari** di **Create One Alert**; tramite MCP, passate `ownerUsers` e `ownerTeams` a `create_alert`. Una richiesta il cui chiamante non può aggiungere quei proprietari viene rifiutata prima di salvare qualsiasi cosa. I proprietari che una richiesta separata aggiunge dopo la creazione ne vengono a sapere solo se vengono aggiunti entro quel minuto.
 
 ### Creato già riconosciuto o risolto
 
@@ -159,7 +161,7 @@ Un episodio aperto da un avviso privato non è privato, quindi non mostra mai il
 ## Chi viene a sapere di un avviso
 
 - **Chi è reperibile.** Le policy di reperibilità dell'avviso chiamano le loro persone, ciascuna nel modo impostato in **Impostazioni utente → Come contattarmi**, nella scheda **Avvisi**. Rispondere alla chiamata riconosce l'avviso, e le chiamate si fermano.
-- **I suoi proprietari.** Per e-mail, a meno che non abbiano scelto altri canali in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**: **Avviso creato**, **Stato dell'avviso modificato** e **Promemoria avviso** sono attivi per impostazione predefinita, mentre **Nota dell'avviso pubblicata** e **Aggiunto come proprietario dell'avviso** restano disattivati finché qualcuno non li attiva. Un avviso senza proprietari notifica invece i proprietari del progetto.
+- **I suoi proprietari.** Per e-mail, a meno che non abbiano scelto altri canali in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**: **Avviso creato**, **Stato dell'avviso modificato** e **Promemoria avviso** sono attivi per impostazione predefinita, mentre **Nota dell'avviso pubblicata** e **Aggiunto come proprietario dell'avviso** restano disattivati finché qualcuno non li attiva. Un avviso senza proprietari notifica invece i proprietari del progetto. Se OneUptime si ferma mentre sta inviando una notifica, le persone a cui non era ancora arrivato la ricevono quando OneUptime torna, qualche minuto dopo, e nessuno la riceve due volte.
 - **I vostri strumenti di chat.** **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali. Vedere [Slack](/docs/workspace-connections/slack) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Risoluzione dei problemi

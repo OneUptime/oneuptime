@@ -41,7 +41,7 @@ Volledig uitgeschreven leest OneUptime deze instellingen in deze volgorde, en de
 
 ## Voordat u begint
 
-- **Een rol die het project wijzigt.** Project Owner of Project Admin wijzigen de bewaring van het project. De bewaring van een service of resource vraagt de rol die de andere instellingen ervan wijzigt.
+- **Een rol die het project wijzigt.** Projecteigenaar of Projectbeheerder wijzigen de bewaring van het project. De bewaring van een service of resource vraagt de rol die de andere instellingen ervan wijzigt.
 - **Voor overschrijvingen, de Enterprise Edition of het Scale-abonnement.** Een zelfgehoste installatie heeft een Enterprise-licentie nodig, en een OneUptime Cloud-project het Scale-abonnement of hoger. De standaardbewaring van het project zit in elke editie en elk abonnement.
 
 ## De bewaring van het project wijzigen

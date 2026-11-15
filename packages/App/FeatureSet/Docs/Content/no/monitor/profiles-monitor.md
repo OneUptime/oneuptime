@@ -160,5 +160,5 @@ Ingen ramme i vinduet inneholder funksjonsteksten. Åpne funksjonen i profilerer
 - [Profiler](/docs/telemetry/profiles): Send profiler, og les dem i profilereren.
 - [Monitortrinn](/docs/terraform/monitor-steps): Send trinnets konfigurasjon fra Terraform.
 - [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Bli varslet om CPU, minne og andre metrikker.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om CPU, minne og andre målinger.
 :::

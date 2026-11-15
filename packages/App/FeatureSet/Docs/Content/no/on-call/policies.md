@@ -111,11 +111,11 @@ flowchart TB
 | Status | Hva den betyr |
 | --- | --- |
 | **Venter** | En vaktregel satt til **Bare i arbeidstiden** lar kjøringen vente til arbeidstiden begynner: den sier når tilkallingen starter, og tilkaller ingen fram til da. Den avsluttes uten å tilkalle hvis hendelsen eller varselet blir bekreftet eller løst først. Den begynner å tilkalle straks hvis hendelsen eller varselet endrer seg og nå samsvarer med en vaktregel som tilkaller med en gang. |
-| **Planlagt**, **Startet** | Kjøringen settes opp. En som fortsatt står her etter 5 minutter, stoppes som **Feil**. |
-| **Utføres** | Kjøringen tilkaller. OneUptime fører den et steg videre hvert minutt. |
+| **Planlagt**, **Startet** | Kjøringen settes opp. En som fortsatt står her etter 5 minutter, ble ikke ferdig med å starte: den går videre til **Utføres** og tilkaller derfra starten stoppet. En direkte tilkalling eller en testtilkalling som fortsatt står her, stoppes som **Feil**. |
+| **Utføres** | Kjøringen tilkaller. OneUptime fører den et steg videre hvert minutt. Et steg som feiler et øyeblikk, for eksempel fordi databasen ikke kunne nås, prøves igjen et minutt senere, så 2 og 4 minutter senere, og deretter hvert 5. minutt. |
 | **Utførelse fullført** | Noen bekreftet, hendelsen eller varselet ble løst, alle regler og gjentakelser ble brukt, eller retningslinjen ble arkivert. |
 | **Utførelse fullført - ingen varslet** | Kjøringen gikk gjennom alle regler og tilkalte ingen: som regel en vaktplan der ingen har vakt, eller et nivå uten mottakere. |
-| **Feil** | Kjøringen mislyktes. **Vis statusmelding** sier hvorfor. |
+| **Feil** | Kjøringen mislyktes: et steg feilet på en måte et nytt forsøk ikke kan rette, for eksempel en slettet eskaleringsregel, eller feilet 10 forsøk på rad over omtrent 37 minutter. **Vis statusmelding** sier hvorfor. |
 
 Du finner utførelseslogger tre steder:
 

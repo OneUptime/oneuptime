@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 8829
+    "keys": 53649,
+    "untranslated": 8660
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -41,6 +41,7 @@
     "Datadog URL",
     "Deployment",
     "DeploymentConfigs",
+    "Docker CLI",
     "Docker Compose",
     "Down + In",
     "Down + Out",
@@ -105,6 +106,8 @@
     "Ping",
     "Pod · data",
     "Pod · production",
+    "Podman CLI",
+    "Podman Compose",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",

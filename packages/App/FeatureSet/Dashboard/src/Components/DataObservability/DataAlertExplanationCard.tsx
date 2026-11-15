@@ -15,7 +15,12 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -142,7 +147,9 @@ const ImpactLine: FunctionComponent<{
   return (
     <div className="text-sm text-gray-700">
       <span className="font-medium text-gray-900">
-        {translator.translateText(props.label)}:
+        {translator.translateTemplate(LABEL_WITH_COLON, {
+          label: translatableTerm(props.label),
+        })}
       </span>{" "}
       {props.names.join(", ")}
     </div>
