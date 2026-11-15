@@ -184,7 +184,7 @@ describe("the finding strip in the reader's language", () => {
       "font-semibold",
     );
     expect(screen.getByTestId("trace-performance-detail")).toHaveTextContent(
-      "Zusammen benötigen sie 960 ms dieser 1.72 s langen Anfrage.",
+      "Zusammen benötigen sie 960 ms dieser 1,72 Sek. langen Anfrage.",
     );
     expect(
       screen.getByTestId("trace-fix-performance-connect"),

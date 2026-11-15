@@ -30,6 +30,8 @@ jest.mock(
 
 import LlmAlertsView from "../../../../App/FeatureSet/Dashboard/src/Components/LlmAlerts/LlmAlertsView";
 import LlmSummaryTiles from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmSummaryTiles";
+import { formatLlmDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationFormat";
+import { createTranslator } from "../../../Types/Translator";
 import LlmIssueBadge from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmIssueBadge";
 import LlmReplayBar from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmReplayBar";
 import LlmConversationRow from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationRow";
@@ -166,8 +168,19 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
       expect(tiles).toHaveTextContent(word(locale, label));
     }
 
+    /*
+     * The time in the reader's figures and unit, as the tile writes it,
+     * its no-break spaces read as toHaveTextContent reads the page's.
+     */
     expect(tiles).toHaveTextContent(
-      word(locale, "Slowest 5%: {{duration}}", { duration: "9.1 s" }),
+      word(locale, "Slowest 5%: {{duration}}", {
+        duration: formatLlmDuration(
+          summary().p95AnswerMs!,
+          createTranslator((text: string): string | undefined => {
+            return LOCALES[locale]![text];
+          }, locale),
+        ),
+      }).replace(/[\u00A0\u202F]/g, " "),
     );
     expect(tiles).not.toHaveTextContent("Typical answer time");
   });
