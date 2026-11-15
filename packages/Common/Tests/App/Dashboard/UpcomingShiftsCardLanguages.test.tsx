@@ -552,7 +552,11 @@ describe("in Japanese", () => {
 
     expect(screen.getByText("今後のシフト")).toBeInTheDocument();
     expect(text(now, "upcoming-shift-day-label")).toBe("現在のオンコール");
-    expect(text(now, "upcoming-shift-times")).toBe("6:00 まで");
+    /*
+     * A 24-hour time keeps its zero, as the tables beside the card write it
+     * (#7649, getHourOption): 06:00, not 6:00.
+     */
+    expect(text(now, "upcoming-shift-times")).toBe("06:00 まで");
     expect(text(now, "upcoming-shift-length")).toBe("残り 6 時間");
     expect(text(tomorrow, "upcoming-shift-tile")).toBe("10月15");
     expect(text(tomorrow, "upcoming-shift-day-label")).toBe("今日");

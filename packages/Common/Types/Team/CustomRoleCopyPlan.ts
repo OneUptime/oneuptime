@@ -1,5 +1,5 @@
 import PermissionScope from "../Database/AccessControl/PermissionScope";
-import Permission from "../Permission";
+import Permission, { PermissionHelper } from "../Permission";
 
 /*
  * THE TEAM PERMISSION ROWS A CUSTOM ROLE SHOULD BE, AND WHAT TO DO TO GET
@@ -91,6 +91,39 @@ const idKey: (id: string | null | undefined) => string = (
   id: string | null | undefined,
 ): string => {
   return (id || "").toString().toLowerCase();
+};
+
+/*
+ * A role's rows by role, but those no team or key may hold: a permission
+ * the pickers do not offer (PermissionHelper.isAssignableToTenant) is never
+ * copied. A role cannot be given one any more (CustomRolePermissionService),
+ * so this is for a row stored before it could not: giving the role copies
+ * every other permission of it, and a copy of one already made is deleted
+ * on the next sync, as any copy no row of the role wants.
+ */
+const groupCopiedRowsByRole: (
+  rolePermissions: ReadonlyArray<RolePermissionRow>,
+) => Map<string, Array<RolePermissionRow>> = (
+  rolePermissions: ReadonlyArray<RolePermissionRow>,
+): Map<string, Array<RolePermissionRow>> => {
+  const assignable: Set<string> = PermissionHelper.getTenantPermissionValues();
+  const permissionsByRole: Map<string, Array<RolePermissionRow>> = new Map<
+    string,
+    Array<RolePermissionRow>
+  >();
+
+  for (const row of rolePermissions) {
+    if (!assignable.has(row.permission)) {
+      continue;
+    }
+
+    const roleKey: string = idKey(row.customRoleId);
+    const rows: Array<RolePermissionRow> = permissionsByRole.get(roleKey) || [];
+    rows.push(row);
+    permissionsByRole.set(roleKey, rows);
+  }
+
+  return permissionsByRole;
 };
 
 const sortedLabelKeys: (labelIds: ReadonlyArray<string>) => Array<string> = (
@@ -210,17 +243,10 @@ export const planRoleCopies: (data: {
   rolePermissions: ReadonlyArray<RolePermissionRow>;
   copies: ReadonlyArray<TeamPermissionCopyRow>;
 }): RoleCopyPlan => {
-  const permissionsByRole: Map<string, Array<RolePermissionRow>> = new Map<
+  const permissionsByRole: Map<
     string,
     Array<RolePermissionRow>
-  >();
-
-  for (const row of data.rolePermissions) {
-    const roleKey: string = idKey(row.customRoleId);
-    const rows: Array<RolePermissionRow> = permissionsByRole.get(roleKey) || [];
-    rows.push(row);
-    permissionsByRole.set(roleKey, rows);
-  }
+  > = groupCopiedRowsByRole(data.rolePermissions);
 
   // Every copy that should exist, by the role given to the team and the role's row.
   const wanted: Map<string, TeamPermissionCopyToCreate> = new Map<
@@ -382,17 +408,10 @@ export const planApiKeyRoleCopies: (data: {
   rolePermissions: ReadonlyArray<RolePermissionRow>;
   copies: ReadonlyArray<ApiKeyPermissionCopyRow>;
 }): ApiKeyRoleCopyPlan => {
-  const permissionsByRole: Map<string, Array<RolePermissionRow>> = new Map<
+  const permissionsByRole: Map<
     string,
     Array<RolePermissionRow>
-  >();
-
-  for (const row of data.rolePermissions) {
-    const roleKey: string = idKey(row.customRoleId);
-    const rows: Array<RolePermissionRow> = permissionsByRole.get(roleKey) || [];
-    rows.push(row);
-    permissionsByRole.set(roleKey, rows);
-  }
+  > = groupCopiedRowsByRole(data.rolePermissions);
 
   // Every copy that should exist, by the role given to the key and the role's row.
   const wanted: Map<string, ApiKeyPermissionCopyToCreate> = new Map<
