@@ -3513,6 +3513,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/SignInStatementsPostgres.test.ts --forceExit
 
+      # #8105: every write of a measurement's backfill - each page's cursor,
+      # the completion stamp - is held to the backfillRequestedAt the walk
+      # read, so an edit made while it is walked always wins. Clones the
+      # migrated IncidentMeasurement, AlertMeasurement and
+      # ScheduledMaintenanceMeasurement tables into an isolated schema: the
+      # guard compares to the millisecond (FirstPagedAt stamps the request
+      # with now(), whose microseconds a read drops), and an edit that commits
+      # while the walk's write waits for the row is still never written over.
+      - name: Test the measurement backfill's writes held to their request on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MEASUREMENT_BACKFILL_PROGRESS_TESTS: "true"
+          MEASUREMENT_BACKFILL_PROGRESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MEASUREMENT_BACKFILL_PROGRESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MEASUREMENT_BACKFILL_PROGRESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Measurement/MeasurementBackfillProgressPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when
