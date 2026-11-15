@@ -1893,7 +1893,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     const segmentClassName: (isActive: boolean) => string = (
       isActive: boolean,
     ): string => {
-      return `rounded-full px-2.5 py-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${
+      return `rounded-xl px-2.5 py-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${
         isActive
           ? "bg-white text-indigo-700 shadow-sm"
           : "text-indigo-600 hover:text-indigo-800"
@@ -1903,7 +1903,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
       <div
         role="group"
         aria-label={translator.translateText("Device positions")}
-        className="pointer-events-auto inline-flex items-center gap-0.5 rounded-full border border-indigo-200 bg-indigo-50/95 p-0.5 text-xs font-medium shadow-sm backdrop-blur"
+        className="pointer-events-auto inline-flex max-w-full items-stretch gap-0.5 rounded-2xl border border-indigo-200 bg-indigo-50/95 p-0.5 text-xs font-medium shadow-sm backdrop-blur"
         data-testid="network-topology-custom-layout-chip"
       >
         <button
@@ -1961,7 +1961,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           role="group"
           aria-label={translator.translateText("Search results on the map")}
           data-testid="network-topology-search-matches"
-          className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50/95 py-0.5 pl-2.5 pr-1 text-xs font-medium text-amber-900 shadow-sm backdrop-blur"
+          className="pointer-events-auto inline-flex max-w-full flex-wrap items-center gap-1 rounded-2xl border border-amber-200 bg-amber-50/95 py-0.5 pl-2.5 pr-1 text-xs font-medium text-amber-900 shadow-sm backdrop-blur"
         >
           <span
             role="status"
@@ -2026,7 +2026,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
         <div
           role="status"
           data-testid="network-topology-hidden-search-matches"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50/95 py-0.5 pl-3 pr-1 text-xs font-medium text-amber-900 shadow-sm backdrop-blur"
+          className="pointer-events-auto inline-flex max-w-full items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/95 py-0.5 pl-3 pr-1 text-xs font-medium text-amber-900 shadow-sm backdrop-blur"
         >
           <span>
             {translator.translatePlural(
@@ -2041,7 +2041,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
             type="button"
             data-testid="network-topology-show-hidden-matches"
             title={translator.translateText("Opens the branches they are in.")}
-            className="rounded-full bg-white px-2 py-0.5 text-amber-800 shadow-sm hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
+            className="flex-none rounded-xl bg-white px-2 py-0.5 text-amber-800 shadow-sm hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
             onClick={revealHiddenMatches}
           >
             {translator.translateText("Show on map")}
@@ -2057,7 +2057,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     return (
       <div
         role="status"
-        className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
+        className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
         data-testid="network-topology-no-search-matches"
       >
         {translator.translateTemplate(
