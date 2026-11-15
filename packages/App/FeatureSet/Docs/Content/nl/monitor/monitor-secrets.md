@@ -25,7 +25,7 @@ De sonde die de controle uitvoert, ontvangt de waarde, dus een monitor die een g
 ## Voordat u begint
 
 - **Het Growth-abonnement of hoger**, op OneUptime Cloud. Zelf gehoste installaties hebben geen abonnementen.
-- **Een rol die geheimen mag beheren**: Project Owner, Project Admin, of een aangepaste rol met de machtiging Create Monitor Secret.
+- **Een rol die geheimen mag beheren**: Projecteigenaar, Projectbeheerder, of een aangepaste rol met de machtiging Create Monitor Secret.
 
 ## Werken met geheimen
 

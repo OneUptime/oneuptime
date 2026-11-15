@@ -473,7 +473,7 @@ Een type biedt alleen de componenten die zijn model toestaat. Een alleen-lezenty
 
 Zo leest en wijzigt een workflow OneUptime-gegevens. Een webhook van je CI-tool kan bijvoorbeeld **Create One Incident** gebruiken om een incident te openen met de details van de fout.
 
-Deze componenten handelen als Project Admin van het project van de workflow: wat een Project Admin niet mag, of wat je abonnement niet bevat, wordt geweigerd, en het logboek van de uitvoering zegt waarom. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
+Deze componenten handelen als Projectbeheerder van het project van de workflow: wat een Projectbeheerder niet mag, of wat je abonnement niet bevat, wordt geweigerd, en het logboek van de uitvoering zegt waarom. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 
 ### Een incident melden vanuit een sjabloon
 

@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - Et Log Analytics-arbeidsområde med Microsoft Sentinel aktivert, i den offentlige Azure-skyen eller i Azure Government (US).
 - I Microsoft Entra ID retten til å opprette en appregistrering og en klienthemmelighet.
 - På ressursgruppen som inneholder arbeidsområdet, retten til å tildele roller, for eksempel Eier eller Administrator for brukertilgang.

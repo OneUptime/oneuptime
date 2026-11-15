@@ -111,16 +111,18 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test and a storage array, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a storage array and a range's two ends, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
         "Change (schema change)",
         "Created (import result)",
+        "From (range start)",
         "Open (invoice status)",
         "Open (status)",
         "Table (database object)",
         "Test (dbt test)",
+        "To (range end)",
         "View (database object)",
       ].sort(),
     );
@@ -134,6 +136,10 @@ describe("the keys that name their meaning", () => {
     // #7522: the storage widgets' column, which English reads as "Array".
     expect(getWordOfMeaningKey("Array (storage array)")).toBe("Array");
     expect(getWordOfMeaningKey("Array")).toBeUndefined();
+    // #8201: a range's two ends, never a message's sender and recipient.
+    expect(getWordOfMeaningKey("From (range start)")).toBe("From");
+    expect(getWordOfMeaningKey("To (range end)")).toBe("To");
+    expect(getWordOfMeaningKey("To")).toBeUndefined();
   });
 
   test("are no other text, not even one shaped like them: it reads as it is written", () => {

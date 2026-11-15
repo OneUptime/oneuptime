@@ -317,6 +317,7 @@ import {
   Translator,
   composedValue,
   createTranslator,
+  translatableTerm,
 } from "../../../UI/Utils/TranslateTemplate";
 
 jest.setTimeout(180000);
@@ -2565,7 +2566,18 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
       "Top P",
       "Finish reason",
     ]) {
-      expect(screen.getByText(`${word(language, label)}:`)).toBeInTheDocument();
+      /*
+       * The label and its colon as one key, the language's colon (#8290):
+       * French sets it apart with a no-break space, which getByText reads
+       * as a space.
+       */
+      expect(
+        screen.getByText(
+          sentence(language, "{{label}}:", {
+            label: translatableTerm(label),
+          }).replace(/\s+/g, " "),
+        ),
+      ).toBeInTheDocument();
     }
     expect(
       screen.getByText(word(language, "not reported by SDK")),

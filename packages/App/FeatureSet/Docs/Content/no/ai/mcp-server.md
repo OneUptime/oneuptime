@@ -430,7 +430,7 @@ Disse fungerer uten påloggingsdetaljer, med bare verktøyene for offentlige sta
 | Hva agenten gjør | Velg under **Tilgang** |
 | --- | --- |
 | Leser bare | **Leser**, eller legg til lesetillatelser på nøkkelens side |
-| Oppretter, oppdaterer og sletter også | **Prosjektadministrator**, eller legg til rollen Project Admin på nøkkelens side |
+| Oppretter, oppdaterer og sletter også | **Prosjektadministrator**, eller legg til rollen Prosjektadministrator på nøkkelens side |
 
 Gi hver nøkkel det minste den trenger, roter nøkler jevnlig, ha en egen nøkkel for hvert miljø, og følg med på hva hver nøkkel gjør i OneUptime.
 

@@ -78,7 +78,7 @@ function load(): { transpiler: Transpiler; stub: Stub } {
  */
 const COMPILER_OPTIONS: ts.CompilerOptions = ts.convertCompilerOptionsFromJson(
   {
-    target: "es2017",
+    target: "es2018",
     module: "commonjs",
     jsx: "react",
     experimentalDecorators: true,

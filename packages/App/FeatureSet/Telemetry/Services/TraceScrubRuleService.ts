@@ -18,7 +18,7 @@ import {
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
-import { copyOwnValues } from "Common/Utils/LookupTable";
+import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
   rule: TraceScrubRule;
@@ -165,7 +165,11 @@ export class TraceScrubRuleService {
       return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
-    const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
+    // The saved rule's own word: a pattern type no table lists matches nothing.
+    const builtIn: RegExp | undefined = readOwnValue(
+      BUILT_IN_PATTERNS,
+      patternType,
+    );
     if (builtIn) {
       return scrubRegExpFromBuiltIn(builtIn);
     }

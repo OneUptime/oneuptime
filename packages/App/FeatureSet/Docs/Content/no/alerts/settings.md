@@ -161,7 +161,7 @@ Eiere får hver påminnelse som **Påminnelse om varsel**, som er slått på via
 
 ### Medlemskap i episoder
 
-**Varsler → Innstillinger → Medlemskap i episoder** avgjør om et varsel kan være i mer enn én episode. Slå på **Et varsel kan bare være i én episode**, så blir et varsel som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før det er tatt ut av den episoden. Bryteren er slått av til du slår den på, og bare Project Owners og Project Admins kan endre den. Å slå den på tar ikke noe varsel ut av en episode. Se [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse), som fungerer på samme måte for varsler.
+**Varsler → Innstillinger → Medlemskap i episoder** avgjør om et varsel kan være i mer enn én episode. Slå på **Et varsel kan bare være i én episode**, så blir et varsel som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før det er tatt ut av den episoden. Bryteren er slått av til du slår den på, og bare Prosjekteiere og Prosjektadministratorer kan endre den. Å slå den på tar ikke noe varsel ut av en episode. Se [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse), som fungerer på samme måte for varsler.
 
 ### Nummerering
 
@@ -171,7 +171,7 @@ Kortet **Neste nummer** under setter nummeret det neste varselet og den neste ep
 
 ### Dataoppbevaring
 
-**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Project Owners og Project Admins kan endre den; i API-et er det prosjektets `alertRetentionInDays`.
+**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Prosjekteiere og Prosjektadministratorer kan endre den; i API-et er det prosjektets `alertRetentionInDays`.
 
 > [!NOTE]
 > På OneUptime Cloud krever notatmaler og egendefinerte felt planen **Growth** eller høyere.
@@ -182,7 +182,7 @@ Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **O
 
 ## Hvem som kan endre dem
 
-Regler, egendefinerte felt og målinger krever en Project Owner eller Project Admin, eller en egendefinert rolle med regelens egen tillatelse. **Varselmedlem** jobber med varsler og episoder, notatene deres, eiere og tilstandstidslinjer og notatmaler, og **Varseladministrator** administrerer i tillegg varseltilstander og alvorlighetsgrader. Se [Brukere, team og tillatelser](/docs/permissions/index).
+Regler, egendefinerte felt og målinger krever en Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med regelens egen tillatelse. **Varselmedlem** jobber med varsler og episoder, notatene deres, eiere og tilstandstidslinjer og notatmaler, og **Varseladministrator** administrerer i tillegg varseltilstander og alvorlighetsgrader. Se [Brukere, team og tillatelser](/docs/permissions/index).
 
 ## Neste steg
 

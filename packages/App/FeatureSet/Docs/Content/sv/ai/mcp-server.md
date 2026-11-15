@@ -430,7 +430,7 @@ De här fungerar utan inloggningsuppgifter, med enbart verktygen för publika st
 | Vad agenten gör | Välj under **Åtkomst** |
 | --- | --- |
 | Läser bara | **Tittare**, eller lägg till läsbehörigheter på nyckelns sida |
-| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Project Admin på nyckelns sida |
+| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Projektadministratör på nyckelns sida |
 
 Ge varje nyckel det minsta den behöver, rotera nycklar regelbundet, ha en separat nyckel för varje miljö och håll koll på vad varje nyckel gör i OneUptime.
 

@@ -11,6 +11,7 @@ import {
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import VMRunner from "./VMRunner";
+import { readOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * What the body of an {{#each}} block is rendered against, for one element.
@@ -774,14 +775,16 @@ export default class VMUtil {
       const openBracketIndex: number = key.indexOf("[");
       const closeBracketIndex: number = key.indexOf("]");
 
+      // Own keys only, as deepFind reads them.
       if (openBracketIndex === -1 || closeBracketIndex === -1) {
-        current = (current as JSONObject)[key] as JSONValue;
+        current = readOwnValue(current as JSONObject, key) as JSONValue;
         continue;
       }
 
-      const list: JSONValue = (current as JSONObject)[
-        key.slice(0, openBracketIndex)
-      ] as JSONValue;
+      const list: JSONValue = readOwnValue(
+        current as JSONObject,
+        key.slice(0, openBracketIndex),
+      ) as JSONValue;
 
       if (list === null) {
         return true;
@@ -812,6 +815,14 @@ export default class VMUtil {
     return current === null;
   }
 
+  /*
+   * Each segment is read as the value's own key (readOwnValue), an array's
+   * index and length included. A plain read found what every object
+   * inherits: a template naming {{constructor}} or {{toString}}, or
+   * {{seriesLabels.toString}} on a series without that label, rendered the
+   * function's source, and {{__proto__}} the prototype every object shares.
+   * A key so named that the data holds itself is read like any other.
+   */
   @CaptureSpan()
   public static deepFind(obj: JSONObject, path: string): JSONValue {
     const paths: Array<string> = path.split(".");
@@ -832,6 +843,9 @@ export default class VMUtil {
           openBracketIndex + 1,
           closeBracketIndex,
         );
+        const list: unknown = current
+          ? readOwnValue(current, arrayKey)
+          : undefined;
         let index: number = 0;
 
         if (indexString !== "last") {
@@ -844,20 +858,20 @@ export default class VMUtil {
            * resolution failure in here that was not silent. Fall through to the
            * undefined return that every other miss produces.
            */
-          if (!Array.isArray(current[arrayKey])) {
+          if (!Array.isArray(list)) {
             return undefined;
           }
 
-          index = current[arrayKey].length - 1;
+          index = list.length - 1;
         }
 
-        if (Array.isArray(current[arrayKey]) && current[arrayKey][index]) {
-          current = current[arrayKey][index];
+        if (Array.isArray(list) && list[index]) {
+          current = list[index];
         } else {
           return undefined;
         }
-      } else if (current && current[key] !== undefined) {
-        current = current[key];
+      } else if (current && readOwnValue(current, key) !== undefined) {
+        current = readOwnValue(current, key);
       } else {
         /*
          * A key with a dot of its own: a custom field called "Release 1.2" is

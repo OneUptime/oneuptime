@@ -51,7 +51,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
+  PluralTemplate,
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -106,6 +108,7 @@ import {
   CorrelateClassEventsPanel,
   CorrelateObservablePivotPanel,
   CorrelateOverview,
+  formatEventCount,
 } from "./CorrelateInspector";
 import {
   CorrelateGraphLegend,
@@ -113,6 +116,22 @@ import {
 } from "./CorrelateResultSummary";
 import SecurityEventDetail from "./SecurityEventDetail";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+
+/*
+ * The results header's count and window, each one sentence in the reader's
+ * language: the count in its plural forms ("3 matching events."), and the
+ * window's two ends where the language puts them, as a hunt's run says it.
+ * They read a count beside English's 1-or-more noun, and "Searched" then
+ * two dates around an en dash (#8290).
+ */
+export const MATCHING_EVENTS_FOUND: PluralTemplate = {
+  one: "{{count}} matching event.",
+  other: "{{count}} matching events.",
+};
+
+export const SEARCHED_WINDOW: string = translationKey(
+  "Searched {{start}} to {{end}}",
+);
 
 /*
  * Entity-neighborhood graph over security events: the applied filter in the
@@ -1659,12 +1678,12 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
     if (isLoading) {
       status = t("Correlating events…");
     } else if (!errorKind) {
-      status = (
-        <>
-          {events.length}
-          {isTruncated ? "+" : ""}{" "}
-          {t(events.length === 1 ? "matching event" : "matching events")}.
-        </>
+      status = translator.translatePlural(
+        MATCHING_EVENTS_FOUND,
+        events.length,
+        {
+          count: formatEventCount(translator, events.length, isTruncated),
+        },
       );
     }
 
@@ -1691,14 +1710,14 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
               data-testid="correlate-result-window"
               className="mt-0.5 text-xs text-gray-500"
             >
-              {t("Searched")}{" "}
-              {OneUptimeDate.getDateAsLocalShortDateTimeString(
-                resultWindow.start,
-              )}{" "}
-              –{" "}
-              {OneUptimeDate.getDateAsLocalShortDateTimeString(
-                resultWindow.end,
-              )}
+              {translator.translateTemplate(SEARCHED_WINDOW, {
+                start: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                  resultWindow.start,
+                ),
+                end: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                  resultWindow.end,
+                ),
+              })}
             </p>
           )}
         </div>

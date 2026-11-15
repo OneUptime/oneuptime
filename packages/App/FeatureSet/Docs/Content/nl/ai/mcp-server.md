@@ -430,7 +430,7 @@ Deze werken zonder inloggegevens, met alleen de tools voor openbare statuspagina
 | Wat de agent doet | Kies onder **Toegang** |
 | --- | --- |
 | Leest alleen | **Kijker**, of voeg leesmachtigingen toe op de pagina van de sleutel |
-| Maakt ook aan, werkt bij en verwijdert | **Projectbeheerder**, of voeg de rol Project Admin toe op de pagina van de sleutel |
+| Maakt ook aan, werkt bij en verwijdert | **Projectbeheerder**, of voeg de rol Projectbeheerder toe op de pagina van de sleutel |
 
 Geef elke sleutel het minimum dat hij nodig heeft, roteer sleutels regelmatig, gebruik een aparte sleutel voor elke omgeving en houd in OneUptime in de gaten wat elke sleutel doet.
 

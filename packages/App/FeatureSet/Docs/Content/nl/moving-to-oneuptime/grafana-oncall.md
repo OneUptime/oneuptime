@@ -26,7 +26,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
+- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en Projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
 - **Een API-token van Grafana OnCall.** Gebruik een OnCall-API-token, geen token van een Grafana-serviceaccount. De import schrijft nooit naar Grafana OnCall. Verwijder het token zodra de import klaar is.
 - **Uw OnCall-API-URL.** De instellingen van OnCall tonen die naast de API-tokens. In Grafana Cloud ziet die eruit als `https://oncall-prod-us-central-0.grafana.net/oncall`. Bij een eigen installatie is het het adres van uw OnCall-engine.
 
@@ -77,7 +77,7 @@ Eén import maakt hooguit 2.000 records aan: hooguit 500 personen, 200 teams, 20
 
 In OneUptime Cloud worden records die uw abonnement niet bevat, getoond als niet overgenomen, met het abonnement dat ze nodig hebben.
 
-Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en projectbeheerders zien de voortgang en het rapport van elke import.
+Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en Projectbeheerders zien de voortgang en het rapport van elke import.
 
 ## Rond de overstap af
 

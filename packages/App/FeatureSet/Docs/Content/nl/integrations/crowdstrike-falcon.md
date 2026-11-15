@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een Falcon-klant-ID (CID), en een gebruiker van de Falcon-console die API-clients mag beheren: de rol Falcon Administrator, of een aangepaste rol met de machtiging API clients and keys.
 - Uitgaand HTTPS van de OneUptime-app en -workers naar de API-host van je Falcon-cloud, vermeld onder **Falcon-cloud** hieronder.
 

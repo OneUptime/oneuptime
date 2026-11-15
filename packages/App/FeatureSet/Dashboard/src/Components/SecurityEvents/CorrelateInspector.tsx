@@ -11,6 +11,8 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { PluralTemplate, Translator } from "Common/Types/Translator";
 import SecurityEventSeverityPill, {
   getSeverityColor,
 } from "./SecurityEventSeverityPill";
@@ -33,6 +35,37 @@ const useT: () => TranslateFunction = (): TranslateFunction => {
   return (value: string): string => {
     return translateString(value) || value;
   };
+};
+
+/*
+ * A count and its noun as one sentence, in the plural forms of the reader's
+ * language: "3 matching events", never English's 1-or-more beside a
+ * translated noun (#8290).
+ */
+export const MATCHING_EVENTS: PluralTemplate = {
+  one: "{{count}} matching event",
+  other: "{{count}} matching events",
+};
+
+export const OBSERVABLES_NOT_SHOWN: PluralTemplate = {
+  one: "{{count}} less frequent observable not shown",
+  other: "{{count}} less frequent observables not shown",
+};
+
+/*
+ * A count in the reader's digits, with "+" where it is only a lower bound:
+ * "2+", "۲+".
+ */
+export const formatEventCount: (
+  translator: Translator,
+  count: number,
+  isLowerBound: boolean,
+) => string = (
+  translator: Translator,
+  count: number,
+  isLowerBound: boolean,
+): string => {
+  return `${translator.formatNumber(count)}${isLowerBound ? "+" : ""}`;
 };
 
 // Same neutral the class node card uses, so a list dot matches its card.
@@ -91,6 +124,7 @@ export const CorrelateOverview: FunctionComponent<CorrelateOverviewProps> = (
   props: CorrelateOverviewProps,
 ): ReactElement => {
   const t: TranslateFunction = useT();
+  const translator: Translator = useTranslator();
   const plus: string = props.countsAreLowerBounds ? "+" : "";
   const maxClassCount: number = getMaxCount(props.classes);
   const maxObservableCount: number = getMaxCount(props.observables);
@@ -244,8 +278,10 @@ export const CorrelateOverview: FunctionComponent<CorrelateOverviewProps> = (
             data-testid="correlate-overview-dropped"
             className="mt-2 text-xs text-gray-500"
           >
-            {props.droppedObservableCount}{" "}
-            {t("less frequent observables not shown")}
+            {translator.translatePlural(
+              OBSERVABLES_NOT_SHOWN,
+              props.droppedObservableCount,
+            )}
           </p>
         )}
       </section>
@@ -275,6 +311,7 @@ export const CorrelateClassEventsPanel: FunctionComponent<
   CorrelateClassEventsPanelProps
 > = (props: CorrelateClassEventsPanelProps): ReactElement => {
   const t: TranslateFunction = useT();
+  const translator: Translator = useTranslator();
   const eventCount: number = props.events.length;
   const headingId: string = useId();
   const visibleEvents: Array<SecurityEvent> = props.events.slice(
@@ -318,9 +355,13 @@ export const CorrelateClassEventsPanel: FunctionComponent<
             data-testid="correlate-drilldown-count"
             className="text-xs text-gray-600"
           >
-            {eventCount}
-            {props.countIsLowerBound ? "+" : ""}{" "}
-            {t(eventCount === 1 ? "matching event" : "matching events")}
+            {translator.translatePlural(MATCHING_EVENTS, eventCount, {
+              count: formatEventCount(
+                translator,
+                eventCount,
+                Boolean(props.countIsLowerBound),
+              ),
+            })}
           </p>
         </div>
         {props.canFilterToClass ? (

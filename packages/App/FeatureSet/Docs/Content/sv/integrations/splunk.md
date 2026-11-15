@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - Ett search head med Splunk Enterprise 9.0.1 eller senare, eller Splunk Cloud Platform. OneUptime pratar med dess REST API på hanteringsporten, vanligtvis `8089`. Splunk Web, på port `8000`, erbjuder inte REST API:t.
 - En Splunk-användare för OneUptime, vars roll har capabilityn `search` och kan läsa det index som sökningen läser: `notable` för notable events. Enterprise Security-rollerna `ess_analyst` och `ess_user` ger båda delarna. Anslutningen läser bara, så rollen behöver inget annat.
 - Ett search head som OneUptime kan nå över HTTPS. OneUptime Cloud ansluter från internet, så search headen behöver en offentlig adress: privata adresser avvisas. En egenvärdad OneUptime ansluter från sina app- och workercontainrar och kan nå ett search head i ditt privata nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`.

@@ -188,10 +188,10 @@ Et filter, du selv skriver, er én linje på højst 500 tegn, lavet af bogstaver
 
 | Tilladelse | Lader en person | Hvem har den som standard |
 | --- | --- | --- |
-| **Start Packet Capture** | Starte opsamlinger og standse dem | Project Owner, Project Admin |
-| **Download Packet Capture** | Downloade opsamlingsfiler | Project Owner, Project Admin |
-| **Delete Packet Capture** | Slette opsamlinger og deres filer | Project Owner, Project Admin |
-| **Read Packet Capture** | Se opsamlinger: hvornår de kørte, på hvilken sonde og med hvilket filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Starte opsamlinger og standse dem | Projektejer, Projektadministrator |
+| **Download Packet Capture** | Downloade opsamlingsfiler | Projektejer, Projektadministrator |
+| **Delete Packet Capture** | Slette opsamlinger og deres filer | Projektejer, Projektadministrator |
+| **Read Packet Capture** | Se opsamlinger: hvornår de kørte, på hvilken sonde og med hvilket filter | Projektejer, Projektadministrator, Projektmedlem, Seer |
 
 For at give et team **Start Packet Capture** eller **Download Packet Capture** skal du åbne det under **Indstillinger → Teams** og tilføje tilladelsen på dets side **Tilladelser**. Se [Tilladelser](/docs/permissions/index).
 

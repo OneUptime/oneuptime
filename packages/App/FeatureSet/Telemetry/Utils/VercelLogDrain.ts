@@ -1,4 +1,5 @@
 import { JSONObject } from "Common/Types/JSON";
+import lookupTable from "Common/Utils/LookupTable";
 
 /*
  * Vercel log drain deliveries, as OpenTelemetry logs.
@@ -35,13 +36,19 @@ export interface OtlpKeyValue {
   value: OtlpAnyValue;
 }
 
-// Vercel's level, as OpenTelemetry's severity.
-const SEVERITY_OF_LEVEL: Record<string, { number: number; text: string }> = {
-  info: { number: 9, text: "INFO" },
-  warning: { number: 13, text: "WARN" },
-  error: { number: 17, text: "ERROR" },
-  fatal: { number: 21, text: "FATAL" },
-};
+/*
+ * Vercel's level, as OpenTelemetry's severity. Read by the level a record
+ * names, so a Map (lookupTable): a plain object answered a level named
+ * "constructor" or "__proto__" with what every object inherits, and the
+ * log was stored with no severity number and no severity text.
+ */
+const SEVERITY_OF_LEVEL: ReadonlyMap<string, { number: number; text: string }> =
+  lookupTable<{ number: number; text: string }>({
+    info: { number: 9, text: "INFO" },
+    warning: { number: 13, text: "WARN" },
+    error: { number: 17, text: "ERROR" },
+    fatal: { number: 21, text: "FATAL" },
+  });
 
 // A record's string fields and the attribute each one becomes.
 const STRING_FIELDS: Array<[field: string, attribute: string]> = [
@@ -252,7 +259,7 @@ export default class VercelLogDrain {
       record["level"],
     ).toLowerCase();
     const severity: { number: number; text: string } | undefined =
-      SEVERITY_OF_LEVEL[level];
+      SEVERITY_OF_LEVEL.get(level);
 
     const proxy: JSONObject =
       record["proxy"] &&

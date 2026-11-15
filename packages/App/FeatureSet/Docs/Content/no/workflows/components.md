@@ -473,7 +473,7 @@ En type tilbyr bare komponentene modellen dens tillater. En skrivebeskyttet type
 
 Slik leser og endrer en arbeidsflyt OneUptime-data. For eksempel kan en webhook fra CI-verktøyet ditt bruke **Create One Incident** til å åpne en hendelse med detaljene om feilen.
 
-Disse komponentene handler som Project Admin for prosjektet til arbeidsflyten: det en Project Admin ikke har lov til, eller som planen din ikke inkluderer, avvises, og kjøringens logg sier hvorfor. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
+Disse komponentene handler som Prosjektadministrator for prosjektet til arbeidsflyten: det en Prosjektadministrator ikke har lov til, eller som planen din ikke inkluderer, avvises, og kjøringens logg sier hvorfor. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
 
 ### Erklær en hendelse ut fra en mal
 

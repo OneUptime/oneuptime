@@ -250,9 +250,13 @@ function drawnRolePattern(language: string, role: string): string {
  * in English in sentences and table cells.
  */
 export const ROLES_DRAWN_ON_EVERY_PAGE: ReadonlyArray<string> = [
+  "da",
   "de",
   "ja",
   "ko",
+  "nl",
+  "no",
+  "sv",
   "zh-CN",
   "zh-TW",
 ];

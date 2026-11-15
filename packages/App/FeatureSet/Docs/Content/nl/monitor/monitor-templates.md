@@ -27,7 +27,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een rol die sjablonen mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor Template. Een sjabloon wijzigen vraagt dezelfde rollen, of de machtiging Edit Monitor Template.
+- **Een rol die sjablonen mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor Template. Een sjabloon wijzigen vraagt dezelfde rollen, of de machtiging Edit Monitor Template.
 - **Machtiging om de gekoppelde monitoren bij te werken.** Een synchronisatie schrijft namens u naar elke gekoppelde monitor en slaat de monitoren over die uw machtigingen niet dekken.
 
 ## Een sjabloon maken
