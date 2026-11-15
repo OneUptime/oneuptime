@@ -78,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Vervang `https://oneuptime.com` door de URL van uw OneUptime-instantie als u zelf host.
 
-Stuur **GET**- of **POST**-verzoeken naar deze URL. HEAD wordt geaccepteerd en als GET behandeld; PUT, PATCH en DELETE geven 404 terug. De geheime sleutel in het pad is het enige inloggegeven: er is geen header of token nodig. Querystrings worden genegeerd: stuur wat de criteria moeten lezen in de body of de headers.
+Stuur **GET**- of **POST**-verzoeken naar deze URL. HEAD wordt geaccepteerd en als GET behandeld; PUT, PATCH en DELETE geven 404 terug. De geheime sleutel in het pad is het inloggegeven: er is geen header of token nodig, tenzij het project [bij elke aanvraag een geheim vereist](#bij-elke-aanvraag-een-geheim-vereisen). Querystrings worden genegeerd: stuur wat de criteria moeten lezen in de body of de headers.
 
 > [!WARNING]
 > Iedereen die deze URL kent, kan de monitor als gezond markeren, dus behandel hem als een geheim. Lekt hij uit, open dan de pagina **Instellingen** van de monitor en klik op **Geheime sleutel voor inkomende aanvraag opnieuw instellen**, en werk daarna elke afzender bij. Het overzicht van de monitor toont het laatste verzoek zoals de logs het bewaren: met geheimen en persoonsgegevens gemaskeerd, en zonder headers of body wanneer **Verzoekinhoud bewaren** uit staat. Het maskeren herkent de namen en patronen die het kent, dus stuur geen API-sleutels of tokens naar dit endpoint.
 
 > [!IMPORTANT]
-> OneUptime antwoordt meteen `200` met een leeg JSON-object (`{}`) en verwerkt het verzoek via een wachtrij. Dat antwoord wordt geschreven vóór elke controle, dus een `200` is **geen** bevestiging dat het verzoek is aanvaard: een verkeerde geheime sleutel, een verwijderde monitor en een uitgeschakelde monitor geven ook `200` terug. Controleer de tijdlijn van de monitor om te bevestigen dat de verzoeken aankomen.
+> OneUptime antwoordt meteen `200` met een leeg JSON-object (`{}`) en verwerkt het verzoek via een wachtrij. Dat antwoord wordt geschreven vóór elke controle, dus een `200` is **geen** bevestiging dat het verzoek is aanvaard: een verkeerde geheime sleutel, een verwijderde monitor en een uitgeschakelde monitor geven ook `200` terug. Controleer de tijdlijn van de monitor om te bevestigen dat de verzoeken aankomen. De enige uitzondering is een project dat bij elke aanvraag een geheim vereist: een verzoek zonder geheim krijgt `401`.
 
 ### Een verzoeklichaam sturen
 
@@ -188,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Bij elke aanvraag een geheim vereisen
+
+Iedereen die de URL van een monitor heeft, kan er verzoeken naartoe sturen. Een projecteigenaar of -beheerder kan elke monitor voor inkomende aanvragen in het project daarnaast een van de eigen geheimen van het project laten vereisen, wie de monitor ook heeft ingesteld: zet **Bij elke aanvraag een geheim vereisen** aan. Een verzoek zonder geheim wordt geweigerd met `401` en de reden, voordat het als heartbeat telt, als laatste verzoek van de monitor wordt bewaard of criteria bereikt. Een verzoek met een geheim gaat door naar de eigen criteria van de monitor, zoals voorheen.
+
+:::steps
+### Een geheim aanmaken
+
+Ga naar **Monitoren → Instellingen → Geheimen voor inkomende aanvragen** en maak een geheim aan. Geef het een naam en OneUptime genereert de waarde; kopieer die uit de lijst.
+
+### Het vanaf elke afzender versturen
+
+Stuur het geheim mee in de header `X-OneUptime-Secret`, of als Bearer-token in de header `Authorization`, afhankelijk van wat je afzender kan instellen.
+
+### De vereiste aanzetten
+
+Zet **Bij elke aanvraag een geheim vereisen** aan. Zolang het project geen geheim heeft, kan de vereiste niet worden aangezet, zodat geen afzender per ongeluk wordt geweigerd.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime bewaart het geheim nooit: het haalt de header van het verzoek en maskeert een Bearer-token dat een van de geheimen van het project is, voordat het iets bewaart.
+
+> [!TIP]
+> Om een geheim te vervangen zonder iemand te weigeren, maak je een tweede aan, zet je je afzenders erop over en verwijder je het oude zodra **Laatst gebruikt** niet meer verandert. Elk geheim van het project wordt geaccepteerd, en het laatste kan niet worden verwijderd zolang de vereiste aanstaat.
 
 ## Bewakingscriteria
 
@@ -393,6 +425,10 @@ Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of w
 
 :::details Mijn afzender krijgt een 200, maar op de monitor verschijnt niets
 De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijst niet dat het verzoek is aanvaard. Controleer of de geheime sleutel in de URL overeenkomt met de **Heartbeat URL** van de monitor, en of de monitor niet is uitgeschakeld. Kijk daarna in de tijdlijn van de monitor of er verzoeken aankomen.
+:::
+
+:::details Mijn afzender krijgt een 401
+Het project vereist bij elke aanvraag een geheim, en het verzoek stuurde er geen mee, of een dat niet van het project is: het antwoord zegt welke van de twee. Stuur een van de geheimen van het project mee in de header `X-OneUptime-Secret` of als Bearer-token, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien. Een geweigerd verzoek bereikt de monitor nooit.
 :::
 
 :::details De monitor gaat nooit offline als de heartbeats uitblijven

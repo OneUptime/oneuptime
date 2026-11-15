@@ -241,6 +241,52 @@ describe("a breakdown value as the reader reads it", () => {
       }),
     ).toBe("desktop");
   });
+
+  /*
+   * #8196: a page is stored as the browser escapes it ("/caf%C3%A9"), and
+   * a person reads "/café", as User Flows draws the same page. An entry
+   * page and a page are drawn so; a value of any other dimension is never
+   * decoded.
+   */
+  test("an entry page or a page reads as User Flows draws it", () => {
+    for (const dimension of [
+      ProductAnalyticsDimension.EntryPage,
+      ProductAnalyticsDimension.Page,
+    ]) {
+      expect(
+        describeProductAnalyticsValue({
+          dimension: dimension,
+          value: " /caf%C3%A9/men%c3%bc ",
+          translator: english,
+        }),
+      ).toBe("/café/menü");
+      expect(
+        describeProductAnalyticsValue({
+          dimension: dimension,
+          value: "/%D8%A7%D9%84%D8%B3%D9%84%D8%A9",
+          translator: english,
+        }),
+      ).toBe(
+        `${String.fromCharCode(0x2066)}/السلة${String.fromCharCode(0x2069)}`,
+      );
+      // An escaped "/" names another page: it stays escaped.
+      expect(
+        describeProductAnalyticsValue({
+          dimension: dimension,
+          value: "/a%2Fb",
+          translator: english,
+        }),
+      ).toBe("/a%2Fb");
+    }
+
+    expect(
+      describeProductAnalyticsValue({
+        dimension: ProductAnalyticsDimension.AppVersion,
+        value: "caf%C3%A9",
+        translator: english,
+      }),
+    ).toBe("caf%C3%A9");
+  });
 });
 
 describe("numbers", () => {

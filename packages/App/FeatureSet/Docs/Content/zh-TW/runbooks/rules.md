@@ -42,7 +42,7 @@ flowchart TB
 ## 開始之前
 
 - **一個可以執行的 Runbook。** 它至少需要一個步驟，並在其 **設定** 頁面上開啟 **執行此操作手冊** 。請參閱 [撰寫 Runbook](/docs/runbooks/authoring)。
-- **管理規則的權限。** Project Owner、Project Admin 和 Runbook Admin 可以建立 Runbook 規則，擁有 **Create Runbook Rule** 權限的任何人也可以。
+- **管理規則的權限。** 專案擁有者、專案管理員和操作手冊管理員可以建立 Runbook 規則，擁有 **Create Runbook Rule** 權限的任何人也可以。
 
 ## 建立 Runbook 規則
 

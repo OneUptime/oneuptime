@@ -41,7 +41,7 @@ Eine Signatur mit weniger als einem Tag Restlaufzeit gilt bereits als unterbroch
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine signierte Zone.** Die Zone muss signiert sein und ihr DS-Eintrag über Ihren Registrar bei der übergeordneten Zone veröffentlicht.
 - **Ausgehendes DNS von der Sonde** zu den Resolvern, die Sie angeben, und für die Prüfung der Nameserver-Konsistenz zu den autoritativen Nameservern der Zone. Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt.
 

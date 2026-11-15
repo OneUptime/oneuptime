@@ -11,9 +11,9 @@ Runbook は、その **ステップ** ページでステップの順序付きリ
 
 ## 始める前に
 
-- **Runbook を書けるロール。** Project Owner、Project Admin、Runbook Admin は Runbook を作成し、そのステップを保存できます。詳細な権限の場合は **Create Runbook** と **Edit Runbook** が必要です。[権限](/docs/runbooks/configuration#権限) を参照してください。
+- **Runbook を書けるロール。** プロジェクト所有者、プロジェクト管理者、Runbook 管理者は Runbook を作成し、そのステップを保存できます。詳細な権限の場合は **Create Runbook** と **Edit Runbook** が必要です。[権限](/docs/runbooks/configuration#権限) を参照してください。
 - **Bash、SSH、kubectl のステップ用の Runner。** これらのステップは自社インフラの [Runner](/docs/runbooks/agents) で実行され、OneUptime Worker では実行されません。先にインストールしてください。Runner を選ばないステップは、設定していれば [プロジェクトのデフォルト Runner](/docs/runbooks/agents#プロジェクトのデフォルト-runner) で実行され、設定していなければ JavaScript のステップは [グローバル Runner](/docs/runbooks/agents#グローバル-runner) で実行されます。
-- **SSH と kubectl のステップ用のシークレット変数。** ステップがサインインに使う鍵、パスワード、kubeconfig は、シークレットの [Runbook の変数](/docs/runbooks/variables) です。変数を作成するのは Project Owner と Project Admin で、Runbook Admin は自分が書くステップで変数を選びます。kubectl のステップは、代わりに Runner 自身のアクセスを使うこともできます。
+- **SSH と kubectl のステップ用のシークレット変数。** ステップがサインインに使う鍵、パスワード、kubeconfig は、シークレットの [Runbook の変数](/docs/runbooks/variables) です。変数を作成するのはプロジェクト所有者とプロジェクト管理者で、Runbook 管理者は自分が書くステップで変数を選びます。kubectl のステップは、代わりに Runner 自身のアクセスを使うこともできます。
 - **AI ステップ用の LLM プロバイダー。** [LLM プロバイダー](/docs/ai/llm-provider) を参照してください。
 
 ## Runbook の作成

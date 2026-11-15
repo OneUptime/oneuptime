@@ -131,15 +131,15 @@ flowchart TB
 
 | 権限 | 許可される操作 | 既定で持つロール |
 | --- | --- | --- |
-| **Create Form** | フォームの作成と複製。 | Project Owner, Project Admin |
-| **Edit Form** | フォームの変更: 質問、ブランディング、テンプレート、送信時の設定、**送信を受け付ける**、リンク、**IP 許可リスト**。 | Project Owner, Project Admin |
-| **Delete Form** | フォームの削除 (送信履歴も削除されます)。 | Project Owner, Project Admin |
-| **Read Form** | フォーム、その質問、設定、リンクの閲覧。 | 上記に加えて Project Member、Viewer、インシデントと定期メンテナンスのロール |
-| **Read Form Submission** | 送信とその回答の閲覧。 | Project Owner, Project Admin |
-| **Delete Form Submission** | 送信の削除。 | Project Owner, Project Admin |
-| **Create Form Domain** | フォームに [カスタムドメイン](/docs/forms/sharing-and-security#カスタムドメイン) を追加する。 | Project Owner, Project Admin、 **Edit Form** |
-| **Edit Form Domain** | フォームのカスタムドメインを確認し、その証明書を注文、再発行、または切り替える。 | Project Owner, Project Admin、 **Edit Form** |
-| **Delete Form Domain** | フォームのカスタムドメインを削除する。 | Project Owner, Project Admin、 **Edit Form** |
+| **Create Form** | フォームの作成と複製。 | プロジェクト所有者、プロジェクト管理者 |
+| **Edit Form** | フォームの変更: 質問、ブランディング、テンプレート、送信時の設定、**送信を受け付ける**、リンク、**IP 許可リスト**。 | プロジェクト所有者、プロジェクト管理者 |
+| **Delete Form** | フォームの削除 (送信履歴も削除されます)。 | プロジェクト所有者、プロジェクト管理者 |
+| **Read Form** | フォーム、その質問、設定、リンクの閲覧。 | 上記に加えてプロジェクトメンバー、閲覧者、インシデントと定期メンテナンスのロール |
+| **Read Form Submission** | 送信とその回答の閲覧。 | プロジェクト所有者、プロジェクト管理者 |
+| **Delete Form Submission** | 送信の削除。 | プロジェクト所有者、プロジェクト管理者 |
+| **Create Form Domain** | フォームに [カスタムドメイン](/docs/forms/sharing-and-security#カスタムドメイン) を追加する。 | プロジェクト所有者、プロジェクト管理者、 **Edit Form** |
+| **Edit Form Domain** | フォームのカスタムドメインを確認し、その証明書を注文、再発行、または切り替える。 | プロジェクト所有者、プロジェクト管理者、 **Edit Form** |
+| **Delete Form Domain** | フォームのカスタムドメインを削除する。 | プロジェクト所有者、プロジェクト管理者、 **Edit Form** |
 | **Read Form Domain** | フォームのカスタムドメイン、その DNS レコード、各ドメインが HTTPS までのどの段階にあるかを見る。 | **Read Form** を持つすべての人 |
 
 送信には見知らぬ人が入力した内容 (名前、メールアドレス、レコードには載らないかもしれない回答) が含まれるため、**Read Form Submission** を付与しない限り、閲覧できるのはプロジェクトのオーナーと管理者だけです。フォームを閲覧できる人は誰でも、そのリンクを確認して共有できます。フォームの送信には権限は一切必要ありません。ロールと細かな権限の組み合わせ方については、[ユーザー、チーム、権限](/docs/permissions/index) を参照してください。

@@ -212,8 +212,8 @@ Für eigene Texte verwenden Sie Vorlagenvariablen im Titel, in der Beschreibung 
 | `{{targetPercentage}}` | Das Ziel des SLO, als Prozentsatz. | `99.9` |
 | `{{currentSliPercentage}}` | Der über das Compliance-Zeitfenster des SLO gemessene SLI, als Prozentsatz. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Anteil des noch verbleibenden Fehlerbudgets, als Prozentsatz. Negativ, sobald das Budget überzogen ist. | `42.5` |
-| `{{errorBudgetRemaining}}` | Noch verbleibendes Fehlerbudget, als Dauer. Beginnt mit einem Minuszeichen, sobald das Budget überzogen ist. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Noch verbleibendes Fehlerbudget, in Minuten. | `18.37` |
+| `{{errorBudgetRemaining}}` | Noch verbleibendes Fehlerbudget, als Dauer, oder bei einem Anfrage-SLO als die fehlgeschlagenen oder langsamen Anfragen, die es noch erlaubt. Beginnt mit einem Minuszeichen, sobald das Budget überzogen ist. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Noch verbleibendes Fehlerbudget, in Minuten. Leer bei einem Anfrage-SLO, dessen Budget in Anfragen gezählt wird. | `18.37` |
 | `{{windowDescription}}` | Das Compliance-Zeitfenster des SLO, in Worten. | `rolling 30-day window` |
 | `{{policyTier}}` | Name der Stufe der Fehlerbudget-Richtlinie, in der das SLO nach dieser Auswertung ist. „None“, wenn es in keiner Stufe ist. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Schwellenwert dieser Stufe für das verbleibende Budget, in Prozent. Leer, wenn das SLO in keiner Stufe ist. | `25` |

@@ -127,6 +127,15 @@ export interface SourceRoot {
  */
 export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/App/FeatureSet/Dashboard/src", kind: "ui" },
+  /*
+   * The audit log's screens are Enterprise code, which the Dashboard draws
+   * through its plugins: the table on every resource page, its changes
+   * dialog and Settings > Audit Logs (#8291, #8319). They hold their words
+   * in the Dashboard's locales, so the extractor reads them as it reads the
+   * Dashboard's own. The rest of ee/Dashboard is not read yet: each screen
+   * comes in as its words are routed through the translator.
+   */
+  { directory: "ee/Dashboard/AuditLogs", kind: "ui" },
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
@@ -158,6 +167,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * groups - each helper writes them with the reader's Translator.
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
+  /*
+   * What a monitor's Incident Metrics and Alert Metrics charts, and an
+   * SLO's, draw: each chart's title, its legend and what it shows (#8282).
+   * Only the words the files mark are read: the metric names and units
+   * they also hold are stored as written.
+   */
+  {
+    directory: "packages/Common/Utils/Incident/IncidentMetricType.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/Alerts/AlertMetricType.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
   /*
    * A duration in milliseconds in the reader's language ("{{value}} ms"):
    * the Dashboard's views and the overview's hero write it with one helper.
@@ -322,6 +346,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/AuditLog/AuditLogActionLabel.ts",
+    kind: "keys",
+  },
+  /*
+   * What the audit log's changes dialog calls each field of a session entry
+   * ("Signed in with", "Timed out at"), in the reader's language (#8291).
+   * Only the labels the file marks are read: the stored values are not.
+   */
+  {
+    directory: "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts",
     kind: "keys",
   },
   {

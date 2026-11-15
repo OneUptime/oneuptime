@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -94,4 +94,94 @@ describe("the page of a product switched off on the server, in Spanish", () => {
 
     expect(crumbs()).toEqual([SPANISH["Project"], "Red"]);
   });
+
+  test("its heading names the product once too: Red, never Rojo (#8224)", () => {
+    const path: string = `/dashboard/${PROJECT_ID}/network`;
+
+    goTo(path);
+    render(
+      inSpanish(
+        <ServerProductOffPage
+          product={ProductKey.Network}
+          reason={ServerProductOffReason.SwitchedOff}
+        />,
+        path,
+      ),
+    );
+
+    expect(
+      (screen.getByRole("heading", { level: 1 }).textContent || "").trim(),
+    ).toBe("Red");
+    expect(screen.queryByText("Rojo")).toBeNull();
+  });
 });
+
+/*
+ * ITS HEADING NAMES THE PRODUCT ONCE IN EVERY LANGUAGE (#8224).
+ *
+ * The trail read Red since #8075, but the heading above it - Page's title,
+ * the products menu's word - was still looked up again: in Spanish the
+ * switched-off Network page was headed "Rojo". The page now tells Page the
+ * menu's word is translated. In Dutch and Persian it reads the menu's word,
+ * as the trail's last crumb does; with that word made a key of its own, it
+ * still does.
+ */
+describe.each(["es", "nl", "fa"])(
+  "the switched-off Network page's heading, in %s",
+  (language: string) => {
+    const LOCALE: Locale = readDashboardLocale(language);
+    const NETWORK: string = ((LOCALE["navbar"] as Locale)["items"] as Locale)[
+      "networkTitle"
+    ] as string;
+    const TWICE: string = "Looked up twice";
+
+    async function renderIn(locale: Locale): Promise<void> {
+      const translation: i18n = createInstance();
+
+      await translation.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: readDashboardLocale("en") },
+          [language]: { translation: locale },
+        },
+        interpolation: { escapeValue: false },
+      });
+
+      const path: string = `/dashboard/${PROJECT_ID}/network`;
+
+      goTo(path);
+      render(
+        <I18nextProvider i18n={translation}>
+          <MemoryRouter initialEntries={[path]}>
+            <ServerProductOffPage
+              product={ProductKey.Network}
+              reason={ServerProductOffReason.SwitchedOff}
+            />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+    }
+
+    function heading(): string {
+      return (
+        screen.getByRole("heading", { level: 1 }).textContent || ""
+      ).trim();
+    }
+
+    test("reads the products menu's word for Network, as the trail does", async () => {
+      await renderIn(LOCALE);
+
+      expect(NETWORK).not.toBe("Network");
+      expect(heading()).toBe(NETWORK);
+      expect(crumbs()[1]).toBe(NETWORK);
+    });
+
+    test("never looks the menu's word up again, even where it is a key", async () => {
+      await renderIn({ ...LOCALE, [NETWORK]: TWICE });
+
+      expect(heading()).toBe(NETWORK);
+      expect(screen.queryByText(TWICE)).toBeNull();
+    });
+  },
+);

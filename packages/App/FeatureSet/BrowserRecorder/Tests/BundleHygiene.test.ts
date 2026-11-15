@@ -242,10 +242,13 @@ describe("bundle hygiene", (): void => {
      * #6443: 339513 bytes after, 331424 before), 342 KB since product
      * analytics events (2026-11-10, issue #6444: 348775 bytes after, 339513
      * before), 344 KB since a page that records only some of its parts
-     * (2026-11-12, issue #6834: 351173 bytes after, 348775 before);
-     * esbuild.config.js carries the measurements and the reasons.
+     * (2026-11-12, issue #6834: 351173 bytes after, 348775 before), 346 KB
+     * since the scrubber keeps a mobile app's address, redacts a JSON Web
+     * Token and a twice-escaped address, and a page pattern reads "/café"
+     * (2026-11-15, issues #8384, #8385, #8195: 352794 bytes after, 352562
+     * before); esbuild.config.js carries the measurements and the reasons.
      */
-    expect(recorderBundle.length).toBeLessThan(344 * 1024);
+    expect(recorderBundle.length).toBeLessThan(346 * 1024);
   });
 
   /*

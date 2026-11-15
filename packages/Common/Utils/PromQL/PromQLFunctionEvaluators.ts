@@ -35,9 +35,9 @@ import {
   CompiledPromQLRegex,
   compilePromQLRegex,
   describePromQLPatternProblem,
+  PromQLRegexMatch,
   readNamedCapture,
 } from "./PromQLRegex";
-import { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
 import lookupTable, { copyOwnValues, writeOwnValue } from "../LookupTable";
 
@@ -614,92 +614,157 @@ const absentLabels: (expression: PromQLExpression) => PromQLLabels = (
   return labels;
 };
 
-const TEMPLATE_NAME_CHARACTER_REGEX: RegExp = /[A-Za-z0-9_]/;
+/*
+ * A character of a group's name in a template, as Go's Regexp.Expand reads
+ * one (extract, regexp.go): a Unicode letter (unicode.IsLetter, \p{L}), a
+ * decimal digit (unicode.IsDigit, \p{Nd}: not ² or Ⅷ) or "_". Asked of one
+ * code point at a time.
+ */
+const TEMPLATE_NAME_CHARACTER_REGEX: RegExp = /^[\p{L}\p{Nd}_]$/u;
 
-const DIGITS_ONLY_REGEX: RegExp = /^\d+$/;
+// From this on, Go reads a run of digits as a name, not a group's number.
+const MAX_TEMPLATE_GROUP_NUMBER: number = 1e8;
+
+interface TemplateReference {
+  // The group's name, as written: "1", "01", "host".
+  name: string;
+  // The group's number; -1 when the name is not one.
+  group: number;
+  // Where the reference ends in the template.
+  end: number;
+}
 
 /*
- * Go's regexp.Expand: `$1`, `${1}`, `$name` and `${name}` become the group's
- * text, `$$` a dollar sign. As in Go, `$1x` names the group "1x", which does
- * not exist, so write `${1}x`.
+ * The name or {name} right after a "$", at `start`, as Go's extract reads
+ * it; null when there is none - no name character at all, or a "{" whose
+ * name is not closed by a "}" right after it - and the "$" is then text. A
+ * name of ASCII digits is a group's number, unless it starts with a zero
+ * (so $01 names a group "01", while $0 is the whole match) or reaches 1e8
+ * before its last digit.
+ */
+const readTemplateReference: (
+  template: string,
+  start: number,
+) => TemplateReference | null = (
+  template: string,
+  start: number,
+): TemplateReference | null => {
+  const braced: boolean = template[start] === "{";
+  const nameStart: number = braced ? start + 1 : start;
+  let index: number = nameStart;
+
+  while (index < template.length) {
+    const character: string = String.fromCodePoint(
+      template.codePointAt(index)!,
+    );
+
+    if (!TEMPLATE_NAME_CHARACTER_REGEX.test(character)) {
+      break;
+    }
+
+    index += character.length;
+  }
+
+  if (index === nameStart) {
+    return null;
+  }
+
+  const name: string = template.slice(nameStart, index);
+
+  if (braced) {
+    if (template[index] !== "}") {
+      return null;
+    }
+
+    index++;
+  }
+
+  let group: number = 0;
+
+  for (let digit: number = 0; digit < name.length; digit++) {
+    const codeUnit: number = name.charCodeAt(digit);
+
+    if (
+      codeUnit < 0x30 ||
+      codeUnit > 0x39 ||
+      group >= MAX_TEMPLATE_GROUP_NUMBER
+    ) {
+      group = -1;
+      break;
+    }
+
+    group = group * 10 + codeUnit - 0x30;
+  }
+
+  if (name[0] === "0" && name.length > 1) {
+    group = -1;
+  }
+
+  return { name, group, end: index };
+};
+
+/*
+ * Go's Regexp.Expand, which Prometheus' label_replace() writes its
+ * replacement with (regexp.ExpandString): $1 and ${1} are what group 1
+ * captured, $0 the whole match, $name and ${name} the first group of that
+ * name that took part, and $$ a dollar sign. A group that took no part, or
+ * that the pattern does not have, is "". A name runs as far as letters,
+ * digits and "_" go, so $1x names a group "1x" - write ${1}x - and a "$"
+ * that starts no name, as in "$-" or "${1", is itself.
  */
 const expandTemplate: (
   template: string,
-  match: LinearRegExpMatch,
+  match: PromQLRegexMatch,
   groupNames: ReadonlyArray<string | null>,
 ) => string = (
   template: string,
-  match: LinearRegExpMatch,
+  match: PromQLRegexMatch,
   groupNames: ReadonlyArray<string | null>,
 ): string => {
   let result: string = "";
   let index: number = 0;
 
-  while (index < template.length) {
-    const character: string = template[index]!;
+  for (;;) {
+    const dollar: number = template.indexOf("$", index);
 
-    if (character !== "$") {
-      result += character;
-      index++;
-      continue;
+    if (dollar === -1) {
+      return result + template.slice(index);
     }
 
-    const next: string = template[index + 1] || "";
+    result += template.slice(index, dollar);
+    index = dollar + 1;
 
-    if (next === "$") {
+    if (template[index] === "$") {
       result += "$";
-      index += 2;
-      continue;
-    }
-
-    let name: string = "";
-    let end: number = index + 1;
-
-    if (next === "{") {
-      const close: number = template.indexOf("}", index + 2);
-
-      if (close === -1) {
-        result += character;
-        index++;
-        continue;
-      }
-
-      name = template.slice(index + 2, close);
-      end = close + 1;
-    } else {
-      while (
-        end < template.length &&
-        TEMPLATE_NAME_CHARACTER_REGEX.test(template[end]!)
-      ) {
-        end++;
-      }
-
-      name = template.slice(index + 1, end);
-    }
-
-    if (name.length === 0) {
-      result += character;
       index++;
       continue;
     }
 
-    if (DIGITS_ONLY_REGEX.test(name)) {
-      // $0 is the whole match, $1 the first group.
-      const group: number = Number(name);
-      result += (group === 0 ? match.value : match.captures[group - 1]) || "";
+    const reference: TemplateReference | null = readTemplateReference(
+      template,
+      index,
+    );
+
+    if (reference === null) {
+      result += "$";
+      continue;
+    }
+
+    index = reference.end;
+
+    if (reference.group === 0) {
+      result += match.value;
+    } else if (reference.group > 0) {
+      result += match.captures[reference.group - 1] ?? "";
     } else {
       result +=
         readNamedCapture({
           captures: match.captures,
           groupNames: groupNames,
-          name: name,
-        }) || "";
+          name: reference.name,
+        }) ?? "";
     }
-
-    index = end;
   }
-
-  return result;
 };
 
 const sortSamples: (
@@ -1041,7 +1106,10 @@ export const evaluatePromQLFunction: (
 
       try {
         // Compiled once for every series below, with what its groups capture.
-        compiled = compilePromQLRegex(pattern, { captures: true });
+        compiled = compilePromQLRegex(pattern, {
+          captures: true,
+          unicodeClassAliases: true,
+        });
       } catch (error: unknown) {
         // Why the pattern cannot be matched, or null.
         const problem: string | null = describePromQLPatternProblem(error);
@@ -1065,12 +1133,10 @@ export const evaluatePromQLFunction: (
 
       return vectorValue(
         samples.map((sample: PromQLSample): PromQLSample => {
-          let match: LinearRegExpMatch | null;
+          let match: PromQLRegexMatch | null;
 
           try {
-            match = compiled.regex.exec(
-              promQLLabelValue(sample.labels, source),
-            );
+            match = compiled.exec(promQLLabelValue(sample.labels, source));
           } catch (error: unknown) {
             if (error instanceof PatternWorkLimitError) {
               throw new PromQLError(

@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - Microsoft Sentinel を有効にした Log Analytics ワークスペース（Azure パブリッククラウドまたは Azure Government (US)）。
 - Microsoft Entra ID で、アプリの登録とクライアントシークレットを作成する権限。
 - ワークスペースを含むリソースグループで、所有者やユーザー アクセス管理者など、ロールを割り当てる権限。

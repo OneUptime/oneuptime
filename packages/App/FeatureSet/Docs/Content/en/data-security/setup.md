@@ -176,6 +176,8 @@ A scan reads a little of a store, within the project's limits, and stops after 8
 
 Each scan keeps a record of what it read, by name: the objects, tables or services, never their contents. What it could not read - a request the cloud refused, the deadline, the byte budget - is a warning on the scan, and the scan is marked **Partly succeeded**.
 
+A store's **Overview** says when its content is scanned next. **Next Content Scan** is the time something scans it, **Due now** while it waits its turn, and **Overdue** once it has been due for an hour. Otherwise it says why nothing will: **Off** while **Scan Content** is off for the store or the project, or while the store is no longer found; **Not scanned** when OneUptime cannot sample its kind of store, or its probe cannot scan it; and **Waiting** while its probe is disconnected. A service's telemetry is scanned **Every hour**, with the project's telemetry scan. **Scan Now** is turned off, with the reason, for a store nothing would scan. A scan under way when content scanning is turned off, or when the project is suspended, keeps nothing it found.
+
 ## Scan a database you run
 
 Data Security samples PostgreSQL, MySQL and SQL Server databases, in one of two ways. A database the Database product monitors, or one your services talk to on the service map, is a store already. A database no scan finds, add as a store yourself.

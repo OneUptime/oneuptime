@@ -1,4 +1,8 @@
-import { getNumberLocale } from "../Types/DateLanguage";
+import {
+  formatReaderFigure,
+  getNumberLocale,
+  isEnglishDateLanguage,
+} from "../Types/DateLanguage";
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
@@ -192,18 +196,155 @@ export const formatMilliseconds: (
   });
 };
 
+/*
+ * A SPAN OF TIME IN ANOTHER UNIT, IN THE READER'S LANGUAGE.
+ *
+ * The formatters that write a span in milliseconds write a shorter one in
+ * microseconds and a longer one in seconds or minutes, and wrote those by
+ * hand: `${(ms / 1000).toFixed(2)} s`. On a Persian chart a tick read
+ * "۴۲ میلی‌ثانیه" and the one above it "1.50 s" (#8349). Written here, the
+ * figure keeps the decimals toFixed wrote, in the reader's digits and
+ * decimal sign, and the unit is the language's own short one, as Intl
+ * writes it and every other duration DateLanguage writes reads (Locales/
+ * ARABIC.md): "1,50 Sek.", "۱٫۵۰ ثانیه", "1.50 ث", "2,5 Min.". English
+ * reads exactly as the caller wrote it (`english`, "1.50 s" when left
+ * out), and so does a language whose engine cannot write the unit, with
+ * the figure in its digits.
+ */
+export type DurationInUnit =
+  | "microsecond"
+  | "second"
+  | "minute"
+  | "hour"
+  | "day";
+
+const DURATION_UNIT_SYMBOLS: Record<DurationInUnit, string> = {
+  microsecond: "µs",
+  second: "s",
+  minute: "min",
+  hour: "h",
+  day: "d",
+};
+
+export interface DurationInUnitOptions {
+  // The decimals the figure is written with, as toFixed's argument.
+  decimals: number;
+  // Up to `decimals`, trailing zeros dropped: 5.0 -> "5", 2.50 -> "2.5".
+  dropTrailingZeros?: boolean | undefined;
+  // What English reads, exactly: "1.50 s" (`${toFixed} ${symbol}`) when left out.
+  english?: string | undefined;
+}
+
+const durationUnitFormats: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+const getDurationUnitFormat: (
+  language: string,
+  unit: DurationInUnit,
+  decimals: number,
+  dropTrailingZeros: boolean,
+) => Intl.NumberFormat | null = (
+  language: string,
+  unit: DurationInUnit,
+  decimals: number,
+  dropTrailingZeros: boolean,
+): Intl.NumberFormat | null => {
+  const key: string = [language, unit, decimals, dropTrailingZeros].join("|");
+
+  if (!durationUnitFormats.has(key)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      format = new Intl.NumberFormat(getNumberLocale(language), {
+        style: "unit",
+        unit: unit,
+        unitDisplay: "short",
+        minimumFractionDigits: dropTrailingZeros ? 0 : decimals,
+        maximumFractionDigits: decimals,
+      } as Intl.NumberFormatOptions);
+
+      // An engine without the unit style writes the bare number.
+      const writesUnit: boolean = format
+        .formatToParts(2)
+        .some((part: Intl.NumberFormatPart): boolean => {
+          return (part.type as string) === "unit";
+        });
+
+      if (!writesUnit) {
+        format = null;
+      }
+    } catch {
+      format = null;
+    }
+
+    durationUnitFormats.set(key, format);
+  }
+
+  return durationUnitFormats.get(key) || null;
+};
+
+export const formatDurationInUnit: (
+  translator: Translator,
+  value: number,
+  unit: DurationInUnit,
+  options: DurationInUnitOptions,
+) => string = (
+  translator: Translator,
+  value: number,
+  unit: DurationInUnit,
+  options: DurationInUnitOptions,
+): string => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+
+  const decimals: number = Math.max(
+    0,
+    Math.min(3, Math.floor(options.decimals)),
+  );
+  const fixed: string = value.toFixed(decimals);
+  const english: string =
+    options.english ??
+    `${options.dropTrailingZeros ? Number(fixed).toString() : fixed} ${
+      DURATION_UNIT_SYMBOLS[unit]
+    }`;
+
+  if (isEnglishDateLanguage(translator.language)) {
+    return english;
+  }
+
+  const format: Intl.NumberFormat | null = getDurationUnitFormat(
+    translator.language,
+    unit,
+    decimals,
+    Boolean(options.dropTrailingZeros),
+  );
+
+  if (!format) {
+    return `${formatReaderFigure(Number(fixed), {
+      decimals: decimals,
+      dropTrailingZeros: options.dropTrailingZeros,
+      language: translator.language,
+    })} ${DURATION_UNIT_SYMBOLS[unit]}`;
+  }
+
+  // Rounded once, as toFixed rounds it, so every language says the same figure.
+  return format.format(Number(fixed));
+};
+
 // English, as the server and a translator without wording write it.
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
- * "411 ms" in English, whatever the reader's language: for the text that
- * stays English on purpose. A chart's value axis and its tooltip write
- * their figures in Latin digits and the short "ms", as every chart's
- * value axis in the product does (OpenStackFigures' chart bytes, the
- * database charts' ticks) - a 64 px axis has no room for "میلی‌ثانیه" -
- * and the AI chat's PDF export is written in English in Latin-1, which
- * holds no Persian digit. Anything a reader reads on a page takes
- * formatMilliseconds with the reader's translator.
+ * "411 ms" in English, whatever the reader's language: for the AI chat's
+ * PDF export alone, which is written in English in Latin-1 and holds no
+ * Persian digit. Everything a reader reads on a page takes
+ * formatMilliseconds with the reader's translator - a chart's value axis
+ * and its tooltip too, as the tiles beside them do (#8349; the rule is
+ * Docs/ux/README.md#numbers-dates-and-plurals, and
+ * ChartValueAxesInReadersLanguageGuard keeps this one in the PDF).
  */
 export const formatMillisecondsInEnglish: (
   milliseconds: number,

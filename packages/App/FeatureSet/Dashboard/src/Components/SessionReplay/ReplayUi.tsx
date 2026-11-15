@@ -358,7 +358,7 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
         translatedAriaLabel || translatedLabel || translatedTitle;
 
       return (
-        <Tooltip text={translatedTooltip}>
+        <Tooltip text={translatedTooltip} isTextTranslated={true}>
           <span
             role="group"
             aria-label={wrapperAccessibleName}
@@ -376,7 +376,11 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
       );
     }
 
-    return <Tooltip text={translatedTooltip}>{button}</Tooltip>;
+    return (
+      <Tooltip text={translatedTooltip} isTextTranslated={true}>
+        {button}
+      </Tooltip>
+    );
   },
 );
 

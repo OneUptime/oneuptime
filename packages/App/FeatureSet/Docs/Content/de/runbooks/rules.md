@@ -42,7 +42,7 @@ Jeden Lauf, ob von einer Regel ausgelöst oder nicht, sehen Sie unter **Runbooks
 ## Bevor Sie beginnen
 
 - **Ein Runbook, das laufen kann.** Es braucht mindestens einen Schritt und **Dieses Runbook ausführen** eingeschaltet, auf seiner Seite **Einstellungen**. Siehe [Ein Runbook verfassen](/docs/runbooks/authoring).
-- **Die Berechtigung, Regeln zu verwalten.** Project Owner, Project Admin und Runbook Admin erstellen Runbook-Regeln, ebenso jeder mit der Berechtigung **Create Runbook Rule**.
+- **Die Berechtigung, Regeln zu verwalten.** Projektinhaber, Projektadministrator und Runbook-Administrator erstellen Runbook-Regeln, ebenso jeder mit der Berechtigung **Create Runbook Rule**.
 
 ## Eine Runbook-Regel erstellen
 

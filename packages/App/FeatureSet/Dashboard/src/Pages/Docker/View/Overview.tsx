@@ -93,6 +93,10 @@ import {
   getNotMonitoredRegions,
 } from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ContainerHostHealthPill from "../../../Components/ContainerHost/ContainerHostHealthPill";
@@ -1369,7 +1373,10 @@ const DockerHostOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1422,7 +1429,9 @@ const DockerHostOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1436,12 +1445,15 @@ const DockerHostOverview: FunctionComponent<
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
           if (value >= 100) {
-            return "Up";
+            return translator.translateText("Up") || "Up";
           }
           if (value <= 0) {
-            return "Down";
+            return translator.translateText("Down") || "Down";
           }
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
       },
     };

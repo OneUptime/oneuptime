@@ -188,10 +188,10 @@ spec:
 
 | 権限 | できること | デフォルトで持っているロール |
 | --- | --- | --- |
-| **Start Packet Capture** | キャプチャの開始と停止 | Project Owner, Project Admin |
-| **Download Packet Capture** | キャプチャファイルのダウンロード | Project Owner, Project Admin |
-| **Delete Packet Capture** | キャプチャとそのファイルの削除 | Project Owner, Project Admin |
-| **Read Packet Capture** | キャプチャの閲覧: いつ、どのプローブで、どのフィルターで実行されたか | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | キャプチャの開始と停止 | プロジェクト所有者、プロジェクト管理者 |
+| **Download Packet Capture** | キャプチャファイルのダウンロード | プロジェクト所有者、プロジェクト管理者 |
+| **Delete Packet Capture** | キャプチャとそのファイルの削除 | プロジェクト所有者、プロジェクト管理者 |
+| **Read Packet Capture** | キャプチャの閲覧: いつ、どのプローブで、どのフィルターで実行されたか | プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者 |
 
 チームに **Start Packet Capture** または **Download Packet Capture** を付与するには、**設定 → チーム** でチームを開き、その **権限** ページで権限を追加します。[権限](/docs/permissions/index) を参照してください。
 

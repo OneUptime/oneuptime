@@ -192,7 +192,8 @@ describe("a rate, written on a chart's axis, legend and tooltip", () => {
     expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2 KB/s");
     expect(ValueFormatter.formatValue(1500, "ms/s")).toBe("1.5 sec/s");
     expect(ValueFormatter.formatValue(42, "{thread}")).toBe("42");
-    expect(ValueFormatter.formatValue(23.5, "Cel")).toBe("23.5 Celsius");
+    // A unit with a symbol is written by it, never its English name (#8284).
+    expect(ValueFormatter.formatValue(23.5, "Cel")).toBe("23.5 °C");
   });
 
   test("the number and the unit, apart: the unit is the rate's symbol", () => {

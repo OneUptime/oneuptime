@@ -2642,6 +2642,118 @@ describe("SessionReplayIngestService.processFromQueue", () => {
    * wire, and entryUrl / exitUrl / routes sit in the wider metadata ACL and
    * render in the session list.
    */
+  /*
+   * #8384: the React Native recorder names every screen
+   * "app://<app id>/<route>" (toAppUrl), and the ingest scrubs each address
+   * again. The scrubber built its result from URL.origin, which is "null"
+   * for a scheme with no origin, so every mobile page was stored as
+   * "null/<route>": the app's id lost, and every page "/null/..." on User
+   * Flows.
+   */
+  describe("a React Native recording's addresses", () => {
+    const MOBILE_META: SessionReplayChunkEnvelope["meta"] = {
+      entryUrl: "app://com.example.shop/Home",
+      browserName: "ShopApp",
+      browserVersion: "3.2.1",
+      osName: "iOS 17.2",
+      deviceType: "ios",
+      viewportWidth: 390,
+      viewportHeight: 844,
+    };
+
+    test("keep the app's scheme and id on the chunk and the header", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              recorderKind: "rn-view-tree",
+              url: "app://com.example.shop/Checkout/42",
+              routes: [
+                "app://com.example.shop/Home",
+                "app://com.example.shop/Cart",
+                "app://com.example.shop/Checkout/42",
+              ],
+              meta: MOBILE_META,
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(chunk["url"]).toBe("app://com.example.shop/Checkout/42");
+      expect(chunk["routes"]).toEqual([
+        "app://com.example.shop/Home",
+        "app://com.example.shop/Cart",
+        "app://com.example.shop/Checkout/42",
+      ]);
+      expect(header["entryUrl"]).toBe("app://com.example.shop/Home");
+      expect(header["exitUrl"]).toBe("app://com.example.shop/Checkout/42");
+      expect(header["routes"]).toEqual([
+        "app://com.example.shop/Home",
+        "app://com.example.shop/Cart",
+        "app://com.example.shop/Checkout/42",
+      ]);
+
+      const stored: string = JSON.stringify([
+        chunk["url"],
+        chunk["routes"],
+        header["entryUrl"],
+        header["exitUrl"],
+        header["routes"],
+      ]);
+
+      expect(stored).not.toContain("null/");
+    });
+
+    test("still scrub a mobile route the recorder did not", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              recorderKind: "rn-view-tree",
+              url: "app://user:secret@com.example.shop/Profile/someone@example.com?token=abc",
+              routes: [
+                "app://com.example.shop/Reset/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f",
+                "app://com.example.shop/Session/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+              ],
+              meta: {
+                ...MOBILE_META,
+                entryUrl:
+                  "app://com.example.shop/Invite/someone%2540example.com",
+              },
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["entryUrl"]).toBe(
+        "app://com.example.shop/Invite/[redacted]",
+      );
+      expect(header["exitUrl"]).toBe(
+        "app://com.example.shop/Profile/[redacted]",
+      );
+      expect(chunk["routes"]).toEqual([
+        "app://com.example.shop/Reset/[redacted]",
+        "app://com.example.shop/Session/[redacted]",
+        "app://com.example.shop/Profile/[redacted]",
+      ]);
+
+      const stored: string = JSON.stringify([chunk, header]);
+
+      expect(stored).not.toContain("someone");
+      expect(stored).not.toContain("secret");
+      expect(stored).not.toContain("3f1a9c7e");
+      expect(stored).not.toContain("eyJhbGci");
+    });
+  });
+
   describe("server-side URL scrubbing on the session header", () => {
     test("a hand-crafted envelope carrying a reset-password token is scrubbed", async () => {
       await SessionReplayIngestService.processFromQueue(

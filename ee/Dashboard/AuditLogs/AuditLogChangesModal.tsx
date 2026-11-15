@@ -16,12 +16,19 @@ import {
   readSessionEntryFields,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import {
+  PluralTemplate,
   translatableTerm,
   TranslatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 
 export type AuditLogModalAction = "Create" | "Update" | "Delete" | string;
 
@@ -158,11 +165,16 @@ export interface SessionDetailRow {
 /*
  * A session entry's details as the dialog lists them (issue #6762): each
  * field it recorded, in the order the audit log names them, by its words -
- * a time in the reader's own zone.
+ * in the reader's language when handed their translator (#8291) - and a
+ * time in the reader's own zone.
  */
 export const readSessionDetailRows: (
   changes: unknown,
-) => Array<SessionDetailRow> = (changes: unknown): Array<SessionDetailRow> => {
+  translator?: Translator | undefined,
+) => Array<SessionDetailRow> = (
+  changes: unknown,
+  translator?: Translator | undefined,
+): Array<SessionDetailRow> => {
   const fields: Map<AuditLogSessionField, string> =
     readSessionEntryFields(changes);
   const rows: Array<SessionDetailRow> = [];
@@ -174,9 +186,11 @@ export const readSessionDetailRows: (
       continue;
     }
 
+    const label: string = AUDIT_LOG_SESSION_FIELD_LABELS[field];
+
     rows.push({
       field: field,
-      label: AUDIT_LOG_SESSION_FIELD_LABELS[field],
+      label: translator?.translateText(label) || label,
       value: AUDIT_LOG_SESSION_TIME_FIELDS.includes(field)
         ? formatScalar(value)
         : value,
@@ -237,20 +251,102 @@ export const getAuditLogChangesTitle: (data: {
       });
 };
 
-// What a session entry's dialog says it shows.
+/*
+ * The words the dialog writes under its title and in its empty states, as
+ * keys of the Dashboard's locales (#8291): they read in the reader's
+ * language. They were English literals no locale had, so everything under a
+ * translated title read English.
+ */
+export const AUDIT_LOG_CHANGES_DESCRIPTIONS: Readonly<{
+  details: string;
+  created: string;
+  deleted: string;
+  downloaded: string;
+  signIn: string;
+  sessionEnd: string;
+}> = {
+  details: translationKey("Change details"),
+  created: translationKey("Created snapshot"),
+  deleted: translationKey("Deleted snapshot"),
+  downloaded: translationKey("What was downloaded"),
+  signIn: translationKey("How and where they signed in"),
+  sessionEnd: translationKey("How the session ended"),
+};
+
+/*
+ * How many fields an update changed, in the plural forms of the reader's
+ * language and in their digits: English built "3 fields changed" with its
+ * own plural, glued by hand, in every language.
+ */
+export const AUDIT_LOG_FIELDS_CHANGED: PluralTemplate = {
+  one: "{{count}} field changed",
+  other: "{{count}} fields changed",
+};
+
+export const AUDIT_LOG_NO_SESSION_DETAILS: string = translationKey(
+  "No details were recorded for this session.",
+);
+
+export const AUDIT_LOG_NO_FIELD_CHANGES: string = translationKey(
+  "No field-level changes were recorded for this event.",
+);
+
+// What a session entry's dialog says it shows, in English: a key of the locales.
 export const getSessionDetailsDescription: (action: string) => string = (
   action: string,
 ): string => {
   return action === AuditLogAction.SignIn
-    ? "How and where they signed in"
-    : "How the session ended";
+    ? AUDIT_LOG_CHANGES_DESCRIPTIONS.signIn
+    : AUDIT_LOG_CHANGES_DESCRIPTIONS.sessionEnd;
 };
 
-const renderValue: (value: JSONValue | undefined) => ReactElement = (
+/*
+ * What the dialog of a change entry says it shows, in the reader's
+ * language: an update's count of changed fields, or what kind of entry it
+ * is.
+ */
+export const getAuditLogChangesDescription: (data: {
+  action: string;
+  fieldCount: number;
+  translator: Translator;
+}) => string = (data: {
+  action: string;
+  fieldCount: number;
+  translator: Translator;
+}): string => {
+  if (data.action === "Update") {
+    return data.translator.translatePlural(
+      AUDIT_LOG_FIELDS_CHANGED,
+      data.fieldCount,
+    );
+  }
+
+  let description: string = AUDIT_LOG_CHANGES_DESCRIPTIONS.details;
+
+  if (data.action === "Create") {
+    description = AUDIT_LOG_CHANGES_DESCRIPTIONS.created;
+  } else if (data.action === "Delete") {
+    description = AUDIT_LOG_CHANGES_DESCRIPTIONS.deleted;
+  } else if (data.action === "Download") {
+    description = AUDIT_LOG_CHANGES_DESCRIPTIONS.downloaded;
+  }
+
+  return data.translator.translateText(description) || description;
+};
+
+const renderValue: (
   value: JSONValue | undefined,
+  translator: Translator,
+) => ReactElement = (
+  value: JSONValue | undefined,
+  translator: Translator,
 ): ReactElement => {
   if (value === null || value === undefined || value === "") {
-    return <span className="italic text-gray-400">empty</span>;
+    return (
+      <span className="italic text-gray-400">
+        {translator.translateText("empty") || "empty"}
+      </span>
+    );
   }
 
   if (typeof value === "object") {
@@ -290,6 +386,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
   if (isSessionAuditLogAction(props.action)) {
     const sessionRows: Array<SessionDetailRow> = readSessionDetailRows(
       props.changes,
+      translator,
     );
 
     return (
@@ -303,7 +400,8 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
         <div className="mt-4">
           {sessionRows.length === 0 ? (
             <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-              No details were recorded for this session.
+              {translator.translateText(AUDIT_LOG_NO_SESSION_DETAILS) ||
+                AUDIT_LOG_NO_SESSION_DETAILS}
             </div>
           ) : (
             <dl
@@ -332,26 +430,29 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const isCreate: boolean = props.action === "Create";
   const isDelete: boolean = props.action === "Delete";
   const isUpdate: boolean = props.action === "Update";
-  const isDownload: boolean = props.action === "Download";
 
-  let header: string = "Change details";
-  if (isCreate) {
-    header = "Created snapshot";
-  } else if (isDelete) {
-    header = "Deleted snapshot";
-  } else if (isDownload) {
-    header = "What was downloaded";
-  } else if (isUpdate) {
-    header = `${rows.length} field${rows.length === 1 ? "" : "s"} changed`;
-  }
+  /*
+   * Already in the reader's language, so handed over as drawn: Modal looks a
+   * string description up again, and a translation can itself be a key.
+   */
+  const description: ReactElement = (
+    <Fragment>
+      {getAuditLogChangesDescription({
+        action: props.action,
+        fieldCount: rows.length,
+        translator: translator,
+      })}
+    </Fragment>
+  );
+
+  const valueLabel: string = translator.translateText("Value") || "Value";
 
   return (
     <Modal
       title={title}
-      description={header}
+      description={description}
       onClose={props.onClose}
       closeButtonText="Close"
       modalWidth={ModalWidth.Medium}
@@ -359,7 +460,8 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
       <div className="mt-4">
         {rows.length === 0 ? (
           <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-            No field-level changes were recorded for this event.
+            {translator.translateText(AUDIT_LOG_NO_FIELD_CHANGES) ||
+              AUDIT_LOG_NO_FIELD_CHANGES}
           </div>
         ) : (
           <div className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden">
@@ -407,10 +509,10 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-3 items-start">
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-red-600 font-semibold mb-1">
-                          Before
+                          {translator.translateText("Before") || "Before"}
                         </div>
                         <div className="rounded-md border border-red-100 bg-red-50/60 px-3 py-2 text-sm">
-                          {renderValue(row.oldValue)}
+                          {renderValue(row.oldValue, translator)}
                         </div>
                       </div>
                       <div className="max-md:hidden md:flex items-center justify-center pt-5 text-gray-400">
@@ -422,10 +524,10 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-emerald-600 font-semibold mb-1">
-                          After
+                          {translator.translateText("After") || "After"}
                         </div>
                         <div className="rounded-md border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm">
-                          {renderValue(row.newValue)}
+                          {renderValue(row.newValue, translator)}
                         </div>
                       </div>
                     </div>
@@ -436,7 +538,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           isDelete ? "text-red-600" : "text-emerald-600"
                         }`}
                       >
-                        {isDelete ? "Value" : "Value"}
+                        {valueLabel}
                       </div>
                       <div
                         className={`rounded-md border px-3 py-2 text-sm ${
@@ -445,7 +547,10 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                             : "border-emerald-100 bg-emerald-50/60"
                         }`}
                       >
-                        {renderValue(isDelete ? row.oldValue : row.newValue)}
+                        {renderValue(
+                          isDelete ? row.oldValue : row.newValue,
+                          translator,
+                        )}
                       </div>
                     </div>
                   )}

@@ -88,7 +88,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 ## 开始之前
 
 - 你基础设施中的 **一台装有 Docker 的主机** ，能通过 HTTPS 访问你的 OneUptime URL，并能访问步骤要操作的系统。
-- **能创建 Runner 的角色。** Project Owner、Project Admin、Project Member 和 Runbook Admin 可以创建 Runner。只有 Project Owner、Project Admin 或 Runbook Admin 能看到 Runner 的密钥，而安装命令中包含该密钥。
+- **能创建 Runner 的角色。** 项目所有者、项目管理员、项目成员和运行手册管理员可以创建 Runner。只有项目所有者、项目管理员或运行手册管理员能看到 Runner 的密钥，而安装命令中包含该密钥。
 
 ## 安装 Runner
 
@@ -109,7 +109,7 @@ Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是�
 
 在 Runner 所在行点击 **显示设置说明** 。 **Runbook 代理设置** 对话框会显示一条 `docker run` 命令，其中已经包含该 Runner 的 ID 和密钥。同样的命令也位于 Runner 自身页面的 **设置说明** 下。
 
-只有 Project Owner、Project Admin 或 Runbook Admin 能读取密钥。其他人看到的不是命令，而是“您无权查看此 Runbook 代理的密钥”。
+只有项目所有者、项目管理员或运行手册管理员能读取密钥。其他人看到的不是命令，而是“您无权查看此 Runbook 代理的密钥”。
 
 ### 3. 在你基础设施中的主机上运行
 
@@ -293,7 +293,7 @@ docker rm -f oneuptime-runner
 
 触发 Runbook（从而把其步骤发送给 Runner）需要一个运行 Runbook 的角色——`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin` 或 `RunbookMember`——或 `CreateRunbookExecution`；完成、跳过或取消执行还接受 `EditRunbookExecution`。角色只运行其范围所及的 Runbook。
 
-只有 Project Owner、Project Admin 和 Runbook Admin 能读取 Runner 的密钥。
+只有项目所有者、项目管理员和运行手册管理员能读取 Runner 的密钥。
 
 ## 面向代理的 API
 

@@ -97,7 +97,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import TracesAnalyticsView, {
-  formatDurationMs,
+  formatDurationMsInLanguage,
   TraceAnalyticsState,
 } from "./TracesAnalyticsView";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -3670,6 +3670,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                       "Open the logs explorer scoped like this view",
                     )
               }
+              isTextTranslated={true}
             >
               <button
                 type="button"
@@ -3696,6 +3697,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                       "Open the metric explorer scoped like this view",
                     )
               }
+              isTextTranslated={true}
             >
               <button
                 type="button"
@@ -4009,7 +4011,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       histogramValueFormatter={
-        chartMetric === "count" ? undefined : formatDurationMs
+        chartMetric === "count"
+          ? undefined
+          : (value: number): string => {
+              // The reader's words on the axis, as in its tooltip (#8349).
+              return formatDurationMsInLanguage(value, translator);
+            }
       }
       histogramHeaderActions={
         <select

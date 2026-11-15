@@ -53,6 +53,8 @@ import MonitorStepViewModel, {
 } from "../../../Utils/MonitorStepViewModel";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import AttributeFilterSentences from "./AttributeFilterSentences";
+import { JSONObject } from "Common/Types/JSON";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -96,6 +98,8 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
   [MonitorStepViewValueType.NetworkDevice]: FieldType.Text,
   // Resolved to the probes' names by this component.
   [MonitorStepViewValueType.Probes]: FieldType.ArrayOfText,
+  // Each filter said as one sentence (AttributeFilterSentences).
+  [MonitorStepViewValueType.AttributeFilters]: FieldType.Element,
 };
 
 // A probe the step names that no probe list holds any more.
@@ -376,6 +380,25 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         placeholder: row.placeholder,
         getElement: (): ReactElement => {
           return <ServicesElement services={services} />;
+        },
+      });
+
+      continue;
+    }
+
+    if (row.valueType === MonitorStepViewValueType.AttributeFilters) {
+      const filters: JSONObject = (row.value as JSONObject | undefined) || {};
+
+      item[row.key] = filters;
+
+      fields.push({
+        key: row.key,
+        title: row.title,
+        description: row.description,
+        fieldType: FieldType.Element,
+        placeholder: row.placeholder,
+        getElement: (): ReactElement => {
+          return <AttributeFilterSentences filters={filters} />;
         },
       });
 

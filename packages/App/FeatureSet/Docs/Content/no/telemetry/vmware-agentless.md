@@ -61,6 +61,8 @@ Navnet er som standard vCenters vertsnavn. Klikk på **Koble til vCenter** for �
 
 **Oversikt** for vCenter-en viser et kort **Datainnsamling**. Det viser **Kontrollerer** fram til den første innsamlingen, som starter innen ett minutt, deretter **Samler inn**, og inventaret fylles ut.
 
+Hvis ingen sonde kommer for vCenter-en på 20 minutter, fordi den er frakoblet eller for gammel, viser kortet **Samler ikke inn** og det sies fra om det, uansett hva siste innsamling fant. Når ingen sonde får samle inn vCenter-en, viser kortet straks **Samler ikke inn**, med årsaken og hva som må endres: ikke noe passord er lagret, vCenters adresse eller brukernavn mangler, ingen sonde er satt til å samle den inn, sonden dens får ikke samle den inn (en delt sonde på OneUptime Cloud, eller et annet prosjekts), eller sonden dens er frakoblet. **Neste innsamling** er tidspunktet en sonde samler den inn neste gang, **Står for tur nå** mens den venter på en, **Forsinket** når ingen har kommet på 20 minutter, og **Ikke planlagt** mens ingen sonde får samle den inn. En arkivert vCenter samles fortsatt inn.
+
 ## Sertifikater
 
 Sonden hopper aldri over sertifikatkontrollen. Hver tilkobling fullfører et fullstendig TLS-håndtrykk, og deretter:

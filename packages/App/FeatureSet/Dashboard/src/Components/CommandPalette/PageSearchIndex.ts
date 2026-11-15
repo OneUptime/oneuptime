@@ -1142,6 +1142,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["monitor secrets", "credentials", "passwords"],
           },
           {
+            page: PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS,
+            title: "Incoming Request Secrets",
+            icon: IconProp.Key,
+            keywords: [
+              "webhook secret",
+              "heartbeat secret",
+              "x-oneuptime-secret",
+              "incoming request security",
+            ],
+            settings: ["Require a Secret", "Require a secret on every request"],
+          },
+          {
             page: PageMap.MONITORS_SETTINGS_TEMPLATES,
             title: "Templates",
             icon: IconProp.Template,

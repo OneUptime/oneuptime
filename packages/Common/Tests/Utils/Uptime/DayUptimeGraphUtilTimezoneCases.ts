@@ -860,6 +860,15 @@ export function describeDayUptimeGraphUtilInProcessTimezone(
           endDate,
           60,
         );
+        /*
+         * The start the page worked out before the fix, as it did then: 60
+         * days of the process's own calendar (getSomeDaysAgoFromDate steps
+         * 60 x 24 hours since issue #8236).
+         */
+        const startDateBeforeTheFix: Date = OneUptimeDate.addRemoveDays(
+          endDate,
+          -60,
+        );
 
         const bucketStarts: Array<Date> = getUtcServerBucketStarts(
           startDate,
@@ -923,7 +932,7 @@ export function describeDayUptimeGraphUtilInProcessTimezone(
          */
         test(`at ${localCase.instant} the pre-fix local strip misplaced today's reading`, () => {
           const oldDays: Array<UptimeGraphDay> = getDaysTheOldWay(
-            startDate,
+            startDateBeforeTheFix,
             endDate,
           );
 

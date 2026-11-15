@@ -222,6 +222,10 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Secrets",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS,
+      ["Project", "Monitors", "Settings", "Incoming Request Secrets"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_PROBES, [
       "Project",
       "Monitors",

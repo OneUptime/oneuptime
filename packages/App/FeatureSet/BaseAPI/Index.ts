@@ -556,9 +556,7 @@ import ScheduledMaintenanceMeasurementService, {
 import ScheduledMaintenanceMeasurementValueService, {
   Service as ScheduledMaintenanceMeasurementValueServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceMeasurementValueService";
-import ServiceLevelObjectiveService, {
-  Service as ServiceLevelObjectiveServiceType,
-} from "Common/Server/Services/ServiceLevelObjectiveService";
+
 import LlmCostBudgetService, {
   Service as LlmCostBudgetServiceType,
 } from "Common/Server/Services/LlmCostBudgetService";
@@ -636,6 +634,7 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import ServiceLevelObjectiveAPI from "Common/Server/API/ServiceLevelObjectiveAPI";
 import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
 import ServiceLevelObjectiveErrorBudgetPolicyTierAPI from "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI";
 import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
@@ -1194,6 +1193,9 @@ import MonitorProbeService, {
 import MonitorSecretService, {
   Service as MonitorSecretServiceType,
 } from "Common/Server/Services/MonitorSecretService";
+import IncomingRequestSecretService, {
+  Service as IncomingRequestSecretServiceType,
+} from "Common/Server/Services/IncomingRequestSecretService";
 import MonitorStatusService, {
   Service as MonitorStatusServiceType,
 } from "Common/Server/Services/MonitorStatusService";
@@ -1641,7 +1643,6 @@ import AlertMeasurement from "Common/Models/DatabaseModels/AlertMeasurement";
 import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurementValue";
 import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
-import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -1774,6 +1775,7 @@ import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
 import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
+import IncomingRequestSecret from "Common/Models/DatabaseModels/IncomingRequestSecret";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTimelineStatus from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
@@ -3740,10 +3742,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     // ServiceLevelObjective
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceLevelObjective, ServiceLevelObjectiveServiceType>(
-        ServiceLevelObjective,
-        ServiceLevelObjectiveService,
-      ).getRouter(),
+      // Its CRUD, and the release check a rollout asks (ServiceLevelObjectiveAPI).
+      new ServiceLevelObjectiveAPI().getRouter(),
     );
 
     // ServiceLevelObjectiveBurnRateRule, and "Add recommended rules"
@@ -4257,6 +4257,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorSecret, MonitorSecretServiceType>(
         MonitorSecret,
         MonitorSecretService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingRequestSecret, IncomingRequestSecretServiceType>(
+        IncomingRequestSecret,
+        IncomingRequestSecretService,
       ).getRouter(),
     );
 

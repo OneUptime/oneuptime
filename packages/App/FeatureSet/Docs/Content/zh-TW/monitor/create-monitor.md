@@ -3,7 +3,7 @@
 監測器會檢查您維運的對象，例如網站、API、主機或 Kubernetes 叢集，並在它停止運作時通知您。**建立監測器** 會先問要監測什麼，再問要檢查什麼，最後問多久檢查一次。除了類型、名稱和要檢查的對象之外，其餘內容都以適合大多數監測器的預設值開始。
 
 > [!NOTE]
-> 若要建立監測器，您需要 Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member 角色，或者擁有 Create Monitor 權限的自訂角色。
+> 若要建立監測器，您需要專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員角色，或者擁有 Create Monitor 權限的自訂角色。
 
 ## 監測器資訊
 

@@ -43,7 +43,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的遥测** 带有 `service.name`。参见 [OpenTelemetry](/docs/telemetry/open-telemetry)：`OTEL_SERVICE_NAME` 用于设置它。
-- **可以读取服务的角色。** Project Owner、Project Admin、Project Member、Viewer、Settings Admin、Settings Member 或 Settings Viewer，或者拥有 Read Service 权限的自定义角色。创建、更改和删除服务需要 Project Owner、Project Admin、Project Member、Settings Admin 或 Settings Member，或者相应的服务权限。
+- **可以读取服务的角色。** 项目所有者、项目管理员、项目成员、查看者、设置管理员、设置成员或设置查看者，或者拥有 Read Service 权限的自定义角色。创建、更改和删除服务需要项目所有者、项目管理员、项目成员、设置管理员或设置成员，或者相应的服务权限。
 
 ## 查找服务
 

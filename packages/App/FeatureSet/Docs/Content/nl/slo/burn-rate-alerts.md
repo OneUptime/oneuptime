@@ -212,8 +212,8 @@ Om uw eigen tekst te schrijven, gebruikt u sjabloonvariabelen in de titel, de be
 | `{{targetPercentage}}` | Het doel van de SLO, als percentage. | `99.9` |
 | `{{currentSliPercentage}}` | De SLI gemeten over het compliancevenster van de SLO, als percentage. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Aandeel van het foutbudget dat nog beschikbaar is, als percentage. Negatief als het budget is overschreden. | `42.5` |
-| `{{errorBudgetRemaining}}` | Foutbudget dat nog beschikbaar is, als duur. Begint met een minteken als het budget is overschreden. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Foutbudget dat nog beschikbaar is, in minuten. | `18.37` |
+| `{{errorBudgetRemaining}}` | Foutbudget dat nog beschikbaar is, als duur, of voor een SLO voor aanvragen als de mislukte of trage aanvragen die het nog toestaat. Begint met een minteken als het budget is overschreden. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Foutbudget dat nog beschikbaar is, in minuten. Leeg voor een SLO voor aanvragen, waarvan het budget in aanvragen wordt geteld. | `18.37` |
 | `{{windowDescription}}` | Het compliancevenster van de SLO, in woorden. | `rolling 30-day window` |
 | `{{policyTier}}` | Naam van het niveau van het foutbudgetbeleid waarin de SLO na deze evaluatie zit. "None" als hij in geen enkel niveau zit. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Drempel voor het resterende budget van dat niveau, als percentage. Leeg als de SLO in geen enkel niveau zit. | `25` |

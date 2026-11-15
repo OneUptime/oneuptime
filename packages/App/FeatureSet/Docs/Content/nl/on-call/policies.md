@@ -111,7 +111,7 @@ flowchart TB
 | Status | Wat die betekent |
 | --- | --- |
 | **Wachten** | Een bereikbaarheidsregel op **Alleen tijdens werktijden** laat de uitvoering wachten tot die tijden beginnen: ze zegt wanneer het oproepen begint, en roept tot dan niemand op. Ze eindigt zonder oproep als het incident of de waarschuwing eerst wordt bevestigd of opgelost. Ze begint meteen met oproepen als het incident of de waarschuwing verandert en nu op een bereikbaarheidsregel past die direct oproept. |
-| **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, wordt gestopt als **Fout**. |
+| **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, is niet klaar met starten: die gaat door naar **Wordt uitgevoerd** en roept op vanaf waar de start stopte. Een directe oproep of een testoproep die er nog staat, wordt gestopt als **Fout**. |
 | **Wordt uitgevoerd** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. |
 | **Uitvoering voltooid** | Iemand heeft bevestigd, het incident of de waarschuwing is opgelost, elke regel en herhaling is gebruikt, of het beleid is gearchiveerd. |
 | **Uitvoering voltooid - niemand gemeld** | De uitvoering is door elke regel gegaan zonder iemand op te roepen: meestal een schema waarin niemand dienst heeft, of een niveau zonder ontvangers. |
