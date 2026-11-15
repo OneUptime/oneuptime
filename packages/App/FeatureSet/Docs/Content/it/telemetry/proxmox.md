@@ -233,7 +233,7 @@ pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
 
 ## Opzionale — Inviare i log dei servizi Proxmox
 
-Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Registri** del cluster resta vuota. I servizi di Proxmox VE scrivono i log nel journal di systemd con otto unità: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` e `qmeventd`. Il `otel-collector-config.yaml` incluso contiene un receiver `journald` commentato proprio per queste unità, collegato a una pipeline `logs` commentata che applica `proxmox.cluster.name`, così i log finiscono sul tuo cluster.
+Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Log** del cluster resta vuota. I servizi di Proxmox VE scrivono i log nel journal di systemd con otto unità: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` e `qmeventd`. Il `otel-collector-config.yaml` incluso contiene un receiver `journald` commentato proprio per queste unità, collegato a una pipeline `logs` commentata che applica `proxmox.cluster.name`, così i log finiscono sul tuo cluster.
 
 :::steps
 ### Esegui l'agent su un nodo
@@ -437,7 +437,7 @@ Il push nativo non invia lo stato HA, l'avvio al boot, la copertura dei backup n
 :::details I risultati dei backup non compaiono mai
 1. Controlla la versione di Proxmox VE: le destinazioni webhook richiedono la 8.3 o successiva (`pveversion`).
 2. Controlla che la destinazione e il suo matcher esistano: `pvesh get /cluster/notifications/endpoints/webhook` e `pvesh get /cluster/notifications/matchers` elencano entrambi `oneuptime`.
-3. Invia una notifica di prova con `pvesh create /cluster/notifications/targets/oneuptime/test`. Compare nella pagina **Registri** del cluster entro un minuto; se non compare, la chiave o l'URL nella destinazione sono errati.
+3. Invia una notifica di prova con `pvesh create /cluster/notifications/targets/oneuptime/test`. Compare nella pagina **Log** del cluster entro un minuto; se non compare, la chiave o l'URL nella destinazione sono errati.
 4. Controlla il nome del cluster nei secret della destinazione: un nome che OneUptime non conosce registra un secondo cluster.
 :::
 

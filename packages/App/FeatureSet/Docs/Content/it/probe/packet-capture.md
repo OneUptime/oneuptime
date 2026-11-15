@@ -8,7 +8,7 @@ Le catture sono disattivate su ogni sonda finché chi la gestisce non le attiva,
 - [Come funziona](#come-funziona): Da «Avvia cattura di pacchetti» a un file in Wireshark.
 - [Attivare la cattura dei pacchetti](#attivare-la-cattura-dei-pacchetti): Cosa imposta chi gestisce la sonda, per Docker, Docker Compose e Kubernetes.
 - [Avviare una cattura](#avviare-una-cattura): Scegli un'interfaccia, restringi a ciò che ti serve, scarica il file.
-- [Riferimento](#riferimento): Limiti, filtri, autorizzazioni, registro di audit e per quanto tempo si conservano i file.
+- [Riferimento](#riferimento): Limiti, filtri, autorizzazioni, log di audit e per quanto tempo si conservano i file.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Cosa significa il messaggio di una cattura non riuscita.
 :::
 
@@ -197,7 +197,7 @@ Per dare a un team **Start Packet Capture** o **Download Packet Capture**, april
 
 ### Registro di audit e privacy
 
-- L'avvio di una cattura viene registrato nel registro di audit come **Create** della **Packet Capture**, e la sua eliminazione come **Delete**. Ogni download viene registrato come **Download**, con chi ha scaricato quale cattura.
+- L'avvio di una cattura viene registrato nel log di audit come **Create** della **Packet Capture**, e la sua eliminazione come **Delete**. Ogni download viene registrato come **Download**, con chi ha scaricato quale cattura.
 - Il file è un file privato del progetto. Solo il pulsante **Scarica**, con **Download Packet Capture**, lo consegna.
 - Le catture e i loro file vengono eliminati 7 giorni dopo l'avvio. Eliminare una cattura elimina subito il suo file.
 

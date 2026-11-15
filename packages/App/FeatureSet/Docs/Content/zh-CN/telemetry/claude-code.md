@@ -139,7 +139,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 在 **产品 → AI / LLM → 用量** 中，`claude_code.cost.usage` 为 **员工** 、 **团队** 和 **模型** 表提供数据，`claude_code.token.usage` 为 token 总数提供数据。你看到的内容由两条规则决定：
 
-- **Claude Code 与你的应用一起计数。** 它的指标归在它自己的服务下，因此它的支出会加到你的应用发送到同一个项目的 AI 调用上。如果你开启它的跟踪（测试版），请为所有人开启：从那时起，Claude Code 只按其跟踪计数，只计一次。请参阅 [每个服务按其发送的数据计数](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数)。
+- **Claude Code 与你的应用一起计数。** 它的指标归在它自己的服务下，因此它的支出会加到你的应用发送到同一个项目的 AI 调用上。如果你开启它的追踪（测试版），请为所有人开启：从那时起，Claude Code 只按其追踪计数，只计一次。请参阅 [每个服务按其发送的数据计数](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数)。
 - **来自指标的行不指明任何调用。** 它会在名称下方注明 **来自用量指标** ，其调用单元格显示 `—`， **提供商** 表会把它归入 **未归属** ：这些指标不指明提供商。
 
 其他所有内容，例如按开发者划分的接受率、代码行数、提交和拉取请求，或按 `query_source` 划分的支出，都可以根据下面的指标在 [仪表盘](/docs/dashboards/index) 上绘制，并用 [指标监控](/docs/monitor/metrics-monitor) 设置警报。
@@ -207,10 +207,10 @@ export OTEL_METRICS_INCLUDE_SESSION_ID=false
 | `OTEL_LOG_USER_PROMPTS` | 关闭 | 提示词文本 |
 | `OTEL_LOG_ASSISTANT_RESPONSES` | 关闭 | 回答文本；未设置时跟随 `OTEL_LOG_USER_PROMPTS` |
 | `OTEL_LOG_TOOL_DETAILS` | 关闭 | 工具参数、Bash 命令，以及代理、插件、技能和 MCP 服务器的真实名称 |
-| `OTEL_LOG_TOOL_CONTENT` | 关闭 | 工具的输入和输出，仅限跟踪 span |
+| `OTEL_LOG_TOOL_CONTENT` | 关闭 | 工具的输入和输出，仅限追踪 span |
 | `OTEL_LOG_RAW_API_BODIES` | 关闭 | 完整的 API 请求和响应正文（`file:<dir>` 会改为写入磁盘） |
 
-我们建议保持关闭：指标和脱敏后的事件已经能回答谁在哪个模型上花了多少钱、接受率是多少。采集内容会把提示词、源代码和工具输出转移到一个访问控制与你的代码仓库不同的遥测存储中。如果为了调查而开启，`CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH`（默认 `61440`）会限制每条记录传输的内容量，而 **追踪 → 设置** 下跟踪的 **清理规则** 和 **丢弃过滤器** 会在存储前将其屏蔽或丢弃。
+我们建议保持关闭：指标和脱敏后的事件已经能回答谁在哪个模型上花了多少钱、接受率是多少。采集内容会把提示词、源代码和工具输出转移到一个访问控制与你的代码仓库不同的遥测存储中。如果为了调查而开启，`CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH`（默认 `61440`）会限制每条记录传输的内容量，而 **追踪 → 设置** 下追踪的 **清理规则** 和 **丢弃过滤器** 会在存储前将其屏蔽或丢弃。
 
 ## 指标以增量形式到达
 
@@ -224,7 +224,7 @@ export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 
 ## 跟踪（测试版）
 
-Claude Code 还有一个测试版跟踪导出器，它把每次交互绘制成一棵 span 树：`claude_code.interaction` 下面是 `claude_code.llm_request` 和 `claude_code.tool`。
+Claude Code 还有一个测试版追踪导出器，它把每次交互绘制成一棵 span 树：`claude_code.interaction` 下面是 `claude_code.llm_request` 和 `claude_code.tool`。
 
 ```bash
 export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
@@ -232,9 +232,9 @@ export OTEL_TRACES_EXPORTER=otlp
 ```
 
 > [!NOTE]
-> 测试版跟踪的模型 span 带有 `gen_ai.system` 和 `gen_ai.request.model`，因此 OneUptime 会在 **调用** 中列出它们，把它们的 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens` 读作这次调用的 token，并按模型的标价为每次调用定价。一旦它们存在， **员工** 、 **团队** 和 **模型** 表显示的就是这些行，而不是指标中的支出。这是 OneUptime 的估算：缓存写入按 5 分钟的费率计算，不含快速模式的价格，因此可能与 `claude_code.cost.usage` 不同。
+> 测试版追踪的模型 span 带有 `gen_ai.system` 和 `gen_ai.request.model`，因此 OneUptime 会在 **调用** 中列出它们，把它们的 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens` 读作这次调用的 token，并按模型的标价为每次调用定价。一旦它们存在， **员工** 、 **团队** 和 **模型** 表显示的就是这些行，而不是指标中的支出。这是 OneUptime 的估算：缓存写入按 5 分钟的费率计算，不含快速模式的价格，因此可能与 `claude_code.cost.usage` 不同。
 
-在 Agent SDK 会话和非交互式 `-p` 会话中，Claude Code 会接收传入的 `TRACEPARENT`，因此它的 span 会加入调用方的跟踪；交互式会话会忽略它。只有当 `ANTHROPIC_BASE_URL` 未设置或指向 Anthropic API 时，它才会向模型发送 `traceparent` 请求头；在你自己的代理后面，请设置 `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`。
+在 Agent SDK 会话和非交互式 `-p` 会话中，Claude Code 会接收传入的 `TRACEPARENT`，因此它的 span 会加入调用方的追踪；交互式会话会忽略它。只有当 `ANTHROPIC_BASE_URL` 未设置或指向 Anthropic API 时，它才会向模型发送 `traceparent` 请求头；在你自己的代理后面，请设置 `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`。
 
 ## 故障排除
 

@@ -150,7 +150,7 @@ log_id=158825619025 log_type="SD-WAN" log_component="SLA" profile_name="Branch-I
 
 ger `sophos.gw_name = WAN2`, `sophos.latency = 11`, `sophos.packet_loss = 0`, `sophos.gw_status = up` och `sophos.sla_status = SLA met`. Äldre SFOS-versioner loggar ett äldre format (`device="SFW" date=2017-01-31 time=18:02:03 timezone="IST" ... connectionname="Tunnel A"`); det tolkas på samma sätt, med tunnelnamnet i `connectionname` i stället för `con_name`.
 
-Hur du gör de SLA-raderna till mått för latens, jitter och paketförlust per gateway ser du i exemplet under [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules).
+Hur du gör de SLA-raderna till mätvärden för latens, jitter och paketförlust per gateway ser du i exemplet under [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules).
 
 ### Exempel: Fortinet FortiGate
 

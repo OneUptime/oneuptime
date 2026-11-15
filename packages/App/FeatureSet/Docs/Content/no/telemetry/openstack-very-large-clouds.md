@@ -97,7 +97,7 @@ Over 5 000 instanser beholder en sky tall og rader i stedet for en serie per ins
 
 **Hva den gir avkall på:**
 
-- Historikken for hver stabile instans' og hvert stabile volums status, og et diagram eller en overvåker over disse seriene. `openstack_nova_server_status`, `openstack_cinder_volume_gb` og `openstack_cinder_volume_status` stopper for en del når den er stabil. En overvåker som trenger én instans, bør velge prosjektet sitt, nedenfor.
+- Historikken for hver stabile instans' og hvert stabile volums status, og et diagram eller en monitor over disse seriene. `openstack_nova_server_status`, `openstack_cinder_volume_gb` og `openstack_cinder_volume_status` stopper for en del når den er stabil. En overvåker som trenger én instans, bør velge prosjektet sitt, nedenfor.
 - `openstack_placement_resource_provider_allocations` og `openstack_nova_server_local_gb`, uansett hvem de tilhører. En sonde slutter helt å spørre Placement om allokeringer.
 
 **For å beholde en instans' serier likevel**, åpne skyens **Innstillinger**, og deretter **Faktisk bruk per instans**. **Bare prosjektene og aggregatene jeg velger** beholder hver instans og hvert volum i de prosjektene, uansett hvor stor skyen er. **Hver instans** slår sammendragsmodus av for hele skyen. En sonde nekter det over omtrent 480 MiB med målinger per innsamling, i stedet for å holde det i minnet: bruk agenten for en slik sky.
@@ -207,7 +207,7 @@ Dette kjørte på en Mac med 10 kjerner, delt med annet arbeid ved et gjennomsni
 
 Marginen er ikke bred på en så travel maskin. En tidligere time, ved et gjennomsnittlig lastnivå på omtrent 42 som nådde 95, kjørte så langt som til at én innsamlings siste rad landet ved 124 sekunder, så den neste innsamlingen ble hoppet over, og alle andre budsjetter holdt.
 
-**Hva dette utelater.** Mocken svarer med en gang, så dette sier ingenting om hvor raske API-ene dine er: [hva en innsamlings tid tillater](#gjennom-en-sonde) handler om det. Det utelater HTTP-serveren og køen mellom en sonde og inntaket, og ClickHouse, så et diagrams eller en overvåkers avlesning av seriene er ikke med her, bare inventarets skrivinger og avlesninger. Radene har samme form som en virkelig DevStacks, og tallene er funnet på. Ingen sky av denne størrelsen har kjørt mot det.
+**Hva dette utelater.** Mocken svarer med en gang, så dette sier ingenting om hvor raske API-ene dine er: [hva en innsamlings tid tillater](#gjennom-en-sonde) handler om det. Det utelater HTTP-serveren og køen mellom en sonde og inntaket, og ClickHouse, så et diagrams eller en monitors avlesning av seriene er ikke med her, bare inventarets skrivinger og avlesninger. Radene har samme form som en virkelig DevStacks, og tallene er funnet på. Ingen sky av denne størrelsen har kjørt mot det.
 
 ## Hva sidene leser
 

@@ -28,14 +28,14 @@ flowchart TB
 | 标签页 | 显示内容 |
 | --- | --- |
 | **对话** | AI 进行过的每一段对话，需要关注的排在最前。列表上方显示：对话数、AI 回答数、需要关注的数量、成本和典型回答时间。 |
-| **调用** | 每一次模型、嵌入、代理和工具调用。可按服务、提供商、模型、操作、人员、团队或对话筛选；点击某次调用即可在跟踪查看器中打开。 |
+| **调用** | 每一次模型、嵌入、代理和工具调用。可按服务、提供商、模型、操作、人员、团队或对话筛选；点击某次调用即可在追踪查看器中打开。 |
 | **用量** | 某个时间范围内的调用、token 和成本，按员工、团队、模型、提供商或应用排名；在 **提供商账户** 下显示已连接账户的账单金额。 |
 | **警报** | 针对 AI 回答不佳的现成警报，以及你的 AI / LLM 监视器。 |
 | **预算** | 每日成本上限，以可设置警报的指标形式发布。 |
 | **定价** | 为内置价目表中没有的模型设置你自己的价格。 |
 | **连接** | 三种接入方式并排显示，每种方式开始工作时自动打勾。 |
 
-在跟踪查看器中，每次 AI 调用的 span 还有一个 **LLM** 标签页：提供商、模型、token、成本、请求参数，以及提示词和回答。
+在追踪查看器中，每次 AI 调用的 span 还有一个 **LLM** 标签页：提供商、模型、token、成本、请求参数，以及提示词和回答。
 
 ## 三种接入方式
 
@@ -151,11 +151,11 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 较新的 OpenTelemetry 插桩接受 `span_only`、`event_only` 或 `span_and_event`，而不是 `true`。即使没有记录内容，对话仍会显示其耗时、成本和问题。提示词可能包含敏感数据： [隐私与脱敏](#隐私与脱敏) 说明了如何在存储前将其屏蔽。
 
-对话读取的是记录在调用的 span 上的内容，以及应用带着调用的跟踪 ID 和 span ID 发送的日志事件。Python 的 OpenTelemetry 插桩用 `span_only` 把它记录在 span 上；JavaScript 和 Java 的插桩，以及设置为 `true` 或 `event_only` 的 Python 插桩，会把它作为日志事件发送，这些事件随应用的日志一起到达 OneUptime。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它记录在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 库什么也不记录。
+对话读取的是记录在调用的 span 上的内容，以及应用带着调用的追踪 ID 和 span ID 发送的日志事件。Python 的 OpenTelemetry 插桩用 `span_only` 把它记录在 span 上；JavaScript 和 Java 的插桩，以及设置为 `true` 或 `event_only` 的 Python 插桩，会把它作为日志事件发送，这些事件随应用的日志一起到达 OneUptime。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它记录在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 库什么也不记录。
 
 ### 把调用归入对话
 
-聊天应用每一轮调用一次模型。在每次 AI 调用上把 `gen_ai.conversation.id`（或 `session.id`）设为你的聊天 ID，每个聊天就会显示为一段对话，无论它用了多少次调用和多少个跟踪。使用 OpenLLMetry 时，每个请求设置一次即可：
+聊天应用每一轮调用一次模型。在每次 AI 调用上把 `gen_ai.conversation.id`（或 `session.id`）设为你的聊天 ID，每个聊天就会显示为一段对话，无论它用了多少次调用和多少个追踪。使用 OpenLLMetry 时，每个请求设置一次即可：
 
 ```python
 from traceloop.sdk import Traceloop
@@ -166,7 +166,7 @@ Traceloop.set_association_properties({
 })
 ```
 
-使用 Vercel AI SDK 时，把聊天 ID 作为 `experimental_telemetry: { metadata: { sessionId } }` 传入。没有对话 ID 的调用仍会显示，每次一个请求（一个跟踪）。
+使用 Vercel AI SDK 时，把聊天 ID 作为 `experimental_telemetry: { metadata: { sessionId } }` 传入。没有对话 ID 的调用仍会显示，每次一个请求（一个追踪）。
 
 ### 说明是谁问的
 
@@ -204,7 +204,7 @@ trace.get_current_span().add_event(
 
 ## 阅读和重新播放对话
 
-对话会像聊天应用显示历史记录那样整段打开：对方说的话在右边，AI 的回答在左边，附带模型、时间、token 和成本，工具调用夹在中间，出问题的地方会在发生处标出。回答下方的 **详情** 会显示它停止的原因、它的评估，以及指向跟踪中该调用的链接。
+对话会像聊天应用显示历史记录那样整段打开：对方说的话在右边，AI 的回答在左边，附带模型、时间、token 和成本，工具调用夹在中间，出问题的地方会在发生处标出。回答下方的 **详情** 会显示它停止的原因、它的评估，以及指向追踪中该调用的链接。
 
 底部的进度条会按对方经历的样子重新播放对话：
 
@@ -266,7 +266,7 @@ flowchart TB
 | **员工** 、 **团队** 、 **模型** 、 **提供商** 、 **应用 / 服务** 表 | 每一行的调用、token 和成本 | 按指标计数的服务的 token 和成本，归入其数据点指明的人员、团队、模型或提供商 |
 | 对话 | 由 AI 调用构建 | 从不 |
 
-在每个数字下方，用量标签页会说明它的来源： **来自 AI 调用** 、 **来自用量指标** ，或者在一些服务发送调用、另一些服务发送指标时显示 **来自 AI 调用和用量指标** 。按用量指标计数的表格行会在其名称下方注明，当它没有 AI 调用时，其调用单元格显示 `—`，因为指标没有逐次调用的细节；表格的标题会列出按用量指标计数的服务， **应用 / 服务** 表除外，因为它的行本身就是服务。不指明任何服务的用量指标会计入 **未知服务** ，它和其他服务一样算作一个服务。如果你的角色可以读取跟踪但不能读取指标，用量指标会被排除，表格会注明这一点。
+在每个数字下方，用量标签页会说明它的来源： **来自 AI 调用** 、 **来自用量指标** ，或者在一些服务发送调用、另一些服务发送指标时显示 **来自 AI 调用和用量指标** 。按用量指标计数的表格行会在其名称下方注明，当它没有 AI 调用时，其调用单元格显示 `—`，因为指标没有逐次调用的细节；表格的标题会列出按用量指标计数的服务， **应用 / 服务** 表除外，因为它的行本身就是服务。不指明任何服务的用量指标会计入 **未知服务** ，它和其他服务一样算作一个服务。如果你的角色可以读取追踪但不能读取指标，用量指标会被排除，表格会注明这一点。
 
 每次模型调用只计一次。代理运行，或者框架包在 SDK 自身 span 外面的 span，常常会重复其内部调用的 token 和成本：只要其内部的某个调用报告了 token 或成本，该 span 的 token 或成本就不计入；而当其内部没有任何调用报告时，代理运行会保留自己的数字。预算和 **对话** 列表也以同样的方式计数，而 **调用** 会列出每个 span 及其自身的数字。
 
@@ -315,13 +315,13 @@ span 报告为从提供商的提示缓存读取或写入其中的 token，按提
 
 ## 隐私与脱敏
 
-AI 调用以跟踪 span 的形式存储，因此跟踪的 **清理规则** 和 **丢弃过滤器** 也适用于它们：在存储之前屏蔽某个属性或丢弃某个 span。两者都在 **追踪 → 设置** 下。员工邮箱列会与其来源属性一起被清理，因此屏蔽邮箱的规则也会覆盖这一列。
+AI 调用以追踪 span 的形式存储，因此追踪的 **清理规则** 和 **丢弃过滤器** 也适用于它们：在存储之前屏蔽某个属性或丢弃某个 span。两者都在 **追踪 → 设置** 下。员工邮箱列会与其来源属性一起被清理，因此屏蔽邮箱的规则也会覆盖这一列。
 
-以日志事件发送的提示词和回答以日志的形式存储，因此适用于它们的是日志的 **清理规则** 和 **丢弃过滤器**，两者都在 **日志 → 设置** 下：在跟踪中屏蔽邮箱的规则不会屏蔽日志事件中的邮箱。对话只向也能读取该应用日志的人显示它们，这些人也能在 **日志** 页面上找到它们。
+以日志事件发送的提示词和回答以日志的形式存储，因此适用于它们的是日志的 **清理规则** 和 **丢弃过滤器**，两者都在 **日志 → 设置** 下：在追踪中屏蔽邮箱的规则不会屏蔽日志事件中的邮箱。对话只向也能读取该应用日志的人显示它们，这些人也能在 **日志** 页面上找到它们。
 
 无论哪种情况，规则都会读取列表或结构化值中的每一段文本（例如插桩以列表而不是 JSON 文本发送的消息），并保留值的形状：提示词中的邮箱地址无论位于何处都会被屏蔽。参见 [清理敏感数据](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感数据)。
 
-读取对话所需的权限与跟踪相同：能读取项目跟踪的人才能读取其对话，其他人都不能。公司 AI 工具的对话是例外：除非其连接另有设置，否则只有项目所有者和项目管理员可以阅读（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隐私) ）。
+读取对话所需的权限与追踪相同：能读取项目追踪的人才能读取其对话，其他人都不能。公司 AI 工具的对话是例外：除非其连接另有设置，否则只有项目所有者和项目管理员可以阅读（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隐私) ）。
 
 ## OneUptime 读取的属性
 
@@ -349,7 +349,7 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 
 提供商会以约定中的名称保存，无论传来的是哪种写法：`az.ai.openai` 和 `azure_openai` 存为 `azure.ai.openai`，`az.ai.inference` 存为 `azure.ai.inference`，`OpenAI` 存为 `openai`。OpenAI SDK 命名为 `openai`、但发往 Azure OpenAI 或 Microsoft Foundry 端点的调用，会根据其 `server.address` 或 OpenLLMetry 的 `gen_ai.openai.api_base` 存为 `azure.ai.openai`。 **调用** 按名称显示提供商，Azure 部署的调用会显示它请求的部署，并在下方显示处理该调用并为其定价的模型。
 
-按照约定的计法，输入 token 也包括缓存 token：如果 span 的缓存计数大于其输入计数，说明输入计数没有包括它们，OneUptime 会把它们加上。Claude Code 的测试版跟踪不发送 `gen_ai.usage.*` 键：在指明模型的 span 上，OneUptime 读取其 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens`，并把两个缓存计数加到不包括它们的 `input_tokens` 上。
+按照约定的计法，输入 token 也包括缓存 token：如果 span 的缓存计数大于其输入计数，说明输入计数没有包括它们，OneUptime 会把它们加上。Claude Code 的测试版追踪不发送 `gen_ai.usage.*` 键：在指明模型的 span 上，OneUptime 读取其 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens`，并把两个缓存计数加到不包括它们的 `input_tokens` 上。
 
 身份键（谁发起了调用，以及其团队）列在 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属) 中。
 
@@ -363,7 +363,7 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 - 带索引的属性：OpenLLMetry 的 `gen_ai.prompt.N.content` 和 `gen_ai.completion.N.content`，OpenInference 的 `llm.input_messages.N.message.content` 和 `llm.output_messages.N.message.content`；
 - `gen_ai.prompt`、`gen_ai.completion`、`ai.prompt.messages`、`ai.response.text`、`input.value` 和 `output.value` 中的消息数组。
 
-当调用的 span 中没有提示词或没有回答时，会从带有该调用的跟踪 ID 和 span ID 的日志记录中读取：同样的事件，通过日志信号发送，名称位于记录的 `event.name` 属性或其事件名称字段中。带有跟踪 ID 但没有 span ID 的记录归入该跟踪唯一的模型调用，或归入发送它时正在进行的调用；如果这不是唯一一次调用，则不予采用。span 记录的内容优先，因此两种方式都记录了的调用，每条消息只显示一次。
+当调用的 span 中没有提示词或没有回答时，会从带有该调用的追踪 ID 和 span ID 的日志记录中读取：同样的事件，通过日志信号发送，名称位于记录的 `event.name` 属性或其事件名称字段中。带有追踪 ID 但没有 span ID 的记录归入该追踪唯一的模型调用，或归入发送它时正在进行的调用；如果这不是唯一一次调用，则不予采用。span 记录的内容优先，因此两种方式都记录了的调用，每条消息只显示一次。
 
 ## 故障排除
 
@@ -372,7 +372,7 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 :::
 
 :::details 调用已到达，但没有任何对话显示文本
-你的插桩没有记录内容，或者它以日志事件发送内容，而应用的日志没有到达 OneUptime。请按 [记录说了什么](#记录说了什么) 中的说明开启，并把日志和跟踪一起发送；在那之前的调用仍然没有文本。
+你的插桩没有记录内容，或者它以日志事件发送内容，而应用的日志没有到达 OneUptime。请按 [记录说了什么](#记录说了什么) 中的说明开启，并把日志和追踪一起发送；在那之前的调用仍然没有文本。
 :::
 
 :::details 一个聊天的每次调用都显示为单独的对话
@@ -401,7 +401,7 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 - [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看你的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 账户的用量和成本。
 - [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的员工向 Claude Enterprise 和 Microsoft 365 Copilot 提了什么问题。
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 按工程师划分的支出。
-- [AI 网关](/docs/telemetry/ai-gateways): 通过一个 LiteLLM 或 Portkey 网关跟踪每个应用的模型调用。
+- [AI 网关](/docs/telemetry/ai-gateways): 通过一个 LiteLLM 或 Portkey 网关追踪每个应用的模型调用。
 - [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker): 预算警报触发时阻止失控的代理。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 每种信号的端点、摄取密钥和限制。
 :::

@@ -59,7 +59,7 @@ Angiv under **IP-adresse** den IPv4- eller IPv6-adresse, der skal tjekkes, som `
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser de rundturstider og det pakketab, sonden så.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser de rundturstider og det pakketab, sonden så.
 
 ### Gennemgå kriterierne
 

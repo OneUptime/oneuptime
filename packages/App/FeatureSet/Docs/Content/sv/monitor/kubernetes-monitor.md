@@ -44,7 +44,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 | --- | --- |
 | **Vad som ska larmas om** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
 | **Custom Metric** | Ett mätvärde från [måttkatalogen](#måttkatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
-| **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna måttfrågor och formler under **Välj mått**, med ett livediagram över resultatet. |
+| **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna mätvärdesfrågor och formler under **Välj mätvärden**, med ett livediagram över resultatet. |
 
 ### Ange kriterierna
 
@@ -73,7 +73,7 @@ En containers och en podds mätvärden bär namnen på de arbetsbelastningar som
 
 ### Tidsintervall
 
-**Tidsintervall** är det fönster som måttfrågan täcker varje gång monitorn utvärderas, från **Past 1 Minute** upp till **Past 365 Days**. Korta fönster (1 till 15 minuter) passar för larm; längre fönster jämnar ut brusiga mätvärden.
+**Tidsintervall** är det fönster som mätvärdesfrågan täcker varje gång monitorn utvärderas, från **Past 1 Minute** upp till **Past 365 Days**. Korta fönster (1 till 15 minuter) passar för larm; längre fönster jämnar ut brusiga mätvärden.
 
 ### Måttfrågor och formler
 
@@ -93,13 +93,13 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 | Kontrollplan | etcd har en ledare, API-serverns pågående förfrågningar, Schemaläggarens väntande poddar |
 
 > [!NOTE]
-> **Poddens CPU-förbrukning** och **Nodens CPU-förbrukning** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Poddens fas (kod)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Nodens Ready-villkor** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Containerns omstarter** är containerns löpande omstartsräknare; **Containerns omstarter (ökning)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. Den bär det som **Containerns omstarter** bär, inklusive arbetsbelastningsnamnen för containerns podd, men inte containerns ID, som ändras vid varje omstart. **Jobbets misslyckade poddar** är ett Jobs löpande räknare för misslyckade poddar; **Jobbets misslyckade poddar (ökning)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det. Den bär det som **Jobbets misslyckade poddar** bär: Jobbets namn och namnrymd.
+> **Poddens CPU-förbrukning** och **Nodens CPU-förbrukning** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Poddens fas (kod)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmätvärden kommer bara när agentens insamling från kontrollplanet är påslagen. **Nodens Ready-villkor** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Containerns omstarter** är containerns löpande omstartsräknare; **Containerns omstarter (ökning)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. Den bär det som **Containerns omstarter** bär, inklusive arbetsbelastningsnamnen för containerns podd, men inte containerns ID, som ändras vid varje omstart. **Jobbets misslyckade poddar** är ett Jobs löpande räknare för misslyckade poddar; **Jobbets misslyckade poddar (ökning)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det. Den bär det som **Jobbets misslyckade poddar** bär: Jobbets namn och namnrymd.
 
 ## Övervakningskriterier
 
 ### Vad som utvärderas
 
-De här monitorerna utvärderar alltid **Mätvärde** – värdet av den konfigurerade måttfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**.
+De här monitorerna utvärderar alltid **Mätvärde** – värdet av den konfigurerade mätvärdesfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**.
 
 ### Aggregeringstyper
 
@@ -206,7 +206,7 @@ Mallen utlöses när en podd i ett Job misslyckas inom 15 minuter, och rensas fe
 
 :::cards
 - [Kubernetes-agent (Helm-installation)](/docs/monitor/kubernetes-agent): Installera, uppgradera och finjustera agenten med Helm.
-- [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Namnrymdsfilter, kontrollplansmått, filter för loggallvarlighet och AI-agenten.
-- [Metrikövervakning](/docs/monitor/metrics-monitor): Varna på vilket mätvärde som helst, även agentens anpassade mått och eBPF-mått.
+- [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Namnrymdsfilter, kontrollplansmätvärden, filter för loggallvarlighet och AI-agenten.
+- [Metrikövervakning](/docs/monitor/metrics-monitor): Varna på vilket mätvärde som helst, även agentens anpassade mätvärden och eBPF-mätvärden.
 - [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in podden eller noden som passerar gränsen i incidenttitlar.
 :::

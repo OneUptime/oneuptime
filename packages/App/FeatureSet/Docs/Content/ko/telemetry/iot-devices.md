@@ -1,11 +1,11 @@
 # IoT 기기
 
-OneUptime은 IoT 디바이스(센서, 게이트웨이, 컨트롤러, 엣지 박스)의 플릿을 디바이스가 보내는 소수의 `iot_*` 메트릭으로 모니터링합니다. 디바이스를 플릿으로 묶고, 각 플릿의 디바이스 인벤토리를 유지하며, 배터리, 신호, 온도, CPU, 메모리, 가용성을 차트로 보여 줍니다. 디바이스에 설치할 OneUptime 에이전트는 없습니다. 디바이스는 표준 OpenTelemetry를 보내거나 OneUptime의 MQTT 엔드포인트에 게시합니다. [IoT 기기 모니터](/docs/monitor/iot-device-monitor)는 디바이스가 보낸 데이터를 기준으로 알림을 보냅니다.
+OneUptime은 IoT 디바이스(센서, 게이트웨이, 컨트롤러, 엣지 박스)의 플릿을 디바이스가 보내는 소수의 `iot_*` 메트릭으로 모니터링합니다. 디바이스를 플릿으로 묶고, 각 플릿의 디바이스 인벤토리를 유지하며, 배터리, 신호, 온도, CPU, 메모리, 가용성을 차트로 보여 줍니다. 디바이스에 설치할 OneUptime 에이전트는 없습니다. 디바이스는 표준 OpenTelemetry를 보내거나 OneUptime의 MQTT 엔드포인트에 게시합니다. [IoT 기기 모니터](/docs/monitor/iot-device-monitor)는 디바이스가 보낸 데이터를 기준으로 경고를 보냅니다.
 
 :::cards
 - [전송 방법 선택](#전송-방법-선택): OpenTelemetry SDK, 게이트웨이 Collector, 또는 MQTT.
 - [MQTT를 통한 메트릭 전송](#mqtt를-통한-메트릭-전송): 토픽, 디바이스별 자격 증명, Last Will.
-- [메트릭 규칙](#메트릭-규칙): OneUptime이 차트와 알림에 사용하는 `iot_*` 이름.
+- [메트릭 규칙](#메트릭-규칙): OneUptime이 차트와 경고에 사용하는 `iot_*` 이름.
 - [문제 해결](#문제-해결): 누락된 플릿, 누락된 디바이스, 오프라인 전환.
 :::
 
@@ -163,7 +163,7 @@ otelcol-contrib --config config.yaml
 
 ## MQTT를 통한 메트릭 전송
 
-OneUptime에는 자체 MQTT 엔드포인트가 있으므로, MQTT를 사용하는 디바이스는 SDK, Collector, 브리지 없이 직접 측정값을 게시합니다. MQTT로 도착한 것은 OTLP와 같은 파이프라인을 거칩니다. 플릿이 만들어지고, 인벤토리가 업데이트되며, 모든 IoT 모니터와 알림 템플릿이 똑같이 작동합니다.
+OneUptime에는 자체 MQTT 엔드포인트가 있으므로, MQTT를 사용하는 디바이스는 SDK, Collector, 브리지 없이 직접 측정값을 게시합니다. MQTT로 도착한 것은 OTLP와 같은 파이프라인을 거칩니다. 플릿이 만들어지고, 인벤토리가 업데이트되며, 모든 IoT 모니터와 경고 템플릿이 똑같이 작동합니다.
 
 ### 엔드포인트
 
@@ -177,7 +177,7 @@ OneUptime에는 자체 MQTT 엔드포인트가 있으므로, MQTT를 사용하�
 - **수집 키 사용**: MQTT 비밀번호로 보냅니다. 사용자 이름은 무시됩니다. 클라이언트에 사용자 이름 필드만 있다면 거기에 키를 넣으세요. 많은 디바이스를 대신해 게시하는 게이트웨이에 적합합니다.
 - **디바이스별 자격 증명 사용**: 직접 연결하는 디바이스에 권장합니다. 플릿의 **디바이스 레지스트리** 페이지를 열고 `device.id`로 사용하는 **Device ID**로 디바이스를 등록하세요. 디바이스의 **MQTT Username**이 사용자 이름이고 **MQTT Password (Secret)** 값이 비밀번호입니다.
 
-디바이스 자격 증명은 자체 `oneuptime/<fleet>/<device>/` 토픽 아래에만 게시할 수 있습니다. 플릿의 나머지에 영향을 주지 않고 디바이스 하나를 취소할 수 있습니다. **활성화됨** 스위치를 끄거나 삭제하면, 연결된 디바이스는 몇 초 안에 끊깁니다. 등록된 디바이스가 조용해지면 인벤토리에 오프라인으로 남고, Last Will 없이 꺼졌더라도 Device Offline 알림 템플릿이 발생합니다.
+디바이스 자격 증명은 자체 `oneuptime/<fleet>/<device>/` 토픽 아래에만 게시할 수 있습니다. 플릿의 나머지에 영향을 주지 않고 디바이스 하나를 취소할 수 있습니다. **활성화됨** 스위치를 끄거나 삭제하면, 연결된 디바이스는 몇 초 안에 끊깁니다. 등록된 디바이스가 조용해지면 인벤토리에 오프라인으로 남고, Last Will 없이 꺼졌더라도 Device Offline 경고 템플릿이 발생합니다.
 
 OneUptime은 잘못된 자격 증명을 CONNECT 단계에서 반환 코드 4(bad username or password)로 거부하므로, 잘못 구성된 디바이스는 분명하게 실패합니다. 브라우저 키는 MQTT에서 거부됩니다. 수집 키로 연결한 클라이언트는 키를 끄거나, 키가 만료되거나, 시크릿을 재설정하거나, 키를 삭제하면 몇 초 안에 끊기고, 다시 연결하면 거부됩니다.
 
@@ -195,7 +195,7 @@ telemetry 페이로드에는 모든 데이터 포인트에 붙는 문자열 맵�
 
 ### Last Will을 이용한 오프라인 감지
 
-`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT Last Will을 등록하세요. 디바이스가 꺼지거나 네트워크에서 끊기면, OneUptime은 세션이 끝나는 순간 그 디바이스의 `iot_device_up = 0`을 게시하며, 이는 폴링 없이 기본 Device Offline 알림 템플릿을 발생시키고 인벤토리에서 디바이스를 다운으로 표시합니다. 연결 후 같은 토픽에 `online`을 게시하면 디바이스가 다시 업으로 표시됩니다. 디바이스가 게시하는 모든 측정값도 가동 중으로 셈하므로, 측정값을 계속 보내는 디바이스는 상태를 다시 게시하지 않아도 가동 중으로 남습니다.
+`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT Last Will을 등록하세요. 디바이스가 꺼지거나 네트워크에서 끊기면, OneUptime은 세션이 끝나는 순간 그 디바이스의 `iot_device_up = 0`을 게시하며, 이는 폴링 없이 기본 Device Offline 경고 템플릿을 발생시키고 인벤토리에서 디바이스를 다운으로 표시합니다. 연결 후 같은 토픽에 `online`을 게시하면 디바이스가 다시 업으로 표시됩니다. 디바이스가 게시하는 모든 측정값도 가동 중으로 셈하므로, 측정값을 계속 보내는 디바이스는 상태를 다시 게시하지 않아도 가동 중으로 남습니다.
 
 ### 예시
 
@@ -268,7 +268,7 @@ client.publish(
 - 수집은 최소 한 번(at least once)입니다. OneUptime이 각 게시를 확인하게 하려면 QoS 1을 사용하세요. 확인이 유실된 뒤의 QoS 1 또는 2 재전송은 중복 데이터 포인트를 만들 수 있습니다.
 - 128 KB를 넘는 게시나 100개가 넘는 메트릭이 있는 게시는 버려지며, 그보다 큰 크기를 선언하는 패킷은 연결을 닫습니다.
 - 이 토픽 밖의 게시나 형식이 잘못된 페이로드는 받아들인 뒤 버려집니다. MQTT 3.1.1에는 메시지별 오류가 없기 때문입니다. OneUptime은 이유와 함께 경고를 기록합니다(`MQTT: dropped publish to …`).
-- WebSocket 엔드포인트에서는 MQTT keepalive를 5분 미만으로 유지하세요. 인그레스는 300초 동안 유휴 상태인 WebSocket을 닫으며, 이는 Last Will과 잘못된 Device Offline 알림을 발생시킵니다. 클라이언트 라이브러리 기본값(`mqtt`와 `paho-mqtt`에서 60초)이면 괜찮으며, TCP 엔드포인트에는 이런 제한이 없습니다.
+- WebSocket 엔드포인트에서는 MQTT keepalive를 5분 미만으로 유지하세요. 인그레스는 300초 동안 유휴 상태인 WebSocket을 닫으며, 이는 Last Will과 잘못된 Device Offline 경고를 발생시킵니다. 클라이언트 라이브러리 기본값(`mqtt`와 `paho-mqtt`에서 60초)이면 괜찮으며, TCP 엔드포인트에는 이런 제한이 없습니다.
 
 ## 메트릭 규칙
 
@@ -336,7 +336,7 @@ OneUptime은 잘못된 자격 증명을 CONNECT 단계에서 반환 코드 4로 
 :::
 
 :::details 실행 중인 디바이스가 오프라인으로 바뀜
-WebSocket 엔드포인트에서는 인그레스가 300초 동안 유휴 상태인 연결을 닫으며, 이는 Last Will과 잘못된 Device Offline 알림을 발생시킵니다. MQTT keepalive를 5분 미만으로 유지하세요. 클라이언트 라이브러리 기본값인 60초면 괜찮습니다.
+WebSocket 엔드포인트에서는 인그레스가 300초 동안 유휴 상태인 연결을 닫으며, 이는 Last Will과 잘못된 Device Offline 경고를 발생시킵니다. MQTT keepalive를 5분 미만으로 유지하세요. 클라이언트 라이브러리 기본값인 60초면 괜찮습니다.
 :::
 
 :::details 측정값이 플릿 차트에 표시되지 않음
@@ -348,7 +348,7 @@ WebSocket 엔드포인트에서는 인그레스가 300초 동안 유휴 상태�
 ## 다음 단계
 
 :::cards
-- [IoT 기기 모니터](/docs/monitor/iot-device-monitor): 디바이스가 오프라인이 되거나, 배터리가 부족하거나, 과열되면 알림을 보냅니다.
+- [IoT 기기 모니터](/docs/monitor/iot-device-monitor): 디바이스가 오프라인이 되거나, 배터리가 부족하거나, 과열되면 경고를 보냅니다.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): OneUptime이 SDK나 Collector에서 OTLP를 받는 방법.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): Linux, macOS, Windows 게이트웨이 자체를 모니터링합니다.
 :::

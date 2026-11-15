@@ -56,7 +56,7 @@ En ny monitor starter med **vCenter Stopped Reporting** under **Hvad der skal ad
 
 - **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, grupperingen og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) - vælg én metrik i **VMware Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. Formularen grupperer den efter det objekt, den beskriver, så hver vært, VM eller datastore bedømmes for sig, og [filtrene](#monitorindstillinger) indsnævrer den til ét datacenter, én klynge, én vært, én VM, én datastore eller én ressourcepulje.
-- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Brug **Gruppér efter** med en [identitetsattribut](#identitetsattributter) for at bedømme hvert objekt for sig.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg metrikker**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Brug **Gruppér efter** med en [identitetsattribut](#identitetsattributter) for at bedømme hvert objekt for sig.
 
 ### Tjek kriterierne
 
@@ -84,7 +84,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **VMware Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Seneste 5 minutter**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 vCenter læses én gang pr. indsamlingsinterval, 2 minutter som standard, så et vindue på 1 minut indeholder måske slet ingen prøve. Hold vinduet på 5 minutter eller mere, og længere, hvis du har hævet indsamlingsintervallet for et stort inventar.
 

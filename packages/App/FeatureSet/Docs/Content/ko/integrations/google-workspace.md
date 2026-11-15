@@ -153,7 +153,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 ## 다음 단계
 
 :::cards
-- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 알림을 받습니다.
+- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 경고를 받습니다.
 - [Microsoft Entra ID](/docs/integrations/microsoft-entra-id): Microsoft의 로그인과 디렉터리 변경을 가져옵니다.
 - [Google SecOps](/docs/integrations/google-secops): Google SecOps의 탐지도 가져옵니다.
 - [통합 개요](/docs/integrations/index): 연결할 수 있는 다른 도구.

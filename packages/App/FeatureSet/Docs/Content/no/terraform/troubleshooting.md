@@ -79,7 +79,7 @@ Provideren trenger en API-nøkkel for prosjektet den styrer: det er derfra prosj
 
 Det samme gjelder ressursene abonnementet ditt selger, og som et prosjekt beholder etter at det er nedgradert - SSO-leverandører, SCIM-tilkoblinger, API-nøkler, vaktplaner, og regler og sammendrag for Slack og Microsoft Teams: under abonnementet (mens prosjektet fortsatt er på Growth, som providerens egen API-nøkkel trenger) kan de prosjektet allerede har, fortsatt leses (så `terraform plan` og `import` virker), slettes (så det går an å fjerne dem fra konfigurasjonen, eller kjøre `terraform destroy`) og slås av der de har et attributt `is_enabled`. Å opprette dem, endre dem eller slå dem på igjen svarer fortsatt 402.
 
-Andre ressurser abonnementet ditt selger, som maler, egendefinerte felter og overvåkergrupper, krever fortsatt abonnementet for å bli lest, så en plan som oppdaterer dem, svarer 402; de kan likevel slettes, for eksempel med `terraform destroy -refresh=false`.
+Andre ressurser abonnementet ditt selger, som maler, egendefinerte felter og monitorgrupper, krever fortsatt abonnementet for å bli lest, så en plan som oppdaterer dem, svarer 402; de kan likevel slettes, for eksempel med `terraform destroy -refresh=false`.
 
 En API-nøkkels tillatelser slettes ikke én og én under Growth, siden det å slette en blokkerende tillatelse ville gitt nøkkelen mer tilgang: kjør `terraform state rm` på tillatelsesressursene, ødelegg deretter nøkkelen, og tillatelsene dens forsvinner med den.
 
@@ -91,7 +91,7 @@ En API-nøkkels tillatelser slettes ikke én og én under Growth, siden det å s
 
 ### ID-er fra et annet prosjekt
 
-Hver ID en ressurs nevner - etikettene til en overvåker, statussiden til en statussidegruppe, nettstedet til en nettverksenhet, teamene til en eskaleringsregel - må være en post i prosjektet API-nøkkelen din hører til. En ID for en post i et annet prosjekt, en ID som ikke finnes, og en ID for en post nøkkelen ikke får lese, får alle det samme svaret, som nevner feltet og ID-en:
+Hver ID en ressurs nevner - etikettene til en monitor, statussiden til en statussidegruppe, nettstedet til en nettverksenhet, teamene til en eskaleringsregel - må være en post i prosjektet API-nøkkelen din hører til. En ID for en post i et annet prosjekt, en ID som ikke finnes, og en ID for en post nøkkelen ikke får lese, får alle det samme svaret, som nevner feltet og ID-en:
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
@@ -107,7 +107,7 @@ En datakilde finner nøyaktig én post, eller den stopper planen. `Not Found` si
 
 ### Inkonsistent resultat etter apply
 
-`Provider produced inconsistent result after apply` betyr at provideren returnerte andre verdier enn den hadde planlagt. Eldre providere gjorde det med verdier serveren beregner: standardverdier serveren legger til inne i `monitor_steps`, tidsstempler serveren skrev på en annen måte, innpakkede verdier som `probe_version`, og attributter serveren holder oppdatert, som når en overvåker for innkommende forespørsler sist mottok heartbeat. De leste også et desimaltall som null når API-et sendte det som tekst, så hver apply av en fargeregel for statussidestolper feilet på `uptime_percent_greater_than_or_equal_to`. Nåværende providere håndterer alt dette: tidsstempler sammenlignes som tidspunkter, lister med etiketter er mengder, tall leses tilbake slik du skrev dem, og et attributt du ikke har angitt, beholder den planlagte verdien til neste oppdatering leser serverens.
+`Provider produced inconsistent result after apply` betyr at provideren returnerte andre verdier enn den hadde planlagt. Eldre providere gjorde det med verdier serveren beregner: standardverdier serveren legger til inne i `monitor_steps`, tidsstempler serveren skrev på en annen måte, innpakkede verdier som `probe_version`, og attributter serveren holder oppdatert, som når en monitor for innkommende forespørsler sist mottok heartbeat. De leste også et desimaltall som null når API-et sendte det som tekst, så hver apply av en fargeregel for statussidestolper feilet på `uptime_percent_greater_than_or_equal_to`. Nåværende providere håndterer alt dette: tidsstempler sammenlignes som tidspunkter, lister med etiketter er mengder, tall leses tilbake slik du skrev dem, og et attributt du ikke har angitt, beholder den planlagte verdien til neste oppdatering leser serverens.
 
 :::steps
 1. Oppgrader provideren: behold `version = "{{TERRAFORM_PROVIDER_VERSION}}"` i providerkravet, og kjør `terraform init -upgrade`.
@@ -158,9 +158,9 @@ moved {
 
 ### Overvåkere fra før trinn-ID-er
 
-ID-ene inne i en overvåkers trinn - for hvert trinn, kriterium, og hver hendelses- og varselmal - er serveren sine å gi. Eldre OneUptime-versjoner ga bare kriterier ID-er, og et nytt sett ved hver skriving, så en overvåker som ble skrevet via API-et, slik hver overvåker provideren laget ble, ble lagret med et trinn uten ID. Sondene sjekket den fortsatt og statusen endret seg fortsatt, men overvåkerens side fant ikke sjekkene dens, hendelsene dens kunne ikke løse seg selv, og hver `terraform apply` som endret `monitor_steps`, rev åpne hendelser løs fra kriteriene sine.
+ID-ene inne i en monitors trinn - for hvert trinn, kriterium, og hver hendelses- og varselmal - er serveren sine å gi. Eldre OneUptime-versjoner ga bare kriterier ID-er, og et nytt sett ved hver skriving, så en monitor som ble skrevet via API-et, slik hver monitor provideren laget ble, ble lagret med et trinn uten ID. Sondene sjekket den fortsatt og statusen endret seg fortsatt, men monitorens side fant ikke sjekkene dens, hendelsene dens kunne ikke løse seg selv, og hver `terraform apply` som endret `monitor_steps`, rev åpne hendelser løs fra kriteriene sine.
 
-Den nåværende OneUptime gir hver av dem en ID ved opprettelse, beholder dem ved hver apply, og fyller inn de manglende på eksisterende overvåkere når den oppgraderes. Ingenting endres i konfigurasjonen din: det er fortsatt ingen ID-er å skrive. En hendelse som den gamle oppførselen lot stå åpen, lukkes ved overvåkerens neste gjenoppretting, så lenge kriteriet som åpnet den, fortsatt finnes; en hendelse der en tidligere apply erstattet kriteriet, må løses én gang for hånd.
+Den nåværende OneUptime gir hver av dem en ID ved opprettelse, beholder dem ved hver apply, og fyller inn de manglende på eksisterende monitorer når den oppgraderes. Ingenting endres i konfigurasjonen din: det er fortsatt ingen ID-er å skrive. En hendelse som den gamle oppførselen lot stå åpen, lukkes ved monitorens neste gjenoppretting, så lenge kriteriet som åpnet den, fortsatt finnes; en hendelse der en tidligere apply erstattet kriteriet, må løses én gang for hånd.
 
 ## Konfigurasjon som provideren avviser
 
@@ -190,7 +190,7 @@ JSON-en som dashbordet og API-et viser for en ressurs, er det API-et sender, ikk
 
 - For å ta over ressursen [importerer du den](/docs/terraform/importing-resources): dashbordets side **Terraform** skriver konfigurasjonen for deg.
 - For å skrive en ny begynner du fra [Eksempler](/docs/terraform/examples).
-- For en overvåkers trinn skriver du det typede attributtet `monitor_steps` som [Monitortrinn](/docs/terraform/monitor-steps) beskriver: dropp `{_type, value}`-innpakningene, skriv camelCase-nøklene i snake_case, og utelat hver `id`.
+- For en monitors trinn skriver du det typede attributtet `monitor_steps` som [Monitortrinn](/docs/terraform/monitor-steps) beskriver: dropp `{_type, value}`-innpakningene, skriv camelCase-nøklene i snake_case, og utelat hver `id`.
 
 ## Versjoner og registeret
 
@@ -245,5 +245,5 @@ Opprett et issue på [github.com/OneUptime/oneuptime/issues](https://github.com/
 - [Importere ressurser](/docs/terraform/importing-resources): Ta over det du har laget i dashbordet, og rett importfeil.
 - [Selv-hostet oppsett](/docs/terraform/self-hosted): Adressen, versjonen og sertifikatene til din egen OneUptime.
 - [Komplett guide](/docs/terraform/complete-guide): Autentisering, datakilder, state og oppgraderinger.
-- [Monitortrinn](/docs/terraform/monitor-steps): Hvert attributt i sjekkene til en overvåker.
+- [Monitortrinn](/docs/terraform/monitor-steps): Hvert attributt i sjekkene til en monitor.
 :::

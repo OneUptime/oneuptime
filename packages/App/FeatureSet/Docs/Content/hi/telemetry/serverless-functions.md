@@ -225,6 +225,6 @@ OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=paymen
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): किसी भी एप्लिकेशन से ट्रेस, लॉग और मेट्रिक्स भेजें।
-- [कतारें](/docs/telemetry/queues): वे कतारें और टॉपिक जिन पर आपके फ़ंक्शन प्रकाशित करते हैं और जिनसे वे उपभोग करते हैं।
+- [कतारें](/docs/telemetry/queues): वे क्यू और टॉपिक जिन पर आपके फ़ंक्शन प्रकाशित करते हैं और जिनसे वे उपभोग करते हैं।
 - [ट्रेस मॉनिटर](/docs/monitor/traces-monitor): किसी फ़ंक्शन के विफल या धीमे इनवोकेशन पर अलर्ट करें।
 :::

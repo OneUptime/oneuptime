@@ -70,7 +70,7 @@ Apri **Prodotti** nella barra in alto e scegli **Flussi di lavoro**, in **Dashbo
 
 - **Flussi di lavoro** — l'elenco dei tuoi flussi di lavoro. Creane uno nuovo o aprine uno esistente.
 - **Variabili globali** — i valori condivisi da tutti i tuoi flussi di lavoro.
-- **Registri → Esecuzioni** — la cronologia delle esecuzioni di tutti i flussi di lavoro del progetto.
+- **Log → Esecuzioni** — la cronologia delle esecuzioni di tutti i flussi di lavoro del progetto.
 - **Impostazioni → Regole etichette** e **Regole del proprietario** — assegna automaticamente etichette e proprietari ai nuovi flussi di lavoro.
 - **Avanzato → Archiviato** — i flussi di lavoro che hai archiviato. Non vengono mai eseguiti e non compaiono nell'elenco; da qui puoi ripristinarli. Vedi [Archiviare un flusso di lavoro](/docs/workflows/configuration#archiviare-un-flusso-di-lavoro).
 - **Sviluppatori** — come gestire i flussi di lavoro con Terraform, l'API o un assistente IA.
@@ -80,12 +80,12 @@ Apri un singolo flusso di lavoro e il suo menu contiene:
 - **Panoramica** — nome, descrizione, etichette e l'interruttore **Abilitato**.
 - **Costruttore** — la tela su cui progetti il flusso di lavoro, con l'interruttore **Abilitato** in alto.
 - **Variabili del flusso** — i valori che valgono solo per questo flusso di lavoro.
-- **Registri → Esecuzioni** — ogni esecuzione di questo flusso di lavoro, con i dettagli.
+- **Log → Esecuzioni** — ogni esecuzione di questo flusso di lavoro, con i dettagli.
 - **Proprietari** — le persone e i team responsabili del flusso di lavoro.
 - **Sviluppatori** — come gestire questo flusso di lavoro con Terraform, l'API o un assistente IA.
 - **Impostazioni** — duplicare, esportare e archiviare.
 
-**Impostazioni** si trova nella sezione **Avanzato** del menu, insieme a **Registri di audit** ed **Elimina flusso di lavoro**. **Avanzato** e **Sviluppatori** partono chiuse, in questo menu come in tutti gli altri, così le pagine che usi ogni giorno vengono per prime. Fai clic sul nome di una sezione per mostrarne le pagine. Si apre da sola quando ti trovi su una di esse.
+**Impostazioni** si trova nella sezione **Avanzato** del menu, insieme a **Log di audit** ed **Elimina flusso di lavoro**. **Avanzato** e **Sviluppatori** partono chiuse, in questo menu come in tutti gli altri, così le pagine che usi ogni giorno vengono per prime. Fai clic sul nome di una sezione per mostrarne le pagine. Si apre da sola quando ti trovi su una di esse.
 
 ## Costruisci il tuo primo flusso di lavoro
 
@@ -103,7 +103,7 @@ L'esempio qui sotto segue questi passaggi per un flusso di lavoro reale.
 
 ## Esempio: inviare i nuovi incidenti a un webhook
 
-Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo URL — un sistema di ticketing, un data warehouse, qualsiasi cosa accetti un webhook — e scrive il motivo nel registro dell'esecuzione quando la richiesta non va a buon fine.
+Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo URL — un sistema di ticketing, un data warehouse, qualsiasi cosa accetti un webhook — e scrive il motivo nel log dell'esecuzione quando la richiesta non va a buon fine.
 
 ```mermaid title="L'esempio completo"
 flowchart TB
@@ -154,9 +154,9 @@ Ogni riferimento `{{…}}` viene sostituito con il valore dell'incidente quando 
 
 ### Intercetta gli errori
 
-Fai clic su **Aggiungi componente**, poi su **Registro**. Collega a esso il punto **Errore** del blocco API, poi imposta il **Valore** del blocco Log su `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Fai clic su **Aggiungi componente**, poi su **Log**. Collega a esso il punto **Errore** del blocco API, poi imposta il **Valore** del blocco Log su `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
-Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta che non è 2xx — ora prende questo percorso, e il registro dell'esecuzione dice perché.
+Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta che non è 2xx — ora prende questo percorso, e il log dell'esecuzione dice perché.
 
 ### Provalo
 

@@ -38,7 +38,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 
 Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
-Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
+Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første monitor**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
 
 ### De fem tallene
 
@@ -56,18 +56,18 @@ Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjet
 
 ### Velkomstsjekklisten
 
-Første gang en Prosjekteier eller Prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker overvåkere, telemetri eller vakt, blir ikke spurt.
+Første gang en Prosjekteier eller Prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker monitorer, telemetri eller vakt, blir ikke spurt.
 
 Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og alle som setter opp prosjektet ser den samme listen, på alle enheter:
 
 | Steg | Fullført når | Åpner |
 | --- | --- | --- |
 | **Importer fra verktøyet du bruker nå** | En import fra et annet verktøy er fullført. | **Importer fra et annet verktøy** |
-| **Opprett din første overvåker** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
+| **Opprett din første monitor** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette monitorer. |
 | **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
 | **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | Det veiledede oppsettet **Send logger, målinger og spor, og få deretter varsler** |
 | **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |
-| **Publiser en statusside** | En statusside viser en overvåker. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
+| **Publiser en statusside** | En statusside viser en monitor. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
 | **Inviter teamet ditt** | Noen godtar invitasjonen din. | **Brukere** |
 
 Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.

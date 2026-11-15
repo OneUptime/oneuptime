@@ -1,6 +1,6 @@
 # CLI 개요
 
-OneUptime CLI인 `oneuptime`은 터미널이나 스크립트에서 OneUptime 프로젝트를 관리합니다. 프로젝트의 API 키로 모니터, 인시던트, 알림, 상태 페이지 등 OneUptime API가 제공하는 레코드를 나열하고, 읽고, 만들고, 변경하고, 삭제하고, 개수를 셉니다.
+OneUptime CLI인 `oneuptime`은 터미널이나 스크립트에서 OneUptime 프로젝트를 관리합니다. 프로젝트의 API 키로 모니터, 인시던트, 경고, 상태 페이지 등 OneUptime API가 제공하는 레코드를 나열하고, 읽고, 만들고, 변경하고, 삭제하고, 개수를 셉니다.
 
 :::cards
 - [CLI 작동 방식](#cli의-작동-방식): 명령, 명령이 보내는 API 요청, 그리고 응답.
@@ -105,7 +105,7 @@ oneuptime resources
 | `oneuptime dbt upload` | 빌드 후 dbt 프로젝트의 아티팩트를 데이터 관측 가능성으로 보냅니다 | [명령 참조](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 한 종류의 레코드를 다룹니다 | [리소스 작업](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 리소스의 필드와 그것을 설정하는 플래그를 나열합니다 | [리소스 작업](/docs/cli/resource-operations#리소스의-필드-보기) |
-| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 인시던트, 알림, 예정된 유지 관리에 대해 대시보드 버튼과 같은 일을 합니다 | [리소스 작업](/docs/cli/resource-operations#인지-해결-메모-추가) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 인시던트, 경고, 예정된 유지 관리에 대해 대시보드 버튼과 같은 일을 합니다 | [리소스 작업](/docs/cli/resource-operations#인지-해결-메모-추가) |
 | `oneuptime resources` | 레코드 종류를 명령과 함께 나열합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI 버전을 출력합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | 명령의 도움말을 보여 줍니다 | [도움말 보기](#도움말-보기) |

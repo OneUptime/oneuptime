@@ -70,7 +70,7 @@
       "logsDescription": "Busca y analiza registros.",
       "securityEventsTitle": "Eventos de seguridad",
       "sentinelInsightsDescription": "Hallazgos proactivos de la vigilancia de telemetría de OneUptime AI — nuevas excepciones, picos, regresiones de latencia y desviaciones de métricas.",
-      "sentinelInsightsTitle": "Análisis",
+      "sentinelInsightsTitle": "Hallazgos",
       "securityEventsDescription": "Señales SIEM correlacionadas con tus datos de observabilidad.",
       "metricsTitle": "Métricas",
       "metricsDescription": "Monitorea y visualiza las métricas del sistema en tus servicios.",
@@ -3119,7 +3119,7 @@
   "Insert Custom CSS here.": "Inserte aquí el CSS personalizado.",
   "Insert Custom HTML here.": "Inserte aquí el HTML personalizado.",
   "Insert Custom JavaScript here.": "Inserte aquí el JavaScript personalizado.",
-  "Insights": "Análisis",
+  "Insights": "Hallazgos",
   "Install OneUptime App from Microsoft Teams Store": "Instala la aplicación de OneUptime desde la tienda de Microsoft Teams",
   "Install the OneUptime app directly from the Microsoft Teams App Store to enable notifications and integrations.": "Instala la aplicación de OneUptime directamente desde la tienda de aplicaciones de Microsoft Teams para habilitar las notificaciones y las integraciones.",
   "Install the OneUptime Docker Agent to connect your Docker host. Once installed, the host will appear automatically.": "Instala el agente de Docker de OneUptime para conectar tu host de Docker. Una vez instalado, el host aparecerá automáticamente.",
@@ -55688,5 +55688,6 @@
   "Valid (OAuth token)": "Válido",
   "Yes / No": "Sí / No",
   "which led to {{steps}}": "que llevó a {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} aún no se ha ejecutado. Sus campos aparecen aquí cuando se ejecute."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} aún no se ha ejecutado. Sus campos aparecen aquí cuando se ejecute.",
+  "Insights (explorer analytics)": "Análisis"
 }

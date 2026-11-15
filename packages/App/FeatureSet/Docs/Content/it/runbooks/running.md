@@ -89,7 +89,7 @@ Mentre l'esecuzione è in pausa, puoi anche saltare un passaggio automatico succ
 
 Completare, approvare, saltare e annullare richiedono gli stessi ruoli dell'avvio di un'esecuzione, oppure l'autorizzazione **Edit Runbook Execution**.
 
-La pagina **Registri di audit** del runbook registra chi ha avviato ogni esecuzione, chi ha approvato, completato o saltato ciascuno dei suoi passaggi e chi l'ha annullata. Un passaggio vi compare come ciò che gli è stato fatto, ad esempio `Approved "Restart the API" (step 3)`, mai con ciò che il passaggio ha stampato né con la nota lasciata con esso.
+La pagina **Log di audit** del runbook registra chi ha avviato ogni esecuzione, chi ha approvato, completato o saltato ciascuno dei suoi passaggi e chi l'ha annullata. Un passaggio vi compare come ciò che gli è stato fatto, ad esempio `Approved "Restart the API" (step 3)`, mai con ciò che il passaggio ha stampato né con la nota lasciata con esso.
 
 ## Alternare passaggi manuali e automatici
 
@@ -121,7 +121,7 @@ Un'esecuzione è un record unico e immutabile. Per eseguire di nuovo il runbook,
 
 | Dove | Cosa elenca |
 | --- | --- |
-| Le **Registri → Esecuzioni** di un runbook | Tutte le esecuzioni di quel runbook, con filtri per stato e data di inizio, e una colonna **Attivato da**. |
+| Le **Log → Esecuzioni** di un runbook | Tutte le esecuzioni di quel runbook, con filtri per stato e data di inizio, e una colonna **Attivato da**. |
 | **Runbook → Esecuzioni** | Tutte le esecuzioni di tutti i runbook del progetto. |
 | La pagina **Runbook** di un incidente, un avviso o un evento | Le esecuzioni collegate. Anche la panoramica dell'evento le mostra, appena ce n'è qualcuna. |
 

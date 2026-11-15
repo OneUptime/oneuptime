@@ -45,7 +45,7 @@ Et projekt uden grupperingsregler ser fem færdige regler i stedet for en tom li
 
 | Skabelon                                      | Grupperer                                                                     | Tidsvindue  |
 | --------------------------------------------- | ----------------------------------------------------------------------------- | ----------- |
-| **Gruppér advarsler fra samme overvågning**   | Én episode pr. monitor                                                        | 30 minutter |
+| **Gruppér advarsler fra samme monitor**   | Én episode pr. monitor                                                        | 30 minutter |
 | **Gruppér advarsler, der sker samtidig**      | Én fælles episode, uanset monitor                                             | 10 minutter |
 | **Gruppér advarsler på forbundne tjenester** | Én episode for tjenester, der kalder hinanden på tjenestekortet | 30 minutter |
 | **Gruppér advarsler efter alvorlighed**       | Én episode pr. alvorsgrad                                                     | 30 minutter |
@@ -56,7 +56,7 @@ Et projekt uden grupperingsregler ser fem færdige regler i stedet for en tom li
 :::steps
 #### Svar på, hvordan der skal grupperes
 
-Klik på **Opret brugerdefineret regel** under skabelonerne eller på **Opret grupperingsregel for advarsler** på kortet, når du har regler. På trinnet **Gruppering** stiller **Gruppér advarsler efter** ét spørgsmål: **Overvågning**, **Alt samlet**, **Forbundne tjenester**, **Alvorlighed**, **Titel** eller **Brugerdefineret**. **Navn** følger dit svar, indtil du skriver dit eget.
+Klik på **Opret brugerdefineret regel** under skabelonerne eller på **Opret grupperingsregel for advarsler** på kortet, når du har regler. På trinnet **Gruppering** stiller **Gruppér advarsler efter** ét spørgsmål: **Monitor**, **Alt samlet**, **Forbundne tjenester**, **Alvorlighed**, **Titel** eller **Brugerdefineret**. **Navn** følger dit svar, indtil du skriver dit eget.
 
 #### Indstil tidsvinduet
 
@@ -64,7 +64,7 @@ Klik på **Opret brugerdefineret regel** under skabelonerne eller på **Opret gr
 
 #### Kombinér felter, for Brugerdefineret
 
-**Brugerdefineret** tilføjer et trin **Gruppér efter** med seks kontakter: **Gruppér efter overvågning**, **Gruppér efter advarselsalvorlighed**, **Gruppér efter advarselstitel**, **Gruppér efter advarselsetiketter**, **Gruppér efter overvågningsetiketter** og **Gruppér efter forbundne tjenester**. Etiketter grupperer efter deres nøjagtige sæt.
+**Brugerdefineret** tilføjer et trin **Gruppér efter** med seks kontakter: **Gruppér efter monitor**, **Gruppér efter advarselsalvorlighed**, **Gruppér efter advarselstitel**, **Gruppér efter advarselsetiketter**, **Gruppér efter monitoretiketter** og **Gruppér efter forbundne tjenester**. Etiketter grupperer efter deres nøjagtige sæt.
 
 #### Afgræns den
 
@@ -88,18 +88,18 @@ Regler kontrolleres oppefra og ned i listen, og det første match vinder: Træk 
 - **Indtil da venter hver advarsel alene.** En advarsel, der ikke finder nogen åben episode fra sin gruppe at slutte sig til og ingen løst episode at genåbne, åbner intet og kører kun sine egne vagtpolitikker, ligesom en advarsel, som ingen regel matcher.
 - **Så åbnes én episode med dem alle.** Den advarsel, der fuldender antallet, åbner episoden med hver advarsel, der ventede. Episoden tager sin titel, monitor og alvorsgrad fra den første af dem og stiger til den mest alvorlige, og advarslerne efter dem slutter sig til den som normalt.
 - **Kun advarsler i gang tæller.** En advarsel, der er løst i mellemtiden, er overstået, så en monitor, der bliver ved med at fejle og komme sig, åbner aldrig en episode af sig selv. Mens **Gruppér kun advarsler, der kommer tæt efter hinanden** er slået til, skal advarslerne også være kommet inden for dets vindue fra hinanden.
-- **Det tæller pr. gruppe.** Med **Alt samlet** tæller alle matchende advarsler, så en episode åbnes kun ved et nedbrud, der udløser flere monitorer på én gang. Med **Overvågning** åbnes en monitors episode, når den monitor har flere advarsler i gang.
+- **Det tæller pr. gruppe.** Med **Alt samlet** tæller alle matchende advarsler, så en episode åbnes kun ved et nedbrud, der udløser flere monitorer på én gang. Med **Monitor** åbnes en monitors episode, når den monitor har flere advarsler i gang.
 
 Listens kolonne **Gruppering** siger "Åbner en episode, når 3 matchende advarsler er i gang". Via API'et og Terraform hedder det `enableMinimumAlertCount` og `minimumAlertCount`.
 
 ### Gruppér advarsler på forbundne tjenester
 
-Når en tjeneste fejler, begynder de tjenester, der kalder den, også at fejle, og hver af dem udløser en advarsel på sin egen overvågning. **Forbundne tjenester** samler de advarsler i én episode ved hjælp af det [tjenestekort](/docs/telemetry/topology), som OneUptime tegner ud fra dine traces.
+Når en tjeneste fejler, begynder de tjenester, der kalder den, også at fejle, og hver af dem udløser en advarsel på sin egen monitor. **Forbundne tjenester** samler de advarsler i én episode ved hjælp af det [tjenestekort](/docs/telemetry/topology), som OneUptime tegner ud fra dine traces.
 
-- En advarsels tjenester er dem, der er knyttet til den under **Berørte ressourcer**, og dem, der er knyttet til dens overvågning.
+- En advarsels tjenester er dem, der er knyttet til den under **Berørte ressourcer**, og dem, der er knyttet til dens monitor.
 - En advarsel går ind i en åben episode for reglen, når en af dens tjenester er, kalder eller kaldes af en tjeneste for en advarsel, der allerede er i den, så en fejl, der breder sig, holder én episode.
 - Forbundet betyder ét kald væk: to tjenester, der kun kalder den samme database eller eksterne API, er ikke forbundne, ellers ville en afhængighed, som halvdelen af dine tjenester kalder, lægge hver advarsel i én episode.
-- En advarsel uden tjeneste grupperes efter sin overvågning, som **Overvågning** grupperer.
+- En advarsel uden tjeneste grupperes efter sin monitor, som **Monitor** grupperer.
 
 Et kald, der ikke er set i 30 dage, forsvinder fra tjenestekortet, og forbindelsen med det. Listens kolonne **Gruppering** siger "Advarsler på forbundne tjenester deler én episode". Via API'et og Terraform hedder det `groupByConnectedServices`.
 

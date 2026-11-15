@@ -29,7 +29,7 @@ Nell'Admin Dashboard, apri **Impostazioni**, poi **Notifiche > E-mail**. Nella s
 | Postmark | Token API del server | `https://api.postmarkapp.com/email` |
 | Resend | Chiave API | `https://api.resend.com/emails` |
 
-Ogni e-mail viene inviata con la sua parte di testo, e le sue immagini (il logo di OneUptime, gli screenshot) come allegati inline. Quando un provider limita la velocità con cui invii, o ha un errore dalla sua parte, OneUptime riprova dopo l'attesa richiesta dal provider; qualsiasi altro rifiuto viene conservato nei registri di notifica, con la risposta del provider.
+Ogni e-mail viene inviata con la sua parte di testo, e le sue immagini (il logo di OneUptime, gli screenshot) come allegati inline. Quando un provider limita la velocità con cui invii, o ha un errore dalla sua parte, OneUptime riprova dopo l'attesa richiesta dal provider; qualsiasi altro rifiuto viene conservato nei log di notifica, con la risposta del provider.
 
 ## Amazon SES
 
@@ -173,7 +173,7 @@ OneUptime legge le variabili all'avvio. Se una è errata, per esempio una porta 
 
 ## Risoluzione dei problemi
 
-Un'e-mail di prova che non parte dice perché. Per qualsiasi altra e-mail, apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Registri di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
+Un'e-mail di prova che non parte dice perché. Per qualsiasi altra e-mail, apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Log di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
 
 :::details "Amazon SES needs a verified identity in …"
 L'**Email mittente**, o il suo dominio, non è verificato nella regione impostata nella configurazione, oppure l'account è nella sandbox di SES e il destinatario non è verificato. Verificalo in quella regione, oppure richiedi l'accesso in produzione.

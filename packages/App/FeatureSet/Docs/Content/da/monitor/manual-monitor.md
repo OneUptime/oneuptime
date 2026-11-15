@@ -92,7 +92,7 @@ Hvis du sender den status, monitoren allerede har, afvises det med `Monitor Stat
 
 En manuel monitor vælges som enhver anden monitor overalt, hvor der vælges monitorer:
 
-- Erklær en hændelse, og vælg monitoren under **Monitorer**. Med **Skift overvågningsstatus til** indstiller erklæringen også monitorens status, og når hændelsen løses, sættes monitoren tilbage til i drift, medmindre en anden hændelse på den stadig er åben. Se [Opret en hændelse](/docs/incidents/declaring-incidents#trin-2-berørte-ressourcer).
+- Erklær en hændelse, og vælg monitoren under **Monitorer**. Med **Skift monitorstatus til** indstiller erklæringen også monitorens status, og når hændelsen løses, sættes monitoren tilbage til i drift, medmindre en anden hændelse på den stadig er åben. Se [Opret en hændelse](/docs/incidents/declaring-incidents#trin-2-berørte-ressourcer).
 - Opret en advarsel om den, for et problem, dit team skal handle på uden at fortælle det til dine kunder.
 - Føj den til en statusside for at vise kunderne en afhængighed, du holder øje med i hånden.
 
