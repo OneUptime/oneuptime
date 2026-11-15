@@ -246,7 +246,7 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
 
     // What is left out and the one next step, beside a lock.
     await expect(page.getByTestId("llm-usage-metrics-left-out")).toHaveText(
-      "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
+      "Usage metrics are left out: your role cannot read metrics. Ask a Project Admin for access.",
     );
     await expect(
       page.getByTestId("llm-usage-metrics-left-out").locator("svg"),

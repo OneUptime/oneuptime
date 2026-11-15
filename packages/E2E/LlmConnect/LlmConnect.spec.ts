@@ -775,7 +775,7 @@ test.describe("connecting a company AI tool", () => {
     const readers: Locator = dialog(page).getByTestId("llm-connection-readers");
     await expect(dialog(page)).toContainText("Who can read conversations");
     await expect(
-      readers.getByRole("radio", { name: "Project owners and admins" }),
+      readers.getByRole("radio", { name: "Project Owners and Project Admins" }),
     ).toBeChecked();
     await expect(
       readers.getByRole("radio", { name: "Everyone who can read AI calls" }),
