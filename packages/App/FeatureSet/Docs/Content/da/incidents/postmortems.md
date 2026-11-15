@@ -54,7 +54,7 @@ Klik på **Gem ændringer**. Kortet viser noten og vedhæftningerne. Postmortemm
 
 Hver ændring af noten registreres i hændelsens feed og postes i hændelsens Slack- eller Microsoft Teams-kanal, hvis den har en. Så længe postmortem ikke er offentliggjort, hører ingen abonnent på statussiden om den.
 
-At skrive en postmortem kræver rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en brugerdefineret rolle med tilladelsen Edit Incident. Alle, der kan læse hændelsen, kan læse dens postmortem.
+At skrive en postmortem kræver rollen Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator eller Hændelsesmedlem, eller en brugerdefineret rolle med tilladelsen Edit Incident. Alle, der kan læse hændelsen, kan læse dens postmortem.
 
 ## Start fra en skabelon eller et AI-udkast
 
@@ -72,7 +72,7 @@ Klik på **Generate with AI**. Dialogen **Lav postmortem med AI** tilbyder en di
 
 Klik på **Generate with AI** nederst i dialogen. OneUptime AI læser hændelsen (dens beskrivelse, grundårsag og afhjælpning, dens statustidslinje, dens offentlige og private noter, beskederne i dens Slack- eller Microsoft Teams-kanal og det, der blev sagt i [dens opkald](/docs/workspace-connections/video-calls#transskriptioner-af-opkald)) og skriver postmortem efter din disposition. Derefter åbner editoren med resultatet.
 
-At generere kræver, at AI er slået til for projektet under **Projektindstillinger → AI → AI-funktioner**, og en LLM-udbyder: se [LLM-udbydere](/docs/ai/llm-provider). Det kræver også rollen Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Edit Incident: andre roller kan skrive postmortem, men ikke generere den.
+At generere kræver, at AI er slået til for projektet under **Projektindstillinger → AI → AI-funktioner**, og en LLM-udbyder: se [LLM-udbydere](/docs/ai/llm-provider). Det kræver også rollen Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen Edit Incident: andre roller kan skrive postmortem, men ikke generere den.
 
 ### Lad OneUptime AI skrive et udkast, når en hændelse løses
 
@@ -92,7 +92,7 @@ Uden regler får hver løst hændelse et udkast i OneUptime AI's standardopbygni
 - Dens **LLM-udbyder** under **Flere felter** er den udbyder, OneUptime AI skriver udkastet og vælger dets skabelon med. Med ingen valgt er det projektets standardudbyder, ellers den globale. Udkastets indlæg i feedet nævner den udbyder, en regel valgte, eller den, der blev brugt i stedet, og hvorfor. Se [Hvilken LLM-udbyder en regel bruger](/docs/ai/ai-sre#hvilken-llm-udbyder-en-regel-bruger).
 - Den første aktiverede regel, der matcher hændelsen, afgør det, regnet fra toppen af listen: træk en regel for at flytte den. En hændelse, som ingen regel matcher, får intet udkast, og det får ingen hændelse, så længe reglerne ikke kan læses.
 - **Skriv et udkast til en postmortem, når en hændelse er løst** er stadig den eneste kontakt, der slår udkast fra. Regler afgør kun de udkast, OneUptime AI skriver af sig selv: **Generate with AI** tilbyder alle opbygninger, uanset hvad reglerne siger.
-- Det kræver rollen Project Owner eller Project Admin at oprette, redigere og omsortere regler. På OneUptime Cloud kræver skabeloner Growth-planen: under den afgør reglerne stadig, hvilke hændelser der får et udkast, og hvert udkast følger standardopbygningen.
+- Det kræver rollen Projektejer eller Projektadministrator at oprette, redigere og omsortere regler. På OneUptime Cloud kræver skabeloner Growth-planen: under den afgør reglerne stadig, hvilke hændelser der får et udkast, og hvert udkast følger standardopbygningen.
 
 ## Offentliggør den på din statusside
 
@@ -158,7 +158,7 @@ Har din proces et trin for sig selv, for eksempel en gennemgang, så tilføj en 
 
 Hvor en status står, afgør, hvad den tæller som, vist under **Tæller som**: over **Kladde** som **Ikke startet**, fra **Kladde** og nedad som **I gang**, fra **Fuldført** og nedad som **Færdig**, og så mangler den ikke længere. **Til gennemgang**, imellem dem, mangler stadig; **Ikke nødvendig**, under **Fuldført**, gør ikke.
 
-**Ikke startet**, **Kladde** og **Fuldført** er indbyggede, fordi OneUptime flytter postmortems til dem: du kan omdøbe dem og give dem en anden farve, men ikke slette eller arkivere dem, og de beholder deres rækkefølge. Arkiver en status, du ikke bruger længere, fra menuen **⋯** i dens række: ingen kan flytte en postmortem til den igen, postmortems i den bliver der, indtil nogen flytter dem, og listen filtrerer stadig efter den. **Arkiverede postmortem-statusser**, foldet sammen under tabellen, viser dem, med **Fjern fra arkivet** til at hente en tilbage. At oprette, redigere og slette statusser kræver rollen Project Owner, Project Admin eller Incident Admin, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-statusser.
+**Ikke startet**, **Kladde** og **Fuldført** er indbyggede, fordi OneUptime flytter postmortems til dem: du kan omdøbe dem og give dem en anden farve, men ikke slette eller arkivere dem, og de beholder deres rækkefølge. Arkiver en status, du ikke bruger længere, fra menuen **⋯** i dens række: ingen kan flytte en postmortem til den igen, postmortems i den bliver der, indtil nogen flytter dem, og listen filtrerer stadig efter den. **Arkiverede postmortem-statusser**, foldet sammen under tabellen, viser dem, med **Fjern fra arkivet** til at hente en tilbage. At oprette, redigere og slette statusser kræver rollen Projektejer, Projektadministrator eller Hændelsesadministrator, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-statusser.
 
 ## Se alle postmortems
 
@@ -209,13 +209,13 @@ De to AI-handlinger kræver, at AI er slået til for projektet, og et repository
 
 **Hændelser → Handlingspunkter** viser alle postmortems' handlingspunkter på tværs af projektet med den tidligste frist først, hver med sin hændelse, ejer, frist og status. Filtrér listen efter **Status**, **Ejer** og **Frist**, og **Vis** i en række åbner hændelsens side **Postmortem**.
 
-At læse handlingspunkter kræver det samme som at læse hændelsen. At tilføje, ændre og slette dem kræver rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-handlingspunkter. En privat hændelses handlingspunkter er ligesom hændelsen kun synlige for de brugere, der ejer den, medlemmerne af de teams, der ejer den, projektadministratorer og projektejere.
+At læse handlingspunkter kræver det samme som at læse hændelsen. At tilføje, ændre og slette dem kræver rollen Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator eller Hændelsesmedlem, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-handlingspunkter. En privat hændelses handlingspunkter er ligesom hændelsen kun synlige for de brugere, der ejer den, medlemmerne af de teams, der ejer den, projektadministratorer og projektejere.
 
 ## Postmortems for episoder
 
 En hændelsesepisode har også en side **Postmortem** under **Undersøgelse**: én gennemgang for alle hændelser i episoden. Klik på **Rediger obduktion** for at skrive den. **Anvend skabelon** og **Generate with AI** fungerer som på en hændelse, og AI læser episoden og dens medlemshændelser.
 
-En episodes postmortem er kun noten: den har ingen vedhæftninger, og ingen statusside viser den. OneUptime AI skriver ikke et udkast af sig selv, når en episode løses. At generere en kræver rollen Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Edit Incident Episode. Den har heller ingen status, og listen over postmortems udelader den.
+En episodes postmortem er kun noten: den har ingen vedhæftninger, og ingen statusside viser den. OneUptime AI skriver ikke et udkast af sig selv, når en episode løses. At generere en kræver rollen Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen Edit Incident Episode. Den har heller ingen status, og listen over postmortems udelader den.
 
 Advarsler og vedligeholdelseshændelser har ingen postmortem.
 
@@ -242,7 +242,7 @@ Projektet har endnu ingen postmortem-skabelon, eller din rolle kan ikke læse de
 :::
 
 :::details Generate with AI siger, at AI er slået fra, eller at du mangler tilladelse
-Slå AI til under **Projektindstillinger → AI → AI-funktioner**. At generere kræver rollen Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Edit Incident, også for nogen, der kan redigere postmortem.
+Slå AI til under **Projektindstillinger → AI → AI-funktioner**. At generere kræver rollen Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen Edit Incident, også for nogen, der kan redigere postmortem.
 :::
 
 :::details Postmortem er ikke på statussiden

@@ -131,15 +131,15 @@ I moduli permettono a persone esterne al tuo team di creare incidenti ed eventi 
 
 | Autorizzazione | Cosa consente | Chi ce l'ha per impostazione predefinita |
 | --- | --- | --- |
-| **Create Form** | Creare moduli e duplicarli. | Project Owner, Project Admin |
-| **Edit Form** | Modificare un modulo: le sue domande, il branding, i modelli, le impostazioni All'invio, **Accetta invii**, il suo link e la **Lista IP consentiti**. | Project Owner, Project Admin |
-| **Delete Form** | Eliminare un modulo e con lui i suoi invii. | Project Owner, Project Admin |
-| **Read Form** | Vedere i moduli, le loro domande, le impostazioni e i link. | I precedenti, più Project Member, Viewer e i ruoli di incidenti e manutenzione programmata |
-| **Read Form Submission** | Vedere gli invii e le loro risposte. | Project Owner, Project Admin |
-| **Delete Form Submission** | Eliminare gli invii. | Project Owner, Project Admin |
-| **Create Form Domain** | Aggiungere un [dominio personalizzato](/docs/forms/sharing-and-security#domini-personalizzati) a un modulo. | Project Owner, Project Admin e **Edit Form** |
-| **Edit Form Domain** | Controllare i domini personalizzati di un modulo, e ordinare, riemettere o cambiare i loro certificati. | Project Owner, Project Admin e **Edit Form** |
-| **Delete Form Domain** | Rimuovere i domini personalizzati di un modulo. | Project Owner, Project Admin e **Edit Form** |
+| **Create Form** | Creare moduli e duplicarli. | Proprietario del progetto, Amministratore del progetto |
+| **Edit Form** | Modificare un modulo: le sue domande, il branding, i modelli, le impostazioni All'invio, **Accetta invii**, il suo link e la **Lista IP consentiti**. | Proprietario del progetto, Amministratore del progetto |
+| **Delete Form** | Eliminare un modulo e con lui i suoi invii. | Proprietario del progetto, Amministratore del progetto |
+| **Read Form** | Vedere i moduli, le loro domande, le impostazioni e i link. | I precedenti, più Membro del progetto, Visualizzatore e i ruoli di incidenti e manutenzione programmata |
+| **Read Form Submission** | Vedere gli invii e le loro risposte. | Proprietario del progetto, Amministratore del progetto |
+| **Delete Form Submission** | Eliminare gli invii. | Proprietario del progetto, Amministratore del progetto |
+| **Create Form Domain** | Aggiungere un [dominio personalizzato](/docs/forms/sharing-and-security#domini-personalizzati) a un modulo. | Proprietario del progetto, Amministratore del progetto e **Edit Form** |
+| **Edit Form Domain** | Controllare i domini personalizzati di un modulo, e ordinare, riemettere o cambiare i loro certificati. | Proprietario del progetto, Amministratore del progetto e **Edit Form** |
+| **Delete Form Domain** | Rimuovere i domini personalizzati di un modulo. | Proprietario del progetto, Amministratore del progetto e **Edit Form** |
 | **Read Form Domain** | Vedere i domini personalizzati di un modulo, i loro record DNS e a che punto è ciascuno sulla strada verso HTTPS. | Chiunque abbia **Read Form** |
 
 Gli invii contengono ciò che hanno scritto degli sconosciuti (nomi, indirizzi e-mail e risposte che forse non arrivano mai al record), quindi li vedono solo i proprietari e gli amministratori del progetto, a meno che tu non conceda **Read Form Submission**. Chi può leggere un modulo può vederne e condividerne il link. Inviare un modulo non richiede alcuna autorizzazione. Per come si combinano ruoli e autorizzazioni granulari, vedi [Utenti, team e autorizzazioni](/docs/permissions/index).

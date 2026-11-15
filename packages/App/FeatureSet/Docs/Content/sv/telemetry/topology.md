@@ -28,7 +28,7 @@ flowchart LR
 ## Innan du börjar
 
 - **Telemetri som kommer in.** Tjänstekartan behöver spår: se [OpenTelemetry](/docs/telemetry/open-telemetry). Infrastrukturvyn behöver en värd eller ett kluster som skickar data: se [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Nätverksvyn behöver nätverksenheter: se [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor).
-- **En roll som läser telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en anpassad roll med behörigheten Read Inventory Item.
+- **En roll som läser telemetri.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Inventory Item.
 
 ## Öppna Topologi
 

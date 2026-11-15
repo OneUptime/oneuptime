@@ -6,7 +6,8 @@
     }
   },
   "compilerOptions": {
-    "target": "es2017",
+    // ES2018 or later, below ES2022: a spread then keeps a key named __proto__ (Common/Tests/Dependencies/TypeScriptTargets.test.ts).
+    "target": "es2018",
     "module": "commonjs",
     "jsx": "react",
     "experimentalDecorators": true,

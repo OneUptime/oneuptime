@@ -104,7 +104,9 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 7. **Grupperingsregler lægger den i en episode**, når en af dem matcher. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påmindelser planlægges**, når en påmindelsesregel matcher, og **OneUptime AI** undersøger advarslen, når **Undersøg nye advarsler** er slået til under **Advarsler → AI → Indstillinger**, og retter den, når **Ret nye advarsler automatisk** er slået til. Se [AI SRE](/docs/ai/ai-sre).
 
-Et baggrundsjob giver advarslens ejere besked inden for et minut, og arbejdsgangsudløseren **On Create Alert** starter enhver arbejdsgang, der bygger på den.
+Et baggrundsjob giver advarslens ejere besked omkring et minut efter, at den er oprettet, alle de ejere, den har til den tid, og arbejdsgangsudløseren **On Create Alert** starter enhver arbejdsgang, der bygger på den.
+
+For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke projektets ejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i en arbejdsgang vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Create One Alert**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
 
 ### Oprettet allerede bekræftet eller løst
 
@@ -159,7 +161,7 @@ En episode, som en privat advarsel åbner, er ikke privat, så den viser aldrig 
 ## Hvem der hører om en advarsel
 
 - **Vagten.** Advarslens vagtpolitikker tilkalder deres personer, hver på den måde, de har sat det op under **Brugerindstillinger → Sådan når man mig** på fanen **Advarsler**. Svarer man på tilkaldelsen, bekræftes advarslen, og tilkaldelsen stopper.
-- **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Påmindelse om advarsel** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet projektets ejere besked.
+- **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Påmindelse om advarsel** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet projektets ejere besked. Hvis OneUptime stopper, mens den sender en notifikation, får de personer, den endnu ikke var nået til, den, når OneUptime er tilbage, et par minutter forsinket, og ingen får den to gange.
 - **Dine chatværktøjer.** **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Fejlfinding

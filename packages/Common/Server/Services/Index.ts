@@ -552,6 +552,7 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspacePublicNoteApprovalMessageService from "./WorkspacePublicNoteApprovalMessageService";
 import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
+import OwnerNotificationDeliveryService from "./OwnerNotificationDeliveryService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
@@ -1148,6 +1149,7 @@ const services: Array<BaseService> = [
   WorkspaceLiveMessageService,
   WorkspacePublicNoteApprovalMessageService,
   WorkspaceHomeChoiceService,
+  OwnerNotificationDeliveryService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,
   WorkspaceUserNotificationService,

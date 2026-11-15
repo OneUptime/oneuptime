@@ -176,7 +176,7 @@ Dra statusen i håndtaket. En status lenger ned i listen regnes som verre enn al
 En status gjør ingenting før et kriterium flytter monitorer til den. Velg den i **Endre overvåkingsstatus til** på kriteriet som skal sette den.
 :::
 
-Den driftsklare statusen og frakoblet-statusen er merket **Innebygd**: du kan gi dem nytt navn og endre fargen, men ikke slette dem. På OneUptime Cloud krever det Growth-planen å opprette eller endre en status. Å administrere statuser krever rollen Project Owner, Project Admin eller Monitor Admin, eller en egendefinert rolle med tilsvarende tillatelse for monitorstatuser.
+Den driftsklare statusen og frakoblet-statusen er merket **Innebygd**: du kan gi dem nytt navn og endre fargen, men ikke slette dem. På OneUptime Cloud krever det Growth-planen å opprette eller endre en status. Å administrere statuser krever rollen Prosjekteier, Prosjektadministrator eller Monitoradministrator, eller en egendefinert rolle med tilsvarende tillatelse for monitorstatuser.
 
 ### Statustidslinjen
 

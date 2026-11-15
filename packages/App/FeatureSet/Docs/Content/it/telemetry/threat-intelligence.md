@@ -27,7 +27,7 @@ flowchart TB
 - Per un feed TAXII, un server TAXII 2.1 che pubblichi oggetti STIX 2.1 di tipo `indicator`, e l'ID della raccolta da interrogare. Un feed TAXII accede in modo anonimo, con un token bearer o con l'autenticazione HTTP basic.
 - Per un feed Google SecOps, una [connessione Google SecOps](/docs/integrations/google-secops#configurare-il-connettore-gestito) il cui account di servizio possa cercare le corrispondenze degli indicatori: il ruolo `roles/chronicle.viewer` può farlo.
 - I server che richiedono un certificato client TLS (TLS reciproco), come CISA AIS, non sono supportati. Il server ATT&CK pubblico di MITRE pubblica tecniche e gruppi invece di indicatori, quindi un feed puntato su di esso resta vuoto.
-- Un ruolo che possa creare feed: Project Owner, Project Admin, Security Admin o Security Member. Security Viewer può leggere feed e indicatori. Vedi [Ruoli](/docs/permissions/reference#ruoli).
+- Un ruolo che possa creare feed: Proprietario del progetto, Amministratore del progetto, Amministratore della sicurezza o Membro della sicurezza. Visualizzatore della sicurezza può leggere feed e indicatori. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 
 ## Aggiungere un elenco gratuito
 

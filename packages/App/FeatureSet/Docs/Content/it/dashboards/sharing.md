@@ -139,9 +139,9 @@ Su un'installazione self-hosted, i domini personalizzati delle dashboard si atti
 
 ### Chi può verificare e riemettere
 
-**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono l'autorizzazione a modificarlo: **Edit Dashboard Domain**, o un ruolo che la includa (Project Owner, Project Admin, Project Member, Settings Admin o Settings Member).
+**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono l'autorizzazione a modificarlo: **Edit Dashboard Domain**, o un ruolo che la includa (Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore delle impostazioni o Membro delle impostazioni).
 
-Chi può solo leggere il dominio, come un Viewer o un Settings Viewer, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati, e indicano quale autorizzazione serve. OneUptime continua comunque a verificare ogni dominio e a ordinarne il certificato da solo.
+Chi può solo leggere il dominio, come un Visualizzatore o un Visualizzatore delle impostazioni, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati, e indicano quale autorizzazione serve. OneUptime continua comunque a verificare ogni dominio e a ordinarne il certificato da solo.
 
 Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle dashboard non può chiamare `verify-cname`, `order-ssl` o `reissue-ssl` su `/dashboard-domain`. Dalle **Read Dashboard Domain** ed **Edit Dashboard Domain** se ne ha bisogno.
 

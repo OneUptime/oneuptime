@@ -11,7 +11,7 @@ OneUptime hittar hot i data du redan har - dina loggar, säkerhetsverktygen du a
 
 ## Innan du börjar
 
-För att sätta upp säkerhet krävs rollen Project Owner, Project Admin eller Security Admin. Rollerna Security Member och Security Viewer läser det som hittas; se [Roller](/docs/permissions/reference#roller).
+För att sätta upp säkerhet krävs rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Rollerna Säkerhetsmedlem och Säkerhetstittare läser det som hittas; se [Roller](/docs/permissions/reference#roller).
 
 ## Sätt upp det
 
@@ -84,7 +84,7 @@ Arbetar ditt team redan i ett SIEM skickar OneUptime sina fynd dit också. Klick
 ## Felsökning
 
 :::details Turn on recommended är nedtonad
-Din roll får inte lägga till detektionsregler, playbooks eller loggkällan. Fråga en Project Owner, en Project Admin eller en Security Admin, eller be dem ge dig rollen Security Admin.
+Din roll får inte lägga till detektionsregler, playbooks eller loggkällan. Fråga en Projektägare, en Projektadministratör eller en Säkerhetsadministratör, eller be dem ge dig rollen Säkerhetsadministratör.
 :::
 
 :::details Turn on recommended kunde inte slå på allt

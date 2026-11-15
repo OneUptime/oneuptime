@@ -40,7 +40,7 @@ Et feilbudsjett gjør pålitelighet til noe du kan bruke. Er det mye igjen, kan 
 
 ## Opprett et SLO
 
-Du trenger en rolle som kan opprette SLO-er: Project Owner, Project Admin eller en egendefinert rolle med tillatelsen Create Service Level Objective.
+Du trenger en rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator eller en egendefinert rolle med tillatelsen Create Service Level Objective.
 
 :::steps
 ### Åpne SLO-er

@@ -22,7 +22,7 @@ Elke weg normaliseert wat binnenkomt naar [OCSF](https://schema.ocsf.io/), het O
 
 ## Voordat je begint
 
-- Voor de beheerde connector in OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer kunnen verbindingen lezen, maar niet aanmaken.
+- Voor de beheerde connector in OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker kunnen verbindingen lezen, maar niet aanmaken.
 - Voor de webhook en UDM-doorsturing een opnamesleutel: open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Inname-sleutel aanmaken**.
 - Voor de beheerde connector het recht om een Google Cloud-serviceaccount aan te maken in het project waaraan je SecOps-instantie is gekoppeld.
 

@@ -29,11 +29,70 @@ import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What the "Incident Created" notification is made of, read for each incident.
+const INCIDENT_SELECT: Select<Incident> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  } as Select<Project>,
+  remediationNotes: true,
+  currentIncidentState: {
+    name: true,
+    color: true,
+  } as Select<IncidentState>,
+  incidentSeverity: {
+    name: true,
+    color: true,
+  },
+  rootCause: true,
+  createdByProbe: {
+    name: true,
+  },
+  createdByUser: {
+    name: true,
+    email: true,
+  },
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+};
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8199) - told first, exactly
+     * them, from the incident as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.IncidentCreated],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const incident: Incident | null = await IncidentService.findOneById({
+          id: delivery.notification.resourceId,
+          select: INCIDENT_SELECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!incident) {
+          await delivery.giveUp("the incident is gone");
+          return;
+        }
+
+        await notifyOwnersOfIncident(incident, delivery);
+      },
+    });
+
     /*
      * Every incident whose owners are due to hear that it was created: let
      * go once its owners were in, a minute after its create, or held so
@@ -43,40 +102,17 @@ RunCron(
     const incidents: Array<Incident> =
       await IncidentService.findCreatedNotificationsDue({
         now: OneUptimeDate.getCurrentDate(),
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
-          } as Select<Project>,
-          remediationNotes: true,
-          currentIncidentState: {
-            name: true,
-            color: true,
-          } as Select<IncidentState>,
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-          rootCause: true,
-          createdByProbe: {
-            name: true,
-          },
-          createdByUser: {
-            name: true,
-            email: true,
-          },
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-        },
+        select: INCIDENT_SELECT,
       });
 
     for (const incident of incidents) {
-      const projectId: ObjectID = incident.projectId!;
-      const incidentId: ObjectID = incident.id!;
-      const incidentNumber: number = incident.incidentNumber!;
+      /*
+       * Whom it is to tell, written before the take: a worker stopped from
+       * here on leaves them to be told by a later run, and one stopped
+       * before the take leaves the incident to be read again.
+       */
+      const delivery: OwnerNotificationDelivery =
+        await planOwnersOfIncident(incident);
 
       /*
        * Mark the incident as notified first (matching the MonitorOwner worker)
@@ -93,231 +129,297 @@ RunCron(
         continue;
       }
 
-      let moreIncidentFeedInformationInMarkdown: string = "";
-
-      const incidentIdentifiedDate: Date =
-        await IncidentService.getIncidentIdentifiedDate(incident.id!);
-
-      // now find owners.
-
-      let doesResourceHasOwners: boolean = true;
-
-      let owners: Array<User> = await IncidentService.findOwners(incident.id!);
-
-      if (owners.length === 0) {
-        doesResourceHasOwners = false;
-
-        // find project owners.
-        owners = await ProjectService.getOwners(incident.projectId!);
-      }
-
-      if (owners.length === 0) {
-        continue;
-      }
-
-      let declaredBy: string = "OneUptime";
-
-      if (incident.createdByProbe && incident.createdByProbe.name) {
-        declaredBy = incident.createdByProbe.name;
-      }
-
-      if (
-        incident.createdByUser &&
-        incident.createdByUser.name &&
-        incident.createdByUser.email
-      ) {
-        declaredBy = `${incident.createdByUser.name.toString()} (${incident.createdByUser.email.toString()})`;
-      }
-
-      const incidentNumberStr: string =
-        incident.incidentNumberWithPrefix ||
-        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
-
-      /*
-       * These values do not vary per owner, so convert them once per incident
-       * instead of once per owner notification. A conversion failure must
-       * stay contained to this incident, like every other failure in this loop.
-       */
-      let incidentDescriptionHtml: string = "";
-      let remediationNotesHtml: string = "";
-      let rootCauseHtml: string = "";
-
       try {
-        incidentDescriptionHtml = await Markdown.convertToHTML(
-          incident.description! || "",
-          MarkdownContentType.Email,
-        );
-
-        remediationNotesHtml =
-          (await Markdown.convertToHTML(
-            incident.remediationNotes! || "",
-            MarkdownContentType.Email,
-          )) || "";
-
-        rootCauseHtml =
-          (await Markdown.convertToHTML(
-            incident.rootCause || "No root cause identified for this incident",
-            MarkdownContentType.Email,
-          )) || "";
+        await notifyOwnersOfIncident(incident, delivery);
       } catch (e) {
-        logger.error("Error in sending incident created resource notification");
-        logger.error(e);
-        continue;
+        logger.error(
+          "Error in sending incident created resource notification",
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
+        );
+        logger.error(e, {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      // Every resource the incident's Affected Resources card lists.
-      const resourcesAffected: string = LinkedAffectedResources.getText({
-        resources: await LinkedAffectedResources.readForIncident({
-          service: IncidentService,
-          projectId: projectId,
-          incidentId: incidentId,
+/*
+ * Whom the incident's "Incident Created" notification tells - its owners,
+ * or the project's when it has none - written down before the incident is
+ * taken (OwnerNotificationDeliveries.plan). A failure to read them tells
+ * nobody, as it did when it came after the take.
+ */
+async function planOwnersOfIncident(
+  incident: Incident,
+): Promise<OwnerNotificationDelivery> {
+  let owners: Array<User> = [];
+  let isProjectOwners: boolean = false;
+
+  try {
+    owners = await IncidentService.findOwners(incident.id!);
+
+    if (owners.length === 0) {
+      isProjectOwners = true;
+      owners = await ProjectService.getOwners(incident.projectId!);
+    }
+  } catch (e) {
+    logger.error("Error in reading the owners of a created incident", {
+      projectId: incident.projectId?.toString(),
+      incidentId: incident.id?.toString(),
+    });
+    logger.error(e);
+    owners = [];
+  }
+
+  return await OwnerNotificationDeliveries.plan({
+    notification: {
+      kind: OwnerNotificationKind.IncidentCreated,
+      projectId: incident.projectId!,
+      resourceId: incident.id!,
+      eventId: incident.id!,
+    },
+    owners: owners,
+    isProjectOwners: isProjectOwners,
+  });
+}
+
+/*
+ * Tells the delivery's owners that the incident was created, each once
+ * (OwnerNotificationDelivery.tell), and says in the incident's feed whom it
+ * reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfIncident(
+  incident: Incident,
+  delivery: OwnerNotificationDelivery,
+): Promise<void> {
+  if (delivery.owners.length === 0) {
+    return;
+  }
+
+  const projectId: ObjectID = incident.projectId!;
+  const incidentId: ObjectID = incident.id!;
+  const incidentNumber: number = incident.incidentNumber!;
+
+  let moreIncidentFeedInformationInMarkdown: string = "";
+
+  const incidentIdentifiedDate: Date =
+    await IncidentService.getIncidentIdentifiedDate(incident.id!);
+
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
+
+  let declaredBy: string = "OneUptime";
+
+  if (incident.createdByProbe && incident.createdByProbe.name) {
+    declaredBy = incident.createdByProbe.name;
+  }
+
+  if (
+    incident.createdByUser &&
+    incident.createdByUser.name &&
+    incident.createdByUser.email
+  ) {
+    declaredBy = `${incident.createdByUser.name.toString()} (${incident.createdByUser.email.toString()})`;
+  }
+
+  const incidentNumberStr: string =
+    incident.incidentNumberWithPrefix ||
+    (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+
+  /*
+   * These values do not vary per owner, so convert them once per incident
+   * instead of once per owner notification. A conversion failure must
+   * stay contained to this incident, like every other failure in this loop.
+   */
+  let incidentDescriptionHtml: string = "";
+  let remediationNotesHtml: string = "";
+  let rootCauseHtml: string = "";
+
+  try {
+    incidentDescriptionHtml = await Markdown.convertToHTML(
+      incident.description! || "",
+      MarkdownContentType.Email,
+    );
+
+    remediationNotesHtml =
+      (await Markdown.convertToHTML(
+        incident.remediationNotes! || "",
+        MarkdownContentType.Email,
+      )) || "";
+
+    rootCauseHtml =
+      (await Markdown.convertToHTML(
+        incident.rootCause || "No root cause identified for this incident",
+        MarkdownContentType.Email,
+      )) || "";
+  } catch (e) {
+    logger.error("Error in sending incident created resource notification");
+    logger.error(e);
+    return;
+  }
+
+  // Every resource the incident's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForIncident({
+      service: IncidentService,
+      projectId: projectId,
+      incidentId: incidentId,
+    }),
+    fallback: "None",
+  });
+
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
+    moreIncidentFeedInformationInMarkdown +=
+      OwnerNotificationFeedText.notifiedLineMarkdown(
+        OwnerNotificationFeedText.nameAndEmail({
+          name: user.name?.toString(),
+          email: user.email?.toString(),
         }),
-        fallback: "None",
-      });
+      );
+  }
 
-      for (const user of owners) {
-        try {
-          const vars: Dictionary<string> = {
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
+        const vars: Dictionary<string> = {
+          incidentTitle: incident.title!,
+          incidentNumber: incidentNumberStr,
+          projectName: incident.project!.name!,
+          currentState: incident.currentIncidentState!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incident.currentIncidentState?.color,
+          ),
+          incidentDescription: incidentDescriptionHtml,
+          resourcesAffected: resourcesAffected,
+          incidentSeverity: incident.incidentSeverity!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "incidentSeverity",
+            incident.incidentSeverity?.color,
+          ),
+          declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+            date: incidentIdentifiedDate,
+            timezones: user.timezone ? [user.timezone] : [],
+          }),
+          declaredBy: declaredBy,
+          remediationNotes: remediationNotesHtml,
+          rootCause: rootCauseHtml,
+          incidentViewLink: (
+            await IncidentService.getIncidentLinkInDashboard(
+              incident.projectId!,
+              incident.id!,
+            )
+          ).toString(),
+        };
+
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }
+
+        const incidentIdentifier: string =
+          incident.incidentNumber !== undefined
+            ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
+            : incident.title!;
+
+        const emailMessage: EmailEnvelope = {
+          templateType: EmailTemplateType.IncidentOwnerResourceCreated,
+          vars: vars,
+          subject: `[New Incident ${incidentNumberStr}] - ${incident.title!}`,
+          isSubjectLiteral: true,
+        };
+
+        const sms: SMSMessage = {
+          message: buildNotificationSms(
+            `New incident created: ${incidentIdentifier}.`,
+          ),
+        };
+
+        const callMessage: CallRequestMessage = {
+          data: [
+            {
+              sayMessage: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+            },
+          ],
+        };
+
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createIncidentCreatedNotification({
             incidentTitle: incident.title!,
-            incidentNumber: incidentNumberStr,
             projectName: incident.project!.name!,
-            currentState: incident.currentIncidentState!.name!,
-            ...EmailColorUtil.getTemplateVariables(
-              "currentState",
-              incident.currentIncidentState?.color,
-            ),
-            incidentDescription: incidentDescriptionHtml,
-            resourcesAffected: resourcesAffected,
-            incidentSeverity: incident.incidentSeverity!.name!,
-            ...EmailColorUtil.getTemplateVariables(
-              "incidentSeverity",
-              incident.incidentSeverity?.color,
-            ),
-            declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-              {
-                date: incidentIdentifiedDate,
-                timezones: user.timezone ? [user.timezone] : [],
-              },
-            ),
-            declaredBy: declaredBy,
-            remediationNotes: remediationNotesHtml,
-            rootCause: rootCauseHtml,
             incidentViewLink: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,
                 incident.id!,
               )
             ).toString(),
-          };
+            ...(incident.incidentNumber !== undefined && {
+              incidentNumber: incident.incidentNumber,
+            }),
+            incidentId: incident.id!.toString(),
+            projectId: incident.projectId!.toString(),
+          });
 
-          if (doesResourceHasOwners === true) {
-            vars["isOwner"] = "true";
-          }
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
 
-          const incidentIdentifier: string =
-            incident.incidentNumber !== undefined
-              ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
-              : incident.title!;
-
-          const emailMessage: EmailEnvelope = {
-            templateType: EmailTemplateType.IncidentOwnerResourceCreated,
-            vars: vars,
-            subject: `[New Incident ${incidentNumberStr}] - ${incident.title!}`,
-            isSubjectLiteral: true,
-          };
-
-          const sms: SMSMessage = {
-            message: buildNotificationSms(
-              `New incident created: ${incidentIdentifier}.`,
-            ),
-          };
-
-          const callMessage: CallRequestMessage = {
-            data: [
-              {
-                sayMessage: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
-              },
-            ],
-          };
-
-          const pushMessage: PushNotificationMessage =
-            PushNotificationUtil.createIncidentCreatedNotification({
-              incidentTitle: incident.title!,
-              projectName: incident.project!.name!,
-              incidentViewLink: (
-                await IncidentService.getIncidentLinkInDashboard(
-                  incident.projectId!,
-                  incident.id!,
-                )
-              ).toString(),
-              ...(incident.incidentNumber !== undefined && {
-                incidentNumber: incident.incidentNumber,
-              }),
-              incidentId: incident.id!.toString(),
-              projectId: incident.projectId!.toString(),
-            });
-
-          const eventType: NotificationSettingEventType =
-            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
-
-          const whatsAppMessage: WhatsAppMessagePayload =
-            createWhatsAppMessageFromTemplate({
-              eventType,
-              templateVariables: {
-                incident_title: incident.title!,
-                project_name: incident.project!.name!,
-                incident_link: vars["incidentViewLink"] || "",
-                incident_number: incidentNumber.toString(),
-              },
-            });
-
-          await UserNotificationSettingService.sendUserNotification({
-            userId: user.id!,
-            projectId: incident.projectId!,
-            emailEnvelope: emailMessage,
-            smsMessage: sms,
-            callRequestMessage: callMessage,
-            pushNotificationMessage: pushMessage,
-            whatsAppMessage,
-            incidentId: incident.id!,
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
             eventType,
-          });
-
-          moreIncidentFeedInformationInMarkdown +=
-            OwnerNotificationFeedText.notifiedLineMarkdown(
-              OwnerNotificationFeedText.nameAndEmail({
-                name: user.name?.toString(),
-                email: user.email?.toString(),
-              }),
-            );
-        } catch (e) {
-          logger.error(
-            "Error in sending incident created resource notification",
-            {
-              projectId: projectId?.toString(),
-              incidentId: incidentId?.toString(),
+            templateVariables: {
+              incident_title: incident.title!,
+              project_name: incident.project!.name!,
+              incident_link: vars["incidentViewLink"] || "",
+              incident_number: incidentNumber.toString(),
             },
-          );
-          logger.error(e, {
-            projectId: projectId?.toString(),
-            incidentId: incidentId?.toString(),
           });
-        }
-      }
 
-      await IncidentFeedService.createIncidentFeedItem({
-        incidentId: incident.id!,
-        projectId: incident.projectId!,
-        incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
-        displayColor: Yellow500,
-        feedInfoInMarkdown: OwnerNotificationFeedText.created("incident", {
-          isProjectOwners: !doesResourceHasOwners,
-        }),
-        moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
-        workspaceNotification: {
-          sendWorkspaceNotification: false,
-        },
-      });
+        await UserNotificationSettingService.sendUserNotification({
+          userId: user.id!,
+          projectId: incident.projectId!,
+          emailEnvelope: emailMessage,
+          smsMessage: sms,
+          callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
+          whatsAppMessage,
+          incidentId: incident.id!,
+          eventType,
+        });
+      },
+    );
+
+    if (isTold) {
+      moreIncidentFeedInformationInMarkdown +=
+        OwnerNotificationFeedText.notifiedLineMarkdown(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
     }
-  },
-);
+  }
+
+  // Every owner was told already: the run that told them said so.
+  if (!delivery.hasSetOutToTellAnyone) {
+    return;
+  }
+
+  await IncidentFeedService.createIncidentFeedItem({
+    incidentId: incident.id!,
+    projectId: incident.projectId!,
+    incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
+    displayColor: Yellow500,
+    feedInfoInMarkdown: OwnerNotificationFeedText.created("incident", {
+      isProjectOwners: !doesResourceHasOwners,
+    }),
+    moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+    workspaceNotification: {
+      sendWorkspaceNotification: false,
+    },
+  });
+}

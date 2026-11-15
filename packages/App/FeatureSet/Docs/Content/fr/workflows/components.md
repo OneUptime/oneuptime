@@ -473,7 +473,7 @@ Un type ne propose que les composants que son modèle autorise. Un type en lectu
 
 C'est ainsi qu'un flux de travail lit et modifie les données de OneUptime. Par exemple, un webhook de votre outil de CI peut utiliser **Create One Incident** pour ouvrir un incident avec les détails de l'échec.
 
-Ces composants agissent en tant que Project Admin du projet du flux de travail : ce qu'un Project Admin n'a pas le droit de faire, ou ce que votre forfait n'inclut pas, est refusé, et le journal de l'exécution dit pourquoi. Voir [Ce que les étapes d'un flux de travail peuvent faire](/docs/workflows/configuration#ce-que-les-étapes-dun-flux-de-travail-peuvent-faire).
+Ces composants agissent en tant qu'Administrateur du projet, dans le projet du flux de travail : ce qu'un Administrateur du projet n'a pas le droit de faire, ou ce que votre forfait n'inclut pas, est refusé, et le journal de l'exécution dit pourquoi. Voir [Ce que les étapes d'un flux de travail peuvent faire](/docs/workflows/configuration#ce-que-les-étapes-dun-flux-de-travail-peuvent-faire).
 
 ### Déclarer un incident à partir d'un modèle
 
@@ -486,6 +486,12 @@ L'incident enregistre le modèle dont il a été déclaré dans `createdIncident
 **Create One Incident** et **Create One Alert** ont un paramètre **Ressources affectées** : les hôtes, équipements réseau, clusters, bases de données ou services que concerne l'enregistrement, par nom, adresse ou ID, séparés par des virgules — saisis, ou repris d'une étape précédente, comme l'hôte que nomme une alerte venue d'un autre outil. Chaque entrée est recherchée dans tous les types de ressources que l'enregistrement peut contenir, comme valeur entière et sans tenir compte de la casse : par nom, un équipement réseau aussi par l'adresse à laquelle il est interrogé ou par son nom DNS, un hôte par le nom que son agent signale ou par l'une de ses adresses IP, et une ressource cloud par l'ID de son fournisseur. Chaque ressource à laquelle correspond une entrée est liée, en plus de ce que **JSON Object** et le modèle lient déjà, jusqu'à 50 à partir des 25 premières entrées.
 
 Une entrée qui ne correspond à rien n'arrête pas l'étape : l'enregistrement est tout de même créé, et le journal d'exécution indique ce que chaque entrée a lié et lesquelles ne correspondaient à rien. Les ressources archivées ne sont pas liées. Les moniteurs ne sont pas recherchés : nommez-les dans **JSON Object** (`monitors` pour un incident, `monitorId` pour une alerte), car lier un moniteur à un incident met sa surveillance en pause.
+
+### À qui il appartient dès le départ
+
+**Create One Incident** et **Create One Alert** ont les réglages **Utilisateurs propriétaires** et **Équipes propriétaires** : les personnes et les équipes à qui l'enregistrement appartient dès sa création. Choisissez-les, ou prenez-les d'une étape précédente : l'identifiant ou l'adresse e-mail d'un utilisateur, l'identifiant d'une équipe, plusieurs séparés par des virgules, ou une liste. Les propriétaires de l'enregistrement apprennent sa création environ une minute après, tous ceux qu'il a alors : ceux choisis ici en font toujours partie, tandis que les propriétaires qu'une étape ultérieure ajoute la manquent dès que cette étape s'exécute plus d'une minute après, et ce sont les propriétaires du projet qui sont prévenus à leur place.
+
+L'étape demande si elle peut les ajouter, en tant que Project Admin du projet du flux de travail, avant que l'enregistrement soit sauvegardé : des propriétaires qu'elle n'a pas le droit d'ajouter font refuser la création. Une personne qui n'est pas membre du projet, ou une équipe qui n'est pas l'une des siennes, est laissée de côté, et le journal d'exécution le dit : l'enregistrement est tout de même créé. Les propriétaires ajoutés ainsi ne sont pas prévenus qu'ils ont été ajoutés : la notification de la création de l'enregistrement est celle qu'ils reçoivent.
 
 ## Travailler avec les enregistrements
 

@@ -487,6 +487,12 @@ Der Vorfall hält die Vorlage, aus der er gemeldet wurde, in `createdIncidentTem
 
 Ein Eintrag, der auf nichts passt, hält den Schritt nicht auf: Der Datensatz wird trotzdem erstellt, und das Protokoll des Laufs sagt, was jeder Eintrag verknüpft hat und welche auf nichts passten. Archivierte Ressourcen werden nicht verknüpft. Monitore werden nicht nachgeschlagen: Nennen Sie sie in **JSON Object** (`monitors` bei einem Vorfall, `monitorId` bei einer Warnung), denn einen Monitor mit einem Vorfall zu verknüpfen, pausiert seine Überwachung.
 
+### Wem er von Anfang an gehört
+
+**Create One Incident** und **Create One Alert** haben die Einstellungen **Eigentümer-Benutzer** und **Eigentümer-Teams**: die Personen und Teams, denen der Datensatz ab seiner Erstellung gehört. Wählen Sie sie aus, oder übernehmen Sie sie aus einem früheren Schritt: die ID oder E-Mail-Adresse eines Benutzers, die ID eines Teams, mehrere durch Kommas getrennt oder eine Liste. Die Eigentümer des Datensatzes erfahren etwa eine Minute nach der Erstellung, dass er erstellt wurde, jeder Eigentümer, den er bis dahin hat: Die hier gewählten sind immer dabei, während Eigentümer, die ein späterer Schritt hinzufügt, es verpassen, wenn dieser Schritt mehr als eine Minute später läuft, und stattdessen die Eigentümer des Projekts informiert werden.
+
+Der Schritt fragt als Project Admin des Projekts des Workflows, ob er sie hinzufügen darf, bevor der Datensatz gespeichert wird: Eigentümer, die er nicht hinzufügen darf, lassen die Erstellung scheitern. Wer kein Mitglied des Projekts ist, oder ein Team, das nicht zum Projekt gehört, wird weggelassen, und das Protokoll des Laufs sagt es: Der Datensatz wird trotzdem erstellt. So hinzugefügte Eigentümer erfahren nicht, dass sie hinzugefügt wurden: Die Benachrichtigung, dass der Datensatz erstellt wurde, ist die, die sie bekommen.
+
 ## Mit Datensätzen arbeiten
 
 Jedes Feld einer Datenkomponente ist nach den eigenen **Spalten**-Namen des Datensatzes benannt – denselben Namen, die die API verwendet, nicht den Beschriftungen im Formular des Dashboards. Die ID-Spalte ist `_id`. Die Schreibweise `id` wird überall, wo Sie einen Spaltennamen tippen können, als Alias angenommen, aber `_id` ist, was ein Datensatz zurückgibt, also lesen Sie das auf dem Rückweg:

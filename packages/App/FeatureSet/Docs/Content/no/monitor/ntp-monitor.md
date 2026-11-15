@@ -33,7 +33,7 @@ En server som svarer, blir ikke spurt igjen, heller ikke når den svarer uten p�
 
 ## Før du begynner
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når UDP-port 123 på serveren.** Alle sonder kan kontrollere en offentlig tidsserver. For en server på et privat nettverk bruker du en [egendefinert sonde](/docs/probe/custom-probe) inne i det nettverket. En brannmur foran serveren må slippe gjennom UDP, ikke bare TCP, fra [IP-adressene til OneUptime Clouds sonder](/docs/configuration/ip-addresses) eller fra den egendefinerte sonden din.
 
 ## Opprett en NTP-monitor

@@ -40,7 +40,7 @@ En felbudget gör tillförlitlighet till något du kan spendera. Finns det mycke
 
 ## Skapa ett SLO
 
-Du behöver en roll som får skapa SLO:er: Project Owner, Project Admin eller en anpassad roll med behörigheten Create Service Level Objective.
+Du behöver en roll som får skapa SLO:er: Projektägare, Projektadministratör eller en anpassad roll med behörigheten Create Service Level Objective.
 
 :::steps
 ### Öppna SLO:er

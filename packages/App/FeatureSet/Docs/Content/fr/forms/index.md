@@ -131,15 +131,15 @@ Les formulaires permettent à des personnes extérieures à votre équipe de cr�
 
 | Autorisation | Ce qu'elle permet | Qui l'a par défaut |
 | --- | --- | --- |
-| **Create Form** | Créer des formulaires et les dupliquer. | Project Owner, Project Admin |
-| **Edit Form** | Modifier un formulaire : ses questions, son image de marque, ses modèles, ses paramètres À la soumission, **Accepte les soumissions**, son lien et sa **Liste d'autorisation IP**. | Project Owner, Project Admin |
-| **Delete Form** | Supprimer un formulaire, et avec lui ses soumissions. | Project Owner, Project Admin |
-| **Read Form** | Voir les formulaires, leurs questions, leurs paramètres et leurs liens. | Les rôles ci-dessus, plus Project Member, Viewer et les rôles d'incident et de maintenance planifiée |
-| **Read Form Submission** | Voir les soumissions et leurs réponses. | Project Owner, Project Admin |
-| **Delete Form Submission** | Supprimer des soumissions. | Project Owner, Project Admin |
-| **Create Form Domain** | Ajouter un [domaine personnalisé](/docs/forms/sharing-and-security#domaines-personnalisés) à un formulaire. | Project Owner, Project Admin et **Edit Form** |
-| **Edit Form Domain** | Vérifier les domaines personnalisés d'un formulaire, et commander, réémettre ou changer leurs certificats. | Project Owner, Project Admin et **Edit Form** |
-| **Delete Form Domain** | Retirer les domaines personnalisés d'un formulaire. | Project Owner, Project Admin et **Edit Form** |
+| **Create Form** | Créer des formulaires et les dupliquer. | Propriétaire du projet, Administrateur du projet |
+| **Edit Form** | Modifier un formulaire : ses questions, son image de marque, ses modèles, ses paramètres À la soumission, **Accepte les soumissions**, son lien et sa **Liste d'autorisation IP**. | Propriétaire du projet, Administrateur du projet |
+| **Delete Form** | Supprimer un formulaire, et avec lui ses soumissions. | Propriétaire du projet, Administrateur du projet |
+| **Read Form** | Voir les formulaires, leurs questions, leurs paramètres et leurs liens. | Les rôles ci-dessus, plus Membre du projet, Lecteur et les rôles d'incident et de maintenance planifiée |
+| **Read Form Submission** | Voir les soumissions et leurs réponses. | Propriétaire du projet, Administrateur du projet |
+| **Delete Form Submission** | Supprimer des soumissions. | Propriétaire du projet, Administrateur du projet |
+| **Create Form Domain** | Ajouter un [domaine personnalisé](/docs/forms/sharing-and-security#domaines-personnalisés) à un formulaire. | Propriétaire du projet, Administrateur du projet et **Edit Form** |
+| **Edit Form Domain** | Vérifier les domaines personnalisés d'un formulaire, et commander, réémettre ou changer leurs certificats. | Propriétaire du projet, Administrateur du projet et **Edit Form** |
+| **Delete Form Domain** | Retirer les domaines personnalisés d'un formulaire. | Propriétaire du projet, Administrateur du projet et **Edit Form** |
 | **Read Form Domain** | Voir les domaines personnalisés d'un formulaire, leurs enregistrements DNS et où en est chacun sur le chemin vers HTTPS. | Toute personne qui a **Read Form** |
 
 Les soumissions contiennent ce que des inconnus ont saisi (noms, adresses e-mail et réponses qui n'atteignent peut-être jamais l'enregistrement) ; seuls les propriétaires et administrateurs du projet les voient donc, sauf si vous accordez **Read Form Submission**. Quiconque peut lire un formulaire peut voir et partager son lien. Soumettre un formulaire ne demande aucune autorisation. Pour savoir comment les rôles et les autorisations granulaires se combinent, voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).

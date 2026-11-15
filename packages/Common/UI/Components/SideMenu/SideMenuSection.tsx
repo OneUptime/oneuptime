@@ -28,7 +28,7 @@ export interface ComponentProps {
   title: string;
   /*
    * The title is in the reader's words already - the Admin Dashboard's
-   * t("sideMenu.basic"): drawn as given, in the menu and in the phone's
+   * "sideMenu.basic" key: drawn as given, in the menu and in the phone's
    * summary, never looked up again. Looked up again, a translation that is
    * itself an English key reads as another word, as the Spanish "Red"
    * (Network) read "Rojo" (#8225). Left out, the title is English.

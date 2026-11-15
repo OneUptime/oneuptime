@@ -217,7 +217,7 @@ Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se tro
 
 Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser une autre adresse, ajoutez-la et supprimez l'ancienne. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
 
-Ajouter un domaine au projet demande l'autorisation de créer des domaines de projet (**Create Domain**, ou Project Owner ou Project Admin), et le vérifier demande **Edit Domain**. Sans elles, la boîte de dialogue indique qui peut le faire.
+Ajouter un domaine au projet demande l'autorisation de créer des domaines de projet (**Create Domain**, ou Propriétaire du projet ou Administrateur du projet), et le vérifier demande **Edit Domain**. Sans elles, la boîte de dialogue indique qui peut le faire.
 
 ### Configuration DNS et vérification
 
@@ -301,9 +301,9 @@ Cherchez sur votre domaine un enregistrement CAA qui omet `letsencrypt.org` et, 
 
 ### Qui peut vérifier et réémettre
 
-**Vérifier maintenant**, la commande du certificat d'un domaine et **Reissue SSL** modifient le domaine : ils demandent donc l'autorisation de le modifier, **Edit Status Page Domain**, ou un rôle qui l'inclut (Project Owner, Project Admin, Project Member, Status Page Admin ou Status Page Member).
+**Vérifier maintenant**, la commande du certificat d'un domaine et **Reissue SSL** modifient le domaine : ils demandent donc l'autorisation de le modifier, **Edit Status Page Domain**, ou un rôle qui l'inclut (Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des pages de statut ou Membre des pages de statut).
 
-Quelqu'un qui peut seulement lire le domaine, comme un Viewer ou un Status Page Viewer, voit quand même la colonne **Statut** et l'enregistrement à ajouter dans **Configuration DNS**. Pour lui, **Vérifier maintenant** et **Reissue SSL** sont verrouillés et indiquent l'autorisation qui lui manque. OneUptime continue de toute façon à vérifier chaque domaine et à commander son certificat de lui-même.
+Quelqu'un qui peut seulement lire le domaine, comme un Lecteur ou un Lecteur des pages de statut, voit quand même la colonne **Statut** et l'enregistrement à ajouter dans **Configuration DNS**. Pour lui, **Vérifier maintenant** et **Reissue SSL** sont verrouillés et indiquent l'autorisation qui lui manque. OneUptime continue de toute façon à vérifier chaque domaine et à commander son certificat de lui-même.
 
 Il en va de même pour les clés d'API. Une clé qui peut seulement lire les domaines de pages de statut ne peut pas appeler `verify-cname`, `check-dns`, `order-ssl` ni `reissue-ssl` sur `/status-page-domain`. Donnez-lui **Read Status Page Domain** et **Edit Status Page Domain** si elle en a besoin. Quand l'enregistrement n'est pas trouvé, `verify-cname` refuse en indiquant ce qu'il a recherché et ce qui est revenu, dans les termes qu'affiche **Configuration DNS** ; `check-dns` répond dans tous les cas pour chaque enregistrement qu'il a recherché.
 

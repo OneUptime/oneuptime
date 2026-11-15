@@ -473,7 +473,7 @@ Un tipo solo ofrece los componentes que permite su modelo. Un tipo de solo lectu
 
 Así es como un flujo de trabajo lee y cambia los datos de OneUptime. Por ejemplo, un webhook de tu herramienta de CI puede usar **Create One Incident** para abrir un incidente con los detalles del fallo.
 
-Estos componentes actúan como Project Admin del proyecto del flujo de trabajo: lo que un Project Admin no puede hacer, o lo que tu plan no incluye, se rechaza, y el registro de la ejecución dice por qué. Consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
+Estos componentes actúan como Administrador del proyecto en el proyecto del flujo de trabajo: lo que un Administrador del proyecto no puede hacer, o lo que tu plan no incluye, se rechaza, y el registro de la ejecución dice por qué. Consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 
 ### Declarar un incidente a partir de una plantilla
 
@@ -486,6 +486,12 @@ El incidente guarda la plantilla de la que se declaró en `createdIncidentTempla
 **Create One Incident** y **Create One Alert** tienen un ajuste **Recursos afectados**: los hosts, dispositivos de red, clústeres, bases de datos o servicios de los que trata el registro, por nombre, dirección o ID, separados por comas — escritos a mano o tomados de un paso anterior, como el host que nombra una alerta llegada de otra herramienta. Cada entrada se busca en todos los tipos de recurso que puede contener el registro, como valor completo y sin distinguir mayúsculas: por nombre, un dispositivo de red también por la dirección en la que se sondea o por su nombre DNS, un host por el nombre que informa su agente o por una de sus direcciones IP, y un recurso en la nube por el ID de su proveedor. Cada recurso con el que coincide una entrada se vincula, junto a lo que ya vinculan **JSON Object** y la plantilla, hasta 50 a partir de las 25 primeras entradas.
 
 Una entrada que no coincide con nada no detiene el paso: el registro se crea igualmente, y el registro de la ejecución indica qué vinculó cada entrada y cuáles no coincidieron con nada. Los recursos archivados no se vinculan. Los monitores no se buscan: nómbralos en **JSON Object** (`monitors` en un incidente, `monitorId` en una alerta), porque vincular un monitor a un incidente pausa su supervisión.
+
+### Quién lo posee desde el principio
+
+**Create One Incident** y **Create One Alert** tienen los ajustes **Usuarios propietarios** y **Equipos propietarios**: las personas y los equipos que poseen el registro desde que se crea. Elígelos, o tómalos de un paso anterior: el ID o la dirección de correo de un usuario, el ID de un equipo, varios separados por comas o una lista. Los propietarios del registro se enteran de que se creó alrededor de un minuto después de la creación, todos los que tenga para entonces: los elegidos aquí siempre están entre ellos, mientras que los que añade un paso posterior se lo pierden cuando ese paso se ejecuta más de un minuto después, y en su lugar se avisa a los propietarios del proyecto.
+
+El paso pregunta si puede añadirlos, como Project Admin del proyecto del flujo de trabajo, antes de guardar el registro: los propietarios que no puede añadir hacen que se rechace la creación. Quien no es miembro del proyecto, o un equipo que no es del proyecto, se deja fuera, y el registro de la ejecución lo dice: el registro se crea igualmente. Los propietarios añadidos así no reciben el aviso de que los añadieron: el aviso de que se creó el registro es el que reciben.
 
 ## Trabajar con registros
 

@@ -436,7 +436,7 @@ Se [Grundbegrepp](/docs/introduction/core-concepts#olika-slags-regler).
 
 ### Roll
 
-Fyra olika saker: behörigheterna som ett team ger, till exempel Project Owner eller Project Admin; en **Anpassad roll** som du sätter ihop av behörigheter; en **Incidentroll**, den roll någon har i en incident; och en **Network Device Role**, vad en enhet i ditt nätverk gör.
+Fyra olika saker: behörigheterna som ett team ger, till exempel Projektägare eller Projektadministratör; en **Anpassad roll** som du sätter ihop av behörigheter; en **Incidentroll**, den roll någon har i en incident; och en **Network Device Role**, vad en enhet i ditt nätverk gör.
 
 Se [Användare, team och behörigheter](/docs/permissions/index).
 

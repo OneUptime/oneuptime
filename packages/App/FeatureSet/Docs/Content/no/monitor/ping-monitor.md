@@ -32,7 +32,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når verten**, med ICMP tillatt på veien. Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran verten, tillater du ICMP-ekkoforespørsler fra [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). En vert på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket.
 
 ## Opprett en ping-monitor

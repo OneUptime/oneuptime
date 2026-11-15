@@ -87,7 +87,7 @@ Debajo de los elementos, Señales conectadas busca en sus registros y trazas, en
 
 ## Quién ve qué
 
-- Señales conectadas y la tarjeta **Seguridad** de un elemento requieren un rol que pueda leer eventos de seguridad: Security Admin, Security Member, Security Viewer, Project Owner o Project Admin. Nadie más ve datos de seguridad en ninguna página. Consulte [Roles](/docs/permissions/reference#roles).
+- Señales conectadas y la tarjeta **Seguridad** de un elemento requieren un rol que pueda leer eventos de seguridad: Administrador de seguridad, Miembro de seguridad, Visor de seguridad, Propietario del proyecto o Administrador del proyecto. Nadie más ve datos de seguridad en ninguna página. Consulte [Roles](/docs/permissions/reference#roles).
 - La tarjeta **Seguridad** de un incidente requiere un rol que pueda leer casos de seguridad.
 - Cada elemento se lee con su propio rol, y también lo que tiene: un rol que no puede leer programaciones de guardia no ve las de un miembro. Un tipo de elemento que su rol no puede leer se omite, y la página lo dice; uno que no se pudo leer en este momento también lo dice, con **Volver a intentar**.
 - La página de un elemento muestra su tarjeta **Seguridad** solo en un proyecto que usa Eventos de seguridad: uno que recibió un evento de seguridad en los últimos 7 días.
@@ -123,7 +123,7 @@ La tarjeta aparece para un monitor que comprueba un host, una dirección o una U
 :::
 
 :::details La página dice que su rol no puede ver un tipo de elemento
-Cada elemento se lee con su propio rol. Pida a un Project Owner o a un Project Admin un rol que pueda leer ese tipo de elemento.
+Cada elemento se lee con su propio rol. Pida a un Propietario del proyecto o a un Administrador del proyecto un rol que pueda leer ese tipo de elemento.
 :::
 
 ## Próximos pasos

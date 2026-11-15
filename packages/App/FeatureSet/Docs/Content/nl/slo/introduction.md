@@ -40,7 +40,7 @@ Een foutbudget maakt betrouwbaarheid tot iets wat u kunt uitgeven. Is er veel ov
 
 ## Een SLO aanmaken
 
-U hebt een rol nodig die SLO's mag aanmaken: Project Owner, Project Admin of een aangepaste rol met de machtiging Create Service Level Objective.
+U hebt een rol nodig die SLO's mag aanmaken: Projecteigenaar, Projectbeheerder of een aangepaste rol met de machtiging Create Service Level Objective.
 
 :::steps
 ### SLO's openen

@@ -145,7 +145,7 @@ For å slette én persons data i stedet for en hel applikasjon sender du inn en 
 
 ## Tillatelser
 
-Alle med prosjektets Viewer-rolle kan se RUM-applikasjoner og telemetrien deres. Øktavspilling er holdt utenfor den rollen med vilje: å liste opp opptak, se ett og lese hvem som så det, er separate tillatelser. Prosjekteiere og -administratorer har alle. Tillatelsesvelgerne viser hver tillatelse med tittelen sin, her vist i kursiv.
+Alle med prosjektets Leser-rolle kan se RUM-applikasjoner og telemetrien deres. Øktavspilling er holdt utenfor den rollen med vilje: å liste opp opptak, se ett og lese hvem som så det, er separate tillatelser. Prosjekteiere og -administratorer har alle. Tillatelsesvelgerne viser hver tillatelse med tittelen sin, her vist i kursiv.
 
 | Tillatelse | Lar et medlem |
 | --- | --- |

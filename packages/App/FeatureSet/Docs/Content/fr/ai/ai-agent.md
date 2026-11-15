@@ -283,7 +283,7 @@ Pour faire tourner un Runner ailleurs, par exemple sur une machine proche de vos
 :::steps
 ### Créer le Runner
 
-Créez un Runner sous **Runbooks → Agents de runbook** et cliquez sur **Afficher les instructions de configuration** sur sa ligne. La commande contient la clé secrète du Runner, que seul un Project Owner, un Project Admin ou un Runbook Admin peut lire. Elle ressemble à ceci :
+Créez un Runner sous **Runbooks → Agents de runbook** et cliquez sur **Afficher les instructions de configuration** sur sa ligne. La commande contient la clé secrète du Runner, que seul un Propriétaire du projet, un Administrateur du projet ou un Administrateur des runbooks peut lire. Elle ressemble à ceci :
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

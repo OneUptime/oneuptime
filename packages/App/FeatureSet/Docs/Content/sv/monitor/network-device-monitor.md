@@ -1014,13 +1014,13 @@ Välj enheter, eller varje enhet som matchar sökningen, och sedan:
 
 En rads egna knappar gör samma sak för en enhet. På kartan står en nods IP-adress under dess namn, och sökningen hittar också en nod på dess IP-adress eller MAC-adress, hur en switch än skrev den. Klicka på en upptäckt enhet på kartan, så erbjuder dess panel **Lägg till i övervakning**, som lägger till den på samma sätt, och **Dölj på kartan**.
 
-En enhet som inte har setts på 30 dagar tas bort från listan och kartan, om den inte övervakas, är klassificerad eller har lagts till eller ändrats av någon. Raden under listan säger hur länge enheter finns kvar; projektägare och projektadministratörer ändrar det under **Fler inställningar → Osedda enheter → Ta bort efter**: 7, 14, 30, 60, 90, 180 eller 365 dagar, eller **Aldrig**. Listan kontrolleras varje timme, och inget som en switch eller kontroller har sett tas bort medan den inte rapporterar något. En borttagen enhet som ses igen kommer tillbaka som ny och visas på kartan, även om den var dold tidigare.
+En enhet som inte har setts på 30 dagar tas bort från listan och kartan, om den inte övervakas, är klassificerad eller har lagts till eller ändrats av någon. Raden under listan säger hur länge enheter finns kvar; Projektägare och Projektadministratörer ändrar det under **Fler inställningar → Osedda enheter → Ta bort efter**: 7, 14, 30, 60, 90, 180 eller 365 dagar, eller **Aldrig**. Listan kontrolleras varje timme, och inget som en switch eller kontroller har sett tas bort medan den inte rapporterar något. En borttagen enhet som ses igen kommer tillbaka som ny och visas på kartan, även om den var dold tidigare.
 
 ### Välj layouten som kartan öppnas med
 
 **Map options → Arrange the map** ordnar kartan som **Automatiskt**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kartan öppnas med layouten som är märkt **Standard**: **Automatiskt** för alla enheter och **By network layer** för en plats, om inte ditt projekt har valt en layout för alla. Alla kan byta layout medan de tittar; nästa gång öppnas kartan med standarden igen.
 
-Projektägare och projektadministratörer väljer standarden: byt till en layout och välj **Make default for everyone**. Därefter öppnas varje vy av enhetskartan med den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**. På standardlayouten skickar **Clear default** tillbaka varje karta till dess egen standard. Flyttade positioner sparas för varje layout i din webbläsare, så kartan öppnas med den placering du gjorde i den layouten.
+Projektägare och Projektadministratörer väljer standarden: byt till en layout och välj **Make default for everyone**. Därefter öppnas varje vy av enhetskartan med den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**. På standardlayouten skickar **Clear default** tillbaka varje karta till dess egen standard. Flyttade positioner sparas för varje layout i din webbläsare, så kartan öppnas med den placering du gjorde i den layouten.
 
 ### Hitta rätt i ett stort nätverk
 

@@ -96,7 +96,7 @@ Under **Skicka ett testlarm** klickar du på **Testa den här policyn**, väljer
 :::
 
 > [!NOTE]
-> SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Billing Admin eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringskanaler**.
+> SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Faktureringsadministratör eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringskanaler**.
 
 Två jourregler utlöser policyn: en vid varje ny incident och en vid varje nytt larm. För att se den första öppnar du **Incidenter** från menyn **Produkter**, fäller ut **Regler** i sidomenyn och väljer **Jourregler**: den matchar **Alla incidenter**. För att utlösa policyn bara vid vissa incidenter, till exempel kritiska, redigerar du regeln där, eller klickar på **Skapa Incident On-Call Rule** för att lägga till en egen.
 

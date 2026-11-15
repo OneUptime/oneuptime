@@ -3,9 +3,9 @@
 Det skal du vide, før du retter en arbejdsgang mod rigtig trafik: hvordan du slår det sikkert til, hvem der må hvad, hvordan hemmeligheder og URL'er forbliver private, hvad en arbejdsgangs trin må ændre, og de grænser, hver kørsel arbejder inden for.
 
 :::cards
-- [Gå live](#sådan-tænder-og-slukker-du-en-arbejdsgang): Test med Kør arbejdsgang, mens det er slået fra, og slå det så til.
+- [Gå live](#sådan-tænder-og-slukker-du-en-arbejdsgang): Test med Kør arbejdsgang, mens den er slået fra, og slå den så til.
 - [Tilladelser](#tilladelser): Arbejdsgangsrollerne og de enkelte tilladelser bag dem.
-- [Hvad trin må](#hvad-arbejdsgangstrin-må-gøre): Trin handler som Project Admin i arbejdsgangens projekt.
+- [Hvad trin må](#hvad-arbejdsgangstrin-må-gøre): Trin handler som Projektadministrator i arbejdsgangens projekt.
 - [Grænser](#plangrænser): Kørsler pr. plan, kørselstid og kald mellem arbejdsgange.
 :::
 
@@ -170,7 +170,7 @@ Arbejdsgange respekterer dit projekts rollebaserede adgangskontrol. De tre arbej
 - **Arbejdsgangsmedlem** — bruger dem: åbner arbejdsgange og deres kørsler og kører en arbejdsgang manuelt med **Kør arbejdsgang**. Et medlem kan ikke oprette, ændre eller slette en arbejdsgang eller køre et af dens trin for sig selv. **Bygger** viser dem en arbejdsgang, som den er, markeret **Kun visning**: Et trin åbner, så det kan læses, og intet af det, de gør der, gemmes.
 - **Arbejdsgangsseer** — læser arbejdsgange og deres kørsler.
 
-**Projektejer** og **Projektadministrator** kan alt, hvad en Arbejdsgang Admin kan. **Projektmedlem** kan oprette og slette arbejdsgange, men ikke ændre eller køre dem.
+**Projektejer** og **Projektadministrator** kan alt, hvad en Arbejdsgangsadministrator kan. **Projektmedlem** kan oprette og slette arbejdsgange, men ikke ændre eller køre dem.
 
 De enkelte tilladelser, til et team eller en API-nøgle, der har brug for præcis én ting:
 
@@ -185,18 +185,18 @@ Giv dem, der bygger automatisering, **Arbejdsgangsadministrator**, og dem, der k
 
 ## Hvad arbejdsgangstrin må gøre
 
-De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, Update og Delete og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Projektadministrator** i arbejdsgangens projekt. Uanset hvem der byggede arbejdsgangen, møder et trin de samme kontroller, som en Project Admin møder i dashboardet og API'et:
+De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, Update og Delete og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Projektadministrator** i arbejdsgangens projekt. Uanset hvem der byggede arbejdsgangen, møder et trin de samme kontroller, som en Projektadministrator møder i dashboardet og API'et:
 
 - **Kun arbejdsgangens eget projekt.** Et trin læser og skriver posterne i det projekt, arbejdsgangen hører til, og intet andet, og en Update flytter aldrig en post til et andet projekt.
 - **Kun det, en Project Admin må.** Et trin kan ikke gøre det, som kun **Projektejer** og tilladelser til fakturering eller sletning af projektet giver lov til, og det kan ikke læse, hvem der oprettede en sonde eller en AI-agent, hvilket kun projektejere ser.
-- **Ikke hvem der har adgang.** Et trin opretter, ændrer og sletter ikke teams, teammedlemmer, teamtilladelser, brugerdefinerede roller eller API-nøgletilladelser, selvom en Project Admin må. Den, der bygger en arbejdsgang, bestemmer, hvad dens trin gør, og det kan være en **Projektmedlem**, så et trin, der kunne, ville give den, der byggede det, adgang, vedkommende ikke har fået, som **Projektadministrator**. Trinnet afvises, og kørslens log siger, at en person, der administrerer projektets teams og API-nøgler, skal foretage ændringen. Triggere og Find-trin på disse poster virker stadig.
-- **Ikke læsning af indstillinger, der indeholder loginoplysninger.** En Project Admin må læse SMTP-servere, opkalds- og SMS-udbydere, SNMP-loginoplysninger, videoopkaldsforbindelser og API-nøgler, men det lånes aldrig ud til et trin, uanset hvem der byggede eller gemte arbejdsgangen. Et trin kan ikke angive en af disse indstillinger, som den SMTP-server, en statusside sender e-mail med, eller den API-nøgle, en tilladelse gives til. Trinnet afvises, og dets kørselslog siger, at en person, der må læse dem (læsetilladelsen til den slags indstilling, eller en Project Owner eller Project Admin), skal foretage ændringen. Et trin, der beholder den indstilling, en post allerede angiver, eller rydder den, afvises ikke.
+- **Ikke hvem der har adgang.** Et trin opretter, ændrer og sletter ikke teams, teammedlemmer, teamtilladelser, brugerdefinerede roller eller API-nøgletilladelser, selvom en Projektadministrator må. Den, der bygger en arbejdsgang, bestemmer, hvad dens trin gør, og det kan være en **Projektmedlem**, så et trin, der kunne, ville give den, der byggede det, adgang, vedkommende ikke har fået, som **Projektadministrator**. Trinnet afvises, og kørslens log siger, at en person, der administrerer projektets teams og API-nøgler, skal foretage ændringen. Triggere og Find-trin på disse poster virker stadig.
+- **Ikke læsning af indstillinger, der indeholder loginoplysninger.** En Projektadministrator må læse SMTP-servere, opkalds- og SMS-udbydere, SNMP-loginoplysninger, videoopkaldsforbindelser og API-nøgler, men det lånes aldrig ud til et trin, uanset hvem der byggede eller gemte arbejdsgangen. Et trin kan ikke angive en af disse indstillinger, som den SMTP-server, en statusside sender e-mail med, eller den API-nøgle, en tilladelse gives til. Trinnet afvises, og dets kørselslog siger, at en person, der må læse dem (læsetilladelsen til den slags indstilling, eller en Projektejer eller Projektadministrator), skal foretage ændringen. Et trin, der beholder den indstilling, en post allerede angiver, eller rydder den, afvises ikke.
 - **Kun det, jeres plan indeholder.** I OneUptime Cloud afvises et trin, der opretter eller ændrer noget, jeres plan ikke indeholder, med den plan, det kræver, præcis som dashboardet gør. Selvhostede installationer uden fakturering har ingen plangrænser.
 - **Intet af det, OneUptime holder for sig selv.** Dette afvises for alle, arbejdsgange inklusive:
   - at redigere eller slette en feed-post (feeds for hændelser, advarsler, episoder, monitorer, vagtpolitikker og planlagt vedligeholdelse);
   - at skrive en notifikationslog (logge for sms, opkald, e-mail, WhatsApp, Telegram, push, webhooks og workspace-beskeder);
   - værdier, OneUptime sætter, efterhånden som tingene sker: om et brugerdefineret domænes CNAME er bekræftet, et teams beskyttelseskontakter (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), hvilken hændelsesrolle der er den primære, og om den kan slettes, om en ejer eller et medlem har fået besked, påmindelsestidspunkter og -antal, hvem der har vagt på et skema nu og som den næste, en vagtkørsels fremskridt, en SLO's aktuelle burn rate og error budget, en monitor sat på pause af en hændelse eller en vedligeholdelseshændelse, en privat statussidebrugers token til nulstilling af adgangskode og seneste login, de fakta, en tjeneste rapporterer om sig selv (version, runtime, cloud), og en detektionsregels eller et trusselsfeeds seneste kørsel;
-  - at erklære en hændelse ud fra en skabelon ved at sende `createdIncidentTemplateId` til **Create One Incident** — vælg i stedet skabelonen under trinnets indstilling **Hændelsesskabelon**: trinnet erklærer så hændelsen ud fra den, som Project Admin, og registrerer skabelonen;
+  - at erklære en hændelse ud fra en skabelon ved at sende `createdIncidentTemplateId` til **Create One Incident** — vælg i stedet skabelonen under trinnets indstilling **Hændelsesskabelon**: trinnet erklærer så hændelsen ud fra den, som Projektadministrator, og registrerer skabelonen;
   - at ændre, hvilken post en post hører til, efter at den er oprettet, som den monitor, en ejerrække gælder for, eller den hændelse, en note står på.
 - **Som ingen person.** En post, en arbejdsgang opretter, har ingen opretter, og revisionsloggen angiver arbejdsgangen, med dens navn på det tidspunkt, som den, der foretog ændringen.
 

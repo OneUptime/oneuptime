@@ -96,7 +96,7 @@ Klik onder **Een testoproep sturen** op **Dit beleid testen**, kies een **Ernst*
 :::
 
 > [!NOTE]
-> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
+> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Factureringsbeheerder of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
 
 Twee bereikbaarheidsregels activeren het beleid: een bij elk nieuw incident en een bij elke nieuwe waarschuwing. Om de eerste te zien, opent u **Incidenten** vanuit het menu **Producten**, klapt u **Regels** in het zijmenu uit en kiest u **Bereikbaarheidsregels**: die komt overeen met **Alle incidenten**. Om het beleid alleen bij sommige incidenten te activeren, zoals kritieke, bewerkt u de regel daar, of klikt u op **Incident On-Call Rule aanmaken** om er zelf een toe te voegen.
 

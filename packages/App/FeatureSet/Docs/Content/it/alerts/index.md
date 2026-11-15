@@ -104,7 +104,9 @@ Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in 
 7. **Le regole di raggruppamento lo mettono in un episodio**, quando una corrisponde. Vedere [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes).
 8. **I promemoria vengono pianificati**, quando corrisponde una regola di promemoria, e **OneUptime AI** indaga sull'avviso quando **Indaga sui nuovi avvisi** è attivo in **Avvisi → IA → Impostazioni**, e lo corregge quando **Correggi automaticamente i nuovi avvisi** è attivo. Vedere [AI SRE](/docs/ai/ai-sre).
 
-Un job in background informa i proprietari dell'avviso entro un minuto, e il trigger del flusso di lavoro **On Create Alert** avvia ogni flusso di lavoro costruito su di esso.
+Un job in background informa i proprietari dell'avviso circa un minuto dopo la sua creazione, tutti quelli che ha a quel punto, e il trigger del flusso di lavoro **On Create Alert** avvia ogni flusso di lavoro costruito su di esso.
+
+Per rendere persone e team proprietari dell'avviso fin dalla sua creazione, così che questa notifica arrivi a loro e non ai proprietari del progetto, passateli con la creazione: tramite l'API, inviate i loro id in `miscDataProps`, come `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, con `POST /api/alert`; in un flusso di lavoro, sceglieteli in **Utenti proprietari** e **Team proprietari** di **Create One Alert**; tramite MCP, passate `ownerUsers` e `ownerTeams` a `create_alert`. Una richiesta il cui chiamante non può aggiungere quei proprietari viene rifiutata prima di salvare qualsiasi cosa. I proprietari che una richiesta separata aggiunge dopo la creazione ne vengono a sapere solo se vengono aggiunti entro quel minuto.
 
 ### Creato già riconosciuto o risolto
 
@@ -159,7 +161,7 @@ Un episodio aperto da un avviso privato non è privato, quindi non mostra mai il
 ## Chi viene a sapere di un avviso
 
 - **Chi è reperibile.** Le policy di reperibilità dell'avviso chiamano le loro persone, ciascuna nel modo impostato in **Impostazioni utente → Come contattarmi**, nella scheda **Avvisi**. Rispondere alla chiamata riconosce l'avviso, e le chiamate si fermano.
-- **I suoi proprietari.** Per e-mail, a meno che non abbiano scelto altri canali in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**: **Avviso creato**, **Stato dell'avviso modificato** e **Promemoria avviso** sono attivi per impostazione predefinita, mentre **Nota dell'avviso pubblicata** e **Aggiunto come proprietario dell'avviso** restano disattivati finché qualcuno non li attiva. Un avviso senza proprietari notifica invece i proprietari del progetto.
+- **I suoi proprietari.** Per e-mail, a meno che non abbiano scelto altri canali in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**: **Avviso creato**, **Stato dell'avviso modificato** e **Promemoria avviso** sono attivi per impostazione predefinita, mentre **Nota dell'avviso pubblicata** e **Aggiunto come proprietario dell'avviso** restano disattivati finché qualcuno non li attiva. Un avviso senza proprietari notifica invece i proprietari del progetto. Se OneUptime si ferma mentre sta inviando una notifica, le persone a cui non era ancora arrivato la ricevono quando OneUptime torna, qualche minuto dopo, e nessuno la riceve due volte.
 - **I vostri strumenti di chat.** **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali. Vedere [Slack](/docs/workspace-connections/slack) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Risoluzione dei problemi

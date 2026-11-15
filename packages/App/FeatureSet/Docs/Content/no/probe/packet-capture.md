@@ -188,10 +188,10 @@ Et filter du skriver selv, er én linje på høyst 500 tegn, laget av bokstaver,
 
 | Tillatelse | Lar en person | Hvem har den som standard |
 | --- | --- | --- |
-| **Start Packet Capture** | Starte opptak, og stoppe dem | Project Owner, Project Admin |
-| **Download Packet Capture** | Laste ned opptaksfiler | Project Owner, Project Admin |
-| **Delete Packet Capture** | Slette opptak og filene deres | Project Owner, Project Admin |
-| **Read Packet Capture** | Se opptak: når de kjørte, på hvilken sonde og med hvilket filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Starte opptak, og stoppe dem | Prosjekteier, Prosjektadministrator |
+| **Download Packet Capture** | Laste ned opptaksfiler | Prosjekteier, Prosjektadministrator |
+| **Delete Packet Capture** | Slette opptak og filene deres | Prosjekteier, Prosjektadministrator |
+| **Read Packet Capture** | Se opptak: når de kjørte, på hvilken sonde og med hvilket filter | Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser |
 
 For å gi et team **Start Packet Capture** eller **Download Packet Capture** åpner du det under **Innstillinger → Team** og legger til tillatelsen på siden **Tillatelser**. Se [Tillatelser](/docs/permissions/index).
 

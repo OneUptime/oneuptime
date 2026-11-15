@@ -36,7 +36,7 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En sonde, der kan nå webstedet.** Dit projekts standardsonder vælges for hver ny monitor. Står der en firewall foran webstedet, så tillad [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). Et websted på et privat netværk har brug for en [brugerdefineret sonde](/docs/probe/custom-probe) i det netværk, som må nå private adresser: se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 
 ## Opret en webstedsmonitor

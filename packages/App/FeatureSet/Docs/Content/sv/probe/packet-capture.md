@@ -188,10 +188,10 @@ Ett filter som du skriver själv är en rad på högst 500 tecken, gjord av boks
 
 | Behörighet | Låter någon | Vem har den som standard |
 | --- | --- | --- |
-| **Start Packet Capture** | Starta inspelningar, och stoppa dem | Project Owner, Project Admin |
-| **Download Packet Capture** | Ladda ner inspelningsfiler | Project Owner, Project Admin |
-| **Delete Packet Capture** | Ta bort inspelningar och deras filer | Project Owner, Project Admin |
-| **Read Packet Capture** | Se inspelningar: när de kördes, på vilken sond och med vilket filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Starta inspelningar, och stoppa dem | Projektägare, Projektadministratör |
+| **Download Packet Capture** | Ladda ner inspelningsfiler | Projektägare, Projektadministratör |
+| **Delete Packet Capture** | Ta bort inspelningar och deras filer | Projektägare, Projektadministratör |
+| **Read Packet Capture** | Se inspelningar: när de kördes, på vilken sond och med vilket filter | Projektägare, Projektadministratör, Projektmedlem, Tittare |
 
 För att ge ett team **Start Packet Capture** eller **Download Packet Capture** öppnar du det under **Inställningar → Team** och lägger till behörigheten på sidan **Behörigheter**. Se [Behörigheter](/docs/permissions/index).
 

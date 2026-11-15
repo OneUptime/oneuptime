@@ -31,7 +31,7 @@ När en kontroll misslyckas spårar sonden också vägen till värden och slår 
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når porten.** Projektets standardsonder väljs för varje ny monitor. Om en brandvägg står framför tjänsten tillåter du [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses) att ansluta till porten. En tjänst i ett privat nätverk, som en databas, behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket.
 
 ## Skapa en portmonitor

@@ -863,7 +863,8 @@ function foldServiceState(data: {
   ) {
     const records: JSONObject =
       (entry.facts[AGENT_RECORDS_FACT] as JSONObject) || {};
-    records[agentId] = data.value > 0;
+    // Keyed by the exporter's id label: written as the map's own key, "__proto__" too.
+    writeOwnValue<JSONValue>(records, agentId, data.value > 0);
     entry.facts[AGENT_RECORDS_FACT] = records;
   }
   /*
@@ -1303,8 +1304,9 @@ function setInstanceMetadataLabels(
       continue;
     }
     const value: string | null = getLabel(attributes, key);
+    // The operator's label, under the name they gave it: "__proto__" too.
     if (value) {
-      labels[key] = value;
+      writeOwnValue<JSONValue>(labels, key, value);
     }
   }
 
@@ -1419,7 +1421,12 @@ function foldFlavorFits(data: {
     const group: JSONObject = answer[
       scope === "zone" ? "byZone" : "byAggregate"
     ] as JSONObject;
-    group[getLabel(data.attributes, "scope_name") || ""] = data.value;
+    // A zone or an aggregate is named by its operator: "__proto__" is one too.
+    writeOwnValue<JSONValue>(
+      group,
+      getLabel(data.attributes, "scope_name") || "",
+      data.value,
+    );
   }
 
   entry.facts["placementAnswer"] = answer;
@@ -2284,12 +2291,17 @@ function foldL3AgentOfRouter(data: {
   });
   setIdentity(entry, { regionName: data.region });
   const agents: JSONObject = (entry.facts["l3Agents"] as JSONObject) || {};
-  agents[agentId] = {
+  /*
+   * As the map's own key: an agent whose id label is "__proto__" was
+   * assigned there, and its record replaced the map's prototype instead of
+   * being one of the router's agents.
+   */
+  writeOwnValue<JSONValue>(agents, agentId, {
     host: getLabel(data.attributes, "agent_host"),
     isAlive: getLabel(data.attributes, "agent_alive") === "true",
     isAdminUp: getLabel(data.attributes, "agent_admin_up") === "true",
     haState: getLabel(data.attributes, "ha_state"),
-  };
+  });
   entry.facts["l3Agents"] = agents;
   entry.facts["l3AgentsReportedAt"] = getRouterAgentsReportTime(
     data.observedAt,
@@ -2535,10 +2547,11 @@ function foldRated(data: {
   const fact: string = getOpenStackRatedFactKey(data.region);
   const rated: JSONObject = (entry.facts[fact] as JSONObject) || {};
 
-  rated[period] = {
+  // The period is CloudKitty's label, so the map's own key, as with the agents above.
+  writeOwnValue<JSONValue>(rated, period, {
     total: data.value,
     readAt: data.observedAt.toISOString(),
-  };
+  });
   entry.facts[fact] = rated;
 }
 

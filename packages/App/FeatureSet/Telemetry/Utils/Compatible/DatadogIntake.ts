@@ -1,6 +1,7 @@
 import protobuf from "protobufjs";
 import path from "path";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { copyOwnValues, writeOwnValue } from "Common/Utils/LookupTable";
 import OtlpJson, {
   OTLP_SEVERITY_DEBUG,
   OTLP_SEVERITY_ERROR,
@@ -1027,6 +1028,12 @@ export default class DatadogIntake {
    * The record without the fields at `paths`, copying only the objects on
    * the way to each; an object a removal empties goes too. The record
    * itself is never changed.
+   *
+   * Each copy keeps every key the log has as its own (copyOwnValues). A
+   * spread compiled to Object.assign: it dropped a field named "__proto__"
+   * from every log that also had a field read here (nearly all of them),
+   * and an object under it became the copy's prototype, out of the
+   * attributes' sight.
    */
   private static withoutFields(
     record: JSONObject,
@@ -1036,7 +1043,7 @@ export default class DatadogIntake {
       return record;
     }
 
-    const copy: JSONObject = { ...record };
+    const copy: JSONObject = copyOwnValues(record);
 
     for (const fieldPath of paths) {
       DatadogIntake.removePath(copy, fieldPath, 0);
@@ -1067,14 +1074,14 @@ export default class DatadogIntake {
       return;
     }
 
-    const childCopy: JSONObject = { ...child };
+    const childCopy: JSONObject = copyOwnValues(child);
 
     DatadogIntake.removePath(childCopy, fieldPath, index + 1);
 
     if (Object.keys(childCopy).length === 0) {
       delete object[key];
     } else {
-      object[key] = childCopy;
+      writeOwnValue<JSONValue>(object, key, childCopy);
     }
   }
 

@@ -37,7 +37,7 @@ Utforskeren har seks faner:
 ## Før du begynner
 
 - **Målinger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller fra en agent som [OpenTelemetry-collectoren for verter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
-- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) for hvilke målinger den leser.
+- **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) for hvilke målinger den leser.
 
 ## Finn en måling
 

@@ -436,7 +436,7 @@ Se [Grunnbegreper](/docs/introduction/core-concepts#typer-regler).
 
 ### Rolle
 
-Fire forskjellige ting: tillatelsene et team gir, for eksempel Project Owner eller Project Admin; en **Egendefinert rolle** du setter sammen av tillatelser; en **Hendelsesrolle**, rollen noen har i én hendelse; og en **Network Device Role**, hva en enhet på nettverket ditt gjør.
+Fire forskjellige ting: tillatelsene et team gir, for eksempel Prosjekteier eller Prosjektadministrator; en **Egendefinert rolle** du setter sammen av tillatelser; en **Hendelsesrolle**, rollen noen har i én hendelse; og en **Network Device Role**, hva en enhet på nettverket ditt gjør.
 
 Se [Brukere, team og tillatelser](/docs/permissions/index).
 

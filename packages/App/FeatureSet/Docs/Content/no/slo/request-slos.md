@@ -37,7 +37,7 @@ Derfra fungerer et forespørsels-SLO som alle andre. Statusen, forbruksrateregle
 ## Før du begynner
 
 - Tjenestene sender spor til OneUptime: se [OpenTelemetry](/docs/telemetry/open-telemetry). Hver av dem står i [tjenestekatalogen](/docs/telemetry/services) under sitt `service.name`.
-- En rolle som kan opprette SLO-er: Project Owner, Project Admin eller en egendefinert rolle med tillatelsen Create Service Level Objective.
+- En rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator eller en egendefinert rolle med tillatelsen Create Service Level Objective.
 
 ## Opprett et forespørsels-SLO
 

@@ -13,6 +13,7 @@ import Dictionary from "../../../Types/Dictionary";
 import logger from "../Logger";
 import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "./OneuptimeLabel";
 import crypto from "crypto";
+import { writeOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * `keyForContainer` moved to the isomorphic EntityKey module (the Databases
@@ -438,7 +439,12 @@ export default class InventoryItem {
             `OTLP entity_ref of type "${refType}" declares mutable attribute "${key}" as identifying — honoring it, but this forks entity identity whenever the value changes (cardinality risk).`,
           );
         }
-        id[key] = value;
+        /*
+         * The producer names its id keys, so each is the id's own key: an
+         * assignment dropped one named "__proto__", and every entity a ref
+         * keyed by it alone identified came out as one entity.
+         */
+        writeOwnValue(id, key, value);
       }
 
       if (missingIdValue) {
@@ -469,7 +475,7 @@ export default class InventoryItem {
           key,
         );
         if (value) {
-          descriptiveAttributes[key] = value;
+          writeOwnValue(descriptiveAttributes, key, value);
         }
       }
 
@@ -1614,8 +1620,8 @@ export default class InventoryItem {
 
   private static canonObject(id: Dictionary<string>): Dictionary<string> {
     const out: Dictionary<string> = {};
-    for (const key of Object.keys(id)) {
-      out[key] = canonicalizeEntityValue(id[key]);
+    for (const [key, value] of Object.entries(id)) {
+      writeOwnValue(out, key, canonicalizeEntityValue(value));
     }
     return out;
   }

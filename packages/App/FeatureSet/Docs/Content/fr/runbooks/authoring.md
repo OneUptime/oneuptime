@@ -11,9 +11,9 @@ Vous écrivez un runbook sous forme de liste ordonnée d'étapes, sur sa page **
 
 ## Avant de commencer
 
-- **Un rôle qui rédige des runbooks.** Project Owner, Project Admin et Runbook Admin créent des runbooks et enregistrent leurs étapes. Avec des autorisations granulaires, il vous faut **Create Runbook** et **Edit Runbook**. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
+- **Un rôle qui rédige des runbooks.** Propriétaire du projet, Administrateur du projet et Administrateur des runbooks créent des runbooks et enregistrent leurs étapes. Avec des autorisations granulaires, il vous faut **Create Runbook** et **Edit Runbook**. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
 - **Un agent Runbook, pour les étapes Bash, SSH et kubectl.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord. Une étape qui ne choisit aucun agent s'exécute sur l'[agent Runbook par défaut du projet](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet), si vous en avez défini un ; une étape JavaScript s'exécute sinon sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux).
-- **Une variable secrète, pour les étapes SSH et kubectl.** La clé, le mot de passe ou le kubeconfig avec lequel une étape se connecte est une [variable de runbook](/docs/runbooks/variables) secrète. Project Owner et Project Admin créent les variables, et Runbook Admin les choisit dans les étapes qu'il écrit. Une étape kubectl peut utiliser à la place l'accès propre de l'agent Runbook.
+- **Une variable secrète, pour les étapes SSH et kubectl.** La clé, le mot de passe ou le kubeconfig avec lequel une étape se connecte est une [variable de runbook](/docs/runbooks/variables) secrète. Propriétaire du projet et Administrateur du projet créent les variables, et Administrateur des runbooks les choisit dans les étapes qu'il écrit. Une étape kubectl peut utiliser à la place l'accès propre de l'agent Runbook.
 - **Un fournisseur LLM, pour les étapes IA.** Voir [Fournisseurs LLM](/docs/ai/llm-provider).
 
 ## Créer un runbook

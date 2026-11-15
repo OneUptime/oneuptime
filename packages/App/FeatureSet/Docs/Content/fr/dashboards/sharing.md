@@ -139,9 +139,9 @@ Sur une installation auto-hébergée, les domaines personnalisés de tableaux de
 
 ### Qui peut vérifier et réémettre
 
-**Vérifier maintenant**, la commande du certificat d'un domaine et **Reissue SSL** modifient le domaine : ils nécessitent donc l'autorisation de le modifier, **Edit Dashboard Domain**, ou un rôle qui l'inclut (Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member).
+**Vérifier maintenant**, la commande du certificat d'un domaine et **Reissue SSL** modifient le domaine : ils nécessitent donc l'autorisation de le modifier, **Edit Dashboard Domain**, ou un rôle qui l'inclut (Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des paramètres ou Membre des paramètres).
 
-Une personne qui peut seulement lire le domaine, comme un Viewer ou un Settings Viewer, voit toujours la colonne **Statut** et l'enregistrement à ajouter dans **Configuration DNS**. Pour elle, **Vérifier maintenant** et **Reissue SSL** sont verrouillés, et indiquent l'autorisation nécessaire. OneUptime continue de vérifier chaque domaine et de commander son certificat de lui-même dans tous les cas.
+Une personne qui peut seulement lire le domaine, comme un Lecteur ou un Lecteur des paramètres, voit toujours la colonne **Statut** et l'enregistrement à ajouter dans **Configuration DNS**. Pour elle, **Vérifier maintenant** et **Reissue SSL** sont verrouillés, et indiquent l'autorisation nécessaire. OneUptime continue de vérifier chaque domaine et de commander son certificat de lui-même dans tous les cas.
 
 Il en va de même pour les clés d'API. Une clé qui peut seulement lire les domaines de tableaux de bord ne peut pas appeler `verify-cname`, `order-ssl` ou `reissue-ssl` sur `/dashboard-domain`. Donnez-lui **Read Dashboard Domain** et **Edit Dashboard Domain** si elle en a besoin.
 

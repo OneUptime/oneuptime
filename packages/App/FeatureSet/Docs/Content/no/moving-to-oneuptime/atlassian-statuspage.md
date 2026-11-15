@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En Statuspage-API-nøkkel.** Bare en kontoeier kan opprette en. Importen skriver aldri til Statuspage, og den leser hver side nøkkelen kan se.
 - **Plass til sidene dine, i OneUptime Cloud.** Abonnementet ditt har plass til et visst antall statussider og abonnenter. Det som ikke får plass, vises som ikke overført. Komponentene blir manuelle monitorer, som er gratis.
 
@@ -73,7 +73,7 @@ Komponenter overføres som i drift. Forhåndsvisningen nevner hver komponent som
 
 I OneUptime Cloud vises statussider og abonnenter som abonnementet ditt ikke har plass til, som ikke overført, med det de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 

@@ -33,7 +33,7 @@ Un nom n'est utilisé qu'une fois, quelle que soit sa casse, parmi les variables
 
 ## Avant de commencer
 
-- **Un rôle qui gère les variables.** Project Owner et Project Admin, ou l'autorisation **Create Runbook Variable**. Runbook Admin lit les variables, pour les choisir dans les étapes qu'il écrit, mais ne les modifie pas.
+- **Un rôle qui gère les variables.** Propriétaire du projet et Administrateur du projet, ou l'autorisation **Create Runbook Variable**. Administrateur des runbooks lit les variables, pour les choisir dans les étapes qu'il écrit, mais ne les modifie pas.
 - **Un forfait qui les inclut.** Sur OneUptime Cloud, les variables de runbook nécessitent le forfait **Growth** ou supérieur.
 
 ## Créer une variable

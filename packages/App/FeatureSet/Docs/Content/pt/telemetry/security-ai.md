@@ -27,7 +27,7 @@ Uma classificação só lê. Ela usa a IA do próprio projeto: **Habilitar IA**,
 
 - **Habilitar IA** ligado, em **Configurações do projeto → IA → Recursos de IA**. Desligado, a segurança não mostra nada do OneUptime AI e nada é executado.
 - Um provedor de LLM que o OneUptime AI possa usar, em **Configurações do projeto → IA → Provedores LLM**. O OneUptime Cloud oferece um.
-- Uma função que possa trabalhar os casos de segurança, para iniciar uma classificação: Project Owner, Project Admin, Security Admin ou Security Member. O Security Viewer lê todas as classificações, mas não pode iniciar nenhuma. Veja [Funções](/docs/permissions/reference#funções).
+- Uma função que possa trabalhar os casos de segurança, para iniciar uma classificação: Proprietário do projeto, Administrador do projeto, Administrador de segurança ou Membro de segurança. O Visualizador de segurança lê todas as classificações, mas não pode iniciar nenhuma. Veja [Funções](/docs/permissions/reference#funções).
 
 ## Classificar um caso
 
@@ -40,7 +40,7 @@ Abra um caso: o cartão **OneUptime AI** fica no topo da página dele.
 | Uma leitura, como **Provavelmente malicioso** | A classificação terminou. **Classificar novamente** lê o caso de novo desde o início. |
 | **A classificação não foi concluída** | A execução parou. **Tentar novamente** inicia outra. |
 
-Um Security Viewer vê o mesmo cartão: **Classificar com IA** e **Tentar novamente** ficam esmaecidos ao lado de uma linha que diz quem pode iniciar uma classificação, e **Classificar novamente** e **Definir prioridade** não são oferecidos.
+Um Visualizador de segurança vê o mesmo cartão: **Classificar com IA** e **Tentar novamente** ficam esmaecidos ao lado de uma linha que diz quem pode iniciar uma classificação, e **Classificar novamente** e **Definir prioridade** não são oferecidos.
 
 Uma classificação lê:
 
@@ -82,7 +82,7 @@ Eventos, alertas e valores de entidades vêm de fora do projeto, e um atacante p
 
 ## Classificar os casos novos automaticamente
 
-Abra **Produtos → Eventos de segurança → IA → Configurações** e ligue **Classificar novos casos**: a partir daí, cada caso que uma detecção abre é classificado assim que abre. A chave salva assim que você a muda. Project Owner e Project Admin podem alterá-la.
+Abra **Produtos → Eventos de segurança → IA → Configurações** e ligue **Classificar novos casos**: a partir daí, cada caso que uma detecção abre é classificado assim que abre. A chave salva assim que você a muda. Proprietário do projeto e Administrador do projeto podem alterá-la.
 
 Os projetos novos começam com a opção ligada; um projeto criado antes a mantém desligada até que alguém a ligue. Um caso aberto à mão, e o caso do ataque de teste de **Enviar um ataque de teste**, são classificados quando alguém clica em **Classificar com IA**.
 

@@ -430,7 +430,7 @@ Ces requêtes fonctionnent sans identifiants, avec les seuls outils des pages de
 | Ce que fait l'agent | Choisir sous **Accès** |
 | --- | --- |
 | Lit seulement | **Lecteur**, ou ajoutez des autorisations de lecture sur la page de la clé |
-| Crée, met à jour et supprime aussi | **Administrateur du projet**, ou ajoutez le rôle Project Admin sur la page de la clé |
+| Crée, met à jour et supprime aussi | **Administrateur du projet**, ou ajoutez le rôle Administrateur du projet sur la page de la clé |
 
 Donnez à chaque clé le minimum dont elle a besoin, renouvelez les clés régulièrement, gardez une clé distincte pour chaque environnement, et surveillez ce que fait chaque clé dans OneUptime.
 
@@ -497,7 +497,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Sécurité | Security Event, Threat Intel Indicator |
 | Changements et coûts | Change Event, Kubernetes Cost Allocation |
 
-Les outils sont nommés en snake case : `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` et `count_incidents`, ou `list_logs` et `count_spans` pour la télémétrie.
+Les outils sont nommés en snake case : `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` et `count_incidents`, ou `list_logs` et `count_spans` pour la télémétrie. `create_incident` et `create_alert` prennent aussi `ownerUsers` et `ownerTeams` : les identifiants des utilisateurs et des équipes à qui l'enregistrement appartient dès le départ, et qui sont prévenus de sa création.
 
 ## Étapes suivantes
 

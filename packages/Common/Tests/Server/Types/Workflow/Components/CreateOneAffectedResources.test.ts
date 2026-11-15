@@ -36,6 +36,10 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import { INCIDENT_TEMPLATE_ARGUMENT_ID } from "../../../../../Types/Workflow/CreateFromTemplate";
 import {
+  OWNER_TEAMS_ARGUMENT_ID,
+  OWNER_USERS_ARGUMENT_ID,
+} from "../../../../../Types/Workflow/OwnersOnCreateSetting";
+import {
   AFFECTED_RESOURCES_ARGUMENT_ID,
   MAX_AFFECTED_RESOURCE_REFERENCES,
   MAX_LINKED_AFFECTED_RESOURCES,
@@ -548,7 +552,8 @@ describe("the steps that have the setting", () => {
     )!;
   }
 
-  test("Create One Incident: the template, JSON Object, then Affected Resources", () => {
+  // Then who owns it from the start (#8198, CreateOneOwners).
+  test("Create One Incident: the template, JSON Object, then Affected Resources, then its owners", () => {
     expect(
       createOneOf(new Incident()).arguments.map(
         (argument: Argument): string => {
@@ -559,15 +564,22 @@ describe("the steps that have the setting", () => {
       INCIDENT_TEMPLATE_ARGUMENT_ID,
       "json",
       AFFECTED_RESOURCES_ARGUMENT_ID,
+      OWNER_USERS_ARGUMENT_ID,
+      OWNER_TEAMS_ARGUMENT_ID,
     ]);
   });
 
-  test("Create One Alert: JSON Object, then Affected Resources", () => {
+  test("Create One Alert: JSON Object, then Affected Resources, then its owners", () => {
     expect(
       createOneOf(new Alert()).arguments.map((argument: Argument): string => {
         return argument.id;
       }),
-    ).toEqual(["json", AFFECTED_RESOURCES_ARGUMENT_ID]);
+    ).toEqual([
+      "json",
+      AFFECTED_RESOURCES_ARGUMENT_ID,
+      OWNER_USERS_ARGUMENT_ID,
+      OWNER_TEAMS_ARGUMENT_ID,
+    ]);
   });
 
   test("no other Create One step has it", () => {

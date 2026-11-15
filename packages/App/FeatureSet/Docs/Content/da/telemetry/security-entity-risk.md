@@ -30,7 +30,7 @@ flowchart TB
 
 - Sikkerhedshændelser, der kommer ind, og detektionsregler, trusselsintelligens eller forbundne produkter, der finder noget i dem. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started).
 - Detektionsregler, der grupperer efter et felt, som nævner nogen: **Grupperingsfelt**, fx `principalUser`, `principalHost` eller `principalIp`, eller de felter, en korrelation grupperer efter. En regel, der ikke grupperer efter noget, tilføjer ingen risiko.
-- For at ændre **Risikoscoring**: Project Owner eller Project Admin for dens kontakt og dens tærskel, og en rolle, der må oprette detektionsregler, for dens liste over entiteter. Security Viewer læser det hele. Se [Roller](/docs/permissions/reference#roller).
+- For at ændre **Risikoscoring**: Projektejer eller Projektadministrator for dens kontakt og dens tærskel, og en rolle, der må oprette detektionsregler, for dens liste over entiteter. Sikkerhedsseer læser det hele. Se [Roller](/docs/permissions/reference#roller).
 
 ## Sådan tælles en score
 

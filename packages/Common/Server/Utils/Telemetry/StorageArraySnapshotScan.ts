@@ -7,6 +7,7 @@ import StorageSystem, {
   StorageSystemUtil,
 } from "../../../Types/StorageArray/StorageSystem";
 import logger from "../Logger";
+import { writeOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * ------------------------------------------------------------------
@@ -1434,9 +1435,18 @@ export function getVolumeConnectionCounts(
   if (!connected || !snap) {
     return null;
   }
+  /*
+   * By the volume's name on the array, as the map's own key: an assignment
+   * dropped a volume named "__proto__", which then was not among the
+   * connected names, so its count was zeroed on every batch.
+   */
   const counts: Record<string, number> = {};
   for (const volumeName of connected) {
-    counts[volumeName] = snap.hostsByVolume.get(volumeName)?.size || 0;
+    writeOwnValue(
+      counts,
+      volumeName,
+      snap.hostsByVolume.get(volumeName)?.size || 0,
+    );
   }
   return counts;
 }

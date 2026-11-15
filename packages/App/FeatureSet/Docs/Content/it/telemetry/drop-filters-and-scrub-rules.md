@@ -31,7 +31,7 @@ I filtri di scarto e le regole di mascheramento dei log si applicano allo stesso
 ## Prima di iniziare
 
 - **Log o span in arrivo.** Vedete [OpenTelemetry](/docs/telemetry/open-telemetry).
-- **Un ruolo che modifica le impostazioni della telemetria.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso per ciò che modificate, come Create Log Drop Filter o Create Trace Scrub Rule. I ruoli Telemetry possono vedere filtri e regole, ma non modificarli.
+- **Un ruolo che modifica le impostazioni della telemetria.** Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso per ciò che modificate, come Create Log Drop Filter o Create Trace Scrub Rule. I ruoli Telemetry possono vedere filtri e regole, ma non modificarli.
 
 ## Scartare o campionare i record
 

@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Um locatário do Microsoft Entra com uma licença do Microsoft Defender XDR: qualquer carga de trabalho do Defender integrada ao portal do Microsoft Defender, como Defender for Endpoint, for Identity, for Office 365 ou for Cloud Apps.
 - Uma função do Entra que possa registrar aplicativos, como Administrador de Aplicativos, e um Administrador Global ou um Administrador de Funções com Privilégios para conceder o consentimento do administrador.
 - HTTPS de saída do aplicativo e dos workers do OneUptime para `login.microsoftonline.com` e `graph.microsoft.com`, ou para `login.microsoftonline.us` e `graph.microsoft.us` no Azure Government.

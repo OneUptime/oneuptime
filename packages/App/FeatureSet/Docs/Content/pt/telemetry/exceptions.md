@@ -39,7 +39,7 @@ flowchart TB
 ## Antes de começar
 
 - **Spans ou registros chegando.** Instrumente seus serviços com [OpenTelemetry](/docs/telemetry/open-telemetry). A aba **Guia de configuração** mostra o código para a sua linguagem.
-- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Exceptions. Resolver e arquivar exige Project Owner ou Project Admin, ou a permissão Edit Exceptions.
+- **Uma função que possa ler telemetria.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Exceptions. Resolver e arquivar exige Proprietário do projeto ou Administrador do projeto, ou a permissão Edit Exceptions.
 
 ## Fazer a triagem da lista
 

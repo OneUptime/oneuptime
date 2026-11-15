@@ -161,7 +161,7 @@ La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta desde **Se 
 
 ### Pertenencia a episodios
 
-**Alertas → Ajustes → Pertenencia a episodios** decide si una alerta puede estar en más de un episodio. Activa **Una alerta solo puede estar en un episodio** y una alerta que está en un episodio no se añade a ningún otro, ni desde el panel ni con la API, un flujo de trabajo o una regla de agrupación, hasta que se quita de ese episodio. Está desactivado hasta que lo actives, y solo los Project Owners y los Project Admins pueden cambiarlo. Activarlo no saca ninguna alerta de un episodio. Consulta [Un solo episodio por incidente](/docs/incidents/episodes#un-solo-episodio-por-incidente), que funciona igual para las alertas.
+**Alertas → Ajustes → Pertenencia a episodios** decide si una alerta puede estar en más de un episodio. Activa **Una alerta solo puede estar en un episodio** y una alerta que está en un episodio no se añade a ningún otro, ni desde el panel ni con la API, un flujo de trabajo o una regla de agrupación, hasta que se quita de ese episodio. Está desactivado hasta que lo actives, y solo los Propietarios del proyecto y los Administradores del proyecto pueden cambiarlo. Activarlo no saca ninguna alerta de un episodio. Consulta [Un solo episodio por incidente](/docs/incidents/episodes#un-solo-episodio-por-incidente), que funciona igual para las alertas.
 
 ### Numeración
 
@@ -171,7 +171,7 @@ La tarjeta **Próximo número** de debajo fija el número que reciben la próxim
 
 ### Retención de datos
 
-**Alertas → Ajustes → Retención de datos** elimina las alertas cuando llevan resueltas el tiempo suficiente, como hace [Retención de datos](/docs/incidents/settings#retención-de-datos) con los incidentes. Su tarjeta **Alertas resueltas** pregunta **Eliminar después de**, **Nunca** hasta que eliges una duración, y pide confirmación antes de eliminar más, con **Eliminar alertas antiguas**. Una alerta se queda mientras no esté resuelta, mientras esté en un episodio que sigue abierto o se resolvió más recientemente, y mientras se quede un incidente al que está vinculada. Solo los Project Owners y los Project Admins pueden cambiarlo; en la API es `alertRetentionInDays` del proyecto.
+**Alertas → Ajustes → Retención de datos** elimina las alertas cuando llevan resueltas el tiempo suficiente, como hace [Retención de datos](/docs/incidents/settings#retención-de-datos) con los incidentes. Su tarjeta **Alertas resueltas** pregunta **Eliminar después de**, **Nunca** hasta que eliges una duración, y pide confirmación antes de eliminar más, con **Eliminar alertas antiguas**. Una alerta se queda mientras no esté resuelta, mientras esté en un episodio que sigue abierto o se resolvió más recientemente, y mientras se quede un incidente al que está vinculada. Solo los Propietarios del proyecto y los Administradores del proyecto pueden cambiarlo; en la API es `alertRetentionInDays` del proyecto.
 
 > [!NOTE]
 > En OneUptime Cloud, las plantillas de notas y los campos personalizados requieren el plan **Growth** o superior.
@@ -182,7 +182,7 @@ Cada modelo de alerta tiene disparadores y acciones de flujo de trabajo con su n
 
 ## Quién puede cambiarlos
 
-Las reglas, los campos personalizados y las mediciones requieren un Project Owner o un Project Admin, o un rol personalizado con el permiso propio de esa regla. **Miembro de alertas** trabaja con alertas y episodios, sus notas, propietarios y cronologías de estados, y con las plantillas de notas, y **Administrador de alertas** además gestiona los estados y las gravedades de alerta. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
+Las reglas, los campos personalizados y las mediciones requieren un Propietario del proyecto o un Administrador del proyecto, o un rol personalizado con el permiso propio de esa regla. **Miembro de alertas** trabaja con alertas y episodios, sus notas, propietarios y cronologías de estados, y con las plantillas de notas, y **Administrador de alertas** además gestiona los estados y las gravedades de alerta. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Próximos pasos
 

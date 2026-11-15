@@ -24,7 +24,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие метрики.** Отправляйте их через [OpenTelemetry](/docs/telemetry/open-telemetry) или от агента, например [OpenTelemetry Collector для хостов](/docs/telemetry/host-otel-collector).
-- **Роль, которая читает метрики.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Metrics. Роль, ограниченная некоторыми сервисами, читает только их метрики.
+- **Роль, которая читает метрики.** Владелец проекта, Администратор проекта, Участник проекта, Зритель, Администратор телеметрии, Участник телеметрии или Зритель телеметрии либо пользовательская роль с разрешением Read Metrics. Роль, ограниченная некоторыми сервисами, читает только их метрики.
 - **Для Grafana или скрипта: API-ключ проекта** с одной из этих ролей или с разрешением Read Metrics. См. [Создайте API-ключ](/docs/api-reference/api-reference#создайте-api-ключ). В OneUptime Cloud API-ключам нужен план **Growth**.
 
 ## Написать запрос

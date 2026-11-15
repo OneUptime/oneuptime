@@ -88,7 +88,7 @@ För att stänga av den medföljande anger du `GLOBAL_RUNNER_REPLICAS=0` i Docke
 ## Innan du börjar
 
 - **En värd med Docker** i din infrastruktur som kan nå din OneUptime-URL över HTTPS och de system som dina steg verkar på.
-- **En roll som skapar Runners.** Project Owner, Project Admin, Project Member och Runbook Admin kan skapa en. Bara en Project Owner, Project Admin eller Runbook Admin kan se en Runners nyckel, som installationskommandot innehåller.
+- **En roll som skapar Runners.** Projektägare, Projektadministratör, Projektmedlem och Runbook-administratör kan skapa en. Bara en Projektägare, Projektadministratör eller Runbook-administratör kan se en Runners nyckel, som installationskommandot innehåller.
 
 ## Installera en Runner
 
@@ -109,7 +109,7 @@ En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behö
 
 Klicka på **Visa installationsinstruktioner** på Runnerns rad. Dialogen **Konfiguration av Runbook-agent** visar ett `docker run`-kommando som redan innehåller den här Runnerns ID och nyckel. Samma kommando finns på Runnerns egen sida under **Installationsinstruktioner**.
 
-Bara en Project Owner, Project Admin eller Runbook Admin kan läsa nyckeln. Alla andra ser "Du har inte behörighet att visa nyckeln för den här runbook-agenten" i stället för kommandot.
+Bara en Projektägare, Projektadministratör eller Runbook-administratör kan läsa nyckeln. Alla andra ser "Du har inte behörighet att visa nyckeln för den här runbook-agenten" i stället för kommandot.
 
 ### 3. Kör det på en värd i din infrastruktur
 
@@ -293,7 +293,7 @@ Hantering av agenter ligger i den befintliga behörighetsgruppen Runbooks:
 
 Att utlösa ett runbook (och därmed skicka dess steg till Runners) kräver en roll som kör runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` eller `RunbookMember` — eller `CreateRunbookExecution`; att slutföra, hoppa över eller avbryta en körning godtar också `EditRunbookExecution`. En roll kör bara de runbooks som dess omfång når.
 
-En Runners nyckel kan bara läsas av Project Owners, Project Admins och Runbook Admins.
+En Runners nyckel kan bara läsas av Projektägare, Projektadministratörer och Runbook-administratörer.
 
 ## API för agenter
 

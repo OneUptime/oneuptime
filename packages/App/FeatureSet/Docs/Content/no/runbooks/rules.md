@@ -42,7 +42,7 @@ Du ser alle kjøringer, startet av en regel eller ikke, under **Runbooks → Kj�
 ## Før du begynner
 
 - **Et runbook som kan kjøre.** Det må ha minst ett trinn og **Kjør dette runbooket** slått på på siden **Innstillinger**. Se [Skrive et runbook](/docs/runbooks/authoring).
-- **Tillatelse til å administrere regler.** Project Owner, Project Admin og Runbook Admin oppretter runbook-regler, det samme gjør alle med tillatelsen **Create Runbook Rule**.
+- **Tillatelse til å administrere regler.** Prosjekteier, Prosjektadministrator og Runbook-administrator oppretter runbook-regler, det samme gjør alle med tillatelsen **Create Runbook Rule**.
 
 ## Opprett en runbook-regel
 

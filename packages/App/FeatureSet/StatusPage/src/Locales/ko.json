@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "영향을 받은 리소스",
-    "stateChangedTo": "상태가 다음으로 변경됨:",
     "view": "{{eventType}} 보기",
     "updateTo": "이 {{eventType}}에 대한 업데이트",
-    "postedOn": "게시일:"
+    "postedOnDate": "{{date}}에 게시됨"
   },
   "monitorOverview": {
     "daysAgo": "{{days}}일 전",
@@ -473,5 +472,6 @@
     "warning": "경고"
   },
   "No options available": "사용 가능한 옵션 없음",
-  "No matches found": "일치하는 항목이 없습니다"
+  "No matches found": "일치하는 항목이 없습니다",
+  "{{eventType}} state changed to {{state}}": "{{eventType}} 상태가 {{state}}(으)로 변경됨"
 }

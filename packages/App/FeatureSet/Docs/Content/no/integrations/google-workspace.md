@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En superadministrator i Google Workspace for å tillate domenedekkende delegering, og en administrator som tjenestekontoen opptrer som, med rettigheten Reports. En superadministrator har den.
 - Et Google Cloud-prosjekt der du kan opprette en tjenestekonto og slå på Admin SDK API.
 - For Disk-aktivitet: en utgave med revisjonsloggen for Disk, for eksempel Business Standard, Business Plus, Enterprise eller Education.
