@@ -379,6 +379,49 @@ export const PAGES_WITH_SECRETS: ReadonlyArray<PageSpellingCase> = [
     sent: "/u/someone%2540example.com",
     page: "/u/[redacted]",
   },
+  // #8489: a token in standard base64, which the token rule took only in base64url.
+  {
+    name: "a token in standard base64, with its padding",
+    location: {
+      pathname: "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+      hash: "",
+    },
+    sent: "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+    page: "/verify/[redacted]",
+  },
+  {
+    name: "a token in standard base64, with a plus",
+    location: {
+      pathname: "/reset/k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8",
+      hash: "",
+    },
+    sent: "/reset/k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8",
+    page: "/reset/[redacted]",
+  },
+  {
+    name: "a token in standard base64, escaped as a link escapes it",
+    location: {
+      pathname: "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+      hash: "",
+    },
+    sent: "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+    page: "/confirm/[redacted]/done",
+  },
+  {
+    name: "a padded token in a hash router's route",
+    location: {
+      pathname: "/",
+      hash: "#/magic/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw=",
+    },
+    sent: "/magic/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw=",
+    page: "/magic/[redacted]",
+  },
+  {
+    name: "a word with a plus, and a filter with an equals sign, which name no one",
+    location: { pathname: "/learn/c++/filter/size=large", hash: "" },
+    sent: "/learn/c++/filter/size=large",
+    page: "/learn/c++/filter/size=large",
+  },
   {
     name: "a file name with dots, which names no one",
     location: { pathname: "/files/report-2026-11-15.pdf", hash: "" },

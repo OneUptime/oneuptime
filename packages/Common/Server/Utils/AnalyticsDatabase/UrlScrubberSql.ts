@@ -7,7 +7,8 @@
  * WHICH SEGMENT IS AN IDENTIFIER (isIdentifierSegmentSql) is
  * UrlScrubber.scrubPath's rule, segment by segment: a uuid, a 24-hex object
  * id, an email, nine digits or more, a token of 32 or more letters, digits,
- * "_" and "-", or a JSON Web Token (#8385) - read decoded, and decoded once
+ * "_" and "-" (or standard base64's "+" and "/", padded, #8489), or a JSON
+ * Web Token (#8385) - read decoded, and decoded once
  * more, for an address an application escaped twice (#8385). It is written
  * so it never takes for an identifier a segment the scrubber keeps: that
  * segment is one a recorder sent, and a migration deletes or rewrites what
@@ -79,10 +80,11 @@ const EMAIL_CHARACTER: string = `[^@/${ASCII_SPACES}]`;
 
 /*
  * The scrubber's identifier shapes but the email, decoded: a uuid, an
- * object id, nine digits or more, a token, a JSON Web Token. All ASCII.
+ * object id, nine digits or more, a token in base64url or standard base64
+ * with up to two "=" of padding (#8489), a JSON Web Token. All ASCII.
  */
 export const IDENTIFIER_SEGMENT_PATTERN: string =
-  "^(?:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{24}|[0-9]{9,}|[A-Za-z0-9_-]{32,}|eyJ[A-Za-z0-9_-]{8,}(?:[.][A-Za-z0-9_-]*){1,4})$";
+  "^(?:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{24}|[0-9]{9,}|[A-Za-z0-9_+/-]{32,}={0,2}|eyJ[A-Za-z0-9_-]{8,}(?:[.][A-Za-z0-9_-]*){1,4})$";
 
 // The scrubber's email shape, decoded (EMAIL_SEGMENT).
 export const EMAIL_SEGMENT_PATTERN: string = `^${EMAIL_CHARACTER}{1,64}@${EMAIL_CHARACTER}{1,253}[.]${EMAIL_CHARACTER}{1,63}$`;
