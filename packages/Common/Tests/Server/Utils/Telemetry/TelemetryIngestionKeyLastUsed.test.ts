@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * THE ONE PLACE AN INGEST PATH STAMPS ITS KEY AS USED (issue #7887).
  *
- * The HTTP ingest middleware and the OTLP gRPC server both call
- * TelemetryIngestionKeyLastUsed.stamp once they have accepted telemetry
- * (TelemetryIngestKeyLastUsed.test.ts and GrpcServerKeyLastUsed.test.ts drive
- * them). Here, the helper itself: it writes through the key service's
+ * The HTTP ingest middleware, the OTLP gRPC server and the MQTT broker each
+ * call TelemetryIngestionKeyLastUsed.stamp once they have accepted telemetry
+ * (TelemetryIngestKeyLastUsed.test.ts, GrpcServerKeyLastUsed.test.ts and
+ * MqttServerKeyLastUsed.test.ts drive them). Here, the helper itself: it writes through the key service's
  * throttled markUsed with the admitting key's id, it hands its caller nothing
  * to wait on, and a failed write is logged and goes no further.
  */
