@@ -81,6 +81,8 @@ const ROW_READERS: Record<string, string> = {
     "Caches the rows and adds the Project User row every member holds.",
   "packages/Common/Server/Utils/Workflow/WorkflowPrincipal.ts":
     "Builds the rows a workflow step's requests carry: a member's defaults and Project Admin.",
+  "packages/Common/Server/Utils/NetworkDevice/NetworkSummaryCache.ts":
+    "Fingerprints the rows - permission, scope, team, block and labels - into the cache key of a viewer whose reads the read-permission pipeline narrows, so only the same rows share a kept Network Overview; the pipeline decides what they may read (getViewerScope).",
 };
 
 /*

@@ -83,6 +83,7 @@ import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows"
 import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -968,6 +969,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * this project — membership just changed.
      */
     this.forgetTeamIdsForUser(userId, projectId);
+
+    // Their teams' escalation rules page them, or no longer do.
+    await OnDutyPoliciesCache.forgetProjects([projectId]);
 
     /*
      * Refresh tokens. Only the project's refresh, made last, tells the

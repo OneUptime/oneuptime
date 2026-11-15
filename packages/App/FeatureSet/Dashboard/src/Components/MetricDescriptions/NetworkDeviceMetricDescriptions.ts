@@ -86,7 +86,7 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
 
   // Device Overview interface digest (DeviceInterfacesPreview.tsx).
   interfacesPreview: translationKey(
-    "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (the busier direction as a share of link speed), averaged between the last two SNMP walks.",
+    "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.",
   ),
 
   // Latency trend (DeviceLatencyTrend.tsx) - fixed to the past hour.
@@ -138,13 +138,13 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
     "The link's negotiated speed in megabits per second, as the device reports it. This is the most the port can carry and what Utilization is measured against.",
   ),
   interfaceInOutRate: translationKey(
-    "Average inbound / outbound traffic in megabits per second between the last two SNMP walks, from the change in the port's byte counters. A dash means no rate yet, such as after the first walk or a counter reset.",
+    "Average inbound / outbound traffic in megabits per second between two SNMP walks, from the port's byte counters. Updated when it changes noticeably, and at least every 15 minutes. A dash means no rate yet, such as after the first walk or a counter reset.",
   ),
   interfaceUtilization: translationKey(
-    "How busy the port is: traffic in its busier direction as a percentage of link speed, averaged between the last two SNMP walks, so short bursts in between are smoothed out.",
+    "How busy the port is: traffic in its busier direction as a percentage of link speed, averaged between two SNMP walks, so short bursts in between are smoothed out. Updated when it changes noticeably, and at least every 15 minutes.",
   ),
   interfaceErrorsPerSecond: translationKey(
-    "Inbound plus outbound packets per second that the port counted as errors between the last two SNMP walks. Anything above zero can point to a bad cable, a failing port or a duplex mismatch.",
+    "Inbound plus outbound packets per second that the port counted as errors between two SNMP walks. Updated when it changes noticeably, and at least every 15 minutes. Anything above zero can point to a bad cable, a failing port or a duplex mismatch.",
   ),
 
   // Device list columns (Pages/NetworkDevice/Devices.tsx).

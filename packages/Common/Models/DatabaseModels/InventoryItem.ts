@@ -126,6 +126,16 @@ const UPDATE_PERMS: Array<Permission> = [
  */
 @Index(["projectId", "isArchived"])
 /*
+ * The inventory mirror's reverse pass (InventoryEntityRegistry) reads one
+ * type's mirrored rows in keyset pages - `entityType = $1 AND source =
+ * 'inventory' AND _id > $cursor ORDER BY _id LIMIT 1000` - and each page is
+ * a range of this, however many entities telemetry has discovered. Without
+ * it a page walked the primary key through every type's rows, or sorted all
+ * of its type's. Partial: the entities telemetry discovers - most of the
+ * table, and its busiest writes - carry none of it.
+ */
+@Index(["entityType", "_id"], { where: `"source" = 'inventory'` })
+/*
  * Lookup by entity key alone. Relationships name their ends by key, never by
  * type, so every "what is at the other end" join (the Topology API's callee,
  * placement and drawer lookups) resolves keys without knowing the type. The

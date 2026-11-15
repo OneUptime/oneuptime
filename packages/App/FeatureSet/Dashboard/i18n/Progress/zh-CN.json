@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52232,
-    "untranslated": 9094
+    "keys": 52236,
+    "untranslated": 9069
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -95,6 +95,7 @@
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",

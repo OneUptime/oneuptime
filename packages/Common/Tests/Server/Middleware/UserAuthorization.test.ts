@@ -41,6 +41,7 @@ import {
 import { getJestSpyOn } from "../../../Tests/Spy";
 import getJestMockFunction from "../../../Tests/MockType";
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import { uninstallEnterpriseModule } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 
@@ -1018,6 +1019,9 @@ describe("UserMiddleware", () => {
       spyGetProjectRequireSsoForLogin.mockResolvedValue(false);
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
+
+      // Answered project by project through the per-project stubs below.
+      answerMultiTenantReadsProjectByProject();
     });
 
     test("should return null, when projectIds length is zero", async () => {
@@ -1241,6 +1245,15 @@ describe("UserMiddleware", () => {
         userGlobalAccessPermission,
       );
 
+      // One read for both projects, handed the global permission once.
+      expect(
+        AccessTokenService.getUserTenantAccessPermissions,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        AccessTokenService.getUserTenantAccessPermissions,
+      ).toHaveBeenCalledWith(userId, [projectId, otherProjectId], {
+        userGlobalAccessPermission,
+      });
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledTimes(2);
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,

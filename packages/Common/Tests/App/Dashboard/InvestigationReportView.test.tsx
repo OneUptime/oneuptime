@@ -1280,14 +1280,14 @@ const BOX_CLASS_PATTERN: RegExp =
 
 /*
  * A follow-up check's report (issue #4787) starts with the server's line
- * saying why it was written: "Checked again after alert #318 opened on Host
+ * saying why it was written: "Checked again after alert #318 opened on host
  * web-1, ...". It frames everything under it, so it leads the report, above
  * the Summary, as a quiet line with a mark - it used to sit between the
  * Summary and the root cause, as the report's preamble.
  */
 describe("InvestigationReportView follow-up lead", () => {
   const LEAD: string =
-    "**Checked again** after alert #318 opened on Host web-1, 3 minutes after this incident was declared: High CPU on web-1.";
+    "**Checked again** after alert #318 opened on host web-1, 3 minutes after this incident was declared: High CPU on web-1.";
   const FOLLOW_UP_REPORT: string = SERVER_REPORT.replace(
     "## \u{1F9E0} AI — Automated Root Cause Analysis\n\n",
     `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${LEAD}\n\n`,
@@ -1306,7 +1306,7 @@ describe("InvestigationReportView follow-up lead", () => {
     const report: HTMLElement = screen.getByLabelText("Investigation report");
 
     expect(lead).toHaveTextContent(
-      "**Checked again** after alert #318 opened on Host web-1, 3 minutes after this incident was declared: High CPU on web-1.",
+      "**Checked again** after alert #318 opened on host web-1, 3 minutes after this incident was declared: High CPU on web-1.",
     );
     // The first thing in the report, before the Summary and the sections.
     expect(container.firstElementChild).toBe(lead);

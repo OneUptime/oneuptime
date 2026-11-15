@@ -63,6 +63,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 // Import AFTER the jest.mock above (hoisted by jest) so RunCron is already a no-op.
 import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
@@ -290,9 +301,7 @@ describe("ExecutePendingExecutions - the person paged left the project", () => {
       }),
     ] as unknown as Array<UserOnCallLog>;
 
-    jest
-      .spyOn(UserOnCallLogService, "findAllBy")
-      .mockResolvedValue(logs as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue(logs as never);
 
     const membershipReads: Array<Array<ProjectUserPair>> = [];
 
@@ -350,9 +359,7 @@ describe("ExecutePendingExecutions - the person paged left the project", () => {
       makePendingLog({ id: new ObjectID("log-b") }),
     ] as unknown as Array<UserOnCallLog>;
 
-    jest
-      .spyOn(UserOnCallLogService, "findAllBy")
-      .mockResolvedValue(logs as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue(logs as never);
     jest
       .spyOn(ProjectMembership, "getMemberKeys")
       .mockRejectedValue(new Error("database unavailable"));

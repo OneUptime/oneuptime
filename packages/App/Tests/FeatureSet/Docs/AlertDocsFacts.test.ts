@@ -2408,12 +2408,18 @@ describe("alert episodes and grouping rules", () => {
       "App/FeatureSet/Workers/Jobs/AlertEpisode/AutoResolve.ts",
     );
 
+    // The rule's wait, as the episode jobs share it (EpisodeAutoResolve).
+    const engine: string = readPackageFile(
+      "App/FeatureSet/Workers/Utils/EpisodeAutoResolve.ts",
+    );
+
     expect(autoResolve).toContain("schedule: EVERY_MINUTE,");
     expect(autoResolve).toContain(
       "false, // Don't cascade to alerts - they're already resolved",
     );
-    expect(autoResolve).toContain(
-      "enableResolveDelay && resolveDelayMinutes > 0",
+    expect(autoResolve).toContain("kind: ALERT_EPISODE_AUTO_RESOLVE,");
+    expect(engine).toContain(
+      "data.rule?.enableResolveDelay && data.rule.resolveDelayMinutes > 0",
     );
     expect(page).toContain(
       "**It resolves itself** once every alert in it is resolved. **Wait before resolving an episode** holds it open for that many minutes first",

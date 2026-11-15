@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-När en kontroll misslyckas spårar sonden också vägen till adressen och bifogar det den hittade till resultatet som **Network Path at Time of Failure**, så att du ser var vägen bröts.
+När en kontroll misslyckas spårar sonden också vägen till adressen och bifogar det den hittade till resultatet som **Nätverksväg vid felet**, så att du ser var vägen bröts.
 
 Vilken du ska använda:
 
@@ -139,7 +139,7 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 ## Felsökning
 
 :::details Adressen är uppe, men monitorn säger offline
-Adressen, eller en brandvägg framför den, svarar inte på ICMP-ekobegäranden från sonden. Tillåt ICMP-ekobegäranden från sonderna, eller bevaka i stället en tjänst på den adressen med en [portmonitor](/docs/monitor/port-monitor). **Network Path at Time of Failure** på den misslyckade kontrollen visar hur långt vägen nådde.
+Adressen, eller en brandvägg framför den, svarar inte på ICMP-ekobegäranden från sonden. Tillåt ICMP-ekobegäranden från sonderna, eller bevaka i stället en tjänst på den adressen med en [portmonitor](/docs/monitor/port-monitor). **Nätverksväg vid felet** på den misslyckade kontrollen visar hur långt vägen nådde.
 :::
 
 :::details En IPv6-adress misslyckas alltid

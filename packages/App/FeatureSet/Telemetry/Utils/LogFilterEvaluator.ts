@@ -9,6 +9,7 @@ import {
   PatternWorkLimitError,
 } from "Common/Utils/LinearRegExp/PatternProblem";
 import { patternWorkRefusesQuestions } from "Common/Utils/LinearRegExp/PatternWork";
+import { readOwnValue } from "Common/Utils/LookupTable";
 
 /*
  * Filter evaluator for log / span rows used by pipelines, drop
@@ -50,9 +51,14 @@ function getAttrValue(
   attrs: Record<string, unknown>,
   key: string,
 ): unknown | undefined {
-  // Try exact key first
-  if (attrs[key] !== undefined && attrs[key] !== null) {
-    return attrs[key];
+  /*
+   * Try exact key first: the row's own keys only, as a filter may name a key
+   * such as constructor, which every object inherits and no row carries
+   * unless it was given one.
+   */
+  const exact: unknown = readOwnValue(attrs, key);
+  if (exact !== undefined && exact !== null) {
+    return exact;
   }
   // Try with resource. prefix (OTel resource attributes)
   if (
@@ -92,7 +98,7 @@ export function getRowFieldValue(
     return stringifyAttrValue(getAttrValue(attrs, attrKey));
   }
 
-  const topLevel: unknown = logRow[fieldPath];
+  const topLevel: unknown = readOwnValue(logRow, fieldPath);
   if (topLevel !== undefined && topLevel !== null) {
     return String(topLevel);
   }

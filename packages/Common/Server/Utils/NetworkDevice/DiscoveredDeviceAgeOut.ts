@@ -3,6 +3,7 @@ import {
   readDiscoveredDeviceRetentionInDays,
 } from "../../../Types/NetworkDevice/DiscoveredDeviceRetention";
 import ObjectID from "../../../Types/ObjectID";
+import { COARSE_LAST_SEEN_STEP_SQL } from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
 import logger from "../Logger";
 import {
@@ -59,10 +60,20 @@ import {
  * HOW MUCH, HOW OFTEN
  *
  * Hourly. The projects due are found a page at a time by the index on
- * (projectId, lastSeenAt) of live rows; each project gets at most
+ * (projectId, coarseLastSeenAt) of live rows; each project gets at most
  * MAX_BATCHES_PER_PROJECT batches of BATCH_SIZE a run, the oldest first, so
  * one project with a long backlog drains over a few runs without holding
  * up the rest, and a run stops starting work once its time budget is spent.
+ *
+ * coarseLastSeenAt is lastSeenAt a day at a time - never later than it, and
+ * never a day behind it (NetworkEndpointService) - so lastSeenAt itself can
+ * stay out of every index and a walk's refresh of it can be a HOT update.
+ * Each statement narrows by the coarse column, through the index, with a
+ * bound every row it wants meets, and decides by lastSeenAt on the row: the
+ * rows it finds and their order are lastSeenAt's alone. A row the coarse
+ * column was never written for (until the data migration
+ * BackfillNetworkEndpointCoarseLastSeenAt has run) is not found, so it is
+ * kept: the age-out only ever removes less while that runs, never more.
  */
 
 export type DiscoveredDeviceAgeOutQueryRunner = (
@@ -159,6 +170,7 @@ WHERE ${filters.join("\n  AND ")}
     FROM "NetworkEndpoint" e
     WHERE e."projectId" = p."_id"
       AND e."deletedAt" IS NULL
+      AND e."coarseLastSeenAt" < ${now}::timestamptz - make_interval(days => p."discoveredDeviceRetentionInDays")
       AND e."lastSeenAt" < ${now}::timestamptz - make_interval(days => p."discoveredDeviceRetentionInDays")
   )
 ORDER BY p."_id" ASC
@@ -181,6 +193,7 @@ export function buildReportingDevicesStatement(data: {
 FROM "NetworkEndpoint" e
 WHERE e."projectId" = ${project}::uuid
   AND e."deletedAt" IS NULL
+  AND e."coarseLastSeenAt" > ${since}::timestamptz - ${COARSE_LAST_SEEN_STEP_SQL}
   AND e."lastSeenAt" >= ${since}::timestamptz`,
     params: params.values,
   };
@@ -223,6 +236,7 @@ due AS (
   LEFT JOIN "NetworkDevice" o ON o."_id" = e."attachedNetworkDeviceId"
   WHERE e."projectId" = ${project}::uuid
     AND e."deletedAt" IS NULL
+    AND e."coarseLastSeenAt" < ${seenBefore}::timestamptz
     AND e."lastSeenAt" < ${seenBefore}::timestamptz
     AND COALESCE(btrim(e."classification"), '') = ''
     AND e."editedAt" IS NULL

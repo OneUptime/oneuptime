@@ -324,6 +324,14 @@ work out, starts from a default for everything else, and folds what most people 
   card read half in English, and a server failure's reference had no copy button (#7307).
   Enforced by
   [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
+- **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
+  words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
+  `WidgetPlaceholder`, or a view that draws one of them. Each widget drew it its own way: the set
+  sentence in English on every board, pale gray in a 160 or 192px column, or a page's
+  `ErrorMessage` with a page's margins (#7330). A widget hands its error on (`error={error}`),
+  never draws it as it is, and every sentence it sets as its error is worded in every Dashboard
+  language. Enforced by
+  [WidgetErrorLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetErrorLineGuard.test.ts).
 
 ## Lists and empty states
 
@@ -338,6 +346,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **On a narrow screen, columns fold under another column** the page names (`foldInto`): an
   incident's severity under its state. Enforced by
   [TableFoldIntoGuard](../../packages/App/Tests/Dashboard/TableFoldIntoGuard.test.ts).
+- **A column sorts the whole list by what it shows.** A column that shows one related record sorts by
+  it: a severity, a state or a monitor status by its place in the project's list, worst first
+  descending, where its first click goes (as the dashboard's list widgets sort it); anything else by
+  the name it shows. A column of many records (labels, owners) does not sort (#8134). Enforced by
+  [RelationColumnSort](../../packages/Common/Tests/UI/Components/ModelTable/RelationColumnSort.test.tsx).
 - **A column earns its place.** A column that tells the reader nothing they act on goes, as the Type
   column of workflow variables did. Enforced by
   [WorkflowVariableListsGuard](../../packages/Common/Tests/App/Dashboard/WorkflowVariableListsGuard.test.ts).
@@ -530,6 +543,15 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
   an Arabic or Persian page (#7224). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
+- **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
+  a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
+  it timed out." stayed English on every page, and on an Arabic or Persian page an English message
+  lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
+  its count in the reader's plural forms, is written only by its template
+  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
+  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
+  right-to-left line. Enforced by
+  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
@@ -620,6 +642,18 @@ then `npm run i18n:validate` from the root.
   [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
   and
   [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
+- **A name reads as written, in a badge and in a picker.** A label, a monitor or a state is named by
+  its project, and a name is never looked up: in Spanish a label named "Network" read "Red", and a
+  state a project named "Open" read "Abrir", the verb. Only the names a new project starts with, such
+  as "Resolved", "Operational" or "Critical Incident", are OneUptime's words, read in the reader's
+  language. A badge or an option that draws a record's name takes `isRecordNameAsWritten` or
+  `translateRecordName` from `Common/Utils/DefaultRecordNames`, which know those names list by list.
+  Enforced by
+  [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
+  [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)
+  and
+  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

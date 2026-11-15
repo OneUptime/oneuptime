@@ -36,6 +36,7 @@ import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
 import { INCIDENT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -811,6 +812,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -847,6 +852,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

@@ -6,8 +6,14 @@ import {
   findPlainTableReads,
   PlainTableRead,
 } from "../../Helpers/TextLookupTableScan";
-import lookupTable, { readOwnValue } from "../../../Utils/LookupTable";
-import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames";
+import lookupTable, {
+  readOwnValue,
+  writeOwnValue,
+} from "../../../Utils/LookupTable";
+import {
+  INHERITED_PROPERTY_NAMES,
+  INHERITED_PROPERTY_NAME_SPELLINGS,
+} from "../../Helpers/InheritedNames";
 
 /*
  * TABLES READ BY TEXT FROM OUTSIDE ONEUPTIME ANSWER ONLY FOR THEIR OWN KEYS.
@@ -29,6 +35,15 @@ import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames"
  * own keys first. A table read only by keys OneUptime knows - its own ids,
  * or a value checked against a list first - is listed below with what keys
  * it.
+ *
+ * PromQL reads the words of a query the same way (issue #7815): the
+ * keyword operators by the word after an expression, the POSIX classes of
+ * a pattern by the name between `[:` and `:]`, the functions by the name a
+ * query calls. Read from plain objects, `up constructor up` was an
+ * operation whose operator was a function, and `[[:constructor:]]` read the
+ * function's source text into the pattern. Grok reads its patterns by the
+ * name a reference writes, and the key=value parser the keys a log line
+ * holds, so both are scanned too.
  */
 
 // packages/Common/Tests/Utils/SecurityEvent -> packages/Common.
@@ -44,6 +59,13 @@ const SCANNED: ReadonlyArray<string> = [
   "Common/UI/Components/LogsViewer/components/LogSearchBar.tsx",
   "Common/UI/Components/TelemetryViewer/components/TelemetrySearchBar.tsx",
   "App/FeatureSet/Dashboard/src/Utils/ExceptionsSearchQuery.ts",
+  // A PromQL query, as the dashboards, Grafana and the metric monitors write it.
+  "Common/Utils/PromQL",
+  "Common/Server/Utils/PromQL",
+  // A grok pattern a project's people write, and the log lines it parses.
+  "Common/Utils/Grok",
+  // The keys a log line's key=value pairs name.
+  "Common/Utils/Log",
 ];
 
 interface ReadByKnownKeys {
@@ -66,6 +88,30 @@ export const TABLES_READ_BY_KNOWN_KEYS: ReadonlyArray<ReadByKnownKeys> = [
     table: "SECURITY_WATCHLIST_FEED_INDICATOR_TYPES",
     keyedBy:
       "a kind canSecurityWatchlistFollowFeed has first found among SECURITY_WATCHLIST_FEED_ENTITY_TYPES (getSecurityWatchlistFeedIndicatorTypes returns before the read otherwise)",
+  },
+  {
+    file: "Common/Utils/PromQL/PromQLDuration.ts",
+    table: "UNIT_MILLISECONDS",
+    keyedBy:
+      "a unit DURATION_PART_REGEX has matched (ms, y, w, d, h, m or s), or one of UNIT_ORDER, the same units",
+  },
+  {
+    file: "Common/Utils/PromQL/PromQLLexer.ts",
+    table: "TWO_CHARACTER_OPERATORS",
+    keyedBy:
+      "the next two characters of the query: no name an object inherits is that short",
+  },
+  {
+    file: "Common/Utils/PromQL/PromQLLexer.ts",
+    table: "ONE_CHARACTER_TOKENS",
+    keyedBy:
+      "the next character of the query: no name an object inherits is that short",
+  },
+  {
+    file: "Common/Utils/PromQL/PromQLLexer.ts",
+    table: "SIMPLE_ESCAPES",
+    keyedBy:
+      "the one character after a backslash in a string: no name an object inherits is that short",
   },
 ];
 
@@ -172,7 +218,7 @@ export function ok(key: string): Array<string | undefined> {
   });
 });
 
-describe("Security Events' ingest and the search boxes read outside text through tables that answer only for their own keys", () => {
+describe("Security Events' ingest, the search boxes, PromQL, Grok and the key=value parser read outside text through tables that answer only for their own keys", () => {
   test("the scanned code is where it was: each directory and file still exists and holds code", () => {
     for (const entry of SCANNED) {
       expect({
@@ -276,5 +322,51 @@ describe("Common/Utils/LookupTable", () => {
     expect(map.get("toString")).toBe("listed");
     expect(map.get("__proto__")).toBe("also listed");
     expect(map.get("valueOf")).toBeUndefined();
+  });
+
+  test("writeOwnValue sets every name an object inherits as the record's own key, __proto__ included", () => {
+    const record: Record<string, string> = {};
+
+    for (const name of INHERITED_PROPERTY_NAMES) {
+      writeOwnValue(record, name, `the value of ${name}`);
+    }
+
+    expect(Object.keys(record)).toEqual([...INHERITED_PROPERTY_NAMES]);
+
+    for (const name of INHERITED_PROPERTY_NAMES) {
+      expect({ name, value: readOwnValue(record, name) }).toEqual({
+        name,
+        value: `the value of ${name}`,
+      });
+    }
+
+    // Still a plain object, which serialises __proto__ as any other key.
+    expect(Object.getPrototypeOf(record)).toBe(Object.prototype);
+    expect(JSON.stringify(record)).toContain(
+      '"__proto__":"the value of __proto__"',
+    );
+  });
+
+  test("writeOwnValue never takes an object written under __proto__ as the record's prototype", () => {
+    const record: Record<string, unknown> = {};
+
+    writeOwnValue(record, "__proto__", ["a", "b"]);
+    writeOwnValue(record, "word", "x");
+
+    expect(Object.getPrototypeOf(record)).toBe(Object.prototype);
+    expect(readOwnValue(record, "__proto__")).toEqual(["a", "b"]);
+    expect(Object.keys(record)).toEqual(["__proto__", "word"]);
+  });
+
+  test("writeOwnValue replaces a key's earlier value, as an assignment does", () => {
+    const record: Record<string, string> = { word: "old" };
+
+    writeOwnValue(record, "word", "new");
+    writeOwnValue(record, "__proto__", "first");
+    writeOwnValue(record, "__proto__", "second");
+
+    expect(Object.keys(record)).toEqual(["word", "__proto__"]);
+    expect(readOwnValue(record, "word")).toBe("new");
+    expect(readOwnValue(record, "__proto__")).toBe("second");
   });
 });

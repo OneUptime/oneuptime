@@ -27,7 +27,7 @@ sequenceDiagram
 
 La sonda apre solo connessioni TCP: un servizio che ascolta soltanto in UDP, come un agente SNMP, non può essere controllato con un monitor porta.
 
-Quando un controllo fallisce, la sonda traccia anche il percorso verso l'host e ne cerca il nome, e allega quanto trovato al risultato come **Network Path at Time of Failure**, così potete vedere dove il percorso si è interrotto. Una sonda che ha perso la propria connessione di rete non riporta alcun risultato, quindi non può segnare il vostro servizio come offline.
+Quando un controllo fallisce, la sonda traccia anche il percorso verso l'host e ne cerca il nome, e allega quanto trovato al risultato come **Percorso di rete al momento dell'errore**, così potete vedere dove il percorso si è interrotto. Una sonda che ha perso la propria connessione di rete non riporta alcun risultato, quindi non può segnare il vostro servizio come offline.
 
 ## Prima di iniziare
 
@@ -164,7 +164,7 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 ## Risoluzione dei problemi
 
 :::details Il servizio è attivo, ma il monitor lo dà offline
-La sonda non è riuscita ad aprire una connessione: un firewall la scarta, il servizio ascolta solo su un'interfaccia privata, oppure la porta è sbagliata. La causa principale dell'incidente, e **Registri di monitoraggio** sul monitor, mostrano l'errore, e **Network Path at Time of Failure** mostra fin dove è arrivato il percorso. Fate passare le sonde attraverso il firewall, oppure usate una [sonda personalizzata](/docs/probe/custom-probe) all'interno della rete.
+La sonda non è riuscita ad aprire una connessione: un firewall la scarta, il servizio ascolta solo su un'interfaccia privata, oppure la porta è sbagliata. La causa principale dell'incidente, e **Registri di monitoraggio** sul monitor, mostrano l'errore, e **Percorso di rete al momento dell'errore** mostra fin dove è arrivato il percorso. Fate passare le sonde attraverso il firewall, oppure usate una [sonda personalizzata](/docs/probe/custom-probe) all'interno della rete.
 :::
 
 :::details Il tempo di risoluzione DNS è sempre vuoto

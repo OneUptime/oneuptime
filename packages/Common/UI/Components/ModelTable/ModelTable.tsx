@@ -408,6 +408,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
             sort: Sort<TBaseModel>;
             select: Select<TBaseModel>;
             requestOptions?: RequestOptions | undefined;
+            countUpTo?: number | undefined;
           }) => {
             return await modelAPI.getList<TBaseModel>({
               modelType: data.modelType as { new (): TBaseModel },
@@ -418,6 +419,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
               sort: data.sort,
               select: data.select,
               requestOptions: data.requestOptions,
+              countUpTo: data.countUpTo,
             });
           },
 

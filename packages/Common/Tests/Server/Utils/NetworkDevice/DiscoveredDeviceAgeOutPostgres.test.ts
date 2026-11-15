@@ -8,6 +8,8 @@ import DiscoveredDeviceAgeOut, {
   AGE_OUT_BATCH_SIZE,
   DiscoveredDeviceAgeOutSummary,
   MAX_AGE_OUT_BATCHES_PER_PROJECT,
+  buildAgeOutStatement,
+  buildDueProjectsStatement,
 } from "../../../../Server/Utils/NetworkDevice/DiscoveredDeviceAgeOut";
 import DiscoveredDevices from "../../../../Server/Utils/NetworkDevice/DiscoveredDevices";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -54,6 +56,8 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - removed is soft deleted, stamped with the run's time: the list and
  *     its counts leave it out, and a device seen again is a new row;
  *   - a long backlog goes the oldest first, at most the run's batches;
+ *   - the statements narrow by coarseLastSeenAt through its index (#8092),
+ *     and a row the backfill has not reached stays until it has;
  *   - the backfill marks the devices the API wrote as edited, and not the
  *     walks' own.
  *
@@ -90,6 +94,12 @@ interface EndpointFields {
   projectId?: string;
   macAddress: string;
   lastSeenAt?: Date | null;
+  /*
+   * lastSeenAt to the day, the column the age-out narrows by: as a walk
+   * writes it, the row's lastSeenAt, unless a test says otherwise (null: a
+   * row the backfill has not reached).
+   */
+  coarseLastSeenAt?: Date | null;
   classification?: string | null;
   editedAt?: Date | null;
   createdByUserId?: string | null;
@@ -204,13 +214,16 @@ describePostgres(
 
     async function addEndpoint(fields: EndpointFields): Promise<string> {
       const id: string = ObjectID.generate().toString();
+      const lastSeenAt: Date | null =
+        fields.lastSeenAt === undefined ? ago(MINUTE) : fields.lastSeenAt;
 
       await database.query(
         `INSERT INTO "NetworkEndpoint"
         ("_id", "version", "projectId", "macAddress", "classification",
          "editedAt", "createdByUserId", "attachedNetworkDeviceId",
-         "lastSeenAt", "firstSeenAt", "updatedAt", "deletedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)`,
+         "lastSeenAt", "firstSeenAt", "updatedAt", "deletedAt",
+         "coarseLastSeenAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11, $12)`,
         [
           id,
           fields.version ?? 0,
@@ -220,9 +233,12 @@ describePostgres(
           fields.editedAt ?? null,
           fields.createdByUserId ?? null,
           fields.attachedNetworkDeviceId || reportingSwitch,
-          fields.lastSeenAt === undefined ? ago(MINUTE) : fields.lastSeenAt,
+          lastSeenAt,
           fields.updatedAt || ago(40 * DAY),
           fields.deletedAt ?? null,
+          fields.coarseLastSeenAt === undefined
+            ? lastSeenAt
+            : fields.coarseLastSeenAt,
         ],
       );
 
@@ -358,15 +374,28 @@ describePostgres(
         },
       ]);
 
+      /*
+       * The age-out reads ("projectId", "coarseLastSeenAt") of live rows
+       * (#8092); lastSeenAt is in no index, so a walk's refresh of it can be
+       * a HOT update.
+       */
       const indexes: Array<{ indexdef: string }> = await database.query(
         `SELECT indexdef FROM pg_indexes
-       WHERE schemaname = 'public' AND indexname = 'IDX_aabb790d91b44c32192ba02414'`,
+       WHERE schemaname = 'public' AND indexname = 'IDX_77cdf39f743efdfd5bcf4288de'`,
       );
 
       expect(indexes).toHaveLength(1);
       expect(indexes[0]!.indexdef).toContain(
-        `("projectId", "lastSeenAt") WHERE ("deletedAt" IS NULL)`,
+        `("projectId", "coarseLastSeenAt") WHERE ("deletedAt" IS NULL)`,
       );
+
+      const onLastSeenAt: Array<{ indexname: string }> = await database.query(
+        `SELECT indexname FROM pg_indexes
+       WHERE schemaname = 'public' AND tablename = 'NetworkEndpoint'
+         AND indexdef ~ '"lastSeenAt"'`,
+      );
+
+      expect(onLastSeenAt).toEqual([]);
     });
 
     afterAll(async () => {
@@ -767,8 +796,9 @@ describePostgres(
 
       await database.query(
         `INSERT INTO "NetworkEndpoint"
-        ("version", "projectId", "macAddress", "attachedNetworkDeviceId", "lastSeenAt")
+        ("version", "projectId", "macAddress", "attachedNetworkDeviceId", "lastSeenAt", "coarseLastSeenAt")
        SELECT 0, $1, '06' || lpad(to_hex(n), 10, '0'), $2,
+              $3::timestamptz + make_interval(secs => n),
               $3::timestamptz + make_interval(secs => n)
        FROM generate_series(1, $4::int) AS n`,
         [projectId, reportingSwitch, ago(60 * DAY), backlog],
@@ -798,6 +828,120 @@ describePostgres(
       );
 
       expect((await run()).removed).toBe(500);
+    });
+
+    /*
+     * coarseLastSeenAt is what the age-out narrows by (#8092). A row it was
+     * never written for - one no walk has seen since the column came, which
+     * the data migration BackfillNetworkEndpointCoarseLastSeenAt has not yet
+     * reached - is not found, so it stays: the age-out only ever removes
+     * less while the backfill runs. Once a page of it reaches the row, the
+     * row goes as any other.
+     */
+    test("a device the backfill has not reached stays however long it is not seen, and goes once it has", async () => {
+      const unreached: string = await addEndpoint({
+        macAddress: nextMac(),
+        lastSeenAt: ago(40 * DAY),
+        coarseLastSeenAt: null,
+      });
+
+      expect((await run()).removed).toBe(0);
+      expect(await isLive(unreached)).toBe(true);
+
+      expect(
+        await NetworkEndpointService.backfillCoarseLastSeenAtPage({
+          limit: 1000,
+        }),
+      ).toMatchObject({ written: 1 });
+
+      expect((await run()).removed).toBe(1);
+      expect(await isLive(unreached)).toBe(false);
+    });
+
+    /*
+     * The index the statements narrow by: whether a project has any due, and
+     * a batch of them, can be read from ("projectId", "coarseLastSeenAt") of
+     * live rows, the coarse bound its index condition - which a bound written
+     * so that no index can take it (on an expression of the column, say)
+     * would not be. Which plan Postgres picks depends on the data - on one
+     * project of 20,000 devices a hash join over the whole table is as cheap
+     * - so the other ways in are turned off for the EXPLAIN alone.
+     */
+    test("whether a project has any due, and its oldest batch, can be read from the coarse index, by the coarse bound", async () => {
+      await database.query(
+        `INSERT INTO "NetworkEndpoint"
+        ("version", "projectId", "macAddress", "attachedNetworkDeviceId", "lastSeenAt", "coarseLastSeenAt")
+       SELECT 0, $1, '07' || lpad(to_hex(n), 10, '0'), $2,
+              $3::timestamptz - make_interval(secs => n % 3600),
+              $3::timestamptz - make_interval(secs => n % 3600)
+       FROM generate_series(1, 20000) AS n`,
+        [projectId, reportingSwitch, NOW],
+      );
+      for (let n: number = 0; n < 20; n++) {
+        await addEndpoint({
+          macAddress: nextMac(),
+          lastSeenAt: ago(40 * DAY + n * MINUTE),
+        });
+      }
+      await database.query(`ANALYZE "${schema}"."NetworkEndpoint"`);
+
+      const plans: Array<string> = [];
+      const runner: QueryRunner = database.createQueryRunner();
+
+      try {
+        await runner.startTransaction();
+        for (const setting of [
+          "enable_seqscan",
+          "enable_hashjoin",
+          "enable_mergejoin",
+        ]) {
+          await runner.query(`SET LOCAL ${setting} = off`);
+        }
+
+        for (const statement of [
+          buildDueProjectsStatement({ now: NOW, limit: 100 }),
+          buildAgeOutStatement({
+            projectId: projectId,
+            seenBefore: ago(30 * DAY),
+            reportingDeviceIds: [reportingSwitch],
+            limit: AGE_OUT_BATCH_SIZE,
+            removedAt: NOW,
+          }),
+        ]) {
+          const rows: Array<{ "QUERY PLAN": string }> = await runner.query(
+            `EXPLAIN ${statement.sql}`,
+            statement.params,
+          );
+          plans.push(
+            rows
+              .map((row: { "QUERY PLAN": string }): string => {
+                return row["QUERY PLAN"];
+              })
+              .join("\n"),
+          );
+        }
+      } finally {
+        await runner.rollbackTransaction();
+        await runner.release();
+      }
+
+      /*
+       * The clone names its copy of IDX_77cdf39f743efdfd5bcf4288de itself
+       * (CREATE TABLE ... LIKE ... INCLUDING ALL), so it is found by what
+       * it holds.
+       */
+      const coarseIndex: Array<{ indexname: string }> = await database.query(
+        `SELECT indexname FROM pg_indexes
+       WHERE schemaname = $1 AND tablename = 'NetworkEndpoint'
+         AND indexdef LIKE '%("projectId", "coarseLastSeenAt") WHERE ("deletedAt" IS NULL)%'`,
+        [schema],
+      );
+
+      expect(coarseIndex).toHaveLength(1);
+      for (const plan of plans) {
+        expect(plan).toContain(`"${coarseIndex[0]!.indexname}"`);
+        expect(plan).toMatch(/Index Cond: .*"coarseLastSeenAt" </);
+      }
     });
 
     test("the backfill marks the devices the API wrote as edited, when they last changed, and not the walks' own", async () => {

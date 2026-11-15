@@ -1198,7 +1198,7 @@ test.describe("probe checks", () => {
       /bg-amber-50/,
     );
     expect(await factValue(page, "Latest result")).toContain(
-      "Up · 2410 ms · HTTP 200",
+      "Up · 2,410 ms · HTTP 200",
     );
   });
 

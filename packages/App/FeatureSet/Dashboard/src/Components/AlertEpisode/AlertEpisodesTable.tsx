@@ -18,6 +18,8 @@ import useEventStateActions from "../EventView/useEventStateActions";
 import { EventStateKind } from "../EventView/EventStateKinds";
 import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
@@ -399,6 +401,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentAlertState.color || Black}
                     text={item.currentAlertState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertState,
+                      item.currentAlertState.name,
+                    )}
                   />
                 );
               }
@@ -423,6 +429,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={false}
                     color={item.alertSeverity.color || Black}
                     text={item.alertSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertSeverity,
+                      item.alertSeverity.name,
+                    )}
                   />
                 );
               }
