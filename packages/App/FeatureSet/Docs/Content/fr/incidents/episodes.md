@@ -51,7 +51,7 @@ L'activer ne retire aucun incident d'un épisode : un incident qui fait déjà p
 
 ## Qui peut ajouter
 
-Ajouter demande la permission d'ajouter des incidents à un épisode, que possèdent les rôles Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents et Membre des incidents, ainsi qu'un rôle personnalisé avec Create Incident Episode Member. Vous ne pouvez ajouter que des incidents que vous voyez : un incident privé ne peut être ajouté que par ses propriétaires et par les propriétaires et administrateurs du projet. Ajouter à un nouvel épisode demande aussi la permission de créer un épisode. Quand vous ne pouvez pas utiliser une action, elle est verrouillée, et son info-bulle nomme la permission qui manque.
+Ajouter demande la permission d'ajouter des incidents à un épisode, que possèdent les rôles Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents et Membre des incidents, ainsi qu'un rôle personnalisé avec Create Incident Episode Member. Vous ne pouvez ajouter que des incidents que vous voyez : un incident privé ne peut être ajouté que par ses propriétaires et par les Propriétaires du projet et Administrateurs du projet. Ajouter à un nouvel épisode demande aussi la permission de créer un épisode. Quand vous ne pouvez pas utiliser une action, elle est verrouillée, et son info-bulle nomme la permission qui manque.
 
 ## Avec l'API
 

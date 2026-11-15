@@ -51,7 +51,7 @@ Att slå på det tar inte ut någon incident ur en episod: en incident som redan
 
 ## Vem kan lägga till
 
-Att lägga till kräver behörighet att lägga till incidenter i en episod, vilket rollerna Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör och Incidentmedlem har, liksom en anpassad roll med Create Incident Episode Member. Du kan bara lägga till incidenter som du kan se: en privat incident kan bara läggas till av sina ägare och av projektets ägare och administratörer. Lägg till i ny episod kräver också behörighet att skapa en episod. När du inte kan använda en åtgärd är den låst, och dess verktygstips nämner behörigheten som saknas.
+Att lägga till kräver behörighet att lägga till incidenter i en episod, vilket rollerna Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör och Incidentmedlem har, liksom en anpassad roll med Create Incident Episode Member. Du kan bara lägga till incidenter som du kan se: en privat incident kan bara läggas till av sina ägare och av Projektägare och Projektadministratörer. Lägg till i ny episod kräver också behörighet att skapa en episod. När du inte kan använda en åtgärd är den låst, och dess verktygstips nämner behörigheten som saknas.
 
 ## Med API:et
 

@@ -4,6 +4,7 @@ Ett SLO för begäranden mäter vad dina användare får av en tjänst: andelen 
 
 :::cards
 - [Skapa ett SLO för begäranden](#skapa-ett-slo-för-begäranden): Tjänsterna, en latensgräns och ett mål.
+- [Räkna bara vissa begäranden](#räkna-bara-vissa-begäranden): En slutpunkt, eller alla begäranden utom hälsokontroller.
 - [Så räknas begäranden](#så-räknas-begäranden): Vilka spans som räknas, och när.
 - [Releasekontroller](/docs/slo/release-checks): Rulla tillbaka en release som förbrukar felbudgeten.
 :::
@@ -48,7 +49,7 @@ Därifrån fungerar ett SLO för begäranden som alla andra. Dess status, regler
 
 ### Välj vad SLO:et mäter
 
-Under **Vad den mäter** väljer du **Lyckade begäranden** eller **Latens för begäranden**, och sedan under **Tjänster** de tjänster vars begäranden det ska räkna. För **Latens för begäranden** anger du också **Latensgräns (ms)**: en begäran som besvaras inom gränsen räknas som tillräckligt snabb, till exempel `300`. Klicka på **Nästa**.
+Under **Vad den mäter** väljer du **Lyckade begäranden** eller **Latens för begäranden**, och sedan under **Tjänster** de tjänster vars begäranden det ska räkna. För **Latens för begäranden** anger du också **Latensgräns (ms)**: en begäran som besvaras inom gränsen räknas som tillräckligt snabb, till exempel `300`. Vill du bara räkna en del av deras begäranden anger du ett **Begäransfilter**: se [Räkna bara vissa begäranden](#räkna-bara-vissa-begäranden). Klicka på **Nästa**.
 
 ### Ge det ett namn och ett mål
 
@@ -59,7 +60,22 @@ Ange ett **Namn**, till exempel ”Checkout requests”, och ett **Mål (%)**: d
 Den första utvärderingen, inom 5 minuter, räknar begärandena från de senaste 6 timmarna, så SLO:et har siffror direkt. Utvärderingarna efter den räknar även äldre begäranden, tills hela efterlevnadsfönstret är täckt.
 :::
 
-En tjänsts egen sida **SLOs** visar de SLO:er som mäter den, och dess **Skapa Tjänstenivåmål** öppnar samma formulär med tjänsten redan vald. För att senare ändra vad ett SLO mäter, dess tjänster eller dess gräns öppnar du dess **Inställningar** och klickar på **Redigera vad den mäter**.
+En tjänsts egen sida **SLOs** visar de SLO:er som mäter den, och dess **Skapa Tjänstenivåmål** öppnar samma formulär med tjänsten redan vald. För att senare ändra vad ett SLO mäter, dess tjänster, dess gräns eller dess filter öppnar du dess **Inställningar** och klickar på **Redigera vad den mäter**.
+
+## Räkna bara vissa begäranden
+
+Ett SLO för begäranden räknar alla begäranden från sina tjänster. Ett **Begäransfilter** räknar bara de som spelar roll, som checkout-slutpunkten, eller utesluter några, som hälsokontroller som skulle få SLI:n att se bättre ut än det användarna får. Skriv det som en spårsökning, med samma [söksyntax](/docs/telemetry/search-syntax#matcha-värden) som i spårutforskaren:
+
+| Begäransfilter | Räknar |
+| --- | --- |
+| `@http.route:/checkout*` | Begäranden vars route börjar med `/checkout`. |
+| `-@http.route:/health` | Alla begäranden utom hälsokontroller. |
+| `@http.request.method:[POST, PUT]` | POST- och PUT-begäranden. |
+| `name:"POST /checkout"` | Begäranden vars span heter `POST /checkout`. |
+
+Alla villkor måste matcha, så `@http.route:/checkout* -@http.route:/checkout/health` räknar checkout-begärandena utom deras hälsokontroll. Ett villkor med `@` är ett attribut för begärandens span, och `name:` är spannets namn. Fritext och utforskarens andra fält, som `status:` och `duration:`, är inte filter här: SLO:et avgör redan vilka begäranden som är dåliga eller långsamma. Ett filter rymmer upp till 10 villkor på 500 tecken.
+
+**Översikt** visar filtret under SLO:ets tjänster, och **Inställningar** visar det under **Vad den mäter**. Att ändra det gör att SLO:ets begäranden räknas om från början.
 
 ## Så räknas begäranden
 
@@ -68,7 +84,7 @@ OneUptime räknar varje SLO:s bra begäranden och totala antal begäranden i ste
 - Ett steg räknas 2 minuter efter att det har tagit slut, så att spans som kommer in sent kommer med, och nästa utvärdering räknar om de två senaste stegen för spans som kommer in ännu senare.
 - Ett nytt SLO börjar med de senaste 6 timmarna. Varje utvärdering därefter räknar upp till ett dygns äldre begäranden, de nyaste först, tills fönstret är täckt.
 - Bara begäranden som fortfarande ligger inom din [lagringstid för telemetri](/docs/telemetry/data-retention#hur-länge-telemetri-sparas) kan räknas. Räknade steg sparas i 400 dagar, längre än något efterlevnadsfönster, så ett fönster som är längre än lagringstiden fylls i takt med att SLO:et blir äldre.
-- Att ändra vad SLO:et mäter, dess tjänster eller dess latensgräns gör att dess begäranden räknas om från början. Ett längre efterlevnadsfönster fylls genom att räkna längre bakåt.
+- Att ändra vad SLO:et mäter, dess tjänster, dess latensgräns eller dess begäransfilter gör att dess begäranden räknas om från början. Ett längre efterlevnadsfönster fylls genom att räkna längre bakåt.
 
 Så länge antalen bara täcker en del av efterlevnadsfönstret säger **Översikt** det med indikatorn **Fönstret är 23 % fyllt**, och rutan **Felbudget kvar** upprepar det under sin siffra. Båda försvinner när antalen täcker hela fönstret.
 
@@ -82,16 +98,16 @@ Budgeten är de dåliga begäranden som målet tillåter bland de begäranden so
 
 Larm för förbrukningstakt, aviseringar och flödet anger också budgeten i begäranden. Metriken `oneuptime.slo.error.budget.remaining.seconds` skickas inte för ett SLO för begäranden; visa `oneuptime.slo.error.budget.remaining.percent` i ett diagram i stället.
 
-Ett SLO för begäranden får samma regler **Fast burn**, **Slow burn** och **Slow leak** som alla nya SLO:er. Under en lugn timme med en handfull begäranden kan ett enda fel ge en snabb förbrukning, så en regel kan bortse från fönster med för få begäranden: ange regelns `minimumSampleCount` via API:et, så hoppar regeln över ett långt fönster med färre begäranden än så.
+Ett SLO för begäranden får samma regler **Fast burn**, **Slow burn** och **Slow leak** som alla nya SLO:er. Under en lugn timme med en handfull begäranden kan ett enda fel ge en snabb förbrukning, så en regel kan bortse från fönster med för få begäranden: ange regelns **Minsta antal begäranden**, så hoppar regeln över ett långt fönster med färre begäranden än så.
 
 ## Felsökning
 
 :::details SLO:et visar Väntar på begäranden
-Ingen av dess tjänster har besvarat en begäran i fönstret ännu. Kontrollera att tjänsterna skickar spår till OneUptime och att deras spans innehåller ingångsspans: en tjänst vars spans alla är interna har inga begäranden att räkna.
+Ingen av dess tjänster har besvarat en begäran i fönstret ännu. Kontrollera att tjänsterna skickar spår till OneUptime och att deras spans innehåller ingångsspans: en tjänst vars spans alla är interna har inga begäranden att räkna. Om SLO:et har ett **Begäransfilter** söker du med det i utforskaren [Spår](/docs/telemetry/traces-explorer): ett filter som inte matchar någon begäran där lämnar inga begäranden åt SLO:et att räkna.
 :::
 
 :::details SLI:n ändrades efter att jag ändrade tjänsterna
-Att ändra vad SLO:et mäter, dess tjänster eller dess latensgräns gör att dess begäranden räknas om, med början i de senaste 6 timmarna, så SLI:n och budgeten börjar om därifrån. Indikatorn **Fönstret är 23 % fyllt** visar hur stor del av fönstret som har räknats hittills.
+Att ändra vad SLO:et mäter, dess tjänster, dess latensgräns eller dess begäransfilter gör att dess begäranden räknas om, med början i de senaste 6 timmarna, så SLI:n och budgeten börjar om därifrån. Indikatorn **Fönstret är 23 % fyllt** visar hur stor del av fönstret som har räknats hittills.
 :::
 
 ## Nästa steg

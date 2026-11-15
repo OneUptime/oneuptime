@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` är en inbyggd roll (PostgreSQL 10 och senare) som ger läsåtkomst till statistik- och övervakningsvyerna. Den ger ingen åtkomst till dina tabeller.
 
 > [!IMPORTANT]
-> **Varför `pg_monitor` inte är valfri på PostgreSQL.** Utan den misslyckas inte `pg_stat_activity` — frågan lyckas och returnerar bara övervakningssessionens egen rad. Antalet anslutningar skulle visa `1`, blockerade sessioner `0` och replikeringsfördröjningen `0`, för alltid, på en server som i själva verket brinner. Därför kontrollerar sonden, **innan** den kör de frågorna, att inloggningen är medlem i `pg_monitor` (eller `pg_read_all_stats`) eller är superanvändare. Om den inte är något av detta rapporterar sonden grupperna Connections, Activity och Locks som otillgängliga, tillsammans med den `GRANT` du behöver. Att inte rapportera något är det ärliga svaret; att rapportera `1` är det inte.
+> **Varför `pg_monitor` inte är valfri på PostgreSQL.** Utan den misslyckas inte `pg_stat_activity` — frågan lyckas och returnerar bara övervakningssessionens egen rad. Antalet anslutningar skulle visa `1`, blockerade sessioner `0` och replikeringsfördröjningen `0`, för alltid, på en server som i själva verket brinner. Därför kontrollerar sonden, **innan** den kör de frågorna, att inloggningen är medlem i `pg_monitor` (eller `pg_read_all_stats`) eller är superanvändare. Om den inte är något av detta rapporterar sonden grupperna **Anslutningar**, **Aktivitet** och **Lås och blockeringar** som otillgängliga, tillsammans med den `GRANT` du behöver. Att inte rapportera något är det ärliga svaret; att rapportera `1` är det inte.
 
 På en hanterad tjänst där `pg_monitor` inte är tillgänglig täcker `pg_read_all_stats` samma vyer. På Amazon RDS behövs inte `GRANT rds_superuser` — `GRANT pg_monitor TO oneuptime_health;` fungerar som medlem i `rds_superuser`.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-MySQL:s `performance_schema` måste vara påslaget (`performance_schema = ON`, standard sedan 5.6). När det är avstängt rapporteras grupperna Connections, Throughput och Locks som otillgängliga, och lösningen är en omstart av servern, inte en behörighet.
+MySQL:s `performance_schema` måste vara påslaget (`performance_schema = ON`, standard sedan 5.6). När det är avstängt rapporteras grupperna **Anslutningar**, **Genomströmning** och **Lås och blockeringar** som otillgängliga, och lösningen är en omstart av servern, inte en behörighet.
 
 ### Microsoft SQL Server och Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 Körd från någon annan databas misslyckas `GRANT VIEW SERVER STATE` med Msg 4621, ”Permissions at the server scope can only be granted when the current database is master”.
 
 > [!WARNING]
-> **Läsåtkomst till dina tabeller räcker inte.** En inloggning som bara kan läsa data — `db_datareader` eller någon annan roll med ”läsåtkomst” — kan ansluta och får databasstorleken, men inget annat. SQL Server nekar vyerna som monitorn läser med `The user does not have permission to perform this action.` (Msg 297). Meddelandet före det anger vad som nekades: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` på 2022) för servervyerna, inklusive utrymmet i transaktionsloggen och ledigt utrymme i tempdb, eller Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` på 2022) för replikeringsvyn. Monitorn förblir online, rapporterar att grupperna Connections, Activity, Throughput, Locks, Storage och Replication saknar en behörighet och visar `GRANT` ovan bredvid dem. `VIEW SERVER STATE` täcker alla.
+> **Läsåtkomst till dina tabeller räcker inte.** En inloggning som bara kan läsa data — `db_datareader` eller någon annan roll med ”läsåtkomst” — kan ansluta och får databasstorleken, men inget annat. SQL Server nekar vyerna som monitorn läser med `The user does not have permission to perform this action.` (Msg 297). Meddelandet före det anger vad som nekades: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` på 2022) för servervyerna, inklusive utrymmet i transaktionsloggen och ledigt utrymme i tempdb, eller Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` på 2022) för replikeringsvyn. Monitorn förblir online, rapporterar att grupperna **Anslutningar**, **Aktivitet**, **Genomströmning**, **Lås och blockeringar**, **Lagring** och **Replikering** saknar en behörighet och visar `GRANT` ovan bredvid dem. `VIEW SERVER STATE` täcker alla.
 >
 > Två vyer nekar inte: utan behörigheten visar `sys.dm_exec_sessions` och `sys.dm_exec_requests` i tysthet bara monitorns egen session. Monitorn läser dem aldrig ensamma — alltid tillsammans med en vy som nekar — så en saknad behörighet kan aldrig registreras som ”1 anslutning”.
 
@@ -151,7 +151,7 @@ En innesluten databasanvändare (`CREATE USER oneuptime_health WITH PASSWORD = '
 
 Sonden känner igen Azure SQL Database på `SERVERPROPERTY('EngineEdition')` och inte på versionen — Azure SQL Database rapporterar `12.0.2000.8` vad den än faktiskt kör, vilket läses som SQL Server 2014. Därför visar monitorns **Motor** `Azure SQL Database 12.0.2000.8`, och en saknad behörighet visas som Azure-satsen ovan, aldrig som `VIEW SERVER STATE`.
 
-- **Replikering samlas inte in på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication hoppas över där i stället för att rapporteras som misslyckad vid varje kontroll. Azures egna replikvyer (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) läses inte ännu.
+- **Replikering samlas inte in på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen **Replikering** hoppas över där i stället för att rapporteras som misslyckad vid varje kontroll. Azures egna replikvyer (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) läses inte ännu.
 - **Anslutningar gäller per databas.** Med `VIEW DATABASE STATE` visar Azure SQL Database bara den övervakade databasens sessioner, så **Anslutningar** räknar den databasen och inte den logiska servern. Övervaka varje databas som är viktig för dig.
 - **I en elastisk pool är ”Ledigt utrymme i TempDB” poolens.** Databaserna i en pool delar en tempdb.
 
@@ -221,17 +221,17 @@ Hemligheten slås upp på servern innan konfigurationen lämnas över till en so
 
 ## Mätvärdesgrupper
 
-En grupp är en enhet som du slår på eller av, och den enhet som en saknad behörighet rapporteras mot. Grupperna finns för att en saknad behörighet ska kosta dig en grupp i stället för hela monitorn. En grupps satser körs en i taget, så en grupp kan vara delvis insamlad: den står då både i `collectedGroups` och i `unavailableGroups`. Det vanliga fallet är SQL Servers grupp Storage för en inloggning utan `VIEW SERVER STATE` — databasstorleken samlas in, men inte loggutrymmet och ledigt utrymme i tempdb.
+En grupp är en enhet som du slår på eller av, och den enhet som en saknad behörighet rapporteras mot. Grupperna finns för att en saknad behörighet ska kosta dig en grupp i stället för hela monitorn. En grupps satser körs en i taget, så en grupp kan vara delvis insamlad: den står då både i `collectedGroups` och i `unavailableGroups`. Det vanliga fallet är SQL Servers grupp **Lagring** för en inloggning utan `VIEW SERVER STATE` — databasstorleken samlas in, men inte loggutrymmet och ledigt utrymme i tempdb.
 
 | Grupp | Vad den samlar in | Kräver |
 |---|---|---|
 | Anslutningar | Antal anslutningar, det konfigurerade taket, avbrutna anslutningsförsök, serverns drifttid | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Activity | Längst pågående fråga, längst öppna transaktion, öppna transaktioner | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
+| Aktivitet | Längst pågående fråga, längst öppna transaktion, öppna transaktioner | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | Genomströmning | Transaktioner, frågor, träffkvot i cachen, diskläsningar och -skrivningar, I/O-tid | PostgreSQL: inget utöver `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Locks | Blockerade sessioner, låsväntan, deadlocks, väntan på tabellås | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | Databasstorlek, utskrivning till temporära filer, loggutrymme, ledigt utrymme i tempdb | PostgreSQL: inget utöver `CONNECT`. MySQL: `SELECT` på databasen. SQL Server: inget för databasstorleken; `VIEW SERVER STATE` för loggutrymme och ledigt utrymme i tempdb |
-| Replication | Anslutna repliker, replikeringsfördröjning i sekunder och byte, inaktiva slots, återställningsläge | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; samlas inte in på Azure SQL Database |
-| Maintenance | Marginal till wraparound för transaktions-ID, döda tupler, tabeller som autovacuum aldrig har behandlat, checkpoints | PostgreSQL: `pg_monitor` |
+| Lås och blockeringar | Blockerade sessioner, låsväntan, deadlocks, väntan på tabellås | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Lagring | Databasstorlek, utskrivning till temporära filer, loggutrymme, ledigt utrymme i tempdb | PostgreSQL: inget utöver `CONNECT`. MySQL: `SELECT` på databasen. SQL Server: inget för databasstorleken; `VIEW SERVER STATE` för loggutrymme och ledigt utrymme i tempdb |
+| Replikering | Anslutna repliker, replikeringsfördröjning i sekunder och byte, inaktiva slots, återställningsläge | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; samlas inte in på Azure SQL Database |
+| Underhåll | Marginal till wraparound för transaktions-ID, döda tupler, tabeller som autovacuum aldrig har behandlat, checkpoints | PostgreSQL: `pg_monitor` |
 
 På Azure SQL Database läser du `VIEW DATABASE STATE` där den här tabellen säger `VIEW SERVER STATE` — eller `##MS_ServerStateReader##` på Basic, S0, S1 och elastiska pooler. Se [Azure SQL Database](#azure-sql-database).
 
@@ -264,7 +264,7 @@ Det här är SQL Servers meddelande (Msg 297) för en inloggning som kan ansluta
 - **SQL Server eller Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, körd i `master` (monitorn visar den som `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, körd i den övervakade databasen; på Basic, S0, S1 och elastiska pooler i stället medlemskap i `##MS_ServerStateReader##`. Se [Azure SQL Database](#azure-sql-database).
 
-Databasstorleken fortsätter att samlas in under tiden, eftersom det är det enda mätvärdet i gruppen Storage som alla inloggningar kan läsa.
+Databasstorleken fortsätter att samlas in under tiden, eftersom det är det enda mätvärdet i gruppen **Lagring** som alla inloggningar kan läsa.
 
 ## Insamlade mätvärden
 
@@ -296,18 +296,18 @@ Fyrtioen serier i åtta kategorier. Engines anger motorerna som faktiskt kan lev
 | **Frågor** | `oneuptime.monitor.database.queries.total` | Genomströmning | MySQL, SQL Server |
 | **Långsamma frågor** | `oneuptime.monitor.database.queries.slow.total` | Genomströmning | MySQL |
 | **Andel återställningar** (%) | `oneuptime.monitor.database.rollback.percent` | Genomströmning | PostgreSQL |
-| **Längst körande fråga** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Längst öppna transaktion** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Öppna transaktioner** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Längst körande fråga** (s) | `oneuptime.monitor.database.query.longest.seconds` | Aktivitet | PostgreSQL, MySQL, SQL Server |
+| **Längst öppna transaktion** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Aktivitet | PostgreSQL, MySQL, SQL Server |
+| **Öppna transaktioner** | `oneuptime.monitor.database.transaction.open.count` | Aktivitet | MySQL |
 
-### Lås och blockering
+### Lås och blockeringar
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Blockerade sessioner** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Låsväntetider** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Dödlägen** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Väntetider på tabellås** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Blockerade sessioner** | `oneuptime.monitor.database.sessions.blocked` | Lås och blockeringar | PostgreSQL, MySQL, SQL Server |
+| **Låsväntetider** | `oneuptime.monitor.database.locks.waiting` | Lås och blockeringar | PostgreSQL, MySQL, SQL Server |
+| **Dödlägen** | `oneuptime.monitor.database.deadlocks.total` | Lås och blockeringar | PostgreSQL, SQL Server |
+| **Väntetider på tabellås** | `oneuptime.monitor.database.table.locks.waited.total` | Lås och blockeringar | MySQL |
 
 Standard-MySQL har ingen räknare för deadlocks över huvud taget, och därför finns **Dödlägen** bara på PostgreSQL och SQL Server.
 
@@ -325,25 +325,25 @@ Standard-MySQL har ingen räknare för deadlocks över huvud taget, och därför
 
 PostgreSQL mäter bara läs- och skrivtid för I/O när `track_io_timing` är påslaget. Det är avstängt som standard, och då rapporterar PostgreSQL båda som `0` — på PostgreSQL betyder en platt nolla i de två serierna därför oftast ”inte mätt”, inte ”snabbt”. Det är en serverinställning, inte ett behörighetsproblem.
 
-### Lagringsutrymme
+### Lagring
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Databasstorlek** (byte) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Skrivna temporära byte** (byte) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temporära tabeller på disk** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Använt loggutrymme** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **Ledigt utrymme i TempDB** (byte) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Databasstorlek** (byte) | `oneuptime.monitor.database.size.bytes` | Lagring | PostgreSQL, MySQL, SQL Server |
+| **Skrivna temporära byte** (byte) | `oneuptime.monitor.database.temp.bytes.total` | Lagring | PostgreSQL |
+| **Temporära tabeller på disk** | `oneuptime.monitor.database.temp.disk.tables.total` | Lagring | MySQL |
+| **Använt loggutrymme** (%) | `oneuptime.monitor.database.log.space.used.percent` | Lagring | SQL Server |
+| **Ledigt utrymme i TempDB** (byte) | `oneuptime.monitor.database.tempdb.free.bytes` | Lagring | SQL Server |
 
 ### Replikering
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Anslutna repliker** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replikeringseftersläpning** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replikeringseftersläpning (byte)** (byte) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Under återställning** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inaktiva replikeringsplatser** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Anslutna repliker** | `oneuptime.monitor.database.replica.count` | Replikering | PostgreSQL, SQL Server |
+| **Replikeringseftersläpning** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replikering | PostgreSQL, MySQL |
+| **Replikeringseftersläpning (byte)** (byte) | `oneuptime.monitor.database.replication.lag.bytes` | Replikering | PostgreSQL, SQL Server |
+| **Under återställning** | `oneuptime.monitor.database.is.in.recovery` | Replikering | PostgreSQL |
+| **Inaktiva replikeringsplatser** | `oneuptime.monitor.database.replication.slots.inactive` | Replikering | PostgreSQL |
 
 Replikeringsmätvärden rapporteras från den sida av länken som monitorn är ansluten till. Rikta en monitor mot primärservern för att se anslutna repliker och sändkön; rikta en mot varje standby för att se hur långt efter just den standbyn faktiskt ligger.
 
@@ -353,11 +353,11 @@ Fördröjningen i sekunder visar noll på en inaktiv primärserver även när en
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Använda transaktions-ID:n** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Döda tupler** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tabeller som aldrig körts med autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Begärda kontrollpunkter** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Schemalagda kontrollpunkter** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Använda transaktions-ID:n** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Underhåll | PostgreSQL |
+| **Döda tupler** | `oneuptime.monitor.database.dead.tuples` | Underhåll | PostgreSQL |
+| **Tabeller som aldrig körts med autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Underhåll | PostgreSQL |
+| **Begärda kontrollpunkter** | `oneuptime.monitor.database.checkpoints.requested.total` | Underhåll | PostgreSQL |
+| **Schemalagda kontrollpunkter** | `oneuptime.monitor.database.checkpoints.timed.total` | Underhåll | PostgreSQL |
 
 > [!IMPORTANT]
 > **Använda transaktions-ID:n** förtjänar ett kriterium på varje PostgreSQL-monitor som du skapar. PostgreSQL nekar alla skrivningar när värdet når 100 %, återställning innebär en vacuum i enanvändarläge med databasen nere, och nästan ingen håller koll på det. Larma i god tid före stupet — 80 % ger dagar av marginal på de flesta arbetsbelastningar.
@@ -371,7 +371,7 @@ Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför 
 | Filtertyp | Vad den kontrollerar |
 |---|---|
 | **Databasen är online** | Om databasen gick att nå och testfrågan lyckades. Det här är offline-kriteriet som monitorn skapas med, och den enda kontrollen som speglar nåbarheten. |
-| **Databasmätvärde** | Välj ett mätvärde och jämför det: Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Lika med eller Inte lika med. Mätvärdesväljaren erbjuder bara de mätvärden som din valda motor kan leverera, så du kan inte bygga ett kriterium som för alltid förblir ouppfyllt (ett undantag: Replication-mätvärdena som erbjuds för Microsoft SQL Server samlas aldrig in på Azure SQL Database). Om mätvärdet inte samlades in vid en kontroll — gruppen misslyckades, eller motorn rapporterar det inte — matchar inte filtret, och det matchar inte heller som ”false”: det hoppas över. Ett behörighetsproblem kan inte larma någon. |
+| **Databasmätvärde** | Välj ett mätvärde och jämför det: Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Lika med eller Inte lika med. Mätvärdesväljaren erbjuder bara de mätvärden som din valda motor kan leverera, så du kan inte bygga ett kriterium som för alltid förblir ouppfyllt (ett undantag: mätvärdena i gruppen **Replikering** som erbjuds för Microsoft SQL Server samlas aldrig in på Azure SQL Database). Om mätvärdet inte samlades in vid en kontroll — gruppen misslyckades, eller motorn rapporterar det inte — matchar inte filtret, och det matchar inte heller som ”false”: det hoppas över. Ett behörighetsproblem kan inte larma någon. |
 | **Insamlingsfel för databas** | Sammanfattningen av kontrollens insamlingsproblem, en ”grupp: meddelande” per otillgänglig grupp. Larma när den inte är tom för att upptäcka förlorad insyn, eller använd Innehåller för att bevaka en viss grupp. |
 | **JavaScript-uttryck** | Full kontroll. Se [JavaScript-uttryck](/docs/monitor/javascript-expression). |
 
@@ -433,11 +433,11 @@ Koppla en jourpolicy till offline-kriteriet och låt allt som härleds från **M
 Offline betyder att sonden inte kunde ansluta eller att testfrågan misslyckades: värden eller porten går inte att nå från sonden, inloggningen nekades, TLS misslyckades eller anslutningen nådde sin tidsgräns. Monitorns sammanfattning visar felet. Kontrollera att sonden kan nå databasen (en sond som OneUptime driver behöver en offentlig adress; använd annars en [anpassad sond](/docs/probe/custom-probe)), kontrollera användarnamnet och lösenordet eller dess monitorhemlighet, och stäng av **Verify server certificate** för ett självsignerat certifikat. Klicka sedan på **Testa monitor** för att kontrollera igen.
 :::
 
-:::details Connections, Activity och Locks saknas på PostgreSQL
+:::details **Anslutningar**, **Aktivitet** och **Lås och blockeringar** saknas på PostgreSQL
 Inloggningen är varken medlem i `pg_monitor` eller `pg_read_all_stats` och är inte superanvändare, så sonden hoppar över de grupperna i stället för att registrera felaktiga tal. Kör `GRANT pg_monitor TO oneuptime_health;` enligt beskrivningen under [PostgreSQL](#postgresql).
 :::
 
-:::details Connections, Throughput och Locks saknas på MySQL
+:::details **Anslutningar**, **Genomströmning** och **Lås och blockeringar** saknas på MySQL
 Antingen saknar inloggningen `SELECT` på `performance_schema`, eller så är `performance_schema` avstängt på servern; monitorns sammanfattning visar meddelandet från MySQL. Vid en saknad behörighet kör du satserna under [MySQL](#mysql). Ett avstängt `performance_schema` kräver `performance_schema = ON` i serverns konfiguration och en omstart.
 :::
 

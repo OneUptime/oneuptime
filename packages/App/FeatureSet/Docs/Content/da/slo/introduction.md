@@ -201,7 +201,7 @@ Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver tin
 
 | Kort | Det, du ændrer | Godt at vide |
 | --- | --- | --- |
-| **Hvad det måler** | **Hvad det måler**, **Tjenester** og **Latensgrænse (ms)**, med **Rediger, hvad det måler**. | Et anmodnings-SLO tæller sine anmodninger forfra efter en ændring. |
+| **Hvad det måler** | **Hvad det måler**, **Tjenester**, **Latensgrænse (ms)** og **Anmodningsfilter**, med **Rediger, hvad det måler**. | Et anmodnings-SLO tæller sine anmodninger forfra efter en ændring. |
 | **Mål** | **Mål (%)** og **Risikotærskel (%)**, med **Rediger mål**. | Viser den nedetid, målet tillader, for eksempel "43 min. og 12 sek. nedetid pr. vindue på 30 dage". |
 | **Overholdelsesperiode** | **Vinduestype**, **Vindue (dage)** og **Tidszone**, med **Rediger periode**. | Forbrugsrateregler beholder deres tærskler, når vinduet ændres, så gennemgå dem bagefter. |
 | **Beregning af nedetid** | **Tilstand for flere monitorer** og **Nedetidsovervågningsstatusser**, med **Rediger beregning af nedetid**. | Kun SLO'er for monitoroppetid. Uden statusser tæller alle ikke-operationelle statusser, også dem, der tilføjes senere. |

@@ -250,6 +250,13 @@ work out, starts from a default for everything else, and folds what most people 
   [DisclosureTogglesGuard](../../packages/Common/Tests/UI/DisclosureTogglesGuard.test.ts).
 - **A fold never cuts off what it holds.** No fixed height cap on an open fold. Enforced by
   [FoldHeightCapGuard](../../packages/Common/Tests/UI/Components/FoldHeightCapGuard.test.ts).
+- **A folded line never cuts off the choice it names.** Folded on a type it holds, More monitor types
+  names it after its words: "More monitor types · Selected: Kubernetes". The choice goes on the
+  words' line when it fits, under them, whole, when it does not, and wraps between its words when it
+  is wider than a line by itself. It is never cut off with an ellipsis and a tooltip, which a phone
+  cannot show. German's "Ausgewählt: Benutzerdefinierter JavaScript-Code" takes two lines on a 390px
+  phone, and that is right (#8380). Enforced by
+  [FoldedChoiceNamedWholeGuard](../../packages/Common/Tests/UI/Components/FoldedChoiceNamedWholeGuard.test.tsx).
 
 ### Help text
 
@@ -683,8 +690,13 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
   Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
   a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. Enforced by
-  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
+  any other message whole in a right-to-left line. A Database Health check's collection issues read
+  the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
+  Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
+  error kept as written after a sentence that says what kind of failure it is. Enforced by
+  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts)
+  and
+  [DatabaseCollectionIssuesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseCollectionIssuesInReadersLanguage.test.tsx).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).

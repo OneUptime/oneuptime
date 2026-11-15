@@ -120,7 +120,7 @@ export default class WorkspaceActionAuthorization {
    * owners and admins, see it.
    */
   public static getPrivateReason(noun: string): string {
-    return `this ${noun} is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.`;
+    return `this ${noun} is private, so only its owners, Project Owners and Project Admins can see it. Ask one of them to add you as an owner.`;
   }
 
   /*

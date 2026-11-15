@@ -69,7 +69,7 @@ Un bandeau indique ensuite combien de rappels ont été envoyés, ignorés ou on
 
 ## L'e-mail hebdomadaire de disponibilité
 
-Une fois par semaine, OneUptime vérifie chaque projet qui a une politique d'astreinte. Quand quelqu'un y est **Injoignable** ou **À configurer**, les propriétaires du projet reçoivent un e-mail qui liste ces personnes en deux groupes, celles qui ne peuvent pas du tout être alertées et celles joignables avec des lacunes, jusqu'à 20 noms chacun, avec un lien vers la page Disponibilité.
+Une fois par semaine, OneUptime vérifie chaque projet qui a une politique d'astreinte. Quand quelqu'un y est **Injoignable** ou **À configurer**, les Propriétaires du projet reçoivent un e-mail qui liste ces personnes en deux groupes, celles qui ne peuvent pas du tout être alertées et celles joignables avec des lacunes, jusqu'à 20 noms chacun, avec un lien vers la page Disponibilité.
 
 Une semaine où tout le monde est prêt n'envoie rien : l'e-mail signifie donc toujours qu'il y a quelque chose à corriger. Quand quelqu'un ne peut pas du tout être alerté, son objet commence par `[Action Required]`.
 
@@ -100,7 +100,7 @@ La liste ne contient que des personnes qu'une politique d'astreinte peut alerter
 :::
 
 :::details Les propriétaires ne reçoivent jamais l'e-mail hebdomadaire
-Il n'est envoyé qu'une semaine où quelqu'un est **Injoignable** ou **À configurer**, et uniquement aux propriétaires du projet.
+Il n'est envoyé qu'une semaine où quelqu'un est **Injoignable** ou **À configurer**, et uniquement aux Propriétaires du projet.
 :::
 
 ## Étapes suivantes

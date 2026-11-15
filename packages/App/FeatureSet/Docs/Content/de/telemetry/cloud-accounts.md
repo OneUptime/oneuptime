@@ -35,7 +35,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Ein Projektinhaber oder -administrator.** Nur sie können Cloud-Konten verbinden, testen und bearbeiten.
+- **Ein Projektinhaber oder Projektadministrator.** Nur sie können Cloud-Konten verbinden, testen und bearbeiten.
 - **Das Terminal Ihrer Cloud** (AWS CloudShell, Azure Cloud Shell oder Google Cloud Shell), angemeldet als jemand, der eine IAM-Rolle oder einen IAM-Benutzer, eine App-Registrierung oder ein Dienstkonto erstellen darf.
 
 ## Amazon Web Services

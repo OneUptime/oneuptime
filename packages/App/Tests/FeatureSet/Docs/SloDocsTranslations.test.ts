@@ -228,13 +228,13 @@ function archiveCardTitles(page: string): Array<string> {
  * The banners' titles were here, in English, until the banner worded them
  * in every language (#8446), and the audit log card's Edit Audit Log
  * Settings and Audit logging is off until the audit log table did: each
- * page now names them as its Dashboard draws them.
+ * page now names them as its Dashboard draws them. So is the SLO widget's
+ * Follow SLO Variable, which the widget settings now word too.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
   [METRICS]: [
     "Monitor Metric Retention (Days)",
-    // Follow SLO Variable was here until the SLO widget's settings were worded in every language.
     "SLO Dashboard",
     "Error Budget & Burn Rate",
     "Lowest Error Budget Remaining",
