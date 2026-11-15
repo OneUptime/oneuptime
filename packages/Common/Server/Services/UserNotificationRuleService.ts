@@ -239,6 +239,8 @@ import EpisodeMemberEmailList, {
   INCIDENT_NUMBER_BADGE,
 } from "../Utils/Mail/EpisodeMemberEmailList";
 import OnCallTestPageDelivery from "../Utils/OnCall/OnCallTestPageDelivery";
+import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { getOnCallTestPageNotVerifiedMessage } from "../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 
 // The record a page to a custom channel is about, with the words its push would carry.
 interface CustomChannelPagedRecord {
@@ -1667,9 +1669,13 @@ export class Service extends ProjectReferencesService<Model> {
       notificationRuleItem.userEmail?.email &&
       !notificationRuleItem.userEmail?.isVerified
     ) {
-      // create an error log.
+      // create an error log, naming the method so its row shows which.
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Email notification not sent because email ${notificationRuleItem.userEmail?.email.toString()} is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.Email,
+        address: notificationRuleItem.userEmail.email.toString(),
+      });
+      logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -1919,9 +1925,13 @@ export class Service extends ProjectReferencesService<Model> {
       notificationRuleItem.userSms?.phone &&
       !notificationRuleItem.userSms?.isVerified
     ) {
-      // create a log.
+      // create a log, naming the method so its row shows which.
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `SMS not sent because phone ${notificationRuleItem.userSms?.phone.toString()} is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.SMS,
+        address: notificationRuleItem.userSms.phone.toString(),
+      });
+      logTimelineItem.userSmsId = notificationRuleItem.userSms.id!;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -2146,7 +2156,10 @@ export class Service extends ProjectReferencesService<Model> {
       !notificationRuleItem.userWhatsApp?.isVerified
     ) {
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `WhatsApp message not sent because phone ${notificationRuleItem.userWhatsApp?.phone.toString()} is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.WhatsApp,
+        address: notificationRuleItem.userWhatsApp.phone.toString(),
+      });
       logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
 
       await UserOnCallLogTimelineService.create({
@@ -2397,7 +2410,9 @@ export class Service extends ProjectReferencesService<Model> {
       !notificationRuleItem.userTelegram?.isVerified
     ) {
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Telegram message not sent because the Telegram account is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.Telegram,
+      });
       logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
 
       await UserOnCallLogTimelineService.create({
@@ -2439,7 +2454,9 @@ export class Service extends ProjectReferencesService<Model> {
       !notificationRuleItem.userSlack?.isVerified
     ) {
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Slack message not sent because the Slack account is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.Slack,
+      });
       logTimelineItem.userSlackId = notificationRuleItem.userSlack.id!;
 
       await UserOnCallLogTimelineService.create({
@@ -2482,7 +2499,9 @@ export class Service extends ProjectReferencesService<Model> {
       !notificationRuleItem.userMicrosoftTeams?.isVerified
     ) {
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Microsoft Teams message not sent because the Microsoft Teams account is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.MicrosoftTeams,
+      });
       logTimelineItem.userMicrosoftTeamsId =
         notificationRuleItem.userMicrosoftTeams.id!;
 
@@ -2525,7 +2544,9 @@ export class Service extends ProjectReferencesService<Model> {
       !notificationRuleItem.userMattermost?.isVerified
     ) {
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Mattermost message not sent because the Mattermost account is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.Mattermost,
+      });
       logTimelineItem.userMattermostId =
         notificationRuleItem.userMattermost.id!;
 
@@ -2970,9 +2991,13 @@ export class Service extends ProjectReferencesService<Model> {
       notificationRuleItem.userCall?.phone &&
       !notificationRuleItem.userCall?.isVerified
     ) {
-      // create a log.
+      // create a log, naming the method so its row shows which.
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Call not sent because phone ${notificationRuleItem.userCall?.phone.toString()} is not verified.`;
+      logTimelineItem.statusMessage = getOnCallTestPageNotVerifiedMessage({
+        channel: OnCallPageChannel.Call,
+        address: notificationRuleItem.userCall.phone.toString(),
+      });
+      logTimelineItem.userCallId = notificationRuleItem.userCall.id!;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
