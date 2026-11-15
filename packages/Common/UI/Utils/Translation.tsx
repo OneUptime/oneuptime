@@ -6,6 +6,7 @@ import {
   TermOptions,
   Translator,
 } from "./TranslateTemplate";
+import { composedWordsOf } from "../../Types/ComposedWords";
 import { withMeaningKeyAsItsWord } from "../../Types/MeaningKeys";
 import { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,6 +67,19 @@ const useTranslateValue: () => UseTranslateValueResult =
     const language: string =
       i18n?.resolvedLanguage || i18n?.language || DEFAULT_LANGUAGE;
 
+    // The language's own wording of a key, with no other reading of it.
+    const lookUpOwnWording: (key: string) => string | undefined = (
+      key: string,
+    ): string | undefined => {
+      const wording: unknown = t(key, {
+        defaultValue: key,
+        keySeparator: false,
+        nsSeparator: false,
+      });
+
+      return typeof wording === "string" ? wording : undefined;
+    };
+
     const translateString: (value: string | undefined) => string | undefined = (
       value: string | undefined,
     ): string | undefined => {
@@ -80,12 +94,25 @@ const useTranslateValue: () => UseTranslateValueResult =
       if (typeof translated !== "string") {
         return value;
       }
-      /*
-       * A key that names its meaning, with no wording of its own here -
-       * English's "View (database object)" - reads as its word, "View"
-       * (MeaningKeys): a column's title, a filter's or a pill's text alike.
-       */
       if (translated === value) {
+        /*
+         * Words built in code from a name ("Find One Incident", a record
+         * step's setting): the sentence they were built from, as the
+         * language words it (ComposedWords, #8642). A form field's label
+         * reads its title this way.
+         */
+        if (composedWordsOf(value)) {
+          return (
+            createTranslator(lookUpOwnWording, language).translateText(value) ||
+            value
+          );
+        }
+
+        /*
+         * A key that names its meaning, with no wording of its own here -
+         * English's "View (database object)" - reads as its word, "View"
+         * (MeaningKeys): a column's title, a filter's or a pill's text alike.
+         */
         return withMeaningKeyAsItsWord(value);
       }
       return translated;

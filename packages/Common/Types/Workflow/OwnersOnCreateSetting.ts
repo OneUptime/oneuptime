@@ -3,6 +3,7 @@ import {
   OWNER_USERS_ON_CREATE_KEY,
   takesOwnersOnCreate,
 } from "../Database/OwnersOnCreate";
+import { translationKey } from "../Translator";
 import { Argument, ComponentInputType } from "./Component";
 
 /*
@@ -35,10 +36,42 @@ export const OWNER_TEAMS_ARGUMENT_ID: string = OWNER_TEAMS_ON_CREATE_KEY;
 // The most of each one step hands over: a list longer than this was pasted by mistake.
 export const MAX_OWNERS_ON_CREATE: number = 50;
 
-// What a record of each table is called in the settings' words.
-const NOUNS: Record<string, string> = {
-  Incident: "incident",
-  Alert: "alert",
+interface OwnersOnCreateWords {
+  users: string;
+  teams: string;
+}
+
+/*
+ * What each setting's help says, for each table: written out whole, so the
+ * locales word each sentence for its own record (#8642).
+ */
+const WORDS: Record<string, OwnersOnCreateWords> = {
+  Incident: {
+    users: translationKey(
+      "People who own the incident, told it was created. Pick people of this project, or use a user's ID or email address from an earlier step.",
+    ),
+    teams: translationKey(
+      "Teams who own the incident: each member is told it was created. Pick teams, or use a team's ID from an earlier step.",
+    ),
+  },
+  Alert: {
+    users: translationKey(
+      "People who own the alert, told it was created. Pick people of this project, or use a user's ID or email address from an earlier step.",
+    ),
+    teams: translationKey(
+      "Teams who own the alert: each member is told it was created. Pick teams, or use a team's ID from an earlier step.",
+    ),
+  },
+};
+
+// A table that takes owners and has no words of its own yet.
+const RECORD_WORDS: OwnersOnCreateWords = {
+  users: translationKey(
+    "People who own the record, told it was created. Pick people of this project, or use a user's ID or email address from an earlier step.",
+  ),
+  teams: translationKey(
+    "Teams who own the record: each member is told it was created. Pick teams, or use a team's ID from an earlier step.",
+  ),
 };
 
 type GetOwnersOnCreateArgumentsFunction = (
@@ -53,22 +86,22 @@ export const getOwnersOnCreateArguments: GetOwnersOnCreateArgumentsFunction = (
     return [];
   }
 
-  const noun: string = NOUNS[tableName!] || "record";
+  const words: OwnersOnCreateWords = WORDS[tableName!] || RECORD_WORDS;
 
   return [
     {
       id: OWNER_USERS_ARGUMENT_ID,
-      name: "Owner Users",
+      name: translationKey("Owner Users"),
       type: ComponentInputType.UserList,
       required: false,
-      description: `People who own the ${noun}, told it was created. Pick people of this project, or use a user's ID or email address from an earlier step.`,
+      description: words.users,
     },
     {
       id: OWNER_TEAMS_ARGUMENT_ID,
-      name: "Owner Teams",
+      name: translationKey("Owner Teams"),
       type: ComponentInputType.TeamList,
       required: false,
-      description: `Teams who own the ${noun}: each member is told it was created. Pick teams, or use a team's ID from an earlier step.`,
+      description: words.teams,
     },
   ];
 };
