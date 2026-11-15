@@ -4,6 +4,9 @@ import {
   MaintenanceEventWords,
   SAYS_A_MAINTENANCE_EVENT,
   SAYS_MAINTENANCE,
+  SAYS_SCHEDULED_MAINTENANCE,
+  SCHEDULED_MAINTENANCE_NAMES,
+  ScheduledMaintenanceName,
   droppedMaintenanceWordIn,
 } from "./MaintenanceEventWords";
 import { describe, expect, test } from "@jest/globals";
@@ -35,6 +38,16 @@ import path from "path";
  * Every string the product writes is held here: the Dashboard, the status
  * page, the Admin Dashboard, the docs navigation and the server's (whose
  * "Maintenance Event" row title #8083 worded as each Dashboard does).
+ *
+ * None of them names a maintenance event in English any more: three
+ * Dashboard strings no code looked up were still English in 11 to 13
+ * languages, and are gone (#8163).
+ *
+ * And the product has one name in each language, the Dashboard's
+ * "Scheduled Maintenance" (#8169): the Italian, Japanese, Portuguese,
+ * Russian and Swedish status pages and subscriber emails, the Hindi
+ * emails and a few Dashboard strings gave it another
+ * (SCHEDULED_MAINTENANCE_NAMES).
  */
 
 const APP_DIR: string = path.resolve(__dirname, "../../FeatureSet");
@@ -95,9 +108,9 @@ interface Pair {
 
 /*
  * Each string of a language with its English, for the strings the language
- * has translated. A string still in English is not translated yet, which is
- * a different gap (#7639's follow-up): it never names the record in another
- * word.
+ * has translated. A string still in English never names the record in
+ * another word; "no string that names a maintenance event is left in
+ * English" holds that none does (#8163).
  */
 function pairs(app: string, language: string): Array<Pair> {
   const english: Strings | null = stringsOf(app, "en");
@@ -120,6 +133,38 @@ function pairs(app: string, language: string): Array<Pair> {
   }
 
   return result;
+}
+
+// The keys whose English says what `says` matches and the language left in English.
+function leftInEnglish(
+  english: Strings,
+  translated: Strings,
+  says: RegExp,
+): Array<string> {
+  const left: Array<string> = [];
+
+  for (const [key, text] of english) {
+    if (says.test(text) && translated.get(key) === text) {
+      left.push(key);
+    }
+  }
+
+  return left;
+}
+
+function stillEnglish(
+  app: string,
+  language: string,
+  says: RegExp,
+): Array<string> {
+  const english: Strings | null = stringsOf(app, "en");
+  const translated: Strings | null = stringsOf(app, language);
+
+  if (!english || !translated) {
+    return [];
+  }
+
+  return leftInEnglish(english, translated, says);
 }
 
 const TRANSLATED: Array<string> = Object.keys(MAINTENANCE_EVENT_WORDS).filter(
@@ -191,7 +236,56 @@ describe("a maintenance event is called by its Dashboard word", () => {
         }).toEqual({ app, language, problems: [] });
       },
     );
+
+    test.each(TRANSLATED)(
+      `%s: no ${app} string that names a maintenance event is left in English`,
+      (language: string) => {
+        expect({
+          app,
+          language,
+          inEnglish: stillEnglish(app, language, SAYS_A_MAINTENANCE_EVENT),
+        }).toEqual({ app, language, inEnglish: [] });
+      },
+    );
   }
+
+  test("the strings no code looked up are gone from every Dashboard locale (#8163)", () => {
+    const gone: ReadonlyArray<string> = [
+      "Maintenance Event Reminders",
+      "Remind owners of maintenance events every 30 minutes until completed",
+      "Generate maintenance event notes automatically",
+    ];
+
+    for (const language of ["en", ...TRANSLATED]) {
+      const dashboard: Strings = stringsOf("Dashboard", language)!;
+
+      expect({
+        language,
+        left: gone.filter((key: string): boolean => {
+          return dashboard.has(key);
+        }),
+      }).toEqual({ language, left: [] });
+    }
+  });
+
+  test("a string left in English is found (control)", () => {
+    const english: Strings = new Map([
+      ["Maintenance Event Reminders", "Maintenance Event Reminders"],
+      ["Maintenance Events", "Maintenance Events"],
+    ]);
+    const translated: Strings = new Map([
+      ["Maintenance Event Reminders", "Maintenance Event Reminders"],
+      ["Maintenance Events", "Wartungsereignisse"],
+    ]);
+
+    expect(
+      leftInEnglish(english, translated, SAYS_A_MAINTENANCE_EVENT),
+    ).toEqual(["Maintenance Event Reminders"]);
+    // A key the language has no entry for is a different file's gap.
+    expect(leftInEnglish(english, new Map(), SAYS_A_MAINTENANCE_EVENT)).toEqual(
+      [],
+    );
+  });
 
   test("the strings the issue found say the record now", () => {
     const forms: string =
@@ -299,7 +393,7 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
     );
   }
 
-  test("Maintenance Details and the product say the one word", () => {
+  test("Danish, Korean, Hindi and Persian: Maintenance Details and the product are pinned", () => {
     const expected: Record<string, [string, string]> = {
       da: ["Detaljer om vedligeholdelse", "Planlagt vedligeholdelse"],
       ko: ["유지 관리 세부 정보", "예정된 유지 관리"],
@@ -309,26 +403,12 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
 
     for (const [language, [details, product]] of Object.entries(expected)) {
       const dashboard: Strings = stringsOf("Dashboard", language)!;
-      const statusPage: Strings = stringsOf("Status Page", language)!;
 
       expect({
         language,
         details: dashboard.get("Maintenance Details"),
         product: dashboard.get("Scheduled Maintenance"),
-        menu: dashboard.get("navbar.items.scheduledMaintenanceTitle"),
-        // The status page names the product as the Dashboard does (#6817).
-        statusPage: [
-          statusPage.get("scheduledEvents.title"),
-          statusPage.get("scheduledEvents.scheduledMaintenance"),
-          statusPage.get("uptimeHistory.scheduledMaintenance"),
-        ],
-      }).toEqual({
-        language,
-        details,
-        product,
-        menu: product,
-        statusPage: [product, product, product],
-      });
+      }).toEqual({ language, details, product });
     }
   });
 
@@ -396,6 +476,401 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
     expect(SAYS_MAINTENANCE.test("'maintenance' is planned")).toBe(false);
     expect(SAYS_MAINTENANCE.test("{{label}}, {{maintenance}}")).toBe(false);
     expect(SAYS_MAINTENANCE.test("In maintenance")).toBe(true);
+  });
+});
+
+/*
+ * THE PRODUCT HAS THE DASHBOARD'S NAME ON EVERY SCREEN AND IN EVERY EMAIL
+ * (#8169).
+ *
+ * The Italian, Japanese, Portuguese, Russian and Swedish status pages
+ * headed the uptime strip and named an event's type with a second name
+ * for the product ("Manutenzione pianificata", "予定されたメンテナンス"),
+ * under a page title that said the Dashboard's, and their subscriber
+ * emails and chat messages said it in every subject ("[Planerat underhåll]
+ * Database upgrade"), as the Hindi ones did. A few Dashboard strings did
+ * too ("Kalenderflöde för planerat underhåll", "плановые работы").
+ */
+const EVERY_LANGUAGE: Array<string> = Object.keys(SCHEDULED_MAINTENANCE_NAMES);
+
+const NAMED_OTHERWISE: Array<string> = EVERY_LANGUAGE.filter(
+  (language: string): boolean => {
+    return SCHEDULED_MAINTENANCE_NAMES[language]!.otherName !== undefined;
+  },
+);
+
+/*
+ * The apps whose every string that names the product says its name. A
+ * Dashboard sentence may name it by its words, as Spanish "Las próximas
+ * ventanas de mantenimiento programadas" does, so the Dashboard is held
+ * only to never naming it otherwise.
+ */
+const APPS_THAT_SAY_THE_NAME: ReadonlyArray<string> = [
+  "Status Page",
+  "Admin Dashboard",
+  "Docs navigation",
+  "Server",
+];
+
+/*
+ * The server's update subjects, which most languages word as "maintenance
+ * update" ("[Wartungs-Update] {{title}}"): the word for maintenance is
+ * enough there.
+ */
+const SERVER_UPDATE_SUBJECTS: ReadonlyArray<string> = [
+  "[Scheduled Maintenance Update] {{title}}",
+  "[Update Scheduled Maintenance] {{title}}",
+  "[Scheduled Maintenance Note Updated] {{title}}",
+];
+
+// Why a translated string that names the product names it wrongly, if it does.
+function productNameProblem(
+  app: string,
+  language: string,
+  pair: Pair,
+): string | null {
+  const words: ScheduledMaintenanceName =
+    SCHEDULED_MAINTENANCE_NAMES[language]!;
+
+  if (!SAYS_SCHEDULED_MAINTENANCE.test(pair.english)) {
+    return null;
+  }
+
+  if (words.otherName?.test(pair.translation)) {
+    return "names the product another way";
+  }
+
+  if (
+    !APPS_THAT_SAY_THE_NAME.includes(app) ||
+    words.name.test(pair.translation)
+  ) {
+    return null;
+  }
+
+  if (
+    app === "Server" &&
+    SERVER_UPDATE_SUBJECTS.includes(pair.key) &&
+    words.maintenance.test(pair.translation)
+  ) {
+    return null;
+  }
+
+  return "does not say the product's name";
+}
+
+function productNameProblems(
+  app: string,
+  language: string,
+): Array<{ key: string; translation: string; why: string }> {
+  const problems: Array<{ key: string; translation: string; why: string }> = [];
+
+  for (const pair of pairs(app, language)) {
+    const why: string | null = productNameProblem(app, language, pair);
+
+    if (why) {
+      problems.push({ key: pair.key, translation: pair.translation, why });
+    }
+  }
+
+  return problems;
+}
+
+// The Dashboard's "Scheduled Maintenance": the product's name in a language.
+function productName(language: string): string {
+  return stringsOf("Dashboard", language)!.get("Scheduled Maintenance")!;
+}
+
+describe("the product has the Dashboard's name on every screen and in every email", () => {
+  test.each(EVERY_LANGUAGE)(
+    "%s: Maintenance Details and the product say the one word",
+    (language: string) => {
+      const words: ScheduledMaintenanceName =
+        SCHEDULED_MAINTENANCE_NAMES[language]!;
+      const dashboard: Strings = stringsOf("Dashboard", language)!;
+      const product: string = productName(language);
+
+      expect({
+        language,
+        product: words.name.test(product),
+        details: words.maintenance.test(dashboard.get("Maintenance Details")!),
+        maintenance: words.maintenance.test(dashboard.get("Maintenance")!),
+        inProduct: words.maintenance.test(product),
+        menu: dashboard.get("navbar.items.scheduledMaintenanceTitle"),
+      }).toEqual({
+        language,
+        product: true,
+        details: true,
+        maintenance: true,
+        inProduct: true,
+        menu: product,
+      });
+    },
+  );
+
+  test.each(EVERY_LANGUAGE)(
+    "%s: the status page, the Admin Dashboard and the docs navigation name the product as the Dashboard does",
+    (language: string) => {
+      const product: string = productName(language);
+      const statusPage: Strings = stringsOf("Status Page", language)!;
+      const docsNavigation: Strings | null = stringsOf(
+        "Docs navigation",
+        language,
+      );
+      // The uptime strip's heading and legend is sentence case in English.
+      const sentenceCase: string =
+        language === "en"
+          ? product.charAt(0) + product.slice(1).toLowerCase()
+          : product;
+
+      expect({
+        language,
+        statusPage: {
+          menu: statusPage.get("nav.scheduledEvents"),
+          overview: statusPage.get("overview.scheduledMaintenanceEvents"),
+          title: statusPage.get("scheduledEvents.title"),
+          // An event page's type (ScheduledEvent/Detail.tsx).
+          eventType: statusPage.get("scheduledEvents.scheduledMaintenance"),
+          // The uptime strip's heading and legend (MonitorOverview.tsx).
+          uptimeStrip: statusPage.get("uptimeHistory.scheduledMaintenance"),
+        },
+        adminDashboard: stringsOf("Admin Dashboard", language)!.get(
+          "Scheduled Maintenance",
+        ),
+        docsNavigation: docsNavigation
+          ? docsNavigation.get("navGroups.Scheduled Maintenance")
+          : product,
+      }).toEqual({
+        language,
+        statusPage: {
+          menu: product,
+          overview: product,
+          title: product,
+          eventType: product,
+          uptimeStrip: sentenceCase,
+        },
+        adminDashboard: product,
+        docsNavigation: product,
+      });
+    },
+  );
+
+  for (const app of Object.keys(LOCALE_DIRS)) {
+    const languages: Array<string> = APPS_THAT_SAY_THE_NAME.includes(app)
+      ? TRANSLATED
+      : NAMED_OTHERWISE;
+    const rule: string = APPS_THAT_SAY_THE_NAME.includes(app)
+      ? "says its name"
+      : "never names it another way";
+
+    test.each(languages)(
+      `%s: every ${app} string that names the product ${rule}`,
+      (language: string) => {
+        expect({
+          app,
+          language,
+          problems: productNameProblems(app, language),
+        }).toEqual({ app, language, problems: [] });
+      },
+    );
+  }
+
+  test("the strings the issue found say the Dashboard's name now", () => {
+    const expected: Record<string, string> = {
+      it: "Manutenzione programmata",
+      ja: "定期メンテナンス",
+      pt: "Manutenção programada",
+      ru: "Плановое обслуживание",
+      sv: "Schemalagt underhåll",
+    };
+
+    for (const [language, product] of Object.entries(expected)) {
+      const statusPage: Strings = stringsOf("Status Page", language)!;
+      const server: Strings = stringsOf("Server", language)!;
+
+      expect({
+        language,
+        dashboard: productName(language),
+        eventType: statusPage.get("scheduledEvents.scheduledMaintenance"),
+        uptimeStrip: statusPage.get("uptimeHistory.scheduledMaintenance"),
+        subject: server.get("[Scheduled Maintenance] {{title}}"),
+      }).toEqual({
+        language,
+        dashboard: product,
+        eventType: product,
+        uptimeStrip: product,
+        subject: `[${product}] {{title}}`,
+      });
+    }
+
+    expect(
+      stringsOf("Server", "hi")!.get("[Scheduled Maintenance] {{title}}"),
+    ).toBe("[अनुसूचित रखरखाव] {{title}}");
+    expect(
+      stringsOf("Server", "sv")!.get(
+        "Scheduled Maintenance State Update - {{statusPageName}}",
+      ),
+    ).toBe("Ny status för schemalagt underhåll - {{statusPageName}}");
+    expect(
+      stringsOf("Server", "ru")!.get(
+        "Scheduled Maintenance Update - {{statusPageName}}",
+      ),
+    ).toBe("Обновление планового обслуживания - {{statusPageName}}");
+    expect(
+      stringsOf("Status Page", "ru")!.get(
+        "scheduledEvents.calendar.subscribeTitle",
+      ),
+    ).toBe("Подписка на плановое обслуживание");
+    expect(
+      stringsOf("Dashboard", "sv")!.get("Scheduled Maintenance Calendar Feed"),
+    ).toBe("Kalenderflöde för schemalagt underhåll");
+    expect(
+      stringsOf("Dashboard", "it")!.get(
+        "Archived Scheduled Maintenance States",
+      ),
+    ).toBe("Stati di manutenzione programmata archiviati");
+  });
+
+  test("the names are told apart (control)", () => {
+    for (const language of EVERY_LANGUAGE) {
+      const words: ScheduledMaintenanceName =
+        SCHEDULED_MAINTENANCE_NAMES[language]!;
+
+      expect({
+        language,
+        otherNameIsTheName:
+          words.otherName?.test(productName(language)) ?? false,
+      }).toEqual({ language, otherNameIsTheName: false });
+    }
+
+    const oldNames: Array<[string, string]> = [
+      ["it", "Manutenzione pianificata"],
+      ["it", "Cambio di stato di una manutenzione pianificata"],
+      ["ja", "予定されたメンテナンス"],
+      ["ja", "計画メンテナンスを購読"],
+      ["pt", "Manutenção agendada"],
+      ["ru", "Запланированное обслуживание"],
+      ["ru", "Подписка на плановые работы"],
+      ["ru", "Пользовательские поля планового техобслуживания"],
+      ["sv", "Planerat underhåll"],
+      ["sv", "Få den här sidans planerade underhåll i din kalenderapp."],
+      ["hi", "निर्धारित रखरखाव"],
+      ["hi", "शेड्यूल किए गए रखरखाव के लिए निगरानी रुकी हुई है"],
+      ["zh-TW", "訂閱排定的維護"],
+    ];
+
+    for (const [language, oldName] of oldNames) {
+      expect({
+        language,
+        oldName,
+        found: SCHEDULED_MAINTENANCE_NAMES[language]!.otherName!.test(oldName),
+      }).toEqual({ language, oldName, found: true });
+    }
+
+    // The English names the product: as a name, in a sentence, in a role.
+    expect(SAYS_SCHEDULED_MAINTENANCE.test("Scheduled Maintenance")).toBe(true);
+    expect(
+      SAYS_SCHEDULED_MAINTENANCE.test("Subscribe to scheduled maintenance"),
+    ).toBe(true);
+    // Planned maintenance is no name of the product, nor is a metric's name.
+    expect(
+      SAYS_SCHEDULED_MAINTENANCE.test("Azure published planned maintenance."),
+    ).toBe(false);
+    expect(
+      SAYS_SCHEDULED_MAINTENANCE.test(
+        "oneuptime.scheduled-maintenance.measurement.<key>",
+      ),
+    ).toBe(false);
+
+    const pair: (english: string, translation: string) => Pair = (
+      english: string,
+      translation: string,
+    ): Pair => {
+      return { key: english, english, translation };
+    };
+
+    expect(
+      productNameProblem(
+        "Dashboard",
+        "sv",
+        pair(
+          "Subscribe to scheduled maintenance",
+          "Prenumerera på planerat underhåll",
+        ),
+      ),
+    ).toBe("names the product another way");
+    expect(
+      productNameProblem(
+        "Dashboard",
+        "sv",
+        pair(
+          "e.g., Planned maintenance on Saturday",
+          "t.ex. Planerat underhåll på lördag",
+        ),
+      ),
+    ).toBeNull();
+    // A Dashboard sentence may name the product by its words...
+    expect(
+      productNameProblem(
+        "Dashboard",
+        "es",
+        pair(
+          "The next scheduled maintenance windows, soonest first.",
+          "Las próximas ventanas de mantenimiento programadas, primero las más cercanas.",
+        ),
+      ),
+    ).toBeNull();
+    // ...a status page string says its name.
+    expect(
+      productNameProblem(
+        "Status Page",
+        "es",
+        pair(
+          "Subscribe to scheduled maintenance",
+          "Suscribirse a las ventanas de mantenimiento",
+        ),
+      ),
+    ).toBe("does not say the product's name");
+    // The server's update subjects need only the word for maintenance.
+    expect(
+      productNameProblem("Server", "de", {
+        key: "[Scheduled Maintenance Update] {{title}}",
+        english: "[Scheduled Maintenance Update] {{title}}",
+        translation: "[Wartungs-Update] {{title}}",
+      }),
+    ).toBeNull();
+    expect(
+      productNameProblem("Server", "de", {
+        key: "[Scheduled Maintenance] {{title}}",
+        english: "[Scheduled Maintenance] {{title}}",
+        translation: "[Wartung] {{title}}",
+      }),
+    ).toBe("does not say the product's name");
+    expect(
+      productNameProblem("Server", "sv", {
+        key: "[Scheduled Maintenance Update] {{title}}",
+        english: "[Scheduled Maintenance Update] {{title}}",
+        translation: "[Uppdatering om planerat underhåll] {{title}}",
+      }),
+    ).toBe("names the product another way");
+    // Inflected, the name is still the name.
+    expect(
+      SCHEDULED_MAINTENANCE_NAMES["ru"]!.name.test(
+        "Изменение статуса планового обслуживания",
+      ),
+    ).toBe(true);
+    expect(
+      SCHEDULED_MAINTENANCE_NAMES["de"]!.name.test(
+        "Neuer Status einer geplanten Wartung",
+      ),
+    ).toBe(true);
+    expect(
+      SCHEDULED_MAINTENANCE_NAMES["ar"]!.name.test("وصيانتها المجدولة"),
+    ).toBe(true);
+    expect(
+      SCHEDULED_MAINTENANCE_NAMES["fa"]!.name.test(
+        "تعمیر و نگهداری‌های زمان‌بندی‌شده",
+      ),
+    ).toBe(true);
   });
 });
 
