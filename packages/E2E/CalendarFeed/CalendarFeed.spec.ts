@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The on-call calendar feed cards, end to end in a browser, against the
@@ -1026,4 +1027,19 @@ test.describe("the empty state", () => {
       });
     }
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese, Persian and Russian whole, parsed on every page load of
+ * every test. English is in the bundle now, and each other language a chunk
+ * of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa", "ru"],
+  address: (language: string): string => {
+    return `/?state=google${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });

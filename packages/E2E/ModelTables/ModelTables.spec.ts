@@ -2,6 +2,7 @@ import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Tables (ModelTable -> BaseModelTable -> Table) in real Chromium, against
@@ -5359,4 +5360,18 @@ test.describe("a member who may read none of a list", () => {
 
     await screenshot(page, "no-access-monitors-390-de-dark");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? INCIDENTS : `${INCIDENTS}?lang=${language}`;
+  },
 });

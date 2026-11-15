@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The shared buttons, dialogs and cards, drawn by the production components
@@ -2374,4 +2375,19 @@ test.describe("on a touch screen the size of a tablet", () => {
       expect(row).toMatchObject({ titleWhole: true, hintShown: false });
     }
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese, Persian and Chinese whole, parsed on every page load of
+ * every test. English is in the bundle now, and each other language a chunk
+ * of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa", "zh-CN"],
+  address: (language: string): string => {
+    return `${ROUTE}?section=buttons${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });
