@@ -15,8 +15,10 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import MeasurementBackfillProgress, {
+  isExactTimestampOf,
   MeasurementBackfillCursor,
   MeasurementBackfillProgressWrite,
+  MeasurementBackfillStoredCursor,
 } from "Common/Server/Utils/Measurement/MeasurementBackfillProgress";
 import MeasurementBackfillPage, {
   MeasurementBackfillPageAfter,
@@ -49,7 +51,9 @@ import MeasurementBackfillPage, {
  *      alone, read from inclusively (#8171): when more than a page of
  *      entities shared one - every row one transaction inserts gets the
  *      same now() - each page was the same page, and the walk stalled there
- *      for good, the measurement never finished.
+ *      for good, the measurement never finished. Its createdAt is kept to
+ *      the microsecond, as Postgres keeps the entity's (#8388), so it places
+ *      the next page exactly even once its entity is deleted for good.
  *
  * And one keeps it right when a measurement is edited while it is walked:
  * every write of a walk - each page's cursor and the completion stamp - is
@@ -78,6 +82,14 @@ interface MeasurementBackfillState {
 interface DomainBackfill {
   domain: string;
   findMeasurements: () => Promise<Array<MeasurementBackfillState>>;
+  /*
+   * The cursors these measurements hold, each createdAt to the microsecond
+   * (MeasurementBackfillProgress.readExactCursors): findMeasurements reads
+   * it through TypeORM, to the millisecond.
+   */
+  readExactCursors: (
+    measurementIds: Array<ObjectID>,
+  ) => Promise<Map<string, MeasurementBackfillStoredCursor>>;
   /*
    * Writes how far a walk got, while the measurement's request is still the
    * one the walk began from: false when it was asked for again (or removed)
@@ -153,6 +165,14 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
+      readExactCursors: async (
+        measurementIds: Array<ObjectID>,
+      ): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+        return await MeasurementBackfillProgress.readExactCursors({
+          service: IncidentMeasurementService,
+          measurementIds: measurementIds,
+        });
+      },
       saveProgress: async (
         data: MeasurementBackfillProgressWrite,
       ): Promise<boolean> => {
@@ -196,6 +216,14 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           skip: 0,
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
+      },
+      readExactCursors: async (
+        measurementIds: Array<ObjectID>,
+      ): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+        return await MeasurementBackfillProgress.readExactCursors({
+          service: AlertMeasurementService,
+          measurementIds: measurementIds,
+        });
       },
       saveProgress: async (
         data: MeasurementBackfillProgressWrite,
@@ -241,6 +269,14 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
+      readExactCursors: async (
+        measurementIds: Array<ObjectID>,
+      ): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+        return await MeasurementBackfillProgress.readExactCursors({
+          service: ScheduledMaintenanceMeasurementService,
+          measurementIds: measurementIds,
+        });
+      },
       saveProgress: async (
         data: MeasurementBackfillProgressWrite,
       ): Promise<boolean> => {
@@ -275,37 +311,22 @@ const runDomain: RunDomainFunction = async (
   domain: DomainBackfill,
 ): Promise<void> => {
   try {
-    const measurements: Array<MeasurementBackfillState> =
-      await domain.findMeasurements();
+    const measurements: Array<MeasurementBackfillState> = (
+      await domain.findMeasurements()
+    ).filter(isStillToWalk);
+
+    const exactCursors: Map<string, MeasurementBackfillStoredCursor> =
+      await readExactCursorsOf({
+        domain: domain,
+        measurements: measurements,
+      });
 
     for (const measurement of measurements) {
-      /*
-       * A row read without its request has nothing to hold the walk's
-       * writes to: written anyway, they could land over an edit's.
-       */
-      if (
-        !measurement._id ||
-        !measurement.projectId ||
-        !measurement.backfillRequestedAt
-      ) {
-        continue;
-      }
-
-      /*
-       * A definition edited mid-backfill re-stamps backfillRequestedAt and
-       * clears the cursor, so comparing the two is what stops a finished run
-       * from being redone on every tick while still catching a re-request.
-       */
-      if (
-        measurement.backfillCompletedAt &&
-        measurement.backfillRequestedAt &&
-        OneUptimeDate.fromString(measurement.backfillCompletedAt).getTime() >=
-          OneUptimeDate.fromString(measurement.backfillRequestedAt).getTime()
-      ) {
-        continue;
-      }
-
-      await runMeasurement({ domain: domain, measurement: measurement });
+      await runMeasurement({
+        domain: domain,
+        measurement: measurement,
+        storedCursor: exactCursors.get(measurement._id!.toString()),
+      });
     }
   } catch (err) {
     logger.error(`Measurement:Backfill failed for ${domain.domain}`);
@@ -313,14 +334,87 @@ const runDomain: RunDomainFunction = async (
   }
 };
 
+type IsStillToWalkFunction = (measurement: MeasurementBackfillState) => boolean;
+
+const isStillToWalk: IsStillToWalkFunction = (
+  measurement: MeasurementBackfillState,
+): boolean => {
+  /*
+   * A row read without its request has nothing to hold the walk's writes
+   * to: written anyway, they could land over an edit's.
+   */
+  if (
+    !measurement._id ||
+    !measurement.projectId ||
+    !measurement.backfillRequestedAt
+  ) {
+    return false;
+  }
+
+  /*
+   * A definition edited mid-backfill re-stamps backfillRequestedAt and
+   * clears the cursor, so comparing the two is what stops a finished run
+   * from being redone on every tick while still catching a re-request.
+   */
+  return !(
+    measurement.backfillCompletedAt &&
+    OneUptimeDate.fromString(measurement.backfillCompletedAt).getTime() >=
+      OneUptimeDate.fromString(measurement.backfillRequestedAt).getTime()
+  );
+};
+
+type ReadExactCursorsOfFunction = (data: {
+  domain: DomainBackfill;
+  measurements: Array<MeasurementBackfillState>;
+}) => Promise<Map<string, MeasurementBackfillStoredCursor>>;
+
+/*
+ * The cursors of the measurements to walk, to the microsecond (#8388), in
+ * one read: only those holding a cursor with both its columns. Should the
+ * read fail, each walk goes on from its cursor as findMeasurements read it,
+ * to the millisecond, as it did before: a few records read again at worst,
+ * never a walk left undone.
+ */
+const readExactCursorsOf: ReadExactCursorsOfFunction = async (data: {
+  domain: DomainBackfill;
+  measurements: Array<MeasurementBackfillState>;
+}): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+  const measurementIds: Array<ObjectID> = data.measurements
+    .filter((measurement: MeasurementBackfillState): boolean => {
+      return Boolean(
+        measurement.backfillCursorCreatedAt && measurement.backfillCursorId,
+      );
+    })
+    .map((measurement: MeasurementBackfillState): ObjectID => {
+      return measurement._id!;
+    });
+
+  if (measurementIds.length === 0) {
+    return new Map<string, MeasurementBackfillStoredCursor>();
+  }
+
+  try {
+    return await data.domain.readExactCursors(measurementIds);
+  } catch (err) {
+    logger.warn(
+      `Measurement:Backfill could not read the ${data.domain.domain} measurements' cursors to the microsecond; their walks go on from the cursors to the millisecond`,
+    );
+    logger.warn(err);
+
+    return new Map<string, MeasurementBackfillStoredCursor>();
+  }
+};
+
 type RunMeasurementFunction = (data: {
   domain: DomainBackfill;
   measurement: MeasurementBackfillState;
+  storedCursor?: MeasurementBackfillStoredCursor | undefined;
 }) => Promise<void>;
 
 const runMeasurement: RunMeasurementFunction = async (data: {
   domain: DomainBackfill;
   measurement: MeasurementBackfillState;
+  storedCursor?: MeasurementBackfillStoredCursor | undefined;
 }): Promise<void> => {
   const { domain, measurement } = data;
 
@@ -340,14 +434,15 @@ const runMeasurement: RunMeasurementFunction = async (data: {
    */
   let cursor: MeasurementBackfillPageAfter | undefined =
     measurement.backfillCursorCreatedAt
-      ? {
+      ? getStartingCursor({
           createdAt: OneUptimeDate.fromString(
             measurement.backfillCursorCreatedAt,
           ),
           id: measurement.backfillCursorId
             ? new ObjectID(measurement.backfillCursorId.toString())
             : undefined,
-        }
+          stored: data.storedCursor,
+        })
       : undefined;
 
   for (let page: number = 0; page < MAX_PAGES_PER_RUN; page++) {
@@ -408,6 +503,39 @@ const runMeasurement: RunMeasurementFunction = async (data: {
       return;
     }
   }
+};
+
+type GetStartingCursorFunction = (data: {
+  createdAt: Date;
+  id?: ObjectID | undefined;
+  stored?: MeasurementBackfillStoredCursor | undefined;
+}) => MeasurementBackfillPageAfter;
+
+/*
+ * The cursor a walk starts after, as findMeasurements read it, with its
+ * createdAt to the microsecond when the cursor read so (readExactCursors) is
+ * that same cursor: the same entity, the same millisecond. Another - the
+ * cursor moved on or was cleared between the two reads - is not mixed in:
+ * one entity's createdAt with another's id would start the walk in the
+ * wrong place. The walk then goes on from the millisecond, as before #8388.
+ */
+const getStartingCursor: GetStartingCursorFunction = (data: {
+  createdAt: Date;
+  id?: ObjectID | undefined;
+  stored?: MeasurementBackfillStoredCursor | undefined;
+}): MeasurementBackfillPageAfter => {
+  const isSameCursor: boolean = Boolean(
+    data.id &&
+      data.stored &&
+      data.stored.id === data.id.toString().toLowerCase() &&
+      isExactTimestampOf(data.stored.exactCreatedAt, data.createdAt),
+  );
+
+  return {
+    createdAt: data.createdAt,
+    exactCreatedAt: isSameCursor ? data.stored!.exactCreatedAt : undefined,
+    id: data.id,
+  };
 };
 
 type LogAskedForAgainFunction = (data: {

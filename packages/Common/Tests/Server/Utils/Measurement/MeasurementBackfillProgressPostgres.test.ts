@@ -9,6 +9,7 @@ import logger from "../../../../Server/Utils/Logger";
 import MeasurementBackfillProgress, {
   MeasurementBackfillCursor,
   MeasurementBackfillProgressWrite,
+  MeasurementBackfillService,
 } from "../../../../Server/Utils/Measurement/MeasurementBackfillProgress";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -755,5 +756,219 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         cursor: CURSOR,
       }),
     ).resolves.toBe(false);
+  });
+
+  /*
+   * #8388. The cursor's createdAt is written to the microsecond, as the
+   * record has it, and read back so: cut to the millisecond, a cursor whose
+   * record was deleted for good stood for it badly, and the next page read
+   * again every record created in that millisecond before it.
+   */
+  describe("a cursor to the microsecond", () => {
+    const EXACT_CURSOR: MeasurementBackfillCursor = {
+      createdAt: new Date("2026-06-01T09:00:00.123Z"),
+      exactCreatedAt: "2026-06-01T09:00:00.123456Z",
+      id: new ObjectID("33333333-3333-4333-8333-333333333333"),
+    };
+
+    // What Postgres keeps of a measurement's cursor, to the microsecond (UTC).
+    async function storedExactly(id: ObjectID): Promise<string | null> {
+      const rows: Array<{ exactly: string | null }> = await database.query(
+        `SELECT to_char("backfillCursorCreatedAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "exactly" FROM "IncidentMeasurement" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      return rows[0]!.exactly;
+    }
+
+    test.each([
+      "2026-06-01T09:00:00.123456Z",
+      "2026-06-01T09:00:00.123000Z",
+      "2026-06-01T09:00:00.123999Z",
+      "2026-06-01T09:00:00.123001Z",
+    ])(
+      "is written as the timestamp its text names, %s, exactly",
+      async (exactCreatedAt: string) => {
+        const id: ObjectID = await insertMeasurement();
+
+        await expect(
+          save({
+            measurementId: id,
+            requestedAt: await readRequest(id),
+            cursor: { ...EXACT_CURSOR, exactCreatedAt: exactCreatedAt },
+          }),
+        ).resolves.toBe(true);
+
+        expect(await storedExactly(id)).toBe(exactCreatedAt);
+        // A read through TypeORM still gives its millisecond.
+        expect(
+          (await readBackfill(id)).backfillCursorCreatedAt?.toISOString(),
+        ).toBe(EXACT_CURSOR.createdAt.toISOString());
+      },
+    );
+
+    test("is read back to the microsecond, by measurement id, beside its id, for every measurement asked in one statement", async () => {
+      const first: ObjectID = await insertMeasurement();
+      const second: ObjectID = await insertMeasurement();
+      const noCursor: ObjectID = await insertMeasurement();
+      const legacy: ObjectID = await insertMeasurement();
+
+      await save({
+        measurementId: first,
+        requestedAt: await readRequest(first),
+        cursor: EXACT_CURSOR,
+      });
+      await save({
+        measurementId: second,
+        requestedAt: await readRequest(second),
+        cursor: {
+          createdAt: new Date("2026-06-02T09:00:00.999Z"),
+          exactCreatedAt: "2026-06-02T09:00:00.999999Z",
+          id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+        },
+      });
+      // Saved before the walk kept an id (#8171): the createdAt alone.
+      await database.query(
+        `UPDATE "IncidentMeasurement" SET "backfillCursorCreatedAt" = $2 WHERE "_id" = $1`,
+        [legacy.toString(), new Date("2026-06-03T09:00:00.000Z")],
+      );
+
+      const queries: Array<string> = [];
+      const counted: DatabaseService<IncidentMeasurement> = service;
+      const query: (
+        sql: string,
+        parameters?: Array<unknown>,
+      ) => Promise<unknown> = database.manager.query.bind(database.manager);
+      jest.spyOn(counted, "getRepository").mockReturnValue({
+        manager: {
+          query: async (
+            sql: string,
+            parameters?: Array<unknown>,
+          ): Promise<unknown> => {
+            queries.push(sql);
+            return await query(sql, parameters);
+          },
+        },
+      } as never);
+
+      const cursors: Map<string, { id: string; exactCreatedAt: string }> =
+        await MeasurementBackfillProgress.readExactCursors({
+          service: counted,
+          measurementIds: [
+            first,
+            second,
+            noCursor,
+            legacy,
+            ObjectID.generate(),
+          ],
+        });
+
+      expect(queries).toHaveLength(1);
+      expect(Object.fromEntries(cursors.entries())).toEqual({
+        [first.toString()]: {
+          id: EXACT_CURSOR.id.toString(),
+          exactCreatedAt: "2026-06-01T09:00:00.123456Z",
+        },
+        [second.toString()]: {
+          id: "44444444-4444-4444-8444-444444444444",
+          exactCreatedAt: "2026-06-02T09:00:00.999999Z",
+        },
+      });
+    });
+
+    test("is written and read back the same in a session whose zone is not UTC", async () => {
+      const id: ObjectID = await insertMeasurement();
+      const requestedAt: Date = await readRequest(id);
+      const runner: QueryRunner = database.createQueryRunner();
+      await runner.connect();
+
+      try {
+        await runner.startTransaction();
+        await runner.query(`SET LOCAL TimeZone = 'Asia/Kolkata'`);
+
+        // The statements on that one session.
+        const onTheSession: MeasurementBackfillService = {
+          getModel: (): { tableName: string } => {
+            return { tableName: "IncidentMeasurement" };
+          },
+          getRepository: () => {
+            return {
+              manager: {
+                query: async (
+                  sql: string,
+                  parameters?: Array<unknown>,
+                ): Promise<unknown> => {
+                  return await runner.query(sql, parameters);
+                },
+              },
+            };
+          },
+        };
+
+        await expect(
+          MeasurementBackfillProgress.save({
+            service: onTheSession,
+            write: {
+              measurementId: id,
+              requestedAt: requestedAt,
+              cursor: EXACT_CURSOR,
+            },
+          }),
+        ).resolves.toBe(true);
+
+        expect(
+          (
+            await MeasurementBackfillProgress.readExactCursors({
+              service: onTheSession,
+              measurementIds: [id],
+            })
+          ).get(id.toString())?.exactCreatedAt,
+        ).toBe("2026-06-01T09:00:00.123456Z");
+
+        await runner.commitTransaction();
+      } finally {
+        await runner.release();
+      }
+
+      expect(await storedExactly(id)).toBe("2026-06-01T09:00:00.123456Z");
+    });
+
+    test("a cursor written from a Date reads back with whole milliseconds", async () => {
+      const id: ObjectID = await insertMeasurement();
+
+      await save({
+        measurementId: id,
+        requestedAt: await readRequest(id),
+        cursor: { createdAt: EXACT_CURSOR.createdAt, id: EXACT_CURSOR.id },
+      });
+
+      expect(
+        (
+          await MeasurementBackfillProgress.readExactCursors({
+            service: service,
+            measurementIds: [id],
+          })
+        ).get(id.toString()),
+      ).toEqual({
+        id: EXACT_CURSOR.id.toString(),
+        exactCreatedAt: "2026-06-01T09:00:00.123000Z",
+      });
+    });
+
+    test("an edit made since still refuses the write: the cursor to the microsecond is held to the request like any other", async () => {
+      const id: ObjectID = await insertMeasurement();
+      const requestedAt: Date = await readRequest(id);
+
+      await edit(id, new Date("2026-07-01T00:02:00.000Z"));
+
+      await expect(
+        save({
+          measurementId: id,
+          requestedAt: requestedAt,
+          cursor: EXACT_CURSOR,
+        }),
+      ).resolves.toBe(false);
+      expect(await storedExactly(id)).toBeNull();
+    });
   });
 });
