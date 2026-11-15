@@ -157,8 +157,8 @@ Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 
 
 :::steps
 1. 连接您自己的 Microsoft Teams 账户（请参阅 [连接 Microsoft Teams](#连接-microsoft-teams) ）。
-2. 前往 **用户设置** > **通知方式**，打开 **工作区应用** 标签页，然后点击 **Add Microsoft Teams Account**。
-3. 在其所在行点击 **Send Test Message**。消息会发送到您的 Microsoft Teams 聊天。
+2. 前往 **用户设置** > **通知方式**，打开 **工作区应用** 标签页，然后点击 **添加 Microsoft Teams 账户**。
+3. 在其所在行点击 **发送测试消息**。消息会发送到您的 Microsoft Teams 聊天。
 :::
 
 添加后，它会立即加入您的值班规则，因此从那时起呼叫会通过 Microsoft Teams 送达您。在 **用户设置** > **如何联系我** 中更改它接收哪些呼叫。

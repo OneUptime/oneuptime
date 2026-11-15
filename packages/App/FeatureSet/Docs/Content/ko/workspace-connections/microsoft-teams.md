@@ -157,8 +157,8 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 :::steps
 1. 자신의 Microsoft Teams 계정을 연결합니다 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조).
-2. **사용자 설정** > **알림 방법** 으로 이동해 **워크스페이스 앱** 탭을 열고 **Add Microsoft Teams Account** 를 클릭합니다.
-3. 해당 행에서 **Send Test Message** 를 클릭합니다. Microsoft Teams 채팅으로 메시지가 도착합니다.
+2. **사용자 설정** > **알림 방법** 으로 이동해 **워크스페이스 앱** 탭을 열고 **Microsoft Teams 계정 추가** 를 클릭합니다.
+3. 해당 행에서 **테스트 메시지 보내기** 를 클릭합니다. Microsoft Teams 채팅으로 메시지가 도착합니다.
 :::
 
 추가하면 바로 온콜 규칙에 포함되므로, 그때부터 호출이 Microsoft Teams 로 옵니다. 어떤 호출을 받을지는 **사용자 설정** > **나에게 연락하는 방법** 에서 변경합니다.

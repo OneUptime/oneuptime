@@ -44,7 +44,7 @@ Per il resto uno SLO di richieste funziona come qualsiasi altro. Il suo stato, l
 :::steps
 ### Aprire gli SLO
 
-Apri **SLOs** dal menu **Prodotti** nella barra in alto e fai clic su **Crea: Service Level Objective**.
+Apri **SLOs** dal menu **Prodotti** nella barra in alto e fai clic su **Crea: Obiettivo del livello di servizio**.
 
 ### Scegliere cosa misura
 
@@ -52,14 +52,14 @@ In **Cosa misura**, scegli **Successo delle richieste** o **Latenza delle richie
 
 ### Dargli un nome e fissare un obiettivo
 
-Inserisci un **Nome**, per esempio «Checkout requests», e un **Obiettivo (%)**: la quota di richieste che devono essere buone. Fai clic su **Crea: Service Level Objective**.
+Inserisci un **Nome**, per esempio «Checkout requests», e un **Obiettivo (%)**: la quota di richieste che devono essere buone. Fai clic su **Crea: Obiettivo del livello di servizio**.
 
 ### Vedere arrivare i primi numeri
 
 La prima valutazione, entro 5 minuti, conta le richieste delle ultime 6 ore, così lo SLO ha subito dei numeri. Le valutazioni successive contano anche le richieste più vecchie, finché la finestra di conformità non è coperta.
 :::
 
-La pagina **SLOs** di un servizio elenca gli SLO che lo misurano, e il suo **Crea: Service Level Objective** apre lo stesso modulo con il servizio già scelto. Per cambiare in seguito cosa misura uno SLO, i suoi servizi o la sua soglia, apri le sue **Impostazioni** e fai clic su **Modifica cosa misura**.
+La pagina **SLOs** di un servizio elenca gli SLO che lo misurano, e il suo **Crea: Obiettivo del livello di servizio** apre lo stesso modulo con il servizio già scelto. Per cambiare in seguito cosa misura uno SLO, i suoi servizi o la sua soglia, apri le sue **Impostazioni** e fai clic su **Modifica cosa misura**.
 
 ## Come si contano le richieste
 

@@ -157,8 +157,8 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Micro
 
 :::steps
 1. Koppel je eigen Microsoft Teams-account (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)).
-2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Werkruimte-apps** en klik op **Add Microsoft Teams Account**.
-3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan in je chats in Microsoft Teams.
+2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Werkruimte-apps** en klik op **Microsoft Teams-account toevoegen**.
+3. Klik op **Testbericht versturen** in de rij ervan. Het bericht komt aan in je chats in Microsoft Teams.
 :::
 
 Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Microsoft Teams. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**.

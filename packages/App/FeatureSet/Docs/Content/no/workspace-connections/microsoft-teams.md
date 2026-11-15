@@ -157,8 +157,8 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Microsoft 
 
 :::steps
 1. Koble til din egen Microsoft Teams-konto (se [Koble til Microsoft Teams](#koble-til-microsoft-teams)).
-2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Add Microsoft Teams Account**.
-3. Klikk på **Send Test Message** i raden. Meldingen kommer i chattene dine i Microsoft Teams.
+2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Microsoft Teams-konto**.
+3. Klikk på **Send testmelding** i raden. Meldingen kommer i chattene dine i Microsoft Teams.
 :::
 
 Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Microsoft Teams fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**.
