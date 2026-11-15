@@ -14,6 +14,7 @@ import CloudCostRecommendation from "../../../../Models/DatabaseModels/CloudCost
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../../Models/DatabaseModels/Index";
 import NetworkDeviceDiscoveryImport from "../../../../Models/DatabaseModels/NetworkDeviceDiscoveryImport";
+import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventConnectionRun from "../../../../Models/DatabaseModels/SecurityEventConnectionRun";
 import ToolImportRun from "../../../../Models/DatabaseModels/ToolImportRun";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
@@ -36,11 +37,14 @@ import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../../Types/BaseDatabase/GreaterThanOrEqual";
 import GreaterThanOrNull from "../../../../Types/BaseDatabase/GreaterThanOrNull";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import QueryOperator from "../../../../Types/BaseDatabase/QueryOperator";
+import Search from "../../../../Types/BaseDatabase/Search";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { CLOUD_SAVINGS_SOURCE_ONEUPTIME } from "../../../../Types/Cloud/CloudRightSizing";
 import { JSONObject } from "../../../../Types/JSON";
@@ -61,6 +65,9 @@ import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
  * security-event stale-run check (runs idle over 20 minutes), the tool
  * import and discovery import sweeps, and the cloud-savings cleanup. Until
  * #8200 each bound its Date as the day alone, and was off by up to a day.
+ * And each comparison nested under a relation, through the join: a run
+ * filtered by its connection's lastPolledAt (#8378), which until then
+ * reached TypeORM unserialized and was refused.
  *
  * The process runs in Asia/Kolkata and every Postgres session in
  * America/New_York, so neither zone can stand in for the other: a bound is
@@ -92,6 +99,7 @@ const SESSION_TIME_ZONE: string = "America/New_York";
 
 const MODELS: Array<{ new (): BaseModel }> = [
   SecurityEventConnectionRun,
+  SecurityEventConnection,
   ToolImportRun,
   NetworkDeviceDiscoveryImport,
   CloudCostRecommendation,
@@ -446,6 +454,151 @@ describePostgres("date comparisons on Postgres", () => {
     test("a day written as text is still the day, as before", async () => {
       // Read in the session's zone, as Postgres always read the day cut.
       expect(await found(new LessThan("2026-11-15"))).toEqual(["a day before"]);
+    });
+
+    /*
+     * #8378: each comparison on the related record's column, nested under
+     * the relation - a run filtered by when its connection was last polled.
+     * TypeORM joins the connection and applies to the joined column what
+     * QueryUtil wrote. Until #8378 the operator reached TypeORM as the
+     * class itself, bound as its JSON, and Postgres refused the read.
+     */
+    describe("nested under a relation, through the join (#8378)", () => {
+      const nestedProjectId: string = ObjectID.generate().toString();
+      // A run's id, to the name of the row its connection was polled at.
+      const runs: Map<string, string> = new Map<string, string>();
+
+      beforeEach(async () => {
+        runs.clear();
+
+        let interval: number = 0;
+
+        for (const [name, lastPolledAt] of Object.entries(ROWS)) {
+          interval++;
+
+          const connectionId: string = await insert(SecurityEventConnection, {
+            projectId: nestedProjectId,
+            name: name,
+            lastPolledAt: lastPolledAt,
+            pollIntervalInMinutes: interval,
+          });
+
+          runs.set(
+            await insert(SecurityEventConnectionRun, {
+              projectId: nestedProjectId,
+              status: "completed",
+              securityEventConnectionId: connectionId,
+            }),
+            name,
+          );
+        }
+      });
+
+      // The runs whose connection the filter holds, by the name of its row.
+      async function runsWhoseConnection(
+        filter: Record<string, unknown>,
+      ): Promise<Array<string>> {
+        const where: Query<SecurityEventConnectionRun> =
+          QueryUtil.serializeQuery(SecurityEventConnectionRun, {
+            projectId: nestedProjectId,
+            securityEventConnection: filter,
+          } as unknown as Query<SecurityEventConnectionRun>);
+
+        const found: Array<SecurityEventConnectionRun> = await database
+          .getRepository(SecurityEventConnectionRun)
+          .find({
+            select: { _id: true },
+            where:
+              where as unknown as FindOptionsWhere<SecurityEventConnectionRun>,
+          });
+
+        return found
+          .map((run: SecurityEventConnectionRun): string => {
+            return runs.get(run._id!)!;
+          })
+          .sort();
+      }
+
+      test("as it was: the operator handed to TypeORM as the class is refused by Postgres", async () => {
+        await expect(
+          database.getRepository(SecurityEventConnectionRun).find({
+            select: { _id: true },
+            where: {
+              projectId: nestedProjectId,
+              securityEventConnection: { lastPolledAt: new LessThan(BOUND) },
+            } as unknown as FindOptionsWhere<SecurityEventConnectionRun>,
+          }),
+        ).rejects.toThrow(
+          /invalid input syntax for type timestamp with time zone/,
+        );
+      });
+
+      test.each(CASES)(
+        "$name finds the runs whose connection it holds, minutes and milliseconds apart",
+        async (item: ComparisonCase) => {
+          expect(
+            await runsWhoseConnection({ lastPolledAt: item.create(BOUND) }),
+          ).toEqual([...item.rows].sort());
+        },
+      );
+
+      test.each(CASES)(
+        "$name, sent by a browser (its Date as JSON), finds the same runs",
+        async (item: ComparisonCase) => {
+          const wire: JSONObject = JSON.parse(
+            JSON.stringify(
+              JSONFunctions.serialize({
+                securityEventConnection: { lastPolledAt: item.create(BOUND) },
+              } as unknown as JSONObject),
+            ),
+          ) as JSONObject;
+
+          expect(
+            await runsWhoseConnection(
+              JSONFunctions.deserialize(wire)[
+                "securityEventConnection"
+              ] as Record<string, unknown>,
+            ),
+          ).toEqual([...item.rows].sort());
+        },
+      );
+
+      test("a number, a list, a null check and a search on the related record, beside one another", async () => {
+        // Polled every 1 to 7 minutes, in the order of ROWS.
+        expect(
+          await runsWhoseConnection({
+            pollIntervalInMinutes: new GreaterThan(5),
+          }),
+        ).toEqual(["5 minutes after", "no value"]);
+
+        expect(
+          await runsWhoseConnection({
+            name: new Includes(["at the bound", "a day before"]),
+          }),
+        ).toEqual(["a day before", "at the bound"]);
+
+        expect(
+          await runsWhoseConnection({ lastPolledAt: new IsNull() }),
+        ).toEqual(["no value"]);
+
+        expect(
+          await runsWhoseConnection({ name: new Search("millisecond") }),
+        ).toEqual(["a millisecond after", "a millisecond before"]);
+
+        expect(
+          await runsWhoseConnection({
+            lastPolledAt: new LessThan(BOUND),
+            pollIntervalInMinutes: new GreaterThan(1),
+            name: new NotEqual("a millisecond before"),
+          }),
+        ).toEqual(["25 minutes before"]);
+      });
+
+      test("a plain value under the relation is compared as before", async () => {
+        expect(await runsWhoseConnection({ name: "at the bound" })).toEqual([
+          "at the bound",
+        ]);
+      });
     });
   });
 
