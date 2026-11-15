@@ -257,7 +257,7 @@ Svaret på en filfråga är filerna så som de sparades, var och en med sin `fil
 
 ### Arbetsflöden
 
-Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Maintenance Event** för att agera på det som ett formulär har skapat.
+Formulär har de genererade arbetsflödeskomponenterna: **Vid skapande: Formulär**, **Vid uppdatering: Formulär** och så vidare. Använd **Vid skapande: Incident** eller **Vid skapande: Underhållshändelse** för att agera på det som ett formulär har skapat.
 
 ### Den offentliga sidans egna slutpunkter
 

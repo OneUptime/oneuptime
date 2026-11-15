@@ -48,7 +48,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 - **En SLO:s förbrukningstakt.** En regel för förbrukningstakt kan skapa ett larm när en SLO förbrukar sin felbudget för snabbt. Se [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts).
 - **Nätverksplatser och säkerhetshändelser.** En nätverksplats som är inställd på att larma när den är ohälsosam öppnar ett larm när dess sammanfattning inte längre är i drift, och dina detekteringsregler för säkerhetshändelser öppnar också larm. Se [Nätverksplatser (hälsosammanfattning och upptid)](/docs/monitor/network-sites) och [Säkerhetshändelser (SIEM)](/docs/telemetry/security-events).
 - **Ett larmanrop.** `/oneuptime page` i Slack eller Microsoft Teams, överallt utom i en incidents eller ett larms egen kanal, öppnar ett larm med ditt meddelande som titel och larmar personerna du nämner. Larmblocken i ett arbetsflöde gör samma sak med titeln och meddelandet du ger dem. Se [Larma någon från Slack](/docs/workspace-connections/slack#larma-någon-från-slack) och [Paging](/docs/workflows/components#paging).
-- **API:et, Terraform och arbetsflöden.** Larm är en vanlig resurs: `/api/alert`, Terraform-resursen `oneuptime_alert` och steget **Create One Alert** i ett arbetsflöde.
+- **API:et, Terraform och arbetsflöden.** Larm är en vanlig resurs: `/api/alert`, Terraform-resursen `oneuptime_alert` och steget **Skapa Larm (en post)** i ett arbetsflöde.
 
 ## Var larm finns i instrumentpanelen
 
@@ -104,9 +104,9 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 7. **Grupperingsregler lägger det i en episod**, när en av dem matchar. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes).
 8. **Påminnelser schemaläggs**, när en påminnelseregel matchar, och **OneUptime AI** utreder larmet när **Utred nya larm** är påslaget under **Larm → AI → Inställningar**, och åtgärdar det när **Åtgärda nya larm automatiskt** är påslaget. Se [AI SRE](/docs/ai/ai-sre).
 
-Ett bakgrundsjobb meddelar larmets ägare ungefär en minut efter att det skapats, alla ägare det har då, och arbetsflödesutlösaren **On Create Alert** startar alla arbetsflöden som bygger på den.
+Ett bakgrundsjobb meddelar larmets ägare ungefär en minut efter att det skapats, alla ägare det har då, och arbetsflödesutlösaren **Vid skapande: Larm** startar alla arbetsflöden som bygger på den.
 
-För att göra personer och team till larmets ägare redan när det skapas, så att den här aviseringen når dem och inte Projektägare, lämnar du dem med när det skapas: via API:t skickar du deras id:n i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i ett arbetsflöde väljer du dem under **Ägaranvändare** och **Ägarteam** i **Create One Alert**; via MCP skickar du `ownerUsers` och `ownerTeams` till `create_alert`. En begäran vars avsändare inte får lägga till de ägarna avvisas innan något sparas. Ägare som en separat begäran lägger till efter att larmet skapats får bara veta om det om de läggs till inom den minuten.
+För att göra personer och team till larmets ägare redan när det skapas, så att den här aviseringen når dem och inte Projektägare, lämnar du dem med när det skapas: via API:t skickar du deras id:n i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i ett arbetsflöde väljer du dem under **Ägaranvändare** och **Ägarteam** i **Skapa Larm (en post)**; via MCP skickar du `ownerUsers` och `ownerTeams` till `create_alert`. En begäran vars avsändare inte får lägga till de ägarna avvisas innan något sparas. Ägare som en separat begäran lägger till efter att larmet skapats får bara veta om det om de läggs till inom den minuten.
 
 ### Skapat redan bekräftat eller löst
 

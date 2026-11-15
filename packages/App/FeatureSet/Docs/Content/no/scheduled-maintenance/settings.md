@@ -117,7 +117,7 @@ Kortet **Neste nummer** under setter nummeret den neste hendelsen får, for å f
 
 ## Arbeidsflyter
 
-Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter seg: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definisjoner av egendefinerte felt og måleverdier er unntakene: de har ingen arbeidsflyttrinn. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter seg: **Ved oppretting: Vedlikeholdshendelse**, **Ved oppdatering: Vedlikeholdshendelse**, **Ved oppretting eller oppdatering: Vedlikeholdshendelse** og **Ved sletting: Vedlikeholdshendelse**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Opprett Vedlikeholdshendelse (én post)** og **Oppdater Vedlikeholdshendelse (én post)**. Definisjoner av egendefinerte felt og måleverdier er unntakene: de har ingen arbeidsflyttrinn. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dette
 

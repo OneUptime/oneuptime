@@ -16,7 +16,7 @@
 
 ```mermaid title="Ein Arbeitsablauf, ein GitLab-Issue"
 flowchart TB
-    declared["Vorfall erklärt"] --> workflow["Arbeitsablauf:<br/>On Create Incident"]
+    declared["Vorfall erklärt"] --> workflow["Arbeitsablauf:<br/>Bei Erstellung:<br/>Vorfall"]
     workflow -->|"POST issues"| issue["GitLab-Issue"]
 ```
 
@@ -47,7 +47,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, d
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Auslöser: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallsnummer mit Präfix**.
+Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Auslöser: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallsnummer mit Präfix**.
 
 ### Das Issue öffnen
 

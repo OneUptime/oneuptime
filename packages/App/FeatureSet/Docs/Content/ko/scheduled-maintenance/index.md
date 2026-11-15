@@ -46,7 +46,7 @@ flowchart TB
 - **일정.** 반복 템플릿은 매주나 매월 같은 일정에 따라, 아무도 양식을 열지 않아도 새 이벤트를 만듭니다.
 - **양식 기능.** 제출할 때 유지 관리 이벤트를 만드는 양식은 변경 요청을 이벤트로 바꿉니다. [제출로 만들어지는 항목](/docs/forms/on-submit#제출이-유지-관리-이벤트가-되는-과정) 을 참조하세요.
 - **채팅.** Slack의 `/oneuptime maintenance` 또는 Microsoft Teams에서 OneUptime 봇에 입력한 `maintenance` 는 채팅 도구 안에서 양식을 엽니다. [Slack](/docs/workspace-connections/slack#slack-에서-인시던트와-유지-관리-만들기) 을 참조하세요.
-- **코드.** `/api/scheduled-maintenance` 의 API, Terraform 리소스 `oneuptime_scheduled_maintenance_event`, 워크플로우의 **Create One Maintenance Event** 단계입니다.
+- **코드.** `/api/scheduled-maintenance` 의 API, Terraform 리소스 `oneuptime_scheduled_maintenance_event`, 워크플로우의 **유지 관리 이벤트 1개 만들기** 단계입니다.
 
 ## 대시보드에서 유지 관리의 위치
 

@@ -15,7 +15,7 @@ OneUptime trabaja con [GitHub](https://github.com) de dos maneras. Conecta tus r
 flowchart TB
     app["La GitHub App"] --> repos["Tus repositorios,<br/>importados"]
     repos --> pr["Pull requests con<br/>correcciones de<br/>la IA de OneUptime"]
-    declared["Incidente declarado"] --> workflow["Flujo de trabajo:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> workflow["Flujo de trabajo:<br/>Al crear Incidente"]
     workflow -->|"POST issues"| issue["Issue de GitHub"]
 ```
 
@@ -62,7 +62,7 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente con prefijo**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Al crear Incidente**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente con prefijo**.
 
 ### Abrir el issue
 

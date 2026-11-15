@@ -39,7 +39,7 @@ Een blok draait als het blok ervoor de uitgang neemt die erop is aangesloten. He
 
 ```mermaid title="Een blok neemt een van zijn uitgangen"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
+    trigger["Bij aanmaken: Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
     post -->|"Succes: een 2xx-antwoord"| slack["Bericht naar Slack sturen"]
     post -->|"Fout: geen antwoord, of geen 2xx"| log["Logboek"]
 ```
@@ -223,7 +223,7 @@ Om alleen op te roepen wanneer iets waar is, zet je [If / Else](#conditions) vó
 
 ```mermaid title="Roep op wie dienst heeft, maar alleen bij kritieke incidenten"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| check["Als / Anders"]
+    trigger["Bij aanmaken: Incident"] -->|"Succes"| check["Als / Anders"]
     check -->|"Ja"| page["Wie bereikbaar is oproepen"]
 ```
 
@@ -411,7 +411,7 @@ Een record gaat alleen maar vooruit, en een opgelost record helemaal niet meer, 
 
 **Ernst** noemt een van je ernstniveaus bij naam of ID, ongeacht hoofdletters, of bij de plaats die het tussen de andere inneemt: `most severe`, `middle` of `least severe`. Zo worden de eigen niveaus van een hulpmiddel verdeeld over de ernstniveaus die je zelf hebt benoemd. Leeg gelaten, of als het er geen noemt, is het je ernstigste, en het logboek van de uitvoering zegt dat. Een nieuw incident blijft van je statuspagina's af, en hun abonnees horen er niets over, omdat de tekst van een ander hulpmiddel voor de gebruikers van dat hulpmiddel is geschreven: zet **Op statuspagina's tonen** aan om het te tonen.
 
-Onder **Meer velden** is **Reden** de reden in de geschiedenis van het record als het van toestand verandert, en wordt **Notitie** dan ernaast toegevoegd als privénotitie, voor een hulpmiddel dat iets zegt als het bevestigt of oplost. **Aangepaste velden** geeft een nieuw record meer aangepaste velden, als JSON-object, **Labels** de ID's van zijn labels, gescheiden door komma's, en **Getroffen resources** de resources waar het over gaat, zoals bij **Create One Incident**. **Notitie in plaats van oplossen** voegt de notitie toe en laat het oplossen van het record aan je team over. Het blok geeft **Samenvatting** terug, wat het deed in één zin, en het record, zodat een later blok zijn ID leest als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Onder **Meer velden** is **Reden** de reden in de geschiedenis van het record als het van toestand verandert, en wordt **Notitie** dan ernaast toegevoegd als privénotitie, voor een hulpmiddel dat iets zegt als het bevestigt of oplost. **Aangepaste velden** geeft een nieuw record meer aangepaste velden, als JSON-object, **Labels** de ID's van zijn labels, gescheiden door komma's, en **Getroffen resources** de resources waar het over gaat, zoals bij **Incident aanmaken (één record)**. **Notitie in plaats van oplossen** voegt de notitie toe en laat het oplossen van het record aan je team over. Het blok geeft **Samenvatting** terug, wat het deed in één zin, en het record, zodat een later blok zijn ID leest als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statu
 
 | Component                | Wat het doet                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Leest één record dat met de query overeenkomt.                                 |
-| **Find Many Monitors**   | Leest een lijst records die met de query overeenkomen.                         |
-| **Create One Monitor**   | Voegt één record toe vanuit een JSON-object.                                   |
-| **Create Many Monitors** | Voegt meerdere records toe vanuit een JSON-array.                              |
-| **Update One Monitor**   | Past de schrijfgegevens toe op één overeenkomend record.                       |
-| **Update Many Monitors** | Past de schrijfgegevens toe op overeenkomende records, tot **Limiet**.          |
-| **Delete One Monitor**   | Verwijdert één overeenkomend record.                                           |
-| **Delete Many Monitors** | Verwijdert overeenkomende records, tot **Limiet**.                              |
+| **Monitor zoeken (één record)**     | Leest één record dat met de query overeenkomt.                                 |
+| **Monitoren zoeken (meerdere records)**   | Leest een lijst records die met de query overeenkomen.                         |
+| **Monitor aanmaken (één record)**   | Voegt één record toe vanuit een JSON-object.                                   |
+| **Monitoren aanmaken (meerdere records)** | Voegt meerdere records toe vanuit een JSON-array.                              |
+| **Monitor bijwerken (één record)**   | Past de schrijfgegevens toe op één overeenkomend record.                       |
+| **Monitoren bijwerken (meerdere records)** | Past de schrijfgegevens toe op overeenkomende records, tot **Limiet**.          |
+| **Monitor verwijderen (één record)**   | Verwijdert één overeenkomend record.                                           |
+| **Monitoren verwijderen (meerdere records)** | Verwijdert overeenkomende records, tot **Limiet**.                              |
 
-Dezelfde set geeft je vier triggers — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** en **On Delete Monitor**. Zie [Triggers](/docs/workflows/triggers#oneuptime-gebeurtenistriggers).
+Dezelfde set geeft je vier triggers — **Bij aanmaken: Monitor**, **Bij bijwerken: Monitor**, **Bij aanmaken of bijwerken: Monitor** en **Bij verwijderen: Monitor**. Zie [Triggers](/docs/workflows/triggers#oneuptime-gebeurtenistriggers).
 
-Een type biedt alleen de componenten die zijn model toestaat. Een alleen-lezentype heeft de twee Find-componenten en verder niets, dus als je **Delete One Monitor** niet in het paneel vindt, staat dat type het niet toe.
+Een type biedt alleen de componenten die zijn model toestaat. Een alleen-lezentype heeft de twee Find-componenten en verder niets, dus als je **Monitor verwijderen (één record)** niet in het paneel vindt, staat dat type het niet toe.
 
-Zo leest en wijzigt een workflow OneUptime-gegevens. Een webhook van je CI-tool kan bijvoorbeeld **Create One Incident** gebruiken om een incident te openen met de details van de fout.
+Zo leest en wijzigt een workflow OneUptime-gegevens. Een webhook van je CI-tool kan bijvoorbeeld **Incident aanmaken (één record)** gebruiken om een incident te openen met de details van de fout.
 
 Deze componenten handelen als Projectbeheerder van het project van de workflow: wat een Projectbeheerder niet mag, of wat je abonnement niet bevat, wordt geweigerd, en het logboek van de uitvoering zegt waarom. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 
 ### Een incident melden vanuit een sjabloon
 
-**Create One Incident** kan het incident melden vanuit een van je [incidentsjablonen](/docs/incidents/settings#incidentsjablonen): kies het onder **Incidentsjabloon**, de eerste instelling van de stap. Het sjabloon vult elk veld in dat **JSON-object** weglaat — de titel, de beschrijving, de ernst, de begintoestand, de monitoren en andere resources, het bereikbaarheidsbeleid, de labels, de statuspagina's en de aangepaste velden — en de eigenaren ervan worden de eigenaren van het incident. Alles wat je in **JSON-object** instelt, gaat voor op het sjabloon, toestand inbegrepen, dus met een gekozen sjabloon hoeft **JSON-object** alleen te bevatten wat moet afwijken, en mag het leeg blijven.
+**Incident aanmaken (één record)** kan het incident melden vanuit een van je [incidentsjablonen](/docs/incidents/settings#incidentsjablonen): kies het onder **Incidentsjabloon**, de eerste instelling van de stap. Het sjabloon vult elk veld in dat **JSON-object** weglaat — de titel, de beschrijving, de ernst, de begintoestand, de monitoren en andere resources, het bereikbaarheidsbeleid, de labels, de statuspagina's en de aangepaste velden — en de eigenaren ervan worden de eigenaren van het incident. Alles wat je in **JSON-object** instelt, gaat voor op het sjabloon, toestand inbegrepen, dus met een gekozen sjabloon hoeft **JSON-object** alleen te bevatten wat moet afwijken, en mag het leeg blijven.
 
 Het incident legt het sjabloon waarvan het is gemeld vast in `createdIncidentTemplateId`. Die kolom stelt OneUptime zelf in: een stap die hem in **JSON-object** meestuurt, wordt geweigerd, en het logboek van de uitvoering verwijst je naar **Incidentsjabloon**. Een sjabloon uit een ander project, of een dat is verwijderd, laat de stap zijn uitgang **Fout** nemen, en op een abonnement zonder incidentsjablonen wordt de stap geweigerd met het abonnement dat nodig is. Zie [Hoe een sjabloon wordt toegepast](/docs/incidents/settings#hoe-een-sjabloon-wordt-toegepast).
 
 ### De middelen koppelen waar het om gaat
 
-**Create One Incident** en **Create One Alert** hebben een instelling **Getroffen resources**: de hosts, netwerkapparaten, clusters, databases of services waar het record over gaat, op naam, adres of ID, gescheiden door komma's — ingetypt of overgenomen uit een eerdere stap, zoals de host die een waarschuwing uit een andere tool noemt. Elke vermelding wordt gezocht in elke soort middel die het record kan bevatten, als hele waarde en zonder op hoofdletters te letten: op naam, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, een host op de naam die zijn agent meldt of op een van zijn IP-adressen, en een cloudresource op de ID van de provider. Elk middel waarop een vermelding past, wordt gekoppeld, naast wat **JSON-object** en het sjabloon al koppelen, tot 50 uit de eerste 25 vermeldingen.
+**Incident aanmaken (één record)** en **Waarschuwing aanmaken (één record)** hebben een instelling **Getroffen resources**: de hosts, netwerkapparaten, clusters, databases of services waar het record over gaat, op naam, adres of ID, gescheiden door komma's — ingetypt of overgenomen uit een eerdere stap, zoals de host die een waarschuwing uit een andere tool noemt. Elke vermelding wordt gezocht in elke soort middel die het record kan bevatten, als hele waarde en zonder op hoofdletters te letten: op naam, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, een host op de naam die zijn agent meldt of op een van zijn IP-adressen, en een cloudresource op de ID van de provider. Elk middel waarop een vermelding past, wordt gekoppeld, naast wat **JSON-object** en het sjabloon al koppelen, tot 50 uit de eerste 25 vermeldingen.
 
 Een vermelding die nergens op past, houdt de stap niet tegen: het record wordt toch gemaakt, en het logboek van de uitvoering zegt wat elke vermelding koppelde en welke nergens op pasten. Gearchiveerde middelen worden niet gekoppeld. Monitoren worden niet opgezocht: noem ze in **JSON-object** (`monitors` bij een incident, `monitorId` bij een waarschuwing), omdat een monitor aan een incident koppelen zijn bewaking pauzeert.
 
 ### Wie het vanaf het begin bezit
 
-**Create One Incident** en **Create One Alert** hebben de instellingen **Eigenaarsgebruikers** en **Eigenaarsteams**: de personen en teams die het record bezitten vanaf het moment dat het wordt gemaakt. Kies ze, of neem ze over uit een eerdere stap: de id of het e-mailadres van een gebruiker, de id van een team, meerdere gescheiden door komma's, of een lijst. De eigenaren van het record horen ongeveer een minuut na het aanmaken dat het is gemaakt, iedere eigenaar die het dan heeft: wie je hier kiest, hoort er altijd bij, terwijl eigenaren die een latere stap toevoegt het missen zodra die stap meer dan een minuut later draait, en in hun plaats de Projecteigenaren worden ingelicht.
+**Incident aanmaken (één record)** en **Waarschuwing aanmaken (één record)** hebben de instellingen **Eigenaarsgebruikers** en **Eigenaarsteams**: de personen en teams die het record bezitten vanaf het moment dat het wordt gemaakt. Kies ze, of neem ze over uit een eerdere stap: de id of het e-mailadres van een gebruiker, de id van een team, meerdere gescheiden door komma's, of een lijst. De eigenaren van het record horen ongeveer een minuut na het aanmaken dat het is gemaakt, iedere eigenaar die het dan heeft: wie je hier kiest, hoort er altijd bij, terwijl eigenaren die een latere stap toevoegt het missen zodra die stap meer dan een minuut later draait, en in hun plaats de Projecteigenaren worden ingelicht.
 
 De stap vraagt als Projectbeheerder van het project van de workflow of hij ze mag toevoegen, voordat het record wordt opgeslagen: eigenaren die hij niet mag toevoegen, laten het aanmaken weigeren. Wie geen lid is van het project, of een team dat niet van het project is, wordt weggelaten, en het logboek van de uitvoering zegt dat: het record wordt toch gemaakt. Eigenaren die zo zijn toegevoegd, horen niet dat ze zijn toegevoegd: de melding dat het record is gemaakt, is degene die ze krijgen.
 

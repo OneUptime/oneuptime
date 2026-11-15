@@ -13,8 +13,8 @@ Post en besked i en [Discord](https://discord.com)-kanal, når en hændelse åbn
 
 ```mermaid title="Fra hændelse til Discord-besked"
 flowchart TB
-    declared["Hændelse erklæret"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["Hændelse erklæret"] --> trigger["Ved oprettelse:<br/>Hændelse"]
+    trigger --> step["Send besked<br/>til Discord"]
     step -->|"Succes"| channel["Besked i<br/>din kanal"]
     step -->|"Fejl"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
 ```
@@ -48,11 +48,11 @@ Start fra skabelonen, der bygger hele arbejdsgangen for dig, eller fra bunden.
 3. Behold navnet **Notify Discord on new incident**, eller ændr det, og klik på **Næste**.
 4. Indsæt URL'en i **Discord Webhook URL**, og klik på **Opret arbejdsgang**.
 
-Arbejdsgangen åbner i **Bygger** med to trin: **On Create Incident** og **Send besked til Discord**, der poster hændelsens nummer, titel, alvorlighed og tilstand. URL'en gemmes som arbejdsgangens hemmelige variabel `discordWebhookUrl`.
+Arbejdsgangen åbner i **Bygger** med to trin: **Ved oprettelse: Hændelse** og **Send besked til Discord**, der poster hændelsens nummer, titel, alvorlighed og tilstand. URL'en gemmes som arbejdsgangens hemmelige variabel `discordWebhookUrl`.
 @tab Fra bunden
 1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
-3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Incident Number With Prefix**.
+3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **Ved oprettelse: Hændelse** under **Populære**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Incident Number With Prefix**.
 4. Klik på **Tilføj komponent**, søg efter `discord`, og klik på **Send besked til Discord**. Forbind triggerens udgang **Succes** til den.
 5. Klik på det nye trin. Klik i **Discord-webhook-URL til indgående beskeder** på **{ }**, og vælg `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv beskeden i **Beskedtekst**, og indsæt hændelsens felter med **{ }**.
 :::
@@ -75,7 +75,7 @@ For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og v
 
 - **Formatér med Discords Markdown.** Teksten sendes, som den er skrevet, så Discords Markdown virker i den: stjerner om et ord gør det fedt, og en URL vises som et link.
 - **Hold øje med grænsen på 2.000 tegn.** Discord tager imod beskeder på op til 2.000 tegn. En længere bliver afkortet og slutter med "… (truncated — see OneUptime for the full text)" i stedet for at blive afvist.
-- **Post mere end nye hændelser.** Byg en anden arbejdsgang på **On Update Incident** til tilstandsændringer, eller på **On Create Alert** til advarsler, med det samme trin. For kun at poste nogle hændelser sætter du en blok **Hvis / Ellers** før trinnet.
+- **Post mere end nye hændelser.** Byg en anden arbejdsgang på **Ved opdatering: Hændelse** til tilstandsændringer, eller på **Ved oprettelse: Advarsel** til advarsler, med det samme trin. For kun at poste nogle hændelser sætter du en blok **Hvis / Ellers** før trinnet.
 - **Kun Discords egne adresser.** Trinnet poster til en `https`-URL på `discord.com` eller `discordapp.com` og følger ikke omdirigeringer, så en URL, der peger andre steder hen, stopper kørslen.
 
 ## Fejlfinding

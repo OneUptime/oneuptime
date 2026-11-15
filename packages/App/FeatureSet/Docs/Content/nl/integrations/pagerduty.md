@@ -16,9 +16,9 @@ Stuur OneUptime-incidenten naar [PagerDuty](https://www.pagerduty.com). Eén wor
 
 ```mermaid title="Twee workflows, één PagerDuty-incident"
 flowchart TB
-    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>Bij aanmaken: Incident"]
     create -->|"trigger"| pd["PagerDuty-incident"]
-    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>Bij bijwerken:<br/>Incident"]
     update -->|"resolve"| pd
 ```
 
@@ -48,7 +48,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### De trigger-gebeurtenis sturen
 
@@ -82,9 +82,9 @@ Het blok stuurt JSON, dus het heeft geen `Content-Type`-header nodig. De `severi
 Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow nodig, die start wanneer de status van een incident verandert.
 
 :::steps
-### De trigger On Update Incident toevoegen
+### De trigger "Bij bijwerken: Incident" toevoegen
 
-Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
+Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **Bij bijwerken: Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

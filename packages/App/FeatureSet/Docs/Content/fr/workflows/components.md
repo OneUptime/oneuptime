@@ -39,7 +39,7 @@ Un bloc s'exécute quand le bloc qui le précède prend la sortie qui lui est re
 
 ```mermaid title="Un bloc prend l'une de ses sorties"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succès"| post["Appel d'API POST (JSON)"]
+    trigger["À la création : Incident"] -->|"Succès"| post["Appel d'API POST (JSON)"]
     post -->|"Succès : une réponse 2xx"| slack["Envoyer un message à Slack"]
     post -->|"Erreur : pas de réponse, ou pas 2xx"| log["Journal"]
 ```
@@ -223,7 +223,7 @@ Pour n'alerter que lorsqu'une condition est vraie, placez [If / Else](#condition
 
 ```mermaid title="Alerter la personne d'astreinte, mais seulement pour les incidents critiques"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succès"| check["Si / Sinon"]
+    trigger["À la création : Incident"] -->|"Succès"| check["Si / Sinon"]
     check -->|"Oui"| page["Appeler la personne d'astreinte"]
 ```
 
@@ -411,7 +411,7 @@ Un enregistrement ne fait jamais qu'avancer, et un enregistrement résolu ne bou
 
 **Gravité** désigne l'une de vos gravités par son nom ou son ID, sans tenir compte de la casse, ou par sa place parmi elles : `most severe`, `middle` ou `least severe`. C'est ainsi que les niveaux propres à un outil se répartissent sur les gravités que vous avez nommées vous-même. Laissé vide, ou s'il n'en désigne aucune, c'est votre plus grave, et le journal de l'exécution le dit. Un nouvel incident est tenu à l'écart de vos pages de statut, et leurs abonnés n'en sont pas informés, car le texte d'un autre outil est écrit pour les utilisateurs de cet outil : activez **Afficher sur les pages de statut** pour l'afficher.
 
-Sous **Plus de champs**, **Motif** est le motif dans l'historique de l'enregistrement quand il change d'état, et **Note** est alors ajoutée à côté comme note privée, pour un outil qui dit quelque chose en prenant en compte ou en résolvant. **Champs personnalisés** donne à un nouvel enregistrement d'autres champs personnalisés, sous forme d'objet JSON, **Étiquettes** les ID de ses étiquettes, séparés par des virgules, et **Ressources affectées** les ressources qu'il concerne, comme sur **Create One Incident**. **Note au lieu de résoudre** ajoute la note et laisse l'enregistrement à résoudre par votre équipe. Le bloc renvoie **Résumé**, ce qu'il a fait en une phrase, et l'enregistrement, si bien qu'un bloc suivant lit son ID comme `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Sous **Plus de champs**, **Motif** est le motif dans l'historique de l'enregistrement quand il change d'état, et **Note** est alors ajoutée à côté comme note privée, pour un outil qui dit quelque chose en prenant en compte ou en résolvant. **Champs personnalisés** donne à un nouvel enregistrement d'autres champs personnalisés, sous forme d'objet JSON, **Étiquettes** les ID de ses étiquettes, séparés par des virgules, et **Ressources affectées** les ressources qu'il concerne, comme sur **Créer : Incident (un seul)**. **Note au lieu de résoudre** ajoute la note et laisse l'enregistrement à résoudre par votre équipe. Le bloc renvoie **Résumé**, ce qu'il a fait en une phrase, et l'enregistrement, si bien qu'un bloc suivant lit son ID comme `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ Pour chaque type d'enregistrement de OneUptime (moniteurs, incidents, alertes, p
 
 | Composant                | Ce qu'il fait                                                                  |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Lit un enregistrement qui correspond à la requête.                             |
-| **Find Many Monitors**   | Lit une liste d'enregistrements qui correspondent à la requête.                |
-| **Create One Monitor**   | Ajoute un enregistrement à partir d'un objet JSON.                             |
-| **Create Many Monitors** | Ajoute plusieurs enregistrements à partir d'un tableau JSON.                   |
-| **Update One Monitor**   | Applique les données à écrire à un enregistrement correspondant.               |
-| **Update Many Monitors** | Applique les données à écrire aux enregistrements correspondants, jusqu'à **Limite**. |
-| **Delete One Monitor**   | Supprime un enregistrement correspondant.                                      |
-| **Delete Many Monitors** | Supprime les enregistrements correspondants, jusqu'à **Limite**.                |
+| **Trouver : Moniteur (un seul)**     | Lit un enregistrement qui correspond à la requête.                             |
+| **Trouver : Moniteurs (plusieurs)**   | Lit une liste d'enregistrements qui correspondent à la requête.                |
+| **Créer : Moniteur (un seul)**   | Ajoute un enregistrement à partir d'un objet JSON.                             |
+| **Créer : Moniteurs (plusieurs)** | Ajoute plusieurs enregistrements à partir d'un tableau JSON.                   |
+| **Mettre à jour : Moniteur (un seul)**   | Applique les données à écrire à un enregistrement correspondant.               |
+| **Mettre à jour : Moniteurs (plusieurs)** | Applique les données à écrire aux enregistrements correspondants, jusqu'à **Limite**. |
+| **Supprimer : Moniteur (un seul)**   | Supprime un enregistrement correspondant.                                      |
+| **Supprimer : Moniteurs (plusieurs)** | Supprime les enregistrements correspondants, jusqu'à **Limite**.                |
 
-Le même ensemble vous donne quatre déclencheurs — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** et **On Delete Monitor**. Voir [Déclencheurs](/docs/workflows/triggers#déclencheurs-dévénements-oneuptime).
+Le même ensemble vous donne quatre déclencheurs — **À la création : Moniteur**, **À la mise à jour : Moniteur**, **À la création ou à la mise à jour : Moniteur** et **À la suppression : Moniteur**. Voir [Déclencheurs](/docs/workflows/triggers#déclencheurs-dévénements-oneuptime).
 
-Un type ne propose que les composants que son modèle autorise. Un type en lecture seule n'a que les deux composants Find : si vous ne trouvez pas **Delete One Monitor** dans le panneau, c'est que ce type ne le permet pas.
+Un type ne propose que les composants que son modèle autorise. Un type en lecture seule n'a que les deux composants Find : si vous ne trouvez pas **Supprimer : Moniteur (un seul)** dans le panneau, c'est que ce type ne le permet pas.
 
-C'est ainsi qu'un flux de travail lit et modifie les données de OneUptime. Par exemple, un webhook de votre outil de CI peut utiliser **Create One Incident** pour ouvrir un incident avec les détails de l'échec.
+C'est ainsi qu'un flux de travail lit et modifie les données de OneUptime. Par exemple, un webhook de votre outil de CI peut utiliser **Créer : Incident (un seul)** pour ouvrir un incident avec les détails de l'échec.
 
 Ces composants agissent en tant qu'Administrateur du projet, dans le projet du flux de travail : ce qu'un Administrateur du projet n'a pas le droit de faire, ou ce que votre forfait n'inclut pas, est refusé, et le journal de l'exécution dit pourquoi. Voir [Ce que les étapes d'un flux de travail peuvent faire](/docs/workflows/configuration#ce-que-les-étapes-dun-flux-de-travail-peuvent-faire).
 
 ### Déclarer un incident à partir d'un modèle
 
-**Create One Incident** peut déclarer l'incident à partir de l'un de vos [modèles d'incident](/docs/incidents/settings#modèles-dincident) : choisissez-le sous **Modèle d'incident**, le premier paramètre de l'étape. Le modèle remplit tous les champs que **Objet JSON** laisse de côté — le titre, la description, la gravité, l'état initial, les moniteurs et autres ressources, les politiques d'astreinte, les étiquettes, les pages de statut et les champs personnalisés — et ses propriétaires deviennent les propriétaires de l'incident. Tout ce que vous définissez dans **Objet JSON** l'emporte sur le modèle, état compris : avec un modèle choisi, **Objet JSON** n'a besoin que de ce qui doit différer, et peut rester vide.
+**Créer : Incident (un seul)** peut déclarer l'incident à partir de l'un de vos [modèles d'incident](/docs/incidents/settings#modèles-dincident) : choisissez-le sous **Modèle d'incident**, le premier paramètre de l'étape. Le modèle remplit tous les champs que **Objet JSON** laisse de côté — le titre, la description, la gravité, l'état initial, les moniteurs et autres ressources, les politiques d'astreinte, les étiquettes, les pages de statut et les champs personnalisés — et ses propriétaires deviennent les propriétaires de l'incident. Tout ce que vous définissez dans **Objet JSON** l'emporte sur le modèle, état compris : avec un modèle choisi, **Objet JSON** n'a besoin que de ce qui doit différer, et peut rester vide.
 
 L'incident enregistre le modèle dont il a été déclaré dans `createdIncidentTemplateId`. Cette colonne est réservée à OneUptime : une étape qui l'envoie dans **Objet JSON** est refusée, et son journal d'exécution vous renvoie vers **Modèle d'incident**. Un modèle d'un autre projet, ou un modèle supprimé, fait prendre à l'étape sa sortie **Erreur**, et sur un forfait qui n'inclut pas les modèles d'incident, l'étape est refusée avec le forfait nécessaire. Voir [Comment un modèle s'applique](/docs/incidents/settings#comment-un-modèle-est-appliqué).
 
 ### Lier les ressources concernées
 
-**Create One Incident** et **Create One Alert** ont un paramètre **Ressources affectées** : les hôtes, équipements réseau, clusters, bases de données ou services que concerne l'enregistrement, par nom, adresse ou ID, séparés par des virgules — saisis, ou repris d'une étape précédente, comme l'hôte que nomme une alerte venue d'un autre outil. Chaque entrée est recherchée dans tous les types de ressources que l'enregistrement peut contenir, comme valeur entière et sans tenir compte de la casse : par nom, un équipement réseau aussi par l'adresse à laquelle il est interrogé ou par son nom DNS, un hôte par le nom que son agent signale ou par l'une de ses adresses IP, et une ressource cloud par l'ID de son fournisseur. Chaque ressource à laquelle correspond une entrée est liée, en plus de ce que **Objet JSON** et le modèle lient déjà, jusqu'à 50 à partir des 25 premières entrées.
+**Créer : Incident (un seul)** et **Créer : Alerte (un seul)** ont un paramètre **Ressources affectées** : les hôtes, équipements réseau, clusters, bases de données ou services que concerne l'enregistrement, par nom, adresse ou ID, séparés par des virgules — saisis, ou repris d'une étape précédente, comme l'hôte que nomme une alerte venue d'un autre outil. Chaque entrée est recherchée dans tous les types de ressources que l'enregistrement peut contenir, comme valeur entière et sans tenir compte de la casse : par nom, un équipement réseau aussi par l'adresse à laquelle il est interrogé ou par son nom DNS, un hôte par le nom que son agent signale ou par l'une de ses adresses IP, et une ressource cloud par l'ID de son fournisseur. Chaque ressource à laquelle correspond une entrée est liée, en plus de ce que **Objet JSON** et le modèle lient déjà, jusqu'à 50 à partir des 25 premières entrées.
 
 Une entrée qui ne correspond à rien n'arrête pas l'étape : l'enregistrement est tout de même créé, et le journal d'exécution indique ce que chaque entrée a lié et lesquelles ne correspondaient à rien. Les ressources archivées ne sont pas liées. Les moniteurs ne sont pas recherchés : nommez-les dans **Objet JSON** (`monitors` pour un incident, `monitorId` pour une alerte), car lier un moniteur à un incident met sa surveillance en pause.
 
 ### À qui il appartient dès le départ
 
-**Create One Incident** et **Create One Alert** ont les réglages **Utilisateurs propriétaires** et **Équipes propriétaires** : les personnes et les équipes à qui l'enregistrement appartient dès sa création. Choisissez-les, ou prenez-les d'une étape précédente : l'identifiant ou l'adresse e-mail d'un utilisateur, l'identifiant d'une équipe, plusieurs séparés par des virgules, ou une liste. Les propriétaires de l'enregistrement apprennent sa création environ une minute après, tous ceux qu'il a alors : ceux choisis ici en font toujours partie, tandis que les propriétaires qu'une étape ultérieure ajoute la manquent dès que cette étape s'exécute plus d'une minute après, et ce sont les Propriétaires du projet qui sont prévenus à leur place.
+**Créer : Incident (un seul)** et **Créer : Alerte (un seul)** ont les réglages **Utilisateurs propriétaires** et **Équipes propriétaires** : les personnes et les équipes à qui l'enregistrement appartient dès sa création. Choisissez-les, ou prenez-les d'une étape précédente : l'identifiant ou l'adresse e-mail d'un utilisateur, l'identifiant d'une équipe, plusieurs séparés par des virgules, ou une liste. Les propriétaires de l'enregistrement apprennent sa création environ une minute après, tous ceux qu'il a alors : ceux choisis ici en font toujours partie, tandis que les propriétaires qu'une étape ultérieure ajoute la manquent dès que cette étape s'exécute plus d'une minute après, et ce sont les Propriétaires du projet qui sont prévenus à leur place.
 
 L'étape demande si elle peut les ajouter, en tant qu'Administrateur du projet, dans le projet du flux de travail, avant que l'enregistrement soit sauvegardé : des propriétaires qu'elle n'a pas le droit d'ajouter font refuser la création. Une personne qui n'est pas membre du projet, ou une équipe qui n'est pas l'une des siennes, est laissée de côté, et le journal d'exécution le dit : l'enregistrement est tout de même créé. Les propriétaires ajoutés ainsi ne sont pas prévenus qu'ils ont été ajoutés : la notification de la création de l'enregistrement est celle qu'ils reçoivent.
 

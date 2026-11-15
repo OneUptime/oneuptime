@@ -196,7 +196,7 @@ sequenceDiagram
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | یک بلوک **API** با شناسه `lookup-user`                           | کد وضعیتش: `{{local.components.lookup-user.returnValues.response-status}}`. بدنه‌اش: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | یک بلوک **اجرای JavaScript سفارشی** با شناسه `transform`           | آنچه برگرداند: `{{local.components.transform.returnValues.returnValue}}`.              |
-| یک تریگر **On Create Incident** با شناسه `incident-on-create-1`  | عنوان حادثه: `{{local.components.incident-on-create-1.returnValues.model.title}}`. تریگرهای رکورد خود رکورد را به‌صورت `model` برمی‌گردانند، و شما درون آن می‌روید. |
+| یک تریگر **هنگام ساخت حادثه** با شناسه `incident-on-create-1`  | عنوان حادثه: `{{local.components.incident-on-create-1.returnValues.model.title}}`. تریگرهای رکورد خود رکورد را به‌صورت `model` برمی‌گردانند، و شما درون آن می‌روید. |
 
 مقدارهای بلوک فقط در طول اجرای جاری وجود دارند. هر اجرای تازه از نو شروع می‌شود.
 
@@ -239,7 +239,7 @@ sequenceDiagram
 
 1. تریگر **وب‌هوک** با شناسه `ci-webhook`.
 2. بلوک **اگر / وگرنه**: **مقدار مورد بررسی** فیلد `status` از Request Body وب‌هوک است (`{{local.components.ci-webhook.returnValues.request-body.status}}`)، **مقایسه** برابر **برابر است با** است، و **مقایسه با** برابر `failed` است.
-3. از شاخه **بله**، یک بلوک **Create One Incident** با:
+3. از شاخه **بله**، یک بلوک **ساخت یک حادثه** با:
    - عنوان: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - توضیحات: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

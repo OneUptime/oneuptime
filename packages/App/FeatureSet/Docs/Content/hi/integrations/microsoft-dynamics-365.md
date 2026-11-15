@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### हर घटना के लिए एक केस खोलें
 
 :::steps
-1. शुरू से `Incidents to Dynamics 365` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **On Create Incident** ट्रिगर जोड़ें। उसके **आगे भेजने वाले फ़ील्ड** में पहले से **शीर्षक** है: **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **घटना संख्या** चुनें। ID हमेशा आगे भेजा जाता है।
+1. शुरू से `Incidents to Dynamics 365` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **घटना बनने पर** ट्रिगर जोड़ें। उसके **आगे भेजने वाले फ़ील्ड** में पहले से **शीर्षक** है: **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **घटना संख्या** चुनें। ID हमेशा आगे भेजा जाता है।
 2. **घटक जोड़ें** पर क्लिक करें, एक **API कॉल POST (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **Identifier** `create-case` पर, और उसका **URL** `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` पर सेट करें।
 3. **और फ़ील्ड** के नीचे उसके **अनुरोध हेडर** इस पर सेट करें:
 
@@ -323,7 +323,7 @@ Dynamics 365 `severitycode` को सिर्फ़ एक विकल्प 
 इसे दूसरे वर्कफ़्लो के रूप में बनाएं, ताकि यहां की विफलता केस खुलने से कभी न रोके।
 
 :::steps
-1. **On Update Incident** ट्रिगर के साथ `Close Dynamics 365 cases` नाम का वर्कफ़्लो बनाएं। **नज़र रखने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें। **आगे भेजने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें।
+1. **घटना अपडेट होने पर** ट्रिगर के साथ `Close Dynamics 365 cases` नाम का वर्कफ़्लो बनाएं। **नज़र रखने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें। **आगे भेजने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें।
 2. एक **अगर / वरना** ब्लॉक जोड़ें: **जांचने वाला मान** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **तुलना** **सत्य है**।
 3. उसकी **हाँ** साइड के बाद एक **API कॉल GET (JSON)** ब्लॉक जोड़ें, **Identifier** `find-case`, `Prefer` के बिना वही हेडर, और यह **URL**:
 
@@ -363,7 +363,7 @@ URL ठीक वैसा ही भेजा जाता है जैसा 
    सेल्फ़-होस्टेड इंस्टॉलेशन पर URL में आपका अपना होस्ट होता है। URL को पासवर्ड की तरह रखें: जिसके पास यह है, वह वर्कफ़्लो शुरू कर सकता है। अगर यह लीक हो जाए, तो उसी जगह **URL रीसेट करें** पर क्लिक करें, और पुराना URL तुरंत काम करना बंद कर देता है।
 
 3. एक **अगर / वरना** ब्लॉक जोड़ें जो किसी भी चीज़ से पहले एक साझा सीक्रेट जांचे: **जांचने वाला मान** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **तुलना** **इसके बराबर है**, **इससे तुलना करें** आपका बनाया एक मान, जो एक सीक्रेट ग्लोबल वेरिएबल में रखा हो।
-4. उसकी **हाँ** साइड के बाद एक **Update One Incident** ब्लॉक जोड़ें। उसकी **क्वेरी** को `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` पर, और उसके **डेटा (JSON ऑब्जेक्ट)** को बदलाव पर सेट करें, जैसे एक नया `currentIncidentStateId`। `{"name": "Resolved"}` क्वेरी वाला एक **Find One Incident State** ब्लॉक आपको वह ID `{{local.components.incident-state-find-one-1.returnValues.model._id}}` के रूप में देता है।
+4. उसकी **हाँ** साइड के बाद एक **एक घटना अपडेट करें** ब्लॉक जोड़ें। उसकी **क्वेरी** को `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` पर, और उसके **डेटा (JSON ऑब्जेक्ट)** को बदलाव पर सेट करें, जैसे एक नया `currentIncidentStateId`। `{"name": "Resolved"}` क्वेरी वाला एक **एक घटना स्थिति खोजें** ब्लॉक आपको वह ID `{{local.components.incident-state-find-one-1.returnValues.model._id}}` के रूप में देता है।
 
 इसे चालू करें, फिर Dynamics 365 से इसे कॉल करवाएं:
 
@@ -389,11 +389,11 @@ Dataverse सिर्फ़ पोर्ट 80 और 443 को कॉल क�
 
 | घटना | अलर्ट |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **घटना बनने पर** (`incident-on-create-1`) | **अलर्ट बनने पर** (`alert-on-create-1`) |
+| **घटना अपडेट होने पर** (`incident-on-update-1`) | **अलर्ट अपडेट होने पर** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **एक घटना स्थिति खोजें** | **एक अलर्ट स्थिति खोजें** |
+| **एक घटना अपडेट करें** | **एक अलर्ट अपडेट करें** |
 
 किसी वर्कफ़्लो में ठीक एक ट्रिगर होता है, इसलिए घटनाओं और अलर्ट को एक-एक वर्कफ़्लो चाहिए। दोनों के लिए वही Dynamics 365 काम करने के लिए, उसे **मैन्युअल** ट्रिगर वाले एक वर्कफ़्लो में एक बार बनाएं, और दोनों से उसे **दूसरा वर्कफ़्लो चलाएँ** ब्लॉक से शुरू करें।
 
@@ -438,7 +438,7 @@ Dataverse की सर्विस प्रोटेक्शन सीमा�
 :::
 
 :::details वर्कफ़्लो चलता है, पर घटना नहीं बदलती
-**Update One Incident** ब्लॉक `Items Updated: 0` बताता है जब उसकी क्वेरी किसी से मेल नहीं खाती, और यह सफलता है, त्रुटि नहीं। जांचें कि अनुरोध में ID सचमुच OneUptime घटना का है, और आप `_id` पर क्वेरी करते हैं।
+**एक घटना अपडेट करें** ब्लॉक `Items Updated: 0` बताता है जब उसकी क्वेरी किसी से मेल नहीं खाती, और यह सफलता है, त्रुटि नहीं। जांचें कि अनुरोध में ID सचमुच OneUptime घटना का है, और आप `_id` पर क्वेरी करते हैं।
 :::
 
 ## अगले कदम

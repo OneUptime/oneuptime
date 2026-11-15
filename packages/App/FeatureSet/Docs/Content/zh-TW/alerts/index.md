@@ -48,7 +48,7 @@ flowchart TB
 - **SLO 的消耗率。** 當 SLO 太快花掉其錯誤預算時，消耗率規則可以建立警示。請參閱 [消耗率警示與事件](/docs/slo/burn-rate-alerts)。
 - **網路站點和安全性事件。** 設定為在不健康時發出警示的網路站點，會在其彙總狀態不再正常運作時開啟一個警示；你的安全性偵測規則也會開啟警示。請參閱 [網路站點(健康彙總與正常運作時間)](/docs/monitor/network-sites) 和 [安全性事件(SIEM)](/docs/telemetry/security-events)。
 - **呼叫。** Slack 或 Microsoft Teams 中的 `/oneuptime page`，在事件或警示的專屬頻道之外的任何地方，會開啟一個以你的訊息為標題的警示，並呼叫你點名的人。工作流程的呼叫區塊會用你提供的標題和訊息做同樣的事。請參閱 [從 Slack 呼叫他人](/docs/workspace-connections/slack#從-slack-呼叫他人) 和 [Paging](/docs/workflows/components#paging)。
-- **API、Terraform 和工作流程。** 警示是一種一般資源：`/api/alert`、Terraform 資源 `oneuptime_alert`，以及工作流程的 **Create One Alert** 步驟。
+- **API、Terraform 和工作流程。** 警示是一種一般資源：`/api/alert`、Terraform 資源 `oneuptime_alert`，以及工作流程的 **建立單個警示** 步驟。
 
 ## 警示在儀表板中的位置
 
@@ -104,9 +104,9 @@ flowchart TB
 7. **分組規則把它放進一個片段**，前提是有規則相符。請參閱 [警示片段與分組規則](/docs/alerts/episodes)。
 8. **排定提醒**，前提是有提醒規則相符；當 **警示 → 人工智慧 → 設定** 中的 **調查新警示** 開啟時，**OneUptime AI** 會調查該警示，當 **自動修正新警示** 開啟時還會修正它。請參閱 [AI SRE](/docs/ai/ai-sre)。
 
-背景工作會在警示建立約一分鐘後通知它屆時的所有擁有者，**On Create Alert** 工作流程觸發器則會啟動所有以它為基礎的工作流程。
+背景工作會在警示建立約一分鐘後通知它屆時的所有擁有者，**建立警示時** 工作流程觸發器則會啟動所有以它為基礎的工作流程。
 
-要讓人員和團隊在警示建立時就成為它的擁有者，使這則通知送達他們而不是專案擁有者，請隨建立一起交出他們：透過 API，在 `POST /api/alert` 的 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式傳送他們的 ID；在工作流程中，在 **Create One Alert** 的 **擁有者使用者** 和 **擁有者團隊** 下選擇他們；透過 MCP，把 `ownerUsers` 和 `ownerTeams` 傳給 `create_alert`。如果呼叫方無權新增這些擁有者，要求會在儲存任何內容之前遭到拒絕。建立之後由單獨要求新增的擁有者，只有在那一分鐘內加入才會收到通知。
+要讓人員和團隊在警示建立時就成為它的擁有者，使這則通知送達他們而不是專案擁有者，請隨建立一起交出他們：透過 API，在 `POST /api/alert` 的 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式傳送他們的 ID；在工作流程中，在 **建立單個警示** 的 **擁有者使用者** 和 **擁有者團隊** 下選擇他們；透過 MCP，把 `ownerUsers` 和 `ownerTeams` 傳給 `create_alert`。如果呼叫方無權新增這些擁有者，要求會在儲存任何內容之前遭到拒絕。建立之後由單獨要求新增的擁有者，只有在那一分鐘內加入才會收到通知。
 
 ### 建立時即已確認或已解決
 

@@ -208,13 +208,13 @@ Eigenaren krijgen standaard een e-mail. Iedereen kan andere kanalen kiezen (sms,
 
 Logboeken van inkomende oproepen zijn beschikbaar als workflowtriggers:
 
-- **On Create Incoming Call Log** wordt uitgevoerd wanneer een gesprek binnenkomt.
-- **On Update Incoming Call Log** wordt uitgevoerd terwijl het gesprek verloopt. De update die **Ended At** invult, is het einde van het gesprek.
+- **Bij aanmaken: Incoming Call Logboek** wordt uitgevoerd wanneer een gesprek binnenkomt.
+- **Bij bijwerken: Incoming Call Logboek** wordt uitgevoerd terwijl het gesprek verloopt. De update die **Ended At** invult, is het einde van het gesprek.
 
 Om alleen op gemiste oproepen te reageren, bijvoorbeeld om ze in Slack of Microsoft Teams te plaatsen of een ticket te openen:
 
 :::steps
-1. Voeg de trigger **On Update Incoming Call Log** toe. Stel **Velden om te volgen** in op **Ended At**, en selecteer de velden die u wilt gebruiken, zoals **Status**, **Caller Phone Number** en **Routing Phone Number**.
+1. Voeg de trigger **Bij bijwerken: Incoming Call Logboek** toe. Stel **Velden om te volgen** in op **Ended At**, en selecteer de velden die u wilt gebruiken, zoals **Status**, **Caller Phone Number** en **Routing Phone Number**.
 2. Voeg een stap **Als / Anders** toe. Controleer de **Status** van de trigger, met de vergelijking **is niet gelijk aan** en `Completed`.
 3. Verbind uw stappen met de poort **Ja**.
 :::

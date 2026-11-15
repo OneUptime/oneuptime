@@ -76,7 +76,7 @@ Een incident dat via een formulier is gemeld, is een gewoon incident, met een pa
 - **De eigenaren worden ingelicht.** De eigenaren die de instellingen en het sjabloon noemen, worden toegevoegd zodra de Slack- en Microsoft Teams-kanalen van het incident bestaan, en krijgen een melding — de melding **Incident aangemaakt** van het incident wacht tot zij de eigenaren ervan zijn, zodat ze naar hen gaat in plaats van naar de Projecteigenaren.
 - **Een privénotitie legt de inzending vast** — zie [De privénotitie](#de-privénotitie).
 
-Alles wat voor een nieuw incident wordt uitgevoerd, wordt ook voor deze uitgevoerd: privacy-, eigenaar-, label-, bereikbaarheids- en runbookregels, bereikbaarheidsbeleid en workflows met **On Create Incident**. Bereikbaarheidsregels passen bij de incidenten van een formulier zoals bij elke andere — ook op hun titel en beschrijving, die de inzender schreef.
+Alles wat voor een nieuw incident wordt uitgevoerd, wordt ook voor deze uitgevoerd: privacy-, eigenaar-, label-, bereikbaarheids- en runbookregels, bereikbaarheidsbeleid en workflows met **Bij aanmaken: Incident**. Bereikbaarheidsregels passen bij de incidenten van een formulier zoals bij elke andere — ook op hun titel en beschrijving, die de inzender schreef.
 
 :::steps
 #### Lees wat de inzender schreef

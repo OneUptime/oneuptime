@@ -196,7 +196,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID 为 `lookup-user` 的 **API** 块                         | 它的状态码：`{{local.components.lookup-user.returnValues.response-status}}`。它的正文：`{{local.components.lookup-user.returnValues.response-body}}`。 |
 | ID 为 `transform` 的 **运行自定义 JavaScript** 块         | 它返回的内容：`{{local.components.transform.returnValues.returnValue}}`。              |
-| ID 为 `incident-on-create-1` 的 **On Create Incident** 触发器 | 事件的标题：`{{local.components.incident-on-create-1.returnValues.model.title}}`。记录触发器以 `model` 返回记录，你深入其中读取。 |
+| ID 为 `incident-on-create-1` 的 **创建事件时** 触发器 | 事件的标题：`{{local.components.incident-on-create-1.returnValues.model.title}}`。记录触发器以 `model` 返回记录，你深入其中读取。 |
 
 块的值只在当前运行期间存在。每次新的运行都从头开始。
 
@@ -239,7 +239,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 
 1. 一个 ID 为 `ci-webhook` 的 **Webhook** 触发器。
 2. 一个 **如果 / 否则** 块：**要检查的值** 是 Webhook 的 Request Body 中的 `status` 字段（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比较** 是 **等于**，**比较对象** 是 `failed`。
-3. 从 **是** 分支接一个 **Create One Incident** 块，其中：
+3. 从 **是** 分支接一个 **创建单个事件** 块，其中：
    - 标题：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

@@ -90,7 +90,7 @@ flowchart TB
 5. **Runbook 规则启动** 与该事件匹配的运行手册。
 6. **安排提醒**：当某条提醒规则匹配时，为它的所有者安排提醒。
 
-发布后一分钟内（除非你选择了 **发布时间** ，否则会立即发布），它的状态页的订阅者会收到事件已安排的通知，除非你关闭了 **事件安排时** 。工作流触发器 **On Create Maintenance Event** 会启动基于它构建的所有工作流；如果所有者开启了相应通知，他们也会收到消息：请参阅 [通知设置](/docs/notifications/notification-settings)。
+发布后一分钟内（除非你选择了 **发布时间** ，否则会立即发布），它的状态页的订阅者会收到事件已安排的通知，除非你关闭了 **事件安排时** 。工作流触发器 **创建维护事件时** 会启动基于它构建的所有工作流；如果所有者开启了相应通知，他们也会收到消息：请参阅 [通知设置](/docs/notifications/notification-settings)。
 
 ## 稍后发布
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **事件安排时** 开关。另外两个时间点各有自己的字段。                                       |
 | `publishOnStatusPageAt`                               | 事件在其状态页上发布、其订阅者收到事件已安排通知的时间。省略时立即发布。                   |
 
-以代码表示的同一个事件是 Terraform 资源 `oneuptime_scheduled_maintenance_event` ：请参阅 [示例](/docs/terraform/examples#计划维护)。工作流通过其 **Create One Maintenance Event** 步骤创建事件， `/oneuptime maintenance` 会在 Slack 中打开表单：请参阅 [Slack](/docs/workspace-connections/slack#从-slack-创建事件和维护)。
+以代码表示的同一个事件是 Terraform 资源 `oneuptime_scheduled_maintenance_event` ：请参阅 [示例](/docs/terraform/examples#计划维护)。工作流通过其 **创建单个维护事件** 步骤创建事件， `/oneuptime maintenance` 会在 Slack 中打开表单：请参阅 [Slack](/docs/workspace-connections/slack#从-slack-创建事件和维护)。
 
 ## 故障排除
 

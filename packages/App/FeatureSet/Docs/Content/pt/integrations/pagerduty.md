@@ -16,9 +16,9 @@ Envie os incidentes do OneUptime para o [PagerDuty](https://www.pagerduty.com). 
 
 ```mermaid title="Dois workflows, um incidente no PagerDuty"
 flowchart TB
-    declared["Incidente declarado"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> create["Workflow 1:<br/>Ao criar: Incidente"]
     create -->|"trigger"| pd["Incidente no PagerDuty"]
-    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>Ao atualizar:<br/>Incidente"]
     update -->|"resolve"| pd
 ```
 
@@ -48,7 +48,7 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Incidente**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Enviar o evento de disparo
 
@@ -82,9 +82,9 @@ O bloco envia JSON, então não precisa de cabeçalho `Content-Type`. A `severit
 Um workflow tem um só gatilho, então resolver exige um segundo workflow, iniciado quando o estado de um incidente muda.
 
 :::steps
-### Adicionar o gatilho On Update Incident
+### Adicionar o gatilho "Ao atualizar: Incidente"
 
-Crie um workflow chamado `Resolve PagerDuty incidents` e escolha **On Update Incident** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
+Crie um workflow chamado `Resolve PagerDuty incidents` e escolha **Ao atualizar: Incidente** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

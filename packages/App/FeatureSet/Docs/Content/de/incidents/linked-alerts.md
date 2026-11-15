@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Beide IDs sind Pflicht. Eine Verknüpfungsanfrage wird auch abgelehnt, wenn die Warnung oder der Vorfall zu einem anderen Projekt gehört oder für Sie nicht sichtbar ist. Die Fehlermeldung lautet gleich, ob die Warnung oder der Vorfall nicht existiert oder nur vor Ihnen verborgen ist, sodass sie nie verrät, dass ein privates Objekt existiert.
 
-Dieselbe Ressource steuert die generierten Workflow-Komponenten – **On Create Incident Alert** startet, wenn eine Warnung verknüpft wird, **On Delete Incident Alert**, wenn die Verknüpfung gelöst wird – und die Incident-Alert-Werkzeuge des MCP-Servers. Die [API-Referenz](/reference) enthält die vollständigen Anfrage- und Antwortformen.
+Dieselbe Ressource steuert die generierten Workflow-Komponenten – **Bei Erstellung: Vorfallswarnung** startet, wenn eine Warnung verknüpft wird, **Bei Löschung: Vorfallswarnung**, wenn die Verknüpfung gelöst wird – und die Incident-Alert-Werkzeuge des MCP-Servers. Die [API-Referenz](/reference) enthält die vollständigen Anfrage- und Antwortformen.
 
 ## Verknüpfungen lösen
 

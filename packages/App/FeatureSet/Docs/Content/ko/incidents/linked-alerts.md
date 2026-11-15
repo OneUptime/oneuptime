@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 두 ID 모두 필수입니다. 경고나 인시던트가 다른 프로젝트에 속하거나 여러분이 볼 수 없는 것일 때도 연결 요청이 거부됩니다. 오류 문구는 경고나 인시던트가 존재하지 않을 때와 여러분에게 숨겨져 있을 뿐일 때 똑같으므로, 비공개인 것이 존재한다는 사실이 드러나지 않습니다.
 
-같은 리소스가 생성된 워크플로우 구성 요소(경고가 연결되면 발동하는 **On Create Incident Alert**와 연결이 해제되면 발동하는 **On Delete Incident Alert**)와 MCP 서버의 Incident Alert 도구를 움직입니다. 요청과 응답의 전체 형태는 [API 참조](/reference)에 있습니다.
+같은 리소스가 생성된 워크플로우 구성 요소(경고가 연결되면 발동하는 **Incident Alert 생성 시**와 연결이 해제되면 발동하는 **Incident Alert 삭제 시**)와 MCP 서버의 Incident Alert 도구를 움직입니다. 요청과 응답의 전체 형태는 [API 참조](/reference)에 있습니다.
 
 ## 연결 해제하기
 
