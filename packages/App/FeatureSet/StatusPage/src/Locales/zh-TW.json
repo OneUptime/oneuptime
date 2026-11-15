@@ -149,7 +149,7 @@
     "notFound": "此狀態頁上找不到維護事件。",
     "calendar": {
       "subscribe": "訂閱行事曆",
-      "subscribeTitle": "訂閱排定的維護",
+      "subscribeTitle": "訂閱排定維護",
       "subscribeDescription": "在您的行事曆應用程式中取得此頁面的排定維護。它會自動保持最新。",
       "eventTitle": "加入行事曆",
       "eventDescription": "將此維護事件加入您的行事曆應用程式。",

@@ -84,7 +84,7 @@
     "declared": "Dichiarato",
     "oneIncidentOnThisDay": "1 incidente segnalato in questo giorno",
     "incidentsOnThisDay": "{{total}} incidenti segnalati in questo giorno",
-    "scheduledMaintenance": "Manutenzione pianificata",
+    "scheduledMaintenance": "Manutenzione programmata",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 evento di manutenzione",
     "maintenanceEvents": "{{total}} eventi di manutenzione",
@@ -137,7 +137,7 @@
   "scheduledEvents": {
     "title": "Manutenzione programmata",
     "singular": "Evento di manutenzione",
-    "scheduledMaintenance": "Manutenzione pianificata",
+    "scheduledMaintenance": "Manutenzione programmata",
     "ongoing": "Manutenzione in corso",
     "upcoming": "Manutenzione in arrivo",
     "completed": "Manutenzione completata",

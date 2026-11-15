@@ -32448,7 +32448,7 @@
   "{{name}} can't be deleted while these have it:": "Impossibile eliminare {{name}} finché questi lo usano:",
   "Alerts and episodes in these states stay in them, and their history still shows them. Nobody can pick them again.": "Gli avvisi e gli episodi in questi stati vi restano, e la loro cronologia continua a mostrarli. Nessuno può più sceglierli.",
   "Alerts and episodes that have these keep them. Nobody can pick them again.": "Gli avvisi e gli episodi che le hanno le mantengono. Nessuno può più sceglierle.",
-  "Archived Scheduled Maintenance States": "Stati di manutenzione pianificata archiviati",
+  "Archived Scheduled Maintenance States": "Stati di manutenzione programmata archiviati",
   "Checking what deleting it would change…": "Verifica di cosa cambierebbe eliminandolo…",
   "Checking what still uses it…": "Verifica di cosa lo usa ancora…",
   "Everything that has these labels keeps them. Nobody can add them to anything again.": "Tutto ciò che ha queste etichette le mantiene. Nessuno può più aggiungerle a nulla.",

@@ -84,7 +84,7 @@
     "declared": "Declarado",
     "oneIncidentOnThisDay": "1 incidente relatado neste dia",
     "incidentsOnThisDay": "{{total}} incidentes relatados neste dia",
-    "scheduledMaintenance": "Manutenção agendada",
+    "scheduledMaintenance": "Manutenção programada",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 evento de manutenção",
     "maintenanceEvents": "{{total}} eventos de manutenção",
@@ -137,7 +137,7 @@
   "scheduledEvents": {
     "title": "Manutenção programada",
     "singular": "Evento de manutenção",
-    "scheduledMaintenance": "Manutenção agendada",
+    "scheduledMaintenance": "Manutenção programada",
     "ongoing": "Manutenção em andamento",
     "upcoming": "Próxima manutenção",
     "completed": "Manutenção concluída",
@@ -149,8 +149,8 @@
     "notFound": "Nenhum evento de manutenção encontrado para esta página de status.",
     "calendar": {
       "subscribe": "Subscrever o calendário",
-      "subscribeTitle": "Subscrever a manutenção agendada",
-      "subscribeDescription": "Receba a manutenção agendada desta página na sua aplicação de calendário. Mantém-se atualizada sozinha.",
+      "subscribeTitle": "Subscrever a manutenção programada",
+      "subscribeDescription": "Receba a manutenção programada desta página na sua aplicação de calendário. Mantém-se atualizada sozinha.",
       "eventTitle": "Adicionar ao calendário",
       "eventDescription": "Adicione este evento de manutenção à sua aplicação de calendário.",
       "addToCalendar": "Adicionar ao calendário",

@@ -34432,7 +34432,7 @@
   "Monitor Metrics": "मॉनिटर मेट्रिक्स",
   "Monitoring is off because it is archived": "मॉनिटर संग्रहीत है, इसलिए निगरानी बंद है",
   "Monitoring is paused by an incident": "एक घटना के कारण निगरानी रुकी हुई है",
-  "Monitoring is paused for scheduled maintenance": "शेड्यूल किए गए रखरखाव के लिए निगरानी रुकी हुई है",
+  "Monitoring is paused for scheduled maintenance": "अनुसूचित रखरखाव के लिए निगरानी रुकी हुई है",
   "No automated checks": "कोई स्वचालित जाँच नहीं",
   "No check has completed yet": "अभी तक कोई जाँच पूरी नहीं हुई है",
   "No check result has arrived since this monitor was created {{duration}} ago.": "यह मॉनिटर {{duration}} पहले बनाया गया था, तब से कोई जाँच परिणाम नहीं आया है।",
