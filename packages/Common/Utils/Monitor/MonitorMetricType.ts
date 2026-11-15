@@ -6,6 +6,7 @@ import {
   getAllDatabaseMetrics,
   getDatabaseMetricByMetricType,
   getDatabaseMetricCategoryDescription,
+  getDatabaseMetricCategoryLabel,
   getDatabaseMetricCategoryOrder,
   getDatabaseMetricsByCategory,
   getDatabaseMetricsForEngine,
@@ -1062,7 +1063,7 @@ class MonitorMetricTypeUtil {
       }
 
       categories.push({
-        title: category,
+        title: getDatabaseMetricCategoryLabel(category),
         description: getDatabaseMetricCategoryDescription(category),
         metrics: metrics,
       });
