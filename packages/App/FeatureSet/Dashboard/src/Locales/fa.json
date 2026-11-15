@@ -49907,7 +49907,7 @@
   "Save to incident": "ذخیره در حادثه",
   "Seek to span {{name}} at {{time}}": "رفتن به اسپن {{name}} در {{time}}",
   "Seek to {{time}}": "رفتن به {{time}}",
-  "Seek to {{time}} (1s before) and open the detail": "رفتن به {{time}} (1s قبل) و باز کردن جزئیات",
+  "Seek to {{time}} (1s before) and open the detail": "رفتن به {{time}} (۱ ثانیه زودتر) و باز کردن جزئیات",
   "Select an existing ingestion key or create a new one. These credentials authenticate your profiling data.": "یک کلید دریافت داده موجود را انتخاب کنید یا کلید جدیدی بسازید. این اعتبارنامه‌ها داده پروفایل‌گیری شما را احراز هویت می‌کنند.",
   "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.": "یک کلید دریافت داده موجود را انتخاب کنید یا کلید جدیدی بسازید. این اعتبارنامه‌ها داده تله‌متری شما را احراز هویت می‌کنند.",
   "Selected page": "صفحه انتخاب‌شده",
