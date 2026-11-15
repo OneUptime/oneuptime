@@ -307,11 +307,10 @@ interface ProjectEntry {
   // When this page last asked, for NUDGE_MIN_INTERVAL_MS.
   lastAskedAt: number | null;
   /*
-   * The store's own next ask, and when: a delete settling, a guide's
-   * products awaited, a change the server told of.
+   * The store's own next ask: a delete settling, a guide's products
+   * awaited, a change the server told of.
    */
   followUp: ReturnType<typeof setTimeout> | null;
-  followUpAt: number | null;
   // Stops hearing the project's usage changes on the live connection.
   stopHearing: (() => void) | null;
 }
@@ -690,11 +689,12 @@ export default class ProjectProducts {
 
     entry.nudge = { settledAt: settledAt, askAt: askAt };
 
-    // A request out, or an ask due sooner: its answer plans this one.
-    if (
-      entry.request ||
-      (entry.followUp && entry.followUpAt !== null && entry.followUpAt <= askAt)
-    ) {
+    /*
+     * A request out, or an ask of the store's own already coming (a delete
+     * settling, a guide's wait, both within seconds): its answer plans this
+     * one, and is this one when asked late enough to know of the change.
+     */
+    if (entry.request || entry.followUp) {
       return;
     }
 
@@ -845,7 +845,6 @@ export default class ProjectProducts {
       nudge: null,
       lastAskedAt: null,
       followUp: null,
-      followUpAt: null,
       stopHearing: null,
     };
 
@@ -991,11 +990,9 @@ export default class ProjectProducts {
   ): void {
     ProjectProducts.cancelFollowUp(entry);
 
-    entry.followUpAt = askAt;
     entry.followUp = setTimeout(
       (): void => {
         entry.followUp = null;
-        entry.followUpAt = null;
 
         if (ProjectProducts.entries.get(key) !== entry || entry.request) {
           return;
@@ -1014,8 +1011,6 @@ export default class ProjectProducts {
       clearTimeout(entry.followUp);
       entry.followUp = null;
     }
-
-    entry.followUpAt = null;
   }
 
   /*
