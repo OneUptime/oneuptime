@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 
 /*
  * Regression tests for the Measurement:Backfill cron, which fills in
@@ -42,6 +43,13 @@ import ObjectID from "Common/Types/ObjectID";
  *      does (MeasurementTable below); MeasurementBackfillProgressPostgres in
  *      Common runs the statement against Postgres itself, and
  *      BackfillMeasurementsPostgres runs this job against it.
+ *   6. TO THE MICROSECOND (#8388). The cursor's createdAt is saved and read
+ *      back as Postgres keeps it, so a cursor whose entity was deleted for
+ *      good still places the next page exactly: cut to the millisecond, the
+ *      page read again every entity of that millisecond before it.
+ *   7. THE DEADLINE (#8172). A tick stops at the next measurement, page or
+ *      entity once the deadline RunCron hands it passes, with where it got
+ *      to saved, and the next tick carries on from there.
  *
  * The job registers itself via RunCron at import time and exports nothing, so
  * the Cron util is mocked to CAPTURE the handler (the same recorder the other
@@ -51,7 +59,8 @@ import ObjectID from "Common/Types/ObjectID";
  * (`query` below).
  */
 
-type CronHandler = () => Promise<void>;
+// The tick, handed its deadline as RunCron hands it (none: a run outside the queue).
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 /*
  * Captured cron handlers, keyed by job name. Must be declared before the job
@@ -576,7 +585,7 @@ function recomputedIncidents(): Array<string> {
   );
 }
 
-async function runTick(): Promise<void> {
+async function runTick(deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined =
     mockCapturedJobs["Measurement:Backfill"];
 
@@ -584,7 +593,7 @@ async function runTick(): Promise<void> {
     throw new Error("Measurement:Backfill did not register a cron handler");
   }
 
-  await handler();
+  await handler(deadline);
 }
 
 /*
@@ -2184,6 +2193,338 @@ describe("Measurement:Backfill", () => {
       expect(exactWalkStartsOf(incidents)[0]).toBe(records.exactOf(ids[9]!));
       expect(recomputedIncidents()).toEqual(ids.slice(10));
       expect(mockedLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * #8172. RunCron hands every run its deadline: the job's time limit, or
+   * its lock lost (CronLock). The tick took none, and a tick with many
+   * measurements to work out ran far past its five minutes, went on after
+   * CronLock had given its lock back, and the next tick walked the same
+   * measurements beside it. It now stops at the next measurement, page or
+   * entity once the deadline passes, with where it got to saved, and the
+   * next tick carries on from there: no entity worked out twice, none
+   * passed over.
+   */
+  describe("the tick's deadline", () => {
+    const REQUESTED_AT: Date = new Date("2026-07-01T00:00:00.000Z");
+    const EDITED_AT: Date = new Date("2026-07-01T00:02:00.000Z");
+    const OTHER_MEASUREMENT_ID: ObjectID = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    );
+
+    let table: MeasurementTable;
+    let records: RecordTable;
+    let deadline: JobDeadline;
+
+    beforeEach(() => {
+      table = new MeasurementTable(incidentMeasurements);
+      records = new RecordTable(incidents);
+      deadline = new JobDeadline();
+    });
+
+    // Ends the deadline while the nth entity of the tick (from 1) is worked out.
+    function endWhileWorkingOut(nth: number, also?: () => void): void {
+      let recomputed: number = 0;
+
+      incidentValues.recomputeForIncident.mockImplementation(
+        async (): Promise<void> => {
+          recomputed++;
+
+          if (recomputed === nth) {
+            also?.();
+            deadline.end();
+          }
+        },
+      );
+    }
+
+    // The next tick, with no deadline: it carries on, to the end.
+    async function expectNextTickCarriesOnToTheEnd(
+      firstTick: Array<string>,
+    ): Promise<void> {
+      incidentValues.recomputeForIncident.mockReset();
+      incidentValues.recomputeForIncident.mockResolvedValue(undefined);
+
+      await runTick();
+
+      const both: Array<string> = [...firstTick, ...recomputedIncidents()];
+
+      expect(repeatsOf(both)).toEqual({});
+      expect(both).toEqual(records.ordered());
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(table.get().cursorId).toBe(records.last().id);
+    }
+
+    // The deadline's stop, logged once as what it is.
+    function expectStopLoggedOnce(): void {
+      const stops: Array<Array<unknown>> = mockedLogger.info.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).includes("stopped at its deadline");
+        },
+      );
+
+      expect(stops).toHaveLength(1);
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+      expect(mockedLogger.error).not.toHaveBeenCalled();
+    }
+
+    test("passed before the tick: nothing is read, nothing written, and the stop is logged", async () => {
+      records.add({ count: 1200, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      deadline.end();
+
+      await runTick(deadline);
+
+      for (const service of [
+        incidentMeasurements,
+        alertMeasurements,
+        maintenanceMeasurements,
+      ]) {
+        expect(service.findBy).not.toHaveBeenCalled();
+        expect(service.query).not.toHaveBeenCalled();
+      }
+      expect(incidents.query).not.toHaveBeenCalled();
+      expect(incidentValues.recomputeForIncident).not.toHaveBeenCalled();
+      expectStopLoggedOnce();
+    });
+
+    test("passing after N pages: no page after them is read, and the cursor saved is the last page's (#8172)", async () => {
+      records.add({ count: 8 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      const ordered: Array<string> = records.ordered();
+
+      // As the third page's cursor is written: three pages worked out.
+      table.beforeWrite(3, () => {
+        deadline.end();
+      });
+
+      await runTick(deadline);
+
+      expect(incidents.query).toHaveBeenCalledTimes(3);
+      expect(writesOf(incidentMeasurements)).toHaveLength(3);
+      expect(recomputedIncidents()).toEqual(ordered.slice(0, 3 * PAGE_SIZE));
+      expect(table.get().cursorId).toBe(ordered[3 * PAGE_SIZE - 1]);
+      expect(table.get().completedAt).toBeNull();
+      expectStopLoggedOnce();
+
+      const firstTick: Array<string> = recomputedIncidents();
+      incidents.query.mockClear();
+
+      await expectNextTickCarriesOnToTheEnd(firstTick);
+      expect(walkStartsOf(incidents)[0]).toEqual({
+        createdAt: records.read(ordered[3 * PAGE_SIZE - 1]!).createdAt,
+        id: ordered[3 * PAGE_SIZE - 1],
+      });
+    });
+
+    test.each([
+      { reason: "its time limit ran out", end: undefined },
+      { reason: "it lost its lock", end: new Error("CronLock: lock lost") },
+    ])(
+      "passing in the middle of a page ($reason): the next entity is not worked out, and the cursor saved is the last one that was",
+      async (item: { reason: string; end: Error | undefined }) => {
+        records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+        table.insert({ requestedAt: REQUESTED_AT });
+        const ordered: Array<string> = records.ordered();
+
+        // The 700th entity: the 200th of the second page.
+        let recomputed: number = 0;
+        incidentValues.recomputeForIncident.mockImplementation(
+          async (): Promise<void> => {
+            recomputed++;
+
+            if (recomputed === 700) {
+              deadline.end(item.end);
+            }
+          },
+        );
+
+        await runTick(deadline);
+
+        expect(recomputedIncidents()).toEqual(ordered.slice(0, 700));
+        expect(incidents.query).toHaveBeenCalledTimes(2);
+
+        const writes: Array<ProgressWrite> = writesOf(incidentMeasurements);
+
+        expect(
+          writes.map((write: ProgressWrite): unknown => {
+            return write.set["backfillCursorId"];
+          }),
+        ).toEqual([ordered[PAGE_SIZE - 1], ordered[699]]);
+        // Held to the request, like every write of the walk; no completion.
+        for (const write of writes) {
+          expect((write.requestedAt as Date).toISOString()).toBe(
+            REQUESTED_AT.toISOString(),
+          );
+          expect(write.set["backfillCompletedAt"]).toBeUndefined();
+        }
+        expect(table.get().cursorId).toBe(ordered[699]);
+        expect(table.exactCursorOf()).toBe(records.exactOf(ordered[699]!));
+        expectStopLoggedOnce();
+
+        await expectNextTickCarriesOnToTheEnd(ordered.slice(0, 700));
+      },
+    );
+
+    test("passing right after a page is read, before any of it is worked out: nothing more is written, and the next tick reads that page again", async () => {
+      records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      const ordered: Array<string> = records.ordered();
+
+      const answer: (
+        sql: string,
+        parameters: Array<unknown>,
+      ) => Promise<unknown> = incidents.query.getMockImplementation()!;
+      let reads: number = 0;
+      incidents.query.mockImplementation(
+        async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+          const rows: unknown = await answer(sql, parameters);
+
+          if (++reads === 2) {
+            deadline.end();
+          }
+
+          return rows;
+        },
+      );
+
+      await runTick(deadline);
+
+      expect(recomputedIncidents()).toEqual(ordered.slice(0, PAGE_SIZE));
+      expect(writesOf(incidentMeasurements)).toHaveLength(1);
+      expect(table.get().cursorId).toBe(ordered[PAGE_SIZE - 1]);
+      expectStopLoggedOnce();
+
+      incidents.query.mockImplementation(answer);
+
+      await expectNextTickCarriesOnToTheEnd(ordered.slice(0, PAGE_SIZE));
+    });
+
+    test("passing while the last, short page is worked out: the page is finished and the walk completed", async () => {
+      records.add({ count: 2 * PAGE_SIZE + 200, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      endWhileWorkingOut(2 * PAGE_SIZE + 200);
+
+      await runTick(deadline);
+
+      expect(recomputedIncidents()).toEqual(records.ordered());
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(table.get().cursorId).toBe(records.last().id);
+      // The other domains are not looked at past the deadline.
+      expect(alertMeasurements.findBy).not.toHaveBeenCalled();
+      expect(maintenanceMeasurements.findBy).not.toHaveBeenCalled();
+    });
+
+    test("passing as a full page's last entity is worked out: that page's cursor is saved, and no page after it is read", async () => {
+      records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      const ordered: Array<string> = records.ordered();
+      endWhileWorkingOut(PAGE_SIZE);
+
+      await runTick(deadline);
+
+      expect(incidents.query).toHaveBeenCalledTimes(1);
+      expect(recomputedIncidents()).toEqual(ordered.slice(0, PAGE_SIZE));
+      expect(table.get().cursorId).toBe(ordered[PAGE_SIZE - 1]);
+      expect(table.get().completedAt).toBeNull();
+
+      await expectNextTickCarriesOnToTheEnd(ordered.slice(0, PAGE_SIZE));
+    });
+
+    test("passing between two measurements: the second is not walked this tick, and the next tick walks it", async () => {
+      records.add({ count: 300, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      table.insert({ id: OTHER_MEASUREMENT_ID, requestedAt: REQUESTED_AT });
+
+      // As the first measurement's walk completes.
+      table.beforeWrite(1, () => {
+        deadline.end();
+      });
+
+      await runTick(deadline);
+
+      expect(incidents.query).toHaveBeenCalledTimes(1);
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(table.get(OTHER_MEASUREMENT_ID).completedAt).toBeNull();
+      expect(table.get(OTHER_MEASUREMENT_ID).cursorId).toBeNull();
+      expectStopLoggedOnce();
+
+      incidentValues.recomputeForIncident.mockClear();
+
+      await runTick();
+
+      // Only the second, from its beginning.
+      expect(recomputedIncidents()).toEqual(records.ordered());
+      expect(table.get(OTHER_MEASUREMENT_ID).completedAt).toBeInstanceOf(Date);
+    });
+
+    test("passing between two domains: the domains after it are not read this tick", async () => {
+      records.add({ count: 300, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      table.beforeWrite(1, () => {
+        deadline.end();
+      });
+
+      await runTick(deadline);
+
+      expect(incidentMeasurements.findBy).toHaveBeenCalledTimes(1);
+      expect(alertMeasurements.findBy).not.toHaveBeenCalled();
+      expect(maintenanceMeasurements.findBy).not.toHaveBeenCalled();
+      expectStopLoggedOnce();
+    });
+
+    test("an edit landing as the deadline passes mid-page: where the walk got to is refused, and the edit's walk starts from the beginning", async () => {
+      records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      endWhileWorkingOut(700, () => {
+        table.edit(MEASUREMENT_ID, EDITED_AT);
+      });
+
+      await runTick(deadline);
+
+      expect(table.requestedAtOf()?.toISOString()).toBe(
+        EDITED_AT.toISOString(),
+      );
+      expect(table.get().cursorId).toBeNull();
+      expect(table.get().cursorCreatedAt).toBeNull();
+      expect(table.get().completedAt).toBeNull();
+      // The refused write is the walk stopping for the edit, said as such.
+      expect(
+        mockedLogger.info.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("asked for again");
+        }),
+      ).toBe(true);
+
+      incidentValues.recomputeForIncident.mockReset();
+      incidentValues.recomputeForIncident.mockResolvedValue(undefined);
+      incidents.query.mockClear();
+
+      await runTick();
+
+      expect(walkStartsOf(incidents)[0]).toBeUndefined();
+      expect(recomputedIncidents()).toEqual(records.ordered());
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+    });
+
+    test("one that never passes, as a run outside the queue has, walks as before: to the end or the page cap", async () => {
+      records.add({
+        count: (MAX_PAGES_PER_RUN + 2) * PAGE_SIZE,
+        createdAt: FIRST_CREATED_AT,
+      });
+      table.insert({ requestedAt: REQUESTED_AT });
+
+      await runTick(JobDeadline.none());
+
+      expect(incidents.query).toHaveBeenCalledTimes(MAX_PAGES_PER_RUN);
+      expect(table.get().cursorId).toBe(
+        records.ordered()[MAX_PAGES_PER_RUN * PAGE_SIZE - 1],
+      );
+      expect(
+        mockedLogger.info.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("stopped at its deadline");
+        }),
+      ).toBe(false);
     });
   });
 

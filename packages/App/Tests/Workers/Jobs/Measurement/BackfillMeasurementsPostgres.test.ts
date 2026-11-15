@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
 
 /*
@@ -37,6 +38,9 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  *   - an edit made while a run is walked: the walk's next write is
  *     refused, the cleared cursor stays cleared, and the next tick walks the
  *     edit from the beginning;
+ *   - the tick's deadline (#8172): stopped in the middle of a page or as
+ *     one ends, the walk saves where it got to and the next tick goes on
+ *     right after it;
  *   - all three domains, and that a page is read by the index.
  *
  * Opt in with RUN_POSTGRES_MEASUREMENT_BACKFILL_WALK_TESTS=true against a
@@ -49,7 +53,8 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  * / _PORT (default localhost:5400, Scripts/Dev/docker-compose.dev.yml).
  */
 
-type CronHandler = () => Promise<void>;
+// The tick, handed its deadline as RunCron hands it (none: a run outside the queue).
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
 
@@ -229,7 +234,7 @@ interface StoredBackfill {
   backfillCompletedAt: Date | null;
 }
 
-async function runTick(): Promise<void> {
+async function runTick(deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined =
     mockCapturedJobs["Measurement:Backfill"];
 
@@ -237,7 +242,7 @@ async function runTick(): Promise<void> {
     throw new Error("Measurement:Backfill did not register a cron handler");
   }
 
-  await handler();
+  await handler(deadline);
 }
 
 // The ids worked out more than once, with how many times.
@@ -1025,6 +1030,108 @@ describePostgres("Measurement:Backfill against Postgres", () => {
 
       expect(await walkToCompletion(id)).toBe(1);
       await expectEachWorkedOutOnce(id);
+    });
+  });
+
+  /*
+   * #8172. The tick stops at its deadline - its time limit, or its lock
+   * lost - with where it got to saved, and the next tick carries on from
+   * there, on the real tables: no record worked out twice, none passed over.
+   */
+  describe("the tick's deadline", () => {
+    // Ends `deadline` while the nth record of the tick (from 1) is worked out.
+    function endWhileWorkingOut(deadline: JobDeadline, nth: number): void {
+      let recomputed: number = 0;
+
+      incidentValues.recomputeForIncident.mockImplementation(
+        async (): Promise<void> => {
+          recomputed++;
+
+          if (recomputed === nth) {
+            deadline.end();
+          }
+        },
+      );
+    }
+
+    async function expectNextTickCarriesOnToTheEnd(
+      id: string,
+      firstTick: Array<string>,
+    ): Promise<void> {
+      incidentValues.recomputeForIncident.mockReset();
+      incidentValues.recomputeForIncident.mockResolvedValue(undefined);
+
+      await runTick();
+
+      const both: Array<string> = [...firstTick, ...INCIDENTS.recomputed()];
+
+      expect(repeatsOf(both)).toEqual({});
+      expect(both).toEqual(await orderedIds());
+      expect((await readBackfill(id)).backfillCompletedAt).toBeInstanceOf(Date);
+    }
+
+    test("passing in the middle of a page of a run: the walk saves the last record it worked out, to the microsecond, and the next tick goes on right after it", async () => {
+      await insertRun({ count: 3 * PAGE_SIZE + 100 });
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+      const deadline: JobDeadline = new JobDeadline();
+      endWhileWorkingOut(deadline, 700);
+
+      await runTick(deadline);
+
+      expect(INCIDENTS.recomputed()).toEqual(ordered.slice(0, 700));
+
+      const stopped: StoredBackfill = await readBackfill(id);
+
+      expect(stopped.backfillCursorId).toBe(ordered[699]);
+      expect(stopped.backfillCompletedAt).toBeNull();
+      expect(await storedCursorExactly(id)).toBe(
+        await createdAtExactly(ordered[699]!),
+      );
+
+      await expectNextTickCarriesOnToTheEnd(id, ordered.slice(0, 700));
+    });
+
+    test("passing as a page ends: no page after it is read, and the cursor saved is that page's last record", async () => {
+      await insertRun({ count: 3 * PAGE_SIZE + 100 });
+      const id: string = await insertMeasurement();
+      const ordered: Array<string> = await orderedIds();
+      const deadline: JobDeadline = new JobDeadline();
+      endWhileWorkingOut(deadline, 2 * PAGE_SIZE);
+
+      const reads: { mock: { calls: Array<unknown> } } = jest.spyOn(
+        MeasurementBackfillPage,
+        "read",
+      );
+
+      await runTick(deadline);
+
+      expect(reads.mock.calls).toHaveLength(2);
+      expect(INCIDENTS.recomputed()).toEqual(ordered.slice(0, 2 * PAGE_SIZE));
+      expect((await readBackfill(id)).backfillCursorId).toBe(
+        ordered[2 * PAGE_SIZE - 1],
+      );
+
+      await expectNextTickCarriesOnToTheEnd(
+        id,
+        ordered.slice(0, 2 * PAGE_SIZE),
+      );
+    });
+
+    test("passed before the tick: no measurement is read and nothing is written", async () => {
+      await insertRun({ count: 600 });
+      const id: string = await insertMeasurement();
+      const deadline: JobDeadline = new JobDeadline();
+      deadline.end();
+
+      await runTick(deadline);
+
+      expect(INCIDENTS.recomputed()).toEqual([]);
+
+      const row: StoredBackfill = await readBackfill(id);
+
+      expect(row.backfillCursorId).toBeNull();
+      expect(row.backfillCompletedAt).toBeNull();
     });
   });
 

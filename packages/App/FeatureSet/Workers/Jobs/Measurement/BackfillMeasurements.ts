@@ -1,5 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -70,6 +71,14 @@ const PAGE_SIZE: number = 500;
 // Bounds one project's share of a tick so a large project cannot starve others.
 const MAX_PAGES_PER_RUN: number = 10;
 
+// How a walk ended this tick, or a domain's walks.
+enum WalkEnd {
+  // Finished, stopped at the per-run page cap, refused (asked for again) or failed.
+  Done = "Done",
+  // Stopped at the tick's deadline, with what it got to saved (#8172).
+  AtDeadline = "AtDeadline",
+}
+
 interface MeasurementBackfillState {
   _id?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
@@ -104,12 +113,31 @@ interface DomainBackfill {
   recompute: (entityId: ObjectID) => Promise<void>;
 }
 
+/*
+ * One tick, until its deadline: its time limit, or its lock lost (RunCron,
+ * CronLock). It used to take none (#8172): a tick with many measurements to
+ * work out - after FirstPagedAt or RewriteMeasurementPointsInTheirUnit asked
+ * for every one again - ran far past its five minutes, went on walking after
+ * CronLock gave its lock back, and the next tick walked the same
+ * measurements beside it. Now it stops at the next measurement, page or
+ * entity once the deadline passes, the cursor saved where it got to, and the
+ * next tick carries on from there.
+ */
 RunCron(
   "Measurement:Backfill",
   { schedule: EVERY_FIVE_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     for (const domain of buildDomains()) {
-      await runDomain(domain);
+      if (
+        deadline.hasPassed() ||
+        (await runDomain({ domain: domain, deadline: deadline })) ===
+          WalkEnd.AtDeadline
+      ) {
+        logger.info(
+          `Measurement:Backfill stopped at its deadline (its time limit ran out, or it lost its lock) before it had worked out every measurement asked for; the next run carries on from where each walk got to.`,
+        );
+        return;
+      }
     }
   },
 );
@@ -305,11 +333,18 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
   ];
 };
 
-type RunDomainFunction = (domain: DomainBackfill) => Promise<void>;
+type RunDomainFunction = (data: {
+  domain: DomainBackfill;
+  deadline: JobDeadline;
+}) => Promise<WalkEnd>;
 
-const runDomain: RunDomainFunction = async (
-  domain: DomainBackfill,
-): Promise<void> => {
+// Walks a domain's measurements still to backfill, one after the other, until the deadline.
+const runDomain: RunDomainFunction = async (data: {
+  domain: DomainBackfill;
+  deadline: JobDeadline;
+}): Promise<WalkEnd> => {
+  const { domain, deadline } = data;
+
   try {
     const measurements: Array<MeasurementBackfillState> = (
       await domain.findMeasurements()
@@ -322,16 +357,27 @@ const runDomain: RunDomainFunction = async (
       });
 
     for (const measurement of measurements) {
-      await runMeasurement({
+      if (deadline.hasPassed()) {
+        return WalkEnd.AtDeadline;
+      }
+
+      const end: WalkEnd = await runMeasurement({
         domain: domain,
         measurement: measurement,
         storedCursor: exactCursors.get(measurement._id!.toString()),
+        deadline: deadline,
       });
+
+      if (end === WalkEnd.AtDeadline) {
+        return WalkEnd.AtDeadline;
+      }
     }
   } catch (err) {
     logger.error(`Measurement:Backfill failed for ${domain.domain}`);
     logger.error(err);
   }
+
+  return WalkEnd.Done;
 };
 
 type IsStillToWalkFunction = (measurement: MeasurementBackfillState) => boolean;
@@ -409,14 +455,26 @@ type RunMeasurementFunction = (data: {
   domain: DomainBackfill;
   measurement: MeasurementBackfillState;
   storedCursor?: MeasurementBackfillStoredCursor | undefined;
-}) => Promise<void>;
+  deadline: JobDeadline;
+}) => Promise<WalkEnd>;
 
+/*
+ * One measurement's walk for this tick: page after page, up to the per-run
+ * cap, until its deadline. A deadline that passes between pages stops the
+ * walk before the next page is read; one that passes in the middle of a
+ * page stops it before the next entity, and the walk saves where it got to
+ * - the last entity it worked out, held to the request like every write -
+ * so the next tick goes on right after it, neither working any entity out
+ * again nor passing one over. An entity being worked out when the deadline
+ * passes is finished first: work in flight is not cut off half way.
+ */
 const runMeasurement: RunMeasurementFunction = async (data: {
   domain: DomainBackfill;
   measurement: MeasurementBackfillState;
   storedCursor?: MeasurementBackfillStoredCursor | undefined;
-}): Promise<void> => {
-  const { domain, measurement } = data;
+  deadline: JobDeadline;
+}): Promise<WalkEnd> => {
+  const { domain, measurement, deadline } = data;
 
   /*
    * The request this walk is for, as it was read. Every write below is held
@@ -446,13 +504,42 @@ const runMeasurement: RunMeasurementFunction = async (data: {
       : undefined;
 
   for (let page: number = 0; page < MAX_PAGES_PER_RUN; page++) {
+    // Past the deadline, no page is read: the cursor saved stands.
+    if (deadline.hasPassed()) {
+      return WalkEnd.AtDeadline;
+    }
+
     const entities: Array<MeasurementBackfillCursor> =
       await domain.findEntities({
         projectId: measurement.projectId!,
         after: cursor,
       });
 
+    // The last entity of this page worked out so far.
+    let workedOut: MeasurementBackfillCursor | undefined = undefined;
+
     for (const entity of entities) {
+      if (deadline.hasPassed()) {
+        /*
+         * Where the walk got to in the page, so the next tick goes on right
+         * after it. Nothing worked out on this page yet: the cursor saved
+         * after the page before stands.
+         */
+        if (workedOut) {
+          const isSaved: boolean = await domain.saveProgress({
+            measurementId: measurement._id!,
+            requestedAt: requestedAt,
+            cursor: workedOut,
+          });
+
+          if (!isSaved) {
+            logAskedForAgain({ domain: domain, measurement: measurement });
+          }
+        }
+
+        return WalkEnd.AtDeadline;
+      }
+
       try {
         await domain.recompute(entity.id);
       } catch (err) {
@@ -462,13 +549,18 @@ const runMeasurement: RunMeasurementFunction = async (data: {
          */
         logger.error(err);
       }
+
+      workedOut = entity;
     }
 
     // The last entity of the page: where the next page starts.
     const last: MeasurementBackfillCursor | undefined =
       entities[entities.length - 1];
 
-    // A page short of full is the end of the project.
+    /*
+     * A page short of full is the end of the project: its completion is
+     * written even past the deadline, since the page is worked out.
+     */
     if (!last || entities.length < PAGE_SIZE) {
       const isCompleted: boolean = await domain.saveProgress({
         measurementId: measurement._id!,
@@ -481,7 +573,7 @@ const runMeasurement: RunMeasurementFunction = async (data: {
         logAskedForAgain({ domain: domain, measurement: measurement });
       }
 
-      return;
+      return WalkEnd.Done;
     }
 
     /*
@@ -500,9 +592,12 @@ const runMeasurement: RunMeasurementFunction = async (data: {
 
     if (!isSaved) {
       logAskedForAgain({ domain: domain, measurement: measurement });
-      return;
+      return WalkEnd.Done;
     }
   }
+
+  // The per-run page cap: the next tick goes on from the cursor saved.
+  return WalkEnd.Done;
 };
 
 type GetStartingCursorFunction = (data: {
