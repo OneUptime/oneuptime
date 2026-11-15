@@ -62,6 +62,9 @@ const FIELD_PLACEHOLDER: string = "Monitoring method";
 // What an option explains after its name: " — ..." (": ..." in Spanish).
 const EXPLANATION_START: RegExp = /\s*[—–]\s*|:\s+/;
 
+// The options' English names, which no other language's words may keep.
+const ENGLISH_NAMES: RegExp = /\bProbe\b|Bound monitor|bound-monitor/;
+
 function optionOf(method: NetworkDeviceMonitoringMethod): DropdownOption {
   const option: DropdownOption | undefined = MONITORING_METHOD_OPTIONS.find(
     (candidate: DropdownOption): boolean => {
@@ -214,7 +217,7 @@ describe("a network device's monitoring method", () => {
         EVERY_KEY.map((key: string): string => {
           return worded(language, key);
         }).filter((text: string): boolean => {
-          return /\bProbe\b|Bound monitor|bound-monitor/.test(text);
+          return ENGLISH_NAMES.test(text);
         }),
       ).toEqual([]);
     },
@@ -231,7 +234,10 @@ describe("a network device's monitoring method", () => {
     (language: string) => {
       const others: RegExp = PROBE_WORDS[language]!.others;
 
-      for (const key of [MONITORING_METHOD_FIELD_DESCRIPTION, SWITCH_TO_PROBE]) {
+      for (const key of [
+        MONITORING_METHOD_FIELD_DESCRIPTION,
+        SWITCH_TO_PROBE,
+      ]) {
         expect([key, others.test(worded(language, key))]).toEqual([key, false]);
       }
 

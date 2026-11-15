@@ -149,9 +149,7 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
   },
   it: {
     others: /probe/iu,
-    keptPhrases: [
-      { phrase: /probe di avvio/iu, why: STARTUP_PROBE },
-    ],
+    keptPhrases: [{ phrase: /probe di avvio/iu, why: STARTUP_PROBE }],
   },
   pt: {
     others: /probe/iu,

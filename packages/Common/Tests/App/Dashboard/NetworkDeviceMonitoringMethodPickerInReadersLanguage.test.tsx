@@ -120,7 +120,10 @@ describe("the monitoring method picker", () => {
   test("offers Probe and then Bound monitor in English", async () => {
     await inLanguage("en");
     render(
-      <Dropdown ariaLabel="Monitoring method" options={MONITORING_METHOD_OPTIONS} />,
+      <Dropdown
+        ariaLabel="Monitoring method"
+        options={MONITORING_METHOD_OPTIONS}
+      />,
     );
     await openMenu();
 
@@ -129,9 +132,11 @@ describe("the monitoring method picker", () => {
     expect(nameOf(listed()[1]!)).toBe("Bound monitor");
   });
 
-  test.each(RENDERED.filter((language: string): boolean => {
-    return language !== "en";
-  }))(
+  test.each(
+    RENDERED.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )(
     "draws both options in %s, named as the field's description names them",
     async (language: string) => {
       await inLanguage(language);
@@ -160,9 +165,11 @@ describe("the monitoring method picker", () => {
     },
   );
 
-  test.each(RENDERED.filter((language: string): boolean => {
-    return language !== "en";
-  }))(
+  test.each(
+    RENDERED.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )(
     "draws the method a device has in %s, and finds the other by its name there",
     async (language: string) => {
       await inLanguage(language);
