@@ -145,7 +145,7 @@ describe("a result for an archived monitor", () => {
    * telemetry worker knows it by: it completes the job instead of failing
    * and retrying it (isNonActionableIngestError).
    */
-  test("a monitor a maintenance event paused is told which, and nothing is evaluated or locked", async () => {
+  test("a monitor a maintenance event paused is told which, nothing is evaluated, and the lock is given back", async () => {
     findOneById.mockResolvedValue(
       monitor({
         isArchived: false,
@@ -161,10 +161,12 @@ describe("a result for an archived monitor", () => {
       ),
     );
     expect(processMonitorStep).not.toHaveBeenCalled();
+    expect(lock).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
     expect(release).toHaveBeenCalledWith(MUTEX);
   });
 
-  test("a monitor a manually created incident paused is told which, and nothing is evaluated or locked", async () => {
+  test("a monitor a manually created incident paused is told which, nothing is evaluated, and the lock is given back", async () => {
     findOneById.mockResolvedValue(
       monitor({
         isArchived: false,
@@ -179,8 +181,104 @@ describe("a result for an archived monitor", () => {
         ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
       ),
     );
-    expect(lock).not.toHaveBeenCalled();
     expect(processMonitorStep).not.toHaveBeenCalled();
+    expect(lock).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledWith(MUTEX);
+  });
+
+  /*
+   * The refusal is thrown as the entry itself, not words that happen to read
+   * the same today: the worker compares the message with the entry.
+   */
+  test.each([
+    {
+      flag: "disableActiveMonitoringBecauseOfManualIncident",
+      refusal: ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    },
+    {
+      flag: "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
+      refusal:
+        ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    },
+  ])(
+    "a monitor paused by $flag is refused with exactly its entry, as a BadDataException",
+    async (input: { flag: string; refusal: string }) => {
+      findOneById.mockResolvedValue(
+        monitor({ isArchived: false, [input.flag]: true }) as never,
+      );
+
+      const refused: unknown = await MonitorResourceUtil.monitorResource(
+        probeResult(),
+      ).then(
+        () => {
+          return null;
+        },
+        (err: unknown) => {
+          return err;
+        },
+      );
+
+      expect(refused).toBeInstanceOf(BadDataException);
+      expect((refused as BadDataException).message).toBe(input.refusal);
+    },
+  );
+
+  /*
+   * One reason is given when a monitor is paused for several, in the same
+   * order as the pause state reads them: archived, disabled, a manual
+   * incident, a maintenance event.
+   */
+  test.each([
+    {
+      name: "disabled and paused by a maintenance event",
+      values: {
+        disableActiveMonitoring: true,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      refusal: ExceptionMessages.MonitorDisabled,
+    },
+    {
+      name: "paused by a manual incident and a maintenance event",
+      values: {
+        disableActiveMonitoringBecauseOfManualIncident: true,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      refusal: ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    },
+    {
+      name: "archived and paused by a maintenance event",
+      values: {
+        isArchived: true,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      refusal: ExceptionMessages.MonitorArchived,
+    },
+  ])(
+    "a monitor $name is refused once, with the first reason",
+    async (input: { values: Partial<Monitor>; refusal: string }) => {
+      findOneById.mockResolvedValue(
+        monitor({ isArchived: false, ...input.values }) as never,
+      );
+
+      await expect(
+        MonitorResourceUtil.monitorResource(probeResult()),
+      ).rejects.toThrow(new BadDataException(input.refusal));
+      expect(processMonitorStep).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledWith(MUTEX);
+    },
+  );
+
+  // The worker tells the refusals apart from every other by their entries.
+  test("the four refusals are four different entries", () => {
+    const refusals: Array<string> = [
+      ExceptionMessages.MonitorArchived,
+      ExceptionMessages.MonitorDisabled,
+      ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+      ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ];
+
+    expect(new Set(refusals).size).toBe(4);
   });
 
   // A record of Scheduled Maintenance is a maintenance event (#6817).

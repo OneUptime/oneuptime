@@ -196,6 +196,34 @@ describe("isNonActionableIngestError", () => {
     ).toBe(false);
   });
 
+  test.each([
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+  ])(
+    "is false for another kind of error with a paused monitor's refusal '%s'",
+    (message: string) => {
+      expect(isNonActionableIngestError(new Error(message))).toBe(false);
+    },
+  );
+
+  /*
+   * The refusals are matched exactly, so a failure that only reads like one
+   * - another "Monitor is disabled because ..." - is still retried.
+   */
+  test.each([
+    "Monitor is disabled because",
+    `${ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent} `,
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident.toLowerCase(),
+    "Monitor does not have a projectId",
+  ])(
+    "is false for a BadDataException that is not one of them: '%s'",
+    (message: string) => {
+      expect(isNonActionableIngestError(new BadDataException(message))).toBe(
+        false,
+      );
+    },
+  );
+
   test.each([undefined, null, ExceptionMessages.MonitorNotFound, {}])(
     "is false for %p, which is not an error",
     (value: unknown) => {
