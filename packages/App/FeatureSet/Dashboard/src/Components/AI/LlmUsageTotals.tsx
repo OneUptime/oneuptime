@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -126,7 +127,7 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
     value: number | undefined,
     write: (n: number) => string,
   ): string => {
-    return value === undefined ? "—" : write(value);
+    return value === undefined ? EMPTY_VALUE_MARK : write(value);
   };
 
   // Where a figure came from, in the reader's words; nothing when none.
@@ -208,7 +209,7 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
         label="Input tokens"
         value={
           tokensNotReported
-            ? "—"
+            ? undefined
             : number(figures?.inputTokens, formatLlmTokens)
         }
         hint={tokenHint}
@@ -223,7 +224,7 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
         label="Output tokens"
         value={
           tokensNotReported
-            ? "—"
+            ? undefined
             : number(figures?.outputTokens, formatLlmTokens)
         }
         hint={tokenHint}
@@ -236,7 +237,9 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Cost (USD)"
-        value={costNotReported ? "—" : number(figures?.costUsd, formatLlmCost)}
+        value={
+          costNotReported ? undefined : number(figures?.costUsd, formatLlmCost)
+        }
         hint={
           costNotReported
             ? translator.translateText("No cost reported") || undefined

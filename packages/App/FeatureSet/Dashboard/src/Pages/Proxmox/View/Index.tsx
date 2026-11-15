@@ -141,8 +141,12 @@ import {
   formatCompactDuration,
   formatCompactDurationAgo,
 } from "../../../Utils/Milliseconds";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -210,7 +214,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -1806,7 +1810,9 @@ const ProxmoxClusterOverview: FunctionComponent<
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
-            nodeAvailabilityPct === null ? "—" : `${nodesOnline}/${nodesTotal}`
+            nodeAvailabilityPct === null
+              ? undefined
+              : `${nodesOnline}/${nodesTotal}`
           }
           sublabel={nodesSublabel}
           percent={nodeAvailabilityPct}
@@ -1871,7 +1877,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={
             inventory && guestsTotal > 0
               ? `${guestsRunning}/${guestsTotal}`
-              : "—"
+              : undefined
           }
           sublabel={
             netTotal === null
@@ -2095,7 +2101,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       seconds: number | null,
     ): string => {
       if (seconds === null || !Number.isFinite(seconds) || seconds < 0) {
-        return "—";
+        return EMPTY_VALUE_MARK;
       }
       if (seconds < 60) {
         return formatCompactDuration(
@@ -2229,7 +2235,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-700">
-                      {formatDuration(job.durationSeconds)}
+                      {getValueOrQuietDash(formatDuration(job.durationSeconds))}
                     </td>
                     <td className={`px-4 py-2.5 text-sm ${failedClass}`}>
                       {failed === null ? <TableEmptyValue /> : failed}

@@ -72,9 +72,13 @@ describe("ComponentReturnValueViewer", () => {
     expect(rows[0]).toHaveTextContent(
       "The headers the caller sent, by header name.",
     );
+    // In the value picker's words, not the code's type name (#8361).
     expect(
       within(rows[0]!).getByTestId("workflow-return-value-type"),
-    ).toHaveTextContent("Dictionary of String");
+    ).toHaveTextContent("Key / value");
+    expect(
+      within(rows[0]!).getByTestId("workflow-return-value-type"),
+    ).not.toHaveTextContent("Dictionary of String");
     expect(
       within(rows[1]!).getByTestId("workflow-return-value-type"),
     ).toHaveTextContent("JSON");

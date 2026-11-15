@@ -59,7 +59,7 @@ Et ekstra kriterium ved `80` med lavere alvor, tilføjet med **Rediger som egne 
 En agent, der sidder fast, efterlader et spor, du kan genkende: det samme værktøjs-span igen og igen. En sund kørsel kalder ikke ét værktøj dusinvis af gange på få minutter, så en optælling fanger løkken længe før budgettet.
 
 :::steps
-1. Åbn **Overvågninger**, klik på **Opret monitor**, og vælg **Spor** under **Flere monitortyper**. Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Noget andet** og rydder **Span-status**.
+1. Åbn **Monitorer**, klik på **Opret monitor**, og vælg **Spor** under **Flere monitortyper**. Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Noget andet** og rydder **Span-status**.
 2. Under **Flere felter** sætter du **Filtrer efter tjeneste** til agentens tjeneste og **Filtrér efter attributter** til `gen_ai.tool.name` lig med det værktøj, du forventer, at den går i løkke på, f.eks. `search_web`. Hvis din instrumentering navngiver hvert værktøjs span, så angiv det navn i **Span-navnet indeholder** i stedet.
 3. Sæt **Tidsvindue** til **Seneste 5 minutter**.
 4. I **Hvornår der advares** sætter du **Mere end** til et tal, som ingen sund kørsel når på fem minutter, f.eks. `50`, og giver advarslen en titel som `Agent loop: support-bot`.
@@ -125,19 +125,19 @@ Gem først endpointets token et sted, hvor arbejdsgangen kan bruge det uden at v
 
 ### Tilføj udløseren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** i panelet **Tilføj udløser**. Klik på udløseren: **Fields to pass on** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** i panelet **Tilføj udløser**. Klik på udløseren: **Felter, der sendes videre** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
 
 ### Tjek titlen
 
-Klik på **Tilføj komponent**, vælg **If / Else**, og forbind udløserens punkt **Succes** med den. Sæt **Værdi, der skal tjekkes** til advarslens titel (klik på **{ }**, og vælg den), **Sammenligning** til **indeholder** og **Sammenlign med** til den begyndelse, dine snubletrådes titler har til fælles, f.eks. `LLM budget exceeded`.
+Klik på **Tilføj komponent**, vælg **Hvis / Ellers**, og forbind udløserens punkt **Succes** med den. Sæt **Værdi, der skal tjekkes** til advarslens titel (klik på **{ }**, og vælg den), **Sammenligning** til **indeholder** og **Sammenlign med** til den begyndelse, dine snubletrådes titler har til fælles, f.eks. `LLM budget exceeded`.
 
 ### Kald dit endpoint
 
-Tilføj **API Post (JSON)**, og forbind punktet **Ja** på **If / Else** med den. Sæt dens **URL** til dit endpoint, f.eks. `https://agents.example.com/circuit-breaker`, og udfyld headerne og brødteksten nedenfor.
+Tilføj **API-kald POST (JSON)**, og forbind punktet **Ja** på **Hvis / Ellers** med den. Sæt dens **URL** til dit endpoint, f.eks. `https://agents.example.com/circuit-breaker`, og udfyld headerne og brødteksten nedenfor.
 
 ### Rapportér en fejl
 
-Tilføj **Send Message to Slack** eller **Send Email**, og forbind API-blokkens punkt **Fejl** med den. En circuit breaker, der ikke bliver udløst, er den ene advarsel, et menneske skal se.
+Tilføj **Send besked til Slack** eller **Send e-mail**, og forbind API-blokkens punkt **Fejl** med den. En circuit breaker, der ikke bliver udløst, er den ene advarsel, et menneske skal se.
 
 ### Slå det til
 
@@ -164,7 +164,7 @@ Dens **Anmodningsbrødtekst**:
 }
 ```
 
-For at reagere på flere snubletråde lader du alle deres titler begynde på samme måde, eller du kæder flere **If / Else**-blokke fra punktet **Nej**. Se [Byg en arbejdsgang](/docs/workflows/authoring) for lærredet og [Variabler](/docs/workflows/variables) for `{{…}}`-referencerne.
+For at reagere på flere snubletråde lader du alle deres titler begynde på samme måde, eller du kæder flere **Hvis / Ellers**-blokke fra punktet **Nej**. Se [Byg en arbejdsgang](/docs/workflows/authoring) for lærredet og [Variabler](/docs/workflows/variables) for `{{…}}`-referencerne.
 
 ## Test circuit breakeren
 
@@ -180,7 +180,7 @@ For at reagere på flere snubletråde lader du alle deres titler begynde på sam
 - Et budget tæller UTC-døgnet, så procenten starter forfra fra 0 ved midnat UTC. En budgetadvarsel kan så blive løst, og den næste dårlige dag åbner en ny advarsel, der udløser circuit breakeren igen.
 - En monitor holder sin advarsel åben, så længe dens kriterier er opfyldt. Med **Løs advarsel automatisk** slået til løses advarslen, når de ikke længere er det, og den næste overskridelse åbner en ny advarsel.
 - Nulstilling er et menneskes beslutning på begge sider: løs advarslen i OneUptime, og nulstil circuit breakeren i din runner.
-- Hver ny advarsel i projektet starter arbejdsgangen. Det er **If / Else**, der holder andre advarsler væk fra circuit breakeren: udelad den ikke.
+- Hver ny advarsel i projektet starter arbejdsgangen. Det er **Hvis / Ellers**, der holder andre advarsler væk fra circuit breakeren: udelad den ikke.
 
 ## Fejlfinding
 
@@ -189,7 +189,7 @@ Tjek, at **Aktiveret** er slået til øverst i **Bygger**: arbejdsgange oprettes
 :::
 
 :::details Arbejdsgangen kører, men tager altid grenen No
-Titlen er tom eller matcher ikke. Et felt, der ikke står i udløserens **Fields to pass on**, kommer tomt frem, så tilføj titlen dér. Sammenlign derefter advarslens titel med **Sammenlign med**: **indeholder** skal finde præcis den tekst i den.
+Titlen er tom eller matcher ikke. Et felt, der ikke står i udløserens **Felter, der sendes videre**, kommer tomt frem, så tilføj titlen dér. Sammenlign derefter advarslens titel med **Sammenlign med**: **indeholder** skal finde præcis den tekst i den.
 :::
 
 :::details Dit endpoint svarer 401
@@ -201,7 +201,7 @@ Monitorens **Tidsinterval** er kortere end budgettets 15 minutter mellem to punk
 :::
 
 :::details Anmodningen når aldrig frem til dit endpoint
-Åbn kørslen under **Arbejdsgange → Protokoller → Kørsler** og trinnet **API Post (JSON)**: det fortæller, hvorfor anmodningen mislykkedes. På OneUptime Cloud skal endpointet kunne nås fra internettet; en selvhostet installation afviser private netværksadresser, medmindre en administrator tillader dem.
+Åbn kørslen under **Arbejdsgange → Protokoller → Kørsler** og trinnet **API-kald POST (JSON)**: det fortæller, hvorfor anmodningen mislykkedes. På OneUptime Cloud skal endpointet kunne nås fra internettet; en selvhostet installation afviser private netværksadresser, medmindre en administrator tillader dem.
 :::
 
 ## Næste trin

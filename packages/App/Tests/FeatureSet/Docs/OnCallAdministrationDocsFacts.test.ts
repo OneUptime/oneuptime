@@ -805,7 +805,7 @@ describe("what runs a policy", () => {
       readCommonSource("Server/Utils/Workspace/WorkspaceCommands.ts"),
     ).toContain('Page = "page"');
     expect(readCommonSource("Types/Workflow/Components/OnCall.ts")).toContain(
-      'title: "Page an On-Call Policy"',
+      'title: translationKey("Page an On-Call Policy"),',
     );
     expect(english(ON_CALL_POLICIES)).toContain(
       "| Chat and workflows | `/oneuptime page` in Slack or Microsoft Teams, and a workflow's **Page an On-Call Policy** step |",
@@ -907,7 +907,7 @@ describe("a policy's pages", () => {
     expect(owners).toContain("if (policyOwners.length > 0) {");
     expect(owners.slice(0, 2500)).toContain("await ProjectService.getOwners(");
     expect(english(ON_CALL_POLICIES)).toContain(
-      "When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the project's owners instead.",
+      "When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the Project Owners instead.",
     );
   });
 
@@ -2867,7 +2867,7 @@ describe("the weekly readiness email", () => {
     );
     expect(digest).toContain("await ProjectService.sendEmailToProjectOwners(");
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "When anyone in it is **Unreachable** or **Needs setup**, the project's owners get one email",
+      "When anyone in it is **Unreachable** or **Needs setup**, the Project Owners get one email",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "A week with everyone ready sends nothing",

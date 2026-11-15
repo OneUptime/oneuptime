@@ -1,5 +1,6 @@
 import BreakableName from "../BreakableName/BreakableName";
 import FieldLabelElement from "../Detail/FieldLabel";
+import EmptyFigure, { isEmptyFigure } from "../EmptyFigure/EmptyFigure";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -13,7 +14,8 @@ export interface ComponentProps {
    * product's words, looked up.
    */
   isTitleUserContent?: boolean | undefined;
-  value: string | ReactElement;
+  // None, or a dash a page wrote, and it draws the figure's quiet dash.
+  value?: string | ReactElement | undefined;
   className?: string;
   textClassName?: string;
   onClick?: (() => void) | undefined;
@@ -61,8 +63,15 @@ const InfoCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isClickable: boolean = Boolean(props.onClick);
   const paddingClassName: string = props.paddingClassName || "p-5";
+  /*
+   * A value the card does not have - blank, or a dash a page wrote for one -
+   * is the figure's quiet dash, read out as "Not set" (EmptyFigure, #8264).
+   */
+  const isEmpty: boolean = isEmptyFigure(props.value);
   const value: ReactElement =
-    typeof props.value === "string" ? (
+    isEmpty || props.value === undefined ? (
+      <EmptyFigure />
+    ) : typeof props.value === "string" ? (
       <BreakableName text={props.value} />
     ) : (
       props.value
@@ -107,7 +116,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
            */
           aria-label={
             props.ariaLabel ||
-            (typeof props.value === "string"
+            (typeof props.value === "string" && !isEmpty
               ? `${props.title} ${props.value}`
               : props.title)
           }

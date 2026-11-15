@@ -347,6 +347,20 @@ Translation guidelines:
   English's on purpose, list its English as same-as-English (see Plurals
   above). In ja/ko/zh-CN/zh-TW, `_one` is never shown, so translate it the
   same as the general form or leave it.
+- A state on its own ("Active", "Inactive", "Drained") is worded once for
+  every page that draws it, and a page draws several states of one thing
+  together, row after row. Word it as your locale words the others: Russian
+  in the neuter ("Активно", "Неактивно", "Выведено из работы"), Arabic in the
+  masculine (نشط, مُفرَّغ). A state of another gender beside them reads as a
+  word about something else: Russian's list said "Активно" over "Неактивен"
+  (#8588). `Common/Tests/App/StatesDrawnTogetherAgree` holds the sets.
+  Where a shared word cannot agree with every page that draws it, a page
+  words its state with a key of its own (`Common/Types/MeaningKeys`), which
+  English reads as the bare word: a threat indicator's "Expired (threat
+  indicator)" is Russian "Истекло" while a token's Expired stays "Истёк"
+  (#8659). Word such a key as your bare word unless that disagrees there.
+- Give each of OneUptime's things a word no other thing has in your language:
+  Arabic had called both the collector and a Ceph pool المجمّع (#8581).
 
 ### Spaces in Chinese and Japanese (zh-CN, zh-TW, ja)
 
@@ -621,13 +635,19 @@ translated the same locale. Take either side, then run
   (`Common/Types/Monitor/*MetricCatalog`, #8014), and so are the database
   catalog's metric names and its groups' headings (#8354), which the
   criteria's metric dropdown, the summary and the charts look up once, and
-  the translated Database Health pages name as each language draws them;
-  but not the VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
-  catalogs' metric names, which their pickers and criteria draw in English,
-  so the docs' metric tables keep them in English. A Database monitor's
-  summary still names a collection group it could not collect by the
-  group's English value, as the docs' Group column and troubleshooting
-  headings do.
+  the translated Database Health pages name as each language draws them.
+  The VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
+  catalogs' metric names are keys too, and so are their pickers' group
+  headings (`get*MetricCategoryLabel`: a category is an identifier, so
+  "ControlPlane" is headed Control Plane and the host's Load is headed Load
+  Average), each looked up once by its picker (#8353); the translated
+  Kubernetes Monitor pages name the metrics as the picker draws them. The
+  storage array, Proxmox, Ceph and OpenStack pickers still head their groups
+  with the category's English value (#8653). A Database monitor's
+  summary names a collection group it could not collect as the form's
+  Metric Groups switch does, says why in the reader's words and keeps the
+  database's own error as written (`Common/Utils/Monitor/DatabaseCollectionIssueReading`,
+  #8609); the translated docs name the groups the same way.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that

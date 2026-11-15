@@ -44,20 +44,20 @@ Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstelli
 
 :::tabs
 @tab SAML
-Op de pagina van de provider toont de kaart **Identity Provider URLs** de **ACS URL (Assertion Consumer Service / Reply URL)** en de **Issuer (Entity ID)**. Plak beide in uw identiteitsprovider (Okta, Microsoft Entra ID, OneLogin, JumpCloud en andere).
+Op de pagina van de provider toont de kaart **URL's van de identiteitsprovider** de **ACS URL (Assertion Consumer Service / Reply URL)** en de **Issuer (Entity ID)**. Plak beide in uw identiteitsprovider (Okta, Microsoft Entra ID, OneLogin, JumpCloud en andere).
 @tab OpenID Connect
-Op de pagina van de provider toont de kaart **Identity Provider URL** de **Redirect URI (Callback URL)**. Voeg die toe aan de toegestane redirect-URI's van uw identiteitsprovider.
+Op de pagina van de provider toont de kaart **URL van de identiteitsprovider** de **Redirect URI (Callback URL)**. Voeg die toe aan de toegestane redirect-URI's van uw identiteitsprovider.
 :::
 
 ### De provider inschakelen
 
-Een nieuwe provider staat eerst uit. Klik op de pagina van de provider op **Edit Configuration** en zet **Ingeschakeld** aan.
+Een nieuwe provider staat eerst uit. Klik op de pagina van de provider op **Configuratie bewerken** en zet **Ingeschakeld** aan.
 
 Een globale provider inschakelen voegt hem alleen toe aan de single sign-on-opties van de aanmeldpagina — het dwingt nooit SSO af en sluit niemand buiten, dus u kunt hem veilig inschakelen, testen en zo nodig weer uitschakelen. Zolang de hele instantie SSO verplicht, biedt de aanmeldpagina wel alleen de ingeschakelde providers aan: test een provider voordat u SSO verplicht.
 
 ### De provider testen
 
-Gebruik de link in de kaart **Test this SSO provider** (**Test this OIDC provider** voor OpenID Connect) om een volledige aanmelding via uw identiteitsprovider te doen. **Inloggen testen** in de rij van de provider op **Single sign-on** start dezelfde aanmelding in een nieuw tabblad. U hoeft eerst geen projecten te koppelen: de test meldt u aan in de projecten waar u al lid van bent. De provider moet ingeschakeld zijn om de link te laten werken.
+Gebruik de link in de kaart **Deze SSO-provider testen** (**Deze OIDC-provider testen** voor OpenID Connect) om een volledige aanmelding via uw identiteitsprovider te doen. **Inloggen testen** in de rij van de provider op **Single sign-on** start dezelfde aanmelding in een nieuw tabblad. U hoeft eerst geen projecten te koppelen: de test meldt u aan in de projecten waar u al lid van bent. De provider moet ingeschakeld zijn om de link te laten werken.
 :::
 
 ## Zo melden gebruikers zich aan
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Geen projecten gekoppeld (alle projecten / eerst uitnodigen):** gebruikers kunnen zich met de provider aanmelden en **elk project waar ze al lid van zijn** bereiken. Nieuwe gebruikers worden **niet** automatisch aangemaakt — een gebruiker moet eerst voor een project worden uitgenodigd. Gebruik dit voor bedrijfsbrede SSO als lidmaatschappen elders worden beheerd.
 
-- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Attached Projects** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
+- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Gekoppelde projecten** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
 
 Wie al lid is van een gekoppeld project, houdt daar zijn teams.
 

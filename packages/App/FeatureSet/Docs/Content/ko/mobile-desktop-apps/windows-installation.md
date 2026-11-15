@@ -61,7 +61,7 @@ flowchart TB
 **디바이스 등록**을 클릭하고, **디바이스 이름**은 `Edge on Windows` 같은 제안된 이름을 그대로 두거나 바꾼 다음, **디바이스 등록**을 다시 클릭합니다. OneUptime이 알림을 표시해도 되는지 브라우저가 물으면 **허용**을 선택합니다.
 
 ### 테스트 보내기
-**Browser Registered** 대화 상자에서 **Send Test Notification**을 클릭합니다. 아무것도 나타나지 않으면 Windows 자체의 알림 설정을 확인하세요. [문제 해결](#문제-해결)을 참고하세요.
+**브라우저 등록됨** 대화 상자에서 **테스트 알림 보내기**를 클릭합니다. 아무것도 나타나지 않으면 Windows 자체의 알림 설정을 확인하세요. [문제 해결](#문제-해결)을 참고하세요.
 :::
 
 브라우저는 Windows가 허용하는 것보다 크게 울릴 수 없으며, 방해 금지 모드를 무시할 수 없습니다. 반드시 깨워야 하는 호출에는 중요 알림을 켠 모바일 앱을 사용하세요. [Android 설치](/docs/mobile-desktop-apps/android-installation#무음-모드에서도-울리게-하기) 또는 [iOS 설치](/docs/mobile-desktop-apps/ios-installation#무음-모드에서도-울리게-하기)를 참고하세요.

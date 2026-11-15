@@ -39,20 +39,20 @@ Een blok draait als het blok ervoor de uitgang neemt die erop is aangesloten. He
 
 ```mermaid title="Een blok neemt een van zijn uitgangen"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API Post (JSON)"]
-    post -->|"Succes: een 2xx-antwoord"| slack["Send Message to Slack"]
+    trigger["On Create Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
+    post -->|"Succes: een 2xx-antwoord"| slack["Bericht naar Slack sturen"]
     post -->|"Fout: geen antwoord, of geen 2xx"| log["Logboek"]
 ```
 
 - **Instellingen** zijn wat je invult. Instellingen met **(Optioneel)** mogen leeg blijven. Minder gebruikte instellingen zijn ingeklapt onder **Meer velden**.
-- **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Succes** en **Fout**; [Conditions](#conditions) heeft **Ja** en **Nee**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Standaard**.
+- **Uitvoer** zijn de punten aan de onderrand. De meeste blokken hebben **Succes** en **Fout**; [Conditions](#conditions) heeft **Ja** en **Nee**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Standaard**.
 - **Returns** zijn de waarden die een blok aan latere blokken doorgeeft, zoals de **Antwoordlichaam** van een API. Een later blok leest er een met `{{local.components.<block ID>.returnValues.<value ID>}}`; de knop **{ }** in een instelling voegt hem voor je in. Zie [Variabelen](/docs/workflows/variables#componentuitvoer-data-uit-eerdere-blokken).
 
 Een blok dat **Fout** neemt, geeft de fout door aan de blokken die op **Fout** zijn aangesloten, en de uitvoering gaat daar verder. Is er niets op **Fout** aangesloten, dan mislukt de uitvoering: wat ze verder nog deed, loopt door, daarna eindigt ze met de status **Fout**, en de vermelding van het blok in **Stappen** van de uitvoering zegt waarom. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
 
 ## API
 
-Doe een HTTP-verzoek naar elke URL. Er is één blok per methode: **API Get (JSON)**, **API Post (JSON)**, **API Put (JSON)**, **API Patch (JSON)** en **API Delete (JSON)**.
+Doe een HTTP-verzoek naar elke URL. Er is één blok per methode: **API-aanroep GET (JSON)**, **API-aanroep POST (JSON)**, **API-aanroep PUT (JSON)**, **API-aanroep PATCH (JSON)** en **API-aanroep DELETE (JSON)**.
 
 | Instelling          | Wat het doet                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -65,11 +65,11 @@ Doe een HTTP-verzoek naar elke URL. Er is één blok per methode: **API Get (JSO
 | **Succes** | De server antwoordde met een 2xx-status.                                                       |
 | **Fout**   | Het verzoek mislukte: de server was niet bereikbaar, of antwoordde met een andere status.      |
 
-Hoe dan ook geeft het blok **Response Status**, **Reactieheaders** en **Antwoordlichaam** terug, plus **Fout** met de reden als het mislukte. Lees één veld van een JSON-antwoord door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.api-get-1.returnValues.response-body.id}}`.
+Hoe dan ook geeft het blok **Status van het antwoord**, **Reactieheaders** en **Antwoordlichaam** terug, plus **Fout** met de reden als het mislukte. Lees één veld van een JSON-antwoord door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Omleidingen worden niet gevolgd, dus richt het blok op het adres dat antwoordt. Verzoeken gaan vanuit OneUptime de deur uit: een URL die naar een privénetwerkadres verwijst, wordt geweigerd tenzij een beheerder van een zelf gehoste installatie die toestaat, en de uitvoering stopt met de reden. Zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 
-**API Get By ID (JSON)** leest één item op een ID dat ergens anders vandaan kwam, zoals de issuesleutel die een webhook stuurde. Zet `{id}` in de **URL** waar het ID hoort, zoals in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, en het ID in **ID**. Het blok zet het ID er alleen in als het een eenvoudig ID is, hooguit 200 letters, cijfers, streepjes en underscores, en codeert het toch met procenttekens: al het andere, zoals `x/../users`, neemt **Fout** voordat er een verzoek wordt verstuurd, zodat tekst van buiten het verzoek niet ergens anders heen kan sturen. Verder werkt het zoals **API Get (JSON)** en geeft het dezelfde waarden terug.
+**API-aanroep GET op ID (JSON)** leest één item op een ID dat ergens anders vandaan kwam, zoals de issuesleutel die een webhook stuurde. Zet `{id}` in de **URL** waar het ID hoort, zoals in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, en het ID in **ID**. Het blok zet het ID er alleen in als het een eenvoudig ID is, hooguit 200 letters, cijfers, streepjes en underscores, en codeert het toch met procenttekens: al het andere, zoals `x/../users`, neemt **Fout** voordat er een verzoek wordt verstuurd, zodat tekst van buiten het verzoek niet ergens anders heen kan sturen. Verder werkt het zoals **API-aanroep GET (JSON)** en geeft het dezelfde waarden terug.
 
 ## AI
 
@@ -79,15 +79,15 @@ Genereer één tekstantwoord op basis van een prompt en optionele JSON-context. 
 
 | Instelling                | Wat het doet                                                                                                                                                      |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **System Instructions**   | Optionele aanwijzingen voor de rol, de toon en de beperkingen van het model.                                                                                     |
+| **Systeeminstructies**   | Optionele aanwijzingen voor de rol, de toon en de beperkingen van het model.                                                                                     |
 | **Prompt**                | De taak. Die wordt verstuurd precies zoals je hem typt, dus Markdown werkt, en hij kan variabelen en waarden uit eerdere blokken bevatten.                       |
 | **Context**               | Optionele JSON die je bewust meestuurt. Die wordt toegevoegd na een expliciete markering voor het einde van het bericht en behandeld als onbetrouwbare gegevens. |
 | **Temperatuur**           | Onder **Meer velden**. De variatie, van `0` tot `1`; de standaardwaarde is `0.2`, voor voorspelbare automatisering. Huidige Claude-modellen, Opus 4.7 en later en elk Claude 5-model, kiezen hun eigen sampling: OneUptime laat **Temperatuur** weg uit hun verzoeken, dus op hen heeft het geen effect. |
-| **Maximum Output Tokens** | Onder **Meer velden**. Van `1` tot `4096`; de standaardwaarde is `1024`.                                                                                         |
+| **Maximaal aantal uitvoertokens** | Onder **Meer velden**. Van `1` tot `4096`; de standaardwaarde is `1024`.                                                                                         |
 
 System Instructions, Prompt en de geserialiseerde Context zijn samen beperkt tot 50.000 tekens. Een afbeelding die er als base64 in zit, zoals de schermafbeelding van een synthetische monitor in de beschrijving van een incident, wordt vóór het meten vervangen door een korte notitie zoals `[image omitted: PNG, 340 KB]`, omdat het model tekst leest, geen afbeeldingen. Het logboek van de uitvoering zegt wat er is weggelaten. Het verzoek aan de provider duurt hooguit 60 seconden en wordt één keer geprobeerd. Per project kunnen hooguit drie AI-verzoeken van workflows tegelijk lopen.
 
-Het geeft **Antwoord** terug (de gegenereerde tekst), **Provider** en **Model** (wat antwoordde), **Total Tokens** en **Completion Tokens** (het gebruik dat de provider rapporteerde), **LLM Log ID** (de vermelding van de aanroep in de AI-logboeken) en **Fout**.
+Het geeft **Antwoord** terug (de gegenereerde tekst), **Provider** en **Model** (wat antwoordde), **Totaal aantal tokens** en **Voltooiingstokens** (het gebruik dat de provider rapporteerde), **LLM-logboek-ID** (de vermelding van de aanroep in de AI-logboeken) en **Fout**.
 
 Sluit **Succes** aan op de blokken die het antwoord gebruiken, en **Fout** op een terugvaloptie: fouten in validatie, toegang, provider, budget, facturering en time-out nemen allemaal dat pad. Het blok stuurt geen tools mee, dus het model kan zelf geen OneUptime opvragen, geen API's aanroepen en geen gegevens wijzigen.
 
@@ -101,18 +101,18 @@ Post een bericht in een Slack-kanaal via een inkomende webhook.
 | Instelling                     | Wat het doet                                                                                                                                                                                                 |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **URL van inkomende Slack-webhook** | De webhook van het kanaal waarin je wilt posten. Die moet beginnen met `https://hooks.slack.com/services/`. De handleiding van Slack om [er een te maken](https://api.slack.com/messaging/webhooks) kost een paar minuten. |
-| **Message Text**               | De tekst om te versturen. Die wordt verstuurd precies zoals je hem typt, dus gebruik de eigen opmaak van Slack: `*bold*`, `_italic_`, `~strikethrough~` en `<https://example.com|a link>`. Een tekst die langer is dan één Slack-sectie (3.000 tekens) gaat als meerdere secties; na tien secties wordt hij afgekapt en eindigt hij met "… (truncated — see OneUptime for the full text)". |
+| **Berichttekst**               | De tekst om te versturen. Die wordt verstuurd precies zoals je hem typt, dus gebruik de eigen opmaak van Slack: `*bold*`, `_italic_`, `~strikethrough~` en `<https://example.com|a link>`. Een tekst die langer is dan één Slack-sectie (3.000 tekens) gaat als meerdere secties; na tien secties wordt hij afgekapt en eindigt hij met "… (truncated — see OneUptime for the full text)". |
 
 **Succes** gaat af als Slack het bericht aannam en **Fout** als Slack het weigerde, met de reden van Slack in **Fout**. Deze blokken posten via de webhook in hun instellingen, niet via de Slack-verbinding van je project.
 
 ## Microsoft Teams
 
-Post een bericht in een Microsoft Teams-kanaal. Het blok heet **Send Message to Teams**.
+Post een bericht in een Microsoft Teams-kanaal. Het blok heet **Bericht naar Teams sturen**.
 
 | Instelling                     | Wat het doet                                                                                                                                                                                                                                  |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Teams Incoming Webhook URL** | De kanaalwebhook om in te posten, een `https`-URL op `office.com`, `office365.com`, `logic.azure.com` of `environment.api.powerplatform.com`. De handleiding van Microsoft laat zien hoe je [er een maakt met Teams Workflows](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams). |
-| **Message Text**               | De tekst om te versturen. Een bericht dat groter is dan een inkomende webhook aanneemt (ongeveer 12.000 tekens, gemeten zoals het wordt verstuurd) wordt afgekapt en eindigt met "… (truncated — see OneUptime for the full text)".             |
+| **Teams-webhook-URL voor inkomende berichten** | De kanaalwebhook om in te posten, een `https`-URL op `office.com`, `office365.com`, `logic.azure.com` of `environment.api.powerplatform.com`. De handleiding van Microsoft laat zien hoe je [er een maakt met Teams Workflows](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams). |
+| **Berichttekst**               | De tekst om te versturen. Een bericht dat groter is dan een inkomende webhook aanneemt (ongeveer 12.000 tekens, gemeten zoals het wordt verstuurd) wordt afgekapt en eindigt met "… (truncated — see OneUptime for the full text)".             |
 
 ## Discord
 
@@ -120,8 +120,8 @@ Post een bericht in een Discord-kanaal via een inkomende webhook.
 
 | Instelling                       | Wat het doet                                                                                                                                       |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discord Incoming Webhook URL** | De webhook van het kanaal, een `https`-URL op `discord.com` of `discordapp.com`.                                                                   |
-| **Message Text**                 | De tekst om te versturen. Een bericht van meer dan 2.000 tekens, de limiet van Discord, wordt afgekapt en eindigt met "… (truncated — see OneUptime for the full text)". |
+| **Discord-webhook-URL voor inkomende berichten** | De webhook van het kanaal, een `https`-URL op `discord.com` of `discordapp.com`.                                                                   |
+| **Berichttekst**                 | De tekst om te versturen. Een bericht van meer dan 2.000 tekens, de limiet van Discord, wordt afgekapt en eindigt met "… (truncated — see OneUptime for the full text)". |
 
 ## Telegram
 
@@ -129,9 +129,9 @@ Stuur een bericht naar een Telegram-chat met een bot.
 
 | Instelling             | Wat het doet                                                                                                                                       |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Telegram Bot Token** | Het token dat BotFather je bot gaf, zoals `123456789:ABCdef…`. Een token met een andere vorm stopt de uitvoering, zonder dat het token in het logboek komt. |
-| **Chat ID**            | De chat om in te posten: de ID ervan, of de `@username` van een kanaal. Voeg de bot eerst toe aan de groep of het kanaal. Om iemand een bericht te sturen, moet die persoon eerst een chat met de bot zijn begonnen. |
-| **Message Text**       | De tekst om te versturen. Een bericht van meer dan 4.096 tekens, de limiet van Telegram, wordt afgekapt en eindigt met "… (truncated — see OneUptime for the full text)". |
+| **Telegram-bottoken** | Het token dat BotFather je bot gaf, zoals `123456789:ABCdef…`. Een token met een andere vorm stopt de uitvoering, zonder dat het token in het logboek komt. |
+| **Chat-ID**            | De chat om in te posten: de ID ervan, of de `@username` van een kanaal. Voeg de bot eerst toe aan de groep of het kanaal. Om iemand een bericht te sturen, moet die persoon eerst een chat met de bot zijn begonnen. |
+| **Berichttekst**       | De tekst om te versturen. Een bericht van meer dan 4.096 tekens, de limiet van Telegram, wordt afgekapt en eindigt met "… (truncated — see OneUptime for the full text)". |
 
 Als Telegram het bericht weigert, gaat **Fout** af met de reden van Telegram.
 
@@ -141,25 +141,25 @@ Post een bericht in een IRC-kanaal op elk IRC-netwerk: Libera.Chat, OFTC of een 
 
 | Instelling       | Wat het doet                                                                                                                                                                                                                                       |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **IRC Server**   | De hostnaam van de server, zoals `irc.libera.chat`. Alleen de naam: geen `ircs://` en geen poort.                                                                                                                                                  |
+| **IRC-server**   | De hostnaam van de server, zoals `irc.libera.chat`. Alleen de naam: geen `ircs://` en geen poort.                                                                                                                                                  |
 | **Kanaal**      | Het kanaal om in te posten, zoals `#ops`. Het moet een kanaal zijn: een bijnaam die je hier typt, wordt geweigerd in plaats van een privébericht te krijgen.                                                                                       |
-| **Message Text** | De tekst om te versturen. Elke regel gaat als een eigen IRC-bericht, en een lange regel wordt opgesplitst zodat hij past. Een bericht wordt als hooguit 15 IRC-regels verstuurd: een langer bericht wordt ingekort, en de laatste regel zegt dat. IRC heeft geen Markdown, dus de tekst wordt verstuurd zoals getypt; de eigen opmaakcodes van IRC, zoals vet en kleuren, werken wel. |
+| **Berichttekst** | De tekst om te versturen. Elke regel gaat als een eigen IRC-bericht, en een lange regel wordt opgesplitst zodat hij past. Een bericht wordt als hooguit 15 IRC-regels verstuurd: een langer bericht wordt ingekort, en de laatste regel zegt dat. IRC heeft geen Markdown, dus de tekst wordt verstuurd zoals getypt; de eigen opmaakcodes van IRC, zoals vet en kleuren, werken wel. |
 
 Onder **Meer velden**:
 
 | Instelling                               | Wat het doet                                                                                                                                                                                                       |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Nickname**                             | Van wie het bericht is. Standaard `OneUptime`. Is de bijnaam bezet, dan probeert het blok hem met een underscore of een cijfer erbij, en daarna met zo'n teken in plaats van de laatste tekens, voor een server die geen langere bijnaam accepteert. |
-| **Poort**                                 | De poort van de server. Standaard `6697`, of `6667` als **Disable TLS** aan staat.                                                                                                                                  |
-| **Disable TLS**                          | Het blok verbindt via TLS en controleert het certificaat van de server. Zet dit alleen aan voor een server die geen TLS aanbiedt; een eventueel wachtwoord gaat dan onversleuteld over de lijn. Om een certificaat van je eigen certificeringsinstantie te vertrouwen, stelt een zelf gehoste installatie in plaats daarvan `NODE_EXTRA_CA_CERTS` in. |
-| **Channel Key**                          | De sleutel van een kanaal dat er een heeft (modus `+k`).                                                                                                                                                           |
-| **Send Without Joining**                 | Post zonder het kanaal in te gaan, zodat het kanaal het blok niet ziet komen en gaan. Werkt alleen waar het kanaal berichten van buiten accepteert (geen modus `+n`).                                               |
-| **Server Password**                      | Een wachtwoord dat de server of je bouncer vraagt bij het verbinden.                                                                                                                                              |
-| **SASL Username** en **SASL Password**   | Log in op je account op netwerken die SASL gebruiken, zoals Libera.Chat, dat het vereist voor verbindingen vanaf sommige cloud- en VPN-adressen. Vul beide in of geen van beide.                                    |
+| **Bijnaam**                             | Van wie het bericht is. Standaard `OneUptime`. Is de bijnaam bezet, dan probeert het blok hem met een underscore of een cijfer erbij, en daarna met zo'n teken in plaats van de laatste tekens, voor een server die geen langere bijnaam accepteert. |
+| **Poort**                                 | De poort van de server. Standaard `6697`, of `6667` als **TLS uitschakelen** aan staat.                                                                                                                                  |
+| **TLS uitschakelen**                          | Het blok verbindt via TLS en controleert het certificaat van de server. Zet dit alleen aan voor een server die geen TLS aanbiedt; een eventueel wachtwoord gaat dan onversleuteld over de lijn. Om een certificaat van je eigen certificeringsinstantie te vertrouwen, stelt een zelf gehoste installatie in plaats daarvan `NODE_EXTRA_CA_CERTS` in. |
+| **Kanaalsleutel**                          | De sleutel van een kanaal dat er een heeft (modus `+k`).                                                                                                                                                           |
+| **Sturen zonder te betreden**                 | Post zonder het kanaal in te gaan, zodat het kanaal het blok niet ziet komen en gaan. Werkt alleen waar het kanaal berichten van buiten accepteert (geen modus `+n`).                                               |
+| **Serverwachtwoord**                      | Een wachtwoord dat de server of je bouncer vraagt bij het verbinden.                                                                                                                                              |
+| **SASL-gebruikersnaam** en **SASL-wachtwoord**   | Log in op je account op netwerken die SASL gebruiken, zoals Libera.Chat, dat het vereist voor verbindingen vanaf sommige cloud- en VPN-adressen. Vul beide in of geen van beide.                                    |
 
 **Succes** gaat af zodra de server elke regel heeft aangenomen. Het blok controleert dat door de server na de laatste regel om een antwoord op een ping te vragen: een server antwoordt op volgorde, dus een eventuele weigering van het bericht komt eerst. Een bouncer zoals ZNC beantwoordt de ping zelf, dus het blok luistert een seconde langer naar het antwoord van het netwerk erachter.
 
-**Fout** gaat af als de server niet bereikbaar is, de verbinding, de bijnaam, een wachtwoord of het kanaal weigert, of het bericht weigert. Het geeft de reden door, in de eigen woorden van de server als die ze gaf. Een ontbrekende **IRC Server**, **Kanaal** of **Message Text**, of een instelling die nooit zou kunnen werken, stopt de uitvoering daarentegen.
+**Fout** gaat af als de server niet bereikbaar is, de verbinding, de bijnaam, een wachtwoord of het kanaal weigert, of het bericht weigert. Het geeft de reden door, in de eigen woorden van de server als die ze gaf. Een ontbrekende **IRC-server**, **Kanaal** of **Berichttekst**, of een instelling die nooit zou kunnen werken, stopt de uitvoering daarentegen.
 
 Elke uitvoering van het blok is een eigen verbinding, en IRC-netwerken beperken hoe vaak één adres mag verbinden: een golf berichten kan worden geweigerd met een reden zoals "Reconnecting too fast", en neemt **Fout** zoals elke andere weigering. Voor een workflow die vele keren per minuut kan afgaan, bundel je wat hij te zeggen heeft in één bericht, of stuur je het via een eigen server.
 
@@ -171,8 +171,8 @@ Post een bericht in een Mattermost-kanaal via een inkomende webhook, in Mattermo
 
 | Instelling                          | Wat het doet                                                                                                                                                                                                                                                                       |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Mattermost Incoming Webhook URL** | De webhook waarlangs je post, zoals Mattermost hem toont onder Integrations, Incoming Webhooks: het adres van de server, dan `/hooks/` en de ID van de webhook. De handleiding van Mattermost laat zien hoe je [er een maakt](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
-| **Message Text**                    | De tekst om te versturen. Die wordt verstuurd precies zoals je hem typt, en Mattermost begrijpt Markdown: `**bold**`, `_italic_`, links, tabellen en emoji zoals `:rotating_light:`. Een Mattermost-bericht bevat hooguit 16.383 tekens: een langer bericht wordt ingekort tot het past en eindigt met "… (truncated — see OneUptime for the full text)". |
+| **Mattermost-webhook-URL voor inkomende berichten** | De webhook waarlangs je post, zoals Mattermost hem toont onder Integrations, Incoming Webhooks: het adres van de server, dan `/hooks/` en de ID van de webhook. De handleiding van Mattermost laat zien hoe je [er een maakt](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
+| **Berichttekst**                    | De tekst om te versturen. Die wordt verstuurd precies zoals je hem typt, en Mattermost begrijpt Markdown: `**bold**`, `_italic_`, links, tabellen en emoji zoals `:rotating_light:`. Een Mattermost-bericht bevat hooguit 16.383 tekens: een langer bericht wordt ingekort tot het past en eindigt met "… (truncated — see OneUptime for the full text)". |
 
 Onder **Meer velden**:
 
@@ -180,27 +180,27 @@ Onder **Meer velden**:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Kanaal**  | Post ergens anders dan in het eigen kanaal van de webhook: de naam van het kanaal zoals die in de URL staat, bijvoorbeeld `town-square`, of `@` en een gebruikersnaam voor een direct bericht. Een webhook die aan zijn kanaal is gebonden, weigert elk ander kanaal. |
 | **Gebruikersnaam** | De naam waaronder je post. Mattermost gebruikt hem alleen waar een systeembeheerder integraties gebruikersnamen laat overschrijven.                                                                           |
-| **Icon URL** | De afbeelding waarmee je post, een `https`-adres. Mattermost gebruikt die alleen waar een systeembeheerder integraties profielfoto's laat overschrijven.                                                      |
+| **Pictogram-URL** | De afbeelding waarmee je post, een `https`-adres. Mattermost gebruikt die alleen waar een systeembeheerder integraties profielfoto's laat overschrijven.                                                      |
 
-**Succes** gaat af als Mattermost het bericht aannam. **Fout** gaat af als de server niet bereikbaar is of Mattermost het bericht weigert, en geeft de reden van Mattermost door. Een ontbrekende **Mattermost Incoming Webhook URL** of **Message Text**, een URL die niet van een inkomende webhook is, of een instelling die nooit zou kunnen werken, stopt de uitvoering daarentegen.
+**Succes** gaat af als Mattermost het bericht aannam. **Fout** gaat af als de server niet bereikbaar is of Mattermost het bericht weigert, en geeft de reden van Mattermost door. Een ontbrekende **Mattermost-webhook-URL voor inkomende berichten** of **Berichttekst**, een URL die niet van een inkomende webhook is, of een instelling die nooit zou kunnen werken, stopt de uitvoering daarentegen.
 
 Bewaar de webhook-URL in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen): iedereen die hem heeft, kan in het kanaal posten. Hij is hoe dan ook verborgen in de logboeken van uitvoeringen. Het bericht gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een webhook op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een webhook op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
 ## Email
 
-Stuur een e-mail via een SMTP-server die je in het blok invult. Het blok heet **Send Email**.
+Stuur een e-mail via een SMTP-server die je in het blok invult. Het blok heet **E-mail versturen**.
 
 | Instelling                              | Wat het doet                                                                                          |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | **E-mail van**                          | De afzender, bijvoorbeeld `Alerts <alerts@company.com>`.                                              |
-| **To Email**                            | Het adres van de ontvanger. Scheid meerdere adressen met komma's of puntkomma's.                      |
+| **E-mail van ontvanger**                            | Het adres van de ontvanger. Scheid meerdere adressen met komma's of puntkomma's.                      |
 | **Onderwerp**                             | De onderwerpregel.                                                                                    |
 | **E-mailtekst**                          | Het bericht, verstuurd als HTML.                                                                      |
-| **SMTP HOST** en **SMTP Port**          | De mailserver om mee te verbinden.                                                                    |
-| **SMTP Username** en **SMTP Password**  | Optioneel. Vul beide in of geen van beide.                                                            |
-| **Use Implicit TLS**                    | Zet aan voor impliciete TLS, meestal op poort 465. Laat uit voor STARTTLS, meestal op poort 587.     |
+| **SMTP-host** en **SMTP-poort**          | De mailserver om mee te verbinden.                                                                    |
+| **SMTP-gebruikersnaam** en **SMTP-wachtwoord**  | Optioneel. Vul beide in of geen van beide.                                                            |
+| **Impliciete TLS gebruiken**                    | Zet aan voor impliciete TLS, meestal op poort 465. Laat uit voor STARTTLS, meestal op poort 587.     |
 
-**Succes** gaat af als de SMTP-server het bericht aannam. **Fout** gaat af als de SMTP-host wordt geweigerd, de server niet bereikbaar is of het bericht weigert, en geeft de foutmelding door. Een ontbrekende **To Email**, **E-mail van**, **SMTP HOST** of **SMTP Port** stopt de uitvoering daarentegen.
+**Succes** gaat af als de SMTP-server het bericht aannam. **Fout** gaat af als de SMTP-host wordt geweigerd, de server niet bereikbaar is of het bericht weigert, en geeft de foutmelding door. Een ontbrekende **E-mail van ontvanger**, **E-mail van**, **SMTP-host** of **SMTP-poort** stopt de uitvoering daarentegen.
 
 Het blok verbindt rechtstreeks met de server in zijn instellingen. Het gebruikt niet de [SMTP](/docs/emails/smtp)-instellingen van je project of de eigen mailserver van OneUptime, en de e-mails die het verstuurt, verschijnen niet in de meldingslogboeken. Bekijk de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow om te controleren wat het deed.
 
@@ -212,35 +212,35 @@ Roep mensen op vanuit een workflow: ieder krijgt een telefoontje, een sms, een p
 
 | Blok                        | Wie het oproept |
 | --------------------------- | --------------- |
-| **Page Users**              | De mensen die je noemt. |
-| **Page a Team**             | Elk lid van een team. |
-| **Page Whoever Is On Call** | Wie in een bereikbaarheidsschema dienst heeft op het moment dat het blok draait. |
-| **Page an On-Call Policy**  | Een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels en zich herhaalt zoals het is ingesteld. |
+| **Gebruikers oproepen**              | De mensen die je noemt. |
+| **Een team oproepen**             | Elk lid van een team. |
+| **Wie bereikbaar is oproepen** | Wie in een bereikbaarheidsschema dienst heeft op het moment dat het blok draait. |
+| **Een bereikbaarheidsbeleid starten**  | Een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels en zich herhaalt zoals het is ingesteld. |
 
-De eerste drie roepen iedereen die ze noemen tegelijk op, en daarna niemand meer. Gebruik voor escalatie **Page an On-Call Policy**.
+De eerste drie roepen iedereen die ze noemen tegelijk op, en daarna niemand meer. Gebruik voor escalatie **Een bereikbaarheidsbeleid starten**.
 
 Om alleen op te roepen wanneer iets waar is, zet je [If / Else](#conditions) vóór het blok en verbind je de uitgang die moet oproepen ermee. Met meer dan twee wegen neemt [Switch / Case](#switch-case) een pad voor elke waarde, en elk pad kan iemand anders oproepen.
 
 ```mermaid title="Roep op wie dienst heeft, maar alleen bij kritieke incidenten"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| check["If / Else"]
-    check -->|"Ja"| page["Page Whoever Is On Call"]
+    trigger["On Create Incident"] -->|"Succes"| check["Als / Anders"]
+    check -->|"Ja"| page["Wie bereikbaar is oproepen"]
 ```
 
-Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze klaarstaan, en een die met **Switch / Case** op ernst oproept. Het dialoogvenster **Een workflow maken** vraagt voor elk oproepblok van een sjabloon wie het oproept, zodat de workflow opent met die keuzes al gemaakt. Een oproepblok dat je in de Bouwer toevoegt, zegt **Click to set up** tot je kiest wie het oproept.
+Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze klaarstaan, en een die met **Keuze / Geval** op ernst oproept. Het dialoogvenster **Een workflow maken** vraagt voor elk oproepblok van een sjabloon wie het oproept, zodat de workflow opent met die keuzes al gemaakt. Een oproepblok dat je in de Bouwer toevoegt, zegt **Click to set up** tot je kiest wie het oproept.
 
 | Instelling | Wat het doet |
 | ---------- | ------------ |
 | **Gebruikers**, **Teams**, **Bereikbaarheidsschema's** of **Bereikbaarheidsbeleid** | Wie wordt opgeroepen: elk blok heeft de instelling die bij zijn naam hoort. Kies op naam, of druk op **{ }** aan het eind van de rij om een waarde uit een eerder blok toe te voegen. Een waarde kan één ID of meerdere bevatten en, bij **Gebruikers**, een e-mailadres. |
-| **Page About** | Waar de oproep over gaat: **A new alert**, **An incident** of **An alert**. De oproep bevestigen bevestigt dat ook. |
+| **Oproep gaat over** | Waar de oproep over gaat: **Een nieuwe waarschuwing**, **Een incident** of **Een waarschuwing**. De oproep bevestigen bevestigt dat ook. |
 | **Titel** en **Bericht** | Voor een nieuwe waarschuwing. OneUptime maakt er een waarschuwing van, en die blijft tussen je waarschuwingen staan zoals elke andere. |
 | **Incident-ID** of **Waarschuwings-ID** | Voor een incident of een waarschuwing die er al is, meestal die waarmee de workflow begon: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
-| **Page As** | Voor een incident of een waarschuwing die er al is, onder **Meer velden**. **Ontvangers** nemen het op zich. **Waarnemers** worden op de hoogte gehouden terwijl anderen reageren: hun oproep bevestigen zegt alleen dat ze die gezien hebben, en het incident of de waarschuwing wordt niet bevestigd. |
+| **Oproepen als** | Voor een incident of een waarschuwing die er al is, onder **Meer velden**. **Ontvangers** nemen het op zich. **Waarnemers** worden op de hoogte gehouden terwijl anderen reageren: hun oproep bevestigen zegt alleen dat ze die gezien hebben, en het incident of de waarschuwing wordt niet bevestigd. |
 | **Ernst** | Voor een nieuwe waarschuwing, onder **Meer velden**. Die bepaalt welke bereikbaarheidsregels van ieder persoon hem of haar oproepen. Leeg gelaten is het de ernstigste van het project. |
 
 Een blok dat wordt toegevoegd aan een workflow die met een incident of een waarschuwing begint, is al ingesteld om over dat record op te roepen, zodat het alleen nog vraagt wie wordt opgeroepen.
 
-**Succes** draait zodra ten minste één persoon is opgeroepen, of één beleid is gestart. **Fout** draait wanneer niemand is opgeroepen, en de waarde **Fout** van het blok zegt waarom, bijvoorbeeld dat niemand in het schema dienst heeft. **Samenvatting** zegt in één zin wie is opgeroepen en wie is overgeslagen, klaar om in een kanaal te plaatsen, en **Paged Users** somt de opgeroepen mensen op.
+**Succes** draait zodra ten minste één persoon is opgeroepen, of één beleid is gestart. **Fout** draait wanneer niemand is opgeroepen, en de waarde **Fout** van het blok zegt waarom, bijvoorbeeld dat niemand in het schema dienst heeft. **Samenvatting** zegt in één zin wie is opgeroepen en wie is overgeslagen, klaar om in een kanaal te plaatsen, en **Opgeroepen gebruikers** somt de opgeroepen mensen op.
 
 Iemand die afwezig is, wordt niet opgeroepen: in plaats daarvan wordt opgeroepen wie de override van die persoon als vervanger noemt. Een oproep noemt hoogstens 100 personen, teams en schema's. Zie [Hoe iedere persoon wordt bereikt](/docs/on-call/escalation-rules#hoe-iedere-persoon-wordt-bereikt).
 
@@ -251,12 +251,12 @@ Een oproep zonder bereikbaarheidsbeleid erachter staat tussen de uitvoeringen va
 
 ## Custom Code
 
-Voer een paar regels JavaScript uit als de andere blokken niet kunnen wat je nodig hebt. Het blok heet **Run Custom JavaScript**.
+Voer een paar regels JavaScript uit als de andere blokken niet kunnen wat je nodig hebt. Het blok heet **Eigen JavaScript uitvoeren**.
 
 | Instelling          | Wat het doet                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **JavaScript-code** | Je code. Wat die met `return` teruggeeft, wordt de **Waarde** van het blok. Ze kan `await` gebruiken.                                |
-| **Arguments**       | Een JSON-object met waarden voor de code, die ze leest als `args`. Zet hier variabelen en waarden uit eerdere blokken in; de code zelf kan ze niet lezen. |
+| **Argumenten**       | Een JSON-object met waarden voor de code, die ze leest als `args`. Zet hier variabelen en waarden uit eerdere blokken in; de code zelf kan ze niet lezen. |
 
 ```json title="Arguments"
 { "title": "{{local.components.incident-on-create-1.returnValues.model.title}}" }
@@ -284,7 +284,7 @@ Voer een paar regels JavaScript uit en neem dan **Ja** of **Nee**, afhankelijk v
 | Instelling          | Wat het doet |
 | ------------------- | ------------ |
 | **JavaScript-code** | Je code. `return true` neemt **Ja**. Om ook waarden door te geven, geef je een object terug met `proceed: true`, de waarden en een `reason`. |
-| **Arguments**       | Een JSON-object met waarden voor de code, die ze leest als `args`, zoals bij **Run Custom JavaScript**. |
+| **Argumenten**       | Een JSON-object met waarden voor de code, die ze leest als `args`, zoals bij **Eigen JavaScript uitvoeren**. |
 
 ```javascript title="JavaScript Code"
 if (args.environment !== "production") {
@@ -296,7 +296,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 
 Alleen `true`, of een object waarvan `proceed` `true` is, neemt **Ja**: al het andere neemt **Nee**, zelfs een getal of een tekst. Het blok geeft **Waarde** terug, wat de code teruggaf, dat een later blok leest als `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, en **Reden**, de `reason` van de code of wat ze teruggaf, in één zin, die het tabblad **Stappen** van de uitvoering naast de genomen uitgang toont.
 
-De code draait zoals **Run Custom JavaScript** haar draait: in dezelfde sandbox, met dezelfde `args`, `console.log` en `axios`, en met dezelfde tijdslimiet. Als ze een fout gooit of door haar tijd heen is, neemt het blok **Fout**.
+De code draait zoals **Eigen JavaScript uitvoeren** haar draait: in dezelfde sandbox, met dezelfde `args`, `console.log` en `axios`, en met dezelfde tijdslimiet. Als ze een fout gooit of door haar tijd heen is, neemt het blok **Fout**.
 
 ## JSON
 
@@ -304,15 +304,15 @@ Zet tekst om naar JSON en terug, of combineer twee JSON-objecten.
 
 | Blok             | Neemt                                    | Geeft terug                                                                                                |
 | ---------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **JSON to Text** | **JSON**, een object                     | **Tekst**: het object als string. Handig als het volgende blok tekst verwacht.                              |
-| **Text to JSON** | **Tekst**, dat meerdere regels mag hebben | **JSON**: het geparste object, zodat je de velden ervan kunt lezen. Gebruik het op JSON die als tekst binnenkwam. |
-| **Merge JSON**   | **JSON 1** en **JSON 2**                 | **JSON**: één object met de sleutels van beide. Hebben beide een sleutel, dan wint **JSON 2**.             |
+| **JSON naar tekst** | **JSON**, een object                     | **Tekst**: het object als string. Handig als het volgende blok tekst verwacht.                              |
+| **Tekst naar JSON** | **Tekst**, dat meerdere regels mag hebben | **JSON**: het geparste object, zodat je de velden ervan kunt lezen. Gebruik het op JSON die als tekst binnenkwam. |
+| **JSON samenvoegen**   | **JSON 1** en **JSON 2**                 | **JSON**: één object met de sleutels van beide. Hebben beide een sleutel, dan wint **JSON 2**.             |
 
-**Text to JSON** neemt **Fout** als de tekst geen JSON is. Een ontbrekende invoer, of een invoer van **Merge JSON** die geen object is, stopt de uitvoering.
+**Tekst naar JSON** neemt **Fout** als de tekst geen JSON is. Een ontbrekende invoer, of een invoer van **JSON samenvoegen** die geen object is, stopt de uitvoering.
 
 ## Conditions
 
-Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder **Populair**. Om tussen meer dan twee paden te kiezen, gebruik je [Switch / Case](#switch-case).
+Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **Als / Anders**, onder **Populair**. Om tussen meer dan twee paden te kiezen, gebruik je [Switch / Case](#switch-case).
 
 De instellingen lezen als een zin: **Als** *waarde om te controleren* *vergelijking* *waarde om mee te vergelijken*, ga verder op **Ja**, anders op **Nee**. Onder de instellingen wordt de voorwaarde in woorden teruggelezen, zodat je ziet dat ze zegt wat je bedoelt. Op het canvas toont het blok de voorwaarde ook, bijvoorbeeld *Als environment is equal to “production”*.
 
@@ -342,7 +342,7 @@ De getalvergelijkingen vergelijken getallen en de tekstvergelijkingen vergelijke
 
 ## Switch / Case
 
-Neem afhankelijk van een waarde een van meerdere paden. In het paneel **Component toevoegen** heet dit blok **Switch / Case**, onder **Populair**.
+Neem afhankelijk van een waarde een van meerdere paden. In het paneel **Component toevoegen** heet dit blok **Keuze / Geval**, onder **Populair**.
 
 Het vergelijkt één waarde om de beurt met elk van zijn gevallen, van boven af, en gaat verder via het eerste geval dat overeenkomt, of via **Standaard** als geen enkel geval overeenkomt. Er draait maar één pad: een waarde die met twee gevallen overeenkomt, neemt het eerste daarvan.
 
@@ -380,7 +380,7 @@ Start een andere workflow van hetzelfde project. Je workflow gaat door zonder te
 | Instelling    | Wat het doet                                                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **Workflow**  | De workflow om te starten. Die moet ingeschakeld zijn en, om argumenten te ontvangen, een **Handmatig**-trigger hebben.                      |
-| **Arguments** | JSON om door te geven. De Manual-trigger van de andere workflow geeft elke sleutel door als eigen waarde: met `{"customerId": "42"}` leest die `{{local.components.manual-1.returnValues.customerId}}`. |
+| **Argumenten** | JSON om door te geven. De Manual-trigger van de andere workflow geeft elke sleutel door als eigen waarde: met `{"customerId": "42"}` leest die `{{local.components.manual-1.returnValues.customerId}}`. |
 
 **Uitgaand** gaat af zodra de andere workflow in de wachtrij staat. **Fout** gaat af als dat niet lukt: hij wordt niet gevonden, staat uit of is gearchiveerd, of hem starten zou een lus maken.
 
@@ -388,9 +388,9 @@ Gebruik het om gemeenschappelijke logica te delen: bouw één keer een workflow 
 
 ## Incidenten en waarschuwingen uit andere hulpmiddelen
 
-Houd één incident, of één waarschuwing, bij voor elk probleem dat een ander hulpmiddel je meldt, gekoppeld via het eigen ID dat dat hulpmiddel ervoor heeft. **Incident From Another Tool** en **Alert From Another Tool** vormen de basis van de sjablonen voor Zabbix, Huntress, Jira en Dynamics 365, en ze werken voor elk hulpmiddel dat de [Webhook-trigger](/docs/workflows/triggers#webhook) van een workflow kan aanroepen. In het paneel **Component toevoegen** staan ze onder **From Other Tools**.
+Houd één incident, of één waarschuwing, bij voor elk probleem dat een ander hulpmiddel je meldt, gekoppeld via het eigen ID dat dat hulpmiddel ervoor heeft. **Incident uit een andere tool** en **Waarschuwing uit een andere tool** vormen de basis van de sjablonen voor Zabbix, Huntress, Jira en Dynamics 365, en ze werken voor elk hulpmiddel dat de [Webhook-trigger](/docs/workflows/triggers#webhook) van een workflow kan aanroepen. In het paneel **Component toevoegen** staan ze onder **Uit andere tools**.
 
-Elke uitvoering geeft het blok één gebeurtenis: **Wat er gebeurde**, en **Outside ID**, het ID van het probleem in het hulpmiddel. Het blok zoekt het record dat dat ID bewaart, en doet wat **Wat er gebeurde** zegt:
+Elke uitvoering geeft het blok één gebeurtenis: **Wat er gebeurde**, en **Externe ID**, het ID van het probleem in het hulpmiddel. Het blok zoekt het record dat dat ID bewaart, en doet wat **Wat er gebeurde** zegt:
 
 | What Happened | Wat het blok doet |
 | ------------- | ----------------- |
@@ -407,22 +407,22 @@ Elke uitvoering geeft het blok één gebeurtenis: **Wat er gebeurde**, en **Outs
 | **Ongewijzigd** | Er was niets te doen: geen record bewaart het ID, het record staat al op die toestand of verder, of **Wat er gebeurde** is leeg. |
 | **Fout** | Het kon het record niet lezen of wijzigen. Is hier niets aangesloten, dan mislukt de uitvoering. |
 
-Een record gaat alleen maar vooruit, en een opgelost record helemaal niet meer, zodat geen van beide hulpmiddelen ongedaan maakt wat het andere deed. Het bewaart het ID in een aangepast veld, `externalId`, tenzij **Outside ID Field** een ander noemt, en alleen dat veld wordt geschreven, zodat de andere aangepaste velden van het record hun waarde houden. Voor een ID dat een record bewaart, wordt nooit opnieuw iets geopend, ook niet als dat record is opgelost: gebruik een ID dat voor elk probleem nieuw is, zoals een Zabbix-gebeurtenis-ID of een Huntress-rapportnummer. Om in plaats daarvan op een record te handelen via zijn eigen ID, zoals de Jira-sjablonen doen met het ID dat de labels van een issue dragen, zet je het in **Incident-ID** of **Waarschuwings-ID**.
+Een record gaat alleen maar vooruit, en een opgelost record helemaal niet meer, zodat geen van beide hulpmiddelen ongedaan maakt wat het andere deed. Het bewaart het ID in een aangepast veld, `externalId`, tenzij **Veld voor externe ID** een ander noemt, en alleen dat veld wordt geschreven, zodat de andere aangepaste velden van het record hun waarde houden. Voor een ID dat een record bewaart, wordt nooit opnieuw iets geopend, ook niet als dat record is opgelost: gebruik een ID dat voor elk probleem nieuw is, zoals een Zabbix-gebeurtenis-ID of een Huntress-rapportnummer. Om in plaats daarvan op een record te handelen via zijn eigen ID, zoals de Jira-sjablonen doen met het ID dat de labels van een issue dragen, zet je het in **Incident-ID** of **Waarschuwings-ID**.
 
-**Ernst** noemt een van je ernstniveaus bij naam of ID, ongeacht hoofdletters, of bij de plaats die het tussen de andere inneemt: `most severe`, `middle` of `least severe`. Zo worden de eigen niveaus van een hulpmiddel verdeeld over de ernstniveaus die je zelf hebt benoemd. Leeg gelaten, of als het er geen noemt, is het je ernstigste, en het logboek van de uitvoering zegt dat. Een nieuw incident blijft van je statuspagina's af, en hun abonnees horen er niets over, omdat de tekst van een ander hulpmiddel voor de gebruikers van dat hulpmiddel is geschreven: zet **Show On Status Pages** aan om het te tonen.
+**Ernst** noemt een van je ernstniveaus bij naam of ID, ongeacht hoofdletters, of bij de plaats die het tussen de andere inneemt: `most severe`, `middle` of `least severe`. Zo worden de eigen niveaus van een hulpmiddel verdeeld over de ernstniveaus die je zelf hebt benoemd. Leeg gelaten, of als het er geen noemt, is het je ernstigste, en het logboek van de uitvoering zegt dat. Een nieuw incident blijft van je statuspagina's af, en hun abonnees horen er niets over, omdat de tekst van een ander hulpmiddel voor de gebruikers van dat hulpmiddel is geschreven: zet **Op statuspagina's tonen** aan om het te tonen.
 
-Onder **Meer velden** is **Reden** de reden in de geschiedenis van het record als het van toestand verandert, en wordt **Notitie** dan ernaast toegevoegd als privénotitie, voor een hulpmiddel dat iets zegt als het bevestigt of oplost. **Aangepaste velden** geeft een nieuw record meer aangepaste velden, als JSON-object, **Labels** de ID's van zijn labels, gescheiden door komma's, en **Getroffen resources** de resources waar het over gaat, zoals bij **Create One Incident**. **Note Instead Of Resolving** voegt de notitie toe en laat het oplossen van het record aan je team over. Het blok geeft **Samenvatting** terug, wat het deed in één zin, en het record, zodat een later blok zijn ID leest als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Onder **Meer velden** is **Reden** de reden in de geschiedenis van het record als het van toestand verandert, en wordt **Notitie** dan ernaast toegevoegd als privénotitie, voor een hulpmiddel dat iets zegt als het bevestigt of oplost. **Aangepaste velden** geeft een nieuw record meer aangepaste velden, als JSON-object, **Labels** de ID's van zijn labels, gescheiden door komma's, en **Getroffen resources** de resources waar het over gaat, zoals bij **Create One Incident**. **Notitie in plaats van oplossen** voegt de notitie toe en laat het oplossen van het record aan je team over. Het blok geeft **Samenvatting** terug, wat het deed in één zin, en het record, zodat een later blok zijn ID leest als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
-Bevestig of sluit een probleem in Zabbix, of voeg er een bericht aan toe, via de API van Zabbix. Het blok heet **Update Zabbix Problem**, en de [Zabbix-sjablonen](/docs/integrations/zabbix) sturen er wat er in OneUptime gebeurt mee terug naar Zabbix.
+Bevestig of sluit een probleem in Zabbix, of voeg er een bericht aan toe, via de API van Zabbix. Het blok heet **Zabbix-probleem bijwerken**, en de [Zabbix-sjablonen](/docs/integrations/zabbix) sturen er wat er in OneUptime gebeurt mee terug naar Zabbix.
 
 | Instelling | Wat het doet |
 | ---------- | ------------ |
-| **Zabbix URL** | Het adres waarop je Zabbix opent, zoals `https://zabbix.example.com`. Verzoeken gaan naar zijn `api_jsonrpc.php`. |
+| **Zabbix-URL** | Het adres waarop je Zabbix opent, zoals `https://zabbix.example.com`. Verzoeken gaan naar zijn `api_jsonrpc.php`. |
 | **API-token** | Een API-token van een Zabbix-gebruiker die problemen mag bevestigen, becommentariëren en sluiten. Bewaar het in een geheime variabele. |
 | **Gebeurtenis-ID** | Het gebeurtenis-ID van het probleem, meestal het ID dat een incident of een waarschuwing in zijn aangepaste velden bewaart. |
-| **What To Do** | `acknowledge`, `close` of `message`. Leeg gelaten wordt Zabbix niet bijgewerkt. |
+| **Wat te doen** | `acknowledge`, `close` of `message`. Leeg gelaten wordt Zabbix niet bijgewerkt. |
 | **Bericht** | Wat Zabbix bij het probleem bewaart, hooguit 2.048 tekens: een langer bericht wordt ingekort. |
 | **Zabbix 6.0** | Onder **Meer velden**. Zabbix 6.0 leest het token uit de body van het verzoek, niet uit de header `Authorization`: zet dit ervoor aan, en weer uit als je upgradet, want Zabbix 7.2 en later weigeren een token in de body. |
 
@@ -444,9 +444,9 @@ Het heeft geen AI-model nodig en volgt dezelfde regels als een fix die OneUptime
 | **Incident-ID** | Het incident waarvoor de fix is, meestal de ID die je trigger teruggaf. Vul dit of **Waarschuwings-ID** in. |
 | **Opdracht** | De wijziging die je voorstelt, in de ene schrijfwijze die OneUptime accepteert. Zie [de wijzigingen die een fix kan doorvoeren](/docs/telemetry/openstack#fixes). Het kan waarden uit eerdere blokken gebruiken en wordt gelezen nadat die zijn ingevuld. |
 | **Waarom** | Wat de persoon die goedkeurt als eerste leest. Leeg gelaten staat er welke workflow erom vroeg. |
-| **OpenStack Cloud ID** | Onder **Meer velden**. Alleen voor een record dat aan meer dan één cloud is gekoppeld, of aan geen enkele. |
+| **OpenStack-cloud-ID** | Onder **Meer velden**. Alleen voor een record dat aan meer dan één cloud is gekoppeld, of aan geen enkele. |
 
-Het geeft **Suggestion ID** terug (de fix die op goedkeuring wacht), **Tier** (Veilig of Riskanter, zoals OneUptime de opdracht leest) en **Already Waiting** (waar wanneer dezelfde wijziging op die cloud al wachtte, zodat er geen tweede is toegevoegd).
+Het geeft **Voorstel-ID** terug (de fix die op goedkeuring wacht), **Niveau** (Veilig of Riskanter, zoals OneUptime de opdracht leest) en **Wacht al** (waar wanneer dezelfde wijziging op die cloud al wachtte, zodat er geen tweede is toegevoegd).
 
 **Succes** gaat af zodra een persoon is gevraagd, zonder op het antwoord te wachten. **Fout** gaat af wanneer er niets is voorgesteld, met de reden in **Fout**: de opdracht wordt geweigerd, fixes zijn op die cloud nog niet toegestaan, of de workflows van een project hebben het afgelopen uur 20 fixes voorgesteld.
 
@@ -463,9 +463,9 @@ Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statu
 | **Create One Monitor**   | Voegt één record toe vanuit een JSON-object.                                   |
 | **Create Many Monitors** | Voegt meerdere records toe vanuit een JSON-array.                              |
 | **Update One Monitor**   | Past de schrijfgegevens toe op één overeenkomend record.                       |
-| **Update Many Monitors** | Past de schrijfgegevens toe op overeenkomende records, tot **Limit**.          |
+| **Update Many Monitors** | Past de schrijfgegevens toe op overeenkomende records, tot **Limiet**.          |
 | **Delete One Monitor**   | Verwijdert één overeenkomend record.                                           |
-| **Delete Many Monitors** | Verwijdert overeenkomende records, tot **Limit**.                              |
+| **Delete Many Monitors** | Verwijdert overeenkomende records, tot **Limiet**.                              |
 
 Dezelfde set geeft je vier triggers — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** en **On Delete Monitor**. Zie [Triggers](/docs/workflows/triggers#oneuptime-gebeurtenistriggers).
 
@@ -477,19 +477,19 @@ Deze componenten handelen als Projectbeheerder van het project van de workflow: 
 
 ### Een incident melden vanuit een sjabloon
 
-**Create One Incident** kan het incident melden vanuit een van je [incidentsjablonen](/docs/incidents/settings#incidentsjablonen): kies het onder **Incidentsjabloon**, de eerste instelling van de stap. Het sjabloon vult elk veld in dat **JSON Object** weglaat — de titel, de beschrijving, de ernst, de begintoestand, de monitoren en andere resources, het bereikbaarheidsbeleid, de labels, de statuspagina's en de aangepaste velden — en de eigenaren ervan worden de eigenaren van het incident. Alles wat je in **JSON Object** instelt, gaat voor op het sjabloon, toestand inbegrepen, dus met een gekozen sjabloon hoeft **JSON Object** alleen te bevatten wat moet afwijken, en mag het leeg blijven.
+**Create One Incident** kan het incident melden vanuit een van je [incidentsjablonen](/docs/incidents/settings#incidentsjablonen): kies het onder **Incidentsjabloon**, de eerste instelling van de stap. Het sjabloon vult elk veld in dat **JSON-object** weglaat — de titel, de beschrijving, de ernst, de begintoestand, de monitoren en andere resources, het bereikbaarheidsbeleid, de labels, de statuspagina's en de aangepaste velden — en de eigenaren ervan worden de eigenaren van het incident. Alles wat je in **JSON-object** instelt, gaat voor op het sjabloon, toestand inbegrepen, dus met een gekozen sjabloon hoeft **JSON-object** alleen te bevatten wat moet afwijken, en mag het leeg blijven.
 
-Het incident legt het sjabloon waarvan het is gemeld vast in `createdIncidentTemplateId`. Die kolom stelt OneUptime zelf in: een stap die hem in **JSON Object** meestuurt, wordt geweigerd, en het logboek van de uitvoering verwijst je naar **Incidentsjabloon**. Een sjabloon uit een ander project, of een dat is verwijderd, laat de stap zijn uitgang **Fout** nemen, en op een abonnement zonder incidentsjablonen wordt de stap geweigerd met het abonnement dat nodig is. Zie [Hoe een sjabloon wordt toegepast](/docs/incidents/settings#hoe-een-sjabloon-wordt-toegepast).
+Het incident legt het sjabloon waarvan het is gemeld vast in `createdIncidentTemplateId`. Die kolom stelt OneUptime zelf in: een stap die hem in **JSON-object** meestuurt, wordt geweigerd, en het logboek van de uitvoering verwijst je naar **Incidentsjabloon**. Een sjabloon uit een ander project, of een dat is verwijderd, laat de stap zijn uitgang **Fout** nemen, en op een abonnement zonder incidentsjablonen wordt de stap geweigerd met het abonnement dat nodig is. Zie [Hoe een sjabloon wordt toegepast](/docs/incidents/settings#hoe-een-sjabloon-wordt-toegepast).
 
 ### De middelen koppelen waar het om gaat
 
-**Create One Incident** en **Create One Alert** hebben een instelling **Getroffen resources**: de hosts, netwerkapparaten, clusters, databases of services waar het record over gaat, op naam, adres of ID, gescheiden door komma's — ingetypt of overgenomen uit een eerdere stap, zoals de host die een waarschuwing uit een andere tool noemt. Elke vermelding wordt gezocht in elke soort middel die het record kan bevatten, als hele waarde en zonder op hoofdletters te letten: op naam, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, een host op de naam die zijn agent meldt of op een van zijn IP-adressen, en een cloudresource op de ID van de provider. Elk middel waarop een vermelding past, wordt gekoppeld, naast wat **JSON Object** en het sjabloon al koppelen, tot 50 uit de eerste 25 vermeldingen.
+**Create One Incident** en **Create One Alert** hebben een instelling **Getroffen resources**: de hosts, netwerkapparaten, clusters, databases of services waar het record over gaat, op naam, adres of ID, gescheiden door komma's — ingetypt of overgenomen uit een eerdere stap, zoals de host die een waarschuwing uit een andere tool noemt. Elke vermelding wordt gezocht in elke soort middel die het record kan bevatten, als hele waarde en zonder op hoofdletters te letten: op naam, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, een host op de naam die zijn agent meldt of op een van zijn IP-adressen, en een cloudresource op de ID van de provider. Elk middel waarop een vermelding past, wordt gekoppeld, naast wat **JSON-object** en het sjabloon al koppelen, tot 50 uit de eerste 25 vermeldingen.
 
-Een vermelding die nergens op past, houdt de stap niet tegen: het record wordt toch gemaakt, en het logboek van de uitvoering zegt wat elke vermelding koppelde en welke nergens op pasten. Gearchiveerde middelen worden niet gekoppeld. Monitoren worden niet opgezocht: noem ze in **JSON Object** (`monitors` bij een incident, `monitorId` bij een waarschuwing), omdat een monitor aan een incident koppelen zijn bewaking pauzeert.
+Een vermelding die nergens op past, houdt de stap niet tegen: het record wordt toch gemaakt, en het logboek van de uitvoering zegt wat elke vermelding koppelde en welke nergens op pasten. Gearchiveerde middelen worden niet gekoppeld. Monitoren worden niet opgezocht: noem ze in **JSON-object** (`monitors` bij een incident, `monitorId` bij een waarschuwing), omdat een monitor aan een incident koppelen zijn bewaking pauzeert.
 
 ### Wie het vanaf het begin bezit
 
-**Create One Incident** en **Create One Alert** hebben de instellingen **Eigenaarsgebruikers** en **Eigenaarsteams**: de personen en teams die het record bezitten vanaf het moment dat het wordt gemaakt. Kies ze, of neem ze over uit een eerdere stap: de id of het e-mailadres van een gebruiker, de id van een team, meerdere gescheiden door komma's, of een lijst. De eigenaren van het record horen ongeveer een minuut na het aanmaken dat het is gemaakt, iedere eigenaar die het dan heeft: wie je hier kiest, hoort er altijd bij, terwijl eigenaren die een latere stap toevoegt het missen zodra die stap meer dan een minuut later draait, en in hun plaats de eigenaren van het project worden ingelicht.
+**Create One Incident** en **Create One Alert** hebben de instellingen **Eigenaarsgebruikers** en **Eigenaarsteams**: de personen en teams die het record bezitten vanaf het moment dat het wordt gemaakt. Kies ze, of neem ze over uit een eerdere stap: de id of het e-mailadres van een gebruiker, de id van een team, meerdere gescheiden door komma's, of een lijst. De eigenaren van het record horen ongeveer een minuut na het aanmaken dat het is gemaakt, iedere eigenaar die het dan heeft: wie je hier kiest, hoort er altijd bij, terwijl eigenaren die een latere stap toevoegt het missen zodra die stap meer dan een minuut later draait, en in hun plaats de Projecteigenaren worden ingelicht.
 
 De stap vraagt als Projectbeheerder van het project van de workflow of hij ze mag toevoegen, voordat het record wordt opgeslagen: eigenaren die hij niet mag toevoegen, laten het aanmaken weigeren. Wie geen lid is van het project, of een team dat niet van het project is, wordt weggelaten, en het logboek van de uitvoering zegt dat: het record wordt toch gemaakt. Eigenaren die zo zijn toegevoegd, horen niet dat ze zijn toegevoegd: de melding dat het record is gemaakt, is degene die ze krijgen.
 
@@ -509,13 +509,13 @@ Elk veld van een datacomponent gebruikt de eigen **kolom**namen van het record �
 
 Een query is altijd beperkt tot het project waarin de workflow draait. Je kunt de records van een ander project niet bereiken, en je hoeft het project niet zelf aan de query toe te voegen.
 
-**JSON Object** bij Create One, **JSON Array** bij Create Many en **Data (JSON Object)** bij de Update-componenten bevatten de velden om te schrijven, met dezelfde sleutels:
+**JSON-object** bij Create One, **JSON-array** bij Create Many en **Gegevens (JSON-object)** bij de Update-componenten bevatten de velden om te schrijven, met dezelfde sleutels:
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Fields to pass on**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`. De velden van een gekoppeld record staan onder zijn sleutel, zoals in `{"monitor": {"name": true}}`: `{"monitor": true}` geeft alleen de ID ervan door.
+Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Velden om door te geven**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`. De velden van een gekoppeld record staan onder zijn sleutel, zoals in `{"monitor": {"name": true}}`: `{"monitor": true}` geeft alleen de ID ervan door.
 
 **Aangepaste velden** zijn één kolom, `customFields`, met de waarde van elk aangepast veld onder de naam van het veld. De Update-componenten wijzigen alleen de aangepaste velden die je noemt, en alle andere houden hun waarde:
 
@@ -533,11 +533,11 @@ Een veld dat naar een ander record verwijst, zoals de ernst van een incident, to
 
 Velden die OneUptime zelf invult, worden niet aangeboden als je een record schrijft: de `_id` van het record, **Aangemaakt op**, **Bijgewerkt op**, **Aangemaakt door gebruiker**, slugs, recordnummers en meldingsstatussen. Wie een record aanmaakte, archiveerde of oploste, en wanneer, is nooit aan een workflow om in te stellen: een record dat een workflow aanmaakt, heeft geen maker, een waarde die een workflow voor een van die velden naast andere velden meestuurt, wordt genegeerd, en een Update die verder niets meestuurt, mislukt met een melding die ze noemt. Een update biedt alleen velden die na het aanmaken van een record kunnen veranderen. Een query biedt wel de ID, de tijdstempels en **Aangemaakt door gebruiker** aan, omdat die nuttig zijn om op te filteren. **Deleted At** wordt nergens aangeboden: records worden echt verwijderd, dus het is altijd leeg.
 
-**Overslaan** en **Limit** zijn twee getalvelden bij Find Many, Update Many en Delete Many, onder **Meer velden** — `Skip: 0` met `Limit: 100` neemt de eerste honderd overeenkomsten. **Limit** is standaard `10`, en bij Update Many en Delete Many beperkt het hoeveel records er echt worden geschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien overeenkwamen. Verhoog **Limit** als je er meer dan tien wilt wijzigen.
+**Overslaan** en **Limiet** zijn twee getalvelden bij Find Many, Update Many en Delete Many, onder **Meer velden** — `Skip: 0` met `Limit: 100` neemt de eerste honderd overeenkomsten. **Limiet** is standaard `10`, en bij Update Many en Delete Many beperkt het hoeveel records er echt worden geschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien overeenkwamen. Verhoog **Limiet** als je er meer dan tien wilt wijzigen.
 
 Delete One en Delete Many op een query maken een geschiedenis nooit leeg. Bij de statusgebeurtenissen van een monitor, en bij de statusgeschiedenis van incidenten, waarschuwingen, onderhoudsgebeurtenissen en episodes, verwijderen ze nooit de huidige status van een record, en ze houden elke statusgebeurtenis van een monitor die een deel van de laatste 90 dagen beslaat, zodat een statuspagina een monitor nooit grijs toont. Het logboek van de uitvoering zegt hoeveel er zijn gehouden. Om één bepaalde gebeurtenis te verwijderen, vraag je die op via haar `_id`.
 
-**Succes** en **Fout** zeggen of de query draaide, niet wat hij vond. Een query die nergens mee overeenkomt, geeft `0` terug en gaat toch via **Succes** — dat is geen fout. Om te vertakken op de vraag of er iets overeenkwam, lees je het teruggegeven aantal in een **If / Else**-blok.
+**Succes** en **Fout** zeggen of de query draaide, niet wat hij vond. Een query die nergens mee overeenkomt, geeft `0` terug en gaat toch via **Succes** — dat is geen fout. Om te vertakken op de vraag of er iets overeenkwam, lees je het teruggegeven aantal in een **Als / Anders**-blok.
 
 ## Volgende stappen
 

@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
@@ -35,7 +36,12 @@ export interface GoldenMetricTileProps {
   title: string;
   icon: IconProp;
   iconColor: GoldenMetricTileColor;
-  value: string;
+  /*
+   * The figure, written for the reader. A reading the tile does not have is
+   * no value at all (undefined, null): the tile draws the figure's quiet
+   * dash, read out as "Not set" (EmptyFigure), never a dash of the page's.
+   */
+  value?: string | null | undefined;
   /*
    * The line under the value: English the tile translates ("total across
    * nodes"), or a line the page worded itself, which reads as given.
@@ -203,13 +209,14 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
       {/*
        * The figure set apart, so a size reads as the Details cards and the
        * tables write theirs on a page read from the right: "۲۵ GiB", never
-       * "GiB ۲۵" (#7106). A percent or a count draws as before.
+       * "GiB ۲۵" (#7106). A percent or a count draws as before. No reading
+       * is the figure's quiet dash (EmptyFigure, #8264).
        */}
       <div
         className="text-2xl font-semibold text-gray-900 leading-none"
         data-testid="golden-metric-tile-value"
       >
-        <bdi>{props.value}</bdi>
+        <bdi>{getFigure(props.value)}</bdi>
       </div>
       {sublabel ? (
         <div

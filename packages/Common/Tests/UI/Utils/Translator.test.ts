@@ -278,6 +278,26 @@ describe("toLabelTerm", () => {
     ["vCenter archivados", "es", "vCenter archivados"],
     ["iOS", "en", "iOS"],
     ["eBPF-Programme", "de", "eBPF-Programme"],
+    // A name its maker writes all in lower case (#8252), in every language.
+    ["kubectl command", "en", "kubectl command"],
+    ["kubectl 命令", "zh-CN", "kubectl 命令"],
+    ["kubectl कमांड", "hi", "kubectl कमांड"],
+    ["commande kubectl", "fr", "Commande kubectl"],
+    ["systemd unit", "en", "systemd unit"],
+    ["systemd-Dienst", "de", "systemd-Dienst"],
+    ["journald logs", "en", "journald logs"],
+    ["etcd database", "en", "etcd database"],
+    ["containerd runtime", "en", "containerd runtime"],
+    ["kubelet", "en", "kubelet"],
+    ["npm package", "en", "npm package"],
+    ["pnpm workspace", "en", "pnpm workspace"],
+    ["curl command", "en", "curl command"],
+    ["gpt-4o mini", "en", "gpt-4o mini"],
+    ["kubectl's output", "en", "kubectl's output"],
+    ["kubectl: not found", "en", "kubectl: not found"],
+    // A word that only starts like one is still a word.
+    ["curling", "en", "Curling"],
+    ["npmx tool", "en", "Npmx tool"],
     // Only the first word's case is the label's to change.
     ["e-mail del proyecto", "es", "E-mail del proyecto"],
     // Anything but a letter first.

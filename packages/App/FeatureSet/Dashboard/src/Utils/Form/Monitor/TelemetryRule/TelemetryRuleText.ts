@@ -481,7 +481,7 @@ export const TelemetryRuleCopy: {
   ),
   whatHappensTitle: translationKey("What happens"),
   whatHappensDescription: translationKey(
-    "An alert or incident notifies its owners, or the project's owners when it has none. Pick an on-call policy to page whoever is on call.",
+    "An alert or incident notifies its owners, or the Project Owners when it has none. Pick an on-call policy to page whoever is on call.",
   ),
   conditionTitle: translationKey("Condition"),
   logCountTitle: translationKey("Number of logs"),

@@ -1659,8 +1659,9 @@ describe("Docker Compose, against the compose files and scripts", () => {
       "schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_HOUR",
     );
     expect(job).toContain("runOnStartup: true");
+    // 30 days of 24 hours, on a server in any zone (8876c082b44, #8473).
     expect(job).toMatch(
-      /addRemoveDays\(\s*OneUptimeDate\.getCurrentDate\(\),\s*30,\s*\)/,
+      /addRemoveDurationInDays\(\s*OneUptimeDate\.getCurrentDate\(\),\s*30,\s*\)/,
     );
     expect(job).toContain("if (!ProvisionSsl) {");
     expect(job).toContain("if (!Domain.isValidDomain(hostnameOnly)) {");

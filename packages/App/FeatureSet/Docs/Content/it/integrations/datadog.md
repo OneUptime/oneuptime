@@ -55,7 +55,7 @@ Poi [configura Datadog](#configurare-datadog) perché invii i suoi avvisi a quel
 
 ### Cosa fa il flusso di lavoro
 
-Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge la `transition` che Datadog invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite la chiave di ciclo dell'avviso. Datadog tiene quella chiave dal momento in cui un avviso scatta finché non rientra, e la volta successiva che scatta la chiave è nuova, quindi ogni volta ha un incidente tutto suo. L'incidente conserva la chiave nel suo campo personalizzato `datadogAlertCycleKey`.
+Dopo il trigger **Webhook**, il passo **Verifica con JavaScript** `read-event-1` legge la `transition` che Datadog invia, e **Incidente da un altro strumento**, o **Avviso da un altro strumento** nel modello degli avvisi, fa ciò che significa, tramite la chiave di ciclo dell'avviso. Datadog tiene quella chiave dal momento in cui un avviso scatta finché non rientra, e la volta successiva che scatta la chiave è nuova, quindi ogni volta ha un incidente tutto suo. L'incidente conserva la chiave nel suo campo personalizzato `datadogAlertCycleKey`.
 
 | Transizione | Cosa fa il flusso di lavoro |
 | --- | --- |
@@ -82,7 +82,7 @@ Un nuovo incidente chiama le policy di reperibilità che hai scelto quando il su
 Con gravità tue, P1, P2 e nessuna priorità vanno alla più grave, P3 a quella di mezzo, e P4 e P5 alla meno grave.
 
 - Per mappare una priorità su una delle tue per nome, modifica `SEVERITY_BY_NAME` nel passo `read-event-1`, ad esempio `{ P3: 'Minor Incident' }`.
-- Per chiamare i reperibili anche per P3, imposta **Confronta con** del passo `if-page-1` **If / Else** a `3`.
+- Per chiamare i reperibili anche per P3, imposta **Confronta con** del passo `if-page-1` **Se / Altrimenti** a `3`.
 
 ## Ricevere gli avvisi con un monitor
 

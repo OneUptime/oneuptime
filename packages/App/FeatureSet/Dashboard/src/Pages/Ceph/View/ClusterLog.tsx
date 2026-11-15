@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
@@ -104,7 +105,7 @@ const parseCephLogLine: (body: string, fallbackTime: string) => CephLogRow = (
 
   return {
     timestamp: timestamp,
-    daemon: daemon || "—",
+    daemon: daemon || EMPTY_VALUE_MARK,
     level: level || "Unknown",
     message: message,
   };

@@ -44,7 +44,7 @@ const OpenStackCloudObjectContainerDetail: FunctionComponent<
           {
             key: "name",
             label: "Container",
-            value: row.name || "—",
+            value: row.name,
             mono: true,
             copyText: row.name || "",
           },
@@ -91,7 +91,7 @@ const OpenStackCloudObjectContainerDetail: FunctionComponent<
                   value={
                     typeof row.diskAllocatedBytes === "number"
                       ? formatOpenStackBytes(row.diskAllocatedBytes)
-                      : "—"
+                      : undefined
                   }
                   description="How much this container holds, as Swift's account list last said. Swift counts this as it goes, so it can lag behind what has just been written."
                 />
@@ -102,7 +102,7 @@ const OpenStackCloudObjectContainerDetail: FunctionComponent<
                   value={
                     typeof objects === "number"
                       ? formatOpenStackCount(objects)
-                      : "—"
+                      : undefined
                   }
                   description="How many objects this container holds, as Swift's account list last said."
                 />

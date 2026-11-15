@@ -61,7 +61,7 @@ Die App zeigt Benachrichtigungen über ihren Browser, sobald Sie den Browser in 
 Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** den Vorschlag, etwa `Edge on Windows`, oder ändern Sie ihn, und klicken Sie erneut auf **Gerät registrieren**. Wenn der Browser fragt, ob OneUptime Benachrichtigungen anzeigen darf, wählen Sie **Zulassen**.
 
 ### Einen Test senden
-Klicken Sie im Dialog **Browser Registered** auf **Send Test Notification**. Erscheint nichts, sehen Sie sich die Benachrichtigungseinstellungen von Windows an: siehe [Fehlerbehebung](#fehlerbehebung).
+Klicken Sie im Dialog **Browser registriert** auf **Testbenachrichtigung senden**. Erscheint nichts, sehen Sie sich die Benachrichtigungseinstellungen von Windows an: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 Ein Browser klingelt nicht lauter, als Windows es zulässt: Er kann „Nicht stören“ nicht übergehen. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [Android-Installation](/docs/mobile-desktop-apps/android-installation#den-stummmodus-durchbrechen) oder [iOS-Installation](/docs/mobile-desktop-apps/ios-installation#den-stummmodus-durchbrechen).

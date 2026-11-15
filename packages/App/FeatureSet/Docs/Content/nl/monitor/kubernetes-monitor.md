@@ -85,15 +85,15 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 
 | Categorie | Metrieken |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Werklast | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Controlevlak | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | CPU-verbruik van de pod, Pod geheugengebruik, Fase van de pod (code), Bestandssysteemgebruik van de pod, Gebruik van de geheugenlimiet van de pod, Gebruik van de CPU-limiet van de pod, Netwerk-I/O van de pod (cumulatief, beide richtingen) |
+| Node | CPU-verbruik van de node, Toewijsbare CPU van de node, Geheugengebruik van node, Werkset van het geheugen van de node, Bestandssysteemgebruik van node, Toewijsbaar geheugen van de node, Ready-conditie van de node, MemoryPressure-conditie van de node, DiskPressure-conditie van de node, PIDPressure-conditie van de node, Beschikbaar bestandssysteem van de node |
+| Container | Herstarts van de container, Herstarts van de container (toename), CPU-limiet van de container, CPU-aanvraag van de container, Geheugenlimiet van de container, Geheugenaanvraag van de container, Container gereed |
+| Werklast | Beschikbare replica's van de Deployment, Gewenste replica's van de Deployment, Gewenste nodes van de DaemonSet, Verkeerd ingeplande nodes van de DaemonSet, Gereede nodes van de DaemonSet, Gewenste replica's van de StatefulSet, Gereede replica's van de StatefulSet, Mislukte pods van de Job, Mislukte pods van de Job (toename), Geslaagde pods van de Job |
+| HPA | Huidige replica's van de HPA, Gewenste replica's van de HPA, Maximum aantal replica's van de HPA, Minimum aantal replica's van de HPA |
+| Controlevlak | etcd heeft een leider, Lopende aanvragen van de API-server, Wachtende pods van de scheduler |
 
 > [!NOTE]
-> **Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Pod Phase (Code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat. **Node Ready Condition** is 1 bij Ready, 0 bij NotReady en -1 bij Unknown, wat een uitgevallen node meldt: waarschuw bij minder dan 1. **Container Restarts** is de doorlopende herstartteller van de container; **Container Restarts (Increase)** is wat de agent met elke meting stuurt: de herstarts sinds zijn vorige meting van de container, dus de som over een venster is het aantal herstarts erin. Hij draagt wat **Container Restarts** draagt, inclusief de werklastnamen van de pod van de container, maar niet de ID van de container, die bij elke herstart verandert. **Job Failed Pods** is de doorlopende teller van mislukte pods van een Job; **Job Failed Pods (Increase)** is wat de agent met elke meting stuurt: de pods van de Job die sinds zijn vorige meting van de Job zijn mislukt, dus de som over een venster is het aantal fouten erin. Hij draagt wat **Job Failed Pods** draagt: de naam en de naamruimte van de Job.
+> **CPU-verbruik van de pod** en **CPU-verbruik van de node** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Fase van de pod (code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat. **Ready-conditie van de node** is 1 bij Ready, 0 bij NotReady en -1 bij Unknown, wat een uitgevallen node meldt: waarschuw bij minder dan 1. **Herstarts van de container** is de doorlopende herstartteller van de container; **Herstarts van de container (toename)** is wat de agent met elke meting stuurt: de herstarts sinds zijn vorige meting van de container, dus de som over een venster is het aantal herstarts erin. Hij draagt wat **Herstarts van de container** draagt, inclusief de werklastnamen van de pod van de container, maar niet de ID van de container, die bij elke herstart verandert. **Mislukte pods van de Job** is de doorlopende teller van mislukte pods van een Job; **Mislukte pods van de Job (toename)** is wat de agent met elke meting stuurt: de pods van de Job die sinds zijn vorige meting van de Job zijn mislukt, dus de som over een venster is het aantal fouten erin. Hij draagt wat **Mislukte pods van de Job** draagt: de naam en de naamruimte van de Job.
 
 ## Bewakingscriteria
 
@@ -191,7 +191,7 @@ Clusters registreren zichzelf uit de gegevens van de agent, onder de `clusterNam
 :::
 
 :::details Een CPU-drempel gaat nooit af
-**Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten, dus een drempel van `80` betekent 80 kernen. Stel de drempel in kernen in, of begin met **High Node CPU Utilization** of **Pod CPU Saturating Container Limit**, die een percentage vergelijken.
+**CPU-verbruik van de pod** en **CPU-verbruik van de node** zijn in kernen, niet in procenten, dus een drempel van `80` betekent 80 kernen. Stel de drempel in kernen in, of begin met **High Node CPU Utilization** of **Pod CPU Saturating Container Limit**, die een percentage vergelijken.
 :::
 
 :::details CrashLoopBackOff Detection ging niet af bij een herstart

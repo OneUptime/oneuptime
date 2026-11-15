@@ -11,6 +11,10 @@ import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -3467,7 +3471,7 @@ test.describe("a repository's page: ask AI", () => {
     await expect(notice).toContainText("AI is turned off for this project.");
     await expect(notice.getByTestId("code-blocker-fix")).toHaveCount(0);
     await expect(notice.getByTestId("code-blocker-who-can")).toHaveText(
-      "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+      "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
     );
     // A box that cannot send says nothing about how to send.
     await expect(page.getByTestId("code-composer-keys")).toHaveCount(0);
@@ -3510,7 +3514,7 @@ test.describe("a repository's page: ask AI", () => {
       "NoPermission",
     );
     await expect(page.getByTestId("code-blocker")).toContainText(
-      "ask a project admin for it",
+      "ask a Project Admin for it",
     );
     await expect(composerInput(page)).toHaveCount(0);
     await expect(page.getByTestId("code-task-row")).toHaveCount(6);
@@ -4709,11 +4713,11 @@ test.describe("a task of more than 200 turns", () => {
     await page.goto(
       `${taskPath(LONG_TASK_ID)}/log?long=1&lang=ar&turn=${LONG_TASK_TURN_5}`,
     );
-    expect(
-      await page.evaluate((): string => {
-        return document.documentElement.dir;
-      }),
-    ).toBe("rtl");
+    /*
+     * Read once the page has its language: Arabic is a chunk of its own,
+     * loaded after the page's load event (#8366).
+     */
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
     const picker: Locator = page.getByTestId("code-task-log-turn-picker");
     await expect(picker).toContainText("الجولة 5 ·");
@@ -6187,7 +6191,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(page.getByTestId("production-review")).toBeVisible();
     await expect(page.getByTestId("production-review-again")).toHaveCount(0);
     await expect(page.getByTestId("production-review-read-only")).toContainText(
-      "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+      "You can read this review. Reviewing it again takes permission to edit the repository - ask a Project Admin for it.",
     );
 
     // No way to Settings from the reviews page either, nor to ask for one.
@@ -6720,4 +6724,43 @@ test.describe("dark mode and other languages", () => {
       "8 Minuten gearbeitet",
     );
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German, Japanese and Arabic whole, 23 MB of JSON in every page's scripts,
+ * parsed on every page load of every test. English is in the bundle now, and
+ * each other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "ja", "ar"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }, testInfo: TestInfo) => {
+      test.skip(
+        isPhone(testInfo),
+        "A page loads its language the same at every width.",
+      );
+
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? CODE : `${CODE}?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown.getByRole("button", {
+              name: dashboardWord(code, "Start task"),
+              exact: true,
+            });
+          },
+        },
+        language,
+      );
+    });
+  }
 });

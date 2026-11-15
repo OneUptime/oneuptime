@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54285,
-    "untranslated": 1119
+    "keys": 55628,
+    "untranslated": 1083
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -58,6 +58,7 @@
     "Azure portal",
     "B/s",
     "Bash",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -257,6 +258,7 @@
     "Webhook",
     "Webhook URL",
     "WhatsApp: ",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

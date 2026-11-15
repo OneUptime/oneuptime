@@ -216,7 +216,7 @@ const HypervisorOverview: FunctionComponent<{
     return {
       value:
         line.percent === null
-          ? "—"
+          ? undefined
           : formatOpenStackPercent(line.percent, {
               language: translator.language,
             }),
@@ -400,7 +400,7 @@ const HypervisorOverview: FunctionComponent<{
           iconColor="sky"
           value={
             row.instanceCount === null || row.instanceCount === undefined
-              ? "—"
+              ? undefined
               : translator.formatNumber(row.instanceCount)
           }
           sublabel={
@@ -425,7 +425,7 @@ const HypervisorOverview: FunctionComponent<{
             iconColor="blue"
             value={
               host.data.usage.cpuPercent === null
-                ? "—"
+                ? undefined
                 : `${Math.round(host.data.usage.cpuPercent)}%`
             }
             sublabel={
@@ -442,7 +442,7 @@ const HypervisorOverview: FunctionComponent<{
             iconColor="violet"
             value={
               host.data.usage.memoryPercent === null
-                ? "—"
+                ? undefined
                 : `${Math.round(host.data.usage.memoryPercent)}%`
             }
             sublabel={

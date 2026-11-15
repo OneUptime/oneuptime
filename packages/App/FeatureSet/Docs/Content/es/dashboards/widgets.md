@@ -49,13 +49,13 @@ Estos cuatro widgets leen una consulta de métricas, construida igual que en el 
 
 ### Gráfico
 
-Una serie temporal de una o varias consultas de métricas a lo largo del intervalo de tiempo del panel. **Chart Type** la dibuja como un gráfico de líneas, de barras, de áreas, de áreas apiladas o circular. **Additional Queries** superpone más métricas en los mismos ejes, y **Fórmulas** las combina con `+`, `-`, `*`, `/`, `%`, `^` y paréntesis, como en `(1 - a) * 100`. Los ajustes de visualización de cada consulta añaden una leyenda y una unidad, un color, líneas de advertencia y críticas, y una tasa por segundo para los contadores que solo crecen.
+Una serie temporal de una o varias consultas de métricas a lo largo del intervalo de tiempo del panel. **Tipo de gráfico** la dibuja como un gráfico de líneas, de barras, de áreas, de áreas apiladas o circular. **Consultas adicionales** superpone más métricas en los mismos ejes, y **Fórmulas** las combina con `+`, `-`, `*`, `/`, `%`, `^` y paréntesis, como en `(1 - a) * 100`. Los ajustes de visualización de cada consulta añaden una leyenda y una unidad, un color, líneas de advertencia y críticas, y una tasa por segundo para los contadores que solo crecen.
 
 Úsalo cuando la forma de la línea cuenta la historia: latencia, errores, rendimiento o profundidad de una cola.
 
 ### Valor
 
-Un número grande con un minigráfico: el valor de la consulta en todo el intervalo de tiempo, sumado para una suma o un recuento, el más alto para un máximo, el más bajo para un mínimo, y la media en los demás casos. Una flecha compara la segunda mitad del intervalo con la primera, cada mitad calculada del mismo modo, coloreada según **Trend Direction**: si un valor más alto es mejor o peor, o deducido del nombre de la métrica. Señala la flecha para ver el valor de cada mitad, y el minigráfico para leer el valor y la hora de cualquier punto. **Umbral de advertencia** pone el fondo amarillo y **Umbral crítico** rojo en cuanto el valor los alcanza.
+Un número grande con un minigráfico: el valor de la consulta en todo el intervalo de tiempo, sumado para una suma o un recuento, el más alto para un máximo, el más bajo para un mínimo, y la media en los demás casos. Una flecha compara la segunda mitad del intervalo con la primera, cada mitad calculada del mismo modo, coloreada según **Dirección de la tendencia**: si un valor más alto es mejor o peor, o deducido del nombre de la métrica. Señala la flecha para ver el valor de cada mitad, y el minigráfico para leer el valor y la hora de cualquier punto. **Umbral de advertencia** pone el fondo amarillo y **Umbral crítico** rojo en cuanto el valor los alcanza.
 
 Úsalo cuando un número responde a la pregunta: la tasa de errores, la latencia P95 o las peticiones atendidas hoy.
 
@@ -67,7 +67,7 @@ Un dial entre un mínimo y un máximo, 0 y 100 si no los defines, con una zona a
 
 ### Tabla
 
-Valores de métricas como filas. **Agrupar por atributos** da una fila por valor, por ejemplo una por `host.name`; sin ello, cada fila es un intervalo de tiempo. **Metrics & Columns** define las columnas: métricas, y fórmulas sobre ellas, como la disponibilidad en porcentaje. Cuando agrupas, **Reduce across time** convierte la serie de cada fila en un solo valor: el último valor, la media, la suma, el mínimo o el máximo.
+Valores de métricas como filas. **Agrupar por atributos** da una fila por valor, por ejemplo una por `host.name`; sin ello, cada fila es un intervalo de tiempo. **Métricas y columnas** define las columnas: métricas, y fórmulas sobre ellas, como la disponibilidad en porcentaje. Cuando agrupas, **Reducir a lo largo del tiempo** convierte la serie de cada fila en un solo valor: el último valor, la media, la suma, el mínimo o el máximo.
 
 Activa **Colorear por umbrales** en una columna para colorear sus valores: un valor que alcanza el **Umbral de advertencia** se vuelve ámbar, con un triángulo, y uno que alcanza el **Umbral crítico** se vuelve rojo y en negrita, con un círculo. Una columna de porcentaje empieza en 80 y 90. Para una columna en la que los valores bajos son el problema, como el espacio libre en disco, elige **Más bajo es peor** en **Dirección**.
 
@@ -120,11 +120,11 @@ El widget se recarga cada vez que el panel se actualiza, así que un widget que 
 
 #### Permisos
 
-**Run JavaScript** (activado por defecto) ejecuta tu script. Desactívalo para renderizar solo el marcado y los estilos: el script se deja entonces totalmente fuera del widget, en lugar de simplemente bloquearse.
+**Ejecutar JavaScript** (activado por defecto) ejecuta tu script. Desactívalo para renderizar solo el marcado y los estilos: el script se deja entonces totalmente fuera del widget, en lugar de simplemente bloquearse.
 
-**Open links in a new tab** (activado por defecto) permite que los enlaces y `window.open` abran una pestaña del navegador. Los enlaces siempre se abren en una pestaña nueva; el widget nunca puede hacer navegar al propio panel.
+**Abrir enlaces en una pestaña nueva** (activado por defecto) permite que los enlaces y `window.open` abran una pestaña del navegador. Los enlaces siempre se abren en una pestaña nueva; el widget nunca puede hacer navegar al propio panel.
 
-**Allow forms to submit** (desactivado por defecto) permite que un `<form>` dentro del widget se envíe.
+**Permitir el envío de formularios** (desactivado por defecto) permite que un `<form>` dentro del widget se envíe.
 
 Quien puede editar el panel decide lo que ejecuta este widget, y todos los que ven el panel lo ejecutan: en un panel público, eso incluye a los visitantes anónimos. Trata el acceso de edición a un panel con un widget HTML como tratarías el acceso a cualquier otro código que publicas.
 
@@ -160,7 +160,7 @@ Un único objetivo de nivel de servicio, dibujado como un solo número o como un
 
 **Ajustes**: qué SLO, o el SLO elegido en una variable del panel; cuál de sus tres números (SLI, Error Budget Remaining o Burn Rate); la visualización Tile o Gráfico; y un título opcional.
 
-- **Tile** muestra el número actual, más una segunda línea cuando la hay: el objetivo bajo el SLI, los minutos restantes bajo el presupuesto de errores. Una etiqueta de estado colorea el conjunto.
+- **Mosaico** muestra el número actual, más una segunda línea cuando la hay: el objetivo bajo el SLI, los minutos restantes bajo el presupuesto de errores. Una etiqueta de estado colorea el conjunto.
 - **Gráfico** dibuja el mismo número a lo largo del intervalo de tiempo del panel, con el objetivo marcado como una línea discontinua en la serie del SLI. El worker de evaluación escribe el historial cada pocos minutos, así que un SLO recién creado aparece vacío en el gráfico hasta que se evalúa por primera vez.
 
 Úsalo cuando el panel responde a "¿cumplimos lo que prometimos?" más que a "¿qué está pasando ahora mismo?".

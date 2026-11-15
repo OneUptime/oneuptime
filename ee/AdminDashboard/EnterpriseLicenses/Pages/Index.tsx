@@ -1,4 +1,5 @@
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
@@ -34,6 +35,8 @@ import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,7 +73,11 @@ const StatTile: FunctionComponent<StatTileProps> = (
       <div>
         <div className="text-sm text-gray-500">{props.label}</div>
         <div className="text-2xl font-semibold text-gray-900">
-          {props.value === null ? "—" : props.value.toLocaleString()}
+          {props.value === null ? (
+            <EmptyFigure />
+          ) : (
+            props.value.toLocaleString()
+          )}
         </div>
       </div>
     </div>
@@ -78,6 +85,7 @@ const StatTile: FunctionComponent<StatTileProps> = (
 };
 
 const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { t } = useTranslation();
 
   const [stats, setStats] = useState<LicenseStats | null>(null);
@@ -477,11 +485,11 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                   <span className="inline-flex flex-wrap items-center gap-1">
                     {item.isEvaluationLicense ? (
                       <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
-                        Evaluation
+                        {translator.translateText("Evaluation")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-                        Production
+                        {translator.translateText("Production")}
                       </span>
                     )}
                     {item.canBeWhiteLabelled ? <WhiteLabelBadge /> : <></>}
@@ -617,7 +625,14 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                   },
                   title: "Expiry Reminder (Days)",
                   fieldType: FieldType.Number,
-                  placeholder: `${EnterpriseLicenseUsageUtil.defaultExpiryReminderDays} (default)`,
+                  placeholder: translator.translateTemplate(
+                    "{{value}} (default)",
+                    {
+                      value: translator.formatNumber(
+                        EnterpriseLicenseUsageUtil.defaultExpiryReminderDays,
+                      ),
+                    },
+                  ),
                 },
               ],
               modelId: ObjectID.getZeroObjectID(),

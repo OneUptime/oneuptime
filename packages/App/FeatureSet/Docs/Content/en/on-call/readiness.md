@@ -69,7 +69,7 @@ A banner then says how many reminders were sent, skipped or failed, and why for 
 
 ## The weekly readiness email
 
-Once a week, OneUptime checks every project that has an on-call policy. When anyone in it is **Unreachable** or **Needs setup**, the project's owners get one email that lists them in two groups, who cannot be paged at all and who can be reached with gaps, up to 20 names each, with a link to the Readiness page.
+Once a week, OneUptime checks every project that has an on-call policy. When anyone in it is **Unreachable** or **Needs setup**, the Project Owners get one email that lists them in two groups, who cannot be paged at all and who can be reached with gaps, up to 20 names each, with a link to the Readiness page.
 
 A week with everyone ready sends nothing, so the email always means something needs fixing. When someone cannot be paged at all, its subject starts with `[Action Required]`.
 
@@ -100,7 +100,7 @@ The list holds only people an on-call policy can page. A team member who has not
 :::
 
 :::details The owners never get the weekly email
-It is sent only in a week when someone is **Unreachable** or **Needs setup**, and only to the project's owners.
+It is sent only in a week when someone is **Unreachable** or **Needs setup**, and only to the Project Owners.
 :::
 
 ## Next steps

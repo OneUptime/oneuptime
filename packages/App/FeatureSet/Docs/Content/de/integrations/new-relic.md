@@ -43,7 +43,7 @@ Dann [konfigurieren Sie New Relic](#new-relic-konfigurieren), damit es seine Iss
 
 ### Was der Workflow tut
 
-Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-event-1` das `state`, das New Relic sendet, und **Incident From Another Tool**, in der Vorlage für Warnungen **Alert From Another Tool**, tut, was es bedeutet, über die ID des Issues. Der Vorfall behält die ID in seinem benutzerdefinierten Feld `newRelicIssueId`.
+Nach dem Trigger **Webhook** liest der Schritt **Mit JavaScript prüfen** `read-event-1` das `state`, das New Relic sendet, und **Vorfall aus einem anderen Tool**, in der Vorlage für Warnungen **Warnung aus einem anderen Tool**, tut, was es bedeutet, über die ID des Issues. Der Vorfall behält die ID in seinem benutzerdefinierten Feld `newRelicIssueId`.
 
 | Was New Relic sendet | Was der Workflow tut |
 | --- | --- |

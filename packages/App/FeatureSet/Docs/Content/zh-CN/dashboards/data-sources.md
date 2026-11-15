@@ -50,7 +50,7 @@ flowchart TB
 
 ### 选择类型
 
-点击 **创建Data Source** 。 **Choose a Data Source Type** 对话框按存放的内容对类型分组：指标、日志、数据库、搜索和 API。点击其中一个。
+点击 **创建数据源** 。 **Choose a Data Source Type** 对话框按存放的内容对类型分组：指标、日志、数据库、搜索和 API。点击其中一个。
 
 ### 命名
 
@@ -58,15 +58,15 @@ flowchart TB
 
 ### 说明它在哪里
 
-在 **连接** 下，HTTP 数据源填写它响应的 **URL** 。数据库填写 **Database Host** 、 **Database Port** （端口为 5432、3306、1433 或 8123 时留空）和 **数据库名称** 。
+在 **连接** 下，HTTP 数据源填写它响应的 **URL** 。数据库填写 **数据库主机** 、 **数据库端口** （端口为 5432、3306、1433 或 8123 时留空）和 **数据库名称** 。
 
 ### 说明如何登录
 
-在 **认证** 下，输入 **用户名** 和 **密码** ；对于 HTTP 数据源，则输入以 Bearer 令牌发送的 **API 令牌** 。 **更多字段** 中包含 **Custom HTTP Headers** （例如 `{ "X-Scope-OrgID": "tenant-1" }` ）和 **Additional Options** ：数据库使用 `sslEnabled` 和 `sslRejectUnauthorized` ，Elasticsearch 使用 `elasticsearchIndex` ，不设置时 Elasticsearch 会读取所有索引（ `*` ）。
+在 **认证** 下，输入 **用户名** 和 **密码** ；对于 HTTP 数据源，则输入以 Bearer 令牌发送的 **API 令牌** 。 **更多字段** 中包含 **自定义 HTTP 标头** （例如 `{ "X-Scope-OrgID": "tenant-1" }` ）和 **其他选项** ：数据库使用 `sslEnabled` 和 `sslRejectUnauthorized` ，Elasticsearch 使用 `elasticsearchIndex` ，不设置时 Elasticsearch 会读取所有索引（ `*` ）。
 
 ### 测试
 
-点击 **创建Data Source** ，然后点击它所在行的 **测试** 。OneUptime 会用你提供的信息进行连接，并告诉你是否成功或出了什么问题。
+点击 **创建数据源** ，然后点击它所在行的 **测试** 。OneUptime 会用你提供的信息进行连接，并告诉你是否成功或出了什么问题。
 :::
 
 之后要修改数据源，请从列表中打开它。 **Data Source Details** 上的 **编辑** 可以修改除机密信息之外的所有内容； **更新凭据** 会替换密码、令牌或请求头，留空的字段保持不变； **测试** 会再次检查它。
@@ -75,9 +75,9 @@ flowchart TB
 
 编辑仪表板，点击 **添加小部件** ，然后选择外部数据源分组中的小部件： **图表** 、 **值** 、 **仪表** 或 **表格** 。在它的设置中：
 
-- 选择 **Data Source** 并编写 **查询** 。编辑器会显示查询语言的名称，并给出该类型的示例。
+- 选择 **数据源** 并编写 **查询** 。编辑器会显示查询语言的名称，并给出该类型的示例。
 - 在图表上， **添加查询** 会在同一坐标轴上叠加更多查询，而 **Legend (optional)** 设置会根据标签为每条序列命名： `{{instance}} — errors` 会把序列的 `instance` 标签写在最前面。
-- 在值或仪表上， **Reduce** 会把数据点归约为一个数字：最新值（默认）、第一个值、平均值、总和、最小值或最大值。 **单位** 会添加后缀，并换算已知单位： `Bytes` 显示为 1.5 MB， `ms` 显示为 2.4 s。
+- 在值或仪表上， **汇总** 会把数据点归约为一个数字：最新值（默认）、第一个值、平均值、总和、最小值或最大值。 **单位** 会添加后缀，并换算已知单位： `Bytes` 显示为 1.5 MB， `ms` 显示为 2.4 s。
 - 在表格上，任何只读查询都可以使用，行会按返回的样子显示。
 
 ## 编写查询
@@ -162,14 +162,14 @@ Prometheus 和 Loki 的范围查询会在整个时间范围内请求大约 250 �
 ## 安全保障
 
 - **SQL 保持只读。** 查询必须是一条以 `SELECT` 、 `WITH` 、 `SHOW` 、 `EXPLAIN` 、 `DESCRIBE` 或 `DESC` 开头的语句。会写入或更改会话的词，例如 `INSERT` 、 `UPDATE` 、 `DELETE` 、 `DROP` 、 `INTO` 或 `SET` ，在字符串和带引号的名称之外的任何位置都会被拒绝，因此请为与它们同名的列加上引号。在字符串中用两个引号（ `''` ）表示一个引号：引号前的反斜杠会被拒绝。PostgreSQL、MySQL 和 ClickHouse 的会话也是只读的。SQL Server 没有只读会话，因此请用只读登录名连接它。
-- **凭据只写。** **密码** 、 **API 令牌** 和 **Custom HTTP Headers** 会加密存储，API 永远不会返回它们，即使是返回给你本人。
+- **凭据只写。** **密码** 、 **API 令牌** 和 **自定义 HTTP 标头** 会加密存储，API 永远不会返回它们，即使是返回给你本人。
 - **地址会被检查。** 回环地址、链路本地地址（云元数据所在之处）和其他保留地址在任何地方都会被拒绝。私有地址在 OneUptime Cloud 上会被拒绝，在自托管安装中则会被允许，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true` ：参见 [私有网络访问](/docs/self-hosted/private-network-access) 。
 - **公开仪表板永远不会运行它们。** 外部数据源小部件连同查询一起，都会被排除在 [公开仪表板](/docs/dashboards/sharing) 之外。
 
 ## 故障排查
 
 :::details 测试提示无法连接
-从 OneUptime 运行的位置检查 URL，或主机和端口：防火墙、OneUptime Cloud 上的私有地址，或只在本机监听的数据库，从这里看起来都一样。对于需要 TLS 的数据库，请在 **Additional Options** 中添加 `{ "sslEnabled": true }` 。
+从 OneUptime 运行的位置检查 URL，或主机和端口：防火墙、OneUptime Cloud 上的私有地址，或只在本机监听的数据库，从这里看起来都一样。对于需要 TLS 的数据库，请在 **其他选项** 中添加 `{ "sslEnabled": true }` 。
 :::
 
 :::details "Only read-only queries are allowed"

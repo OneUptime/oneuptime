@@ -112,6 +112,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { createTranslator } from "../../../Types/Translator";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
@@ -524,7 +525,7 @@ describe("ProductAnalyticsEvents: the event", () => {
       unread.map((tile: { value: string }): string => {
         return tile.value;
       }),
-    ).toEqual(["-", "-", "-"]);
+    ).toEqual([EMPTY_VALUE_MARK, EMPTY_VALUE_MARK, EMPTY_VALUE_MARK]);
     expect(unread[0]!.loading).toBe(true);
   });
 

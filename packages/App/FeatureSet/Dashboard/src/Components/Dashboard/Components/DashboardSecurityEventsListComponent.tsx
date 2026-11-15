@@ -33,8 +33,11 @@ import {
 } from "../Utils/DashboardDateTime";
 import {
   getSecurityEventSeverityColor,
+  getSecurityEventSeverityText,
   resolveSecurityEventsListLimit,
 } from "./SecurityEventsWidgetData";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/Types/Translator";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
@@ -70,6 +73,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 const DashboardSecurityEventsListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [securityEvents, setSecurityEvents] = useState<Array<SecurityEvent>>(
     [],
   );
@@ -192,6 +196,14 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
       const severity: string =
         (securityEvent.severityName as string) || "Unknown";
       const severityColor: string = getSecurityEventSeverityColor(severity);
+      /*
+       * OCSF's word in the reader's language, in the cell and its title,
+       * as the Security Events page's severity pill says it (#8295).
+       */
+      const severityText: string = getSecurityEventSeverityText(
+        severity,
+        translator,
+      );
       const time: DashboardDateTime | null = securityEvent.time
         ? getDashboardDateTime(
             securityEvent.time as unknown as string,
@@ -214,7 +226,7 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
           >
             {time ? time.label : <TableEmptyValue isSmall={true} />}
           </td>
-          <td className="whitespace-nowrap px-3 py-1.5" title={severity}>
+          <td className="whitespace-nowrap px-3 py-1.5" title={severityText}>
             <span className="inline-flex items-center gap-1">
               <span
                 className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
@@ -224,22 +236,22 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
                 className="text-xs font-medium"
                 style={{ fontSize: "10px", color: severityColor }}
               >
-                {severity}
+                {severityText}
               </span>
             </span>
           </td>
           <ResourceListNameCell
-            name={className || "—"}
+            name={className}
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-500"
             title={className}
           />
           <ResourceListNameCell
-            name={message || "—"}
+            name={message}
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-600"
             title={message}
           />
           <ResourceListNameCell
-            name={host || "—"}
+            name={host}
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-400"
             title={host}
           />

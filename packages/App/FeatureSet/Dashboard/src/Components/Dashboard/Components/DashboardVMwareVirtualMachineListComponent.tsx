@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DashboardVMwareVirtualMachineListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardVMwareVirtualMachineListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -125,7 +127,7 @@ function toFiniteNumber(value: unknown): number | undefined {
 function formatPercent(value: unknown): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${numeric.toFixed(1)}%`;
 }
@@ -230,8 +232,8 @@ function renderPowerBadge(r: VMwareResource): ReactElement {
 function renderVirtualMachineRow(r: VMwareResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = getVirtualMachineDisplayName(r);
-  const hostName: string = (r.hostName as string) || "—";
-  const vcenterName: string = (r.vmwareVCenter?.name as string) || "—";
+  const hostName: string | undefined = r.hostName as string;
+  const vcenterName: string | undefined = r.vmwareVCenter?.name as string;
   const route: Route | undefined = getVirtualMachineRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -269,10 +271,14 @@ function renderVirtualMachineRow(r: VMwareResource): ReactElement {
       </ResourceListNameCell>
       <td className="px-3 py-2">{renderPowerBadge(r)}</td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatPercent(r.latestCpuPercent)}
+        {getValueOrQuietDash(formatPercent(r.latestCpuPercent), {
+          isSmall: true,
+        })}
       </td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatPercent(r.latestMemoryPercent)}
+        {getValueOrQuietDash(formatPercent(r.latestMemoryPercent), {
+          isSmall: true,
+        })}
       </td>
       <ResourceListNameCell
         name={hostName}
@@ -301,9 +307,9 @@ function buildVirtualMachineTile(r: VMwareResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "Host", value: (r.hostName as string) || "—" },
-        { label: "Cluster", value: (r.clusterName as string) || "—" },
-        { label: "vCenter", value: (r.vmwareVCenter?.name as string) || "—" },
+        { label: "Host", value: r.hostName as string },
+        { label: "Cluster", value: r.clusterName as string },
+        { label: "vCenter", value: r.vmwareVCenter?.name as string },
         { label: "CPU", value: formatPercent(r.latestCpuPercent) },
         { label: "Memory", value: formatPercent(r.latestMemoryPercent) },
         { label: "Disk", value: formatPercent(r.latestDiskPercent) },

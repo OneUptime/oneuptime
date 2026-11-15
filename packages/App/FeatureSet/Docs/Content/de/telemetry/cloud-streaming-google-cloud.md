@@ -27,7 +27,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ein verbundenes Google-Cloud-Projekt.** Verbinden Sie es zuerst unter **Cloud → Verbinden**: siehe [Ein Cloud-Konto verbinden](/docs/telemetry/cloud-accounts).
-- **Ein Projektinhaber oder Admin.** Nur sie können einen Stream-Schlüssel erstellen und das Streaming beenden.
+- **Ein Projektinhaber oder Projektadministrator.** Nur sie können einen Stream-Schlüssel erstellen und das Streaming beenden.
 - **Google Cloud Shell**, angemeldet als **Owner** der Projekte oder als jemand, der darin Dienstkonten, Pub/Sub-Themen und Log-Senken anlegen darf.
 - **Eine HTTPS-Adresse, bei einem selbst gehosteten OneUptime.** Pub/Sub pusht nur an `https://`-Adressen, mit einem Zertifikat, dem Google vertraut, und die Adresse muss von Google Cloud aus erreichbar sein.
 

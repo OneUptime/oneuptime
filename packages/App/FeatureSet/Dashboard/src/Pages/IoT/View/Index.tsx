@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -102,7 +103,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -111,7 +112,7 @@ const formatDbm: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(0)}\u00A0dBm`;
 };
@@ -769,7 +770,9 @@ const IoTFleetOverview: FunctionComponent<
           description={IOT_METRIC_DESCRIPTIONS.onlineDevices}
           icon={IconProp.Heartbeat}
           iconColor="emerald"
-          value={onlinePct === null ? "—" : `${onlineDevices}/${totalDevices}`}
+          value={
+            onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}`
+          }
           sublabel="devices reporting up"
           percent={onlinePct}
           thresholds={{ warn: 99, danger: 75 }}
@@ -780,7 +783,7 @@ const IoTFleetOverview: FunctionComponent<
           description={IOT_METRIC_DESCRIPTIONS.totalDevices}
           icon={IconProp.Cube}
           iconColor="sky"
-          value={totalDevices > 0 ? `${totalDevices}` : "—"}
+          value={totalDevices > 0 ? `${totalDevices}` : undefined}
           sublabel="in this fleet"
         />
         <GoldenMetricTile

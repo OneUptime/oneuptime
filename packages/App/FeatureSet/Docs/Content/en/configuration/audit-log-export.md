@@ -1,6 +1,6 @@
 # Audit Log Export
 
-Send the audit log, as it is recorded, to storage or a service you choose: Amazon S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or syslog. Keep entries there as long as your compliance reviews need, and search them in your SIEM. A project's owners and admins export its audit log from Project Settings, and master admins export every project's from the Admin Dashboard. It is part of the Enterprise plan on OneUptime Cloud, and of the Enterprise Edition when you self-host.
+Send the audit log, as it is recorded, to storage or a service you choose: Amazon S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or syslog. Keep entries there as long as your compliance reviews need, and search them in your SIEM. Project Owners and Project Admins export a project's audit log from Project Settings, and master admins export every project's from the Admin Dashboard. It is part of the Enterprise plan on OneUptime Cloud, and of the Enterprise Edition when you self-host.
 
 :::cards
 - [Set up an export](#set-up-an-export): Pick a destination, test it, save it.
@@ -177,7 +177,7 @@ A batch is tried three times, a few seconds apart, then the export waits before 
 
 Nothing is skipped: the entries wait in the audit log, and the next delivery that works catches up from the oldest. Each entry is still deleted once it is older than the audit log retention it was recorded with, sent or not, so fix a failing export within that time. A longer retention keeps only the entries recorded after you change it.
 
-A failing export emails the people who can fix it: the project's owners for a project's export, and every master admin for the instance's. The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the first of the entries the export has not sent is deleted, with when entries start to be lost. If that moment has already passed, as when **Export from** reaches back further than the retention, the second email takes the place of the first, 30 minutes in, and says entries are being lost now. Each is sent once while the failures go on, and a delivery that works resets both.
+A failing export emails the people who can fix it: the Project Owners for a project's export, and every master admin for the instance's. The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the first of the entries the export has not sent is deleted, with when entries start to be lost. If that moment has already passed, as when **Export from** reaches back further than the retention, the second email takes the place of the first, 30 minutes in, and says entries are being lost now. Each is sent once while the failures go on, and a delivery that works resets both.
 
 To pause an export, choose **Turn off** in its row's menu: it keeps its place, and **Turn on** sends what was recorded meanwhile. On OneUptime Cloud, a project that leaves the Enterprise plan stops exporting, and its exports wait under the upgrade card, where they can be turned off or deleted. When you self-host, exporting stops while the license does not include audit logs, and carries on from where it stopped once one does.
 

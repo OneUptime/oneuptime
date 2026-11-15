@@ -17,6 +17,10 @@ import RequestFailedDetails, {
 import Sleep from "Common/Types/Sleep";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
+import {
   RequestFailureDescription,
   writeRequestFailureDescription,
 } from "Common/Utils/Monitor/RequestFailureDescriptions";
@@ -107,14 +111,16 @@ const describeError: (error: unknown) => string = (error: unknown): string => {
       return describeError(attemptError);
     },
   );
-  const attemptFailureDescription: string = attemptFailures.length
-    ? ` Attempts: ${attemptFailures.join("; ")}`
-    : "";
 
-  return (
-    "Request failed with AggregateError (all connection attempts failed). " +
-    `${error.toString()}.${attemptFailureDescription}`
-  );
+  // Each address's own failure, after the aggregate's, where there are any.
+  return attemptFailures.length
+    ? writeProbeFailureCause(
+        ProbeFailureCause.AllConnectionAttemptsFailedWithAttempts,
+        { error: error.toString(), attempts: attemptFailures.join("; ") },
+      )
+    : writeProbeFailureCause(ProbeFailureCause.AllConnectionAttemptsFailed, {
+        error: `${error.toString()}.`,
+      });
 };
 
 const getRepresentativeError: (error: unknown) => unknown = (

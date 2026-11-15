@@ -43,7 +43,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // CPU Metrics
   {
     id: "system-cpu-utilization",
-    friendlyName: "CPU Utilization",
+    friendlyName: translationKey("CPU Utilization"),
     description: translationKey(
       "Share of CPU time spent running applications (the user state), as a ratio (0 to 1). The High CPU Utilization template adds system time.",
     ),
@@ -55,7 +55,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "process-cpu-utilization",
-    friendlyName: "Process CPU Utilization",
+    friendlyName: translationKey("Process CPU Utilization"),
     description: translationKey(
       "CPU utilization of each process on the host, as a ratio (0 to 1), one series per executable.",
     ),
@@ -69,7 +69,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Memory Metrics
   {
     id: "system-memory-utilization",
-    friendlyName: "Memory Utilization",
+    friendlyName: translationKey("Memory Utilization"),
     description: translationKey(
       "Share of physical memory in use, as a ratio (0 to 1). Page cache and buffers are left out.",
     ),
@@ -81,7 +81,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-memory-usage",
-    friendlyName: "Memory Usage",
+    friendlyName: translationKey("Memory Usage"),
     description: translationKey(
       "Memory in use, in bytes. Page cache and buffers are left out.",
     ),
@@ -95,7 +95,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Disk / Filesystem Metrics
   {
     id: "system-filesystem-utilization",
-    friendlyName: "Filesystem Utilization",
+    friendlyName: translationKey("Filesystem Utilization"),
     description: translationKey(
       "Share of each filesystem in use, as a ratio (0 to 1), one series per mount point.",
     ),
@@ -107,7 +107,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-filesystem-usage",
-    friendlyName: "Filesystem Usage",
+    friendlyName: translationKey("Filesystem Usage"),
     description: translationKey(
       "Bytes in use on each filesystem, one series per mount point.",
     ),
@@ -122,7 +122,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Network Metrics
   {
     id: "system-network-io",
-    friendlyName: "Network I/O",
+    friendlyName: translationKey("Network I/O"),
     description: translationKey(
       "Bytes received and sent since the host started, one series per direction. A lifetime counter: it only grows.",
     ),
@@ -136,7 +136,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Load Average Metrics
   {
     id: "system-cpu-load-average-1m",
-    friendlyName: "Load Average (1m)",
+    friendlyName: translationKey("Load Average (1m)"),
     description: translationKey(
       "Host CPU load average over the last 1 minute.",
     ),
@@ -147,7 +147,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-cpu-load-average-5m",
-    friendlyName: "Load Average (5m)",
+    friendlyName: translationKey("Load Average (5m)"),
     description: translationKey(
       "Host CPU load average over the last 5 minutes.",
     ),
@@ -158,7 +158,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-cpu-load-average-15m",
-    friendlyName: "Load Average (15m)",
+    friendlyName: translationKey("Load Average (15m)"),
     description: translationKey(
       "Host CPU load average over the last 15 minutes.",
     ),
@@ -171,7 +171,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Process Metrics
   {
     id: "system-processes-count",
-    friendlyName: "Process Count",
+    friendlyName: translationKey("Process Count"),
     description: translationKey(
       "Number of processes on the host, one series per status (running, sleeping, blocked...).",
     ),
@@ -213,4 +213,24 @@ export function getHostMetricByMetricName(
 
 export function getAllHostMetricCategories(): Array<HostMetricCategory> {
   return ["CPU", "Memory", "Disk", "Network", "Load", "Processes"];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<HostMetricCategory, string> = {
+  CPU: translationKey("CPU"),
+  Memory: translationKey("Memory"),
+  Disk: translationKey("Disk"),
+  Network: translationKey("Network"),
+  Load: translationKey("Load Average"),
+  Processes: translationKey("Processes"),
+};
+
+export function getHostMetricCategoryLabel(
+  category: HostMetricCategory,
+): string {
+  return categoryLabels[category] || category;
 }

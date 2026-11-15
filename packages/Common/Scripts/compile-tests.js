@@ -40,6 +40,24 @@
  *   - ../tsconfig.tests.server-utils.json (Tests/Server/Utils, 8,804 files):
  *     4.71 GB;
  *   - ../tsconfig.tests.rest.json (what was left, 9,613 files): 4.26 GB.
+ * On 2026-11-15 the server part used 6.94 GiB of its 8 GiB heap (87%), and
+ * its services' tests left it (#8631). As one part they used 6.09 GiB
+ * (76%), so they are two by name, as the Dashboard tests are, and
+ * ../tsconfig.tests.server-services.json is the whole folder, for editors
+ * and ESLint. Measured as above (tsc --extendedDiagnostics, "Memory used"):
+ *   - ../tsconfig.tests.server.json (Tests/Server but its Utils and
+ *     Services, 11,044 files): 5.09 GiB;
+ *   - ../tsconfig.tests.server-services-a-m.json (9,720 files): 4.59 GiB;
+ *   - ../tsconfig.tests.server-services-n-z.json (9,984 files): 4.71 GiB.
+ * Later that day server-utils (Tests/Server/Utils, 12,474 files) used 6.79
+ * GiB (85%) (#8664). Its AI folder, the largest, left the rest at 6.30 GiB
+ * (79%), so the AI tests are a part of their own and the rest is two by
+ * name; ../tsconfig.tests.server-utils.json is the whole folder, for
+ * editors and ESLint. Measured the same way:
+ *   - ../tsconfig.tests.server-utils-ai.json (Tests/Server/Utils/AI, 9,433
+ *     files): 4.62 GiB;
+ *   - ../tsconfig.tests.server-utils-a-o.json (10,404 files): 4.84 GiB;
+ *   - ../tsconfig.tests.server-utils-p-z.json (10,311 files): 5.23 GiB.
  * Tests/App, at 8.84 GB the same way (13,990 files), was split the same day,
  * by name, because nearly all of it is one directory (Tests/App/Dashboard,
  * some 1,650 tests): tsconfig.tests.app-dashboard-a-m.json (Dashboard
@@ -118,7 +136,11 @@ const PARTS = [
   "tsconfig.tests.app-rest.json",
   "tsconfig.tests.ui.json",
   "tsconfig.tests.server.json",
-  "tsconfig.tests.server-utils.json",
+  "tsconfig.tests.server-services-a-m.json",
+  "tsconfig.tests.server-services-n-z.json",
+  "tsconfig.tests.server-utils-a-o.json",
+  "tsconfig.tests.server-utils-p-z.json",
+  "tsconfig.tests.server-utils-ai.json",
   "tsconfig.tests.rest.json",
 ];
 /*

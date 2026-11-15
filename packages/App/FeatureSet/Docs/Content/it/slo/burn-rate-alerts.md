@@ -48,7 +48,7 @@ flowchart TB
     short -->|"Sì"| fire["Generare l'avviso,<br/>dichiarare l'incidente<br/>o entrambi"]
 ```
 
-Una regola non può scattare finché lo SLO non ha una finestra lunga completa di cronologia di monitoraggio: altrimenti il primissimo controllo fallito di un monitor, diviso per pochi minuti di cronologia, darebbe un tasso di consumo enorme. Quindi un nuovo SLO non può far scattare la sua regola **Fast burn** nella prima ora, né la sua regola **Slow burn** nelle prime sei, né la sua regola **Slow leak** nei primi tre giorni. Se in seguito uno SLO non ha più tanta cronologia, per esempio dopo che i suoi monitor sono stati sostituiti con altri nuovi, la regola risolve ciò che ha aperto invece di lasciarlo in sospeso. Una regola non scatta nemmeno mentre uno dei monitor dello SLO è in una manutenzione pianificata: vedi [Manutenzione pianificata](#manutenzione-pianificata).
+Una regola non può scattare finché lo SLO non ha una finestra lunga completa di cronologia di monitoraggio: altrimenti il primissimo controllo fallito di un monitor, diviso per pochi minuti di cronologia, darebbe un tasso di consumo enorme. Quindi un nuovo SLO non può far scattare la sua regola **Fast burn** nella prima ora, né la sua regola **Slow burn** nelle prime sei, né la sua regola **Slow leak** nei primi tre giorni. Se in seguito uno SLO non ha più tanta cronologia, per esempio dopo che i suoi monitor sono stati sostituiti con altri nuovi, la regola risolve ciò che ha aperto invece di lasciarlo in sospeso. Una regola non scatta nemmeno mentre uno dei monitor dello SLO è in una manutenzione programmata: vedi [Manutenzione programmata](#manutenzione-programmata).
 
 ## Regole predefinite
 
@@ -255,7 +255,7 @@ Alcune modifiche risolvono sempre ciò che una regola ha aperto, qualunque cosa 
 - il passaggio dello SLO a **In pausa** o **Configurato male**, perché allora non misura nulla;
 - la perdita della soglia o delle finestre della regola, o il fatto che lo SLO non abbia più una finestra lunga completa di cronologia.
 
-## Manutenzione pianificata
+## Manutenzione programmata
 
 Mentre un monitor dello SLO è in un evento di manutenzione in corso, le sue regole del tasso di consumo non generano avvisi né dichiarano incidenti: il lavoro pianificato non deve avvisare nessuno. Ciò che le regole hanno già aperto si risolve comunque come al solito. Il tempo conta comunque nel budget di errore, secondo gli stati di inattività dello SLO.
 

@@ -9,6 +9,10 @@ import {
 } from "Common/Types/ReadingDirection";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * AI rules - which new incidents (or alerts) OneUptime AI investigates, and
@@ -3886,6 +3890,41 @@ test.describe("the Runner field on the Global Runner, in German and Persian", ()
       await page.keyboard.press("Escape");
 
       await expectNoSidewaysScroll(page);
+    });
+  }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German and Persian whole, 15 MB of JSON in every page's scripts, parsed on
+ * every page load of every test. English is in the bundle now, and each
+ * other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "fa", "ru"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const settings: string = `/dashboard/${PROJECT_ID}/incidents/ai/settings`;
+
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? settings : `${settings}?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return advancedSection(shown, "incident")
+              .getByTestId("folded-section-title")
+              .filter({ hasText: dashboardWord(code, "More settings") });
+          },
+        },
+        language,
+      );
     });
   }
 });

@@ -99,7 +99,7 @@ const OpenStackCloudDnsZoneDetail: FunctionComponent<
                   </Link>
                 ),
               }
-            : { key: "project", label: "Project", value: "—" },
+            : { key: "project", label: "Project", value: undefined },
         );
         if (row.regionName) {
           detailRows.push({
@@ -141,19 +141,19 @@ const OpenStackCloudDnsZoneDetail: FunctionComponent<
                   title="Recordsets"
                   icon={IconProp.List}
                   iconColor="sky"
-                  value={typeof recordsets === "number" ? `${recordsets}` : "—"}
+                  value={
+                    typeof recordsets === "number" ? `${recordsets}` : undefined
+                  }
                   description="How many recordsets this zone holds, its own SOA and NS among them."
                 />
                 <GoldenMetricTile
                   title="In state for"
                   icon={IconProp.Clock}
                   iconColor="slate"
-                  value={
-                    getOpenStackTimeInState(
-                      row,
-                      OneUptimeDate.getCurrentDate(),
-                    ) || "—"
-                  }
+                  value={getOpenStackTimeInState(
+                    row,
+                    OneUptimeDate.getCurrentDate(),
+                  )}
                   description="How long since OneUptime saw this zone's status change. One already in this state when OneUptime first saw it counts from then."
                 />
               </>

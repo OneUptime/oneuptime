@@ -182,7 +182,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
     "this %s was created",
     (noun: OwnerNotificationRecordNoun) => {
       expect(OwnerNotificationFeedText.created(noun, PROJECT_OWNERS)).toBe(
-        `The project's owners were notified that this ${noun} was created, as it has no owners yet.`,
+        `The Project Owners were notified that this ${noun} was created, as it has no owners yet.`,
       );
     },
   );
@@ -197,7 +197,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
           ...PROJECT_OWNERS,
         }),
       ).toBe(
-        `The project's owners were notified that this ${noun} is now **Acknowledged**, as it has no owners yet.`,
+        `The Project Owners were notified that this ${noun} is now **Acknowledged**, as it has no owners yet.`,
       );
     },
   );
@@ -210,7 +210,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified that this alert changed state, as it has no owners yet.",
+      "The Project Owners were notified that this alert changed state, as it has no owners yet.",
     );
   });
 
@@ -224,7 +224,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
           ...PROJECT_OWNERS,
         }),
       ).toBe(
-        `The project's owners were notified of the new private note, as this ${noun} has no owners yet.`,
+        `The Project Owners were notified of the new private note, as this ${noun} has no owners yet.`,
       );
     },
   );
@@ -236,7 +236,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified of the new public note, as it has no owners yet.",
+      "The Project Owners were notified of the new public note, as it has no owners yet.",
     );
   });
 
@@ -249,7 +249,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were reminded that this incident is still **Investigating**, open for **2 hours**, as it has no owners yet.",
+      "The Project Owners were reminded that this incident is still **Investigating**, open for **2 hours**, as it has no owners yet.",
     );
   });
 
@@ -261,7 +261,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified that 3 incidents were added to this episode, as it has no owners yet.",
+      "The Project Owners were notified that 3 incidents were added to this episode, as it has no owners yet.",
     );
   });
 
@@ -343,11 +343,37 @@ describe("the jobs that write these entries", () => {
     expect(jobsWithCalls.length).toBeGreaterThanOrEqual(17);
   });
 
+  /*
+   * Since #8611 most jobs plan whom to tell through
+   * OwnerNotificationDeliveries.planForOwnersOf, which takes the fallback.
+   */
+  const DELIVERIES_SOURCE: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../Server/Utils/Notification/OwnerNotificationDeliveries.ts",
+    ),
+    "utf8",
+  );
+
+  test("planForOwnersOf falls back to the project's owners, and says so", () => {
+    const planForOwnersOf: string = DELIVERIES_SOURCE.slice(
+      DELIVERIES_SOURCE.indexOf("public static async planForOwnersOf("),
+    );
+
+    expect(planForOwnersOf).toContain("isProjectOwners = true;");
+    expect(planForOwnersOf).toContain("ProjectService.getOwners(");
+    expect(planForOwnersOf).toContain("isProjectOwners: isProjectOwners,");
+  });
+
   test.each(jobsWithCalls)("%s says who was told", (job: string) => {
     const source: string = fs.readFileSync(path.join(JOBS_DIR, job), "utf8");
 
-    // The job does fall back to the project's owners...
-    expect(source).toContain("ProjectService.getOwners(");
+    // The job does fall back to the project's owners, itself or through planForOwnersOf...
+    expect([
+      job,
+      source.includes("ProjectService.getOwners(") ||
+        source.includes("OwnerNotificationDeliveries.planForOwnersOf("),
+    ]).toEqual([job, true]);
 
     // ...and every entry it writes says whether they stood in.
     for (const call of callsOf(job)) {

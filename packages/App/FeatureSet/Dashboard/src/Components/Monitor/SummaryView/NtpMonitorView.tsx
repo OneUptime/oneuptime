@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import NtpLeapIndicator from "Common/Types/Monitor/NtpMonitor/NtpLeapIndicator";
@@ -47,7 +48,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
   const host: string = response.monitorDestination?.toString() || "";
   const server: string = host
     ? HostAddressUtil.formatHostAndPort({ host: host, port: port })
-    : "-";
+    : EMPTY_VALUE_MARK;
   // The address a name resolved to, when it is not what was typed.
   const serverAddress: string | undefined =
     ntpResponse?.serverAddress && ntpResponse.serverAddress !== host
@@ -58,7 +59,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
     value: number | undefined,
   ): string => {
     return value === undefined || value === null
-      ? "-"
+      ? EMPTY_VALUE_MARK
       : formatMilliseconds(translator, value, {
           maximumFractionDigits:
             NtpMonitorUtil.getMillisecondsFractionDigits(value),
@@ -69,7 +70,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
     const offset: number | undefined = ntpResponse?.clockOffsetInMs;
 
     if (offset === undefined || offset === null) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
 
     if (offset === 0) {
@@ -91,7 +92,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
     const stratum: number | undefined = ntpResponse?.stratum;
 
     if (stratum === undefined || stratum === null) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
 
     if (stratum === 0) {
@@ -128,7 +129,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
       case NtpLeapIndicator.Unsynchronized:
         return translator.translateTemplate("Alarm: not synchronized");
       default:
-        return "-";
+        return EMPTY_VALUE_MARK;
     }
   };
 
@@ -136,13 +137,13 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
     iso: string | undefined,
   ): string => {
     if (!iso) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
 
     const date: Date = new Date(iso);
 
     return isNaN(date.getTime())
-      ? "-"
+      ? EMPTY_VALUE_MARK
       : OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
   };
 

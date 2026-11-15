@@ -222,7 +222,7 @@ function renderOsdRow(r: CephResource): ReactElement {
   const name: string = getOsdDisplayName(r);
   const state: { text: string; color: string; textColor: string } =
     getOsdState(r);
-  const clusterName: string = (r.cephCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.cephCluster?.name as string;
   const route: Route | undefined = getOsdRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -249,7 +249,7 @@ function renderOsdRow(r: CephResource): ReactElement {
         {detailLink}
       </ResourceListNameCell>
       <ResourceListNameCell
-        name={(r.hostname as string) || "—"}
+        name={r.hostname as string}
         className="px-3 py-2 text-xs text-gray-500 truncate"
       />
       <td className="px-3 py-2">
@@ -278,7 +278,7 @@ function buildOsdTile(r: CephResource): HoneycombTile {
   const name: string = getOsdDisplayName(r);
   const state: { text: string; color: string; textColor: string } =
     getOsdState(r);
-  const clusterName: string = (r.cephCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.cephCluster?.name as string;
   const usedPercent: number | null = getUsedPercent(r);
 
   return {
@@ -289,11 +289,12 @@ function buildOsdTile(r: CephResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "Host", value: (r.hostname as string) || "—" },
-        { label: "Class", value: (r.deviceClass as string) || "—" },
+        { label: "Host", value: r.hostname as string },
+        { label: "Class", value: r.deviceClass as string },
         {
           label: "Used",
-          value: usedPercent === null ? "—" : `${usedPercent.toFixed(0)}%`,
+          value:
+            usedPercent === null ? undefined : `${usedPercent.toFixed(0)}%`,
         },
         { label: "Cluster", value: clusterName },
       ],

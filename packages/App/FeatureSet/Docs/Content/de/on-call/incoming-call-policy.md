@@ -214,8 +214,8 @@ Protokolle eingehender Anrufe stehen als Workflow-Auslöser zur Verfügung:
 Um nur auf verpasste Anrufe zu reagieren, etwa um sie in Slack oder Microsoft Teams zu posten oder ein Ticket zu eröffnen:
 
 :::steps
-1. Fügen Sie den Auslöser **On Update Incoming Call Log** hinzu. Setzen Sie **Fields to watch** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
-2. Fügen Sie einen Schritt **If / Else** hinzu. Prüfen Sie den **Status** des Auslösers mit dem Vergleich **ist ungleich** und `Completed`.
+1. Fügen Sie den Auslöser **On Update Incoming Call Log** hinzu. Setzen Sie **Beobachtete Felder** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
+2. Fügen Sie einen Schritt **Wenn / Sonst** hinzu. Prüfen Sie den **Status** des Auslösers mit dem Vergleich **ist ungleich** und `Completed`.
 3. Verbinden Sie Ihre Schritte mit dem Port **Ja**.
 :::
 

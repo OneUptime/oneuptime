@@ -224,7 +224,7 @@ Vedi [Topologia](/docs/telemetry/topology).
 
 Un obiettivo di affidabilità per ciò che monitori, come essere disponibile il 99,9% del tempo su 30 giorni. OneUptime misura ogni SLO rispetto ai suoi monitor ogni 5 minuti.
 
-Altri nomi: **Service Level Objective**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
+Altri nomi: **Obiettivo del livello di servizio**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
 
 ### Budget di errore
 
@@ -266,9 +266,9 @@ Altri nomi: **Tracciamento delle eccezioni**, `/telemetry-exception`. Vedi [Ecce
 
 ### Insight IA
 
-Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Informazioni** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
+Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Insight** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
 
-Altri nomi: **Informazioni**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
+Altri nomi: **Insight**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
 
 ### Eventi di sicurezza
 

@@ -26,7 +26,17 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import { getWhoCanTurnOnSentence } from "Common/Utils/Project/NotificationChannels";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  PluralTemplate,
+  TemplateValue,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
@@ -56,8 +66,8 @@ export const RULE_FORM_STEP_SCOPE: string = "scope";
 export const COMPLIANCE_RULE_FORM_STEPS: Array<
   FormStep<TeamComplianceSetting>
 > = [
-  { id: RULE_FORM_STEP_RULE, title: "Rule" },
-  { id: RULE_FORM_STEP_SCOPE, title: "Scope" },
+  { id: RULE_FORM_STEP_RULE, title: translationKey("Rule") },
+  { id: RULE_FORM_STEP_SCOPE, title: translationKey("Scope") },
 ];
 
 const toCardOption: (
@@ -144,11 +154,11 @@ export const getRuleTypeCardOptions: (
 
   return [
     {
-      label: "On-call rules",
+      label: translationKey("On-call rules"),
       options: byCategory(ComplianceRuleCategory.OnCallRule),
     },
     {
-      label: "Notification methods",
+      label: translationKey("Notification methods"),
       options: byCategory(ComplianceRuleCategory.NotificationMethod),
     },
   ];
@@ -257,14 +267,45 @@ const countSelected: (value: unknown) => number = (value: unknown): number => {
  * often neither. The same sentence as the server's compliance warnings
  * (TeamComplianceEvaluator), from Common/Utils/Project/NotificationChannels.
  */
+// The language of a caller that hands no translator: English, word for word.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * Each note is one whole sentence with who can switch the channel on, and
+ * where, in it - the words the server's warnings use
+ * (Common/Utils/Project/NotificationChannels' getWhoCanTurnOnSentence) - so
+ * a language gives "it" and "them" the gender of the channels they stand for.
+ */
+const WHATSAPP_SWITCH_NOTE: string = translationKey(
+  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+);
+
+const CHANNEL_SWITCH_NOTE: string = translationKey(
+  "{{channel}} notifications also have to be switched on for the project, or nobody will be reached this way. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+);
+
+const CHANNELS_SWITCH_NOTE: string = translationKey(
+  "{{channels}} notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+);
+
 export const getProjectSwitchNote: (
   channel: ComplianceNotificationChannel,
-) => string = (channel: ComplianceNotificationChannel): string => {
+  translator?: Translator,
+) => string = (
+  channel: ComplianceNotificationChannel,
+  translator: Translator = ENGLISH,
+): string => {
   if (channel === ComplianceNotificationChannel.WhatsApp) {
-    return `Members cannot add a WhatsApp number until WhatsApp is switched on for the project. ${getWhoCanTurnOnSentence("it")}`;
+    return (
+      translator.translateText(WHATSAPP_SWITCH_NOTE) || WHATSAPP_SWITCH_NOTE
+    );
   }
 
-  return `${ComplianceRule.getChannelDefinition(channel)?.label || channel} notifications also have to be switched on for the project, or nobody will be reached this way. ${getWhoCanTurnOnSentence("them")}`;
+  return translator.translateTemplate(CHANNEL_SWITCH_NOTE, {
+    channel: translatableTerm(
+      ComplianceRule.getChannelDefinition(channel)?.label || channel,
+    ),
+  });
 };
 
 /*
@@ -276,8 +317,10 @@ export const getProjectSwitchNote: (
  */
 export const getProjectSwitchNotes: (
   channels: Array<ComplianceNotificationChannel>,
+  translator?: Translator,
 ) => Array<string> = (
   channels: Array<ComplianceNotificationChannel>,
+  translator: Translator = ENGLISH,
 ): Array<string> => {
   const switched: Array<ComplianceNotificationChannel> =
     ComplianceRule.normaliseChannels(channels).filter(
@@ -295,19 +338,26 @@ export const getProjectSwitchNotes: (
   const notes: Array<string> = [];
 
   if (notSent.length === 1) {
-    notes.push(getProjectSwitchNote(notSent[0]!));
+    notes.push(getProjectSwitchNote(notSent[0]!, translator));
   } else if (notSent.length > 1) {
     notes.push(
-      `${joinAsProse(
-        notSent.map((channel: ComplianceNotificationChannel): string => {
-          return ComplianceRule.getChannelDefinition(channel)?.label || channel;
+      translator.translateTemplate(CHANNELS_SWITCH_NOTE, {
+        channels: composedValue((sentence: Translator): string => {
+          return joinAsProse(
+            notSent.map((channel: ComplianceNotificationChannel): string => {
+              return ComplianceRule.getChannelLabel(channel, sentence);
+            }),
+            sentence,
+          );
         }),
-      )} notifications also have to be switched on for the project, or nobody will be reached those ways. ${getWhoCanTurnOnSentence("them")}`,
+      }),
     );
   }
 
   if (switched.includes(ComplianceNotificationChannel.WhatsApp)) {
-    notes.push(getProjectSwitchNote(ComplianceNotificationChannel.WhatsApp));
+    notes.push(
+      getProjectSwitchNote(ComplianceNotificationChannel.WhatsApp, translator),
+    );
   }
 
   return notes;
@@ -324,10 +374,25 @@ export interface RulePreviewText {
  * a scoped rule reads "for the 2 severities you selected" - still exactly what
  * will be checked, without a second fetch just to spell the names.
  */
+const THE_SEVERITY_YOU_SELECTED: string = translationKey(
+  "the severity you selected",
+);
+
+const THE_SEVERITIES_YOU_SELECTED: PluralTemplate = {
+  one: "the {{count}} severities you selected",
+  other: "the {{count}} severities you selected",
+};
+
+const SAVED_PAUSED_NOTE: string = translationKey(
+  "This rule is saved paused: it is listed but nobody is checked against it until you turn it on.",
+);
+
 export const getRulePreviewText: (
   values: FormValues<TeamComplianceSetting>,
+  translator?: Translator,
 ) => RulePreviewText | null = (
   values: FormValues<TeamComplianceSetting>,
+  translator: Translator = ENGLISH,
 ): RulePreviewText | null => {
   const ruleType: string | undefined = getRuleType(values);
 
@@ -353,13 +418,22 @@ export const getRulePreviewText: (
     selectedCount = countSelected(values.alertSeverities);
   }
 
-  const severityNames: Array<string> =
+  /*
+   * One severity is "the severity you selected", never a count's "one"
+   * form (Russian reads 21 by it); more are a count, in its language's form.
+   */
+  const severityNames: Array<TemplateValue> =
     selectedCount === 0
       ? []
       : [
           selectedCount === 1
-            ? "the severity you selected"
-            : `the ${selectedCount} severities you selected`,
+            ? translatableTerm(THE_SEVERITY_YOU_SELECTED)
+            : composedValue((sentence: Translator): string => {
+                return sentence.translatePlural(
+                  THE_SEVERITIES_YOU_SELECTED,
+                  selectedCount,
+                );
+              }),
         ];
 
   const definition: ComplianceRuleDefinition | undefined =
@@ -368,24 +442,31 @@ export const getRulePreviewText: (
   // The rule's channels, or the one a method rule is about.
   const notes: Array<string> = getProjectSwitchNotes(
     definition?.methodChannel ? [definition.methodChannel] : channels,
+    translator,
   );
 
   if (values.enabled === false) {
     notes.push(
-      "This rule is saved paused: it is listed but nobody is checked against it until you turn it on.",
+      translator.translateText(SAVED_PAUSED_NOTE) || SAVED_PAUSED_NOTE,
     );
   }
 
   return {
-    title: ComplianceRule.getTitle({
-      ruleType: ruleType,
-      notificationChannels: channels,
-    }),
-    sentence: ComplianceRule.describe({
-      ruleType: ruleType,
-      notificationChannels: channels,
-      severityNames: severityNames,
-    }),
+    title: ComplianceRule.getTitle(
+      {
+        ruleType: ruleType,
+        notificationChannels: channels,
+      },
+      translator,
+    ),
+    sentence: ComplianceRule.describe(
+      {
+        ruleType: ruleType,
+        notificationChannels: channels,
+        severityNames: severityNames,
+      },
+      translator,
+    ),
     notes: notes,
   };
 };
@@ -393,7 +474,11 @@ export const getRulePreviewText: (
 export const ComplianceRulePreview: FunctionComponent<{
   values: FormValues<TeamComplianceSetting>;
 }> = (props: { values: FormValues<TeamComplianceSetting> }): ReactElement => {
-  const preview: RulePreviewText | null = getRulePreviewText(props.values);
+  const translator: Translator = useTranslator();
+  const preview: RulePreviewText | null = getRulePreviewText(
+    props.values,
+    translator,
+  );
 
   if (!preview) {
     return <></>;
@@ -406,7 +491,7 @@ export const ComplianceRulePreview: FunctionComponent<{
       className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4"
     >
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        Members pass this rule when
+        {translator.translateText("Members pass this rule when")}
       </p>
       <p
         data-testid="compliance-rule-preview-title"

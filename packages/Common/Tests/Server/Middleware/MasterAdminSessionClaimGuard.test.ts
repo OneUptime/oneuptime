@@ -20,7 +20,10 @@ import ts from "typescript";
  *   - a session's token (JsonWebTokenPurpose.UserSession) is decoded only in
  *     readRequestSession, apart from reads that take nothing from it but
  *     whose session it is (`.userId`: ProjectAPI's records of who extended a
- *     trial or adjusted a balance, behind the master-admin gate);
+ *     trial or adjusted a balance, behind the master-admin gate), and the
+ *     sign-out's, which ends the session the token names and takes whose
+ *     session and which - `{ userId, sessionId }`, destructured where it is
+ *     decoded, in POST /logout alone (SESSION_ENDERS);
  *   - readRequestSession asks UserService.isUserMasterAdmin, and does so
  *     before it answers with a user's session;
  *   - the master-admin gates and the Admin Dashboard's page read the session
@@ -61,6 +64,27 @@ const USER_ID_ONLY_READERS: Array<string> = [
   "packages/Common/Server/API/ProjectAPI.ts",
 ];
 
+/*
+ * The places that decode a session's token to END that session, by route,
+ * and what they take from it: whose session it is and which, destructured
+ * where it is decoded - so nothing else of the session is kept under a
+ * name, passed on or read later - and no claim that grants anything, the
+ * master admin claim above all. Ending a session gives its holder nothing.
+ */
+const SESSION_ENDERS: Array<{
+  file: string;
+  route: string;
+  claims: Array<string>;
+  why: string;
+}> = [
+  {
+    file: "packages/App/FeatureSet/Identity/API/Authentication.ts",
+    route: "post /logout",
+    claims: ["sessionId", "userId"],
+    why: "a sign-out ends the session the request's own access token names, expired or not, when its refresh token matches none: a renewal whose answer was lost rotated it (issue #8592)",
+  },
+];
+
 // What decides whether a session is a master admin's, and must read the session through the one reader.
 const MASTER_ADMIN_GATES: Array<FunctionAt> = [
   {
@@ -86,6 +110,14 @@ interface CallAt {
   purpose: string | null;
   // The claims read off the result through the name it is kept under, or destructured from it.
   claimsRead: Array<string>;
+  /*
+   * The claims the result is destructured into where it is decoded
+   * (`const { a, b } = decode(...)`), "..." for a rest element - or null
+   * when it is not destructured there.
+   */
+  destructured: Array<string> | null;
+  // The route it is in, `<method> <path>` of the router call around it, or null.
+  route: string | null;
 }
 
 function sourceOf(relativePath: string): ts.SourceFile {
@@ -281,6 +313,95 @@ function enclosingScope(node: ts.Node): ts.Node {
   return node;
 }
 
+/*
+ * The claims a call's value is destructured into where it is decoded
+ * (`const { a, b: c } = decode(...)` is ["a", "b"]), with "..." for a rest
+ * element, which keeps the rest of the value - or null when the value is
+ * not destructured there.
+ */
+function destructuredClaims(node: ts.Node): Array<string> | null {
+  const used: ts.Node = outermost(node);
+  const holder: ts.Node | undefined = used.parent;
+
+  if (
+    !holder ||
+    !ts.isVariableDeclaration(holder) ||
+    holder.initializer !== used ||
+    !ts.isObjectBindingPattern(holder.name)
+  ) {
+    return null;
+  }
+
+  return holder.name.elements.map((element: ts.BindingElement): string => {
+    if (element.dotDotDotToken) {
+      return "...";
+    }
+
+    const key: ts.Node = element.propertyName || element.name;
+
+    return ts.isIdentifier(key) || ts.isStringLiteral(key)
+      ? key.text
+      : key.getText();
+  });
+}
+
+/*
+ * The route a node is in: `<method> <path>` of the nearest
+ * `router.<method>("<path>", ...)` around it, or null.
+ */
+function enclosingRoute(node: ts.Node): string | null {
+  let current: ts.Node | undefined = node.parent;
+
+  while (current) {
+    if (
+      ts.isCallExpression(current) &&
+      ts.isPropertyAccessExpression(current.expression) &&
+      ts.isIdentifier(current.expression.expression) &&
+      current.expression.expression.text === "router" &&
+      current.arguments[0] &&
+      ts.isStringLiteralLike(current.arguments[0])
+    ) {
+      return `${current.expression.name.text} ${current.arguments[0].text}`;
+    }
+
+    current = current.parent;
+  }
+
+  return null;
+}
+
+// Every `JSONWebToken.<method>(...)` in one file's code, and how its value is used.
+function decodeCallsIn(
+  file: string,
+  source: ts.SourceFile,
+  method: string,
+): Array<CallAt> {
+  const calls: Array<CallAt> = [];
+
+  visit(source, (node: ts.Node): void => {
+    if (!isJsonWebTokenCall(node, method)) {
+      return;
+    }
+
+    const call: ts.CallExpression = node as ts.CallExpression;
+    const purposeArgument: ts.Expression | undefined = call.arguments[1];
+
+    calls.push({
+      file: file,
+      line:
+        source.getLineAndCharacterOfPosition(call.getStart(source)).line + 1,
+      within: enclosingFunctionName(call),
+      readOff: propertyReadOff(call),
+      purpose: purposeArgument ? purposeArgument.getText(source) : null,
+      claimsRead: claimsReadThroughName(call, enclosingScope(call)),
+      destructured: destructuredClaims(call),
+      route: enclosingRoute(call),
+    });
+  });
+
+  return calls;
+}
+
 function decodeCalls(method: string): Array<CallAt> {
   const calls: Array<CallAt> = [];
 
@@ -301,29 +422,56 @@ function decodeCalls(method: string): Array<CallAt> {
       continue;
     }
 
-    const source: ts.SourceFile = sourceOf(file);
-
-    visit(source, (node: ts.Node): void => {
-      if (!isJsonWebTokenCall(node, method)) {
-        return;
-      }
-
-      const call: ts.CallExpression = node as ts.CallExpression;
-      const purposeArgument: ts.Expression | undefined = call.arguments[1];
-
-      calls.push({
-        file: file,
-        line:
-          source.getLineAndCharacterOfPosition(call.getStart(source)).line + 1,
-        within: enclosingFunctionName(call),
-        readOff: propertyReadOff(call),
-        purpose: purposeArgument ? purposeArgument.getText(source) : null,
-        claimsRead: claimsReadThroughName(call, enclosingScope(call)),
-      });
-    });
+    calls.push(...decodeCallsIn(file, sourceOf(file), method));
   }
 
   return calls;
+}
+
+/*
+ * Whether a decode of a session's token may take what it takes: in
+ * readRequestSession, which holds the master admin claim to the account;
+ * for its userId alone, in a file listed for that; or, in a route listed
+ * as ending the session, destructured into exactly the claims listed.
+ */
+function isAllowedSessionDecode(call: CallAt): boolean {
+  if (
+    call.file === SESSION_READER.file &&
+    call.within === SESSION_READER.name
+  ) {
+    return true;
+  }
+
+  if (USER_ID_ONLY_READERS.includes(call.file) && call.readOff === "userId") {
+    return true;
+  }
+
+  return SESSION_ENDERS.some(
+    (ender: {
+      file: string;
+      route: string;
+      claims: Array<string>;
+    }): boolean => {
+      return (
+        call.file === ender.file &&
+        call.route === ender.route &&
+        call.destructured !== null &&
+        [...call.destructured].sort().join(",") ===
+          [...ender.claims].sort().join(",")
+      );
+    },
+  );
+}
+
+// A file's code, as the scan reads it, for the checks on the guard itself.
+function sourceFromText(file: string, text: string): ts.SourceFile {
+  return ts.createSourceFile(
+    path.basename(file),
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
 }
 
 // The body of a function or method, by name, as code (no comments).
@@ -382,25 +530,41 @@ describe("a session's master admin claim counts only through readRequestSession"
     ).toBe(true);
   });
 
-  test("a session's token is decoded only by readRequestSession, or for its userId alone", () => {
+  test("a session's token is decoded only by readRequestSession, for its userId alone, or to end the session it names", () => {
     const elsewhere: Array<string> = sessionDecodes
       .filter((call: CallAt): boolean => {
-        if (
-          call.file === SESSION_READER.file &&
-          call.within === SESSION_READER.name
-        ) {
-          return false;
-        }
-
-        return !(
-          USER_ID_ONLY_READERS.includes(call.file) && call.readOff === "userId"
-        );
+        return !isAllowedSessionDecode(call);
       })
       .map((call: CallAt): string => {
-        return `${call.file}:${call.line} (in ${call.within || "the file"}, reads ${call.readOff || "the whole session"})`;
+        const reads: string = call.destructured
+          ? `{ ${call.destructured.join(", ")} }`
+          : call.readOff || "the whole session";
+
+        return `${call.file}:${call.line} (in ${call.route || call.within || "the file"}, reads ${reads})`;
       });
 
     expect(elsewhere).toEqual([]);
+  });
+
+  test("every route listed as ending a session still decodes one, and takes exactly what is listed", () => {
+    for (const ender of SESSION_ENDERS) {
+      const calls: Array<CallAt> = sessionDecodes.filter(
+        (call: CallAt): boolean => {
+          return call.file === ender.file && call.route === ender.route;
+        },
+      );
+
+      expect({ ender: ender.route, reads: calls.length }).toEqual({
+        ender: ender.route,
+        reads: 1,
+      });
+      expect({
+        ender: ender.route,
+        takes: [...(calls[0]!.destructured || [])].sort(),
+      }).toEqual({ ender: ender.route, takes: [...ender.claims].sort() });
+      expect(ender.claims).not.toContain("isMasterAdmin");
+      expect(ender.why.length).toBeGreaterThan(20);
+    }
   });
 
   test("every place listed as reading only the userId still does", () => {
@@ -499,5 +663,148 @@ describe("a session's master admin claim counts only through readRequestSession"
       });
 
     expect(readingTheClaim).toEqual([]);
+  });
+});
+
+/*
+ * The allowance for ending a session is that one read and nothing like it
+ * (issue #8673): the guard, run on code written here, takes the read
+ * POST /logout makes and refuses every way of taking more from the token,
+ * keeping it whole, or doing the same anywhere else.
+ */
+describe("the guard allows ending a session by exactly the read listed, and nothing more", () => {
+  const ENDER: { file: string; route: string } = SESSION_ENDERS[0]!;
+
+  const LISTED_READ: string =
+    "const { userId, sessionId }: JSONWebTokenData = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true });";
+
+  interface WrittenRead {
+    file?: string;
+    // `<method> <path>` of the route it is in; null for a plain function.
+    route?: string | null;
+    read: string;
+  }
+
+  // The session decodes of a file of this code: `read`, in its route.
+  function sessionDecodesOf(written: WrittenRead): Array<CallAt> {
+    const route: string | null =
+      written.route === undefined ? ENDER.route : written.route;
+    const [method, routePath] = (route || " ").split(" ");
+    const code: string =
+      route === null
+        ? `async function endSession(token: string): Promise<void> {\n  ${written.read}\n}\n`
+        : `router.${method}("${routePath}", async (req, res) => {\n  ${written.read}\n});\n`;
+    const file: string = written.file || ENDER.file;
+
+    return decodeCallsIn(file, sourceFromText(file, code), "decode").filter(
+      (call: CallAt): boolean => {
+        return call.purpose === "JsonWebTokenPurpose.UserSession";
+      },
+    );
+  }
+
+  function isAllowed(written: WrittenRead): boolean {
+    const calls: Array<CallAt> = sessionDecodesOf(written);
+
+    expect(calls).toHaveLength(1);
+
+    return isAllowedSessionDecode(calls[0]!);
+  }
+
+  test("the read POST /logout makes is allowed, and is the read it makes", () => {
+    expect(isAllowed({ read: LISTED_READ })).toBe(true);
+
+    const actual: Array<CallAt> = sessionDecodes.filter(
+      (call: CallAt): boolean => {
+        return call.file === ENDER.file && call.route === ENDER.route;
+      },
+    );
+
+    expect(actual).toHaveLength(1);
+    expect([...(actual[0]!.destructured || [])].sort()).toEqual([
+      "sessionId",
+      "userId",
+    ]);
+  });
+
+  test.each([
+    {
+      name: "the whole session, kept under a name",
+      read: "const session: JSONWebTokenData = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true }); end(session.userId, session.sessionId);",
+    },
+    {
+      name: "the master admin claim besides",
+      read: "const { userId, sessionId, isMasterAdmin } = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true });",
+    },
+    {
+      name: "the rest of the session, kept",
+      read: "const { userId, sessionId, ...rest } = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true });",
+    },
+    {
+      name: "the master admin claim, renamed as the user",
+      read: "const { isMasterAdmin: userId, sessionId } = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true });",
+    },
+    {
+      name: "another claim in place of one listed",
+      read: "const { userId, email } = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true });",
+    },
+    {
+      name: "fewer claims than listed",
+      read: "const { userId } = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true });",
+    },
+    {
+      name: "the master admin claim, read off the call",
+      read: "const isAdmin: boolean = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession).isMasterAdmin;",
+    },
+    {
+      name: "the session, handed on",
+      read: "await act(JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true }));",
+    },
+    {
+      name: "the listed claims, assigned to names declared before",
+      read: "({ userId, sessionId } = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, { acceptExpired: true }));",
+    },
+  ])("refused, in the listed route: $name", ({ read }: { read: string }) => {
+    expect(isAllowed({ read })).toBe(false);
+  });
+
+  test.each([
+    { name: "another route of the same file", route: "post /refresh-token" },
+    { name: "the same path, by another method", route: "get /logout" },
+    { name: "no route at all", route: null },
+  ])(
+    "refused, the listed read itself: $name",
+    ({ route }: { route: string | null }) => {
+      expect(isAllowed({ read: LISTED_READ, route })).toBe(false);
+    },
+  );
+
+  test("refused, the listed read itself in another file", () => {
+    for (const file of [
+      "packages/Common/Server/API/ProjectAPI.ts",
+      "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts",
+      "packages/Common/Server/Middleware/UserAuthorization.ts",
+    ]) {
+      expect({ file, allowed: isAllowed({ file, read: LISTED_READ }) }).toEqual(
+        { file, allowed: false },
+      );
+    }
+  });
+
+  test("the reads allowed before are allowed as before, and only they", () => {
+    expect(
+      isAllowed({
+        file: "packages/Common/Server/API/ProjectAPI.ts",
+        route: "post /extend-trial",
+        read: "const userId: ObjectID = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession).userId;",
+      }),
+    ).toBe(true);
+    expect(
+      isAllowed({
+        file: "packages/Common/Server/API/ProjectAPI.ts",
+        route: "post /extend-trial",
+        read: "const admin: boolean = JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession).isMasterAdmin;",
+      }),
+    ).toBe(false);
   });
 });

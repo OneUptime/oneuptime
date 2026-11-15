@@ -1,6 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import EmptyFigure, {
+  isEmptyFigure,
+} from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
   getUserFlowPageText,
@@ -60,7 +63,11 @@ export interface ComponentProps {
 
 function Tile(props: {
   label: string;
-  value: string;
+  /*
+   * The figure. One the flows do not have - no session landed on a page -
+   * is no value: the tile draws the figure's quiet dash (#8264).
+   */
+  value?: string | undefined;
   hint: string;
   icon: IconProp;
   testId: string;
@@ -74,13 +81,14 @@ function Tile(props: {
 }): ReactElement {
   const translator: Translator = useTranslator();
   const label: string = translator.translateText(props.label) || props.label;
-  const value: string = props.isPage
-    ? getUserFlowPageText(props.value)
-    : props.value;
+  const isEmpty: boolean = isEmptyFigure(props.value);
+  const given: string = props.value || "";
+  const value: string = props.isPage ? getUserFlowPageText(given) : given;
   /* A page's path reads from the left on any page: "/checkout". */
-  const valueDirection: ReadingDirection | undefined = props.isPage
-    ? getUserFlowPathLineDirection(props.value, translator.language)
-    : undefined;
+  const valueDirection: ReadingDirection | undefined =
+    props.isPage && !isEmpty
+      ? getUserFlowPathLineDirection(given, translator.language)
+      : undefined;
 
   /*
    * The label and the hint wrap to a second line rather than being cut:
@@ -114,11 +122,17 @@ function Tile(props: {
             : "mt-1 truncate text-2xl font-semibold text-gray-900"
         } ${valueDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""}`}
         dir={valueDirection}
-        title={value}
+        title={isEmpty ? undefined : value}
         data-testid={`${props.testId}-value`}
-        data-value={props.value}
+        data-value={isEmpty ? undefined : props.value}
       >
-        {props.isPage ? truncateUserFlowLabel(value, 22) : value}
+        {isEmpty ? (
+          <EmptyFigure />
+        ) : props.isPage ? (
+          truncateUserFlowLabel(value, 22)
+        ) : (
+          value
+        )}
       </p>
       <p
         className={USER_FLOW_TILE_HINT_CLASS_NAME}
@@ -204,7 +218,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
         />
         <Tile
           label="Top landing page"
-          value={summary.topEntryPage?.page || "—"}
+          value={summary.topEntryPage?.page}
           hint={
             summary.topEntryPage
               ? translator.translateTemplate(
@@ -227,7 +241,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
         />
         <Tile
           label="Top exit page"
-          value={summary.topExitPage?.page || "—"}
+          value={summary.topExitPage?.page}
           hint={
             summary.topExitPage
               ? translator.translateTemplate("{{share}} of sessions end here", {

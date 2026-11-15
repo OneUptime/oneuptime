@@ -13,7 +13,7 @@ Esta integração é de **entrada**: o Huntress envia cada evento de um relatór
 
 ## Como funciona
 
-O Huntress envia um evento sobre um relatório de incidente quando o relatório é enviado, quando alguém o comenta e quando ele é fechado. O gatilho **Huntress Incident Report** inicia o workflow uma vez para cada evento, e o seu **Evento** diz qual foi: `created`, `comment-added` ou `closed`.
+O Huntress envia um evento sobre um relatório de incidente quando o relatório é enviado, quando alguém o comenta e quando ele é fechado. O gatilho **Relatório de incidente do Huntress** inicia o workflow uma vez para cada evento, e o seu **Evento** diz qual foi: `created`, `comment-added` ou `closed`.
 
 ```mermaid title="Um relatório de incidente do Huntress em um workflow"
 sequenceDiagram
@@ -55,11 +55,11 @@ Abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Em **Ou com
 
 ### Escolher quem acionar
 
-Em seguida, a caixa de diálogo pergunta quem acionar: em **Who to page for high and critical reports**, escolha as políticas de plantão a acionar, ou nenhuma para não acionar ninguém, e clique em **Criar fluxo de trabalho**. O workflow abre no **Construtor**, desativado. Para mudar depois quem ele aciona, clique na etapa **Page an On-Call Policy** dele e mude as **Políticas de plantão**.
+Em seguida, a caixa de diálogo pergunta quem acionar: em **Who to page for high and critical reports**, escolha as políticas de plantão a acionar, ou nenhuma para não acionar ninguém, e clique em **Criar fluxo de trabalho**. O workflow abre no **Construtor**, desativado. Para mudar depois quem ele aciona, clique na etapa **Acionar uma política de plantão** dele e mude as **Políticas de plantão**.
 
 ### Adicionar um endpoint de webhook no Huntress
 
-Clique no gatilho **Huntress Incident Report** e, em **Adicionar um endpoint de webhook no Huntress**, clique em **Copiar URL**. A URL tem a forma `https://oneuptime.com/workflow/huntress/<key>`; em uma instalação auto-hospedada, ela começa com o seu próprio host.
+Clique no gatilho **Relatório de incidente do Huntress** e, em **Adicionar um endpoint de webhook no Huntress**, clique em **Copiar URL**. A URL tem a forma `https://oneuptime.com/workflow/huntress/<key>`; em uma instalação auto-hospedada, ela começa com o seu próprio host.
 
 No Huntress, abra o menu no canto superior direito e escolha **Integrations**. Clique em **Add an Integration**, escolha **Webhooks** e clique em **Add Endpoint**. Cole a URL, ative **Incident Reports** e salve. Deixe **Escalations**, **Platform Actions** e **Account Notices** desativados: o gatilho aceita esses eventos e não inicia nada por eles.
 
@@ -79,15 +79,15 @@ Ative **Habilitado** no alto do **Construtor**. No Huntress, abra o menu do endp
 
 ## O que o workflow faz
 
-Depois do gatilho, **Incident From Another Tool** faz o que cada **Evento** pede, pelo número do relatório:
+Depois do gatilho, **Incidente de outra ferramenta** faz o que cada **Evento** pede, pelo número do relatório:
 
 | Event | O que o workflow faz |
 | --- | --- |
-| `created` | Abre um incidente com a **ID da gravidade do incidente** do gatilho, com o rótulo da sua **Organization Label ID**. Para um relatório alto ou crítico, **Page an On-Call Policy** aciona a sua política; um relatório baixo não aciona ninguém. Um relatório que já tem um incidente não abre outro. |
+| `created` | Abre um incidente com a **ID da gravidade do incidente** do gatilho, com o rótulo da sua **ID da etiqueta da organização**. Para um relatório alto ou crítico, **Acionar uma política de plantão** aciona a sua política; um relatório baixo não aciona ninguém. Um relatório que já tem um incidente não abre outro. |
 | `comment-added` | Encontra o incidente do relatório e adiciona o comentário a ele como nota privada. |
 | `closed` | Encontra o incidente do relatório e o resolve, a menos que ele já esteja resolvido. O motivo fica na sua linha do tempo: o Huntress fechou o relatório. |
 
-É um workflow como qualquer outro, então você pode mudar o que ele faz: acionar só para relatórios críticos mudando o que o **If / Else** depois de **Incident From Another Tool** compara, publicar cada relatório em um canal de chat com uma etapa do Slack ou do Microsoft Teams, ou mandar cada organização para a própria política de plantão com um **Switch / Case** sobre **Organização**. Cada execução aparece nas execuções do workflow, com o que cada etapa fez.
+É um workflow como qualquer outro, então você pode mudar o que ele faz: acionar só para relatórios críticos mudando o que o **Se / Senão** depois de **Incidente de outra ferramenta** compara, publicar cada relatório em um canal de chat com uma etapa do Slack ou do Microsoft Teams, ou mandar cada organização para a própria política de plantão com um **Escolha / Caso** sobre **Organização**. Cada execução aparece nas execuções do workflow, com o que cada etapa fez.
 
 ### Severidades
 
@@ -103,7 +103,7 @@ Um projeto com menos severidades usa a mais baixa para o restante. Um relatório
 
 ### Organizações
 
-A **Organization Label ID** do gatilho é um rótulo com o nome da organização do Huntress do relatório, como _Acme Corp_, que ele cria na primeira vez que chega um relatório dessa organização. Um workflow recebe os relatórios de todas as organizações da sua conta do Huntress, e **Somente estas organizações** do gatilho restringe isso: um nome ou ID de organização por linha, com os nomes ignorando maiúsculas e minúsculas.
+A **ID da etiqueta da organização** do gatilho é um rótulo com o nome da organização do Huntress do relatório, como _Acme Corp_, que ele cria na primeira vez que chega um relatório dessa organização. Um workflow recebe os relatórios de todas as organizações da sua conta do Huntress, e **Somente estas organizações** do gatilho restringe isso: um nome ou ID de organização por linha, com os nomes ignorando maiúsculas e minúsculas.
 
 > [!TIP]
 > Para acionar a equipe de cada cliente, adicione uma regra de plantão de incidentes por organização, como "Se **Rótulos de incidentes** tem algum de _Acme Corp_", que execute a política desse cliente. Veja [Regras de plantão de incidente](/docs/incidents/settings#regras-de-plantão-de-incidente).
@@ -115,7 +115,7 @@ O gatilho abre no Huntress: a sua URL, uma marca ao lado de cada etapa de config
 | Valor | O que contém |
 | --- | --- |
 | **Evento** | `created`, `comment-added` ou `closed`. Um relatório já fechado ou descartado é `closed`, seja qual for o evento que o trouxe. |
-| **Report ID** | O número do relatório no Huntress. |
+| **ID do relatório** | O número do relatório no Huntress. |
 | **Gravidade** | `critical`, `high` ou `low`. |
 | **Status** | O status do relatório no Huntress, como `sent`, `closed` ou `dismissed`. |
 | **Assunto** | O assunto do relatório, como o Huntress o escreve. |
@@ -124,15 +124,15 @@ O gatilho abre no Huntress: a sua URL, uma marca ao lado de cada etapa de config
 | **Afetado** | O host ou a identidade de que o relatório trata. |
 | **Plataforma**, **Indicadores** | Onde o Huntress o encontrou, e o que encontrou. |
 | **Comentário** | O comentário que alguém adicionou, com `comment-added`. |
-| **Report URL** | Onde o relatório abre no Huntress. |
+| **URL do relatório** | Onde o relatório abre no Huntress. |
 | **Título do Incidente**, **Descrição do incidente** | Um título e uma descrição em Markdown para um incidente sobre o relatório. |
 | **Nota** | Markdown para uma nota sobre o evento: o comentário, ou que o Huntress fechou o relatório. |
-| **ID da gravidade do incidente**, **Organization Label ID** | A severidade de incidente e o rótulo, como acima. |
-| **Received At** | Quando o OneUptime recebeu o evento. |
+| **ID da gravidade do incidente**, **ID da etiqueta da organização** | A severidade de incidente e o rótulo, como acima. |
+| **Recebido em** | Quando o OneUptime recebeu o evento. |
 
 **Resumo** e **Comentário** são textos que os analistas do Huntress escreveram. Para colocá-los em um incidente ou em uma nota, use **Descrição do incidente** e **Nota**: eles mantêm a formatação, e nada neles carrega uma imagem ou menciona alguém.
 
-Para testar o workflow sem o Huntress, clique em **Executar fluxo de trabalho** no **Construtor** e digite um **Evento**, um **Report ID** e os campos de que precisar. Use o mesmo **Report ID** para acompanhar um relatório de `created` até `closed`.
+Para testar o workflow sem o Huntress, clique em **Executar fluxo de trabalho** no **Construtor** e digite um **Evento**, um **ID do relatório** e os campos de que precisar. Use o mesmo **ID do relatório** para acompanhar um relatório de `created` até `closed`.
 
 ## Conexões do Huntress criadas antes
 
@@ -170,15 +170,15 @@ Ative **Habilitado** no alto do **Construtor**. O Huntress reenvia a solicitaç�
 :::
 
 :::details "No Huntress workflow has this address."
-O workflow foi excluído ou arquivado, o gatilho dele não é mais **Huntress Incident Report**, ou a URL do endpoint no Huntress não é a do workflow. Copie a URL do gatilho e cole-a de novo no endpoint no Huntress.
+O workflow foi excluído ou arquivado, o gatilho dele não é mais **Relatório de incidente do Huntress**, ou a URL do endpoint no Huntress não é a do workflow. Copie a URL do gatilho e cole-a de novo no endpoint no Huntress.
 :::
 
 :::details Nenhum incidente foi aberto
-Abra as execuções do workflow e a execução do relatório. Se **Incident From Another Tool** falhou com `This project has no incident severities to put the incident at.`, adicione uma em **Incidentes → Configurações → Severidade do incidente**.
+Abra as execuções do workflow e a execução do relatório. Se **Incidente de outra ferramenta** falhou com `This project has no incident severities to put the incident at.`, adicione uma em **Incidentes → Configurações → Severidade do incidente**.
 :::
 
 :::details Ninguém foi acionado
-Um relatório baixo abre um incidente sem acionar ninguém. Caso contrário, a execução do relatório diz o que **Page an On-Call Policy** fez, e a página **Execuções de plantão** do incidente mostra o que cada política fez.
+Um relatório baixo abre um incidente sem acionar ninguém. Caso contrário, a execução do relatório diz o que **Acionar uma política de plantão** fez, e a página **Execuções de plantão** do incidente mostra o que cada política fez.
 :::
 
 ## Próximos passos

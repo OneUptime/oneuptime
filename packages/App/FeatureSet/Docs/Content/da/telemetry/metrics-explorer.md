@@ -41,7 +41,7 @@ Udforskeren har seks faner:
 
 ## Find en metrik
 
-Gå til **Produkter → Observabilitet → Målinger**. **Seer** viser hver metrik, dit projekt har modtaget, efter navn, hver med et lille diagram over tidsintervallet og sin seneste værdi.
+Gå til **Produkter → Observabilitet → Metrikker**. **Seer** viser hver metrik, dit projekt har modtaget, efter navn, hver med et lille diagram over tidsintervallet og sin seneste værdi.
 
 - Søg i navne med løse ord eller `name:`, for eksempel finder `name:http.server` metrikken `http.server.request.duration`. Se [Søgesyntaks](/docs/telemetry/search-syntax#metrikker).
 - Filtrér efter **Tjeneste** i sidepanelet for kun at se de metrikker, én tjeneste rapporterer. Klik på minustegnet ved siden af en tjeneste for i stedet at skjule de metrikker, den rapporterer.
@@ -56,11 +56,11 @@ Klik på metrikken i **Seer**. Udforskeren åbner med én forespørgsel, `a`, fo
 
 ### Vælg, hvordan den aggregeres
 
-Under **Aggregate by** vælger du, hvordan værdierne i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en percentil, P50, P75, P90, P95 eller P99. En percentil af en histogrammetrik, såsom en forespørgsels varighed, beregnes ud fra dens buckets.
+Under **Aggreger efter** vælger du, hvordan værdierne i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en percentil, P50, P75, P90, P95 eller P99. En percentil af en histogrammetrik, såsom en forespørgsels varighed, beregnes ud fra dens buckets.
 
 ### Filtrér og gruppér den
 
-Åbn **Filters & grouping**. **Filter by attributes** beholder de datapunkter, hvis attributter passer, såsom én bestemt `http.route`, og **Gruppér efter** tegner én linje pr. værdi af de attributter, du vælger, såsom én linje pr. vært.
+Åbn **Filtre og gruppering**. **Filtrer efter attributter** beholder de datapunkter, hvis attributter passer, såsom én bestemt `http.route`, og **Gruppér efter** tegner én linje pr. værdi af de attributter, du vælger, såsom én linje pr. vært.
 
 ### Tilpas diagrammet
 
@@ -128,7 +128,7 @@ Et fund gemmer aldrig en attributs værdier: kun attributtens navn, hvor mange v
 
 ### Slå det til
 
-**Målinger → AI → Indstillinger** rummer kontakten **Forbedr metrikker og tilføj de manglende**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes problemer i dine metrikker stadig, men OneUptime AI gør intet med dem. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
+**Metrikker → AI → Indstillinger** rummer kontakten **Forbedr metrikker og tilføj de manglende**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes problemer i dine metrikker stadig, men OneUptime AI gør intet med dem. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
 
 OneUptime AI åbner selv højst 5 pull requests om dagen (UTC), én for hvert fund, og aldrig flere end et repositorys grænse for åbne AI-pull requests.
 
@@ -146,8 +146,8 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 
 ### Se, hvad den gjorde
 
-- **Målinger → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
-- **Målinger → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
+- **Metrikker → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
+- **Metrikker → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ### Registrer anmodningsmetrikker uden at ændre kode
@@ -177,7 +177,7 @@ Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefte
 
 ## Hvad der sker med metrikker, når de ankommer
 
-**Målinger → Indstillinger → Pipelineregler** ændrer metrikker, når de ankommer, før de gemmes. Reglerne kører i listens rækkefølge, som du ændrer ved at trække; en regel for én tjeneste kører før reglerne for alle tjenester.
+**Metrikker → Indstillinger → Pipelineregler** ændrer metrikker, når de ankommer, før de gemmes. Reglerne kører i listens rækkefølge, som du ændrer ved at trække; en regel for én tjeneste kører før reglerne for alle tjenester.
 
 | Regeltype | Hvad den gør |
 | --- | --- |
@@ -190,7 +190,7 @@ Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefte
 | Redigér attribut bort | Erstatter en attributs værdi med en pladsholder. |
 | Stikprøve | Beholder en procentdel af de datapunkter, der passer. |
 
-**Målinger → Indstillinger → Optagelsesregler** beregner hvert minut nye metrikker ud fra andre metrikker. Se [Optagelsesregler for logs](/docs/telemetry/log-recording-rules) om, hvordan optagelsesregler virker.
+**Metrikker → Indstillinger → Optagelsesregler** beregner hvert minut nye metrikker ud fra andre metrikker. Se [Optagelsesregler for logs](/docs/telemetry/log-recording-rules) om, hvordan optagelsesregler virker.
 
 ## Fejlfinding
 

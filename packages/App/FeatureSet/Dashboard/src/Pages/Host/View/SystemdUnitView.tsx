@@ -5,6 +5,7 @@ import Host from "Common/Models/DatabaseModels/Host";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
@@ -91,7 +92,6 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
-import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
 
 interface UnitIdentity {
   latestSampleAt: Date | null;
@@ -140,7 +140,8 @@ interface StatTileProps {
   title: string;
   icon: IconProp;
   iconColor: keyof typeof colorClasses;
-  value: string | ReactElement;
+  // No reading is no value: the tile draws the figure's quiet dash (#8264).
+  value?: string | ReactElement | null | undefined;
   sublabel?: string | undefined;
   percent?: number | null | undefined;
   barClassName?: string | undefined;
@@ -176,7 +177,7 @@ const StatTile: FunctionComponent<StatTileProps> = (
         </div>
       </div>
       <div className="text-2xl font-semibold text-gray-900 leading-none">
-        {props.value}
+        {getFigure(props.value)}
       </div>
       {props.sublabel ? (
         <div className="mt-1 text-xs text-gray-500">
@@ -661,7 +662,7 @@ const HostSystemdUnitView: FunctionComponent<
           iconColor="blue"
           value={
             availability.percent === null
-              ? "—"
+              ? undefined
               : formatReaderFigure(availability.percent, {
                   decimals: 1,
                   isPercent: true,
@@ -709,9 +710,7 @@ const HostSystemdUnitView: FunctionComponent<
           value={
             unitKind ? (
               <SystemdUnitKind kind={unitKind} isFigure={true} />
-            ) : (
-              EMPTY_VALUE_MARK
-            )
+            ) : undefined
           }
           sublabel="systemd unit type"
         />

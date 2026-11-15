@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DashboardDockerSwarmServiceListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmServiceListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -24,7 +25,9 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerSwarmServiceListComponent;
@@ -95,7 +98,7 @@ function formatReplicas(r: DockerSwarmResource): string {
       ? Number(r.desiredReplicas)
       : null;
   if (running === null && desired === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (desired === null) {
     return `${running ?? 0}`;
@@ -230,7 +233,9 @@ function renderServiceRow(r: DockerSwarmResource): ReactElement {
       <td className="px-3 py-2 text-xs text-gray-500 capitalize">
         {(r.serviceMode as string) || <TableEmptyValue isSmall={true} />}
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500">{formatReplicas(r)}</td>
+      <td className="px-3 py-2 text-xs text-gray-500">
+        {getValueOrQuietDash(formatReplicas(r), { isSmall: true })}
+      </td>
       <td className="px-3 py-2">
         <span
           className="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -244,7 +249,7 @@ function renderServiceRow(r: DockerSwarmResource): ReactElement {
         </span>
       </td>
       <ResourceListNameCell
-        name={(r.image as string) || "—"}
+        name={r.image as string}
         className="px-3 py-2 text-xs text-gray-500 truncate"
       />
     </tr>
@@ -256,7 +261,7 @@ function buildServiceTile(r: DockerSwarmResource): HoneycombTile {
   const name: string = getServiceDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getServiceStatus(r);
-  const clusterName: string = (r.dockerSwarmCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.dockerSwarmCluster?.name as string;
 
   return {
     id: id || name,
@@ -266,9 +271,9 @@ function buildServiceTile(r: DockerSwarmResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "Mode", value: (r.serviceMode as string) || "—" },
+        { label: "Mode", value: r.serviceMode as string },
         { label: "Replicas", value: formatReplicas(r) },
-        { label: "Image", value: (r.image as string) || "—" },
+        { label: "Image", value: r.image as string },
         { label: "Cluster", value: clusterName },
       ],
     },

@@ -15,7 +15,11 @@
 import Dictionary from "../../../../Types/Dictionary";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ObjectID from "../../../../Types/ObjectID";
-import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import type { SometimesBefore, UnavailableStep } from "./StepGraph";
 import {
   ComponentInputType,
@@ -125,7 +129,11 @@ export interface ValueSuggestion {
  */
 export interface ValueSuggestionSentence {
   template: string;
-  values?: Record<string, string> | undefined;
+  /*
+   * A step's name or output as a translatableTerm, so the sentence words it
+   * as the canvas does; a name the person gave, as written.
+   */
+  values?: TemplateValues | undefined;
 }
 
 export enum ValueAvailabilityState {
@@ -248,24 +256,28 @@ export interface ValueSuggestionSource {
  * String" are the input types' names in the code, not words anyone building a
  * workflow uses.
  */
+/*
+ * Each a key the extractor reads (#8361): the value picker and a step's
+ * Returns list look the label up as they draw it.
+ */
 const TYPE_LABELS: Partial<Record<ComponentInputType, string>> = {
-  [ComponentInputType.Text]: "Text",
-  [ComponentInputType.LongText]: "Text",
-  [ComponentInputType.Markdown]: "Text",
-  [ComponentInputType.HTML]: "HTML",
-  [ComponentInputType.Password]: "Text",
-  [ComponentInputType.URL]: "URL",
-  [ComponentInputType.Email]: "Email",
-  [ComponentInputType.Number]: "Number",
-  [ComponentInputType.Decimal]: "Number",
-  [ComponentInputType.Boolean]: "Yes / No",
-  [ComponentInputType.Date]: "Date",
-  [ComponentInputType.DateTime]: "Date",
-  [ComponentInputType.JSON]: "JSON",
-  [ComponentInputType.JSONArray]: "List",
-  [ComponentInputType.StringDictionary]: "Key / value",
-  [ComponentInputType.BaseModel]: "Record",
-  [ComponentInputType.BaseModelArray]: "Records",
+  [ComponentInputType.Text]: translationKey("Text"),
+  [ComponentInputType.LongText]: translationKey("Text"),
+  [ComponentInputType.Markdown]: translationKey("Text"),
+  [ComponentInputType.HTML]: translationKey("HTML"),
+  [ComponentInputType.Password]: translationKey("Text"),
+  [ComponentInputType.URL]: translationKey("URL"),
+  [ComponentInputType.Email]: translationKey("Email"),
+  [ComponentInputType.Number]: translationKey("Number"),
+  [ComponentInputType.Decimal]: translationKey("Number"),
+  [ComponentInputType.Boolean]: translationKey("Yes / No"),
+  [ComponentInputType.Date]: translationKey("Date"),
+  [ComponentInputType.DateTime]: translationKey("Date"),
+  [ComponentInputType.JSON]: translationKey("JSON"),
+  [ComponentInputType.JSONArray]: translationKey("List"),
+  [ComponentInputType.StringDictionary]: translationKey("Key / value"),
+  [ComponentInputType.BaseModel]: translationKey("Record"),
+  [ComponentInputType.BaseModelArray]: translationKey("Records"),
   /*
    * "Any type", not "Any": the Dashboard draws a bare "Any" as a monitor
    * criteria's Match Condition ("any one of the filters"), which some
@@ -273,7 +285,7 @@ const TYPE_LABELS: Partial<Record<ComponentInputType, string>> = {
    * of its own, so the extractor reads it.
    */
   [ComponentInputType.AnyValue]: translationKey("Any type"),
-  [ComponentInputType.JavaScript]: "Code",
+  [ComponentInputType.JavaScript]: translationKey("Code"),
 };
 
 export type TypeLabelForInputTypeFunction = (

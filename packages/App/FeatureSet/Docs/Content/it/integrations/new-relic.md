@@ -43,7 +43,7 @@ Poi [configura New Relic](#configurare-new-relic) perché invii i suoi problemi 
 
 ### Cosa fa il flusso di lavoro
 
-Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge lo `state` che New Relic invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite l'ID del problema. L'incidente conserva l'ID nel suo campo personalizzato `newRelicIssueId`.
+Dopo il trigger **Webhook**, il passo **Verifica con JavaScript** `read-event-1` legge lo `state` che New Relic invia, e **Incidente da un altro strumento**, o **Avviso da un altro strumento** nel modello degli avvisi, fa ciò che significa, tramite l'ID del problema. L'incidente conserva l'ID nel suo campo personalizzato `newRelicIssueId`.
 
 | Cosa invia New Relic | Cosa fa il flusso di lavoro |
 | --- | --- |

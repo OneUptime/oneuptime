@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   SLO_ARCHIVE_CARD_DESCRIPTION,
   SLO_ARCHIVE_CONFIRM_MESSAGE,
@@ -66,8 +68,6 @@ import {
 import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 
-const EM_DASH: string = "—";
-
 /*
  * Each card's dialog is titled like the button that opens it. All three
  * said "Edit Service Level Objective" over the two or three fields of one
@@ -118,7 +118,7 @@ const getValueElement: GetValueElementFunction = (
 ): ReactElement => {
   return (
     <div className="space-y-1">
-      <p className="font-medium text-gray-900">{value}</p>
+      <p className="font-medium text-gray-900">{getValueOrQuietDash(value)}</p>
       {description ? <p className="text-gray-500">{description}</p> : null}
     </div>
   );
@@ -380,7 +380,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         translator,
                         item.latencyThresholdInMilliseconds,
                       )
-                    : EM_DASH,
+                    : EMPTY_VALUE_MARK,
                   translator.translateTemplate(
                     "A request served within this counts as fast enough.",
                   ),
@@ -494,7 +494,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     item.targetPercentage,
                     undefined,
                     translator,
-                  ) || EM_DASH,
+                  ) || EMPTY_VALUE_MARK,
                 );
               },
             },
@@ -517,7 +517,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "{{threshold}} of error budget remaining",
                         { threshold: threshold },
                       )
-                    : EM_DASH,
+                    : EMPTY_VALUE_MARK,
                   translator.translateTemplate(
                     "Below this the SLO turns At Risk.",
                   ),
@@ -540,7 +540,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         sliType: item.sliType,
                       },
                       translator,
-                    ) || EM_DASH,
+                    ) || EMPTY_VALUE_MARK,
                     item.sliType === SliType.Metric
                       ? translator.translateTemplate(
                           "The bad events this objective allows before it is breached.",
@@ -560,7 +560,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       windowDays: item.windowDays,
                     },
                     translator,
-                  ) || EM_DASH,
+                  ) || EMPTY_VALUE_MARK,
                   translator.translateTemplate(
                     "The downtime this objective allows before it is breached.",
                   ),
