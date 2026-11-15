@@ -70,6 +70,7 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
                     name: person.userName,
                     duration: ScheduleTimelineLayout.formatDuration(
                       person.onCallMilliseconds,
+                      translator,
                     ),
                   },
                 )}
@@ -89,6 +90,7 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
                 >
                   {ScheduleTimelineLayout.formatDuration(
                     person.onCallMilliseconds,
+                    translator,
                   )}
                 </span>
                 {person.isOnCallNow && (
