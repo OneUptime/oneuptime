@@ -798,6 +798,84 @@ describe("TableColumnsToCsv", () => {
         "Alpha,jane@example.com",
       ]);
     });
+
+    /*
+     * A page holds a figure to its unit with a no-break space ("480 GiB",
+     * #8457). The file is read by a spreadsheet or a script, which splits a
+     * figure from its unit at a plain space, so the CSV writes that one.
+     */
+    test("a figure held to its unit on the page is written with a plain space", () => {
+      const csv: string = TableColumnsToCsv.convertToCsv({
+        items: [{ name: "compute-1", description: "480 GiB of 1.0 TiB" }],
+        columns: [
+          { title: "Name", type: FieldType.Text, key: "name" },
+          {
+            title: "Memory",
+            type: FieldType.Element,
+            key: "description",
+            getElement: renderCell,
+            getExportValue: (row: Row): string => {
+              return row.description || "";
+            },
+          },
+          { title: "Size", type: FieldType.Text, key: "description" },
+        ],
+      });
+
+      expect(csv.split("\r\n")).toEqual([
+        "Name,Memory,Size",
+        "compute-1,480 GiB of 1.0 TiB,480 GiB of 1.0 TiB",
+      ]);
+      expect(csv).not.toContain(" ");
+    });
+
+    test("a figure in the reader's digits keeps them, with a plain space", () => {
+      const csv: string = TableColumnsToCsv.convertToCsv({
+        items: [
+          { name: "de", description: "1,5 GiB" },
+          { name: "fa", description: "۱٫۵ GiB" },
+          { name: "ar", description: "1.5 GiB" },
+        ],
+        columns: [
+          { title: "Language", type: FieldType.Text, key: "name" },
+          { title: "Size", type: FieldType.Text, key: "description" },
+        ],
+      });
+
+      expect(csv.split("\r\n")).toEqual([
+        "Language,Size",
+        'de,"1,5 GiB"',
+        "fa,۱٫۵ GiB",
+        "ar,1.5 GiB",
+      ]);
+    });
+
+    test("a header held the same way is written with a plain space too", () => {
+      const csv: string = TableColumnsToCsv.convertToCsv({
+        items: [],
+        columns: [
+          { title: "Latency (ms)", type: FieldType.Text, key: "name" },
+          { title: "Taille :", type: FieldType.Text, key: "status" },
+        ],
+      });
+
+      expect(csv).toBe("Latency (ms),Taille :");
+    });
+  });
+
+  describe("withPlainSpaces", () => {
+    test("every no-break space is the plain space it stands for", () => {
+      expect(TableColumnsToCsv.withPlainSpaces("12.5 ms")).toBe("12.5 ms");
+      expect(
+        TableColumnsToCsv.withPlainSpaces("480 GiB of 1.0 TiB"),
+      ).toBe("480 GiB of 1.0 TiB");
+    });
+
+    test("negative control: text with no no-break space is left exactly as written", () => {
+      for (const text of ["", "12.5 ms", "plain", "a\tb", "x y"]) {
+        expect(TableColumnsToCsv.withPlainSpaces(text)).toBe(text);
+      }
+    });
   });
 
   describe("getExportFilename", () => {
