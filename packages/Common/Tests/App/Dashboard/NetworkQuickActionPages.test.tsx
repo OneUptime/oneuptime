@@ -243,6 +243,14 @@ import NetworkDevicesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/N
 import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Navigation from "../../../UI/Utils/Navigation";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/network-device-discovery-import/active"]);
 
 const DEVICES_PATH: string = `/dashboard/${PROJECT_ID}/network-devices`;
 const DISCOVERY_PATH: string = `/dashboard/${PROJECT_ID}/network-devices/discovery`;

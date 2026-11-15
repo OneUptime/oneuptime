@@ -1,5 +1,10 @@
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -100,7 +105,15 @@ export function formatCount(value: number | null | undefined): string {
   return Math.round(value).toString();
 }
 
-export function formatAge(date: Date | undefined | null): string {
+/*
+ * How long ago something started: "12s", "5m", "3h", "2d", "4mo" in
+ * English, the reader's short units and digits in their language ("5
+ * Min.", "۴ ماه"; #8455).
+ */
+export function formatAge(
+  date: Date | undefined | null,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (!date) {
     return "N/A";
   }
@@ -108,21 +121,23 @@ export function formatAge(date: Date | undefined | null): string {
     (Date.now() - new Date(date).getTime()) / 1000,
   );
   if (diffSec < 60) {
-    return `${diffSec}s`;
+    return formatCompactDuration(translator, { seconds: diffSec });
   }
   const diffMin: number = Math.floor(diffSec / 60);
   if (diffMin < 60) {
-    return `${diffMin}m`;
+    return formatCompactDuration(translator, { minutes: diffMin });
   }
   const diffHours: number = Math.floor(diffMin / 60);
   if (diffHours < 24) {
-    return `${diffHours}h`;
+    return formatCompactDuration(translator, { hours: diffHours });
   }
   const diffDays: number = Math.floor(diffHours / 24);
   if (diffDays < 30) {
-    return `${diffDays}d`;
+    return formatCompactDuration(translator, { days: diffDays });
   }
-  return `${Math.floor(diffDays / 30)}mo`;
+  return formatCompactDuration(translator, {
+    months: Math.floor(diffDays / 30),
+  });
 }
 
 /*

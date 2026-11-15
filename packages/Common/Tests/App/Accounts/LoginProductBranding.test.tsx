@@ -18,6 +18,12 @@ import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import ForgotPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 /*
  * The sign-in pages show the product: its logo at the top, and - on the

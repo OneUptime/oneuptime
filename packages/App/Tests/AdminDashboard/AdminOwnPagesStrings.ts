@@ -174,6 +174,37 @@ export function readAdminOwnStrings(
   return { texts, nestedKeys, files: files.length };
 }
 
+/*
+ * What the pages under `directory` draw as written, with no lookup: an
+ * element's own text, a text attribute of a plain HTML element, a sentence
+ * glued from pieces (the extractor's "hardcoded" list). Each reads English
+ * in every language whatever the locales hold (#8555).
+ */
+export function readDrawnAsWritten(
+  directory: string = ADMIN_DASHBOARD_SOURCE,
+): Array<HardcodedString> {
+  const drawn: Array<HardcodedString> = [];
+
+  for (const file of listSourceFiles(directory)) {
+    drawn.push(
+      ...readDrawnAsWrittenIn(
+        path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/"),
+        fs.readFileSync(file, "utf8"),
+      ),
+    );
+  }
+
+  return drawn;
+}
+
+// What one source file draws as written.
+export function readDrawnAsWrittenIn(
+  relativeFile: string,
+  source: string,
+): Array<HardcodedString> {
+  return scanSourceText(relativeFile, source, { kind: "ui" }).hardcoded;
+}
+
 export function readAdminLocale(language: string): LocaleTree {
   return JSON.parse(
     fs.readFileSync(

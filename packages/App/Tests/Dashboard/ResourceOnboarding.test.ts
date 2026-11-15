@@ -764,12 +764,13 @@ describe("resources added with a form", () => {
     ).toBe(6);
     /*
      * The log shippers' files, built from the server's address (#7753), and
-     * Fluentd's host commands (#8007): Fluent Bit's file and Compose file,
-     * Fluentd's file (one call for its host and Compose tabs), its Compose
-     * file and its host commands.
+     * their host commands (Fluentd's #8007, Fluent Bit's #8580): Fluent
+     * Bit's file, Compose file and host commands, Fluentd's file (one call
+     * for its host and Compose tabs), its Compose file and its host
+     * commands.
      */
     expect(guide.split("code={getFluent").length).toBe(1);
-    expect(guide.split("code={withServiceName( getFluent").length).toBe(6);
+    expect(guide.split("code={withServiceName( getFluent").length).toBe(7);
   });
 
   test("a queue's guide opens once it is saved", () => {
