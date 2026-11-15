@@ -54,6 +54,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * App Platforms' Overview, the page the product opens on: how the apps on
@@ -264,7 +265,7 @@ const PlatformGroupRows: FunctionComponent<{
                 )}
                 className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
               >
-                {row.name || "—"}
+                {row.name || <TableEmptyValue />}
               </AppLink>
               <span
                 className={

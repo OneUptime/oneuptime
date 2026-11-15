@@ -33,6 +33,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * The submissions made through one form (on the form's Submissions page) or
@@ -84,7 +86,7 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
           item.form?._id?.toString() || item.formId?.toString();
 
         if (!formId) {
-          return <>-</>;
+          return <TableEmptyValue />;
         }
 
         return (
@@ -365,7 +367,7 @@ export const FormSubmissionAnswersList: FunctionComponent<AnswersListProps> = (
                 </dd>
               ) : (
                 <dd className="mt-1 whitespace-pre-wrap text-sm text-gray-700 [overflow-wrap:anywhere]">
-                  {answer.displayValue || "-"}
+                  {answer.displayValue || <EmptyValue />}
                 </dd>
               )}
             </div>

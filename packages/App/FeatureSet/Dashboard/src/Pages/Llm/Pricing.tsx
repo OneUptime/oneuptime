@@ -9,6 +9,7 @@ import { Green, Red } from "Common/Types/BrandColors";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const LlmPricingPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -123,7 +124,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
             return (
               <div>
                 <div className="font-medium text-gray-900 font-mono text-sm">
-                  {item.modelPrefix || "-"}
+                  {item.modelPrefix || <TableEmptyValue />}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

@@ -64,6 +64,7 @@ import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
 import { RUM_REPLAY_USERS_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 import { getUserFlowScopeOfRollup } from "../UserFlow/UserFlowScope";
 import { buildUserFlowScopeRoute } from "../UserFlow/UserFlowScopeRoute";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The Users page's table: the same window of sessions the flat list shows, rolled
@@ -438,7 +439,7 @@ function getUserRollupCells(
           </span>
         </time>
       ) : (
-        <span className="text-sm text-gray-400">—</span>
+        <TableEmptyValue />
       )}
     </div>,
     <div key="3">

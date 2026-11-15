@@ -45,6 +45,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ServerlessFunctions: FunctionComponent<
   PageComponentProps
@@ -242,7 +243,7 @@ const ServerlessFunctions: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || "—"}
+                    {name || <TableEmptyValue />}
                   </AppLink>
                   {showId && (
                     <div className="text-xs text-gray-500 font-mono truncate">
@@ -264,7 +265,7 @@ const ServerlessFunctions: FunctionComponent<
               const platform: string = (item.cloudPlatform as string) || "";
               const region: string = (item.cloudRegion as string) || "";
               if (!platform && !region) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <div className="text-sm text-gray-700">

@@ -16,6 +16,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Devices in a single fleet. Reads the IoTDevice Postgres inventory
@@ -71,9 +72,9 @@ const IoTFleetDevices: FunctionComponent<
               return (
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-900">
-                    {(item.name as string) ||
-                      (item.externalId as string) ||
-                      "—"}
+                    {(item.name as string) || (item.externalId as string) || (
+                      <TableEmptyValue />
+                    )}
                   </span>
                   {item.name && item.externalId ? (
                     <span className="text-xs text-gray-500">
@@ -104,7 +105,7 @@ const IoTFleetDevices: FunctionComponent<
             getElement: (item: IoTDevice): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {(item.deviceType as string) || "—"}
+                  {(item.deviceType as string) || <TableEmptyValue />}
                 </span>
               );
             },
@@ -118,7 +119,7 @@ const IoTFleetDevices: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: IoTDevice): ReactElement => {
               if (item.isUp === undefined || item.isUp === null) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <StatusBadge
@@ -143,7 +144,7 @@ const IoTFleetDevices: FunctionComponent<
                 item.latestBatteryPercent === undefined ||
                 item.latestBatteryPercent === null
               ) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const battery: number = Number(item.latestBatteryPercent);
               const isLow: boolean = battery <= 20;
@@ -171,7 +172,7 @@ const IoTFleetDevices: FunctionComponent<
                 item.latestSignalStrengthDbm === undefined ||
                 item.latestSignalStrengthDbm === null
               ) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">
@@ -193,7 +194,7 @@ const IoTFleetDevices: FunctionComponent<
                 item.latestTemperatureCelsius === undefined ||
                 item.latestTemperatureCelsius === null
               ) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">

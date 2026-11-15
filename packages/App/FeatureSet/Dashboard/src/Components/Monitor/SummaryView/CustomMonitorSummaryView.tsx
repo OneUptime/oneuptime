@@ -139,7 +139,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
             value={
               executionTimeInMS
                 ? formatMilliseconds(translator, executionTimeInMS)
-                : "-"
+                : undefined
             }
           />
           <SummaryFact
@@ -149,7 +149,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                 ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     props.monitoredAt,
                   )
-                : "-"
+                : undefined
             }
           />
           {customCodeMonitorResponse.scriptError ? (

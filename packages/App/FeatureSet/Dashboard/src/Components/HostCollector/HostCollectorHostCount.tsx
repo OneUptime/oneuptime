@@ -8,6 +8,7 @@ import {
   HOST_COUNT_TEMPLATE,
   HostCollectorHostCount as HostCount,
 } from "./HostCollectorConfigFleet";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How many hosts run a config - "2 hosts" - with a red "1 failed" beside it
@@ -28,11 +29,8 @@ const HostCollectorHostCount: FunctionComponent<ComponentProps> = (
 
   if (!props.count) {
     return (
-      <span
-        className="text-sm text-gray-400"
-        data-testid={`${props.dataTestId}-unknown`}
-      >
-        —
+      <span data-testid={`${props.dataTestId}-unknown`}>
+        <TableEmptyValue />
       </span>
     );
   }

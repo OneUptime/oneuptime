@@ -36,6 +36,7 @@ import ProjectScopedTeamsPicker, {
 } from "../../../Components/GlobalProvider/ProjectScopedTeamsPicker";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -365,7 +366,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                       .map((team: Team) => {
                         return team.name;
                       })
-                      .join(", ") || "-"}
+                      .join(", ") || <TableEmptyValue />}
                   </span>
                 );
               },

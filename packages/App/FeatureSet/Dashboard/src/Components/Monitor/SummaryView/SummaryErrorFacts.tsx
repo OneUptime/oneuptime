@@ -76,8 +76,8 @@ const SummaryErrorFacts: FunctionComponent<ComponentProps> = (
       )}
       {details ? (
         <>
-          <SummaryFact title="Failed Phase" value={failedPhase || "-"} />
-          <SummaryFact title="Error Code" value={details.errorCode || "-"} />
+          <SummaryFact title="Failed Phase" value={failedPhase} />
+          <SummaryFact title="Error Code" value={details.errorCode} />
           <SummaryFact
             isWide={true}
             title="Error Details"
@@ -87,9 +87,7 @@ const SummaryErrorFacts: FunctionComponent<ComponentProps> = (
                   message={errorDescription}
                   dataTestId={SUMMARY_ERROR_DETAILS_TEST_ID}
                 />
-              ) : (
-                "-"
-              )
+              ) : undefined
             }
           />
         </>

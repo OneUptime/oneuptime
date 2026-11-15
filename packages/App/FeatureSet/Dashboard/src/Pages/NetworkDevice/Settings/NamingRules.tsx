@@ -20,6 +20,7 @@ import React, {
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * NAMING RULES (Network > Rules > Naming Rules, OneUptime issue #6619).
@@ -202,7 +203,7 @@ const NetworkDeviceNamingRulesPage: FunctionComponent<
 
               return (
                 <span dir="ltr" className="font-mono text-xs text-gray-600">
-                  {example || "—"}
+                  {example || <TableEmptyValue isSmall={true} />}
                 </span>
               );
             },

@@ -380,7 +380,7 @@ export const AccessLevelPill: FunctionComponent<{
   level: string | undefined;
 }> = (props: { level: string | undefined }): ReactElement => {
   if (!props.level) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

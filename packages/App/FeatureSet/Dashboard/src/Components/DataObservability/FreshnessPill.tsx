@@ -11,6 +11,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   kind: DataAssetKind | undefined;
@@ -55,7 +56,7 @@ const FreshnessPill: FunctionComponent<ComponentProps> = (
         />
       );
     default:
-      return <span className="text-sm text-gray-400">-</span>;
+      return <TableEmptyValue />;
   }
 };
 

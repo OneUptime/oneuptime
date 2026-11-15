@@ -96,6 +96,7 @@ import {
   formatErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Service Map: the project's services and everything they call — other
@@ -1234,12 +1235,14 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {entry.inbound.calls > 0
-                        ? formatCallRate(
-                            entry.inbound.calls,
-                            props.metricsWindowSeconds,
-                          )
-                        : "—"}
+                      {entry.inbound.calls > 0 ? (
+                        formatCallRate(
+                          entry.inbound.calls,
+                          props.metricsWindowSeconds,
+                        )
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                       {formatErrorRate(
@@ -1248,9 +1251,11 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {entry.inbound.avgDurationMs === null
-                        ? "—"
-                        : formatDurationMs(entry.inbound.avgDurationMs)}
+                      {entry.inbound.avgDurationMs === null ? (
+                        <TableEmptyValue />
+                      ) : (
+                        formatDurationMs(entry.inbound.avgDurationMs)
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
                       {entry.callers}{" "}
