@@ -52362,5 +52362,11 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} من الأجزاء الأخرى غير مرسومة. ابحث للعثور على أحدها.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} جزء آخر غير مرسوم. ابحث للعثور عليه.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "مفتاح متصفح — مخصص للتوزيع على العملاء. يمكن لأصول الويب إرسال التتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry؛ ولا تأذن هويات app:// إلا بإعادة التشغيل في React Native. الهويات المقبولة: {{identities}}. هويات التطبيقات الأصلية يعلنها التطبيق بنفسه، وليست شهادة من المنصة.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط.",
+  "Recording paused by the page: {{label}}": "أوقفت الصفحة التسجيل مؤقتًا: {{label}}",
+  "Skipped {{duration}}: recording paused by the page": "تم تخطي {{duration}}: أوقفت الصفحة التسجيل مؤقتًا",
+  "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "أوقفت الصفحة التسجيل مؤقتًا هنا. لا يُسجَّل شيء حتى تستأنفه الصفحة، مهما فعل الزائر في أثناء ذلك.",
+  "The page paused recording, so nothing was recorded until it resumed.": "أوقفت الصفحة التسجيل مؤقتًا، لذا لم يُسجَّل شيء حتى استُؤنف.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "استأنفت الصفحة التسجيل هنا بعد {{duration}}، على لقطة جديدة للصفحة. لم يُسجَّل شيء أثناء التوقف، لذا يتخطاه التشغيل.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "استأنفت الصفحة التسجيل هنا، على لقطة جديدة للصفحة. لم يُسجَّل شيء أثناء التوقف، لذا يتخطاه التشغيل."
 }

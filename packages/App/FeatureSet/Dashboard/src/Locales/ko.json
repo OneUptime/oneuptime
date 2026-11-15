@@ -52362,5 +52362,11 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "브라우저 키입니다. 클라이언트에 배포하도록 만들어졌습니다. 웹 출처는 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트를 보낼 수 있고, app:// ID는 React Native 세션 리플레이만 허용합니다. 허용되는 ID: {{identities}}. 네이티브 앱 ID는 앱이 스스로 밝히는 것이며 플랫폼의 증명이 아닙니다.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "페이지에 게시해도 안전합니다. 아래의 허용된 출처에서 보낸 요청만 받으며 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트에만 쓸 수 있습니다."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "페이지에 게시해도 안전합니다. 아래의 허용된 출처에서 보낸 요청만 받으며 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트에만 쓸 수 있습니다.",
+  "Recording paused by the page: {{label}}": "페이지가 녹화를 일시 중지함: {{label}}",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} 건너뜀: 페이지가 녹화를 일시 중지함",
+  "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "페이지가 여기서 녹화를 일시 중지했습니다. 그동안 방문자가 무엇을 하든 페이지가 다시 시작할 때까지 아무것도 기록되지 않습니다.",
+  "The page paused recording, so nothing was recorded until it resumed.": "페이지가 녹화를 일시 중지해서 다시 시작될 때까지 아무것도 녹화되지 않았습니다.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "{{duration}} 후 페이지가 여기서 페이지의 새 스냅샷으로 녹화를 다시 시작했습니다. 일시 중지 동안에는 아무것도 기록되지 않았으므로 재생에서 건너뜁니다.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "페이지가 여기서 페이지의 새 스냅샷으로 녹화를 다시 시작했습니다. 일시 중지 동안에는 아무것도 기록되지 않았으므로 재생에서 건너뜁니다."
 }

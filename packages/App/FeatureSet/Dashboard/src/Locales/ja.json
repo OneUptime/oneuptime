@@ -52362,5 +52362,11 @@
   "{{count}} more parts are not drawn. Search to find one.": "さらに {{count}} 件が描画されていません。検索して見つけてください。",
   "{{count}} more parts are not drawn. Search to find one._one": "さらに {{count}} 件が描画されていません。検索して見つけてください。",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ブラウザーキーはクライアントへの配布を想定しています。Web オリジンはトレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントを送信できます。app:// ID が許可するのは React Native のセッションリプレイのみです。受け付ける ID: {{identities}}。ネイティブアプリの ID はアプリ自身による申告であり、プラットフォームによる証明ではありません。",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "ページに公開しても安全です。下の許可されたオリジンからのみ受け付けられ、トレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントにのみ使用できます。"
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "ページに公開しても安全です。下の許可されたオリジンからのみ受け付けられ、トレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントにのみ使用できます。",
+  "Recording paused by the page: {{label}}": "ページによって録画が一時停止: {{label}}",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} をスキップしました: ページが録画を一時停止していました",
+  "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "ページがここで録画を一時停止しました。その間に訪問者が何をしても、ページが再開するまで何も記録されません。",
+  "The page paused recording, so nothing was recorded until it resumed.": "ページが録画を一時停止したため、再開されるまで何も記録されませんでした。",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "ページは {{duration}} 後にここで、ページの新しいスナップショットから録画を再開しました。一時停止中は何も記録されていないため、再生ではスキップされます。",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "ページはここで、ページの新しいスナップショットから録画を再開しました。一時停止中は何も記録されていないため、再生ではスキップされます。"
 }

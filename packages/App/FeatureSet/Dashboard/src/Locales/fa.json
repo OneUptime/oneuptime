@@ -52362,5 +52362,11 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} بخش دیگر رسم نشده است. برای یافتن آن جستجو کنید.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} بخش دیگر رسم نشده است. برای یافتن آن جستجو کنید.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "کلید مرورگر — برای توزیع در کلاینت‌ها در نظر گرفته شده است. مبدأهای وب می‌توانند ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry بفرستند؛ شناسه‌های app:// فقط بازپخش نشست React Native را مجاز می‌کنند. شناسه‌های پذیرفته: {{identities}}. شناسه‌های اپ‌های بومی را خود اپ اعلام می‌کند و تأیید پلتفرم نیستند.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry.",
+  "Recording paused by the page: {{label}}": "مکث ضبط به خواست صفحه: {{label}}",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} رد شد: صفحه ضبط را متوقف کرده بود",
+  "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "صفحه در اینجا ضبط را متوقف کرد. تا صفحه آن را از سر نگیرد چیزی ضبط نمی‌شود، هر کاری که بازدیدکننده در این میان انجام دهد.",
+  "The page paused recording, so nothing was recorded until it resumed.": "صفحه ضبط را متوقف کرد، پس تا از سر گرفته شدن آن چیزی ضبط نشد.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "صفحه پس از {{duration}} ضبط را از همین‌جا با یک عکس فوری تازه از صفحه از سر گرفت. در مدت توقف چیزی ضبط نشد، پس پخش از آن می‌گذرد.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "صفحه ضبط را از همین‌جا با یک عکس فوری تازه از صفحه از سر گرفت. در مدت توقف چیزی ضبط نشد، پس پخش از آن می‌گذرد."
 }

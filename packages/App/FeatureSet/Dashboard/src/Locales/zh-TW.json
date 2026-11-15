@@ -52362,5 +52362,11 @@
   "{{count}} more parts are not drawn. Search to find one.": "另有 {{count}} 個部分未繪製。可透過搜尋找到。",
   "{{count}} more parts are not drawn. Search to find one._one": "另有 {{count}} 個部分未繪製。可透過搜尋找到。",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "瀏覽器金鑰——用於分發到用戶端。Web 來源可以傳送追蹤、日誌、指標、工作階段重播和 Sentry 事件；app:// 識別僅授權 React Native 的工作階段重播。接受的識別：{{identities}}。原生應用程式識別由應用程式自行宣告，並非平台證明。",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全發布在頁面中。只接受來自下方允許的來源的請求，且只能用於追蹤、日誌、指標、工作階段重播和 Sentry 事件。"
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全發布在頁面中。只接受來自下方允許的來源的請求，且只能用於追蹤、日誌、指標、工作階段重播和 Sentry 事件。",
+  "Recording paused by the page: {{label}}": "頁面暫停了錄製：{{label}}",
+  "Skipped {{duration}}: recording paused by the page": "已略過 {{duration}}：頁面暫停了錄製",
+  "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "頁面在此處暫停了錄製。在頁面恢復錄製之前，無論訪客在此期間做什麼，都不會錄製任何內容。",
+  "The page paused recording, so nothing was recorded until it resumed.": "頁面暫停了錄製，因此在恢復之前沒有錄製任何內容。",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "頁面在 {{duration}} 後於此處以頁面的新快照恢復了錄製。暫停期間沒有錄製任何內容，因此播放會略過這段。",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.": "頁面在此處以頁面的新快照恢復了錄製。暫停期間沒有錄製任何內容，因此播放會略過這段。"
 }
