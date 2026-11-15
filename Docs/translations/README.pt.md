@@ -55,7 +55,7 @@ Todo o resto está na [documentação](https://oneuptime.com/docs/pt/introductio
 
 ### OneUptime Cloud
 
-[Cadastre-se](https://oneuptime.com/accounts/register) e crie um projeto. O plano gratuito não precisa de cartão de crédito.
+[Cadastre-se](https://oneuptime.com/accounts/register) e crie um projeto. Um projeto não precisa de cartão. No plano Free, verificar um site exige um método de pagamento.
 
 ### Hospedar por conta própria com Docker Compose
 

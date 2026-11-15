@@ -69,8 +69,10 @@ import {
   SESSION_AUDIT_LOG_ACTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import {
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
   DEFAULT_SESSION_IDLE_DAYS,
   IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
 } from "Common/Types/UserSession/SessionLength";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
@@ -2470,8 +2472,13 @@ describe("Audit Logs", () => {
    * back, and for one that never did, 30 days later as "Not used for 30
    * days". The five-minute sweep records it once the idle timeout and the
    * margin have passed with nothing heard of the browser, so the page says
-   * within how long: the margin and one sweep. The mobile app's is still
-   * recorded when the app next reaches OneUptime.
+   * within how long: the margin and one sweep.
+   *
+   * Issue #8458: the mobile app after 1.6.0 renews while in use and says so
+   * with every renewal (reportsActivityWhileInUse), so its sessions are
+   * swept the same way; 1.6.0, the latest store release when it changed
+   * (packages/MobileApp/app.json), and earlier say nothing, and theirs are
+   * still recorded when the app next reaches OneUptime.
    */
   it("says how soon an idle timeout is recorded, as the sweep's margin and its schedule make it", () => {
     const sessions: string = section(page, "## Sign-ins and sessions");
@@ -2479,11 +2486,31 @@ describe("Audit Logs", () => {
 
     expect(EVERY_FIVE_MINUTE).toBe(`*/${sweepEveryMinutes} * * * *`);
     expect(sessions).toContain(
-      `An idle timeout in the browser is recorded within ${
+      `An idle timeout in the browser, or in a version of the mobile app newer than 1.6.0, is recorded within ${
         IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES + sweepEveryMinutes
-      } minutes of running out, whether or not the person comes back. In the mobile app, it is recorded the next time the app reaches OneUptime.`,
+      } minutes of running out, whether or not the person comes back. In version 1.6.0 and earlier of the mobile app, it is recorded the next time the app reaches OneUptime.`,
     );
     expect(sessions).not.toContain("from a tab left open");
+
+    // What makes it so: every renewal of the app says it renews while in use.
+    const mobileClient: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "MobileApp", "src", "api", "client.ts"),
+      "utf8",
+    );
+    const mobileActivity: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "MobileApp", "src", "auth", "userActivity.ts"),
+      "utf8",
+    );
+
+    expect(mobileClient).toContain(
+      "[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,",
+    );
+    expect(mobileActivity).toContain(
+      `export const REPORTS_ACTIVITY_WHILE_IN_USE_FIELD: string =\n  "${REPORTS_ACTIVITY_WHILE_IN_USE_FIELD}";`,
+    );
+    expect(mobileActivity).toContain(
+      `export const ACTIVITY_REPORT_INTERVAL_MS: number = ${ACTIVITY_REPORTED_WITHIN_IN_MINUTES} * 60 * 1000;`,
+    );
 
     const sweepJob: string = fs.readFileSync(
       path.join(

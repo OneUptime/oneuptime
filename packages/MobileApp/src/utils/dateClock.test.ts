@@ -4,6 +4,9 @@ import {
   getHourOption,
   uses12HourClock,
   writeDateTime,
+  writeDay,
+  writeTimeOfDay,
+  writeWeekdayTime,
 } from "./date";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -229,6 +232,37 @@ describe("a date and time, on each language's own clock", () => {
         }),
       ),
     ).toBe("5. Nov. 2026, 14:14");
+  });
+
+  /*
+   * The on-call cards' writers (#8232) read a zone as writeDateTime does:
+   * the phone's when none is named, as the cards leave it.
+   */
+  test("the on-call writers read the zone asked for too", () => {
+    expect(
+      spaced(writeTimeOfDay(MORNING, { locale: "de", timeZone: "Asia/Tokyo" })),
+    ).toBe("14:14");
+    expect(
+      spaced(writeTimeOfDay(MORNING, { locale: "en-US", timeZone: "UTC" })),
+    ).toBe("5:14 AM");
+    expect(
+      spaced(
+        writeWeekdayTime(MORNING, {
+          locale: "en-US",
+          timeZone: "America/Los_Angeles",
+        }),
+      ),
+    ).toBe("Wed 9:14 PM");
+    expect(
+      spaced(
+        writeDay(MORNING, { locale: "en-GB", timeZone: "Pacific/Kiritimati" }),
+      ),
+    ).toBe("Thu 5 Nov");
+    expect(
+      spaced(
+        writeDay(MORNING, { locale: "en-GB", timeZone: "America/Los_Angeles" }),
+      ),
+    ).toBe("Wed 4 Nov");
   });
 });
 

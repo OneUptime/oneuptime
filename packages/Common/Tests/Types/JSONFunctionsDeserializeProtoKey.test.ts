@@ -428,6 +428,39 @@ describe("pollution attempts", () => {
   );
 });
 
+/*
+ * Issue #8488, decided: an object under "constructor" or "prototype" is
+ * data, kept at every depth as it always was - a project may store one in
+ * a JSON column, and much JSON never passes through deserialize anyway. It
+ * is the value's own key, never the Object function or Object.prototype; a
+ * merge or a deep set over such a value reads and writes its target's own
+ * keys (readOwnValue, writeOwnValue), as EventOverlayScope.addPredicate does.
+ */
+describe("an object under constructor or prototype is data", () => {
+  test("kept at every depth as the value's own, holding what was sent", () => {
+    const result: JSONObject = JSONFunctions.deserialize(
+      decode(
+        '{"constructor":{"name":"top"},"a":{"constructor":{"prototype":{"polluted":"yes"}}},"prototype":{"b":1}}',
+      ),
+    );
+    const nested: unknown = readOwnValue(
+      readOwnValue(result, "a") as JSONObject,
+      "constructor",
+    );
+
+    expect(readOwnValue(result, "constructor")).toEqual({ name: "top" });
+    expect(readOwnValue(result, "prototype")).toEqual({ b: 1 });
+    expect(nested).not.toBe(Object);
+    expect(Object.getPrototypeOf(nested)).toBe(Object.prototype);
+    expect(readOwnValue(nested as JSONObject, "prototype")).toEqual({
+      polluted: "yes",
+    });
+    expect(readOwnValue(nested as JSONObject, "prototype")).not.toBe(
+      Object.prototype,
+    );
+  });
+});
+
 describe("the pages that read the API's JSON", () => {
   test("a log row's attribute named __proto__ reaches the Logs page's model, through HTTPResponse as a list reads it", () => {
     const body: JSONObject = decode(

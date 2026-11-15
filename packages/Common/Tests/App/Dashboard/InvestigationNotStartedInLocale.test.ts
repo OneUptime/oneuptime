@@ -37,7 +37,7 @@ const PLURALS: Array<PluralTemplate> = SENTENCES.filter(
 
 // The card's own lines around a reason (InvestigationNotStarted).
 const CARD_LINES: Array<string> = [
-  "A project administrator can review these settings.",
+  "A Project Admin can review these settings.",
   "Based on current settings",
   "Checking investigation status…",
   "Checking whether OneUptime AI has investigated this alert.",
