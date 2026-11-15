@@ -430,7 +430,7 @@ Un log diventa un'eccezione in due modi:
 
 | Rilevamento | Log a cui si applica | Come funziona |
 | --- | --- | --- |
-| **Attributi di eccezione** (consigliato) | Qualsiasi log | Un record di log con l'attributo OpenTelemetry `exception.type`, `exception.message` o `exception.stacktrace` diventa direttamente un'eccezione. La maggior parte delle integrazioni di logging li imposta quando registri un'eccezione: gli appender di Logback e Log4j, Serilog, la strumentazione del logging di Python. È preciso e funziona in ogni linguaggio. |
+| **Attributi di eccezione** (consigliato) | Qualsiasi log | Un record di log con l'attributo OpenTelemetry `exception.type`, `exception.message` o `exception.stacktrace` diventa direttamente un'eccezione. La maggior parte delle integrazioni di logging li imposta quando log un'eccezione: gli appender di Logback e Log4j, Serilog, la strumentazione del logging di Python. È preciso e funziona in ogni linguaggio. |
 | **Stack trace nel corpo** | Log di errore e fatali che non hanno un ID di traccia e un ID di span | OneUptime analizza i primi 16 KB del corpo cercando uno stack trace JavaScript, Python, Java, Go, Ruby, C#/.NET o PHP, e ne ricava tipo, messaggio e frame. Un log scritto all'interno di uno span viene saltato, perché è lo span stesso a segnalare l'eccezione. |
 
 L'analisi del corpo è adatta ai log in testo semplice come stdout grezzo, journald o syslog letti da un collector. Uno stack trace su più righe deve arrivare come un unico record di log, quindi attiva la ricomposizione multiriga nel collector: vedi la guida [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).

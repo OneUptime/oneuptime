@@ -171,8 +171,8 @@ Hver skabelon læser mindst tre indsamlinger af det, den overvåger, og udløser
 | DNS-zone hænger i afventende | Netværk | Advarsel | Et antal af `openstack_designate_zone_status` med `status=PENDING`, pr. zone, **seneste 30 minutter** | En zone viser `PENDING` i hele vinduet. Dens worker opgiver efter få minutter, så intet arbejder på den | Den viser noget andet |
 | DNS-recordset i fejl | Netværk | Advarsel | Et antal af `openstack_designate_recordsets_status` med `status=ERROR` og hver type, nogen beder om, pr. zone, **seneste 15 minutter** | Et recordset, der ikke er en zones egen SOA og NS, viser `ERROR`. Disse to viser `ERROR` sammen med deres zone, så DNS-zone i fejl fortæller det | Det viser noget andet |
 | Metrics API Down | Tilgængelighed | Kritisk | `openstack_gnocchi_up` og `up` for `gnocchi`, Min pr. region, **seneste 15 minutter** | Exporterens læsning af Gnocchi fejlede, eller exporteren svarede ikke. En legitimation, som Gnocchi afviser, læses på samme måde, så et cloud, hvis legitimation aldrig har læst Gnocchi, får ikke tilbudt denne | Begge viser 1 |
-| Gnocchi uden processorer | Metrikker | Kritisk | `openstack_gnocchi_status_metricd_processors`, Max pr. region, **seneste 15 minutter** | Gnocchis status nævner ingen processor. Dens API svarer og modtager fortsat målinger, så **Metrics API Down** siger intet om dette | Den nævner en |
-| Gnocchi-backlog vokser | Metrikker | Advarsel | `openstack_gnocchi_status_measures_to_process`, en linje gennem de **seneste 2 timer** | Linjen passerer 10.000 målinger inden for den næste time. En backlog over det, som falder, udløser ikke | Linjen når ikke længere 9.000 |
+| Gnocchi uden processorer | Metrikker | Kritisk | `openstack_gnocchi_status_metricd_processors`, Max pr. region, **seneste 15 minutter** | Gnocchis status nævner ingen processor. Dens API svarer og modtager fortsat metrikker, så **Metrics API Down** siger intet om dette | Den nævner en |
+| Gnocchi-backlog vokser | Metrikker | Advarsel | `openstack_gnocchi_status_measures_to_process`, en linje gennem de **seneste 2 timer** | Linjen passerer 10.000 metrikker inden for den næste time. En backlog over det, som falder, udløser ikke | Linjen når ikke længere 9.000 |
 | Objektlager-API nede | Tilgængelighed | Kritisk | `openstack_object_store_up` og `up` for `object-store`, Min pr. region, **seneste 15 minutter** | Exporterens læsning af Swift fejlede, eller exporteren svarede ikke. En legitimation, som Swift afviser, læses på samme måde, så et cloud, hvis legitimation aldrig har læst Swift, får ikke tilbudt denne | Begge viser 1 |
 | Prognose for vækst i objektcontainer | Lager | Advarsel | `openstack_object_store_bytes`, en linje gennem de **seneste 7 dage**, pr. container | Linjen passerer 1 TiB inden for den næste uge. Ændr den til det, dit cloud skal høre om | Linjen når ikke længere 90 % af det |
 | Nøglehåndterings-API nede | Tilgængelighed | Kritisk | `openstack_barbican_up`, Min pr. region, **seneste 15 minutter**. Kun en sonde tilbyder denne | Under 1. Exporteren har slet ingen læser til Barbican | Viser 1 |
@@ -607,7 +607,7 @@ Kun et cloud, der kører Gnocchi, sender disse, og et cloud uden det viser intet
 | --- | --- | --- | --- |
 | `openstack_gnocchi_up` | | Min | Om exporterens læsning af Gnocchi svarede. Den læser Gnocchis status, hvilket kun en admin må, så enhver legitimation under det viser 0, ligesom et stoppet API gør. |
 | `openstack_gnocchi_status_measures_to_process` | `count` | Max | Hvor mange målinger `gnocchi-metricd` endnu ikke har behandlet. |
-| `openstack_gnocchi_status_metric_having_measures_to_process` | `count` | Max | Hvor mange metrikker der har målinger, der venter. |
+| `openstack_gnocchi_status_metric_having_measures_to_process` | `count` | Max | Hvor mange metrikker der har metrikker, der venter. |
 | `openstack_gnocchi_status_metricd_processors` | `count` | Max | Hvor mange processorer Gnocchis status nævner. |
 
 ### Objektlager

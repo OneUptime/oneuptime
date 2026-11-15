@@ -1,6 +1,6 @@
 # Måleudforsker
 
-Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: antal forespørgsler, latenser, CPU, kødybde. Måleudforskeren viser hver metrik, dit projekt modtager, viser en hvilken som helst af dem i et diagram, kombinerer dem med formler og gør et diagram til en monitor eller en dashboard-widget.
+Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: antal forespørgsler, latenser, CPU, kødybde. Metrikudforskeren viser hver metrik, dit projekt modtager, viser en hvilken som helst af dem i et diagram, kombinerer dem med formler og gør et diagram til en monitor eller en dashboard-widget.
 
 :::cards
 - [Find en metrik](#find-en-metrik): Søg i listen over metriknavne.
@@ -12,7 +12,7 @@ Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: a
 
 ## Sådan virker udforskeren
 
-Udforskeren har to niveauer. Fanen **Seer** viser de metrikker, dit projekt modtager. Klik på en, og måleudforskeren åbner med en forespørgsel til den: en metrik, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver forespørgsel er en variabel, `a`, `b` og så videre, som en formel kan bruge.
+Udforskeren har to niveauer. Fanen **Seer** viser de metrikker, dit projekt modtager. Klik på en, og metrikudforskeren åbner med en forespørgsel til den: en metrik, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver forespørgsel er en variabel, `a`, `b` og så videre, som en formel kan bruge.
 
 ```mermaid title="Fra metrikforespørgsler til et diagram, en monitor eller et dashboard"
 flowchart TB
@@ -45,7 +45,7 @@ Gå til **Produkter → Observabilitet → Metrikker**. **Seer** viser hver metr
 
 - Søg i navne med løse ord eller `name:`, for eksempel finder `name:http.server` metrikken `http.server.request.duration`. Se [Søgesyntaks](/docs/telemetry/search-syntax#metrikker).
 - Filtrér efter **Tjeneste** i sidepanelet for kun at se de metrikker, én tjeneste rapporterer. Klik på minustegnet ved siden af en tjeneste for i stedet at skjule de metrikker, den rapporterer.
-- Klik på en metrik for at vise den i måleudforskeren.
+- Klik på en metrik for at vise den i metrikudforskeren.
 
 ## Vis en metrik i et diagram
 

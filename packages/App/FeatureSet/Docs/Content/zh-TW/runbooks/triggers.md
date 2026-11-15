@@ -163,7 +163,7 @@ return { host };
 
 ## 誰可以設定觸發器
 
-排程或 Webhook 會在無人在場時啟動執行，因此設定它們需要編輯並執行該 Runbook 的權限：專案擁有者、專案管理員或操作手冊管理員，或者 **Edit Runbook** 加上專案成員、操作手冊成員或 **Create Runbook Execution**。與 **立即執行** 一樣，角色所限的標籤也會計入。檢視或重設 Webhook URL 需要同樣的權限。
+排程或 Webhook 會在無人在場時啟動執行，因此設定它們需要編輯並執行該 Runbook 的權限：專案擁有者、專案管理員或運行手冊管理員，或者 **Edit Runbook** 加上專案成員、運行手冊成員或 **Create Runbook Execution**。與 **立即執行** 一樣，角色所限的標籤也會計入。檢視或重設 Webhook URL 需要同樣的權限。
 
 關閉排程或 Webhook 不會啟動任何內容，因此只需要編輯該 Runbook 的權限。能編輯但不能執行該 Runbook 的人會看到 **設定排程** 被鎖定的 **觸發器** 頁面，並得知誰可以檢視 Webhook URL。
 
@@ -178,7 +178,7 @@ Runbook 已關閉或沒有步驟：卡片會說明是哪一種。在 Runbook 的
 :::
 
 :::details 儲存排程失敗，顯示 "You do not have permission to set up this runbook's schedule or webhook."
-設定觸發器除了需要編輯 Runbook 的權限，還需要執行它的權限。請申請操作手冊管理員，或者在 **Edit Runbook** 之外申請操作手冊成員或 **Create Runbook Execution**。
+設定觸發器除了需要編輯 Runbook 的權限，還需要執行它的權限。請申請運行手冊管理員，或者在 **Edit Runbook** 之外申請運行手冊成員或 **Create Runbook Execution**。
 :::
 
 :::details 呼叫收到回應 "No runbook webhook answers at this URL."

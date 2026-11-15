@@ -13,7 +13,7 @@ En Podman-monitor övervakar containrarna på en Podman-värd och säger till n�
 
 OneUptimes Podman-agent körs som en container på värden. Var 30:e sekund läser den containerstatistik via Podmans Docker-kompatibla API-socket, följer containrarnas loggfiler och skickar båda till OneUptime över OTLP. De första data från en värd registrerar den i OneUptime.
 
-En Podman-monitor är knuten till en värd. Varje minut kör den sin fråga över värdens containermått och jämför resultatet med sina kriterier.
+En Podman-monitor är knuten till en värd. Varje minut kör den sin fråga över värdens containermätvärden och jämför resultatet med sina kriterier.
 
 ```mermaid title="Från en Podman-värd till en incident"
 flowchart TB
@@ -112,7 +112,7 @@ De två procentmallarna använder **Genomsnitt**: deras mätvärden är redan pr
 > [!CAUTION]
 > `container.uptime` finns bara för körande containrar. En container som stannar och förblir stoppad skickar inga data, så **Container Restarted (Low Uptime)** fångar omstarter och nya driftsättningar, inte en permanent avstängning. En container som är tänkt att köras i mindre än två minuter förblir i larmläge hela sin livstid.
 
-Det finns ingen mall för CPU-strypning. Strypningsmåtten som agenten samlar in bara växer, och ett larm om "överhuvudtaget strypt" skulle utlösas en gång och aldrig upphöra. Båda samlas fortfarande in, så du kan visa dem i diagram.
+Det finns ingen mall för CPU-strypning. Strypningsmätvärdena som agenten samlar in bara växer, och ett larm om "överhuvudtaget strypt" skulle utlösas en gång och aldrig upphöra. Båda samlas fortfarande in, så du kan visa dem i diagram.
 
 ## Insamlade mätvärden
 
@@ -187,7 +187,7 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 | 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Insamlade loggar
 

@@ -410,7 +410,7 @@ Server / VM 監測器背後的 `oneuptime-infrastructure-agent` 服務：它每 
 
 ### Runner
 
-你在自己的基礎設施中執行的小型程序，負責執行操作手冊中的 JavaScript、Bash、SSH 和 kubectl 步驟。它使用自己的 Runner ID 和金鑰對外連線到 OneUptime。
+你在自己的基礎設施中執行的小型程序，負責執行運行手冊中的 JavaScript、Bash、SSH 和 kubectl 步驟。它使用自己的 Runner ID 和金鑰對外連線到 OneUptime。
 
 又稱：**Runbook 代理程式**。參閱 [Runbook 代理程式](/docs/runbooks/agents)。
 
@@ -472,7 +472,7 @@ OneUptime 中有許多東西都是規則，每一種都替你做一個決定：�
 
 ### 代理程式
 
-你安裝的、向 OneUptime 回報或代表它採取行動的程式：基礎設施、Kubernetes 和 Docker 代理程式會傳送它們收集的資料，Runner 執行操作手冊步驟，AI 代理程式則讓 OneUptime AI 查看叢集或主機。你交給 **程式碼** 的任務就是 AI 代理程式任務。
+你安裝的、向 OneUptime 回報或代表它採取行動的程式：基礎設施、Kubernetes 和 Docker 代理程式會傳送它們收集的資料，Runner 執行運行手冊步驟，AI 代理程式則讓 OneUptime AI 查看叢集或主機。你交給 **程式碼** 的任務就是 AI 代理程式任務。
 
 參閱 [該用哪一個？](/docs/introduction/which-one#探測器代理程式收集器還是-runner)。
 
@@ -491,7 +491,7 @@ OneUptime 中有許多東西都是規則，每一種都替你做一個決定：�
 ## 後續步驟
 
 :::cards
-- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是操作手冊，以及其他相似項目的並排比較。
+- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是運行手冊，以及其他相似項目的並排比較。
 - [核心概念](/docs/introduction/core-concepts): 各部分如何關聯，全在一個頁面上。
 - [快速開始](/docs/introduction/quickstart): 在十五分鐘內把這些詞彙付諸實踐。
 :::

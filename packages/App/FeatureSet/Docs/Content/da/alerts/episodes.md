@@ -94,12 +94,12 @@ Listens kolonne **Gruppering** siger "Åbner en episode, når 3 matchende advars
 
 ### Gruppér advarsler på forbundne tjenester
 
-Når en tjeneste fejler, begynder de tjenester, der kalder den, også at fejle, og hver af dem udløser en advarsel på sin egen overvågning. **Forbundne tjenester** samler de advarsler i én episode ved hjælp af det [tjenestekort](/docs/telemetry/topology), som OneUptime tegner ud fra dine traces.
+Når en tjeneste fejler, begynder de tjenester, der kalder den, også at fejle, og hver af dem udløser en advarsel på sin egen monitor. **Forbundne tjenester** samler de advarsler i én episode ved hjælp af det [tjenestekort](/docs/telemetry/topology), som OneUptime tegner ud fra dine traces.
 
-- En advarsels tjenester er dem, der er knyttet til den under **Berørte ressourcer**, og dem, der er knyttet til dens overvågning.
+- En advarsels tjenester er dem, der er knyttet til den under **Berørte ressourcer**, og dem, der er knyttet til dens monitor.
 - En advarsel går ind i en åben episode for reglen, når en af dens tjenester er, kalder eller kaldes af en tjeneste for en advarsel, der allerede er i den, så en fejl, der breder sig, holder én episode.
 - Forbundet betyder ét kald væk: to tjenester, der kun kalder den samme database eller eksterne API, er ikke forbundne, ellers ville en afhængighed, som halvdelen af dine tjenester kalder, lægge hver advarsel i én episode.
-- En advarsel uden tjeneste grupperes efter sin overvågning, som **Monitor** grupperer.
+- En advarsel uden tjeneste grupperes efter sin monitor, som **Monitor** grupperer.
 
 Et kald, der ikke er set i 30 dage, forsvinder fra tjenestekortet, og forbindelsen med det. Listens kolonne **Gruppering** siger "Advarsler på forbundne tjenester deler én episode". Via API'et og Terraform hedder det `groupByConnectedServices`.
 

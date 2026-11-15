@@ -126,7 +126,7 @@ Intercetta gli errori che altrimenti resterebbero invisibili finché un'esecuzio
 - spazi dentro `{{ }}`;
 - riferimenti a un passaggio o a un valore di ritorno che non esiste.
 
-C'è una cosa che non può controllare: se il nome di una variabile esiste. Le impostazioni di un blocco invece possono: un riferimento a una variabile che non esiste compare lì come chip ambra. Ovunque altrove, una variabile rinominata si nota solo nel registro dell'esecuzione.
+C'è una cosa che non può controllare: se il nome di una variabile esiste. Le impostazioni di un blocco invece possono: un riferimento a una variabile che non esiste compare lì come chip ambra. Ovunque altrove, una variabile rinominata si nota solo nel log dell'esecuzione.
 
 ## Il tuo primo flusso di lavoro
 
@@ -137,10 +137,10 @@ Il modo più rapido per prendere confidenza con la tela è un flusso di lavoro d
 2. Fai clic su **Aggiungi componente**, poi su **Log** sotto **Popolari**. Il nuovo blocco compare sotto il trigger. Collega il punto **Esegui** del trigger al punto di ingresso del blocco Log, più in basso.
 3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Valore**. Fai clic su **{ }**, poi su **JSON** sotto **Manuale**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
 4. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il flusso di lavoro è ancora disattivato, e non serve che sia attivo: un'esecuzione che avvii tu stesso è un'**Esecuzione di prova**.
-5. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. In cima dice **Esecuzione di prova**, e il registro mostra `Value:` seguito da `Hello from` e dal JSON che hai scritto.
+5. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. In cima dice **Esecuzione di prova**, e il log mostra `Value:` seguito da `Hello from` e dal JSON che hai scritto.
 :::
 
-Questo ciclo — aggiungere, collegare, configurare, eseguire, leggere il registro — è il modo in cui costruirai ogni flusso di lavoro.
+Questo ciclo — aggiungere, collegare, configurare, eseguire, leggere il log — è il modo in cui costruirai ogni flusso di lavoro.
 
 > [!TIP]
 > Il JSON scritto in **Esegui flusso di lavoro** arriva al trigger Manual come JSON. Per leggerne un campo, come `name`, aggiungi il nome del campo al riferimento: `{{local.components.manual-1.returnValues.value.name}}`. Dopo che il flusso di lavoro è stato eseguito, anche il selettore dei valori elenca i campi: apri **JSON** sotto **Manuale**.
@@ -160,7 +160,7 @@ Mentre un flusso di lavoro è disattivato, ciò che lo avvia decide se viene ese
 | Una chiamata al suo URL di webhook                         | Rifiutata con HTTP 400 e "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
 | Il blocco **Esegui un altro flusso di lavoro** di un altro flusso di lavoro         | Quel blocco prende il suo percorso **Errore**, e l'errore nomina il flusso di lavoro che ha chiamato. Vale anche in un'esecuzione di prova: un flusso di lavoro che chiama deve essere attivo. |
 
-L'ordine è quindi: costruiscilo, provalo con **Esegui flusso di lavoro** finché è ancora disattivato, leggi il registro dell'esecuzione e attiva **Abilitato** quando vuoi che il suo trigger scatti. Per provare un singolo blocco senza eseguire tutto, usa **Run just this step** nelle impostazioni di quel blocco.
+L'ordine è quindi: costruiscilo, provalo con **Esegui flusso di lavoro** finché è ancora disattivato, leggi il log dell'esecuzione e attiva **Abilitato** quando vuoi che il suo trigger scatti. Per provare un singolo blocco senza eseguire tutto, usa **Run just this step** nelle impostazioni di quel blocco.
 
 Per mettere in pausa un flusso di lavoro senza eliminarlo, disattiva **Abilitato**. Il suo trigger smette di avviare esecuzioni. Un'esecuzione già in corso termina, ma una avviata dal suo trigger e ferma su un blocco **Pausa** viene annullata al risveglio e registrata come errore. Un'esecuzione di prova continua.
 

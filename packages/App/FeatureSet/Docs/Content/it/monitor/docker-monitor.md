@@ -276,7 +276,7 @@ docker run ... <image>
 Gli host si registrano da soli a partire dai dati dell'agente. Verificate che il container dell'agente sia in esecuzione e che l'host compaia in **Prodotti → Infrastruttura → Docker → Tutti gli host**. La [guida all'agente Docker](/docs/telemetry/docker-host) contiene i controlli da eseguire sull'host.
 :::
 
-:::details Le metriche arrivano ma la pagina Registri è vuota
+:::details Le metriche arrivano ma la pagina Log è vuota
 Quasi certamente i container non usano il driver di log `json-file`. Verificateli con i comandi di [Requisito del driver di log](#requisito-del-driver-di-log), cambiate quelli di cui volete i log e ricreateli.
 :::
 

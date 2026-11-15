@@ -78,7 +78,7 @@ Aprite **Reperibilità → Prontezza**. Ogni persona che le vostre policy posson
 :::
 
 > [!NOTE]
-> Su OneUptime Cloud, le policy di reperibilità e le regole di escalation sono incluse in tutti i piani. Le pianificazioni di reperibilità, le sostituzioni utente, i registri di esecuzione e il report sul tempo di reperibilità richiedono il piano **Growth**.
+> Su OneUptime Cloud, le policy di reperibilità e le regole di escalation sono incluse in tutti i piani. Le pianificazioni di reperibilità, le sostituzioni utente, i log di esecuzione e il report sul tempo di reperibilità richiedono il piano **Growth**.
 
 ## Dove si trova la reperibilità
 

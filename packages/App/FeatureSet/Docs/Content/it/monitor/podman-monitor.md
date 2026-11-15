@@ -275,7 +275,7 @@ Poi rimuovete e ricreate ogni container.
 Gli host si registrano da soli a partire dai dati dell'agente. Verificate che il container dell'agente sia in esecuzione, che il socket API di Podman sia abilitato e che l'host compaia in **Prodotti → Infrastruttura → Podman → Tutti gli host**. La [guida all'agente Podman](/docs/telemetry/podman-host) contiene i controlli da eseguire sull'host.
 :::
 
-:::details Le metriche arrivano ma la pagina Registri è vuota
+:::details Le metriche arrivano ma la pagina Log è vuota
 Quasi certamente i container usano `journald`. Passate a `k8s-file` quelli di cui volete i log (vedete [Requisito del driver di log](#requisito-del-driver-di-log)) e ricreateli.
 :::
 

@@ -150,7 +150,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `title`, `startsAt`, `endsAt`                          | Påkrævet, som i formularen.                                                               |
 | `monitors`, `statusPages`, `labels`                   | Begivenhedens monitorer, statussider og etiketter, alle fra API-nøglens projekt.         |
-| `changeMonitorStatusToId`                             | Den overvågningsstatus, dens monitorer skifter til, når den starter.                      |
+| `changeMonitorStatusToId`                             | Den monitorstatus, dens monitorer skifter til, når den starter.                      |
 | `currentScheduledMaintenanceStateId`                  | Ignoreres: hver begivenhed starter i din planlagte tilstand.                              |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Kontakten **Når begivenheden planlægges**. De to andre tidspunkter har deres egne felter. |
 | `publishOnStatusPageAt`                               | Hvornår begivenheden offentliggøres på sine statussider, og dens abonnenter får besked om, at den er planlagt. Udeladt: med det samme. |
@@ -163,11 +163,11 @@ Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maint
 Vinduet skal være i orden: begivenheden slutter, efter at den er startet. Flyt først **Begynder den**, da **Slutter den** følger med, og indstil derefter **Slutter den**.
 :::
 
-:::details Skift overvågningsstatus til mangler i formularen
+:::details Skift monitorstatus til mangler i formularen
 Der spørges kun om den, når begivenheden har en monitor. Vælg én under **Monitorer**, så vises den lige under dem.
 :::
 
-:::details Skift overvågningsstatus til kan ikke længere ændres
+:::details Skift monitorstatus til kan ikke længere ændres
 Begivenheden er startet, og dens monitorer er allerede i den status. Statussen gælder fra det øjeblik, begivenheden starter, til den slutter.
 :::
 

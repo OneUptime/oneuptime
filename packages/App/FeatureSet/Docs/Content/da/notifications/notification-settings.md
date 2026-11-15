@@ -1,6 +1,6 @@
 # Notifikationsindstillinger
 
-Notifikationsindstillinger afgør, hvilke nyheder der når dig om de ting, du ejer, som en hændelse, en overvågning eller en statusside, og om dine egne vagter, og via hvilke kanaler. De tilkalder dig aldrig: at tilkalde er dine vagtreglers opgave. Du sætter dem op under **Brugerindstillinger → Notifikationsindstillinger**, med én kontakt pr. begivenhed og kanal.
+Notifikationsindstillinger afgør, hvilke nyheder der når dig om de ting, du ejer, som en hændelse, en monitor eller en statusside, og om dine egne vagter, og via hvilke kanaler. De tilkalder dig aldrig: at tilkalde er dine vagtreglers opgave. Du sætter dem op under **Brugerindstillinger → Notifikationsindstillinger**, med én kontakt pr. begivenhed og kanal.
 
 :::cards
 - [Sådan virker indstillingerne](#sådan-virker-indstillingerne): Én kontakt pr. begivenhed og kanal, sendt til hver bekræftet metode.
@@ -91,7 +91,7 @@ Se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godke
 Disse kontakter afgør, hvilke nyheder der når dig, ikke hvor mange e-mails de bliver til. **Brugerindstillinger → E-mailindstillinger** har to kort til det, begge kun for dig, i dette projekt:
 
 - **Email Rollup** samler en bølge af nyheder i én e-mail: de første kommer stadig én ad gangen, resten samlet et par minutter senere.
-- **Fewer routine emails** slår med **Reduce routine emails** e-mails fra om noter, nye ejere, nye overvågninger og statussider, tilføjelser til episoder og ændringer i vagtpolitikker.
+- **Fewer routine emails** slår med **Reduce routine emails** e-mails fra om noter, nye ejere, nye monitorer og statussider, tilføjelser til episoder og ændringer i vagtpolitikker.
 
 Se [Notifikationsoversigt](/docs/emails/notification-rollup).
 
@@ -101,7 +101,7 @@ Se [Notifikationsoversigt](/docs/emails/notification-rollup).
 Tjek, at du har en bekræftet metode på den kanal under **Brugerindstillinger → Notifikationsmetoder**. For sms, opkald, WhatsApp og Telegram skal projektet også have slået kanalen til.
 :::
 
-:::details Jeg ejer en overvågning, men hører aldrig, når den går ned
+:::details Jeg ejer en monitor, men hører aldrig, når den går ned
 **Monitorstatus ændret** starter slået fra. Slå en kanal til for den, på fanen **Overvågning**.
 :::
 

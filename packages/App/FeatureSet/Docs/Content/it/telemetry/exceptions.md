@@ -128,12 +128,12 @@ Con **Archivia le eccezioni previste** attivo, nelle impostazioni degli insight 
 
 ## Spiegarla con l'IA
 
-In cima alla **Panoramica** di un'eccezione, **Spiega con OneUptime AI** chiede a OneUptime AI cosa è andato storto. Legge lo stack trace, la traccia e i registri dell'ultima occorrenza e i deploy del servizio intorno al momento in cui l'eccezione è iniziata, e risponde nella scheda **Cosa è successo**:
+In cima alla **Panoramica** di un'eccezione, **Spiega con OneUptime AI** chiede a OneUptime AI cosa è andato storto. Legge lo stack trace, la traccia e i log dell'ultima occorrenza e i deploy del servizio intorno al momento in cui l'eccezione è iniziata, e risponde nella scheda **Cosa è successo**:
 
 | Parte | Cosa dice |
 | --- | --- |
 | **Cosa è successo** | Una o due frasi, quanto è sicura OneUptime AI e dove sta il guasto: il codice, una dipendenza, l'infrastruttura, un input non valido o la configurazione. |
-| **Causa principale probabile** | La causa, e il frame, lo span, la riga di registro o il deploy che la mostra. |
+| **Causa principale probabile** | La causa, e il frame, lo span, la riga di log o il deploy che la mostra. |
 | **Correzione suggerita** | Cosa cambiare. |
 | **Dove guardare** | I frame dello stack trace da aprire per primi. |
 | **Prossimi passi** | Al massimo tre passi per confermarla o correggerla. |

@@ -30,7 +30,7 @@ Hver sti, port og variabel nedenfor er lest fra verktøyets egen kildekode eller
 
 Det **Hvem gjorde hva** slår på i hver guide ble tatt opp på DevStack, og på ingen av disse verktøyene. Hvor hvert verktøy tar det, er lest fra det verktøyets kildekode eller dokumentasjon.
 
-Ved siden av dem har hele veien kjørt på en levende OneUptime, startet slik Docker Compose starter den, på en ekte DevStack i stedet for noen av disse verktøyene. Agenten, installert med dokumentasjonens kommandoer, registrerte skyen fra de første dataene, og hver instans, hvert volum og hver hypervisor hadde en rad med statusen skyen selv ga den. Med `nova-compute` virkelig stoppet gikk raden ned, en overvåker fra malen Compute Service Down åpnet én hendelse som navnga verten omtrent 12 minutter senere, og den ble løst innen ett minutt etter at tjenesten startet igjen. Et prosjekts sonde koblet til den samme skyen gjennom dashbordets egne ruter og leste radene tilbake, og 114 spenn fra en signert oppstart kom fram på tvers av tjenestene, fra traceprofilen.
+Ved siden av dem har hele veien kjørt på en levende OneUptime, startet slik Docker Compose starter den, på en ekte DevStack i stedet for noen av disse verktøyene. Agenten, installert med dokumentasjonens kommandoer, registrerte skyen fra de første dataene, og hver instans, hvert volum og hver hypervisor hadde en rad med statusen skyen selv ga den. Med `nova-compute` virkelig stoppet gikk raden ned, en monitor fra malen Compute Service Down åpnet én hendelse som navnga verten omtrent 12 minutter senere, og den ble løst innen ett minutt etter at tjenesten startet igjen. Et prosjekts sonde koblet til den samme skyen gjennom dashbordets egne ruter og leste radene tilbake, og 114 spenn fra en signert oppstart kom fram på tvers av tjenestene, fra traceprofilen.
 
 Separat ble det en ekte agent sendte på DevStack og det Kolla-Ansibles Alertmanager postet tatt opp, og deretter sendt til en levende OneUptime: webhooken for utløsning åpnet én hendelse på riktig sky og på ingen annen, den samme webhooken igjen åpnet ingenting, og webhooken for løsning løste den.
 
@@ -45,7 +45,7 @@ Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrat
 
 ### Legg den på skyen
 
-Åpne overvåkerens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Incoming Request-overvåkers egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en overvåker for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
+Åpne monitorens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Incoming Request-monitors egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en monitor for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
 :::
 
 Alertmanager, i versjonen Kolla-Ansible fester, er tatt opp mens den poster i akkurat denne formen, og det den postet åpnet én hendelse på en kjørende OneUptime, som dens egen `resolved`-status løste.

@@ -67,11 +67,11 @@ Vælg eksisterende projektetiketter, der skal tilbydes som en rulleliste på das
 
 Dashboardet gemmer de valgte etiketters id'er og visningsnavne. Filtreringen bruger id'erne, så omdøbning af en projektetiket ødelægger ikke dens binding. Visningsnavnene gemmes sammen med dashboardet; vælg en omdøbt etiket igen i variabeleditoren for at opdatere dens viste navn. Offentlige dashboards viser de samme gemte valg.
 
-I en widget **Monitorliste** åbner du **Filtre → Etiketvariabel** og vælger `UNIT`. Når du vælger `0660`, vises nu de overvågninger, der har den etiket. Andre widgets påvirkes ikke, medmindre de udtrykkeligt understøtter og binder variablen: **SLO-liste** har den samme indstilling **Etiketvariabel**.
+I en widget **Monitorliste** åbner du **Filtre → Etiketvariabel** og vælger `UNIT`. Når du vælger `0660`, vises nu de monitorer, der har den etiket. Andre widgets påvirkes ikke, medmindre de udtrykkeligt understøtter og binder variablen: **SLO-liste** har den samme indstilling **Etiketvariabel**.
 
-Faste widgetfiltre gælder fortsat. Med en fast etiket `network` og `UNIT` sat til `0660` skal en overvågning for eksempel have begge etiketter. Flere valgte enheder matcher enhver af de valgte enheder. Når du vælger **Alle**, fjernes kun variablens betingelse, og de faste filtre for etiket, status og overvågningstype bevares.
+Faste widgetfiltre gælder fortsat. Med en fast etiket `network` og `UNIT` sat til `0660` skal en monitor for eksempel have begge etiketter. Flere valgte enheder matcher enhver af de valgte enheder. Når du vælger **Alle**, fjernes kun variablens betingelse, og de faste filtre for etiket, status og monitortype bevares.
 
-En manglende variabel eller et valg uden for de konfigurerede valgmuligheder viser en fejl. En valgt etiket uden matchende overvågninger viser den tomme liste. Fjern udtrykkeligt widgettens binding, når den ikke længere er nødvendig.
+En manglende variabel eller et valg uden for de konfigurerede valgmuligheder viser en fejl. En valgt etiket uden matchende monitorer viser den tomme liste. Fjern udtrykkeligt widgettens binding, når den ikke længere er nødvendig.
 
 ### Custom List og Text Input
 
@@ -93,7 +93,7 @@ Hver kilde når widgets på sin egen måde:
 
 - Variabler af typen **Telemetriattribut** filtrerer widgets, uden at du skal indstille noget på dem: alle metrikdiagrammer, værdier, målere og tabeller; **Logdiagram**, **Logstrøm**, **Spordiagram** og **Sportabel**; og de infrastrukturlister, hvis ressourcer har attributten, for eksempel `host.name` på værtslister og `k8s.namespace.name` på Kubernetes-lister. Et diagram over en metrik uden attributten viser ingen data, så længe en værdi er valgt: vælg **Alle** for at se det igen. **Sporliste** og hændelses- og advarselslisterne følger dem ikke.
 - Variabler af typen **Projektetiketter** filtrerer en **Monitorliste** eller en **SLO-liste**, hvis **Etiketvariabel** nævner dem.
-- **Enhver variabel** kan skrives ind i tekst som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i forespørgslen til en [ekstern datakilde](/docs/dashboards/data-sources), og i titlen på en **Monitorliste** eller en **SLO-liste**. En titel som `{{UNIT}} NETWORK` viser `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styrer kun den viste tekst; konfigurér **Etiketvariabel** for at filtrere overvågningsforespørgslen.
+- **Enhver variabel** kan skrives ind i tekst som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i forespørgslen til en [ekstern datakilde](/docs/dashboards/data-sources), og i titlen på en **Monitorliste** eller en **SLO-liste**. En titel som `{{UNIT}} NETWORK` viser `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styrer kun den viste tekst; konfigurér **Etiketvariabel** for at filtrere monitorforespørgslen.
 
 [SLO-widgetten](/docs/dashboards/widgets#slo) kan følge en Telemetry Attribute-variabel på nøglen `sloName`, så seerne vælger, hvilket SLO den viser.
 

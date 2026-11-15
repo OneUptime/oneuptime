@@ -286,7 +286,7 @@ Også kalt: **Sak**. Se [Sikkerhetssaker og playbooks (SOAR)](/docs/telemetry/se
 
 ### Logger
 
-Linjene tjenestene, vertene og agentene dine skriver, som du søker gjennom i loggutforskeren og følger med på via en logg-overvåking.
+Linjene tjenestene, vertene og agentene dine skriver, som du søker gjennom i loggutforskeren og følger med på via en logg-monitor.
 
 Se [Loggutforsker](/docs/telemetry/logs-explorer).
 

@@ -103,7 +103,7 @@ L'esempio qui sotto segue questi passaggi per un flusso di lavoro reale.
 
 ## Esempio: inviare i nuovi incidenti a un webhook
 
-Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo URL — un sistema di ticketing, un data warehouse, qualsiasi cosa accetti un webhook — e scrive il motivo nel registro dell'esecuzione quando la richiesta non va a buon fine.
+Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo URL — un sistema di ticketing, un data warehouse, qualsiasi cosa accetti un webhook — e scrive il motivo nel log dell'esecuzione quando la richiesta non va a buon fine.
 
 ```mermaid title="L'esempio completo"
 flowchart TB
@@ -156,7 +156,7 @@ Ogni riferimento `{{…}}` viene sostituito con il valore dell'incidente quando 
 
 Fai clic su **Aggiungi componente**, poi su **Log**. Collega a esso il punto **Errore** del blocco API, poi imposta il **Valore** del blocco Log su `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
-Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta che non è 2xx — ora prende questo percorso, e il registro dell'esecuzione dice perché.
+Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta che non è 2xx — ora prende questo percorso, e il log dell'esecuzione dice perché.
 
 ### Provalo
 

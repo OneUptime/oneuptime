@@ -491,7 +491,7 @@ Det är just poängen. `Declared At` registrerar när OneUptime fick veta det, v
 
 OneUptime registrerar det ögonblicket på incidenten, och på larmet, som `First Paged At`, en gång, och flyttar det aldrig. Bara en utlarmning som verkligen gick ut räknas: i **Tidslinje för körningen** för en jourpolicy eller en direkt utlarmning, en person vars utlarmning skickades, bekräftades eller eskalerades. Ett steg med statusen **Hoppade över** eller som slutade med **Fel** räknas inte, och inte heller en policy som startade men inte larmade någon, till exempel en med ett schema där ingen hade jour. Incidenter som larmades innan `First Paged At` fanns får sitt värde från körningarna av sina jourpolicyer.
 
-En incident som ingen larmades om har inget värde: **Inte startad än** medan den är öppen, och **Inte nådd** när den är löst. Diagrammet kan delas upp efter allvarlighetsgrad, så att du ser hur snabbt varje allvarlighetsgrad besvaras när någon väl har larmats. Incidentens sida visar det också: under dess tid till bekräftelse lägger den till hur lång tid efter den första utlarmningen den bekräftades, till exempel **4 minuter efter utlarmning**. Måttet för tid till bekräftelse och MTTA i sammanfattningarna i Slack och Microsoft Teams räknas fortfarande från när incidenten deklarerades.
+En incident som ingen larmades om har inget värde: **Inte startad än** medan den är öppen, och **Inte nådd** när den är löst. Diagrammet kan delas upp efter allvarlighetsgrad, så att du ser hur snabbt varje allvarlighetsgrad besvaras när någon väl har larmats. Incidentens sida visar det också: under dess tid till bekräftelse lägger den till hur lång tid efter den första utlarmningen den bekräftades, till exempel **4 minuter efter utlarmning**. Mätvärdet för tid till bekräftelse och MTTA i sammanfattningarna i Slack och Microsoft Teams räknas fortfarande från när incidenten deklarerades.
 
 ### Rätta en felaktig tidsstämpel
 
@@ -501,11 +501,11 @@ Fältet **Börjar den** på en post i tillståndstidslinjen kan redigeras. Bekr�
 
 ### Diagram, API och Terraform
 
-Välj **Visa diagram** på en mätning för att öppna dess diagram i måttutforskaren, över den senaste månaden, sammanfattat på dess sätt. Varje aktiverad mätning skriver ett mått som heter `oneuptime.incident.measurement.<key>`, som du också kan lägga till på vilken instrumentpanel som helst. Larm använder `oneuptime.alert.measurement.<key>` och schemalagt underhåll använder `oneuptime.scheduled-maintenance.measurement.<key>`. Listans kolumn **Nyckel**, dold som standard, visar varje mätnings nyckel.
+Välj **Visa diagram** på en mätning för att öppna dess diagram i mätvärdesutforskaren, över den senaste månaden, sammanfattat på dess sätt. Varje aktiverad mätning skriver ett mätvärde som heter `oneuptime.incident.measurement.<key>`, som du också kan lägga till på vilken instrumentpanel som helst. Larm använder `oneuptime.alert.measurement.<key>` och schemalagt underhåll använder `oneuptime.scheduled-maintenance.measurement.<key>`. Listans kolumn **Nyckel**, dold som standard, visar varje mätnings nyckel.
 
 Definitionerna är vanliga API-resurser, så Terraform-providern hanterar dem som `oneuptime_incident_measurement`, `oneuptime_alert_measurement` och `oneuptime_scheduled_maintenance_measurement`. Beräknade värden är skrivskyddade och visas som datakällor. Utelämnade tar alternativen under **Fler fält** samma standardvärden som i instrumentpanelen: `unit` är `seconds` (eller `minutes`, `hours`, `days`), `aggregation_type` är `Avg` (eller `P50`, `P90`, `P95`, `P99`, `Max`, `Min`), och `start_state_occurrence` och `end_state_occurrence` är `First` (eller `Last`). `show_on_incident_view` (`show_on_alert_view`, `show_on_scheduled_maintenance_view`) är `true`.
 
-**Nyckeln** är permanent eftersom den är en del av måttets namn — att ändra den skulle lämna serien föräldralös. Byt namn på mätningen fritt; nyckeln står kvar.
+**Nyckeln** är permanent eftersom den är en del av mätvärdets namn — att ändra den skulle lämna serien föräldralös. Byt namn på mätningen fritt; nyckeln står kvar.
 
 Via API:t och i Terraform kan nyckeln också utelämnas: den bildas från namnet, med `-2`, `-3` och så vidare tillagt när en annan mätning i projektet redan har den. En nyckel som du skickar behålls som du skrev den. Den måste bestå av gemener, siffror och bindestreck, börja med en bokstav eller en siffra, vara högst 50 tecken lång, och ingen annan mätning i projektet får ha den.
 

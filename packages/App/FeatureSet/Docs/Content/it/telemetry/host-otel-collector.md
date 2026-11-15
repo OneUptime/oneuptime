@@ -7,7 +7,7 @@ Esegui l'OpenTelemetry Collector su una macchina Linux, macOS o Windows per invi
 
 :::cards
 - [Installa il collector](#installa-il-collector): Tre passaggi su Linux, macOS o Windows.
-- [Scegli cosa raccogliere](#scegli-cosa-raccogliere): Metriche, log da file, il journal, i registri eventi e lo stato dei servizi.
+- [Scegli cosa raccogliere](#scegli-cosa-raccogliere): Metriche, log da file, il journal, i log eventi e lo stato dei servizi.
 - [Attributi di inventario](#attributi-di-inventario-ip-mac-numero-di-serie-produttore-modello-firmware): IP, MAC, numero di serie, produttore, modello e firmware per il tuo CMDB.
 - [Invia meno](#ridurre-il-volume-dei-dati-raccolti): Meno righe di log, intervalli più lunghi, meno serie.
 :::
@@ -480,7 +480,7 @@ sc.exe start "otelcol-contrib"
 sc.exe query "otelcol-contrib"
 ```
 
-Il servizio viene eseguito come `LocalSystem`, che può leggere il registro eventi `Security` e ogni servizio Windows. Su Windows lo scraper `load` si limita a emulare un carico medio dal contatore *Processor Queue Length*, partendo da 0.
+Il servizio viene eseguito come `LocalSystem`, che può leggere il log eventi `Security` e ogni servizio Windows. Su Windows lo scraper `load` si limita a emulare un carico medio dal contatore *Processor Queue Length*, partendo da 0.
 
 Il nome dell'asset deve iniziare con `otelcol-contrib_`. L'archivio core `otelcol_<version>_windows_amd64.tar.gz` estrae `otelcol.exe`, che non ha i receiver `windowseventlog` né `windows_service`; rinominarlo in `otelcol-contrib.exe` non li aggiunge. Preferisci un programma di installazione? La stessa [pagina delle release](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) offre un `otelcol-contrib_<version>_windows_x64.msi` firmato, che registra il servizio per te: puntalo a questo `config.yaml` e mantieni il servizio su `LocalSystem`.
 :::
@@ -1242,7 +1242,7 @@ Il gestore dei servizi ha avviato il programma, ma il collector è terminato dur
 - *Event Viewer → Windows Logs → Application*, origine `otelcol-contrib`, registra l'errore di avvio che il gestore dei servizi ha nascosto.
 :::
 
-:::details Il registro eventi Security restituisce accesso negato
+:::details Il log eventi Security restituisce accesso negato
 Al servizio mancano i diritti. Eseguilo come `LocalSystem` (il valore predefinito di `sc.exe create`), oppure concedi al suo account il diritto utente *Manage auditing and security log*.
 :::
 

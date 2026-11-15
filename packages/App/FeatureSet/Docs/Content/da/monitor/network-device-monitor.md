@@ -109,7 +109,7 @@ En enheds oplysninger — navn, beskrivelse, rolle, lokation, etiketter og adres
 | Beskrivelse | Fritekst. | Nej |
 | Device Role | Core-switch, access-switch, firewall og så videre. Bestemmer enhedens niveau på kortet og afgrænser advarselspolitikker. | Nej |
 | MAC-adresse | Enhedens egen MAC. Kortet bruger den til at placere en enhed, der hverken taler LLDP eller CDP, på den switchport, der lærte den; se [Enheder kun med ping og deres switchport](#enheder-kun-med-ping-og-deres-switchport). Læres som regel for dig fra en routers ARP-tabel. | Nej |
-| Opret også en Ping-overvågning til hændelser | Sonden pinger allerede enheden og giver den en status; en Ping-monitor er det, der gør mislykkede ping til en hændelse. Sæt kryds, og der oprettes en på værtsnavnet, bundet til enheden, når du gemmer. Den tæller med i dit abonnement, og dens hændelser er slået fra, indtil du slår dem til fra monitorens side. | Nej |
+| Opret også en Ping-monitor til hændelser | Sonden pinger allerede enheden og giver den en status; en Ping-monitor er det, der gør mislykkede ping til en hændelse. Sæt kryds, og der oprettes en på værtsnavnet, bundet til enheden, når du gemmer. Den tæller med i dit abonnement, og dens hændelser er slået fra, indtil du slår dem til fra monitorens side. | Nej |
 
 Når du sætter kryds ved Ping-monitoren, vises **Ping from probes**, monitorens egne sonder. De skal kunne nå enhedens netværk; lad feltet være tomt for at bruge projektets standardsonder. Brug hellere [advarselspolitikker](#advarselspolitikker) til at advare om mange enheder på én gang.
 

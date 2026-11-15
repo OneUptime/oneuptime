@@ -160,7 +160,7 @@ Via API'et, MCP eller Terraform er den samme regels **definition**:
 
 Gentag med `jitter` (`sdwan.gateway.jitter.ms`, enhed `ms`) og `packet_loss` (`sdwan.gateway.packet_loss.percent`, enhed `%`) for de to andre SLA-målinger. En regel **Count of logs**, der er filtreret på `gw_status` = `down` og grupperet efter `gw_name`, tæller meldinger om nedlagte gateways pr. gateway.
 
-Inden for få minutter viser reglelisten et tidspunkt under **Computed Until**, og `sdwan.gateway.latency.ms` dukker op i måleudforskeren: vælg den, gruppér efter `gw_name`, og du har én latenslinje pr. gateway.
+Inden for få minutter viser reglelisten et tidspunkt under **Computed Until**, og `sdwan.gateway.latency.ms` dukker op i metrikudforskeren: vælg den, gruppér efter `gw_name`, og du har én latenslinje pr. gateway.
 
 ### Få en alarm, når én gateways latens bliver ved med at være høj
 

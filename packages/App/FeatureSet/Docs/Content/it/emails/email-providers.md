@@ -29,7 +29,7 @@ Nell'Admin Dashboard, apri **Impostazioni**, poi **Notifiche > E-mail**. Nella s
 | Postmark | Token API del server | `https://api.postmarkapp.com/email` |
 | Resend | Chiave API | `https://api.resend.com/emails` |
 
-Ogni e-mail viene inviata con la sua parte di testo, e le sue immagini (il logo di OneUptime, gli screenshot) come allegati inline. Quando un provider limita la velocità con cui invii, o ha un errore dalla sua parte, OneUptime riprova dopo l'attesa richiesta dal provider; qualsiasi altro rifiuto viene conservato nei registri di notifica, con la risposta del provider.
+Ogni e-mail viene inviata con la sua parte di testo, e le sue immagini (il logo di OneUptime, gli screenshot) come allegati inline. Quando un provider limita la velocità con cui invii, o ha un errore dalla sua parte, OneUptime riprova dopo l'attesa richiesta dal provider; qualsiasi altro rifiuto viene conservato nei log di notifica, con la risposta del provider.
 
 ## Amazon SES
 

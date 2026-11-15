@@ -11,9 +11,9 @@
 
 ## 開始之前
 
-- **能撰寫 Runbook 的角色。** 專案擁有者、專案管理員和操作手冊管理員可以建立 Runbook 並儲存其步驟。使用細部權限時，您需要 **Create Runbook** 和 **Edit Runbook** 。請參閱 [權限](/docs/runbooks/configuration#權限)。
+- **能撰寫 Runbook 的角色。** 專案擁有者、專案管理員和運行手冊管理員可以建立 Runbook 並儲存其步驟。使用細部權限時，您需要 **Create Runbook** 和 **Edit Runbook** 。請參閱 [權限](/docs/runbooks/configuration#權限)。
 - **用於 Bash、SSH 和 kubectl 步驟的 Runner。** 這些步驟在您自己基礎架構中的 [Runner](/docs/runbooks/agents) 上執行，絕不在 OneUptime Worker 上執行。請先安裝一個。未選擇 Runner 的步驟會在您設定的 [專案預設 Runner](/docs/runbooks/agents#專案預設-runner) 上執行；如果沒有設定，JavaScript 步驟會在 [全域 Runner](/docs/runbooks/agents#全域-runner) 上執行。
-- **用於 SSH 和 kubectl 步驟的機密變數。** 步驟登入所用的金鑰、密碼或 kubeconfig 是一個機密 [Runbook 變數](/docs/runbooks/variables)。變數由專案擁有者和專案管理員建立，操作手冊管理員在自己撰寫的步驟中選擇它們。kubectl 步驟也可以改用 Runner 自身的存取權限。
+- **用於 SSH 和 kubectl 步驟的機密變數。** 步驟登入所用的金鑰、密碼或 kubeconfig 是一個機密 [Runbook 變數](/docs/runbooks/variables)。變數由專案擁有者和專案管理員建立，運行手冊管理員在自己撰寫的步驟中選擇它們。kubectl 步驟也可以改用 Runner 自身的存取權限。
 - **用於 AI 步驟的 LLM 提供者。** 請參閱 [LLM 提供者](/docs/ai/llm-provider)。
 
 ## 建立 Runbook

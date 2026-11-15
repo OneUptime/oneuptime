@@ -82,7 +82,7 @@ Aggiungere, modificare o eliminare un livello ha effetto subito: OneUptime valut
 | **Reliability first** | 25% rimanente o meno | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Consentite |
 | **Budget exhausted** | 0% rimanente o meno | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Congelate |
 
-Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. **Budget exhausted** congela le distribuzioni, come dice il suo accordo, e la conferma lo indica: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni). I livelli aggiunti prima che il gate esistesse non congelano niente finché non attivi il congelamento. Vengono aggiunti solo i livelli che lo SLO non ha: un livello con lo stesso nome, o con la stessa soglia, conta come presente, che sia attivo o no. Chiederlo due volte, da una seconda scheda o tramite l'API, quindi non aggiunge niente due volte. Se uno dei livelli non si può aggiungere, non ne viene aggiunto nessuno: lo SLO resta com'era e puoi riprovare. Ogni livello aggiunto così viene registrato nei registri di audit dello SLO come aggiunto da te.
+Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. **Budget exhausted** congela le distribuzioni, come dice il suo accordo, e la conferma lo indica: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni). I livelli aggiunti prima che il gate esistesse non congelano niente finché non attivi il congelamento. Vengono aggiunti solo i livelli che lo SLO non ha: un livello con lo stesso nome, o con la stessa soglia, conta come presente, che sia attivo o no. Chiederlo due volte, da una seconda scheda o tramite l'API, quindi non aggiunge niente due volte. Se uno dei livelli non si può aggiungere, non ne viene aggiunto nessuno: lo SLO resta com'era e puoi riprovare. Ogni livello aggiunto così viene registrato nei log di audit dello SLO come aggiunto da te.
 
 ## Dove compare il livello
 
@@ -256,7 +256,7 @@ Lo SLO risponde con due campi, letti con l'autorizzazione di lettura dello SLO s
 Come cambia la risposta:
 
 - Le distribuzioni vengono congelate dalla valutazione che mette lo SLO in un livello che le congela, e di nuovo consentite da quella che lo fa uscire, con i margini di uscita propri del livello: vedi [Entrare in un livello e uscirne](#entrare-in-un-livello-e-uscirne). Da un livello che congela a un altro restano congelate, e `deploymentsFrozenAt` mantiene il suo orario.
-- Attivare o disattivare **Congela le distribuzioni** per il livello in cui si trova lo SLO ha effetto entro circa un minuto. Per rilasciare prima che il budget si riprenda, disattivalo: la modifica viene registrata a tuo nome nei registri di audit dello SLO.
+- Attivare o disattivare **Congela le distribuzioni** per il livello in cui si trova lo SLO ha effetto entro circa un minuto. Per rilasciare prima che il budget si riprenda, disattivalo: la modifica viene registrata a tuo nome nei log di audit dello SLO.
 - Uno SLO **In pausa** o **Configurato male** mantiene la risposta che aveva, come mantiene il suo livello: una finestra di manutenzione che mette in pausa ogni monitor non toglie un congelamento né ne avvia uno. Uno SLO disabilitato o archiviato non viene valutato affatto, quindi anche lui mantiene la sua risposta.
 - Finché le distribuzioni sono congelate, la **Panoramica** dello SLO mostra da quando, e il suo **Feed** dice quando vengono congelate e di nuovo consentite.
 

@@ -1,5 +1,7 @@
 // UX rule: Docs/ux/README.md#in-every-language
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
 
 /*
@@ -45,6 +47,11 @@ interface SentenceRule {
   word: RegExp;
   // The word the language no longer says for it.
   dropped: RegExp;
+  /*
+   * English docs lines that name the thing beside something the other word
+   * is right for (a Korean line about push notifications or reminders).
+   */
+  docsExcept?: RegExp;
 }
 
 const RULES: ReadonlyArray<SentenceRule> = [
@@ -61,6 +68,8 @@ const RULES: ReadonlyArray<SentenceRule> = [
       /notif|\bnotice|\bnotify|\balert(?:ing)? (?:channel|rule|polic)|alertmanager|e-?mail alert|sms alert|critical(?: on-call)? alerts?|warning alerts?|warnings raise alerts/i,
     word: /경고/,
     dropped: /알림/,
+    docsExcept:
+      /notification|\bnotify|\bpush|reminder|critical(?: on-call)? alerts?|warning alerts?|alertmanager|e-?mail alert|sms alert/i,
   },
   {
     language: "zh-CN",
@@ -229,6 +238,131 @@ describe("a thing's sentences in each language", () => {
     (_language: string, _thing: string, rule: SentenceRule) => {
       expect(stillDropped(rule)).toEqual([]);
       expect(sayingTheWord(rule)).toBeGreaterThan(10);
+    },
+  );
+});
+
+/*
+ * THE DOCS SAY THE WORD TOO (#8692).
+ *
+ * A docs page names the thing as the Dashboard does: every line whose
+ * English line (the same line of the English page, as the docs suites read
+ * them) names the thing says the language's word in its prose. What a line
+ * quotes is read elsewhere: a bold label or a quote is the words of the
+ * product that draws it, which the docs suites check against that product's
+ * locale, and a link's text is the title of the page or heading it opens.
+ * Headings and the docs navigation keep their titles here, for the anchors
+ * and the cards that name them, and so do fenced blocks and code spans.
+ */
+const DOCS_CONTENT: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/Docs/Content",
+);
+
+// What a docs line quotes: code, a link, a bold label, a quote or an address.
+const NOT_DOCS_WORDS: RegExp =
+  /`[^`]*`|\[[^\]]*\]\([^)]*\)|\*\*[^*]+\*\*|«[^»]*»|“[^”]*”|„[^“”]*[“”]|「[^」]*」|『[^』]*』|"[^"]*"|https?:\/\/\S+|\{\{[^}]*\}\}/g;
+
+// A fenced block's first or last line.
+const FENCE: RegExp = /^\s*(```|~~~)/;
+
+// A heading, whose words are its anchor's.
+const HEADING: RegExp = /^\s*#/;
+
+function docsPages(language: string): Array<string> {
+  const pages: Array<string> = [];
+  const walk: (dir: string) => void = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full: string = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith(".md")) {
+        pages.push(path.relative(path.join(DOCS_CONTENT, language), full));
+      }
+    }
+  };
+
+  walk(path.join(DOCS_CONTENT, language));
+
+  return pages;
+}
+
+// The lines of `rule.language`'s docs that name the thing and still say the dropped word.
+function docsLinesStillDropped(rule: SentenceRule): Array<string> {
+  const found: Array<string> = [];
+  const except: RegExp | undefined = rule.docsExcept || rule.except;
+
+  for (const page of docsPages(rule.language)) {
+    const englishFile: string = path.join(DOCS_CONTENT, "en", page);
+
+    if (!fs.existsSync(englishFile)) {
+      continue;
+    }
+
+    const english: Array<string> = fs
+      .readFileSync(englishFile, "utf8")
+      .split("\n");
+    const lines: Array<string> = fs
+      .readFileSync(path.join(DOCS_CONTENT, rule.language, page), "utf8")
+      .split("\n");
+    let inFence: boolean = false;
+
+    lines.forEach((line: string, index: number): void => {
+      if (FENCE.test(line)) {
+        inFence = !inFence;
+        return;
+      }
+
+      const englishLine: string = english[index] || "";
+
+      if (
+        inFence ||
+        HEADING.test(line) ||
+        !rule.english.test(englishLine) ||
+        (except && except.test(englishLine))
+      ) {
+        return;
+      }
+
+      if (rule.dropped.test(line.replace(NOT_DOCS_WORDS, " "))) {
+        found.push(`${page}:${index + 1}`);
+      }
+    });
+  }
+
+  return found;
+}
+
+describe("a thing's docs in each language", () => {
+  test("read a line's prose, not what it quotes or its headings", () => {
+    expect(
+      "See `registro` at [Registri](/docs/a#registri), **Registri** and «registro».".replace(
+        NOT_DOCS_WORDS,
+        " ",
+      ),
+    ).not.toMatch(/registr/i);
+    // The prose around them is read.
+    expect(
+      "Apri i registri da [Log](/docs/a) o **Log**.".replace(
+        NOT_DOCS_WORDS,
+        " ",
+      ),
+    ).toMatch(/registri/);
+    expect(HEADING.test("### Registri")).toBe(true);
+    expect(docsPages("it")).toEqual(
+      expect.arrayContaining(["telemetry/logs-explorer.md"]),
+    );
+  });
+
+  test.each(
+    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+      return [rule.language, rule.thing, rule];
+    }),
+  )(
+    "%s's docs name %s with its one word",
+    (_language: string, _thing: string, rule: SentenceRule) => {
+      expect(docsLinesStillDropped(rule)).toEqual([]);
     },
   );
 });

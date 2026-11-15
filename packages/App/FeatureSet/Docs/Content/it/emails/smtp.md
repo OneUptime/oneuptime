@@ -291,7 +291,7 @@ Una configurazione con **Trasporto** `Microsoft Graph` mostra questo messaggio q
 :::
 
 :::details "SMTP server host … could not be reached"
-OneUptime ha rifiutato di connettersi al server di posta del progetto. Su OneUptime Cloud, un hostname che non si risolve, o che si risolve in un indirizzo privato, di loopback o link-local, viene rifiutato con questo messaggio, che non dice mai quale dei casi si sia verificato: usa l'hostname pubblico del server di posta. In un'installazione self-hosted, e per un server di posta indicato con il suo indirizzo IP, il messaggio dice invece il motivo. **Invia e-mail di prova** lo mostra solo per una configurazione OAuth; per le altre, trovalo con **Visualizza messaggio di stato** nella scheda **E-mail** dei registri di notifica.
+OneUptime ha rifiutato di connettersi al server di posta del progetto. Su OneUptime Cloud, un hostname che non si risolve, o che si risolve in un indirizzo privato, di loopback o link-local, viene rifiutato con questo messaggio, che non dice mai quale dei casi si sia verificato: usa l'hostname pubblico del server di posta. In un'installazione self-hosted, e per un server di posta indicato con il suo indirizzo IP, il messaggio dice invece il motivo. **Invia e-mail di prova** lo mostra solo per una configurazione OAuth; per le altre, trovalo con **Visualizza messaggio di stato** nella scheda **E-mail** dei log di notifica.
 :::
 
 :::details L'e-mail di prova non arriva

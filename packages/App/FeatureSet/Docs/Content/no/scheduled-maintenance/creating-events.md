@@ -150,7 +150,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `title`, `startsAt`, `endsAt`                          | Påkrevd, som i skjemaet.                                                                  |
 | `monitors`, `statusPages`, `labels`                   | Monitorene, statussidene og etikettene til hendelsen, alle fra prosjektet til API-nøkkelen. |
-| `changeMonitorStatusToId`                             | Overvåkingsstatusen monitorene går over til når den starter.                              |
+| `changeMonitorStatusToId`                             | Monitorstatusen monitorene går over til når den starter.                              |
 | `currentScheduledMaintenanceStateId`                  | Ignoreres: hver hendelse starter i den planlagte tilstanden din.                          |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Bryteren **Når hendelsen planlegges**. De to andre tidspunktene har egne felt.            |
 | `publishOnStatusPageAt`                               | Når hendelsen publiseres på statussidene sine og abonnentene får beskjed om at den er planlagt. Utelatt: med en gang. |
@@ -163,11 +163,11 @@ Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_mainten
 Vinduet må være i riktig rekkefølge: hendelsen slutter etter at den har startet. Flytt **Begynner den** først, siden **Slutter den** følger med, og sett deretter **Slutter den**.
 :::
 
-:::details Endre overvåkingsstatus til mangler i skjemaet
+:::details Endre monitorstatus til mangler i skjemaet
 Det spørres bare om den når hendelsen har en monitor. Velg én under **Monitorer**, så vises den rett under dem.
 :::
 
-:::details Endre overvåkingsstatus til kan ikke endres lenger
+:::details Endre monitorstatus til kan ikke endres lenger
 Hendelsen har startet, og monitorene dens har allerede den statusen. Statusen gjelder fra det øyeblikket hendelsen starter, til den slutter.
 :::
 

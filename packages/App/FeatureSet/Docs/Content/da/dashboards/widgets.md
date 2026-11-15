@@ -146,9 +146,9 @@ Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du me
 
 | Widget | Hvad den viser | Filtre |
 | --- | --- | --- |
-| **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Monitorliste** | Overvågninger med deres aktuelle status. | I drift eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
+| **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, monitorer og etiketter. |
+| **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, monitorer og etiketter. |
+| **Monitorliste** | Monitorer med deres aktuelle status. | I drift eller ej, status, monitortype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet efter status i stedet for en tabel: vælg det under **Visningstilstand**. De viser den aktuelle tilstand, uanset dashboardets tidsinterval.
 
@@ -165,7 +165,7 @@ Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet eft
 
 Brug den, når dashboardet besvarer "holder vi det, vi har lovet?" snarere end "hvad sker der lige nu?".
 
-SLO-widgetten virker på [offentlige dashboards](/docs/dashboards/sharing). Det, der offentliggøres, er SLO'ets nøgletal (navn, mål, aktuel SLI, resterende fejlbudget, burn rate og status), uanset hvilket af dem widgetten tegner. Definitionen forbliver privat: de overvågninger, det holder øje med, dets etiketter, beskrivelse, forespørgsel og evalueringsplan sendes aldrig til en offentlig seer. En Tile-widget offentliggør kun disse aktuelle tal; en Diagram-widget offentliggør også historikken for den ene serie, den tegner, og intet andet.
+SLO-widgetten virker på [offentlige dashboards](/docs/dashboards/sharing). Det, der offentliggøres, er SLO'ets nøgletal (navn, mål, aktuel SLI, resterende fejlbudget, burn rate og status), uanset hvilket af dem widgetten tegner. Definitionen forbliver privat: de monitorer, det holder øje med, dets etiketter, beskrivelse, forespørgsel og evalueringsplan sendes aldrig til en offentlig seer. En Tile-widget offentliggør kun disse aktuelle tal; en Diagram-widget offentliggør også historikken for den ene serie, den tegner, og intet andet.
 
 ### SLO List
 
@@ -200,7 +200,7 @@ Brug dem til én side, der blander tilstanden af din infrastruktur med telemetri
 
 ### Network Map
 
-Dine netværkssites tegnet på verdenskortet, hvert fastgjort på sin egen breddegrad og længdegrad og farvet efter den overvågningsstatus, der er samlet på det. Sites tæt på hinanden deler en markør med antallet skrevet indeni; en markør, der står for præcis ét site, åbner det site, når du klikker på den.
+Dine netværkssites tegnet på verdenskortet, hvert fastgjort på sin egen breddegrad og længdegrad og farvet efter den monitorstatus, der er samlet på det. Sites tæt på hinanden deler en markør med antallet skrevet indeni; en markør, der står for præcis ét site, åbner det site, når du klikker på den.
 
 Kortet indrammer sig selv om de sites, det har tegnet: et netværk inden for ét land fylder rammen med det land, og ét spredt over flere kontinenter åbner på hele verden. Der er ingen knapper til at zoome eller panorere: en dashboardflise er et billede, og siden Network Map under Network er der, hvor du går hierarkiet igennem.
 

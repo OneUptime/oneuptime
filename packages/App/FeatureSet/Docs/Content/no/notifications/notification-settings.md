@@ -1,6 +1,6 @@
 # Varselinnstillinger
 
-Varselinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, som en hendelse, en overvåking eller en statusside, og om dine egne vakter, og via hvilke kanaler. De tilkaller deg aldri: å tilkalle er vaktreglenes jobb. Du setter dem opp under **Brukerinnstillinger → Varselinnstillinger**, med én bryter per hendelse og kanal.
+Varselinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, som en hendelse, en monitor eller en statusside, og om dine egne vakter, og via hvilke kanaler. De tilkaller deg aldri: å tilkalle er vaktreglenes jobb. Du setter dem opp under **Brukerinnstillinger → Varselinnstillinger**, med én bryter per hendelse og kanal.
 
 :::cards
 - [Slik virker innstillingene](#slik-virker-innstillingene): Én bryter per hendelse og kanal, sendt til hver verifisert metode.
@@ -91,7 +91,7 @@ Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#god
 Disse bryterne avgjør hvilke oppdateringer som når deg, ikke hvor mange e-poster de blir. **Brukerinnstillinger → E-postinnstillinger** har to kort for det, begge bare for deg, i dette prosjektet:
 
 - **Email Rollup** samler en bølge av oppdateringer i én e-post: de første kommer fortsatt én og én, resten samlet noen minutter senere.
-- **Fewer routine emails** slår med **Reduce routine emails** av e-postene om notater, nye eiere, nye overvåkinger og statussider, tillegg i episoder og endringer i vaktpolicyer.
+- **Fewer routine emails** slår med **Reduce routine emails** av e-postene om notater, nye eiere, nye monitorer og statussider, tillegg i episoder og endringer i vaktpolicyer.
 
 Se [Varseloppsummering](/docs/emails/notification-rollup).
 
@@ -101,7 +101,7 @@ Se [Varseloppsummering](/docs/emails/notification-rollup).
 Sjekk at du har en verifisert metode på den kanalen under **Brukerinnstillinger → Varselmetoder**. For SMS, anrop, WhatsApp og Telegram må prosjektet også ha slått på kanalen.
 :::
 
-:::details Jeg eier en overvåking, men får aldri vite når den går ned
+:::details Jeg eier en monitor, men får aldri vite når den går ned
 **Monitorstatus endret** starter slått av. Slå på en kanal for den, på fanen **Overvåking**.
 :::
 

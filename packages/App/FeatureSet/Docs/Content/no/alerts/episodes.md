@@ -94,12 +94,12 @@ Listens kolonne **Gruppering** sier "Åpner en episode når 3 samsvarende varsle
 
 ### Grupper varsler på tilkoblede tjenester
 
-Når en tjeneste svikter, begynner tjenestene som kaller den, også å feile, og hver av dem utløser et varsel på sin egen overvåking. **Tilkoblede tjenester** samler disse varslene i én episode ved hjelp av [tjenestekartet](/docs/telemetry/topology) som OneUptime tegner ut fra sporene dine.
+Når en tjeneste svikter, begynner tjenestene som kaller den, også å feile, og hver av dem utløser et varsel på sin egen monitor. **Tilkoblede tjenester** samler disse varslene i én episode ved hjelp av [tjenestekartet](/docs/telemetry/topology) som OneUptime tegner ut fra sporene dine.
 
-- Tjenestene til et varsel er de som er koblet til det under **Berørte ressurser**, og de som er koblet til overvåkingen til varselet.
+- Tjenestene til et varsel er de som er koblet til det under **Berørte ressurser**, og de som er koblet til monitoren til varselet.
 - Et varsel går inn i en åpen episode for regelen når en av tjenestene er, kaller eller kalles av en tjeneste til et varsel som allerede er i den, så en feil som sprer seg, holder én episode.
 - Tilkoblet betyr ett kall unna: to tjenester som bare kaller den samme databasen eller det samme eksterne API-et, er ikke tilkoblet, ellers ville en avhengighet som halvparten av tjenestene dine kaller, legge hvert varsel i én episode.
-- Et varsel uten tjeneste grupperes etter overvåkingen sin, slik **Monitor** grupperer.
+- Et varsel uten tjeneste grupperes etter monitoren sin, slik **Monitor** grupperer.
 
 Et kall som ikke er sett på 30 dager, forsvinner fra tjenestekartet, og forbindelsen med det. Listens kolonne **Gruppering** sier "Varsler på tilkoblede tjenester deler én episode". Via API-et og Terraform heter det `groupByConnectedServices`.
 

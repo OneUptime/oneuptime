@@ -1,6 +1,6 @@
 # Registri di audit
 
-Il registro di audit annota chi ha cambiato che cosa nel tuo progetto: ogni creazione, modifica ed eliminazione delle risorse che copre, con i valori prima e dopo, e ogni volta che qualcuno accede o si disconnette. Usalo per scoprire chi ha disattivato un monitor o cambiato una chiave API, chi ha effettuato l'accesso e da dove, e per conservare una traccia per le verifiche di conformità. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
+Il log di audit annota chi ha cambiato che cosa nel tuo progetto: ogni creazione, modifica ed eliminazione delle risorse che copre, con i valori prima e dopo, e ogni volta che qualcuno accede o si disconnette. Usalo per scoprire chi ha disattivato un monitor o cambiato una chiave API, chi ha effettuato l'accesso e da dove, e per conservare una traccia per le verifiche di conformità. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
 
 :::cards
 - [Attivare il registro di audit](#attivare-il-registro-di-audit): All'inizio è disattivato in ogni progetto.
@@ -30,9 +30,9 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Su OneUptime Cloud, il piano Enterprise.** Con gli altri piani, le pagine del registro di audit mostrano che cosa fa la funzionalità e come ottenerla.
-- **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i registri di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
-- **Un ruolo che può leggere il registro di audit.** Proprietario del progetto, Amministratore del progetto, Amministratore delle impostazioni o l'autorizzazione **Read Audit Log**. Per attivare il registro di audit e cambiarne le impostazioni serve un Proprietario del progetto, un Amministratore del progetto o il permesso di modificare il progetto.
+- **Su OneUptime Cloud, il piano Enterprise.** Con gli altri piani, le pagine del log di audit mostrano che cosa fa la funzionalità e come ottenerla.
+- **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i log di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
+- **Un ruolo che può leggere il registro di audit.** Proprietario del progetto, Amministratore del progetto, Amministratore delle impostazioni o l'autorizzazione **Read Audit Log**. Per attivare il log di audit e cambiarne le impostazioni serve un Proprietario del progetto, un Amministratore del progetto o il permesso di modificare il progetto.
 
 ## Attivare il registro di audit
 
@@ -82,10 +82,10 @@ Viene registrato tutto ciò che le persone creano, modificano o eliminano in un 
 
 | Non registrato | Perché |
 | --- | --- |
-| Registri dei messaggi | Ognuno è già la traccia di un'email, un SMS, una chiamata, una notifica push o un messaggio di chat che OneUptime ha inviato o ricevuto. |
+| Log dei messaggi | Ognuno è già la traccia di un'email, un SMS, una chiamata, una notifica push o un messaggio di chat che OneUptime ha inviato o ricevuto. |
 | Tracce delle esecuzioni | Ognuna è già la traccia di un'esecuzione del flusso di lavoro, un'escalation di reperibilità, una scansione, un'importazione o un'esecuzione di IA. |
 | Ciò che riportano agenti e telemetria | Le risorse scoperte, le letture e l'utilizzo cambiano a ogni rapporto, non perché qualcuno li abbia modificati. |
-| Feed di attività | Un feed mostra modifiche che il registro di audit registra già. |
+| Feed di attività | Un feed mostra modifiche che il log di audit registra già. |
 | Lo stato di lavoro di OneUptime | Sessioni dei lettori delle pagine di stato, job in coda e altri stati che OneUptime conserva mentre lavora. |
 | La configurazione delle notifiche di una persona | Gli indirizzi, i numeri e le regole di reperibilità personali di ogni persona sono solo suoi. |
 | Le preferenze di una persona | I prodotti che ogni persona fissa nella propria barra in alto sono solo suoi, e solo quella persona li vede. |
@@ -109,7 +109,7 @@ La reimpostazione dell'agente IA di un host, di un cluster o di un account cloud
 
 ## Accessi e sessioni
 
-Ogni volta che un membro del progetto accede a OneUptime, il registro di audit lo annota, e di nuovo quando quella sessione finisce. Un accesso riguarda OneUptime, non un singolo progetto, quindi lo registra ogni progetto di cui la persona è membro.
+Ogni volta che un membro del progetto accede a OneUptime, il log di audit lo annota, e di nuovo quando quella sessione finisce. Un accesso riguarda OneUptime, non un singolo progetto, quindi lo registra ogni progetto di cui la persona è membro.
 
 | Azione | Quando viene registrata |
 | --- | --- |
@@ -118,7 +118,7 @@ Ogni volta che un membro del progetto accede a OneUptime, il registro di audit l
 | `Session Timeout` | OneUptime chiude la sessione alla sua scadenza: il tempo di inattività o la durata della sessione impostati da un amministratore del server, oppure 30 giorni senza utilizzo. |
 | `Session Revoked` | OneUptime chiude la sessione perché la password è cambiata, l'account è stato bloccato, oppure un amministratore del server ha reimpostato o reso obbligatoria l'autenticazione a due fattori. |
 
-La **Risorsa** di una voce è la sessione, che prende il nome dal dispositivo da cui è stato fatto l'accesso, ad esempio `Chrome 130 on macOS`. Il suo **Attore** è la persona a cui appartiene la sessione, quindi filtrando per **Email utente** si trovano tutti i suoi accessi e tutte le sue sessioni. I suoi dettagli dicono come la persona ha effettuato l'accesso e con quale secondo fattore, l'indirizzo IP e la località, e, per una sessione finita, quando è stato fatto l'accesso, quando è stata usata l'ultima volta e quando è scaduta. Il provider SSO proprio di un progetto viene nominato solo nel registro di audit di quel progetto.
+La **Risorsa** di una voce è la sessione, che prende il nome dal dispositivo da cui è stato fatto l'accesso, ad esempio `Chrome 130 on macOS`. Il suo **Attore** è la persona a cui appartiene la sessione, quindi filtrando per **Email utente** si trovano tutti i suoi accessi e tutte le sue sessioni. I suoi dettagli dicono come la persona ha effettuato l'accesso e con quale secondo fattore, l'indirizzo IP e la località, e, per una sessione finita, quando è stato fatto l'accesso, quando è stata usata l'ultima volta e quando è scaduta. Il provider SSO proprio di un progetto viene nominato solo nel log di audit di quel progetto.
 
 Accessi e sessioni vengono registrati che il progetto memorizzi o no gli eventi di sistema. Una durata della sessione o 30 giorni senza utilizzo vengono registrati entro pochi minuti dalla scadenza. Un tempo di inattività nel browser, o in una versione dell'app mobile successiva alla 1.6.0, viene registrato entro 35 minuti dalla scadenza, che la persona torni o no. Nella versione 1.6.0 e precedenti dell'app mobile viene registrato quando l'app raggiunge di nuovo OneUptime.
 
@@ -130,25 +130,25 @@ Per conservare le voci oltre 180 giorni, inviale man mano che vengono registrate
 
 ## Quando il piano o la licenza non include più i registri di audit
 
-- **Su OneUptime Cloud**, un progetto che lascia il piano Enterprise smette di registrare, e le sue pagine del registro di audit mostrano la scheda di upgrade finché non torna a quel piano.
-- **Quando ospiti OneUptime in proprio**, il registro di audit smette di registrare quando la prova Enterprise o il periodo di tolleranza finisce senza licenza, o quando la licenza non include i registri di audit. Il registro di audit lo segnala in rosso. Le voci già registrate restano, e la registrazione riprende con le stesse impostazioni appena viene attivata una licenza. Vedi [Quando una licenza scade o manca](/docs/self-hosted/enterprise#quando-una-licenza-scade-o-manca).
+- **Su OneUptime Cloud**, un progetto che lascia il piano Enterprise smette di registrare, e le sue pagine del log di audit mostrano la scheda di upgrade finché non torna a quel piano.
+- **Quando ospiti OneUptime in proprio**, il log di audit smette di registrare quando la prova Enterprise o il periodo di tolleranza finisce senza licenza, o quando la licenza non include i log di audit. Il log di audit lo segnala in rosso. Le voci già registrate restano, e la registrazione riprende con le stesse impostazioni appena viene attivata una licenza. Vedi [Quando una licenza scade o manca](/docs/self-hosted/enterprise#quando-una-licenza-scade-o-manca).
 
 ## Risoluzione dei problemi
 
-:::details Il registro di audit è vuoto
+:::details Il log di audit è vuoto
 Il registro di audit è disattivato all'inizio e non registra nulla di prima della sua attivazione. Se l'elenco dice che il registro di audit è disattivato, segui il suo link alle impostazioni e attivalo. Altrimenti, modifica un monitor o un incidente e aggiorna l'elenco.
 :::
 
-:::details Una modifica manca nel registro di audit
+:::details Una modifica manca nel log di audit
 Controlla che la risorsa sia in [Che cosa viene registrato](#che-cosa-viene-registrato), e che la modifica sia stata fatta dopo l'attivazione del registro di audit. Una modifica che OneUptime ha fatto da solo viene registrata solo con **Memorizza eventi di sistema** attivo.
 :::
 
 ## Passi successivi
 
 :::cards
-- [Esportazione del registro di audit](/docs/configuration/audit-log-export): Inviare il registro di audit al proprio storage o SIEM.
-- [Utenti, team e autorizzazioni](/docs/permissions/index): Decidere chi può leggere il registro di audit.
+- [Esportazione del registro di audit](/docs/configuration/audit-log-export): Inviare il log di audit al proprio storage o SIEM.
+- [Utenti, team e autorizzazioni](/docs/permissions/index): Decidere chi può leggere il log di audit.
 - [Impostazioni del progetto](/docs/configuration/project-settings): Le altre impostazioni del progetto.
 - [Fatturazione e utilizzo](/docs/configuration/billing): Cambiare il piano del progetto.
-- [Edizione Enterprise](/docs/self-hosted/enterprise): I registri di audit in un'installazione self-hosted.
+- [Edizione Enterprise](/docs/self-hosted/enterprise): I log di audit in un'installazione self-hosted.
 :::

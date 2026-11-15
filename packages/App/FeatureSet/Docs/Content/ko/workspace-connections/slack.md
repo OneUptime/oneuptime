@@ -141,7 +141,7 @@ SLO의 규칙은 오류 예산 정책의 변화를 게시합니다. SLO가 단�
 | --- | --- |
 | **현재 온콜 담당자** | 위의 줄. 인계 때마다 게시됩니다. |
 | **다음 온콜 담당자** | 다음 인계 때 누가 이어받는지와 그 시간. 위 줄의 끝에 붙거나, 현재 온콜 담당자를 게시하지 않는 규칙이라면 한 줄로 따로 게시됩니다. |
-| **온콜 담당자 없음** | 스케줄에 온콜 담당자가 없어 그곳에 도달한 알림이 아무도 호출하지 않을 때: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **온콜 담당자 없음** | 스케줄에 온콜 담당자가 없어 그곳에 도달한 경고가 아무도 호출하지 않을 때: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
 | **사용자 재정의** | 추가, 변경되거나 취소된 재정의. 누가 부재 중이고 누가 대신하는지. |
 | **정책 변경** | 에스컬레이션 규칙에 추가되거나 빠진 스케줄, 사용자, 팀. |
 | **소유자** | 추가 및 제거된 소유자. |
@@ -243,7 +243,7 @@ Slack 사이드바의 **Apps** 에서 OneUptime 을 열면 **Home** 탭에 내�
 
 ## Slack 에서 OneUptime AI 에게 질문하기
 
-로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변합니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 변경을 요청하면 OneUptime AI 가 `/oneuptime incident` 나 OneUptime 메시지의 버튼처럼 Slack 에서 변경하는 방법을 알려 주고, 그 밖의 것은 AI에게 질문 링크를 알려 줍니다. 인시던트나 알림 전용 채널에서 질문하면 그 인시던트나 알림에 대해 답변합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변합니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 변경을 요청하면 OneUptime AI 가 `/oneuptime incident` 나 OneUptime 메시지의 버튼처럼 Slack 에서 변경하는 방법을 알려 주고, 그 밖의 것은 AI에게 질문 링크를 알려 줍니다. 인시던트나 경고 전용 채널에서 질문하면 그 인시던트나 경고에 대해 답변합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
 
 OneUptime 은 자신에게 향한 것에만 답변합니다.
 

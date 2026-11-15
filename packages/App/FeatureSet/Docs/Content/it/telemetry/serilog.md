@@ -231,7 +231,7 @@ Avvia la tua applicazione e scrivi qualche evento di log. In pochi secondi compa
 
 ## Eccezioni
 
-Quando registri un'eccezione con Serilog, il sink aggiunge al log gli attributi OpenTelemetry `exception.type`, `exception.message` e `exception.stacktrace`:
+Quando log un'eccezione con Serilog, il sink aggiunge al log gli attributi OpenTelemetry `exception.type`, `exception.message` e `exception.stacktrace`:
 
 ```csharp
 try

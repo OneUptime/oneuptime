@@ -1,6 +1,6 @@
 # Inspelningsregler för loggar
 
-En **Log Recording Rule** gör loggar till ett mått. Varje minut tar den de loggar som dess filter matchar och skriver ett tal per minut till måttlagret: hur många loggar som matchade, eller summan, genomsnittet, minimum, maximum eller en percentil av ett numeriskt attribut i loggarna. Dela upp resultatet efter upp till fem loggattribut så får du en serie per värde: en per gateway, per värd, per kund.
+En **Log Recording Rule** gör loggar till ett mätvärde. Varje minut tar den de loggar som dess filter matchar och skriver ett tal per minut till mätvärdeslagret: hur många loggar som matchade, eller summan, genomsnittet, minimum, maximum eller en percentil av ett numeriskt attribut i loggarna. Dela upp resultatet efter upp till fem loggattribut så får du en serie per värde: en per gateway, per värd, per kund.
 
 :::cards
 - [Så fungerar en regel](#så-fungerar-en-regel): Buckets, tidpunkter, ikappkörning och luckor.
@@ -11,7 +11,7 @@ En **Log Recording Rule** gör loggar till ett mått. Varje minut tar den de log
 
 ## Översikt
 
-Resultatet är ett vanligt mått. Visa det i **Mätvärdesutforskare** och på instrumentpaneler, och få larm på det med en monitor av typen **Mätvärden**, även larm per serie med **Gruppera efter**.
+Resultatet är ett vanligt mätvärden. Visa det i **Mätvärdesutforskare** och på instrumentpaneler, och få larm på det med en monitor av typen **Mätvärden**, även larm per serie med **Gruppera efter**.
 
 Använd en inspelningsregel för loggar när talet du bryr dig om bara finns i dina loggar: en brandväggs SLA-sammanfattningar, ett batchjobb som loggar hur lång tid det tog, svarsstorlekarna i en åtkomstlogg, eller helt enkelt hur många felloggar en tjänst skriver varje minut.
 
@@ -60,12 +60,12 @@ Lägg eventuellt till attribut under **Gruppera efter** och en **Enhet**. Kontro
 | Fält | Vad det gör |
 | --- | --- |
 | Namn | Vad regeln beräknar, t.ex. *SD-WAN gateway latency*. |
-| Namn på utdatamätvärde | Måttet som regeln skriver. Bildas från namnet (*SD-WAN gateway latency* skriver `sd_wan_gateway_latency`) om du inte väljer **Redigera** och skriver ett eget. Det måste vara unikt bland projektets inspelningsregler. |
+| Namn på utdatamätvärde | Mätvärdet som regeln skriver. Bildas från namnet (*SD-WAN gateway latency* skriver `sd_wan_gateway_latency`) om du inte väljer **Redigera** och skriver ett eget. Det måste vara unikt bland projektets inspelningsregler. |
 | Which Logs | Valfria filter, alla kombinerade med AND: telemetritjänster, allvarlighetsgrader, text som loggkroppen innehåller och attributfilter (ett attribut lika med ett värde). |
 | Aggregering | `Count of logs`, eller en aggregering av ett numeriskt attribut (se nedan). |
 | Numeric Attribute | För alla aggregeringar utom räkning: attributet vars värden aggregeras, t.ex. `latency`. |
 | Gruppera efter | Valfritt: upp till 5 attributnycklar. En serie per unik kombination av deras värden. |
-| Unit | Valfritt: utdatamåttets enhet, t.ex. `ms`. Visas överallt där måttet visas i ett diagram. |
+| Unit | Valfritt: utdatamätvärdets enhet, t.ex. `ms`. Visas överallt där mätvärdet visas i ett diagram. |
 | Beskrivning | Under **Fler fält**: vad regeln är till för. |
 | Aktiverad | Under **Fler fält**: på som standard. Bara aktiverade regler beräknas. |
 
@@ -112,7 +112,7 @@ En Sophos XGS-brandvägg med SD-WAN-loggning påslagen skickar med några minute
 log_type="SD-WAN" log_component="SLA" profile_name="Branch-Internet" gw_name="WAN2" latency=11 jitter=2 packet_loss=0 gw_status="up" sla_status="SLA met"
 ```
 
-Det här exemplet gör sammanfattningarna till ett latensmått per gateway och larmar när en gateways latens förblir hög.
+Det här exemplet gör sammanfattningarna till ett latensmätvärde per gateway och larmar när en gateways latens förblir hög.
 
 ```mermaid title="Från brandväggens syslog till ett larm per gateway"
 flowchart TB
@@ -160,7 +160,7 @@ Via API:t, MCP eller Terraform är samma regels **definition**:
 
 Upprepa med `jitter` (`sdwan.gateway.jitter.ms`, enhet `ms`) och `packet_loss` (`sdwan.gateway.packet_loss.percent`, enhet `%`) för de två andra SLA-mätningarna. En regel **Count of logs** som filtrerats på `gw_status` = `down` och grupperats efter `gw_name` räknar rapporterna om nedlagda gateways per gateway.
 
-Inom några minuter visar regellistan en tid under **Computed Until**, och `sdwan.gateway.latency.ms` dyker upp i måttutforskaren: välj det, gruppera efter `gw_name`, så har du en latenslinje per gateway.
+Inom några minuter visar regellistan en tid under **Computed Until**, och `sdwan.gateway.latency.ms` dyker upp i mätvärdesutforskaren: välj det, gruppera efter `gw_name`, så har du en latenslinje per gateway.
 
 ### Få larm när en gateways latens förblir hög
 
@@ -180,7 +180,7 @@ Med gruppering inställd är varje gateway en egen serie: blir WAN2 långsam öp
 - **Tidsstämplar kommer från loggarna.** En logg hamnar i minuten för sin egen tidsstämpel. En enhet vars klocka går mer än lite fel lägger sina loggar i fel minut, eller helt utanför fönstret.
 - **Ingen bakåtberäkning.** En ny regel börjar med minuten före sin första körning; äldre loggar beräknas inte.
 - **Att radera en regel** stoppar den. Punkterna den redan har skrivit ligger kvar tills de går ut.
-- **Inspelningsregler ser alla projektets loggar.** Den som kan läsa utdatamåttet ser tal som beräknats från varje logg som regelns filter matchar, så att skapa och redigera inspelningsregler för loggar är förbehållet Projektägare, Projektadministratörer och behörigheterna **Create / Edit Log Recording Rule**.
+- **Inspelningsregler ser alla projektets loggar.** Den som kan läsa utdatamätvärdet ser tal som beräknats från varje logg som regelns filter matchar, så att skapa och redigera inspelningsregler för loggar är förbehållet Projektägare, Projektadministratörer och behörigheterna **Create / Edit Log Recording Rule**.
 
 ## Behörigheter
 
@@ -196,7 +196,7 @@ Projektägare och Projektadministratörer kan göra allt detta. Projektmedlemmar
 ## Nästa steg
 
 :::cards
-- [Metrikövervakning](/docs/monitor/metrics-monitor): Få larm på måtten som dina regler skriver.
+- [Metrikövervakning](/docs/monitor/metrics-monitor): Få larm på mätvärdena som dina regler skriver.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Plocka ut attributen som en regel aggregerar.
 - [Syslog](/docs/telemetry/syslog): Skicka loggar från brandväggar och servrar till OneUptime.
 :::

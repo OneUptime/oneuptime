@@ -202,7 +202,7 @@ I comandi sono impostazioni del repository che scrive il tuo team, eseguite sul 
 
 ## Dopo l'unione di una correzione
 
-Unire una correzione non corregge nulla finché non viene eseguita. Appena una pull request di correzione viene unita, OneUptime attende un deploy registrato che la contenga (vedi [Deploy e modifiche](/docs/telemetry/change-events)) e osserva in quel deploy ciò per cui serviva la correzione. La pull request dell'attività in Code dice com'è andata, e così la pagina **Correggi con l'IA** dell'eccezione, i registri IA dell'incidente e l'insight IA da cui è nata la correzione:
+Unire una correzione non corregge nulla finché non viene eseguita. Appena una pull request di correzione viene unita, OneUptime attende un deploy registrato che la contenga (vedi [Deploy e modifiche](/docs/telemetry/change-events)) e osserva in quel deploy ciò per cui serviva la correzione. La pull request dell'attività in Code dice com'è andata, e così la pagina **Correggi con l'IA** dell'eccezione, i log IA dell'incidente e l'insight IA da cui è nata la correzione:
 
 | Una correzione di | Cosa viene osservato | Ha funzionato | Non ha funzionato |
 | --- | --- | --- | --- |

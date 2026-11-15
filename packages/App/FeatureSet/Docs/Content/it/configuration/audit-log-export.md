@@ -1,6 +1,6 @@
 # Esportazione del registro di audit
 
-Invia il registro di audit, man mano che viene registrato, allo storage o al servizio che scegli: Amazon S3 o uno storage compatibile con S3, Google Cloud Storage, Azure Blob Storage, un webhook o syslog. Conserva lì le voci per tutto il tempo richiesto dalle tue verifiche di conformità, e cercale nel tuo SIEM. I Proprietari del progetto e gli Amministratori del progetto esportano il registro di audit di un progetto dalle sue impostazioni, e gli amministratori principali esportano quello di tutti i progetti dall'Admin Dashboard. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
+Invia il log di audit, man mano che viene registrato, allo storage o al servizio che scegli: Amazon S3 o uno storage compatibile con S3, Google Cloud Storage, Azure Blob Storage, un webhook o syslog. Conserva lì le voci per tutto il tempo richiesto dalle tue verifiche di conformità, e cercale nel tuo SIEM. I Proprietari del progetto e gli Amministratori del progetto esportano il log di audit di un progetto dalle sue impostazioni, e gli amministratori principali esportano quello di tutti i progetti dall'Admin Dashboard. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
 
 :::cards
 - [Configurare un'esportazione](#configurare-unesportazione): Scegli una destinazione, provala, salvala.
@@ -25,9 +25,9 @@ flowchart TB
 ## Prima di iniziare
 
 - **Su OneUptime Cloud, il piano Enterprise.** Con gli altri piani, la pagina mostra che cosa fa la funzionalità e come ottenerla.
-- **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i registri di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
+- **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i log di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
 - **La registrazione di audit attiva** in ogni progetto che esporti. Vedi [Registri di audit](/docs/configuration/audit-logs).
-- **Un Project Owner o un Project Admin** per esportare il registro di audit di un progetto, oppure un amministratore principale per esportare quello dell'istanza.
+- **Un Project Owner o un Project Admin** per esportare il log di audit di un progetto, oppure un amministratore principale per esportare quello dell'istanza.
 
 ## Configurare un'esportazione
 
@@ -126,9 +126,9 @@ Ogni voce è un messaggio RFC 5424 inviato all'**Host** e alla **Porta**, via TL
 
 Su TLS e TCP, i messaggi sono delimitati dal conteggio degli ottetti (RFC 5425), a meno che **Delimitazione** non indichi un messaggio per riga. Un ricevitore il cui certificato è firmato da una CA privata ha bisogno del certificato di quella CA in **Certificato della CA**. Entrambi aspettano in **Altri campi**.
 
-Su UDP, **Porta** parte da `514`, e ogni messaggio è un datagramma a sé (RFC 5426), quindi nessuno viene delimitato. UDP invia il registro di audit in chiaro, e niente conferma che un messaggio sia arrivato: quando l'host del ricevitore risponde che la sua porta è chiusa, il lotto fallisce e viene ritentato, ma un messaggio perso per strada non viene inviato di nuovo. Dopo un test su UDP, controlla che la voce di test sia arrivata. Quando ogni voce deve arrivare, scegli TLS o TCP.
+Su UDP, **Porta** parte da `514`, e ogni messaggio è un datagramma a sé (RFC 5426), quindi nessuno viene delimitato. UDP invia il log di audit in chiaro, e niente conferma che un messaggio sia arrivato: quando l'host del ricevitore risponde che la sua porta è chiusa, il lotto fallisce e viene ritentato, ma un messaggio perso per strada non viene inviato di nuovo. Dopo un test su UDP, controlla che la voce di test sia arrivata. Quando ogni voce deve arrivare, scegli TLS o TCP.
 
-Su UDP, un messaggio è lungo al massimo quanto **Dimensione massima dei messaggi**, in byte: `8192`, a meno che tu non la cambi in **Altri campi**, da `1024` a `65507`. Una voce più lunga viene accorciata per rientrarci e resta un unico oggetto JSON: prima vengono tagliati i suoi valori, come li taglia il registro di audit, ad esempio `[… 1,234 more characters]` o `[12.3 KB of JSON]`, poi le modifiche che ancora non rientrano vengono contate in una sola, ad esempio `[… 12 more changes]`.
+Su UDP, un messaggio è lungo al massimo quanto **Dimensione massima dei messaggi**, in byte: `8192`, a meno che tu non la cambi in **Altri campi**, da `1024` a `65507`. Una voce più lunga viene accorciata per rientrarci e resta un unico oggetto JSON: prima vengono tagliati i suoi valori, come li taglia il log di audit, ad esempio `[… 1,234 more characters]` o `[12.3 KB of JSON]`, poi le modifiche che ancora non rientrano vengono contate in una sola, ad esempio `[… 12 more changes]`.
 
 ## Cosa viene inviato
 
@@ -159,7 +159,7 @@ Chiavi, token e password non escono mai: vengono registrati come `[REDACTED]`, e
 
 | Versione | Cosa invia |
 | --- | --- |
-| `2` | Ogni modifica porta anche `summary`: cosa è cambiato, nelle righe che mostra il registro di audit, come `Added "Send Email" (send-email-1)` per un passaggio di un flusso di lavoro o il percorso cambiato nel JSON, altrimenti `null`. Le righe nominano impostazioni e percorsi, mai valori. |
+| `2` | Ogni modifica porta anche `summary`: cosa è cambiato, nelle righe che mostra il log di audit, come `Added "Send Email" (send-email-1)` per un passaggio di un flusso di lavoro o il percorso cambiato nel JSON, altrimenti `null`. Le righe nominano impostazioni e percorsi, mai valori. |
 | `1` | La voce com'era inviata all'inizio, senza `summary`. I passaggi di un flusso di lavoro escono come la loro dimensione prima e dopo, come `3 steps and 2 connections`. |
 
 Una nuova esportazione invia la versione 2. Un'esportazione salvata prima della versione 2 continua a inviare la versione 1, quindi ciò che la legge non deve cambiare nulla: quando è pronto per `summary`, fai clic su **Modifica** sull'esportazione e scegli la versione 2 in **Versione del record**, sotto **Altri campi**. La versione vale per le voci inviate da quel momento, e ogni voce indica la propria in `schemaVersion`.
@@ -175,11 +175,11 @@ Una nuova esportazione invia la versione 2. Un'esportazione salvata prima della 
 
 Un lotto viene tentato tre volte, a pochi secondi di distanza, poi l'esportazione aspetta prima di riprovare: un minuto, poi due, quattro e così via, fino a un'ora. La sua riga dice **In errore**, e **Visualizza errore** mostra cosa ha risposto la destinazione e quando verrà ritentata.
 
-Nulla viene saltato: le voci aspettano nel registro di audit, e la prossima consegna che riesce recupera dalla più vecchia. Ogni voce viene comunque eliminata appena è più vecchia della conservazione con cui è stata registrata, inviata o no, quindi correggi un'esportazione in errore entro quel tempo. Una conservazione più lunga trattiene più a lungo solo le voci registrate dopo averla cambiata.
+Nulla viene saltato: le voci aspettano nel log di audit, e la prossima consegna che riesce recupera dalla più vecchia. Ogni voce viene comunque eliminata appena è più vecchia della conservazione con cui è stata registrata, inviata o no, quindi correggi un'esportazione in errore entro quel tempo. Una conservazione più lunga trattiene più a lungo solo le voci registrate dopo averla cambiata.
 
 Un'esportazione in errore invia un'email a chi può correggerla: ai Proprietari del progetto per l'esportazione di un progetto, e a tutti gli amministratori principali per quella dell'istanza. La prima email parte dopo 30 minuti di errori, con ciò che ha risposto la destinazione. Una seconda parte un giorno prima che venga eliminata la prima delle voci che l'esportazione non ha inviato, con il momento da cui le voci iniziano a perdersi. Se quel momento è già passato, per esempio quando **Esporta da** risale più indietro della conservazione, la seconda email parte al posto della prima, dopo 30 minuti, e dice che le voci si stanno già perdendo. Ognuna parte una volta finché gli errori continuano, e una consegna che riesce le azzera entrambe.
 
-Per mettere in pausa un'esportazione, scegli **Disattiva** nel menu della sua riga: mantiene la sua posizione, e **Attiva** invia ciò che è stato registrato nel frattempo. Su OneUptime Cloud, un progetto che lascia il piano Enterprise smette di esportare, e le sue esportazioni aspettano sotto la scheda di upgrade, dove possono essere disattivate o eliminate. Quando ospiti OneUptime in proprio, l'esportazione si ferma finché la licenza non include i registri di audit, e riprende da dove si era fermata appena una licenza li include.
+Per mettere in pausa un'esportazione, scegli **Disattiva** nel menu della sua riga: mantiene la sua posizione, e **Attiva** invia ciò che è stato registrato nel frattempo. Su OneUptime Cloud, un progetto che lascia il piano Enterprise smette di esportare, e le sue esportazioni aspettano sotto la scheda di upgrade, dove possono essere disattivate o eliminate. Quando ospiti OneUptime in proprio, l'esportazione si ferma finché la licenza non include i log di audit, e riprende da dove si era fermata appena una licenza li include.
 
 ## Risoluzione dei problemi
 
@@ -200,5 +200,5 @@ Controlla che la registrazione di audit sia attiva nel progetto, e che qualcuno 
 :::cards
 - [Registri di audit](/docs/configuration/audit-logs): Che cosa viene registrato e per quanto tempo viene conservato.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Decidere chi può configurare un'esportazione.
-- [Edizione Enterprise](/docs/self-hosted/enterprise): I registri di audit su un'installazione in proprio.
+- [Edizione Enterprise](/docs/self-hosted/enterprise): I log di audit su un'installazione in proprio.
 :::

@@ -1020,7 +1020,7 @@ Senza argomento lo script guarda la macchina, e chiede se non riesce a capirlo. 
 
 | Variabile | A cosa serve |
 | --- | --- |
-| `OPENSTACK_REGION_NAME` | La regione servita da questa macchina, per cui la pagina Registri del cloud filtra. Il default è `RegionOne`. Una macchina configurata prima di questo non indica alcuna regione, quindi i suoi log compaiono solo in **Tutte le regioni** finché non esegui di nuovo lo script |
+| `OPENSTACK_REGION_NAME` | La regione servita da questa macchina, per cui la pagina Log del cloud filtra. Il default è `RegionOne`. Una macchina configurata prima di questo non indica alcuna regione, quindi i suoi log compaiono solo in **Tutte le regioni** finché non esegui di nuovo lo script |
 | `OPENSTACK_NODE_NAME` | Il nome di questa macchina, per cui le pagine di un hypervisor e di un servizio leggono i log. Il default è quello della macchina stessa |
 | `OPENSTACK_LOGS_DIRECTORY` | Dove sono i log di Kolla-Ansible, se non nel suo solito volume Docker |
 | `OPENSTACK_LOGS_TIMEZONE` | Il fuso in cui oslo.log scrive i suoi orari. Il default è `UTC` |
@@ -1043,7 +1043,7 @@ logs:
 Ogni riga che OneUptime legge ha livello, servizio, macchina, richiesta, utente, progetto e istanza come attributi, comunque sia configurato il servizio: il formato predefinito di oslo.log, il formato journal di DevStack, `use_json` e `use_journal` vengono letti tutti come la stessa cosa. Quindi:
 
 - La scheda **Log** di un'istanza mostra ciò che nomina il suo UUID, a partire dalle richieste a cui appartengono quelle righe, prima quelle fallite. Quella di un hypervisor mostra ciò che è venuto da quella macchina, e quella di un servizio il suo.
-- Qualsiasi riga che ha un ID di richiesta dice **Segui la richiesta**, che apre quella richiesta nella pagina Registri del cloud: ogni riga che contiene il suo ID o il suo ID globale, in ogni servizio, in ordine di tempo.
+- Qualsiasi riga che ha un ID di richiesta dice **Segui la richiesta**, che apre quella richiesta nella pagina Log del cloud: ogni riga che contiene il suo ID o il suo ID globale, in ogni servizio, in ordine di tempo.
 
 I servizi si uniscono quando quello che li chiama invia un ID di richiesta globale. Nova ne invia uno a Neutron, Cinder e Glance, e qualcosa che hai scritto tu potrebbe non farlo. Quindi la pagina dice quali servizi si sono uniti, e nomina quelli che hanno scritto righe di altre richieste negli stessi istanti, per i quali OneUptime non può dire se abbiano partecipato o no.
 

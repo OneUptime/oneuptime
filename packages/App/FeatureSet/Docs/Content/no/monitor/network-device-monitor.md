@@ -109,7 +109,7 @@ En enhets detaljer — navn, beskrivelse, rolle, lokasjon, etiketter og adresser
 | Beskrivelse | Fritekst. | Nei |
 | Device Role | Kjernesvitsj, aksessvitsj, brannmur og så videre. Bestemmer enhetens nivå på kartet og avgrenser varslingspolicyer. | Nei |
 | MAC-adresse | Enhetens egen MAC. Kartet bruker den til å plassere en enhet som verken snakker LLDP eller CDP, på svitsjporten som lærte den; se [Enheter med bare ping og svitsjporten deres](#enheter-med-bare-ping-og-svitsjporten-deres). Læres som regel inn for deg fra en ruters ARP-tabell. | Nei |
-| Opprett også en Ping-overvåking for hendelser | Sonden pinger allerede enheten og gir den en status; en Ping-monitor er det som gjør mislykkede ping til en hendelse. Kryss av, så opprettes en på vertsnavnet, bundet til enheten, når du lagrer. Den teller mot abonnementet ditt, og hendelsene dens er slått av til du slår dem på fra monitorens side. | Nei |
+| Opprett også en Ping-monitor for hendelser | Sonden pinger allerede enheten og gir den en status; en Ping-monitor er det som gjør mislykkede ping til en hendelse. Kryss av, så opprettes en på vertsnavnet, bundet til enheten, når du lagrer. Den teller mot abonnementet ditt, og hendelsene dens er slått av til du slår dem på fra monitorens side. | Nei |
 
 Når du krysser av for Ping-monitoren, vises **Ping from probes**, monitorens egne sonder. De må nå enhetens nettverk; la feltet stå tomt for å bruke prosjektets standardsonder. Bruk heller [varslingspolicyer](#varslingspolicyer) for å varsle om mange enheter samtidig.
 
