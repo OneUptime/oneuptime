@@ -14,6 +14,7 @@ import {
   getRuleExceptionStatusLine,
 } from "./RuleExceptionsModel";
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   DetectionRuleExceptionShape,
   DetectionRuleExceptionStatus,
@@ -35,12 +36,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 // A time as a list's line says it: "Oct 30, 14:00", the whole of it under the pointer.
 function writeTime(time: Date | undefined): string {
-  return time ? OneUptimeDate.getDateAsLocalShortDateTimeString(time) : "-";
+  return time
+    ? OneUptimeDate.getDateAsLocalShortDateTimeString(time)
+    : EMPTY_VALUE_MARK;
 }
 
 // How far ahead or how long ago: "in 30 days", "2 days ago".
 function writeRelativeTime(time: Date | undefined): string {
-  return time ? OneUptimeDate.fromNow(time) : "-";
+  return time ? OneUptimeDate.fromNow(time) : EMPTY_VALUE_MARK;
 }
 
 /*

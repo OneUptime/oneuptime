@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
@@ -78,14 +79,16 @@ const DockerSwarmClusterVolumes: FunctionComponent<
           title: "Driver",
           key: "driver",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["driver"] || "-";
+            return resource.additionalAttributes["driver"] || EMPTY_VALUE_MARK;
           },
         },
         {
           title: "Mountpoint",
           key: "mountpoint",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["mountpoint"] || "-";
+            return (
+              resource.additionalAttributes["mountpoint"] || EMPTY_VALUE_MARK
+            );
           },
         },
       ]}

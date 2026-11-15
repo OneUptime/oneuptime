@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -31,7 +32,7 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
     props.incomingEmailMonitorRequest,
   );
 
-  let lastEmailReceivedAt: string = "-";
+  let lastEmailReceivedAt: string = EMPTY_VALUE_MARK;
 
   if (!hasEmail) {
     lastEmailReceivedAt = translator.translateTemplate("No email yet");

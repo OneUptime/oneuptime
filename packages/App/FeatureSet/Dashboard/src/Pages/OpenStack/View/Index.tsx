@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -456,7 +457,7 @@ function getCountChips(
 
 function formatPercent(percent: number | null, translator: Translator): string {
   return percent === null
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : `${translator.formatNumber(Math.round(percent))}%`;
 }
 

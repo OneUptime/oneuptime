@@ -405,7 +405,13 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
                     to={getAppRoute(app)}
                     className="break-words text-sm font-medium text-gray-900 hover:underline"
                   >
-                    <IsolatedText text={app.name || "—"} />
+                    <IsolatedText
+                      text={
+                        app.name ||
+                        translator.translateText("Unnamed") ||
+                        "Unnamed"
+                      }
+                    />
                   </AppLink>
                   {/*
                    * Each part is kept whole where it fits - a region such as

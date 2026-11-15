@@ -15,6 +15,7 @@ import {
   isPortNamedAsPort,
 } from "./DeviceNeighbours";
 import PageMap from "../../Utils/PageMap";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
@@ -38,7 +39,9 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -189,7 +192,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
       });
     }
 
-    return "—";
+    return EMPTY_VALUE_MARK;
   };
 
   type GetEmptyStateFunction = () => ReactElement;
@@ -366,7 +369,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
               className="mt-0.5 text-gray-900"
               data-testid="device-attachment-port"
             >
-              {getPortLabel(attachment)}
+              {getValueOrQuietDash(getPortLabel(attachment))}
             </dd>
           </div>
           <div>

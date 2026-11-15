@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DashboardCephPoolListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -25,7 +26,9 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * `pool_id` is the datapoint label every per-pool data series carries
@@ -153,7 +156,7 @@ function renderUsageBar(percent: number | null): ReactElement {
 function formatBytes(value: number | undefined): string {
   const numeric: number = Number(value);
   if (value === undefined || value === null || !Number.isFinite(numeric)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatMemoryValue(numeric);
 }
@@ -161,7 +164,7 @@ function formatBytes(value: number | undefined): string {
 function formatObjects(value: number | undefined): string {
   const numeric: number = Number(value);
   if (value === undefined || value === null || !Number.isFinite(numeric)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (numeric >= 1_000_000) {
     return `${(numeric / 1_000_000).toFixed(1)}M`;
@@ -183,7 +186,7 @@ function getPoolDisplayName(r: CephResource): string {
 function renderPoolRow(r: CephResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = getPoolDisplayName(r);
-  const clusterName: string = (r.cephCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.cephCluster?.name as string;
   const route: Route | undefined = getPoolRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -210,11 +213,15 @@ function renderPoolRow(r: CephResource): ReactElement {
         {detailLink}
       </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatBytes(r.storedBytes as number | undefined)}
+        {getValueOrQuietDash(formatBytes(r.storedBytes as number | undefined), {
+          isSmall: true,
+        })}
       </td>
       <td className="px-3 py-2">{renderUsageBar(getUsedPercent(r))}</td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatObjects(r.objects as number | undefined)}
+        {getValueOrQuietDash(formatObjects(r.objects as number | undefined), {
+          isSmall: true,
+        })}
       </td>
       <ResourceListNameCell
         name={clusterName}
@@ -228,7 +235,7 @@ function buildPoolTile(r: CephResource): HoneycombTile {
   const id: string = (r._id as string) || "";
   const name: string = getPoolDisplayName(r);
   const usedPercent: number | null = getUsedPercent(r);
-  const clusterName: string = (r.cephCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.cephCluster?.name as string;
 
   return {
     id: id || name,

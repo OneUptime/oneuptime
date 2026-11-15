@@ -173,9 +173,7 @@ const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
           key: "load-balancers",
           label: "Load Balancer",
           value:
-            loadBalancerIds.length === 0 ? (
-              "—"
-            ) : (
+            loadBalancerIds.length === 0 ? undefined : (
               <span className="flex flex-col gap-1">
                 {loadBalancerIds.map((loadBalancerId: string): ReactElement => {
                   return (
@@ -211,7 +209,7 @@ const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
                   </Link>
                 ),
               }
-            : { key: "project", label: "Project", value: "—" },
+            : { key: "project", label: "Project", value: undefined },
         );
         if (row.regionName) {
           detailRows.push({

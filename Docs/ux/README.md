@@ -393,8 +393,13 @@ work out, starts from a default for everything else, and folds what most people 
   labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
   grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
   in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
-  that is missing, blank or a dash, so a tile is handed no value. A dash between two values, a
-  minus sign and code are not empty values. Enforced by
+  that is missing, blank or a dash, so a tile is handed no value. A formatter never writes a dash
+  of its own for nothing (`return "—"`, `host || "-"`): pages drew some five hundred of those
+  straight into their cells (#8262). A component that draws a value is handed nothing, and plain
+  text (a chart's label, an export, a sentence) gets the shared mark `EMPTY_VALUE_MARK`. A page
+  that draws a formatter's text in an element of its own draws it through `getValueOrQuietDash`
+  (or `getFigure` in a figure), which turns that mark into the quiet dash. A dash between two
+  values, a minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).

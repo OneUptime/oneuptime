@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -45,7 +46,7 @@ const bytesToReadable: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
     return "0 B";
@@ -341,27 +342,29 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                   )}
                   {renderStat(
                     "Eviction policy",
-                    String(data?.["maxMemoryPolicy"] || "—"),
+                    String(data?.["maxMemoryPolicy"] || EMPTY_VALUE_MARK),
                     METRIC_INFO.evictionPolicy,
                   )}
                   {renderStat(
                     "Blocked clients",
                     data?.["blockedClients"] === null ||
                       data?.["blockedClients"] === undefined
-                      ? "—"
+                      ? EMPTY_VALUE_MARK
                       : String(data["blockedClients"]),
                     METRIC_INFO.blockedClients,
                   )}
                   {renderStat(
                     "Keys evicted",
-                    evictedKeys === null ? "—" : evictedKeys.toLocaleString(),
+                    evictedKeys === null
+                      ? EMPTY_VALUE_MARK
+                      : evictedKeys.toLocaleString(),
                     METRIC_INFO.evictedKeys,
                     evictedKeys !== null && evictedKeys > 0,
                   )}
                   {renderStat(
                     "Rejected connections",
                     rejectedConnections === null
-                      ? "—"
+                      ? EMPTY_VALUE_MARK
                       : rejectedConnections.toLocaleString(),
                     METRIC_INFO.rejectedConnections,
                     rejectedConnections !== null && rejectedConnections > 0,

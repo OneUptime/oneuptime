@@ -1,4 +1,5 @@
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import {
   writeReaderDay,
   writeReaderMoment,
@@ -122,7 +123,7 @@ export function getOpenStackSpendTiles(data: {
     // The rules run hourly, and a first reading may not have run them yet.
     value: snapshot.waste
       ? getWasteCount(snapshot).toLocaleString(getReaderNumberLocale())
-      : "–",
+      : undefined,
     sublabel: translationKey("See Recommendations"),
     icon: IconProp.Archive,
     color: "amber",
@@ -670,7 +671,9 @@ const OpenStackCloudSpend: FunctionComponent<
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
                   <span>
-                    {formatOpenStackUsageNumber(item.vcpuHours, translator)}
+                    {getValueOrQuietDash(
+                      formatOpenStackUsageNumber(item.vcpuHours, translator),
+                    )}
                   </span>
                 );
               },
@@ -683,7 +686,12 @@ const OpenStackCloudSpend: FunctionComponent<
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
                   <span>
-                    {formatOpenStackUsageNumber(item.memoryGbHours, translator)}
+                    {getValueOrQuietDash(
+                      formatOpenStackUsageNumber(
+                        item.memoryGbHours,
+                        translator,
+                      ),
+                    )}
                   </span>
                 );
               },
@@ -696,7 +704,12 @@ const OpenStackCloudSpend: FunctionComponent<
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
                   <span>
-                    {formatOpenStackUsageNumber(item.volumeGbHours, translator)}
+                    {getValueOrQuietDash(
+                      formatOpenStackUsageNumber(
+                        item.volumeGbHours,
+                        translator,
+                      ),
+                    )}
                   </span>
                 );
               },
@@ -709,9 +722,11 @@ const OpenStackCloudSpend: FunctionComponent<
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
                   <span>
-                    {formatOpenStackUsageNumber(
-                      item.floatingIpHours,
-                      translator,
+                    {getValueOrQuietDash(
+                      formatOpenStackUsageNumber(
+                        item.floatingIpHours,
+                        translator,
+                      ),
                     )}
                   </span>
                 );
@@ -781,9 +796,11 @@ const OpenStackCloudSpend: FunctionComponent<
                             )}
                           </td>
                           <td className={CELL_CLASS_NAME}>
-                            {formatOpenStackUsageNumber(
-                              domain.vcpuHours,
-                              translator,
+                            {getValueOrQuietDash(
+                              formatOpenStackUsageNumber(
+                                domain.vcpuHours,
+                                translator,
+                              ),
                             )}
                           </td>
                         </tr>
@@ -899,21 +916,27 @@ const OpenStackCloudSpend: FunctionComponent<
                               </bdi>
                             </td>
                             <td className={CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(
-                                row.instanceHours,
-                                translator,
+                              {getValueOrQuietDash(
+                                formatOpenStackUsageNumber(
+                                  row.instanceHours,
+                                  translator,
+                                ),
                               )}
                             </td>
                             <td className={CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(
-                                row.vcpuHours,
-                                translator,
+                              {getValueOrQuietDash(
+                                formatOpenStackUsageNumber(
+                                  row.vcpuHours,
+                                  translator,
+                                ),
                               )}
                             </td>
                             <td className={WIDE_CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(
-                                row.memoryGbHours,
-                                translator,
+                              {getValueOrQuietDash(
+                                formatOpenStackUsageNumber(
+                                  row.memoryGbHours,
+                                  translator,
+                                ),
                               )}
                             </td>
                             <td className={CELL_CLASS_NAME}>
@@ -962,9 +985,11 @@ const OpenStackCloudSpend: FunctionComponent<
                               </bdi>
                             </td>
                             <td className={CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(
-                                row.gbHours,
-                                translator,
+                              {getValueOrQuietDash(
+                                formatOpenStackUsageNumber(
+                                  row.gbHours,
+                                  translator,
+                                ),
                               )}
                             </td>
                             <td className={CELL_CLASS_NAME}>
