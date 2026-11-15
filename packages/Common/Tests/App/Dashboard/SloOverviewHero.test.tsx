@@ -62,6 +62,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 
 /*
  * The SLO overview hero, RENDERED: the verdict, the facts every number below
@@ -641,5 +642,163 @@ describe("SloOverviewHero", () => {
       "Within error budget",
     );
     expect(getFactValues()).toContain("99.9%");
+  });
+});
+
+/*
+ * A request SLO (Request Success, Request Latency) measures the requests
+ * its services serve, not monitors: the hero counts its services and links
+ * them to Settings, where they are chosen; a latency SLO's target says how
+ * fast is fast enough; and its window fill is how far back its requests
+ * are counted, not how old it is.
+ */
+describe("SloOverviewHero - a request SLO", () => {
+  const COUNTING_ENDS_AT: Date = new Date("2026-09-15T11:55:00.000Z");
+  const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+
+  const buildRequestSlo: BuildSloFunction = (
+    overrides: SloOverrides,
+  ): ServiceLevelObjective => {
+    return buildSlo({
+      sliType: SliType.RequestLatency,
+      latencyThresholdInMilliseconds: 300,
+      // Counted for the whole 30-day window.
+      firstAccumulatedBucketStartAt: new Date(
+        COUNTING_ENDS_AT.getTime() - 30 * DAY_IN_MS,
+      ),
+      lastAccumulatedBucketEndAt: COUNTING_ENDS_AT,
+      // A request SLO has no budget in seconds.
+      errorBudgetTotalSeconds: undefined,
+      ...overrides,
+    });
+  };
+
+  const settingsHref: () => string = (): string => {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SLO_VIEW_SETTINGS] as Route,
+      { modelId: SLO_ID },
+    ).toString();
+  };
+
+  test("counts its services in place of monitors, and says how fast is fast enough", () => {
+    renderHero({ slo: buildRequestSlo({}), serviceCount: 2 });
+
+    const facts: HTMLElement = screen.getByLabelText("SLO at a glance");
+
+    expect(
+      within(facts)
+        .getAllByRole("term")
+        .map((term: HTMLElement) => {
+          return term.textContent;
+        }),
+    ).toEqual(["Target", "Compliance window", "Services", "Owners"]);
+    expect(getFactValues()).toEqual([
+      "99.9%",
+      "Within 300 ms",
+      "Rolling 30 days",
+      "2 services",
+      "No owners",
+    ]);
+    expect(screen.queryByTestId("slo-overview-chip-monitors")).toBeNull();
+    expect(
+      screen.getByTestId("slo-overview-chip-latency-threshold"),
+    ).toHaveTextContent("Within 300 ms");
+  });
+
+  test.each([
+    { count: 1, label: "1 service" },
+    { count: 3, label: "3 services" },
+  ])(
+    "the $label summary links to Settings, where its services are chosen",
+    ({ count, label }: { count: number; label: string }) => {
+      renderHero({ slo: buildRequestSlo({}), serviceCount: count });
+
+      expect(screen.getByRole("link", { name: label })).toHaveAttribute(
+        "href",
+        settingsHref(),
+      );
+    },
+  );
+
+  test("no services is said in amber, and leads to Settings too", () => {
+    renderHero({ slo: buildRequestSlo({}), serviceCount: 0 });
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "No services",
+    });
+
+    expect(link).toHaveAttribute("href", settingsHref());
+    expect(within(link).getByText("No services")).toHaveClass(
+      "text-yellow-700",
+    );
+  });
+
+  test("a Request Success SLO has no threshold line under its target", () => {
+    renderHero({
+      slo: buildRequestSlo({
+        sliType: SliType.RequestSuccess,
+        latencyThresholdInMilliseconds: undefined,
+      }),
+      serviceCount: 1,
+    });
+
+    expect(
+      screen.queryByTestId("slo-overview-chip-latency-threshold"),
+    ).toBeNull();
+    expect(getFactValues()).toEqual([
+      "99.9%",
+      "Rolling 30 days",
+      "1 service",
+      "No owners",
+    ]);
+  });
+
+  test("while its older requests are still being counted, the window says how much it covers", () => {
+    renderHero({
+      slo: buildRequestSlo({
+        // Counted for 6 of the window's 30 days so far.
+        firstAccumulatedBucketStartAt: new Date(
+          COUNTING_ENDS_AT.getTime() - 6 * DAY_IN_MS,
+        ),
+      }),
+      serviceCount: 2,
+    });
+
+    const chip: HTMLElement = screen.getByTestId(
+      "slo-overview-chip-window-fill",
+    );
+
+    expect(chip).toHaveTextContent("Window 20% full");
+    expect(chip.getAttribute("title")).toContain(
+      "still counting the older requests",
+    );
+    expect(chip.getAttribute("title")).not.toContain("younger than");
+  });
+
+  test("a window its counts fully cover, or one not counted yet, gets no chip", () => {
+    renderHero({ slo: buildRequestSlo({}), serviceCount: 2 });
+    expect(screen.queryByTestId("slo-overview-chip-window-fill")).toBeNull();
+    cleanup();
+
+    renderHero({
+      slo: buildRequestSlo({
+        firstAccumulatedBucketStartAt: undefined,
+        lastAccumulatedBucketEndAt: undefined,
+      }),
+      serviceCount: 2,
+    });
+    expect(screen.queryByTestId("slo-overview-chip-window-fill")).toBeNull();
+  });
+
+  test("a request SLO with services is never told it is waiting for monitors", () => {
+    renderHero({
+      slo: buildRequestSlo({ lastEvaluatedAt: undefined }),
+      monitorCount: 0,
+      serviceCount: 2,
+    });
+
+    expect(screen.getByTestId("slo-overview-headline")).not.toHaveTextContent(
+      /monitor/i,
+    );
   });
 });

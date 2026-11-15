@@ -15,6 +15,7 @@ import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
+import { translationKey } from "../../Types/Translator";
 
 /*
  * Groups of metrics rendered as separate cards on the monitor metrics page.
@@ -552,6 +553,12 @@ class MonitorMetricTypeUtil {
     ];
   }
 
+  /*
+   * A chart's title on a monitor's Metrics tab, and its legend (#8282): a
+   * key of the Dashboard's locales, looked up once where the chart's query
+   * is built (buildMonitorMetricQueryConfig). A Database monitor's metric
+   * is named by its catalog.
+   */
   public static getTitleByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
     monitorType?: MonitorType | undefined,
@@ -560,7 +567,7 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.Port &&
       monitorMetricType === MonitorMetricType.ResponseTime
     ) {
-      return "Total Connection Time (DNS + TCP)";
+      return translationKey("Total Connection Time (DNS + TCP)");
     }
 
     const databaseMetric: DatabaseMetricDefinition | null =
@@ -572,107 +579,107 @@ class MonitorMetricTypeUtil {
 
     switch (monitorMetricType) {
       case MonitorMetricType.ResponseTime:
-        return "Response Time";
+        return translationKey("Response Time");
       case MonitorMetricType.ResponseStatusCode:
-        return "Response Status Code";
+        return translationKey("Response Status Code");
       case MonitorMetricType.IsOnline:
-        return "Is Online";
+        return translationKey("Is Online");
       case MonitorMetricType.DiskUsagePercent:
-        return "Disk Usage Percent";
+        return translationKey("Disk Usage Percent");
       case MonitorMetricType.CPUUsagePercent:
-        return "CPU Usage Percent";
+        return translationKey("CPU Usage Percent");
       case MonitorMetricType.MemoryUsagePercent:
-        return "Memory Usage Percent";
+        return translationKey("Memory Usage Percent");
       case MonitorMetricType.ExecutionTime:
-        return "Execution Time";
+        return translationKey("Execution Time");
       case MonitorMetricType.PacketLossPercent:
-        return "Packet Loss";
+        return translationKey("Packet Loss");
       case MonitorMetricType.Jitter:
-        return "Jitter";
+        return translationKey("Jitter");
       case MonitorMetricType.DnsLookupTime:
-        return "DNS Lookup Time";
+        return translationKey("DNS Lookup Time");
       case MonitorMetricType.TcpConnectTime:
-        return "TCP Connect Time";
+        return translationKey("TCP Connect Time");
       case MonitorMetricType.TlsHandshakeTime:
-        return "TLS Handshake Time";
+        return translationKey("TLS Handshake Time");
       case MonitorMetricType.TimeToFirstByte:
-        return "Time to First Byte";
+        return translationKey("Time to First Byte");
       case MonitorMetricType.DownloadTime:
-        return "Download Time";
+        return translationKey("Download Time");
       case MonitorMetricType.PortDnsLookupTime:
-        return "Port DNS Lookup Time";
+        return translationKey("Port DNS Lookup Time");
       case MonitorMetricType.PortTcpConnectTime:
-        return "Port TCP Connect Time";
+        return translationKey("Port TCP Connect Time");
       case MonitorMetricType.NtpClockOffset:
-        return "Clock Offset";
+        return translationKey("Clock Offset");
       case MonitorMetricType.NtpStratum:
-        return "Stratum";
+        return translationKey("Stratum");
       case MonitorMetricType.NtpIsSynchronized:
-        return "Is Synchronized";
+        return translationKey("Is Synchronized");
       case MonitorMetricType.NtpRootDispersion:
-        return "Root Dispersion";
+        return translationKey("Root Dispersion");
       case MonitorMetricType.SnmpInterfaceOperStatus:
-        return "Interface Status";
+        return translationKey("Interface Status");
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
-        return "Interface Inbound Bandwidth";
+        return translationKey("Interface Inbound Bandwidth");
       case MonitorMetricType.SnmpInterfaceOutBitsPerSecond:
-        return "Interface Outbound Bandwidth";
+        return translationKey("Interface Outbound Bandwidth");
       case MonitorMetricType.SnmpInterfaceUtilizationPercent:
-        return "Interface Utilization";
+        return translationKey("Interface Utilization");
       case MonitorMetricType.SnmpInterfaceErrorsPerSecond:
-        return "Interface Errors";
+        return translationKey("Interface Errors");
       case MonitorMetricType.LoadAverage1Min:
-        return "Load Average (1 minute)";
+        return translationKey("Load Average (1 minute)");
       case MonitorMetricType.LoadAverage5Min:
-        return "Load Average (5 minute)";
+        return translationKey("Load Average (5 minute)");
       case MonitorMetricType.LoadAverage15Min:
-        return "Load Average (15 minute)";
+        return translationKey("Load Average (15 minute)");
       case MonitorMetricType.SwapUsagePercent:
-        return "Swap Usage Percent";
+        return translationKey("Swap Usage Percent");
       case MonitorMetricType.MemoryAvailableBytes:
-        return "Memory Available";
+        return translationKey("Memory Available");
       case MonitorMetricType.CPUTimeUserPercent:
-        return "CPU Time - User";
+        return translationKey("CPU Time - User");
       case MonitorMetricType.CPUTimeSystemPercent:
-        return "CPU Time - System";
+        return translationKey("CPU Time - System");
       case MonitorMetricType.CPUTimeIoWaitPercent:
-        return "CPU Time - IO Wait";
+        return translationKey("CPU Time - IO Wait");
       case MonitorMetricType.CPUTimeIdlePercent:
-        return "CPU Time - Idle";
+        return translationKey("CPU Time - Idle");
       case MonitorMetricType.CPUTimeStealPercent:
-        return "CPU Time - Steal";
+        return translationKey("CPU Time - Steal");
       case MonitorMetricType.DiskReadBytesTotal:
-        return "Disk Read Bytes (cumulative)";
+        return translationKey("Disk Read Bytes (cumulative)");
       case MonitorMetricType.DiskWriteBytesTotal:
-        return "Disk Write Bytes (cumulative)";
+        return translationKey("Disk Write Bytes (cumulative)");
       case MonitorMetricType.DiskReadOpsTotal:
-        return "Disk Read Ops (cumulative)";
+        return translationKey("Disk Read Ops (cumulative)");
       case MonitorMetricType.DiskWriteOpsTotal:
-        return "Disk Write Ops (cumulative)";
+        return translationKey("Disk Write Ops (cumulative)");
       case MonitorMetricType.NetworkBytesReceivedTotal:
-        return "Network Bytes Received (cumulative)";
+        return translationKey("Network Bytes Received (cumulative)");
       case MonitorMetricType.NetworkBytesSentTotal:
-        return "Network Bytes Sent (cumulative)";
+        return translationKey("Network Bytes Sent (cumulative)");
       case MonitorMetricType.NetworkPacketsReceivedTotal:
-        return "Network Packets Received (cumulative)";
+        return translationKey("Network Packets Received (cumulative)");
       case MonitorMetricType.NetworkPacketsSentTotal:
-        return "Network Packets Sent (cumulative)";
+        return translationKey("Network Packets Sent (cumulative)");
       case MonitorMetricType.NetworkErrorsIn:
-        return "Network Receive Errors";
+        return translationKey("Network Receive Errors");
       case MonitorMetricType.NetworkErrorsOut:
-        return "Network Transmit Errors";
+        return translationKey("Network Transmit Errors");
       case MonitorMetricType.NetworkConnectionsEstablished:
-        return "Network Connections - Established";
+        return translationKey("Network Connections - Established");
       case MonitorMetricType.NetworkConnectionsListen:
-        return "Network Connections - Listening";
+        return translationKey("Network Connections - Listening");
       case MonitorMetricType.HostUptimeSeconds:
-        return "Host Uptime";
+        return translationKey("Host Uptime");
       case MonitorMetricType.ProcessCountTotal:
-        return "Running Processes";
+        return translationKey("Running Processes");
       case MonitorMetricType.ConnectedProbes:
-        return "Connected Probes";
+        return translationKey("Connected Probes");
       case MonitorMetricType.DisconnectedProbes:
-        return "Disconnected Probes";
+        return translationKey("Disconnected Probes");
       default:
         return "";
     }

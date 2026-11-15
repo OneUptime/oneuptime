@@ -5,16 +5,23 @@ import * as SloFormFieldsModule from "../../FeatureSet/Dashboard/src/Pages/Slo/S
 import {
   getSloAdvancedSummary,
   getSloFormFields,
+  getSloSliTypeChoices,
   getSloWindowTypeChoices,
   isSloAdvancedAtDefaults,
   SLO_ADVANCED_DEFAULTS_SUMMARY,
+  SLO_CREATE_FORM_STEPS,
   SLO_CREATE_INITIAL_VALUES,
+  SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS,
+  SLO_SLI_TYPE_CHOICE_DESCRIPTIONS,
   SLO_SUGGESTED_TARGET_PERCENTAGE,
   SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS,
   validateAtRiskThreshold,
+  validateLatencyThreshold,
   validateTargetPercentage,
   validateWindowDays,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
@@ -39,11 +46,18 @@ import Validation from "Common/UI/Components/Forms/Validation";
 /*
  * SLO create used to walk three steps - Basic Info, Objective, Period - when
  * the one thing an SLO cannot start without, besides its name, is its
- * target. It is one page of three rows now: the name, the target (prefilled
+ * target. It became one page of three rows: the name, the target (prefilled
  * with 99.9) and one folded Advanced section holding everything that starts
- * from a column default. These pin that shape on the real field list, how
- * it validates as the one page BasicForm draws, and what the folded section
- * says while its defaults are kept.
+ * from a column default.
+ *
+ * An SLO can measure requests now, as well as monitor uptime, so what it
+ * measures is the first question, on a step of its own: the answer (Monitor
+ * uptime, prefilled, Request success or Request latency), and for a request
+ * SLO its services and for a latency one its threshold, which show only for
+ * those answers. The second step is the one page it was: the name, the
+ * target and the fold. Each step is three rows at most. These pin that
+ * shape on the real field list, how it validates, and what the folded
+ * section says while its defaults are kept.
  *
  * They also pin what the form deliberately does not ask. Monitors, the
  * monitor label rule, the downtime statuses and the multi-monitor mode live
@@ -61,6 +75,14 @@ type SloValues = FormValues<ServiceLevelObjective>;
  */
 const CREATE_FIELDS: Array<SloField> = getSloFormFields();
 
+// The first step: what the SLO measures.
+const MEASURES_COLUMNS: Array<string> = [
+  "sliType",
+  "services",
+  "latencyThresholdInMilliseconds",
+];
+
+// The second step's open fields.
 const OPEN_COLUMNS: Array<string> = ["name", "targetPercentage"];
 
 const FOLDED_COLUMNS: Array<string> = [
@@ -175,38 +197,44 @@ function readSlosPage(): string {
 }
 
 describe("the SLO create form", () => {
-  test("is wired into the SLO create table as one page, with its seeds", () => {
+  test("is wired into the SLO create table in its two steps, with its seeds", () => {
     const pageSource: string = readSlosPage();
 
     expect(pageSource).toContain("formFields={getSloFormFields()}");
+    expect(pageSource).toContain("formSteps={SLO_CREATE_FORM_STEPS}");
     expect(pageSource).toContain(
       "createInitialValues={SLO_CREATE_INITIAL_VALUES}",
     );
-    expect(pageSource).not.toContain("formSteps=");
-    expect(pageSource).not.toContain("SLO_FORM_STEPS");
+    expect(Object.keys(SloFormFieldsModule)).not.toContain("SLO_FORM_STEPS");
   });
 
-  test("walks no steps: no step list is exported, and no field names a step", () => {
-    expect(Object.keys(SloFormFieldsModule)).not.toContain("SLO_FORM_STEPS");
+  test("walks two steps: what it measures, then the objective", () => {
+    expect(SLO_CREATE_FORM_STEPS).toEqual([
+      { id: "measures", title: "What It Measures" },
+      { id: "objective", title: "Objective" },
+    ]);
 
     for (const field of CREATE_FIELDS) {
       expect({ column: columnOf(field), stepId: field.stepId }).toEqual({
         column: columnOf(field),
-        stepId: undefined,
+        stepId: MEASURES_COLUMNS.includes(columnOf(field))
+          ? "measures"
+          : "objective",
       });
     }
   });
 
-  test("shows the name and the target, in that order, and nothing else open", () => {
+  test("shows what it measures, then the name and the target, and nothing else open", () => {
     expect(
       CREATE_FIELDS.filter((field: SloField): boolean => {
         return !field.collapsibleSection;
       }).map(columnOf),
-    ).toEqual(OPEN_COLUMNS);
+    ).toEqual([...MEASURES_COLUMNS, ...OPEN_COLUMNS]);
   });
 
   test("folds everything else under Advanced, after the open fields, labels last", () => {
     expect(CREATE_FIELDS.map(columnOf)).toEqual([
+      ...MEASURES_COLUMNS,
       ...OPEN_COLUMNS,
       ...FOLDED_COLUMNS,
     ]);
@@ -241,8 +269,17 @@ describe("the SLO create form", () => {
     expect(section.getSummary).toBe(getSloAdvancedSummary);
   });
 
-  test("is three rows: the name, the target and the folded section", () => {
-    expect(countRows(CREATE_FIELDS)).toBe(3);
+  test("is three rows a step: what it measures with its two follow-ups, then the name, the target and the folded section", () => {
+    for (const step of SLO_CREATE_FORM_STEPS) {
+      expect({
+        step: step.id,
+        rows: countRows(
+          CREATE_FIELDS.filter((field: SloField): boolean => {
+            return field.stepId === step.id;
+          }),
+        ),
+      }).toEqual({ step: step.id, rows: 3 });
+    }
   });
 
   test("keeps the labels the shared Labels field, folded with the rest", () => {
@@ -282,6 +319,7 @@ describe("the SLO create form", () => {
 describe("the SLO create form's initial values", () => {
   test("seed the suggested target with the objective and period defaults", () => {
     expect(SLO_CREATE_INITIAL_VALUES).toEqual({
+      sliType: SliType.MonitorUptime,
       targetPercentage: SLO_SUGGESTED_TARGET_PERCENTAGE,
       windowType: SloWindowType.Rolling,
       windowDays: DEFAULT_ROLLING_WINDOW_DAYS,
@@ -694,5 +732,135 @@ describe("the folded More fields line on Create SLO", () => {
         }),
     ).toEqual(["Window (Days): 7"]);
     expect(getSloAdvancedSummary(values)).toBeUndefined();
+  });
+});
+
+describe("what the SLO create form asks an SLO to measure", () => {
+  test("offers monitor uptime first, then request success and request latency - never the reserved Metric type", () => {
+    const choices: Array<RadioButton> = getSloSliTypeChoices();
+
+    expect(
+      choices.map((choice: RadioButton) => {
+        return [choice.value, choice.title];
+      }),
+    ).toEqual([
+      [SliType.MonitorUptime, "Monitor uptime"],
+      [SliType.RequestSuccess, "Request success"],
+      [SliType.RequestLatency, "Request latency"],
+    ]);
+
+    for (const choice of choices) {
+      expect(choice.description).toBe(
+        SLO_SLI_TYPE_CHOICE_DESCRIPTIONS[choice.value as string],
+      );
+      // One short sentence each, under 150 characters.
+      expect((choice.description as string).length).toBeLessThan(150);
+    }
+
+    expect(
+      choices.map((choice: RadioButton) => {
+        return choice.value;
+      }),
+    ).not.toContain(SliType.Metric);
+  });
+
+  test("is a required answer, drawn as radio buttons that say where the numbers come from", () => {
+    const sliType: SloField = fieldFor("sliType");
+
+    expect(sliType.fieldType).toBe(FormFieldSchemaType.RadioButton);
+    expect(sliType.required).toBe(true);
+    expect(sliType.hideColumnDescription).toBe(true);
+  });
+
+  test("asks for services only of a request SLO, and requires them there", () => {
+    const services: SloField = fieldFor("services");
+    const show: (values: SloValues) => boolean = services.showIf!;
+    const required: (values: SloValues) => boolean = services.required as (
+      values: SloValues,
+    ) => boolean;
+
+    expect(services.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+    expect(services.dropdownModal?.type).toBe(Service);
+
+    for (const sliType of [SliType.RequestSuccess, SliType.RequestLatency]) {
+      expect(show(withValues({ sliType: sliType }))).toBe(true);
+      expect(required(withValues({ sliType: sliType }))).toBe(true);
+    }
+
+    expect(show(withValues({ sliType: SliType.MonitorUptime }))).toBe(false);
+    expect(required(withValues({ sliType: SliType.MonitorUptime }))).toBe(
+      false,
+    );
+  });
+
+  test("asks for a latency threshold only of a Request Latency SLO, and requires it there", () => {
+    const threshold: SloField = fieldFor("latencyThresholdInMilliseconds");
+    const show: (values: SloValues) => boolean = threshold.showIf!;
+    const required: (values: SloValues) => boolean = threshold.required as (
+      values: SloValues,
+    ) => boolean;
+
+    expect(threshold.fieldType).toBe(FormFieldSchemaType.Number);
+    expect(threshold.placeholder).toBe("300");
+    expect(show(withValues({ sliType: SliType.RequestLatency }))).toBe(true);
+    expect(required(withValues({ sliType: SliType.RequestLatency }))).toBe(
+      true,
+    );
+
+    for (const sliType of [SliType.MonitorUptime, SliType.RequestSuccess]) {
+      expect(show(withValues({ sliType: sliType }))).toBe(false);
+      expect(required(withValues({ sliType: sliType }))).toBe(false);
+    }
+  });
+
+  test("a threshold is a whole number of milliseconds from 1 to an hour", () => {
+    for (const value of [
+      1,
+      300,
+      "250",
+      SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS,
+    ]) {
+      expect(
+        validateLatencyThreshold(
+          withValues({ latencyThresholdInMilliseconds: value }),
+        ),
+      ).toBeNull();
+    }
+
+    for (const value of [0, -1, 2.5, "fast", 3600001]) {
+      expect(
+        validateLatencyThreshold(
+          withValues({ latencyThresholdInMilliseconds: value }),
+        ),
+      ).toBe(
+        "Latency threshold must be a whole number of milliseconds from 1 to 3,600,000.",
+      );
+    }
+
+    expect(SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS).toBe(3600000);
+  });
+
+  test("a monitor uptime SLO validates without services or a threshold", () => {
+    expect(validateForm(withValues({ name: "API" }))).toEqual({});
+  });
+
+  test("a request SLO without services, or a latency SLO without a threshold, does not", () => {
+    const missingServices: Record<string, string> = validateForm(
+      withValues({ name: "Checkout", sliType: SliType.RequestSuccess }),
+    );
+
+    expect(Object.keys(missingServices)).toContain("services");
+
+    const missingThreshold: Record<string, string> = validateForm(
+      withValues({
+        name: "Checkout",
+        sliType: SliType.RequestLatency,
+        services: [{ _id: "6b000000-0000-4000-8000-000000000001" }],
+      }),
+    );
+
+    expect(Object.keys(missingThreshold)).toEqual([
+      "latencyThresholdInMilliseconds",
+    ]);
   });
 });

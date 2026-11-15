@@ -16,6 +16,11 @@ import ts from "typescript";
  *   - or worded where it is written: `title: tx("CPU Utilization")`, a
  *     description built with translateTemplate around a node's name.
  *
+ * A word can also come from a shared utility that writes it in English -
+ * a monitor's, an incident's, an alert's or an SLO's metric title, legend
+ * or description (`IncidentMetricTypeUtil.getTitleByIncidentMetricType()`,
+ * #8282) - and is read as English too, though the scan cannot see its text.
+ *
  * This reads those shapes from a page's syntax tree, so a guard can hold a
  * page to handing its English through chartWordsInReadersLanguage once, or
  * to wording each literal where it writes it, and never both.
@@ -32,6 +37,15 @@ export const CHART_WORDS_HELPER: string = "chartWordsInReadersLanguage";
 // A call that looks its words up: tx(), t(), translator.translateText(), ...
 const LOOKUP_CALL: RegExp = /(^|\.)(tx|t|translate[A-Za-z]*)$/;
 
+/*
+ * A call that hands back a chart word in English: a metric utility's title,
+ * legend or description (MonitorMetricTypeUtil, IncidentMetricTypeUtil,
+ * AlertMetricTypeUtil, SloMetricTypeUtil), or the SLO page's own words for
+ * an incident or alert chart.
+ */
+const ENGLISH_WORD_CALL: RegExp =
+  /(MetricTypeUtil\.get[A-Za-z]*(Title|Legend|Description)[A-Za-z]*|^getSlo(Incident|Alert)MetricDescription)$/;
+
 export type ChartWordKind = "english" | "worded" | "other";
 
 export interface ChartWord {
@@ -39,6 +53,8 @@ export interface ChartWord {
   kind: ChartWordKind;
   // The English, for a literal and for a lookup of a literal.
   text: string | undefined;
+  // The utility that writes it, for a word the scan cannot read the text of.
+  source?: string | undefined;
   line: number;
   // In a metricAliasData literal, or in a chart's spec.
   holder: "alias" | "spec";
@@ -77,11 +93,23 @@ function stringOf(node: ts.Expression): string | undefined {
 function kindOf(
   node: ts.Expression,
   sourceFile: ts.SourceFile,
-): { kind: ChartWordKind; text: string | undefined } {
+): { kind: ChartWordKind; text: string | undefined; source?: string } {
   const literal: string | undefined = stringOf(node);
 
   if (literal !== undefined) {
     return { kind: literal ? "english" : "other", text: literal };
+  }
+
+  // A shared utility's English: IncidentMetricTypeUtil.getTitle...(type).
+  if (
+    ts.isCallExpression(node) &&
+    ENGLISH_WORD_CALL.test(node.expression.getText(sourceFile))
+  ) {
+    return {
+      kind: "english",
+      text: undefined,
+      source: node.expression.getText(sourceFile),
+    };
   }
 
   // translationKey("...") marks a key for the locales: it is still English.
@@ -169,15 +197,17 @@ export function readChartWords(
         continue;
       }
 
-      const read: { kind: ChartWordKind; text: string | undefined } = kindOf(
-        property.initializer,
-        sourceFile,
-      );
+      const read: {
+        kind: ChartWordKind;
+        text: string | undefined;
+        source?: string;
+      } = kindOf(property.initializer, sourceFile);
 
       words.push({
         property: name,
         kind: read.kind,
         text: read.text,
+        ...(read.source ? { source: read.source } : {}),
         line:
           sourceFile.getLineAndCharacterOfPosition(
             property.getStart(sourceFile),
@@ -244,15 +274,18 @@ export function getChartWordsProblems(
 
   for (const word of words.words) {
     if (word.kind === "english" && !words.callsHelper) {
+      const named: string =
+        word.text !== undefined ? `"${word.text}"` : `from ${word.source}()`;
+
       if (word.holder === "alias") {
         problems.push({
           line: word.line,
-          problem: `${word.property} "${word.text}" is handed to the chart in English: hand the queries through ${CHART_WORDS_HELPER}, or look it up where it is written`,
+          problem: `${word.property} ${named} is handed to the chart in English: hand the queries through ${CHART_WORDS_HELPER}, or look it up where it is written`,
         });
       } else if (!buildsWordedCharts) {
         problems.push({
           line: word.line,
-          problem: `the chart spec's ${word.property} "${word.text}" reaches the chart in English: hand the queries through ${CHART_WORDS_HELPER}`,
+          problem: `the chart spec's ${word.property} ${named} reaches the chart in English: hand the queries through ${CHART_WORDS_HELPER}`,
         });
       }
     }
