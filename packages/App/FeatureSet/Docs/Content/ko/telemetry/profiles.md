@@ -35,7 +35,7 @@ flowchart TB
 
 **제품 → 프로젝트 설정** 으로 이동해 사이드 메뉴에서 **텔레메트리 및 APM** 을 열고 **수집 키** 를 선택하세요.
 
-![프로젝트 설정의 텔레메트리 수집 키 페이지](/docs/static/images/TelemetryIngestionKeys.png)
+![‘수집 키’ 목록, ‘수집 키 생성’ 강조 표시됨](screen:ingestion-keys)
 
 ### 키 만들기
 

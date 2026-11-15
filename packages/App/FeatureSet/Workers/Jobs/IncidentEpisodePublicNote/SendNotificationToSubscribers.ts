@@ -73,6 +73,7 @@ import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/Sub
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
+import { StateListType } from "Common/Utils/StateOrder";
 import SubscriberMessageText, {
   SubscriberChatText,
   SubscriberSmsText,
@@ -638,6 +639,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             detailsUrl: episodeDetailsUrl,
             // A default severity name in the page's language.
             episodeSeverity: SubscriberTemplateValues.stateName(
+              StateListType.IncidentSeverity,
               episode.incidentSeverity?.name,
               " - ",
             ),
@@ -925,6 +927,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                       (translator: Translator): string => {
                         return SubscriberMessageText.nameInLanguage(
                           translator,
+                          StateListType.IncidentSeverity,
                           episode.incidentSeverity!.name,
                         );
                       },

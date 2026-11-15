@@ -14,8 +14,12 @@ import {
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
 import {
+  CLOUD_HEADLINE_TILES_MAX,
   CloudHeadlineTile,
+  NOT_REPORTED,
+  NOT_REPORTED_DESCRIPTION,
   PER_MINUTE,
+  PER_SECOND,
   formatCloudAmount,
   formatCloudBytes,
   formatCloudSeconds,
@@ -93,12 +97,16 @@ describe("what a resource's page leads with", () => {
 
     expect(
       tiles.map((tile: CloudHeadlineTile) => {
-        return [tile.title, tile.value, tile.percent];
+        return [tile.title, tile.value, tile.percent, tile.valueNote];
       }),
     ).toEqual([
-      ["CPU", "37%", 37.4],
-      ["Free storage", "12 GiB", undefined],
-      ["Connections", "42", undefined],
+      ["CPU", "37%", 37.4, undefined],
+      ["Free storage", "12 GiB", undefined, undefined],
+      ["Connections", "42", undefined, undefined],
+      // Every RDS instance reports these: a read without them says so.
+      ["Free memory", "", undefined, NOT_REPORTED],
+      ["Read latency", "", undefined, NOT_REPORTED],
+      ["Write latency", "", undefined, NOT_REPORTED],
     ]);
     expect(tiles[0]!.icon).toBe(IconProp.CPUChip);
   });
@@ -131,8 +139,301 @@ describe("what a resource's page leads with", () => {
         readings: { "aws/sqs/approximateageofoldestmessage": reading(5400) },
         hasFreshReadings: true,
         translator: ENGLISH,
-      })[0]!.value,
+      }).find((tile: CloudHeadlineTile): boolean => {
+        return tile.key === "aws/sqs/approximateageofoldestmessage";
+      })!.value,
     ).toBe("90 min");
+  });
+
+  test("a virtual machine leads with its CPU, memory, network, disks and availability", () => {
+    const tiles: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Compute/virtualMachines",
+      readings: {
+        percentage_cpu: reading(23.6),
+        available_memory_bytes: reading(3.2 * GIB),
+        // Bytes in the minute: drawn per minute.
+        network_in_total: reading(12 * 1024 * 1024),
+        network_out_total: reading(512 * 1024),
+        disk_read_bytes: reading(0),
+        disk_write_bytes: reading(64 * 1024 * 1024),
+        vmavailabilitymetric: reading(1),
+      },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+
+    expect(
+      tiles.map((tile: CloudHeadlineTile) => {
+        return [tile.title, tile.value, tile.sublabel];
+      }),
+    ).toEqual([
+      ["CPU", "24%", undefined],
+      ["Free memory", "3.2 GiB", undefined],
+      ["Network in", "12 MiB", PER_MINUTE],
+      ["Network out", "512 KiB", PER_MINUTE],
+      ["Disk read", "0 B", PER_MINUTE],
+      ["Disk write", "64 MiB", PER_MINUTE],
+      ["Availability", "100%", undefined],
+    ]);
+    expect(
+      tiles.map((tile: CloudHeadlineTile) => {
+        return tile.icon;
+      }),
+    ).toEqual([
+      IconProp.CPUChip,
+      IconProp.Server,
+      IconProp.ArrowDown,
+      IconProp.ArrowUp,
+      IconProp.Disc,
+      IconProp.Disc,
+      IconProp.Heart,
+    ]);
+  });
+
+  test("a level the last read did not bring is said plainly; a sum it did not bring is left out", () => {
+    const tiles: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Compute/virtualMachines",
+      readings: { percentage_cpu: reading(40) },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+    const missing: CloudHeadlineTile = tiles.find(
+      (tile: CloudHeadlineTile): boolean => {
+        return tile.key === "available_memory_bytes";
+      },
+    )!;
+
+    expect(
+      tiles.map((tile: CloudHeadlineTile) => {
+        return tile.key;
+      }),
+    ).toEqual([
+      "percentage_cpu",
+      "available_memory_bytes",
+      "vmavailabilitymetric",
+    ]);
+    expect(missing.value).toBe("");
+    expect(missing.valueNote).toBe(NOT_REPORTED);
+    expect(missing.description).toBe(NOT_REPORTED_DESCRIPTION);
+    expect(missing.iconColor).toBe("slate");
+    // Never a bar for a number that is not there.
+    expect(missing.percent).toBeUndefined();
+  });
+
+  test("a reading only some resources of the type report is never said to be missing", () => {
+    // An Application Load Balancer: a Network Load Balancer's flows are not its.
+    const alb: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "aws",
+      type: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      readings: {
+        "aws/applicationelb/requestcount": reading(1500),
+        "aws/applicationelb/targetresponsetime": reading(0.12),
+      },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+
+    expect(
+      alb.map((tile: CloudHeadlineTile) => {
+        return tile.title;
+      }),
+    ).toEqual(["Requests", "Response time"]);
+
+    // An Aurora instance keeps its data in its cluster's volume.
+    expect(
+      getCloudHeadlineTiles({
+        provider: "aws",
+        type: "AWS::RDS::DBInstance",
+        readings: {
+          "aws/rds/cpuutilization": reading(12),
+          "aws/rds/databaseconnections": reading(3),
+          "aws/rds/freeablememory": reading(2 * GIB),
+          "aws/rds/readlatency": reading(0.002),
+          "aws/rds/writelatency": reading(0.004),
+        },
+        hasFreshReadings: true,
+        translator: ENGLISH,
+      }).some((tile: CloudHeadlineTile): boolean => {
+        return tile.key === "aws/rds/freestoragespace";
+      }),
+    ).toBe(false);
+  });
+
+  test("a load balancer's backends, a gateway's throughput and a firewall's, as sizes per second", () => {
+    const balancer: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Network/loadBalancers",
+      readings: {
+        vipavailability: reading(100),
+        dipavailability: reading(50),
+        bytecount: reading(3 * 1024 * 1024),
+      },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+
+    expect(
+      balancer.map((tile: CloudHeadlineTile) => {
+        return [tile.title, tile.value, tile.percent];
+      }),
+    ).toEqual([
+      ["Availability", "100%", 100],
+      ["Healthy backends", "50%", 50],
+      ["Traffic", "3 MiB", undefined],
+    ]);
+
+    const gateway: CloudHeadlineTile = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Network/applicationGateways",
+      readings: { throughput: reading(2 * 1024 * 1024) },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    }).find((tile: CloudHeadlineTile): boolean => {
+      return tile.key === "throughput";
+    })!;
+
+    expect([gateway.value, gateway.sublabel]).toEqual(["2 MiB", PER_SECOND]);
+
+    // A firewall's throughput is in bits: drawn in bytes.
+    const firewall: CloudHeadlineTile = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Network/azureFirewalls",
+      readings: { throughput: reading(8 * 1024 * 1024) },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    }).find((tile: CloudHeadlineTile): boolean => {
+      return tile.key === "throughput";
+    })!;
+
+    expect([firewall.value, firewall.sublabel]).toEqual(["1 MiB", PER_SECOND]);
+  });
+
+  test("the types the issue asked about lead with what a person reads first about each", () => {
+    expect(
+      getCloudHeadlineKeys("azure", "Microsoft.Sql/servers/databases"),
+    ).toEqual(["cpu_percent", "storage_percent", "sessions_percent"]);
+    expect(getCloudHeadlineKeys("azure", "Microsoft.Web/sites")).toEqual([
+      "requests",
+      "httpresponsetime",
+      "http5xx",
+      "memoryworkingset",
+      "functionexecutioncount",
+    ]);
+    expect(
+      getCloudHeadlineKeys("azure", "Microsoft.Storage/storageAccounts"),
+    ).toEqual([
+      "availability",
+      "transactions",
+      "successe2elatency",
+      "usedcapacity",
+    ]);
+    expect(getCloudHeadlineKeys("aws", "AWS::EC2::Instance")).toEqual([
+      "aws/ec2/cpuutilization",
+      "aws/ec2/networkin",
+      "aws/ec2/networkout",
+    ]);
+    expect(getCloudHeadlineKeys("gcp", "gce_instance")).toEqual([
+      "compute.googleapis.com/instance/cpu/utilization",
+      "compute.googleapis.com/instance/network/received_bytes_count",
+      "compute.googleapis.com/instance/network/sent_bytes_count",
+    ]);
+  });
+
+  test("a share that is better full - availability, healthy backends - draws its bar that way, as its rules judge it", () => {
+    const vm: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Compute/virtualMachines",
+      readings: {
+        percentage_cpu: reading(96),
+        vmavailabilitymetric: reading(1),
+      },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+    const tileOf: (
+      tiles: Array<CloudHeadlineTile>,
+      key: string,
+    ) => CloudHeadlineTile = (
+      tiles: Array<CloudHeadlineTile>,
+      key: string,
+    ): CloudHeadlineTile => {
+      return tiles.find((tile: CloudHeadlineTile): boolean => {
+        return tile.key === key;
+      })!;
+    };
+
+    // CPU: worse the fuller, the default bar.
+    expect(tileOf(vm, "percentage_cpu").higherIsBetter).toBeUndefined();
+    expect(tileOf(vm, "percentage_cpu").thresholds).toBeUndefined();
+    // Availability: best full, amber under 99.9% and red under 90%.
+    expect(tileOf(vm, "vmavailabilitymetric").higherIsBetter).toBe(true);
+    expect(tileOf(vm, "vmavailabilitymetric").thresholds).toEqual({
+      warn: 99.9,
+      danger: 90,
+    });
+
+    const balancer: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Network/loadBalancers",
+      readings: { vipavailability: reading(100), dipavailability: reading(50) },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+
+    expect(tileOf(balancer, "dipavailability").higherIsBetter).toBe(true);
+    expect(tileOf(balancer, "dipavailability").thresholds).toEqual({
+      warn: 100,
+      danger: 50,
+    });
+
+    // A share of requests that failed: amber from 5%, red from half.
+    const cdn: CloudHeadlineTile = tileOf(
+      getCloudHeadlineTiles({
+        provider: "azure",
+        type: "Microsoft.Cdn/profiles",
+        readings: { percentage5xx: reading(7) },
+        hasFreshReadings: true,
+        translator: ENGLISH,
+      }),
+      "percentage5xx",
+    );
+
+    expect(cdn.higherIsBetter).toBeUndefined();
+    expect(cdn.thresholds).toEqual({ warn: 5, danger: 50 });
+
+    // A count of errors draws no bar at all.
+    expect(
+      tileOf(
+        getCloudHeadlineTiles({
+          provider: "azure",
+          type: "Microsoft.Web/sites",
+          readings: { http5xx: reading(3) },
+          hasFreshReadings: true,
+          translator: ENGLISH,
+        }),
+        "http5xx",
+      ).thresholds,
+    ).toBeUndefined();
+  });
+
+  test("two rows of tiles at most", () => {
+    for (const [provider, type] of [
+      ["azure", "Microsoft.Compute/virtualMachines"],
+      ["aws", "AWS::RDS::DBInstance"],
+      ["azure", "Microsoft.Network/applicationGateways"],
+    ]) {
+      expect(
+        getCloudHeadlineTiles({
+          provider: provider!,
+          type: type!,
+          readings: {},
+          hasFreshReadings: true,
+          translator: ENGLISH,
+        }).length,
+      ).toBeLessThanOrEqual(CLOUD_HEADLINE_TILES_MAX);
+    }
   });
 
   test("readings that are stale, or a type with no headline, give no tiles", () => {

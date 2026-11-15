@@ -117,7 +117,7 @@ Una regla que avisa a un teléfono indica cómo suena su push:
 | **Alerta crítica** | Suena aunque el teléfono esté en silencio o en No molestar, una vez que Critical On-Call Alerts está activado en la app OneUptime On-Call. Una regla nueva para un teléfono empieza aquí. |
 | **Estándar** | Sigue los ajustes de sonido, silencio y No molestar del teléfono. |
 
-Una regla push, para un teléfono o un navegador, también puede reenviar su push hasta que alguien reconozca: **No repetir**, la opción predeterminada, o **Cada minuto**, **Cada 2 minutos**, **Cada 3 minutos**, **Cada 5 minutos**, **Cada 10 minutos**, **Cada 15 minutos** o **Cada 30 minutos**. Se repite hasta 10 veces más, y se detiene en cuanto el incidente, la alerta o el episodio se reconoce. Consulta [Alertas de guardia críticas](/docs/self-hosted/push-notifications#alertas-críticas-de-guardia-anular-el-modo-silencio).
+Una regla push, para un teléfono o un navegador, también puede reenviar su push hasta que alguien reconozca: **No repetir**, la opción predeterminada, o **Cada minuto**, **Cada 2 minutos**, **Cada 3 minutos**, **Cada 5 minutos**, **Cada 10 minutos**, **Cada 15 minutos** o **Cada 30 minutos**. Se repite hasta 10 veces más, y se detiene en cuanto el incidente, la alerta o el episodio se reconoce. Un aviso que sigue después de un reconocimiento, como un nuevo aviso, se repite hasta que responde alguien a quien avisó o se resuelve el incidente, la alerta o el episodio: [Cuando avisan varias políticas](/docs/on-call/policies#cuando-avisan-varias-políticas) los enumera. Consulta [Alertas de guardia críticas](/docs/self-hosted/push-notifications#alertas-críticas-de-guardia-anular-el-modo-silencio).
 
 ## Cuando una gravedad no tiene regla
 

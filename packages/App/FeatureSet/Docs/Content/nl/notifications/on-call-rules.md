@@ -117,7 +117,7 @@ Een regel die een telefoon oproept, bepaalt hoe zijn push klinkt:
 | **Kritieke waarschuwing** | Gaat af, ook als de telefoon op stil staat of Niet storen aan is, zodra Critical On-Call Alerts in de app OneUptime On-Call aanstaat. Een nieuwe telefoonregel begint hier. |
 | **Normaal** | Volgt de geluids-, stilte- en Niet storen-instellingen van de telefoon. |
 
-Een pushregel, voor een telefoon of een browser, kan zijn push ook herhalen tot iemand bevestigt: **Niet herhalen**, de standaard, of **Elke minuut**, **Elke 2 minuten**, **Elke 3 minuten**, **Elke 5 minuten**, **Elke 10 minuten**, **Elke 15 minuten** of **Elke 30 minuten**. Hij herhaalt tot 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Zie [Kritieke bereikbaarheidswaarschuwingen](/docs/self-hosted/push-notifications#kritieke-dienstmeldingen-stille-modus-doorbreken).
+Een pushregel, voor een telefoon of een browser, kan zijn push ook herhalen tot iemand bevestigt: **Niet herhalen**, de standaard, of **Elke minuut**, **Elke 2 minuten**, **Elke 3 minuten**, **Elke 5 minuten**, **Elke 10 minuten**, **Elke 15 minuten** of **Elke 30 minuten**. Hij herhaalt tot 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Een oproep die na een bevestiging doorgaat, zoals een nieuwe oproep, herhaalt tot iemand die hij opriep antwoordt of het incident, de waarschuwing of de episode is opgelost: [Als meerdere beleidsregels oproepen](/docs/on-call/policies#als-meerdere-beleidsregels-oproepen) noemt ze. Zie [Kritieke bereikbaarheidswaarschuwingen](/docs/self-hosted/push-notifications#kritieke-dienstmeldingen-stille-modus-doorbreken).
 
 ## Als een ernst geen regel heeft
 

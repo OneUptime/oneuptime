@@ -34,17 +34,18 @@ import {
   SessionEndCause,
 } from "../../Types/UserSession/SessionEndCause";
 import {
+  decideSessionRenewal,
   DEFAULT_SESSION_IDLE_DAYS,
-  getActivityAtRenewal,
   getIdleTimeoutInMinutes,
   getSessionEnd,
-  getSessionEndReachedBy,
   getSessionLengthRule,
+  ReportedInactivity,
   SessionEnd,
   SessionEndReason,
   SessionFacts,
   SessionLengthRule,
   SessionLengths,
+  SessionRenewalOutcome,
 } from "../../Types/UserSession/SessionLength";
 import {
   readSessionSignIn,
@@ -78,16 +79,27 @@ export interface SessionMetadata {
 
 /*
  * What a renewal of a session decides under the server's session lengths:
- * that the session has ended, and why, or when its person was last active
- * and the lengths it is renewed under.
+ * that the session has ended, why, and when its person was last active
+ * before it did (which its end is recorded with: endSessionByLength), or
+ * when its person was last active and the lengths it is renewed under.
  */
 export type SessionRenewalDecision =
-  | { hasEnded: true; reason: SessionEndReason }
+  | { hasEnded: true; reason: SessionEndReason; lastActiveAt: Date }
   | {
       hasEnded: false;
       lastActiveAt: Date;
       lengths: SessionLengths | null;
     };
+
+// What endSessionByLength writes with the end.
+export interface EndSessionByLengthOptions {
+  /*
+   * When its person was last active before it ended, as the renewal that
+   * ended it decided: kept on the session with its end, so the audit log
+   * says it, and counts the moment an idle timeout ran out from.
+   */
+  lastActiveAt?: Date | undefined;
+}
 
 /*
  * The revocation reason a session ended by the server's session lengths is
@@ -190,6 +202,12 @@ export interface RevokeSessionOptions {
    * audit log's entry about it.
    */
   requestOrigin?: RequestOrigin | undefined;
+  /*
+   * When its person was last active, when the revocation knows better than
+   * the session (a renewal past its idle timeout: endSessionByLength).
+   * Written with the end, and what the audit log's entry about it says.
+   */
+  lastActiveAt?: Date | undefined;
 }
 
 /*
@@ -422,15 +440,19 @@ export class Service extends DatabaseService<Model> {
   /*
    * Whether a session found by its refresh token may be renewed, under the
    * server's session lengths as they are now (Types/UserSession/
-   * SessionLength.ts) - the one place a renewal asks:
+   * SessionLength.ts, decideSessionRenewal) - the one place a renewal asks:
    *
    *   - ended when its kind's session length has passed since it signed in;
    *   - ended when its person has not been active for its kind's idle
-   *     timeout. While an idle timeout is set, a browser's report of how
-   *     long its person has not used OneUptime counts
+   *     timeout. While an idle timeout is set, what a browser reports
+   *     counts: how long its person has not used OneUptime
    *     (reportedInactivityInSeconds, held within what the session knew
-   *     already and now); otherwise, and for a renewal without one, the
-   *     renewal itself is the activity - as every renewal has always been.
+   *     already and now), and the longest time they went without since the
+   *     last renewal (reportedLongestInactivity) - a browser closed, a
+   *     computer asleep - which ends the session once the part the session
+   *     did not know of reached the idle timeout. Otherwise, and for a
+   *     renewal without a report, the renewal itself is the activity - as
+   *     every renewal has always been.
    *
    * Throws when the lengths cannot be read: the renewal is refused, never
    * made past them.
@@ -439,64 +461,62 @@ export class Service extends DatabaseService<Model> {
   public async decideRenewal(data: {
     session: Model;
     reportedInactivityInSeconds: number | null;
+    reportedLongestInactivity?: ReportedInactivity | null | undefined;
   }): Promise<SessionRenewalDecision> {
     const lengths: SessionLengths | null =
       await EnterpriseEdition.getUserSessionLengths();
     const now: Date = OneUptimeDate.getCurrentDate();
-    const facts: SessionFacts = Service.getSessionFacts(data.session, now);
-    const rule: SessionLengthRule = getSessionLengthRule(
-      lengths,
-      facts.isSsoSignIn,
-    );
 
-    const reportedInactivityInSeconds: number | null =
-      rule.idleTimeoutInMinutes === null
-        ? null
-        : data.reportedInactivityInSeconds;
-
-    const lastActiveAt: Date = getActivityAtRenewal({
-      storedLastActiveAt: facts.lastActiveAt,
-      reportedInactivityInSeconds: reportedInactivityInSeconds,
+    const outcome: SessionRenewalOutcome = decideSessionRenewal({
+      facts: Service.getSessionFacts(data.session, now),
+      lengths: lengths,
+      report: {
+        inactiveForInSeconds: data.reportedInactivityInSeconds,
+        longestInactivity: data.reportedLongestInactivity ?? null,
+      },
       now: now,
     });
 
-    const reason: SessionEndReason | null = getSessionEndReachedBy(
-      {
-        ...facts,
-        // Without a report, inactivity is what the session knew of it.
-        lastActiveAt:
-          reportedInactivityInSeconds === null
-            ? facts.lastActiveAt
-            : lastActiveAt,
-      },
-      lengths,
-      now,
-    );
-
-    if (reason) {
-      return { hasEnded: true, reason: reason };
+    if (outcome.hasEnded) {
+      return {
+        hasEnded: true,
+        reason: outcome.reason,
+        lastActiveAt: outcome.lastActiveAt,
+      };
     }
 
-    return { hasEnded: false, lastActiveAt: lastActiveAt, lengths: lengths };
+    return {
+      hasEnded: false,
+      lastActiveAt: outcome.lastActiveAt,
+      lengths: lengths,
+    };
   }
 
   /*
    * Ends a session the server's session lengths have ended: revoked, with
    * the reason kept (SESSION_END_REVOKED_REASONS), which also ends its live
    * updates on every server and records its timeout in the audit log
-   * (onUpdateSuccess).
+   * (onUpdateSuccess) - with when its person was last active before it
+   * ended, when the renewal that ended it knew (options.lastActiveAt).
    */
   @CaptureSpan()
   public async endSessionByLength(
     sessionId: ObjectID,
     reason: SessionEndReason,
+    options?: EndSessionByLengthOptions,
   ): Promise<void> {
-    await this.revokeSessionById(sessionId, {
+    const revokeOptions: RevokeSessionOptions = {
       cause:
         reason === SessionEndReason.LengthReached
           ? SessionEndCause.LengthReached
           : SessionEndCause.IdleTimeout,
-    });
+    };
+
+    if (options?.lastActiveAt) {
+      revokeOptions.lastActiveAt = options.lastActiveAt;
+    }
+
+    await this.revokeSessionById(sessionId, revokeOptions);
   }
 
   /*
@@ -1036,13 +1056,24 @@ export class Service extends DatabaseService<Model> {
     sessionId: ObjectID,
     options?: RevokeSessionOptions,
   ): Promise<void> {
+    const data: {
+      isRevoked: boolean;
+      revokedAt: Date;
+      revokedReason: string | null;
+      lastActiveAt?: Date;
+    } = {
+      isRevoked: true,
+      revokedAt: OneUptimeDate.getCurrentDate(),
+      revokedReason: Service.getRevokedReason(options),
+    };
+
+    if (options?.lastActiveAt) {
+      data.lastActiveAt = options.lastActiveAt;
+    }
+
     await this.updateOneById({
       id: sessionId,
-      data: {
-        isRevoked: true,
-        revokedAt: OneUptimeDate.getCurrentDate(),
-        revokedReason: Service.getRevokedReason(options),
-      },
+      data: data,
       props: Service.getRevocationProps(options),
     });
   }
@@ -1165,6 +1196,7 @@ export class Service extends DatabaseService<Model> {
           | undefined,
         updatedItemIds: updatedItemIds,
         revokedReason: onUpdate.updateBy.data.revokedReason,
+        lastActiveAt: onUpdate.updateBy.data.lastActiveAt,
         props: onUpdate.updateBy.props,
       });
     }
@@ -1176,12 +1208,16 @@ export class Service extends DatabaseService<Model> {
    * The ends of the sessions a revocation ended - those it read before the
    * write (onBeforeUpdate) and the write did end - in the audit log. Why
    * they ended is what the revocation was kept with
-   * (Types/UserSession/SessionEndCause). Never fails the revocation.
+   * (Types/UserSession/SessionEndCause), and when their person was last
+   * active is what it wrote, when it wrote that too (a renewal that found
+   * the session past its idle timeout knows better than the row it read).
+   * Never fails the revocation.
    */
   private async recordSessionEnds(data: {
     carryForward: RevocationCarryForward | null | undefined;
     updatedItemIds: Array<ObjectID>;
     revokedReason: unknown;
+    lastActiveAt: unknown;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     try {
@@ -1199,6 +1235,16 @@ export class Service extends DatabaseService<Model> {
 
       if (endingSessions.length === 0) {
         return;
+      }
+
+      const writtenLastActiveAt: Date | null = Service.readWrittenDate(
+        data.lastActiveAt,
+      );
+
+      if (writtenLastActiveAt) {
+        for (const ending of endingSessions) {
+          ending.session.lastActiveAt = writtenLastActiveAt;
+        }
       }
 
       const cause: SessionEndCause = readSessionEndCause(data.revokedReason);
@@ -1231,6 +1277,19 @@ export class Service extends DatabaseService<Model> {
       logger.warn("UserSessionService: failed to record the end of sessions");
       logger.warn(err);
     }
+  }
+
+  // A date an update wrote, or null for none (or one that is no date).
+  private static readWrittenDate(value: unknown): Date | null {
+    let date: Date | null = null;
+
+    if (value instanceof Date) {
+      date = value;
+    } else if (typeof value === "string" || typeof value === "number") {
+      date = new Date(value);
+    }
+
+    return date && Number.isFinite(date.getTime()) ? date : null;
   }
 
   /*

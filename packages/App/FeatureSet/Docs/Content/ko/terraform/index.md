@@ -104,7 +104,7 @@ Terraform으로 관리하려는 모니터, 상태 페이지 또는 다른 리소
 | `oneuptime_on_call_policy`, `oneuptime_escalation_rule` | 온콜 정책과, 정책이 순서대로 호출하는 규칙 |
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | 인시던트와 그 심각도 및 상태 |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | 알림과 그 심각도 및 상태 |
-| `oneuptime_scheduled_maintenance_event` | 예약된 유지 관리 기간 |
+| `oneuptime_scheduled_maintenance_event` | 예정된 유지 관리 기간 |
 | `oneuptime_probe` | 여러분의 네트워크에서 확인하는 자체 프로브 |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs)에는 모든 리소스와 그 속성이 모두 나와 있습니다.

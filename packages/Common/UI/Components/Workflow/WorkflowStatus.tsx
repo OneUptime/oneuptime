@@ -1,3 +1,4 @@
+import { DropdownOption } from "../Dropdown/Dropdown";
 import Pill from "../Pill/Pill";
 import { WorkflowTestRunPill } from "./WorkflowTestRun";
 import Color from "../../../Types/Color";
@@ -33,6 +34,20 @@ const WORKFLOW_STATUS_COLORS: Record<WorkflowStatus, Color> = {
   [WorkflowStatus.Timeout]: Red,
   [WorkflowStatus.WorkflowCountExceeded]: Red,
 };
+
+/*
+ * The runs' Status filter: every status in the words its pill draws -
+ * "Executed", never the stored "Success"; "Execution Exceeded Current
+ * Plan", never "Workflow Count Exceeded" - so the filter's menu, its chip
+ * and the rows read the same, in every language.
+ */
+export function getWorkflowStatusFilterOptions(): Array<DropdownOption> {
+  return Object.values(WorkflowStatus).map(
+    (status: WorkflowStatus): DropdownOption => {
+      return { value: status, label: getWorkflowStatusLabel(status) };
+    },
+  );
+}
 
 const WorkflowStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

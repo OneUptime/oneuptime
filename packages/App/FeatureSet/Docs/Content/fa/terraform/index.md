@@ -104,7 +104,7 @@ provider "oneuptime" {
 | `oneuptime_on_call_policy`, `oneuptime_escalation_rule` | یک سیاست آنکال، و قواعدی که به ترتیب فرامی‌خواند |
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | حادثه‌ها، شدت‌هایشان و وضعیت‌هایشان |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | هشدارها، شدت‌هایشان و وضعیت‌هایشان |
-| `oneuptime_scheduled_maintenance_event` | یک بازهٔ نگهداری زمان‌بندی‌شده |
+| `oneuptime_scheduled_maintenance_event` | یک بازهٔ تعمیر و نگهداری زمان‌بندی‌شده |
 | `oneuptime_probe` | پراب خودتان، که از شبکهٔ شما بررسی می‌کند |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) هر منبع را با همهٔ ویژگی‌هایش فهرست می‌کند.

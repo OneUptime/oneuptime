@@ -117,7 +117,7 @@ A rule that pages a phone says how its push sounds:
 | **Critical alert** | Rings even when the phone is on silent or in Do Not Disturb, once Critical On-Call Alerts is on in the OneUptime On-Call app. A new phone rule starts here. |
 | **Standard** | Follows the phone's sound, silent and Do Not Disturb settings. |
 
-A push rule, for a phone or a browser, can also send its push again until someone acknowledges: **Don't repeat**, the default, or **Every minute**, **Every 2 minutes**, **Every 3 minutes**, **Every 5 minutes**, **Every 10 minutes**, **Every 15 minutes** or **Every 30 minutes**. It repeats up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. See [Critical on-call alerts](/docs/self-hosted/push-notifications#critical-on-call-alerts-overriding-silent-mode).
+A push rule, for a phone or a browser, can also send its push again until someone acknowledges: **Don't repeat**, the default, or **Every minute**, **Every 2 minutes**, **Every 3 minutes**, **Every 5 minutes**, **Every 10 minutes**, **Every 15 minutes** or **Every 30 minutes**. It repeats up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. A page that goes on after an acknowledgement, such as a page again, repeats until somebody it paged answers it or the incident, alert or episode is resolved: [When several policies page](/docs/on-call/policies#when-several-policies-page) lists them. See [Critical on-call alerts](/docs/self-hosted/push-notifications#critical-on-call-alerts-overriding-silent-mode).
 
 ## When a severity has no rule
 

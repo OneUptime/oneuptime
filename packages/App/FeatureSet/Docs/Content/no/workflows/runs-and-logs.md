@@ -3,7 +3,7 @@
 Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skjedde — når den kjørte, om den lyktes, og hva hver blokk mottok og returnerte. Den oversikten kalles en **kjøring**. Med kjøringer bekrefter du at en arbeidsflyt fungerte, finner feil i en som ikke gjorde det, og ser tilbake på tidligere aktivitet.
 
 :::cards
-- [Status for en kjøring](#status-for-en-kjøring): Hva Planlagt, Venter, Executed og de andre statusene betyr.
+- [Status for en kjøring](#status-for-en-kjøring): Hva Planlagt, Venter, Utført og de andre statusene betyr.
 - [Les en kjøring](#les-en-kjøring): Følg veien en kjøring tok, blokk for blokk.
 - [Feilsøking](#feilsøking): En arbeidsflyt som ikke kjørte, en blokk som aldri kjørte, en verdi som kom tom frem.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Planlagt" as Scheduled
     state "Kjører" as Running
     state "Venter" as Waiting
-    state "Executed" as Executed
+    state "Utført" as Executed
     state "Feil" as Failed
-    state "Timeout" as TimedOut
+    state "Tidsavbrudd" as TimedOut
     [*] --> Scheduled: triggeren<br/>utløses
     Scheduled --> Running: en kjører<br/>plukker den opp
     Scheduled --> Failed: ikke plukket opp<br/>innen 5 minutter
@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Venter**                          | Kjøringen står parkert ved en **Sleep**-blokk og fortsetter av seg selv. Den holder ingen worker mens den venter.                                                                                                                                                    |
 | **Utført**                        | Kjøringen nådde slutten uten å mislykkes. Det er suksesstatusen: pillen sier **Utført**, ikke «Vellykket».                                                                                                                                                          |
 | **Feil**                            | En blokk stoppet kjøringen, eller mislyktes uten at noe var koblet til utgangen **Error**. Brukes også når en kjøring i kø aldri blir plukket opp, når gjenopptakelsen av en sovende kjøring går tapt, når et tidsplanuttrykk ikke kan løses opp, og når arbeidsflyten ble slått av eller arkivert mens kjøringen ventet ved en **Sleep**-blokk. |
-| **Timeout**                         | Kjøringen tok lengre tid enn tillatt: 2 minutter som standard. Se [Hvor lenge en kjøring kan vare](/docs/workflows/configuration#hvor-lenge-en-kjøring-kan-vare).                                                                                                          |
-| **Execution Exceeded Current Plan** | Prosjektet har brukt opp arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Kjøringen registreres, men utføres ikke. Bare OneUptime Cloud.                                                                                           |
+| **Tidsavbrudd**                     | Kjøringen tok lengre tid enn tillatt: 2 minutter som standard. Se [Hvor lenge en kjøring kan vare](/docs/workflows/configuration#hvor-lenge-en-kjøring-kan-vare).                                                                                                          |
+| **Utførelse overskred gjeldende abonnement** | Prosjektet har brukt opp arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Kjøringen registreres, men utføres ikke. Bare OneUptime Cloud.                                                                                           |
 
 En blokk som tar utgangen **Error** — en API-blokk som fikk en 4xx, for eksempel — får bare kjøringen til å mislykkes når ingenting er koblet til **Error**. Er det koblet blokker dit, kjører de, og kjøringen kan likevel slutte som **Utført**. Er ingenting koblet dit, kjører resten av kjøringen videre, deretter slutter den som **Feil**, og den siste linjen i dens **Full Log** nevner blokken. Uansett tegnes selve trinnet i rødt, slik at du finner det.
 
@@ -114,7 +114,7 @@ En nedlasting inneholder ingenting du ikke allerede kunne lese i kjøringen. Hem
 3. For en webhook-trigger bekrefter du at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
 4. For en tidsplantrigger bekrefter du at cron-uttrykket stemmer med tidspunktet du forventer. Tidsplaner kjører i UTC.
 
-Vises kjøringen, med statusen **Execution Exceeded Current Plan**, har prosjektet brukt alle arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Loggen til kjøringen nevner antallet og grensen i planen din. Dette gjelder bare OneUptime Cloud.
+Vises kjøringen, med statusen **Utførelse overskred gjeldende abonnement**, har prosjektet brukt alle arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Loggen til kjøringen nevner antallet og grensen i planen din. Dette gjelder bare OneUptime Cloud.
 :::
 
 :::details En senere blokk kjørte aldri

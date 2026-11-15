@@ -32,6 +32,7 @@ import {
   labelLinesForNode,
   labelNameLinesForNode,
   labelSecondaryLineForNode,
+  splitLongWord,
   wrapNodeLabel,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyFootprint";
 
@@ -167,6 +168,58 @@ describe("wrapNodeLabel — the line budget is never exceeded", () => {
       "WORKSTATION",
       "0123456789",
     ]);
+  });
+
+  /*
+   * Issue #8152: cut every eleven characters, a hostname one character too
+   * long left that character alone on the second line - the customer's map
+   * in #6606 read "WB0660RSVR0" over "1". A word that fits on two lines now
+   * breaks where its parts meet, and evenly when it has no such place.
+   */
+  test("a hostname a little too long breaks where letters meet digits, never leaving one character behind", () => {
+    expect(wrapNodeLabel("WB0660RSVR01")).toEqual(["WB0660RSVR", "01"]);
+    expect(wrapNodeLabel("WB0660TAB010")).toEqual(["WB0660TAB", "010"]);
+    expect(wrapNodeLabel("WB0660TAB111")).toEqual(["WB0660TAB", "111"]);
+  });
+
+  test("it breaks after a separator when there is one", () => {
+    expect(wrapNodeLabel("store-0042-pos")).toEqual(["store-0042-", "pos"]);
+    // The last place both halves fit on a line: "dc1.example." is twelve.
+    expect(wrapNodeLabel("dc1.example.com")).toEqual(["dc1.", "example.com"]);
+    expect(wrapNodeLabel("ap_lobby_east")).toEqual(["ap_lobby_", "east"]);
+  });
+
+  test("a word with nowhere natural to break is split evenly", () => {
+    expect(wrapNodeLabel("abcdefghijklm")).toEqual(["abcdefg", "hijklm"]);
+    expect(wrapNodeLabel("ABCDEFGHIJKL")).toEqual(["ABCDEF", "GHIJKL"]);
+  });
+
+  test("a device's longer line follows the same rule", () => {
+    expect(wrapNodeLabel("UN0660LANSWITCH0101", 17, 2)).toEqual([
+      "UN0660LANSWITCH",
+      "0101",
+    ]);
+  });
+
+  test("splitLongWord never makes a chunk longer than the line, nor loses a character", () => {
+    for (const word of [
+      "WB0660RSVR01",
+      "abcdefghijklm",
+      "WORKSTATION0123456789ABCDEFG",
+      "a-b-c-d-e-f-g-h-i-j-k-l-m-n-o",
+      "x".repeat(60),
+      "0123456789012345678901234",
+    ]) {
+      for (const limit of [1, 2, 5, 11, 17]) {
+        const chunks: Array<string> = splitLongWord(word, limit);
+        expect(chunks.join("")).toBe(word);
+        for (const chunk of chunks) {
+          expect(chunk.length).toBeGreaterThan(0);
+          expect(chunk.length).toBeLessThanOrEqual(limit);
+        }
+      }
+    }
+    expect(splitLongWord("short", 11)).toEqual(["short"]);
   });
 
   test("a word too long even for the whole budget ends in an ellipsis", () => {

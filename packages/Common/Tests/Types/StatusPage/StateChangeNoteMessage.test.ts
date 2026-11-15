@@ -1,3 +1,4 @@
+import { StateListType } from "../../../Utils/StateOrder";
 import StateChangeNoteMessage from "../../../Types/StatusPage/StateChangeNoteMessage";
 import { getServerTranslator } from "../../../Server/Utils/ServerTranslation";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
@@ -100,17 +101,26 @@ describe("StateChangeNoteMessage", () => {
   describe("Slack and Microsoft Teams", () => {
     test("a Status line, as the incident state change message has", () => {
       expect(
-        StateChangeNoteMessage.getChatStatusLine("Resolved").toString(),
+        StateChangeNoteMessage.getChatStatusLine(
+          StateListType.IncidentState,
+          "Resolved",
+        ).toString(),
       ).toBe("**Status:** Resolved");
       expect(
-        StateChangeNoteMessage.getChatStatusLine(" Monitoring ").toString(),
+        StateChangeNoteMessage.getChatStatusLine(
+          StateListType.IncidentState,
+          " Monitoring ",
+        ).toString(),
       ).toBe("**Status:** Monitoring");
     });
 
     test("the label is the one the email row uses", () => {
       expect(StateChangeNoteMessage.statusLabel).toBe("Status");
       expect(
-        StateChangeNoteMessage.getChatStatusLine("Resolved").toString(),
+        StateChangeNoteMessage.getChatStatusLine(
+          StateListType.IncidentState,
+          "Resolved",
+        ).toString(),
       ).toContain(`**${StateChangeNoteMessage.statusLabel}:**`);
     });
 
@@ -122,8 +132,10 @@ describe("StateChangeNoteMessage", () => {
     test("a state's name is plain text in the line, and reads as typed", () => {
       const name: string =
         "![](https://tracker.example/p.png) [Open](https://evil.example) <!channel> <b>x</b>";
-      const line: string =
-        StateChangeNoteMessage.getChatStatusLine(name).toString();
+      const line: string = StateChangeNoteMessage.getChatStatusLine(
+        StateListType.IncidentState,
+        name,
+      ).toString();
 
       expect(line).toBe(
         `**Status:** !\\[\\](https://tracker.example/p.png) \\[Open\\](https://evil.example) \\<${WORD_JOINER}!channel> \\<b>x\\</b>`,
@@ -158,6 +170,7 @@ describe("StateChangeNoteMessage", () => {
     test("an ordinary state's name is left exactly as typed", () => {
       expect(
         StateChangeNoteMessage.getChatStatusLine(
+          StateListType.IncidentState,
           "Fixing - part 2 (EU) #1",
         ).toString(),
       ).toBe("**Status:** Fixing - part 2 (EU) #1");
@@ -233,13 +246,22 @@ describe("StateChangeNoteMessage in the reader's language", () => {
 
   test("the chat line, with the language's own label", () => {
     expect(
-      StateChangeNoteMessage.getChatStatusLine(" Resolved ", german).toString(),
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.IncidentState,
+        " Resolved ",
+        german,
+      ).toString(),
     ).toBe("**Status:** Behoben");
     expect(
-      StateChangeNoteMessage.getChatStatusLine("Resolved", french).toString(),
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.IncidentState,
+        "Resolved",
+        french,
+      ).toString(),
     ).toBe("**Statut :** Résolu");
     expect(
       StateChangeNoteMessage.getChatStatusLine(
+        StateListType.IncidentState,
         "Monitoring",
         getServerTranslator("fa"),
       ).toString(),
@@ -254,5 +276,108 @@ describe("StateChangeNoteMessage in the reader's language", () => {
         translator: german,
       }),
     ).toBe("[Vorfall: {{title}}] {{state}} $t(x)");
+  });
+});
+
+/*
+ * An incident's state is read against the incident states' defaults, an
+ * event's against the maintenance states' (#8066). Read against every
+ * list at once, an incident state a project named "Ongoing" - a default
+ * maintenance state - read "Laufend" in a German subject.
+ */
+describe("StateChangeNoteMessage reads a state against its own list", () => {
+  const german: Translator = getServerTranslator("de");
+
+  test("an incident's subject and text message: a maintenance state's name reads as written", () => {
+    expect(
+      StateChangeNoteMessage.getIncidentEmailSubject({
+        stateName: "Ongoing",
+        incidentTitle: "Checkout is down",
+        translator: german,
+      }),
+    ).toBe("[Vorfall: Ongoing] Checkout is down");
+    expect(
+      StateChangeNoteMessage.getIncidentCustomTemplateEmailSubject({
+        stateName: "Degraded",
+        incidentTitle: "Checkout is down",
+        translator: german,
+      }),
+    ).not.toContain("Beeinträchtigt");
+    expect(
+      StateChangeNoteMessage.getIncidentSmsHeadline({
+        stateName: "Completed",
+        incidentTitle: "Checkout is down",
+        statusPageName: "Acme Status",
+        translator: german,
+      }),
+    ).toBe("Vorfall Checkout is down auf Acme Status: Completed.");
+  });
+
+  test("an event's subject and text message: an incident state's name reads as written", () => {
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceEmailSubject({
+        stateName: "Resolved",
+        eventTitle: "Database upgrade",
+        translator: german,
+      }),
+    ).not.toContain("Behoben");
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject({
+        stateName: "Acknowledged",
+        eventTitle: "Database upgrade",
+        translator: german,
+      }),
+    ).not.toContain("Bestätigt");
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
+        stateName: "Identified",
+        eventTitle: "Database upgrade",
+        statusPageName: "Acme Status",
+        translator: german,
+      }),
+    ).toBe("Wartung Database upgrade auf Acme Status: Identified.");
+  });
+
+  test("its own list's defaults still read in the reader's language", () => {
+    expect(
+      StateChangeNoteMessage.getIncidentSmsHeadline({
+        stateName: "Resolved",
+        incidentTitle: "Checkout is down",
+        statusPageName: "Acme Status",
+        translator: german,
+      }),
+    ).toBe("Vorfall Checkout is down auf Acme Status: Behoben.");
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
+        stateName: "Ongoing",
+        eventTitle: "Database upgrade",
+        statusPageName: "Acme Status",
+        translator: german,
+      }),
+    ).toBe("Wartung Database upgrade auf Acme Status: Laufend.");
+  });
+
+  test("the chat line reads the state against the list it is handed", () => {
+    expect(
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.ScheduledMaintenanceState,
+        "Resolved",
+        german,
+      ).toString(),
+    ).toBe("**Status:** Resolved");
+    expect(
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.ScheduledMaintenanceState,
+        "Completed",
+        german,
+      ).toString(),
+    ).toBe("**Status:** Abgeschlossen");
+    expect(
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.IncidentState,
+        "Completed",
+        german,
+      ).toString(),
+    ).toBe("**Status:** Completed");
   });
 });

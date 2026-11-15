@@ -1,3 +1,4 @@
+import { StateListType } from "Common/Utils/StateOrder";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -3462,7 +3463,10 @@ describe("IncidentPublicNote: a note posted with a state change names the state"
       }),
     );
     expect(sentSlack()[0]).toContain(
-      StateChangeNoteMessage.getChatStatusLine(RESOLVED).toString(),
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.IncidentState,
+        RESOLVED,
+      ).toString(),
     );
   });
 });
