@@ -1,7 +1,10 @@
 import {
+  Lexer,
+  Links,
   Marked,
   MarkedOptions,
   Renderer,
+  Token,
   Tokenizer,
   Tokens,
   marked,
@@ -34,6 +37,7 @@ import {
   LinkReferenceDefinition,
   NestedLinkReferenceDefinition,
   forEachBracketedLabel,
+  forEachLabelMarkedLooksUp,
   getLinkReferenceDefinitions,
 } from "../../Utils/Markdown/LinkReferenceDefinitions";
 import {
@@ -451,6 +455,80 @@ const escapeLikeMarkedTitle: (title: string) => string = (
 };
 
 /*
+ * The definitions of `definitions` that a read of the inline text `text`
+ * can look up (forEachLabelMarkedLooksUp), in an object of their own.
+ */
+const getDefinitionsNamedIn: (text: string, definitions: Links) => Links = (
+  text: string,
+  definitions: Links,
+): Links => {
+  const named: Links = Object.create(null) as Links;
+
+  forEachLabelMarkedLooksUp(text, (label: string): void => {
+    const definition: Links[string] | undefined = definitions[label];
+
+    if (definition !== undefined) {
+      named[label] = definition;
+    }
+  });
+
+  return named;
+};
+
+/*
+ * EVERY INLINE READ WITH ONLY THE DEFINITIONS ITS TEXT NAMES (#7597).
+ *
+ * marked's lexer lists every definition of the text each time it reads the
+ * inline Markdown of a paragraph, a heading, a table cell or a list item -
+ * and of a link's or an emphasis's text inside them (Lexer.inlineTokens) -
+ * and looks each reference it finds up in that list. Each definition
+ * listed costs it about 90 ns, so a text of D definitions and C such reads
+ * costs D times C: 20,000 definitions and 20,000 one-word paragraphs took
+ * 42 s, and an email field holds more than that.
+ *
+ * So `lexer` - made by marked for one render - reads each inline text,
+ * nested ones too, with only the definitions whose labels that text holds
+ * as marked looks them up (forEachLabelMarkedLooksUp), out of all the
+ * blocks found, and has all of them back once it is done. A read only ever
+ * looks up such a label, so it resolves every reference, and masks it from
+ * emphasis, exactly as it does with every definition in view - and costs
+ * the labels its text holds, not the definitions of the whole text.
+ *
+ * It holds marked 12 to what its lexer does: inlineTokens reads the
+ * definitions from tokens.links, and nothing else reads them while the
+ * inline Markdown is read. MarkdownEmailManyDefinitions.test.ts holds
+ * every reference of generated texts to marked's own reading, and fails
+ * where an upgrade reads them otherwise.
+ */
+export const readOnlyNamedDefinitions: (lexer: Lexer) => void = (
+  lexer: Lexer,
+): void => {
+  const inlineTokens: (src: string, tokens?: Array<Token>) => Array<Token> =
+    lexer.inlineTokens.bind(lexer);
+  // Every definition of the text, while an outermost read runs.
+  let definitions: Links | null = null;
+
+  lexer.inlineTokens = (src: string, tokens?: Array<Token>): Array<Token> => {
+    const links: Links = lexer.tokens.links;
+    const isOutermost: boolean = definitions === null;
+    const all: Links = definitions ?? links;
+
+    definitions = all;
+    lexer.tokens.links = getDefinitionsNamedIn(src, all);
+
+    try {
+      return inlineTokens(src, tokens);
+    } finally {
+      lexer.tokens.links = links;
+
+      if (isOutermost) {
+        definitions = null;
+      }
+    }
+  };
+};
+
+/*
  * marked's tokenizer for one email render, which gives each link reference
  * definition's address and title marks of their own in their place. marked
  * writes a definition's address and title into every reference to it
@@ -471,15 +549,26 @@ const escapeLikeMarkedTitle: (title: string) => string = (
  * definition's number and HELD_DATA_CLOSE. No Markdown marked reads holds
  * one: a sentinel in the input is held back (holdBackFromMarked), and the
  * token of a held-back text holds digits alone.
+ *
+ * And once its text has a definition, its lexer reads each inline text
+ * with only the definitions that text names (readOnlyNamedDefinitions): a
+ * text with none is read exactly as marked reads it.
  */
 class EmailMarkedTokenizer extends Tokenizer {
   // The definitions as marked read them, by their number.
   private readonly definitions: Array<MarkedDefinition> = [];
+  // The lexer that reads only the definitions each inline text names.
+  private lexerOfNamedDefinitions: Lexer | null = null;
 
   public override def(src: string): Tokens.Def | undefined {
     const token: Tokens.Def | undefined = super.def(src);
 
     if (token) {
+      if (this.lexerOfNamedDefinitions !== this.lexer) {
+        readOnlyNamedDefinitions(this.lexer);
+        this.lexerOfNamedDefinitions = this.lexer;
+      }
+
       const number: number = this.definitions.length;
 
       this.definitions.push({
