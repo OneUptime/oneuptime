@@ -533,27 +533,59 @@ describe("what is not an operator stays as it was given", () => {
     expect(state["name"]).toBeInstanceOf(Search);
   });
 
-  test("a MultiSearch and an OwnedBy under a relation are left as they were: they reach past the column the read check holds them to", () => {
-    // Keyed on a column the read check of a relation filter holds, searching others.
-    const multiSearch: MultiSearch = new MultiSearch({
-      fields: ["title", "rootCause"],
-      value: "db",
-    });
-    const ownedBy: OwnedBy = new OwnedBy({
-      userIds: [ObjectID.generate()],
-    });
+  test.each([
+    {
+      name: "a MultiSearch keyed on a column the read check holds, searching others",
+      key: "title",
+      create: (): QueryOperator<any> => {
+        return new MultiSearch({ fields: ["title", "rootCause"], value: "db" });
+      },
+      says: "searches several fields at once",
+    },
+    {
+      name: "a MultiSearch on a key of its own",
+      key: "_multiFieldSearch",
+      create: (): QueryOperator<any> => {
+        return new MultiSearch({ fields: ["title"], value: "db" });
+      },
+      says: "searches several fields at once",
+    },
+    {
+      name: "an OwnedBy under its own key",
+      key: "owners",
+      create: (): QueryOperator<any> => {
+        return new OwnedBy({ userIds: [ObjectID.generate()] });
+      },
+      says: "is by owners",
+    },
+    {
+      name: "an OwnedBy keyed on a column",
+      key: "rootCause",
+      create: (): QueryOperator<any> => {
+        return new OwnedBy({ userIds: [ObjectID.generate()] });
+      },
+      says: "is by owners",
+    },
+  ])(
+    "$name under a relation is refused as a bad request: it reaches past the column the read check holds it to",
+    (item: { key: string; create: () => QueryOperator<any>; says: string }) => {
+      expect(() => {
+        return underIncident({ [item.key]: item.create() });
+      }).toThrow(BadDataException);
+      expect(() => {
+        return underIncident({ [item.key]: item.create() });
+      }).toThrow(
+        `The filter on ${item.key} of a related Incident ${item.says}, which a filter on a related record cannot do.`,
+      );
+    },
+  );
 
-    const filter: Record<string, unknown> = underIncident({
-      title: multiSearch,
-      rootCause: ownedBy,
-      owners: ownedBy,
-    });
-
-    expect(filter["title"]).toBe(multiSearch);
-    expect(filter["rootCause"]).toBe(ownedBy);
-    expect(filter["owners"]).toBe(ownedBy);
-    // Nothing was hung on the related record's id for them.
-    expect(filter["_id"]).toBeUndefined();
+  test("a MultiSearch or an OwnedBy at the top of a query is still taken, as before", () => {
+    expect(() => {
+      return serialize(Incident, {
+        _multiFieldSearch: new MultiSearch({ fields: ["title"], value: "db" }),
+      });
+    }).not.toThrow();
   });
 
   test("a key that is no column of the related model is left as it was", () => {

@@ -188,10 +188,11 @@ export default class QueryUtil {
    * TypeORM's own operators - stays exactly as it was given: the filters the
    * permission checks put under a relation (the labels a member may read,
    * @CanAccessIfCanReadOn) are unchanged. An operator that reaches beyond
-   * the column it is keyed on stays as it was too: a MultiSearch names
-   * columns of its own and an OwnedBy the owner tables, which the read check
-   * of a filter under a relation (QueryPermission
-   * .checkRelationFilterPermission, by key) does not hold them to.
+   * the column it is keyed on is refused: a MultiSearch names columns of its
+   * own and an OwnedBy the owner tables, which the read check of a filter
+   * under a relation (QueryPermission.checkRelationFilterPermission, by key)
+   * does not hold them to. Written, either would let a filter read columns
+   * the caller may not; handed on, it matched nothing, with no error.
    *
    * An operator the related model writes onto another of its keys - the ids
    * of the related record's relation onto that relation's key, a
@@ -206,18 +207,27 @@ export default class QueryUtil {
     const rewritten: Record<string, unknown> = {};
 
     for (const key of Object.keys(filter)) {
+      const value: unknown = filter[key];
+
+      if (value instanceof MultiSearch || value instanceof OwnedBy) {
+        throw new BadDataException(
+          `The filter on ${key} of a related ${model.singularName || "record"} ${
+            value instanceof MultiSearch
+              ? "searches several fields at once"
+              : "is by owners"
+          }, which a filter on a related record cannot do. Filter the related records with a query of their own.`,
+        );
+      }
+
       const column: TableColumnMetadata | undefined =
         model.getTableColumnMetadata(key);
-      const value: unknown = filter[key];
 
       if (!column) {
         continue;
       }
 
       if (
-        (value instanceof QueryOperator &&
-          !(value instanceof MultiSearch) &&
-          !(value instanceof OwnedBy)) ||
+        value instanceof QueryOperator ||
         QueryUtil.isRelationFilter(column, value)
       ) {
         rewritten[key] = value;
