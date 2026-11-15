@@ -29,6 +29,7 @@ import {
   linearRegression,
   promQLQuantile,
 } from "./PromQLMath";
+import { sortPromQLByLabels } from "./PromQLLabelOrder";
 import { compilePromQLRegex } from "./PromQLRegex";
 import LinearRegExp, { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { describePatternProblem } from "../LinearRegExp/PatternCache";
@@ -640,13 +641,6 @@ const sortSamples: (
   });
 };
 
-const naturalCompare: (a: string, b: string) => number = (
-  a: string,
-  b: string,
-): number => {
-  return a.localeCompare(b, "en", { numeric: true });
-};
-
 export const evaluatePromQLFunction: (
   call: PromQLCall,
   context: PromQLFunctionContext,
@@ -1071,23 +1065,8 @@ export const evaluatePromQLFunction: (
         .map((_expression: PromQLExpression, index: number): string => {
           return readString(arg(index + 1));
         });
-      const direction: number = name === "sort_by_label_desc" ? -1 : 1;
-
       return vectorValue(
-        [...samples].sort((a: PromQLSample, b: PromQLSample): number => {
-          for (const label of labels) {
-            const order: number = naturalCompare(
-              promQLLabelValue(a.labels, label),
-              promQLLabelValue(b.labels, label),
-            );
-
-            if (order !== 0) {
-              return order * direction;
-            }
-          }
-
-          return 0;
-        }),
+        sortPromQLByLabels(samples, labels, name === "sort_by_label_desc"),
       );
     }
     default:
