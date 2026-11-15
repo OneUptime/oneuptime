@@ -163,7 +163,7 @@ Om Huntress te koppelen, klik je op het canvas op de trigger **Huntress Incident
 
 ## OneUptime-gebeurtenistriggers
 
-Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, gepland onderhoud, statuspagina's, bereikbaarheidsbeleid, teams — kan een workflow starten. Elk biedt tot vier triggers:
+Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, onderhoudsgebeurtenissen, statuspagina's, bereikbaarheidsbeleid, teams — kan een workflow starten. Elk biedt tot vier triggers:
 
 - **On Create** — gaat af als er een nieuwe wordt toegevoegd.
 - **On Update** — gaat af als er een wordt gewijzigd. Een record opslaan met de waarden die het al heeft, zoals een formulier dat zonder wijzigingen wordt opgeslagen of een schakelaar die wordt verstuurd zoals hij al stond, is geen wijziging en laat hem niet afgaan.

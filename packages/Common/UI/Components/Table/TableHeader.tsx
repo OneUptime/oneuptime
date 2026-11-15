@@ -259,7 +259,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             <CheckboxElement
               disabled={!props.hasTableItems}
               value={selectBulkSelectCheckbox}
-              ariaLabel={translateString("Select all items")}
+              ariaLabel="Select all items"
               /*
                * Half-filled when only part of the page is selected. Without
                * it, a page where some rows cannot be selected at all can
@@ -298,10 +298,20 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
               return;
             }
 
-            const sortOrder: SortOrder =
+            const turnedRound: SortOrder =
               props.sortOrder === SortOrder.Ascending
                 ? SortOrder.Descending
                 : SortOrder.Ascending;
+
+            /*
+             * A column that says which way it runs first - a severity,
+             * worst first - goes that way when it is not the sorted one
+             * yet (Column's firstSortOrder).
+             */
+            const sortOrder: SortOrder =
+              !isSorted && column.firstSortOrder
+                ? column.firstSortOrder
+                : turnedRound;
 
             props.onSortChanged(column.key, sortOrder);
           };

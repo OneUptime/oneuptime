@@ -1,6 +1,6 @@
 # Slack 통합
 
-자체 호스팅 OneUptime을 Slack에 연결합니다. 서버가 생성하는 매니페스트로 Slack 앱을 만들고, 앱의 자격 증명을 OneUptime에 넣은 뒤, 각 프로젝트를 워크스페이스에 연결합니다. 그러면 OneUptime이 인시던트, 알림, 예약된 유지 관리를 채널에 게시하고, 팀은 Slack에서 바로 대응할 수 있습니다.
+자체 호스팅 OneUptime을 Slack에 연결합니다. 서버가 생성하는 매니페스트로 Slack 앱을 만들고, 앱의 자격 증명을 OneUptime에 넣은 뒤, 각 프로젝트를 워크스페이스에 연결합니다. 그러면 OneUptime이 인시던트, 알림, 예정된 유지 관리를 채널에 게시하고, 팀은 Slack에서 바로 대응할 수 있습니다.
 
 이 페이지는 OneUptime 서버를 운영하는 사람을 위한 것입니다. Slack이 연결되면 알림 규칙은 프로젝트별로 설정합니다. [Slack](/docs/workspace-connections/slack)을 참고하세요.
 

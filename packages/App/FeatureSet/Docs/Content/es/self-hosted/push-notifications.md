@@ -204,7 +204,7 @@ Un dispositivo mantiene el sonido del sistema hasta que ejecuta una versión de 
 
 ### Repetir un aviso hasta que se reconozca
 
-Una regla push puede volver a enviar su aviso hasta que alguien lo reconozca. En **Ajustes de usuario > Cómo contactarme**, elige **Repetir hasta que se reconozca** al añadir una regla push, o cámbialo más tarde en la fila de la regla: cada minuto, o cada 2, 3, 5, 10, 15 o 30 minutos. El aviso se vuelve a enviar con ese intervalo, como máximo 10 veces más, y se detiene en cuanto se reconoce el incidente, la alerta o el episodio. Se guarda por regla en `UserNotificationRule.repeatEveryMinutes`, donde 0, el valor predeterminado, envía el aviso una sola vez.
+Una regla push puede volver a enviar su aviso hasta que alguien lo reconozca. En **Ajustes de usuario > Cómo contactarme**, elige **Repetir hasta que se reconozca** al añadir una regla push, o cámbialo más tarde en la fila de la regla: cada minuto, o cada 2, 3, 5, 10, 15 o 30 minutos. El aviso se vuelve a enviar con ese intervalo, como máximo 10 veces más, y se detiene en cuanto se reconoce el incidente, la alerta o el episodio. Un aviso que sigue después de un reconocimiento, como un nuevo aviso, se repite hasta que responde alguien a quien avisó o se resuelve el incidente, la alerta o el episodio: [Cuando avisan varias políticas](/docs/on-call/policies#cuando-avisan-varias-políticas) los enumera. Se guarda por regla en `UserNotificationRule.repeatEveryMinutes`, donde 0, el valor predeterminado, envía el aviso una sola vez.
 
 ## Solución de problemas
 

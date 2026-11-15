@@ -45,6 +45,10 @@ import {
   PatternProblemError,
   PatternProblemReason,
 } from "../../../Utils/LinearRegExp/PatternProblem";
+import {
+  INHERITED_PROPERTY_NAMES,
+  INHERITED_PROPERTY_NAME_SPELLINGS,
+} from "../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -273,10 +277,12 @@ describe("PromQL regular expressions", () => {
     expect(compilePromQLRegex("a|b").regex.test("b")).toBe(true);
   });
 
-  test("read RE2's (?i) flag group", () => {
+  test("read RE2's (?i) flag group inside the anchors, as Prometheus compiles ^(?s:(?i)error)$", () => {
     const regex: LinearRegExp = compilePromQLRegex("(?i)error").regex;
 
-    expect(regex.flags).toBe("i");
+    // The flag applies inside the group, not to the whole pattern.
+    expect(regex.flags).toBe("");
+    expect(regex.source).toBe("^(?s:(?i:error))$");
     expect(regex.test("ERROR")).toBe(true);
     expect(regex.test("errors")).toBe(false);
   });
@@ -296,6 +302,54 @@ describe("PromQL regular expressions", () => {
     expect(compilePromQLRegex("[[:digit:]]+").regex.test("12a")).toBe(false);
   });
 
+  /*
+   * The class names are looked up by the name the pattern writes. A name
+   * every object inherits (constructor, and any of them as a reader that
+   * folds case spells it) is a name no POSIX class has: the pattern keeps
+   * it as written, as it keeps [[:nosuch:]], and never reads the
+   * inherited function's source text into the character class.
+   */
+  test.each(INHERITED_PROPERTY_NAME_SPELLINGS)(
+    "[[:%s:]] names no POSIX class: the pattern keeps it as written",
+    (name: string) => {
+      const pattern: string = `[[:${name}:]]`;
+
+      expect(compilePromQLRegex(pattern).regex.source).toBe(
+        `^(?s:${pattern})$`,
+      );
+      expect(compilePromQLRegex(`[^[:${name}:]]`).regex.source).toBe(
+        `^(?s:[^[:${name}:]])$`,
+      );
+    },
+  );
+
+  test("[[:constructor:]] matches what [[:nosuch:]] matches, never the inherited function's text", () => {
+    const constructorClass: LinearRegExp =
+      compilePromQLRegex("[[:constructor:]]").regex;
+    const unknownClass: LinearRegExp = compilePromQLRegex("[[:nosuch:]]").regex;
+
+    // Both are the bracket [[:constructor:] (or [[:nosuch:]) and then "]".
+    expect(constructorClass.test("c]")).toBe(true);
+    expect(unknownClass.test("n]")).toBe(true);
+    // "function Object() { [native code] }" read as the class matched "c }]".
+    expect(constructorClass.test("c }]")).toBe(false);
+    expect(constructorClass.test("f }]")).toBe(false);
+    // A known class next to it still expands.
+    expect(
+      compilePromQLRegex("[[:constructor:]][[:digit:]]").regex.source,
+    ).toBe("^(?s:[[:constructor:]][0-9])$");
+  });
+
+  /*
+   * Each answer is Prometheus': a label matcher is compiled by
+   * NewFastRegexMatcher (model/labels/regexp.go), which reads the pattern
+   * with RE2's Perl flags and DotNL (syntax.Parse(v, syntax.Perl |
+   * syntax.DotNL)) and runs "^(?s:" + the pattern + ")$". The functions
+   * named below are those of regexp/syntax, Go's, which Prometheus' regexp
+   * (github.com/grafana/regexp) copies. Each row was also asked of
+   * Prometheus' own matcher, which answered the same. JavaScript's RegExp
+   * answers the same for the pattern compiled here.
+   */
   test.each([
     // [pattern, value, whether it matches]
     ["(?i)error", "Error", true],
@@ -314,20 +368,196 @@ describe("PromQL regular expressions", () => {
     ["/api/v[0-9]+/.*", "/api/v2/users", true],
     ["\\d+\\.\\d+", "1.5", true],
     ["café|naïve", "naïve", true],
+    // DotNL: "." matches "\n" too, with no flag written.
+    ["a.b", "a\nb", true],
+    ["(?i)A.B", "a\nb", true],
+    /*
+     * (?m) applies inside the group the pattern is compiled in, so the ^
+     * and $ around it still mean the whole value.
+     */
+    ["(?m)api", "x\napi", false],
+    ["(?m)api", "api", true],
+    /*
+     * (?-s): "." is OpAnyCharNotNL (parse, parse.go), anything but "\n" -
+     * "\r" included.
+     */
+    ["(?-s)a.b", "a\nb", false],
+    ["(?-s)a.b", "a\rb", true],
+    /*
+     * (?m): ^ and $ are OpBeginLine and OpEndLine, which match next to a
+     * "\n" only (EmptyOpContext, prog.go), not next to a "\r".
+     */
+    ["(?m)a$.*", "a\nb", true],
+    ["(?m)a$.*", "a\rb", false],
+    ["(?m).*^b", "a\rb", false],
+    /*
+     * A flag group in the middle sets its flags from where it stands to the
+     * end of the group that holds it (parsePerlFlags, parse.go), later
+     * alternatives included - "|" leaves them as they are - and that
+     * group's ")" puts back the flags it opened with (parseRightParen).
+     */
+    ["api(?i)SERVER", "apiServer", true],
+    ["api(?i)SERVER", "APIserver", false],
+    ["a(?i)b|c", "C", true],
+    ["a(?i)b|c", "AB", false],
+    ["(a(?i)b)c", "aBc", true],
+    ["(a(?i)b)c", "aBC", false],
+    ["(?i)a(?-i)b", "Ab", true],
+    ["(?i)a(?-i)b", "AB", false],
+    // Each later alternative starts under the flags the one before it set.
+    ["(?i)a|(?-i)b|c", "A", true],
+    ["(?i)a|(?-i)b|c", "B", false],
+    ["(?i)a|(?-i)b|c", "C", false],
+    ["(?i)a|(?-i)b|c", "c", true],
+    ["a(?i)b|c(?-i)d|e", "aB", true],
+    ["a(?i)b|c(?-i)d|e", "Cd", true],
+    ["a(?i)b|c(?-i)d|e", "CD", false],
+    ["a(?i)b|c(?-i)d|e", "E", false],
+    // A group's ")" ends its flag groups, and its alternatives share them.
+    ["(?i)(a(?-i)b|c)d", "AbD", true],
+    ["(?i)(a(?-i)b|c)d", "ABd", false],
+    ["(?i)(a(?-i)b|c)d", "Cd", false],
+    ["((?i)a|b)c", "Bc", true],
+    ["((?i)a|b)c", "aC", false],
+    ["(?:(?i)a)b", "Ab", true],
+    ["(?:(?i)a)b", "AB", false],
+    // A flag group inside (?flags: ... ) ends at that group's ")".
+    ["x(?i:a(?-i)b)c", "xAbc", true],
+    ["x(?i:a(?-i)b)c", "xABc", false],
+    ["x(?i:a(?-i)b)c", "xAbC", false],
+    ["(?-s)a(?s:.)b.", "a\nbc", true],
+    ["(?-s)a(?s:.)b.", "a\nb\n", false],
+    // Set then cleared: cleared (parsePerlFlags).
+    ["(?i-i)a", "A", false],
+    // No flags at all: nothing changes (parsePerlFlags).
+    ["a(?)b", "ab", true],
+    // A "]" first in a bracket is a character (parseClass, parse.go).
+    ["[]a]+", "]a", true],
+    ["[^]a]", "]", false],
+    ["[^]a]", "b", true],
+    // A POSIX class is one inside a bracket only: this is the bracket ":digt".
+    ["[:digit:]+", "dig", true],
+    ["[:digit:]+", "0-9", false],
+    // Inside a bracket, "(?P<" is four characters.
+    ["[(?P<]+", "P", true],
   ])(
-    "%s matching %j is %s, as JavaScript's RegExp answered for it",
+    "%s matching %j is %s, as in Prometheus",
     (pattern: string, value: string, matches: boolean) => {
       const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
 
       expect(regex.test(value)).toBe(matches);
+      // JavaScript's own engine reads the compiled pattern the same way.
       expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
     },
   );
+
+  /*
+   * What label_replace() reads in each group: Prometheus' evalLabelReplace
+   * (promql/functions.go) compiles "^(?s:" + the pattern + ")$", and (?U)
+   * makes x* lazy and x*? greedy from where it stands to the end of its
+   * group (repeat, parse.go). Prometheus' regexp answered the same for each.
+   */
+  test.each([
+    // [pattern, value, what the groups capture]
+    ["(?U)(a+)(a*)", "aaa", ["a", "aa"]],
+    ["(?U)(a+?)(a*)", "aaa", ["aaa", ""]],
+    ["((?U)a+)(a*)(a*)", "aaaa", ["a", "aaa", ""]],
+    ["(?U:a+)(a*)(a*)", "aaaa", ["aaa", ""]],
+    ["(a+)(?U)(a*)(a*)", "aaaa", ["aaaa", "", ""]],
+    ["(?U)(a{1,3})(a*)", "aaaa", ["a", "aaa"]],
+    ["(?U)(a{1,3}?)(a*)", "aaaa", ["aaa", "a"]],
+    ["(?U)(a??)(a*)", "aa", ["a", "a"]],
+    ["(?U)(a+)(?-U)(a+)", "aaa", ["a", "aa"]],
+    ["(?U)(a+)(?-U:(a+))(a*)", "aaaa", ["a", "aaa", ""]],
+    // (?U) between an atom and its repeat: the repeat is lazy.
+    ["(a(?U)*)(a*)", "aaa", ["", "aaa"]],
+    ["(a(?i)b|c)d", "Cd", ["C"]],
+    ["(.*)", "a\nb", ["a\nb"]],
+  ])(
+    "%s on %j captures %j, as in Prometheus",
+    (pattern: string, value: string, captures: Array<string>) => {
+      const regex: LinearRegExp = compilePromQLRegex(pattern, {
+        captures: true,
+      }).regex;
+
+      expect(regex.exec(value)?.captures).toEqual(captures);
+      expect(
+        new RegExp(regex.source, regex.flags).exec(value)?.slice(1),
+      ).toEqual(captures);
+    },
+  );
+
+  test("a flag group at an alternative's start covers the alternatives after it once, not once each", () => {
+    const hosts: Array<string> = [];
+
+    for (let index: number = 0; index < 200; index++) {
+      hosts.push(`host-${index}`);
+    }
+
+    const pattern: string = `(?i)${hosts.join("|")}`;
+    const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+
+    expect(regex.source).toBe(`^(?s:(?i:${hosts.join("|")}))$`);
+    expect(regex.test("HOST-199")).toBe(true);
+    expect(regex.test("host-200")).toBe(false);
+  });
+
+  /*
+   * RE2 refuses a repeat of a repeat: "invalid nested repetition operator"
+   * (repeat, parse.go). Under (?U) the "?" that swaps a repeat's greed is
+   * written or left out, so x*??? would otherwise reach JavaScript as the
+   * one lazy repeat x*?.
+   */
+  test.each([
+    "a**",
+    "a+*",
+    "a{2}{3}",
+    "a*??",
+    "(?U)a*???",
+    "(?U)a+??",
+    "(?U)a{1,2}???",
+    "(a)(?U)*???",
+  ])(
+    "%s, a repeat of a repeat, is refused as RE2 refuses it",
+    (pattern: string) => {
+      const refusal: unknown = refusalOf(pattern);
+
+      expect(refusal).toBeInstanceOf(SyntaxError);
+      expect((refusal as SyntaxError).message).toContain("Nothing to repeat");
+    },
+  );
+
+  test("a repeat after a flag group after a repeat is refused, never joined to the first", () => {
+    /*
+     * RE2 reads x*(?U)?? as a repeat of the repeat, (?:x*)?. Read as the
+     * one lazy repeat x*?, the groups after it would capture otherwise: on
+     * "aa", Prometheus' (a)*(?U)??(a*) captures "a" and "", and (a)*?(a*)
+     * captures nothing and "aa".
+     */
+    expect(refusalOf("a*(?U)??")).toBeInstanceOf(SyntaxError);
+    expect(refusalOf("(a)*(?U)??(a*)")).toBeInstanceOf(SyntaxError);
+  });
+
+  test("a repeat after an atom, a group or a bar is read", () => {
+    expect(compilePromQLRegex("(a*)*").regex.test("aa")).toBe(true);
+    expect(compilePromQLRegex("a*(b)*").regex.test("aab")).toBe(true);
+    expect(compilePromQLRegex("a*|b*").regex.test("bb")).toBe(true);
+    expect(compilePromQLRegex("a*|b*").regex.test("ab")).toBe(false);
+    // (?U) writes nothing of its own: the repeat after it repeats the "a".
+    expect(compilePromQLRegex("a(?U)*").regex.source).toBe("^(?s:a*?)$");
+  });
 
   test("a pattern that is not a regular expression throws a SyntaxError", () => {
     expect(refusalOf("(")).toBeInstanceOf(SyntaxError);
     expect(refusalOf("[[:digit:]")).toBeInstanceOf(SyntaxError);
     expect(refusalOf("a{2,1}")).toBeInstanceOf(SyntaxError);
+    // Prometheus refuses these too: "unexpected )", and a "-" with no flag.
+    expect(refusalOf("a)|(b")).toBeInstanceOf(SyntaxError);
+    // The refusal names the ")" that closes nothing, not the "(" after it.
+    expect((refusalOf("a)|(b") as SyntaxError).message).toContain(
+      "Unmatched ')'",
+    );
+    expect(refusalOf("(?i-)a")).toBeInstanceOf(SyntaxError);
   });
 
   test.each([
@@ -358,8 +588,11 @@ describe("PromQL regular expressions", () => {
     expect(getCachedPatternCount()).toBe(2);
   });
 
-  test("keep the pattern for engines that speak RE2", () => {
-    expect(compilePromQLRegex("a|b").anchoredPattern).toBe("^(?:a|b)$");
+  test("keep the pattern for engines that speak RE2, anchored as Prometheus anchors it", () => {
+    expect(compilePromQLRegex("a|b").anchoredPattern).toBe("^(?s:a|b)$");
+    expect(compilePromQLRegex("(?m)api").anchoredPattern).toBe(
+      "^(?s:(?m)api)$",
+    );
   });
 });
 
@@ -664,7 +897,63 @@ describe("PromQL operators", () => {
     expect((parsePromQL("a atan2 b") as PromQLBinary).operator).toBe(
       PromQLBinaryOperator.Atan2,
     );
+    expect((parsePromQL("a UNLESS b") as PromQLBinary).operator).toBe(
+      PromQLBinaryOperator.Unless,
+    );
+    expect((parsePromQL("a aTaN2 b") as PromQLBinary).operator).toBe(
+      PromQLBinaryOperator.Atan2,
+    );
   });
+
+  /*
+   * A word after an expression is an operator only when it is one of the
+   * keyword operators. The words are looked up by what the query wrote, in
+   * lower case: a name every object inherits (constructor, __proto__, and
+   * the rest, in any case) is a word no operator is, so it is refused as
+   * "a b" is, as Prometheus refuses it ("unexpected identifier"). Read from
+   * a plain object, `up constructor up` was an operation whose operator was
+   * a function, refused only when it ran, with the function's source text.
+   */
+  test.each(INHERITED_PROPERTY_NAME_SPELLINGS)(
+    'refuses "a %s b" as it refuses "a b"',
+    (name: string) => {
+      const error: PromQLError = parseError(`a ${name} b`);
+
+      expect(error.message).toBe(
+        `Unexpected "${name}" at position 3: expected an operator or the end of the query.`,
+      );
+      expect(error.message).not.toContain("native code");
+      expect(error.message).not.toContain("[object Object]");
+      expect(error.position).toEqual({ start: 2, end: 2 + name.length });
+      expect(parseError(`a ${name}`).message).toBe(error.message);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "reads %s as a metric name on either side of an operator",
+    (name: string) => {
+      for (const [query, operator] of [
+        [`${name} and ${name}`, PromQLBinaryOperator.And],
+        [`${name} / on (job) ${name}`, PromQLBinaryOperator.Div],
+        [`up or ${name}`, PromQLBinaryOperator.Or],
+        [`${name} unless up`, PromQLBinaryOperator.Unless],
+      ] as Array<[string, PromQLBinaryOperator]>) {
+        const binary: PromQLBinary = parsePromQL(query) as PromQLBinary;
+
+        expect({ query, operator: binary.operator }).toEqual({
+          query,
+          operator,
+        });
+      }
+
+      const both: PromQLBinary = parsePromQL(
+        `${name} and ${name}`,
+      ) as PromQLBinary;
+
+      expect((both.lhs as PromQLVectorSelector).name).toBe(name);
+      expect((both.rhs as PromQLVectorSelector).name).toBe(name);
+    },
+  );
 
   test("reads bool, on, ignoring, group_left and group_right", () => {
     const comparison: PromQLBinary = parsePromQL(

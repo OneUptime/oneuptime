@@ -1,18 +1,26 @@
-import NotifyAfterMinutesDropdownOptions from "../NotifyAfterMinutesDropdownOptions";
 import PushNotificationLevelControl from "../PushNotificationLevelControl";
 import PushRepeatControl from "../PushRepeatControl";
+import LeaveWithoutSavingQuestion from "../../UnsavedChanges/LeaveWithoutSavingQuestion";
+import {
+  AddMethodMenu,
+  StepWaitMenu,
+  getNextStepWait,
+} from "./PagingLadderControls";
 import {
   PagingMethodChoice,
   findMethodChoice,
   getAddableMethodChoices,
   getNewStep,
 } from "./PagingLadderMethods";
-import { CardName, MethodLabel } from "./PagingLadderParts";
 import {
-  AFTER_MINUTES,
-  PAGING_LADDER_COPY,
-  describeWait,
-} from "./PagingLadderWords";
+  CardName,
+  MethodIcon,
+  MethodLabel,
+  UNKNOWN_METHOD_LABEL,
+} from "./PagingLadderParts";
+import { PAGING_LADDER_COPY } from "./PagingLadderWords";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   PagingLadderDifference,
   PagingLadderStep,
@@ -20,19 +28,21 @@ import {
   getPagingLadderStepKey,
   normalizePagingLadderSteps,
 } from "Common/Types/NotificationRule/PagingLadder";
-import IconProp from "Common/Types/Icon/IconProp";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
+import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -42,18 +52,23 @@ import React, {
 } from "react";
 
 /*
- * THE LADDER (#6820): how a person is reached when they are paged, as one
- * list that applies to every kind of page and every severity.
+ * THE LADDER (#6820, drawn as steps in #8139): how a person is reached when
+ * they are paged, as one list that applies to every kind of page and every
+ * severity.
  *
- * Steps are grouped by their wait - "At once", "After 5 minutes" - because
- * that is the order they page in: steps with the same wait go out
- * together, and changing a step's wait moves it. A step is a method the
- * person has verified; a push step also says how it sounds and how often
- * it repeats until somebody acknowledges.
+ * It is drawn as numbered steps down a line, the way a page goes out: step
+ * 1 "At once", step 2 "After 5 minutes", each with the ways to reach the
+ * person that go out together at that time, and each later one marked as
+ * skipped once somebody acknowledges. A step's time is its heading, and is
+ * changed there: the whole step moves. Add puts another way into a step;
+ * Add Step starts a step after the last. A push also says how it sounds
+ * and how often it repeats until somebody acknowledges.
  *
- * Nothing is written until Save, and Save writes the ladder into every card
- * of the grid in one request (PagingLadderService). When some cards differ
- * from the ladder, Save first names them: they lose their difference.
+ * Nothing is written until Save Changes, which shows with Discard Changes
+ * only once there is something to save; leaving the page before then asks
+ * first (useLeaveGuard). Save writes the ladder into every card of the
+ * grid in one request (PagingLadderService). When some cards differ from
+ * the ladder, Save first names them: they lose their difference.
  */
 
 export interface ComponentProps {
@@ -70,44 +85,18 @@ export interface ComponentProps {
   severityColors: Record<string, string>;
   // For a member: their first name, for the words that name them.
   memberName?: string | undefined;
-  headerButtons?: Array<CardButtonSchema | ReactElement> | undefined;
   onSave: (steps: Array<PagingLadderStep>) => Promise<void>;
-  // Below the steps: what is not verified yet, and where to add more.
+  /*
+   * Opens the grid of cards, a tab per kind and a card per severity, for
+   * somebody who wants some severities to page differently. Left out, the
+   * ladder offers no way there.
+   */
+  onOpenGrid?: (() => void) | undefined;
+  // Your own Notification Methods, offered at the end of every Add menu.
+  setUpMoreMethodsRoute?: Route | undefined;
+  // Below the steps: what is not verified yet, or why nothing can be added.
   footer?: ReactElement | undefined;
 }
-
-// The waits a step offers: the grid's, and the step's own when it is another.
-export const getWaitOptions: (
-  translator: Translator,
-  currentWait: number,
-) => Array<DropdownOption> = (
-  translator: Translator,
-  currentWait: number,
-): Array<DropdownOption> => {
-  const options: Array<DropdownOption> = NotifyAfterMinutesDropdownOptions.map(
-    (option: DropdownOption): DropdownOption => {
-      return { ...option };
-    },
-  );
-
-  const isOffered: boolean = options.some((option: DropdownOption): boolean => {
-    return option.value === currentWait;
-  });
-
-  if (!isOffered) {
-    options.push({
-      value: currentWait,
-      label: translator.translatePlural(AFTER_MINUTES, currentWait),
-      isInPageDirection: true,
-    });
-
-    options.sort((a: DropdownOption, b: DropdownOption): number => {
-      return Number(a.value) - Number(b.value);
-    });
-  }
-
-  return options;
-};
 
 const getStepsSignature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
   steps: ReadonlyArray<PagingLadderStep>,
@@ -117,7 +106,7 @@ const getStepsSignature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
     .join(",");
 };
 
-interface WaitGroup {
+export interface WaitGroup {
   wait: number;
   // Index into the draft, so a change reaches the right step.
   stepIndexes: Array<number>;
@@ -158,8 +147,8 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [savedNote, setSavedNote] = useState<boolean>(false);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
-  // Changing the key empties the Add dropdown after each pick.
-  const [addKey, setAddKey] = useState<number>(0);
+  // Different for Some Severities was pressed over changes not saved yet.
+  const [isAskingToOpenGrid, setIsAskingToOpenGrid] = useState<boolean>(false);
 
   const savedSignature: string = getStepsSignature(props.savedSteps);
 
@@ -173,17 +162,44 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
   const canSave: boolean =
     draft.length > 0 && (isDirty || props.differences.length > 0) && !isSaving;
 
+  // Changes not saved yet: a new version of the Dashboard does not reload under them...
+  useUnsavedChanges(isDirty);
+  // ...and leaving the page asks first.
+  const leavePrompt: LeavePrompt = useLeaveGuard(isDirty);
+
   const addableMethods: Array<PagingMethodChoice> = getAddableMethodChoices({
     choices: props.methods,
     isPushTurnedOff: props.isPushTurnedOff,
   });
 
+  const setUpMoreMethodsRoute: Route | undefined = props.setUpMoreMethodsRoute;
+  const onSetUpMore: (() => void) | undefined = setUpMoreMethodsRoute
+    ? (): void => {
+        Navigation.navigate(setUpMoreMethodsRoute);
+      }
+    : undefined;
+
+  /*
+   * Every change keeps the draft as a ladder is kept: in paging order, and
+   * a way to reach the person said once per time - two steps moved to the
+   * same time go out together.
+   */
+  const changeDraft: (
+    change: (current: Array<PagingLadderStep>) => Array<PagingLadderStep>,
+  ) => void = (
+    change: (current: Array<PagingLadderStep>) => Array<PagingLadderStep>,
+  ): void => {
+    setSavedNote(false);
+    setDraft((current: Array<PagingLadderStep>) => {
+      return normalizePagingLadderSteps(change(current));
+    });
+  };
+
   const updateStep: (
     index: number,
     change: Partial<PagingLadderStep>,
   ) => void = (index: number, change: Partial<PagingLadderStep>): void => {
-    setSavedNote(false);
-    setDraft((current: Array<PagingLadderStep>) => {
+    changeDraft((current: Array<PagingLadderStep>) => {
       return current.map((step: PagingLadderStep, i: number) => {
         return i === index ? { ...step, ...change } : step;
       });
@@ -191,31 +207,40 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
   };
 
   const removeStep: (index: number) => void = (index: number): void => {
-    setSavedNote(false);
-    setDraft((current: Array<PagingLadderStep>) => {
+    changeDraft((current: Array<PagingLadderStep>) => {
       return current.filter((_step: PagingLadderStep, i: number) => {
         return i !== index;
       });
     });
   };
 
-  const addStep: (methodKey: string) => void = (methodKey: string): void => {
-    const choice: PagingMethodChoice | undefined = addableMethods.find(
-      (candidate: PagingMethodChoice): boolean => {
-        return getPagingLadderMethodKey(candidate) === methodKey;
-      },
-    );
-
-    setAddKey(addKey + 1);
-
-    if (!choice) {
-      return;
-    }
-
-    setSavedNote(false);
-    setDraft((current: Array<PagingLadderStep>) => {
-      return normalizePagingLadderSteps([...current, getNewStep(choice)]);
+  // A step's new time: everything in it moves there together.
+  const changeWait: (fromWait: number, toWait: number) => void = (
+    fromWait: number,
+    toWait: number,
+  ): void => {
+    changeDraft((current: Array<PagingLadderStep>) => {
+      return current.map((step: PagingLadderStep) => {
+        return step.notifyAfterMinutes === fromWait
+          ? { ...step, notifyAfterMinutes: toWait }
+          : step;
+      });
     });
+  };
+
+  const addStep: (choice: PagingMethodChoice, wait: number) => void = (
+    choice: PagingMethodChoice,
+    wait: number,
+  ): void => {
+    changeDraft((current: Array<PagingLadderStep>) => {
+      return [...current, { ...getNewStep(choice), notifyAfterMinutes: wait }];
+    });
+  };
+
+  const discard: () => void = (): void => {
+    setError("");
+    setSavedNote(false);
+    setDraft(normalizePagingLadderSteps(props.savedSteps));
   };
 
   const save: () => Promise<void> = async (): Promise<void> => {
@@ -244,6 +269,39 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     });
   };
 
+  const openGrid: () => void = (): void => {
+    if (!props.onOpenGrid) {
+      return;
+    }
+
+    // The grid takes the ladder's place: changes not saved yet would go with it.
+    if (isDirty) {
+      setIsAskingToOpenGrid(true);
+      return;
+    }
+
+    props.onOpenGrid();
+  };
+
+  const groups: Array<WaitGroup> = groupStepsByWait(draft);
+  const lastGroup: WaitGroup | undefined = groups[groups.length - 1];
+  const nextStepWait: number | null = lastGroup
+    ? getNextStepWait(lastGroup.wait)
+    : null;
+
+  const addLabel: string = props.memberName
+    ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
+        name: props.memberName,
+      })
+    : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder);
+
+  const noStepsText: string = props.memberName
+    ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
+        name: props.memberName,
+      })
+    : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps);
+
+  // One way to reach the person, in its step: what it is, how a push sounds, and its ×.
   const getStepRow: (index: number) => ReactElement = (
     index: number,
   ): ReactElement => {
@@ -253,18 +311,15 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
       step,
     );
     const isPush: boolean = step.methodColumn === "userPushId";
-    const waitOptions: Array<DropdownOption> = getWaitOptions(
-      translator,
-      step.notifyAfterMinutes,
-    );
 
     return (
       <li
         key={`${getPagingLadderStepKey(step)}-${index}`}
-        className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:gap-3"
+        className="flex items-start gap-3 px-3 py-2.5"
         data-testid="paging-ladder-step"
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <MethodIcon step={step} />
+        <div className="flex min-h-7 min-w-0 flex-1 flex-col justify-center gap-1.5">
           <MethodLabel choice={choice} />
           {isPush ? (
             <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
@@ -294,38 +349,27 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {props.isEditable ? (
-          <div className="flex items-center gap-2">
-            <div className="w-full sm:w-48">
-              <Dropdown
-                options={waitOptions}
-                value={waitOptions.find((option: DropdownOption): boolean => {
-                  return option.value === step.notifyAfterMinutes;
-                })}
-                ariaLabel={translator.translateText(
-                  PAGING_LADDER_COPY.waitLabel,
-                )}
-                dataTestId="paging-ladder-step-wait"
-                /* A step always has a wait: removing it is the step's own ×. */
-                isClearable={false}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ): void => {
-                  if (value === null || Array.isArray(value)) {
-                    return;
-                  }
-
-                  updateStep(index, { notifyAfterMinutes: Number(value) });
-                }}
-              />
-            </div>
+          // As tall as the method's first line, so the × sits beside its name.
+          <div className="flex h-7 flex-none items-center">
             <Button
               buttonStyle={ButtonStyleType.ICON}
+              buttonSize={ButtonSize.Small}
               icon={IconProp.Close}
-              title={PAGING_LADDER_COPY.removeStep}
-              ariaLabel={translator.translateText(
-                PAGING_LADDER_COPY.removeStep,
+              tooltip={PAGING_LADDER_COPY.remove}
+              ariaLabel={translator.translateTemplate(
+                PAGING_LADDER_COPY.removeMethod,
+                {
+                  name: choice
+                    ? NotificationMethodUtil.getMethodLabel(
+                        translator,
+                        choice.channel,
+                        choice.identifier,
+                      )
+                    : translator.translateText(UNKNOWN_METHOD_LABEL) ||
+                      UNKNOWN_METHOD_LABEL,
+                },
               )}
-              tooltip={PAGING_LADDER_COPY.removeStep}
+              isAriaLabelTranslated={true}
               dataTestId="paging-ladder-step-remove"
               onClick={() => {
                 removeStep(index);
@@ -339,102 +383,218 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const addPlaceholder: string = props.memberName
-    ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
-        name: props.memberName,
-      })
-    : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder);
+  // A step's own Add: the ways to reach the person that are not in it yet.
+  const getGroupAdd: (group: WaitGroup) => ReactElement = (
+    group: WaitGroup,
+  ): ReactElement => {
+    const inGroup: Set<string> = new Set<string>(
+      group.stepIndexes.map((index: number): string => {
+        return getPagingLadderMethodKey(draft[index]!);
+      }),
+    );
+    const methods: Array<PagingMethodChoice> = addableMethods.filter(
+      (choice: PagingMethodChoice): boolean => {
+        return !inGroup.has(getPagingLadderMethodKey(choice));
+      },
+    );
 
-  const noStepsText: string = props.memberName
-    ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
-        name: props.memberName,
-      })
-    : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps);
+    if (!props.isEditable || (methods.length === 0 && !onSetUpMore)) {
+      return <></>;
+    }
 
-  return (
-    <div data-testid="paging-ladder">
-      <Card
-        title={props.title}
-        description={props.description}
-        buttons={props.headerButtons}
-      >
-        <div className="flex flex-col gap-4">
-          {draft.length === 0 ? (
-            <p
-              className="text-sm text-gray-600"
-              data-testid="paging-ladder-empty"
-            >
-              {noStepsText}
-            </p>
-          ) : (
-            <ol
-              className="flex flex-col gap-3"
-              data-testid="paging-ladder-steps"
-            >
-              {groupStepsByWait(draft).map((group: WaitGroup) => {
-                return (
-                  <li
-                    key={group.wait}
-                    className="rounded-lg border border-gray-200 px-4 py-1"
-                    data-testid="paging-ladder-wait-group"
-                  >
-                    <p className="pt-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {describeWait(translator, group.wait)}
-                    </p>
-                    <ul className="divide-y divide-gray-100">
-                      {group.stepIndexes.map(getStepRow)}
-                    </ul>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+    return (
+      <AddMethodMenu
+        methods={methods}
+        onPick={(choice: PagingMethodChoice) => {
+          addStep(choice, group.wait);
+        }}
+        onSetUpMore={onSetUpMore}
+        dataTestId="paging-ladder-add-to-step-menu"
+        trigger={
+          <button
+            type="button"
+            className="inline-flex flex-none items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            aria-label={addLabel}
+            data-testid="paging-ladder-add-to-step"
+          >
+            <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
+            <span>{translator.translateText(PAGING_LADDER_COPY.add)}</span>
+          </button>
+        }
+      />
+    );
+  };
 
-          {props.isEditable && addableMethods.length > 0 ? (
-            <div className="w-full sm:max-w-md" data-testid="paging-ladder-add">
-              <Dropdown
-                key={addKey}
-                options={addableMethods.map(
-                  (choice: PagingMethodChoice): DropdownOption => {
-                    return {
-                      value: getPagingLadderMethodKey(choice),
-                      /*
-                       * The method's line in the reader's words, as the
-                       * cards' own dropdowns name it (#7178), drawn as
-                       * written and in the page's direction.
-                       */
-                      label: NotificationMethodUtil.getMethodLabel(
-                        translator,
-                        choice.channel,
-                        choice.identifier,
-                      ),
-                      ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
-                    };
-                  },
-                )}
-                placeholder={addPlaceholder}
-                // Worded around the member's name: drawn as given.
-                isPlaceholderTranslated={true}
-                ariaLabel={addPlaceholder}
-                dataTestId="paging-ladder-add-step"
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ): void => {
-                  if (value === null || Array.isArray(value)) {
-                    return;
-                  }
+  const isAddStepShown: boolean =
+    props.isEditable && nextStepWait !== null && addableMethods.length > 0;
 
-                  addStep(value.toString());
-                }}
-              />
+  const steps: ReactElement = (
+    <ol className="flex max-w-3xl flex-col" data-testid="paging-ladder-steps">
+      {groups.map((group: WaitGroup, groupIndex: number) => {
+        const isLastOnTheLine: boolean =
+          groupIndex === groups.length - 1 && !isAddStepShown;
+
+        return (
+          <li
+            key={group.wait}
+            className="flex gap-3"
+            data-testid="paging-ladder-wait-group"
+          >
+            {/* The line the page goes down: the step's number, then on to the next. */}
+            <div className="flex flex-none flex-col items-center">
+              <span
+                className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                aria-hidden="true"
+                data-testid="paging-ladder-step-number"
+              >
+                {translator.formatNumber(groupIndex + 1)}
+              </span>
+              {isLastOnTheLine ? (
+                <></>
+              ) : (
+                <span
+                  className="my-1 w-px flex-1 bg-gray-200"
+                  aria-hidden="true"
+                ></span>
+              )}
             </div>
+            <div className={`min-w-0 flex-1 ${isLastOnTheLine ? "" : "pb-6"}`}>
+              <div className="flex min-h-7 items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <StepWaitMenu
+                    wait={group.wait}
+                    isEditable={props.isEditable}
+                    onChange={(wait: number) => {
+                      changeWait(group.wait, wait);
+                    }}
+                  />
+                  {group.wait > 0 ? (
+                    <span
+                      className="text-xs text-gray-500"
+                      data-testid="paging-ladder-if-not-acknowledged"
+                    >
+                      {translator.translateText(
+                        PAGING_LADDER_COPY.ifNobodyAcknowledged,
+                      )}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+                {getGroupAdd(group)}
+              </div>
+              <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                {group.stepIndexes.map(getStepRow)}
+              </ul>
+            </div>
+          </li>
+        );
+      })}
+
+      {isAddStepShown && nextStepWait !== null ? (
+        <li className="flex" data-testid="paging-ladder-add-step">
+          <AddMethodMenu
+            methods={addableMethods}
+            onPick={(choice: PagingMethodChoice) => {
+              addStep(choice, nextStepWait);
+            }}
+            onSetUpMore={onSetUpMore}
+            dataTestId="paging-ladder-add-step-menu"
+            trigger={
+              <button
+                type="button"
+                className="group inline-flex items-center gap-3 rounded-md text-sm font-medium text-gray-600 transition-colors hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                data-testid="paging-ladder-add-step-button"
+              >
+                <span
+                  className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-300 group-hover:text-indigo-600"
+                  aria-hidden="true"
+                >
+                  <Icon icon={IconProp.Add} className="h-4 w-4" />
+                </span>
+                <span>
+                  {translator.translateText(PAGING_LADDER_COPY.addStep)}
+                </span>
+              </button>
+            }
+          />
+        </li>
+      ) : (
+        <></>
+      )}
+    </ol>
+  );
+
+  const empty: ReactElement = (
+    <div
+      className="flex max-w-3xl flex-col items-start gap-3 rounded-lg border border-dashed border-gray-300 px-4 py-5"
+      data-testid="paging-ladder-empty"
+    >
+      <p className="text-sm text-gray-600">{noStepsText}</p>
+      {props.isEditable && addableMethods.length > 0 ? (
+        <AddMethodMenu
+          methods={addableMethods}
+          onPick={(choice: PagingMethodChoice) => {
+            addStep(choice, 0);
+          }}
+          onSetUpMore={onSetUpMore}
+          dataTestId="paging-ladder-add-first-menu"
+          trigger={
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              data-testid="paging-ladder-add-first"
+            >
+              <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
+              <span>{addLabel}</span>
+            </button>
+          }
+        />
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+
+  const isSaveOffered: boolean = isDirty || props.differences.length > 0;
+
+  // Under the steps, once there is something to save, or it has just been saved.
+  const saveBar: ReactElement =
+    props.isEditable && (isSaveOffered || savedNote) ? (
+      <div
+        className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between"
+        data-testid="paging-ladder-save-bar"
+      >
+        <div className="flex min-w-0 flex-col gap-1">
+          {savedNote && !isDirty ? (
+            <p
+              className="flex items-center gap-1.5 text-sm text-emerald-700"
+              role="status"
+              data-testid="paging-ladder-saved"
+            >
+              <Icon icon={IconProp.Check} className="h-4 w-4 flex-shrink-0" />
+              <span>{translator.translateText(PAGING_LADDER_COPY.saved)}</span>
+            </p>
           ) : (
             <></>
           )}
-
-          {props.footer || <></>}
-
-          {props.isEditable && props.differences.length > 0 ? (
+          {isDirty ? (
+            <p
+              className="flex items-center gap-1.5 text-sm text-amber-700"
+              data-testid="paging-ladder-unsaved"
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 flex-none rounded-full bg-amber-500"
+                aria-hidden="true"
+              ></span>
+              <span>
+                {translator.translateText(PAGING_LADDER_COPY.unsaved)}
+              </span>
+            </p>
+          ) : (
+            <></>
+          )}
+          {props.differences.length > 0 ? (
             <p
               className="text-sm text-amber-700"
               data-testid="paging-ladder-replaces-note"
@@ -444,49 +604,68 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-
-          {error ? <ErrorMessage message={error} /> : <></>}
-
-          {props.isEditable ? (
-            <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+        </div>
+        {isSaveOffered ? (
+          <div className="flex flex-none flex-wrap items-center gap-3">
+            {isDirty ? (
               <Button
-                title={PAGING_LADDER_COPY.save}
-                buttonStyle={ButtonStyleType.PRIMARY}
-                icon={IconProp.Check}
-                disabled={!canSave}
-                isLoading={isSaving}
-                dataTestId="paging-ladder-save"
-                onClick={onSaveClick}
+                title={PAGING_LADDER_COPY.discard}
+                buttonStyle={ButtonStyleType.NORMAL}
+                disabled={isSaving}
+                dataTestId="paging-ladder-discard"
+                onClick={discard}
               />
-              {isDirty ? (
-                <Button
-                  title={PAGING_LADDER_COPY.discard}
-                  buttonStyle={ButtonStyleType.NORMAL}
-                  disabled={isSaving}
-                  dataTestId="paging-ladder-discard"
-                  onClick={() => {
-                    setError("");
-                    setDraft(normalizePagingLadderSteps(props.savedSteps));
-                  }}
-                />
-              ) : (
-                <></>
-              )}
-              {savedNote && !isDirty ? (
-                <p
-                  className="text-sm text-emerald-700"
-                  role="status"
-                  data-testid="paging-ladder-saved"
-                >
-                  {translator.translateText(PAGING_LADDER_COPY.saved)}
-                </p>
-              ) : (
-                <></>
-              )}
+            ) : (
+              <></>
+            )}
+            <Button
+              title={PAGING_LADDER_COPY.save}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              icon={IconProp.Check}
+              disabled={!canSave}
+              isLoading={isSaving}
+              dataTestId="paging-ladder-save"
+              onClick={onSaveClick}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    ) : (
+      <></>
+    );
+
+  return (
+    <div data-testid="paging-ladder">
+      <Card title={props.title} description={props.description}>
+        <div className="flex flex-col gap-5">
+          {draft.length === 0 ? empty : steps}
+
+          {props.footer || <></>}
+
+          {props.onOpenGrid ? (
+            <div
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500"
+              data-testid="paging-ladder-scope"
+            >
+              <span>{translator.translateText(PAGING_LADDER_COPY.scope)}</span>
+              <Button
+                title={PAGING_LADDER_COPY.differentForSome}
+                buttonStyle={ButtonStyleType.LINK}
+                buttonSize={ButtonSize.ExtraSmall}
+                icon={IconProp.TableCells}
+                dataTestId="paging-ladder-open-grid"
+                onClick={openGrid}
+              />
             </div>
           ) : (
             <></>
           )}
+
+          {error ? <ErrorMessage message={error} /> : <></>}
+
+          {saveBar}
         </div>
       </Card>
 
@@ -538,6 +717,31 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+
+      {/*
+       * Different for Some Severities over changes not saved yet: the grid
+       * takes the ladder's place, so it asks as leaving the page does.
+       */}
+      <LeaveWithoutSavingQuestion
+        prompt={{
+          isAsking: isAskingToOpenGrid,
+          stay: () => {
+            setIsAskingToOpenGrid(false);
+          },
+          leave: () => {
+            setIsAskingToOpenGrid(false);
+            discard();
+            props.onOpenGrid?.();
+          },
+        }}
+        description={PAGING_LADDER_COPY.leaveDescription}
+      />
+
+      {/* Last, so it opens above any other dialog. */}
+      <LeaveWithoutSavingQuestion
+        prompt={leavePrompt}
+        description={PAGING_LADDER_COPY.leaveDescription}
+      />
     </div>
   );
 };

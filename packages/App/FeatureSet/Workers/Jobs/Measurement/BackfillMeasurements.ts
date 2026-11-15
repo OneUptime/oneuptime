@@ -14,6 +14,9 @@ import ScheduledMaintenanceMeasurementValueService from "Common/Server/Services/
 import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import MeasurementBackfillProgress, {
+  MeasurementBackfillProgressWrite,
+} from "Common/Server/Utils/Measurement/MeasurementBackfillProgress";
 
 /*
  * Fills in measurement values for entities that already existed when a
@@ -38,6 +41,15 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
  *      cursor is inclusive: entities sharing the boundary timestamp are
  *      recomputed again rather than risking a skip, which costs nothing
  *      because the recompute is a total function of current data.
+ *
+ * And one keeps it right when a measurement is edited while it is walked:
+ * every write of a walk - each page's cursor and the completion stamp - is
+ * held to the request the walk began from (MeasurementBackfillProgress). An
+ * edit stamps a new request and clears the cursor and the completion; the
+ * walk's next write is then refused, the walk stops, and the next tick works
+ * the new definition out from the beginning. Written as plain updates, the
+ * walk wrote over the edit: it stamped completion, and the history was never
+ * worked out again, or saved its cursor, and the new walk resumed part way.
  */
 
 const PAGE_SIZE: number = 500;
@@ -61,11 +73,12 @@ interface EntityRow {
 interface DomainBackfill {
   domain: string;
   findMeasurements: () => Promise<Array<MeasurementBackfillState>>;
-  saveProgress: (data: {
-    measurementId: ObjectID;
-    cursorCreatedAt?: Date | undefined;
-    completedAt?: Date | undefined;
-  }) => Promise<void>;
+  /*
+   * Writes how far a walk got, while the measurement's request is still the
+   * one the walk began from: false when it was asked for again (or removed)
+   * since, and nothing was written.
+   */
+  saveProgress: (data: MeasurementBackfillProgressWrite) => Promise<boolean>;
   findEntities: (data: {
     projectId: ObjectID;
     after?: Date | undefined;
@@ -133,15 +146,12 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
-      saveProgress: async (data: {
-        measurementId: ObjectID;
-        cursorCreatedAt?: Date | undefined;
-        completedAt?: Date | undefined;
-      }): Promise<void> => {
-        await IncidentMeasurementService.updateOneById({
-          id: data.measurementId,
-          data: buildProgressPatch(data),
-          props: { isRoot: true },
+      saveProgress: async (
+        data: MeasurementBackfillProgressWrite,
+      ): Promise<boolean> => {
+        return await MeasurementBackfillProgress.save({
+          service: IncidentMeasurementService,
+          write: data,
         });
       },
       findEntities: async (data: {
@@ -181,15 +191,12 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
-      saveProgress: async (data: {
-        measurementId: ObjectID;
-        cursorCreatedAt?: Date | undefined;
-        completedAt?: Date | undefined;
-      }): Promise<void> => {
-        await AlertMeasurementService.updateOneById({
-          id: data.measurementId,
-          data: buildProgressPatch(data),
-          props: { isRoot: true },
+      saveProgress: async (
+        data: MeasurementBackfillProgressWrite,
+      ): Promise<boolean> => {
+        return await MeasurementBackfillProgress.save({
+          service: AlertMeasurementService,
+          write: data,
         });
       },
       findEntities: async (data: {
@@ -229,15 +236,12 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
-      saveProgress: async (data: {
-        measurementId: ObjectID;
-        cursorCreatedAt?: Date | undefined;
-        completedAt?: Date | undefined;
-      }): Promise<void> => {
-        await ScheduledMaintenanceMeasurementService.updateOneById({
-          id: data.measurementId,
-          data: buildProgressPatch(data),
-          props: { isRoot: true },
+      saveProgress: async (
+        data: MeasurementBackfillProgressWrite,
+      ): Promise<boolean> => {
+        return await MeasurementBackfillProgress.save({
+          service: ScheduledMaintenanceMeasurementService,
+          write: data,
         });
       },
       findEntities: async (data: {
@@ -280,28 +284,6 @@ const buildEntityQuery: BuildEntityQueryFunction = (data: {
   return query;
 };
 
-type BuildProgressPatchFunction = (data: {
-  cursorCreatedAt?: Date | undefined;
-  completedAt?: Date | undefined;
-}) => Record<string, unknown>;
-
-const buildProgressPatch: BuildProgressPatchFunction = (data: {
-  cursorCreatedAt?: Date | undefined;
-  completedAt?: Date | undefined;
-}): Record<string, unknown> => {
-  const patch: Record<string, unknown> = {};
-
-  if (data.cursorCreatedAt) {
-    patch["backfillCursorCreatedAt"] = data.cursorCreatedAt;
-  }
-
-  if (data.completedAt) {
-    patch["backfillCompletedAt"] = data.completedAt;
-  }
-
-  return patch;
-};
-
 type RunDomainFunction = (domain: DomainBackfill) => Promise<void>;
 
 const runDomain: RunDomainFunction = async (
@@ -312,7 +294,15 @@ const runDomain: RunDomainFunction = async (
       await domain.findMeasurements();
 
     for (const measurement of measurements) {
-      if (!measurement._id || !measurement.projectId) {
+      /*
+       * A row read without its request has nothing to hold the walk's
+       * writes to: written anyway, they could land over an edit's.
+       */
+      if (
+        !measurement._id ||
+        !measurement.projectId ||
+        !measurement.backfillRequestedAt
+      ) {
         continue;
       }
 
@@ -349,6 +339,15 @@ const runMeasurement: RunMeasurementFunction = async (data: {
 }): Promise<void> => {
   const { domain, measurement } = data;
 
+  /*
+   * The request this walk is for, as it was read. Every write below is held
+   * to it, so an edit made while the walk runs is never written over: the
+   * walk stops at its next write.
+   */
+  const requestedAt: Date = OneUptimeDate.fromString(
+    measurement.backfillRequestedAt!,
+  );
+
   let cursor: Date | undefined = measurement.backfillCursorCreatedAt;
 
   for (let page: number = 0; page < MAX_PAGES_PER_RUN; page++) {
@@ -377,11 +376,16 @@ const runMeasurement: RunMeasurementFunction = async (data: {
       entities[entities.length - 1]?.createdAt;
 
     if (entities.length < PAGE_SIZE) {
-      await domain.saveProgress({
+      const isCompleted: boolean = await domain.saveProgress({
         measurementId: measurement._id!,
+        requestedAt: requestedAt,
         cursorCreatedAt: lastCreatedAt,
         completedAt: OneUptimeDate.getCurrentDate(),
       });
+
+      if (!isCompleted) {
+        logAskedForAgain({ domain: domain, measurement: measurement });
+      }
 
       return;
     }
@@ -407,9 +411,34 @@ const runMeasurement: RunMeasurementFunction = async (data: {
 
     cursor = lastCreatedAt;
 
-    await domain.saveProgress({
+    const isSaved: boolean = await domain.saveProgress({
       measurementId: measurement._id!,
+      requestedAt: requestedAt,
       cursorCreatedAt: cursor,
     });
+
+    if (!isSaved) {
+      logAskedForAgain({ domain: domain, measurement: measurement });
+      return;
+    }
   }
+};
+
+type LogAskedForAgainFunction = (data: {
+  domain: DomainBackfill;
+  measurement: MeasurementBackfillState;
+}) => void;
+
+/*
+ * A walk whose write was refused: the measurement was asked for again while
+ * it was walked - its definition edited - or removed. The walk's progress is
+ * not written, and the next tick walks the new request from the beginning.
+ */
+const logAskedForAgain: LogAskedForAgainFunction = (data: {
+  domain: DomainBackfill;
+  measurement: MeasurementBackfillState;
+}): void => {
+  logger.info(
+    `Measurement:Backfill stopped walking ${data.domain.domain} measurement ${data.measurement._id?.toString()}: it was asked for again or removed while it was walked, so the next run starts it over from the beginning`,
+  );
 };

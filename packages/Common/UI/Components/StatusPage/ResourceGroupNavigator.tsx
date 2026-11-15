@@ -574,6 +574,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
                   })
                 : translator.translateText("More actions for this group")
             }
+            isAriaLabelTranslated={true}
             isDisabled={isBusy}
             elementToBeShownInsteadOfButton={
               <button

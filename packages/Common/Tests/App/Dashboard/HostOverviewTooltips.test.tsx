@@ -18,6 +18,7 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import type { SpyInstance } from "jest-mock";
 import Permission from "../../../Types/Permission";
+import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInfoTooltip";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import {
   explanationOnFocus,
@@ -161,6 +162,28 @@ interface AggregateCall {
 
 function minutesAgo(minutes: number): Date {
   return new Date(Date.now() - minutes * 60_000);
+}
+
+/*
+ * The element holding a tile title's words, for the tile's (i). A golden
+ * metric tile draws its (i) after the last word of its title, in a box of
+ * its own inside the element that holds the words (WordsWithInfoTooltip,
+ * issue #7348), never as the title's sibling in a flex row: the (i) is the
+ * box's last element, and the box is the last thing the words hold.
+ */
+function wordsHoldingInfo(button: HTMLElement): HTMLElement {
+  const glue: HTMLElement | null = button.closest<HTMLElement>(
+    `[${INFO_GLUE_ATTRIBUTE}]`,
+  );
+
+  expect(glue).not.toBeNull();
+  expect(glue!.lastElementChild).toBe(button);
+
+  const words: HTMLElement = glue!.parentElement as HTMLElement;
+
+  expect(words.lastChild).toBe(glue);
+
+  return words;
 }
 
 // One row per minute over the last half hour.
@@ -372,13 +395,16 @@ describe("Host overview, loaded", () => {
     }
   });
 
-  test("the tile (i) sits in the tile's title row, next to its title", async () => {
+  test("the tile (i) follows its title's last word, inside the title's own words (issue #7348)", async () => {
     await renderLoaded();
 
-    const button: HTMLElement = infoButtonsFor("Load avg (1m)")[0]!;
+    const words: HTMLElement = wordsHoldingInfo(
+      infoButtonsFor("Load avg (1m)")[0]!,
+    );
 
-    expect(button.parentElement).toHaveTextContent("Load avg (1m)");
-    expect(button.parentElement?.textContent).not.toContain("1.50");
+    expect(words).toHaveAttribute("data-testid", "golden-metric-tile-title");
+    expect(words).toHaveTextContent("Load avg (1m)");
+    expect(words.textContent).not.toContain("1.50");
   });
 
   test("the Availability (i) comes before the uptime badge in the card header", async () => {

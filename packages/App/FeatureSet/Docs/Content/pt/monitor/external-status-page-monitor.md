@@ -172,7 +172,7 @@ O status de um componente é o valor que o status dele na página representa, en
 
 Um recurso que a página mostra como **Não monitorado** não é verificado por nada, então não conta para nenhum status geral, como no próprio banner da página. Quando nenhum dos componentes que o monitor acompanha é monitorado, e nenhum tem um incidente aberto, o status geral é `unknown`.
 
-Enquanto um evento de manutenção programada em andamento afeta um recurso, porque nomeia um dos monitores dele ou um monitor do grupo de monitores dele, o componente fica `under_maintenance`, seja qual for o status dos monitores: um monitor não é verificado enquanto um evento o segura. Um evento que ainda vai acontecer, ou que já terminou, não muda nada. Os incidentes ativos da página contam para os recursos que eles afetam.
+Enquanto um evento de manutenção em andamento afeta um recurso, porque nomeia um dos monitores dele ou um monitor do grupo de monitores dele, o componente fica `under_maintenance`, seja qual for o status dos monitores: um monitor não é verificado enquanto um evento o segura. Um evento que ainda vai acontecer, ou que já terminou, não muda nada. Os incidentes ativos da página contam para os recursos que eles afetam.
 
 Os [critérios padrão](#critérios-padrão) nunca tomam uma manutenção por uma interrupção: o monitor continua online durante o trabalho planejado do outro projeto.
 

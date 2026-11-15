@@ -173,7 +173,7 @@ En brukers tillatte oppføringer legges sammen på tvers av alle teamene brukere
 
 ### Endre en tilstand
 
-En hendelse, et varsel, en varsels- eller hendelsesepisode og et planlagt vedlikehold endrer tilstand, og en overvåker endrer status, med en ny rad på tilstandstidslinjen. **Bekreft**, **Løs**, **Endre tilstand**, siden **Tilstandstidslinje**, API-et og arbeidsflyter legger alle til en. Å legge den til krever tidslinjens egen opprettingstillatelse, sammen med en tillatelse til å lese posten den endrer:
+En hendelse, et varsel, en varsels- eller hendelsesepisode og en vedlikeholdshendelse endrer tilstand, og en overvåker endrer status, med en ny rad på tilstandstidslinjen. **Bekreft**, **Løs**, **Endre tilstand**, siden **Tilstandstidslinje**, API-et og arbeidsflyter legger alle til en. Å legge den til krever tidslinjens egen opprettingstillatelse, sammen med en tillatelse til å lese posten den endrer:
 
 | For å endre tilstanden til | Kreves |
 | --- | --- |
@@ -181,10 +181,10 @@ En hendelse, et varsel, en varsels- eller hendelsesepisode og et planlagt vedlik
 | Et varsel | **Create Alert State Timeline** |
 | En varselsepisode | **Create Alert Episode State Timeline** |
 | En hendelsesepisode | **Create Incident Episode State Timeline** |
-| Et planlagt vedlikehold | **Create Scheduled Maintenance State Timeline** |
+| En vedlikeholdshendelse | **Create Scheduled Maintenance State Timeline** |
 | En overvåker (statusen) | **Create Monitor Status Timeline** |
 
-Posten får deretter den nye tilstanden fra OneUptime selv, med det som hører med, som når en episode ble løst eller når et vedlikehold neste gang minner abonnentene sine på det. En endring krever altså ikke også en tillatelse til å redigere posten: en egendefinert rolle med **Create Incident State Timeline**, men uten **Edit Incident**, endrer tilstanden til en hendelse. For å hindre et team i å endre tilstander, blokker tidslinjens opprettingstillatelse; en blokkering på **Edit Incident** lar tilstandsendringer være. Etiketter, eiere og private poster snevrer inn tidslinjens opprettingstillatelse slik de snevrer inn alle andre, gjennom posten den endrer tilstanden til: se reglene for omfang nedenfor.
+Posten får deretter den nye tilstanden fra OneUptime selv, med det som hører med, som når en episode ble løst eller når en vedlikeholdshendelse neste gang minner abonnentene sine på den. En endring krever altså ikke også en tillatelse til å redigere posten: en egendefinert rolle med **Create Incident State Timeline**, men uten **Edit Incident**, endrer tilstanden til en hendelse. For å hindre et team i å endre tilstander, blokker tidslinjens opprettingstillatelse; en blokkering på **Edit Incident** lar tilstandsendringer være. Etiketter, eiere og private poster snevrer inn tidslinjens opprettingstillatelse slik de snevrer inn alle andre, gjennom posten den endrer tilstanden til: se reglene for omfang nedenfor.
 
 Bare tilstanden skrives for deg. Et notat som sendes med en endring, sendes som deg og krever notatets egen tillatelse, som beskrevet i [Gi statussidens abonnenter beskjed om en tilstandsendring](/docs/incidents/states-and-severities#gi-statussideabonnenter-beskjed-om-en-tilstandsendring). Å bekrefte varslene til en hendelse mens du erklærer den, krever det samme som å bekrefte hvert av dem på sin egen side: **Create Alert State Timeline**, snevret inn gjennom hvert varsel, og ingen **Edit Alert**. Se [Bekreft varslene mens du erklærer](/docs/incidents/linked-alerts#bekreft-varslene-mens-du-erklærer).
 
@@ -214,7 +214,7 @@ Noen roller gjelder per definisjon hele prosjektet og tilbyr ikke noe omfang i d
 
 ## Eiere
 
-En eier er en bruker eller et team som er knyttet til én bestemt ressurs. De fleste ressurser som representerer noe du drifter — overvåkere, hendelser, varsler, planlagte vedlikehold, vaktpolicyer, dashbord, tjenester, statussider, arbeidsflyter, runbooks og SLO-er — har en fane **Eiere**.
+En eier er en bruker eller et team som er knyttet til én bestemt ressurs. De fleste ressurser som representerer noe du drifter — overvåkere, hendelser, varsler, vedlikeholdshendelser, vaktpolicyer, dashbord, tjenester, statussider, arbeidsflyter, runbooks og SLO-er — har en fane **Eiere**.
 
 Eiere har to oppgaver:
 

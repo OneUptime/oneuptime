@@ -11,6 +11,7 @@ import Protocol from "../../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
+import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import RequestOrigin from "../../../Types/RequestOrigin";
 import Timezone from "../../../Types/Timezone";
@@ -27,6 +28,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * it came from (requestOrigin, set by CommonAPI or the reset route) - the IP
  * address, roughly where and the device. It offers a reset, for somebody who
  * did not change it.
+ *
+ * An account given its first password - an invited person claiming their
+ * account at sign-up - had nothing changed, and is not mailed (#7472).
  *
  * No database: the services the hook calls are jest.spyOn stubs, and the
  * protected hooks are reached through a structural cast.
@@ -60,14 +64,24 @@ function userService(): UserServiceInternals {
   return UserService as unknown as UserServiceInternals;
 }
 
+/*
+ * An account as onBeforeUpdate reads it for a password write: with the
+ * password it had, which a stored row holds hashed. `hadPassword: false` is
+ * an invited account nobody has signed up to yet.
+ */
 function account(data: {
   id: ObjectID;
   email: string;
   timezone?: Timezone | undefined;
+  hadPassword?: boolean | undefined;
 }): User {
   const user: User = new User();
   user.id = data.id;
   user.email = new Email(data.email);
+
+  if (data.hadPassword !== false) {
+    user.password = new HashedString("an-old-password-hash", true);
+  }
 
   if (data.timezone) {
     user.timezone = data.timezone;
@@ -301,8 +315,198 @@ describe("a changed password is mailed to its owner", () => {
   });
 });
 
+/*
+ * An invitation makes an account with no password; signing up from it gives
+ * the account its first one (Authentication's /signup, the invited-account
+ * branch). Nothing was changed: the person who just chose it was told "Your
+ * password was changed ... someone else can get into your account" seconds
+ * later (#7472).
+ */
+describe("a first password is not a change", () => {
+  test("an account that had no password is not mailed", async () => {
+    await userService().onUpdateSuccess(
+      passwordUpdate({
+        props: { isRoot: true, requestOrigin: ORIGIN },
+        carryForward: [
+          account({
+            id: USER_ID,
+            email: "invited@example.com",
+            hadPassword: false,
+          }),
+        ],
+      }),
+      [USER_ID],
+    );
+
+    expect(sentMails()).toHaveLength(0);
+  });
+
+  test("its sessions still end and its wrong two factor codes are still forgotten, as for any new password", async () => {
+    await userService().onUpdateSuccess(
+      passwordUpdate({
+        props: { isRoot: true },
+        carryForward: [
+          account({
+            id: USER_ID,
+            email: "invited@example.com",
+            hadPassword: false,
+          }),
+        ],
+      }),
+      [USER_ID],
+    );
+
+    expect(UserSessionService.revokeAllSessionsByUserId).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      String(
+        (UserSessionService.revokeAllSessionsByUserId as unknown as jest.Mock)
+          .mock.calls[0]![0],
+      ),
+    ).toBe(USER_ID.toString());
+    expect(
+      String(
+        (TwoFactorWrongCodes.forget as unknown as jest.Mock).mock.calls[0]![0],
+      ),
+    ).toBe(USER_ID.toString());
+  });
+
+  test("a write that changes two accounts mails only the one that had a password", async () => {
+    await userService().onUpdateSuccess(
+      passwordUpdate({
+        props: { isRoot: true, requestOrigin: ORIGIN },
+        carryForward: [
+          account({
+            id: USER_ID,
+            email: "invited@example.com",
+            hadPassword: false,
+          }),
+          account({
+            id: OTHER_USER_ID,
+            email: "owner@example.com",
+          }),
+        ],
+      }),
+      [USER_ID, OTHER_USER_ID],
+    );
+
+    expect(
+      sentMails().map((mail: SentMail): string => {
+        return mail.toEmail.toString();
+      }),
+    ).toEqual(["owner@example.com"]);
+    expect(sentMails()[0]!.templateType).toBe(
+      EmailTemplateType.PasswordChanged,
+    );
+  });
+
+  /*
+   * The reset link, the profile page and a master admin's Set Password all
+   * write a password over the one the account had: each is still mailed.
+   */
+  test.each([
+    ["the reset link's page", { isRoot: true, requestOrigin: ORIGIN }],
+    ["the profile page", { userId: USER_ID, requestOrigin: ORIGIN }],
+    ["a master admin's Set Password", { isRoot: true }],
+  ] as Array<[string, DatabaseCommonInteractionProps]>)(
+    "a password changed from %s is still mailed",
+    async (_how: string, props: DatabaseCommonInteractionProps) => {
+      await userService().onUpdateSuccess(
+        passwordUpdate({
+          props: props,
+          carryForward: [account({ id: USER_ID, email: "owner@example.com" })],
+        }),
+        [USER_ID],
+      );
+
+      expect(sentMails()).toHaveLength(1);
+      expect(sentMails()[0]!.subject).toBe("Password Changed.");
+    },
+  );
+});
+
+/*
+ * The two hooks together, as an update runs them: onBeforeUpdate reads the
+ * rows the write changes, and onUpdateSuccess mails from what it read. The
+ * read stands in for the table: it answers each column the select asks for,
+ * and nothing else, so an account is mailed only if the read asked whether
+ * it had a password and it had one.
+ */
+describe("from the read before the write to the email after it", () => {
+  type StoredAccount = {
+    id: ObjectID;
+    email: string;
+    password: HashedString | null;
+  };
+
+  async function writePassword(
+    stored: Array<StoredAccount>,
+  ): Promise<Array<SentMail>> {
+    jest
+      .spyOn(
+        userService() as unknown as Record<string, () => unknown>,
+        "findRowsAndHoldUpdateToThem",
+      )
+      .mockImplementation((async (
+        _updateBy: UpdateBy<User>,
+        select: Record<string, boolean>,
+      ): Promise<Array<User>> => {
+        return stored.map((row: StoredAccount): User => {
+          const user: User = new User();
+          user.id = row.id;
+          user.email = new Email(row.email);
+
+          if (select["password"] && row.password) {
+            user.password = row.password;
+          }
+
+          return user;
+        });
+      }) as never);
+
+    const update: OnUpdate<User> = passwordUpdate({ carryForward: [] });
+    const onUpdate: OnUpdate<User> = await userService().onBeforeUpdate(
+      update.updateBy,
+    );
+
+    await userService().onUpdateSuccess(
+      onUpdate,
+      stored.map((row: StoredAccount): ObjectID => {
+        return row.id;
+      }),
+    );
+
+    return sentMails();
+  }
+
+  test("an invited person signing up - no password yet - is sent nothing", async () => {
+    expect(
+      await writePassword([
+        { id: USER_ID, email: "invited@example.com", password: null },
+      ]),
+    ).toEqual([]);
+  });
+
+  test("an account with a password is told it changed", async () => {
+    const mails: Array<SentMail> = await writePassword([
+      {
+        id: USER_ID,
+        email: "owner@example.com",
+        password: new HashedString("an-old-password-hash", true),
+      },
+    ]);
+
+    expect(
+      mails.map((mail: SentMail): string => {
+        return `${mail.toEmail.toString()} ${mail.subject}`;
+      }),
+    ).toEqual(["owner@example.com Password Changed."]);
+  });
+});
+
 describe("the accounts a password write changes are read with their time zone", () => {
-  test("onBeforeUpdate reads each one's address and time zone", async () => {
+  test("onBeforeUpdate reads each one's address, time zone and whether it had a password", async () => {
     const findRows: jest.SpyInstance = jest
       .spyOn(
         userService() as unknown as Record<string, () => unknown>,
@@ -313,6 +517,38 @@ describe("the accounts a password write changes are read with their time zone", 
     await userService().onBeforeUpdate(
       passwordUpdate({ carryForward: [] }).updateBy,
     );
+
+    expect(findRows).toHaveBeenCalledTimes(1);
+    expect(findRows.mock.calls[0]![1]).toEqual({
+      _id: true,
+      email: true,
+      timezone: true,
+      password: true,
+    });
+  });
+
+  test("a new email address alone does not read the password", async () => {
+    const findRows: jest.SpyInstance = jest
+      .spyOn(
+        userService() as unknown as Record<string, () => unknown>,
+        "findRowsAndHoldUpdateToThem",
+      )
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(
+        userService() as unknown as Record<string, () => unknown>,
+        "expirePasswordResetTokensForEmailChange",
+      )
+      .mockResolvedValue(undefined as never);
+
+    const updateBy: UpdateBy<User> = passwordUpdate({
+      carryForward: [],
+    }).updateBy;
+    updateBy.data = {
+      email: new Email("new-address@example.com"),
+    } as unknown as UpdateBy<User>["data"];
+
+    await userService().onBeforeUpdate(updateBy);
 
     expect(findRows).toHaveBeenCalledTimes(1);
     expect(findRows.mock.calls[0]![1]).toEqual({

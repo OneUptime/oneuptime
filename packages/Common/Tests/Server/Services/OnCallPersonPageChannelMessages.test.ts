@@ -672,7 +672,15 @@ describe("reading whether a delivery is a person's page", () => {
 
   test.each([
     ["a workflow's direct page", { workflow: true }],
-    ["an on-call policy's run a person started", { policy: true }],
+    /*
+     * A policy a person started by hand names its policy
+     * (OnCallPolicyStartedByHandChannelMessages): read without one, it is
+     * worded as a page OneUptime starts - never as a page by name.
+     */
+    [
+      "an on-call policy's run a person started, read without its policy's name",
+      { policy: true },
+    ],
   ])(
     "%s is no person's page",
     async (_name: string, fields: { workflow?: boolean; policy?: boolean }) => {

@@ -41,7 +41,7 @@ Vælg **Anbefalede advarsler** for en database under **Databaser**. Hver anbefal
 
 Vælg alvorligheder, vagtpolitikker, ejere og etiketter, når du opretter dem. Derefter er de almindelige monitorer: rediger dem, slå dem på lydløs, eller sæt dem på en statusside som enhver anden.
 
-En backfill eller en migrering bør alarmere ingen. Angiv databasen under **Data Observability Databaser** på en [planlagt vedligeholdelsesbegivenhed](/docs/scheduled-maintenance/index), eller sæt dens databaseserver i en, og dens dataadvarsler forbliver stille, mens begivenheden står på.
+En backfill eller en migrering bør alarmere ingen. Angiv databasen under **Data Observability Databaser** på en [vedligeholdelseshændelse](/docs/scheduled-maintenance/index), eller sæt dens databaseserver i en, og dens dataadvarsler forbliver stille, mens begivenheden står på.
 
 ## Metrikker, hver tabel skriver
 

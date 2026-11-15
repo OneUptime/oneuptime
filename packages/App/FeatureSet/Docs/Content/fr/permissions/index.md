@@ -173,7 +173,7 @@ Les autorisations accordées à un utilisateur s'additionnent sur toutes ses éq
 
 ### Changer un état
 
-Un incident, une alerte, un épisode d'alertes ou d'incidents et une maintenance planifiée changent d'état, et un moniteur change de statut, par une nouvelle ligne dans leur chronologie des états. **Prendre en compte**, **Résoudre**, **Modifier l'état**, la page **Chronologie d'état**, l'API et les workflows en ajoutent tous une. L'ajouter demande l'autorisation de création de cette chronologie, avec une autorisation de lire l'enregistrement qu'elle modifie :
+Un incident, une alerte, un épisode d'alertes ou d'incidents et un événement de maintenance changent d'état, et un moniteur change de statut, par une nouvelle ligne dans leur chronologie des états. **Prendre en compte**, **Résoudre**, **Modifier l'état**, la page **Chronologie d'état**, l'API et les workflows en ajoutent tous une. L'ajouter demande l'autorisation de création de cette chronologie, avec une autorisation de lire l'enregistrement qu'elle modifie :
 
 | Pour changer l'état de | Il faut |
 | --- | --- |
@@ -181,10 +181,10 @@ Un incident, une alerte, un épisode d'alertes ou d'incidents et une maintenance
 | Une alerte | **Create Alert State Timeline** |
 | Un épisode d'alertes | **Create Alert Episode State Timeline** |
 | Un épisode d'incidents | **Create Incident Episode State Timeline** |
-| Une maintenance planifiée | **Create Scheduled Maintenance State Timeline** |
+| Un événement de maintenance | **Create Scheduled Maintenance State Timeline** |
 | Un moniteur (son statut) | **Create Monitor Status Timeline** |
 
-L'enregistrement reçoit ensuite le nouvel état de OneUptime elle-même, avec ce qui l'accompagne, comme le moment où un épisode a été résolu ou celui où une maintenance rappelle de nouveau ses abonnés. Un changement ne demande donc pas en plus une autorisation de modifier l'enregistrement : un rôle personnalisé avec **Create Incident State Timeline** mais sans **Edit Incident** change l'état d'un incident. Pour empêcher une équipe de changer des états, bloquez l'autorisation de création de la chronologie ; un blocage de **Edit Incident** laisse les changements d'état tels quels. Les étiquettes, les propriétaires et les enregistrements privés restreignent l'autorisation de création de la chronologie comme ils restreignent toute autre, à travers l'enregistrement dont elle change l'état : voir les règles de portée plus bas.
+L'enregistrement reçoit ensuite le nouvel état de OneUptime elle-même, avec ce qui l'accompagne, comme le moment où un épisode a été résolu ou celui où un événement de maintenance rappelle de nouveau ses abonnés. Un changement ne demande donc pas en plus une autorisation de modifier l'enregistrement : un rôle personnalisé avec **Create Incident State Timeline** mais sans **Edit Incident** change l'état d'un incident. Pour empêcher une équipe de changer des états, bloquez l'autorisation de création de la chronologie ; un blocage de **Edit Incident** laisse les changements d'état tels quels. Les étiquettes, les propriétaires et les enregistrements privés restreignent l'autorisation de création de la chronologie comme ils restreignent toute autre, à travers l'enregistrement dont elle change l'état : voir les règles de portée plus bas.
 
 Seul l'état est écrit pour vous. Une note publiée avec un changement l'est en votre nom et demande l'autorisation propre à la note, comme décrit dans [Informer les abonnés de la page de statut d'un changement d'état](/docs/incidents/states-and-severities#prévenir-les-abonnés-de-la-page-de-statut-dun-changement-détat). Prendre en compte les alertes d'un incident pendant que vous le déclarez demande la même chose que de prendre en compte chacune d'elles sur sa propre page : **Create Alert State Timeline**, restreinte à travers chaque alerte, et pas **Edit Alert**. Voir [Prendre en compte les alertes en déclarant](/docs/incidents/linked-alerts#prendre-les-alertes-en-compte-en-déclarant).
 
@@ -214,7 +214,7 @@ Certains rôles sont projet-entier par définition et n'offrent aucune portée, 
 
 ## Propriétaires
 
-Un propriétaire est un utilisateur ou une équipe rattaché à une ressource précise. La plupart des ressources représentant quelque chose que vous exploitez — moniteurs, incidents, alertes, maintenances planifiées, politiques d'astreinte, tableaux de bord, services, pages de statut, workflows, runbooks et SLO — ont un onglet **Propriétaires**.
+Un propriétaire est un utilisateur ou une équipe rattaché à une ressource précise. La plupart des ressources représentant quelque chose que vous exploitez — moniteurs, incidents, alertes, événements de maintenance, politiques d'astreinte, tableaux de bord, services, pages de statut, workflows, runbooks et SLO — ont un onglet **Propriétaires**.
 
 Les propriétaires jouent deux rôles :
 

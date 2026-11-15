@@ -137,7 +137,7 @@ One address can be sent 10 invitations an hour, to projects and private status p
 :::details The invitation email did not arrive, or its link expired
 The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.
 
-On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can remove them from the project and invite them again, and send them the new invitation link, which works once, only for that address, for 7 days.
+On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can send them a new link, which works once, only for that address, for 7 days: on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.
 :::
 
 :::details Invite User says users are managed by SCIM Push Groups

@@ -96,7 +96,7 @@ These reminders are for your team. The reminders your status page subscribers ge
 
 ### Public note approval
 
-**Scheduled Maintenance → Settings → Public Note Approval** has the public notes of scheduled maintenance events approved before they are published. It works as the incidents' page does, with a switch and steps of its own: turn on **Require approval before public notes are published**, and choose who approves under **Who Approves**. So maintenance notes can need approval while incident notes do not, or be approved by other people. Only **Project Owner** and **Project Admin** can change it. See [Public note approval](/docs/incidents/settings#public-note-approval) for the steps, and [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval) for what a note does while it waits.
+**Scheduled Maintenance → Settings → Public Note Approval** has the public notes of maintenance events approved before they are published. It works as the incidents' page does, with a switch and steps of its own: turn on **Require approval before public notes are published**, and choose who approves under **Who Approves**. So maintenance notes can need approval while incident notes do not, or be approved by other people. Only **Project Owner** and **Project Admin** can change it. See [Public note approval](/docs/incidents/settings#public-note-approval) for the steps, and [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval) for what a note does while it waits.
 
 ### Custom fields
 

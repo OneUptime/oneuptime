@@ -198,7 +198,7 @@ Bed AI om at analysere, opsummere eller beslutte noget midt i kørslen. Svaret b
 | **Prompt** | Hvad AI'en skal gøre. For eksempel: "Gennemgå outputtet fra de foregående trin, og sig, om det er sikkert at fortsætte med afhjælpningen." |
 | **LLM-udbyder** | Valgfri. **Projektstandard** bruger projektets standardudbyder. Fastlæg en udbyder, når trinnet har brug for en bestemt model, f.eks. en selvhostet model til data, der ikke må forlade dit netværk. Se [LLM-udbydere](/docs/ai/llm-provider). |
 | **Medtag kontekst fra forrige trin** | Når den er slået til, ser AI'en alt om de trin, der kørte før dette: titel, type, status, output og fejlmeddelelser. Den får op til 4.000 tegn af hvert trins output. |
-| **Medtag udløserkontekst** | Når den er slået til, ser AI'en, hvad der startede kørslen: den tilknyttede hændelse, advarsel eller planlagte vedligeholdelsesbegivenhed (beskrivelse, alvorlighed, nuværende tilstand, berørte monitorer, grundårsag, tilstandstidslinje og offentlige noter), eller hvem der kørte runbooket manuelt. |
+| **Medtag udløserkontekst** | Når den er slået til, ser AI'en, hvad der startede kørslen: den tilknyttede hændelse, advarsel eller vedligeholdelseshændelse (beskrivelse, alvorlighed, nuværende tilstand, berørte monitorer, grundårsag, tilstandstidslinje og offentlige noter), eller hvem der kørte runbooket manuelt. |
 
 For at holde et menneske med i løkken slår du **Kræv godkendelse** til på trinnet efter et AI-trin: AI'en analyserer, en person læser svaret, og det afhjælpende trin kører først, når personen godkender det.
 

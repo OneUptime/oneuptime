@@ -6,6 +6,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 import Navigation from "../Navigation";
 import ProjectUtil from "../Project";
 import BaseRequestOptions from "../API/RequestOptions";
+import CreatedRecords from "./CreatedRecords";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -179,6 +180,11 @@ export default class ModelAPI {
       apiUrl = apiUrl.addRoute(`/${data.model._id}`);
     }
 
+    const headers: Dictionary<string> = {
+      ...this.getCommonHeaders(data.requestOptions),
+      ...(data.requestOptions?.requestHeaders || {}),
+    };
+
     const apiResult: HTTPErrorResponse | HTTPResponse<TBaseModel> =
       await this.getApiClientForRequest(data.requestOptions).fetch<TBaseModel>({
         method: httpMethod,
@@ -189,10 +195,7 @@ export default class ModelAPI {
           ),
           miscDataProps: data.miscDataProps || {},
         },
-        headers: {
-          ...this.getCommonHeaders(data.requestOptions),
-          ...(data.requestOptions?.requestHeaders || {}),
-        },
+        headers: headers,
         ...(data.requestOptions?.apiRequestOptions
           ? { options: data.requestOptions.apiRequestOptions }
           : {}),
@@ -209,12 +212,54 @@ export default class ModelAPI {
 
       result.data = BaseModel.fromJSONObject(result.data, data.modelType);
 
+      if (data.formType === FormType.Create) {
+        this.announceCreated({
+          model: data.model,
+          created: result.data,
+          tenantId: headers["tenantid"],
+        });
+      }
+
       return result;
     }
 
     this.checkStatusCode(apiResult);
 
     throw apiResult;
+  }
+
+  /*
+   * Tells the page a record was created (CreatedRecords): its table, and its
+   * project - the one the server stored it in, else the one it was asked
+   * in. Never throws: the create is done whatever a listener makes of it.
+   */
+  private static announceCreated(data: {
+    model: BaseModel;
+    created: BaseModel | null | undefined;
+    tenantId: string | undefined;
+  }): void {
+    try {
+      const tableName: string | null | undefined = data.model.tableName;
+
+      if (!tableName) {
+        return;
+      }
+
+      const storedProjectId: unknown =
+        data.created && typeof data.created.getValue === "function"
+          ? data.created.getValue<ObjectID>("projectId")
+          : undefined;
+
+      CreatedRecords.announce({
+        tableName: tableName,
+        projectId:
+          (storedProjectId ? String(storedProjectId) : "") ||
+          data.tenantId ||
+          null,
+      });
+    } catch {
+      // Nothing heard: the next page load reads what changed.
+    }
   }
 
   public static async getList<TBaseModel extends BaseModel>(data: {

@@ -48,6 +48,7 @@ import {
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -486,4 +487,251 @@ describe("attributeKeys stays correct with the deferred single re-sort", () => {
     expect((result!["attributes"] as JSONObject)["region"]).toBe("[REDACTED]");
     expect(result!["attributeKeys"]).toBe(originalKeys);
   });
+
+  test("AddAttribute and RenameAttribute write a key named __proto__ as an attribute", () => {
+    const added: JSONObject | null = MetricPipelineRuleService.applyRules(
+      metricRow("m", { region: "eu" }),
+      undefined,
+      projectRules(
+        attributeRule({
+          ruleType: MetricPipelineRuleType.AddAttribute,
+          addAttributeKey: "__proto__",
+          addAttributeValue: "v",
+        }),
+      ),
+    );
+
+    expect(JSON.stringify(added!["attributes"])).toBe(
+      '{"region":"eu","__proto__":"v"}',
+    );
+    expect(added!["attributeKeys"]).toEqual(["__proto__", "region"]);
+
+    const renamed: JSONObject | null = MetricPipelineRuleService.applyRules(
+      metricRow("m", { region: "eu", zone: "a" }),
+      undefined,
+      projectRules(
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RenameAttribute,
+          renameFromKey: "zone",
+          renameToKey: "__proto__",
+        }),
+      ),
+    );
+
+    expect(JSON.stringify(renamed!["attributes"])).toBe(
+      '{"region":"eu","__proto__":"a"}',
+    );
+    expect(renamed!["attributeKeys"]).toEqual(["__proto__", "region"]);
+  });
 });
+
+/*
+ * Every name an object inherits - Object.prototype's own: constructor,
+ * toString, valueOf, __proto__ and the rest - as the key a metric rule
+ * names. A row without that attribute has nothing to rename, remove or
+ * redact and matches no filter that needs it; a row with it (a computed
+ * key, so its own, __proto__ too: the rules change the attributes in
+ * place) has it read, renamed, removed and redacted like any other; and a
+ * key written so is the row's own, in attributes and attributeKeys.
+ */
+describe.each(INHERITED_PROPERTY_NAMES)(
+  "metric rules and an attribute named %s",
+  (name: string) => {
+    const apply: (
+      attributes: JSONObject,
+      rule: MetricPipelineRule,
+    ) => JSONObject | null = (
+      attributes: JSONObject,
+      rule: MetricPipelineRule,
+    ): JSONObject | null => {
+      return MetricPipelineRuleService.applyRules(
+        metricRow("m", attributes),
+        undefined,
+        projectRules(rule),
+      );
+    };
+
+    const sortedKeys: (...keys: Array<string>) => Array<string> = (
+      ...keys: Array<string>
+    ): Array<string> => {
+      return [...keys].sort();
+    };
+
+    const dropWhen: (
+      conditionType: MetricPipelineRuleFilterConditionType,
+      value?: string,
+    ) => MetricPipelineRule = (
+      conditionType: MetricPipelineRuleFilterConditionType,
+      value?: string,
+    ): MetricPipelineRule => {
+      const rule: MetricPipelineRule = new MetricPipelineRule();
+      rule.id = ObjectID.generate();
+      rule.ruleType = MetricPipelineRuleType.Drop;
+      rule.filters = [
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+          attributeKey: name,
+          conditionType,
+          value,
+        },
+      ];
+      return rule;
+    };
+
+    test("AddAttribute and RenameAttribute write it as the row's own key", () => {
+      const added: JSONObject | null = apply(
+        { region: "eu" },
+        attributeRule({
+          ruleType: MetricPipelineRuleType.AddAttribute,
+          addAttributeKey: name,
+          addAttributeValue: "v",
+        }),
+      );
+
+      expect(JSON.stringify(added!["attributes"])).toBe(
+        `{"region":"eu","${name}":"v"}`,
+      );
+      expect(added!["attributeKeys"]).toEqual(sortedKeys(name, "region"));
+      expect(Object.getPrototypeOf(added!["attributes"])).toBe(
+        Object.prototype,
+      );
+
+      const renamed: JSONObject | null = apply(
+        { region: "eu", zone: "a" },
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RenameAttribute,
+          renameFromKey: "zone",
+          renameToKey: name,
+        }),
+      );
+
+      expect(JSON.stringify(renamed!["attributes"])).toBe(
+        `{"region":"eu","${name}":"a"}`,
+      );
+      expect(renamed!["attributeKeys"]).toEqual(sortedKeys(name, "region"));
+    });
+
+    test("RenameAttribute, RemoveAttribute and RedactAttribute leave a row without it as it is", () => {
+      for (const rule of [
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RenameAttribute,
+          renameFromKey: name,
+          renameToKey: "renamed",
+        }),
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RemoveAttribute,
+          addAttributeKey: name,
+        }),
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: name,
+        }),
+      ]) {
+        const result: JSONObject | null = apply({ region: "eu" }, rule);
+
+        expect({ rule: rule.ruleType, result }).toEqual({
+          rule: rule.ruleType,
+          result: metricRow("m", { region: "eu" }),
+        });
+        expect(
+          Object.prototype.hasOwnProperty.call(result!["attributes"], name),
+        ).toBe(false);
+      }
+    });
+
+    test("RenameAttribute, RemoveAttribute and RedactAttribute change a row's own attribute", () => {
+      const renamed: JSONObject | null = apply(
+        { region: "eu", [name]: "a" },
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RenameAttribute,
+          renameFromKey: name,
+          renameToKey: "renamed",
+        }),
+      );
+
+      expect(renamed!["attributes"]).toEqual({ region: "eu", renamed: "a" });
+      expect(renamed!["attributeKeys"]).toEqual(["region", "renamed"]);
+
+      const removed: JSONObject | null = apply(
+        { region: "eu", [name]: "a" },
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RemoveAttribute,
+          addAttributeKey: name,
+        }),
+      );
+
+      expect(removed!["attributes"]).toEqual({ region: "eu" });
+      expect(removed!["attributeKeys"]).toEqual(["region"]);
+
+      const redacted: JSONObject | null = apply(
+        { region: "eu", [name]: "secret" },
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: name,
+        }),
+      );
+
+      expect(JSON.stringify(redacted!["attributes"])).toBe(
+        `{"region":"eu","${name}":"[REDACTED]"}`,
+      );
+    });
+
+    test("an attribute filter on it reads only the row's own attribute", () => {
+      const inheritedText: string = String(
+        (Object.create(Object.prototype) as Record<string, unknown>)[name],
+      );
+
+      for (const [conditionType, value, dropsWithout, dropsWith] of [
+        [
+          MetricPipelineRuleFilterConditionType.IsPresent,
+          undefined,
+          false,
+          true,
+        ],
+        [
+          MetricPipelineRuleFilterConditionType.IsNotPresent,
+          undefined,
+          true,
+          false,
+        ],
+        [MetricPipelineRuleFilterConditionType.IsEmpty, undefined, true, false],
+        [
+          MetricPipelineRuleFilterConditionType.IsNotEmpty,
+          undefined,
+          false,
+          true,
+        ],
+        [MetricPipelineRuleFilterConditionType.EqualTo, "a", false, true],
+        [
+          MetricPipelineRuleFilterConditionType.EqualTo,
+          inheritedText,
+          false,
+          false,
+        ],
+        [
+          MetricPipelineRuleFilterConditionType.Contains,
+          "native",
+          false,
+          false,
+        ],
+        [MetricPipelineRuleFilterConditionType.NotEqualTo, "a", false, false],
+      ] as Array<
+        [
+          MetricPipelineRuleFilterConditionType,
+          string | undefined,
+          boolean,
+          boolean,
+        ]
+      >) {
+        const rule: MetricPipelineRule = dropWhen(conditionType, value);
+
+        expect({
+          conditionType,
+          value,
+          dropsWithout: apply({ region: "eu" }, rule) === null,
+          dropsWith: apply({ region: "eu", [name]: "a" }, rule) === null,
+        }).toEqual({ conditionType, value, dropsWithout, dropsWith });
+      }
+    });
+  },
+);

@@ -53,6 +53,38 @@ and work the same way.
   where a line starts: bottom left, or bottom right on a page read from right
   to left.
 
+## Connections
+
+A product that says how its parts are connected across the tree (a cloud
+account: an interface runs in its network, a load balancer sends traffic to
+it) passes every such relation, the ones the tree draws by nesting too, as
+`connections` to `buildResourceTopologyGraph`, and **Show as** offers
+**Connections** beside Map and List (`view=connections` in the address). It
+draws them the way Security Events draws what co-occurs with a filter
+(`ResourceTopologyConnections`, laid out by `ResourceTopologyConnectionsLayout`
+over `CorrelationGraphLayout`):
+
+- **One thing in the middle**, the last one asked for: the part picked (on
+  the map or here), else the search ("Your filter"), else **Needs
+  attention**, else the resource itself with its most connected parts around
+  it. A click on any other part moves it to the middle; the middle opens its
+  panel.
+- **What it is connected to on a ring around it**, what needs attention
+  first, then the most connected, ordered so connected parts sit side by
+  side; **what those are connected to further out**, each pulled toward the
+  ring parts it is connected to. Each ring draws at most its limit (fewer on
+  a phone) and the legend says how many parts it left out.
+- **A line is a connection**, its arrow pointing the way its words read,
+  clipped to the cards' edges. A line across the ring is drawn only between
+  near neighbours around a picked part, never through the middle. On a busy
+  drawing a line's words show when one of its ends is hovered or focused.
+- **The rings are measured for the canvas**: as wide as it is against its
+  height, spaced so no card is drawn over another at any size up to the
+  limits (`ResourceTopologyConnectionsLayout.test.ts` sweeps them).
+
+Pinned in `ResourceTopologyConnections.test.ts`, the layout test above, and
+the browser suite's "a cloud account's Connections".
+
 ## Adding a product's nodes and groups
 
 1. **Kinds.** Add the product's kinds to `ResourceTopologyKinds.ts`: an
@@ -93,6 +125,10 @@ relations, issues, truncations })`.
    (`OpenStackResourceService.getTopologyRead`). The arrangement's `reveal` opens
    the first view on those parts, and the page's `notices` say what was left out
    and what no source says.
-6. **Tests.** Builders are pinned in `packages/App/Tests/Dashboard/ResourceTopology*`;
+6. **Connections.** A product whose parts are connected across the tree
+   passes every relation, nesting included, as `connections` (see
+   [Connections](#connections)); the cloud account's builder passes each
+   link of its inventory.
+7. **Tests.** Builders are pinned in `packages/App/Tests/Dashboard/ResourceTopology*`;
    the layout rules in `ResourceTopologyLayout.test.ts`; the browser suite in
    `packages/E2E/ResourceTopology` (add the product to its fixture).
