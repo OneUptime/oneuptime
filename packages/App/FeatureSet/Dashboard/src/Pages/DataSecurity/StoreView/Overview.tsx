@@ -7,6 +7,11 @@ import {
 } from "../../../Components/DataSecurity/DataSecurityPills";
 import StoreDataPaths from "../../../Components/DataSecurity/StoreDataPaths";
 import StoreDataTypeList from "../../../Components/DataSecurity/StoreDataTypeList";
+import StoreNextContentScan, {
+  getStoreScanNowRefusal,
+  getStoreScanStopDetail,
+} from "../../../Components/DataSecurity/StoreNextContentScan";
+import { readDataSecuritySetting } from "../../../Components/DataSecurity/UseDataSecuritySetting";
 import { getStoreProviderName } from "../../../Components/DataSecurity/StoreFieldOptions";
 import { getDataSecurityIssueRoute } from "../../../Components/DataSecurity/StoreIssuesTable";
 import StorePostureChecklist, {
@@ -27,9 +32,11 @@ import {
   useDataStoreViewContext,
 } from "./DataStoreViewContext";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
+import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import Route from "Common/Types/API/Route";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -54,11 +61,18 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
 import {
   PluralTemplate,
   Translator,
+  translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DataStoreContentScanFacts,
+  DataStoreContentScanStop,
+  getDataStoreContentScanStop,
+} from "Common/Utils/DataSecurity/DataStoreContentScanSchedule";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -107,12 +121,26 @@ const OVERVIEW_SELECT: Select<DataStore> = {
   highestIssueSeverity: true,
   riskScore: true,
   isPublicByDesign: true,
+  // Whether, and when, its content is scanned next (StoreNextContentScan).
+  projectId: true,
+  isArchived: true,
+  scanProbeId: true,
+  probeConnectionVariable: true,
+  nextContentScanAt: true,
 };
 
 interface StoreOverviewData {
   store: DataStore | null;
   topIssues: Array<DataSecurityIssue>;
   owners: Array<ResourceOwnerEntry>;
+  /*
+   * The store's scan probe: null when the project has no such probe (a
+   * global one, another project's, or one deleted), undefined when it is
+   * not known (no probe, or one the reader may not read).
+   */
+  scanProbe: Probe | null | undefined;
+  // The project's Data Security settings, or null for the defaults.
+  setting: DataSecuritySetting | null;
 }
 
 /*
@@ -278,6 +306,55 @@ async function readOwners(
   }
 }
 
+/*
+ * The probe a store is scanned from, as the reader may read it. A probe the
+ * project's probes do not hold reads as null - the claim never hands such a
+ * probe a store - but only for a reader who may read the project's probes:
+ * for anyone else nothing is known.
+ */
+async function readScanProbe(
+  scanProbeId: ObjectID | undefined,
+): Promise<Probe | null | undefined> {
+  if (!scanProbeId) {
+    return undefined;
+  }
+
+  if (!PermissionGate.check(new Probe(), ModelAction.Read).isAllowed) {
+    return undefined;
+  }
+
+  try {
+    return await ModelAPI.getItem<Probe>({
+      modelType: Probe,
+      id: scanProbeId,
+      select: {
+        _id: true,
+        name: true,
+        isGlobalProbe: true,
+        projectId: true,
+        connectionStatus: true,
+      },
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+// The project's Data Security settings: the defaults when they cannot be read.
+async function readProjectSetting(
+  projectId: ObjectID | undefined,
+): Promise<DataSecuritySetting | null> {
+  if (!projectId) {
+    return null;
+  }
+
+  try {
+    return await readDataSecuritySetting(projectId);
+  } catch {
+    return null;
+  }
+}
+
 async function readTopIssues(
   dataStoreId: ObjectID,
 ): Promise<Array<DataSecurityIssue>> {
@@ -329,9 +406,16 @@ const DataStoreOverview: FunctionComponent<
           readOwners(dataStoreId),
         ]);
 
+        const [scanProbe, setting] = await Promise.all([
+          readScanProbe(store?.scanProbeId),
+          readProjectSetting(
+            store?.projectId || ProjectUtil.getCurrentProjectId() || undefined,
+          ),
+        ]);
+
         if (isCurrent) {
           setError("");
-          setData({ store, topIssues, owners });
+          setData({ store, topIssues, owners, scanProbe, setting });
         }
       } catch (err) {
         if (isCurrent) {
@@ -365,6 +449,9 @@ const DataStoreOverview: FunctionComponent<
     setRunningAction(kind);
     setActionResult(null);
 
+    // A probe's store waits for the probe to ask for work: nothing starts now.
+    const isScannedFromProbe: boolean = Boolean(data?.store?.scanProbeId);
+
     try {
       if (kind === "scan") {
         await DataSecurityApi.scanNow(dataStoreId);
@@ -376,9 +463,17 @@ const DataStoreOverview: FunctionComponent<
         type: AlertType.SUCCESS,
         text:
           kind === "scan"
-            ? translator.translateText(
-                "A scan of this store's content has started. What it finds shows on What's Inside when it is done.",
-              ) || ""
+            ? isScannedFromProbe
+              ? translator.translateTemplate(
+                  "The next time {{probe}} asks for work, it scans this store's content. What it finds shows on What's Inside when it is done.",
+                  {
+                    probe:
+                      data?.scanProbe?.name || translatableTerm("its probe"),
+                  },
+                )
+              : translator.translateText(
+                  "A scan of this store's content has started. What it finds shows on What's Inside when it is done.",
+                ) || ""
             : translator.translateText(
                 "This store's configuration is being read again and its checks run. Its issues update in a minute or two.",
               ) || "",
@@ -414,6 +509,14 @@ const DataStoreOverview: FunctionComponent<
   }
 
   const kindFacts: DataStoreKindFacts = getDataStoreKindFacts(store.kind);
+  // What decides whether, and when, its content is scanned next.
+  const scanFacts: DataStoreContentScanFacts = {
+    store: store,
+    scanProbe: data.scanProbe,
+    projectSetting: data.setting,
+  };
+  const scanStop: DataStoreContentScanStop | null =
+    getDataStoreContentScanStop(scanFacts);
   const openIssueCount: number = store.openIssueCount || 0;
   const findingCount: number = store.findingCount || 0;
   const hasConfiguration: boolean =
@@ -433,15 +536,15 @@ const DataStoreOverview: FunctionComponent<
     return gated ? [gated] : [];
   };
 
-  const scanDisabledReason: string | undefined = !kindFacts.isContentScannable
-    ? translator.translateText(
-        "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
-      )
-    : store.isContentScanEnabled === false
-      ? translator.translateText(
-          "Content scanning is off for this store. Turn it on in its Settings.",
-        )
-      : undefined;
+  /*
+   * Why Scan Now would scan nothing: by the rules the server scans by, so it
+   * never says a scan started that will not run.
+   */
+  const scanDisabledReason: string | undefined = getStoreScanNowRefusal(
+    scanFacts,
+    translator,
+    data.scanProbe?.name,
+  );
 
   const scanButtons: Array<CardButtonSchema> = gate({
     title: "Scan Now",
@@ -598,12 +701,15 @@ const DataStoreOverview: FunctionComponent<
                   ? translator.translateText(
                       "Its scans found nothing sensitive.",
                     )
-                  : kindFacts.isContentScannable
-                    ? translator.translateText(
-                        "Its content has not been scanned yet.",
+                  : scanStop
+                    ? // Never "not scanned yet" of a store nothing will scan.
+                      getStoreScanStopDetail(
+                        scanStop,
+                        translator,
+                        data.scanProbe?.name,
                       )
                     : translator.translateText(
-                        "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+                        "Its content has not been scanned yet.",
                       )}
               </p>
             )}
@@ -844,7 +950,20 @@ const DataStoreOverview: FunctionComponent<
             {
               field: { nextContentScanAt: true },
               title: "Next Content Scan",
-              fieldType: FieldType.DateTime,
+              fieldType: FieldType.Element,
+              /*
+               * A time only when something will scan it then: the probe's
+               * claim moves a store it may not scan a quarter of an hour on,
+               * again and again (StoreNextContentScan).
+               */
+              getElement: (): ReactElement => {
+                return (
+                  <StoreNextContentScan
+                    facts={scanFacts}
+                    probeName={data.scanProbe?.name}
+                  />
+                );
+              },
             },
             {
               field: { lastActivityAt: true },
