@@ -94,6 +94,7 @@ import VMwareCollectionStatusCard from "../../../../App/FeatureSet/Dashboard/src
 import VMwareDataCollectionCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareDataCollectionCard";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import VMwareCollectionErrorCode from "../../../Types/VMware/VMwareCollectionError";
@@ -320,6 +321,215 @@ describe("the Overview's data collection card", () => {
         "The probe collects this vCenter with its new settings within a minute.",
       ),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * A vCenter nothing may collect is set aside by the probes' claim a
+   * quarter of an hour at a time (OneUptime issue #8042), so its
+   * nextCollectionAt keeps moving: the card read "Collecting", or a new
+   * vCenter's "Checking ... within a minute", for good. It says why from the
+   * vCenter's own row, and promises no next time.
+   */
+  describe("a vCenter no probe may collect", () => {
+    const MINUTE_IN_MS: number = 60 * 1000;
+    const PROJECT_ID: string = "7d7d7d7d-0000-4000-8000-000000000009";
+
+    const SET_ASIDE: Record<string, unknown> = {
+      ...PROBE_COLLECTED,
+      projectId: new ObjectID(PROJECT_ID),
+      collectionStatus: VMwareCollectionStatus.Succeeded,
+      lastCollectionAt: new Date(Date.now() - 600 * MINUTE_IN_MS),
+      nextCollectionAt: new Date(Date.now() + 17 * MINUTE_IN_MS),
+    };
+
+    test.each([
+      [
+        "with no password",
+        { isVCenterPasswordSet: false },
+        "No password is saved for this vCenter.",
+        "Enter the vCenter user's password in Settings, and test the connection.",
+      ],
+      [
+        "with no address",
+        { vcenterUrl: undefined },
+        "This vCenter has no address.",
+        "Enter vCenter's address in Settings, and test the connection.",
+      ],
+      [
+        "with no user name",
+        { vcenterUsername: undefined },
+        "This vCenter has no user name.",
+        "Enter the vCenter user's name in Settings, and test the connection.",
+      ],
+      [
+        "with no probe",
+        { collectionProbeId: undefined, collectionProbe: undefined },
+        "No probe is set to collect this vCenter.",
+        "Pick one of this project's probes in Settings.",
+      ],
+      [
+        "on another project's probe",
+        {
+          collectionProbe: {
+            name: "Datacenter probe",
+            isGlobalProbe: false,
+            projectId: new ObjectID("7d7d7d7d-0000-4000-8000-00000000000a"),
+          },
+        },
+        "This probe may not collect this vCenter",
+        "Pick a probe of this project's own. Shared OneUptime probes never receive vCenter passwords.",
+      ],
+    ])(
+      "%s: not collecting, why, the fix, and no next collection",
+      async (
+        _name: string,
+        stop: Record<string, unknown>,
+        title: string,
+        nextStep: string,
+      ) => {
+        for (const report of [
+          { collectionStatus: VMwareCollectionStatus.Succeeded },
+          // A new vCenter: never "Checking ... within a minute".
+          { collectionStatus: undefined },
+        ]) {
+          stored = { ...SET_ASIDE, ...report, ...stop };
+
+          render(
+            <VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />,
+          );
+          await flush();
+
+          const status: HTMLElement = screen.getByTestId(
+            "vmware-collection-status",
+          );
+
+          expect(screen.getByText("Not collecting")).toBeInTheDocument();
+          expect(screen.queryByText("Collecting")).toBeNull();
+          expect(screen.queryByText("Checking")).toBeNull();
+          expect(status).toHaveTextContent(title);
+          expect(status).toHaveTextContent(nextStep);
+          expect(
+            screen.getByTestId("vmware-next-collection"),
+          ).toHaveTextContent("Not scheduled");
+
+          cleanup();
+        }
+      },
+    );
+
+    test("a disconnected probe: named, and nothing collects the vCenter until it is back", async () => {
+      stored = {
+        ...SET_ASIDE,
+        collectionProbe: {
+          name: "Datacenter probe",
+          isGlobalProbe: false,
+          projectId: new ObjectID(PROJECT_ID),
+          connectionStatus: "disconnected",
+        },
+      };
+
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Nothing collects this vCenter while Datacenter probe is disconnected.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("an archived vCenter is still collected", async () => {
+      stored = { ...SET_ASIDE, isArchived: true };
+
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      expect(screen.getByText("Collecting")).toBeInTheDocument();
+      expect(screen.getByTestId("vmware-next-collection").textContent).toBe(
+        OneUptimeDate.fromNow(SET_ASIDE["nextCollectionAt"] as Date),
+      );
+    });
+
+    test("it asks for what decides whether a probe may collect it", async () => {
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      const select: Record<string, unknown> = (
+        getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+
+      for (const column of [
+        "projectId",
+        "isVCenterPasswordSet",
+        "vcenterUrl",
+        "vcenterUsername",
+        "collectionProbeId",
+        "nextCollectionAt",
+      ]) {
+        expect(select[column]).toBe(true);
+      }
+
+      expect(select["collectionProbe"]).toEqual({
+        name: true,
+        isGlobalProbe: true,
+        projectId: true,
+        connectionStatus: true,
+      });
+    });
+  });
+
+  // VMware's card had no overdue: a probe that went offline left it saying "Collecting".
+  describe("a probe that stopped coming", () => {
+    const MINUTE_IN_MS: number = 60 * 1000;
+
+    test("overdue, with a probe able to take it: not collecting, and when it was due", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: VMwareCollectionStatus.Succeeded,
+        nextCollectionAt: new Date(Date.now() - 60 * MINUTE_IN_MS),
+      };
+
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+      expect(
+        screen.getByText("The probe did not pick this up"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("vmware-collection-status")).toHaveTextContent(
+        /This vCenter was due to be collected .+, and no probe has come for it\./,
+      );
+      expect(screen.getByTestId("vmware-next-collection")).toHaveTextContent(
+        "Overdue",
+      );
+    });
+
+    test("a collection running its full time budget and upload is not that", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: VMwareCollectionStatus.Succeeded,
+        nextCollectionAt: new Date(Date.now() - 15 * MINUTE_IN_MS),
+      };
+
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      expect(screen.getByText("Collecting")).toBeInTheDocument();
+      expect(screen.getByTestId("vmware-next-collection")).toHaveTextContent(
+        "Due now",
+      );
+    });
+
+    test("never collected, with a probe able to take it: checking, due now", async () => {
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      expect(screen.getByText("Checking")).toBeInTheDocument();
+      expect(screen.getByTestId("vmware-next-collection")).toHaveTextContent(
+        "Due now",
+      );
+    });
   });
 });
 

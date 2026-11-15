@@ -25,6 +25,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "./Milliseconds";
 
 /*
  * Plain-language formatting for the "Evidence checked" list of an AI
@@ -1104,9 +1105,13 @@ function formatInteger(value: number): string {
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// "340 ms", "1.2 s", "2 min 5 s". Undefined for a missing/invalid duration.
+/*
+ * "340 ms", "1.2 s", "2 min 5 s". Undefined for a missing/invalid duration.
+ * Its milliseconds are the reader's ("۳۴۰ میلی‌ثانیه"; issue #7418).
+ */
 export function formatEvidenceDuration(
   durationInMs: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | undefined {
   if (
     typeof durationInMs !== "number" ||
@@ -1117,7 +1122,9 @@ export function formatEvidenceDuration(
   }
 
   if (durationInMs < 1000) {
-    return `${Math.round(durationInMs)} ms`;
+    return formatMilliseconds(translator, durationInMs, {
+      maximumFractionDigits: 0,
+    });
   }
 
   if (durationInMs < 60_000) {

@@ -493,4 +493,47 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
     expect(note).not.toContain("while this page was open");
     expect(api["createPolicy"]).not.toHaveBeenCalled();
   });
+
+  /*
+   * #7995: the policy the step makes is the project's first, and its name
+   * is a record the project's people then see and edit: it is named in the
+   * reader's language, and the step says that name before it is made.
+   */
+  test("the policy the step makes is named in their words, as the step says before it is made (#7995)", async () => {
+    window.localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({ monitorId: MONITOR_ID }),
+    );
+    api["createPolicy"]!.mockResolvedValue(POLICY_ID);
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-who-continue"),
+      ).toBeInTheDocument();
+    });
+
+    const name: string =
+      readDashboardLocale(language)["Default on-call policy"]!;
+
+    expect(name).toBeTruthy();
+    expect(name).not.toBe("Default on-call policy");
+    expect(withoutIsolateMarks(document.body.textContent || "")).toContain(
+      fill(language, WEBSITE_DOWN_COPY.whoCreatePolicyNote, { policy: name }),
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-who-continue"));
+    });
+
+    await waitFor(() => {
+      expect(api["createPolicy"]).toHaveBeenCalled();
+    });
+
+    const call: { translator: { language: string } } = api["createPolicy"]!.mock
+      .calls[0]![0] as { translator: { language: string } };
+
+    // The reader's translator: the policy and its rules are worded in their language.
+    expect(call.translator.language).toBe(language);
+  });
 });

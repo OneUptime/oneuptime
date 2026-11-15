@@ -2,7 +2,7 @@
 
 OneUptime 的 **Incoming Email Monitor** 讓你可以根據寄到唯一、依監測器區分的電子郵件地址的郵件來建立和解決警示。這對於整合舊系統、警示工具或任何能夠寄送郵件的服務都很有用。
 
-同樣的設定也讓工作流程可以接收郵件：帶有 **Incoming Email** 觸發器的工作流程會在同一個網域上取得自己的地址，寄到該地址的每封郵件都會啟動該工作流程。請參閱[觸發器](/docs/workflows/triggers#incoming-email)。
+同樣的設定也讓工作流程可以接收郵件：帶有 **傳入電子郵件** 觸發器的工作流程會在同一個網域上取得自己的地址，寄到該地址的每封郵件都會啟動該工作流程。請參閱[觸發器](/docs/workflows/triggers#incoming-email)。
 
 本指南說明如何設定 SendGrid Inbound Parse，把傳入郵件轉寄到你的自架 OneUptime 執行個體。OneUptime Cloud 不需要這些設定：它的地址開箱即用。
 
@@ -122,7 +122,7 @@ inboundEmail:
 
 [建立 Incoming Email 監測器](/docs/monitor/incoming-email-monitor#建立傳入郵件監測器)。它的 **概覽** 頁面會顯示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的條件決定哪些郵件建立警示、哪些郵件解決警示。
 
-工作流程使用同一個網域。把 **Incoming Email** 觸發器新增到工作流程並點選它：它的地址（`workflow-…@inbound.yourdomain.com`）顯示在其設定的頂部。在設定上面的傳入郵件變數之前，觸發器會提示伺服器尚未設定為接收郵件。
+工作流程使用同一個網域。把 **傳入電子郵件** 觸發器新增到工作流程並點選它：它的地址（`workflow-…@inbound.yourdomain.com`）顯示在其設定的頂部。在設定上面的傳入郵件變數之前，觸發器會提示伺服器尚未設定為接收郵件。
 
 ### 寄送測試郵件
 

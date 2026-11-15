@@ -24,6 +24,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { Chart } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 import { Translator } from "../../../Types/Translator";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -524,7 +525,7 @@ describe("a grouped metric chart, drawn", () => {
       );
       expect(
         screen.getByRole("button", {
-          name: new RegExp(readerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+          name: new RegExp(escapeRegExp(readerName)),
           expanded: false,
         }),
       ).toBeInTheDocument();

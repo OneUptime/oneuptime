@@ -1048,6 +1048,8 @@ describe("who else is on call", () => {
       userIds: [USER_ID, "user-ben"],
       teamIds: ["team-platform"],
       addRules: true,
+      // The reader's translator: the policy and its rules are named in their language (#7995).
+      translator: expect.anything(),
     });
     expect(storedRun()["policyId"]).toBe(POLICY_ID);
     expect(storedRun()["policyIsExisting"]).toBeUndefined();
@@ -1218,6 +1220,7 @@ describe("who else is on call", () => {
       policyName: "Default on-call policy",
       incident: false,
       alert: true,
+      translator: expect.anything(),
     });
     expect(stepState("no_answer")).toBe("open");
   });
@@ -1896,6 +1899,7 @@ describe("a policy made meanwhile, in another tab or on another device (#7252)",
       policyName: "Default on-call policy",
       incident: false,
       alert: true,
+      translator: expect.anything(),
     });
     expect(stepState("no_answer")).toBe("open");
   });

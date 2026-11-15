@@ -694,6 +694,8 @@ describe("2. Who should be told?", () => {
     expect(api["createPolicy"]).toHaveBeenCalledWith({
       userIds: [USER_ID],
       teamIds: [],
+      // The reader's translator: the policy and its rules are named in their language (#7995).
+      translator: expect.anything(),
     });
     expect(storedRun()).toEqual({ monitorId: MONITOR_ID, policyId: POLICY_ID });
     expect(stepState("who_is_told")).toBe("done");
@@ -713,6 +715,7 @@ describe("2. Who should be told?", () => {
     expect(api["createPolicy"]).toHaveBeenCalledWith({
       userIds: [USER_ID, "user-grace"],
       teamIds: ["team-platform"],
+      translator: expect.anything(),
     });
   });
 

@@ -129,7 +129,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
         },
         {
           field: { dataAsset: { assetKey: true, dataStoreName: true } },
-          title: "Table",
+          title: "Table (database object)",
           type: FieldType.Element,
           disableSort: true,
           getExportValue: (item: DataAssetFeed): string => {

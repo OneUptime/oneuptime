@@ -2,7 +2,7 @@
 
 El **Incoming Email Monitor** de OneUptime te permite crear y resolver alertas a partir de correos enviados a direcciones únicas, específicas de cada monitor. Es útil para integrar sistemas heredados, herramientas de alertas o cualquier servicio capaz de enviar correos.
 
-La misma configuración permite que los workflows reciban correo: un workflow con el disparador **Incoming Email** obtiene su propia dirección en el mismo dominio, y cada correo enviado a ella inicia el workflow. Consulta [Disparadores](/docs/workflows/triggers#incoming-email).
+La misma configuración permite que los workflows reciban correo: un workflow con el disparador **Correo entrante** obtiene su propia dirección en el mismo dominio, y cada correo enviado a ella inicia el workflow. Consulta [Disparadores](/docs/workflows/triggers#incoming-email).
 
 Esta guía explica cómo configurar SendGrid Inbound Parse para reenviar los correos entrantes a tu instancia autoalojada de OneUptime. OneUptime Cloud no necesita nada de esto: sus direcciones funcionan desde el primer momento.
 
@@ -122,7 +122,7 @@ Después aplícalas: ejecuta `npm run start` en Docker Compose, que vuelve a cre
 
 [Crea un monitor Incoming Email](/docs/monitor/incoming-email-monitor#crear-un-monitor-de-correos-entrantes). Su página **Vista general** muestra su dirección, como `monitor-abc123def456@inbound.yourdomain.com`, y sus criterios deciden qué correos crean una alerta y cuáles la resuelven.
 
-Los workflows usan el mismo dominio. Añade el disparador **Incoming Email** a un workflow y haz clic en él: su dirección (`workflow-…@inbound.yourdomain.com`) aparece arriba en sus ajustes. Hasta que se definan las variables de correo entrante de arriba, el disparador indica que el servidor no está preparado para recibir correo.
+Los workflows usan el mismo dominio. Añade el disparador **Correo entrante** a un workflow y haz clic en él: su dirección (`workflow-…@inbound.yourdomain.com`) aparece arriba en sus ajustes. Hasta que se definan las variables de correo entrante de arriba, el disparador indica que el servidor no está preparado para recibir correo.
 
 ### Envía un correo de prueba
 
