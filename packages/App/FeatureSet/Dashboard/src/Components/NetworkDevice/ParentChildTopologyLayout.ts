@@ -987,7 +987,14 @@ export const compareNamesNaturally: (a: string, b: string) => number = (
     }
   }
 
-  return partsA.length - partsB.length;
+  if (partsA.length !== partsB.length) {
+    return partsA.length - partsB.length;
+  }
+  // Equal by value ("x1", "x01"): the text itself decides, so the order is total.
+  if (a === b) {
+    return 0;
+  }
+  return a < b ? -1 : 1;
 };
 
 /** How one block's leaves are arranged, in its own band-local space. */

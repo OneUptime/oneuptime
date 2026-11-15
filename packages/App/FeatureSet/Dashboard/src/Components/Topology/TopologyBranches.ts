@@ -132,37 +132,57 @@ export const countDescendants: (
   return count;
 };
 
+/*
+ * The branches "Collapse all" folds: on the whole map, every branch below
+ * the top of each tree - the roots stay open, so the map still shows the top
+ * of the network and the branches hanging off it, each with what it holds;
+ * narrowed to one branch, every branch below the one in focus, which stays
+ * open: folding the branch being looked at would leave a single device on
+ * the screen, and folding one outside it would change nothing anybody can
+ * see.
+ */
+const branchesToCollapse: (
+  hierarchy: TopologyHierarchy,
+  focusedNodeId?: string | null | undefined,
+) => Array<string> = (
+  hierarchy: TopologyHierarchy,
+  focusedNodeId?: string | null | undefined,
+): Array<string> => {
+  if (focusedNodeId) {
+    return descendantIdsOf(hierarchy, focusedNodeId).filter(
+      (nodeId: string): boolean => {
+        return childrenOf(hierarchy, nodeId).length > 0;
+      },
+    );
+  }
+  const branchIds: Array<string> = [];
+  for (const [nodeId, children] of hierarchy.childrenById) {
+    if (children.length > 0 && (hierarchy.depthById.get(nodeId) || 0) >= 1) {
+      branchIds.push(nodeId);
+    }
+  }
+  return branchIds;
+};
+
 /**
- * Collapse every branch below the top of each tree: what "Collapse all"
- * folds. The roots stay open, so the map still shows the top of the
- * network and the branches hanging off it, each with what it holds; a map
- * folded down to its roots would show a handful of devices and nothing of
- * the network's shape.
- *
- * `keepOpenNodeId` - the branch the map is narrowed to - stays open with
- * every branch above it: folding the branch being looked at, or one that
- * holds it, would leave the reader looking at nothing.
+ * What "Collapse all" leaves folded: everything already folded, and every
+ * branch it folds (see branchesToCollapse). It only ever adds a fold - a
+ * root the reader folded by hand stays folded.
  */
 export const collapseAllBranches: (
   hierarchy: TopologyHierarchy,
-  keepOpenNodeId?: string | null | undefined,
+  collapsed: ReadonlySet<string>,
+  focusedNodeId?: string | null | undefined,
 ) => Set<string> = (
   hierarchy: TopologyHierarchy,
-  keepOpenNodeId?: string | null | undefined,
+  collapsed: ReadonlySet<string>,
+  focusedNodeId?: string | null | undefined,
 ): Set<string> => {
-  const collapsed: Set<string> = new Set<string>();
-  for (const [nodeId, children] of hierarchy.childrenById) {
-    if (children.length > 0 && (hierarchy.depthById.get(nodeId) || 0) >= 1) {
-      collapsed.add(nodeId);
-    }
+  const next: Set<string> = new Set<string>(collapsed);
+  for (const nodeId of branchesToCollapse(hierarchy, focusedNodeId)) {
+    next.add(nodeId);
   }
-  if (keepOpenNodeId) {
-    collapsed.delete(keepOpenNodeId);
-    for (const ancestorId of ancestorIdsOf(hierarchy, keepOpenNodeId)) {
-      collapsed.delete(ancestorId);
-    }
-  }
-  return collapsed;
+  return next;
 };
 
 /**
@@ -172,17 +192,68 @@ export const collapseAllBranches: (
 export const canCollapseMore: (
   hierarchy: TopologyHierarchy | undefined,
   collapsed: ReadonlySet<string>,
-  keepOpenNodeId?: string | null | undefined,
+  focusedNodeId?: string | null | undefined,
 ) => boolean = (
   hierarchy: TopologyHierarchy | undefined,
   collapsed: ReadonlySet<string>,
-  keepOpenNodeId?: string | null | undefined,
+  focusedNodeId?: string | null | undefined,
 ): boolean => {
   if (!hierarchy) {
     return false;
   }
-  for (const nodeId of collapseAllBranches(hierarchy, keepOpenNodeId)) {
-    if (!collapsed.has(nodeId)) {
+  return branchesToCollapse(hierarchy, focusedNodeId).some(
+    (nodeId: string): boolean => {
+      return !collapsed.has(nodeId);
+    },
+  );
+};
+
+/**
+ * What "Expand all" leaves folded: nothing, on the whole map; narrowed to one
+ * branch, everything folded outside it - the folds in the branch in focus,
+ * its own included, are what the reader can see being opened.
+ */
+export const expandAllBranches: (
+  hierarchy: TopologyHierarchy,
+  collapsed: ReadonlySet<string>,
+  focusedNodeId?: string | null | undefined,
+) => ReadonlySet<string> = (
+  hierarchy: TopologyHierarchy,
+  collapsed: ReadonlySet<string>,
+  focusedNodeId?: string | null | undefined,
+): ReadonlySet<string> => {
+  if (!focusedNodeId) {
+    return EMPTY_COLLAPSED_BRANCHES;
+  }
+  const branch: Set<string> = branchNodeIdsOf(hierarchy, focusedNodeId);
+  const next: Set<string> = new Set<string>();
+  for (const nodeId of collapsed) {
+    if (!branch.has(nodeId)) {
+      next.add(nodeId);
+    }
+  }
+  return next;
+};
+
+/** Whether "Expand all" would open anything the reader can see. */
+export const canExpandMore: (
+  hierarchy: TopologyHierarchy | undefined,
+  collapsed: ReadonlySet<string>,
+  focusedNodeId?: string | null | undefined,
+) => boolean = (
+  hierarchy: TopologyHierarchy | undefined,
+  collapsed: ReadonlySet<string>,
+  focusedNodeId?: string | null | undefined,
+): boolean => {
+  if (!hierarchy || collapsed.size === 0) {
+    return false;
+  }
+  if (!focusedNodeId) {
+    return true;
+  }
+  const branch: Set<string> = branchNodeIdsOf(hierarchy, focusedNodeId);
+  for (const nodeId of collapsed) {
+    if (branch.has(nodeId)) {
       return true;
     }
   }

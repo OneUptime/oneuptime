@@ -4,7 +4,7 @@ import NetworkTopology, {
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { TopologyLayoutModel } from "../../NetworkDevice/TopologyLayout";
-import { branchNodeIdsOf } from "../TopologyBranches";
+import { branchNodeIdsOf, hasBranch } from "../TopologyBranches";
 import { TopologyPoint } from "../../NetworkDevice/TopologyGraphUtil";
 import {
   ALL_NODE_KINDS,
@@ -673,8 +673,7 @@ export function* layOutNetworkTopologyExport(
    */
   const focusedBranchNodeId: string | null =
     input.focusedBranchNodeId &&
-    model.hierarchy &&
-    model.hierarchy.childrenById.has(input.focusedBranchNodeId) &&
+    hasBranch(model.hierarchy, input.focusedBranchNodeId) &&
     mergedPositions.has(input.focusedBranchNodeId)
       ? input.focusedBranchNodeId
       : null;

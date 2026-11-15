@@ -1498,7 +1498,14 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         focusedBranchNodeId={focusedBranchNodeId}
         onFocusedBranchChange={setFocusedBranchNodeId}
         isShowingOriginalLayout={isShowingOriginalLayout}
-        onShowOriginalLayoutChange={setIsShowingOriginalLayout}
+        onShowOriginalLayoutChange={(isShowing: boolean) => {
+          /*
+           * Only with a custom layout to set aside: shown over nothing, the
+           * next drag would be drawn where the layout puts it, not where it
+           * was dropped.
+           */
+          setIsShowingOriginalLayout(isShowing && positionOverrides.size > 0);
+        }}
         locateNextMatchRequest={locateNextMatchRequest}
       />
 

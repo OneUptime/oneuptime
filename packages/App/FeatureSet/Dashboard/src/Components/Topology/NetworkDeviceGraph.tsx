@@ -64,8 +64,11 @@ import {
   branchNodeIdsOf,
   buildBranchToggles,
   canCollapseMore,
+  canExpandMore,
   collapseAllBranches,
   collapsedBranchesSignature,
+  expandAllBranches,
+  hasBranch,
   revealNodes,
   searchPathNodeIdsFor,
   toggleCollapsedBranch,
@@ -596,9 +599,8 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
    * that a folded branch above it hides, narrows nothing.
    */
   const focusedBranchNodeId: string | null =
-    hierarchy &&
     props.focusedBranchNodeId &&
-    hierarchy.childrenById.has(props.focusedBranchNodeId) &&
+    hasBranch(hierarchy, props.focusedBranchNodeId) &&
     positions.has(props.focusedBranchNodeId)
       ? props.focusedBranchNodeId
       : null;
@@ -1145,9 +1147,10 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   /*
    * Collapse all folds every branch below the top of each tree, so the map
    * becomes the network's outline, each branch with a count of what it
-   * holds. Narrowed to one branch, the branch in focus and the path above
-   * it stay open: folding the very branch being looked at would leave a
-   * single device on the screen.
+   * holds; Expand all opens them again. Narrowed to one branch, both work
+   * inside that branch only - folding the branch in focus would leave a
+   * single device on the screen, and a fold outside it changes nothing
+   * anybody can see (TopologyBranches).
    */
   const collapseAll: () => void = (): void => {
     if (!hierarchy || !props.onCollapsedNodeIdsChange) {
@@ -1156,17 +1159,19 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     foldAnchor.current = null;
     hasUserAdjustedView.current = false;
     props.onCollapsedNodeIdsChange(
-      collapseAllBranches(hierarchy, focusedBranchNodeId),
+      collapseAllBranches(hierarchy, collapsedNodeIds, focusedBranchNodeId),
     );
   };
 
   const expandAll: () => void = (): void => {
-    if (!props.onCollapsedNodeIdsChange) {
+    if (!hierarchy || !props.onCollapsedNodeIdsChange) {
       return;
     }
     foldAnchor.current = null;
     hasUserAdjustedView.current = false;
-    props.onCollapsedNodeIdsChange(EMPTY_COLLAPSED_BRANCHES);
+    props.onCollapsedNodeIdsChange(
+      expandAllBranches(hierarchy, collapsedNodeIds, focusedBranchNodeId),
+    );
   };
 
   const applyView: (next: ViewTransform) => void = useCallback(
@@ -2120,7 +2125,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
             label: "Expand all branches",
             icon: IconProp.PlusCircle,
             testId: "network-topology-expand-all",
-            disabled: hierarchy.collapsedNodeIds.size === 0,
+            disabled: !canExpandMore(
+              hierarchy,
+              hierarchy.collapsedNodeIds,
+              focusedBranchNodeId,
+            ),
             onClick: expandAll,
           },
         ]
