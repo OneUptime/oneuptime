@@ -814,7 +814,7 @@ describe("every code a reader gives is one the enum names, and every code is giv
       ],
       ["Error sending SMS.", OnCallPageChannel.SMS],
       [
-        "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
         OnCallPageChannel.SMS,
       ],
       [
@@ -946,7 +946,7 @@ describe("why a message was not sent, read back from a row written before its co
     });
     expect(
       read(
-        "The Notification service refused to send this (HTTP 400): This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "The Notification service refused to send this (HTTP 400): This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
         OnCallPageChannel.Call,
       ),
     ).toEqual({
@@ -1028,7 +1028,7 @@ describe("why a message was not sent, read back from a row written before its co
   test("the project's balance could not pay for it: used up, or how much was left against what it costs", () => {
     expect(
       read(
-        "This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
         OnCallPageChannel.SMS,
       ),
     ).toEqual({
@@ -1039,7 +1039,7 @@ describe("why a message was not sent, read back from a row written before its co
     });
     expect(
       read(
-        "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
         OnCallPageChannel.Call,
       ),
     ).toEqual({
@@ -1052,14 +1052,14 @@ describe("why a message was not sent, read back from a row written before its co
     // An SMS's shortfall on a call's row is not the call's.
     expect(
       read(
-        "This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
         OnCallPageChannel.Call,
       ),
     ).toBeNull();
     // A channel the balance does not pay for.
     expect(
       read(
-        "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
         OnCallPageChannel.Email,
       ),
     ).toBeNull();

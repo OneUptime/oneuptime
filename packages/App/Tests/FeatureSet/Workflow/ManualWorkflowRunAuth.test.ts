@@ -615,7 +615,7 @@ describe("POST /workflow/manual/run/:workflowId requires an authorized member of
      * sending their own tenant header while pointing the path at project B's
      * workflow id.
      */
-    test("rejects a project owner of one project targeting another project's workflow", async () => {
+    test("rejects a Project Owner of one project targeting another project's workflow", async () => {
       mockProps(
         buildUserProps({
           projectId: callerProjectId,

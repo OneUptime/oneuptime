@@ -1210,7 +1210,7 @@ describe("Quickstart", () => {
       "Notification Channels",
     );
     expect(ProjectNotificationChannelsCopy.whoCanChange).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing",
+      "A Project Owner, a Billing Admin or someone with Manage Billing",
     );
     expect(
       menuSection(dashboard("Pages/Settings/SideMenu.tsx"), "Notifications")

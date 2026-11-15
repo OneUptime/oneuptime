@@ -239,14 +239,14 @@ describe("the four channels", () => {
       );
       expect(definition.switchOnDescription).toMatch(/^On for this project: /);
       expect(definition.offSentence).toContain(
-        "A project owner, a Billing Admin or someone with Manage Billing can turn",
+        "A Project Owner, a Billing Admin or someone with Manage Billing can turn",
       );
       expect(definition.offSentence).toContain(
         "in Project Settings → Notifications → Notification Channels.",
       );
       expect(definition.offSentence).toContain("off in this project");
       expect(definition.offSentence.toLowerCase()).not.toContain(
-        "project admin",
+        "Project Admin",
       );
       // The empty list's heading while off does not ask for one.
       expect(definition.noItemsWhileOff).not.toContain("add");
@@ -277,7 +277,7 @@ describe("the four channels", () => {
       );
     }
 
-    // "a project owner, a Billing Admin or someone with Manage Billing"
+    // "a Project Owner, a Billing Admin or someone with Manage Billing"
     expect(titles).toEqual([
       "Project Owner",
       "Billing Admin",
@@ -294,10 +294,10 @@ describe("the four channels", () => {
         },
       ),
     ]) {
-      expect(sentence).toContain("project owner");
+      expect(sentence).toContain("Project Owner");
       expect(sentence).toContain("a Billing Admin");
       expect(sentence).toContain("Manage Billing");
-      expect(sentence.toLowerCase()).not.toContain("project admin");
+      expect(sentence.toLowerCase()).not.toContain("Project Admin");
     }
   });
 
@@ -508,7 +508,7 @@ describe("one place for each switch", () => {
   });
 });
 
-describe("nothing tells a reader to ask a project admin, or to turn a channel on themselves", () => {
+describe("nothing tells a reader to ask a Project Admin, or to turn a channel on themselves", () => {
   /*
    * Only a project owner, a Billing Admin or someone with Manage Billing
    * may switch SMS, calls, WhatsApp or Telegram on. Sources are read without
@@ -526,10 +526,10 @@ describe("nothing tells a reader to ask a project admin, or to turn a channel on
 
   const FORBIDDEN: Array<[string, RegExp]> = [
     [
-      "asks for a project admin to turn a channel on",
+      "asks for a Project Admin to turn a channel on",
       /ask a project admin to enable (it|them|this channel)\b/i,
     ],
-    ["says a step needs a project admin", /needs? a project admin/i],
+    ["says a step needs a Project Admin", /needs? a project admin/i],
     ["labels a step 'Needs an admin'", /Needs an admin/],
     [
       "tells the reader to enable a channel in Project Settings",
@@ -614,7 +614,7 @@ describe("translations", () => {
     ),
     ProjectNotificationChannelsCopy.whoCanChange,
     ProjectNotificationChannelsCopy.settingsLinkText,
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
+    "Channels that are off in this project are not offered. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
     "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.",
     "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
     "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",

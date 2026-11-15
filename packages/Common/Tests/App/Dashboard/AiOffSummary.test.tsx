@@ -651,7 +651,7 @@ describe("what can be done, for someone who may not", () => {
         steps: ["investigate-switch", "fix-switch"],
         link: null,
         href: null,
-        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+        who: "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.",
       },
     ]);
   });
@@ -671,13 +671,13 @@ describe("what can be done, for someone who may not", () => {
         steps: ["investigate-rules"],
         link: null,
         href: null,
-        who: "A project owner or admin, or someone who may edit AI rules, can change them in Alerts → AI → Settings.",
+        who: "A Project Owner or Project Admin, or someone who may edit AI rules, can change them in Alerts → AI → Settings.",
       },
       {
         steps: ["fix-switch"],
         link: null,
         href: null,
-        who: "A project owner or admin can make these changes in Alerts → AI → Settings.",
+        who: "A Project Owner or Project Admin can make these changes in Alerts → AI → Settings.",
       },
     ]);
   });
@@ -696,7 +696,7 @@ describe("what can be done, for someone who may not", () => {
         steps: ["minimum-severity", "fix-switch"],
         link: null,
         href: null,
-        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+        who: "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.",
       },
     ]);
   });
@@ -726,7 +726,7 @@ describe("what can be done, for someone who may not", () => {
         steps: ["fix-switch"],
         link: null,
         href: null,
-        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+        who: "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.",
       },
     ]);
   });
@@ -759,7 +759,7 @@ describe("what can be done, for someone who may not", () => {
         steps: ["investigate-switch", "fix-switch"],
         link: null,
         href: null,
-        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+        who: "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.",
       },
     ]);
   });
@@ -781,7 +781,7 @@ describe("what can be done, for someone who may not", () => {
       screen.getByTestId("ai-off-summary-who").textContent || "";
 
     expect(sentence).toBe(
-      "A project owner or admin can make these changes in Incidents → AI → Settings.",
+      "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.",
     );
     expect(sentence).not.toContain(" →");
   });

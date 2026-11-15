@@ -487,14 +487,14 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     expect(
       screen.getByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
     ).toHaveTextContent(definition().offSentence);
-    // Who can: a project owner, a Billing Admin or someone with Manage Billing - not "a project admin".
+    // Who can: a project owner, a Billing Admin or someone with Manage Billing - not "a Project Admin".
     expect(
       screen.getByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
     ).toHaveTextContent(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can turn",
     );
     expect(document.body.textContent?.toLowerCase()).not.toContain(
-      "project admin",
+      "Project Admin",
     );
   });
 

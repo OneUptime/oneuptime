@@ -271,7 +271,7 @@ describe("OnCallNotificationAlertingService - undeliverable page owner email", (
     ]);
   });
 
-  test("a policy whose owners are all pending invitees falls back to the project owners", async () => {
+  test("a policy whose owners are all pending invitees falls back to the Project Owners", async () => {
     policyOwners({ users: [PENDING_DIRECT_OWNER], teams: [OWNER_TEAM] });
     membershipTable([
       {
@@ -333,7 +333,7 @@ describe("OnCallNotificationAlertingService - undeliverable page owner email", (
     expect(sendEmailToProjectOwnersSpy).not.toHaveBeenCalled();
   });
 
-  test("all-pending policy owners and no project owners reaches the loud 'nobody to tell' error", async () => {
+  test("all-pending policy owners and no Project Owners reaches the loud 'nobody to tell' error", async () => {
     policyOwners({ teams: [OWNER_TEAM] });
     membershipTable([
       {
@@ -351,7 +351,7 @@ describe("OnCallNotificationAlertingService - undeliverable page owner email", (
     expect(
       loggerErrorSpy.mock.calls.some((call: any): boolean => {
         return String(call[0]).includes(
-          "has no on-call policy owners and no project owners",
+          "has no on-call policy owners and no Project Owners",
         );
       }),
     ).toBe(true);

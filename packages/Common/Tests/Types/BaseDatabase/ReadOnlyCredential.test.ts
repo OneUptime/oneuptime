@@ -562,9 +562,9 @@ function postgresEntryPoints(): Array<[string, WriteEntryPoint]> {
 }
 
 describe("the Postgres permission layer (ModelPermission)", () => {
-  describe("run for real, against a project owner", () => {
+  describe("run for real, against a Project Owner", () => {
     test.each(postgresEntryPoints())(
-      "%s lets a project owner write (the control)",
+      "%s lets a Project Owner write (the control)",
       async (_name: string, entryPoint: WriteEntryPoint) => {
         expect(
           await rejectionOf((): Promise<unknown> => {
@@ -575,7 +575,7 @@ describe("the Postgres permission layer (ModelPermission)", () => {
     );
 
     test.each(postgresEntryPoints())(
-      "%s refuses the same project owner when the credential is read-only",
+      "%s refuses the same Project Owner when the credential is read-only",
       async (_name: string, entryPoint: WriteEntryPoint) => {
         expectReadOnlyRefusal(
           await rejectionOf((): Promise<unknown> => {
@@ -807,7 +807,7 @@ function markAnalyticsPermissionCheck(
 
 describe("the ClickHouse permission layer (AnalyticsDatabase/ModelPermission)", () => {
   test.each(analyticsEntryPoints())(
-    "%s refuses a read-only credential held by a project owner",
+    "%s refuses a read-only credential held by a Project Owner",
     async (_name: string, entryPoint: AnalyticsWriteEntryPoint) => {
       expectReadOnlyRefusal(
         await rejectionOf((): Promise<unknown> => {

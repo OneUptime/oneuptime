@@ -1076,7 +1076,7 @@ describe("reading a task", () => {
     ).toMatchObject({ canSeeChanges: false, props: VIEWER });
   });
 
-  test("the verbatim log is for project owners and admins", async () => {
+  test("the verbatim log is for Project Owners and Project Admins", async () => {
     world.props = caller([Permission.ProjectAdmin]);
 
     const { result } = await call(route, {

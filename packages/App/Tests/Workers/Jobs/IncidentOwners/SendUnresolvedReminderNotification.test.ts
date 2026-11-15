@@ -500,7 +500,7 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
     }
   });
 
-  test("project owners (fallback) get the shared conversion too, without the isOwner flag", async () => {
+  test("Project Owners (fallback) get the shared conversion too, without the isOwner flag", async () => {
     incidentService.findAllBy.mockResolvedValue([
       makeIncident(DESCRIPTION_MARKDOWN),
     ]);

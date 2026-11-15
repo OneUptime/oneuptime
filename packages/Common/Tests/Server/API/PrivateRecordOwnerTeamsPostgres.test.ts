@@ -1311,7 +1311,7 @@ describePostgres(
 
           expect(outcome.error).toBeInstanceOf(NotAuthorizedException);
           expect((outcome.error as Error).message).toBe(
-            "You do not have permission to update this incident. It is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.",
+            "You do not have permission to update this incident. It is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.",
           );
           expect(
             await readColumn("Incident", inc17.id, "description"),
@@ -1645,7 +1645,7 @@ describePostgres(
 
         expect(outcome.error).toBeInstanceOf(NotAuthorizedException);
         expect((outcome.error as Error).message).toBe(
-          "You do not have permission to delete this incident internal note. The incident it belongs to is private, so it is changed only with the permissions of the teams that own that incident and of the people named as its owners, and none of them lets you do this. Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.",
+          "You do not have permission to delete this incident internal note. The incident it belongs to is private, so it is changed only with the permissions of the teams that own that incident and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.",
         );
       });
 
@@ -1681,7 +1681,7 @@ describePostgres(
         }
       });
 
-      test("once a project admin names Test User 2 an owner of INC-17, Team 1's permission reaches it", async () => {
+      test("once a Project Admin names Test User 2 an owner of INC-17, Team 1's permission reaches it", async () => {
         await applyConfig({
           team1: { membership: "accepted", grant: "member" },
           team2: { membership: "accepted", grant: "viewer" },

@@ -211,7 +211,7 @@ describe("ProbeMonitorsNotification", () => {
   });
 
   describe("groupMonitorsByRecipient - who hears about which monitors", () => {
-    test("a monitor with owners goes to its owners only, never to the project owners", () => {
+    test("a monitor with owners goes to its owners only, never to the Project Owners", () => {
       const checkout: ProbeAffectedMonitor = monitor(1, "Checkout API");
 
       const recipients: Array<ProbeMonitorsRecipient> =
@@ -230,7 +230,7 @@ describe("ProbeMonitorsNotification", () => {
       ]);
     });
 
-    test("a monitor with no owners goes to every project owner, whether its entry is missing or empty", () => {
+    test("a monitor with no owners goes to every Project Owner, whether its entry is missing or empty", () => {
       const missingEntry: ProbeAffectedMonitor = monitor(1, "Billing");
       const emptyEntry: ProbeAffectedMonitor = monitor(2, "Search");
 
@@ -341,7 +341,7 @@ describe("ProbeMonitorsNotification", () => {
       ]);
     });
 
-    test("a user without an id cannot be addressed and is skipped, owner or project owner", () => {
+    test("a user without an id cannot be addressed and is skipped, owner or Project Owner", () => {
       const checkout: ProbeAffectedMonitor = monitor(1, "Checkout API");
       const unowned: ProbeAffectedMonitor = monitor(2, "Search");
 

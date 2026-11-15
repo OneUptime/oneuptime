@@ -994,7 +994,7 @@ describe("a Slack summary", () => {
     delete connections[WorkspaceType.Slack];
 
     const notConnected: string =
-      "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.";
+      "This project is not connected to Slack. Please ask a Project Admin to connect Slack in Project Settings > Workspace > Slack.";
 
     const refusal: Error = await testRefusal();
 
@@ -1033,7 +1033,7 @@ describe("a Slack summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal.message).toBe(
-      "The test summary was not posted in #ops. OneUptime cannot post in Slack with this project's connection. Please ask a project admin to reconnect Slack in Project Settings > Workspace > Slack.",
+      "The test summary was not posted in #ops. OneUptime cannot post in Slack with this project's connection. Please ask a Project Admin to reconnect Slack in Project Settings > Workspace > Slack.",
     );
     expect(logs[0]!.status).toBe(WorkspaceNotificationStatus.Error);
     expect(calls).toEqual([]);
@@ -1055,7 +1055,7 @@ describe("a Slack summary", () => {
         workspaceType: WorkspaceType.Slack,
         channelName: "#ops",
         reason:
-          "OneUptime cannot post in Slack with this project's connection. Please ask a project admin to reconnect Slack in Project Settings > Workspace > Slack.",
+          "OneUptime cannot post in Slack with this project's connection. Please ask a Project Admin to reconnect Slack in Project Settings > Workspace > Slack.",
         isTest: false,
       }),
     ]);
@@ -1389,7 +1389,7 @@ describe("a Mattermost summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal.message).toBe(
-      "The test summary was not posted in town-square. This project is not connected to Mattermost. Please ask a project admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
+      "The test summary was not posted in town-square. This project is not connected to Mattermost. Please ask a Project Admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
     );
   });
 });
@@ -1799,7 +1799,7 @@ describe("a Microsoft Teams summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal.message).toBe(
-      "The test summary was not posted in General. This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
+      "The test summary was not posted in General. This project is not connected to Microsoft Teams. Please ask a Project Admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
     );
     expect(calls).toEqual([]);
   });
@@ -1817,7 +1817,7 @@ describe("a Microsoft Teams summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal.message).toBe(
-      "The test summary was not posted in General. OneUptime cannot post in Microsoft Teams with this project's connection. Please ask a project admin to reconnect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
+      "The test summary was not posted in General. OneUptime cannot post in Microsoft Teams with this project's connection. Please ask a Project Admin to reconnect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
     );
     expect(calls).toEqual([]);
   });

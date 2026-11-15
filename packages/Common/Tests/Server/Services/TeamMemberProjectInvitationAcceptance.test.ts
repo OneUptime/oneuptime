@@ -306,7 +306,7 @@ function sentMail(): EmailMessage {
 }
 
 describe("TeamMemberService.onBeforeCreate - adding a member of the project to another team", () => {
-  test("a project admin adds them straight away: there is nothing for them to accept", async () => {
+  test("a Project Admin adds them straight away: there is nothing for them to accept", async () => {
     /*
      * The bug. This is Users > (user) > Teams > Invite on the dashboard: the
      * row used to be forced to pending, and the person had to accept the
@@ -509,7 +509,7 @@ describe("TeamMemberService.onBeforeCreate - somebody who is not in the project 
     stubProjectDirectory({});
   });
 
-  test("a project admin's invitation stays pending", async () => {
+  test("a Project Admin's invitation stays pending", async () => {
     const create: CreateBy<TeamMember> = addToTeam({
       props: projectAdminProps(),
       userId: USER_ID,
@@ -521,7 +521,7 @@ describe("TeamMemberService.onBeforeCreate - somebody who is not in the project 
     expect(create.data.invitationAcceptedAt).toBeUndefined();
   });
 
-  test("a project admin still cannot accept for them", async () => {
+  test("a Project Admin still cannot accept for them", async () => {
     /*
      * The rule the auto-accept guard exists for: a project admin who could
      * accept on behalf of somebody outside the project could pull any account

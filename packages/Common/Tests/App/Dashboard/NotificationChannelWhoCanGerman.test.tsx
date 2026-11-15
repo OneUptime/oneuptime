@@ -179,7 +179,7 @@ describe("in German, the sentences that say who can turn a channel on", () => {
       },
     ),
   )(
-    "%s: a project admin reads the German sentence above the list",
+    "%s: a Project Admin reads the German sentence above the list",
     (_list: string, definition: ChannelGatedMethodListDefinition) => {
       signInAs([Permission.ProjectAdmin]);
 
