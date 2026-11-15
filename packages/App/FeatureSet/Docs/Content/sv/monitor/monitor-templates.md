@@ -11,14 +11,14 @@ En monitormall är en sparad monitorkonfiguration (en typ, kriterier, ett interv
 
 ## Så fungerar mallar
 
-En mall övervakar inget själv. Monitorer skapas från den eller länkas till den, och mallens sida listar dem som **Länkade övervakare**. När du ändrar mallen ändras inget på de monitorerna förrän du synkroniserar: varje synkroniseringsknapp kopierar en del av mallen till varje länkad monitor, och fält du skyddar behåller varje monitors eget värde.
+En mall övervakar inget själv. Monitorer skapas från den eller länkas till den, och mallens sida listar dem som **Länkade monitorer**. När du ändrar mallen ändras inget på de monitorerna förrän du synkroniserar: varje synkroniseringsknapp kopierar en del av mallen till varje länkad monitor, och fält du skyddar behåller varje monitors eget värde.
 
 ```mermaid title="En mall och dess länkade monitorer"
 flowchart TB
     template["Monitormall"] -->|"Skapa monitor"| created["Monitor skapad<br/>från mallen"]
-    existing["Monitor du<br/>redan hade"] -->|"Länka befintliga övervakare"| template
+    existing["Monitor du<br/>redan hade"] -->|"Länka befintliga monitorer"| template
     template -.->|"Synkroniseringsknappar"| linked
-    subgraph linked["Länkade övervakare"]
+    subgraph linked["Länkade monitorer"]
         direction LR
         created
         existing
@@ -50,27 +50,27 @@ Under **Standardvärden för övervakning** väljer du **Monitortyp** med samma 
 Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Inställningar för mallsynkronisering** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitormall** på det sista steget.
 :::
 
-Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Kriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
+Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Kriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade monitorer**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
 
 ## Skapa monitorer från en mall
 
 - **Ny monitor.** Klicka på **Skapa monitor** på mallens rad i listan, eller på **Skapa övervakning från mall** på dess sida. **Skapa monitor** öppnas med mallens typ och inställningar ifyllda; ändra det du behöver och skapa den. Den nya monitorn länkas till mallen.
-- **Monitorer du redan har.** Under **Länkade övervakare** klickar du på **Länka befintliga övervakare** och väljer dem. De behåller sina inställningar tills du synkroniserar.
+- **Monitorer du redan har.** Under **Länkade monitorer** klickar du på **Länka befintliga monitorer** och väljer dem. De behåller sina inställningar tills du synkroniserar.
 
 Värden som angetts under **Standardvärden för anpassade fält** skrivs till varje monitor som skapas från mallen, även monitorer som regler för automatisk import och larmpolicyer skapar från den.
 
 ## Synkronisera ändringar till länkade monitorer
 
-Att redigera en mall ändrar bara mallen. För att kopiera en ändring till de länkade monitorerna använder du synkroniseringsknappen på kortet du ändrade. Varje knapp anger hur många monitorer den når, som **Synkronisera kriterier till 3 länkade övervakare**, och är nedtonad så länge inget är länkat. En synkronisering kan inte ångras.
+Att redigera en mall ändrar bara mallen. För att kopiera en ändring till de länkade monitorerna använder du synkroniseringsknappen på kortet du ändrade. Varje knapp anger hur många monitorer den når, som **Synkronisera kriterier till 3 länkade monitorer**, och är nedtonad så länge inget är länkat. En synkronisering kan inte ångras.
 
 | Knapp | Kopierar till varje länkad monitor | Lämnar orört |
 | --- | --- | --- |
-| **Synkronisera kriterier till länkade övervakare** | Kriterierna och steginställningarna, som mål och begärandealternativ, utom skyddade fält | Övervakningsintervallet, minsta sondöverensstämmelse, namnet, beskrivningen, etiketterna och värdena i anpassade fält |
-| **Synkronisera intervall till länkade övervakare** | Övervakningsintervallet och minsta sondöverensstämmelse | Kriterierna, namnet, beskrivningen, etiketterna och värdena i anpassade fält |
-| **Synkronisera etiketter till länkade övervakare** | Etiketterna och inget annat | Allt annat |
+| **Synkronisera kriterier till länkade monitorer** | Kriterierna och steginställningarna, som mål och begärandealternativ, utom skyddade fält | Övervakningsintervallet, minsta sondöverensstämmelse, namnet, beskrivningen, etiketterna och värdena i anpassade fält |
+| **Synkronisera intervall till länkade monitorer** | Övervakningsintervallet och minsta sondöverensstämmelse | Kriterierna, namnet, beskrivningen, etiketterna och värdena i anpassade fält |
+| **Synkronisera etiketter till länkade monitorer** | Etiketterna och inget annat | Allt annat |
 | **Synkronisera anpassade fält till länkade monitorer** | De anpassade fält som mallen har ett standardvärde för, i stället för det varje monitor hade | Anpassade fält som mallen lämnar tomma, och allt annat |
 
-För att synkronisera en enskild monitor klickar du på **Synkronisera från mall** på dess rad under **Länkade övervakare**. Det kopierar kriterierna och steginställningarna (utom skyddade fält), övervakningsintervallet, minsta sondöverensstämmelse och etiketterna, och lämnar monitorns namn, beskrivning och värden i anpassade fält orörda. **Avlänka från mall** kopplar loss en monitor; den behåller sina inställningar.
+För att synkronisera en enskild monitor klickar du på **Synkronisera från mall** på dess rad under **Länkade monitorer**. Det kopierar kriterierna och steginställningarna (utom skyddade fält), övervakningsintervallet, minsta sondöverensstämmelse och etiketterna, och lämnar monitorns namn, beskrivning och värden i anpassade fält orörda. **Avlänka från mall** kopplar loss en monitor; den behåller sina inställningar.
 
 Efter en synkronisering anger en sammanfattning hur många monitorer som uppdaterades. **Delvis synkroniserad** betyder att några länkade monitorer fortfarande har den tidigare konfigurationen, oftast för att dina behörigheter inte täcker dem.
 
@@ -97,7 +97,7 @@ Spara dina ändringar. Kortet **Kriterier** och bekräftelsen av båda synkronis
 
 ### Synkronisera
 
-Använd **Synkronisera kriterier till länkade övervakare**, eller **Synkronisera från mall** på en enskild länkad monitor.
+Använd **Synkronisera kriterier till länkade monitorer**, eller **Synkronisera från mall** på en enskild länkad monitor.
 :::
 
 Skydda till exempel **Monitor-mål** och **Begärandehuvuden** på en API-mall. Produktions- och staging-monitorer behåller sina egna URL:er och huvuden, medan båda får mallens uppdaterade kriterier och övriga oskyddade inställningar.
@@ -173,7 +173,7 @@ Ett skyddat fält kunde inte matchas mot ett steg på en av monitorerna, så syn
 :::
 
 :::details Synkroniseringsknapparna är nedtonade
-Ingen monitor är länkad till mallen än. Skapa en monitor från den, eller klicka på **Länka befintliga övervakare** under **Länkade övervakare**.
+Ingen monitor är länkad till mallen än. Skapa en monitor från den, eller klicka på **Länka befintliga monitorer** under **Länkade monitorer**.
 :::
 
 :::details Sparandet misslyckas med "Unsupported do not sync field"

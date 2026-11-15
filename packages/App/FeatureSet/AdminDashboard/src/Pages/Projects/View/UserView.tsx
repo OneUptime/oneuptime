@@ -40,6 +40,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProjectUserView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -112,16 +113,19 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.projects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.project"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_VIEW] as Route,
             { modelId: projectId },
@@ -129,6 +133,7 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectUsers"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_USERS] as Route,
             { modelId: projectId },
@@ -136,6 +141,7 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectUser"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_USER_VIEW] as Route,
             { modelId: projectId, subModelId: userId },
@@ -293,9 +299,11 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                   type: FieldType.Element,
                   getElement: (item: TeamMember): ReactElement => {
                     if (!item.team) {
-                      return <p>-</p>;
+                      return <TableEmptyValue />;
                     }
-                    return <p>{item.team.name?.toString() || "-"}</p>;
+                    return (
+                      <p>{item.team.name?.toString() || <TableEmptyValue />}</p>
+                    );
                   },
                 },
                 {

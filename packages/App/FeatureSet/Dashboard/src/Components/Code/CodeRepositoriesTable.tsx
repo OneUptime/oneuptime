@@ -35,6 +35,7 @@ import IsolatedLine, {
   getIsolatedLine,
 } from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * A list of a project's repositories in Code, drawn as every list in
@@ -371,7 +372,7 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
       getElement: (repository: CodeRepositoryListItem): ReactElement => {
         if (!repository.stats.lastActivityAt) {
           // The table's quiet dash: nothing has happened in it yet.
-          return <>—</>;
+          return <TableEmptyValue />;
         }
 
         return (

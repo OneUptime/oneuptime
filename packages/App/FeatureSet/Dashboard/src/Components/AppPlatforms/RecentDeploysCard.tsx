@@ -37,6 +37,7 @@ import {
   getShortRevision,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * App Platforms' Overview: the newest deploys of every app - which app,
@@ -225,7 +226,7 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
                     to={route}
                     className="break-words text-sm font-medium text-gray-900 hover:underline"
                   >
-                    <bdi>{appName || "—"}</bdi>
+                    <bdi>{appName || <EmptyValue />}</bdi>
                   </AppLink>
                   {/*
                    * The revision before, then this one, each set apart so

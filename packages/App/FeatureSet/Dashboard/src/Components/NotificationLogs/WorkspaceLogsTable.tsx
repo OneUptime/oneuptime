@@ -36,6 +36,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface WorkspaceLogsTableProps {
   query?: Query<BaseModel>;
@@ -84,7 +85,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
         const name: string | undefined = getWorkspaceName(item.workspaceType);
 
-        return name ? <IsolatedText text={name} /> : <span>-</span>;
+        return name ? <IsolatedText text={name} /> : <TableEmptyValue />;
       },
     },
     {
@@ -154,7 +155,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

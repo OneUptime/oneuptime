@@ -194,7 +194,7 @@ Fire mål de fleste installasjoner kan love, hvert bygd av én eller to spørrin
 :::steps
 1. Åpne prosjektets [Metrikkutforsker](/docs/telemetry/metrics-explorer), og klikk på målets første metrikk. Spørringen dens er `a`.
 2. Velg aggregeringen dens under **Aggregate by**. Åpne deretter **Filters & grouping**, og legg til hver av betingelsene dens under **Filter by attributes**.
-3. For en ny spørring klikker du **Legg til metrikk** og setter opp `b` på samme måte.
+3. For en ny spørring klikker du **Legg til måling** og setter opp `b` på samme måte.
 4. For en formel klikker du **Legg til formel** og skriver den i **Formel**.
 5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
 :::

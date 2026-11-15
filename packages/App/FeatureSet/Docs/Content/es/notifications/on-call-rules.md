@@ -121,7 +121,7 @@ Una regla push, para un teléfono o un navegador, también puede reenviar su pus
 
 ## Cuando una gravedad no tiene regla
 
-Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, hechas con lo que ya elegiste en esa pestaña: los mismos métodos, tras los mismos retrasos. Si no tenías reglas en esa pestaña, recibe tu correo verificado, al instante.
+Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, hechas con lo que ya elegiste en esa pestaña: los mismos métodos, tras los mismos retrasos, y un push que suena y se repite igual. Si no tenías reglas en esa pestaña, recibe tu correo verificado, al instante.
 
 Un aviso que aun así no encuentra regla se envía igualmente a tus métodos verificados, y recibes un correo al respecto; consulta [Cuando ninguna regla coincide](/docs/notifications/index#cuando-ninguna-regla-coincide).
 

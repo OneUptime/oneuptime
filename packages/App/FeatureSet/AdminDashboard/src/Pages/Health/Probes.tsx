@@ -13,6 +13,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const HealthProbes: FunctionComponent = (): ReactElement => {
   return (
@@ -107,7 +108,11 @@ const HealthProbes: FunctionComponent = (): ReactElement => {
             type: FieldType.Text,
             hideOnMobile: true,
             getElement: (item: Probe): ReactElement => {
-              return <span>{item["probeVersion"]?.toString() || "-"}</span>;
+              return (
+                <span>
+                  {item["probeVersion"]?.toString() || <TableEmptyValue />}
+                </span>
+              );
             },
           },
         ]}

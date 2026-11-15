@@ -260,7 +260,7 @@ OneUptime 寧可不顯示數字，也不顯示舊數字：主機已 15 分鐘沒
 
 :::cards
 - [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 改為自行安裝收集器並撰寫其設定。
-- [主機監控器](/docs/monitor/host-monitor): 根據主機回報的內容發出警示。
+- [主機監測器](/docs/monitor/host-monitor): 根據主機回報的內容發出警示。
 - [擷取金鑰](/docs/telemetry/ingestion-keys): 建立、限定與輪替主機傳送時使用的金鑰。
 - [Kubernetes Agent](/docs/telemetry/kubernetes-agent): 監控叢集的節點與工作負載。
 :::

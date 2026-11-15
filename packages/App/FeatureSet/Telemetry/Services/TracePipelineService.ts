@@ -18,7 +18,11 @@ import {
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
-import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
+import {
+  copyOwnValues,
+  readOwnValue,
+  writeOwnValue,
+} from "Common/Utils/LookupTable";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
@@ -195,9 +199,9 @@ export class TracePipelineService {
     spanRow: JSONObject,
     config: AttributeRemapperConfig,
   ): JSONObject {
-    const attrs: Record<string, unknown> = {
-      ...((spanRow["attributes"] as Record<string, unknown>) || {}),
-    };
+    const attrs: Record<string, unknown> = copyOwnValues(
+      (spanRow["attributes"] as Record<string, unknown>) || {},
+    );
 
     /*
      * The span's own keys only: a key named constructor is one the span may
@@ -344,9 +348,9 @@ export class TracePipelineService {
         continue;
       }
       if (evaluateCompiledFilter(spanRow, compiled)) {
-        const attrs: Record<string, unknown> = {
-          ...((spanRow["attributes"] as Record<string, unknown>) || {}),
-        };
+        const attrs: Record<string, unknown> = copyOwnValues(
+          (spanRow["attributes"] as Record<string, unknown>) || {},
+        );
         writeOwnValue(attrs, config.targetKey, category.name);
         const attributeKeys: Array<string> = Object.keys(attrs);
         return { ...spanRow, attributes: attrs as JSONObject, attributeKeys };

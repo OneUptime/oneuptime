@@ -8,6 +8,7 @@ import {
   MAX_PAGING_LADDER_WAIT_IN_MINUTES,
   PAGING_METHOD_COLUMNS,
   PagingLadderCell,
+  PagingLadderNewCell,
   PagingLadderPlan,
   PagingLadderReading,
   PagingLadderRule,
@@ -20,9 +21,12 @@ import {
   getPagingLadderCells,
   getPagingLadderRules,
   getPagingLadderStepFromRule,
+  getPagingLadderStepsForNewCell,
+  getPagingLadderStepsFromRule,
   getPagingLadderStepsProblem,
   getPagingMethodColumnForChannel,
   getSeverityColumnForOnCallRuleKind,
+  getSeverityColumnForRuleType,
   isEmptyPagingLadderPlan,
   normalizePagingLadderSteps,
   planPagingLadderSave,
@@ -418,6 +422,57 @@ describe("a ladder's steps", () => {
       getPagingLadderStepFromRule(ruleRow({ cell: cell!, isOptOut: true })),
     ).toBeNull();
     expect(getPagingLadderStepFromRule(ruleRow({ cell: cell! }))).toBeNull();
+  });
+
+  test("a rule's steps are every method it names: none for an opt-out, two for a row naming two", () => {
+    const [cell] = newProjectCells();
+
+    const twoMethods: PagingLadderRule = {
+      ...ruleRow({
+        cell: cell!,
+        methodColumn: "userSmsId",
+        methodId: SMS,
+        notifyAfterMinutes: 10,
+        pushNotificationLevel: "Standard",
+        repeatEveryMinutes: 3,
+      }),
+      userPushId: PUSH,
+    };
+
+    // In the order a rule's columns are read, each with the row's wait.
+    expect(getPagingLadderStepsFromRule(twoMethods)).toEqual([
+      step("userSmsId", SMS, 10),
+      step("userPushId", PUSH, 10, {
+        pushNotificationLevel: PushNotificationLevel.Standard,
+        repeatEveryMinutes: 3,
+      }),
+    ]);
+
+    // A ladder reads such a row by its first, as it always has.
+    expect(getPagingLadderStepFromRule(twoMethods)).toEqual(
+      step("userSmsId", SMS, 10),
+    );
+
+    expect(
+      getPagingLadderStepsFromRule({
+        ...ruleRow({ cell: cell!, isOptOut: true }),
+        userSmsId: SMS,
+      }),
+    ).toEqual([]);
+    expect(getPagingLadderStepsFromRule(ruleRow({ cell: cell! }))).toEqual([]);
+  });
+
+  test("each card's rule type has the severity column of its kind; other rule types have none", () => {
+    for (const cell of newProjectCells()) {
+      expect(getSeverityColumnForRuleType(cell.ruleType)).toBe(
+        cell.severityColumn,
+      );
+    }
+
+    expect(
+      getSeverityColumnForRuleType(NotificationRuleType.WHEN_USER_GOES_ON_CALL),
+    ).toBeNull();
+    expect(getSeverityColumnForRuleType("Not a rule type")).toBeNull();
   });
 });
 
@@ -1280,5 +1335,991 @@ describe("a ladder sent to the server", () => {
       step("userSmsId", SMS, 0),
       step("userCallId", CALL, 5),
     ]);
+  });
+});
+
+/*
+ * A SEVERITY ADDED LATER (#7452).
+ *
+ * The backfill gives a severity the project adds the rules each person's
+ * other cards on its tab hold, read by getPagingLadderStepsForNewCell. Read
+ * without a push rule's level and repeat, every new push rule was Critical
+ * and sent once: a ladder of "push, Standard, every 5 minutes" stopped being
+ * one ladder the moment a severity was added, and woke its owner through
+ * silent mode. These cases hold the new card to the ladder How to Reach Me
+ * reads, and fill it the way the backfill does to read the grid back.
+ */
+describe("a card added later starts with what the person's other cards on its tab page", () => {
+  const NEW_SEVERITY: string = "77777777-7777-4777-8777-777777777777";
+  const SECOND_NEW_SEVERITY: string = "88888888-8888-4888-8888-888888888888";
+  const NEW_ALERT_SEVERITY: string = "99999999-9999-4999-8999-999999999999";
+  const GONE_SEVERITY: string = "dddddddd-0000-4000-8000-000000000000";
+  const PUSH_2: string = "aaaaaaaa-0000-4000-8000-000000000005";
+
+  const NEW_SEVERITIES: ReadonlyArray<string> = [
+    NEW_SEVERITY,
+    SECOND_NEW_SEVERITY,
+    NEW_ALERT_SEVERITY,
+  ];
+
+  // The issue's ladder: a quiet push that keeps coming, then a call.
+  const ISSUE_LADDER: Array<PagingLadderStep> = [
+    step("userPushId", PUSH, 0, {
+      pushNotificationLevel: PushNotificationLevel.Standard,
+      repeatEveryMinutes: 5,
+    }),
+    step("userCallId", CALL, 5),
+  ];
+
+  // A new project, an archived severity, and the severities added since.
+  const gridWithNewSeverities: (options?: {
+    second?: boolean;
+    archived?: boolean;
+  }) => Array<PagingLadderCell> = (options?: {
+    second?: boolean;
+    archived?: boolean;
+  }): Array<PagingLadderCell> => {
+    return getPagingLadderCells({
+      incidentSeverities: [
+        { id: CRITICAL, name: "Critical Incident" },
+        { id: MAJOR, name: "Major Incident" },
+        { id: MINOR, name: "Minor Incident" },
+        ...(options?.archived
+          ? [
+              {
+                id: ARCHIVED_INCIDENT,
+                name: "[DONOTUSE] Sev 0",
+                isArchived: true,
+              },
+            ]
+          : []),
+        { id: NEW_SEVERITY, name: "Sev 4" },
+        ...(options?.second
+          ? [{ id: SECOND_NEW_SEVERITY, name: "Sev 5" }]
+          : []),
+      ],
+      alertSeverities: [
+        { id: ALERT_HIGH, name: "High" },
+        { id: ALERT_LOW, name: "Low" },
+        { id: NEW_ALERT_SEVERITY, name: "Info" },
+      ],
+    });
+  };
+
+  const isNewCard: (cell: PagingLadderCell) => boolean = (
+    cell: PagingLadderCell,
+  ): boolean => {
+    return NEW_SEVERITIES.includes(cell.severityId);
+  };
+
+  // The cards that were there before the severities were added.
+  const oldCards: (
+    cells: ReadonlyArray<PagingLadderCell>,
+  ) => Array<PagingLadderCell> = (
+    cells: ReadonlyArray<PagingLadderCell>,
+  ): Array<PagingLadderCell> => {
+    return cells.filter((cell: PagingLadderCell): boolean => {
+      return !isNewCard(cell);
+    });
+  };
+
+  const cardOf: (
+    cells: ReadonlyArray<PagingLadderCell>,
+    kind: OnCallRuleKind,
+    severityId: string,
+  ) => PagingLadderCell = (
+    cells: ReadonlyArray<PagingLadderCell>,
+    kind: OnCallRuleKind,
+    severityId: string,
+  ): PagingLadderCell => {
+    return cells.find((cell: PagingLadderCell): boolean => {
+      return cell.kind === kind && cell.severityId === severityId;
+    })!;
+  };
+
+  const newCardFor: (data: {
+    cells: ReadonlyArray<PagingLadderCell>;
+    rules: ReadonlyArray<PagingLadderRule>;
+    card: PagingLadderCell;
+  }) => PagingLadderNewCell | null = (data: {
+    cells: ReadonlyArray<PagingLadderCell>;
+    rules: ReadonlyArray<PagingLadderRule>;
+    card: PagingLadderCell;
+  }): PagingLadderNewCell | null => {
+    return getPagingLadderStepsForNewCell({
+      cells: data.cells,
+      ruleType: data.card.ruleType,
+      severityId: data.card.severityId,
+      rules: data.rules,
+    });
+  };
+
+  /*
+   * The backfill, for one person and one severity: each of its cards gets
+   * the rows of what was read for it, a push one with its level and repeat.
+   */
+  const backfill: (data: {
+    cells: ReadonlyArray<PagingLadderCell>;
+    rules: ReadonlyArray<PagingLadderRule>;
+    severityId: string;
+  }) => Array<PagingLadderRule> = (data: {
+    cells: ReadonlyArray<PagingLadderCell>;
+    rules: ReadonlyArray<PagingLadderRule>;
+    severityId: string;
+  }): Array<PagingLadderRule> => {
+    const written: Array<PagingLadderRule> = [];
+
+    for (const card of data.cells) {
+      if (card.severityId !== data.severityId) {
+        continue;
+      }
+
+      const reading: PagingLadderNewCell | null = newCardFor({
+        cells: data.cells,
+        rules: data.rules,
+        card: card,
+      });
+
+      if (!reading) {
+        continue;
+      }
+
+      if (reading.isMuted) {
+        written.push(ruleRow({ cell: card, isOptOut: true }));
+        continue;
+      }
+
+      for (const newStep of reading.steps) {
+        written.push(
+          ruleRow({
+            cell: card,
+            methodColumn: newStep.methodColumn,
+            methodId: newStep.methodId,
+            notifyAfterMinutes: newStep.notifyAfterMinutes,
+            ...(newStep.methodColumn === "userPushId"
+              ? {
+                  pushNotificationLevel: newStep.pushNotificationLevel,
+                  repeatEveryMinutes: newStep.repeatEveryMinutes,
+                }
+              : {}),
+          }),
+        );
+      }
+    }
+
+    return written;
+  };
+
+  test("a ladder gives every new card exactly the ladder, push sound and repeat included", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const rules: Array<PagingLadderRule> = gridEditedByHand(
+      oldCards(cells),
+      ISSUE_LADDER,
+    );
+
+    const newCards: Array<PagingLadderCell> = cells.filter(isNewCard);
+
+    expect(newCards).toHaveLength(4);
+
+    for (const card of newCards) {
+      expect(newCardFor({ cells: cells, rules: rules, card: card })).toEqual({
+        steps: normalizePagingLadderSteps(ISSUE_LADDER),
+        isMuted: false,
+      });
+    }
+  });
+
+  test("filled in, the grid is still one ladder, and saving that ladder again writes nothing", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const before: Array<PagingLadderRule> = gridEditedByHand(
+      oldCards(cells),
+      ISSUE_LADDER,
+    );
+
+    // Before the backfill, the four new cards differ by missing the ladder.
+    expect(
+      readPagingLadder({ cells: cells, rules: before }).differences,
+    ).toHaveLength(4);
+
+    const rules: Array<PagingLadderRule> = [
+      ...before,
+      ...backfill({ cells: cells, rules: before, severityId: NEW_SEVERITY }),
+      ...backfill({
+        cells: cells,
+        rules: before,
+        severityId: NEW_ALERT_SEVERITY,
+      }),
+    ];
+
+    const reading: PagingLadderReading = readPagingLadder({
+      cells: cells,
+      rules: rules,
+    });
+
+    expect(reading.differences).toEqual([]);
+    expect(reading.isOneLadder).toBe(true);
+    expect(reading.steps).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+
+    const plan: PagingLadderPlan = planPagingLadderSave({
+      cells: cells,
+      rules: rules,
+      steps: reading.steps,
+    });
+
+    expect(isEmptyPagingLadderPlan(plan)).toBe(true);
+    expect(plan.unchangedCount).toBe(rules.length);
+  });
+
+  test("what #7452 was: a new push at Critical, sent once, differs from the ladder on every new card", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const before: Array<PagingLadderRule> = gridEditedByHand(
+      oldCards(cells),
+      ISSUE_LADDER,
+    );
+
+    // What the backfill wrote: (method, wait) only, the push at the column's defaults.
+    const rules: Array<PagingLadderRule> = [...before];
+
+    for (const card of cells.filter(isNewCard)) {
+      rules.push(
+        ruleRow({
+          cell: card,
+          methodColumn: "userPushId",
+          methodId: PUSH,
+          notifyAfterMinutes: 0,
+        }),
+        ruleRow({
+          cell: card,
+          methodColumn: "userCallId",
+          methodId: CALL,
+          notifyAfterMinutes: 5,
+        }),
+      );
+    }
+
+    const reading: PagingLadderReading = readPagingLadder({
+      cells: cells,
+      rules: rules,
+    });
+
+    expect(reading.isOneLadder).toBe(false);
+    expect(
+      reading.differences.map((difference: { cell: PagingLadderCell }) => {
+        return `${difference.cell.kind}:${difference.cell.severityName}`;
+      }),
+    ).toEqual([
+      "incidents:Sev 4",
+      "incident-episodes:Sev 4",
+      "alerts:Info",
+      "alert-episodes:Info",
+    ]);
+
+    for (const difference of reading.differences) {
+      expect(difference.extra).toEqual([]);
+      expect(difference.missing).toEqual([]);
+      expect(difference.changed).toEqual([
+        {
+          step: step("userPushId", PUSH, 0, {
+            pushNotificationLevel: PushNotificationLevel.Critical,
+            repeatEveryMinutes: 0,
+          }),
+          ladderStep: ISSUE_LADDER[0],
+        },
+      ]);
+    }
+  });
+
+  test("people with different ladders each read their own", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    const ladders: Array<Array<PagingLadderStep>> = [
+      ISSUE_LADDER,
+      [
+        step("userPushId", PUSH_2, 0, {
+          pushNotificationLevel: PushNotificationLevel.Critical,
+          repeatEveryMinutes: 2,
+        }),
+      ],
+      [step("userEmailId", EMAIL, 0), step("userSmsId", SMS, 10)],
+      [
+        step("userPushId", PUSH, 15, {
+          pushNotificationLevel: PushNotificationLevel.Standard,
+          repeatEveryMinutes: 0,
+        }),
+      ],
+    ];
+
+    for (const ladder of ladders) {
+      expect(
+        newCardFor({
+          cells: cells,
+          rules: gridEditedByHand(oldCards(cells), ladder),
+          card: card,
+        }),
+      ).toEqual({ steps: normalizePagingLadderSteps(ladder), isMuted: false });
+    }
+  });
+
+  test("a person with no rule on the tab reads as nothing: the backfill gives them their verified email", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    expect(newCardFor({ cells: cells, rules: [], card: card })).toBeNull();
+
+    // Rules on every other tab are not this tab's.
+    const otherTabs: Array<PagingLadderRule> = gridEditedByHand(
+      oldCards(cells).filter((cell: PagingLadderCell): boolean => {
+        return cell.kind !== OnCallRuleKind.Incidents;
+      }),
+      ISSUE_LADDER,
+    );
+
+    expect(
+      newCardFor({ cells: cells, rules: otherTabs, card: card }),
+    ).toBeNull();
+
+    // Nor are shift rules, which belong to no card at all.
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          {
+            _id: "cccccccc-0000-4000-8000-000000000001",
+            ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+            userEmailId: EMAIL,
+            notifyAfterMinutes: 0,
+          },
+        ],
+        card: card,
+      }),
+    ).toBeNull();
+  });
+
+  test("the new card's own rules are not read: they are what the backfill checks before writing", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          ruleRow({
+            cell: card,
+            methodColumn: "userCallId",
+            methodId: CALL,
+          }),
+        ],
+        card: card,
+      }),
+    ).toBeNull();
+
+    // Beside the ladder, they change nothing.
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          ...gridEditedByHand(oldCards(cells), ISSUE_LADDER),
+          ruleRow({ cell: card, methodColumn: "userSmsId", methodId: SMS }),
+        ],
+        card: card,
+      })!.steps,
+    ).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+  });
+
+  test("every method and wait the cards page is a step, once, so nobody loses a way to be reached", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    const rules: Array<PagingLadderRule> = [
+      // Critical: a call at once.
+      ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, CRITICAL),
+        methodColumn: "userCallId",
+        methodId: CALL,
+      }),
+      // Major: a call at once, and email after 15 minutes.
+      ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, MAJOR),
+        methodColumn: "userCallId",
+        methodId: CALL,
+      }),
+      ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, MAJOR),
+        methodColumn: "userEmailId",
+        methodId: EMAIL,
+        notifyAfterMinutes: 15,
+      }),
+      // Minor: email at once.
+      ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, MINOR),
+        methodColumn: "userEmailId",
+        methodId: EMAIL,
+      }),
+    ];
+
+    expect(newCardFor({ cells: cells, rules: rules, card: card })).toEqual({
+      steps: [
+        step("userEmailId", EMAIL, 0),
+        step("userCallId", CALL, 0),
+        step("userEmailId", EMAIL, 15),
+      ],
+      isMuted: false,
+    });
+  });
+
+  test("a push the cards send differently is sent as most of them send it", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    const pushOn: (
+      severityId: string,
+      level: string,
+      repeat: number,
+    ) => PagingLadderRule = (
+      severityId: string,
+      level: string,
+      repeat: number,
+    ): PagingLadderRule => {
+      return ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, severityId),
+        methodColumn: "userPushId",
+        methodId: PUSH,
+        pushNotificationLevel: level,
+        repeatEveryMinutes: repeat,
+      });
+    };
+
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          pushOn(CRITICAL, "Critical", 1),
+          pushOn(MAJOR, "Standard", 5),
+          pushOn(MINOR, "Standard", 5),
+        ],
+        card: card,
+      })!.steps,
+    ).toEqual([
+      step("userPushId", PUSH, 0, {
+        pushNotificationLevel: PushNotificationLevel.Standard,
+        repeatEveryMinutes: 5,
+      }),
+    ]);
+
+    // How often it repeats counts as much as how it sounds.
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          pushOn(CRITICAL, "Standard", 10),
+          pushOn(MAJOR, "Standard", 5),
+          pushOn(MINOR, "Standard", 5),
+        ],
+        card: card,
+      })!.steps,
+    ).toEqual([
+      step("userPushId", PUSH, 0, {
+        pushNotificationLevel: PushNotificationLevel.Standard,
+        repeatEveryMinutes: 5,
+      }),
+    ]);
+  });
+
+  test("a tie goes to the card first in the grid's order, whatever order the rules come in", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    const onMinor: PagingLadderRule = ruleRow({
+      cell: cardOf(cells, OnCallRuleKind.Incidents, MINOR),
+      methodColumn: "userPushId",
+      methodId: PUSH,
+      pushNotificationLevel: "Standard",
+      repeatEveryMinutes: 0,
+    });
+    const onCritical: PagingLadderRule = ruleRow({
+      cell: cardOf(cells, OnCallRuleKind.Incidents, CRITICAL),
+      methodColumn: "userPushId",
+      methodId: PUSH,
+      pushNotificationLevel: "Critical",
+      repeatEveryMinutes: 3,
+    });
+
+    const critical: Array<PagingLadderStep> = [
+      step("userPushId", PUSH, 0, {
+        pushNotificationLevel: PushNotificationLevel.Critical,
+        repeatEveryMinutes: 3,
+      }),
+    ];
+
+    for (const rules of [
+      [onMinor, onCritical],
+      [onCritical, onMinor],
+    ]) {
+      expect(
+        newCardFor({ cells: cells, rules: rules, card: card })!.steps,
+      ).toEqual(critical);
+    }
+  });
+
+  test("each card counts once: a card that says a push twice does not outvote one that says it once", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    const standardOnMajor: () => PagingLadderRule = (): PagingLadderRule => {
+      return ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, MAJOR),
+        methodColumn: "userPushId",
+        methodId: PUSH,
+        pushNotificationLevel: "Standard",
+      });
+    };
+
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          ruleRow({
+            cell: cardOf(cells, OnCallRuleKind.Incidents, CRITICAL),
+            methodColumn: "userPushId",
+            methodId: PUSH,
+            pushNotificationLevel: "Critical",
+          }),
+          standardOnMajor(),
+          standardOnMajor(),
+        ],
+        card: card,
+      })!.steps,
+    ).toEqual([
+      step("userPushId", PUSH, 0, {
+        pushNotificationLevel: PushNotificationLevel.Critical,
+        repeatEveryMinutes: 0,
+      }),
+    ]);
+  });
+
+  test("a step other than a push carries no push settings", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Alerts,
+      NEW_ALERT_SEVERITY,
+    );
+
+    const steps: Array<PagingLadderStep> = newCardFor({
+      cells: cells,
+      rules: gridEditedByHand(oldCards(cells), [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 10),
+      ]).map((rule: PagingLadderRule): PagingLadderRule => {
+        // Every row holds the columns' values, whatever it pages.
+        return {
+          ...rule,
+          pushNotificationLevel: "Standard",
+          repeatEveryMinutes: 5,
+        };
+      }),
+      card: card,
+    })!.steps;
+
+    expect(steps).toEqual([
+      step("userSmsId", SMS, 0),
+      step("userCallId", CALL, 10),
+    ]);
+  });
+
+  test("an archived severity's rules are not read beside a live card's, and are when nothing else is", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities({
+      archived: true,
+    });
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+    const archivedCard: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      ARCHIVED_INCIDENT,
+    );
+
+    // The rules the archived severity kept from before the ladder.
+    const archivedRules: Array<PagingLadderRule> = [
+      ruleRow({
+        cell: archivedCard,
+        methodColumn: "userEmailId",
+        methodId: EMAIL,
+      }),
+      ruleRow({
+        cell: archivedCard,
+        methodColumn: "userPushId",
+        methodId: PUSH,
+        pushNotificationLevel: "Critical",
+      }),
+    ];
+
+    const before: Array<PagingLadderRule> = [
+      ...gridEditedByHand(oldCards(cells), ISSUE_LADDER),
+      ...archivedRules,
+    ];
+
+    expect(
+      newCardFor({ cells: cells, rules: before, card: card })!.steps,
+    ).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+
+    const rules: Array<PagingLadderRule> = [
+      ...before,
+      ...backfill({ cells: cells, rules: before, severityId: NEW_SEVERITY }),
+      ...backfill({
+        cells: cells,
+        rules: before,
+        severityId: NEW_ALERT_SEVERITY,
+      }),
+    ];
+
+    expect(readPagingLadder({ cells: cells, rules: rules }).isOneLadder).toBe(
+      true,
+    );
+
+    // With no rule on a live card of the tab, they are all the person has said.
+    expect(
+      newCardFor({ cells: cells, rules: archivedRules, card: card }),
+    ).toEqual({
+      steps: [
+        step("userPushId", PUSH, 0, {
+          pushNotificationLevel: PushNotificationLevel.Critical,
+          repeatEveryMinutes: 0,
+        }),
+        step("userEmailId", EMAIL, 0),
+      ],
+      isMuted: false,
+    });
+  });
+
+  test("a rule of no card, or on a severity the project no longer has, is read only when nothing else is", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.IncidentEpisodes,
+      NEW_SEVERITY,
+    );
+
+    const ofNoCard: Array<PagingLadderRule> = [
+      // An episode rule from before episode rules had a severity (Gap G).
+      {
+        _id: "cccccccc-0000-4000-8000-000000000002",
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+        userSmsId: SMS,
+        notifyAfterMinutes: 5,
+      },
+      {
+        _id: "cccccccc-0000-4000-8000-000000000003",
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+        incidentSeverityId: GONE_SEVERITY,
+        userCallId: CALL,
+        notifyAfterMinutes: 0,
+      },
+    ];
+
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          ...gridEditedByHand(oldCards(cells), ISSUE_LADDER),
+          ...ofNoCard,
+        ],
+        card: card,
+      })!.steps,
+    ).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+
+    expect(newCardFor({ cells: cells, rules: ofNoCard, card: card })).toEqual({
+      steps: [step("userCallId", CALL, 0), step("userSmsId", SMS, 5)],
+      isMuted: false,
+    });
+  });
+
+  test("a tab whose every rule is an opt-out gives a muted card; one opt-out beside a step does not", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities({
+      archived: true,
+    });
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+    const muted: (severityId: string) => PagingLadderRule = (
+      severityId: string,
+    ): PagingLadderRule => {
+      return ruleRow({
+        cell: cardOf(cells, OnCallRuleKind.Incidents, severityId),
+        isOptOut: true,
+      });
+    };
+
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [muted(CRITICAL), muted(MAJOR), muted(MINOR)],
+        card: card,
+      }),
+    ).toEqual({ steps: [], isMuted: true });
+
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          muted(CRITICAL),
+          ruleRow({
+            cell: cardOf(cells, OnCallRuleKind.Incidents, MAJOR),
+            methodColumn: "userEmailId",
+            methodId: EMAIL,
+          }),
+        ],
+        card: card,
+      }),
+    ).toEqual({ steps: [step("userEmailId", EMAIL, 0)], isMuted: false });
+
+    // A muted tab stays muted beside what an archived severity kept from before.
+    expect(
+      newCardFor({
+        cells: cells,
+        rules: [
+          muted(CRITICAL),
+          muted(MAJOR),
+          muted(MINOR),
+          ruleRow({
+            cell: cardOf(cells, OnCallRuleKind.Incidents, ARCHIVED_INCIDENT),
+            methodColumn: "userCallId",
+            methodId: CALL,
+          }),
+        ],
+        card: card,
+      }),
+    ).toEqual({ steps: [], isMuted: true });
+
+    // A muted card filled in reads as muted, as the others do.
+    const rules: Array<PagingLadderRule> = [
+      muted(CRITICAL),
+      muted(MAJOR),
+      muted(MINOR),
+    ];
+    const written: Array<PagingLadderRule> = backfill({
+      cells: cells,
+      rules: rules,
+      severityId: NEW_SEVERITY,
+    });
+
+    expect(written).toHaveLength(1);
+    expect(written[0]!.isOptOut).toBe(true);
+  });
+
+  test("each tab is read on its own: an alert card never takes an incident rule, nor an episode card an incident one", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+
+    const rules: Array<PagingLadderRule> = [
+      ...gridEditedByHand(
+        oldCards(cells).filter((cell: PagingLadderCell): boolean => {
+          return cell.kind === OnCallRuleKind.Incidents;
+        }),
+        [step("userCallId", CALL, 0)],
+      ),
+      ...gridEditedByHand(
+        oldCards(cells).filter((cell: PagingLadderCell): boolean => {
+          return cell.kind === OnCallRuleKind.IncidentEpisodes;
+        }),
+        [step("userEmailId", EMAIL, 0)],
+      ),
+      ...gridEditedByHand(
+        oldCards(cells).filter((cell: PagingLadderCell): boolean => {
+          return cell.kind === OnCallRuleKind.Alerts;
+        }),
+        [step("userSmsId", SMS, 5)],
+      ),
+    ];
+
+    const stepsOf: (kind: OnCallRuleKind, severityId: string) => unknown = (
+      kind: OnCallRuleKind,
+      severityId: string,
+    ): unknown => {
+      const reading: PagingLadderNewCell | null = newCardFor({
+        cells: cells,
+        rules: rules,
+        card: cardOf(cells, kind, severityId),
+      });
+
+      return reading ? reading.steps : null;
+    };
+
+    expect(stepsOf(OnCallRuleKind.Incidents, NEW_SEVERITY)).toEqual([
+      step("userCallId", CALL, 0),
+    ]);
+    expect(stepsOf(OnCallRuleKind.IncidentEpisodes, NEW_SEVERITY)).toEqual([
+      step("userEmailId", EMAIL, 0),
+    ]);
+    expect(stepsOf(OnCallRuleKind.Alerts, NEW_ALERT_SEVERITY)).toEqual([
+      step("userSmsId", SMS, 5),
+    ]);
+    expect(
+      stepsOf(OnCallRuleKind.AlertEpisodes, NEW_ALERT_SEVERITY),
+    ).toBeNull();
+  });
+
+  test("a severity added twice: the first's filled cards are read like the others, and the second gets the ladder too", () => {
+    const firstGrid: Array<PagingLadderCell> = gridWithNewSeverities();
+    const before: Array<PagingLadderRule> = gridEditedByHand(
+      oldCards(firstGrid),
+      ISSUE_LADDER,
+    );
+
+    const afterFirst: Array<PagingLadderRule> = [
+      ...before,
+      ...backfill({
+        cells: firstGrid,
+        rules: before,
+        severityId: NEW_SEVERITY,
+      }),
+      ...backfill({
+        cells: firstGrid,
+        rules: before,
+        severityId: NEW_ALERT_SEVERITY,
+      }),
+    ];
+
+    // A while later, another severity, read from the grid as it is then.
+    const secondGrid: Array<PagingLadderCell> = gridWithNewSeverities({
+      second: true,
+    });
+
+    const secondCard: PagingLadderCell = cardOf(
+      secondGrid,
+      OnCallRuleKind.Incidents,
+      SECOND_NEW_SEVERITY,
+    );
+
+    // Only the first new severity's cards: they are cards like the others now.
+    expect(
+      newCardFor({
+        cells: secondGrid,
+        rules: afterFirst.filter((rule: PagingLadderRule): boolean => {
+          return readPagingId(rule.incidentSeverityId) === NEW_SEVERITY;
+        }),
+        card: secondCard,
+      })!.steps,
+    ).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+
+    const afterSecond: Array<PagingLadderRule> = [
+      ...afterFirst,
+      ...backfill({
+        cells: secondGrid,
+        rules: afterFirst,
+        severityId: SECOND_NEW_SEVERITY,
+      }),
+    ];
+
+    const reading: PagingLadderReading = readPagingLadder({
+      cells: secondGrid,
+      rules: afterSecond,
+    });
+
+    expect(reading.isOneLadder).toBe(true);
+    // Five incident severities and three alert ones, on two tabs each.
+    expect(reading.cells).toHaveLength(16);
+    expect(reading.steps).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+
+    /*
+     * Read again once filled, the second card reads the same: its own rules
+     * are not read (the backfill finds them, and writes nothing).
+     */
+    expect(
+      newCardFor({ cells: secondGrid, rules: afterSecond, card: secondCard })!
+        .steps,
+    ).toEqual(normalizePagingLadderSteps(ISSUE_LADDER));
+  });
+
+  test("rules read from models (ObjectIDs) read as rules read from JSON", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+    const card: PagingLadderCell = cardOf(
+      cells,
+      OnCallRuleKind.Incidents,
+      NEW_SEVERITY,
+    );
+
+    const asModels: Array<PagingLadderRule> = gridEditedByHand(
+      oldCards(cells),
+      ISSUE_LADDER,
+    ).map((rule: PagingLadderRule): PagingLadderRule => {
+      return {
+        ...rule,
+        _id: new ObjectID(readPagingId(rule._id)),
+        incidentSeverityId: rule.incidentSeverityId
+          ? new ObjectID(readPagingId(rule.incidentSeverityId))
+          : undefined,
+        alertSeverityId: rule.alertSeverityId
+          ? { _type: "ObjectID", value: readPagingId(rule.alertSeverityId) }
+          : undefined,
+        userPushId: rule.userPushId ? new ObjectID(PUSH) : undefined,
+        userCallId: rule.userCallId ? new ObjectID(CALL) : undefined,
+      };
+    });
+
+    expect(
+      getPagingLadderStepsForNewCell({
+        cells: cells,
+        ruleType: card.ruleType,
+        severityId: ` ${NEW_SEVERITY} `,
+        rules: asModels,
+      }),
+    ).toEqual({
+      steps: normalizePagingLadderSteps(ISSUE_LADDER),
+      isMuted: false,
+    });
+  });
+
+  test("a rule type of no card has no new card", () => {
+    const cells: Array<PagingLadderCell> = gridWithNewSeverities();
+
+    expect(
+      getPagingLadderStepsForNewCell({
+        cells: cells,
+        ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+        severityId: NEW_SEVERITY,
+        rules: [
+          {
+            _id: "cccccccc-0000-4000-8000-000000000004",
+            ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+            userEmailId: EMAIL,
+            notifyAfterMinutes: 0,
+          },
+        ],
+      }),
+    ).toBeNull();
   });
 });

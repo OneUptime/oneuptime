@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9299
+    "keys": 52351,
+    "untranslated": 9240
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -164,6 +164,7 @@
     "Insight",
     "Internet",
     "IoT",
+    "Jitter",
     "Jitter (in ms)",
     "Job",
     "Kelvin",
@@ -267,6 +268,7 @@
     "RegionOne",
     "Report",
     "Repository",
+    "Resolver",
     "Resource class",
     "Rollback: {{command}}",
     "Route",
@@ -530,6 +532,7 @@
     "{{minutes}} min",
     "{{name}} (monitor: {{monitor}})",
     "{{observation}} in {{readings}}",
+    "{{rate}}/min",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",

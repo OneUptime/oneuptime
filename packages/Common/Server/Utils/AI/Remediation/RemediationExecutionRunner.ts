@@ -861,7 +861,7 @@ export function buildResourceQuestion(data: {
   )
     ? AI_RESOURCE_TYPE_INFO[data.resource.resourceType]
     : null;
-  const label: string = `${info ? info.displayName : "Resource"} "${data.resource.resourceName}"`;
+  const label: string = describeResourceLabel(data.resource);
   const programs: string = info ? info.programs.join(", ") : "its programs";
 
   if (data.mode !== "FullAuto") {

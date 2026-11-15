@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-L'indirizzo viene controllato da sonde in più regioni, quindi deve essere raggiungibile da Internet. Il piano Free comprende 10 monitor attivi.
+L'indirizzo viene controllato da sonde in più regioni, quindi deve essere raggiungibile da Internet, e un incidente viene aperto solo quando tutte lo trovano non disponibile. Il piano Free comprende 10 monitor attivi. Vengono addebitati in base all'uso, quindi il progetto ha prima bisogno di un metodo di pagamento: senza, il primo passaggio lo dice, con **Aggiungi metodo di pagamento**.
 @tab Self-hosted
-L'indirizzo viene controllato dalla sonda del tuo server stesso, quindi deve essere raggiungibile da lì. Perché tu riceva le email, il server deve poterle inviare: il suo amministratore principale configura l'email su `/admin/setup`, come mostra la [Guida al self-hosting](/docs/installation/self-hosting-guide). L'amministratore principale non diventa proprietario di ciò che crea, quindi per ricevere le email si aggiunge nella pagina **Proprietari** del monitor.
+L'indirizzo viene controllato dalla sonda del tuo server stesso, quindi deve essere raggiungibile da lì. Perché tu riceva le email, il server deve poterle inviare: il suo amministratore principale configura l'email su `/admin/setup`, come mostra la [Guida al self-hosting](/docs/installation/self-hosting-guide).
 :::
 
 ## Passaggi

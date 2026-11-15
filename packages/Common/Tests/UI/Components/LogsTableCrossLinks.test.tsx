@@ -8,6 +8,7 @@ import LogSeverity from "../../../Types/Log/LogSeverity";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import LogsTable from "../../../UI/Components/LogsViewer/components/LogsTable";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * Every trace/span id the logs table renders — dedicated columns and the
@@ -258,6 +259,8 @@ describe("LogsTable trace/span cross-links", () => {
     });
 
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getAllByText("-").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(EMPTY_VALUE_MARK).length).toBeGreaterThanOrEqual(
+      2,
+    );
   });
 });

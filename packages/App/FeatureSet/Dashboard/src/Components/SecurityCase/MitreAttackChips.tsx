@@ -7,6 +7,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getMitreAttackUrl } from "./MitreAttackLinks";
 
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export { getMitreAttackUrl };
 
@@ -14,6 +15,12 @@ export interface ComponentProps {
   tactics: Array<string>;
   techniques: Array<string>;
   emptyText?: string | undefined;
+  /*
+   * No mapping is the quiet dash every empty cell is, not "Not mapped": the
+   * Entity Risk list, where most rows have none. It passed a hyphen as its
+   * words, drawn darker and wider than the dash beside it (#7603).
+   */
+  isEmptyDash?: boolean | undefined;
 }
 
 const Chip: FunctionComponent<{ id: string; isTactic: boolean }> = (props: {
@@ -63,6 +70,10 @@ const MitreAttackChips: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
 
   if (props.tactics.length === 0 && props.techniques.length === 0) {
+    if (props.isEmptyDash) {
+      return <TableEmptyValue />;
+    }
+
     return (
       <span className="text-sm text-gray-400">
         {translator.translateText(props.emptyText || "Not mapped")}

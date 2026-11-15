@@ -43,7 +43,10 @@ export interface NavItem {
 }
 
 export interface MoreMenuItem {
-  // In English, looked up where it is drawn: the bar, its breadcrumb, a pin.
+  /*
+   * In English, looked up where it is drawn: the bar, its breadcrumb, a
+   * pin, the products menu's card and the phone's menu.
+   */
   title: string;
   /*
    * The title is in the reader's words already, as the Dashboard's
@@ -52,13 +55,29 @@ export interface MoreMenuItem {
    * "Red" looked up again is "Rojo" (#7790).
    */
   isTitleTranslated?: boolean | undefined;
+  // In English, looked up where the products menu draws it.
   description: string;
+  /*
+   * The description is in the reader's words already, as the Dashboard's
+   * are (t("navbar.items.networkDescription")): drawn as given (#8075).
+   */
+  isDescriptionTranslated?: boolean | undefined;
   /** Acronyms and alternate names users can search for in navigation. */
   keywords?: Array<string> | undefined;
   route: Route;
   icon: IconProp;
   iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
-  category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
+  /*
+   * The heading it is grouped under ("Essentials", "Management"): in
+   * English, looked up where it is drawn.
+   */
+  category?: string;
+  /*
+   * The category is in the reader's words already, as the Dashboard's are
+   * (t("navbar.categories.essentials")): drawn as given (#8075). The items
+   * of one category say alike.
+   */
+  isCategoryTranslated?: boolean | undefined;
   activeRoute?: Route | undefined; // Route to check for active state
   additionalActiveRoutes?: Array<Route> | undefined; // Extra routes that also mark this item active
   /*
@@ -148,7 +167,8 @@ export interface ComponentProps {
    * categories and its Recently visited row, and listed under one more row
    * at the foot of the menu, moreMenuHiddenTitle ("More products"). Search
    * finds them as it finds every other product, and the row opens by itself
-   * on one of their pages.
+   * on one of their pages. The title is English, looked up where it is
+   * drawn, as the categories it sits under are.
    */
   moreMenuHiddenItems?: Array<MoreMenuItem> | undefined;
   moreMenuHiddenTitle?: string | undefined;

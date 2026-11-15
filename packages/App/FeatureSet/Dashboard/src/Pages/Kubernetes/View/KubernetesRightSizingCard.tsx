@@ -43,6 +43,7 @@ import {
 import { KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   kubernetesClusterId: ObjectID;
@@ -66,12 +67,9 @@ function getRequestChangeElement(
 ): ReactElement {
   if (resource.verdict === RightSizingVerdict.Unavailable) {
     return (
-      <span
-        className="text-gray-400"
+      <TableEmptyValue
         title={resource.unavailableReason || translateText("Not enough data.")}
-      >
-        -
-      </span>
+      />
     );
   }
 
@@ -138,7 +136,7 @@ function getSavingsElement(
     );
   }
 
-  return <span className="text-gray-400">-</span>;
+  return <TableEmptyValue />;
 }
 
 function getContainerElement(

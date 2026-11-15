@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9315
+    "keys": 52351,
+    "untranslated": 9292
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -121,6 +121,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Kelvin",
     "Keystone",
     "Kilohertz",
@@ -207,6 +208,7 @@
     "Region",
     "RegionOne",
     "Reserved Instances",
+    "Resolver",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -427,6 +429,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{percent}} full",
+    "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

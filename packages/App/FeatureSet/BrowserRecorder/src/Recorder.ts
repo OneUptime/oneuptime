@@ -37,6 +37,7 @@ import {
   SessionReplayIdentifyPayload,
   SessionReplayIdlePausedPayload,
   SessionReplayIdleResumedPayload,
+  SessionReplayPauseReason,
   SessionReplaySessionRotatedPayload,
   SessionReplayTagsPayload,
   SessionReplayVisibilityPayload,
@@ -659,6 +660,15 @@ export default class Recorder {
    * chunk holds would draw a stretch the player cannot place.
    */
   private idlePauseMarkerSent: boolean = false;
+
+  /*
+   * The reason the pause in progress gave on its paused marker: "page" for
+   * the page's pause(), none for an idle one. The resumed marker says it
+   * again, so the player can say whose pause it was from that marker alone
+   * (issue #7498). A page that holds an idle pause already under way keeps
+   * the idle one's: the stretch began because nobody was there.
+   */
+  private idlePauseReason: SessionReplayPauseReason | undefined = undefined;
 
   /*
    * The visibility state the stream last reported. Visibility changes
@@ -1360,6 +1370,7 @@ export default class Recorder {
       this.pausedForIdle = true;
       this.idlePausedAtUnixMs = Date.now();
       this.idlePauseMarkerSent = false;
+      this.idlePauseReason = "page";
     } else {
       this.startRrweb();
     }
@@ -2134,6 +2145,7 @@ export default class Recorder {
     this.pausedForIdle = true;
     this.idlePausedAtUnixMs = nowUnixMs;
     this.idlePauseMarkerSent = canMark;
+    this.idlePauseReason = isPageAsking ? "page" : undefined;
     this.buffer.clear();
     this.pendingCustomEvents = [];
     this.stopObservingPage();
@@ -2227,6 +2239,8 @@ export default class Recorder {
     const nowUnixMs: number = Date.now();
     const pausedAtUnixMs: number = this.idlePausedAtUnixMs;
     const owesResumeMarker: boolean = this.idlePauseMarkerSent;
+    const pauseReason: SessionReplayPauseReason | undefined =
+      this.idlePauseReason;
 
     this.resumeObservingPage();
 
@@ -2235,6 +2249,10 @@ export default class Recorder {
         pausedAtUnixMs: pausedAtUnixMs,
         resumedAtUnixMs: Math.max(pausedAtUnixMs, nowUnixMs),
       };
+
+      if (pauseReason) {
+        resumed.reason = pauseReason;
+      }
 
       this.emitCustomEvent(SessionReplayCustomEventTag.IdleResumed, resumed);
 
@@ -2290,6 +2308,7 @@ export default class Recorder {
 
     this.pausedForIdle = false;
     this.idlePauseMarkerSent = false;
+    this.idlePauseReason = undefined;
 
     if (this.stopRrweb) {
       return false;

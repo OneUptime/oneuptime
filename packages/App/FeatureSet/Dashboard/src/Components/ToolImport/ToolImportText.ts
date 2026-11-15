@@ -1,4 +1,8 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import OneUptimeDate from "Common/Types/Date";
+import {
+  getNumberLocale,
+  withDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import {
   CREATED_IMPORT_RESULT,
@@ -1023,7 +1027,14 @@ export function formatToolImportDate(value: string, language: string): string {
   }
 }
 
-// A date and time the server sent (ISO 8601), written the reader's way.
+/*
+ * A date and time the server sent (ISO 8601), written the reader's way, as
+ * every other date and time on the Dashboard (OneUptimeDate): in the zone
+ * they picked, on their 12- or 24-hour clock and in `language` - "Nov 5,
+ * 2026, 5:14 AM", "5. Nov. 2026, 05:14". Written with the language's own
+ * clock it read "5:14" in German beside a table's "05:14", and in the
+ * browser's zone rather than the reader's (issue #7649).
+ */
 export function formatToolImportDateTime(
   value: string,
   language: string,
@@ -1035,12 +1046,10 @@ export function formatToolImportDateTime(
   }
 
   try {
-    return new Date(time).toLocaleString(getNumberLocale(language || "en"), {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
+    return withDateDisplayLanguage(language || "en", (): string => {
+      return OneUptimeDate.getDateAsLocalShortDateTimeString(new Date(time), {
+        showYear: true,
+      });
     });
   } catch {
     return new Date(time).toISOString().slice(0, 16).replace("T", " ");

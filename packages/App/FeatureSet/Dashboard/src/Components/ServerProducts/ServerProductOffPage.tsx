@@ -22,7 +22,11 @@ import { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import Page from "Common/UI/Components/Page/Page";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValue,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -52,10 +56,21 @@ export interface ComponentProps {
   pageProduct?: ProductKey | null | undefined;
 }
 
+interface ProductTitle {
+  title: string;
+  /*
+   * The products menu put it in the reader's words already
+   * (MoreMenuItem.isTitleTranslated): drawn as given, never looked up
+   * again. The catalog's name, for a product the menu does not list, is
+   * English.
+   */
+  isTranslated: boolean;
+}
+
 // The product's name as the reader's products menu says it.
-const useProductTitle: (product: ProductKey) => string = (
+const useProductTitle: (product: ProductKey) => ProductTitle = (
   product: ProductKey,
-): string => {
+): ProductTitle => {
   const navigation: DashboardNavigationItems = useDashboardNavigationItems();
   const item: MoreMenuItem | undefined = navigation.moreMenuItems.find(
     (candidate: MoreMenuItem): boolean => {
@@ -63,15 +78,25 @@ const useProductTitle: (product: ProductKey) => string = (
     },
   );
 
-  return item?.title || getProductTitle(product);
+  if (item?.title) {
+    return { title: item.title, isTranslated: Boolean(item.isTitleTranslated) };
+  }
+
+  return { title: getProductTitle(product), isTranslated: false };
 };
 
 const ServerProductOffPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const productTitle: string = useProductTitle(props.product);
-  const pageTitle: string = useProductTitle(props.pageProduct || props.product);
+  const productTitle: ProductTitle = useProductTitle(props.product);
+  const pageTitle: ProductTitle = useProductTitle(
+    props.pageProduct || props.product,
+  );
+  // In a sentence: the menu's word as it is, the catalog's looked up.
+  const productWord: TemplateValue = productTitle.isTranslated
+    ? productTitle.title
+    : translatableTerm(productTitle.title);
   const isMasterAdmin: boolean = User.isMasterAdmin();
   const isIngestionStopped: boolean =
     props.reason === ServerProductOffReason.TelemetryIngestionStopped;
@@ -80,7 +105,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
     isIngestionStopped
       ? ServerProductOffCopy.ingestionStoppedTitle
       : ServerProductOffCopy.switchedOffTitle,
-    { product: productTitle },
+    { product: productWord },
   );
 
   const description: string = isIngestionStopped
@@ -91,7 +116,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
         props.pageProduct
           ? ServerProductOffCopy.neededBySetupDescription
           : ServerProductOffCopy.switchedOffDescription,
-        { product: productTitle },
+        { product: productWord },
       );
 
   const nextStep: string =
@@ -107,14 +132,21 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
 
   return (
     <Page
-      title={pageTitle}
+      title={pageTitle.title}
+      /*
+       * The trail's words, looked up once (#8075): "Project" in English
+       * for the trail to look up, and the product's name as the menu says
+       * it - in the reader's words already, Spanish "Red" for Network,
+       * which looked up again read "Rojo".
+       */
       breadcrumbLinks={[
         {
-          title: translator.translateText("Project") || "Project",
+          title: "Project",
           to: homeRoute,
         },
         {
-          title: pageTitle,
+          title: pageTitle.title,
+          isTitleTranslated: pageTitle.isTranslated,
           to: Navigation.getCurrentRoute(),
         },
       ]}

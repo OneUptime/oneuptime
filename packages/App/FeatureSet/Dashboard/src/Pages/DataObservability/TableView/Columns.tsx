@@ -35,6 +35,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The table's columns as its last collection read them, in their order: each
@@ -134,7 +135,7 @@ const ColumnLinksCell: FunctionComponent<{
   const links: Array<ColumnLink> = props.links || [];
 
   if (links.length === 0) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -173,7 +174,7 @@ const ColumnSensitivityCell: FunctionComponent<{
   const translator: Translator = useTranslator();
 
   if (!props.sensitivity) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

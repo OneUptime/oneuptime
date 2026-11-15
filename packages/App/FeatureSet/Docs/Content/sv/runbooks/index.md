@@ -169,6 +169,7 @@ Körningen stannar kvar på incidentens sida **Runbooks**. När du skriver postm
 - **[Jourpolicyer](/docs/on-call/schedules)** avgör vem som larmas. Runbooks avgör vad den personen gör när hen är vaken.
 - **[Workspace-anslutningar](/docs/workspace-connections/slack)** som Slack och Microsoft Teams är naturliga mål för HTTP-begäransteg som skickar uppdateringar.
 - **[Statussidor](/docs/status-pages/index)** uppdateras ofta som ett Manual-steg i ett kundinriktat runbook.
+- **[OneUptime AI](/docs/ai/ai-sre#spara-en-lyckad-åtgärd-som-runbook)** skriver ett runbook utifrån en egen åtgärd som fungerade: **Spara som runbook** på en verifierad åtgärd sparar stegen som kördes i ett runbook som är avstängt tills du har granskat det.
 
 ## Nästa steg
 

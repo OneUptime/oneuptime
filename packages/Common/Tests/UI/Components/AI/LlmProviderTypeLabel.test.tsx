@@ -11,6 +11,8 @@ import {
   LLM_PROVIDER_TYPE_COPY,
 } from "../../../../UI/Components/AI/LlmProviderFormCopy";
 import LlmProviderTypeLabel from "../../../../UI/Components/AI/LlmProviderTypeLabel";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "../../../../UI/Components/Detail/EmptyValue";
 import { PROVIDER_ICON_TILE_TEST_ID } from "../../../../UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import { getProviderLogoStandInIcon } from "../../../../Types/ProviderLogo/ProviderLogoMarks";
 import {
@@ -130,19 +132,46 @@ describe("LlmProviderTypeLabel", () => {
     expect(container.querySelector("svg")).toBeNull();
   });
 
-  test("a provider without a kind shows the empty text, or nothing", () => {
-    const { container, unmount } = render(
-      <LlmProviderTypeLabel llmType={undefined} emptyText="-" />,
+  /*
+   * A provider without a kind is an empty value: the quiet dash every empty
+   * cell draws, read out as "Not set" - not the hyphen the lists passed in,
+   * nor a blank line (#7603).
+   */
+  test("a provider without a kind is the quiet dash, or the words it is given", () => {
+    for (const llmType of [undefined, null, ""]) {
+      const { container, unmount } = render(
+        <LlmProviderTypeLabel llmType={llmType} />,
+      );
+
+      expect(
+        container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
+      ).not.toBeNull();
+      expect(container.textContent).toBe(`${EMPTY_VALUE_MARK}Not set`);
+      unmount();
+    }
+
+    // A dash for words is no words: the same quiet dash.
+    for (const dash of ["-", "\u2014", " - "]) {
+      const { container, unmount } = render(
+        <LlmProviderTypeLabel llmType={undefined} emptyText={dash} />,
+      );
+
+      expect(
+        container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
+      ).not.toBeNull();
+      unmount();
+    }
+
+    const words: ReturnType<typeof render> = render(
+      <LlmProviderTypeLabel llmType={undefined} emptyText="No kind" />,
     );
 
-    expect(container.textContent).toBe("-");
-    unmount();
-
-    const second: ReturnType<typeof render> = render(
-      <LlmProviderTypeLabel llmType={null} />,
-    );
-
-    expect(second.container.textContent).toBe("");
+    expect(words.container.textContent).toBe("No kind");
+    expect(
+      words.container.querySelector(
+        `[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`,
+      ),
+    ).toBeNull();
   });
 
   /*

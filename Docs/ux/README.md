@@ -362,9 +362,17 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty value is the quiet dash, never a hyphen a page writes.** An empty cell or detail field
   draws the light grey dash a screen reader reads as "Not set" (`TableEmptyValue`,
   `Detail/EmptyValue`). A column's `noValueMessage: "-"` or a field's `placeholder: "-"` drew a
-  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). A page
-  that wants words writes words ("Never", "No labels attached."). Enforced by
-  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts).
+  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). So did
+  some six hundred dashes pages wrote by hand: `<span className="text-gray-400">—</span>`, or
+  `{team.name || "-"}`, which a phone's card showed as "Team: -" where it leaves every other empty
+  field out (#7603, #8209). Draw `<TableEmptyValue />` or `<EmptyValue />` where the dash was
+  (`{team.name || <TableEmptyValue />}`, `isSmall` in a line of `text-xs`); a monitor summary's
+  fact is handed no value and draws it itself. A page that wants words writes words ("Never", "No
+  labels attached."). A dash between two values, a minus sign, code and a tile's big figure are
+  not empty values. Enforced by
+  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
+  and
+  [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
 
 ### Empty states and suggestions
 
@@ -549,6 +557,16 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A time of day writes its hour the way its clock does:** no zero on a 12-hour clock ("5:14 AM",
+  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app.
+  A feed and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the
+  mobile app "Nov 5, 05:14 AM" (#7650). An Intl options object asks `getHourOption` for its hour
+  (`Common/Types/DateLanguage`, or the mobile app's own in `src/utils/date`), or
+  `getLocaleClockHourOption` for a language's own clock, and names `"numeric"` or `"2-digit"` only
+  beside the clock it is right on. Enforced by
+  [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
+  and
+  [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
 - **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
   Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
   Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
@@ -565,9 +583,10 @@ work out, starts from a default for everything else, and folds what most people 
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
-  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
-  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
-  right-to-left line. Enforced by
+  (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
+  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
+  any other message whole in a right-to-left line. Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
@@ -588,9 +607,11 @@ then `npm run i18n:validate` from the root.
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
-  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
-  and
-  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts),
+  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts)
+  and, for the service map and the infrastructure explorer, whose cards built "3 active incidents"
+  and "10.0% errors" in English at run time (#7725),
+  [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
   description and legend, and the chart draws them as handed: the Kubernetes resource pages, Docker,
   Proxmox and the other resource pages handed English, so "CPU Utilization" read English under a
@@ -643,6 +664,14 @@ then `npm run i18n:validate` from the root.
   [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
   and
   [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+- **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
+  and a page's title name a thing, and every count, sentence and button on its pages says the same
+  noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
+  called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
+  status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
+  product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
+  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). Enforced by
+  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
@@ -690,13 +719,19 @@ then `npm run i18n:validate` from the root.
   A status page, an on-call page and a status page's messages decide by the same rule, each handed
   its record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
   status page and in its emails, because Degraded is a default monitor status, while the Dashboard
-  drew it as written. Enforced by
+  drew it as written. A label's description, in its hover tip, reads as written too. And a badge is
+  never handed words already in the reader's language without saying so: a plain English word goes
+  over in English, for the badge to look up once, and a sentence, a plural or a front end's own keyed
+  text the page has worded is marked as written (`isUserContent`, `isTooltipUserContent`), with none
+  of its words left in English. Looked up again, a translation that is itself a key read as another
+  word: Spanish "Red" (Network) read "Rojo" (#8067). Enforced by
   [StatusPageNamesByTheirList](../../packages/Common/Tests/App/StatusPage/StatusPageNamesByTheirList.test.ts),
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
   [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
-  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx),
+  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx)
   and
-  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx).
+  [BadgeWordsLookedUpOnce](../../packages/Common/Tests/App/Dashboard/BadgeWordsLookedUpOnce.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

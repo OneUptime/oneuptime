@@ -51,6 +51,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const fetchEnterpriseLicenseUsageSnapshot: (
   modelId: string,
@@ -603,7 +604,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               getElement: (item: EnterpriseLicenseInstance): ReactElement => {
                 return (
                   <span className="font-mono text-xs text-gray-600">
-                    {item.instanceId || "-"}
+                    {item.instanceId || <TableEmptyValue isSmall={true} />}
                   </span>
                 );
               },

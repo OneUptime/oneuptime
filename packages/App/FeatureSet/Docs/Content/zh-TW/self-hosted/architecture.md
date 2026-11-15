@@ -1,6 +1,6 @@
 # 架構
 
-自架的 OneUptime 由少數幾個容器組成：每個請求都從它進入的一個 ingress、負責處理工作的一個應用程式映像檔、執行監視器檢查的探針，以及三個資料儲存。本頁說明它們如何組合在一起、各自做什麼，以及哪些連線會跨越你的網路邊界。
+自架的 OneUptime 由少數幾個容器組成：每個請求都從它進入的一個 ingress、負責處理工作的一個應用程式映像檔、執行監測器檢查的探針，以及三個資料儲存。本頁說明它們如何組合在一起、各自做什麼，以及哪些連線會跨越你的網路邊界。
 
 ```mermaid title="自架的 OneUptime"
 flowchart TB
@@ -53,10 +53,10 @@ flowchart TB
 | 應用程式 | `app` | `app` | Dashboard、狀態頁、API 與擷取端點，以及（除非你把它們拆分出去）背景工作。 |
 | Worker | `app` 的一部分 | `worker`（預設關閉） | 在獨立的 Pod 中執行背景工作，讓繁重的佇列處理永遠不與 API 請求爭搶資源。 |
 | Telemetry writer | `app` 的一部分 | `telemetryWriter`（預設關閉） | 一個固定規模的層，執行每一次 ClickHouse 插入，使插入量無論 worker 擴展到多大都維持在限度內。 |
-| 探針 | `probe-1` | `probes` | 執行監視器檢查並把結果傳回。每個內建探針都是所有專案都能使用的全域探針。 |
+| 探針 | `probe-1` | `probes` | 執行監測器檢查並把結果傳回。每個內建探針都是所有專案都能使用的全域探針。 |
 | 全域 Runner | `global-runner` | `globalRunner` | 一個[全域 Runner](/docs/runbooks/agents#全域-runner)：它會執行所有未選擇自己 Runner 的專案的 JavaScript 步驟，每個步驟都在只能存取網際網路的沙箱中執行，並在每個未選擇 Runner 的程式碼儲存庫中執行 OneUptime AI 的程式碼修正。它持有自己的金鑰，不持有伺服器的任何其他東西。Bash、SSH 與 kubectl 步驟執行在你安裝到相應位置的 [Runner](/docs/runbooks/agents) 上。 |
-| PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 專案、監視器、事件、使用者以及其他所有設定與狀態。 |
-| ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 記錄、指標、追蹤、例外、效能剖析與監視器記錄。 |
+| PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 專案、監測器、事件、使用者以及其他所有設定與狀態。 |
+| ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 記錄、指標、追蹤、例外、效能剖析與監測器記錄。 |
 | Valkey | `valkey` | `valkey` | 快取、工作佇列，以及待處理的推播回執之類的短期狀態。 |
 
 應用程式的所有角色都是同一個映像檔：Docker Compose 在一個 `app` 容器中執行它們，而 Helm Chart 可以把 worker 與 telemetry writer 作為各自獨立的部署來執行。如何為每一層決定規模，請參閱[規模估算與容量規劃](/docs/installation/sizing)。

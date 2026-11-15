@@ -50,6 +50,10 @@ a language, and the rules the guard test enforces.
   along with the sentence and cased for mid-sentence use in the reader's
   language: "No incidents yet." in English, "Noch keine Vorfälle." in German,
   whose nouns keep their capital. Acronyms and brand names keep their casing.
+  In a language whose script has no letter case (Japanese, Chinese, Korean,
+  Hindi, Persian, Arabic), a term in the middle of a sentence reads exactly
+  as your file writes it, Latin words included: write "Kubernetes Pod" or
+  "pod" as the sentence should read it, because nothing lowers it for you.
   Where the reader's sentence starts with it, it takes a capital there
   ("Overvågning kan ikke indlæses."), so a locale words such a key for the
   middle of a sentence: "le collecteur OneUptime", never "Le collecteur".

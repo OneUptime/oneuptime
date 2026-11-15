@@ -22,6 +22,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * ONE DATA SECURITY SCAN, AS ITS HISTORY SHOWS IT.
@@ -206,7 +207,7 @@ export const ScanReadSummary: FunctionComponent<{
   }
 
   if (parts.length === 0) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <EmptyValue />;
   }
 
   /*
@@ -241,7 +242,7 @@ export const ScanDetails: FunctionComponent<{
   const error: string = props.scan.errorMessage || "";
 
   if (warnings.length === 0 && readLog.length === 0 && !error) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <EmptyValue />;
   }
 
   const summary: Array<string> = [];

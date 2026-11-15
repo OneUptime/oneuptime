@@ -54,6 +54,15 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 レコードを OneUptime に送る `<match>` セクションを追加します。`YOUR_SERVICE_TOKEN` は取り込みキーに、`YOUR_SERVICE_NAME` はログを表示したい名前 (どんな名前でもかまいません) に置き換えます。
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 ```
 
 `json_array true` はバッファーのチャンクごとに 1 つの JSON 配列として送り、`flush_interval 10s` は 10 秒ごとにバッファーを送ります。`chunk_limit_size 900k` は各リクエストを、このエンドポイントで OneUptime が受け付ける上限の 1 MB 未満に保ちます。
+
+`retryable_response_codes 429,502,503,504` は、OneUptime が混み合っているとき (`429`) や再起動中のとき (`502`、`503`、`504`) にバッチを送り直します。これがないと、Fluentd は `503` 以外の応答でバッチを破棄します。`retry_max_interval 30s` は再試行の間隔を最大 30 秒に保ち、`retry_timeout 72h` は 72 時間たっても送れないバッチを破棄します。`record_transformer` フィルターは、Fluentd が各レコードに付けた時刻を `fluentd_time` として加えます。HTTP 出力はレコードしか送らず、OneUptime はログの時刻をレコードから読み取るためです。
 
 ### Fluentd を再起動する
 
@@ -111,6 +128,15 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime は各レコードから次のフィールドを読み取ります。
 | トレース ID | `trace_id`、`traceId`、`traceid` | ログをそのトレースに結び付けます。 |
 | スパン ID | `span_id`、`spanId`、`spanid` | ログをそのスパンに結び付けます。 |
 | サービス | `x-oneuptime-service-name` ヘッダー | ヘッダーがない場合は `Fluentd`。 |
-| 時刻 | — | OneUptime がレコードを受け取った時刻。 |
+| 時刻 | `time`、`timestamp`、`@timestamp`、`ts`、`fluentd_time` | `2026-11-14T08:00:00.123Z` のような ISO 8601 の時刻、またはエポックからの秒、ミリ秒、マイクロ秒、ナノ秒。タイムゾーンのない時刻は UTC とみなします。2000 年より前の時刻や、1 日より先の時刻は読み取りません。時刻を読み取ったフィールドは属性として保存されません。時刻のないレコードは、OneUptime がレコードを受け取った時刻で保存されます。 |
 
 ほかのフィールドはすべて、`fluentd.` にフィールド名を続けた名前の属性になり、検索や絞り込みに使えます。たとえば `container_name` フィールドは、ログのエクスプローラーでは `@fluentd.container_name` です。入れ子のオブジェクトは `fluentd.kubernetes.pod_name` のようにドットでつないで平坦化され、リストは JSON として保存されます。
 
@@ -174,6 +206,14 @@ Fluentd のログも、ほかのログと同じように [ログパイプライ�
 
 :::details Fluentd が `413` を記録する
 リクエストが、このエンドポイントで OneUptime が受け付ける上限の 1 MB を超えています。上の設定と同じように、`<buffer>` セクションに `chunk_limit_size 900k` を設定してください。
+:::
+
+:::details Fluentd が `429`、`502`、`503`、`504` を記録する
+OneUptime が混み合っているか、再起動中です。上の設定と同じように `<match>` セクションに `retryable_response_codes 429,502,503,504` があれば、Fluentd はバッチを保持して送り直します。ない場合、Fluentd はバッチを破棄します。
+:::
+
+:::details ログに自身の時刻ではなく、OneUptime が受け取った時刻が表示される
+OneUptime はログの時刻をそのレコードから読み取りますが、Fluentd の HTTP 出力はレコードしか送りません。`<parse>` セクションはレコードから `time` フィールドを取り除くので、そこに `keep_time_key true` を加えてください。上の設定の `record_transformer` フィルターも加えてください。Fluentd が各レコードに付けた時刻を `fluentd_time` として加えます。
 :::
 
 :::details ログが `Fluentd` サービスで届く

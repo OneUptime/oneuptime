@@ -129,14 +129,11 @@ const FLOW_SELECT: Select<DataSecurityFlow> = {
 const ConfirmedPill: FunctionComponent<{ isConfirmed: boolean }> = (props: {
   isConfirmed: boolean;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const tooltip: string =
-    translator.translateText(CONFIRMED_TOOLTIP) || CONFIRMED_TOOLTIP;
-
+  // In English: the badge looks its hover tip up, once (#8067).
   return props.isConfirmed ? (
-    <Pill text={CONFIRMED} color={Orange500} tooltip={tooltip} />
+    <Pill text={CONFIRMED} color={Orange500} tooltip={CONFIRMED_TOOLTIP} />
   ) : (
-    <Pill text={PATH_ONLY} color={Gray500} tooltip={tooltip} />
+    <Pill text={PATH_ONLY} color={Gray500} tooltip={CONFIRMED_TOOLTIP} />
   );
 };
 

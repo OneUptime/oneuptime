@@ -58,6 +58,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The body of the shared audit log table (OneUptime Enterprise).
@@ -431,7 +432,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: AuditLog): ReactElement => {
               const created: Date | undefined = item.createdAt;
               if (!created) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const createdDate: Date = new Date(created);
               return (

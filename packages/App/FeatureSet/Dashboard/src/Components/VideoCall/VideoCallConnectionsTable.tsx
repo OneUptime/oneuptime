@@ -322,7 +322,7 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
                 <Pill
                   color={health.color}
                   text={health.label}
-                  tooltip={translator.translateText(health.tooltip)}
+                  tooltip={health.tooltip}
                 />
               );
             },

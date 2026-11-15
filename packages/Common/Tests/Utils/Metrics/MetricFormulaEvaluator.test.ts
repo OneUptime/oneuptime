@@ -3,6 +3,9 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import { JSONObject } from "../../../Types/JSON";
+import { readOwnValue } from "../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
 
 type BuildQueryConfigFunction = (variable: string) => MetricQueryConfigData;
 
@@ -672,6 +675,115 @@ describe("MetricFormulaEvaluator", () => {
         },
       ]);
     });
+
+    /*
+     * Issues #8026 and #8025: a formula grouped by an attribute named like
+     * what every object inherits. The groups were read with a plain read,
+     * so a row without the attribute was grouped under the inherited
+     * function's text, and a key named __proto__ was not written: every
+     * row of a formula grouped by it alone fell into one group.
+     */
+    describe.each(INHERITED_PROPERTY_NAMES)(
+      "grouped by an attribute named %s",
+      (name: string) => {
+        // The rows as ClickHouse's JSON answer carries them: own keys.
+        const row: (
+          timestamp: string,
+          value: number,
+          attributes: JSONObject,
+        ) => JSONObject = (
+          timestamp: string,
+          value: number,
+          attributes: JSONObject,
+        ): JSONObject => {
+          return {
+            timestamp: new Date(timestamp),
+            value,
+            attributes: JSON.parse(JSON.stringify(attributes)) as JSONObject,
+          };
+        };
+
+        const evaluate: (
+          a: Array<JSONObject>,
+          b: Array<JSONObject>,
+        ) => AggregatedResult = (
+          a: Array<JSONObject>,
+          b: Array<JSONObject>,
+        ): AggregatedResult => {
+          return MetricFormulaEvaluator.evaluateFormula({
+            formula: "a / b",
+            queryConfigs: [
+              buildGroupedQueryConfig("a", [name]),
+              buildGroupedQueryConfig("b", [name]),
+            ],
+            formulaConfigs: [],
+            results: [
+              { data: a } as unknown as AggregatedResult,
+              { data: b } as unknown as AggregatedResult,
+            ],
+          });
+        };
+
+        test("a group per value of the row's own attribute, each stamped with it", () => {
+          const output: AggregatedResult = evaluate(
+            [
+              row(timestamps[0]!, 10, { [name]: "web" }),
+              row(timestamps[0]!, 40, { [name]: "api" }),
+            ],
+            [
+              row(timestamps[0]!, 2, { [name]: "web" }),
+              row(timestamps[0]!, 4, { [name]: "api" }),
+            ],
+          );
+
+          expect(
+            output.data.map((point: JSONObject): [unknown, unknown] => {
+              return [
+                point["value"],
+                readOwnValue(point["attributes"] as JSONObject, name),
+              ];
+            }),
+          ).toEqual([
+            [10, "api"],
+            [5, "web"],
+          ]);
+
+          for (const point of output.data) {
+            const attributes: JSONObject = (point as unknown as JSONObject)[
+              "attributes"
+            ] as JSONObject;
+
+            expect(Object.keys(attributes)).toEqual([name]);
+            expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+          }
+        });
+
+        test('rows without the attribute are one group, labelled "", never the inherited function\'s text', () => {
+          const output: AggregatedResult = evaluate(
+            [
+              row(timestamps[0]!, 10, { other: "x" }),
+              row(timestamps[0]!, 40, { [name]: "api" }),
+            ],
+            [
+              row(timestamps[0]!, 2, {}),
+              row(timestamps[0]!, 4, { [name]: "api" }),
+            ],
+          );
+
+          expect(
+            output.data.map((point: JSONObject): [unknown, unknown] => {
+              return [
+                point["value"],
+                readOwnValue(point["attributes"] as JSONObject, name),
+              ];
+            }),
+          ).toEqual([
+            [5, ""],
+            [10, "api"],
+          ]);
+        });
+      },
+    );
   });
 
   describe("validateFormula", () => {

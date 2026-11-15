@@ -19,6 +19,7 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   snapshot: SnmpTableSnapshot;
@@ -171,7 +172,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
     cell: SnmpTableSnapshotCell | undefined,
   ): ReactElement => {
     if (!cell || cell.display === "") {
-      return <span className="text-gray-400">—</span>;
+      return <TableEmptyValue />;
     }
 
     const text: string =

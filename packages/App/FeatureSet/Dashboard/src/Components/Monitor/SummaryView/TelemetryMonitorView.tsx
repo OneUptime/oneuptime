@@ -27,7 +27,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   summary?.lastCheckedAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {/*
@@ -53,7 +53,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
                 ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     summary?.nextCheckAt,
                   )
-                : "-"
+                : undefined
             }
           />
         )}

@@ -284,7 +284,7 @@
     "accessWriteTitle": "Läs- och skrivåtkomst",
     "accessWriteDescription": "Visa data och göra ändringar: bekräfta och lösa incidenter och larm, lägga till anteckningar samt skapa, uppdatera eller ta bort resurser.",
     "accessReadTitle": "Endast läsåtkomst",
-    "accessReadDescription": "Visa incidenter, larm, övervakare, statussidor och telemetri. Kan inte ändra något.",
+    "accessReadDescription": "Visa incidenter, larm, monitorer, statussidor och telemetri. Kan inte ändra något.",
     "permissionsNote": "Klienten agerar i ditt namn och kan aldrig göra mer än vad dina egna behörigheter i det här projektet tillåter. Du kan när som helst koppla från den under Projektinställningar > AI > MCP-server.",
     "authorizeButton": "Godkänn",
     "denyButton": "Avbryt",

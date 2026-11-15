@@ -1937,6 +1937,19 @@ export default class OneUptimeDate {
     return moment(date).add(days, "days").toDate();
   }
 
+  /*
+   * `days` days as a length of time: days x 24 hours, the same in every
+   * zone. For a range such as "the last 7 days" of a read, which is a span
+   * of time rather than calendar days somewhere. addRemoveDays without a
+   * zone steps the server's calendar, so on a server outside UTC a week
+   * that crosses a clock change comes out an hour short or long (issue
+   * #7623).
+   */
+  public static addRemoveDurationInDays(date: Date, days: number): Date {
+    date = this.fromString(date);
+    return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+  }
+
   public static addRemoveHours(date: Date, hours: number): Date {
     date = this.fromString(date);
     return moment(date).add(hours, "hours").toDate();

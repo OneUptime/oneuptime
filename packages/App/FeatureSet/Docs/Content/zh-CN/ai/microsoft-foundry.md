@@ -39,7 +39,7 @@ flowchart TB
 | Claude | Anthropic Messages | `https://contoso-ai.services.ai.azure.com/anthropic` |
 
 > [!IMPORTANT]
-> OneUptime 的 AI 功能会调用工具：工作时它们会查询您的监控器、事件和遥测数据。请部署支持工具调用（function calling）的模型。提供商的 **测试** 按钮会替您检查这一点。
+> OneUptime 的 AI 功能会调用工具：工作时它们会查询您的监视器、事件和遥测数据。请部署支持工具调用（function calling）的模型。提供商的 **测试** 按钮会替您检查这一点。
 
 ## 开始之前
 

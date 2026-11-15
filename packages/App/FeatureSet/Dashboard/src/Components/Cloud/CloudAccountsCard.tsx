@@ -29,6 +29,7 @@ import { CloudCardFooterLink } from "./CloudSpendCard";
 import CloudConnectionLogo from "./Connect/CloudConnectionLogo";
 import { CloudAccountRow } from "./UseCloudAccounts";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * Cloud Overview's Accounts: each connected account with whether a
@@ -150,7 +151,7 @@ const CloudAccountsCard: FunctionComponent<ComponentProps> = (
                       )}
                       className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
                     >
-                      {account.name || account.accountId || "—"}
+                      {account.name || account.accountId || <EmptyValue />}
                     </AppLink>
                     <Pill
                       text={status.label}

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9304
+    "keys": 52351,
+    "untranslated": 9278
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -138,6 +138,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Kelvin",
     "Keystone",
     "Kilohertz",
@@ -233,6 +234,7 @@
     "RegionOne",
     "Relation",
     "Reserved Instances",
+    "Resolver",
     "Revision",
     "Revision {{revision}}",
     "Risk",
@@ -465,6 +467,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{percent}} full",
+    "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

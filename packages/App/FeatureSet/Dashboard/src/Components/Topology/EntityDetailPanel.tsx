@@ -72,6 +72,7 @@ import {
 } from "../Inventory/ResolveTypedRowLink";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -98,6 +99,10 @@ import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 export interface EntityTrafficSummary {
   inbound: TrafficTotals;
   outbound: TrafficTotals;
+  /*
+   * The map's status line, in the reader's language already ("2 aktive
+   * Vorfälle"): drawn as given, since a line with a count in it is no key.
+   */
   statusLabel: string;
   statusColor: string;
   subtitle: string;
@@ -842,21 +847,27 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           <div className="mt-1 grid grid-cols-3 gap-2">
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatCallRate(totals.calls, props.metricsWindowSeconds)}
+                {formatCallRate(
+                  totals.calls,
+                  props.metricsWindowSeconds,
+                  translator,
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("requests")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatErrorRate(totals.calls, totals.errors)}
+                {formatErrorRate(totals.calls, totals.errors, translator)}
               </p>
               <p className="text-[11px] text-gray-400">{t("errors")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {totals.avgDurationMs === null
-                  ? "—"
-                  : formatDurationMs(totals.avgDurationMs)}
+                {totals.avgDurationMs === null ? (
+                  <EmptyValue />
+                ) : (
+                  formatDurationMs(totals.avgDurationMs)
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
             </div>
@@ -962,9 +973,17 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             {hasMetrics
               ? formatInline(
                   [
-                    formatCallRate(row.callCount!, props.metricsWindowSeconds),
+                    formatCallRate(
+                      row.callCount!,
+                      props.metricsWindowSeconds,
+                      translator,
+                    ),
                     translator.translateTemplate("{{rate}} errors", {
-                      rate: formatErrorRate(row.callCount, row.errorCount),
+                      rate: formatErrorRate(
+                        row.callCount,
+                        row.errorCount,
+                        translator,
+                      ),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
                       duration: formatDurationMs(row.avgDurationMs),
@@ -1274,7 +1293,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   aria-hidden={true}
                 />
                 <span data-testid="entity-detail-status">
-                  {t(props.traffic.statusLabel)}
+                  {props.traffic.statusLabel}
                 </span>
               </div>
             )}

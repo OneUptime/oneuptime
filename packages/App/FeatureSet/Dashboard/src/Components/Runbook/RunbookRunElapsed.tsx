@@ -3,6 +3,7 @@ import useLiveDuration, {
   LiveDurationDate,
 } from "Common/UI/Utils/UseLiveDuration";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * HOW LONG A RUN HAS BEEN GOING, on its page's Elapsed tile.
@@ -36,7 +37,11 @@ const RunbookRunElapsed: FunctionComponent<ComponentProps> = (
   });
 
   if (props.isFinished || duration.durationInSeconds === null) {
-    return <span data-testid={RUNBOOK_RUN_ELAPSED_TEST_ID}>—</span>;
+    return (
+      <span data-testid={RUNBOOK_RUN_ELAPSED_TEST_ID}>
+        <TableEmptyValue />
+      </span>
+    );
   }
 
   return (

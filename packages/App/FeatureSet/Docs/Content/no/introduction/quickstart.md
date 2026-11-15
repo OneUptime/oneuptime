@@ -52,7 +52,7 @@ Klikk på **Opprett din første overvåker** i sjekklisten. Det åpner det veile
 
 Under **Hva skal vi sjekke?** skriver du hele adressen til nettstedet ditt i **Adresse til nettsted eller API**, for eksempel `https://example.com`, og klikker på **Start sjekkingen**. Sondene sjekker det med en gang, og deretter hvert 5. minutt: Når nettstedet ikke svarer, eller svarer med en feil, går monitoren til **Frakoblet** og erklærer en hendelse. Klikk på **Fortsett**.
 
-På Free-planen i OneUptime Cloud faktureres monitorer etter bruk, så prosjektet trenger en betalingsmåte før det kan sjekke nettstedet ditt: uten en ber steget deg om å [legge til en betalingsmåte](/docs/configuration/billing#betalingsmetoder).
+På Free-planen i OneUptime Cloud faktureres monitorer etter bruk, så prosjektet trenger en betalingsmåte før det kan sjekke nettstedet ditt: uten en sier steget fra før **Start sjekkingen**, med **Legg til betalingsmetode** for å [legge til en](/docs/configuration/billing#betalingsmetoder).
 
 ### Velg hvem som får beskjed
 

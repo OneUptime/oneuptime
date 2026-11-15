@@ -11,6 +11,7 @@ import StorageArrayResourceStatusBadge from "../../../Components/StorageArray/St
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import { STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS } from "../Utils/StorageArrayHealth";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * FlashArray pods (kind=Pod) — the unit of ActiveCluster and ActiveDR
@@ -22,7 +23,7 @@ import { STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS } from "../Utils/StorageArrayH
 
 function textCell(text: string): ReactElement {
   if (!text) {
-    return <span className="text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
   return <span className="text-sm text-gray-700">{text}</span>;
 }
