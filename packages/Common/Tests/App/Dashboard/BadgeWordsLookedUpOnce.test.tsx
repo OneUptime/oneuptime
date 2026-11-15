@@ -269,6 +269,24 @@ describe("the Dashboard's badges, in Spanish", () => {
   });
 
   test.each([
+    [RunnerLiveStatus.Connected, "Connected"],
+    [RunnerLiveStatus.NeverConnected, "Never connected"],
+    [RunnerLiveStatus.Disconnected, "Disconnected"],
+  ])(
+    "a Runner's %s bubble, its status alone, says it once",
+    (status: RunnerLiveStatus, english: string) => {
+      renderIn(
+        "es",
+        <RunnerLiveStatusBubble status={status} />,
+        probe([english]),
+      );
+
+      expect(document.body).toHaveTextContent(wordIn("es", english));
+      expect(document.body).not.toHaveTextContent(TWICE);
+    },
+  );
+
+  test.each([
     [
       "Currently Active",
       <CurrentlyActiveIndicator key="active" />,
