@@ -52891,5 +52891,10 @@
   "This vCenter was due to be collected {{time}}, and no probe has come for it.": "This vCenter was due to be collected {{time}}, and no probe has come for it.",
   "Unarchive it to collect it again.": "Unarchive it to collect it again.",
   "With the project's telemetry scan, from what its service sent in the last hour.": "With the project's telemetry scan, from what its service sent in the last hour.",
+  "ISO Date": "ISO Date",
+  "Test (dbt test)": "Test (dbt test)",
+  "UUID": "UUID",
+  "Expected": "Expected",
+  "Useful": "Useful",
   "The whole {{name}}": "The whole {{name}}"
 }
