@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "{{action}}, wenn diese Kriterien erfüllt sind. Das sind die Details des Vorfalls:",
   "{{cadence}} · next {{time}}": "{{cadence}} · nächste {{time}}",
   "{{category}} · click to zoom in": "{{category}} · zum Hineinzoomen klicken",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "{{count}} kritisch",
   "{{count}} Warning": "{{count}} Warnung",
   "{{count}} addresses queued": "{{count}} Adressen in der Warteschlange",
@@ -54159,8 +54158,6 @@
   "A performance budget was exceeded": "Ein Performance-Budget wurde überschritten",
   "An error occurred on the page": "Auf der Seite ist ein Fehler aufgetreten",
   "Check if {{condition}}": "Prüfen: {{condition}}",
-  "Check if {{condition}} and,": "Prüfen: {{condition}} und",
-  "Check if {{condition}} or,": "Prüfen: {{condition}} oder",
   "Check if {{condition}}.": "Prüfen: {{condition}}.",
   "Granted by the end user": "Vom Endnutzer erteilt",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript-Ausdruck {{expression}} - wird als wahr ausgewertet",
@@ -54221,5 +54218,7 @@
   "{{subject}} is received within {{count}} minutes_one": "{{subject}} geht innerhalb von {{count}} Minute ein",
   "{{subject}} is true": "{{subject}} ist wahr",
   "{{subject}} is {{comparison}} {{value}}": "{{subject}} ist {{comparison}} {{value}}",
-  "{{subject}} starts with \"{{value}}\"": "{{subject}} beginnt mit „{{value}}“"
+  "{{subject}} starts with \"{{value}}\"": "{{subject}} beginnt mit „{{value}}“",
+  "All of these must match for this criteria to be met:": "Alle diese Filter müssen zutreffen, damit dieses Kriterium erfüllt ist:",
+  "Any of these can match for this criteria to be met:": "Einer dieser Filter genügt, damit dieses Kriterium erfüllt ist:"
 }

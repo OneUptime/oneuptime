@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "{{action}} når dette kriteriet er oppfylt. Dette er detaljene for hendelsen:",
   "{{cadence}} · next {{time}}": "{{cadence}} · neste {{time}}",
   "{{category}} · click to zoom in": "{{category}} · klikk for å zoome inn",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "Kritisk: {{count}}",
   "{{count}} Warning": "Advarsel: {{count}}",
   "{{count}} addresses queued": "{{count}} adresser i kø",
@@ -54159,8 +54158,6 @@
   "A performance budget was exceeded": "Et ytelsesbudsjett ble overskredet",
   "An error occurred on the page": "Det oppstod en feil på siden",
   "Check if {{condition}}": "Sjekk: {{condition}}",
-  "Check if {{condition}} and,": "Sjekk: {{condition}} og",
-  "Check if {{condition}} or,": "Sjekk: {{condition}} eller",
   "Check if {{condition}}.": "Sjekk: {{condition}}.",
   "Granted by the end user": "Gitt av sluttbrukeren",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript-uttrykket {{expression}} - evalueres til sann",
@@ -54221,5 +54218,7 @@
   "{{subject}} is received within {{count}} minutes_one": "{{subject}} mottas innen {{count}} minutt",
   "{{subject}} is true": "{{subject}} er sann",
   "{{subject}} is {{comparison}} {{value}}": "{{subject}} er {{comparison}} {{value}}",
-  "{{subject}} starts with \"{{value}}\"": "{{subject}} starter med «{{value}}»"
+  "{{subject}} starts with \"{{value}}\"": "{{subject}} starter med «{{value}}»",
+  "All of these must match for this criteria to be met:": "Alle disse filtrene må samsvare for at dette kriteriet er oppfylt:",
+  "Any of these can match for this criteria to be met:": "Ett av disse filtrene er nok for at dette kriteriet er oppfylt:"
 }
