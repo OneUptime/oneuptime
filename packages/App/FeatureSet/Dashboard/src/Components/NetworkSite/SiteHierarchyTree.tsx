@@ -25,6 +25,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Expandable hierarchy view for the Sites page — the drill-down mental
@@ -235,7 +236,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
             to={siteRoute}
             className="truncate text-sm font-medium text-gray-900 hover:underline"
           >
-            {node.site.name || "—"}
+            {node.site.name || <TableEmptyValue />}
           </AppLink>
 
           {node.site.siteType && (

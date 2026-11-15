@@ -32,6 +32,8 @@ import PermissionGate, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   securityCaseId: ObjectID;
@@ -96,7 +98,9 @@ const SecurityDetectionDetailModal: FunctionComponent<{
                 icon={getSecurityDetectionSourceIcon(detection.source)}
                 className="h-4 w-4 text-gray-400"
               />
-              {translator.translateText(detection.source || "") || "-"}
+              {translator.translateText(detection.source || "") || (
+                <EmptyValue />
+              )}
               {detection.ruleName ? (
                 <span className="text-gray-500">· {detection.ruleName}</span>
               ) : (
@@ -117,18 +121,18 @@ const SecurityDetectionDetailModal: FunctionComponent<{
             {String(detection.eventCount || 0)}
           </DetailRow>
           <DetailRow label="First Seen">
-            {detection.firstSeenAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
-                  detection.firstSeenAt,
-                )
-              : "-"}
+            {detection.firstSeenAt ? (
+              OneUptimeDate.getDateAsLocalFormattedString(detection.firstSeenAt)
+            ) : (
+              <EmptyValue />
+            )}
           </DetailRow>
           <DetailRow label="Last Seen">
-            {detection.lastSeenAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
-                  detection.lastSeenAt,
-                )
-              : "-"}
+            {detection.lastSeenAt ? (
+              OneUptimeDate.getDateAsLocalFormattedString(detection.lastSeenAt)
+            ) : (
+              <EmptyValue />
+            )}
           </DetailRow>
           <DetailRow label="Entities">
             <SecurityEntityChips
@@ -339,7 +343,7 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: SecurityDetection): ReactElement => {
               if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               return (

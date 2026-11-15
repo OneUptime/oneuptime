@@ -47,6 +47,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The incidents an alert is linked to (IncidentAlert rows). Linking creates a
@@ -272,7 +273,7 @@ const AlertViewIncidents: FunctionComponent<
             title: "Incident #",
             type: FieldType.Text,
             getElement: (item: IncidentAlert): ReactElement => {
-              return <>{getIncidentNumber(item) || "-"}</>;
+              return <>{getIncidentNumber(item) || <TableEmptyValue />}</>;
             },
             getExportValue: (item: IncidentAlert): string => {
               return getIncidentNumber(item);
@@ -290,7 +291,7 @@ const AlertViewIncidents: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: IncidentAlert): ReactElement => {
               if (!item.incident) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return <IncidentElement incident={item.incident} />;
             },
@@ -311,7 +312,7 @@ const AlertViewIncidents: FunctionComponent<
                 item.incident?.currentIncidentStateId,
               );
               if (!state) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <Pill
@@ -350,7 +351,7 @@ const AlertViewIncidents: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: IncidentAlert): ReactElement => {
               if (!item.createdByUser) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item.createdByUser} />;
             },

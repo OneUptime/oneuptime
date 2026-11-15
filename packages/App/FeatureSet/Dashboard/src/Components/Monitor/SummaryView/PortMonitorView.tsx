@@ -52,14 +52,12 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
         <SummaryFact
           isWide={true}
           title="Hostname or IP address"
-          value={
-            HostAddressUtil.formatHostAndPort({
-              host: destination,
-              port: destinationPort,
-            }) || "-"
-          }
+          value={HostAddressUtil.formatHostAndPort({
+            host: destination,
+            port: destinationPort,
+          })}
         />
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -77,7 +75,7 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   response.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
       </SummaryFacts>

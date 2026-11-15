@@ -451,6 +451,15 @@ Staat het aan, dan wordt zo'n fix pas uitgevoerd als twee verschillende mensen h
 
 De regel wordt gelezen wanneer iemand goedkeurt: aangezet houdt hij de fixes tegen die al wachten; uitgezet voert de volgende goedkeuring ze uit. Een fix met alleen veilige wijzigingen, een runbook en een fix via MCP-servers hebben net als eerst één goedkeuring nodig. Een wijziging die een cluster of een resource zelf uitvoert, in de modus **Automatisch** of **Goedkeuring overslaan** of omdat de lijst met toegestane opdrachten hem noemt, wacht op helemaal geen goedkeuring.
 
+### Een geslaagde fix opslaan als runbook
+
+Wanneer een fix die OneUptime AI zelf uitvoerde, is geverifieerd (opdrachten op een Runner, een wijziging via de AI-agent van een cluster of een resource, of aanroepen van MCP-servers), biedt de kaart ervan **Opslaan als runbook** aan. OneUptime schrijft een runbook met de stappen die draaiden en werkten, in de volgorde waarin ze draaiden:
+
+- een opdracht op een Runner wordt een Bash-stap op die Runner, zoals hij geschreven was, met dezelfde tijdslimiet; een opdracht die goedkeuring nodig had, wacht ook in het runbook op een goedkeuring;
+- een wijziging via een AI-agent of een MCP-server wordt een Manual-stap met de exacte opdracht of aanroep, omdat de eigen stappen van een runbook die agents niet kunnen bereiken.
+
+Elke stap zegt waarom OneUptime AI hem uitvoerde, wat hij doet en hoe je hem ongedaan maakt. Het runbook krijgt de naam van het opgeloste incident of de opgeloste waarschuwing, en staat eerst uit: niemand kan het uitvoeren, en OneUptime AI kiest het nooit, tot iemand de stappen ervan nakijkt en het aanzet. De kaart linkt daarna naar het runbook, en de feed meldt dat het is opgeslagen. Een fix die niet is geverifieerd, of die al een runbook uitvoerde, biedt niets om op te slaan, en opslaan vereist toestemming om runbooks aan te maken.
+
 ## OneUptime AI reageert eerst
 
 Een on-call-regel voor incidenten of waarschuwingen kan OneUptime AI de oproep eerst laten oppakken. Kies onder **Meer velden** bij **Wanneer moet deze regel oproepen?** voor **Nadat OneUptime AI het heeft geprobeerd**. Als OneUptime AI mag oplossen waar een passend incident of een passende waarschuwing over gaat, wachten de beleidsregels van de regel terwijl AI onderzoekt, herstelt en de oplossing controleert, hoogstens de tijd die bij **Maximaal zo lang op OneUptime AI wachten (minuten)** is ingesteld: standaard 10 minuten, van 1 tot 30. Wordt de oplossing van AI bevestigd, dan lost OneUptime AI het record op en wordt niemand opgeroepen.

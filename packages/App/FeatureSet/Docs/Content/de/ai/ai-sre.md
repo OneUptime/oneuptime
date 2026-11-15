@@ -451,6 +451,15 @@ Ist es an, läuft eine solche Korrektur erst, wenn zwei verschiedene Personen si
 
 Die Regel wird gelesen, wenn jemand genehmigt: Eingeschaltet hält sie die Korrekturen auf, die schon warten; ausgeschaltet führt die nächste Genehmigung sie aus. Eine Korrektur nur aus sicheren Änderungen, ein Runbook und eine Korrektur über MCP-Server brauchen wie bisher eine Genehmigung. Eine Änderung, die ein Cluster oder eine Ressource von selbst ausführt, im Modus **Automatisch** oder **Genehmigung umgehen** oder weil ihre Zulassungsliste sie nennt, wartet auf gar keine Genehmigung.
 
+### Eine erfolgreiche Korrektur als Runbook speichern
+
+Wenn eine Korrektur, die OneUptime AI von selbst ausgeführt hat, verifiziert ist – Befehle auf einem Runner, eine Änderung über den KI-Agenten eines Clusters oder einer Ressource oder Aufrufe von MCP-Servern –, bietet ihre Karte **Als Runbook speichern** an. OneUptime schreibt ein Runbook aus den Schritten, die gelaufen sind und funktioniert haben, in der Reihenfolge, in der sie liefen:
+
+- ein Befehl auf einem Runner wird zu einem Bash-Schritt auf diesem Runner, so wie er geschrieben war, mit demselben Zeitlimit; einer, der eine Genehmigung brauchte, wartet auch im Runbook auf eine Genehmigung;
+- eine Änderung über einen KI-Agenten oder einen MCP-Server wird zu einem Manual-Schritt, der den genauen Befehl oder Aufruf enthält, da die eigenen Schritte eines Runbooks diese Agenten nicht erreichen.
+
+Jeder Schritt sagt, warum OneUptime AI ihn ausgeführt hat, was er tut und wie er sich rückgängig machen lässt. Das Runbook wird nach dem behobenen Vorfall oder der behobenen Warnung benannt und ist zunächst ausgeschaltet: Niemand kann es ausführen, und OneUptime AI wählt es nie aus, bis jemand seine Schritte prüft und es einschaltet. Die Karte verlinkt dann auf das Runbook, und der Feed vermerkt, dass es gespeichert wurde. Eine Korrektur, die nicht verifiziert ist oder schon ein Runbook ausgeführt hat, bietet nichts zum Speichern an, und das Speichern erfordert die Berechtigung, Runbooks zu erstellen.
+
 ## OneUptime AI reagiert zuerst
 
 Eine On-Call-Regel für Vorfälle oder Alarme kann OneUptime AI die Alarmierung zuerst übernehmen lassen. Wählen Sie unter **Weitere Felder** bei **Wann soll diese Regel alarmieren?** die Option **Nach einem Versuch von OneUptime AI**. Wenn OneUptime AI beheben darf, worum es bei einem passenden Vorfall oder Alarm geht, warten die Richtlinien der Regel, während die KI untersucht, behebt und ihre Behebung prüft, höchstens so lange, wie unter **Höchstens so lange auf OneUptime AI warten (Minuten)** eingestellt ist: standardmäßig 10 Minuten, von 1 bis 30. Wird die Behebung der KI bestätigt, löst OneUptime AI den Eintrag auf, und niemand wird alarmiert.

@@ -169,6 +169,7 @@ Udførelsen bliver på hændelsens side **Runbooks**. Når du skriver postmortem
 - **[Vagtpolitikker](/docs/on-call/schedules)** afgør, hvem der tilkaldes. Runbooks afgør, hvad den person gør, når vedkommende er vågen.
 - **[Workspace-forbindelser](/docs/workspace-connections/slack)** som Slack og Microsoft Teams er naturlige mål for HTTP-anmodningstrin, der sender opdateringer.
 - **[Statussider](/docs/status-pages/index)** opdateres ofte som et Manual-trin i et kunderettet runbook.
+- **[OneUptime AI](/docs/ai/ai-sre#gem-en-vellykket-rettelse-som-runbook)** skriver et runbook ud fra en af sine egne rettelser, der virkede: **Gem som runbook** på en verificeret rettelse gemmer de trin, der kørte, i et runbook, der er slået fra, indtil du har gennemgået dem.
 
 ## Næste skridt
 

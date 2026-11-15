@@ -362,9 +362,17 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty value is the quiet dash, never a hyphen a page writes.** An empty cell or detail field
   draws the light grey dash a screen reader reads as "Not set" (`TableEmptyValue`,
   `Detail/EmptyValue`). A column's `noValueMessage: "-"` or a field's `placeholder: "-"` drew a
-  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). A page
-  that wants words writes words ("Never", "No labels attached."). Enforced by
-  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts).
+  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). So did
+  some six hundred dashes pages wrote by hand: `<span className="text-gray-400">—</span>`, or
+  `{team.name || "-"}`, which a phone's card showed as "Team: -" where it leaves every other empty
+  field out (#7603, #8209). Draw `<TableEmptyValue />` or `<EmptyValue />` where the dash was
+  (`{team.name || <TableEmptyValue />}`, `isSmall` in a line of `text-xs`); a monitor summary's
+  fact is handed no value and draws it itself. A page that wants words writes words ("Never", "No
+  labels attached."). A dash between two values, a minus sign, code and a tile's big figure are
+  not empty values. Enforced by
+  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
+  and
+  [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
 
 ### Empty states and suggestions
 
@@ -558,9 +566,10 @@ work out, starts from a default for everything else, and folds what most people 
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
-  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
-  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
-  right-to-left line. Enforced by
+  (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
+  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
+  any other message whole in a right-to-left line. Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
@@ -581,9 +590,11 @@ then `npm run i18n:validate` from the root.
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
-  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
-  and
-  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts),
+  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts)
+  and, for the service map and the infrastructure explorer, whose cards built "3 active incidents"
+  and "10.0% errors" in English at run time (#7725),
+  [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).

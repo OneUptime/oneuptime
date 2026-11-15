@@ -720,6 +720,37 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
       expect(error.message).toContain("Nothing ran.");
     });
 
+    // A kind in the middle of the refusal reads as a sentence says it (#8133).
+    test("names a host's policy the host command policy, never the Host one", async () => {
+      statusSpy.mockResolvedValue(
+        resourceStatus(
+          { resourceType: AiResourceType.Host },
+          { resourceType: AiResourceType.Host },
+        ),
+      );
+      mockRow(
+        resourceRoundRow(
+          [
+            resourceCommandJson({
+              runnerNameSnapshot: "Host AI agent",
+              resourceType: AiResourceType.Host,
+              command: "docker ps",
+              rollbackCommand: undefined,
+            }),
+          ],
+          { resourceType: AiResourceType.Host },
+        ),
+      );
+
+      const error: BadDataException = expectRefusedBeforeClaim(
+        await callApprove(),
+      );
+      expect(error.message).toContain(
+        "Command 1 is denied by the host command policy",
+      );
+      expect(error.message).not.toContain("the Host command policy");
+    });
+
     test("refuses a command the agent's write scope rules out, with the next step", async () => {
       statusSpy.mockResolvedValue(
         resourceStatus({}, { protectedTargets: ["web"] }),

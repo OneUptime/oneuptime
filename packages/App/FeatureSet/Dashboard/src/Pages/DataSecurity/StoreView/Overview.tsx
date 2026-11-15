@@ -66,6 +66,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * ONE STORE AT A GLANCE: how sensitive it is and why, how exposed it is,
@@ -758,7 +759,7 @@ const DataStoreOverview: FunctionComponent<
 
                 return (
                   <span className="text-sm text-gray-900">
-                    {name ? translator.translateText(name) : "—"}
+                    {name ? translator.translateText(name) : <EmptyValue />}
                   </span>
                 );
               },
@@ -780,10 +781,12 @@ const DataStoreOverview: FunctionComponent<
               getElement: (item: DataStore): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900">
-                    {item.environment
-                      ? translator.translateText(item.environment) ||
-                        item.environment
-                      : "—"}
+                    {item.environment ? (
+                      translator.translateText(item.environment) ||
+                      item.environment
+                    ) : (
+                      <EmptyValue />
+                    )}
                   </span>
                 );
               },
@@ -795,10 +798,12 @@ const DataStoreOverview: FunctionComponent<
               getElement: (item: DataStore): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900">
-                    {item.discoveredFrom
-                      ? translator.translateText(item.discoveredFrom) ||
-                        item.discoveredFrom
-                      : "—"}
+                    {item.discoveredFrom ? (
+                      translator.translateText(item.discoveredFrom) ||
+                      item.discoveredFrom
+                    ) : (
+                      <EmptyValue />
+                    )}
                   </span>
                 );
               },
@@ -816,10 +821,12 @@ const DataStoreOverview: FunctionComponent<
               getElement: (item: DataStore): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900">
-                    {item.contentScanStatus
-                      ? translator.translateText(item.contentScanStatus) ||
-                        item.contentScanStatus
-                      : "—"}
+                    {item.contentScanStatus ? (
+                      translator.translateText(item.contentScanStatus) ||
+                      item.contentScanStatus
+                    ) : (
+                      <EmptyValue />
+                    )}
                   </span>
                 );
               },

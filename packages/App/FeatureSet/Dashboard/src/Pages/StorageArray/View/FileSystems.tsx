@@ -23,6 +23,7 @@ import StorageArrayResourceUtils, {
   getFileSystemProvisionedBytes,
 } from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * FlashBlade file systems (kind=FileSystem), from
@@ -114,7 +115,7 @@ const StorageArrayFileSystems: FunctionComponent<
           getElement: (item: StorageArrayResource): ReactElement => {
             const protocols: string = getFileSystemProtocols(item).join(", ");
             if (!protocols) {
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             }
             return <span className="text-sm text-gray-700">{protocols}</span>;
           },
@@ -132,7 +133,7 @@ const StorageArrayFileSystems: FunctionComponent<
             const provisioned: number | null =
               getFileSystemProvisionedBytes(item);
             if (provisioned === null) {
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             }
             return (
               <span className="text-sm text-gray-700">

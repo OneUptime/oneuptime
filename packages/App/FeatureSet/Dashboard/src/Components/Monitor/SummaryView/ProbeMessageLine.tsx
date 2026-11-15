@@ -1,6 +1,6 @@
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
-import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
+import { getProbeMessageText } from "Common/Utils/Monitor/ProbeFailureReading";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -11,8 +11,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * error.
  *
  * The probe's own sentences read in the reader's language - its timeout
- * sentence, with the count in the reader's digits
- * (ProbeFailureReading.getProbeFailureCauseText). Every other message is
+ * sentence, with the count in the reader's digits, and what a failed
+ * request means (Error Details: "DNS resolution failed. ...", with any
+ * message that came with it kept as written, set apart) -
+ * (ProbeFailureReading.getProbeMessageText). Every other message is
  * the network's, the runtime's or a server's own, and stays as written:
  * on an Arabic or Persian page it reads left to right in a line of its
  * own (IsolatedLine), so its full stop and its brackets stay at its end,
@@ -40,9 +42,9 @@ const ProbeMessageLine: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const text: string = getProbeFailureCauseText({
+  const text: string = getProbeMessageText({
     translator: translator,
-    failureCause: props.message,
+    message: props.message,
   });
 
   return (

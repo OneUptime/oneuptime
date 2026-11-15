@@ -12,6 +12,7 @@ import { EMAIL_PROVIDER_CHOICES } from "Common/UI/Components/SmtpConfig/SmtpConf
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * WHAT A CONFIG SENDS THROUGH, AT A GLANCE: the Custom SMTP Configs table's
@@ -77,7 +78,7 @@ const EmailProviderSummary: FunctionComponent<ComponentProps> = (
           className="h-4 w-4 flex-shrink-0 text-gray-400"
         />
         <span className="truncate">
-          {props.config.hostname?.toString() || "-"}
+          {props.config.hostname?.toString() || <EmptyValue />}
         </span>
       </span>
     );

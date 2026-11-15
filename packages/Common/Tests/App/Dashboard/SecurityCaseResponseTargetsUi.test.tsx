@@ -69,6 +69,7 @@ import {
   buildDefaultTestPrioritiesWithTargets,
   testPriorityId,
 } from "../../Helpers/SecurityCaseValues";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const OPENED: Date = new Date("2026-10-14T12:00:00.000Z");
 const MINUTE: number = 60 * 1000;
@@ -314,7 +315,7 @@ describe("the case lists", () => {
       />,
     );
     expect(screen.queryByTestId(RESPONSE_TARGETS_TEST_IDS.dueCell)).toBeNull();
-    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText(EMPTY_VALUE_MARK)).toBeInTheDocument();
   });
 
   test("the line under a row's priority says the same as the chip, and nothing when nothing is due", () => {

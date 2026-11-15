@@ -91,6 +91,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.DocumentText,
         },
+        /*
+         * What the postmortems say the team will do, across every incident:
+         * who owns each and when it is due - the open ones, to see done
+         * (#6801).
+         */
+        {
+          link: {
+            title: "Action Items",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_ACTION_ITEMS] as Route,
+            ),
+          },
+          icon: IconProp.CheckCircle,
+        },
       ],
     },
     {

@@ -47,6 +47,7 @@ import {
   ProxmoxClusterConnection,
   getProxmoxClusterConnection,
 } from "./Utils/ProxmoxClusterConnection";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProxmoxClusters: FunctionComponent<
   PageComponentProps
@@ -212,7 +213,7 @@ const ProxmoxClusters: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },

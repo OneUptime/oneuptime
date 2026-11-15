@@ -99,6 +99,11 @@ import { ModalWidth } from "../../../UI/Components/Modal/Modal";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const INCIDENT_ID: string = "20000000-0000-4000-8000-000000001042";
 
@@ -668,5 +673,103 @@ describe("how the monitor decided, under the root cause", () => {
         },
       ),
     ).toEqual(["description", "rootCause"]);
+  });
+});
+
+/*
+ * A monitor's root cause on an Arabic or Persian page (#8004): the card
+ * hands the viewer each stored value set apart from the label worded
+ * before it, so a line reads the way its label does - from the right -
+ * with the English value whole inside it. An English page shows the root
+ * cause as stored; one somebody typed reads as they typed it.
+ */
+describe("a monitor's root cause, by the reader's language", () => {
+  const MONITOR_ROOT_CAUSE: string = [
+    "**Created because the following criteria was met**:",
+    "",
+    mdText`**Criteria Name**: ${"Website is down"}`.toString(),
+    "",
+    "**Request Failed Details**",
+    mdText`- Error Code: ${"ETIMEDOUT"}`.toString(),
+  ].join("\n");
+
+  const instances: Record<string, i18n> = {};
+
+  const renderIn: (language: string, rootCause: string) => RenderResult = (
+    language: string,
+    rootCause: string,
+  ): RenderResult => {
+    if (!instances[language]) {
+      const instance: i18n = createInstance();
+      void instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          [language]: { translation: readDashboardLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+        initImmediate: false,
+      });
+      instances[language] = instance;
+    }
+
+    return render(
+      <I18nextProvider i18n={instances[language]!}>
+        <EventWhatHappenedCard<Incident>
+          modelType={Incident}
+          modelId={new ObjectID(INCIDENT_ID)}
+          rootCause={rootCause}
+          onSaved={(): void => {}}
+        />
+      </I18nextProvider>,
+    );
+  };
+
+  const rootCauseText: (view: RenderResult) => string = (
+    view: RenderResult,
+  ): string => {
+    return (
+      view
+        .getByTestId("what-happened-root-cause-value")
+        .querySelector('[data-testid="markdown"]')?.textContent || ""
+    );
+  };
+
+  test.each(["fa", "ar"])(
+    "in %s: each English value set apart from its worded label",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+      const text: string = rootCauseText(
+        renderIn(language, MONITOR_ROOT_CAUSE),
+      );
+
+      expect(text).toContain(
+        `**${words["Criteria Name"]}**: ${isolated("Website is down")}`,
+      );
+      expect(text).toContain(
+        `- ${words["Error Code"]}: ${isolated("ETIMEDOUT")}`,
+      );
+    },
+  );
+
+  test("in German: worded, with no isolate's marks", () => {
+    const text: string = rootCauseText(renderIn("de", MONITOR_ROOT_CAUSE));
+
+    expect(text).toBe(withoutIsolateMarks(text));
+    expect(text).toContain(readDashboardLocale("de")["Criteria Name"]!);
+  });
+
+  test("in English: as stored", () => {
+    expect(rootCauseText(renderIn("en", MONITOR_ROOT_CAUSE))).toBe(
+      MONITOR_ROOT_CAUSE,
+    );
+  });
+
+  test("in Persian, a root cause somebody typed: as typed", () => {
+    const typed: string = "The pool size was cut to 10 (was 40).";
+
+    expect(rootCauseText(renderIn("fa", typed))).toBe(typed);
   });
 });

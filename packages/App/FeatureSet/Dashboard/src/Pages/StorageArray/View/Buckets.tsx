@@ -12,6 +12,7 @@ import StorageArrayResourceTable from "../../../Components/StorageArray/StorageA
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * FlashBlade S3 buckets (kind=Bucket), from purefb_buckets_* via the
@@ -73,7 +74,7 @@ const StorageArrayBuckets: FunctionComponent<
             const objects: number | null =
               StorageArrayResourceUtils.getDetailNumber(item, "objectCount");
             if (objects === null) {
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             }
             return (
               <span className="text-sm text-gray-700">

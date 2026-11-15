@@ -7,6 +7,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * "NOTIFIED VIA" ON AN ON-CALL RUN'S EXECUTION TIMELINE: the channels each
@@ -91,7 +92,7 @@ const NotifiedVia: FunctionComponent<ComponentProps> = (
   );
 
   if (channels.length === 0) {
-    return <p>-</p>;
+    return <TableEmptyValue />;
   }
 
   return (

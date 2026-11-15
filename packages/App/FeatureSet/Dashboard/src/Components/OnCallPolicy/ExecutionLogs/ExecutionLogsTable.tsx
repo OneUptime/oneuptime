@@ -45,6 +45,7 @@ import {
   ON_CALL_POLICY_RUN_STATUS_LABELS,
 } from "./OnCallLogStatusLabels";
 import WaitingRunLine from "./WaitingRunLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The two columns that hold what people wrote wrap their text: "Policy
@@ -493,7 +494,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           );
         }
 
-        return <p>-</p>;
+        return <TableEmptyValue />;
       },
     },
     {
@@ -609,7 +610,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           return <UserElement user={item["acknowledgedByUser"]} />;
         }
 
-        return <p>-</p>;
+        return <TableEmptyValue />;
       },
     },
   ]);

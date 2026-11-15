@@ -31,6 +31,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What a walk of a device read (issue #5184), one OID a row: its name from
@@ -213,8 +214,8 @@ export const SnmpWalkRowValue: FunctionComponent<PartProps> = (
 
   if (view.isNull) {
     return (
-      <span className="text-sm text-gray-400" data-testid="snmp-walk-row-value">
-        —
+      <span data-testid="snmp-walk-row-value">
+        <TableEmptyValue />
       </span>
     );
   }
