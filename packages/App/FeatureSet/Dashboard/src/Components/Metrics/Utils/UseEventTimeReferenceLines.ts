@@ -29,6 +29,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
+  formatInline,
   getGlobalTranslator,
   translatableTerm,
   translateTemplate,
@@ -40,7 +41,7 @@ import {
   ChangeEventAttribute,
   ChangeEventSource,
 } from "Common/Utils/Telemetry/ChangeEventFields";
-import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import {
   CloudChangeTitleFacts,
@@ -159,30 +160,50 @@ export const CHANGE_EVENT_MARKER_SUBTITLE: string =
   translationKey("Change event");
 
 /*
- * The line under an incident's marker in its hover card: "Incident ·
- * Critical Incident". The severity is read by its list
- * (Common/Utils/DefaultRecordNames): one a project starts with in the
- * reader's words - "Vorfall · Kritischer Vorfall" - a project's own as
- * written, set apart so a right-to-left page keeps a Latin name in order.
+ * The line under an incident's or an alert's marker in its hover card: its
+ * kind and its severity side by side, "Incident · Critical Incident" - two
+ * facts on a line, as a row's subtitle writes them, never a sentence. The
+ * severity is read by its list (Common/Utils/DefaultRecordNames): one a
+ * project starts with in the reader's words - "Vorfall · Kritischer
+ * Vorfall", "Incident · Incident critique" - a project's own as written.
  */
+const getEventMarkerSubtitle: (data: {
+  kind: string;
+  list: StateListType.IncidentSeverity | StateListType.AlertSeverity;
+  severityName: string | undefined;
+  translator: Translator;
+}) => string = (data: {
+  kind: string;
+  list: StateListType.IncidentSeverity | StateListType.AlertSeverity;
+  severityName: string | undefined;
+  translator: Translator;
+}): string => {
+  const severity: string = translateRecordName(
+    data.translator,
+    data.list,
+    data.severityName,
+  );
+
+  return formatInline(
+    [data.translator.translateText(data.kind) || data.kind, severity].filter(
+      (part: string): boolean => {
+        return part.length > 0;
+      },
+    ),
+    data.translator,
+  );
+};
+
 export function getIncidentMarkerSubtitle(
   severityName: string | undefined,
   translator: Translator = getGlobalTranslator(),
 ): string {
-  if (!severityName) {
-    return translator.translateTemplate("Incident");
-  }
-
-  return translator.translateTemplate(
-    "Incident · {{severity}}",
-    {
-      severity: recordNameInSentence(
-        StateListType.IncidentSeverity,
-        severityName,
-      ),
-    },
-    { setsValuesApart: true },
-  );
+  return getEventMarkerSubtitle({
+    kind: translationKey("Incident"),
+    list: StateListType.IncidentSeverity,
+    severityName: severityName,
+    translator: translator,
+  });
 }
 
 // The same for an alert's marker: "Alert · High".
@@ -190,17 +211,12 @@ export function getAlertMarkerSubtitle(
   severityName: string | undefined,
   translator: Translator = getGlobalTranslator(),
 ): string {
-  if (!severityName) {
-    return translator.translateTemplate("Alert");
-  }
-
-  return translator.translateTemplate(
-    "Alert · {{severity}}",
-    {
-      severity: recordNameInSentence(StateListType.AlertSeverity, severityName),
-    },
-    { setsValuesApart: true },
-  );
+  return getEventMarkerSubtitle({
+    kind: translationKey("Alert"),
+    list: StateListType.AlertSeverity,
+    severityName: severityName,
+    translator: translator,
+  });
 }
 
 export function getChangeEventMarkerLabel(

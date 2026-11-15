@@ -63,6 +63,8 @@ import {
   toNetworkMapSites,
 } from "./NetworkMapWidgetData";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -406,7 +408,14 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full"
                 style={{ backgroundColor: dotColor }}
               ></span>
-              <span style={{ color: dotColor }}>{site.statusName}</span>
+              <span style={{ color: dotColor }}>
+                {/* By its list: the default "Offline" in the reader's words. */}
+                {translateRecordName(
+                  translator,
+                  StateListType.MonitorStatus,
+                  site.statusName,
+                )}
+              </span>
             </span>
           </td>
         </tr>

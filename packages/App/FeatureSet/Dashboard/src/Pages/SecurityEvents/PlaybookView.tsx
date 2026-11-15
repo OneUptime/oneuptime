@@ -70,6 +70,8 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import Link from "Common/Types/Link";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { readFormIdList } from "../../Components/SecurityPlaybook/SecurityPlaybookStepForm";
 import React, {
   FunctionComponent,
@@ -436,7 +438,13 @@ const SecurityPlaybookViewPage: FunctionComponent<
                     item.minimumSecurityCasePriority?.name || "";
 
                   return name ? (
-                    <span>{translator.translateText(name) || name}</span>
+                    <span>
+                      {translateRecordName(
+                        translator,
+                        StateListType.SecurityCasePriority,
+                        name,
+                      )}
+                    </span>
                   ) : (
                     <span className="text-gray-400">
                       {translator.translateText("Any priority")}

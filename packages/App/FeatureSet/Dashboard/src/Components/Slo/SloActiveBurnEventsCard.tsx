@@ -50,9 +50,10 @@ interface OpenEventRow {
   title: string;
   to: Route;
   startedAt: Date | undefined;
-  severityName: string | undefined;
+  // Its severity and state in the reader's words, read by their lists.
+  severityText: string | undefined;
   severityColor: Color | undefined;
-  stateName: string | undefined;
+  stateText: string | undefined;
 }
 
 interface OpenEvents {
@@ -276,13 +277,13 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
              * (Common/Utils/DefaultRecordNames): the ones a project starts
              * with in the reader's words, a project's own as written.
              */
-            severityName: translateRecordName(
+            severityText: translateRecordName(
               translator,
               StateListType.IncidentSeverity,
               incident.incidentSeverity?.name,
             ),
             severityColor: incident.incidentSeverity?.color,
-            stateName: translateRecordName(
+            stateText: translateRecordName(
               translator,
               StateListType.IncidentState,
               incident.currentIncidentState?.name,
@@ -305,13 +306,13 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
               { modelId: new ObjectID(alert._id.toString()) },
             ),
             startedAt: toDate(alert.createdAt),
-            severityName: translateRecordName(
+            severityText: translateRecordName(
               translator,
               StateListType.AlertSeverity,
               alert.alertSeverity?.name,
             ),
             severityColor: alert.alertSeverity?.color,
-            stateName: translateRecordName(
+            stateText: translateRecordName(
               translator,
               StateListType.AlertState,
               alert.currentAlertState?.name,
@@ -481,7 +482,7 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
                     <span className="font-medium text-gray-700">
                       {translator.translateText(row.kind)}
                     </span>
-                    {row.severityName ? (
+                    {row.severityText ? (
                       <span className="inline-flex items-center gap-1">
                         <span
                           aria-hidden="true"
@@ -492,12 +493,12 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
                               : undefined,
                           }}
                         ></span>
-                        {row.severityName}
+                        {row.severityText}
                       </span>
                     ) : (
                       <></>
                     )}
-                    {row.stateName ? <span>{row.stateName}</span> : <></>}
+                    {row.stateText ? <span>{row.stateText}</span> : <></>}
                   </div>
                 </li>
               );

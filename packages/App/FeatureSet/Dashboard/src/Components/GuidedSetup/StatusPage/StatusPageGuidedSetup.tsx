@@ -47,6 +47,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -421,7 +423,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
               />
               {monitor.statusName ? (
                 <span className="flex-shrink-0 text-sm text-gray-500">
-                  {monitor.statusName}
+                  {translateRecordName(
+                    translator,
+                    StateListType.MonitorStatus,
+                    monitor.statusName,
+                  )}
                 </span>
               ) : (
                 <></>
@@ -657,7 +663,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
                       }
                       aria-hidden="true"
                     />
-                    {monitor.statusName}
+                    {translateRecordName(
+                      translator,
+                      StateListType.MonitorStatus,
+                      monitor.statusName,
+                    )}
                   </span>
                 ) : (
                   <></>
