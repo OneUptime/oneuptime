@@ -505,7 +505,7 @@ export default class DataSecurityFlows {
         return [store.storeKey || "", store];
       }),
     );
-    const since: Date = OneUptimeDate.addRemoveDays(
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       -AI_WINDOW_IN_DAYS,
     );
@@ -642,7 +642,7 @@ export default class DataSecurityFlows {
     }
 
     // Flows nobody has seen for a month are gone - not the ones seen just now.
-    const cutoff: Date = OneUptimeDate.addRemoveDays(
+    const cutoff: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -FLOW_RETENTION_IN_DAYS,
     );

@@ -18,6 +18,15 @@ import DataSecurityFindingWriter, {
 } from "../../../Server/Utils/DataSecurity/DataSecurityFindingWriter";
 import SecurityEntityRiskRecorder from "../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
 import SecurityRiskiestEntitiesReader from "../../../Server/Utils/SecurityEvent/EntityRisk/SecurityRiskiestEntities";
+import CalendarFeedToken, {
+  CalendarFeedRotation,
+} from "../../../Server/Utils/OnCall/CalendarFeedToken";
+import { getSessionReplayRetentionDate } from "../../../Server/Utils/SessionReplay/SessionReplayRetention";
+import {
+  IngestionStamp,
+  getRetentionDateDb,
+} from "../../../Server/Utils/Telemetry/IngestionTimestamp";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
 import { SCHEMA_CHANGE_WINDOW_IN_DAYS } from "../../../Types/DataObservability/DataObservabilityApiTypes";
@@ -27,6 +36,8 @@ import {
   SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
 } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { JSONObject } from "../../../Types/JSON";
+import { PREVIOUS_TOKEN_GRACE_DAYS } from "../../../Types/OnCallDutyPolicy/CalendarFeedWindow";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -34,6 +45,10 @@ import { ENTITY_RISK_HISTORY_IN_DAYS } from "../../../Types/SecurityCase/Securit
 import SecuritySeverity from "../../../Types/SecuritySeverity";
 import Timezone from "../../../Types/Timezone";
 import TimezoneAlias from "../../../Types/TimezoneAlias";
+import {
+  DayCount,
+  SecurityOverviewMetrics,
+} from "../../../Utils/SecurityCase/SecurityOverviewMetrics";
 import { stubSecurityCaseValues } from "../../Helpers/SecurityCaseValuesStub";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import moment from "moment-timezone";
@@ -50,7 +65,7 @@ import moment from "moment-timezone";
  * (half an hour on Lord Howe Island) more or less than N x 24 hours. CI
  * runs in UTC, where they never are, so nothing failed there.
  *
- * These cases run with the process in a zone of its own (the @timezone
+ * These cases run with the process in a zone of its own (the zone
  * docblock of each file that calls describeDaysAsLengthsOfTime: east and
  * west of UTC, both hemispheres, half-hour and 45-minute offsets, and
  * zones that never change their clocks). For every clock change the zone
@@ -348,11 +363,51 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
     });
   });
 
+  /*
+   * The Security overview's last 30 and 14 days are the reader's 30 and 14
+   * days, a bar each, today's the last (issue #8474): its cases and
+   * detections are read from the reader's midnight 29 and 13 days before
+   * today, where the first bar starts. Read from now - 30 x 24 hours, it
+   * drew 31 and 15 bars, the first only part of its day.
+   */
   describe("the Security overview's last 30 and 14 days", () => {
-    test.each(moments.map(windowLabel))(
-      "from %s, its cases and detections are read from 30 and 14 x 24 hours back",
-      async (iso: string) => {
+    const OVERVIEW_READERS: Array<Timezone | undefined> = [
+      undefined,
+      Timezone.AmericaNew_York,
+      Timezone.AsiaKathmandu,
+      Timezone.AustraliaLord_Howe,
+    ];
+
+    const OVERVIEW_CASES: Array<[string, string]> = moments.flatMap(
+      (now: Date): Array<[string, string]> => {
+        return OVERVIEW_READERS.map(
+          (zone: Timezone | undefined): [string, string] => {
+            return [now.toISOString(), zone || "no zone (UTC)"];
+          },
+        );
+      },
+    );
+
+    test.each(OVERVIEW_CASES)(
+      "from %s, read in %s: 30 and 14 whole days, read from the first one's midnight",
+      async (iso: string, zoneName: string) => {
         const now: Date = new Date(iso);
+        const zone: Timezone | undefined = zoneName.startsWith("no zone")
+          ? undefined
+          : (zoneName as Timezone);
+        const readerZone: string = zone || "UTC";
+        const today: string = platformDay(now.getTime(), readerZone);
+        const startOf: (daysBefore: number) => number = (
+          daysBefore: number,
+        ): number => {
+          return platformStartOfDay(
+            moment
+              .tz(`${dateBefore(today, daysBefore)}T12:00:00`, readerZone)
+              .valueOf(),
+            readerZone,
+          );
+        };
+
         pinNow(now);
         stubSecurityCaseValues();
         jest.spyOn(SecurityCaseService, "findBy").mockResolvedValue([]);
@@ -368,24 +423,97 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
           "greaterThanEqualTo",
         );
 
-        const getOverview: (data: unknown) => Promise<unknown> = (
+        const getOverview: (data: unknown) => Promise<JSONObject> = (
           SecurityCaseAPI.prototype as unknown as {
-            getOverview: (data: unknown) => Promise<unknown>;
+            getOverview: (data: unknown) => Promise<JSONObject>;
           }
         ).getOverview;
 
-        await getOverview.call(null, {
+        const overview: JSONObject = await getOverview.call(null, {
           projectId: PROJECT,
           props: { isRoot: true },
+          timezone: zone,
         });
+        const metrics: SecurityOverviewMetrics = overview[
+          "metrics"
+        ] as unknown as SecurityOverviewMetrics;
 
         expect(
           datesComparedWith(compared).map((date: Date): number => {
-            return now.getTime() - date.getTime();
+            return date.getTime();
           }),
-        ).toEqual([30 * DAY_MS, 14 * DAY_MS]);
+        ).toEqual([startOf(29), startOf(13)]);
+
+        for (const [days, count] of [
+          [metrics.casesOpenedPerDay, 30],
+          [metrics.detectionsPerDay, 14],
+        ] as Array<[Array<DayCount>, number]>) {
+          expect(days).toHaveLength(count);
+          expect(days[0]!.day).toBe(dateBefore(today, count - 1));
+          expect(days[count - 1]!.day).toBe(today);
+
+          for (let index: number = 1; index < days.length; index++) {
+            expect(dateBefore(days[index]!.day, 1)).toBe(days[index - 1]!.day);
+          }
+        }
       },
     );
+
+    test("the first bar is a whole day: a case at its midnight counts, one a millisecond before does not", async () => {
+      const now: Date = moments[0]!;
+      const zone: Timezone = Timezone.AmericaNew_York;
+      const today: string = platformDay(now.getTime(), zone);
+      const firstStart: number = platformStartOfDay(
+        moment.tz(`${dateBefore(today, 29)}T12:00:00`, zone).valueOf(),
+        zone,
+      );
+      const caseAt: (ms: number) => SecurityCase = (ms: number) => {
+        const row: SecurityCase = new SecurityCase(ObjectID.generate());
+        row.createdAt = new Date(ms);
+        return row;
+      };
+
+      pinNow(now);
+      stubSecurityCaseValues();
+      let reads: number = 0;
+      jest
+        .spyOn(SecurityCaseService, "findBy")
+        .mockImplementation((async () => {
+          reads++;
+          // The open cases first, then the cases of the window.
+          return reads % 2 === 1
+            ? []
+            : [
+                caseAt(firstStart - 1),
+                caseAt(firstStart),
+                caseAt(now.getTime()),
+              ];
+        }) as never);
+      jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([]);
+      jest
+        .spyOn(SecurityPlaybookRunService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0) as never);
+      jest
+        .spyOn(SecurityRiskiestEntitiesReader, "read")
+        .mockResolvedValue(null);
+
+      const overview: JSONObject = await (
+        SecurityCaseAPI.prototype as unknown as {
+          getOverview: (data: unknown) => Promise<JSONObject>;
+        }
+      ).getOverview.call(null, {
+        projectId: PROJECT,
+        props: { isRoot: true },
+        timezone: zone,
+      });
+      const metrics: SecurityOverviewMetrics = overview[
+        "metrics"
+      ] as unknown as SecurityOverviewMetrics;
+
+      // The read is from firstStart; a row before it the database never returns.
+      expect(metrics.casesOpenedPerDay[0]!.total).toBe(1);
+      expect(metrics.casesOpenedPerDay[29]!.total).toBe(1);
+    });
   });
 
   describe("Data Observability's last 7 days of schema changes", () => {
@@ -543,6 +671,110 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
         ).toEqual([ENTITY_RISK_HISTORY_IN_DAYS * DAY_MS]);
       },
     );
+  });
+
+  /*
+   * The rest of the server's windows, retention dates, grace periods and
+   * day counts are lengths of time too (issue #8473): about 120 calls in
+   * its services, utils, ingest and workers stepped its own calendar.
+   * DaysAsLengthsOfTimeGuard keeps them out; these read a few of them from
+   * around each clock change.
+   */
+  describe("the server's retention dates, grace periods and day counts", () => {
+    const RETENTION_DAYS: Array<number> = [1, 7, 15, 30, 90, 365];
+
+    test.each(moments.map(windowLabel))(
+      "from %s, a telemetry row's retention date is N x 24 hours on",
+      (iso: string) => {
+        const now: Date = new Date(iso);
+
+        for (const days of RETENTION_DAYS) {
+          const stamp: IngestionStamp = {
+            date: now,
+            db: OneUptimeDate.toClickhouseDateTime(now),
+            epochSecond: Math.floor(now.getTime() / 1000),
+            retentionDbByDays: new Map<number, string>(),
+          } as unknown as IngestionStamp;
+
+          expect(getRetentionDateDb(stamp, days)).toBe(
+            OneUptimeDate.toClickhouseDateTime(
+              new Date(now.getTime() + days * DAY_MS),
+            ),
+          );
+        }
+      },
+    );
+
+    test.each(moments.map(windowLabel))(
+      "from %s, a session replay is kept N x 24 hours, and an old calendar feed link serves 7 x 24 hours more",
+      (iso: string) => {
+        const now: Date = new Date(iso);
+
+        for (const days of RETENTION_DAYS) {
+          expect(
+            getSessionReplayRetentionDate({
+              serverClampedSessionStart: now,
+              retentionInDays: days,
+            }).getTime(),
+          ).toBe(now.getTime() + days * DAY_MS);
+        }
+
+        const rotation: CalendarFeedRotation = CalendarFeedToken.buildRotation({
+          currentTokenHash: "a-hash",
+          now,
+        });
+
+        expect(rotation.previousTokenExpiresAt!.getTime() - now.getTime()).toBe(
+          PREVIOUS_TOKEN_GRACE_DAYS * DAY_MS,
+        );
+      },
+    );
+
+    test("whole days of time: 7 x 24 hours across each clock change are 7 days, a millisecond less 6", () => {
+      for (const change of changes) {
+        const from: Date = new Date(change.atMs - 3 * DAY_MS);
+        const to: Date = new Date(from.getTime() + 7 * DAY_MS);
+
+        expect(OneUptimeDate.getWholeDaysOfTimeBetween(from, to)).toBe(7);
+        expect(
+          OneUptimeDate.getWholeDaysOfTimeBetween(
+            from,
+            new Date(to.getTime() - 1),
+          ),
+        ).toBe(6);
+        expect(OneUptimeDate.getWholeDaysOfTimeBetween(to, from)).toBe(-7);
+      }
+
+      for (const now of moments) {
+        expect(OneUptimeDate.getWholeDaysOfTimeBetween(now, now)).toBe(0);
+        expect(
+          Object.is(OneUptimeDate.getWholeDaysOfTimeBetween(now, now), -0),
+        ).toBe(false);
+        expect(
+          OneUptimeDate.getWholeDaysOfTimeBetween(
+            now.toISOString(),
+            new Date(now.getTime() + 36 * HOUR_MS).toISOString(),
+          ),
+        ).toBe(1);
+      }
+    });
+
+    test("an event 7 x 24 hours old across a clock change is 7 days old, where the server's calendar said 6 when its clocks went back", () => {
+      for (const change of changes) {
+        const ingestedAt: Date = new Date(change.atMs + 2 * DAY_MS);
+        const eventAt: Date = new Date(ingestedAt.getTime() - 7 * DAY_MS);
+        const calendarDays: number = OneUptimeDate.getNumberOfDaysBetweenDates(
+          eventAt,
+          ingestedAt,
+        );
+
+        expect(
+          OneUptimeDate.getWholeDaysOfTimeBetween(eventAt, ingestedAt),
+        ).toBe(7);
+        // Over a change back, 7 x 24 hours is less than 7 days there.
+        expect(calendarDays).toBe(change.movedMinutes > 0 ? 7 : 6);
+      }
+    });
   });
 
   /*

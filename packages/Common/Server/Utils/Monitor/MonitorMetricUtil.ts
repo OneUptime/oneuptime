@@ -156,7 +156,7 @@ export default class MonitorMetricUtil {
       TelemetryUtil.getAttributeKeys(attributes);
 
     const retentionDays: number = await this.getRetentionDays();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       ingestionDate,
       retentionDays,
     );
