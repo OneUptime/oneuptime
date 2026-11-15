@@ -14,6 +14,7 @@ import { getTimeRangeLabel } from "./TimeRangePickerDropdown";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { RANGE_END, RANGE_START } from "../Filters/RangeEnds";
 import {
   DEFAULT_CHOICE_TEMPLATE,
   getDefaultChoiceLabel,
@@ -316,7 +317,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
             <div className="mt-3 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">
-                  {translator.translateText("From")}
+                  {translator.translateText(RANGE_START)}
                 </span>
                 <span className="font-medium text-gray-900">
                   {formatDateTime(resolvedRange.startValue)}
@@ -324,7 +325,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">
-                  {translator.translateText("To")}
+                  {translator.translateText(RANGE_END)}
                 </span>
                 <span className="font-medium text-gray-900">
                   {formatDateTime(resolvedRange.endValue)}
