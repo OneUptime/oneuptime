@@ -201,7 +201,7 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 
 | Carte | Ce que vous modifiez | Bon à savoir |
 | --- | --- | --- |
-| **Ce qui est mesuré** | **Ce qui est mesuré**, **Services** et **Seuil de latence (ms)**, avec **Modifier ce qui est mesuré**. | Après une modification, un SLO de requêtes recompte ses requêtes depuis le début. |
+| **Ce qui est mesuré** | **Ce qui est mesuré**, **Services**, **Seuil de latence (ms)** et **Filtre de requêtes**, avec **Modifier ce qui est mesuré**. | Après une modification, un SLO de requêtes recompte ses requêtes depuis le début. |
 | **Objectif** | **Cible (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43 min 12 s d'indisponibilité par fenêtre de 30 jours ». |
 | **Période de conformité** | **Type de fenêtre**, **Fenêtre (jours)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
 | **Calcul de l'indisponibilité** | **Mode multi-moniteurs** et **Statuts de moniteur d'indisponibilité**, avec **Modifier le calcul de l'indisponibilité**. | SLO de disponibilité des moniteurs uniquement. Des statuts vides comptent tous les statuts non opérationnels, y compris ceux ajoutés plus tard. |

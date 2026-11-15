@@ -470,6 +470,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
 
     const windowOptions: Array<TelemetryRuleWindowOption> = getWindowOptions(
       data.windowInSeconds,
+      translator,
     );
 
     return (

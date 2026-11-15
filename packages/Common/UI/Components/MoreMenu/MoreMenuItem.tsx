@@ -23,14 +23,24 @@ export interface ComponentProps {
   isDisabled?: boolean | undefined;
   /*
    * Shown on hover - the place a locked menu item says why it is locked.
+   * English, looked up here - unless isTooltipTranslated or
+   * isTooltipUserContent says otherwise.
    */
   tooltip?: string | undefined;
   /*
+   * The tooltip is in the reader's words already: a permission check's
+   * reason (PermissionGate words it), a sentence the page built around a
+   * value. Drawn and announced as given, never looked up again (#8586):
+   * looked up again, a translation that is itself an English key reads as
+   * another word, as the Spanish "Red" (Network) read "Rojo".
+   */
+  isTooltipTranslated?: boolean | undefined;
+  /*
    * The tooltip reads by the same rule as the text (isUserContent): set,
-   * it is drawn as given, never looked up (Tooltip's isTextUserContent) -
-   * words the caller already put in the reader's language, as a
-   * permission gate's reason is. Looked up again, a translation that is
-   * itself a key reads as another word (#8067).
+   * it is words someone wrote, drawn as given, never looked up (Tooltip's
+   * isTextUserContent, #8067). Words the page put in the reader's language
+   * - a permission check's reason - say isTooltipTranslated instead, which
+   * the looked-up-once guard holds every caller to.
    */
   isTooltipUserContent?: boolean | undefined;
   /*
@@ -107,6 +117,11 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
    * to say stays natively disabled and is skipped, as before.
    */
   const isExplainedLock: boolean = isDisabled && Boolean(props.tooltip);
+
+  // Drawn as given - in the reader's words already, or words someone wrote.
+  const isTooltipAsGiven: boolean = Boolean(
+    props.isTooltipTranslated || props.isTooltipUserContent,
+  );
 
   const dotColor: string | undefined =
     props.color?.toString().trim() || undefined;
@@ -239,6 +254,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       <>
         <Tooltip
           text={props.tooltip}
+          isTextTranslated={props.isTooltipTranslated}
           isTextUserContent={props.isTooltipUserContent}
           isTriggerAlreadyDescribed={true}
           isShownOnKeyboardFocusOnly={true}
@@ -249,7 +265,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           {menuItem}
         </Tooltip>
         <span id={reasonId} className="sr-only">
-          {props.isTooltipUserContent
+          {isTooltipAsGiven
             ? props.tooltip
             : translateString(props.tooltip) ?? props.tooltip}
         </span>
@@ -260,6 +276,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
   return (
     <Tooltip
       text={props.tooltip}
+      isTextTranslated={props.isTooltipTranslated}
       isTextUserContent={props.isTooltipUserContent}
       isShownOnKeyboardFocusOnly={true}
       placement={MENU_ITEM_TOOLTIP_PLACEMENT}

@@ -1476,9 +1476,13 @@ describe("the project's forms", () => {
         return step.id;
       }),
     ).toEqual(["measures", "objective"]);
-    expect(countFormRows(sloForm)).toBe(6);
+    expect(countFormRows(sloForm)).toBe(7);
 
-    for (const stepId of ["measures", "objective"]) {
+    // What it measures, with a request SLO's optional filter (#8444).
+    for (const [stepId, rows] of [
+      ["measures", 4],
+      ["objective", 3],
+    ] as Array<[string, number]>) {
       expect({
         step: stepId,
         rows: countFieldRows(
@@ -1486,7 +1490,7 @@ describe("the project's forms", () => {
             return candidate.stepId === stepId;
           }),
         ),
-      }).toEqual({ step: stepId, rows: 3 });
+      }).toEqual({ step: stepId, rows: rows });
     }
 
     expect(
@@ -1497,7 +1501,12 @@ describe("the project's forms", () => {
         .map((candidate: FormFieldFacts): string => {
           return candidate.key;
         }),
-    ).toEqual(["sliType", "services", "latencyThresholdInMilliseconds"]);
+    ).toEqual([
+      "sliType",
+      "services",
+      "latencyThresholdInMilliseconds",
+      "requestFilter",
+    ]);
     expect(
       sloForm.fields
         .filter((candidate: FormFieldFacts): boolean => {

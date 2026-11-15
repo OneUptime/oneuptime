@@ -5,6 +5,7 @@ import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import EnterpriseHealthUpgrade from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 // Diagnostic logs: Enterprise Edition.
@@ -19,8 +20,10 @@ const HealthLogs: FunctionComponent = (): ReactElement => {
         renderUpsell={(): ReactElement => {
           return (
             <EnterpriseHealthUpgrade
-              featureName="Diagnostic logs"
-              featureDescription="This app instance's own recent log lines, plus the closest in-app equivalents from Postgres, ClickHouse and Valkey."
+              featureName={translationKey("Diagnostic logs")}
+              featureDescription={translationKey(
+                "This app instance's own recent log lines, plus the closest in-app equivalents from Postgres, ClickHouse and Valkey.",
+              )}
             />
           );
         }}
