@@ -372,21 +372,31 @@ describe("a database's and a queue's engine charts (#8283)", () => {
     );
   });
 
-  test("a tile in the reader's digits, its unit word kept", () => {
+  // The unit word in the reader's language too (#8482, EngineMetricTileUnitsInReadersLanguage).
+  test("a tile in the reader's digits and its unit in their words", () => {
     expect(formatDatabaseMetricValue(1, "databases", "gauge")).toBe(
       "1 database",
     );
     expect(
-      formatDatabaseMetricValue(
-        2500,
-        "connections",
-        "gauge",
-        translators["fa"]!,
+      spaced(
+        formatDatabaseMetricValue(
+          2500,
+          "connections",
+          "gauge",
+          translators["fa"]!,
+        ),
       ),
-    ).toBe("۲٫۵k connections");
+    ).toBe("۲٫۵k اتصال");
     expect(
-      formatDatabaseMetricValue(12.5, "commits", "counter", translators["de"]!),
-    ).toBe("12,5 commits/s");
+      spaced(
+        formatDatabaseMetricValue(
+          12.5,
+          "commits",
+          "counter",
+          translators["de"]!,
+        ),
+      ),
+    ).toBe("12,5 Commits/s");
     expect(
       formatDatabaseMetricValue(1024, "bytes", "counter", translators["de"]!),
     ).toBe("1,0 KiB/s");

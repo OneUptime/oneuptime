@@ -9,6 +9,7 @@ import {
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
+  PluralTemplate,
   translationKey,
   Translator,
 } from "Common/Types/Translator";
@@ -799,6 +800,215 @@ function withUnitWord(countText: string, unit: string): string {
   return `${countText} ${countText === "1" ? getDatabaseUnitSingular(unit) : unit}`;
 }
 
+/*
+ * A COUNT OF A CATALOG UNIT, AS A SENTENCE OF THE READER'S LANGUAGE (#8482).
+ *
+ * A database's and a queue's engine metric tiles wrote their figure in the
+ * reader's digits (#8283) and the catalog's English unit word after it,
+ * made singular by English's rules: "۲۴ connections", "12,5 commits/s",
+ * "1 database" on every page. Each unit the catalogs count in
+ * (DatabaseServerMetricCatalog, MessageQueueMetricCatalog) is a plural
+ * sentence of the locale here, so a language words the count its way and
+ * agrees its noun with the number ("1 Verbindung", "24 Verbindungen");
+ * a unit that counts no things (a state, a share, a ratio) is a sentence
+ * of its own. A unit of neither list, which a new catalog entry may bring,
+ * reads as it always did, its figure in the reader's digits.
+ */
+export const DATABASE_UNIT_COUNTS: Readonly<Record<string, PluralTemplate>> = {
+  clients: {
+    one: "{{count}} client",
+    other: "{{count}} clients",
+  },
+  commands: {
+    one: "{{count}} command",
+    other: "{{count}} commands",
+  },
+  commits: {
+    one: "{{count}} commit",
+    other: "{{count}} commits",
+  },
+  compilations: {
+    one: "{{count}} compilation",
+    other: "{{count}} compilations",
+  },
+  connections: {
+    one: "{{count}} connection",
+    other: "{{count}} connections",
+  },
+  consumers: {
+    one: "{{count}} consumer",
+    other: "{{count}} consumers",
+  },
+  cursors: {
+    one: "{{count}} cursor",
+    other: "{{count}} cursors",
+  },
+  databases: {
+    one: "{{count}} database",
+    other: "{{count}} databases",
+  },
+  deadlocks: {
+    one: "{{count}} deadlock",
+    other: "{{count}} deadlocks",
+  },
+  documents: {
+    one: "{{count}} document",
+    other: "{{count}} documents",
+  },
+  evictions: {
+    one: "{{count}} eviction",
+    other: "{{count}} evictions",
+  },
+  executions: {
+    one: "{{count}} execution",
+    other: "{{count}} executions",
+  },
+  hits: {
+    one: "{{count}} hit",
+    other: "{{count}} hits",
+  },
+  items: {
+    one: "{{count}} item",
+    other: "{{count}} items",
+  },
+  keys: {
+    one: "{{count}} key",
+    other: "{{count}} keys",
+  },
+  messages: {
+    one: "{{count}} message",
+    other: "{{count}} messages",
+  },
+  misses: {
+    one: "{{count}} miss",
+    other: "{{count}} misses",
+  },
+  nodes: {
+    one: "{{count}} node",
+    other: "{{count}} nodes",
+  },
+  operations: {
+    one: "{{count}} operation",
+    other: "{{count}} operations",
+  },
+  pages: {
+    one: "{{count}} page",
+    other: "{{count}} pages",
+  },
+  processes: {
+    one: "{{count}} process",
+    other: "{{count}} processes",
+  },
+  queries: {
+    one: "{{count}} query",
+    other: "{{count}} queries",
+  },
+  reads: {
+    one: "{{count}} read",
+    other: "{{count}} reads",
+  },
+  requests: {
+    one: "{{count}} request",
+    other: "{{count}} requests",
+  },
+  rollbacks: {
+    one: "{{count}} rollback",
+    other: "{{count}} rollbacks",
+  },
+  rows: {
+    one: "{{count}} row",
+    other: "{{count}} rows",
+  },
+  sessions: {
+    one: "{{count}} session",
+    other: "{{count}} sessions",
+  },
+  shards: {
+    one: "{{count}} shard",
+    other: "{{count}} shards",
+  },
+  tasks: {
+    one: "{{count}} task",
+    other: "{{count}} tasks",
+  },
+  threads: {
+    one: "{{count}} thread",
+    other: "{{count}} threads",
+  },
+  transactions: {
+    one: "{{count}} transaction",
+    other: "{{count}} transactions",
+  },
+  waits: {
+    one: "{{count}} wait",
+    other: "{{count}} waits",
+  },
+  writesets: {
+    one: "{{count}} writeset",
+    other: "{{count}} writesets",
+  },
+};
+
+// A unit that counts no things: its figure and its word, as one sentence.
+export const DATABASE_UNIT_READINGS: Readonly<Record<string, string>> = {
+  ratio: translationKey("{{value}} ratio"),
+  share: translationKey("{{value}} share"),
+  state: translationKey("{{value}} state"),
+};
+
+// A rate, as one sentence: "12,5 Commits/s", "۱۲٫۵ کامیت/ثانیه".
+const PER_SECOND: string = translationKey("{{rate}}/s");
+
+// A figure written without a scale letter ("24", "12.5"): the number it says.
+const PLAIN_FIGURE_PATTERN: RegExp = /^-?\d+(\.\d+)?$/;
+
+/*
+ * A gauge whose unit is already a rate of a counted unit, in English's
+ * shorthand: Redis's "Commands per second" reads "12 ops/s" in English
+ * and "12 Vorgänge/s", "۱۲ عملیات/ثانیه" in German and Persian.
+ */
+export const DATABASE_RATE_UNITS: Readonly<Record<string, string>> = {
+  "ops/s": "operations",
+};
+
+/*
+ * `figure` (as English wrote it: "24", "1", "2.5k") of `unit`, in the
+ * reader's language: the unit's sentence, its noun agreeing with the
+ * number, the figure in their digits. English, or no translator, reads
+ * exactly as withUnitWord wrote it. Null for a unit of neither list.
+ */
+function writeUnitCount(
+  figure: string,
+  value: number,
+  unit: string,
+  translator: Translator | undefined,
+): string | null {
+  if (!translator || isEnglishDateLanguage(translator.language)) {
+    return null;
+  }
+
+  const count: string = writeDatabaseFigureInLanguage(
+    figure,
+    translator.language,
+  );
+  const template: PluralTemplate | undefined = DATABASE_UNIT_COUNTS[unit];
+
+  if (template) {
+    // The number the figure says ("1" for 1.004): the form agrees with it.
+    const shown: number = PLAIN_FIGURE_PATTERN.test(figure)
+      ? Number(figure)
+      : value;
+
+    return translator.translatePlural(template, shown, { count: count });
+  }
+
+  const reading: string | undefined = DATABASE_UNIT_READINGS[unit];
+
+  return reading
+    ? translator.translateTemplate(reading, { value: count })
+    : null;
+}
+
 /**
  * A catalog metric's value for its tile: bytes as KiB/MiB/GiB, seconds as
  * s/min/h/d, a "fraction" (a 0..1 share) as a percentage, other units as a
@@ -828,6 +1038,15 @@ export function formatDatabaseMetricValue(
     if (cleanUnit === "bytes") {
       return `${formatDatabaseBytes(value, translator)}/s`;
     }
+    const perSecond: string | null = writeUnitCount(
+      rate,
+      value,
+      cleanUnit,
+      translator,
+    );
+    if (perSecond !== null && translator) {
+      return translator.translateTemplate(PER_SECOND, { rate: perSecond });
+    }
     return inLanguage(`${withUnitWord(rate, cleanUnit)}/s`, translator);
   }
 
@@ -845,6 +1064,19 @@ export function formatDatabaseMetricValue(
   }
   if (cleanUnit === "ms") {
     return writeMillisecondsFigure(formatDatabaseCount(value), translator);
+  }
+  const ratedUnit: string | undefined = DATABASE_RATE_UNITS[cleanUnit];
+  const counted: string | null = writeUnitCount(
+    formatDatabaseCount(value),
+    value,
+    ratedUnit || cleanUnit,
+    translator,
+  );
+  if (counted !== null && ratedUnit && translator) {
+    return translator.translateTemplate(PER_SECOND, { rate: counted });
+  }
+  if (counted !== null) {
+    return counted;
   }
   return inLanguage(
     withUnitWord(formatDatabaseCount(value), cleanUnit),
