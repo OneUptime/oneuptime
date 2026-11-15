@@ -537,7 +537,7 @@ Rollen zijn alleen definities. Je wijst er per incident mensen aan toe — de me
 
 ### Een rol archiveren
 
-Archiveer een rol die uw team niet meer gebruikt via het menu **⋯** van de rij, in plaats van die te verwijderen. Wie de rol bij een incident heeft, behoudt hem, maar niemand kan hem nog krijgen: de rolkiezers laten hem weg, of tonen hem alleen met de mensen die hem hebben, en de API weigert hem. De primaire rol, en elke rol die niet kan worden verwijderd, kunnen niet worden gearchiveerd. Gearchiveerde rollen staan apart, in de ingeklapte sectie **Gearchiveerde incidentrollen**, waar **Uit archief halen** er een terugzet.
+Archiveer een rol die uw team niet meer gebruikt via het menu **⋯** van de rij, in plaats van die te verwijderen. Wie de rol bij een incident heeft, behoudt hem, maar niemand kan hem nog krijgen: de rolkiezers laten hem weg, of tonen hem alleen met de mensen die hem hebben, en de API weigert hem. De primaire rol, en elke rol die niet kan worden verwijderd, kunnen niet worden gearchiveerd. Gearchiveerde rollen staan apart, in de ingeklapte sectie **Gearchiveerde incidentrollen**, waar **Uit het archief halen** er een terugzet.
 
 ## Nummervoorvoegsels
 

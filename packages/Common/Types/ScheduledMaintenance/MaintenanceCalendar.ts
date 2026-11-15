@@ -196,7 +196,7 @@ export default class MaintenanceCalendar {
 
     const intro: string =
       data.audience === MaintenanceCalendarAudience.Team
-        ? `Every scheduled maintenance event in ${name || "this project"}.`
+        ? `Every maintenance event in ${name || "this project"}.`
         : `Scheduled maintenance on ${name || "this status page"}.`;
 
     const notes: Array<string> = (data.notes || [])

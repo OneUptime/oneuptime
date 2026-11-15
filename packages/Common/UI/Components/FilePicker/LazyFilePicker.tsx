@@ -6,11 +6,13 @@
 import type FilePicker from "./FilePicker";
 import type { ComponentProps } from "./FilePicker";
 import {
+  FILE_PICKER_FULL_NOTE,
   FILE_PICKER_FILE_NAME_CLASS_NAME,
   FilePickerLayout,
   FilePickerPromptWords,
   getFilePickerLayout,
   getFilePickerPromptWords,
+  isPickerOfSeveralForOneFile,
 } from "./FilePickerLayout";
 import FieldError from "../Forms/Fields/FieldError";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
@@ -94,6 +96,7 @@ export const FilePickerPlaceholder: FunctionComponent<
       placeholder: props.placeholder,
       isPlaceholderTranslated: props.isPlaceholderTranslated,
       hint: props.hint,
+      maxFiles: layout.maxFiles,
       mimeTypes: props.mimeTypes,
       maxFileSizeInBytes: props.maxFileSizeInBytes,
       keepFilesInBrowser: props.keepFilesInBrowser,
@@ -124,9 +127,9 @@ export const FilePickerPlaceholder: FunctionComponent<
             >
               <div className="flex w-full flex-col items-center justify-center space-y-3 text-center">
                 <p className="text-sm text-gray-400">
-                  {translator.translateTemplate(
-                    "This field holds up to {{count}} files. Remove one to add another.",
-                    { count: layout.maxFiles || 0 },
+                  {translator.translatePlural(
+                    FILE_PICKER_FULL_NOTE,
+                    layout.maxFiles || 0,
                   )}
                 </p>
               </div>
@@ -171,7 +174,11 @@ export const FilePickerPlaceholder: FunctionComponent<
 
           {files.length > 0 && (
             <div className="space-y-2 w-full">
-              {props.isMultiFilePicker ? (
+              {props.isMultiFilePicker &&
+              !isPickerOfSeveralForOneFile({
+                isMultiFilePicker: props.isMultiFilePicker,
+                maxFiles: layout.maxFiles,
+              }) ? (
                 <div className={`h-5 w-24 ${BOX_CLASS_NAME}`} />
               ) : (
                 <></>

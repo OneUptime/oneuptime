@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "الحوادث المبلَّغ عنها في هذا اليوم: {{total}}",
     "scheduledMaintenance": "الصيانة المجدولة",
     "dayLabelWithMaintenance": "{{label}}، {{maintenance}}",
-    "oneMaintenanceEvent": "حدث صيانة مجدولة واحد",
-    "maintenanceEvents": "أحداث الصيانة المجدولة: {{total}}",
+    "oneMaintenanceEvent": "حدث صيانة واحد",
+    "maintenanceEvents": "أحداث الصيانة: {{total}}",
     "moreMaintenance": "+{{total}} أخرى"
   },
   "liveStatus": {

@@ -9,6 +9,7 @@ import {
   DocsSearchSynonym,
   DocsVocabularyMatch,
   foldDocsSearchWord,
+  getDocsSearchQuestionWords,
   getDocsSearchSynonyms,
   getTypoAllowance,
 } from "./DocsSearchWords";
@@ -29,10 +30,12 @@ import { localizeDocsUrl } from "./I18n";
  *
  * Every word typed must be found in a result (a word no page holds, or
  * nearly spells, is set aside); when no page has them all, the pages with
- * most of them are offered. A page's title counts most, then a section's
- * heading, then what a section says; a word every page holds counts
- * little. A guide (NavLink.isGuide) goes above a reference page for the
- * same words, and one page offers at most three results.
+ * most of them are offered. A word a question is phrased with is not
+ * looked for, as Ask AI does not look for it: "Wie überwache ich meine
+ * Website?" is "überwache" and "Website". A page's title counts most,
+ * then a section's heading, then what a section says; a word every page
+ * holds counts little. A guide (NavLink.isGuide) goes above a reference
+ * page for the same words, and one page offers at most three results.
  *
  * Why on the server, not in the browser: the whole text of the docs, as an
  * index a browser could search, measured 1.2 to 3 MB per language (470 KB
@@ -273,6 +276,16 @@ export default class DocsSearch {
    * start and by the docs words it spells with a wrong letter or two. A
    * word with no way to be found (nothing like it in the docs, or a word
    * every question has: "how", "the") is left out.
+   *
+   * So is a word a question is phrased with in the index's language
+   * (#7874): German "wie", "ich" and "meine" (getDocsSearchQuestionWords,
+   * the list Ask AI's search leaves out too). The German docs say "Sie"
+   * and "Ihre", so the pages that hold "ich" and "meine" are the ones that
+   * quote a question: "Wie überwache ich meine Website?" found those, not
+   * Website-Überwachung. Typed with nothing else they are read, since the
+   * index holds them: "ein" finds pages while "Einstellungen" is being
+   * typed. A word left out still ends what was typed, so the word before
+   * it is not read by its start.
    */
   public static readQuery(
     index: AIDocsLanguageIndex,
@@ -280,9 +293,22 @@ export default class DocsSearch {
   ): Array<DocsQueryWord> {
     const typedWords: Array<string> = splitDocsWords(query);
     const isTyping: boolean = !ENDS_WITH_SPACE.test(query);
+    const questionWords: ReadonlySet<string> = getDocsSearchQuestionWords(
+      index.language,
+    );
+    const isQuestionWord: (typed: string) => boolean = (
+      typed: string,
+    ): boolean => {
+      return questionWords.has(foldDocsSearchWord(typed));
+    };
+    const isOnlyQuestionWords: boolean = typedWords.every(isQuestionWord);
     const words: Array<DocsQueryWord> = [];
 
     typedWords.forEach((typed: string, position: number): void => {
+      if (!isOnlyQuestionWords && isQuestionWord(typed)) {
+        return;
+      }
+
       const isLast: boolean = position === typedWords.length - 1;
       const parts: Array<string> = typed
         .split("-")

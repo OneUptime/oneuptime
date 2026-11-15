@@ -138,7 +138,7 @@ Das Lesen einer Notiz über die API, Terraform oder einen Workflow listet nur di
 
 ## Eine Notiz mit KI erzeugen
 
-Das Eingabefeld hat eine Schaltfläche **Mit KI entwerfen**, auf beiden Notizseiten und in den Dialogen **Öffentliche Notiz hinzufügen** und **Private Notiz hinzufügen** des Feeds. Sie sendet den Vorfall an den KI-Anbieter Ihres Projekts und setzt das erzeugte Markdown in die Notiz, wo Sie es vor dem Posten bearbeiten – nichts wird automatisch veröffentlicht.
+Das Eingabefeld hat eine Schaltfläche **Mit KI entwerfen**, auf beiden Notizseiten und in den Dialogen **Öffentliche Notiz hinzufügen** und **Private Notiz hinzufügen** des Feeds. Sie sendet den Vorfall an den [LLM-Anbieter](/docs/ai/llm-provider) Ihres Projekts und setzt das erzeugte Markdown in die Notiz, wo Sie es vor dem Posten bearbeiten – nichts wird automatisch veröffentlicht.
 
 | Dialog                             | Was er schreibt                                                      | Vorlagen |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

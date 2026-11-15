@@ -276,6 +276,8 @@ describe("TeamMemberService - removing a membership revokes the cached project a
             teamPermission.permission = permission;
             teamPermission.labels = [];
             teamPermission.isBlockPermission = false;
+            // Every team permission row is a team's (TeamPermission.teamId).
+            teamPermission.teamId = new ObjectID(teamId);
             rows.push(teamPermission);
           }
         }

@@ -6,7 +6,7 @@ Inventaret er én liste over alt, hvad OneUptime ved om dit miljø: tjenester, v
 - [Sådan kommer elementer ind i inventaret](#sådan-kommer-elementer-ind-i-inventaret): Fundet, spejlet eller tilføjet af dig.
 - [Find rundt](#find-rundt): Inventarets sider og hvert elements egne sider.
 - [Tilføj noget manuelt](#tilføj-noget-manuelt): En tredjeparts-API, en ekstern database eller en appliance.
-- [Arkivér i stedet for at slette](#arkivér-i-stedet-for-at-slette): Den måde at rydde op i listen på, der holder.
+- [Arkiver i stedet for at slette](#arkiver-i-stedet-for-at-slette): Den måde at rydde op i listen på, der holder.
 :::
 
 ## Sådan kommer elementer ind i inventaret
@@ -111,11 +111,11 @@ Tre typer kan du tilføje manuelt:
 
 Begrænsningen forhindrer dubletter. Et manuelt oprettet element af en type, OneUptime kan observere, som en vært, ville blive nøglet på det navn, du skrev, mens det fundne element for samme maskine nøgles på de attributter, den rapporterer. De to ville aldrig smelte sammen, så den samme vært ville stå to gange i din liste for altid.
 
-## Arkivér i stedet for at slette
+## Arkiver i stedet for at slette
 
 Arkivering tager et element ud af listen, mens det beholder sin identitet, sin historik og sine værdier i brugerdefinerede felter. Det siger: Det her har jeg set, og jeg vil ikke have det i min liste. Et arkiveret element bliver ved med at indsamle telemetri.
 
-| Kilde | Arkivér | Slet |
+| Kilde | Arkiver | Slet |
 | --- | --- | --- |
 | **Discovered** | Forbliver arkiveret. | Kommer tilbage med næste batch af dets telemetri. |
 | **Mirrored** | Forbliver arkiveret. | Kommer tilbage med næste kopi. Slet i stedet den oprindelige post. |

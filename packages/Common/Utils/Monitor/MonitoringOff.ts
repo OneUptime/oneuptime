@@ -1,5 +1,6 @@
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Query from "../../Types/BaseDatabase/Query";
+import MonitorNotCheckedReason from "../../Types/Monitor/MonitorNotCheckedReason";
 
 /*
  * A MONITOR WHOSE MONITORING IS TURNED OFF.
@@ -94,5 +95,27 @@ export default class MonitoringOff {
     monitor: MonitoredFlags | null | undefined,
   ): boolean {
     return monitor?.isArchived !== true && !MonitoringOff.isOff(monitor);
+  }
+
+  /*
+   * Why nothing checks the monitor (read with MONITORED_SELECT), or null
+   * when it is checked - exactly when isMonitored is false, so the two never
+   * disagree. Archived wins when both are set: unarchiving is what puts the
+   * monitor back, and its switch only matters after that. The device pages'
+   * "Monitor archived" and "Monitoring off" qualifiers and the Network Map's
+   * device nodes say this reason (issue #7346).
+   */
+  public static getNotCheckedReason(
+    monitor: MonitoredFlags | null | undefined,
+  ): MonitorNotCheckedReason | null {
+    if (monitor?.isArchived === true) {
+      return MonitorNotCheckedReason.MonitorArchived;
+    }
+
+    if (MonitoringOff.isOff(monitor)) {
+      return MonitorNotCheckedReason.MonitoringOff;
+    }
+
+    return null;
   }
 }

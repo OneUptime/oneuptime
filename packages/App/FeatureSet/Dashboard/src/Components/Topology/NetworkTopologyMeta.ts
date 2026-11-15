@@ -3,11 +3,13 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyLinkProtocol,
+  NetworkTopologyMonitorNotChecked,
   NetworkTopologyNode,
   NetworkTopologyNodeDiagnostics,
   NetworkTopologyNodePlacementDiagnostics,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { isMonitorNotCheckedReason } from "Common/Types/Monitor/MonitorNotCheckedReason";
 import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import { fillTemplate, translationKey } from "Common/Types/Translator";
 import { DEVICE_ROLES_IN_LEGEND_ORDER } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
@@ -321,6 +323,49 @@ export const NODE_STATUS_COLORS: Record<NetworkTopologyNodeStatus, string> = {
 };
 
 export type NetworkTopologyNodeKind = "device" | "unmanaged" | "endpoint";
+
+/**
+ * The monitor bound to a managed device node that nothing checks - turned
+ * off or archived (issue #7346) - when the node is drawn "unknown" because
+ * of it, or undefined. The map's drawer puts the device pages' "Monitoring
+ * off" or "Monitor archived" pill beside the status for it, with the ways
+ * out, and the node's tooltip says why.
+ *
+ * Only beside "unknown", as the device hero shows the qualifier only beside
+ * Pending: a node that still has a status - stamped before its monitor was
+ * turned off, and read before the server took the stamp off - shows that
+ * status, with nothing beside it claiming it has none. And only for what
+ * the payload says in full: a reason this Dashboard does not know (from a
+ * newer server) or a missing monitor id says nothing, rather than a guess.
+ */
+export function monitorNotCheckedForNode(
+  node: NetworkTopologyNode,
+): NetworkTopologyMonitorNotChecked | undefined {
+  const notChecked: NetworkTopologyMonitorNotChecked | undefined =
+    node.monitorNotChecked;
+
+  if (
+    !notChecked ||
+    !node.isManaged ||
+    (node.kind !== undefined && node.kind !== "device") ||
+    node.status !== "unknown"
+  ) {
+    return undefined;
+  }
+
+  if (
+    typeof notChecked.monitorId !== "string" ||
+    !notChecked.monitorId.trim() ||
+    !isMonitorNotCheckedReason(notChecked.reason)
+  ) {
+    return undefined;
+  }
+
+  return {
+    monitorId: notChecked.monitorId.trim(),
+    reason: notChecked.reason,
+  };
+}
 
 /**
  * What each node shape means. Endpoints are violet on purpose —

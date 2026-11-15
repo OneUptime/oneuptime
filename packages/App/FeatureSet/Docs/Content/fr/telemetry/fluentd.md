@@ -74,6 +74,13 @@ Ajoutez une section `<match>` qui envoie les enregistrements à OneUptime. Rempl
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` envoie chaque bloc du tampon comme un seul tableau JSON, et `flush_interval 10s` envoie le tampon toutes les 10 secondes. `chunk_limit_size 900k` maintient chaque requête sous 1 Mo, le maximum qu'accepte OneUptime sur ce point de terminaison.
@@ -123,6 +130,13 @@ Cette configuration reçoit des enregistrements par le protocole forward de Flue
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 Pour envoyer différentes sources comme différents services, utilisez une section `<match>` par tag, chacune avec son propre `x-oneuptime-service-name`.

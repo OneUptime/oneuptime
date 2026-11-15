@@ -543,6 +543,66 @@ describe("sorting the Processes list", () => {
   });
 });
 
+/*
+ * The Memory column writes a size as the process's own page does (the host
+ * pages' formatHostBytes): "100 MiB", "1.6 GiB", and a count of bytes whole
+ * - never "512.0 B" or "100.0 MiB" (issue #7417).
+ */
+describe("the Memory column", () => {
+  // Each row's size, by PID.
+  function sizesByPid(): Record<string, string> {
+    const headers: Array<HTMLElement> = screen.getAllByRole("columnheader");
+    const memoryColumn: number = headers.findIndex(
+      (cell: HTMLElement): boolean => {
+        return (cell.textContent || "").trim() === "Memory";
+      },
+    );
+    expect(memoryColumn).toBeGreaterThan(-1);
+
+    const sizes: Record<string, string> = {};
+    const body: HTMLElement | null = document.getElementById(
+      "host-processes-table-body",
+    );
+
+    for (const row of Array.from(body?.querySelectorAll("tr") || [])) {
+      const cells: NodeListOf<HTMLTableCellElement> =
+        row.querySelectorAll("td");
+      const pid: string = (cells[1]?.textContent || "").trim();
+      const size: Element | null | undefined =
+        cells[memoryColumn]?.querySelector(".font-mono.text-sm");
+
+      sizes[pid] = (size?.textContent || "").trim();
+    }
+
+    return sizes;
+  }
+
+  test("writes each size as the process's own page does, plain bytes whole", async () => {
+    serve([
+      ...PROCESSES,
+      {
+        pid: 31,
+        exe: "kthreadd",
+        owner: "root",
+        command: "[kthreadd]",
+        cpu: null,
+        memoryBytes: 512,
+      },
+    ]);
+    await renderPage();
+
+    expect(sizesByPid()).toEqual({
+      "4321": "2.0 GiB",
+      "784": "4.0 GiB",
+      "99": "100 MiB",
+      "8404": "1.6 GiB",
+      "10040": "8.0 MiB",
+      "600": "3.0 MiB",
+      "31": "512 B",
+    });
+  });
+});
+
 describe("paging through the Processes list", () => {
   const MANY: Array<FakeProcess> = Array.from(
     { length: 30 },

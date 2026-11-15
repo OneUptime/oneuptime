@@ -8,6 +8,12 @@ import {
   wordStoredEvaluationText,
 } from "../../Types/Monitor/EvaluationSentence";
 import { translationKey, Translator } from "../../Types/Translator";
+import {
+  getRequestFailedPhaseText,
+  PROBE_TIMEOUT_FAILURE_CAUSE,
+  readProbeTimeoutFailureCause,
+  writeProbeTimeoutFailureCause,
+} from "./ProbeFailureReading";
 
 /*
  * THE ROOT CAUSE A MONITOR WROTE, IN THE READER'S LANGUAGE (issue #6542).
@@ -33,6 +39,12 @@ import { translationKey, Translator } from "../../Types/Translator";
  * what the check found - a URL, a probe's error, a name - and reads as
  * written. A root cause somebody edited reads as they wrote it, but for a
  * line that is still OneUptime's own.
+ *
+ * Two of the check's values are OneUptime's own words too, and read in the
+ * reader's language when the whole value is exactly them: the probe's
+ * timeout sentence after **Cause** ("Request was tried 3 times and it
+ * timed out.", ProbeFailureReading), and the phase after "- Failed Phase:"
+ * (DNS Resolution, TLS Handshake).
  *
  * Line by line, and only a whole line, or a label at a line's start, is
  * ever replaced: nothing else in the text is read as one of OneUptime's.
@@ -108,6 +120,12 @@ const FACT_LABEL_SET: ReadonlySet<string> = new Set<string>(FACT_LABELS);
 const ALL_FILTERS_MET: string = translationKey("All filters met.");
 
 const FILTER_CONDITIONS_MET: string = "Filter Conditions Met";
+
+// "**Cause**: <why the check failed>" - the probe's failure cause.
+const CAUSE: string = "Cause";
+
+// "- Failed Phase: <the phase a request broke in>".
+const FAILED_PHASE: string = "Failed Phase";
 
 /*
  * "**Label**" or "**Label**: rest" - a label of at most 80 characters with
@@ -196,6 +214,19 @@ export default class MonitorRootCauseWording {
           // What follows the label: as stored, unless this language words it.
           let rest: MarkdownText = FeedMarkdown.asMarkdown(stored);
 
+          // "**Cause**: <the probe's timeout sentence>", worded with its count.
+          if (label === CAUSE && stored.startsWith(" ")) {
+            const worded: string | null =
+              MonitorRootCauseWording.wordProbeTimeout(
+                stored.slice(1),
+                translator,
+              );
+
+            if (worded !== null) {
+              rest = mdText` ${worded}`;
+            }
+          }
+
           // "**Filter Conditions Met**: <the finding, or All filters met.>"
           if (label === FILTER_CONDITIONS_MET && stored.startsWith(" ")) {
             const said: string = stored.slice(1);
@@ -231,11 +262,20 @@ export default class MonitorRootCauseWording {
         if (fact && FACT_LABEL_SET.has(fact[1]!)) {
           const label: string = fact[1]!;
           const stored: string = fact[2] || "";
-          // OneUptime's own yes or no is worded; any other value is as stored.
-          const value: MarkdownValue =
-            YES_NO_FACTS.has(label) && (stored === "Yes" || stored === "No")
-              ? MonitorRootCauseWording.word(stored, translator)
-              : FeedMarkdown.asMarkdown(stored);
+          /*
+           * OneUptime's own yes or no, and the phase a request broke in, are
+           * worded; any other value is as stored.
+           */
+          let value: MarkdownValue = FeedMarkdown.asMarkdown(stored);
+
+          if (
+            YES_NO_FACTS.has(label) &&
+            (stored === "Yes" || stored === "No")
+          ) {
+            value = MonitorRootCauseWording.word(stored, translator);
+          } else if (label === FAILED_PHASE) {
+            value = MonitorRootCauseWording.wordFailedPhase(stored, translator);
+          }
 
           return mdText`- ${MonitorRootCauseWording.word(label, translator)}: ${value}`.toString();
         }
@@ -264,6 +304,47 @@ export default class MonitorRootCauseWording {
   // One of OneUptime's words, in the reader's language when it words it.
   private static word(text: string, translator: Translator): string {
     return translator.translateText(text) || text;
+  }
+
+  /*
+   * The probe's timeout sentence, as the engine placed it after **Cause**
+   * (written with mdText, so compared written the same way), in the
+   * reader's language with its count in the reader's digits. Null for any
+   * other cause, and when the reader's language does not word it.
+   */
+  private static wordProbeTimeout(
+    stored: string,
+    translator: Translator,
+  ): string | null {
+    const triedCount: number | null = readProbeTimeoutFailureCause(stored);
+
+    if (
+      triedCount === null ||
+      asMarkdownText(writeProbeTimeoutFailureCause(triedCount)).toString() !==
+        stored ||
+      !translator.hasTranslation(PROBE_TIMEOUT_FAILURE_CAUSE.other)
+    ) {
+      return null;
+    }
+
+    return translator.translatePlural(PROBE_TIMEOUT_FAILURE_CAUSE, triedCount);
+  }
+
+  /*
+   * The phase a request broke in: a phase the probe names, in the reader's
+   * word; any other value as stored.
+   */
+  private static wordFailedPhase(
+    stored: string,
+    translator: Translator,
+  ): MarkdownValue {
+    const phase: string = stored.trim();
+    const worded: string = getRequestFailedPhaseText({
+      translator: translator,
+      failedPhase: phase,
+    });
+
+    return phase && worded !== phase ? worded : FeedMarkdown.asMarkdown(stored);
   }
 
   // Each finding with a sentence its reader's language words.

@@ -4,6 +4,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import { getTranslatedLineDirection } from "Common/UI/Utils/LineDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -119,14 +120,20 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
             />
           </div>
           {/*
-           * A refusal the Dashboard does not word is the server's English:
-           * dir="auto" lays it out by its first letter, so on a page that
-           * reads right to left its full stop stays at its end.
+           * A refusal the Dashboard words reads as the page does, even when
+           * it starts with a name in Latin letters ("OneUptime AI ..." in
+           * Arabic and Persian); one it does not word is the server's
+           * English, which on a page read from the right reads from the
+           * left, so its full stop stays at its end
+           * (getTranslatedLineDirection).
            */}
           {props.startError ? (
             <p
               role="alert"
-              dir="auto"
+              dir={getTranslatedLineDirection(
+                props.startError,
+                translator.language,
+              )}
               data-testid="investigate-now-error"
               className="text-sm leading-6 text-red-600"
             >

@@ -164,6 +164,7 @@ describe("EvaluationSentence", () => {
     });
 
     test("words a term inside a worded sentence", () => {
+      // Two terms side by side in Chinese meet with no space (#7864).
       expect(
         wordStoredEvaluationText({
           english: "Response Status Code Greater Than 499",
@@ -174,7 +175,7 @@ describe("EvaluationSentence", () => {
           }),
           translator: chinese,
         }),
-      ).toBe("响应状态码 大于 499");
+      ).toBe("响应状态码大于 499");
     });
 
     test("a sentence a part of which is not worded yet reads in English, whole", () => {

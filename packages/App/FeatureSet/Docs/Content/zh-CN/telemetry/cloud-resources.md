@@ -39,7 +39,7 @@ flowchart TB
 | 装有 OpenTelemetry Collector 的虚拟机 | **主机** | 主机自身的指标和日志。参见 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | 你的应用使用的队列和主题 | **队列** | span，以及相同的云指标。参见 [队列](/docs/telemetry/queues) |
 
-一个资源可能出现在多个地方。装有 Collector 的虚拟机是一台 **主机**，而它的平台指标（虚拟机监控程序看到的 CPU 积分、磁盘和网络）又让它成为一个 **云资源**。SQS 队列既是 **Queue**，也是 **云资源**。每个视图显示的是其数据来源所知道的内容。
+一个资源可能出现在多个地方。装有 Collector 的虚拟机是一台 **主机**，而它的平台指标（虚拟机监控程序看到的 CPU 积分、磁盘和网络）又让它成为一个 **云资源**。SQS 队列既是 **队列**，也是 **云资源**。每个视图显示的是其数据来源所知道的内容。
 
 ## 开始之前
 

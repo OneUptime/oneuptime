@@ -57,7 +57,7 @@ import ServerSetupChecklistUtil, {
  * and call channels as ServerSendingStatus words them - the same answer the
  * banner reads, so the two never disagree - HTTP_PROTOCOL, the sign-up
  * switch, the global probes, the update check, the last backup, VAPID keys,
- * the AI providers and single sign-on, and what admins chose
+ * the global LLM providers and single sign-on, and what admins chose
  * (GlobalConfig.serverSetupChoices).
  *
  * Every read is as OneUptime itself, and the answer is for master admins
@@ -289,7 +289,7 @@ export default class ServerSetupChecklist {
             return ServerSetupChecklist.hasAiProvider();
           },
           false,
-          "the AI providers",
+          "the global LLM providers",
         ),
         ServerSetupChecklist.orDefault<boolean>(
           () => {

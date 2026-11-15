@@ -73,7 +73,7 @@ import {
   pluralName: "Scheduled Maintenance Label Rules",
   icon: IconProp.Tag,
   tableDescription:
-    "Configure rules for automatically attaching labels to scheduled maintenance events — including labels inherited from the event's monitors — when matching events are created",
+    "Configure rules for automatically attaching labels to maintenance events — including labels inherited from the event's monitors — when matching events are created",
 })
 export default class ScheduledMaintenanceLabelRule extends RuleBaseModel {
   @ColumnAccessControl({

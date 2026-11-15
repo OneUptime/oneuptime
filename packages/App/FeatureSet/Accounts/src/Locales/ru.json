@@ -610,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Нажмите, чтобы выбрать файл, или перетащите его сюда.",
   "Click to add more or drag & drop.": "Нажмите, чтобы добавить ещё, или перетащите файлы сюда.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "Файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP, до {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "До 10 файлов по {{size}}: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Максимум файлов: {{count}}, каждый до {{size}}: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Один файл до {{size}}: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
   "Chosen files": "Выбранные файлы",
   "Remove": "Удалить",
   "Replace": "Заменить",
@@ -621,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Это поле не принимает файлы такого типа: {{fileNames}}.",
   "Add one file at a time.": "Добавляйте по одному файлу.",
   "This field holds up to {{count}} files. Remove one to add another.": "Максимум файлов в этом поле: {{count}}. Удалите один, чтобы добавить другой.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "В этом поле может быть только один файл. Удалите его, чтобы добавить другой.",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

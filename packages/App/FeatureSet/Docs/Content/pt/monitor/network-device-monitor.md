@@ -807,7 +807,7 @@ Para criar um a partir de **Monitores**:
 
 Um monitor de dispositivo de rede não tem intervalo próprio: ele é avaliado sempre que chegam os resultados de sondagem do dispositivo, e sempre que chega um trap do dispositivo.
 
-Quando as sondagens param, o monitor continua sendo avaliado. Quando um dispositivo passa três intervalos de sondagem, e pelo menos dez minutos, sem uma sondagem, seus monitores são avaliados a cada cinco minutos como uma sondagem que não conseguiu alcançá-lo: um critério que corresponde a **Dispositivo SNMP online** como False, como **Device unreachable**, dispara, e o incidente diz por que nenhuma sondagem chegou, por exemplo que a sonda está fora do ar ou que o dispositivo não tem sonda. Um dispositivo com a sondagem desativada, ou com a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado), fica de fora. A próxima sondagem avalia o monitor como de costume.
+Quando as sondagens param, o monitor continua sendo avaliado. Quando um dispositivo passa três intervalos de sondagem, e pelo menos dez minutos, sem uma sondagem, seus monitores são avaliados uma vez, a cada vez que as sondagens param, como uma sondagem que não conseguiu alcançá-lo (uma verificação roda a cada cinco minutos): um critério que corresponde a **Dispositivo SNMP online** como False, como **Device unreachable**, dispara, e o incidente diz por que nenhuma sondagem chegou, por exemplo que a sonda está fora do ar ou que o dispositivo não tem sonda. Um dispositivo com a sondagem desativada, ou com a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado), fica de fora. A próxima sondagem avalia o monitor como de costume.
 
 ### Incidentes e alertas de um dispositivo
 

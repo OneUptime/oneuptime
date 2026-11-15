@@ -16,7 +16,9 @@ const NotOperationalMonitors: FunctionComponent<
     <MonitorTable
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
-        ...NotOperationalMonitorQuery.getQuery(),
+        ...NotOperationalMonitorQuery.getQuery(
+          ProjectUtil.getCurrentProjectId(),
+        ),
       }}
       noItemsMessage="No monitors are reporting a problem."
       emptyState={{ isAllClear: true }}

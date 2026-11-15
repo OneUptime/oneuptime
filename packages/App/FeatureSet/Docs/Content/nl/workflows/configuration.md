@@ -35,9 +35,9 @@ Archiveer een workflow die je niet meer nodig hebt maar wilt bewaren. Een gearch
 
 Om één workflow te archiveren, open je hem, ga je naar **Instellingen** en klik je op **Archiveren**. Om er meerdere te archiveren, selecteer je ze in de lijst **Workflows** en kies je **Archiveren**.
 
-Om een workflow terug te halen, open je **Workflows → Geavanceerd → Gearchiveerd**, selecteer je hem en kies je **Uit archief halen**, of open je hem en klik je op **Uit archief halen** in de banner bovenaan zijn pagina's.
+Om een workflow terug te halen, open je **Workflows → Geavanceerd → Gearchiveerd**, selecteer je hem en kies je **Uit het archief halen**, of open je hem en klik je op **Uit het archief halen** in de banner bovenaan zijn pagina's.
 
-Archiveren en de schakelaar **Ingeschakeld** staan los van elkaar. Archiveren raakt de schakelaar niet aan, dus een workflow die aan stond, draait weer zodra hij uit het archief komt, en een die uit stond, blijft uit. De pagina **Gearchiveerd** toont in de kolom **When Unarchived** welke welke is.
+Archiveren en de schakelaar **Ingeschakeld** staan los van elkaar. Archiveren raakt de schakelaar niet aan, dus een workflow die aan stond, draait weer zodra hij uit het archief komt, en een die uit stond, blijft uit. De pagina **Gearchiveerd** toont in de kolom **Na uit het archief halen** welke welke is.
 
 Een geëxporteerde workflow neemt zijn gearchiveerde toestand nooit mee, dus een geïmporteerde kopie is nooit gearchiveerd.
 

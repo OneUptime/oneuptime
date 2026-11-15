@@ -130,7 +130,7 @@ Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekrefte
 Arkivering tar en retningslinje ut av drift og beholder alt: åpne **Innstillinger** for retningslinjen og klikk på **Arkiver** på arkivkortet, eller velg retningslinjer i listen og velg **Arkiver**.
 
 - En arkivert retningslinje tilkaller ingen. Hendelser og varsler som bruker den, hopper over den, og en kjøring som fortsatt eskalerer, stopper ved neste steg.
-- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
+- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkivet** setter den i drift igjen.
 
 **Slett retningslinjer**, under **Avansert**, sletter retningslinjen sammen med eskaleringsreglene og brukeroverstyringene. Sletting fra listen spør først og foreslår å arkivere i stedet.
 

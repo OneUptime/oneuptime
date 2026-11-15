@@ -26,6 +26,7 @@ import { getCustomFieldValuesNotOffered } from "../../../Types/CustomField/Custo
 import { customFieldValueToText } from "../../../Types/CustomField/CustomFieldValueFormat";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  PluralTemplate,
   translateTemplate,
   translationKey,
 } from "../../Utils/TranslateTemplate";
@@ -206,9 +207,19 @@ export const CUSTOM_FIELD_FILE_HINT: string = translationKey(
 export const CUSTOM_FIELD_FILE_PLACEHOLDER: string =
   translationKey("Upload a file");
 
-export const CUSTOM_FIELD_FILES_HINT: string = translationKey(
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
-);
+/*
+ * A Multiple files field's picker, and a public form's Multiple files
+ * question: how many files it takes is its {{count}}, the picker's own
+ * maxFiles, so the sentence never says a number the picker does not hold
+ * (issue #7421). A plural, so each language puts the noun in the form its
+ * grammar takes for the count; a language with more forms than one and
+ * other words its other sentence for any count.
+ */
+export const CUSTOM_FIELD_FILES_HINT: PluralTemplate = {
+  one: "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  other:
+    "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+};
 
 export type SetCustomFieldFilePickerFunction = (data: {
   field: Field<JSONObject>;

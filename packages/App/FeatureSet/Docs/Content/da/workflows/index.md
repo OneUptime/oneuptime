@@ -72,7 +72,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 - **Globale variabler** — værdier, som alle dine workflows deler.
 - **Protokoller → Kørsler** — kørselshistorikken for alle workflows i dit projekt.
 - **Indstillinger → Etiketregler** og **Ejerregler** — sæt automatisk etiketter på nye workflows, og tildel deres ejere.
-- **Avanceret → Arkiveret** — workflows, du har arkiveret. De kører aldrig og er udeladt af listen; fjern dem fra arkivet her. Se [Arkivér et workflow](/docs/workflows/configuration#arkivér-et-workflow).
+- **Avanceret → Arkiveret** — workflows, du har arkiveret. De kører aldrig og er udeladt af listen; fjern dem fra arkivet her. Se [Arkiver et workflow](/docs/workflows/configuration#arkiver-et-workflow).
 - **Udvikler** — sådan administrerer du workflows med Terraform, API'et eller en AI-assistent.
 
 Åbn et enkelt workflow, og dets egen menu indeholder:
@@ -83,7 +83,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 - **Protokoller → Kørsler** — hver kørsel af dette workflow, med detaljer.
 - **Ejere** — de personer og teams, der er ansvarlige for workflowet.
 - **Udvikler** — sådan administrerer du dette workflow med Terraform, API'et eller en AI-assistent.
-- **Indstillinger** — duplikér, eksportér og arkivér.
+- **Indstillinger** — duplikér, eksportér og arkiver.
 
 **Indstillinger** ligger i menuens sektion **Avanceret** sammen med **Auditlogs** og **Slet arbejdsgang**. **Avanceret** og **Udvikler** starter sammenfoldet, i denne menu og i alle andre, så de sider, du bruger hver dag, kommer først. Klik på en sektions navn for at vise dens sider. Den folder sig selv ud, når du er på en af dem.
 

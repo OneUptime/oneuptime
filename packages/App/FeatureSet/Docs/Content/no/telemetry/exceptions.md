@@ -98,11 +98,11 @@ Knappene øverst på siden til unntaket og ⋯ ved siden av dem, siden **Innstil
 | **Løs i neste utgivelse** | Rettingen kommer i din neste utgivelse. | Det forlater listen **Uløst**. Forekomster fra utgivelsen det sist ble sett i, gjenåpner det ikke, men en fra en hvilken som helst annen utgivelse gjør det. |
 | **Gjenåpne** | Rettingen virket ikke. | Det er uløst igjen. |
 | **Arkiver** | Det er støy du ikke tenker å rette. | Det forlater listen. Nye forekomster telles, men sender ikke lenger varsler. |
-| **Fjern fra arkiv** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
+| **Fjern fra arkivet** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
 
 **Løs i neste utgivelse** ligger i ⋯ øverst på siden til unntaket, i radens meny ⋯, under **Massehandlinger** og på **Innstillinger**, så lenge forekomstene av unntaket oppgir utgivelsen sin: ressursattributtet `service.version`.
 
-**Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
+**Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkivet**.
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Når alle unntak på siden er krysset av, tilbyr linjen over radene å velge alle unntak som samsvarer med listens søk og filtre, på alle sider, opptil 10 000 om gangen; en handling spør da før den endrer dem. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 

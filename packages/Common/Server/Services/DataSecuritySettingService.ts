@@ -4,6 +4,9 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
+import QueryHelper from "../Types/Database/QueryHelper";
+import DataStoreService from "./DataStoreService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 
@@ -83,6 +86,53 @@ export class Service extends ProjectReferencesService<Model> {
     Service.checkLimits(updateBy.data as unknown as Record<string, unknown>);
 
     return { updateBy, carryForward: undefined };
+  }
+
+  /*
+   * Content scanning turned back on for a project: its probe stores'
+   * content scans are due now. While it was off the probes' claims set
+   * those stores aside for up to a quarter of an hour at a time
+   * (Utils/Probe/ClaimSetAside, DataSecurityProbeClaim), and turning it on
+   * must not wait for that. Its own try: the settings are saved already.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const data: Record<string, unknown> = (onUpdate.updateBy.data ||
+      {}) as unknown as Record<string, unknown>;
+
+    if (updatedItemIds.length === 0 || data["isContentScanEnabled"] !== true) {
+      return onUpdate;
+    }
+
+    try {
+      const settings: Array<Model> = await this.findBy({
+        query: { _id: QueryHelper.any(updatedItemIds) },
+        select: { projectId: true },
+        limit: updatedItemIds.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      await DataStoreService.makeDueNowForProjects({
+        projectIds: settings
+          .map((setting: Model): ObjectID | undefined => {
+            return setting.projectId;
+          })
+          .filter((projectId: ObjectID | undefined): projectId is ObjectID => {
+            return Boolean(projectId);
+          }),
+        dueColumns: ["nextContentScanAt"],
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecuritySettingService.onUpdateSuccess: could not make a project's probe stores due after content scanning was turned on; their probes pick them up within a quarter of an hour: ${error}`,
+      );
+    }
+
+    return onUpdate;
   }
 
   /*

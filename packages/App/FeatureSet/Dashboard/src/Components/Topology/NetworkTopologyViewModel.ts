@@ -1,6 +1,7 @@
 import {
   NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
+  NetworkTopologyMonitorNotChecked,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
@@ -24,8 +25,13 @@ import {
   edgeKeyForEdge,
   edgeStrokeWidthForEdge,
   linkStateForEdge,
+  monitorNotCheckedForNode,
   nodeMatchesSearch,
 } from "./NetworkTopologyMeta";
+import {
+  MonitorNotCheckedQualifier,
+  getMonitorNotCheckedQualifier,
+} from "../NetworkDevice/DeviceStatusUtil";
 import {
   TopologyNodeFootprint,
   footprintForNode,
@@ -89,6 +95,14 @@ export interface TopologyNodeView {
   isHealthMatch: boolean;
   ariaLabel: string;
   tooltip: string;
+  /*
+   * Why the node reads "unknown", for a monitor-backed device whose bound
+   * monitor nothing checks (issue #7346): the device pages' Pending
+   * sentence for it ("Nothing checks this device - monitoring is turned off
+   * for the monitor bound to it."), as an English key the graph translates
+   * and puts on the tooltip's second line. Undefined for every other node.
+   */
+  statusNote: string | undefined;
   testId: string;
 }
 
@@ -207,6 +221,26 @@ const tooltipForNode: (node: NetworkTopologyNode) => string = (
   return `${node.name} (${descriptor})${
     vendorSummary ? ` — ${vendorSummary}` : ""
   }${interfacesSummary ? ` — ${interfacesSummary}` : ""}`;
+};
+
+/*
+ * The sentence the device pages give a Pending whose bound monitor nothing
+ * checks, for a node drawn "unknown" for that reason (monitorNotCheckedForNode).
+ */
+export const statusNoteForNode: (
+  node: NetworkTopologyNode,
+) => string | undefined = (node: NetworkTopologyNode): string | undefined => {
+  const notChecked: NetworkTopologyMonitorNotChecked | undefined =
+    monitorNotCheckedForNode(node);
+
+  if (!notChecked) {
+    return undefined;
+  }
+
+  const qualifier: MonitorNotCheckedQualifier | null =
+    getMonitorNotCheckedQualifier(notChecked.reason);
+
+  return qualifier ? qualifier.pendingTooltip : undefined;
 };
 
 /**
@@ -337,6 +371,7 @@ export const buildTopologyViewModel: (
       isHealthMatch: isHealthMatch,
       ariaLabel: accessibleLabelForNode(node),
       tooltip: tooltipForNode(node),
+      statusNote: statusNoteForNode(node),
       testId: `network-topology-node-${node.id}`,
     });
   }

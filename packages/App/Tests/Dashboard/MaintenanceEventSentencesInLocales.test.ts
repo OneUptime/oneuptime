@@ -350,3 +350,185 @@ describe("the sentences no code writes any more", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * THE TEXTS COMMON WRITES FOR THE RECORD, WHICH THE DASHBOARD TRANSLATES
+ * (#7825): its models' descriptions, a form's fields, the delete question,
+ * a manual monitor's explanation, the only state's refusal and a quiet
+ * event's Notify Subscribers default. Each said "scheduled maintenance
+ * event"; each says "maintenance event" now, renamed in place with its
+ * translation in the language's word for the record. The bare noun
+ * "scheduled maintenance event" is no key any more: no code looks it up.
+ */
+const COMMON_SENTENCES: Record<string, string> = {
+  "Unticked by default because status page subscribers were not notified when this maintenance event was created.":
+    "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.",
+  "A one-line summary that becomes the maintenance event's title.":
+    "A one-line summary that becomes the scheduled maintenance event's title.",
+  "Rich text that becomes the maintenance event's description.":
+    "Rich text that becomes the scheduled maintenance event's description.",
+  "A named duration between two points in a maintenance event's life, computed automatically for every event":
+    "A named duration between two points in a scheduled maintenance event's life, computed automatically for every event",
+  "Add teams as owners to your maintenance event.":
+    "Add teams as owners to your Scheduled Maintenance event.",
+  "Add users as owners to your maintenance event.":
+    "Add users as owners to your scheduled maintenance event.",
+  "Auto-attach runbooks to incidents, alerts, or maintenance events when they are created.":
+    "Auto-attach runbooks to incidents, alerts, or scheduled maintenance events when they are created.",
+  "Change state of your maintenance event.":
+    "Change state of your scheduled maintenance event.",
+  "Configure reminder rules to periodically notify maintenance event owners while an event is still not complete":
+    "Configure reminder rules to periodically notify scheduled maintenance event owners while an event is still not complete",
+  "Configure rules for automatically assigning owner users and teams when matching maintenance events are created":
+    "Configure rules for automatically assigning owner users and teams when matching scheduled maintenance events are created",
+  "Configure rules for automatically attaching labels to maintenance events — including labels inherited from the event's monitors — when matching events are created":
+    "Configure rules for automatically attaching labels to scheduled maintenance events — including labels inherited from the event's monitors — when matching events are created",
+  "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a maintenance event in this project.":
+    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a scheduled maintenance event in this project.",
+  "The computed value of one measurement for one maintenance event. Written by OneUptime, never edited by hand.":
+    "The computed value of one measurement for one scheduled maintenance event. Written by OneUptime, never edited by hand.",
+  "The submissions made through this project's forms: every answer, the name and email the submitter gave, and the incident or maintenance event each one created.":
+    "The submissions made through this project's forms: every answer, the name and email the submitter gave, and the incident or scheduled maintenance event each one created.",
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.":
+    "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.",
+  "The event's only state can't be deleted: a maintenance event always has a state. To change it, add a new state.":
+    "The event's only state can't be deleted: a scheduled maintenance event always has a state. To change it, add a new state.",
+  "The team's calendar link that puts every maintenance event of the project in a calendar app.":
+    "The team's calendar link that puts every scheduled maintenance event of the project in a calendar app.",
+  "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or maintenance event changes it.":
+    "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.",
+  "List of Docker hosts to pre-populate on maintenance events created from this template.":
+    "List of Docker hosts to pre-populate on scheduled maintenance events created from this template.",
+  "List of Kubernetes clusters to pre-populate on maintenance events created from this template.":
+    "List of Kubernetes clusters to pre-populate on scheduled maintenance events created from this template.",
+  "List of Podman hosts to pre-populate on maintenance events created from this template.":
+    "List of Podman hosts to pre-populate on scheduled maintenance events created from this template.",
+  "List of services to pre-populate on maintenance events created from this template.":
+    "List of services to pre-populate on scheduled maintenance events created from this template.",
+};
+
+const RETIRED_NOUN: string = "scheduled maintenance event";
+
+// The Delete question's sentence, which the Admin Dashboard says too.
+const DELETE_SENTENCE: string =
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.";
+
+const ADMIN_LOCALES_DIR: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/AdminDashboard/src/Locales",
+);
+
+const STATUS_PAGE_LOCALES_DIR: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/StatusPage/src/Locales",
+);
+
+function readLocaleIn(directory: string, language: string): Locale {
+  return JSON.parse(
+    fs.readFileSync(path.join(directory, `${language}.json`), "utf8"),
+  ) as Locale;
+}
+
+describe("the texts Common writes for the record (#7825)", () => {
+  test("are en.json's keys, each its own English, and the old ones are gone", () => {
+    for (const [sentence, old] of Object.entries(COMMON_SENTENCES)) {
+      expect({ sentence, english: ENGLISH[sentence] }).toEqual({
+        sentence,
+        english: sentence,
+      });
+      expect({ old, kept: old in ENGLISH }).toEqual({ old, kept: false });
+    }
+
+    expect(RETIRED_NOUN in ENGLISH).toBe(false);
+  });
+
+  test.each(Object.keys(LANGUAGES))(
+    "%s names the record with its own word, never the scheduled one",
+    (language: string) => {
+      const locale: Locale = readLocale(language);
+      const words: { record: RegExp; scheduled: RegExp } = LANGUAGES[language]!;
+
+      for (const [sentence, old] of Object.entries(COMMON_SENTENCES)) {
+        const text: unknown = locale[sentence];
+
+        expect({
+          language,
+          sentence,
+          isText: typeof text === "string",
+          namesTheRecord: words.record.test(String(text)),
+          saysScheduled: words.scheduled.test(String(text)),
+          isTheEnglish: language !== "en" && text === sentence,
+          keepsTheOldKey: old in locale,
+        }).toEqual({
+          language,
+          sentence,
+          isText: true,
+          namesTheRecord: true,
+          saysScheduled: false,
+          isTheEnglish: false,
+          keepsTheOldKey: false,
+        });
+      }
+
+      expect({ language, keepsTheNoun: RETIRED_NOUN in locale }).toEqual({
+        language,
+        keepsTheNoun: false,
+      });
+    },
+  );
+
+  test.each(Object.keys(LANGUAGES))(
+    "%s: the Admin Dashboard's Delete question says what the Dashboard's does",
+    (language: string) => {
+      const admin: Locale = readLocaleIn(ADMIN_LOCALES_DIR, language);
+
+      expect({
+        sentence: admin[DELETE_SENTENCE],
+        keepsTheOldKey: COMMON_SENTENCES[DELETE_SENTENCE]! in admin,
+      }).toEqual({
+        sentence: readLocale(language)[DELETE_SENTENCE],
+        keepsTheOldKey: false,
+      });
+    },
+  );
+
+  /*
+   * A status page's uptime strip counts a day's maintenance in the page's
+   * own keys, with the word its maintenance event pages use
+   * (scheduledEvents.singular): "1 Wartungsereignis", never "1 geplante
+   * Wartung".
+   */
+  test.each(Object.keys(LANGUAGES))(
+    "%s: a status page's uptime strip counts maintenance events by the record's word",
+    (language: string) => {
+      const statusPage: Locale = readLocaleIn(
+        STATUS_PAGE_LOCALES_DIR,
+        language,
+      );
+      const words: { record: RegExp; scheduled: RegExp } = LANGUAGES[language]!;
+      const record: string = String(
+        nested(statusPage, ["scheduledEvents", "singular"]),
+      ).toLowerCase();
+      const one: string = String(
+        nested(statusPage, ["uptimeHistory", "oneMaintenanceEvent"]),
+      );
+      const many: string = String(
+        nested(statusPage, ["uptimeHistory", "maintenanceEvents"]),
+      );
+
+      expect({
+        language,
+        oneSaysThePagesWord: one.toLowerCase().includes(record),
+        namesTheRecord: [words.record.test(one), words.record.test(many)],
+        saysScheduled: [words.scheduled.test(one), words.scheduled.test(many)],
+        countsThem: many.includes("{{total}}"),
+      }).toEqual({
+        language,
+        oneSaysThePagesWord: true,
+        namesTheRecord: [true, true],
+        saysScheduled: [false, false],
+        countsThem: true,
+      });
+    },
+  );
+});

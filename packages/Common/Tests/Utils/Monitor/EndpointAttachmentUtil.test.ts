@@ -1,6 +1,8 @@
 import EndpointAttachmentUtil, {
   CONTROLLER_SIGHTING_CURRENT_FOR_MS,
   ENDPOINT_LAST_SEEN_REFRESH_MS,
+  ENDPOINT_REFRESH_GROUPS,
+  ENDPOINT_WALK_WINDOW_MS,
   EndpointAttachment,
   EndpointAttachmentResult,
   EndpointExistingRowSnapshot,
@@ -8,8 +10,10 @@ import EndpointAttachmentUtil, {
   EndpointIpBinding,
   EndpointUpsertContext,
   EndpointUpsertDecision,
+  endpointRefreshSlot,
   normalizeMac,
 } from "../../../Utils/Monitor/EndpointAttachmentUtil";
+import { getEndpointSightingWindowMs } from "../../../Utils/Monitor/NetworkTopologyUtil";
 import FdbEntry from "../../../Types/Monitor/SnmpMonitor/FdbEntry";
 import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
 
@@ -578,8 +582,8 @@ describe("EndpointAttachmentUtil.decideUpsert", () => {
  * lastSeenAt — and that path runs inline on probe ingest. The rule has
  * to be conservative in both directions: never suppress a write that
  * carries new information, and never let lastSeenAt drift far enough to
- * make a live endpoint look down (NetworkTopologyUtil calls it down at
- * 15 minutes).
+ * make a live endpoint look down (the map calls it down once it is older
+ * than the walk window, an hour).
  */
 describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
   const mac: string = "aa:bb:cc:dd:ee:01";
@@ -614,14 +618,104 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
     attachment: { interfaceIndex: 7, portName: "Gi0/7", vlanId: 12 },
   };
 
-  it("keeps the refresh threshold at 5 minutes", () => {
+  /*
+   * When this MAC's own refresh window last turned, at or before `at`: the
+   * first second its endpointRefreshSlot reads what it reads at `at`.
+   */
+  function windowTurnedAt(at: Date, refreshMs?: number): Date {
+    const windowMs: number = refreshMs ?? ENDPOINT_LAST_SEEN_REFRESH_MS;
+    const slotAt: (time: number) => number = (time: number): number => {
+      return endpointRefreshSlot({
+        time,
+        macAddress: mac,
+        refreshMs: windowMs,
+      });
+    };
+    let time: number = at.getTime();
+
+    while (slotAt(time - 1000) === slotAt(at.getTime())) {
+      time -= 1000;
+    }
+
+    return new Date(time);
+  }
+
+  it("keeps the refresh window at 15 minutes, counted in fifteen groups", () => {
     /*
-     * Stored lastSeenAt lags reality by at most (threshold + poll
-     * interval). 5 minutes keeps that under the 15-minute down window
-     * for any poll interval up to 10 minutes; slower polls always land
-     * past the threshold and fall back to writing every poll.
+     * As an interface's is: a stable endpoint is written every third
+     * five-minute poll, a third of a switch's endpoints on each. It was 5
+     * minutes - every poll - and then just under two polls. Stored
+     * lastSeenAt lags reality by at most (window + poll interval), 20
+     * minutes, well inside the walk window.
      */
-    expect(ENDPOINT_LAST_SEEN_REFRESH_MS).toBe(5 * 60 * 1000);
+    expect(ENDPOINT_LAST_SEEN_REFRESH_MS).toBe(15 * 60 * 1000);
+    expect(ENDPOINT_REFRESH_GROUPS).toBe(15);
+  });
+
+  it("skips a row last written in the endpoint's current window, however lately the window turned", () => {
+    const turned: Date = windowTurnedAt(NOW);
+
+    /*
+     * aa:bb:cc:dd:ee:01 is group 1 (its hex digits sum to 121), so its
+     * window turns at :14, :29, :44 and :59.
+     */
+    expect(turned).toEqual(new Date("2026-07-22T11:59:00Z"));
+
+    for (const lastSeenAt of [
+      turned,
+      new Date("2026-07-22T11:59:30Z"),
+      new Date("2026-07-22T11:59:59Z"),
+    ]) {
+      expect(
+        EndpointAttachmentUtil.decideUpsert(
+          { ...stableRow, lastSeenAt },
+          stableSighting,
+          context,
+        ).action,
+      ).toBe("none");
+    }
+  });
+
+  it("writes a row last written before the window turned, however lately that was", () => {
+    const justBefore: Date = new Date(windowTurnedAt(NOW).getTime() - 1000);
+
+    for (const lastSeenAt of [justBefore, TEN_MINUTES_AGO]) {
+      expect(
+        EndpointAttachmentUtil.decideUpsert(
+          { ...stableRow, lastSeenAt },
+          stableSighting,
+          context,
+        ).action,
+      ).toBe("update");
+    }
+  });
+
+  it("writes a stable endpoint every third five-minute poll, never more than a window and a poll apart", () => {
+    const POLL: number = 5 * 60 * 1000;
+    let lastSeenAt: Date = new Date("2026-07-22T00:00:30Z");
+    const writes: Array<number> = [];
+
+    for (let poll: number = 1; poll <= 12 * 24; poll++) {
+      const now: Date = new Date(
+        new Date("2026-07-22T00:00:30Z").getTime() + poll * POLL,
+      );
+      const action: string = EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, lastSeenAt },
+        stableSighting,
+        { now },
+      ).action;
+
+      if (action === "update") {
+        writes.push(now.getTime() - lastSeenAt.getTime());
+        lastSeenAt = now;
+      }
+    }
+
+    // A day of polls: four writes an hour.
+    expect(writes).toHaveLength(4 * 24);
+    for (const gap of writes) {
+      expect(gap).toBeLessThanOrEqual(ENDPOINT_LAST_SEEN_REFRESH_MS + POLL);
+    }
   });
 
   it("collapses an unchanged re-sighting to no write at all", () => {
@@ -642,10 +736,13 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
     expect(decision.action).toBe("update");
   });
 
-  it("refreshes lastSeenAt once it ages past the threshold", () => {
+  it("refreshes lastSeenAt once a whole window has passed, whichever group the MAC is in", () => {
     const decision: EndpointUpsertDecision =
       EndpointAttachmentUtil.decideUpsert(
-        { ...stableRow, lastSeenAt: TEN_MINUTES_AGO },
+        {
+          ...stableRow,
+          lastSeenAt: new Date(NOW.getTime() - ENDPOINT_LAST_SEEN_REFRESH_MS),
+        },
         stableSighting,
         context,
       );
@@ -653,15 +750,28 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
     expect(decision.action).toBe("update");
   });
 
-  it("honours a caller-supplied refresh threshold", () => {
-    const decision: EndpointUpsertDecision =
-      EndpointAttachmentUtil.decideUpsert(
-        { ...stableRow, lastSeenAt: TEN_MINUTES_AGO },
-        stableSighting,
-        { now: NOW, lastSeenRefreshMs: 30 * 60 * 1000 },
-      );
+  it("honours a caller-supplied refresh window", () => {
+    const longer: number = 30 * 60 * 1000;
+    // In the 30-minute window that holds NOW, before the 15-minute one turned.
+    const between: Date = new Date(
+      windowTurnedAt(NOW, longer).getTime() + 30 * 1000,
+    );
 
-    expect(decision.action).toBe("none");
+    expect(between.getTime()).toBeLessThan(windowTurnedAt(NOW).getTime());
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, lastSeenAt: between },
+        stableSighting,
+        context,
+      ).action,
+    ).toBe("update");
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, lastSeenAt: between },
+        stableSighting,
+        { now: NOW, lastSeenRefreshMs: longer },
+      ).action,
+    ).toBe("none");
   });
 
   /*
@@ -1080,5 +1190,181 @@ describe("a network controller's report against a walk (#5379)", () => {
     expect(
       EndpointAttachmentUtil.getSightingWindowMs("meraki", 24 * HOUR),
     ).toBe(24 * HOUR);
+  });
+});
+
+/*
+ * The refresh window of an endpoint the walk finds unchanged
+ * (endpointRefreshSlot): 15 minutes, counted on a clock of the endpoint's
+ * own, offset by its MAC in fifteen groups a minute apart. A switch's
+ * endpoints then come due a third at a time on five-minute polls - so one
+ * statement rewrites a third of each page, which the table's free space
+ * takes as HOT updates - and never so late that the map, the "Connected to"
+ * card or the Discovered Devices list would read an endpoint as gone.
+ */
+describe("endpointRefreshSlot", () => {
+  const MINUTE: number = 60 * 1000;
+  const WINDOW: number = ENDPOINT_LAST_SEEN_REFRESH_MS;
+
+  function macOf(n: number): string {
+    return n
+      .toString(16)
+      .padStart(12, "0")
+      .replace(/(..)(?!$)/g, "$1:");
+  }
+
+  function slotOf(macAddress: string, time: number): number {
+    return endpointRefreshSlot({ time, macAddress, refreshMs: WINDOW });
+  }
+
+  // The minute past the quarter-hour at which a MAC's window turns.
+  function turnMinute(macAddress: string): number {
+    const hour: number = Date.UTC(2026, 6, 22, 12, 0, 0);
+
+    for (let minute: number = 1; minute <= 15; minute++) {
+      if (
+        slotOf(macAddress, hour + minute * MINUTE) !==
+        slotOf(macAddress, hour + minute * MINUTE - 1)
+      ) {
+        return minute % 15;
+      }
+    }
+
+    throw new Error(`no turn for ${macAddress}`);
+  }
+
+  test("a slot is a window long, for every MAC", () => {
+    for (const macAddress of [macOf(0), macOf(1), macOf(14), macOf(0xabcdef)]) {
+      const at: number = Date.UTC(2026, 6, 22, 12, 7, 0);
+      expect(slotOf(macAddress, at + WINDOW)).toBe(slotOf(macAddress, at) + 1);
+    }
+  });
+
+  test("MACs that differ by one turn a minute apart, through all fifteen groups", () => {
+    const minutes: Array<number> = [];
+
+    for (let n: number = 0; n < ENDPOINT_REFRESH_GROUPS; n++) {
+      minutes.push(turnMinute(macOf(0x1c697a000000 + n)));
+    }
+
+    expect(new Set(minutes).size).toBe(ENDPOINT_REFRESH_GROUPS);
+    for (let n: number = 1; n < minutes.length; n++) {
+      expect((minutes[n - 1]! - minutes[n]! + 15) % 15).toBe(1);
+    }
+  });
+
+  test("reads the MAC's twelve hex digits however it is written", () => {
+    const at: number = Date.UTC(2026, 6, 22, 12, 7, 0);
+    const slot: number = slotOf("aa:bb:cc:dd:ee:01", at);
+
+    for (const written of [
+      "AA:BB:CC:DD:EE:01",
+      "aa-bb-cc-dd-ee-01",
+      "aabb.ccdd.ee01",
+      "AABBCCDDEE01",
+    ]) {
+      expect(slotOf(written, at)).toBe(slot);
+    }
+  });
+
+  test("a MAC with no hex digits counts in the first group rather than failing", () => {
+    const at: number = Date.UTC(2026, 6, 22, 12, 7, 0);
+
+    expect(slotOf("", at)).toBe(slotOf(macOf(0), at));
+    expect(slotOf("not a mac", at)).toBe(slotOf(macOf(0), at));
+  });
+
+  test("a switch's endpoints come due a third at a time on five-minute polls", () => {
+    const POLL: number = 5 * MINUTE;
+    const start: number = Date.UTC(2026, 6, 22, 0, 0, 30);
+    const macs: Array<string> = [];
+
+    for (let n: number = 0; n < 48; n++) {
+      macs.push(macOf(0x001b54000100 + n));
+    }
+
+    const written: Map<string, number> = new Map();
+    for (const macAddress of macs) {
+      written.set(macAddress, start);
+    }
+
+    const perPoll: Array<number> = [];
+    for (let poll: number = 1; poll <= 24; poll++) {
+      const now: number = start + poll * POLL;
+      let due: number = 0;
+
+      for (const macAddress of macs) {
+        if (
+          slotOf(macAddress, now) > slotOf(macAddress, written.get(macAddress)!)
+        ) {
+          due++;
+          written.set(macAddress, now);
+        }
+      }
+
+      perPoll.push(due);
+    }
+
+    /*
+     * 48 endpoints in fifteen groups of three or four, five groups a poll:
+     * 15 to 18 - a third, give or take a group. (These MACs put their three
+     * groups of four in one poll: 18, then 15 and 15.)
+     */
+    for (const due of perPoll) {
+      expect(due).toBeGreaterThanOrEqual(15);
+      expect(due).toBeLessThanOrEqual(18);
+    }
+    expect(
+      perPoll.reduce((sum: number, due: number) => {
+        return sum + due;
+      }, 0),
+    ).toBe(48 * 8);
+  });
+
+  test("the walk window is the map's: an hour, the device staleness window at the default interval", () => {
+    expect(ENDPOINT_WALK_WINDOW_MS).toBe(60 * MINUTE);
+    expect(getEndpointSightingWindowMs(undefined)).toBe(
+      ENDPOINT_WALK_WINDOW_MS,
+    );
+  });
+
+  /*
+   * The bound the window exists to keep: how far an answering endpoint's
+   * stored lastSeenAt can lag, for a device polled every N minutes. Each
+   * poll writes an endpoint whose window turned since its last write, so
+   * the lag is at most the window and one poll - inside the walk window
+   * for every interval up to 45 minutes - and a device polled less often
+   * than the window writes on every poll, as it did before any refresh rule.
+   */
+  test("never lets an endpoint the walk still sees read as gone that did not before", () => {
+    for (const interval of [1, 2, 3, 5, 7, 10, 14, 15, 16, 30, 45, 60, 120]) {
+      const poll: number = interval * MINUTE;
+
+      for (const macAddress of [macOf(0), macOf(7), macOf(0x1c697a0000ee)]) {
+        const start: number = Date.UTC(2026, 6, 22, 0, 0, 30);
+        let lastWrite: number = start;
+        let worstGap: number = 0;
+        let everyPoll: boolean = true;
+
+        for (let n: number = 1; n * poll <= 6 * 60 * MINUTE; n++) {
+          const now: number = start + n * poll;
+
+          if (slotOf(macAddress, now) > slotOf(macAddress, lastWrite)) {
+            worstGap = Math.max(worstGap, now - lastWrite);
+            lastWrite = now;
+          } else {
+            everyPoll = false;
+          }
+        }
+
+        expect(worstGap).toBeLessThanOrEqual(WINDOW + poll);
+        if (interval <= 45) {
+          expect(worstGap).toBeLessThanOrEqual(ENDPOINT_WALK_WINDOW_MS);
+        }
+        if (poll >= WINDOW) {
+          expect(everyPoll).toBe(true);
+        }
+      }
+    }
   });
 });

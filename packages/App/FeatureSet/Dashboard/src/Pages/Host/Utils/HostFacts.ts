@@ -1,4 +1,5 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   HOST_DISK_FULL_PERCENT,
   HOST_DISK_NEAR_FULL_PERCENT,
@@ -197,7 +198,29 @@ export function getHostUptimeSeconds(data: {
   return seconds >= 0 ? seconds : null;
 }
 
-// Bytes as the host pages write them: 1024-based, 16 GiB.
+/*
+ * How long a host has been up, as its hero's chip says it: "Up 12d 4h",
+ * "Up 41d" - the largest unit and the one right below it, in `language`
+ * ("41 Tg." in German, "۴۱ روز" in Persian). Never a day count with
+ * seconds beside it: a host booted 41 days and a second ago read "41d 1s",
+ * noise next to a day count that changed every second.
+ */
+export function formatHostUptime(
+  seconds: number,
+  language?: string | undefined,
+): string {
+  return formatDurationCompactInLanguage(seconds, language, {
+    adjacentUnitsOnly: true,
+  });
+}
+
+/*
+ * Bytes as the host pages write them: 1024-based, "16 GiB", one decimal
+ * under ten from KiB up ("8.0 GiB"). A count of bytes is a whole number,
+ * so plain bytes keep none: "0 B", "512 B", never "0.0 B" (issue #7417).
+ * Every host page - the Overview, the process list and a process's page -
+ * writes its sizes with this one.
+ */
 export function formatHostBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
     return "—";
@@ -210,7 +233,7 @@ export function formatHostBytes(bytes: number | null | undefined): string {
     index++;
   }
   // The number in the reader's digits, the unit as written: "۱۶ GiB".
-  return `${formatReaderFigure(value, { decimals: value < 10 ? 1 : 0 })} ${
-    units[index]
-  }`;
+  return `${formatReaderFigure(value, {
+    decimals: index > 0 && value < 10 ? 1 : 0,
+  })} ${units[index]}`;
 }

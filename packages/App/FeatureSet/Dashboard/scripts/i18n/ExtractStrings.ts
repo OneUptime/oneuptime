@@ -159,6 +159,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
   /*
+   * A duration in milliseconds in the reader's language ("{{value}} ms"):
+   * the Dashboard's views and the overview's hero write it with one helper.
+   */
+  { directory: "packages/Common/Utils/Milliseconds.ts", kind: "ui" },
+  /*
    * The monitor types' cards in Create Monitor's picker: each type's title
    * and what it alerts on, and the categories More lists them under.
    */
@@ -585,6 +590,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/AI/AiAffectedResources.ts",
+    kind: "keys",
+  },
+  /*
+   * Why OneUptime AI did not start a run someone asked for - Try again,
+   * Investigate now - one sentence per refusal code: the server sends the
+   * code beside its English message and the card says the code's sentence
+   * in the reader's language (#7359).
+   */
+  {
+    directory: "packages/Common/Types/AI/AiRunRefusal.ts",
     kind: "keys",
   },
   /*

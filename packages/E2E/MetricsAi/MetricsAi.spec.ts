@@ -216,8 +216,10 @@ test.describe("Metrics → AI tab", () => {
     const tabs: Locator = tabsOf(page);
 
     await expect(tabs).toBeVisible({ timeout: 60000 });
+    // PromQL follows Viewer since #7750 (MetricsNavTabs).
     await expect(tabs.getByRole("link")).toHaveText([
       "Viewer",
+      "PromQL",
       "Insights",
       "AI",
       "Setup Guide",

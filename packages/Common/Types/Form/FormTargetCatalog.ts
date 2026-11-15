@@ -157,7 +157,7 @@ const SCHEDULED_MAINTENANCE_FIELDS: Array<FormTargetFieldDefinition> = [
     key: "title",
     title: "Title",
     description:
-      "A one-line summary that becomes the scheduled maintenance event's title.",
+      "A one-line summary that becomes the maintenance event's title.",
     defaultLabel: "Title",
     defaultHelpText: "A short summary of the maintenance.",
     inputType: CustomFieldType.Text,
@@ -168,8 +168,7 @@ const SCHEDULED_MAINTENANCE_FIELDS: Array<FormTargetFieldDefinition> = [
   {
     key: "description",
     title: "Description",
-    description:
-      "Rich text that becomes the scheduled maintenance event's description.",
+    description: "Rich text that becomes the maintenance event's description.",
     defaultLabel: "Description",
     defaultHelpText: "What will change, and what people should expect.",
     inputType: CustomFieldType.Markdown,

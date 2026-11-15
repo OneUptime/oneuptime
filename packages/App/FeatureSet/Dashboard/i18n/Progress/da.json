@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52081,
-    "untranslated": 9408
+    "keys": 52236,
+    "untranslated": 9310
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -142,6 +142,7 @@
     "Hello world",
     "Hertz",
     "Histogram",
+    "Hop",
     "Hunt",
     "Hunts",
     "Hypervisor",
@@ -266,6 +267,7 @@
     "Pull request {{label}}",
     "Pull requests",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -505,8 +507,6 @@
     "vCenter",
     "vSphere Client",
     "vertical pod autoscaler",
-    "workflow",
-    "workflows",
     "writesets",
     "x86",
     "z",

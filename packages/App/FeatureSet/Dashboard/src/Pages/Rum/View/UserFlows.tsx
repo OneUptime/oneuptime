@@ -422,11 +422,18 @@ const RumApplicationUserFlows: FunctionComponent<
                 updateOptions({ anchorPage: event.target.value || null });
               }}
             >
+              {/*
+               * A page nobody visited in the range, named in a sentence
+               * that is only drawn: the page is set apart from its words
+               * (setsValuesApart), so an Arabic or Persian option names
+               * "/2024", not "2024/".
+               */}
               {anchorMissing && options.anchorPage ? (
                 <option value={options.anchorPage}>
                   {translator.translateTemplate(
                     "{{page}} (not visited in this range)",
                     { page: getUserFlowPageText(options.anchorPage) },
+                    { setsValuesApart: true },
                   )}
                 </option>
               ) : (
@@ -447,7 +454,7 @@ const RumApplicationUserFlows: FunctionComponent<
                     )}
                   >
                     {getUserFlowPageText(page.page)} (
-                    {formatUserFlowCount(page.sessions)})
+                    {formatUserFlowCount(page.sessions, translator)})
                   </option>
                 );
               })}

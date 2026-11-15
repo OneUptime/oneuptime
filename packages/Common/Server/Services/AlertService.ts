@@ -1,4 +1,5 @@
 import DatabaseConfig from "../DatabaseConfig";
+import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import AlertMeasurementService from "./AlertMeasurementService";
@@ -2258,6 +2259,24 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
         );
       },
     );
+
+    /*
+     * A state written - a reopen among them - or a monitor set can make an
+     * alert a monitor's criteria raised open for that monitor again: what
+     * that monitor knew of its open alerts no longer counts, so its next
+     * result reads them (MonitorOpenRecords; a guard holds every other write
+     * of these out: MonitorOpenRecordsWrites.test.ts).
+     */
+    if (
+      [...ALERT_STATE_KEYS, ...ALERT_MONITOR_KEYS].some((key: string) => {
+        return Object.prototype.hasOwnProperty.call(
+          onUpdate.updateBy.data,
+          key,
+        );
+      })
+    ) {
+      await MonitorOpenRecords.forgetMonitorsOfAlerts(updatedItemIds);
+    }
 
     // Only the alerts whose monitor this update actually set, moved or cleared.
     const monitorChanges: Dictionary<AlertMonitorChange> =

@@ -537,7 +537,7 @@ Roller er bare definisjoner. Du tildeler folk til dem per hendelse — erklærin
 
 ### Arkivere en rolle
 
-Arkiver en rolle teamet ditt ikke lenger bruker fra radens meny **⋯**, i stedet for å slette den. De som har den på en hendelse, beholder den, men ingen kan få den igjen: Rollevelgerne utelater den eller viser den bare med personene som har den, og API-et avviser den. Den primære rollen, og alle roller som ikke kan slettes, kan ikke arkiveres. Arkiverte roller vises for seg, i den sammenslåtte delen **Arkiverte hendelsesroller**, der **Fjern fra arkiv** setter en tilbake.
+Arkiver en rolle teamet ditt ikke lenger bruker fra radens meny **⋯**, i stedet for å slette den. De som har den på en hendelse, beholder den, men ingen kan få den igjen: Rollevelgerne utelater den eller viser den bare med personene som har den, og API-et avviser den. Den primære rollen, og alle roller som ikke kan slettes, kan ikke arkiveres. Arkiverte roller vises for seg, i den sammenslåtte delen **Arkiverte hendelsesroller**, der **Fjern fra arkivet** setter en tilbake.
 
 ## Nummerprefikser
 
