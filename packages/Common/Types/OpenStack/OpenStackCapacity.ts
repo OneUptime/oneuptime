@@ -424,7 +424,7 @@ export function readOpenStackInventories(
     const reading: Partial<Record<string, number>> =
       readOwnValue(readings, resourceClass) || {};
 
-    writeOwnValue(reading, field, value);
+    writeOwnValue<number | undefined>(reading, field, value);
     writeOwnValue(readings, resourceClass, reading);
 
     if (field === "seen" && value > newestSeen) {
