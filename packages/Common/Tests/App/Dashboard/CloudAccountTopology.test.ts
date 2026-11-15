@@ -20,12 +20,23 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   CLOUD_ACCOUNT_REGION_PREFIX,
   CLOUD_ACCOUNT_ROOT_ID,
+  CLOUD_TOPOLOGY_FACTS_MAX,
   CloudAccountTopologyResource,
+  assessCloudTopologyResource,
   buildCloudAccountTopology,
   cloudRegionNodeId,
   cloudResourceTopologyKind,
+  formatCloudTopologyCount,
+  formatCloudTopologyFigure,
+  formatCloudTopologySeconds,
   getCloudResourceParents,
+  getCloudTopologyFactKeys,
+  getCloudTopologyFacts,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/Builders/CloudAccountTopology";
+import {
+  CloudHeadlineReading,
+  getCloudHeadlineReadings,
+} from "../../../Types/Cloud/CloudResourceHealth";
 import {
   CLOUD_TOPOLOGY_ISSUE_ID_CHUNK,
   CLOUD_TOPOLOGY_ISSUE_ID_LIMIT,
@@ -34,6 +45,7 @@ import {
   mergeOpenIssues,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/Loaders/CloudAccountTopologyLoader";
 import {
+  ResourceTopologyFact,
   ResourceTopologyGraph,
   ResourceTopologyIssue,
   ResourceTopologyNode,
@@ -302,6 +314,379 @@ describe("the account's tree", () => {
   });
 });
 
+// Readings as a read keeps them on the row, all of one datapoint's time.
+function readingsOf(
+  values: Record<string, number>,
+  at: Date = RECENT,
+): Record<string, { value: number; time: string }> {
+  const readings: Record<string, { value: number; time: string }> = {};
+
+  for (const key of Object.keys(values)) {
+    readings[key] = { value: values[key]!, time: at.toISOString() };
+  }
+
+  return readings;
+}
+
+const AZURE_DATABASE: CloudAccountTopologyResource = resource({
+  id: id(20),
+  name: "orders",
+  type: "Microsoft.Sql/servers/databases",
+  region: "westeurope",
+  providerResourceId:
+    "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Sql/servers/sql-1/databases/orders",
+});
+
+function assess(
+  provider: string,
+  entry: CloudAccountTopologyResource,
+): ReturnType<typeof assessCloudTopologyResource> {
+  return assessCloudTopologyResource({ provider, resource: entry, now: NOW });
+}
+
+describe("how each resource is doing", () => {
+  test("judged as its own page judges it: a status check failing is critical, with its reason", () => {
+    const assessed: ReturnType<typeof assessCloudTopologyResource> = assess(
+      "aws",
+      {
+        ...INSTANCE,
+        readings: readingsOf({
+          "aws/ec2/statuscheckfailed": 1,
+          "aws/ec2/cpuutilization": 12,
+        }),
+        readingsAt: RECENT,
+      },
+    );
+
+    expect(assessed.health).toBe("critical");
+    expect(assessed.status).toEqual({ text: "Unhealthy" });
+    expect(assessed.reasons).toEqual([
+      {
+        text: "Failing its status checks",
+        values: undefined,
+        plural: undefined,
+      },
+    ]);
+  });
+
+  test("a warning is a degraded resource, and a count-dependent reason keeps its plural", () => {
+    const assessed: ReturnType<typeof assessCloudTopologyResource> = assess(
+      "aws",
+      resource({
+        id: id(21),
+        type: "AWS::ElasticLoadBalancing::LoadBalancer",
+        readings: readingsOf({ "aws/elb/unhealthyhostcount": 2 }),
+        readingsAt: RECENT,
+      }),
+    );
+
+    expect(assessed.health).toBe("warning");
+    expect(assessed.status).toEqual({ text: "Degraded" });
+    expect(assessed.reasons).toEqual([
+      {
+        text: "{{count}} unhealthy hosts",
+        values: { count: "2" },
+        plural: { one: "{{count}} unhealthy host", count: 2 },
+      },
+    ]);
+  });
+
+  test("checked and well is Healthy; nothing to judge is Reporting; neither listed nor reporting is Not reporting", () => {
+    expect(
+      assess("azure", {
+        ...AZURE_DATABASE,
+        readings: readingsOf({ cpu_percent: 34, storage_percent: 61 }),
+        readingsAt: RECENT,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        health: "healthy",
+        status: { text: "Healthy" },
+        reasons: [],
+      }),
+    );
+    // A type no rule speaks for.
+    expect(
+      assess("aws", {
+        ...VPC,
+        readings: readingsOf({ "aws/ec2/whatever": 1 }),
+        readingsAt: RECENT,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        health: "healthy",
+        status: { text: "Reporting" },
+      }),
+    );
+    expect(assess("aws", DISTRIBUTION)).toEqual(
+      expect.objectContaining({
+        health: "unknown",
+        status: { text: "Not reporting" },
+        facts: [],
+      }),
+    );
+  });
+
+  test("readings an hour old are not judged, and its card carries none of their numbers", () => {
+    const stale: Date = new Date(NOW.getTime() - 2 * 60 * 60 * 1000);
+    const assessed: ReturnType<typeof assessCloudTopologyResource> = assess(
+      "aws",
+      {
+        ...INSTANCE,
+        readings: readingsOf(
+          { "aws/ec2/statuscheckfailed": 1, "aws/ec2/cpuutilization": 99 },
+          stale,
+        ),
+        readingsAt: stale,
+      },
+    );
+
+    expect(assessed.health).toBe("healthy");
+    expect(assessed.status).toEqual({ text: "Reporting" });
+    expect(assessed.facts).toEqual([]);
+  });
+
+  test("a resource listed lately is live even when its collector status says otherwise", () => {
+    const assessed: ReturnType<typeof assessCloudTopologyResource> = assess(
+      "azure",
+      {
+        ...AZURE_DATABASE,
+        isReporting: false,
+        lastSeenAt: RECENT,
+        readings: readingsOf({ cpu_percent: 99, storage_percent: 40 }),
+        readingsAt: RECENT,
+      },
+    );
+
+    expect(assessed.health).toBe("warning");
+    expect(assessed.reasons[0]).toEqual(
+      expect.objectContaining({ text: "CPU at {{percent}}" }),
+    );
+  });
+
+  test("the account's map draws each resource's health, reasons and numbers", () => {
+    const graph: ResourceTopologyGraph = buildCloudAccountTopology({
+      account: {
+        id: ACCOUNT_ROW_ID,
+        name: "Production",
+        provider: "azure",
+        lastSeenAt: RECENT,
+      },
+      resources: [
+        {
+          ...AZURE_DATABASE,
+          readings: readingsOf({ cpu_percent: 22, storage_percent: 97 }),
+          readingsAt: RECENT,
+        },
+      ],
+      now: NOW,
+    });
+    const database: ResourceTopologyNode = node(graph, AZURE_DATABASE.id);
+
+    expect(database.health).toBe("critical");
+    expect(database.needsAttention).toBe(true);
+    expect(database.status).toEqual({ text: "Unhealthy" });
+    expect(database.reasons?.[0]).toEqual(
+      expect.objectContaining({ text: "{{percent}} full" }),
+    );
+    expect(database.facts).toEqual([
+      { label: "CPU", value: "22%" },
+      { label: "Storage used", value: "97%" },
+    ]);
+    expect(graph.attentionCount).toBe(1);
+  });
+});
+
+describe("the numbers on a resource's card", () => {
+  test("the first readings its page leads with, in its page's order, at most two", () => {
+    const keys: Array<string> = getCloudTopologyFactKeys(
+      "azure",
+      "Microsoft.Sql/servers/databases",
+    );
+    const values: Record<string, number> = {};
+
+    keys.forEach((key: string, index: number) => {
+      values[key] = 10 + index;
+    });
+
+    const facts: Array<ResourceTopologyFact> = getCloudTopologyFacts({
+      provider: "azure",
+      type: "Microsoft.Sql/servers/databases",
+      readings: readingsOf(values) as never,
+    });
+    const headlines: Array<CloudHeadlineReading> = getCloudHeadlineReadings(
+      "azure",
+      "Microsoft.Sql/servers/databases",
+    );
+
+    expect(facts.length).toBe(Math.min(CLOUD_TOPOLOGY_FACTS_MAX, keys.length));
+    expect(
+      facts.map((fact: ResourceTopologyFact): string => {
+        return fact.label;
+      }),
+    ).toEqual(
+      headlines
+        .slice(0, CLOUD_TOPOLOGY_FACTS_MAX)
+        .map((headline: CloudHeadlineReading): string => {
+          return headline.label;
+        }),
+    );
+  });
+
+  test("a reading the read did not bring is skipped, and the next one takes its place", () => {
+    const keys: Array<string> = getCloudTopologyFactKeys(
+      "azure",
+      "Microsoft.Sql/servers/databases",
+    );
+
+    expect(keys.length).toBeGreaterThanOrEqual(2);
+
+    const facts: Array<ResourceTopologyFact> = getCloudTopologyFacts({
+      provider: "azure",
+      type: "Microsoft.Sql/servers/databases",
+      readings: readingsOf({ [keys[1]!]: 61 }) as never,
+    });
+
+    expect(facts).toEqual([expect.objectContaining({ value: "61%" })]);
+  });
+
+  test("a type its page leads with nothing for carries no numbers", () => {
+    expect(
+      getCloudTopologyFacts({
+        provider: "aws",
+        type: "AWS::EC2::VPC",
+        readings: readingsOf({ "aws/ec2/cpuutilization": 50 }) as never,
+      }),
+    ).toEqual([]);
+  });
+
+  test("each figure in the format its page's tile uses", () => {
+    expect(
+      formatCloudTopologyFigure({
+        format: "percent",
+        value: 41.6,
+        periodSeconds: 60,
+      }),
+    ).toBe("42%");
+    expect(
+      formatCloudTopologyFigure({
+        format: "ratio",
+        value: 0.416,
+        periodSeconds: 60,
+      }),
+    ).toBe("42%");
+    expect(
+      formatCloudTopologyFigure({
+        format: "bytes",
+        value: 3 * 1024 * 1024 * 1024,
+        periodSeconds: 60,
+      }),
+    ).toBe("3.0 GiB");
+    expect(
+      formatCloudTopologyFigure({
+        format: "count",
+        value: 12_400,
+        periodSeconds: 60,
+      }),
+    ).toBe("12.4k");
+    expect(
+      formatCloudTopologyFigure({
+        format: "seconds",
+        value: 0.23,
+        periodSeconds: 60,
+      }),
+    ).toBe("230 ms");
+    expect(
+      formatCloudTopologyFigure({
+        format: "milliseconds",
+        value: 1800,
+        periodSeconds: 60,
+      }),
+    ).toBe("1.8 s");
+    // A sum over five minutes, drawn per minute.
+    expect(
+      formatCloudTopologyFigure({
+        format: "perPeriod",
+        value: 600,
+        periodSeconds: 300,
+      }),
+    ).toBe("120/min");
+    expect(
+      formatCloudTopologyFigure({
+        format: "perSecond",
+        value: 3.25,
+        periodSeconds: 60,
+      }),
+    ).toBe("3.3/s");
+    // Never a negative share or size.
+    expect(
+      formatCloudTopologyFigure({
+        format: "percent",
+        value: -3,
+        periodSeconds: 60,
+      }),
+    ).toBe("0%");
+  });
+
+  test("counts and times read short", () => {
+    expect(formatCloudTopologyCount(7.25)).toBe("7.3");
+    expect(formatCloudTopologyCount(42)).toBe("42");
+    expect(formatCloudTopologyCount(999)).toBe("999");
+    expect(formatCloudTopologyCount(1500)).toBe("1.5k");
+    expect(formatCloudTopologyCount(250_000)).toBe("250k");
+    expect(formatCloudTopologyCount(3_100_000)).toBe("3.1M");
+    expect(formatCloudTopologyCount(2_000_000_000)).toBe("2B");
+    expect(formatCloudTopologySeconds(0.004)).toBe("4 ms");
+    expect(formatCloudTopologySeconds(42)).toBe("42 s");
+    expect(formatCloudTopologySeconds(720)).toBe("12 min");
+    expect(formatCloudTopologySeconds(5 * 3600)).toBe("5 h");
+  });
+});
+
+describe("the account's connections", () => {
+  const graph: ResourceTopologyGraph = graphOf([
+    VPC,
+    SUBNET,
+    INSTANCE,
+    ASG,
+    LOAD_BALANCER,
+    DISTRIBUTION,
+  ]);
+
+  test("every link between two of its resources, the ones the tree draws by nesting too", () => {
+    expect(graph.connections).not.toBeNull();
+    expect(
+      graph.connections!.map(
+        (connection: ResourceTopologyRelation): Array<string> => {
+          return [connection.from, connection.to, connection.label];
+        },
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        [SUBNET.id, VPC.id, "Runs in"],
+        [INSTANCE.id, SUBNET.id, "Runs in"],
+        [INSTANCE.id, ASG.id, "Part of"],
+        [INSTANCE.id, SUBNET.id, "Attached to"],
+        [LOAD_BALANCER.id, INSTANCE.id, "Sends traffic to"],
+      ]),
+    );
+    expect(graph.connections!.length).toBe(5);
+  });
+
+  test("each read from both ends, by the parts it joins", () => {
+    const ofInstance: Array<ResourceTopologyRelation> =
+      graph.connectionsByNode.get(INSTANCE.id) || [];
+
+    expect(ofInstance.length).toBe(4);
+    expect(graph.connectionsByNode.get(DISTRIBUTION.id)).toBeUndefined();
+    expect(graph.connectionsByNode.has(CLOUD_ACCOUNT_ROOT_ID)).toBe(false);
+  });
+
+  test("the tree's own relations still leave out what nesting says", () => {
+    expect(graph.relations.length).toBe(2);
+  });
+});
+
 describe("open incidents and alerts", () => {
   test("sit on the resource they are linked to, else on the account", () => {
     const graph: ResourceTopologyGraph = graphOf(
@@ -486,6 +871,12 @@ describe("loading an account's topology", () => {
         return row;
       },
     );
+    // The instance's last read found its status checks failing.
+    rows[2]!.cloudReadings = readingsOf(
+      { "aws/ec2/statuscheckfailed": 1 },
+      new Date(),
+    );
+    rows[2]!.cloudReadingsAt = new Date();
 
     const incidentState: IncidentState = new IncidentState();
     incidentState._id = id(500);
@@ -535,17 +926,30 @@ describe("loading an account's topology", () => {
       new ObjectID(ACCOUNT_ROW_ID),
     );
 
-    const resourceRead: { query: Record<string, unknown> } = getList.mock.calls
+    const resourceRead: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = getList.mock.calls
       .map((call: Array<unknown>) => {
         return call[0] as {
           modelType: unknown;
           query: Record<string, unknown>;
+          select: Record<string, unknown>;
         };
       })
       .find((request: { modelType: unknown }) => {
         return request.modelType === CloudResource;
       })!;
 
+    // What its health and its card's numbers are read from.
+    expect(resourceRead.select).toEqual(
+      expect.objectContaining({
+        cloudReadings: true,
+        cloudReadingsAt: true,
+        cloudProperties: true,
+        otelCollectorStatus: true,
+      }),
+    );
     expect(resourceRead.query["cloudProvider"]).toBe("aws");
     expect(resourceRead.query["isArchived"]).toBe(false);
     expect((resourceRead.query["cloudAccountId"] as Includes).values).toContain(
@@ -580,6 +984,13 @@ describe("loading an account's topology", () => {
         },
       ),
     ).toEqual([id(600)]);
+    expect(node(graph, INSTANCE.id).health).toBe("critical");
+    expect(node(graph, INSTANCE.id).reasons?.[0]?.text).toBe(
+      "Failing its status checks",
+    );
+    expect(node(graph, VPC.id).status).toEqual({ text: "Reporting" });
+    // The Connections view is offered: the account's links are its connections.
+    expect(graph.connections).not.toBeNull();
     expect(data.masterTopologyRoute).toBeNull();
     expect(data.issuesArePartial).toBe(false);
   });

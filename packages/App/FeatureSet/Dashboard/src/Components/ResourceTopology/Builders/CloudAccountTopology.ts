@@ -12,11 +12,24 @@ import {
   getCloudResourceTypeDescriptor,
   getCloudResourceTypeDisplayName,
 } from "Common/Types/Cloud/CloudResourceCatalog";
+import {
+  CloudHeadlineFormat,
+  CloudHeadlineReading,
+  CloudHealthAssessment,
+  CloudHealthText,
+  CloudResourceReading,
+  CloudResourceReadings,
+  assessCloudResourceHealth,
+  getCloudHeadlineReadings,
+  getCloudReadingPeriodSeconds,
+  readCloudResourceReadings,
+} from "Common/Types/Cloud/CloudResourceHealth";
 import ObjectID from "Common/Types/ObjectID";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../../Utils/PageMap";
 import { CLOUD_RELATIONSHIP_WORDS } from "../../Cloud/CloudRelationshipWords";
 import {
+  ResourceTopologyFact,
   ResourceTopologyGraph,
   ResourceTopologyHealth,
   ResourceTopologyNodeInput,
@@ -26,7 +39,11 @@ import {
   buildResourceTopologyGraph,
 } from "../ResourceTopologyModel";
 import { OpenIssueRecord, attachOpenIssues } from "../ResourceTopologyIssues";
-import { isRecent } from "../ResourceTopologyFormat";
+import {
+  formatTopologyBytes,
+  formatTopologyPercent,
+  isRecent,
+} from "../ResourceTopologyFormat";
 
 /*
  * A cloud account's topology: its regions, and in each its resources the
@@ -39,8 +56,16 @@ import { isRecent } from "../ResourceTopologyFormat";
  * A resource's parent is the resource it runs in, else the one it is part
  * of, when the account holds it (CloudResourceIndex's rules: never a guess,
  * never another type); otherwise its region, or the account for a resource
- * that is in none. Health is whether it is still listed or reporting, made
- * worse by the open incidents and alerts linked to it.
+ * that is in none. Every relationship, the ones that make a parent too, is
+ * also the graph's connections, which the Connections view draws.
+ *
+ * A resource is judged as its own page judges it (CloudResourceHealth):
+ * Unhealthy or Degraded by what its type's rules find in its last read,
+ * with their reasons; Healthy when they found nothing; Reporting while it
+ * is listed or reporting with nothing to judge; Not reporting once it is
+ * neither. Open incidents and alerts linked to it make it worse. A card
+ * carries the first two numbers its page leads with (its CPU, its
+ * requests), from a read of the last hour.
  */
 
 export const CLOUD_ACCOUNT_ROOT_ID: string = "account";
@@ -49,6 +74,8 @@ export const CLOUD_ACCOUNT_REGION_PREFIX: string = "region:";
 export const CLOUD_ACCOUNT_RESOURCE_STALE_MS: number = 2 * 60 * 60 * 1000;
 // An account read this recently is being read.
 export const CLOUD_ACCOUNT_STALE_MS: number = 60 * 60 * 1000;
+// The numbers a resource's card carries at most.
+export const CLOUD_TOPOLOGY_FACTS_MAX: number = 2;
 
 // The kinds that make a resource another's parent, the first found winning.
 const PARENT_KINDS: ReadonlyArray<CloudRelationshipKind> = [
@@ -65,6 +92,12 @@ export interface CloudAccountTopologyResource {
   relationships: Array<CloudResourceRelationship>;
   lastSeenAt: Date | null;
   isReporting: boolean;
+  // Its last read's readings, as the row keeps them (CloudResource.cloudReadings).
+  readings?: unknown;
+  // When they were written: older than an hour, they are not judged.
+  readingsAt?: Date | string | null | undefined;
+  // What its inventory says of it: a rule may read a database's storage.
+  properties?: unknown;
 }
 
 export interface CloudAccountTopologyInput {
@@ -145,6 +178,205 @@ export function getCloudResourceParents(
   return parents;
 }
 
+/*
+ * A count as a card shows it: whole under a thousand (one decimal under
+ * ten), then "12.4k", "3.1M", "2B". Written as code writes numbers, as
+ * every topology's figures are.
+ */
+export function formatCloudTopologyCount(value: number): string {
+  const magnitude: number = Math.abs(value);
+  const scaled: Array<[number, string]> = [
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "k"],
+  ];
+
+  for (const [size, suffix] of scaled) {
+    if (magnitude >= size) {
+      const amount: number = value / size;
+      return `${Math.abs(amount) >= 100 ? Math.round(amount) : Math.round(amount * 10) / 10}${suffix}`;
+    }
+  }
+
+  return String(
+    magnitude >= 10 ? Math.round(value) : Math.round(value * 10) / 10,
+  );
+}
+
+// A time from seconds: "230 ms" under a second, "1.8 s", "12 min", "3.5 h".
+export function formatCloudTopologySeconds(seconds: number): string {
+  const magnitude: number = Math.abs(seconds);
+
+  if (magnitude < 1) {
+    return `${Math.round(seconds * 1000)} ms`;
+  }
+
+  if (magnitude < 120) {
+    return `${Math.round(seconds * 10) / 10} s`;
+  }
+
+  if (magnitude < 2 * 3600) {
+    return `${Math.round(seconds / 60)} min`;
+  }
+
+  return `${Math.round((seconds / 3600) * 10) / 10} h`;
+}
+
+/*
+ * One reading as a card's figure, in the format its page's tile uses: a
+ * percent, a size, a count, a time, or a rate per minute or per second.
+ */
+export function formatCloudTopologyFigure(data: {
+  format: CloudHeadlineFormat;
+  value: number;
+  periodSeconds: number;
+}): string {
+  const value: number = data.value;
+
+  switch (data.format) {
+    case "percent":
+      return formatTopologyPercent(Math.max(0, value));
+    case "ratio":
+      return formatTopologyPercent(Math.max(0, value * 100));
+    case "bytes":
+      return formatTopologyBytes(Math.max(0, value));
+    case "count":
+      return formatCloudTopologyCount(Math.max(0, Math.round(value)));
+    case "seconds":
+      return formatCloudTopologySeconds(value);
+    case "milliseconds":
+      return formatCloudTopologySeconds(value / 1000);
+    case "perPeriod":
+      return `${formatCloudTopologyCount(
+        (Math.max(0, value) * 60) / Math.max(1, data.periodSeconds),
+      )}/min`;
+    case "perSecond":
+      return `${formatCloudTopologyCount(Math.max(0, value))}/s`;
+    default:
+      return formatCloudTopologyCount(value);
+  }
+}
+
+/*
+ * The numbers a resource's card carries: the first CLOUD_TOPOLOGY_FACTS_MAX
+ * readings its page leads with that its last read kept, in its page's
+ * order. None for a type its page leads with nothing for.
+ */
+export function getCloudTopologyFacts(data: {
+  provider: string;
+  type: string;
+  readings: CloudResourceReadings;
+}): Array<ResourceTopologyFact> {
+  const facts: Array<ResourceTopologyFact> = [];
+
+  for (const headline of getCloudHeadlineReadings(data.provider, data.type)) {
+    if (facts.length >= CLOUD_TOPOLOGY_FACTS_MAX) {
+      break;
+    }
+
+    const reading: CloudResourceReading | undefined =
+      data.readings[headline.key];
+
+    if (!reading) {
+      continue;
+    }
+
+    facts.push({
+      label: headline.label,
+      value: formatCloudTopologyFigure({
+        format: headline.format,
+        value: reading.value,
+        periodSeconds: getCloudReadingPeriodSeconds(
+          data.provider,
+          headline.key,
+        ),
+      }),
+    });
+  }
+
+  return facts;
+}
+
+// For tests: the readings a type's card can carry, in order.
+export function getCloudTopologyFactKeys(
+  provider: string,
+  type: string,
+): Array<string> {
+  return getCloudHeadlineReadings(provider, type).map(
+    (headline: CloudHeadlineReading): string => {
+      return headline.key;
+    },
+  );
+}
+
+// A reason or a status in the map's words: the same English, values and plural.
+function toTopologyText(value: CloudHealthText): ResourceTopologyText {
+  return {
+    text: value.text,
+    values: value.values,
+    plural: value.plural,
+  };
+}
+
+const HEALTH_OF_STATE: Record<
+  CloudHealthAssessment["state"],
+  ResourceTopologyHealth
+> = {
+  unhealthy: "critical",
+  degraded: "warning",
+  healthy: "healthy",
+  reporting: "healthy",
+  "not-reporting": "unknown",
+};
+
+/*
+ * How one resource is doing on the map, as its own page says it: a
+ * resource neither listed nor reporting lately is Not reporting, never a
+ * problem; one that is, is judged by its type's rules on a read of the
+ * last hour.
+ */
+export function assessCloudTopologyResource(data: {
+  provider: string;
+  resource: CloudAccountTopologyResource;
+  now: Date;
+}): {
+  health: ResourceTopologyHealth;
+  status: ResourceTopologyText;
+  reasons: Array<ResourceTopologyText>;
+  facts: Array<ResourceTopologyFact>;
+} {
+  const resource: CloudAccountTopologyResource = data.resource;
+  const live: boolean =
+    resource.isReporting ||
+    isRecent(resource.lastSeenAt, data.now, CLOUD_ACCOUNT_RESOURCE_STALE_MS);
+  const assessment: CloudHealthAssessment = assessCloudResourceHealth(
+    {
+      cloudProvider: data.provider,
+      cloudResourceType: resource.type,
+      // Listed lately counts as reporting: inventory reads every 30 minutes.
+      otelCollectorStatus: live ? "connected" : "disconnected",
+      cloudReadings: resource.readings,
+      cloudReadingsAt: resource.readingsAt,
+      cloudProperties: resource.properties,
+    },
+    { now: data.now },
+  );
+
+  return {
+    health: HEALTH_OF_STATE[assessment.state],
+    status: toTopologyText(assessment.status),
+    reasons: assessment.reasons.map(toTopologyText),
+    facts:
+      live && assessment.hasFreshReadings
+        ? getCloudTopologyFacts({
+            provider: data.provider,
+            type: resource.type,
+            readings: readCloudResourceReadings(resource.readings),
+          })
+        : [],
+  };
+}
+
 export function buildCloudAccountTopology(
   input: CloudAccountTopologyInput,
 ): ResourceTopologyGraph {
@@ -212,14 +444,16 @@ export function buildCloudAccountTopology(
       });
     }
 
-    const live: boolean =
-      resource.isReporting ||
-      isRecent(resource.lastSeenAt, input.now, CLOUD_ACCOUNT_RESOURCE_STALE_MS);
-    const health: ResourceTopologyHealth = live ? "healthy" : "unknown";
     const typeLabel: string = getCloudResourceTypeDisplayName(
       provider,
       resource.type,
     );
+    const assessed: {
+      health: ResourceTopologyHealth;
+      status: ResourceTopologyText;
+      reasons: Array<ResourceTopologyText>;
+      facts: Array<ResourceTopologyFact>;
+    } = assessCloudTopologyResource({ provider, resource, now: input.now });
 
     nodes.push({
       id: resource.id,
@@ -227,10 +461,10 @@ export function buildCloudAccountTopology(
         parents.get(resource.id)?.toId || regionId || CLOUD_ACCOUNT_ROOT_ID,
       kind: cloudResourceTopologyKind(provider, resource.type),
       name: resource.name || resource.providerResourceId || typeLabel,
-      health: health,
-      status: live
-        ? text(translationKey("Reporting"))
-        : text(translationKey("Not reporting")),
+      health: assessed.health,
+      status: assessed.status,
+      reasons: assessed.reasons,
+      facts: assessed.facts,
       context: typeLabel || undefined,
       keywords: [resource.providerResourceId, resource.type, region].filter(
         (keyword: string): boolean => {
@@ -243,24 +477,29 @@ export function buildCloudAccountTopology(
 
   // What crosses the tree: every link but the one that makes a part's parent.
   const relations: Array<ResourceTopologyRelation> = [];
+  // What the Connections view draws: every link, the parent's too.
+  const connections: Array<ResourceTopologyRelation> = [];
 
   for (const link of links) {
-    if (parents.get(link.fromId) === link) {
-      continue;
-    }
-
-    relations.push({
+    const relation: ResourceTopologyRelation = {
       from: link.fromId,
       to: link.toId,
       label: CLOUD_RELATIONSHIP_WORDS[link.kind].label,
       inverseLabel: CLOUD_RELATIONSHIP_WORDS[link.kind].inverseLabel,
-    });
+    };
+
+    connections.push(relation);
+
+    if (parents.get(link.fromId) !== link) {
+      relations.push(relation);
+    }
   }
 
   return buildResourceTopologyGraph({
     rootId: CLOUD_ACCOUNT_ROOT_ID,
     nodes: nodes,
     relations: relations,
+    connections: connections,
     issues: attachOpenIssues({
       records: input.issues || [],
       rootId: CLOUD_ACCOUNT_ROOT_ID,
