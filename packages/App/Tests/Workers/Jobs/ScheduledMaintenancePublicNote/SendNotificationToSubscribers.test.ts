@@ -1,3 +1,4 @@
+import { StateListType } from "Common/Utils/StateOrder";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -2644,7 +2645,10 @@ describe("ScheduledMaintenancePublicNote: a note posted with a state change name
       }),
     );
     expect(sentTeams()[0]).toContain(
-      StateChangeNoteMessage.getChatStatusLine(COMPLETED).toString(),
+      StateChangeNoteMessage.getChatStatusLine(
+        StateListType.ScheduledMaintenanceState,
+        COMPLETED,
+      ).toString(),
     );
   });
 });
