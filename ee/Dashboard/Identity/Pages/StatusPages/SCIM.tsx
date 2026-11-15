@@ -11,6 +11,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import { IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import React, {
   Fragment,
@@ -51,6 +53,7 @@ import {
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showSCIMUrlId, setShowSCIMUrlId] = useState<string>("");
   const [currentSCIMConfig, setCurrentSCIMConfig] =
@@ -241,11 +244,13 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           description={
             <div>
               <p>
-                Configure your identity provider with these SCIM endpoint URLs:
+                {translator.translateText(
+                  "Configure your identity provider with these SCIM endpoint URLs:",
+                )}
               </p>
               <br />
               <div>
-                <strong>SCIM Base URL:</strong>
+                <strong>{translator.translateText("SCIM Base URL:")}</strong>
                 <br />
                 <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                   {IDENTITY_URL.toString()}/status-page-scim/v2/
@@ -255,19 +260,22 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               <br />
               <div>
                 <p className="font-medium text-gray-700 mb-1">
-                  Unique identifier field for users:
+                  {translator.translateText(
+                    "Unique identifier field for users:",
+                  )}
                 </p>
                 <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                   userName
                 </code>
                 <p className="text-xs text-gray-500 mt-1">
-                  Use this field as the unique identifier for users in your
-                  identity provider SCIM configuration
+                  {translator.translateText(
+                    "Use this field as the unique identifier for users in your identity provider SCIM configuration",
+                  )}
                 </p>
               </div>
               <br />
               <div>
-                <strong>Users Endpoint:</strong>
+                <strong>{translator.translateText("Users Endpoint:")}</strong>
                 <br />
                 <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                   {IDENTITY_URL.toString()}/status-page-scim/v2/
@@ -276,7 +284,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               </div>
               <br />
               <div>
-                <strong>Bearer Token:</strong>
+                <strong>{translator.translateText("Bearer Token:")}</strong>
                 <br />
                 <HiddenText
                   text={currentSCIMConfig.bearerToken as string}
@@ -285,8 +293,10 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               </div>
               <br />
               <p>
-                <strong>Note:</strong> Make sure to use this bearer token in the
-                Authorization header when making SCIM API requests.
+                <strong>{translator.translateText("Note:")}</strong>{" "}
+                {translator.translateText(
+                  "Make sure to use this bearer token in the Authorization header when making SCIM API requests.",
+                )}
               </p>
               <br />
               <ScimOAuthClientCredentials
@@ -356,17 +366,23 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           title={"Bearer Token Reset"}
           description={
             <div>
-              <p>Bearer token has been reset successfully.</p>
+              <p>
+                {translator.translateText(
+                  "Bearer token has been reset successfully.",
+                )}
+              </p>
               <br />
               <div>
-                <strong>New Bearer Token:</strong>
+                <strong>{translator.translateText("New Bearer Token:")}</strong>
                 <br />
                 <HiddenText text={newBearerToken} isCopyable={true} />
               </div>
               <br />
               <p>
-                <strong>Important:</strong> Make sure to update your identity
-                provider with this new bearer token.
+                <strong>{translator.translateText("Important:")}</strong>{" "}
+                {translator.translateText(
+                  "Make sure to update your identity provider with this new bearer token.",
+                )}
               </p>
             </div>
           }
