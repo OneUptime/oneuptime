@@ -675,4 +675,61 @@ describe("series, label names and label values", () => {
       }),
     ).toHaveLength(1);
   });
+
+  /*
+   * In the order Prometheus answers them (issue #8177): /api/v1/series
+   * merges its sets in labels.Compare order, and the label names and values
+   * are sorted as Go's strings (slices.Sort), by code point.
+   */
+  const TIES: PromQLSeriesSource = memorySource(
+    [
+      { __name__: "tie", g: "1", i: "xy" },
+      { __name__: "tie", ab: "1", g: "1" },
+      { __name__: "tie", g: "1", i: "x" },
+      { __name__: "tie", a: "1", g: "1" },
+      { __name__: "tie", g: "1", i: "x\u{1F600}" },
+      { __name__: "tie", g: "1", i: "x\u{FFFF}" },
+    ].map((labels: PromQLLabels) => {
+      return { labels, samples: [[60, 1]] as Array<[number, number]> };
+    }),
+  );
+
+  test("the series come in Prometheus' order: a name or value before any it starts", async () => {
+    const series: Array<PromQLLabels> = await listPrometheusSeries({
+      source: TIES,
+      selectors: readMatchSelectors({ "match[]": ["tie", 'tie{g="1"}'] }),
+      startTimeMs: 0,
+      endTimeMs: 200000,
+      limit: 100,
+    });
+
+    expect(series).toEqual([
+      { __name__: "tie", a: "1", g: "1" },
+      { __name__: "tie", ab: "1", g: "1" },
+      { __name__: "tie", g: "1", i: "x" },
+      { __name__: "tie", g: "1", i: "xy" },
+      { __name__: "tie", g: "1", i: "x\u{FFFF}" },
+      { __name__: "tie", g: "1", i: "x\u{1F600}" },
+    ]);
+  });
+
+  test("label names and values are sorted by code point, as Go sorts them", async () => {
+    const series: Array<PromQLLabels> = [
+      { __name__: "up", Zone: "b", "\u{1F600}": "x" },
+      { __name__: "up", zone: "a\u{1F600}", "\u{FFFF}": "y" },
+      { __name__: "up", zone: "a\u{FFFF}", A: "1" },
+      { __name__: "up", zone: "a~" },
+    ];
+
+    // A capital letter is a smaller byte than "_": A and Zone before __name__.
+    expect(labelNamesOf(series)).toEqual([
+      "A",
+      "Zone",
+      "__name__",
+      "zone",
+      "\u{FFFF}",
+      "\u{1F600}",
+    ]);
+    expect(labelValuesOf(series, "zone")).toEqual(["a~", "a\u{FFFF}", "a\u{1F600}"]);
+  });
 });

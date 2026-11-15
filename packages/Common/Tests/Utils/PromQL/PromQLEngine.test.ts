@@ -1971,6 +1971,116 @@ describe("range queries", () => {
 
     expect(error.message).toContain("The step must be longer than zero");
   });
+
+  /*
+   * Series in the order Prometheus answers them (issue #8177): a range
+   * query's matrix sorted with labels.Compare. Prometheus 3.16.0, asked this
+   * range query over these four series in its TSDB, answered a, ab,
+   * i="x", i="xy"; OneUptime answered ab, a, i="xy", i="x" before.
+   */
+  const TIES: Array<TestSeries> = [
+    { labels: { __name__: "tie", g: "1", i: "xy" }, samples: [[600, 1]] },
+    { labels: { __name__: "tie", ab: "1", g: "1" }, samples: [[600, 2]] },
+    { labels: { __name__: "tie", g: "1", i: "x" }, samples: [[600, 3]] },
+    { labels: { __name__: "tie", a: "1", g: "1" }, samples: [[600, 4]] },
+  ];
+  const TIE_ORDER: Array<string> = [
+    'tie{a="1", g="1"}',
+    'tie{ab="1", g="1"}',
+    'tie{g="1", i="x"}',
+    'tie{g="1", i="xy"}',
+  ];
+
+  // The label sets of a matrix, in the order the engine answered them.
+  const seriesOrder: (result: PromQLQueryResult) => Array<string> = (
+    result: PromQLQueryResult,
+  ): Array<string> => {
+    if (result.resultType !== PromQLResultType.Matrix) {
+      throw new Error(`Expected a matrix, got ${result.resultType}.`);
+    }
+
+    return result.series.map((series: PromQLMatrixResultSeries): string => {
+      return formatPromQLLabels(series.labels);
+    });
+  };
+
+  test("series come in Prometheus' order: a name or value before any it starts", async () => {
+    const ties: PromQLEngine = new PromQLEngine(new MemorySource(TIES));
+
+    expect(
+      seriesOrder(await ties.rangeQuery("tie", 600000, 660000, 60000)),
+    ).toEqual(TIE_ORDER);
+    // Whatever order the source reads them in.
+    expect(
+      seriesOrder(
+        await new PromQLEngine(
+          new MemorySource([...TIES].reverse()),
+        ).rangeQuery("tie", 600000, 660000, 60000),
+      ),
+    ).toEqual(TIE_ORDER);
+  });
+
+  test("an instant query's series and a range vector's come in that order too", async () => {
+    const ties: PromQLEngine = new PromQLEngine(new MemorySource(TIES));
+    const instantResult: PromQLQueryResult = await ties.instantQuery(
+      "tie",
+      600000,
+    );
+
+    expect(
+      instantResult.resultType === PromQLResultType.Vector
+        ? instantResult.samples.map(
+            (sample: PromQLVectorResultSample): string => {
+              return formatPromQLLabels(sample.labels);
+            },
+          )
+        : [],
+    ).toEqual(TIE_ORDER);
+    expect(seriesOrder(await ties.instantQuery("tie[5m]", 600000))).toEqual(
+      TIE_ORDER,
+    );
+  });
+
+  test("series that differ beyond U+FFFF come in code point order, as Go's strings sort", async () => {
+    const astral: PromQLEngine = new PromQLEngine(
+      new MemorySource([
+        { labels: { __name__: "v", t: "a\u{1F600}" }, samples: [[600, 1]] },
+        { labels: { __name__: "v", t: "a\u{FFFF}" }, samples: [[600, 2]] },
+        { labels: { __name__: "v", t: "a~" }, samples: [[600, 3]] },
+      ]),
+    );
+
+    expect(
+      seriesOrder(await astral.rangeQuery("v", 600000, 600000, 60000)),
+    ).toEqual(['v{t="a~"}', 'v{t="a\u{FFFF}"}', 'v{t="a\u{1F600}"}']);
+  });
+
+  test("series an operation renames keep each point under its own labels", async () => {
+    const ties: PromQLEngine = new PromQLEngine(new MemorySource(TIES));
+    const result: PromQLQueryResult = await ties.rangeQuery(
+      "tie * 10",
+      600000,
+      660000,
+      60000,
+    );
+
+    expect(
+      result.resultType === PromQLResultType.Matrix
+        ? result.series.map((series: PromQLMatrixResultSeries): string => {
+            return `${formatPromQLLabels(series.labels)} ${series.points
+              .map((point: { value: number }): number => {
+                return point.value;
+              })
+              .join(",")}`;
+          })
+        : [],
+    ).toEqual([
+      '{a="1", g="1"} 40,40',
+      '{ab="1", g="1"} 20,20',
+      '{g="1", i="x"} 30,30',
+      '{g="1", i="xy"} 10,10',
+    ]);
+  });
 });
 
 describe("limits and reads", () => {
