@@ -24,6 +24,9 @@ export default defineConfig({
   reporter: "list",
   outputDir: "../../output/playwright/color-picker-ui/test-results",
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "UTC",
+    locale: "en-US",
     baseURL: `http://127.0.0.1:${port}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

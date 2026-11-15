@@ -104,6 +104,11 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /*
+     * One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js):
+     * the e2e container's own, UTC, so a run there is as it was.
+     */
+    timezoneId: "UTC",
+    /*
      * Actions stay bounded by the enclosing test timeout alone. A submit
      * button that sits disabled while the backend works is a normal wait here
      * - registerAndCreateProject allows project creation two minutes - so a
