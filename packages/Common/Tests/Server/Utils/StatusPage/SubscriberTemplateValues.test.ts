@@ -8,7 +8,9 @@ import {
   writeInLanguage,
 } from "../../../../Server/Utils/ServerTranslation";
 import OneUptimeDate from "../../../../Types/Date";
-import { DEFAULT_STATUS_NAMES } from "../../../../Types/StatusPage/DefaultStatusNames";
+import { StatusPageNameList } from "../../../../Types/StatusPage/DefaultStatusNames";
+import { getDefaultRecordNames } from "../../../../Utils/DefaultRecordNames";
+import { StateListType } from "../../../../Utils/StateOrder";
 import { Translator } from "../../../../Types/Translator";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
 import { describe, expect, test } from "@jest/globals";
@@ -29,13 +31,30 @@ const POSTED_AT: Date = new Date("2026-09-27T14:05:00.000Z");
 
 const GERMAN_PAGE: { defaultLanguage: string } = { defaultLanguage: "de" };
 
+// The lists a status page, and so a custom template, names records of.
+const STATUS_PAGE_LISTS: ReadonlyArray<StatusPageNameList> = [
+  StateListType.IncidentState,
+  StateListType.IncidentSeverity,
+  StateListType.MonitorStatus,
+  StateListType.ScheduledMaintenanceState,
+];
+
 describe("SubscriberTemplateValues.stateName", () => {
   test("OneUptime's default names in the page's language", () => {
     expect(
       SubscriberTemplateValues.inPageLanguage(GERMAN_PAGE, {
-        state: SubscriberTemplateValues.stateName("Resolved"),
-        severity: SubscriberTemplateValues.stateName("Major Incident"),
-        maintenance: SubscriberTemplateValues.stateName("Ongoing"),
+        state: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          "Resolved",
+        ),
+        severity: SubscriberTemplateValues.stateName(
+          StateListType.IncidentSeverity,
+          "Major Incident",
+        ),
+        maintenance: SubscriberTemplateValues.stateName(
+          StateListType.ScheduledMaintenanceState,
+          "Ongoing",
+        ),
       }),
     ).toEqual({
       state: "Behoben",
@@ -47,22 +66,66 @@ describe("SubscriberTemplateValues.stateName", () => {
   test("every default name reads in every language, as the status page reads it", () => {
     const translator: Translator = getServerTranslator("ja");
 
-    for (const name of DEFAULT_STATUS_NAMES) {
-      const value: string = SubscriberTemplateValues.write(
-        { name: SubscriberTemplateValues.stateName(name) },
-        translator,
-      )["name"]!;
+    for (const list of STATUS_PAGE_LISTS) {
+      for (const name of getDefaultRecordNames(list)) {
+        const value: string = SubscriberTemplateValues.write(
+          { name: SubscriberTemplateValues.stateName(list, name) },
+          translator,
+        )["name"]!;
 
-      expect([name, value === name]).toEqual([name, false]);
+        expect([list, name, value === name]).toEqual([list, name, false]);
+      }
     }
+  });
+
+  test("a name is a default by its own list: an incident state named Degraded is the project's (#8066)", () => {
+    expect(
+      SubscriberTemplateValues.inPageLanguage(GERMAN_PAGE, {
+        // Degraded is a default monitor status, not an incident state.
+        incidentState: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          "Degraded",
+        ),
+        monitorStatus: SubscriberTemplateValues.stateName(
+          StateListType.MonitorStatus,
+          "Degraded",
+        ),
+        // Ongoing is a default maintenance state, not an incident severity.
+        severity: SubscriberTemplateValues.stateName(
+          StateListType.IncidentSeverity,
+          "Ongoing",
+        ),
+        maintenanceState: SubscriberTemplateValues.stateName(
+          StateListType.ScheduledMaintenanceState,
+          "Ongoing",
+        ),
+        // Resolved is a default incident state, not a maintenance state.
+        maintenanceNamedResolved: SubscriberTemplateValues.stateName(
+          StateListType.ScheduledMaintenanceState,
+          "Resolved",
+        ),
+      }),
+    ).toEqual({
+      incidentState: "Degraded",
+      monitorStatus: "Beeinträchtigt",
+      severity: "Ongoing",
+      maintenanceState: "Laufend",
+      maintenanceNamedResolved: "Resolved",
+    });
   });
 
   test("a project's own name reads as written", () => {
     expect(
       SubscriberTemplateValues.inPageLanguage(GERMAN_PAGE, {
-        state: SubscriberTemplateValues.stateName("Monitoring the fix"),
+        state: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          "Monitoring the fix",
+        ),
         // Not quite a default name: as written.
-        lowerCase: SubscriberTemplateValues.stateName("resolved"),
+        lowerCase: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          "resolved",
+        ),
       }),
     ).toEqual({ state: "Monitoring the fix", lowerCase: "resolved" });
   });
@@ -70,9 +133,19 @@ describe("SubscriberTemplateValues.stateName", () => {
   test("no name reads as what the sender says it reads as", () => {
     expect(
       SubscriberTemplateValues.inPageLanguage(GERMAN_PAGE, {
-        empty: SubscriberTemplateValues.stateName(""),
-        missing: SubscriberTemplateValues.stateName(undefined, " - "),
-        nothing: SubscriberTemplateValues.stateName(null),
+        empty: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          "",
+        ),
+        missing: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          undefined,
+          " - ",
+        ),
+        nothing: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          null,
+        ),
       }),
     ).toEqual({ empty: "", missing: " - ", nothing: "" });
   });
@@ -176,7 +249,10 @@ describe("SubscriberTemplateValues.inPageLanguage", () => {
       return {
         title: "Checkout failing",
         url: "https://status.acme.com",
-        state: SubscriberTemplateValues.stateName("Identified"),
+        state: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
+          "Identified",
+        ),
         none: SubscriberTemplateValues.text(SubscriberEmailText.none),
         postedAt: SubscriberTemplateValues.date(POSTED_AT),
       };
@@ -224,7 +300,10 @@ describe("SubscriberTemplateValues.inPageLanguage", () => {
       SubscriberTemplateValues.inPageLanguage(
         { defaultLanguage: "fa" },
         {
-          state: SubscriberTemplateValues.stateName("Resolved"),
+          state: SubscriberTemplateValues.stateName(
+            StateListType.IncidentState,
+            "Resolved",
+          ),
         },
       );
 

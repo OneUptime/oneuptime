@@ -1,3 +1,4 @@
+import { StateListType } from "../../../../Utils/StateOrder";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -1970,7 +1971,10 @@ describe("IncidentTemplateVariableBuilder in the page's language", () => {
         incident: incidentWithSeverity("Major Incident"),
         statusPages: [germanPage()],
         textVariables: {
-          incidentState: SubscriberTemplateValues.stateName("Resolved"),
+          incidentState: SubscriberTemplateValues.stateName(
+            StateListType.IncidentState,
+            "Resolved",
+          ),
           postedAt: SubscriberTemplateValues.date(POSTED_AT),
         },
         customFieldDefinitions: [],
@@ -2006,7 +2010,10 @@ describe("IncidentTemplateVariableBuilder in the page's language", () => {
         incident: incidentWithSeverity("Major Incident"),
         statusPages: [SITE_03],
         textVariables: {
-          incidentState: SubscriberTemplateValues.stateName("Resolved"),
+          incidentState: SubscriberTemplateValues.stateName(
+            StateListType.IncidentState,
+            "Resolved",
+          ),
           postedAt: SubscriberTemplateValues.date(POSTED_AT),
         },
         customFieldDefinitions: [],
@@ -2031,7 +2038,10 @@ describe("IncidentTemplateVariableBuilder in the page's language", () => {
         incident: incidentWithSeverity("Sev 2"),
         statusPages: [germanPage()],
         textVariables: {
-          incidentState: SubscriberTemplateValues.stateName("Monitoring fix"),
+          incidentState: SubscriberTemplateValues.stateName(
+            StateListType.IncidentState,
+            "Monitoring fix",
+          ),
           // A value given as text is placed as it is.
           extra: "As given",
         },
