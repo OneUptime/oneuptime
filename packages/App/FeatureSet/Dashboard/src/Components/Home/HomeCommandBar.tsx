@@ -223,7 +223,7 @@ const HomeCommandBar: FunctionComponent<ComponentProps> = (
     return (
       <MoreMenu
         dataTestId="home-create-menu"
-        ariaLabel={translator.translateText("Create") || "Create"}
+        ariaLabel="Create"
         triggerClassName={ACTION_BUTTON_CLASS_NAME}
         elementToBeShownInsteadOfButton={
           <span className="inline-flex items-center gap-1.5">

@@ -19,6 +19,11 @@ import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 export interface ComponentProps {
   searchText: string;
   onSearchChange: (value: string) => void;
+  /*
+   * Enter in the search box: move the map to the next device the search
+   * matches (issue #6606).
+   */
+  onSearchEnter?: (() => void) | undefined;
   layoutMode: TopologyLayoutMode;
   onLayoutChange: (mode: TopologyLayoutMode) => void;
   availableKinds: ReadonlySet<TopologyNodeKind>;
@@ -233,6 +238,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
             placeholder="Search by name, IP, MAC or vendor"
             value={props.searchText}
             onChange={props.onSearchChange}
+            onEnterPress={props.onSearchEnter}
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:flex-none">

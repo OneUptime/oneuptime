@@ -51,7 +51,7 @@ flowchart TB
 ```
 
 - Le serveur compte les deux durées à partir de la session elle-même : quand elle s'est connectée, et quand la personne a été active pour la dernière fois. Il les vérifie à chaque requête, à chaque renouvellement et à chaque mise à jour en direct, et ne laisse jamais la déconnexion au navigateur.
-- Le délai d'inactivité compte à partir du dernier clic, de la dernière touche pressée ou du dernier défilement dans un onglet quelconque du tableau de bord ou du Admin Dashboard. Un onglet laissé ouvert ne maintient pas une session en vie.
+- Le délai d'inactivité compte à partir du dernier clic, de la dernière touche pressée ou du dernier défilement dans un onglet quelconque du tableau de bord ou du Admin Dashboard. Un onglet laissé ouvert ne maintient pas une session en vie. Rouvrir OneUptime ne la fait pas revenir non plus : une personne absente plus longtemps que le délai d'inactivité, navigateur fermé ou ordinateur en veille, se reconnecte.
 - L'application mobile compte comme active chaque fois qu'elle est utilisée.
 - Quand une session se termine, le navigateur passe à la page de connexion, qui indique pourquoi. Après s'être reconnectée, la personne revient sur la page où elle se trouvait.
 

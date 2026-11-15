@@ -16,6 +16,7 @@ import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/St
 import EmailColorUtil from "../../../Utils/Email/EmailColorUtil";
 import Color from "../../../Types/Color";
 import StateChangeNoteMessage from "../../../Types/StatusPage/StateChangeNoteMessage";
+import { StateListType } from "../../../Utils/StateOrder";
 import {
   SubscriberEmailTemplateChoice,
   SubscriberEmailTemplateChoiceReason,
@@ -231,6 +232,7 @@ export default class SubscriberIncidentEmailBuilder {
        */
       textVariables: {
         incidentState: SubscriberTemplateValues.stateName(
+          StateListType.IncidentState,
           stateChange?.name || data.incident.currentIncidentState?.name || "",
         ),
         postedAt: SubscriberTemplateValues.date(
@@ -546,6 +548,7 @@ export default class SubscriberIncidentEmailBuilder {
               incidentSeverity: data.incident.incidentSeverity?.name
                 ? SubscriberMessageText.nameInLanguage(
                     translator,
+                    StateListType.IncidentSeverity,
                     data.incident.incidentSeverity.name,
                   )
                 : " - ",
@@ -555,6 +558,7 @@ export default class SubscriberIncidentEmailBuilder {
               namesInLanguage["incidentState"] =
                 SubscriberMessageText.nameInLanguage(
                   translator,
+                  StateListType.IncidentState,
                   stateChange.name,
                 );
             }

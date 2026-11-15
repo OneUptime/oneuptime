@@ -52,7 +52,7 @@ flowchart TB
 2. 在側邊選單中展開 **遙測與 APM**，然後選擇 **擷取金鑰**。
 3. 點選 **建立擷取金鑰**。對話框會填好名稱，並選擇 **伺服器** 金鑰類型，也就是應用程式或 Collector 傳送資料時使用的類型。可視需要重新命名，然後點選 **建立擷取金鑰**。
 
-![專案設定中的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeys.png)
+![「擷取金鑰」清單，「建立擷取金鑰」已框出](screen:ingestion-keys)
 
 新金鑰會在自己的頁面中開啟。複製它的 **密鑰金鑰**，這就是你以 `x-oneuptime-token` 傳送的權杖。
 

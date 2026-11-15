@@ -72,6 +72,7 @@ import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguag
 import SubscriberMessageText, {
   SubscriberChatText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { StateListType } from "Common/Utils/StateOrder";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
 import { translationKey, Translator } from "Common/Types/Translator";
@@ -862,6 +863,7 @@ RunCron(
                                       (translator: Translator): string => {
                                         return SubscriberMessageText.nameInLanguage(
                                           translator,
+                                          StateListType.IncidentSeverity,
                                           incident.incidentSeverity!.name,
                                         );
                                       },
@@ -962,6 +964,7 @@ RunCron(
                                     title: incident.title || "",
                                     severity: incident.incidentSeverity?.name
                                       ? SubscriberMessageText.stateName(
+                                          StateListType.IncidentSeverity,
                                           incident.incidentSeverity.name,
                                         )
                                       : "-",
@@ -1049,7 +1052,7 @@ RunCron(
                         (translator: Translator): string => {
                           return mdText`## 🚨 ${translator.translateTemplate(POSTMORTEM_TEXT.chatHeading, { title: incident.title || "" })}
 
-${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, StateListType.IncidentSeverity, incident.incidentSeverity.name) : " - ")}
 
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 
@@ -1121,7 +1124,7 @@ ${slackCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUr
                         language,
                         (translator: Translator): string => {
                           return mdText`## 🚨 ${translator.translateTemplate(POSTMORTEM_TEXT.chatHeading, { title: incident.title || "" })}
-${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, StateListType.IncidentSeverity, incident.incidentSeverity.name) : " - ")}
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 ${SubscriberMessageText.chatLine(translator, POSTMORTEM_TEXT.chatPostmortem, FeedMarkdown.asMarkdown(incident.postmortemNote || ""))}
 ${teamsCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();

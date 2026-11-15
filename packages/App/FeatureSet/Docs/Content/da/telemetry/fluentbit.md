@@ -33,7 +33,7 @@ Fluent Bit pakker hver post ind i en OpenTelemetry-konvolut, så den kan bære r
 
 Gå til **Produkter → Projektindstillinger**, åbn **Telemetri og APM** i sidemenuen, og vælg **Indtagelsesnøgler**.
 
-![Siden med telemetri-indtagelsesnøgler i projektindstillingerne](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
 
 ### Opret en nøgle
 

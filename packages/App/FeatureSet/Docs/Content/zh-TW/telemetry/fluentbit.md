@@ -33,7 +33,7 @@ Fluent Bit 會把每筆記錄包進一個 OpenTelemetry 信封，使其能夠攜
 
 前往 **產品 → 專案設定**，在側邊選單中展開 **遙測與 APM**，然後選擇 **擷取金鑰**。
 
-![專案設定中的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeys.png)
+![「擷取金鑰」清單，「建立擷取金鑰」已框出](screen:ingestion-keys)
 
 ### 建立金鑰
 

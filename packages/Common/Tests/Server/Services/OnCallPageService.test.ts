@@ -28,6 +28,7 @@ import OnCallPageService, {
   OnCallPageResult,
   OnCallPageTargets,
 } from "../../../Server/Services/OnCallPageService";
+import OnCallRunPageMessage from "../../../Server/Utils/OnCall/OnCallRunPageMessage";
 import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
@@ -1969,7 +1970,7 @@ describe("OnCallPageService.page", () => {
       expect("pageMessage" in directPageAsked()).toBe(false);
     });
 
-    test("a policy the page starts keeps it too, written as OneUptime once the caller's run is made", async () => {
+    test("a policy the page starts keeps it too: a run the message did not reach as it was created gets it written as OneUptime", async () => {
       const policyRunId: ObjectID = ObjectID.generate();
 
       policyStart.mockImplementation(
@@ -2000,6 +2001,90 @@ describe("OnCallPageService.page", () => {
         data: { pageMessage: "Checkout is down again" },
         props: { isRoot: true },
       });
+    });
+
+    /*
+     * Creating the run pages its first level then and there, so a message
+     * written after it came too late for those notifications (#7838): the
+     * run is created with it, OneUptime writing it as the run is created
+     * (OnCallRunPageMessage, taken in onCreatePermitted).
+     */
+    test("a policy the page starts is created with the message, so its first level's notifications carry it", async () => {
+      const taken: Array<string | undefined> = [];
+      const sentWith: Array<string | undefined> = [];
+
+      policyStart.mockImplementation(
+        async (createBy: {
+          data: OnCallDutyPolicyExecutionLog;
+        }): Promise<OnCallDutyPolicyExecutionLog> => {
+          sentWith.push(createBy.data.pageMessage);
+
+          // What the run's onCreatePermitted does, once the caller is checked.
+          const message: string | undefined = OnCallRunPageMessage.take();
+          taken.push(message);
+
+          if (message) {
+            createBy.data.pageMessage = message;
+          }
+
+          createBy.data.id = ObjectID.generate();
+          return createBy.data;
+        },
+      );
+
+      const written: SpyInstance<
+        typeof OnCallDutyPolicyExecutionLogService.updateOneById
+      > = jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      await page({
+        targets: { onCallDutyPolicyIds: [POLICY_CRITICAL, POLICY_DATABASE] },
+        about: {
+          incidentId: INCIDENT,
+          message: "  Checkout is down\nagain ",
+        },
+      });
+
+      // Each policy's run, as it is created, and only once each.
+      expect(taken).toEqual([
+        "Checkout is down again",
+        "Checkout is down again",
+      ]);
+      // Never sent as the caller's own: no caller may write the column.
+      expect(sentWith).toEqual([undefined, undefined]);
+      // On the run already: nothing is written after it.
+      expect(written).not.toHaveBeenCalled();
+      // Nothing is left for whatever is created next.
+      expect(OnCallRunPageMessage.take()).toBeUndefined();
+    });
+
+    test("a policy a page with no message starts is created with none", async () => {
+      const taken: Array<string | undefined> = [];
+
+      policyStart.mockImplementation(
+        async (createBy: {
+          data: OnCallDutyPolicyExecutionLog;
+        }): Promise<OnCallDutyPolicyExecutionLog> => {
+          taken.push(OnCallRunPageMessage.take());
+          createBy.data.id = ObjectID.generate();
+          return createBy.data;
+        },
+      );
+
+      const written: SpyInstance<
+        typeof OnCallDutyPolicyExecutionLogService.updateOneById
+      > = jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      await page({
+        targets: { onCallDutyPolicyIds: [POLICY_CRITICAL] },
+        about: { incidentId: INCIDENT, message: " " },
+      });
+
+      expect(taken).toEqual([undefined]);
+      expect(written).not.toHaveBeenCalled();
     });
 
     test("a message that cannot be written never stops the policy", async () => {

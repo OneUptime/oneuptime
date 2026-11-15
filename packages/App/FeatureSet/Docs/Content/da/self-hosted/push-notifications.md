@@ -204,7 +204,7 @@ En enhed beholder systemlyden, indtil den kører en version af appen, der tilbyd
 
 ### Gentagelse af en alarm, indtil den bekræftes
 
-En push-regel kan sende sin alarm igen, indtil nogen bekræfter den. Under **Brugerindstillinger > Sådan når man mig** indstiller du **Gentag indtil bekræftelse**, når du tilføjer en push-regel, eller ændrer det senere i reglens række: hvert minut eller hvert 2., 3., 5., 10., 15. eller 30. minut. Alarmen sendes igen med det interval, højst 10 gange mere, og stopper, så snart hændelsen, advarslen eller episoden er bekræftet. Gemt pr. regel i `UserNotificationRule.repeatEveryMinutes`, hvor 0, som er standard, sender alarmen én gang.
+En push-regel kan sende sin alarm igen, indtil nogen bekræfter den. Under **Brugerindstillinger > Sådan når man mig** indstiller du **Gentag indtil bekræftelse**, når du tilføjer en push-regel, eller ændrer det senere i reglens række: hvert minut eller hvert 2., 3., 5., 10., 15. eller 30. minut. Alarmen sendes igen med det interval, højst 10 gange mere, og stopper, så snart hændelsen, advarslen eller episoden er bekræftet. Et tilkald, der fortsætter efter en bekræftelse, som et nyt tilkald, gentages, indtil nogen, det har tilkaldt, svarer, eller hændelsen, advarslen eller episoden er løst: [Når flere politikker tilkalder](/docs/on-call/policies#når-flere-politikker-tilkalder) nævner dem. Gemt pr. regel i `UserNotificationRule.repeatEveryMinutes`, hvor 0, som er standard, sender alarmen én gang.
 
 ## Fejlfinding
 

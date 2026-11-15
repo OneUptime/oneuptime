@@ -389,6 +389,7 @@ const MattermostTeamsCard: FunctionComponent<ComponentProps> = (
                           MATTERMOST_TEAM_MAKE_DEFAULT_LABEL,
                           { team: name },
                         )}
+                        isAriaLabelTranslated={true}
                         buttonStyle={ButtonStyleType.OUTLINE}
                         buttonSize={ButtonSize.Small}
                         isLoading={makingDefaultId === team.id}

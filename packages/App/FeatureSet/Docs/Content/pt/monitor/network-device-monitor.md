@@ -1022,6 +1022,18 @@ Um dispositivo não visto há 30 dias é removido da lista e do mapa, a menos qu
 
 Proprietários e administradores do projeto escolhem o padrão: mude para um layout e selecione **Make default for everyone**. A partir daí, toda visão do mapa de dispositivos abre nele: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**. No layout padrão, **Clear default** devolve cada mapa ao seu próprio padrão. As posições arrastadas são salvas para cada layout no seu navegador, então o mapa abre com o arranjo que você fez nesse layout.
 
+### Orientar-se em uma rede grande
+
+No layout **Parent and child**, um dispositivo com seis ou mais dispositivos que não têm nada abaixo deles os desenha em uma grade compacta abaixo dele em vez de uma longa fileira, ligados por linhas em ângulo reto que não cruzam nenhum dispositivo nem seu nome. O layout escolhe o formato de grade que mostra o mapa inteiro na tela no maior tamanho.
+
+Um dispositivo com algo abaixo dele tem um botão `−` sob o nome: selecione-o para recolher o ramo ao dispositivo e ao número de dispositivos que ele contém, como `+24`, e selecione o número para expandi-lo novamente. **Recolher todos os ramos** e **Expandir todos os ramos**, ao lado dos botões de zoom, reduzem o mapa ao seu contorno e o abrem de novo. Seu navegador lembra os ramos recolhidos de cada site.
+
+Para ver um ramo sozinho, clique no dispositivo dele e selecione **Mostrar apenas este ramo**. O mapa mostra esse dispositivo e tudo abaixo dele, com o caminho desde o topo da rede no alto do mapa: selecione uma etapa para ampliar a visão ao ramo desse dispositivo, ou **Mostrar o mapa inteiro** para ver tudo de novo.
+
+A pesquisa leva o mapa aos dispositivos que encontra. As setas ao lado do número de correspondências, ou Enter na caixa de pesquisa, vão a cada correspondência por vez e a marcam com um anel. No layout **Parent and child**, o caminho desde o topo da rede até cada correspondência fica destacado, e uma correspondência em um ramo recolhido também é contada, com um botão que abre os ramos em que ela está.
+
+Depois que você arrasta dispositivos, um seletor no topo do mapa alterna entre **Layout personalizado · 2 movidos** e **Layout original**: o layout original é o mapa como o OneUptime o organiza, e seu layout personalizado é mantido até você voltar a ele. **Reset layout** o descarta.
+
 ### Exportar o mapa em PDF
 
 **Exportar PDF**, no topo do mapa, baixa o mapa que você está vendo como um PDF que você pode anexar a uma avaliação, a uma solicitação de mudança ou a uma revisão de incidente, ou ler offline. Toda visão do mapa de dispositivos tem essa opção: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**.

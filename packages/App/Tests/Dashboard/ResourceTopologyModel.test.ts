@@ -456,6 +456,74 @@ describe("rows that arrive out of step", () => {
     ).toEqual(["container>other"]);
   });
 
+  test("a product that describes no connections is offered no Connections view", () => {
+    expect(sampleGraph().connections).toBeNull();
+    expect(sampleGraph().connectionsByNode.size).toBe(0);
+  });
+
+  test("connections keep what nesting shows, and drop only what cannot be drawn", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null),
+        part("network", "root"),
+        part("nic", "network"),
+        part("vm", "network"),
+      ],
+      connections: [
+        // Nesting: the tree draws it, and Connections draws it too.
+        {
+          from: "nic",
+          to: "network",
+          label: "Runs in",
+          inverseLabel: "Runs here",
+        },
+        {
+          from: "nic",
+          to: "vm",
+          label: "Attached to",
+          inverseLabel: "Has attached",
+        },
+        // Repeated, to itself, to a part that is not there, to the resource.
+        {
+          from: "nic",
+          to: "vm",
+          label: "Attached to",
+          inverseLabel: "Has attached",
+        },
+        { from: "vm", to: "vm", label: "Runs in", inverseLabel: "Runs here" },
+        { from: "vm", to: "gone", label: "Runs in", inverseLabel: "Runs here" },
+        { from: "vm", to: "root", label: "Part of", inverseLabel: "Includes" },
+        // Two words for one pair are two connections.
+        { from: "nic", to: "vm", label: "Part of", inverseLabel: "Includes" },
+      ],
+    });
+
+    expect(
+      graph.connections!.map(
+        (connection: { from: string; to: string; label: string }): string => {
+          return `${connection.from}>${connection.to}:${connection.label}`;
+        },
+      ),
+    ).toEqual(["nic>network:Runs in", "nic>vm:Attached to", "nic>vm:Part of"]);
+    expect(graph.connectionsByNode.get("nic")).toHaveLength(3);
+    expect(graph.connectionsByNode.get("vm")).toHaveLength(2);
+    expect(graph.connectionsByNode.get("network")).toHaveLength(1);
+    expect(graph.connectionsByNode.has("root")).toBe(false);
+    // The tree itself still draws only what crosses it.
+    expect(graph.relations).toHaveLength(0);
+  });
+
+  test("a product with connections and none between its parts still gets the view, empty", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [part("root", null), part("a", "root")],
+      connections: [],
+    });
+
+    expect(graph.connections).toEqual([]);
+  });
+
   test("a deep tree builds without recursion limits", () => {
     const inputs: Array<ResourceTopologyNodeInput> = [part("p-0", null)];
 

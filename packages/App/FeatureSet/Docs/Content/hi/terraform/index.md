@@ -104,7 +104,7 @@ OneUptime API से जिस भी तरह का रिकॉर्ड ब
 | `oneuptime_on_call_policy`, `oneuptime_escalation_rule` | एक ऑन-कॉल नीति, और वे नियम जिन्हें वह क्रम से पेज करती है |
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | घटनाएँ, उनकी गंभीरताएँ और उनकी स्थितियाँ |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | अलर्ट, उनकी गंभीरताएँ और उनकी स्थितियाँ |
-| `oneuptime_scheduled_maintenance_event` | एक निर्धारित रखरखाव अवधि |
+| `oneuptime_scheduled_maintenance_event` | एक अनुसूचित रखरखाव अवधि |
 | `oneuptime_probe` | आपका अपना प्रोब, जो आपके नेटवर्क से जाँच करता है |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) हर संसाधन को उसके हर एट्रिब्यूट के साथ सूचीबद्ध करती है।
