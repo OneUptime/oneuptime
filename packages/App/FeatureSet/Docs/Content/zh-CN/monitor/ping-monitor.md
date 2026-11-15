@@ -152,6 +152,6 @@ flowchart TB
 :::cards
 - [IP 监控](/docs/monitor/ip-monitor): 监视固定的 IPv4 或 IPv6 地址。
 - [端口监控](/docs/monitor/port-monitor): 检查主机上的服务，而不只是主机本身。
-- [自定义探针](/docs/probe/custom-probe): ping 您自己网络中的主机。
+- [自定义探测器](/docs/probe/custom-probe): ping 您自己网络中的主机。
 - [事件](/docs/incidents/index): 监视器声明事件之后会发生什么。
 :::

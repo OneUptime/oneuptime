@@ -284,7 +284,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details گزارش‌ها از پراکسی عبور نمی‌کنند
-- نشانی و درگاه پراکسی‌ای را که به `--proxy-url` داده‌اید بررسی کنید.
+- نشانی و پورت پراکسی‌ای را که به `--proxy-url` داده‌اید بررسی کنید.
 - مطمئن شوید پراکسی اجازه اتصال به نشانی OneUptime شما را می‌دهد.
 - برای تغییر پراکسی، `stop` و `uninstall` را اجرا کنید، سپس `configure` را با `--proxy-url` تازه و بعد `start` را اجرا کنید.
 :::

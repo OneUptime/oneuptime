@@ -17,6 +17,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { unmergeException } from "../../Utils/ExceptionMerge";
 import AppLink from "../AppLink/AppLink";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHAT A MERGE LEFT ON AN EXCEPTION'S PAGE, AND ITS UNDO.
@@ -97,7 +98,7 @@ const ExceptionMergedPanel: FunctionComponent<ComponentProps> = (
       role="alert"
       data-testid="exception-merge-error"
     >
-      {error}
+      <ErrorInSentence message={error} showWhereToLook={true} />
     </p>
   ) : (
     <></>

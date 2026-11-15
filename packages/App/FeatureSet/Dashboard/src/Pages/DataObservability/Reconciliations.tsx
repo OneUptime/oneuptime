@@ -27,6 +27,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   translatableTerm,
@@ -126,7 +127,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
         setSyncError(
           translator.translateTemplate(
             "The reconciliation is saved, but its checks and monitor could not be set up: {{reason}}",
-            { reason: errorInSentence((err as Error).message) },
+            { reason: errorInSentence(API.getFriendlyMessage(err)) },
           ),
         );
       }

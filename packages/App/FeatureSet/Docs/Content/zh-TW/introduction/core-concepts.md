@@ -46,7 +46,7 @@ flowchart TB
 
 :::cards
 - [建立監測器](/docs/monitor/create-monitor): 選擇類型，說明要檢查什麼以及多久檢查一次。
-- [自訂探針](/docs/probe/custom-probe): 檢查只有你自己的網路才能連到的內容。
+- [自訂探測器](/docs/probe/custom-probe): 檢查只有你自己的網路才能連到的內容。
 :::
 
 ## 你監看的對象

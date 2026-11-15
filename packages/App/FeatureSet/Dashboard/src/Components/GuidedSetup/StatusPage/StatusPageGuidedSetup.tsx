@@ -54,6 +54,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: PUBLISH A STATUS PAGE (issue #6806), drawn in
@@ -542,7 +543,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         )}
         {saveError ? (
           <p role="alert" className="text-sm text-red-600">
-            {saveError}
+            <ErrorInSentence message={saveError} showWhereToLook={true} />
           </p>
         ) : (
           <></>

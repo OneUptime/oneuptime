@@ -49,6 +49,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface GridPlacementOptions {
   rowLabel: string;
@@ -829,7 +830,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
                   "The monitors were added, but this group could not be kept in sync with the labels you used:",
                 )}
               </span>{" "}
-              {API.getFriendlyMessage(summary.monitorRuleError)}
+              <ErrorInSentence
+                message={API.getFriendlyMessage(summary.monitorRuleError)}
+              />
             </div>
           ) : null}
 
@@ -882,7 +885,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
                           translator.translateText(copy.unknownName)}
                         :
                       </span>{" "}
-                      {API.getFriendlyMessage(entry.error)}
+                      <ErrorInSentence
+                        message={API.getFriendlyMessage(entry.error)}
+                      />
                     </li>
                   );
                 })}

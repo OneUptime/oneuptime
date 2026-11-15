@@ -1,6 +1,6 @@
 # VMware-monitor
 
-En VMware-monitor holder øje med ét vCenter - dets datacentre, klynger, ESXi-værter, virtuelle maskiner, datastores, ressourcepuljer og vSAN - og fortæller dig, når en vært bliver mættet, en VM mangler CPU eller hukommelse, en datastore bliver fuld, eller vSphere udsender en alarm. Den læser de `vcenter.*`-metrikker, som OneUptime VMware Agent indsamler, eller som en af dine prober indsamler uden en agent.
+En VMware-monitor holder øje med ét vCenter - dets datacentre, klynger, ESXi-værter, virtuelle maskiner, datastores, ressourcepuljer og vSAN - og fortæller dig, når en vært bliver mættet, en VM mangler CPU eller hukommelse, en datastore bliver fuld, eller vSphere udsender en alarm. Den læser de `vcenter.*`-metrikker, som OneUptime VMware Agent indsamler, eller som en af dine sonder indsamler uden en agent.
 
 :::cards
 - [Opret monitoren](#opret-en-vmware-monitor): Seks trin i dashboardet.
@@ -14,14 +14,14 @@ En VMware-monitor holder øje med ét vCenter - dets datacentre, klynger, ESXi-v
 Metrikkerne kommer fra vCenters API og læses med en skrivebeskyttet konto på en af to måder:
 
 - **VMware Agent**, en OpenTelemetry Collector med sin receiver `vcenter`, som du kører på en maskine, der kan nå vCenter. Se [VMware-agent](/docs/telemetry/vmware).
-- **A probe**, uden noget at installere: du forbinder vCenteret i OneUptime og vælger den probe, der kan nå det. Se [VMware uden agent](/docs/telemetry/vmware-agentless).
+- **A probe**, uden noget at installere: du forbinder vCenteret i OneUptime og vælger den sonde, der kan nå det. Se [VMware uden agent](/docs/telemetry/vmware-agentless).
 
 Begge sender de samme serier hvert indsamlingsinterval (2 minutter som standard), mærket med vCenterets navn, `vmware.vcenter.name`. Et vCenter er ét vSphere-endpoint: en vCenter Server eller en selvstændig ESXi-vært. En VMware-monitor er knyttet til ét vCenter. Hvert minut kører den sin forespørgsel på det vCenters metrikker og sammenligner resultatet med sine kriterier.
 
 ```mermaid title="Fra et vCenter til en hændelse"
 flowchart TB
     vcenter["vCenter Server eller ESXi-vært"] --> agent["VMware Agent"]
-    vcenter --> probe["Din probe"]
+    vcenter --> probe["Din sonde"]
     agent -->|"vcenter-metrikker<br/>over OTLP"| oneuptime["OneUptime"]
     probe --> oneuptime
     oneuptime --> monitor["VMware-monitor"]
@@ -112,7 +112,7 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 
 | Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når | Genopretter når |
 | --- | --- | --- | --- | --- | --- |
-| vCenter Stopped Reporting | Tilgængelighed | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **seneste 10 minutter** | Ingen data i hele vinduet: agenten eller proben er stoppet, eller vCenteret er holdt op med at svare den | Data kommer igen |
+| vCenter Stopped Reporting | Tilgængelighed | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **seneste 10 minutter** | Ingen data i hele vinduet: agenten eller sonden er stoppet, eller vCenteret er holdt op med at svare den | Data kommer igen |
 | Host Not Responding | Vært | Kritisk | `vcenter.host.memory.usage`, Max pr. `resource.vcenter.host.name` | Ved 0, ingen hukommelse i brug: vCenter har mistet forbindelsen til værten (den gik ned, mistede strømmen eller sit administrationsnetværk, eller blev afbrudt), eller den er slukket eller i standby. Hvor vSphere DPM sætter værter på standby, så brug **Datacenter Hosts Not Responding**, som udelader dem | Over 0 |
 | Host CPU Saturation | Vært | Advarsel | `vcenter.host.cpu.utilization`, Avg pr. vært | Over 90 %: hver VM på værten konkurrerer om kerner og viser CPU-ready-tid | Ved 81 % eller derunder |
 | Host Memory Saturation | Vært | Advarsel | `vcenter.host.memory.utilization`, Avg pr. vært | Over 90 %: værten begynder at tage hukommelse tilbage med ballooning, komprimering og swapping | Ved 81 % eller derunder |
@@ -368,7 +368,7 @@ vCenter læses én gang pr. indsamlingsinterval, 2 minutter som standard og ofte
 
 :::cards
 - [VMware-agent](/docs/telemetry/vmware): Installér den agent, der indsamler fra vCenter.
-- [VMware uden agent](/docs/telemetry/vmware-agentless): Lad i stedet en probe indsamle.
+- [VMware uden agent](/docs/telemetry/vmware-agentless): Lad i stedet en sonde indsamle.
 - [Proxmox-monitor](/docs/monitor/proxmox-monitor): Den samme slags monitor til Proxmox VE.
 - [Hændelser – Oversigt](/docs/incidents/index): Hvad der sker, efter at et kriterium har erklæret en hændelse.
 :::

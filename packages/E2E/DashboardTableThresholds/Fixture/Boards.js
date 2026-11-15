@@ -13,6 +13,9 @@
  *               Colored text
  *   filled      the same columns, Colored background
  *   overTime    CPU in use over time, one row a bucket, at 80 and 90
+ *   errors      errors per service, grouped by service.name, four grid
+ *               columns wide: one service with a long name (#7524), whose
+ *               Errors must stay in view on a phone and a narrow widget
  *
  * Every metric read is answered as OneUptime's metrics API answers it,
  * NEWEST bucket first; a grouped read answers each host's newest bucket
@@ -30,6 +33,7 @@ export const WIDGETS = {
   saturation: "c0000000-0000-4000-8000-0000000052a1",
   filled: "c0000000-0000-4000-8000-0000000052a2",
   overTime: "c0000000-0000-4000-8000-0000000052a3",
+  errors: "c0000000-0000-4000-8000-0000000075a4",
 };
 
 export const METRICS = {
@@ -37,6 +41,7 @@ export const METRICS = {
   memory: "system.memory.utilization",
   freeDisk: "disk.free.percent",
   load: "system.cpu.load_average.1m",
+  errors: "http.server.errors",
 };
 
 export const METRIC_TYPES = [
@@ -44,6 +49,19 @@ export const METRIC_TYPES = [
   [METRICS.memory, "1"],
   [METRICS.freeDisk, "%"],
   [METRICS.load, "1"],
+  [METRICS.errors, "{error}"],
+];
+
+/*
+ * Each service's errors in the window (#7524): one named as a long
+ * deployment is, about 330px at the table's size - wider than a phone's
+ * widget leaves its name - and one short.
+ */
+export const LONG_SERVICE_NAME = "payments-webhook-consumer-eu-west-production";
+
+export const SERVICES = [
+  { service: LONG_SERVICE_NAME, errors: 1234 },
+  { service: "checkout-api", errors: 12 },
 ];
 
 /*
@@ -190,8 +208,33 @@ export const buildConfig = () => {
           thresholdStyle: "Background",
         },
       }),
+      table({
+        id: WIDGETS.errors,
+        top: 10,
+        left: 0,
+        width: 4,
+        height: 4,
+        arguments: {
+          tableTitle: "Errors by service",
+          groupByAttributes: [{ key: "service.name", header: "Service" }],
+          columns: [
+            {
+              id: "errors",
+              variable: "e",
+              header: "Errors",
+              kind: "Metric",
+              showAsColumn: true,
+              metricName: METRICS.errors,
+              aggregation: "Sum",
+              decimals: 0,
+            },
+          ],
+          maxRows: 25,
+          decimals: 0,
+        },
+      }),
     ],
-    heightInDashboardUnits: 10,
+    heightInDashboardUnits: 14,
     timeRange: "Past 1 Hour",
   };
 };
@@ -243,6 +286,28 @@ export const pointsFor = (data) => {
     Array.isArray(data.groupByAttributeKeys) &&
     data.groupByAttributeKeys.includes("host.name");
   const points = [];
+
+  // Errors per service: each service's count in the newest bucket.
+  if (
+    Array.isArray(data.groupByAttributeKeys) &&
+    data.groupByAttributeKeys.includes("service.name")
+  ) {
+    if (data.metricName !== METRICS.errors) {
+      return points;
+    }
+
+    const newest = buckets[buckets.length - 1];
+
+    for (const service of SERVICES) {
+      points.push({
+        time: newest,
+        value: service.errors,
+        attributes: { "service.name": service.service },
+      });
+    }
+
+    return points;
+  }
 
   if (grouped) {
     const recent = buckets.slice(-3);

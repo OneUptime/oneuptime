@@ -26,6 +26,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   // In the reader's language: the caller translates them.
@@ -513,7 +514,9 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
             icon={IconProp.ExclaimationCircle}
             className="mt-0.5 h-4 w-4 flex-shrink-0"
           />
-          <span>{error}</span>
+          <span>
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </span>
         </div>
       ) : (
         <></>

@@ -34,6 +34,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Monitoring", on a monitor group's Overview (issue #6401): how many of the
@@ -219,7 +220,7 @@ const MonitorGroupMonitoringCard: FunctionComponent<ComponentProps> = (
               role="alert"
               data-testid={MONITOR_GROUP_MONITORING_ERROR_TEST_ID}
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

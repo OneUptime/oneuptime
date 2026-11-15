@@ -9,6 +9,7 @@ import {
   forgetRememberedDateTexts,
   formatDecimal,
   formatDurationText,
+  formatRelativeAmount,
   formatRelativeDate,
   getDateDisplayLanguage,
   getDateLocale,
@@ -570,5 +571,93 @@ describe("the digits a language writes", () => {
     expect(writeDigitsInLocale("", persian)).toBe("");
     expect(writeDigitsInLocale("ساعت", persian)).toBe("ساعت");
     expect(writeDigitsInLocale("۰۹:۰۰", persian)).toBe("۰۹:۰۰");
+  });
+});
+
+/*
+ * A caller that counts its own units writes the amount in its reader's
+ * language; a narrow column asks for the unit as the language shortens it
+ * (#7519, the Host list widget's Last Seen).
+ */
+describe("formatRelativeAmount", () => {
+  test("writes the unit in full unless it is asked for short", () => {
+    expect(
+      formatRelativeAmount({
+        count: 5,
+        unit: "minute",
+        isFuture: false,
+        locale: "de",
+      }),
+    ).toBe("vor 5 Minuten");
+    expect(
+      formatRelativeAmount({
+        count: 5,
+        unit: "minute",
+        isFuture: false,
+        locale: "de",
+        style: "short",
+      }),
+    ).toBe("vor 5 Min.");
+    expect(
+      formatRelativeAmount({
+        count: 2,
+        unit: "hour",
+        isFuture: true,
+        locale: "de",
+        style: "short",
+      }),
+    ).toBe("in 2 Std.");
+  });
+
+  test("the long and the short form of one locale are kept apart", () => {
+    const short: string | null = formatRelativeAmount({
+      count: 4,
+      unit: "hour",
+      isFuture: false,
+      locale: "en",
+      style: "short",
+    });
+    const long: string | null = formatRelativeAmount({
+      count: 4,
+      unit: "hour",
+      isFuture: false,
+      locale: "en",
+    });
+
+    expect(long).toBe("4 hours ago");
+    expect(short).not.toBe(long);
+  });
+
+  test("none behind now is the past, never the future", () => {
+    expect(
+      formatRelativeAmount({
+        count: 0,
+        unit: "second",
+        isFuture: false,
+        locale: "de",
+        style: "short",
+      }),
+    ).toBe("vor 0 Sek.");
+  });
+
+  test("writes the reader's digits: Persian's, and Arabic's Latin ones", () => {
+    expect(
+      formatRelativeAmount({
+        count: 12,
+        unit: "second",
+        isFuture: false,
+        locale: "fa",
+        style: "short",
+      }),
+    ).toBe("۱۲ ثانیه پیش");
+    expect(
+      formatRelativeAmount({
+        count: 12,
+        unit: "second",
+        isFuture: false,
+        locale: "ar",
+        style: "short",
+      }),
+    ).toBe("قبل 12 ثانية");
   });
 });

@@ -82,7 +82,7 @@ Lageret vokser **lineært med opbevaringen**: Et vindue på 90 dage koster cirka
 
 PostgreSQL gemmer din konfiguration og driftstilstand, ikke telemetri, så det vokser langsomt og forbliver lille ved siden af ClickHouse. Selv store installationer ligger typisk i titalsvis af GB. Standardvolumenet på **25 Gi** er fint til små installationer; planlæg 50–100 GB til større, med plads til historikken for hændelser og alarmer.
 
-Med mange replikaer af app, workers og probes kan databaseforbindelserne slippe op før lageret. Hver pod åbner som standard op til 50 forbindelser, og det medfølgende PostgreSQL tillader 500. Netop derfor indeholder chartet en valgfri connection pooler, **PgBouncer** (`pgbouncer.enabled`): Slå den til for installationer med mange replikaer.
+Med mange replikaer af app, workers og sonder kan databaseforbindelserne slippe op før lageret. Hver pod åbner som standard op til 50 forbindelser, og det medfølgende PostgreSQL tillader 500. Netop derfor indeholder chartet en valgfri connection pooler, **PgBouncer** (`pgbouncer.enabled`): Slå den til for installationer med mange replikaer.
 
 ## Valkey – cache, køer og sessioner
 
@@ -96,11 +96,11 @@ Ud over datalagrene dimensionerer du de tilstandsløse workloads. Hver kører **
 | --- | --- | --- |
 | App: dashboard, API og indtagelse | `app` | Brugere, API-kald og indkommende telemetri |
 | Workers, når de er skilt fra appen | `worker` | Telemetri og behandling af baggrundsjob |
-| Probes | `probes` | Antallet af aktive monitorer |
+| Sonder | `probes` | Antallet af aktive monitorer |
 | Ingress-gateway | `nginx` | Mængden af forespørgsler |
 | Telemetry writer, når den er slået til | `telemetryWriter` | Ikke med belastningen: Den samler hver telemetri-indsættelse i ClickHouse, så den dimensioneres efter, hvad ClickHouse kan klare |
 
-Chartet indeholder **KEDA**, så appen, workers, probes og den globale Runner kan skalere efter deres køefterslæb. Slå `keda.enabled` til sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster, der endnu ikke har KEDA, kræver den første installation en ekstra omgang: Se chartets [KEDA-vejledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Tjenester, som KEDA ikke styrer, kan i stedet bruge en autoscaler baseret på CPU eller hukommelse (`autoscaling`).
+Chartet indeholder **KEDA**, så appen, workers, sonder og den globale Runner kan skalere efter deres køefterslæb. Slå `keda.enabled` til sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster, der endnu ikke har KEDA, kræver den første installation en ekstra omgang: Se chartets [KEDA-vejledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Tjenester, som KEDA ikke styrer, kan i stedet bruge en autoscaler baseret på CPU eller hukommelse (`autoscaling`).
 
 ## Startniveauer
 

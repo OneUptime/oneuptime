@@ -21,7 +21,7 @@ Er zijn vijf manieren waarop een incident in OneUptime terechtkomt, en ze komen 
 | Er een openen vanuit je eigen code, een script of een andere tool | `POST /api/incident`                                                    |
 | Mensen buiten je team via een link een probleem laten melden | Een [formulier](/docs/forms/index)                                           |
 
-Alle vijf schrijven hetzelfde model, dus een incident dat een probe opende, ziet er precies zo uit als een incident dat een responder met de hand opende — op een paar administratieve kolommen na die de server bij automatische incidenten invult. Workflows schrijven het ook: de [Huntress](/docs/integrations/huntress)-workflow opent één incident voor elk incidentrapport dat zijn SOC stuurt.
+Alle vijf schrijven hetzelfde model, dus een incident dat een sonde opende, ziet er precies zo uit als een incident dat een responder met de hand opende — op een paar administratieve kolommen na die de server bij automatische incidenten invult. Workflows schrijven het ook: de [Huntress](/docs/integrations/huntress)-workflow opent één incident voor elk incidentrapport dat zijn SOC stuurt.
 
 > [!TIP]
 > Je kunt een incident ook vanuit waarschuwingen melden: **Incident melden** in een lijst met waarschuwingen, in de kop van een waarschuwing of op de pagina **Gekoppelde incidenten** van een waarschuwing opent dezelfde wizard, vooraf ingevuld vanuit de waarschuwingen, en koppelt ze aan het nieuwe incident. Een vakje op het formulier, standaard aangevinkt, bevestigt de waarschuwingen ook, zodat ze niet verder escaleren. Zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).
@@ -195,7 +195,7 @@ Elk incidentitem heeft:
 
 Voor de volledige lijst `{{variable}}`-plaatshouders die je in de titel, de beschrijving en de herstelnotities kunt gebruiken, zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 
-Incidenten die zo worden aangemaakt, worden door de server gemarkeerd: `isCreatedAutomatically` wordt gezet, `createdCriteriaId` legt vast welk criteriafilter afging, en `createdByProbe` legt vast welke probe het zag. Verder gedragen ze zich precies als een incident dat met de hand is gemeld.
+Incidenten die zo worden aangemaakt, worden door de server gemarkeerd: `isCreatedAutomatically` wordt gezet, `createdCriteriaId` legt vast welk criteriafilter afging, en `createdByProbe` legt vast welke sonde het zag. Verder gedragen ze zich precies als een incident dat met de hand is gemeld.
 
 Een incident dat een monitor meldt, wordt gekoppeld aan wat de monitor bewaakt: alles wat zijn configuratie noemt (de host van een hostmonitor, het cluster van een Kubernetes-monitor, de services van een logboekmonitor) en alles onder zijn **Gekoppelde resources**. De configuratie van een website- of API-monitor noemt geen infrastructuur, dus koppel hem aan het cluster, de hosts of de database achter de site: zijn incidenten staan dan op de pagina's van die middelen, OneUptime AI kan ze daar onderzoeken en de AI-fix van het cluster of het middel kan erop ingrijpen (zie [AI SRE](/docs/ai/ai-sre#op-welke-incidenten-de-fixes-van-een-cluster-werken)). Waarschuwingen die een monitor aanmaakt, worden op dezelfde manier gekoppeld.
 

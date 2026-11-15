@@ -90,6 +90,7 @@ import {
   DropResult,
 } from "react-beautiful-dnd";
 import useAsyncEffect from "use-async-effect";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The form builder (Forms > a form > Build): the form as the people it is
@@ -521,7 +522,14 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
               <div className="mb-4">
                 <Alert
                   type={AlertType.DANGER}
-                  title={<span>{saveError}</span>}
+                  title={
+                    <span>
+                      <ErrorInSentence
+                        message={saveError}
+                        showWhereToLook={true}
+                      />
+                    </span>
+                  }
                   dataTestId="form-builder-save-error"
                 />
               </div>
