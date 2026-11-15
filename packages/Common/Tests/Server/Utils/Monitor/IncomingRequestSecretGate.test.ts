@@ -97,15 +97,11 @@ let policy: IncomingRequestSecretPolicyValue;
 
 let getMonitor: SpyInstance<typeof MonitorSecretKeyCache.getMonitor>;
 let setMonitor: SpyInstance<typeof MonitorSecretKeyCache.setMonitor>;
-let isTrackedSpy: SpyInstance<
-  typeof IncomingRequestReceivedAtStore.isTracked
->;
+let isTrackedSpy: SpyInstance<typeof IncomingRequestReceivedAtStore.isTracked>;
 let findOneBy: SpyInstance<typeof MonitorService.findOneBy>;
 let getPolicy: SpyInstance<typeof IncomingRequestSecretPolicy.getPolicy>;
 let recordUse: SpyInstance<typeof IncomingRequestSecretPolicy.recordUse>;
-let recordActivity: SpyInstance<
-  typeof IncomingRequestSecretActivity.record
->;
+let recordActivity: SpyInstance<typeof IncomingRequestSecretActivity.record>;
 
 const makeMonitor: (flags?: Partial<Monitor>) => Monitor = (
   flags?: Partial<Monitor>,
