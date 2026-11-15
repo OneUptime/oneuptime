@@ -29,7 +29,13 @@ import path from "path";
  *   criteria check).
  */
 
-const FEATURE_SET: string = path.join(__dirname, "..", "..", "..", "FeatureSet");
+const FEATURE_SET: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "FeatureSet",
+);
 const DOCS: string = path.join(FEATURE_SET, "Docs", "Content");
 
 // The types whose title is a name of two words or more: one word is too often another word.
@@ -100,6 +106,11 @@ const ENGLISH: string = [
   ...Object.keys(readLocale("en")!),
 ].join("\n");
 
+// A code fence's line, and a title glued to a letter: inside a longer word.
+const FENCE: RegExp = /^\s*```/;
+const ENDS_IN_A_LETTER: RegExp = /[A-Za-z]$/;
+const STARTS_WITH_A_LETTER: RegExp = /^[A-Za-z]/;
+
 // The pieces of a line a type's name is left alone in: code, bold, a link.
 const LEFT_AS_WRITTEN: RegExp =
   /(`[^`]*`|\*\*[^*\n]+\*\*|!?\[[^\]]*\]\([^)]*\))/;
@@ -120,7 +131,7 @@ function englishTitles(
     let fenced: boolean = false;
 
     text.split("\n").forEach((line: string, index: number) => {
-      if (/^\s*```/.test(line)) {
+      if (FENCE.test(line)) {
         fenced = !fenced;
         return;
       }
@@ -151,8 +162,8 @@ function englishTitles(
               /^ ([A-Za-z][A-Za-z-]*)/,
             ) || [])[1];
             const longer: boolean =
-              /[A-Za-z]$/.test(before) ||
-              /^[A-Za-z]/.test(after) ||
+              ENDS_IN_A_LETTER.test(before) ||
+              STARTS_WITH_A_LETTER.test(after) ||
               Boolean(previous && english.includes(`${previous} ${title}`)) ||
               Boolean(next && english.includes(`${title} ${next}`));
 
