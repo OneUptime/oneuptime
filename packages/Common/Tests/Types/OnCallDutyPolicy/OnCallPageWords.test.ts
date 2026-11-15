@@ -26,6 +26,7 @@ import {
   getOnCallPageRecordLabel,
   getOnCallPageSmsWords,
   getOnCallPageStateName,
+  OnCallPageNameList,
   getOnCallPageTapToAcknowledge,
   getOnCallPageUntitledMember,
   getOnCallPageViewInOneUptime,
@@ -36,6 +37,8 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
 import { READER_LANGUAGE_CODES } from "../../../Types/ReaderLanguage";
 import { Translator } from "../../../Types/Translator";
+import { getDefaultRecordNames } from "../../../Utils/DefaultRecordNames";
+import { StateListType } from "../../../Utils/StateOrder";
 
 /*
  * WHAT A PAGE SAYS, IN THE LANGUAGE OF THE PERSON IT PAGES (fu-i18n-larger).
@@ -235,19 +238,23 @@ describe("in English, a page reads exactly as it always has", () => {
   });
 
   test("a state's or a severity's name reads as written", () => {
-    for (const name of [
-      "Identified",
-      "Critical Incident",
-      "High",
-      "Low",
-      "SEV1",
-      "Investigating",
-    ]) {
-      expect(getOnCallPageStateName(ENGLISH, name)).toBe(name);
+    for (const [list, name] of [
+      [StateListType.IncidentState, "Identified"],
+      [StateListType.IncidentSeverity, "Critical Incident"],
+      [StateListType.AlertSeverity, "High"],
+      [StateListType.AlertSeverity, "Low"],
+      [StateListType.IncidentSeverity, "SEV1"],
+      [StateListType.AlertState, "Investigating"],
+    ] as Array<[OnCallPageNameList, string]>) {
+      expect(getOnCallPageStateName(ENGLISH, list, name)).toBe(name);
     }
 
-    expect(getOnCallPageStateName(ENGLISH, "")).toBe("");
-    expect(getOnCallPageStateName(ENGLISH, undefined)).toBe("");
+    expect(
+      getOnCallPageStateName(ENGLISH, StateListType.IncidentState, ""),
+    ).toBe("");
+    expect(
+      getOnCallPageStateName(ENGLISH, StateListType.IncidentState, undefined),
+    ).toBe("");
   });
 });
 
@@ -310,18 +317,114 @@ describe("in German, the same page in German", () => {
   });
 
   test("OneUptime's default names in German, a project's own as written", () => {
-    expect(getOnCallPageStateName(GERMAN, "Critical Incident")).toBe(
-      "Kritischer Vorfall",
-    );
-    expect(getOnCallPageStateName(GERMAN, "Identified")).toBe("Identifiziert");
-    expect(getOnCallPageStateName(GERMAN, "High")).toBe("Hoch");
-    expect(getOnCallPageStateName(GERMAN, "Low")).toBe("Niedrig");
-    expect(getOnCallPageStateName(GERMAN, " Low ")).toBe("Niedrig");
-    expect(getOnCallPageStateName(GERMAN, "SEV1")).toBe("SEV1");
-    expect(getOnCallPageStateName(GERMAN, "Investigating")).toBe(
-      "Investigating",
-    );
+    expect(
+      getOnCallPageStateName(
+        GERMAN,
+        StateListType.IncidentSeverity,
+        "Critical Incident",
+      ),
+    ).toBe("Kritischer Vorfall");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.IncidentState, "Identified"),
+    ).toBe("Identifiziert");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.AlertState, "Identified"),
+    ).toBe("Identifiziert");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.AlertSeverity, "High"),
+    ).toBe("Hoch");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.AlertSeverity, "Low"),
+    ).toBe("Niedrig");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.AlertSeverity, " Low "),
+    ).toBe("Niedrig");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.IncidentSeverity, "SEV1"),
+    ).toBe("SEV1");
+    expect(
+      getOnCallPageStateName(
+        GERMAN,
+        StateListType.IncidentState,
+        "Investigating",
+      ),
+    ).toBe("Investigating");
   });
+
+  /*
+   * A name is a default by its record's own list, as on the Dashboard
+   * (#8066): a page once translated any name of any list's defaults, so an
+   * incident state a project named "Degraded" read "Beeinträchtigt" on a
+   * page and "Degraded" on the incident's own page.
+   */
+  test("a project's own name that is another list's default reads as written", () => {
+    // Degraded and Operational are monitor statuses; Ongoing a maintenance state.
+    for (const name of ["Degraded", "Operational", "Ongoing"]) {
+      expect(
+        getOnCallPageStateName(GERMAN, StateListType.IncidentState, name),
+      ).toBe(name);
+      expect(
+        getOnCallPageStateName(GERMAN, StateListType.AlertState, name),
+      ).toBe(name);
+    }
+
+    // High and Low are alert severities, never an incident's.
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.IncidentSeverity, "High"),
+    ).toBe("High");
+    expect(
+      getOnCallPageStateName(GERMAN, StateListType.IncidentSeverity, "Low"),
+    ).toBe("Low");
+
+    // An incident's severities are not an alert's.
+    expect(
+      getOnCallPageStateName(
+        GERMAN,
+        StateListType.AlertSeverity,
+        "Critical Incident",
+      ),
+    ).toBe("Critical Incident");
+
+    // A state is not a severity, nor a severity a state.
+    expect(
+      getOnCallPageStateName(
+        GERMAN,
+        StateListType.IncidentSeverity,
+        "Resolved",
+      ),
+    ).toBe("Resolved");
+    expect(
+      getOnCallPageStateName(
+        GERMAN,
+        StateListType.IncidentState,
+        "Major Incident",
+      ),
+    ).toBe("Major Incident");
+  });
+
+  test.each([
+    StateListType.IncidentState,
+    StateListType.IncidentSeverity,
+    StateListType.AlertState,
+    StateListType.AlertSeverity,
+  ] as Array<OnCallPageNameList>)(
+    "every default of %s still reads in German",
+    (list: OnCallPageNameList) => {
+      const names: ReadonlyArray<string> = getDefaultRecordNames(list);
+
+      expect(names.length).toBeGreaterThan(0);
+
+      for (const name of names) {
+        const word: string = getOnCallPageStateName(GERMAN, list, name);
+
+        expect({ name, translated: word !== name && word.length > 0 }).toEqual({
+          name,
+          translated: true,
+        });
+        expect(word).toBe(GERMAN.translateText(name));
+      }
+    },
+  );
 
   test("a text message's words around its values", () => {
     const words: OnCallPageSmsWords = getOnCallPageSmsWords(GERMAN);
@@ -504,7 +607,11 @@ describe("in every language", () => {
           .record({
             kind: OnCallPageKind.Incident,
             number: "INC-42",
-            severityName: getOnCallPageStateName(translator, severity),
+            severityName: getOnCallPageStateName(
+              translator,
+              StateListType.IncidentSeverity,
+              severity,
+            ),
           })
           .toLocaleLowerCase(language);
 
@@ -570,16 +677,17 @@ describe("in every language", () => {
       __dirname,
       "../../../../App/FeatureSet/Dashboard/src/Locales",
     );
-    const names: Array<string> = [
-      "Identified",
-      "Acknowledged",
-      "Resolved",
-      "Critical Incident",
-      "Major Incident",
-      "Minor Incident",
-      ...DEFAULT_ALERT_SEVERITY_NAMES,
+    const lists: Array<OnCallPageNameList> = [
+      StateListType.IncidentState,
+      StateListType.IncidentSeverity,
+      StateListType.AlertState,
+      StateListType.AlertSeverity,
     ];
     const problems: Array<string> = [];
+
+    expect([...getDefaultRecordNames(StateListType.AlertSeverity)]).toEqual([
+      ...DEFAULT_ALERT_SEVERITY_NAMES,
+    ]);
 
     for (const language of OTHER_LANGUAGES) {
       const dashboard: Record<string, unknown> = JSON.parse(
@@ -590,19 +698,25 @@ describe("in every language", () => {
       ) as Record<string, unknown>;
       const translator: Translator = getServerTranslator(language);
 
-      for (const name of names) {
-        const dashboardWord: unknown = dashboard[name];
+      for (const list of lists) {
+        for (const name of getDefaultRecordNames(list)) {
+          const dashboardWord: unknown = dashboard[name];
 
-        if (typeof dashboardWord !== "string") {
-          continue;
-        }
+          if (typeof dashboardWord !== "string") {
+            continue;
+          }
 
-        const pageWord: string = getOnCallPageStateName(translator, name);
-
-        if (pageWord !== dashboardWord) {
-          problems.push(
-            `${language}: ${name} is ${pageWord} on a page, ${dashboardWord} on the Dashboard`,
+          const pageWord: string = getOnCallPageStateName(
+            translator,
+            list,
+            name,
           );
+
+          if (pageWord !== dashboardWord) {
+            problems.push(
+              `${language}: ${list} ${name} is ${pageWord} on a page, ${dashboardWord} on the Dashboard`,
+            );
+          }
         }
       }
     }

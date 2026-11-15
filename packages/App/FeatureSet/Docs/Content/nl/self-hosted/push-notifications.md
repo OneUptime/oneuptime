@@ -204,7 +204,7 @@ Een apparaat houdt het systeemgeluid tot er een versie van de app op draait die 
 
 ### Een melding herhalen tot bevestiging
 
-Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **Herhalen tot bevestiging** in onder **Gebruikersinstellingen > Hoe ik bereikbaar ben** wanneer u een pushregel toevoegt, of wijzig het later in de rij van de regel: elke minuut, of elke 2, 3, 5, 10, 15 of 30 minuten. De melding wordt met die tussenpoos opnieuw verstuurd, maximaal 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Per regel opgeslagen in `UserNotificationRule.repeatEveryMinutes`, waarbij 0, de standaard, de melding één keer stuurt.
+Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **Herhalen tot bevestiging** in onder **Gebruikersinstellingen > Hoe ik bereikbaar ben** wanneer u een pushregel toevoegt, of wijzig het later in de rij van de regel: elke minuut, of elke 2, 3, 5, 10, 15 of 30 minuten. De melding wordt met die tussenpoos opnieuw verstuurd, maximaal 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Een oproep die na een bevestiging doorgaat, zoals een nieuwe oproep, herhaalt tot iemand die hij opriep antwoordt of het incident, de waarschuwing of de episode is opgelost: [Als meerdere beleidsregels oproepen](/docs/on-call/policies#als-meerdere-beleidsregels-oproepen) noemt ze. Per regel opgeslagen in `UserNotificationRule.repeatEveryMinutes`, waarbij 0, de standaard, de melding één keer stuurt.
 
 ## Problemen oplossen
 

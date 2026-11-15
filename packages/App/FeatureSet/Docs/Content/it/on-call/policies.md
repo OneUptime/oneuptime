@@ -90,7 +90,7 @@ Un incidente, un avviso o un episodio esegue ognuna delle sue policy per conto s
 
 Alcuni avvisi continuano dopo il riconoscimento, finché non risponde qualcuno che hanno avvisato o finché non viene risolto: un nuovo avviso, un avviso agli osservatori, un avviso che qualcuno ha mandato a delle persone da Slack o Microsoft Teams, e una policy avviata a mano.
 
-Una policy avviata a mano è una policy avviata con **Esegui criterio di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché.
+Una policy avviata a mano è una policy avviata con **Esegui criterio di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché. Le sue notifiche dicono chi ha avviato quale policy, e riportano il messaggio inviato con un avviso da Slack o Microsoft Teams.
 
 ## Registri di esecuzione
 
@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **In attesa** | Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere l'esecuzione finché quell'orario non inizia: dice quando iniziano le chiamate, e fino ad allora non chiama nessuno. Termina senza chiamare se l'incidente o l'avviso viene riconosciuto o risolto prima. Inizia a chiamare in quel momento se l'incidente o l'avviso cambia e ora corrisponde a una regola di reperibilità che chiama subito. |
 | **Programmato**, **Iniziata** | L'esecuzione è in preparazione. Una che è ancora qui dopo 5 minuti viene fermata come **Errore**. |
-| **Executing** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. |
-| **Execution Completed** | Qualcuno ha riconosciuto, l'incidente o l'avviso è stato risolto, sono state usate tutte le regole e le ripetizioni, oppure la policy è stata archiviata. |
-| **Execution Completed - No One Notified** | L'esecuzione ha percorso ogni regola senza avvisare nessuno: di solito una pianificazione in cui nessuno è reperibile, o un livello senza destinatari. |
+| **In esecuzione** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. |
+| **Esecuzione completata** | Qualcuno ha riconosciuto, l'incidente o l'avviso è stato risolto, sono state usate tutte le regole e le ripetizioni, oppure la policy è stata archiviata. |
+| **Esecuzione completata - nessuno è stato notificato** | L'esecuzione ha percorso ogni regola senza avvisare nessuno: di solito una pianificazione in cui nessuno è reperibile, o un livello senza destinatari. |
 | **Errore** | L'esecuzione non è riuscita. **Visualizza messaggio di stato** dice perché. |
 
 Trovate i registri di esecuzione in tre posti:
@@ -160,7 +160,7 @@ Per creare una policy con il suo primo livello in una sola richiesta, vedi [Crea
 ## Risoluzione dei problemi
 
 :::details Una policy è stata eseguita, ma nessuno è stato avvisato
-La sua esecuzione indica **Execution Completed - No One Notified**. Aprite **Visualizza cronologia**: una riga con **Nessuno era di turno** indica una pianificazione con un buco, e il messaggio di stato di una riga **Saltato** dice perché, per esempio qualcuno assente senza nessuno che lo sostituisca. **Reperibilità → Prontezza** mostra chi non è stato possibile raggiungere.
+La sua esecuzione indica **Esecuzione completata - nessuno è stato notificato**. Aprite **Visualizza cronologia**: una riga con **Nessuno era di turno** indica una pianificazione con un buco, e il messaggio di stato di una riga **Saltato** dice perché, per esempio qualcuno assente senza nessuno che lo sostituisca. **Reperibilità → Prontezza** mostra chi non è stato possibile raggiungere.
 :::
 
 :::details Il livello successivo è stato avvisato un minuto dopo la sua attesa

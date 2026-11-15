@@ -1526,6 +1526,53 @@ describe("AI Logs page", () => {
       expect(within(row as HTMLElement).getByText("Fix")).toBeInTheDocument();
     });
 
+    /*
+     * How a command ended, in the words its Result filter offers and the
+     * incidents' and alerts' AI Logs draw (#7781): never the job's own
+     * status value, "TimedOut" or "Claimed", which no language reads.
+     */
+    test("says how a command ended in words: Not picked up in time and Starting, never TimedOut or Claimed", async () => {
+      jobs = [
+        makeJob("timed-out", {
+          status: RunnerJobStatus.TimedOut,
+          exitCode: undefined,
+        }),
+        makeJob("claimed", {
+          status: RunnerJobStatus.Claimed,
+          exitCode: undefined,
+        }),
+        makeJob("cancelled", {
+          status: RunnerJobStatus.Cancelled,
+          exitCode: 137,
+        }),
+      ];
+      openLogsPage();
+
+      const rowOf: (command: string) => HTMLElement = (
+        command: string,
+      ): HTMLElement => {
+        return screen.getByText(command).closest("tr") as HTMLElement;
+      };
+
+      expect(
+        await findText("kubectl get pods -n web-timed-out"),
+      ).toBeInTheDocument();
+      expect(
+        within(rowOf("kubectl get pods -n web-timed-out")).getByText(
+          "Not picked up in time",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(rowOf("kubectl get pods -n web-claimed")).getByText("Starting"),
+      ).toBeInTheDocument();
+      expect(
+        within(rowOf("kubectl get pods -n web-cancelled")).getByText(
+          "Cancelled (exit 137)",
+        ),
+      ).toBeInTheDocument();
+      expect(document.body.textContent || "").not.toMatch(/TimedOut|Claimed/);
+    });
+
     test("is titled 'kubectl commands' and says when nothing ran yet", async () => {
       openLogsPage();
 

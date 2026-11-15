@@ -77,7 +77,7 @@ const VISITOR_STORAGE_KEY: string = "oneuptime.replay.visitor";
 const USER_STORAGE_KEY: string = "oneuptime.replay.user";
 
 /*
- * Refresh rage: 3+ reloads of the same scrubbed pathname inside a minute,
+ * Refresh rage: 3+ reloads of the same scrubbed page inside a minute,
  * unless the application changed the rule on its Frustration Signals page
  * (the recorder passes its numbers to recordPageLoad and isRefreshRage).
  */
@@ -608,7 +608,11 @@ export default class SessionId {
 
   /*
    * Record this page load and report how many loads of the SAME scrubbed
-   * path happened inside the refresh-rage window.
+   * page happened inside the refresh-rage window.
+   *
+   * The page is UrlScrubber.getScrubbedPage: the path and, for a hash
+   * router, its route, so loads of #/a and #/b are two pages, not two
+   * reloads of "/".
    *
    * Lives here rather than in FrustrationDetector because it is the one
    * frustration signal that must survive a page load, which makes it a
@@ -623,7 +627,7 @@ export default class SessionId {
     nowUnixMs: number,
     windowMs: number = REFRESH_RAGE_WINDOW_MS,
   ): number {
-    const path: string = UrlScrubber.getScrubbedPathname(rawUrl);
+    const path: string = UrlScrubber.getScrubbedPage(rawUrl);
 
     const log: Array<ReloadLogEntry> = SessionId.readReloadLog().filter(
       (entry: ReloadLogEntry): boolean => {

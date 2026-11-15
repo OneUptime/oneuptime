@@ -204,7 +204,7 @@ En enhet behåller systemljudet tills den kör en version av appen som erbjuder 
 
 ### Upprepa ett larm tills det bekräftas
 
-En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Användarinställningar > Så når man mig** anger du **Upprepa tills bekräftad** när du lägger till en push-regel, eller ändrar det senare på regelns rad: varje minut, eller med 2, 3, 5, 10, 15 eller 30 minuters mellanrum. Larmet skickas igen med det intervallet, högst 10 gånger till, och slutar så snart incidenten, larmet eller episoden har bekräftats. Lagras per regel i `UserNotificationRule.repeatEveryMinutes`, där 0, som är standard, skickar larmet en gång.
+En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Användarinställningar > Så når man mig** anger du **Upprepa tills bekräftad** när du lägger till en push-regel, eller ändrar det senare på regelns rad: varje minut, eller med 2, 3, 5, 10, 15 eller 30 minuters mellanrum. Larmet skickas igen med det intervallet, högst 10 gånger till, och slutar så snart incidenten, larmet eller episoden har bekräftats. Ett larm som fortsätter efter en bekräftelse, som ett nytt larm, upprepas tills någon det har larmat svarar eller incidenten, larmet eller episoden är löst: [När flera policyer larmar](/docs/on-call/policies#när-flera-policyer-larmar) räknar upp dem. Lagras per regel i `UserNotificationRule.repeatEveryMinutes`, där 0, som är standard, skickar larmet en gång.
 
 ## Felsökning
 
