@@ -281,7 +281,8 @@ test.describe("Kubernetes cluster insights: a double-click on an unzoomed chart"
     await doubleClickAt(page, spot);
 
     await expect(inspector(page)).toBeVisible();
-    expect(await textUnder(page, spot)).toMatch(/GMT/);
+    // The window names the browser's zone, UTC (#8475).
+    expect(await textUnder(page, spot)).toMatch(/UTC/);
     expect(await selectedText(page)).toBe("");
   });
 
