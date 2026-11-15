@@ -16,7 +16,9 @@ import {
  * teardown (DocsScreensFinish.ts) puts the languages together.
  *
  *   DOCS_SCREENS_MODE=check   draw and compare, write nothing in the
- *                             repository (the job on main)
+ *                             repository, fail for a stale shot (the Docs
+ *                             Screenshots workflow, on main and in every
+ *                             release run)
  *   DOCS_SCREENS_FORCE=1      write every picture, current or not
  *   DOCS_SCREENS_ONLY=a,b     only these shots
  *   DOCS_SCREENS_LANGUAGES=en,de   only these languages

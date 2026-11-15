@@ -142,7 +142,7 @@ sequenceDiagram
    - **Yderligere parametre**: ekstra formularfelter til tokenforespørgslen, som `audience` til Auth0 (påkrævet for Client Credentials) eller `resource` til Azure AD v1. Alle, der kan læse variablen, kan læse dem, så læg ikke hemmeligheder her.
    - **Klientgodkendelse**: om klient-ID og hemmelighed sendes i en HTTP Basic-header (standard) eller i forespørgslens body. Svarer din udbyder `invalid_client`, så prøv den anden.
 
-Under nogle felter tilføjer formularen en hjælpelinje til den udbyder, du valgte, for eksempel hvor Microsoft Entra ID viser dit tenant-ID, og at dens klienthemmelighed er hemmelighedens **Value**, ikke dens **Secret ID**.
+Under nogle felter tilføjer formularen en hjælpelinje til den udbyder, du valgte, for eksempel hvor Microsoft Entra ID viser dit tenant-ID, og at dens klienthemmelighed er hemmelighedens **Værdi**, ikke dens **Secret ID**.
 
 Når du gemmer en ny OAuth 2.0-variabel, henter OneUptime dens første token med det samme og fortæller dig, hvad udbyderen svarede. En slåfejl i hemmeligheden eller URL'en viser sig da, ikke timer senere i en mislykket kørsel. At hente et token skriver til variablen, så det kræver tilladelse til at redigere workflowvariabler; kan du oprette variabler, men ikke redigere dem, er det den første workflowkørsel, der bruger variablen, der henter dens token.
 
@@ -210,7 +210,7 @@ Næsten alle tekstfelter tager imod variabler:
 - Headere og felter i bodyen (inde i strengværdier).
 - Begge sider af en **If / Else**-blok.
 
-I JSON-felter — **Data (JSON Object)** og **Query** på postkomponenterne, en API-bloks **Request Body**, **Arguments** på **Run Custom JavaScript** — udfyldes en reference efter, hvor den står:
+I JSON-felter — **Data (JSON Object)** og **Forespørgsel** på postkomponenterne, en API-bloks **Anmodningsbrødtekst**, **Arguments** på **Run Custom JavaScript** — udfyldes en reference efter, hvor den står:
 
 - **Inden for anførselstegn er det tekst.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` sætter værdien ind i strengen. Anførselstegn, omvendte skråstreger og linjeskift i værdien escapes, så JSON'en forbliver gyldig, og værdien forbliver én streng.
 - **Alene er det selve værdien.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` indsætter hele objektet, en liste forbliver en liste, og et tal forbliver et tal. Tekst, der selv er JSON — `5`, `true` eller et objekt, som en blok returnerede som JSON-tekst — indsættes som den værdi. Al anden tekst indsættes som en streng.
@@ -239,7 +239,7 @@ En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }
 
 1. En **Webhook**-trigger med ID'et `ci-webhook`.
 2. En **If / Else**-blok: **Værdi, der skal tjekkes** er feltet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Sammenligning** er **er lig med**, og **Sammenlign med** er `failed`.
-3. Fra grenen **Yes** en **Create One Incident**-blok med:
+3. Fra grenen **Ja** en **Create One Incident**-blok med:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivelse: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ Det første kald giver dig et ID, som det andet har brug for:
 1. **API**-komponenten `lookup-order`: brug i dens **URL**, efter `/orders?email=`, **{ }** til at indsætte den manuelle triggers JSON med stien `email`.
 2. **API**-komponenten `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Mislykkes `lookup-order`, udløses dens udgang **Error** i stedet for **Success**. Forbind den til en Email- eller Slack-blok, så fejl ikke går ubemærket hen.
+Mislykkes `lookup-order`, udløses dens udgang **Fejl** i stedet for **Succes**. Forbind den til en Email- eller Slack-blok, så fejl ikke går ubemærket hen.
 
 ## Opdatér en variabel fra et workflow
 
@@ -290,7 +290,7 @@ To ting, du skal holde øje med:
 
 - **Brug { } (eller skriv `{{`).** Det indsætter de præcise komponent-, returværdi- og variabel-ID'er, afvikleren forventer, og tilbyder kun værdier, der findes, når blokken kører.
 - **Variabelnavne skelner mellem store og små bogstaver.** `{{global.variables.MyKey}}` og `{{global.variables.mykey}}` er forskellige.
-- **En reference, der ikke kan opløses, efterlades, som den er, og bliver ikke tom.** At henvise til noget, der ikke findes, er ikke en fejl, og det giver dig heller ikke en tom streng: de krøllede parenteser sendes videre, som de er, så `{{local.components.api-get-1.returnValues.body}}` med et fejlstavet trin-ID ender ordret i din Slack-besked, din URL eller din forespørgsels body, og kørslen melder stadig **Udført**. Kørslens fane **Trin** viser en advarsel på trinnet, der nævner enhver reference, der slap igennem, og markerer den indstilling, den stod i, med **Did not resolve**; kørslens log har den samme advarselslinje. Undtagelsen er et id, som en datakomponent læser eller skriver, som `_id` i dens **Query**: dér stopper trinnet, før det læser eller skriver noget, tager sin udgang **Error** og siger, hvilken reference der ikke kunne opløses, og hvad du skal tjekke.
+- **En reference, der ikke kan opløses, efterlades, som den er, og bliver ikke tom.** At henvise til noget, der ikke findes, er ikke en fejl, og det giver dig heller ikke en tom streng: de krøllede parenteser sendes videre, som de er, så `{{local.components.api-get-1.returnValues.body}}` med et fejlstavet trin-ID ender ordret i din Slack-besked, din URL eller din forespørgsels body, og kørslen melder stadig **Udført**. Kørslens fane **Trin** viser en advarsel på trinnet, der nævner enhver reference, der slap igennem, og markerer den indstilling, den stod i, med **Did not resolve**; kørslens log har den samme advarselslinje. Undtagelsen er et id, som en datakomponent læser eller skriver, som `_id` i dens **Forespørgsel**: dér stopper trinnet, før det læser eller skriver noget, tager sin udgang **Fejl** og siger, hvilken reference der ikke kunne opløses, og hvad du skal tjekke.
 - **Et felt uden indhold kommer tomt frem.** Ikke alle poster har alle felter. En advarsel, som ingen monitor har udløst, for eksempel fra et SLO eller oprettet i hånden, har ingen monitor, så `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` har intet at give: i en besked står der ingenting, og alene i JSON er det `null`. Det samme gælder en beskrivelse, ingen har skrevet, et brugerdefineret felt, posten ikke har, en **Find One**, der ikke fandt nogen post, en liste uden det element og et felt, blokken ikke sender videre, hvilket også sætter en advarsel på trinnet om, hvad der skal tilføjes til **Fields to pass on**. En URL og en blok, der læser eller skriver poster, er undtagelserne, fordi noget tomt ville ændre, hvad blokken virker på: der bliver referencen stående, og et id stopper blokken. For at tage en anden vej skal du tjekke værdien med **er tom** i en **If / Else**. For at nævne det SLO, der ligger bag en advarsel, skal du sende dets navn videre og bruge `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Problempanelet kan ikke tjekke variabelnavne.** Det markerer komponentreferencer, det ikke kan matche — et ukendt trin-ID, en ukendt returværdi, en ugyldig rod —, før du gemmer. Det kan ikke se, om en variabel findes. En bloks indstillinger kan: en reference til en manglende variabel vises dér som en orange chip. Ellers fanges en omdøbt variabel kun af kørslens log.
 - **Mellemrum inde i de krøllede parenteser trimmes ikke.** `{{ local.variables.NAME }}` er et andet opslag end `{{local.variables.NAME}}` og opløses aldrig. Den eneste undtagelse er inde i en `{{#each}}`-blok, hvor navne trimmes.

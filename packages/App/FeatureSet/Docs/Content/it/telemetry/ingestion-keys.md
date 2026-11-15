@@ -140,7 +140,7 @@ Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ci�
 Per le altre risposte che un esportatore OTLP può ricevere, vedete [Risposte](/docs/telemetry/open-telemetry#risposte).
 
 :::details I dati arrivano ancora un minuto dopo che ho disattivato la chiave
-Ogni server OneUptime conserva ciò che sa di una chiave per al massimo un minuto, quindi una modifica li raggiunge tutti entro un minuto circa. Le richieste successive vengono rifiutate.
+Ogni server OneUptime conserva ciò che sa di una chiave per al massimo un minuto, quindi una modifica li raggiunge tutti entro un minuto circa. Le richieste successive vengono rifiutate. Un client MQTT che si è connesso con la chiave viene disconnesso entro pochi secondi.
 :::
 
 :::details Una chiave Browser funziona sul mio portatile ma non in produzione

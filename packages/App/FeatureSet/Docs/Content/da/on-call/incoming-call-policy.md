@@ -216,7 +216,7 @@ For kun at reagere på ubesvarede opkald, fx for at poste dem i Slack eller Micr
 :::steps
 1. Tilføj udløseren **On Update Incoming Call Log**. Sæt **Fields to watch** til **Ended At**, og vælg de felter, du vil bruge, fx **Status**, **Caller Phone Number** og **Routing Phone Number**.
 2. Tilføj et trin **If / Else**. Tjek udløserens **Status** med sammenligningen **er ikke lig med** og `Completed`.
-3. Forbind dine trin til porten **Yes**.
+3. Forbind dine trin til porten **Ja**.
 :::
 
 Et workflow kan læse opkaldslogs med **Find One** og **Find Many**, men det kan ikke oprette eller ændre dem.

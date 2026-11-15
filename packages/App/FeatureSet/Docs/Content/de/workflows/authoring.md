@@ -47,23 +47,23 @@ Ziehen Sie Bausteine, wohin Sie möchten; die Arbeitsfläche rastet dabei an ein
 | **Kennung** (unter **ID**)    | Die kurze ID auf dem Baustein, etwa `log-1`. Mit ihr verweisen andere Bausteine auf diesen, daher bricht eine Umbenennung jeden `{{local.components.…}}`-Verweis, der darauf zeigt. Die Überschrift des Bausteins ist der eigene Name der Komponente und lässt sich nicht ändern.                         |
 | **Einstellungen**             | Was der Baustein für seine Aufgabe braucht – eine URL, einen Slack-Kanal, einen Nachrichtentext. Optionale Felder sind mit **(Optional)** gekennzeichnet; alles andere ist Pflicht. Ein Ein/Aus-Schalter trägt keines von beiden, weil er immer einen Wert hat. Seltener genutzte Einstellungen sind unter **Weitere Felder** eingeklappt, dessen Kopfzeile sie nennt und die gesetzten zeigt. |
 | **Eingabe**                   | Der Punkt am oberen Rand, an dem Linien von früheren Bausteinen ankommen. Trigger haben keinen – vor ihnen läuft nichts.                                                                                                                                                                                  |
-| **Ausgaben**                  | Die Punkte am unteren Rand, direkt darüber beschriftet, von denen Linien zu den nächsten Bausteinen ausgehen. Viele Bausteine haben getrennte Ausgänge **Success** und **Error**, damit Sie beide Fälle behandeln können.                                                                                    |
+| **Ausgaben**                  | Die Punkte am unteren Rand, direkt darüber beschriftet, von denen Linien zu den nächsten Bausteinen ausgehen. Viele Bausteine haben getrennte Ausgänge **Erfolg** und **Fehler**, damit Sie beide Fälle behandeln können.                                                                                    |
 
 ## Bausteine verbinden
 
 Ziehen Sie von einem Punkt unten an einem Baustein nach unten zum Punkt oben am nächsten. Die Linie, die Sie ziehen, entscheidet, was als Nächstes läuft.
 
-- Verbinden Sie von **Success**, läuft der nächste Baustein nur, wenn der vorige geklappt hat.
-- Verbinden Sie von **Error**, läuft der nächste Baustein nur, wenn der vorige fehlgeschlagen ist.
+- Verbinden Sie von **Erfolg**, läuft der nächste Baustein nur, wenn der vorige geklappt hat.
+- Verbinden Sie von **Fehler**, läuft der nächste Baustein nur, wenn der vorige fehlgeschlagen ist.
 - Verbinden Sie einen Ausgang nicht, endet dieser Pfad einfach.
 
 ```mermaid title="Nur der Ausgang, den ein Baustein nimmt, führt weiter"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nichts verbunden, also<br/>endet die Ausführung"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    hook["Webhook"] -->|"Ausgehend"| check{"If / Else"}
+    check -->|"Ja"| post["API Post (JSON)"]
+    check -->|"Nein"| ends(["Nichts verbunden, also<br/>endet die Ausführung"])
+    post -->|"Erfolg"| slack["Send Message to Slack"]
+    post -->|"Fehler"| log["Protokoll"]
 ```
 
 Sie können einen Ausgang mit mehreren Bausteinen verbinden. Alle laufen – aber nacheinander, in einer einzigen Warteschlange, nicht parallel. Verlassen Sie sich nicht auf die Reihenfolge zwischen den Zweigen und rechnen Sie nicht damit, dass sie sich zeitlich überschneiden.
@@ -105,7 +105,7 @@ In der Einstellung erscheint ein Wert als Chip wie **Webhook › Request Body**.
 
 - **Werte, die es gibt, stehen zuerst, und der Rest wird getrennt aufgeführt.** Angeboten werden der Trigger und die Bausteine, die vor diesem laufen. Ein Baustein, der nur bei manchen Ausführungen vor diesem läuft – etwa nach einem Ausgang eines **If / Else** –, sagt das, weil seine Werte hier leer sein können. Ein Baustein, der später läuft oder auf einem Zweig liegt, der nicht hierher führt, steht am Ende, eingeklappt und ausgegraut, mit dem Grund, und seine Werte lassen sich nicht auswählen. Solange ein Baustein nicht verbunden ist, werden nur die Werte des Triggers aufgelistet, und die Liste sagt das.
 - **Ein Datensatz öffnet sich zu seinen Feldern.** Ein Find-One- oder On-Create-Baustein gibt einen ganzen Datensatz zurück. Wählen Sie ihn, um seine Felder zu sehen: zuerst die, die der Baustein weitergibt und die sein **Fields to pass on** nennt, dann getrennt davon die, die er nicht weitergibt und die hier leer sind. Ein JSON-Wert oder ein Satz Header lässt sich zu einem Feld öffnen, in das Sie einen Pfad tippen, etwa `title` oder `alerts[0].status`.
-- **Ist ein Baustein einmal gelaufen, weiß die Liste, was in seinen Werten steckt.** Jeder Wert sagt, was er bei der letzten Ausführung enthielt – `"production"` oder `3 fields` –, und ein JSON-Wert oder ein Satz Header öffnet sich zu den Feldern, die er hatte, jedes mit seinem Inhalt. So wählen Sie aus dem **Request Body** eines Webhooks **incident.title**, statt einen Pfad zu tippen. Die Suche findet diese Felder auch: Tippen Sie `title` oder `{{` und den Anfang eines Pfads. Auch die Felder eines Datensatzes zeigen, was sie enthielten. Die Felder stammen aus der letzten Ausführung, daher ist eines, das eine spätere Anfrage weglässt, in dieser Ausführung leer. Ein Wert, der wie ein Geheimnis aussieht, etwa ein `Authorization`-Header, ein Token oder ein Passwort, wird ohne seinen Inhalt aufgeführt.
+- **Ist ein Baustein einmal gelaufen, weiß die Liste, was in seinen Werten steckt.** Jeder Wert sagt, was er bei der letzten Ausführung enthielt – `"production"` oder `3 fields` –, und ein JSON-Wert oder ein Satz Header öffnet sich zu den Feldern, die er hatte, jedes mit seinem Inhalt. So wählen Sie aus dem **Anfragetext** eines Webhooks **incident.title**, statt einen Pfad zu tippen. Die Suche findet diese Felder auch: Tippen Sie `title` oder `{{` und den Anfang eines Pfads. Auch die Felder eines Datensatzes zeigen, was sie enthielten. Die Felder stammen aus der letzten Ausführung, daher ist eines, das eine spätere Anfrage weglässt, in dieser Ausführung leer. Ein Wert, der wie ein Geheimnis aussieht, etwa ein `Authorization`-Header, ein Token oder ein Passwort, wird ohne seinen Inhalt aufgeführt.
 - **Ein Webhook, der noch keine Anfrage erhalten hat, sagt das** oben bei seinen Werten, mit **Testanfrage kopieren**: einem `curl`-Befehl, der `{"message": "Hello"}` an die Webhook-URL des Workflows sendet. Führen Sie ihn in einem Terminal aus, während die Liste offen ist, und die Felder der Anfrage erscheinen darin, sobald die Ausführung, die sie startet, beendet ist, meist innerhalb von Sekunden. Nur Personen, die die Webhook-URL sehen dürfen, bekommen die Schaltfläche. Solange der Workflow aus ist, weist seine URL Anfragen ab; die Liste bietet dann stattdessen **Mit „Arbeitsablauf ausführen“ testen** an: Die Felder der Anfrage, die Sie von dort senden, erscheinen auf dieselbe Weise. Ein Incoming-Email-Trigger, der noch keine E-Mail erhalten hat, sagt das an derselben Stelle; senden Sie eine E-Mail an seine Adresse, und ihre Header und Anhänge erscheinen auf dieselbe Weise.
 - **Code-Editoren haben Insert value in ihrer Werkzeugleiste.** In JSON ergänzt es die Anführungszeichen, die ein Wert in einem Dokument braucht. **Run Custom JavaScript** liest Werte über seine **Arguments**, daher hat sein Code keine Auswahl.
 - **Zahlen, Passwörter, Schalter und Datumsangaben behalten ihr eigenes Steuerelement,** mit **{ }** daneben. Ein gewählter Wert ersetzt das Steuerelement, und **abc** führt zurück zum Eintippen.
@@ -135,7 +135,7 @@ Am schnellsten lernen Sie die Arbeitsfläche mit einem Workflow aus zwei Baustei
 :::steps
 1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Bereich **Auslöser hinzufügen** auf **Manuell**.
 2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **Protokoll**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
-3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und tippen Sie `Hello from ` in seinen **Value**. Klicken Sie auf **{ }** und dann unter **Manuell** auf **JSON**. Die Einstellung zeigt **Manual › JSON** und speichert `{{local.components.manual-1.returnValues.value}}`. `manual-1` ist die **Kennung** des Triggers, die auf dem Trigger-Baustein steht. Klicken Sie auf **Speichern**.
+3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und tippen Sie `Hello from ` in seinen **Wert**. Klicken Sie auf **{ }** und dann unter **Manuell** auf **JSON**. Die Einstellung zeigt **Manual › JSON** und speichert `{{local.components.manual-1.returnValues.value}}`. `manual-1` ist die **Kennung** des Triggers, die auf dem Trigger-Baustein steht. Klicken Sie auf **Speichern**.
 4. Klicken Sie zurück im **Editor** auf **Arbeitsablauf ausführen**, tragen Sie `{ "name": "Ada" }` in das Feld **JSON** ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, und er muss nicht an sein: Eine Ausführung, die Sie selbst starten, ist ein **Testlauf**.
 5. Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich von selbst und verfolgt die Ausführung. Oben steht **Testlauf**, und das Protokoll zeigt `Value:` und dahinter `Hello from` und das JSON, das Sie eingetippt haben.
 :::
@@ -158,7 +158,7 @@ Solange ein Workflow aus ist, entscheidet das, was ihn startet, ob er läuft:
 | Seinen Trigger: einen Zeitplan, ein OneUptime-Ereignis oder eine E-Mail | Ignoriert.                                                                                                                                                                         |
 | **Arbeitsablauf ausführen** oder **Nur diesen Schritt ausführen** | Läuft, als **Testlauf**. Seine Bausteine laufen wirklich: Eine Nachricht wird wirklich gesendet und ein Datensatz wirklich geändert. Die Ausführung ist in den Listen der Ausführungen und oben in der Ausführung als **Testlauf** markiert, mit dem, der sie gestartet hat. |
 | Einen Aufruf seiner Webhook-URL                        | Abgelehnt mit HTTP 400 und "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
-| Den **Execute Workflow**-Baustein eines anderen Workflows | Dieser Baustein nimmt seinen Pfad **Error**, und der Fehler nennt den Workflow, den er aufgerufen hat. Das gilt auch in einem Testlauf: Ein Workflow, den er aufruft, muss an sein. |
+| Den **Execute Workflow**-Baustein eines anderen Workflows | Dieser Baustein nimmt seinen Pfad **Fehler**, und der Fehler nennt den Workflow, den er aufgerufen hat. Das gilt auch in einem Testlauf: Ein Workflow, den er aufruft, muss an sein. |
 
 Die Reihenfolge ist also: bauen, mit **Arbeitsablauf ausführen** testen, solange er noch aus ist, das Protokoll der Ausführung lesen und **Aktiviert** einschalten, wenn Sie bereit sind, dass sein Trigger auslöst. Um einen einzelnen Baustein zu testen, ohne das Ganze auszuführen, verwenden Sie **Nur diesen Schritt ausführen** in den Einstellungen dieses Bausteins.
 

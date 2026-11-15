@@ -178,7 +178,7 @@ Jeder Scan hält fest, was er gelesen hat, nach Namen: die Objekte, Tabellen ode
 
 ## Eine Datenbank scannen, die Sie betreiben
 
-Datensicherheit nimmt Stichproben aus PostgreSQL- und MySQL-Datenbanken, auf eine von zwei Arten. Eine Datenbank, die das Produkt Database überwacht, oder eine, mit der Ihre Dienste laut Dienstkarte sprechen, ist bereits ein Datenspeicher. Eine Datenbank, die kein Scan findet, fügen Sie selbst als Datenspeicher hinzu.
+Datensicherheit nimmt Stichproben aus PostgreSQL-, MySQL- und SQL-Server-Datenbanken, auf eine von zwei Arten. Eine Datenbank, die das Produkt Database überwacht, oder eine, mit der Ihre Dienste laut Dienstkarte sprechen, ist bereits ein Datenspeicher. Eine Datenbank, die kein Scan findet, fügen Sie selbst als Datenspeicher hinzu.
 
 - **Von den Workern von OneUptime.** Setzen Sie in den **Einstellungen** des Datenspeichers die **Verbindungszeichenfolge** auf eine, die nur lesen kann, etwa `postgresql://reader:password@db.internal:5432/app`. Sie wird im Ruhezustand verschlüsselt und nie von der API zurückgegeben. Geben Sie ihr einen Datenbankbenutzer, der lesen kann und sonst nichts.
 - **Von einer Sonde in Ihrem Netzwerk.** Wählen Sie die Sonde unter **Von Sonde scannen**, und geben Sie unter **Verbindungsvariable der Sonde** den Namen der Umgebungsvariable auf dieser Sonde ein, die die Verbindungszeichenfolge enthält. Die Sonde liest die Datenbank von innerhalb Ihres Netzwerks und sendet nur zurück, was sie gefunden hat: Die Verbindungszeichenfolge erreicht OneUptime nie. Siehe [Eigene Sonden](/docs/probe/custom-probe), um eine Sonde zu betreiben.

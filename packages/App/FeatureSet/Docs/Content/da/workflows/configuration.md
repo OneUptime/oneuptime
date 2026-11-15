@@ -107,8 +107,8 @@ Incoming Email-triggeren giver workflowet sin egen adresse, og alle, der kender 
 
 - Offentliggør den ikke, og læg den ikke i et offentligt repo. Triggeren skjuler nøglen, indtil du klikker på **Vis**, og **Kopiér adresse** kopierer adressen uden at vise den.
 - Lækker adressen, så klik på Incoming Email-triggeren i **Bygger**, og klik på **Nulstil adresse**. Workflowet får en ny adresse, og e-mail til den gamle ignoreres fra da af.
-- Alle kan sætte en hvilken som helst afsender på en e-mail, så **From** beviser ikke, hvem der sendte den. Før et workflow gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **If / Else**-blok. Gem det forventede token som en hemmelig variabel.
-- Nøglen skjules i alt, hvad kørslen modtager — **To**, **CC**, headerne og brødteksterne — fordi kørslens log er synlig for alle, der kan læse workflowets kørsler.
+- Alle kan sætte en hvilken som helst afsender på en e-mail, så **Fra** beviser ikke, hvem der sendte den. Før et workflow gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **If / Else**-blok. Gem det forventede token som en hemmelig variabel.
+- Nøglen skjules i alt, hvad kørslen modtager — **Til**, **CC**, headerne og brødteksterne — fordi kørslens log er synlig for alle, der kan læse workflowets kørsler.
 
 Kun folk, der kan redigere workflowet — **Projektejer**, **Projektadministrator**, **Arbejdsgangsadministrator** eller **Edit Workflow** — kan se eller nulstille dets adresse. Alle andre ser en note om, hvem de kan spørge.
 
@@ -132,14 +132,14 @@ Se [Adgang til private netværk](/docs/self-hosted/private-network-access) for, 
 
 Hvad udbyderen modtager, og hvad modellen kan gøre med det:
 
-- **Kun det, du lægger i blokken.** OneUptime sender en fast sikkerhedsinstruktion og derefter blokkens **System Instructions**, **Prompt** og **Context** med deres referencer udfyldt. **Context** kommer sidst, efter en markør, og sikkerhedsinstruktionen fortæller modellen, at alt efter markøren er data, der ikke er til at stole på, også tekst, der ligner instruktioner.
+- **Kun det, du lægger i blokken.** OneUptime sender en fast sikkerhedsinstruktion og derefter blokkens **System Instructions**, **Prompt** og **Kontekst** med deres referencer udfyldt. **Kontekst** kommer sidst, efter en markør, og sikkerhedsinstruktionen fortæller modellen, at alt efter markøren er data, der ikke er til at stole på, også tekst, der ligner instruktioner.
 - **Intet andet.** Triggerens data, workflowets historik, andre blokkes output, projektposter, telemetri og hemmeligheder vedhæftes aldrig. De forlader kun OneUptime, når du henviser til dem i en af de tre indstillinger.
 - **Tekst og ingen værktøjer.** Modellen kan ikke forespørge OneUptime, foretage HTTP-forespørgsler eller ændre data. En udbyders ekstra parametre lader kun en tilladelsesliste af felter igennem, der alene justerer genereringen: de kan ikke erstatte beskederne, tilføje værktøjer, websøgning eller andre datakilder, bede om andet end tekst eller om flere svar, streame, lade udbyderen gemme forespørgslen eller hæve blokkens grænse for output. Felter, OneUptime ikke kender, droppes.
 - **Modellen er din administrators valg.** Skal genereringen forblive offline, så vælg en model, der ikke selv henter noget på udbyderens side.
 
 Hvad der logges:
 
-- Kørslens log skjuler blokkens **System Instructions**, **Prompt**, **Context** og **Response**. Senere blokke kan stadig bruge dem under kørslen, og en blok, du indsætter en af dem i, logger den efter sine egne regler, så at indsætte en er et valg om at vise den.
+- Kørslens log skjuler blokkens **System Instructions**, **Prompt**, **Kontekst** og **Svar**. Senere blokke kan stadig bruge dem under kørslen, og en blok, du indsætter en af dem i, logger den efter sine egne regler, så at indsætte en er et valg om at vise den.
 - Udbyderen, modellen, antallet af tokens, **LLM Log ID** og en sikker fejlbesked forbliver synlige, til drift og fakturering. En udbyders rå fejl holdes ude af alle logge, fordi en udbyder kan gentage forespørgslen i den.
 - Hvert kald står under **Projektindstillinger → AI → AI-logs** med udbyder, model, status, tokens, omkostning og fakturering, uden prompten, svaret eller den rå fejl.
 
@@ -147,17 +147,17 @@ Hvad blokken kræver, og hvad den koster:
 
 - **Aktivér AI** skal være slået til under **Projektindstillinger → AI → AI-funktioner**. I OneUptime Cloud skal projektet også have Growth-planen eller højere og et betalt abonnement. Selvhostede installationer uden fakturering har ingen plankrav.
 - Kald gennem en global udbyder med omkostninger bruger projektets AI-kreditter.
-- Hvert kald tæller med i [projektets egne daglige AI-grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser), når en projektejer sætter dem. Når en grænse er nået, tager blokken **Error** uden at kontakte modellen, indtil midnat UTC.
+- Hvert kald tæller med i [projektets egne daglige AI-grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser), når en projektejer sætter dem. Når en grænse er nået, tager blokken **Fejl** uden at kontakte modellen, indtil midnat UTC.
 
 | Grænse                                                        | Værdi                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** og **Context** tilsammen  | 50.000 tegn                                                              |
-| **Temperature**                                               | Fra `0` til `1`                                                          |
+| **System Instructions**, **Prompt** og **Kontekst** tilsammen  | 50.000 tegn                                                              |
+| **Temperatur**                                               | Fra `0` til `1`                                                          |
 | **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
 | Én forespørgsel                                               | Forsøges én gang, i højst 60 sekunder                                    |
-| Kald på samme tid                                             | 3 pr. projekt. Flere tager **Error**, og en senere kørsel kan prøve igen. |
+| Kald på samme tid                                             | 3 pr. projekt. Flere tager **Fejl**, og en senere kørsel kan prøve igen. |
 
-Fejl i validering, konfiguration, adgang, grænser, kredit, samtidighed, udbyder og timeout tager alle stien **Error**, med årsagen i **Error**. Forbind den sti, før workflowet går live.
+Fejl i validering, konfiguration, adgang, grænser, kredit, samtidighed, udbyder og timeout tager alle stien **Fejl**, med årsagen i **Fejl**. Forbind den sti, før workflowet går live.
 
 > [!WARNING]
 > Hver værdi, du henviser til, er data, du sender til udbyderen. Læg ikke en hemmelig variabel i prompten eller konteksten, medmindre udbyderen er godkendt til at modtage den. En selvhostet lokal udbyder som Ollama holder forespørgsler inde i din egen infrastruktur; en hostet udbyder modtager dem under sine egne vilkår for databehandling.
@@ -196,11 +196,11 @@ De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, 
   - at redigere eller slette en feed-post (feeds for hændelser, advarsler, episoder, monitorer, vagtpolitikker og planlagt vedligeholdelse);
   - at skrive en notifikationslog (logge for sms, opkald, e-mail, WhatsApp, Telegram, push, webhooks og workspace-beskeder);
   - værdier, OneUptime sætter, efterhånden som tingene sker: om et brugerdefineret domænes CNAME er bekræftet, et teams beskyttelseskontakter (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), hvilken hændelsesrolle der er den primære, og om den kan slettes, om en ejer eller et medlem har fået besked, påmindelsestidspunkter og -antal, hvem der har vagt på et skema nu og som den næste, en vagtkørsels fremskridt, en SLO's aktuelle burn rate og error budget, en monitor sat på pause af en hændelse eller en vedligeholdelseshændelse, en privat statussidebrugers token til nulstilling af adgangskode og seneste login, de fakta, en tjeneste rapporterer om sig selv (version, runtime, cloud), og en detektionsregels eller et trusselsfeeds seneste kørsel;
-  - at erklære en hændelse ud fra en skabelon ved at sende `createdIncidentTemplateId` til **Create One Incident** — vælg i stedet skabelonen under trinnets indstilling **Incident Template**: trinnet erklærer så hændelsen ud fra den, som Project Admin, og registrerer skabelonen;
+  - at erklære en hændelse ud fra en skabelon ved at sende `createdIncidentTemplateId` til **Create One Incident** — vælg i stedet skabelonen under trinnets indstilling **Hændelsesskabelon**: trinnet erklærer så hændelsen ud fra den, som Project Admin, og registrerer skabelonen;
   - at ændre, hvilken post en post hører til, efter at den er oprettet, som den monitor, en ejerrække gælder for, eller den hændelse, en note står på.
 - **Som ingen person.** En post, et workflow opretter, har ingen opretter, og revisionsloggen angiver workflowet, med dets navn på det tidspunkt, som den, der foretog ændringen.
 
-Når en kontrol afviser et trin, tager trinnet sit **Error**-output uden at foretage den afviste ændring, og kørslens log nævner trinnet og årsagen i klare ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Læs den under workflowets [Kørsler](/docs/workflows/runs-and-logs). Et Create Many-trin opretter sine poster én ad gangen og stopper ved den første, der afvises: de poster, det oprettede før den, bevares.
+Når en kontrol afviser et trin, tager trinnet sit **Fejl**-output uden at foretage den afviste ændring, og kørslens log nævner trinnet og årsagen i klare ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Læs den under workflowets [Kørsler](/docs/workflows/runs-and-logs). Et Create Many-trin opretter sine poster én ad gangen og stopper ved den første, der afvises: de poster, det oprettede før den, bevares.
 
 Trin, der taler med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — læser eller ændrer ikke OneUptime-poster, så intet af dette ændrer noget for dem.
 
@@ -228,7 +228,7 @@ Afvikleren tjekker deadlinen før og efter hver blok og markerer en kørsel, der
 
 ## Grænse for at kalde andre workflows
 
-Komponenten **Execute Workflow** lader ét workflow starte et andet. For at forhindre løkker, hvor workflow A starter B, som starter A igen, afvises en kæde af workflows, der starter hinanden, når den ville løbe tilbage til et workflow, der allerede er i den, eller gå dybere end 10 workflows. Blokken **Execute Workflow** tager så sit **Error**-output, og fejlen viser kæden.
+Komponenten **Execute Workflow** lader ét workflow starte et andet. For at forhindre løkker, hvor workflow A starter B, som starter A igen, afvises en kæde af workflows, der starter hinanden, når den ville løbe tilbage til et workflow, der allerede er i den, eller gå dybere end 10 workflows. Blokken **Execute Workflow** tager så sit **Fejl**-output, og fejlen viser kæden.
 
 Har du et reelt behov for en lang kæde (som et job, der behandler ét element pr. kørsel), er det som regel enklere at løkke inde i ét enkelt workflow med **Run Custom JavaScript**.
 

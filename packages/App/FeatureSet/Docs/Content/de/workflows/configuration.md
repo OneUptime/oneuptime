@@ -107,8 +107,8 @@ Der Incoming-Email-Trigger gibt dem Workflow eine eigene Adresse, und jeder, der
 
 - Veröffentlichen Sie sie nicht und legen Sie sie nicht in ein öffentliches Repository. Der Trigger verbirgt den Schlüssel, bis Sie auf **Anzeigen** klicken, und **Adresse kopieren** kopiert die Adresse, ohne sie anzuzeigen.
 - Gelangt die Adresse nach außen, klicken Sie im **Editor** auf den Incoming-Email-Trigger und auf **Adresse zurücksetzen**. Der Workflow bekommt eine neue Adresse, und E-Mails an die alte werden ab dann ignoriert.
-- Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **From** nicht, wer sie gesendet hat. Bevor ein Workflow etwas Wichtiges tut, prüfen Sie mit einem **If / Else**-Baustein etwas, das nur der echte Absender weiß – ein Token im Betreff oder in einem Header. Speichern Sie das erwartete Token als geheime Variable.
-- Der Schlüssel ist in allem, was die Ausführung empfängt, verborgen – **To**, **CC**, den Headern und den Bodys –, weil das Protokoll der Ausführung für jeden sichtbar ist, der die Ausführungen des Workflows lesen kann.
+- Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **Von** nicht, wer sie gesendet hat. Bevor ein Workflow etwas Wichtiges tut, prüfen Sie mit einem **If / Else**-Baustein etwas, das nur der echte Absender weiß – ein Token im Betreff oder in einem Header. Speichern Sie das erwartete Token als geheime Variable.
+- Der Schlüssel ist in allem, was die Ausführung empfängt, verborgen – **An**, **CC**, den Headern und den Bodys –, weil das Protokoll der Ausführung für jeden sichtbar ist, der die Ausführungen des Workflows lesen kann.
 
 Nur Personen, die den Workflow bearbeiten dürfen – **Projektinhaber**, **Projektadministrator**, **Arbeitsablauf-Administrator** oder **Edit Workflow** –, können seine Adresse sehen oder zurücksetzen. Alle anderen sehen einen Hinweis, wen sie fragen sollen.
 
@@ -132,14 +132,14 @@ Wie ein Administrator einer selbst gehosteten Installation diese öffnet, steht 
 
 Was der Anbieter erhält und was das Modell damit tun kann:
 
-- **Nur, was Sie in den Baustein schreiben.** OneUptime sendet eine feste Sicherheitsanweisung und danach **System Instructions**, **Prompt** und **Context** des Bausteins, mit eingesetzten Verweisen. **Context** kommt zuletzt, nach einer Markierung, und die Sicherheitsanweisung sagt dem Modell, dass alles nach der Markierung nicht vertrauenswürdige Daten sind, auch Text, der wie Anweisungen aussieht.
+- **Nur, was Sie in den Baustein schreiben.** OneUptime sendet eine feste Sicherheitsanweisung und danach **System Instructions**, **Prompt** und **Kontext** des Bausteins, mit eingesetzten Verweisen. **Kontext** kommt zuletzt, nach einer Markierung, und die Sicherheitsanweisung sagt dem Modell, dass alles nach der Markierung nicht vertrauenswürdige Daten sind, auch Text, der wie Anweisungen aussieht.
 - **Sonst nichts.** Die Daten des Triggers, der Verlauf des Workflows, die Ausgaben anderer Bausteine, Projektdatensätze, Telemetrie und Geheimnisse werden nie angehängt. Sie verlassen OneUptime nur, wenn Sie in einer dieser drei Einstellungen auf sie verweisen.
 - **Text, keine Tools.** Das Modell kann OneUptime nicht abfragen, keine HTTP-Anfragen stellen und keine Daten ändern. Zusätzliche Parameter eines Anbieters lassen nur eine Positivliste reiner Generierungsfelder durch: Sie können die Nachrichten nicht ersetzen, keine Tools, Websuche oder anderen Datenquellen hinzufügen, nichts außer Text und nicht mehrere Antworten anfordern, nicht streamen, die Anfrage nicht beim Anbieter aufbewahren lassen und die Ausgabegrenze des Bausteins nicht anheben. Felder, die OneUptime nicht kennt, werden verworfen.
 - **Das Modell wählt Ihr Administrator.** Muss die Generierung offline bleiben, wählen Sie ein Modell, das beim Anbieter nichts von selbst abruft.
 
 Was protokolliert wird:
 
-- Das Protokoll der Ausführung verbirgt **System Instructions**, **Prompt**, **Context** und **Response** des Bausteins. Spätere Bausteine können sie während der Ausführung trotzdem verwenden, und ein Baustein, in den Sie einen davon einsetzen, protokolliert ihn nach seinen eigenen Regeln: Wer einen einsetzt, entscheidet sich, ihn dort zu zeigen.
+- Das Protokoll der Ausführung verbirgt **System Instructions**, **Prompt**, **Kontext** und **Antwort** des Bausteins. Spätere Bausteine können sie während der Ausführung trotzdem verwenden, und ein Baustein, in den Sie einen davon einsetzen, protokolliert ihn nach seinen eigenen Regeln: Wer einen einsetzt, entscheidet sich, ihn dort zu zeigen.
 - Anbieter, Modell, Token-Zahlen, **LLM Log ID** und eine sichere Fehlermeldung bleiben für Betrieb und Abrechnung sichtbar. Der rohe Fehlertext eines Anbieters bleibt aus jedem Protokoll heraus, weil ein Anbieter darin die Anfrage wiederholen kann.
 - Jeder Aufruf steht unter **Projekteinstellungen → KI → KI-Protokolle**, mit Anbieter, Modell, Status, Token, Kosten und Abrechnung, aber ohne Prompt, Antwort und rohen Fehler.
 
@@ -147,17 +147,17 @@ Was der Baustein braucht und was er kostet:
 
 - **KI aktivieren** muss eingeschaltet sein, unter **Projekteinstellungen → KI → KI-Funktionen**. In OneUptime Cloud braucht das Projekt außerdem den Plan Growth oder höher und ein bezahltes Abonnement. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Sperre.
 - Aufrufe über einen kostenpflichtigen globalen Anbieter verbrauchen das KI-Guthaben des Projekts.
-- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Error**, ohne das Modell anzufragen.
+- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Fehler**, ohne das Modell anzufragen.
 
 | Grenze                                                         | Wert                                                                                       |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** und **Context** zusammen   | 50.000 Zeichen                                                                             |
-| **Temperature**                                                | Von `0` bis `1`                                                                            |
+| **System Instructions**, **Prompt** und **Kontext** zusammen   | 50.000 Zeichen                                                                             |
+| **Temperatur**                                                | Von `0` bis `1`                                                                            |
 | **Maximum Output Tokens**                                      | Von `1` bis `4096`, standardmäßig `1024`                                                   |
 | Eine Anfrage                                                   | Ein Versuch, höchstens 60 Sekunden                                                         |
-| Gleichzeitige Aufrufe                                          | 3 pro Projekt. Weitere nehmen **Error**, und eine spätere Ausführung kann es erneut versuchen. |
+| Gleichzeitige Aufrufe                                          | 3 pro Projekt. Weitere nehmen **Fehler**, und eine spätere Ausführung kann es erneut versuchen. |
 
-Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Error**, mit dem Grund in **Error**. Verbinden Sie diesen Pfad, bevor der Workflow live geht.
+Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Fehler**, mit dem Grund in **Fehler**. Verbinden Sie diesen Pfad, bevor der Workflow live geht.
 
 > [!WARNING]
 > Jeder Wert, auf den Sie verweisen, sind Daten, die Sie an den Anbieter senden. Setzen Sie keine geheime Variable in den Prompt oder den Kontext, es sei denn, der Anbieter ist für ihren Empfang freigegeben. Ein selbst gehosteter lokaler Anbieter wie Ollama hält Anfragen in Ihrer eigenen Infrastruktur; ein gehosteter Anbieter erhält sie zu seinen eigenen Datenverarbeitungsbedingungen.
@@ -196,11 +196,11 @@ Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-
   - einen Feed-Eintrag bearbeiten oder löschen (Feeds von Vorfällen, Warnungen, Episoden, Monitoren, Bereitschaftsrichtlinien und geplanten Wartungen);
   - ein Benachrichtigungsprotokoll schreiben (Protokolle von SMS, Anrufen, E-Mails, WhatsApp, Telegram, Push, Webhooks und Arbeitsbereich-Nachrichten);
   - Werte, die OneUptime setzt, während Dinge geschehen: ob der CNAME einer benutzerdefinierten Domain bestätigt ist, die Schutzschalter eines Teams (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), welche Vorfallrolle die primäre ist und ob sie gelöscht werden kann, ob ein Eigentümer oder Mitglied benachrichtigt wurde, Erinnerungszeiten und -zähler, wer in einem Dienstplan jetzt und als Nächstes Bereitschaft hat, der Fortschritt eines Bereitschaftslaufs, die aktuelle Burn Rate und das Fehlerbudget eines SLO, ein Monitor, der von einem Vorfall oder einem Wartungsereignis pausiert wurde, das Token zum Zurücksetzen des Passworts und die letzte Anmeldung eines privaten Benutzers einer Statusseite, die Angaben, die ein Dienst über sich selbst meldet (Version, Laufzeit, Cloud), und der letzte Lauf einer Erkennungsregel oder eines Bedrohungsfeeds;
-  - einen Vorfall aus einer Vorlage melden, indem `createdIncidentTemplateId` an **Create One Incident** gesendet wird – wählen Sie die Vorlage stattdessen in der Einstellung **Incident Template** des Schritts: Der Schritt meldet den Vorfall dann daraus, als Project Admin, und hält die Vorlage fest;
+  - einen Vorfall aus einer Vorlage melden, indem `createdIncidentTemplateId` an **Create One Incident** gesendet wird – wählen Sie die Vorlage stattdessen in der Einstellung **Vorfallsvorlage** des Schritts: Der Schritt meldet den Vorfall dann daraus, als Project Admin, und hält die Vorlage fest;
   - nach dem Anlegen ändern, zu welchem Datensatz ein Datensatz gehört, etwa für welchen Monitor eine Eigentümerzeile gilt oder an welchem Vorfall eine Notiz hängt.
 - **Als keine Person.** Ein Datensatz, den ein Workflow anlegt, nennt keinen Ersteller, und das Audit-Protokoll nennt den Workflow, mit seinem damaligen Namen, als den, der die Änderung gemacht hat.
 
-Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Error**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
+Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Fehler**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
 
 Schritte, die mit anderen Systemen sprechen – API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code und Generate Text with AI –, lesen oder ändern keine OneUptime-Datensätze, daher ändert all das an ihnen nichts.
 
@@ -228,7 +228,7 @@ Der Runner prüft die Frist vor und nach jedem Baustein und markiert eine überf
 
 ## Grenze beim Aufrufen anderer Workflows
 
-Mit der Komponente **Execute Workflow** startet ein Workflow einen anderen. Um Schleifen zu verhindern, in denen Workflow A B startet, der wieder A startet, wird eine Kette von Workflows, die einander starten, abgelehnt, wenn sie zu einem Workflow zurückführen würde, der schon in ihr ist, oder tiefer als 10 Workflows ginge. Der **Execute Workflow**-Baustein nimmt dann seinen Ausgang **Error**, und der Fehler zeigt die Kette.
+Mit der Komponente **Execute Workflow** startet ein Workflow einen anderen. Um Schleifen zu verhindern, in denen Workflow A B startet, der wieder A startet, wird eine Kette von Workflows, die einander starten, abgelehnt, wenn sie zu einem Workflow zurückführen würde, der schon in ihr ist, oder tiefer als 10 Workflows ginge. Der **Execute Workflow**-Baustein nimmt dann seinen Ausgang **Fehler**, und der Fehler zeigt die Kette.
 
 Brauchen Sie wirklich eine lange Kette (etwa einen Job, der pro Ausführung ein Element verarbeitet), ist es meist einfacher, mit **Run Custom JavaScript** innerhalb eines einzigen Workflows zu iterieren.
 

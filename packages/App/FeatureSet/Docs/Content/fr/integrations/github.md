@@ -66,7 +66,7 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Ouvrir l'issue
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://api.github.com/repos/your-org/your-repo/issues`, avec le propriétaire et le nom de votre dépôt. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.github.com/repos/your-org/your-repo/issues`, avec le propriétaire et le nom de votre dépôt. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -76,7 +76,7 @@ Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et rel
 }
 ```
 
-Et son **Request Body** sur :
+Et son **Corps de la requête** sur :
 
 ```json
 {
@@ -97,11 +97,11 @@ L'issue reste ouverte quand l'incident est résolu, car le travail qui en décou
 
 - **GitHub Enterprise Server.** Envoyez plutôt la requête à votre serveur : `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Un serveur sur une adresse de réseau privé exige un OneUptime auto-hébergé dont l'administrateur l'autorise : voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 - **L'assigner.** Ajoutez `"assignees": ["octocat"]` ou `"milestone": 3` au corps. GitHub ignore sans un mot les labels, les assignés et les jalons quand le jeton ne peut pas pousser dans le dépôt.
-- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Yes**, par exemple pour une gravité.
+- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
 
 ## Dépannage
 
-L'étape **API Post (JSON)** prend **Error** quand GitHub refuse la requête. Ses **Response Status** et **Response Body** dans l'exécution disent pourquoi.
+L'étape **API Post (JSON)** prend **Erreur** quand GitHub refuse la requête. Ses **Response Status** et **Corps de la réponse** dans l'exécution disent pourquoi.
 
 :::details GitHub répond 401
 Le jeton est faux, expiré ou révoqué. Créez-en un nouveau, et remplacez le contenu de `GITHUB_TOKEN`.

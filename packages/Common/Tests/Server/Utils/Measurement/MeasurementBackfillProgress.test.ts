@@ -1,4 +1,5 @@
 import MeasurementBackfillProgress, {
+  MeasurementBackfillCursor,
   MeasurementBackfillService,
   MeasurementBackfillStatement,
 } from "../../../../Server/Utils/Measurement/MeasurementBackfillProgress";
@@ -18,9 +19,11 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
  * end. Each write is a compare-and-set held to the request the walk began
  * from, so an edit of the measurement made while it is walked - a new
  * backfillRequestedAt, the cursor and the completion cleared - is never
- * written over (#8105). These pin the statement, what it is given, and how
- * its answer is read. The Postgres suite next to this one
- * (MeasurementBackfillProgressPostgres) runs it against the real table.
+ * written over (#8105). The cursor is the last record a page worked out,
+ * its createdAt and its id, written together (#8171). These pin the
+ * statement, what it is given, and how its answer is read. The Postgres
+ * suite next to this one (MeasurementBackfillProgressPostgres) runs it
+ * against the real table.
  */
 
 const MEASUREMENT_ID: ObjectID = new ObjectID(
@@ -28,7 +31,10 @@ const MEASUREMENT_ID: ObjectID = new ObjectID(
 );
 
 const REQUESTED_AT: Date = new Date("2026-07-01T00:00:00.123Z");
-const CURSOR: Date = new Date("2026-06-01T09:00:00.000Z");
+const CURSOR: MeasurementBackfillCursor = {
+  createdAt: new Date("2026-06-01T09:00:00.000Z"),
+  id: new ObjectID("33333333-3333-4333-8333-333333333333"),
+};
 const COMPLETED_AT: Date = new Date("2026-07-01T00:05:00.000Z");
 
 interface CapturedQuery {
@@ -65,25 +71,30 @@ function fakeService(input: {
 }
 
 describe("MeasurementBackfillProgress.getStatement", () => {
-  test("a page's cursor is one statement: the UPDATE, held to the request, SELECTed from a CTE", () => {
+  test("a page's cursor is one statement: both its columns, the UPDATE held to the request, SELECTed from a CTE", () => {
     const statement: MeasurementBackfillStatement =
       MeasurementBackfillProgress.getStatement({
         tableName: "IncidentMeasurement",
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         },
       });
 
     expect(statement).toEqual({
       sql:
         `WITH "saved" AS (UPDATE "IncidentMeasurement" SET ` +
-        `"backfillCursorCreatedAt" = $1 ` +
-        `WHERE "_id" = $2 ` +
-        `AND date_trunc('milliseconds', "backfillRequestedAt") = $3 ` +
+        `"backfillCursorCreatedAt" = $1, "backfillCursorId" = $2 ` +
+        `WHERE "_id" = $3 ` +
+        `AND date_trunc('milliseconds', "backfillRequestedAt") = $4 ` +
         `RETURNING "_id") SELECT "_id" FROM "saved"`,
-      parameters: [CURSOR, MEASUREMENT_ID.toString(), REQUESTED_AT],
+      parameters: [
+        CURSOR.createdAt,
+        CURSOR.id.toString(),
+        MEASUREMENT_ID.toString(),
+        REQUESTED_AT,
+      ],
     });
   });
 
@@ -94,7 +105,7 @@ describe("MeasurementBackfillProgress.getStatement", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
           completedAt: COMPLETED_AT,
         },
       });
@@ -102,12 +113,14 @@ describe("MeasurementBackfillProgress.getStatement", () => {
     expect(statement).toEqual({
       sql:
         `WITH "saved" AS (UPDATE "IncidentMeasurement" SET ` +
-        `"backfillCursorCreatedAt" = $1, "backfillCompletedAt" = $2 ` +
-        `WHERE "_id" = $3 ` +
-        `AND date_trunc('milliseconds', "backfillRequestedAt") = $4 ` +
+        `"backfillCursorCreatedAt" = $1, "backfillCursorId" = $2, ` +
+        `"backfillCompletedAt" = $3 ` +
+        `WHERE "_id" = $4 ` +
+        `AND date_trunc('milliseconds', "backfillRequestedAt") = $5 ` +
         `RETURNING "_id") SELECT "_id" FROM "saved"`,
       parameters: [
-        CURSOR,
+        CURSOR.createdAt,
+        CURSOR.id.toString(),
         COMPLETED_AT,
         MEASUREMENT_ID.toString(),
         REQUESTED_AT,
@@ -122,12 +135,13 @@ describe("MeasurementBackfillProgress.getStatement", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: undefined,
+          cursor: undefined,
           completedAt: COMPLETED_AT,
         },
       });
 
     expect(statement.sql).not.toContain("backfillCursorCreatedAt");
+    expect(statement.sql).not.toContain("backfillCursorId");
     expect(statement.sql).toContain(`SET "backfillCompletedAt" = $1 WHERE`);
     expect(statement.parameters).toEqual([
       COMPLETED_AT,
@@ -149,16 +163,16 @@ describe("MeasurementBackfillProgress.getStatement", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         },
       });
 
     expect(statement.sql).toMatch(
-      /WHERE "_id" = \$\d+ AND date_trunc\('milliseconds', "backfillRequestedAt"\) = \$3 /,
+      /WHERE "_id" = \$\d+ AND date_trunc\('milliseconds', "backfillRequestedAt"\) = \$4 /,
     );
     expect(statement.sql).not.toMatch(/IS NOT DISTINCT FROM/);
     // The very stamp the walk read: not now, not the completion time.
-    expect(statement.parameters[2]).toBe(REQUESTED_AT);
+    expect(statement.parameters[3]).toBe(REQUESTED_AT);
   });
 
   test("never writes the request itself, the version or updatedAt: nobody edited the measurement", () => {
@@ -168,7 +182,7 @@ describe("MeasurementBackfillProgress.getStatement", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
           completedAt: COMPLETED_AT,
         },
       });
@@ -183,10 +197,10 @@ describe("MeasurementBackfillProgress.getStatement", () => {
     expect(statement.sql).not.toContain("updatedAt");
   });
 
-  test("carries the measurement id as the row's id and only Dates into the timestamp columns", () => {
+  test("carries the measurement id as the row's id, the cursor's id into its id column and only Dates into the timestamp columns", () => {
     /*
-     * All three backfill columns are TIMESTAMPs: an ObjectID bound into one
-     * is a write error that stops the whole backfill of the project.
+     * The three backfill timestamps are TIMESTAMPs: an ObjectID bound into
+     * one is a write error that stops the whole backfill of the project.
      */
     const statement: MeasurementBackfillStatement =
       MeasurementBackfillProgress.getStatement({
@@ -194,18 +208,49 @@ describe("MeasurementBackfillProgress.getStatement", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
           completedAt: COMPLETED_AT,
         },
       });
 
-    const [cursor, completedAt, id, requestedAt] = statement.parameters;
+    const [cursorCreatedAt, cursorId, completedAt, id, requestedAt] =
+      statement.parameters;
 
-    expect(cursor).toBeInstanceOf(Date);
+    expect(cursorCreatedAt).toBeInstanceOf(Date);
     expect(completedAt).toBeInstanceOf(Date);
     expect(requestedAt).toBeInstanceOf(Date);
+    // The record the page ended on, as text, never the measurement.
+    expect(cursorId).toBe(CURSOR.id.toString());
+    expect(typeof cursorId).toBe("string");
     expect(id).toBe(MEASUREMENT_ID.toString());
     expect(typeof id).toBe("string");
+  });
+
+  test("writes the cursor's createdAt and id together, from the one record the page ended on", () => {
+    const other: MeasurementBackfillCursor = {
+      createdAt: new Date("2026-06-01T09:00:00.000Z"),
+      id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+    };
+
+    for (const cursor of [CURSOR, other]) {
+      const statement: MeasurementBackfillStatement =
+        MeasurementBackfillProgress.getStatement({
+          tableName: "IncidentMeasurement",
+          write: {
+            measurementId: MEASUREMENT_ID,
+            requestedAt: REQUESTED_AT,
+            cursor: cursor,
+          },
+        });
+
+      expect(statement.sql).toContain(
+        `SET "backfillCursorCreatedAt" = $1, "backfillCursorId" = $2 WHERE`,
+      );
+      expect(statement.parameters.slice(0, 2)).toEqual([
+        cursor.createdAt,
+        cursor.id.toString(),
+      ]);
+    }
   });
 
   test("names the table it is given, for each of the three measurement tables", () => {
@@ -220,7 +265,7 @@ describe("MeasurementBackfillProgress.getStatement", () => {
           write: {
             measurementId: MEASUREMENT_ID,
             requestedAt: REQUESTED_AT,
-            cursorCreatedAt: CURSOR,
+            cursor: CURSOR,
           },
         }).sql,
       ).toContain(`UPDATE "${tableName}" SET `);
@@ -246,7 +291,7 @@ describe("MeasurementBackfillProgress.save", () => {
       write: {
         measurementId: MEASUREMENT_ID,
         requestedAt: REQUESTED_AT,
-        cursorCreatedAt: CURSOR,
+        cursor: CURSOR,
       },
     });
 
@@ -256,7 +301,7 @@ describe("MeasurementBackfillProgress.save", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         },
       });
 
@@ -277,7 +322,7 @@ describe("MeasurementBackfillProgress.save", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         },
       }),
     ).resolves.toBe(true);
@@ -312,7 +357,7 @@ describe("MeasurementBackfillProgress.save", () => {
           write: {
             measurementId: MEASUREMENT_ID,
             requestedAt: REQUESTED_AT,
-            cursorCreatedAt: CURSOR,
+            cursor: CURSOR,
           },
         }),
       ).resolves.toBe(false);
@@ -341,7 +386,7 @@ describe("MeasurementBackfillProgress.save", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         },
       }),
     ).rejects.toThrow("connection reset");
@@ -356,7 +401,7 @@ describe("MeasurementBackfillProgress.save", () => {
         write: {
           measurementId: MEASUREMENT_ID,
           requestedAt: REQUESTED_AT,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         },
       }),
     ).rejects.toThrow("the measurement service names no table");
@@ -426,6 +471,29 @@ describe("the columns the statement names", () => {
         expect(typeormColumn?.options.type).toBe("timestamptz");
         expect(typeormColumn?.options.name).toBeUndefined();
       }
+    },
+  );
+
+  test.each(TABLES)(
+    "are $tableName's cursor id column, a uuid stored under the name the statement uses",
+    (table: MeasurementTable) => {
+      expect(
+        new table.model().getTableColumnMetadata("backfillCursorId")?.type,
+      ).toBe(TableColumnType.ObjectID);
+
+      const typeormColumn: ColumnMetadataArgs | undefined =
+        getMetadataArgsStorage().columns.find(
+          (candidate: ColumnMetadataArgs) => {
+            return (
+              candidate.target === table.model &&
+              candidate.propertyName === "backfillCursorId"
+            );
+          },
+        );
+
+      expect(typeormColumn?.options.type).toBe("uuid");
+      expect(typeormColumn?.options.nullable).toBe(true);
+      expect(typeormColumn?.options.name).toBeUndefined();
     },
   );
 });

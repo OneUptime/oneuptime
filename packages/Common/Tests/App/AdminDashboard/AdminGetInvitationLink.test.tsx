@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
@@ -207,8 +208,8 @@ function membership(id: string, hasAcceptedInvitation: boolean): TeamMember {
   return value;
 }
 
-let fetchSpy: jest.SpiedFunction<typeof API.fetch>;
-let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
+let fetchSpy: SpyInstance<typeof API.fetch>;
+let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
 beforeEach(() => {
   mockCanSendEmail = false;
@@ -239,7 +240,7 @@ beforeEach(() => {
       { link: LINK, isRegistered: false, email: "grace@example.com" },
       {},
     );
-  }) as never);
+  }) as never) as unknown as SpyInstance<typeof API.fetch>;
 });
 
 afterEach(() => {

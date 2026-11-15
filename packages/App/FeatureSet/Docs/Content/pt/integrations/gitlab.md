@@ -51,7 +51,7 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Abrir a issue
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e conecte a ele o ponto **Success** do gatilho. Defina a **URL** dele como `https://gitlab.com/api/v4/projects/12345678/issues`, com o ID do seu projeto no lugar de `12345678`. Em **Mais campos**, defina os **Request Headers** dele como:
+Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e conecte a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://gitlab.com/api/v4/projects/12345678/issues`, com o ID do seu projeto no lugar de `12345678`. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
 
 ```json
 {
@@ -59,7 +59,7 @@ Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e cone
 }
 ```
 
-E o **Request Body** como:
+E o **Corpo da Requisição** como:
 
 ```json
 {
@@ -81,11 +81,11 @@ O bloco envia JSON, então não precisa de cabeçalho `Content-Type`. O GitLab c
 - **Um GitLab próprio.** Envie a requisição para o seu servidor em vez disso: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Um servidor em um endereço de rede privado precisa de um OneUptime auto-hospedado cujo administrador o permita: veja [Acesso de rede para fora](/docs/workflows/configuration#acesso-de-rede-para-fora).
 - **O caminho do projeto no lugar do ID.** O caminho funciona no lugar do ID, com a `/` escrita como `%2F`: `projects/your-group%2Fyour-project/issues`. A URL é enviada exatamente como está escrita, então codifique-a você mesmo.
 - **Atribua.** Adicione `"assignee_ids": [42]` ou `"due_date": "2026-12-31"` ao corpo, ou `"confidential": true` para mostrá-la só aos membros do projeto.
-- **Só alguns incidentes.** Coloque um bloco **If / Else** entre o gatilho e o bloco de API, e abra issues só no lado **Yes** dele, por exemplo para uma gravidade.
+- **Só alguns incidentes.** Coloque um bloco **If / Else** entre o gatilho e o bloco de API, e abra issues só no lado **Sim** dele, por exemplo para uma gravidade.
 
 ## Solução de problemas
 
-A etapa **API Post (JSON)** segue por **Error** quando o GitLab recusa a requisição. O **Response Status** e o **Response Body** dela na execução dizem por quê.
+A etapa **API Post (JSON)** segue por **Erro** quando o GitLab recusa a requisição. O **Response Status** e o **Corpo da Resposta** dela na execução dizem por quê.
 
 :::details O GitLab responde 401
 O token está errado, expirou ou foi revogado. Crie um novo e substitua o conteúdo de `GITLAB_TOKEN`.

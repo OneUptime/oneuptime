@@ -129,22 +129,22 @@ Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsabla
 
 ### Den Titel prüfen
 
-Klicken Sie auf **Komponente hinzufügen**, wählen Sie **If / Else** und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie **Zu prüfender Wert** auf den Titel der Warnung (klicken Sie auf **{ }** und wählen Sie ihn), **Vergleich** auf **enthält** und **Vergleichen mit** auf den Anfang, den Ihre Auslösertitel gemeinsam haben, etwa `LLM budget exceeded`.
+Klicken Sie auf **Komponente hinzufügen**, wählen Sie **If / Else** und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie **Zu prüfender Wert** auf den Titel der Warnung (klicken Sie auf **{ }** und wählen Sie ihn), **Vergleich** auf **enthält** und **Vergleichen mit** auf den Anfang, den Ihre Auslösertitel gemeinsam haben, etwa `LLM budget exceeded`.
 
 ### Ihren Endpunkt aufrufen
 
-Fügen Sie **API Post (JSON)** hinzu und verbinden Sie den Punkt **Yes** des **If / Else** damit. Setzen Sie seine **URL** auf Ihren Endpunkt, etwa `https://agents.example.com/circuit-breaker`, und füllen Sie die Header und den Body unten aus.
+Fügen Sie **API Post (JSON)** hinzu und verbinden Sie den Punkt **Ja** des **If / Else** damit. Setzen Sie seine **URL** auf Ihren Endpunkt, etwa `https://agents.example.com/circuit-breaker`, und füllen Sie die Header und den Body unten aus.
 
 ### Einen Fehlschlag melden
 
-Fügen Sie **Send Message to Slack** oder **Send Email** hinzu und verbinden Sie den Punkt **Error** des API-Bausteins damit. Ein Schutzschalter, der nicht auslöst, ist genau die Warnung, die ein Mensch sehen muss.
+Fügen Sie **Send Message to Slack** oder **Send Email** hinzu und verbinden Sie den Punkt **Fehler** des API-Bausteins damit. Ein Schutzschalter, der nicht auslöst, ist genau die Warnung, die ein Mensch sehen muss.
 
 ### Ihn einschalten
 
 Schalten Sie **Aktiviert** oben im **Editor** ein.
 :::
 
-Die **Request Headers** des API-Bausteins:
+Die **Anfrage-Header** des API-Bausteins:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ Die **Request Headers** des API-Bausteins:
 }
 ```
 
-Sein **Request Body**:
+Sein **Anfragetext**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ Sein **Request Body**:
 }
 ```
 
-Um auf mehrere Auslöser zu reagieren, beginnen Sie alle ihre Titel gleich, oder hängen Sie weitere **If / Else**-Bausteine an den Punkt **No**. Siehe [Einen Workflow erstellen](/docs/workflows/authoring) für die Arbeitsfläche und [Variablen](/docs/workflows/variables) für die `{{…}}`-Verweise.
+Um auf mehrere Auslöser zu reagieren, beginnen Sie alle ihre Titel gleich, oder hängen Sie weitere **If / Else**-Bausteine an den Punkt **Nein**. Siehe [Einen Workflow erstellen](/docs/workflows/authoring) für die Arbeitsfläche und [Variablen](/docs/workflows/variables) für die `{{…}}`-Verweise.
 
 ## Den Schutzschalter testen
 

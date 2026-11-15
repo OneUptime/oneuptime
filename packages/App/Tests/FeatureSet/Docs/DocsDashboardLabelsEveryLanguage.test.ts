@@ -3,12 +3,6 @@ import SubscriptionPlan, {
   PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
 import { BillingPeriod } from "Common/Types/Billing/SubscriptionPlanPricing";
-import ComponentMetadata, {
-  Argument,
-  Port,
-} from "Common/Types/Workflow/Component";
-import Components from "Common/Types/Workflow/Components";
-import { getCreateFromTemplateArgument } from "Common/Types/Workflow/CreateFromTemplate";
 import { getPlanPickerOptionText } from "Common/UI/Components/Billing/PlanPicker/PlanPickerCopy";
 import { getChoiceRowPlanPillText } from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import {
@@ -31,6 +25,12 @@ import {
 import { EITHER_ARROW } from "./DocsPageShape";
 import { boldSpans, prose } from "./DocsTranslationChecks";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import {
+  WORKFLOW_STEP_NAMES,
+  isLookedUp,
+  isStepNameOnPage,
+  workflowStepPage,
+} from "./DocsWorkflowStepNames";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -54,8 +54,9 @@ import path from "path";
  *     covered) quote in English only the names kept on purpose, each with
  *     the reason, and each still quoted - a label the Persian locale has in
  *     English stays English, and is not counted. Where the product can
- *     confirm a reason (a permission's title, a plan's name, a step's own
- *     setting or output), the test asks it.
+ *     confirm a reason (a permission's title, a plan's name), the test
+ *     asks it. A workflow step's own names are no reason: the builder draws
+ *     them in Persian, and the pages name them so (#7511).
  */
 
 const DOCS_TESTS_DIR: string = __dirname;
@@ -97,12 +98,6 @@ const PERMISSION_NAME: string =
   "A permission's name, as a custom role lists it, which every language keeps in English.";
 const PLAN_NAME: string =
   "A plan's name, which the Dashboard shows as written in every language, as on the invoice.";
-const WORKFLOW_STEP_SETTING: string =
-  "The Create One Incident step's setting, which the workflow docs name in English as a step's own setting.";
-const WORKFLOW_STEP_OUTPUT: string =
-  "A trigger's out-port, which the workflow docs name in English as a step's own output.";
-const IRC_STEP_ARGUMENT: string =
-  "The Send Message to IRC step's setting, which the workflow docs name in English as a step's own setting.";
 const CHAT_NOTE_MODAL: string =
   "The Slack and Microsoft Teams note modal, which is not translated.";
 
@@ -113,7 +108,6 @@ const CHAT_NOTE_MODAL: string =
 const KEPT_ON_PERSIAN_PAGES: Record<string, ReadonlyArray<KeptName>> = {
   "incidents/index": [],
   "incidents/declaring-incidents": [
-    { name: "Incident Template", why: WORKFLOW_STEP_SETTING },
     {
       name: "Primary",
       why: "An on-call policy's name inside the feed line, which the server writes in English.",
@@ -146,7 +140,6 @@ const KEPT_ON_PERSIAN_PAGES: Record<string, ReadonlyArray<KeptName>> = {
     { name: "Public Note", why: CHAT_NOTE_MODAL },
     { name: "Private Note", why: CHAT_NOTE_MODAL },
     { name: "Note", why: CHAT_NOTE_MODAL },
-    { name: "Incident Template", why: WORKFLOW_STEP_SETTING },
   ],
   "incidents/linked-alerts": [
     { name: "Create Alert State Timeline", why: PERMISSION_NAME },
@@ -160,46 +153,12 @@ const KEPT_ON_PERSIAN_PAGES: Record<string, ReadonlyArray<KeptName>> = {
     },
   ],
   "incidents/settings": [
-    { name: "Incident Template", why: WORKFLOW_STEP_SETTING },
-    { name: "Success", why: WORKFLOW_STEP_OUTPUT },
     { name: "Edit Incident Template", why: PERMISSION_NAME },
     { name: "Edit Incident Custom Field", why: PERMISSION_NAME },
     { name: "Edit Project", why: PERMISSION_NAME },
   ],
-  "integrations/irc": [
-    { name: "Message Text", why: IRC_STEP_ARGUMENT },
-    { name: "Port", why: IRC_STEP_ARGUMENT },
-    { name: "Channel", why: IRC_STEP_ARGUMENT },
-    { name: "Growth", why: PLAN_NAME },
-  ],
+  "integrations/irc": [{ name: "Growth", why: PLAN_NAME }],
 };
-
-// The steps' own names: each built-in step's settings and ports.
-function stepSettingNames(stepTitle: string): Array<string> {
-  const step: ComponentMetadata | undefined = (
-    Components as Array<ComponentMetadata>
-  ).find((component: ComponentMetadata): boolean => {
-    return component.title === stepTitle;
-  });
-
-  return ((step?.arguments || []) as Array<Argument>).map(
-    (argument: Argument): string => {
-      return argument.name;
-    },
-  );
-}
-
-function stepOutputNames(): Set<string> {
-  const names: Set<string> = new Set<string>();
-
-  for (const component of Components as Array<ComponentMetadata>) {
-    for (const port of component.outPorts as Array<Port>) {
-      names.add(port.title);
-    }
-  }
-
-  return names;
-}
 
 type ReasonCheck = (name: string) => boolean;
 
@@ -215,24 +174,6 @@ const REASON_CHECKS: Array<{ why: string; holds: ReasonCheck }> = [
     why: PLAN_NAME,
     holds: (name: string): boolean => {
       return (Object.values(PlanType) as Array<string>).includes(name);
-    },
-  },
-  {
-    why: WORKFLOW_STEP_SETTING,
-    holds: (name: string): boolean => {
-      return getCreateFromTemplateArgument("Incident")?.name === name;
-    },
-  },
-  {
-    why: WORKFLOW_STEP_OUTPUT,
-    holds: (name: string): boolean => {
-      return stepOutputNames().has(name);
-    },
-  },
-  {
-    why: IRC_STEP_ARGUMENT,
-    holds: (name: string): boolean => {
-      return stepSettingNames("Send Message to IRC").includes(name);
     },
   },
 ];
@@ -441,7 +382,8 @@ describe("the Persian pages the exception covered", () => {
       }
     }
 
-    expect(checked).toBeGreaterThan(15);
+    // Permission titles and plan names; a step's own names left the lists (#7511).
+    expect(checked).toBeGreaterThan(10);
   });
 
   it("would refuse a reason the product does not confirm", () => {
@@ -456,20 +398,41 @@ describe("the Persian pages the exception covered", () => {
       );
     };
 
-    // A label is not a permission, a plan, a step setting or an output.
+    // A label is not a permission or a plan.
     expect(holds(PERMISSION_NAME, "Owners")).toBe(false);
     expect(holds(PLAN_NAME, "Owners")).toBe(false);
-    expect(holds(WORKFLOW_STEP_SETTING, "Owners")).toBe(false);
-    expect(holds(WORKFLOW_STEP_OUTPUT, "Owners")).toBe(false);
-    expect(holds(IRC_STEP_ARGUMENT, "Owners")).toBe(false);
     // A built-in role's name reads in the page's language.
     expect(holds(PERMISSION_NAME, "Project Owner")).toBe(false);
     // And each confirms what it names.
     expect(holds(PERMISSION_NAME, "Edit Incident Template")).toBe(true);
     expect(holds(PLAN_NAME, "Growth")).toBe(true);
-    expect(holds(WORKFLOW_STEP_SETTING, "Incident Template")).toBe(true);
-    expect(holds(WORKFLOW_STEP_OUTPUT, "Success")).toBe(true);
-    expect(holds(IRC_STEP_ARGUMENT, "Message Text")).toBe(true);
+  });
+
+  it("keep no workflow step's name for being one: the builder draws it in Persian (#7511)", () => {
+    for (const page of PERSIAN_PAGES) {
+      for (const kept of KEPT_ON_PERSIAN_PAGES[page] || []) {
+        const isStepName: boolean =
+          WORKFLOW_STEP_NAMES.has(kept.name) && isLookedUp(kept.name);
+
+        if (!isStepName) {
+          continue;
+        }
+
+        /*
+         * A step's name kept here is another screen's word on the page
+         * (DocsWorkflowStepNames' otherWords), such as the chat note
+         * modal's Note.
+         */
+        expect({
+          page,
+          name: kept.name,
+          isTheStepsThere: workflowStepPage(page)
+            ? isStepNameOnPage(page, kept.name)
+            : false,
+        }).toEqual({ page, name: kept.name, isTheStepsThere: false });
+        expect(kept.why).not.toMatch(/workflow|step/i);
+      }
+    }
   });
 
   it.each(PERSIAN_PAGES)(

@@ -140,7 +140,7 @@ Nøglens side tæller også med: **Afvist telemetri** viser, hvad der er afvist 
 For de andre svar, en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
 :::details Der kommer stadig data et minut efter, at jeg slog nøglen fra
-Hver OneUptime-server husker, hvad den ved om en nøgle, i op til et minut, så en ændring når ud til dem alle inden for cirka et minut. Anmodninger derefter afvises.
+Hver OneUptime-server husker, hvad den ved om en nøgle, i op til et minut, så en ændring når ud til dem alle inden for cirka et minut. Anmodninger derefter afvises. En MQTT-klient, der har forbundet med nøglen, afbrydes inden for få sekunder.
 :::
 
 :::details En browsernøgle virker på min bærbare, men ikke i produktion

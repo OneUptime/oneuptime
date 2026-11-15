@@ -835,3 +835,75 @@ describe("a saved view from before a page had one spelling", () => {
     expect(value.startsWith("/%C3%A9%C3%A9")).toBe(true);
   });
 });
+
+/*
+ * #8197: the ingest stores every page scrubbed, so a funnel or a retention
+ * table saved naming a page with an email or an id in it - typed in, or
+ * saved before the ingest scrubbed what a client sent - is read naming the
+ * page as it is stored, and the next save keeps no email.
+ */
+describe("a saved view that names a person in a page", () => {
+  test("a saved funnel opens on the scrubbed page, steps and segment", () => {
+    const read: ProductAnalyticsDefinitionRead<ProductAnalyticsFunnelDefinition> =
+      readFunnel({
+        steps: [
+          {
+            kind: ProductAnalyticsEventKind.Page,
+            name: "/users/someone@example.com/orders",
+          },
+          SIGN_UP,
+        ],
+        filters: [
+          {
+            field: ProductAnalyticsEventField.Page,
+            key: "",
+            value: "/#/reset/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f",
+          },
+          PLAN_FILTER,
+        ],
+      });
+
+    expect(read.problem).toBeNull();
+    expect(read.definition).toEqual({
+      steps: [
+        {
+          kind: ProductAnalyticsEventKind.Page,
+          name: "/users/[redacted]/orders",
+        },
+        SIGN_UP,
+      ],
+      windowMs: DEFAULT_PRODUCT_ANALYTICS_FUNNEL_WINDOW_MS,
+      filters: [
+        {
+          field: ProductAnalyticsEventField.Page,
+          key: "",
+          value: "/reset/[redacted]",
+        },
+        PLAN_FILTER,
+      ],
+    });
+    // Read again, nothing changes.
+    expect(readFunnel(read.definition!).definition).toEqual(read.definition);
+  });
+
+  test("a saved retention table opens on the scrubbed page", () => {
+    expect(
+      readRetention({
+        startEvent: {
+          kind: ProductAnalyticsEventKind.Page,
+          name: "https://shop.example.com/invite/someone%40example.com?token=abc",
+        },
+        returnEvent: SIGN_UP,
+        filters: [],
+      }).definition,
+    ).toEqual({
+      startEvent: {
+        kind: ProductAnalyticsEventKind.Page,
+        name: "/invite/[redacted]",
+      },
+      returnEvent: SIGN_UP,
+      period: ProductAnalyticsRetentionPeriod.Week,
+      filters: [],
+    });
+  });
+});

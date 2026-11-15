@@ -36,6 +36,8 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Utils/OnCall/OnDutyPoliciesCache.ts",
   // What each project uses, for the products menu's "Not set up" (#7465).
   "Server/Utils/ProjectProducts/ProjectUsageCache.ts",
+  // Each ingestion key as it is now, for a connected MQTT session (#8147).
+  "Server/Services/TelemetryIngestionKeyService.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.

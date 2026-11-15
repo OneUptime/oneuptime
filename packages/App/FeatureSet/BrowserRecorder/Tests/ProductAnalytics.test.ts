@@ -9,12 +9,15 @@ import {
   ProductAnalyticsWireBatch,
   ProductAnalyticsWireEvent,
   parseProductAnalyticsBatch,
+  toProductAnalyticsPage,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
 import {
   CAFE_PAGE,
   CAFE_SPELLINGS,
+  PAGES_WITH_PERSONAL_DATA,
   PAGE_SPELLINGS,
   PageSpellingCase,
+  addressOf,
 } from "Common/Tests/Helpers/PageSpellings";
 import { DebugRecord, clearDebugRecords, getDebugRecords } from "../src/Debug";
 import ProductAnalytics, {
@@ -362,6 +365,79 @@ describe("ProductAnalytics", (): void => {
       });
     });
 
+    /*
+     * #8197: a property whose value is an address - the page's own
+     * location.href, a link, a referrer - leaves the page scrubbed as every
+     * replay address is, and the server scrubs it the same way again.
+     */
+    it("scrubs a track() property, a metric() attribute and a trait that is an address before it sends them", async (): Promise<void> => {
+      const href: string =
+        "https://shop.example.com/users/someone@example.com?token=Zx8kQ2vT9mL4pR7sW1yB6nC3dF5gH0jK#top";
+
+      state.userRef = "user-42";
+      state.traits = { plan: "pro", avatar: href };
+
+      const tracker: ProductAnalytics = makeTracker({
+        userPropertyKeys: ["plan", "avatar"],
+      });
+
+      tracker.start();
+      tracker.track("Shared", {
+        url: href,
+        from: "/#/invite/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f?token=abc",
+        plan: "pro",
+        note: "see https://shop.example.com/a?token=b",
+      });
+      tracker.metric("share.count", 1, { page: href, region: "eu" });
+
+      await jest.advanceTimersByTimeAsync(PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS);
+
+      const custom: ProductAnalyticsWireEvent | undefined = allEvents().find(
+        (event: ProductAnalyticsWireEvent): boolean => {
+          return event.kind === ProductAnalyticsEventKind.Custom;
+        },
+      );
+
+      expect(custom?.properties).toEqual({
+        url: "https://shop.example.com/users/[redacted]",
+        from: "/#/invite/[redacted]",
+        plan: "pro",
+        // Words with an address in them are the application's own.
+        note: "see https://shop.example.com/a?token=b",
+      });
+      expect(sent[0]!.batch.metrics[0]!.attributes).toEqual({
+        page: "https://shop.example.com/users/[redacted]",
+        region: "eu",
+      });
+      expect(sent[0]!.batch.userProperties).toEqual({
+        plan: "pro",
+        avatar: "https://shop.example.com/users/[redacted]",
+      });
+
+      // The server keeps what was sent as it was sent.
+      const parsed: ProductAnalyticsBatchParseResult =
+        parseProductAnalyticsBatch(sent[0]!.batch, {
+          receivedAtUnixMs: Date.now(),
+          allowedUserPropertyKeys: ["plan", "avatar"],
+        });
+
+      expect(parsed.isValid).toBe(true);
+
+      if (parsed.isValid) {
+        expect(
+          parsed.batch.events.find((event: { kind: string }): boolean => {
+            return event.kind === ProductAnalyticsEventKind.Custom;
+          })?.properties,
+        ).toEqual(custom?.properties);
+        expect(parsed.batch.metrics[0]!.attributes).toEqual(
+          sent[0]!.batch.metrics[0]!.attributes,
+        );
+        expect(parsed.batch.userProperties).toEqual(
+          sent[0]!.batch.userProperties,
+        );
+      }
+    });
+
     it("ignores a track() without a usable name", async (): Promise<void> => {
       const tracker: ProductAnalytics = makeTracker();
 
@@ -613,6 +689,76 @@ describe("ProductAnalytics", (): void => {
       );
 
       expect(Array.from(pages)).toEqual([CAFE_PAGE]);
+    });
+
+    /*
+     * #8197: a page whose address names a person or a secret is scrubbed
+     * here, and the server scrubs what a client that does not scrub sends
+     * for it to the same page. The server's suite reads the same table
+     * (Common Tests/Helpers/PageSpellings).
+     */
+    it.each(
+      PAGES_WITH_PERSONAL_DATA.map(
+        (row: PageSpellingCase): [string, PageSpellingCase] => {
+          return [row.name, row];
+        },
+      ),
+    )(
+      "names a page that names a person as the server stores it: %s",
+      (_name: string, row: PageSpellingCase): void => {
+        const page: string = readProductAnalyticsPage(row.location as Location);
+
+        expect(page).toBe(row.page);
+        expect(page).not.toContain("@");
+
+        const serverPages: Array<string> = [page, row.sent, addressOf(row)].map(
+          (sentPage: string): string => {
+            const parsed: ProductAnalyticsBatchParseResult =
+              parseProductAnalyticsBatch(
+                {
+                  v: PRODUCT_ANALYTICS_WIRE_VERSION,
+                  batchId: "d".repeat(32),
+                  sessionId: SESSION_A,
+                  visitorId: VISITOR,
+                  consentState: "NotRequired",
+                  sentAt: Date.now(),
+                  context: {},
+                  events: [
+                    {
+                      kind: ProductAnalyticsEventKind.Page,
+                      name: sentPage,
+                      at: Date.now(),
+                    },
+                  ],
+                  metrics: [],
+                },
+                { receivedAtUnixMs: Date.now(), allowedUserPropertyKeys: [] },
+              );
+
+            return parsed.isValid ? parsed.batch.events[0]!.name : "";
+          },
+        );
+
+        // What this sends, what an unscrubbing client sends, its address.
+        expect(serverPages).toEqual([row.page, row.page, row.page]);
+      },
+    );
+
+    it("names every page as the server names the location's whole address", (): void => {
+      for (const row of [...PAGE_SPELLINGS, ...PAGES_WITH_PERSONAL_DATA]) {
+        expect([
+          row.name,
+          readProductAnalyticsPage(row.location as Location),
+        ]).toEqual([row.name, toProductAnalyticsPage(addressOf(row))]);
+      }
+
+      // A fragment inside a route is no route of its own, on both sides.
+      expect(
+        readProductAnalyticsPage({
+          pathname: "/",
+          hash: "#/orders/42#/users/someone@example.com",
+        } as Location),
+      ).toBe("/orders/42");
     });
   });
 

@@ -713,6 +713,8 @@ describe("FirstPagedAt.backfill", () => {
       '"startAnchorType" = $1 OR "endAnchorType" = $1',
     );
     expect(requeues[0]!.sql).toContain('"backfillRequestedAt" = now()');
+    expect(requeues[0]!.sql).toContain('"backfillCursorCreatedAt" = NULL');
+    expect(requeues[0]!.sql).toContain('"backfillCursorId" = NULL');
     expect(requeues[0]!.sql).toContain('"backfillCompletedAt" = NULL');
     expect(requeues[0]!.parameters).toEqual(["First Paged At"]);
     expect(result.measurementsRequeued).toBe(1);

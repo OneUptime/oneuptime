@@ -58,7 +58,7 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 
 ### 레코드 만들기
 
-**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **URL**을 `https://your-instance.service-now.com/api/now/table/incident`로 설정합니다. **추가 필드**에서 **Request Headers**를 다음으로 설정합니다:
+**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://your-instance.service-now.com/api/now/table/incident`로 설정합니다. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 }
 ```
 
-**Request Body**는 다음과 같습니다:
+**요청 본문**은 다음과 같습니다:
 
 ```json
 {
@@ -101,11 +101,11 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 
 ### 인시던트가 해결되었는지 확인하기
 
-트리거 뒤에 **If / Else** 블록을 추가합니다. **Value to check**를 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **Comparison**을 **is true**로 설정합니다.
+트리거 뒤에 **If / Else** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
 
 ### 레코드 찾기
 
-**Yes** 쪽 뒤에 같은 **Request Headers**와 다음 **URL**을 가진 **API Get (JSON)** 블록을 추가합니다:
+**예** 쪽 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API Get (JSON)** 블록을 추가합니다:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### 레코드 해결하기
 
-찾기 블록의 **Success** 뒤에 같은 **Request Headers**와 다음 **URL**을 가진 **API Patch (JSON)** 블록을 추가합니다:
+찾기 블록의 **성공** 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API Patch (JSON)** 블록을 추가합니다:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-**Request Body**를 다음으로 설정합니다:
+**요청 본문**을 다음으로 설정합니다:
 
 ```json
 {

@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { MemoryRouter } from "react-router-dom";
 
 /*
@@ -189,8 +190,8 @@ const PAGES: Array<[string, FunctionComponent<PageComponentProps>]> = [
   ["a team's Members", TeamViewMembers],
 ];
 
-let fetchSpy: jest.SpiedFunction<typeof API.fetch>;
-let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
+let fetchSpy: SpyInstance<typeof API.fetch>;
+let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
 beforeEach(() => {
   mockIsMasterAdmin = true;
@@ -214,7 +215,7 @@ beforeEach(() => {
       { link: LINK, isRegistered: false, email: "grace@example.com" },
       {},
     );
-  }) as never);
+  }) as never) as unknown as SpyInstance<typeof API.fetch>;
 });
 
 afterEach(() => {
@@ -301,7 +302,7 @@ describe("the row action", () => {
 
   test("opens the row's own invitation, and says it is done", () => {
     const opened: Array<string> = [];
-    const onCompleteAction: jest.Mock<() => void> = jest.fn<() => void>();
+    const onCompleteAction: Mock<() => void> = jest.fn<() => void>();
     const action: CapturedAction = getInvitationLinkRowAction<TeamMember>({
       isAvailable: true,
       onOpen: (teamMemberId: ObjectID): void => {
@@ -354,7 +355,7 @@ describe.each(PAGES)(
     test("opens the dialog with a fresh link for that row's invitation, and Done stays on the list", async () => {
       await renderPage(Page);
 
-      const onCompleteAction: jest.Mock<() => void> = jest.fn<() => void>();
+      const onCompleteAction: Mock<() => void> = jest.fn<() => void>();
 
       await act(async (): Promise<void> => {
         getLinkAction().onClick(

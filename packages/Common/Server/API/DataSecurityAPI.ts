@@ -2,6 +2,7 @@ import CloudConnection from "../../Models/DatabaseModels/CloudConnection";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import DataStore from "../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../Models/DatabaseModels/DataStoreFinding";
+import DataSecuritySetting from "../../Models/DatabaseModels/DataSecuritySetting";
 import DataSecurityIssue from "../../Models/DatabaseModels/DataSecurityIssue";
 import { DataSecurityIssueFeedEventType } from "../../Models/DatabaseModels/DataSecurityIssueFeed";
 import User from "../../Models/DatabaseModels/User";
@@ -63,6 +64,8 @@ import DataStoreService, {
 } from "../Services/DataStoreService";
 import DataSecurityIssueFeedService from "../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
+import DataSecuritySettingService from "../Services/DataSecuritySettingService";
+import { getDataStoreScanNowRefusalSentence } from "../../Utils/DataSecurity/DataStoreContentScanSchedule";
 import AIService from "../Services/AIService";
 import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
 import { withAiContext } from "../Utils/AI/AiContext/AiContextPrompt";
@@ -256,16 +259,47 @@ export default class DataSecurityAPI extends BaseAPI<
       DATA_SECURITY_API_ROUTES.scanNow(":id"),
       OPERATE_PERMISSIONS,
       async (projectId: ObjectID, req: ExpressRequest) => {
-        const store: DataStore = await DataSecurityAPI.readStore(
+        const store: DataStore = await DataSecurityAPI.readStoreToScan(
           projectId,
           req,
         );
+        const setting: DataSecuritySetting | null =
+          await DataSecuritySettingService.findOneBy({
+            query: { projectId },
+            select: {
+              isContentScanEnabled: true,
+              isTelemetryScanEnabled: true,
+            },
+            props: { isRoot: true },
+          });
+
+        /*
+         * Scan Now scans only what a claim would hand out, by the rule the
+         * store's Overview turns the button off by: never a store whose
+         * scanning a person turned off, nor one nothing will scan.
+         */
+        const refusal: string | null = getDataStoreScanNowRefusalSentence(
+          {
+            store: store,
+            scanProbe: store.scanProbeId ? store.scanProbe || null : undefined,
+            projectSetting: setting,
+          },
+          store.scanProbe?.name,
+        );
+
+        if (refusal) {
+          throw new BadDataException(refusal);
+        }
 
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id!,
           data: { nextContentScanAt: OneUptimeDate.getCurrentDate() },
         });
-        await queueDataStoreScan({ projectId, dataStoreId: store.id! });
+
+        // A probe's store waits for its probe to ask: no worker scans it.
+        if (!store.scanProbeId) {
+          await queueDataStoreScan({ projectId, dataStoreId: store.id! });
+        }
 
         return {};
       },
@@ -626,6 +660,44 @@ export default class DataSecurityAPI extends BaseAPI<
     const store: DataStore | null = await DataStoreService.findOneBy({
       query: { _id: this.readId(req), projectId },
       select: { _id: true, cloudConnectionId: true },
+      props: { isRoot: true },
+    });
+
+    if (!store?.id) {
+      throw new BadDataException("Data store not found.");
+    }
+
+    return store;
+  }
+
+  /*
+   * The store Scan Now names, with what decides whether anything scans its
+   * content (DataStoreContentScanSchedule): its probe read through it, as
+   * the probe's claim joins it, so a deleted probe comes back as none.
+   */
+  private static async readStoreToScan(
+    projectId: ObjectID,
+    req: ExpressRequest,
+  ): Promise<DataStore> {
+    const store: DataStore | null = await DataStoreService.findOneBy({
+      query: { _id: this.readId(req), projectId },
+      select: {
+        _id: true,
+        projectId: true,
+        kind: true,
+        provider: true,
+        isContentScanEnabled: true,
+        isArchived: true,
+        scanProbeId: true,
+        probeConnectionVariable: true,
+        scanProbe: {
+          _id: true,
+          name: true,
+          isGlobalProbe: true,
+          projectId: true,
+          connectionStatus: true,
+        },
+      },
       props: { isRoot: true },
     });
 

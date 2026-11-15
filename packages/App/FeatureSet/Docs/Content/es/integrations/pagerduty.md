@@ -52,7 +52,7 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Enviar el evento de disparo
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://events.pagerduty.com/v2/enqueue` y su **Request Body** en:
+Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://events.pagerduty.com/v2/enqueue` y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -92,11 +92,11 @@ Crea un flujo de trabajo llamado `Resolve PagerDuty incidents` y elige **On Upda
 
 ### Comprobar que el incidente está resuelto
 
-Añade un bloque **If / Else** después del disparador. Pon **Value to check** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparison** en **is true**.
+Añade un bloque **If / Else** después del disparador. Pon **Valor que comprobar** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparación** en **es verdadero**.
 
 ### Enviar el evento de resolución
 
-Añade un bloque **API Post (JSON)** después del lado **Yes**, con la misma **URL** y este **Request Body**:
+Añade un bloque **API Post (JSON)** después del lado **Sí**, con la misma **URL** y este **Cuerpo de la solicitud**:
 
 ```json
 {
@@ -118,7 +118,7 @@ Comprobar `isResolvedState` en lugar del nombre de un estado sigue funcionando c
 Para enviar la gravedad de cada incidente, añade un bloque **Run Custom JavaScript** entre el disparador y el bloque **API Post (JSON)**, y lee su respuesta en el cuerpo.
 
 1. En los **Fields to pass on** del disparador, haz clic en **Añadir campo**, abre **Gravedad del incidente** y elige **Nombre**.
-2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **JavaScript Code** en:
+2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **Código JavaScript** en:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.

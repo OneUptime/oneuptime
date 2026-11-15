@@ -1,3 +1,4 @@
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 import { OnCallPageChannel } from "./OnCallPageChannel";
 
 /*
@@ -29,10 +30,6 @@ import { OnCallPageChannel } from "./OnCallPageChannel";
 
 // The end of a sentence words already have - or words cut short.
 const SENTENCE_END: RegExp = /[.!?…]$/;
-
-const escapeForRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
 
 /*
  * A SEND THAT FAILED WITH NO WORDS OF ITS OWN: what a page's notification
@@ -240,11 +237,11 @@ export interface NotificationServiceAnswerLine {
 }
 
 const REFUSED_LINE: RegExp = new RegExp(
-  `^${escapeForRegExp(NOTIFICATION_SERVICE_REFUSED)} \\(HTTP (4\\d\\d)\\)(?:\\.|: ([\\s\\S]+))$`,
+  `^${escapeRegExp(NOTIFICATION_SERVICE_REFUSED)} \\(HTTP (4\\d\\d)\\)(?:\\.|: ([\\s\\S]+))$`,
 );
 
 const ANSWER_FAILED_LINE: RegExp = new RegExp(
-  `^${escapeForRegExp(NOTIFICATION_SERVICE_ANSWER_FAILED)}(?: \\(HTTP ([1-5]\\d\\d)\\))?${escapeForRegExp(MAY_NOT_HAVE_BEEN_SENT)}(?:\\.|: ([\\s\\S]+))$`,
+  `^${escapeRegExp(NOTIFICATION_SERVICE_ANSWER_FAILED)}(?: \\(HTTP ([1-5]\\d\\d)\\))?${escapeRegExp(MAY_NOT_HAVE_BEEN_SENT)}(?:\\.|: ([\\s\\S]+))$`,
 );
 
 /*

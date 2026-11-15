@@ -47,23 +47,23 @@ Dra blocken vart du vill; arbetsytan fäster dem i ett rutnät medan du drar. Bl
 | **Identifier** (under **ID**)         | Det korta ID som visas på blocket, som `log-1`. Det är så andra block hänvisar till det här, så om du byter namn på det slutar alla `{{local.components.…}}`-referenser som pekar på det att fungera. Blockets rubrik är komponentens eget namn och kan inte ändras.                                          |
 | **Inställningar**                     | Det blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext. Valfria fält är märkta **(Valfritt)**; allt annat är obligatoriskt. En av/på-brytare har ingetdera, eftersom den alltid har ett värde. Mindre använda inställningar är hopfällda under **Fler fält**, vars rubrik nämner dem och visar de som är ifyllda. |
 | **Input**                             | Punkten på den övre kanten, där linjer från tidigare block kommer in. Utlösare har ingen — inget körs före dem.                                                                                                                                                                                               |
-| **Outputs**                           | Punkterna längs den nedre kanten, med etiketter precis ovanför, där linjer går ut till nästa block. Många block har separata utgångar **Success** och **Error**, så att du kan hantera båda fallen.                                                                                                         |
+| **Outputs**                           | Punkterna längs den nedre kanten, med etiketter precis ovanför, där linjer går ut till nästa block. Många block har separata utgångar **Framgång** och **Fel**, så att du kan hantera båda fallen.                                                                                                         |
 
 ## Koppla ihop block
 
 Dra från en punkt längst ned på ett block ned till punkten högst upp på nästa. Linjen du drar avgör vad som körs därefter.
 
-- Kopplar du från **Success** körs nästa block bara när det föregående lyckades.
-- Kopplar du från **Error** körs nästa block bara när det föregående misslyckades.
+- Kopplar du från **Framgång** körs nästa block bara när det föregående lyckades.
+- Kopplar du från **Fel** körs nästa block bara när det föregående misslyckades.
 - Kopplar du inte en utgång slutar den vägen helt enkelt.
 
 ```mermaid title="Bara utgången ett block tar leder någonstans"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Inget är kopplat,<br/>så körningen slutar"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    hook["Webhook"] -->|"Ut"| check{"If / Else"}
+    check -->|"Ja"| post["API Post (JSON)"]
+    check -->|"Nej"| ends(["Inget är kopplat,<br/>så körningen slutar"])
+    post -->|"Framgång"| slack["Send Message to Slack"]
+    post -->|"Fel"| log["Logg"]
 ```
 
 Du kan koppla en utgång till flera block. Alla körs — men efter varandra, i en kö, inte parallellt. Räkna inte med ordningen mellan grenarna, och räkna inte med att de överlappar i tid.
@@ -105,7 +105,7 @@ I inställningen visas ett värde som en bricka, som **Webhook › Request Body*
 
 - **Värden som finns kommer först, och resten visas för sig.** Utlösaren och de block som körs före det här erbjuds. Ett block som bara körs före det här i vissa körningar — efter en utgång från ett **If / Else**, till exempel — säger det, eftersom dess värden kan vara tomma här. Ett block som körs senare, eller på en gren som inte leder hit, visas sist, hopfällt och nedtonat, med orsaken, och dess värden kan inte väljas. Tills ett block är kopplat visas bara utlösarens värden, och listan säger det.
 - **En post öppnas på sina fält.** Ett Find One- eller On Create-block returnerar en hel post. Välj den för att se dess fält: först de som blocket skickar vidare, som blockets **Fields to pass on** anger, och sedan, för sig, de som det inte skickar vidare och som är tomma här. Ett JSON-värde eller en uppsättning headers öppnas på ett fält där du skriver en sökväg, som `title` eller `alerts[0].status`.
-- **När ett block har körts vet listan vad som finns i dess värden.** Varje värde säger vad det innehöll i den senaste körningen — `"production"` eller `3 fields` —, och ett JSON-värde eller en uppsättning headers öppnas på de fält det hade, vart och ett med sitt innehåll. Från en Webhooks **Request Body** väljer du alltså **incident.title** i stället för att skriva en sökväg. Sökningen hittar också de här fälten: skriv `title`, eller `{{` och början av en sökväg. En posts fält visar också vad de innehöll. Fälten kommer från den senaste körningen, så ett fält som en senare förfrågan utelämnar är tomt i den körningen. Ett värde som ser ut som en hemlighet, som en `Authorization`-header, en token eller ett lösenord, visas utan sitt innehåll.
+- **När ett block har körts vet listan vad som finns i dess värden.** Varje värde säger vad det innehöll i den senaste körningen — `"production"` eller `3 fields` —, och ett JSON-värde eller en uppsättning headers öppnas på de fält det hade, vart och ett med sitt innehåll. Från en Webhooks **Begärandekropp** väljer du alltså **incident.title** i stället för att skriva en sökväg. Sökningen hittar också de här fälten: skriv `title`, eller `{{` och början av en sökväg. En posts fält visar också vad de innehöll. Fälten kommer från den senaste körningen, så ett fält som en senare förfrågan utelämnar är tomt i den körningen. Ett värde som ser ut som en hemlighet, som en `Authorization`-header, en token eller ett lösenord, visas utan sitt innehåll.
 - **En Webhook som ännu inte har tagit emot en förfrågan säger det** högst upp i sina värden, med **Kopiera testbegäran**: ett `curl`-kommando som skickar `{"message": "Hello"}` till arbetsflödets webhook-URL. Kör det i en terminal medan listan är öppen, så dyker förfrågans fält upp i den så snart körningen den startar är klar, vanligtvis inom några sekunder. Bara personer som får se webhook-URL:en får knappen. Så länge arbetsflödet är avstängt avvisar dess URL förfrågningar, så listan erbjuder **Testa med ”Kör arbetsflöde”** i stället: fälten i förfrågan du skickar därifrån dyker upp på samma sätt. En Incoming Email-utlösare som ännu inte har tagit emot ett e-postmeddelande säger det på samma ställe; skicka ett e-postmeddelande till dess adress, så dyker dess headers och bilagor upp på samma sätt.
 - **Kodredigerare har Insert value i sitt verktygsfält.** I JSON lägger den till de citattecken ett värde behöver inne i ett dokument. **Run Custom JavaScript** läser värden via sina **Arguments**, så dess kod har ingen väljare.
 - **Tal, lösenord, brytare och datum behåller sin egen kontroll,** med **{ }** bredvid. Ett valt värde ersätter kontrollen, och **abc** går tillbaka till att skriva.
@@ -135,7 +135,7 @@ Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två 
 :::steps
 1. Klicka på det streckade platshållarblocket och klicka sedan på **Manuell** i panelen **Lägg till utlösare**.
 2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Populära**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
-3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Value**. Klicka på **{ }** och klicka sedan på **JSON** under **Manuell**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
+3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Värde**. Klicka på **{ }** och klicka sedan på **JSON** under **Manuell**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
 4. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Kör arbetsflödet manuellt** och bekräftar med **Kör**. Arbetsflödet är fortfarande avstängt, och det behöver inte vara påslaget: en körning som du startar själv är en **Testkörning**.
 5. En panel **Arbetsflödeskörning** öppnas av sig själv och följer körningen. Högst upp står **Testkörning**, och loggen visar `Value:` följt av `Hello from` och JSON:en du skrev.
 :::
@@ -158,7 +158,7 @@ Medan ett arbetsflöde är avstängt avgör det som startar det om det körs:
 | Dess utlösare: ett schema, en OneUptime-händelse eller ett e-postmeddelande | Ignoreras.                                                                                                                                                              |
 | **Kör arbetsflöde** eller **Run just this step**           | Körs, som **Testkörning**. Dess block körs på riktigt: ett meddelande skickas verkligen och en post ändras verkligen. Körningen är markerad som **Testkörning** i listorna över körningar och högst upp i körningen, med vem som startade den. |
 | Ett anrop till dess webhook-URL                            | Avvisas med HTTP 400 och "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
-| Ett annat arbetsflödes **Execute Workflow**-block          | Det blocket tar sin väg **Error**, och felet nämner arbetsflödet det anropade. Det gäller även i en testkörning: ett arbetsflöde som det anropar måste vara påslaget. |
+| Ett annat arbetsflödes **Execute Workflow**-block          | Det blocket tar sin väg **Fel**, och felet nämner arbetsflödet det anropade. Det gäller även i en testkörning: ett arbetsflöde som det anropar måste vara påslaget. |
 
 Ordningen är alltså: bygg det, testa det med **Kör arbetsflöde** medan det fortfarande är avstängt, läs körningens logg och slå på **Aktiverad** när du är redo för att dess utlösare aktiveras. För att testa ett enda block utan att köra allt använder du **Run just this step** i det blockets inställningar.
 

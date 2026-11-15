@@ -274,7 +274,7 @@ describe("saving a verified fix as a runbook", () => {
   });
 
   test("an alert's fix names the alert, and its feed says so", async () => {
-    suggestion.incidentId = undefined;
+    delete suggestion.incidentId;
     suggestion.alertId = ALERT_ID;
 
     const saved: VerifiedFixRunbookSaved = await save();

@@ -58,7 +58,7 @@ Table API احراز هویت Basic می‌پذیرد: نام کاربر و گذ
 
 ### ساختن رکورد
 
-روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **URL** آن را روی `https://your-instance.service-now.com/api/now/table/incident` بگذارید. زیر **فیلدهای بیشتر**، **Request Headers** آن را روی این بگذارید:
+روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **موفق** تریگر را به آن وصل کنید. **URL** آن را روی `https://your-instance.service-now.com/api/now/table/incident` بگذارید. زیر **فیلدهای بیشتر**، **هدرهای درخواست** آن را روی این بگذارید:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API احراز هویت Basic می‌پذیرد: نام کاربر و گذ
 }
 ```
 
-و **Request Body** آن را روی این:
+و **بدنه درخواست** آن را روی این:
 
 ```json
 {
@@ -101,11 +101,11 @@ Table API احراز هویت Basic می‌پذیرد: نام کاربر و گذ
 
 ### بررسی اینکه حادثه رفع شده است
 
-پس از تریگر یک بلوک **If / Else** اضافه کنید. **Value to check** را روی `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` و **Comparison** را روی **is true** بگذارید.
+پس از تریگر یک بلوک **If / Else** اضافه کنید. **مقدار مورد بررسی** را روی `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` و **مقایسه** را روی **درست است** بگذارید.
 
 ### یافتن رکورد
 
-پس از سمت **Yes** یک بلوک **API Get (JSON)** اضافه کنید، با همان **Request Headers** و این **URL**:
+پس از سمت **بله** یک بلوک **API Get (JSON)** اضافه کنید، با همان **هدرهای درخواست** و این **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### رفع رکورد
 
-پس از **Success** بلوک یافتن، یک بلوک **API Patch (JSON)** اضافه کنید، با همان **Request Headers** و این **URL**:
+پس از **موفق** بلوک یافتن، یک بلوک **API Patch (JSON)** اضافه کنید، با همان **هدرهای درخواست** و این **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-**Request Body** آن را روی این بگذارید:
+**بدنه درخواست** آن را روی این بگذارید:
 
 ```json
 {
