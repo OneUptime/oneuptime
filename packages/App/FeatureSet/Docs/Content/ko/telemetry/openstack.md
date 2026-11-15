@@ -1643,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### 워크플로에서의 수정
 
-워크플로는 OpenStack 알림에서 시작해 수정을 제안할 수 있습니다. **Propose an OpenStack fix** 단계는 알림 또는 인시던트와 명령을 받습니다. OneUptime AI가 제안하는 수정과 같은 정책, 같은 쓰기 범위, 변경이 건드리는 대상에 대한 같은 읽기를 거치며, AI 모델이 필요 없고, 사람이 알림에서 승인합니다. 클라우드의 수정 모드가 무엇이든 워크플로가 직접 변경하거나 제안한 것을 승인할 수는 없습니다. **Propose taking a failing OpenStack compute service out of scheduling** 템플릿에서 시작할 수 있습니다.
+워크플로는 OpenStack 알림에서 시작해 수정을 제안할 수 있습니다. **OpenStack 수정 제안** 단계는 알림 또는 인시던트와 명령을 받습니다. OneUptime AI가 제안하는 수정과 같은 정책, 같은 쓰기 범위, 변경이 건드리는 대상에 대한 같은 읽기를 거치며, AI 모델이 필요 없고, 사람이 알림에서 승인합니다. 클라우드의 수정 모드가 무엇이든 워크플로가 직접 변경하거나 제안한 것을 승인할 수는 없습니다. **Propose taking a failing OpenStack compute service out of scheduling** 템플릿에서 시작할 수 있습니다.
 
 ## systemd 서비스로 실행
 

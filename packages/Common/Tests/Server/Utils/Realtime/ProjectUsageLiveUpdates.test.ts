@@ -121,6 +121,11 @@ class FakeSocketServer {
     // Connections are not modelled here.
   }
 
+  // This server's own sockets: here, every socket is this server's.
+  public get local(): this {
+    return this;
+  }
+
   public in(rooms: string | Array<string>): {
     fetchSockets: () => Promise<Array<FakeSocket>>;
   } {

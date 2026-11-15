@@ -133,12 +133,21 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
    * "hjemmeside", so "Hvordan overvåger jeg min hjemmeside?" found
    * Website Monitor 99th (#7875).
    */
+  /*
+   * Two-factor authentication is "totrinsgodkendelse" in the Danish docs
+   * and "totrinnsbekreftelse" on the Norwegian account page, while many
+   * readers say "tofaktor...": "Hvordan slår jeg på tofaktorautentisering?"
+   * did not find the account page at all (#8335).
+   */
   da: {
     pager: ["vagt*"],
     nedbrud: ["hændelse*"],
     outage: ["hændelse*"],
     uptime: ["overvågning*"],
     hjemmeside: ["websted"],
+    "2fa": ["totrinsgodkendelse"],
+    tofaktorgodkendelse: ["totrinsgodkendelse"],
+    tofaktorautentificering: ["totrinsgodkendelse"],
   },
   no: {
     pager: ["vakt*"],
@@ -146,6 +155,8 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["hendelse*"],
     uptime: ["overvåking*"],
     hjemmeside: ["nettsted"],
+    "2fa": ["totrinnsbekreftelse"],
+    tofaktorautentisering: ["totrinnsbekreftelse"],
   },
   sv: {
     hemsida: ["webbplats"],
@@ -345,6 +356,16 @@ export const getDocsSearchSynonyms: (
  * "网站"), longest first (getDocsSearchQuestionPhrases). Japanese ends a
  * question with its own words ("するには", "どうすればいいですか") and marks
  * what is asked about with "を", which is never part of a word.
+ *
+ * Every list was read again for #8335, against real questions in each
+ * language (AskAiHowDoIQuestions' ASK_AI_QUESTIONS_BY_LANGUAGE): each
+ * lacked its "how much" or "how many", its "I want" and "should", and
+ * the part of a verb a question writes apart where the docs write the
+ * verb another way (German "lege ... an", Danish "sætte ... op"). Dutch
+ * "aan" and "in" left the list instead: they are the first part of a verb
+ * a question writes after it (DOCS_SEARCH_SEPARABLE_PARTICLES): "maak ... aan" is the
+ * docs' "aanmaken". Persian gained "آیا", which opens a yes-or-no
+ * question, and the spoken "یه" (a).
  */
 export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
   Record<string, ReadonlyArray<string>>
@@ -443,6 +464,11 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "können",
     "tue",
     "tun",
+    // must, should, want, would like (#8335)
+    "muss",
+    "soll",
+    "will",
+    "möchte",
     // for, of, on, to, with, in
     "für",
     "von",
@@ -454,6 +480,10 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "mit",
     "im",
     "am",
+    // the rest of a verb written apart: "lege ... an", "schalte ... aus", "melde ... ab" (#8335)
+    "an",
+    "aus",
+    "ab",
   ],
   fr: [
     // how, what, where, when, why, who, which
@@ -536,6 +566,12 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "dois",
     "dois-je",
     "doit",
+    // how many, I want, I would like (#8335)
+    "combien",
+    "veux",
+    "voudrais",
+    "souhaite",
+    "aimerais",
     // for, of, on, to, with, in
     "pour",
     "par",
@@ -625,6 +661,15 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "debe",
     "tengo",
     "hay",
+    // how much, how many, I want, I need, should, could (#8335)
+    "cuánto",
+    "cuánta",
+    "cuántos",
+    "cuántas",
+    "quiero",
+    "necesito",
+    "debería",
+    "podría",
     // for, of, on, to, with, in
     "para",
     "por",
@@ -728,6 +773,15 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "fa",
     "devo",
     "deve",
+    // how much, how many, I want, I would like, should, one must (#8335)
+    "quanto",
+    "quanta",
+    "quanti",
+    "quante",
+    "voglio",
+    "vorrei",
+    "dovrei",
+    "bisogna",
     // for, of, on, to, with, in
     "per",
     "di",
@@ -827,6 +881,16 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "deve",
     "tenho",
     "há",
+    // how much, how many, I want, I would like, I need, I manage to, should (#8335)
+    "quanto",
+    "quanta",
+    "quantos",
+    "quantas",
+    "quero",
+    "gostaria",
+    "preciso",
+    "consigo",
+    "deveria",
     // for, of, on, to, with, in
     "para",
     "pra",
@@ -892,13 +956,21 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "doen",
     "moet",
     "moeten",
-    // for, of, on, to, with, in ("stel ... in": the rest of a verb)
+    // how many, want, would (#8335)
+    "hoeveel",
+    "wil",
+    "wilt",
+    "zou",
+    /*
+     * for, of, on, to, with. Not "aan" or "in": they are also the first
+     * part of a verb a question writes after it, "maak ... aan" (aanmaken,
+     * create) and "stel ... in" (instellen, set up), read joined as the
+     * docs write them (DOCS_SEARCH_SEPARABLE_PARTICLES, #8335).
+     */
     "voor",
     "van",
     "op",
-    "aan",
     "met",
-    "in",
     "naar",
     "bij",
     "om",
@@ -970,6 +1042,8 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "i",
     "fra",
     "ved",
+    // the rest of a verb written apart: "sætte op" (set up) (#8335)
+    "op",
   ],
   no: [
     // how, what, where, when, why, who, which
@@ -1040,6 +1114,8 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "i",
     "fra",
     "ved",
+    // the rest of a verb written apart: "sette opp" (set up) (#8335)
+    "opp",
   ],
   sv: [
     // how, what, where, when, why, who, which
@@ -1113,6 +1189,8 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "in",
     "från",
     "vid",
+    // the rest of a verb written apart: "sätta upp" (set up) (#8335)
+    "upp",
   ],
   ru: [
     // how, what, where, when, why, who, which
@@ -1225,6 +1303,11 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "надо",
     "делать",
     "сделать",
+    // they can, you can, I want, one should (#8335)
+    "могут",
+    "можете",
+    "хочу",
+    "следует",
     // for, of, on, to, with, in
     "в",
     "во",
@@ -1272,6 +1355,13 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "でしょうか",
     "ですか",
     "ますか",
+    // should I ...: "書けばいいですか" (#8335)
+    "ばいいですか",
+    "ばよいですか",
+    "いいですか",
+    "よいですか",
+    "いいでしょうか",
+    "よいでしょうか",
     // what is asked about: "ウェブサイトを監視" (monitor the website)
     "を",
     // I, my, one's own
@@ -1386,6 +1476,10 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "吗",
     "呢",
     "吧",
+    // what do I do, can or cannot (#8335)
+    "怎么办",
+    "能不能",
+    "可不可以",
   ],
   "zh-TW": [
     // how, what, where, why, who, which
@@ -1420,6 +1514,10 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "嗎",
     "呢",
     "吧",
+    // what do I do, can or cannot (#8335)
+    "怎麼辦",
+    "能不能",
+    "可不可以",
   ],
   hi: [
     // how, what, where, when, why, who, which
@@ -1492,6 +1590,19 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "सकूँ",
     "सकूं",
     "चाहिए",
+    // may I take, take, may I give, give: "बैकअप कैसे लूँ" (#8335)
+    "लूँ",
+    "लूं",
+    "लें",
+    "दूँ",
+    "दूं",
+    "दें",
+    // want, will I get (#8335)
+    "चाहता",
+    "चाहती",
+    "चाहते",
+    "मिलेगा",
+    "मिलेगी",
     // of, to, in, from, on, for, with
     "को",
     "का",
@@ -1528,8 +1639,9 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "خودم",
     "خودمان",
     "خود",
-    // a, this, that, there
+    // a, this, that, there ("یه" is "یک" as it is spoken and typed)
     "یک",
+    "یه",
     "این",
     "آن",
     "اینجا",
@@ -1552,6 +1664,21 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "کنیم",
     "بکنم",
     "کرد",
+    // a yes-or-no question's opening, how much, not, you do, can I and I want typed without the half-space, become (#8335)
+    "آیا",
+    "چقدر",
+    "نمی",
+    "کنید",
+    "بکنید",
+    "میتوانم",
+    "میتونم",
+    "خواهم",
+    "میخواهم",
+    "میخوام",
+    "خوام",
+    "شوم",
+    "شوید",
+    "شوند",
     // the object's mark, and to, from, in, with, for, on
     "را",
     "رو",
@@ -1692,6 +1819,7 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "où",
     "quand",
     "pourquoi",
+    "combien",
     "qui",
     "lequel",
     "laquelle",
@@ -1710,6 +1838,10 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "cuál",
     "cuáles",
     "dónde",
+    "cuánto",
+    "cuánta",
+    "cuántos",
+    "cuántas",
     "cuándo",
     "porqué",
     "quién",
@@ -1727,6 +1859,10 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "dove",
     "quando",
     "perché",
+    "quanto",
+    "quanta",
+    "quanti",
+    "quante",
     "chi",
     "io",
     "mio",
@@ -1742,6 +1878,10 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "onde",
     "quando",
     "porque",
+    "quanto",
+    "quanta",
+    "quantos",
+    "quantas",
     "quem",
     "eu",
     "mim",
@@ -1756,6 +1896,7 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "waar",
     "wanneer",
     "waarom",
+    "hoeveel",
     "wie",
     "welk",
     "welke",
@@ -1927,6 +2068,7 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "哪个",
     "为什么",
     "为何",
+    "怎么办",
     "我的",
     "我们的",
     "请问",
@@ -1945,6 +2087,7 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "哪個",
     "為什麼",
     "為何",
+    "怎麼辦",
     "我的",
     "我們的",
     "請問",
@@ -1982,6 +2125,8 @@ export const DOCS_SEARCH_ASKING_WORDS: Readonly<
     "چرا",
     "کدام",
     "کدوم",
+    "آیا",
+    "چقدر",
     "من",
     "مرا",
     "خودم",
@@ -2067,6 +2212,15 @@ export const isDocsSearchAskingWord: (
  * English and German keep the endings every language had (ENGLISH_ENDINGS),
  * so their results are as they were. Chinese and Japanese have no endings
  * to take off: their words are compared as written.
+ *
+ * Read again for #8335 against every word of each language's docs, each
+ * change kept only where the words it made meet were one word's forms:
+ * Persian, Korean and Russian verbs whose stems differ (`forms`), Hindi
+ * plurals in "-इयाँ" (`rewrites`), Swedish "-or" loanwords (`keptAfter`),
+ * Korean particles on a Latin name (`writtenOnto`), Persian plurals and
+ * possessives one after another (`stacksEndings`), Russian imperatives,
+ * Danish and Norwegian "-ere" verbs, French "-ier" verbs and Spanish and
+ * Italian verbs with their "self" on them.
  */
 export interface DocsWordEndings {
   // Tried longest first; one is taken off.
@@ -2087,6 +2241,53 @@ export interface DocsWordEndings {
   undoublesConsonants?: boolean | undefined;
   // A doubled vowel before the last consonant is read as one: Dutch "maak" is "mak", as "maken" is.
   undoublesVowels?: boolean | undefined;
+  /*
+   * An ending read as another rather than taken off (#8335): Hindi's
+   * plural "ियाँ" as its singular's "ि", so "नीतियाँ" (policies) is
+   * "नीति" (policy). Tried with `endings`, longest first.
+   */
+  rewrites?: Readonly<Record<string, string>> | undefined;
+  /*
+   * An ending kept where what is before it matches (#8335): Swedish takes
+   * "-or" off a plural ("statussidor"), not off "monitor" or "villkor".
+   */
+  keptAfter?: Readonly<Record<string, RegExp>> | undefined;
+  // Words whose forms no ending meets, read as one (DocsWordForms).
+  forms?: DocsWordForms | undefined;
+  /*
+   * Endings come off one after another, not one alone (#8335): a Persian
+   * word ending in "م" loses it as if it were "my" ("تنظیم", set up, is
+   * "تنظی"), so "تنظیمات" (settings) must lose "ات" and then "م" to meet it,
+   * and "پیامها" (messages) "ها" and then "م" to meet "پیام" (message).
+   */
+  stacksEndings?: boolean | undefined;
+  /*
+   * A word of another script its endings are written onto, the name
+   * first and the ending after (#8335): Korean writes its particles onto
+   * a Latin name, so "Slack을" is "Slack" with its object's mark. The
+   * name is read as a word of its own script, the ending taken off.
+   */
+  writtenOnto?: RegExp | undefined;
+}
+
+/*
+ * THE FORMS NO ENDING MEETS, per language (#8335): a verb's stems that
+ * differ ("بسازم", may I make, is "ساز"; "ساخت", making, is "ساخت"), an
+ * irregular verb's ("만드나요" is "만드", "만들기" is "만들"), a noun
+ * made from a verb ("настройка", setting, and "настроить", set up). Each
+ * stem a word is written with is read as the one it is listed with.
+ *
+ * `prefixes` and `endings` come off a word only where what is left is
+ * one of `stems`, so they are no risk to any other word: as an ending
+ * of every Korean word, "기" would read 탐색기 (explorer) as 탐색
+ * (explore). What is left once a word's ordinary ending is taken off is
+ * read the same way, so "가져오기가" (the import, its subject) is
+ * "가져오기", and so "가져오".
+ */
+export interface DocsWordForms {
+  prefixes: ReadonlyArray<string>;
+  endings: ReadonlyArray<string>;
+  stems: Readonly<Record<string, string>>;
 }
 
 export const LATIN_SCRIPT_WORD: RegExp = /^[\p{Script=Latin}\p{M}\p{N}]+$/u;
@@ -2115,6 +2316,14 @@ const NORDIC_ENDINGS: ReadonlyArray<string> = [
   "ede",
   "ene",
   "eten",
+  /*
+   * A verb in "-ere" (#8335): "inviterer" (invites) and "invitere" (to
+   * invite) are "invit", as "Inviter" (invite!) is, the imperative the
+   * docs name a page with ("Inviter personer"). Taking "-er" alone off
+   * left them "inviter" and "invit", and the question never met the page.
+   */
+  "erer",
+  "ere",
   "ing",
   "er",
   "en",
@@ -2159,6 +2368,17 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "eur",
       "iers",
       "ier",
+      /*
+       * A verb in "-ier" in its other forms (#8335): "planifiée" (planned)
+       * and "il planifie" are "planifier", as "planification" is. They
+       * were "planifi", and "Comment planifier une maintenance ?" never
+       * met "Vue d'ensemble de la maintenance planifiée".
+       */
+      "iees",
+      "iee",
+      "iez",
+      "ies",
+      "ie",
       "ees",
       "ee",
       "er",
@@ -2167,6 +2387,14 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "e",
       "s",
     ],
+    /*
+     * "-ie" and "-ies" are a "-fier", "-lier", "-pier" or "-dier" verb's
+     * ("vérifie", "notifie", "publie", "copie"); after any other letter
+     * they are a noun's ("partie", "série", "sortie"), which would meet
+     * "partez", "serez" and "sorte", or a "-yer" verb's ("envoie", which
+     * is "envoi" with them kept).
+     */
+    keptAfter: { ie: /[^fldp]$/, ies: /[^fldp]$/ },
     shortestStem: 3,
     script: LATIN_SCRIPT_WORD,
   },
@@ -2177,6 +2405,10 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "acion",
       "amientos",
       "amiento",
+      // A verb with its "self" on it: "suscribirse" (subscribe) is "suscrib", as "suscribo" is (#8335).
+      "arse",
+      "erse",
+      "irse",
       "ear",
       "eo",
       "ar",
@@ -2200,6 +2432,10 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "azione",
       "aggi",
       "aggio",
+      // A verb with its "self" on it: "iscriversi" (subscribe) is "iscriv", as "iscrivo" is (#8335).
+      "arsi",
+      "ersi",
+      "irsi",
       "are",
       "ere",
       "ire",
@@ -2273,6 +2509,20 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "e",
       "s",
     ],
+    /*
+     * "monitorn" and "monitorns" (the monitor, the monitor's) are
+     * "monitor", as "monitorer" (monitors) is (#8335).
+     */
+    rewrites: { orn: "or", orns: "or" },
+    /*
+     * "-or" is a plural's ("statussidor", status pages, is "statussid",
+     * as "statussida" is), not the end of a loanword in "-tor", "-sor",
+     * "-cor" or "-rror" ("monitor", "sensor", "error") or of "villkor"
+     * (condition). Taken off them, "monitor" was "monit" while
+     * "monitorer" was "monitor", and the two never met (#8335). "Listor"
+     * (lists) still loses it: "-stor" is no loanword's "-tor".
+     */
+    keptAfter: { or: /(?:[^s]t|s|c|rr|villk)$/ },
     shortestStem: 3,
     script: LATIN_SCRIPT_WORD,
     undoublesConsonants: true,
@@ -2300,6 +2550,17 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "аться",
       "ться",
       "тся",
+      /*
+       * The imperative the docs write a step in, which a question asks as
+       * an infinitive (#8335): "Создайте" (create) is "Как создать?",
+       * "Установите" (install) "Как установить?", "Проверьте" (check)
+       * "Как проверить?", "Настройте" (set up) "Как настроить?".
+       */
+      "айте",
+      "яйте",
+      "ите",
+      "йте",
+      "ьте",
       "ами",
       "ями",
       "ого",
@@ -2357,6 +2618,39 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "у",
       "ю",
     ],
+    /*
+     * A noun made from a verb with "-ка" is the verb (#8335): "настройка"
+     * and "настройки" (setting, settings) are "настроить" (set up), as
+     * "установка" (installation) is "установить" and "проверка" (check)
+     * "проверить". So are "настроек" and the other "of the ..." plurals,
+     * which no ending makes, and the imperfective "настраивать".
+     * "Приглашение" (invitation) is "пригласить" (invite), "подписчики"
+     * (subscribers) "подписаться" (subscribe).
+     */
+    forms: {
+      prefixes: [],
+      endings: [],
+      stems: {
+        настройк: "настро",
+        настроек: "настро",
+        настраив: "настро",
+        установк: "установ",
+        установок: "установ",
+        устанавлив: "установ",
+        проверк: "провер",
+        проверок: "провер",
+        отправк: "отправ",
+        отправок: "отправ",
+        загрузк: "загруз",
+        загрузок: "загруз",
+        выгрузк: "выгруз",
+        выгрузок: "выгруз",
+        подписк: "подпис",
+        подписок: "подпис",
+        подписчик: "подпис",
+        приглаш: "приглас",
+      },
+    },
     shortestStem: 3,
     script: CYRILLIC_WORD,
   },
@@ -2379,9 +2673,18 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "인가요",
       "에서는",
       "에서도",
+      "에서의",
       "에게서",
       "에게는",
       "으로는",
+      "이라는",
+      "이므로",
+      "라는",
+      "이며",
+      "이고",
+      "이면",
+      "에만",
+      "로만",
       "하는",
       "하기",
       "하고",
@@ -2429,11 +2732,162 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "과",
       "도",
     ],
+    /*
+     * The native verbs a how-to question asks with, whose forms the
+     * endings above do not meet (#8335). 만들다 (make) drops its ㄹ before
+     * ㄴ, ㅂ and ㅅ: "만드나요" (do I make?), "만드세요", "만든", "만듭니다",
+     * and the name's "만들기" (making). 끄다 (turn off) and 쓰다 (write)
+     * lose their ㅡ ("꺼져", "써야"); 가져오다 (import) contracts to
+     * "가져와". Their endings ("기", "고", "지", "면", "어" ...) come off
+     * these stems only: off every word, "기" would read 탐색기 (explorer)
+     * as 탐색 (explore) and 수집기 (collector) as 수집 (collect).
+     */
+    forms: {
+      prefixes: [],
+      endings: [
+        "었습니다",
+        "았습니다",
+        "어집니다",
+        "아집니다",
+        "으려면",
+        "으려고",
+        "으므로",
+        "습니다",
+        "십시오",
+        "었나요",
+        "았나요",
+        "집니다",
+        "는지",
+        "나요",
+        "세요",
+        "니다",
+        "려면",
+        "려고",
+        "거나",
+        "므로",
+        "으며",
+        "으면",
+        "어서",
+        "아서",
+        "어야",
+        "아야",
+        "어요",
+        "아요",
+        "어도",
+        "아도",
+        "어지",
+        "아지",
+        "어진",
+        "아진",
+        "어져",
+        "아져",
+        "지는",
+        "기",
+        "는",
+        "고",
+        "지",
+        "면",
+        "며",
+        "은",
+        "을",
+        "음",
+        "어",
+        "아",
+        "서",
+        "야",
+        "요",
+        "도",
+        "져",
+        "진",
+        "짐",
+        "질",
+      ],
+      stems: {
+        만들: "만들",
+        만드: "만들",
+        만든: "만들",
+        만듭: "만들",
+        가져오: "가져오",
+        가져와: "가져오",
+        가져온: "가져오",
+        가져옵: "가져오",
+        내보내: "내보내",
+        내보낸: "내보내",
+        내보냅: "내보내",
+        보내: "보내",
+        보낸: "보내",
+        보냅: "보내",
+        받: "받",
+        켜: "켜",
+        켠: "켜",
+        켭: "켜",
+        끄: "끄",
+        꺼: "끄",
+        끕: "끄",
+        쓰: "쓰",
+        써: "쓰",
+        쓴: "쓰",
+        씁: "쓰",
+        찾: "찾",
+      },
+    },
+    writtenOnto:
+      /^(\p{Script=Latin}[\p{Script=Latin}\p{N}]*)(\p{Script=Hangul}+)$/u,
     shortestStem: 2,
     script: HANGUL_WORD,
   },
-  // The possessive "my": "سایتم" is "سایت".
-  fa: { endings: ["م"], shortestStem: 3, script: ARABIC_WORD },
+  /*
+   * The possessive "my" ("سایتم" is "سایت"), the plural written onto its
+   * noun without a half-space ("مانیتورها" and "مانیتورهای" are
+   * "مانیتور"), and the Arabic plural "ات" ("تنظیمات", settings, is
+   * "تنظیم", set up) (#8335).
+   */
+  fa: {
+    endings: ["هایی", "هایم", "های", "ها", "ات", "م"],
+    stacksEndings: true,
+    /*
+     * A verb's present stem and its past one are read as one, the past
+     * (#8335): "بسازم" (may I make) is "ساز", the name's "ساخت" (making)
+     * "ساخت". A verb's prefixes ("می", "نمی", "ب", "ن") and person
+     * endings come off these stems only. Its past participle is listed
+     * whole ("ساخته", made): "ه" after a present stem makes a noun
+     * ("نویسه", a character; "سازه", a structure), not the verb.
+     *
+     * The plural "ان" of the people the docs name is listed whole too
+     * ("کاربران", users; "مشترکان", subscribers): off every word it would
+     * read "میزبان" (host) as "میزب" and "مهمان" (guest) as "مهم"
+     * (important), and off "کاربر" (user) it would meet "کاربرد" (use).
+     * Not "دادن" (give): its "داده" (given) is the docs' "داده" (data).
+     */
+    forms: {
+      prefixes: ["نمی", "می", "ب", "ن"],
+      endings: ["یم", "ید", "ند", "ن", "م", "ی", "د"],
+      stems: {
+        ساز: "ساخت",
+        ساخت: "ساخت",
+        ساخته: "ساخت",
+        گیر: "گرفت",
+        گرفت: "گرفت",
+        گرفته: "گرفت",
+        نویس: "نوشت",
+        نوشت: "نوشت",
+        نوشته: "نوشت",
+        گذار: "گذاشت",
+        گذاشت: "گذاشت",
+        گذاشته: "گذاشت",
+        فرست: "فرستاد",
+        فرستاد: "فرستاد",
+        فرستاده: "فرستاد",
+        کاربران: "کاربر",
+        مشترکان: "مشترک",
+        مالکان: "مالک",
+        مدیران: "مدیر",
+        مشتریان: "مشتری",
+      },
+    },
+    shortestStem: 3,
+    script: ARABIC_WORD,
+  },
   /*
    * A verb's forms, and the plural a noun takes before a postposition:
    * "बनाऊँ" (may I make), "बनाएँ" (make) and "बनाना" (making) are "बना";
@@ -2456,6 +2910,21 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "ना",
       "ने",
     ],
+    /*
+     * A noun in "-इ" or "-ई" takes "-इयाँ" in the plural (#8335): "नीति"
+     * (policy) is "नीतियाँ", "नीतियां" or "नीतियों" (policies), "कुंजी"
+     * (key) "कुंजियाँ", "सूची" (list) "सूचियाँ". The plural's "ियाँ" is
+     * read as the singular's "ि", and a long "ी" at a word's end as the
+     * short "ि" the plural shortens it to, so "कुंजी" and "कुंजियाँ" are
+     * both "कुंजि". Taking "ी" off instead would read "सूची" (list) as
+     * "सूच", as "सूचना" (notification) is.
+     */
+    rewrites: {
+      "ियाँ": "ि",
+      "ियां": "ि",
+      "ियों": "ि",
+      "ी": "ि",
+    },
     shortestStem: 2,
     script: DEVANAGARI_WORD,
   },
@@ -2496,6 +2965,62 @@ export const getDocsWordEndings: (
  */
 export const DOCS_SEARCH_COMPOUNDING_LANGUAGES: ReadonlySet<string> =
   new Set<string>(["da", "no", "sv"]);
+
+/*
+ * The first parts of a verb a question writes after it, per language
+ * (#8335): Dutch "Hoe nodig ik een collega uit?" asks for "uitnodigen"
+ * (invite), the page's "Mensen uitnodigen", and "Hoe maak ik een
+ * API-sleutel aan?" for the heading's "Een API-sleutel aanmaken". Each
+ * is read joined to the question's other words, itself first, where the
+ * docs hold the word they make (AIDocsReader.compoundsOf), and is no
+ * question word, so it is there to join. Only these: read as Danish's,
+ * every two words of a Dutch question joined, "Hoe meld ik een incident?"
+ * found "incidentmelding" on the Huntress page before Een incident melden.
+ */
+export const DOCS_SEARCH_SEPARABLE_PARTICLES: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  nl: [
+    "aan",
+    "af",
+    "door",
+    "in",
+    "mee",
+    "na",
+    "over",
+    "terug",
+    "toe",
+    "uit",
+    "vast",
+    "weg",
+  ],
+};
+
+const particleCache: Map<string, ReadonlySet<string>> = new Map();
+
+// A language's separable particles (DOCS_SEARCH_SEPARABLE_PARTICLES): none for most.
+export const getDocsSearchSeparableParticles: (
+  language: string,
+) => ReadonlySet<string> = (language: string): ReadonlySet<string> => {
+  const cached: ReadonlySet<string> | undefined = particleCache.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  const particles: ReadonlySet<string> = new Set<string>(
+    Object.prototype.hasOwnProperty.call(
+      DOCS_SEARCH_SEPARABLE_PARTICLES,
+      language,
+    )
+      ? DOCS_SEARCH_SEPARABLE_PARTICLES[language] || []
+      : [],
+  );
+
+  particleCache.set(language, particles);
+
+  return particles;
+};
 
 /*
  * How many wrong letters a word may have and still find what it meant:

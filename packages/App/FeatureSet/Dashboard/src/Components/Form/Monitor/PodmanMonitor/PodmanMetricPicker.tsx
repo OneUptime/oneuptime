@@ -9,6 +9,7 @@ import {
   getAllPodmanMetricCategories,
   PodmanMetricDefinition,
   PodmanMetricCategory,
+  getPodmanMetricCategoryLabel,
 } from "Common/Types/Monitor/PodmanMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -35,8 +36,11 @@ const PodmanMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8353).
+      const heading: string = getPodmanMetricCategoryLabel(category);
+
       return {
-        label: category,
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: PodmanMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,
