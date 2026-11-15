@@ -166,7 +166,7 @@ describe("a host's topology", () => {
       expect(details(graph)).toEqual(["13/min", "600/min"]);
       expect(
         node(graph, "service:checkout").reasons?.map(
-          (reason: { values?: Record<string, string> }): string => {
+          (reason: { values?: Record<string, string> | undefined }): string => {
             return reason.values?.["rate"] || "";
           },
         ),
@@ -192,7 +192,7 @@ describe("a host's topology", () => {
       ...facts(graph, "service:checkout"),
       ...details(graph),
       ...(node(graph, "service:checkout").reasons || []).map(
-        (reason: { values?: Record<string, string> }): string => {
+        (reason: { values?: Record<string, string> | undefined }): string => {
           return reason.values?.["rate"] || "";
         },
       ),

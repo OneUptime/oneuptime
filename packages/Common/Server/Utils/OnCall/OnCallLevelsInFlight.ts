@@ -32,8 +32,20 @@ import {
  * a level that stops then is lost as it always was.
  */
 
+/*
+ * A page again's start, kept before its rule is recorded (issue #8514):
+ * where it starts, who acknowledged, and its timeout's minutes, for its
+ * status message - what the policy-run worker needs to start it when its
+ * start failed or stopped (startHandedOverPageAgain).
+ */
+export interface OnCallPageAgainInFlight {
+  startAtRuleId: string | null;
+  acknowledgedByUserId: string | null;
+  minutes: number;
+}
+
 export interface OnCallLevelInFlight {
-  // The level's escalation rule.
+  // The level's escalation rule: none (empty) for a page again's start that names none.
   ruleId: string;
   // When it started paging: whoever this run paged for the rule since is paged.
   startedAt: Date;
@@ -55,6 +67,8 @@ export interface OnCallLevelInFlight {
    */
   scheduledSend?: { dueAt: Date; schedule: NotificationSchedule } | undefined;
   pageStart?: { startedAt: Date; start: OnCallPageStart } | undefined;
+  // A page again's start, before its rule is recorded (issue #8514).
+  pageAgain?: OnCallPageAgainInFlight | undefined;
 }
 
 // A level kept in Redis: its moments in milliseconds since the epoch.
@@ -66,6 +80,11 @@ type KeptLevel = {
   firstUserIds?: Array<string>;
   scheduledSend?: { dueAt: number; schedule: string };
   pageStart?: { startedAt: number; start: string };
+  pageAgain?: {
+    startAtRuleId: string | null;
+    acknowledgedByUserId: string | null;
+    minutes: number;
+  };
 };
 
 export class OnCallLevels {
@@ -197,6 +216,7 @@ export class OnCallLevels {
             },
           }
         : {}),
+      ...(level.pageAgain ? { pageAgain: level.pageAgain } : {}),
     };
 
     return JSON.stringify(kept);
@@ -217,7 +237,8 @@ export class OnCallLevels {
         !kept ||
         typeof kept !== "object" ||
         typeof kept.ruleId !== "string" ||
-        !kept.ruleId ||
+        // Only a page again's start may name no rule.
+        (!kept.ruleId && !kept.pageAgain) ||
         !this.isMoment(kept.startedAt) ||
         !this.isMoment(kept.heartbeatAt)
       ) {
@@ -254,6 +275,30 @@ export class OnCallLevels {
             }
           : undefined;
 
+      const pageAgain: OnCallPageAgainInFlight | undefined =
+        kept.pageAgain &&
+        typeof kept.pageAgain === "object" &&
+        typeof kept.pageAgain.minutes === "number" &&
+        Number.isFinite(kept.pageAgain.minutes)
+          ? {
+              startAtRuleId:
+                typeof kept.pageAgain.startAtRuleId === "string" &&
+                kept.pageAgain.startAtRuleId
+                  ? kept.pageAgain.startAtRuleId
+                  : null,
+              acknowledgedByUserId:
+                typeof kept.pageAgain.acknowledgedByUserId === "string" &&
+                kept.pageAgain.acknowledgedByUserId
+                  ? kept.pageAgain.acknowledgedByUserId
+                  : null,
+              minutes: kept.pageAgain.minutes,
+            }
+          : undefined;
+
+      if (!kept.ruleId && !pageAgain) {
+        return null;
+      }
+
       return {
         ruleId: kept.ruleId,
         startedAt: new Date(kept.startedAt as number),
@@ -262,6 +307,7 @@ export class OnCallLevels {
         ...(firstUserIds.length > 0 ? { firstUserIds: firstUserIds } : {}),
         ...(scheduledSend ? { scheduledSend: scheduledSend } : {}),
         ...(pageStart ? { pageStart: pageStart } : {}),
+        ...(pageAgain ? { pageAgain: pageAgain } : {}),
       };
     } catch {
       return null;

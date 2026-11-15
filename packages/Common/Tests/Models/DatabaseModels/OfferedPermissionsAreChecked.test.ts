@@ -385,9 +385,9 @@ describe("every permission a custom role offers is checked", () => {
     ).toEqual(RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS);
   });
 
-  test.each(
+  test.each<[string, number]>(
     RETIRED_FOR_GRANTING_NOTHING.map(
-      (entry: { permission: Permission; issue: number }) => {
+      (entry: { permission: Permission; issue: number }): [string, number] => {
         return [entry.permission.toString(), entry.issue];
       },
     ),
