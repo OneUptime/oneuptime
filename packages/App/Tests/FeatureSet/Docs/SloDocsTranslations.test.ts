@@ -234,7 +234,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
   [METRICS]: [
     "Monitor Metric Retention (Days)",
-    "Follow SLO Variable",
+    // Follow SLO Variable was here until the SLO widget's settings were worded in every language.
     "SLO Dashboard",
     "Error Budget & Burn Rate",
     "Lowest Error Budget Remaining",
