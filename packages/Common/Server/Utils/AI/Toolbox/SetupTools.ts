@@ -119,6 +119,8 @@ import {
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * ASK AI SETS THINGS UP (issue #6829): one action per outcome, not one per
  * table.
@@ -1205,7 +1207,10 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
           : "If it does not answer, or answers with an error, its status changes to Offline."
       }${agreementSentence ? ` ${agreementSentence}` : ""} The person owns it, so they are emailed when its status changes. Who else is told depends on the project's on-call policies and rules: who_is_told answers it. Under your answer the person can send themselves a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Set up monitor "${address.monitorName}"`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.setUpMonitor, {
+        name: address.monitorName,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.MonitorView,
         params: { monitorId: monitorId },
@@ -1839,7 +1844,9 @@ export const SetUpPagingTool: ObservabilityTool = {
     return {
       dataForLlm: `Created the on-call policy "${policyName}". Its first escalation rule pages ${pagedNames.join(", ")}, and two on-call rules run it for every new incident and alert, so every monitor that opens one pages them. How a page reaches each person is their own notification rules and verified methods (Notification Methods). If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods"). Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Created on-call policy "${policyName}"`,
+      ...citationSentence(AI_TOOL_CITATIONS.createdOnCallPolicy, {
+        name: policyName,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.OnCallPolicyView,
         params: { onCallDutyPolicyId: policyId },
@@ -2129,7 +2136,7 @@ export const PublishStatusPageTool: ObservabilityTool = {
           : ""
       } An incident on these monitors appears on it by itself, and subscribers are emailed; alerts never do.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Published status page "${name}"`,
+      ...citationSentence(AI_TOOL_CITATIONS.publishedStatusPage, { name }),
       citationTarget: {
         type: AIChatCitationTargetType.StatusPageView,
         params: { statusPageId: statusPageId.toString() },
@@ -2490,7 +2497,9 @@ export const AddMonitorsToStatusPageTool: ObservabilityTool = {
           : ""
       }\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Added monitors to status page "${name}"`,
+      ...citationSentence(AI_TOOL_CITATIONS.addedMonitorsToStatusPage, {
+        name,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.StatusPageView,
         params: { statusPageId: statusPage.id.toString() },

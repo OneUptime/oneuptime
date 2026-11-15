@@ -1,4 +1,9 @@
 import { PluralTemplate, translationKey } from "../Translator";
+import AIInsightSeverity from "./AIInsightSeverity";
+import AIInsightStatus from "./AIInsightStatus";
+import AIRunStatus from "./AIRunStatus";
+import ErrorClass from "../Telemetry/ErrorClass";
+import RunbookStepType from "../Runbook/RunbookStepType";
 
 /*
  * WHAT ASK AI'S TABLES AND SOURCES SAY, BESIDE THEIR DATA, IN EVERY
@@ -633,6 +638,816 @@ export const AI_READ_CITATION_PLURALS: {
 
 /*
  * ---------------------------------------------------------------------------
+ * The other widgets under an answer (#8312): the lists of incidents, alerts
+ * and exceptions, the charts and the trace waterfall say their title and
+ * line as a table does. A chart's series and a list's items are data.
+ * ---------------------------------------------------------------------------
+ */
+
+export const AI_READ_WIDGET_TITLES: {
+  incident: string;
+  alert: string;
+  incidents: string;
+  activeIncidents: string;
+  resolvedIncidents: string;
+  incidentsMatching: string;
+  alerts: string;
+  topExceptions: string;
+  logVolume: string;
+  metric: string;
+  metricBy: string;
+  metricVsExpected: string;
+  traceWaterfall: string;
+  traceWaterfallMore: string;
+} = {
+  // One record whose number could not be read: its kind alone.
+  incident: translationKey("Incident"),
+  alert: translationKey("Alert"),
+  incidents: translationKey("Incidents ({{count}})"),
+  activeIncidents: translationKey("Active incidents ({{count}})"),
+  resolvedIncidents: translationKey("Resolved incidents ({{count}})"),
+  // {{query}} is the text searched for, as typed.
+  incidentsMatching: translationKey(
+    'Incidents matching "{{query}}" ({{count}})',
+  ),
+  alerts: translationKey("Alerts ({{count}})"),
+  topExceptions: translationKey("Top exceptions ({{count}})"),
+  logVolume: translationKey("Log volume by severity"),
+  /*
+   * {{aggregation}} is how the points were aggregated, as the query names
+   * it ("Avg", "P95"); {{metric}} the metric's name; {{groupBy}} the
+   * attributes the series differ in, as named.
+   */
+  metric: translationKey("{{aggregation}} of {{metric}}"),
+  metricBy: translationKey("{{aggregation}} of {{metric}} by {{groupBy}}"),
+  metricVsExpected: translationKey("{{metric}} vs expected range"),
+  traceWaterfall: translationKey("Trace waterfall ({{count}} spans)"),
+  // More spans than the read could hold: {{count}} is a floor.
+  traceWaterfallMore: translationKey("Trace waterfall ({{count}}+ spans)"),
+};
+
+export const AI_READ_WIDGET_LINES: {
+  createdInHours: string;
+  regardlessOfCreation: string;
+  currentlyUnresolvedAlerts: string;
+  exceptionsInHours: string;
+  traceDuration: string;
+  baselineWindow: string;
+} = {
+  createdInHours: translationKey("Created in the last {{hours}}h"),
+  regardlessOfCreation: translationKey("Regardless of when they were created"),
+  currentlyUnresolvedAlerts: translationKey("Currently unresolved alerts"),
+  exceptionsInHours: translationKey("Last {{hours}}h, by occurrence count"),
+  // {{duration}} is how long the trace took, in milliseconds.
+  traceDuration: translationKey("{{duration}} ms total"),
+  /*
+   * The band a metric is expected in, for this hour of the week: {{sigma}}
+   * standard deviations wide, learned over {{days}} days; then the window.
+   */
+  baselineWindow: translationKey(
+    "Hour-of-week baseline (±{{sigma}}σ, {{days}}-day window), {{start}} – {{end}}",
+  ),
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * The cells of the record tables that are OneUptime's words, beside those
+ * above (#8313): an escalation chain, a page's and an AI run's status, an
+ * AI insight's, a data store's and a runbook step's words.
+ * ---------------------------------------------------------------------------
+ */
+
+export const AI_READ_ESCALATION_CHAIN: {
+  rule: string;
+  ruleEscalates: string;
+  users: string;
+  teams: string;
+  schedules: string;
+  nextInRotation: string;
+  notifiedPerson: string;
+  notifiedPersonAcknowledged: string;
+} = {
+  /*
+   * One rule of a policy's escalation chain: {{order}} is its place in the
+   * chain, {{name}} its name, {{targets}} whom it pages (users, teams and
+   * schedules below, as a list), {{minutes}} when it escalates.
+   */
+  rule: translationKey("{{order}}. {{name}}: {{targets}}"),
+  ruleEscalates: translationKey(
+    "{{order}}. {{name}}: {{targets}} (escalates after {{minutes}}m)",
+  ),
+  // {{names}} are the users, teams or schedules, as named, in a list.
+  users: translationKey("users [{{names}}]"),
+  teams: translationKey("teams [{{names}}]"),
+  schedules: translationKey("schedules [{{names}}]"),
+  // A rule that pages the next person in a schedule's rotation.
+  nextInRotation: translationKey(
+    "{{name}} (next in rotation: the person after whoever is on call, passing over anyone away)",
+  ),
+  /*
+   * Who a page notified, one by one: {{name}} the person, {{status}} how
+   * their notification went (AI_READ_NOTIFICATION_STATUSES).
+   */
+  notifiedPerson: translationKey("{{name}}: {{status}}"),
+  notifiedPersonAcknowledged: translationKey(
+    "{{name}}: {{status}} (acknowledged)",
+  ),
+};
+
+export const AI_READ_ESCALATION_CHAIN_TERMS: {
+  unnamedRule: string;
+  noTargets: string;
+} = {
+  unnamedRule: translationKey("Unnamed rule"),
+  // A rule that pages nobody: in the middle of a sentence.
+  noTargets: translationKey("no targets"),
+};
+
+// An on-call page's status (OnCallDutyPolicyStatus), as the pages list says it.
+export const AI_READ_ON_CALL_PAGE_STATUSES: ReadonlyArray<string> = [
+  translationKey("Waiting"),
+  translationKey("Scheduled"),
+  translationKey("Started"),
+  translationKey("Executing"),
+  translationKey("Execution Completed"),
+  translationKey("Execution Completed - No One Notified"),
+  translationKey("Error"),
+];
+
+// How a person's notification went (UserNotificationExecutionStatus).
+export const AI_READ_NOTIFICATION_STATUSES: ReadonlyArray<string> = [
+  translationKey("Scheduled"),
+  translationKey("Started"),
+  translationKey("Executing"),
+  translationKey("Completed"),
+  translationKey("Error"),
+  translationKey("Passed On"),
+];
+
+/*
+ * An AI investigation's status (AIRunStatus), as the incident's and the
+ * alert's AI pages say it: an error is "Failed", a run the sweeper gave up
+ * on "Timed out".
+ */
+export const AI_READ_AI_RUN_STATUSES: Record<AIRunStatus, string> = {
+  [AIRunStatus.Queued]: translationKey("Queued"),
+  [AIRunStatus.Running]: translationKey("Running"),
+  [AIRunStatus.WaitingForApproval]: translationKey("Waiting for approval"),
+  [AIRunStatus.Completed]: translationKey("Completed"),
+  [AIRunStatus.NoFixFound]: translationKey("No fix found"),
+  [AIRunStatus.Error]: translationKey("Failed"),
+  [AIRunStatus.Cancelled]: translationKey("Cancelled"),
+  [AIRunStatus.Stale]: translationKey("Timed out"),
+};
+
+/*
+ * An AI insight's status and severity, as the insights inbox and an
+ * insight's page say them (Dashboard's Components/AIInsights/
+ * InsightPresentation reads these): "ActionRequired" is "Needs Attention".
+ */
+export const AI_INSIGHT_STATUS_LABELS: Record<AIInsightStatus, string> = {
+  [AIInsightStatus.Detected]: translationKey("Detected"),
+  [AIInsightStatus.ActionRequired]: translationKey("Needs Attention"),
+  /*
+   * A fix task is attached. Where it stands - in progress, its pull request
+   * open, failed - is the task's to say, never this status: it is set when
+   * the task starts, before any pull request.
+   */
+  [AIInsightStatus.FixOpened]: translationKey("Fix task"),
+  [AIInsightStatus.Resolved]: translationKey("Resolved"),
+  [AIInsightStatus.Dismissed]: translationKey("Dismissed"),
+};
+
+export const AI_INSIGHT_SEVERITY_LABELS: Record<AIInsightSeverity, string> = {
+  [AIInsightSeverity.High]: translationKey("High"),
+  [AIInsightSeverity.Medium]: translationKey("Medium"),
+  [AIInsightSeverity.Low]: translationKey("Low"),
+};
+
+/*
+ * An insight's AI triage (Types/Telemetry/ErrorClass), as the exceptions
+ * pages name it: "unknown" is "Unclassified" - triage could not decide.
+ */
+export const AI_READ_TRIAGE_LABELS: Record<ErrorClass, string> = {
+  [ErrorClass.CodeFault]: translationKey("Code fault"),
+  [ErrorClass.UserError]: translationKey("User error"),
+  [ErrorClass.ExpectedDenial]: translationKey("Expected denial"),
+  [ErrorClass.Infrastructure]: translationKey("Infrastructure"),
+  [ErrorClass.Unknown]: translationKey("Unclassified"),
+};
+
+/*
+ * Data Security's words in its tables, as its pages' pills say them: a
+ * store's sensitivity and exposure, an issue's severity and status, an
+ * access level, and the kinds of store that are OneUptime's own telemetry.
+ * A cloud's kind of store ("AWS S3 Bucket") is a product's name: data.
+ */
+export const AI_READ_DATA_SECURITY_TERMS: ReadonlyArray<string> = [
+  // DataSensitivity
+  translationKey("Restricted"),
+  translationKey("Confidential"),
+  translationKey("Internal"),
+  translationKey("Public"),
+  // DataStoreExposure
+  translationKey("Other accounts"),
+  translationKey("Internet reachable"),
+  translationKey("Private"),
+  translationKey("Unknown"),
+  // SecuritySeverity
+  translationKey("Critical"),
+  translationKey("High"),
+  translationKey("Medium"),
+  translationKey("Low"),
+  /*
+   * DataSecurityIssueStatus, but Open: "Open" alone is every Open button's
+   * verb in every language ("Öffnen"), so an open issue's status is data.
+   */
+  translationKey("Resolved"),
+  translationKey("Accepted"),
+  translationKey("Not an issue"),
+  // DataStoreAccessLevel
+  translationKey("Read"),
+  translationKey("Write"),
+  translationKey("Admin"),
+  // The telemetry a project's own OneUptime holds (DataStoreKind)
+  translationKey("Logs"),
+  translationKey("Traces"),
+  translationKey("Exceptions"),
+  translationKey("Session Replays"),
+  translationKey("AI Conversations"),
+];
+
+// A security case's AI verdict (SecurityCaseVerdict), as its page says it.
+export const AI_READ_SECURITY_VERDICTS: ReadonlyArray<string> = [
+  translationKey("True Positive"),
+  translationKey("Benign Positive"),
+  translationKey("False Positive"),
+  translationKey("Undetermined"),
+];
+
+// A runbook step's type, as the runbook's Steps page names it.
+export const AI_READ_RUNBOOK_STEP_TYPES: Record<RunbookStepType, string> = {
+  [RunbookStepType.Manual]: translationKey("Manual checklist step"),
+  [RunbookStepType.JavaScript]: translationKey("JavaScript"),
+  [RunbookStepType.HttpRequest]: translationKey("HTTP request"),
+  [RunbookStepType.Bash]: translationKey("Bash script"),
+  [RunbookStepType.AI]: translationKey("AI step"),
+  [RunbookStepType.SSH]: translationKey("SSH script"),
+  // A kubectl script: the type keeps its stored name, Kubernetes.
+  [RunbookStepType.Kubernetes]: translationKey("kubectl script"),
+  [RunbookStepType.Kubectl]: translationKey("kubectl command"),
+  [RunbookStepType.ResourceCommand]: translationKey("Resource command"),
+};
+
+/*
+ * What a runbook step does, as its row says it: the script, the address,
+ * the prompt and the command are data, as written.
+ */
+export const AI_READ_RUNBOOK_STEP_INSTRUCTIONS: {
+  manual: string;
+  javaScript: string;
+  bash: string;
+  httpRequest: string;
+  httpRequestWithBody: string;
+  ai: string;
+  sshCommand: string;
+  sshScript: string;
+  kubernetesAction: string;
+  kubernetesActionWithReplicas: string;
+  kubectl: string;
+} = {
+  manual: translationKey(
+    "Manual step — a responder performs this by hand (see the step title/description).",
+  ),
+  javaScript: translationKey("Runs JavaScript on a runner: {{script}}"),
+  bash: translationKey("Runs bash on a runner: {{script}}"),
+  // {{method}} is the HTTP method ("GET"), {{url}} the address.
+  httpRequest: translationKey("HTTP {{method}} {{url}}"),
+  httpRequestWithBody: translationKey(
+    "HTTP {{method}} {{url}} with body: {{body}}",
+  ),
+  ai: translationKey("AI step with prompt: {{prompt}}"),
+  sshCommand: translationKey("Runs over SSH: {{command}}"),
+  // {{target}} is user@host, or the host.
+  sshScript: translationKey(
+    "Runs a bash script over SSH on {{target}}: {{script}}",
+  ),
+  // A step written before kubectl scripts: restart or scale one workload.
+  kubernetesAction: translationKey(
+    "Kubernetes {{action}} on {{workloadKind}} {{namespace}}/{{workloadName}}",
+  ),
+  kubernetesActionWithReplicas: translationKey(
+    "Kubernetes {{action}} on {{workloadKind}} {{namespace}}/{{workloadName}} (replicas: {{replicas}})",
+  ),
+  kubectl: translationKey("Runs kubectl commands on a runner: {{script}}"),
+};
+
+// A RUM application's client type, as its row stores it ("browser").
+export const AI_READ_RUM_CLIENT_TYPES: { browser: string; mobile: string } = {
+  browser: translationKey("Browser"),
+  mobile: translationKey("Mobile"),
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * The chips of every other tool (#8311): what a docs, code, cloud, metric,
+ * profile or context read looked at, what a write did, and a read that
+ * found nothing to read. Each says what its tool's label always said, but
+ * three, which spoke the code's notation to people: a metric's baseline
+ * ("baseline_anomaly(...)"), an output's page and a profile's window.
+ * ---------------------------------------------------------------------------
+ */
+
+export const AI_TOOL_CITATIONS: {
+  // Docs and the Dashboard's pages (DocsTools)
+  docsSearch: string;
+  docsPage: string;
+  docsSection: string;
+  dashboardPageSearch: string;
+  dashboardPage: string;
+  // Code (CodeTools, CodeWriteTools)
+  codeRepositories: string;
+  codeLocationNoStackTrace: string;
+  codeLocationNoRepository: string;
+  codeLocation: string;
+  codeSearch: string;
+  codeFileEmpty: string;
+  codeFileLines: string;
+  commit: string;
+  pullRequest: string;
+  mergeRequest: string;
+  // Cloud, devices and context (CloudTools, TransceiverTools, ContextTools)
+  cloudResourceInventory: string;
+  cloudResourceInventoryUnnamed: string;
+  cloudAccounts: string;
+  transceivers: string;
+  transceiversUnnamed: string;
+  telemetryServices: string;
+  metricNames: string;
+  metricAttributeKeys: string;
+  metricAttributeKeysOf: string;
+  traceAttributeKeys: string;
+  logAttributeKeys: string;
+  exceptionAttributeKeys: string;
+  profileAttributeKeys: string;
+  securityEventAttributeKeys: string;
+  // Metrics and an infrastructure resource's telemetry (MetricTools, ResourceTools)
+  metric: string;
+  metricBy: string;
+  metricBaseline: string;
+  metricBaselineOfEntity: string;
+  resourceMetrics: string;
+  resourceMetricsBy: string;
+  resourceLogs: string;
+  resourceTraces: string;
+  // Profiles (ProfileTools)
+  profileHotspots: string;
+  profileComparison: string;
+  profileOfFunction: string;
+  // Data observability, changes and health
+  dataTable: string;
+  dataTables: string;
+  lineageOf: string;
+  lineageOfTables: string;
+  changeNotFound: string;
+  change: string;
+  changeWithCommits: string;
+  recentChanges: string;
+  setupHealth: string;
+  whoIsTold: string;
+  // What a write did (the write and setup tools)
+  createdIncident: string;
+  linkedIncident: string;
+  incidentInState: string;
+  createdAlert: string;
+  linkedAlert: string;
+  alertInState: string;
+  incidentNote: string;
+  alertNote: string;
+  pagedPolicyForIncident: string;
+  startedRunbook: string;
+  startedRunbookById: string;
+  incidentStatusUpdate: string;
+  incidentSeverityChanged: string;
+  setUpMonitor: string;
+  createdOnCallPolicy: string;
+  publishedStatusPage: string;
+  addedMonitorsToStatusPage: string;
+  workflowComponents: string;
+  workflowDraft: string;
+  createdWorkflow: string;
+  updatedWorkflow: string;
+  // AI investigations (AIMetaTools)
+  aiInvestigationInvalidArguments: string;
+  aiInvestigationSubjectNotFound: string;
+  aiInvestigationNone: string;
+  aiInvestigationRuns: string;
+  aiInsightsInvalidStatus: string;
+  investigationInProgress: string;
+  recentInvestigationExists: string;
+  investigationNotEnqueued: string;
+  investigationQueued: string;
+  // Security cases and data security (SecurityCaseTools, DataSecurityTools)
+  openSecurityCases: string;
+  openSecurityCasesAbout: string;
+  closedSecurityCases: string;
+  closedSecurityCasesAbout: string;
+  allSecurityCases: string;
+  allSecurityCasesAbout: string;
+  securityCase: string;
+  threatIntelLookup: string;
+  securityActivity: string;
+  securityPlaybooksOn: string;
+  securityCaseNote: string;
+  securityCasePlaybook: string;
+  dataStores: string;
+  dataStoresFiltered: string;
+  dataStoreSensitivityOrAbove: string;
+  dataStoreHolding: string;
+  dataStoreNamedLike: string;
+  dataStore: string;
+  openDataSecurityIssues: string;
+  acceptedDataSecurityIssues: string;
+  resolvedDataSecurityIssues: string;
+  notAnIssueDataSecurityIssues: string;
+  allDataSecurityIssues: string;
+  openDataSecurityIssuesOfSeverity: string;
+  acceptedDataSecurityIssuesOfSeverity: string;
+  resolvedDataSecurityIssuesOfSeverity: string;
+  notAnIssueDataSecurityIssuesOfSeverity: string;
+  allDataSecurityIssuesOfSeverity: string;
+  dataSecurityIssue: string;
+  whoCanReachDataStore: string;
+  dataStoresPrincipalCanReach: string;
+  // A read that found nothing to read, or was asked wrong
+  onCallNowPolicyNotFound: string;
+  statusPageById: string;
+  slosInvalidStatus: string;
+  runbookById: string;
+  teamById: string;
+  incidentTimelineNoId: string;
+  incidentTimelineNotFound: string;
+  alertTimelineNoId: string;
+  alertTimelineNotFound: string;
+  workflowById: string;
+  incidentSearchNoQuery: string;
+  // A long output, read a page at a time (Chat/ToolOutputPager)
+  outputPage: string;
+} = {
+  // {{query}} is the text searched for, as typed; {{page}} a page's title.
+  docsSearch: translationKey("Docs search: {{query}}"),
+  docsPage: translationKey("Docs: {{page}}"),
+  docsSection: translationKey("Docs: {{page}} > {{section}}"),
+  dashboardPageSearch: translationKey("Dashboard page: {{query}}"),
+  // {{path}} is where the page is, as the Dashboard's menu names it.
+  dashboardPage: translationKey("Page: {{path}}"),
+  codeRepositories: translationKey("Connected code repositories ({{count}})"),
+  codeLocationNoStackTrace: translationKey(
+    "Code location for exception (no stack trace)",
+  ),
+  codeLocationNoRepository: translationKey(
+    "Code location for exception (no repository matched)",
+  ),
+  // {{repository}} is organization/repository, as the code host names it.
+  codeLocation: translationKey(
+    "Code location: {{repository}} ({{count}} frames)",
+  ),
+  codeSearch: translationKey(
+    'Code search "{{query}}" in {{repository}} ({{count}} of {{total}})',
+  ),
+  // {{file}} is the file's path.
+  codeFileEmpty: translationKey("{{file}} (empty)"),
+  // Lines {{start}} to {{end}} of the file: no words of their own.
+  codeFileLines: "{{file}}:{{start}}-{{end}} ({{repository}})",
+  // {{sha}} is the commit's short hash; {{files}} how many files it changed.
+  commit: translationKey("Commit {{sha}} on {{branch}} ({{files}})"),
+  // {{number}} is "#12" on GitHub, "!12" on GitLab; {{title}} as written.
+  pullRequest: translationKey("PR {{number}}: {{title}}"),
+  mergeRequest: translationKey("MR {{number}}: {{title}}"),
+  // {{name}} is the resource's or the device's name, as its cloud names it.
+  cloudResourceInventory: translationKey("{{name}} (inventory)"),
+  cloudResourceInventoryUnnamed: translationKey("Cloud resource (inventory)"),
+  cloudAccounts: translationKey("Cloud accounts ({{count}})"),
+  transceivers: translationKey("{{name}} transceivers"),
+  transceiversUnnamed: translationKey("Network device transceivers"),
+  telemetryServices: translationKey("Telemetry services ({{count}} found)"),
+  metricNames: translationKey("Metric names ({{count}} found)"),
+  metricAttributeKeys: translationKey(
+    "Metric attribute keys ({{count}} found)",
+  ),
+  // {{metric}} is the metric's name.
+  metricAttributeKeysOf: translationKey(
+    "{{metric}} Metric attribute keys ({{count}} found)",
+  ),
+  traceAttributeKeys: translationKey("Trace attribute keys ({{count}} found)"),
+  logAttributeKeys: translationKey("Log attribute keys ({{count}} found)"),
+  exceptionAttributeKeys: translationKey(
+    "Exception attribute keys ({{count}} found)",
+  ),
+  profileAttributeKeys: translationKey(
+    "Profile attribute keys ({{count}} found)",
+  ),
+  securityEventAttributeKeys: translationKey(
+    "SecurityEvent attribute keys ({{count}} found)",
+  ),
+  /*
+   * {{aggregation}} is how the points were aggregated ("Avg", "P95"),
+   * {{metric}} the metric's name, {{groupBy}} what the series differ in; a
+   * window, as AI_READ_WINDOW. No words of their own but "by".
+   */
+  metric: "{{aggregation}}({{metric}}), {{start}} – {{end}}",
+  metricBy: translationKey(
+    "{{aggregation}}({{metric}}) by {{groupBy}}, {{start}} – {{end}}",
+  ),
+  // {{at}} is the moment judged against its hour of the week's range.
+  metricBaseline: translationKey("Expected range of {{metric}} at {{at}}"),
+  // {{entity}} is the ID of what the metric is about (a monitor's).
+  metricBaselineOfEntity: translationKey(
+    "Expected range of {{metric}} · {{entity}} at {{at}}",
+  ),
+  // {{kind}} is the kind of resource (AI_READ_RESOURCE_KINDS), in the sentence.
+  resourceMetrics: translationKey("{{kind}} metrics, {{start}} – {{end}}"),
+  resourceMetricsBy: translationKey(
+    "{{kind}} metrics by {{groupBy}}, {{start}} – {{end}}",
+  ),
+  resourceLogs: translationKey("{{kind}} logs, {{start}} – {{end}}"),
+  resourceTraces: translationKey("{{kind}} traces, {{start}} – {{end}}"),
+  // Two windows' ends, moments: "to" between them, as the profile tables say.
+  profileHotspots: translationKey("Profile hotspots, {{start}} to {{end}}"),
+  profileComparison: translationKey(
+    "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}",
+  ),
+  // {{function}} is the function's name, as the profile names it.
+  profileOfFunction: translationKey(
+    "Profile of {{function}}, {{start}} to {{end}}",
+  ),
+  // {{table}}, {{name}} and {{reference}} are a data table's names, as given.
+  dataTable: translationKey("Data table {{table}}"),
+  dataTables: translationKey(
+    'Data tables called "{{reference}}" - {{count}} found',
+  ),
+  lineageOf: translationKey("Lineage of {{name}}"),
+  lineageOfTables: translationKey(
+    'Lineage of tables called "{{reference}}" - {{count}} found',
+  ),
+  // {{id}} is the change's ID; {{title}} its title, as written.
+  changeNotFound: translationKey("Change {{id}} (not found)"),
+  change: translationKey("Change {{title}}"),
+  // {{commits}} is how many commits it holds (AI_TOOL_CITATION_PLURALS.commits).
+  changeWithCommits: translationKey("Change {{title}} ({{commits}})"),
+  // Two moments, then how many events.
+  recentChanges: translationKey(
+    "Changes {{start}} → {{end}} ({{count}} events)",
+  ),
+  setupHealth: translationKey("Setup Health"),
+  // {{monitor}} is the monitor's name.
+  whoIsTold: translationKey('Who is told when "{{monitor}}" goes down'),
+  // {{incident}} and {{alert}} are the record's number ("#42").
+  createdIncident: translationKey("Created incident {{incident}}"),
+  linkedIncident: translationKey("Linked incident {{incident}}"),
+  // {{state}} is the state it moved to, as the project named it.
+  incidentInState: translationKey("{{state}} incident {{incident}}"),
+  createdAlert: translationKey("Created alert {{alert}}"),
+  linkedAlert: translationKey("Linked alert {{alert}}"),
+  alertInState: translationKey("{{state}} alert {{alert}}"),
+  incidentNote: translationKey("Internal note on incident {{incident}}"),
+  alertNote: translationKey("Internal note on alert {{alert}}"),
+  // {{policy}} is the on-call policy's name.
+  pagedPolicyForIncident: translationKey(
+    'Paged "{{policy}}" for incident {{incident}}',
+  ),
+  // {{name}} is the runbook's name; {{id}} its ID, when its name is not readable.
+  startedRunbook: translationKey('Started runbook "{{name}}"'),
+  startedRunbookById: translationKey("Started runbook {{id}}"),
+  incidentStatusUpdate: translationKey(
+    "Status update on incident {{incident}}",
+  ),
+  // {{severity}} is the severity it moved to, as the project named it.
+  incidentSeverityChanged: translationKey(
+    "Incident {{incident}} → {{severity}}",
+  ),
+  // {{name}} is the monitor's, the policy's, the page's or the workflow's name.
+  setUpMonitor: translationKey('Set up monitor "{{name}}"'),
+  createdOnCallPolicy: translationKey('Created on-call policy "{{name}}"'),
+  publishedStatusPage: translationKey('Published status page "{{name}}"'),
+  addedMonitorsToStatusPage: translationKey(
+    'Added monitors to status page "{{name}}"',
+  ),
+  workflowComponents: translationKey("Workflow components"),
+  workflowDraft: translationKey("Workflow draft"),
+  createdWorkflow: translationKey('Created workflow "{{name}}"'),
+  updatedWorkflow: translationKey('Updated workflow "{{name}}"'),
+  aiInvestigationInvalidArguments: translationKey(
+    "AI investigation (invalid arguments)",
+  ),
+  aiInvestigationSubjectNotFound: translationKey(
+    "AI investigation (subject not found)",
+  ),
+  /*
+   * {{subject}} is the incident or the alert, by its number
+   * (AI_READ_CITATIONS.incident, .alert); {{runs}} how many runs it read.
+   */
+  aiInvestigationNone: translationKey(
+    "AI investigation for {{subject}} (none found)",
+  ),
+  aiInvestigationRuns: translationKey(
+    "AI investigation for {{subject}} ({{runs}})",
+  ),
+  aiInsightsInvalidStatus: translationKey(
+    "AI insights (invalid status filter)",
+  ),
+  investigationInProgress: translationKey(
+    "Investigation already in progress for {{subject}}",
+  ),
+  recentInvestigationExists: translationKey(
+    "Recent investigation exists for {{subject}}",
+  ),
+  investigationNotEnqueued: translationKey(
+    "Investigation not enqueued for {{subject}}",
+  ),
+  investigationQueued: translationKey(
+    "AI investigation queued for {{subject}}",
+  ),
+  // {{entity}} is the IP, host or user the cases are about, as given.
+  openSecurityCases: translationKey("Security cases (open) - {{count}} found"),
+  openSecurityCasesAbout: translationKey(
+    "Security cases (open, about {{entity}}) - {{count}} found",
+  ),
+  closedSecurityCases: translationKey(
+    "Security cases (closed) - {{count}} found",
+  ),
+  closedSecurityCasesAbout: translationKey(
+    "Security cases (closed, about {{entity}}) - {{count}} found",
+  ),
+  allSecurityCases: translationKey("Security cases (all) - {{count}} found"),
+  allSecurityCasesAbout: translationKey(
+    "Security cases (all, about {{entity}}) - {{count}} found",
+  ),
+  // {{case}} is the case's number and title; {{detections}} how many.
+  securityCase: translationKey("Security case {{case}} ({{detections}})"),
+  // {{values}} is how many were looked up; {{known}} how many a feed knows.
+  threatIntelLookup: translationKey(
+    "Threat intel lookup of {{values}}: {{known}} known-bad",
+  ),
+  // {{hours}} is how far back it reads (AI_TOOL_CITATION_PLURALS.hours).
+  securityActivity: translationKey(
+    "Security activity of {{values}} over {{hours}}",
+  ),
+  securityPlaybooksOn: translationKey(
+    "Security playbooks that are on ({{count}})",
+  ),
+  securityCaseNote: translationKey("Note on {{case}}"),
+  // {{playbook}} is the playbook's name.
+  securityCasePlaybook: translationKey("Playbook {{playbook}} on {{case}}"),
+  dataStores: translationKey("Data stores - {{count}} found"),
+  // {{filters}} is the list of what the stores were filtered by.
+  dataStoresFiltered: translationKey(
+    "Data stores ({{filters}}) - {{count}} found",
+  ),
+  // {{sensitivity}} is a sensitivity (AI_READ_DATA_SECURITY_TERMS).
+  dataStoreSensitivityOrAbove: translationKey("{{sensitivity}} or above"),
+  // {{dataType}} is a data type's name, as the catalog names it.
+  dataStoreHolding: translationKey("holding {{dataType}}"),
+  dataStoreNamedLike: translationKey('named like "{{name}}"'),
+  dataStore: translationKey("Data store {{name}}"),
+  openDataSecurityIssues: translationKey(
+    "Data security issues (open) - {{count}} found",
+  ),
+  acceptedDataSecurityIssues: translationKey(
+    "Data security issues (accepted) - {{count}} found",
+  ),
+  resolvedDataSecurityIssues: translationKey(
+    "Data security issues (resolved) - {{count}} found",
+  ),
+  notAnIssueDataSecurityIssues: translationKey(
+    "Data security issues (not-an-issue) - {{count}} found",
+  ),
+  allDataSecurityIssues: translationKey(
+    "Data security issues (all) - {{count}} found",
+  ),
+  // The issues of one severity: {{severity}} is a severity, as a term.
+  openDataSecurityIssuesOfSeverity: translationKey(
+    "Data security issues (open, {{severity}}) - {{count}} found",
+  ),
+  acceptedDataSecurityIssuesOfSeverity: translationKey(
+    "Data security issues (accepted, {{severity}}) - {{count}} found",
+  ),
+  resolvedDataSecurityIssuesOfSeverity: translationKey(
+    "Data security issues (resolved, {{severity}}) - {{count}} found",
+  ),
+  notAnIssueDataSecurityIssuesOfSeverity: translationKey(
+    "Data security issues (not-an-issue, {{severity}}) - {{count}} found",
+  ),
+  allDataSecurityIssuesOfSeverity: translationKey(
+    "Data security issues (all, {{severity}}) - {{count}} found",
+  ),
+  // {{title}} is the issue's title, as its check names it.
+  dataSecurityIssue: translationKey("Data security issue: {{title}}"),
+  whoCanReachDataStore: translationKey(
+    "Who can reach the data store - {{count}} found",
+  ),
+  // {{principal}} is the user, role or key asked about, as named.
+  dataStoresPrincipalCanReach: translationKey(
+    'Data stores "{{principal}}" can reach - {{count}} found',
+  ),
+  onCallNowPolicyNotFound: translationKey("On-call now (policy not found)"),
+  // {{id}} is the record's ID, as asked for: it could not be read.
+  statusPageById: translationKey("Status page {{id}}"),
+  slosInvalidStatus: translationKey("SLOs (invalid status filter)"),
+  runbookById: translationKey("Runbook {{id}}"),
+  teamById: translationKey("Team {{id}}"),
+  incidentTimelineNoId: translationKey("Incident timeline (no incident id)"),
+  incidentTimelineNotFound: translationKey("Incident timeline (not found)"),
+  alertTimelineNoId: translationKey("Alert timeline (no alert id)"),
+  alertTimelineNotFound: translationKey("Alert timeline (not found)"),
+  workflowById: translationKey("Workflow {{id}}"),
+  incidentSearchNoQuery: translationKey("Incident search (no query)"),
+  /*
+   * {{label}} is what the output is of - a command, or another chip's
+   * words - and {{start}} and {{end}} the characters this page holds.
+   */
+  outputPage: translationKey("{{label}} (characters {{start}}–{{end}})"),
+};
+
+/*
+ * The counts said with words of their own inside a chip: "2 runs", "1
+ * commit" (ReadTableWords.countedValue).
+ */
+export const AI_TOOL_CITATION_PLURALS: {
+  runs: PluralTemplate;
+  commits: PluralTemplate;
+  files: PluralTemplate;
+  detections: PluralTemplate;
+  values: PluralTemplate;
+  hours: PluralTemplate;
+} = {
+  runs: {
+    one: translationKey("{{count}} run"),
+    other: translationKey("{{count}} runs"),
+  },
+  commits: {
+    one: translationKey("{{count}} commit"),
+    other: translationKey("{{count}} commits"),
+  },
+  files: {
+    one: translationKey("{{count}} file"),
+    other: translationKey("{{count}} files"),
+  },
+  detections: {
+    one: translationKey("{{count}} detection"),
+    other: translationKey("{{count}} detections"),
+  },
+  values: {
+    one: translationKey("{{count}} value"),
+    other: translationKey("{{count}} values"),
+  },
+  hours: {
+    one: translationKey("{{count}} hour"),
+    other: translationKey("{{count}} hours"),
+  },
+};
+
+/*
+ * An infrastructure resource's kind, as the telemetry pages name it
+ * (Types/Telemetry/ResourceFacetCatalog): one and many.
+ */
+export const AI_READ_RESOURCE_KINDS: ReadonlyArray<string> = [
+  translationKey("Host"),
+  translationKey("Hosts"),
+  translationKey("Docker Host"),
+  translationKey("Docker Hosts"),
+  translationKey("Podman Host"),
+  translationKey("Podman Hosts"),
+  translationKey("Kubernetes Cluster"),
+  translationKey("Kubernetes Clusters"),
+  translationKey("Docker Swarm Cluster"),
+  translationKey("Docker Swarm Clusters"),
+  translationKey("Proxmox Cluster"),
+  translationKey("Proxmox Clusters"),
+  translationKey("OpenStack Cloud"),
+  translationKey("OpenStack Clouds"),
+  translationKey("vCenter"),
+  translationKey("vCenters"),
+  translationKey("Ceph Cluster"),
+  translationKey("Ceph Clusters"),
+  translationKey("Storage Array"),
+  translationKey("Storage Arrays"),
+  translationKey("Serverless Function"),
+  translationKey("Serverless Functions"),
+  translationKey("Cloud Resource"),
+  translationKey("Cloud Resources"),
+  translationKey("RUM Application"),
+  translationKey("RUM Applications"),
+  translationKey("IoT Fleet"),
+  translationKey("IoT Fleets"),
+  translationKey("Database"),
+  translationKey("Databases"),
+  translationKey("Network Device"),
+  translationKey("Network Devices"),
+];
+
+/*
+ * ---------------------------------------------------------------------------
  * Every sentence and term above, for AIActionWords' lists.
  * ---------------------------------------------------------------------------
  */
@@ -645,12 +1460,18 @@ export const AI_READ_TABLE_AND_CITATION_SENTENCES: ReadonlyArray<string> = [
   AI_READ_WINDOW,
   ...Object.values(AI_READ_TELEMETRY_TABLE_LINES),
   ...Object.values(AI_READ_CITATIONS),
+  ...Object.values(AI_READ_WIDGET_TITLES),
+  ...Object.values(AI_READ_WIDGET_LINES),
+  ...Object.values(AI_READ_ESCALATION_CHAIN),
+  ...Object.values(AI_READ_RUNBOOK_STEP_INSTRUCTIONS),
+  ...Object.values(AI_TOOL_CITATIONS),
 ];
 
 export const AI_READ_TABLE_AND_CITATION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> =
   [
     ...Object.values(AI_READ_RECORD_TABLE_PLURAL_SENTENCES),
     ...Object.values(AI_READ_CITATION_PLURALS),
+    ...Object.values(AI_TOOL_CITATION_PLURALS),
   ];
 
 export const AI_READ_TABLE_TERMS: ReadonlyArray<string> = [
@@ -659,4 +1480,16 @@ export const AI_READ_TABLE_TERMS: ReadonlyArray<string> = [
   ...Object.values(AI_READ_CONTAINER_STATUSES),
   ...Object.values(AI_READ_PROBE_STATUSES),
   ...Object.values(AI_READ_WEB_VITAL_RATINGS),
+  ...Object.values(AI_READ_ESCALATION_CHAIN_TERMS),
+  ...AI_READ_ON_CALL_PAGE_STATUSES,
+  ...AI_READ_NOTIFICATION_STATUSES,
+  ...Object.values(AI_READ_AI_RUN_STATUSES),
+  ...Object.values(AI_INSIGHT_STATUS_LABELS),
+  ...Object.values(AI_INSIGHT_SEVERITY_LABELS),
+  ...Object.values(AI_READ_TRIAGE_LABELS),
+  ...AI_READ_DATA_SECURITY_TERMS,
+  ...AI_READ_SECURITY_VERDICTS,
+  ...Object.values(AI_READ_RUNBOOK_STEP_TYPES),
+  ...Object.values(AI_READ_RUM_CLIENT_TYPES),
+  ...AI_READ_RESOURCE_KINDS,
 ];

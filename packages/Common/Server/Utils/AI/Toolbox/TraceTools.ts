@@ -26,11 +26,16 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
-import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
+import {
+  aiActionFigure,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
 import {
   AI_READ_CITATIONS,
   AI_READ_TELEMETRY_TABLE_LINES,
   AI_READ_TELEMETRY_TABLE_TITLES,
+  AI_READ_WIDGET_LINES,
+  AI_READ_WIDGET_TITLES,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, countFigure, windowValues } from "./ReadTableWords";
 
@@ -473,8 +478,19 @@ export const GetTraceTool: ObservabilityTool = {
       widget:
         widgetSpans.length > 0
           ? WidgetBuilder.traceWaterfall({
-              title: `Trace waterfall (${spans.length}${isSpanLimitHit ? "+" : ""} spans)`,
-              description: `${totalDurationMs} ms total`,
+              // In the reader's language (issue #8312).
+              words: {
+                title: aiActionSentence(
+                  isSpanLimitHit
+                    ? AI_READ_WIDGET_TITLES.traceWaterfallMore
+                    : AI_READ_WIDGET_TITLES.traceWaterfall,
+                  { count: countFigure(spans.length) },
+                ),
+                description: aiActionSentence(
+                  AI_READ_WIDGET_LINES.traceDuration,
+                  { duration: aiActionFigure(totalDurationMs) },
+                ),
+              },
               spans: widgetSpans,
               totalDurationMs: totalDurationMs,
               link: {

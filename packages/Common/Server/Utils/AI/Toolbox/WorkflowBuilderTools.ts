@@ -115,6 +115,8 @@ import {
 import WidgetBuilder from "./WidgetBuilder";
 import crypto from "crypto";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * ASK AI BUILDS A WORKFLOW, AND CHANGES ONE.
  *
@@ -696,7 +698,8 @@ export const FindWorkflowComponentsTool: ObservabilityTool = {
     return {
       dataForLlm: text,
       rowCount: rows.length,
-      citationLabel: "Workflow components",
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.workflowComponents),
       redactionCount: 0,
       isTruncated: false,
     };
@@ -832,7 +835,7 @@ export const CheckWorkflowDraftTool: ObservabilityTool = {
     return {
       dataForLlm: text,
       rowCount: problems.length,
-      citationLabel: "Workflow draft",
+      ...citationSentence(AI_TOOL_CITATIONS.workflowDraft),
       redactionCount: 0,
       isTruncated: false,
     };
@@ -1064,7 +1067,7 @@ export const CreateWorkflowTool: ObservabilityTool = {
         isOn: false,
       }),
       rowCount: 1,
-      citationLabel: `Created workflow "${name}"`,
+      ...citationSentence(AI_TOOL_CITATIONS.createdWorkflow, { name }),
       citationTarget: {
         type: AIChatCitationTargetType.WorkflowBuilder,
         params: { workflowId: id },
@@ -2038,7 +2041,9 @@ export const UpdateWorkflowTool: ObservabilityTool = {
         isOn: Boolean(workflow.isEnabled),
       }),
       rowCount: 1,
-      citationLabel: `Updated workflow "${shownName}"`,
+      ...citationSentence(AI_TOOL_CITATIONS.updatedWorkflow, {
+        name: shownName,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.WorkflowBuilder,
         params: { workflowId: id },

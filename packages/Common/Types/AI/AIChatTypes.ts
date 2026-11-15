@@ -243,6 +243,7 @@ export function isAIChatReadResourceCard(data: AIChatWidgetData): boolean {
  * - TraceWaterfall: `spans` + `totalDurationMs`
  * - IncidentList / AlertList / ExceptionList: `items`
  * - StatCards: `stats`
+ * - every widget but a ResourceCard: `tableWords`, its title and line
  * - ResourceCard: `resourceType`, `heading`, `subheading`, `fields`, `link`
  *   (+ `origin`, `statusColor`, `words`)
  */
@@ -275,7 +276,9 @@ export interface AIChatWidgetData {
    * (Types/AI/AIActionWords), which the chat says in the reader's
    * language. The title, description and rows store the same words in
    * English - what the exports print and the model reads, and what a
-   * table saved before it had words reads as.
+   * table saved before it had words reads as. A chart, a list of
+   * incidents, alerts or exceptions, a trace waterfall and stat cards
+   * carry their title and line the same way, with no cells (issue #8312).
    */
   tableWords?: AIActionTableWords | undefined;
   /*
