@@ -1,9 +1,9 @@
 # 服务器 / 虚拟机监控
 
-Server / VM 监视器通过 OneUptime 基础设施代理（`oneuptime-infrastructure-agent`）监控一台机器。这个代理是一个小型服务，每 30 秒向 OneUptime 报告一次 CPU、内存、磁盘、负载、网络和正在运行的进程。本页介绍如何将代理连接到 Server / VM 监视器、代理报告哪些内容，以及如何编写判断服务器在线或离线的条件。
+服务器 / 虚拟机 监视器通过 OneUptime 基础设施代理（`oneuptime-infrastructure-agent`）监控一台机器。这个代理是一个小型服务，每 30 秒向 OneUptime 报告一次 CPU、内存、磁盘、负载、网络和正在运行的进程。本页介绍如何将代理连接到 服务器 / 虚拟机 监视器、代理报告哪些内容，以及如何编写判断服务器在线或离线的条件。
 
 > [!IMPORTANT]
-> **创建监视器** 中已不再提供 **服务器 / 虚拟机**。你已有的 Server / VM 监视器会继续工作，本页的所有内容都适用于它们。要监控新的服务器，请改为创建 [主机监视器](/docs/monitor/host-monitor)：它根据 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 发送的主机指标发出警报。
+> **创建监视器** 中已不再提供 **服务器 / 虚拟机**。你已有的 服务器 / 虚拟机 监视器会继续工作，本页的所有内容都适用于它们。要监控新的服务器，请改为创建 [主机监视器](/docs/monitor/host-monitor)：它根据 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 发送的主机指标发出警报。
 
 :::cards
 - [连接代理](#连接代理): 安装代理，提供监视器的密钥，然后启动它。
@@ -16,7 +16,7 @@ Server / VM 监视器通过 OneUptime 基础设施代理（`oneuptime-infrastruc
 
 代理作为系统服务运行。它每 30 秒收集一份报告，用监视器的密钥签名后发送到你的 OneUptime URL。OneUptime 将这些数值存为监视器的指标，并用监视器的条件检查报告。
 
-静默会单独检查。OneUptime 每分钟会重新评估所有 3 分钟或更长时间没有报告的 Server / VM 监视器的 **是否在线** 条件；静默时间超过其条件允许范围（默认 3 分钟）的服务器会被视为离线。没有 **是否在线** 条件的监视器不会仅仅因为代理静默而被标记为离线。只有 OneUptime 正在接收数据的时间才计入这段静默：OneUptime 自身重启、升级或追赶积压的时间不计入，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+静默会单独检查。OneUptime 每分钟会重新评估所有 3 分钟或更长时间没有报告的 服务器 / 虚拟机 监视器的 **是否在线** 条件；静默时间超过其条件允许范围（默认 3 分钟）的服务器会被视为离线。没有 **是否在线** 条件的监视器不会仅仅因为代理静默而被标记为离线。只有 OneUptime 正在接收数据的时间才计入这段静默：OneUptime 自身重启、升级或追赶积压的时间不计入，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ```mermaid title="Server / VM 监视器如何获取数据"
 flowchart TB
@@ -28,7 +28,7 @@ flowchart TB
 
 ## 开始之前
 
-- 项目中有一个 Server / VM 监视器。
+- 项目中有一个 服务器 / 虚拟机 监视器。
 - 编辑监视器的权限。密钥以及包含密钥的设置命令只对能编辑监视器的人显示。
 - 服务器上的 root 权限（Linux、macOS）或管理员权限（Windows）。代理会把自己安装为系统服务。
 - 服务器能通过 HTTPS 出站访问你的 OneUptime URL，可以直接访问，也可以通过 HTTP 代理。
@@ -40,7 +40,7 @@ flowchart TB
 :::steps
 ### 打开监视器的设置命令
 
-进入 **监视器**，打开 Server / VM 监视器并选择 **文档**。**Set up your Server Monitor (Linux/Mac)** 和 **Set up your Server Monitor (Windows)** 卡片中有这个监视器的命令。在代理首次报告之前，监视器的 **概览** 中也会显示这些命令。
+进入 **监视器**，打开 服务器 / 虚拟机 监视器并选择 **文档**。**Set up your Server Monitor (Linux/Mac)** 和 **Set up your Server Monitor (Windows)** 卡片中有这个监视器的命令。在代理首次报告之前，监视器的 **概览** 中也会显示这些命令。
 
 ### 安装代理
 

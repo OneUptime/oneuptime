@@ -93,7 +93,7 @@ En verdi kan ha hvilken som helst størrelse - en svartekst eller en logg på ma
 - **E-post**: hver beskrivelse, merknad eller rotårsak bærer opptil rundt 256 KB av e-postens tekst, og merknaden på slutten av en lengre tekst lenker til hendelsen eller varselet. En hel e-post - teksten og skjermbildene - holder seg under 3 MB, som alle e-postservere og Microsoft Graph tar imot: et skjermbilde som ikke får plass ved siden av teksten, utelates, med en merknad i stedet.
 - **Siden til hendelsen eller varselet** viser alt. En beskrivelse på over 128 KB som ville ta lang tid å sette opp, vises som ren tekst, linje for linje.
 - **Slack** bærer høyst det Slack viser av en melding (rundt 30 000 tegn). **Microsoft Teams** bærer rundt 40 000 tegn i en melding fra OneUptime-appen og rundt 12 000 gjennom en innkommende webhook (abonnenter på statussider, arbeidsflyter) - målt når meldingen sendes, så en tabell teller som HTML-en den blir til.
-- **SMS, telefonsamtaler, push-varsler, WhatsApp og Telegram** bærer det leverandørene deres tar imot: se [Slik varsler nivåene folk](/docs/on-call/escalation-rules#slik-varsler-nivåene-folk).
+- **SMS, telefonsamtaler, push-varslinger, WhatsApp og Telegram** bærer det leverandørene deres tar imot: se [Slik varsler nivåene folk](/docs/on-call/escalation-rules#slik-varsler-nivåene-folk).
 
 Hver kanal gjengir teksten på en tid som vokser med lengden. En del som ville ta en renderer langt lengre tid - en linje på over 64 KB, et langt avsnitt med rene linjer, et avsnitt fullt av `*`, `_` eller `[` som aldri lukkes, sitater eller lister nestet mer enn seksten nivåer, og på siden til hendelsen eller varselet en tabell eller liste på mer enn tusen linjer - leses som ren tekst der den står, og resten av beskrivelsen gjengis som vanlig.
 
@@ -452,17 +452,17 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 
 ### Målings- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagringsarray- og IoT-enhet-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
 | `metricName` | Navnet på målingen monitorens første spørring leser, som `container.cpu.time`. | `string` |
 
-Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT Device-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
+Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT-enhet-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
 
 ### Andre monitortyper
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- og SQL Query-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
+Logs-, Traces-, Exceptions-, Sikkerhetshendelser-, AI / LLM- og SQL-spørring-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
 
 ## Eksempler
 

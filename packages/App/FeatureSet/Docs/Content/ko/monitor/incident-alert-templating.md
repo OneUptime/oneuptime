@@ -1,4 +1,4 @@
-# 인시던트 및 알림 템플릿
+# 인시던트 및 경고 템플릿
 
 모니터의 기준이 인시던트를 선언하거나 경고를 생성하면, 제목, 설명, 해결 노트를 직접 작성한 템플릿으로 채웁니다. 템플릿에 `{{variable}}` 자리표시자(예: `{{monitorName}}`, `{{responseStatusCode}}`)를 넣으면, 각 인시던트가 그것을 연 검사의 값으로 무엇이 잘못되었는지 알려 줍니다.
 
@@ -16,10 +16,10 @@
 ```mermaid title="검사에서 인시던트의 텍스트까지"
 flowchart TB
     check["모니터의 검사"] --> criteria{"기준이 일치"}
-    criteria -->|"인시던트 선언<br/>또는 알림 생성"| vars["모니터와 이 검사의<br/>변수"]
+    criteria -->|"인시던트 선언<br/>또는 경고 생성"| vars["모니터와 이 검사의<br/>변수"]
     vars --> title["제목:<br/>일반 텍스트"]
     vars --> body["설명과 해결 노트:<br/>Markdown, 값은 텍스트로"]
-    title --> record["인시던트 또는 알림"]
+    title --> record["인시던트 또는 경고"]
     body --> record
 ```
 
@@ -34,7 +34,7 @@ flowchart TB
 
 **모니터** 로 이동해 모니터를 열고, 사이드 메뉴에서 **기준** 을 클릭합니다. **기준 편집** 을 클릭합니다.
 
-### 인시던트 또는 알림 켜기
+### 인시던트 또는 경고 켜기
 
 기준의 **작업** 에서 **필터가 일치하면 인시던트를 선언합니다.** 또는 **필터가 일치하면 경고를 생성합니다.** 를 켭니다. 그 아래에 인시던트 또는 경고 양식이 열립니다.
 
@@ -91,7 +91,7 @@ Checkout API returned 502 in 842 ms
 값의 크기에는 제한이 없으며(응답 본문이나 수 메가바이트의 로그 등), 알림은 그 값을 담은 채로 발송됩니다. 각 채널은 받아들일 수 있는 만큼만 전달하며, 채널에 비해 너무 긴 설명은 줄바꿈이 있으면 그 위치에서 잘리고 "… (truncated — see OneUptime for the full text)" 로 끝납니다.
 
 - **이메일**: 각 설명, 노트, 근본 원인은 이메일 본문 중 약 256 KB까지 전달하며, 더 긴 경우 끝의 안내가 인시던트나 경고로 연결됩니다. 이메일 전체(본문과 스크린샷)는 모든 메일 서버와 Microsoft Graph가 받아들이는 3 MB 미만을 유지합니다. 본문과 함께 들어가지 않는 스크린샷은 빠지고, 그 자리에 안내가 들어갑니다.
-- **인시던트나 알림의 페이지** 에는 전부 표시됩니다. 128 KB를 넘고 배치에 시간이 오래 걸리는 설명은 일반 텍스트로 한 줄씩 표시됩니다.
+- **인시던트나 경고의 페이지** 에는 전부 표시됩니다. 128 KB를 넘고 배치에 시간이 오래 걸리는 설명은 일반 텍스트로 한 줄씩 표시됩니다.
 - **Slack** 은 Slack이 메시지에서 보여 주는 만큼(약 30,000자)까지 전달합니다. **Microsoft Teams** 는 OneUptime 앱에서 보낸 메시지로 약 40,000자, 수신 웹후크(상태 페이지 구독자, 워크플로)로 약 12,000자를 전달합니다. 메시지를 보낼 때 측정하므로, 표는 변환된 HTML 기준으로 셉니다.
 - **SMS, 전화, 푸시 알림, WhatsApp, Telegram** 은 각 공급자가 받아들이는 만큼 전달합니다. [레벨이 사람을 호출하는 방식](/docs/on-call/escalation-rules#단계가-사람을-호출하는-방식)을 참고하세요.
 
@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### 메트릭 및 인프라 모니터
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, 스토리지 어레이, IoT 디바이스 모니터에는 고유한 변수가 하나 있습니다.
 
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |
 | `metricName` | 모니터의 첫 번째 쿼리가 읽는 메트릭의 이름(예: `container.cpu.time`). | `string` |
 
-그룹화되면 각 **그룹화 기준** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT Device 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
+그룹화되면 각 **그룹화 기준** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT 디바이스 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
 
 ### 기타 모니터 유형
 
-Logs, Traces, Exceptions, Security Events, AI / LLM, SQL Query 모니터에는 고유한 변수가 없습니다. [모든 모니터의 변수](#모든-모니터의-변수)를 사용하고, 그룹화된 Logs 모니터에서는 [그룹 값](#그룹화된-모니터의-값)을 사용하세요.
+Logs, Traces, Exceptions, 보안 이벤트, AI / LLM, SQL 쿼리 모니터에는 고유한 변수가 없습니다. [모든 모니터의 변수](#모든-모니터의-변수)를 사용하고, 그룹화된 Logs 모니터에서는 [그룹 값](#그룹화된-모니터의-값)을 사용하세요.
 
 ## 예시
 
@@ -547,7 +547,7 @@ SNMP walk: {{responseTimeInMs}} ms
 {{/each}}
 ```
 
-### Alertmanager 또는 Grafana 알림
+### Alertmanager 또는 Grafana 경고
 
 ```text title="Title"
 [{{requestBody.status}}] {{requestBody.receiver}}

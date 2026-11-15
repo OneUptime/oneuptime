@@ -1038,8 +1038,8 @@ describe("Alert Episode overview: loading and layout", () => {
       expect(screen.getByText("Triaged in")).toBeInTheDocument();
     });
 
-    expect(statValue("Triaged in")).toBe("42 minutes");
-    expect(statValue("Fixed in")).toBe("2 hours, 5 minutes");
+    expect(statValue("Triaged in")).toBe("42\u00A0minutes");
+    expect(statValue("Fixed in")).toBe("2\u00A0hours, 5\u00A0minutes");
     expect(statValue("Created")).toBe(getEventStartTileText(startedAt));
     expect(statValue("Alerts")).toBe("3");
   });

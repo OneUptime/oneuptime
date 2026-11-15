@@ -655,13 +655,13 @@ En fundet vært navngives efter det første af disse, den har:
 3. Dens reverse DNS-navn, den PTR-post, som sonden slår op efter scanningen.
 4. Dens IP-adresse.
 
-Enhedens egne navne kommer først, fordi det er de navne, dens ejere bruger: en Windows-vært, der hedder `WB0024KDS03`, beholder det navn, også når dens reverse-zone kalder den `wb-0024-kds03.wbhq.com`. Reverse DNS-navnet bevares også: **Gennemgå resultater** viser det ved siden af adressen, og enheden beholder det som sit **DNS Name**. NetBIOS afkorter et computernavn til 15 tegn, så et NetBIOS-navn, der er begyndelsen på et længere reverse DNS-navn (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`), viger for reverse DNS-navnet.
+Enhedens egne navne kommer først, fordi det er de navne, dens ejere bruger: en Windows-vært, der hedder `WB0024KDS03`, beholder det navn, også når dens reverse-zone kalder den `wb-0024-kds03.wbhq.com`. Reverse DNS-navnet bevares også: **Gennemgå resultater** viser det ved siden af adressen, og enheden beholder det som sit **DNS-navn**. NetBIOS afkorter et computernavn til 15 tegn, så et NetBIOS-navn, der er begyndelsen på et længere reverse DNS-navn (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`), viger for reverse DNS-navnet.
 
 **Gennemgå resultater** viser det navn, en enhed vil få, og den får det samme navn, uanset om du importerer den dér, eller en [auto-importregel](#importér-automatisk-med-auto-importregler) gør det. Enhedens værtsnavn er altid dens IP-adresse. Så længe en enheds navn stadig er det, discovery gav den, viser dens oversigt, hvor navnet kom fra, som **Navnekilde**.
 
 **Navngiv enheder efter deres korte værtsnavn** afkorter et fuldt kvalificeret navn til dets første label: `core-sw-01.corp.example.com` importeres som `core-sw-01`. Det gælder et reverse DNS-navn og et `sysName`, der er et fuldt kvalificeret værtsnavn; alt andet (`Core Switch`, `ubuntu-22.04`, en IP-adresse) forbliver, som det er. Det ændrer kun, hvad enheder hedder, så der kræves ingen ny scanning: **Gennemgå resultater** og auto-importregler bruger det, næste gang de navngiver en vært, og enheder, der allerede er importeret, beholder deres navne.
 
-En enhed, der er importeret fra en vært med et reverse DNS-navn, beholder det fulde navn som sit **DNS Name**, uanset om scanningen bruger korte navne. Det vises på enhedens oversigt, søgningen på listen **Enheder** finder det, og lokationstildelingsregler matcher værtsnavnsmønstre mod det, så en regel `*.store-0660.corp.example.com` bliver ved med at placere en enhed, hvis navn har mistet sit domæne. Et NetBIOS-navn gemmes aldrig som DNS Name: værten rapporterer det om sig selv, og det er ikke en DNS-post.
+En enhed, der er importeret fra en vært med et reverse DNS-navn, beholder det fulde navn som sit **DNS-navn**, uanset om scanningen bruger korte navne. Det vises på enhedens oversigt, søgningen på listen **Enheder** finder det, og lokationstildelingsregler matcher værtsnavnsmønstre mod det, så en regel `*.store-0660.corp.example.com` bliver ved med at placere en enhed, hvis navn har mistet sit domæne. Et NetBIOS-navn gemmes aldrig som DNS Name: værten rapporterer det om sig selv, og det er ikke en DNS-post.
 
 > [!WARNING]
 > Etiket- og ejerregler matcher på enhedens navn. Et mønster, der er skrevet til DNS-navne (`*.wbhq.com`) eller fulde navne (`*.corp.example.com`), matcher ikke en enhed, der er navngivet efter sit eget navn eller sit korte navn. Lokationstildelingsregler prøver også DNS Name, så de bliver ved med at matche.
@@ -795,7 +795,7 @@ Uden politikker endnu tilbyder siden **Create the recommended policy**: en monit
 
 ### Én enhed ad gangen
 
-Åbn enhedens side, og klik på **Opret monitor** på kortet **Monitors alerting on this device**. Monitorformularen åbner med typen Network Device og enheden valgt og den [anbefalede advarselspakke](#anbefalet-advarselspakke) udfyldt: gennemgå den, sæt alvorsgrader og vagtpolitikker, og gem.
+Åbn enhedens side, og klik på **Opret monitor** på kortet **Monitors alerting on this device**. Monitorformularen åbner med typen Netværksenhed og enheden valgt og den [anbefalede advarselspakke](#anbefalet-advarselspakke) udfyldt: gennemgå den, sæt alvorsgrader og vagtpolitikker, og gem.
 
 De fleste switche, routere, firewalls og printere har også en webgrænseflade på deres egen adresse. **Overvåg webgrænseflade**, på samme kort, åbner en **Websted**-monitor for den: `https://` på enhedens adresse, med **Tillad selvsignerede certifikater** slået til, da en enheds webgrænseflade næsten altid har et, kontrolleret fra enhedens egen sonde og opkaldt efter enheden. Ret URL'en, hvis grænsefladen svarer på `http`, på en anden port eller under en sti, og gem så. Kortet viser monitoren, så længe dens navn indeholder enhedens navn, og dens URL er på enhedens adresse; den ændrer ikke enhedens status.
 

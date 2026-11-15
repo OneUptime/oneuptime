@@ -5,7 +5,7 @@ OneUptime에는 많은 제품이 있지만, 모두 몇 가지 개념 위에 서 
 :::cards
 - [프로젝트와 사람](#프로젝트와-사람): 모든 것이 있는 곳, 그리고 누가 무엇을 할 수 있는지.
 - [모니터와 프로브](#모니터와-프로브): OneUptime이 문제를 알아채는 방법.
-- [인시던트와 알림](#인시던트와-알림): 팀이 작업의 기준으로 삼는 기록.
+- [인시던트와 경고](#인시던트와-경고): 팀이 작업의 기준으로 삼는 기록.
 - [온콜](#온콜): 누가, 어떻게 호출되고, 다음은 누구인지.
 :::
 
@@ -18,7 +18,7 @@ flowchart TB
     probes["프로브가 확인 실행"] --> monitors["모니터"]
     telemetry["앱과 에이전트가<br/>텔레메트리 전송"] --> monitors
     monitors -->|"선언"| incident["인시던트"]
-    monitors -->|"생성"| alert["알림"]
+    monitors -->|"생성"| alert["경고"]
     incident --> policy["온콜 정책"]
     alert --> policy
     incident --> statuspage["상태 페이지"]
@@ -84,7 +84,7 @@ flowchart TB
 - [SLO 개요](/docs/slo/introduction): 목표를 정하고 예산이 얼마나 남았는지 확인합니다.
 :::
 
-## 인시던트와 알림
+## 인시던트와 경고
 
 둘 다 문제를 기록하며, 둘 다 온콜 담당자를 호출할 수 있습니다. 차이는 그 문제가 누구에게 영향을 주는가입니다.
 
@@ -102,7 +102,7 @@ flowchart TB
 :::cards
 - [인시던트 개요](/docs/incidents/index): 인시던트를 선언하고, 처리하고, 해결하는 방법.
 - [경고 개요](/docs/alerts/index): 경고가 생기는 곳과 에피소드가 경고를 묶는 방식.
-- [연결된 알림](/docs/incidents/linked-alerts): 장애가 일으킨 경고를 그 인시던트에 연결합니다.
+- [연결된 경고](/docs/incidents/linked-alerts): 장애가 일으킨 경고를 그 인시던트에 연결합니다.
 :::
 
 ## 온콜
@@ -153,7 +153,7 @@ flowchart TB
 OneUptime의 대부분은 아무것도 설치할 필요가 없습니다. OneUptime이 외부에서 볼 수 없는 것에 닿아야 할 때만 무언가를 설치하며, 각 구성 요소는 키를 사용해 OneUptime으로 바깥 방향 연결을 맺습니다.
 
 - 사용자 지정 프로브는 자체 프로브 ID와 키로 네트워크 안에서 모니터의 확인을 실행합니다.
-- **OpenTelemetry Collector**, Kubernetes 에이전트, Docker 에이전트는 **수집 키**로 텔레메트리를 보냅니다. Server / VM 모니터 뒤의 인프라 에이전트는 그 모니터의 비밀 키로 보냅니다.
+- **OpenTelemetry Collector**, Kubernetes 에이전트, Docker 에이전트는 **수집 키**로 텔레메트리를 보냅니다. 서버 / VM 모니터 뒤의 인프라 에이전트는 그 모니터의 비밀 키로 보냅니다.
 - **Runner**는 자체 Runner ID와 키로 인프라 안에서 런북 단계를 실행합니다.
 
 수집 키는 텔레메트리를 들여보내기만 합니다. **API 키**는 다른 종류로, 스크립트, CLI, Terraform 또는 AI 어시스턴트가 부여한 권한으로 프로젝트를 읽고 변경할 수 있게 합니다. 어느 쪽도 다른 쪽을 대신할 수 없습니다.

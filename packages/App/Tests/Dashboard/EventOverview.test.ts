@@ -368,7 +368,7 @@ describe("getTimeToStateText", () => {
         reachedAt: minutesAfterStart(65),
         fallbackStateName: "acknowledged",
       }),
-    ).toBe("1 hour, 5 minutes");
+    ).toBe("1\u00A0hour, 5\u00A0minutes");
   });
 
   test("says less than a minute for an immediate response", () => {
@@ -577,7 +577,7 @@ describe("the time to acknowledge after paging", () => {
         reachedAt: pagedInTheMorning.acknowledgedAt,
         fallbackStateName: "acknowledged",
       }),
-    ).toBe("10 hours, 4 minutes");
+    ).toBe("10\u00A0hours, 4\u00A0minutes");
 
     expect(
       getAcknowledgedAfterPagingText(
@@ -587,7 +587,7 @@ describe("the time to acknowledge after paging", () => {
         },
         ENGLISH,
       ),
-    ).toBe("4 minutes after paging");
+    ).toBe("4\u00A0minutes after paging");
   });
 
   test("says nothing for a record nobody was paged about", () => {
@@ -645,7 +645,7 @@ describe("the time to acknowledge after paging", () => {
         },
         ENGLISH,
       ),
-    ).toBe("1 hour after paging");
+    ).toBe("1\u00A0hour after paging");
   });
 
   test("says less than a minute for an answer within the minute, and an answer at the page itself", () => {
@@ -676,7 +676,7 @@ describe("the time to acknowledge after paging", () => {
         },
         ENGLISH,
       ),
-    ).toBe("1 day, 2 hours after paging");
+    ).toBe("1\u00A0day, 2\u00A0hours after paging");
     expect(
       getAcknowledgedAfterPagingText(
         {
@@ -685,7 +685,7 @@ describe("the time to acknowledge after paging", () => {
         },
         ENGLISH,
       ),
-    ).toBe("2 hours, 59 minutes after paging");
+    ).toBe("2\u00A0hours, 59\u00A0minutes after paging");
   });
 
   test("reads in the reader's language when the Dashboard words the sentence", () => {
@@ -722,7 +722,7 @@ describe("the time to acknowledge after paging", () => {
         },
         untranslated,
       ),
-    ).toBe("4 minutes after paging");
+    ).toBe("4\u00A0minutes after paging");
   });
 });
 
@@ -819,7 +819,7 @@ describe("how long impact had gone on when the record started", () => {
         },
         ENGLISH,
       ),
-    ).toBe("3 minutes after impact began");
+    ).toBe("3\u00A0minutes after impact began");
     expect(
       getImpactBeforeStartParts({
         impactStartedAt: minutesAfterStart(0),
@@ -837,7 +837,7 @@ describe("how long impact had gone on when the record started", () => {
         },
         ENGLISH,
       ),
-    ).toBe("1 day, 2 hours after impact began");
+    ).toBe("1\u00A0day, 2\u00A0hours after impact began");
   });
 
   test("says less than a minute for a declaration within the minute", () => {

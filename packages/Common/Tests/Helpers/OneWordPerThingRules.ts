@@ -24,7 +24,10 @@
  *     say "SLO" and "SLOها".
  *
  * And Norwegian named its metrics "metrikker" beside its Metrics page's
- * "Målinger" (#8691).
+ * "Målinger" (#8691). Russian and Traditional Chinese named the runbook
+ * Runner three ways, two of them with the runbook word they dropped
+ * (агент сценария, 操作手冊代理程式), where 200 of their strings say
+ * "Runner" (#8706).
  *
  * Each language now says one word. A word like 알림 or "overvågning" also
  * has a meaning of its own (a notification, the act of monitoring), so a
@@ -52,7 +55,16 @@ export interface SentenceRule {
    * is right for (a Korean line about push notifications or reminders).
    */
   docsExcept?: RegExp;
+  /*
+   * The English docs lines that name the thing, where they read otherwise
+   * than its keys: the docs write OneUptime's Runner with a capital R, and
+   * a workflow's or a CI's runner in lower case.
+   */
+  docsEnglish?: RegExp;
 }
+
+// A Runner's English that names another agent, or AWS's App Runner.
+const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy/i;
 
 export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
   {
@@ -154,5 +166,24 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\bmetrics?\b/i,
     word: /måling/i,
     dropped: /metrikk/i,
+  },
+  {
+    // Runner, declined as its other strings decline it: Runner-а, Runner-ы.
+    language: "ru",
+    thing: "Runners",
+    english: /\brunners?\b/i,
+    except: NOT_THE_RUNNER,
+    word: /Runner/,
+    dropped: /агент|раннер/i,
+    docsEnglish: /\bRunners?\b/,
+  },
+  {
+    language: "zh-TW",
+    thing: "Runners",
+    english: /\brunners?\b/i,
+    except: NOT_THE_RUNNER,
+    word: /Runner/,
+    dropped: /代理|執行器/,
+    docsEnglish: /\bRunners?\b/,
   },
 ];

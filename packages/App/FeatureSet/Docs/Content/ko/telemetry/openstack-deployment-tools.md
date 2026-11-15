@@ -36,23 +36,23 @@
 
 ## 이미 발생 중인 알림 전달
 
-Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있습니다. 발생한 알림이 인시던트가 되어 첫 한 시간부터 온콜과 상태 페이지를 사용할 수 있고, 알림이 해결되면 인시던트도 해결됩니다. 설치할 것이 없으며 이 페이지의 다른 모든 것과 함께 작동합니다.
+Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있습니다. 발생한 경고가 인시던트가 되어 첫 한 시간부터 온콜과 상태 페이지를 사용할 수 있고, 경고가 해결되면 인시던트도 해결됩니다. 설치할 것이 없으며 이 페이지의 다른 모든 것과 함께 작동합니다.
 
 :::steps
 ### 모니터 만들기
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-알림-받기)의 안내대로 Incoming Request 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-경고-받기)의 안내대로 수신 요청 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
 
 ### 클라우드에 연결하기
 
-모니터의 **개요 → 연결된 리소스**를 열고 OpenStack 클라우드를 추가합니다. 그러면 각 인시던트가 해당 클라우드의 **인시던트** 페이지에 표시됩니다. Incoming Request 모니터 자체의 설정에는 클라우드가 지정되지 않으므로, 클라우드마다 Alertmanager용 모니터가 따로 필요합니다. 클라우드는 첫 데이터가 도착하면 그 목록에 나타나므로, 아래 단계를 마친 뒤에 하거나 **OpenStack → All Clouds**에서 먼저 클라우드를 추가하세요.
+모니터의 **개요 → 연결된 리소스**를 열고 OpenStack 클라우드를 추가합니다. 그러면 각 인시던트가 해당 클라우드의 **인시던트** 페이지에 표시됩니다. 수신 요청 모니터 자체의 설정에는 클라우드가 지정되지 않으므로, 클라우드마다 Alertmanager용 모니터가 따로 필요합니다. 클라우드는 첫 데이터가 도착하면 그 목록에 나타나므로, 아래 단계를 마친 뒤에 하거나 **OpenStack → All Clouds**에서 먼저 클라우드를 추가하세요.
 :::
 
 Kolla-Ansible가 고정한 버전의 Alertmanager가 정확히 이 형태로 전송하는 것을 기록했으며, 전송된 내용은 실행 중인 OneUptime에서 인시던트를 하나 열었고 Alertmanager 자체의 `resolved` 상태가 이를 해결했습니다.
 
 ## Kolla-Ansible
 
-`/etc/kolla/globals.yml`에서 `enable_prometheus`를 켜면(설정하기 전에는 Kolla-Ansible가 꺼 둡니다) Prometheus, Alertmanager, 클라우드 아래 각 구성 요소의 익스포터가 실행되며 알림 규칙은 제공되지 않습니다. 이 가이드는 두 번째 사본을 시작하는 대신 이미 실행 중인 것을 읽습니다.
+`/etc/kolla/globals.yml`에서 `enable_prometheus`를 켜면(설정하기 전에는 Kolla-Ansible가 꺼 둡니다) Prometheus, Alertmanager, 클라우드 아래 각 구성 요소의 익스포터가 실행되며 경고 규칙은 제공되지 않습니다. 이 가이드는 두 번째 사본을 시작하는 대신 이미 실행 중인 것을 읽습니다.
 
 ### Kolla-Ansible에서 발생 중인 알림 전달
 

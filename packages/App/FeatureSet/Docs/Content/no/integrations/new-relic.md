@@ -183,7 +183,7 @@ Hver ny sak som når OneUptime, varsler. Begrens filteret til arbeidsflyten i Ne
 :::
 
 :::details Vakten blir ikke varslet
-- En varsling for en sak som har sin hendelse, varsler ingen på nytt, så en heving til CRITICAL varsler ingen.
+- En varsling for en sak som har sin hendelse, varslinger ingen på nytt, så en heving til CRITICAL varslinger ingen.
 - Hvis ingen ble valgt i dialogen **Opprett en arbeidsflyt**, har arbeidsflyten ikke noe steg som varsler.
 :::
 

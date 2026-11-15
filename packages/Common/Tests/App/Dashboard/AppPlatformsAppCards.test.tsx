@@ -700,7 +700,7 @@ describe("an app's header", () => {
       "cloud-app-header-revision",
     );
     expect(revision.textContent).toBe(
-      "Revision 43 · Deployed 25 minutes ago · Replaced 42",
+      "Revision 43 · Deployed 25\u00A0minutes ago · Replaced 42",
     );
     expect(revision).toHaveAttribute("data-change", "deployed");
     // What it replaced is quieter, but readable: never gray-400 on white.
@@ -742,7 +742,7 @@ describe("an app's header", () => {
       "cloud-app-header-revision",
     );
     expect(revision.textContent).toBe(
-      "Revision 42 · Rolled back 10 minutes ago · Replaced 43",
+      "Revision 42 · Rolled back 10\u00A0minutes ago · Replaced 43",
     );
     expect(revision).toHaveAttribute("data-change", "rolled-back");
     expect(

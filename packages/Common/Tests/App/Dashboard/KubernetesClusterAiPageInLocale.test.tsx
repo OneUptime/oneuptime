@@ -169,7 +169,7 @@ const AI_SETTINGS_PATHS: Record<string, { incidents: string; alerts: string }> =
       incidents: "インシデント → AI → 設定",
       alerts: "アラート → AI → 設定",
     },
-    ko: { incidents: "인시던트 → AI → 설정", alerts: "알림 → AI → 설정" },
+    ko: { incidents: "인시던트 → AI → 설정", alerts: "경고 → AI → 설정" },
     "zh-CN": {
       incidents: "事件 → 人工智能 → 设置",
       alerts: "警报 → 人工智能 → 设置",

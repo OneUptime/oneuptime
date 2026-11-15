@@ -19,7 +19,7 @@ En vaktpolicy tilkaller deg når en av eskaleringsreglene dens nevner deg, et te
 
 ```mermaid title="Én kritisk tilkalling, tre regler, til du bekrefter"
 flowchart TB
-    page["En kritisk hendelse<br/>tilkaller deg"] --> first["Med en gang:<br/>push-varsel"]
+    page["En kritisk hendelse<br/>tilkaller deg"] --> first["Med en gang:<br/>push-varsling"]
     first --> second["Etter 5 minutter:<br/>SMS"]
     second --> third["Etter 10 minutter:<br/>telefonanrop"]
     ack["Du bekrefter"] -.->|"stopper resten"| third
@@ -89,18 +89,18 @@ Gå til **Brukerinnstillinger → Slik når man meg**, åpne fanen for typen til
 
 ### Velg metoden
 
-Klikk **Legg til varselregel**. Velg en av de verifiserte metodene dine under **Varselmetode**; en metode du ikke har verifisert, blir ikke tilbudt.
+Klikk **Legg til varslingsregel**. Velg en av de verifiserte metodene dine under **Varslingsmetode**; en metode du ikke har verifisert, blir ikke tilbudt.
 
 ### Velg hvordan en push høres ut
 
-For en telefon velger du under **Push-varsel** enten **Kritisk varsel** eller **Normal**. For enhver push-enhet velger du **Gjenta til det bekreftes**. Se [Push-regler](#push-regler).
+For en telefon velger du under **Push-varsling** enten **Kritisk varsel** eller **Normal**. For enhver push-enhet velger du **Gjenta til det bekreftes**. Se [Push-regler](#push-regler).
 
 ### Sett ventetiden
 
-Velg **Varsle meg etter**: **Umiddelbart**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klikk så **Legg til varselregel** i dialogen.
+Velg **Varsle meg etter**: **Umiddelbart**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klikk så **Legg til varslingsregel** i dialogen.
 :::
 
-Kortet viser reglene sine i rekkefølge etter ventetid, med **Varselmetode** og **Varsle etter** for hver.
+Kortet viser reglene sine i rekkefølge etter ventetid, med **Varslingsmetode** og **Varsle etter** for hver.
 
 ## Endre eller slett en regel
 
@@ -126,7 +126,7 @@ En alvorlighetsgrad prosjektet legger til senere, får regler innen noen minutte
 En tilkalling som likevel ikke finner noen regel, sendes til de verifiserte metodene dine uansett, og du får en e-post om det; se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 
 :::details Slå av en alvorlighetsgrad med vilje
-API-et kan lagre en reservasjonsregel, med `isOptOut` satt og uten metode: da blir du ikke tilkalt i det hele tatt for den typen tilkalling og den alvorlighetsgraden, og ingenting trer inn i stedet. Raden viser **Dempet – varsler er slått av for denne regelen**, og å slette den slår tilkallingene på igjen. En alvorlighetsgrad som legges til senere, blir også stum når hver regel du har på den fanen, er en reservasjon.
+API-et kan lagre en reservasjonsregel, med `isOptOut` satt og uten metode: da blir du ikke tilkalt i det hele tatt for den typen tilkalling og den alvorlighetsgraden, og ingenting trer inn i stedet. Raden viser **Dempet – varslinger er slått av for denne regelen**, og å slette den slår tilkallingene på igjen. En alvorlighetsgrad som legges til senere, blir også stum når hver regel du har på den fanen, er en reservasjon.
 :::
 
 :::details Slå av reserveløsningen for et helt prosjekt
@@ -140,7 +140,7 @@ Prosjekteiere og Prosjektadministratorer kan se og endre den samme siden for all
 ## Feilsøking
 
 :::details Telefonen min var stille ved en kritisk tilkalling
-Sjekk at regelens push er **Kritisk varsel** og ikke **Normal**, og at **Kritiske varsler** er slått på for telefonen under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**.
+Sjekk at regelens push er **Kritisk varsel** og ikke **Normal**, og at **Kritiske varsler** er slått på for telefonen under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**.
 :::
 
 :::details Jeg blir tilkalt to ganger for hver hendelse
@@ -148,13 +148,13 @@ Hver verifisert metode har en regel for hver alvorlighetsgrad, sendt med en gang
 :::
 
 :::details Jeg fikk en e-post selv om regelen min sier SMS
-Tilkallingen fant ingen regel for sin type eller alvorlighetsgrad, og falt tilbake på de gratis metodene dine: legg til regelen på riktig fane og riktig kort. Eller e-posten var en oppdatering om noe du eier, og den følger **Varselinnstillinger**, ikke reglene dine. **Vaktlogger** viser bare tilkallinger.
+Tilkallingen fant ingen regel for sin type eller alvorlighetsgrad, og falt tilbake på de gratis metodene dine: legg til regelen på riktig fane og riktig kort. Eller e-posten var en oppdatering om noe du eier, og den følger **Varslingsinnstillinger**, ikke reglene dine. **Vaktlogger** viser bare tilkallinger.
 :::
 
 ## Neste steg
 
 :::cards
-- [Varselmetoder](/docs/notifications/notification-methods): Legg til og verifiser metodene reglene dine peker på.
+- [Varslingsmetoder](/docs/notifications/notification-methods): Legg til og verifiser metodene reglene dine peker på.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vaktpolicy tilkaller folk, nivå for nivå.
 - [Push-varsler](/docs/self-hosted/push-notifications): Kritiske varsler, alarmlyder og gjentakelser på telefoner.
 - [Slik når OneUptime deg](/docs/notifications/index): Hvordan metoder, regler og innstillinger henger sammen.

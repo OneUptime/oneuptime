@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Varje nätverksenhets `descriptiveAttributes` innehåller dess värdnamn, IP-adress, serienummer, MAC-adress, märke, modell, firmware, operativsystem, roll, plats och placering: se [Tillgångsattribut för nätverksenheter](#tillgångsattribut-för-nätverksenheter) nedan. Det som pollaren vet i övrigt, som gränssnitt och grannar, finns på själva Network Device-posten: följ `resourceId` till `/api/network-device/:id/get-item`, eller hämta `/api/network-device/get-list` direkt.
+Varje nätverksenhets `descriptiveAttributes` innehåller dess värdnamn, IP-adress, serienummer, MAC-adress, märke, modell, firmware, operativsystem, roll, plats och placering: se [Tillgångsattribut för nätverksenheter](#tillgångsattribut-för-nätverksenheter) nedan. Det som pollaren vet i övrigt, som gränssnitt och grannar, finns på själva Nätverksenhet-posten: följ `resourceId` till `/api/network-device/:id/get-item`, eller hämta `/api/network-device/get-list` direkt.
 
 ### Som CSV
 
@@ -184,7 +184,7 @@ Attribut läggs till och töms aldrig: ett attribut som slutar rapporteras ligge
 
 ## Tillgångsattribut för nätverksenheter
 
-En nätverksenhet (`entityType: network.device`) speglas från sin Network Device-post, och dess `descriptiveAttributes` använder samma nycklar som en värd använder för samma uppgifter, så en CMDB-kolumn innehåller serienumret oavsett om raden är en server eller en switch:
+En nätverksenhet (`entityType: network.device`) speglas från sin Nätverksenhet-post, och dess `descriptiveAttributes` använder samma nycklar som en värd använder för samma uppgifter, så en CMDB-kolumn innehåller serienumret oavsett om raden är en server eller en switch:
 
 | Fält | Nyckel | Var det kommer ifrån |
 | --- | --- | --- |

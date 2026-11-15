@@ -689,9 +689,9 @@ describe.each(CONTAINER_LISTS)(
         "batch-10",
       ]);
       expect(visibleCells("Last Started")).toEqual([
-        "2 minutes ago",
-        "3 hours ago",
-        "2 days ago",
+        "2\u00A0minutes ago",
+        "3\u00A0hours ago",
+        "2\u00A0days ago",
         "—",
         "—",
       ]);

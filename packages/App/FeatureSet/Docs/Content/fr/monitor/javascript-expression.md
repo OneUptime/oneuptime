@@ -46,7 +46,7 @@ Enregistrez le moniteur. Le filtre est évalué à la prochaine vérification du
 
 ## Variables par type de moniteur
 
-Les expressions JavaScript sont proposées pour les moniteurs de type Site web, API, Requête entrante, Incoming Email, SQL Query et Santé de la base de données.
+Les expressions JavaScript sont proposées pour les moniteurs de type Site web, API, Requête entrante, E-mail entrant, Requête SQL et Santé de la base de données.
 
 ### Moniteurs de site web et d'API
 

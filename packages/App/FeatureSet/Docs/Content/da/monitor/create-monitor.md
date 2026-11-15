@@ -5,7 +5,7 @@ En monitor tjekker noget, du driver, som et websted, en API, en vært eller en K
 > [!NOTE]
 > For at oprette en monitor skal du have rollen Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 
-## Overvågningsinfo
+## Monitorinfo
 
 Første trin spørger, hvad der skal overvåges, og hvad monitoren skal hedde.
 

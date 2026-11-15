@@ -153,7 +153,7 @@ flowchart TB
 OneUptime 的大部分功能都无需安装任何东西。只有在需要访问 OneUptime 从外部看不到的内容时，你才需要安装某样东西，而每个组件都使用一个密钥向外连接到 OneUptime：
 
 - 自定义探测器在你的网络内部运行监视器的检查，使用它自己的探测器 ID 和密钥。
-- **OpenTelemetry Collector**、Kubernetes 代理和 Docker 代理使用 **摄取密钥** 发送遥测。Server / VM 监视器背后的基础设施代理则使用该监视器的密钥发送数据。
+- **OpenTelemetry Collector**、Kubernetes 代理和 Docker 代理使用 **摄取密钥** 发送遥测。服务器 / 虚拟机 监视器背后的基础设施代理则使用该监视器的密钥发送数据。
 - **Runner** 在你的基础设施内部运行运行手册步骤，使用它自己的 Runner ID 和密钥。
 
 摄取密钥只能把遥测发送进来。**API 密钥** 是另一种密钥：它让脚本、CLI、Terraform 或 AI 助手读取和更改你的项目，权限由你授予。两者都不能代替对方。

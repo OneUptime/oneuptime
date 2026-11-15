@@ -125,7 +125,7 @@ describe("formatLastSeen", () => {
     ["2026-09-07T09:59:30Z", "just now"],
     ["2026-09-07T09:48:00Z", "12\u00A0min ago"],
     ["2026-09-07T05:00:00Z", "5\u00A0h ago"],
-    ["2026-09-04T10:00:00Z", "3 days ago"],
+    ["2026-09-04T10:00:00Z", "3\u00A0days ago"],
   ])("%s → %s", (at: string, expected: string) => {
     expect(formatLastSeen(new Date(at), now)).toBe(expected);
   });

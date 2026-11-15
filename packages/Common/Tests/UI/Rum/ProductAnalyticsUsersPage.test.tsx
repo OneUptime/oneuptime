@@ -738,7 +738,9 @@ describe("ProductAnalyticsUsers people", () => {
     const firstSeen: Date = new Date(Date.UTC(2026, 7, 1));
 
     expect(
-      within(card).getAllByText(OneUptimeDate.fromNow(lastSeen))[0],
+      within(card).getAllByText(OneUptimeDate.fromNow(lastSeen), {
+        collapseWhitespace: false,
+      })[0],
     ).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lastSeen),

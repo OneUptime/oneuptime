@@ -201,7 +201,7 @@ spec:
 آنچه از پراکسی می‌گذرد:
 
 - **درخواست‌های خود پراب به OneUptime.**
-- **بررسی‌های HTTP مانیتورها**: مانیتورهای Website، API، External Status Page، Custom Code، گواهی SSL، Synthetic و دامنه. مانیتورهای گواهی SSL و Synthetic از `HTTPS_PROXY_URL` استفاده می‌کنند، یا از `HTTP_PROXY_URL` وقتی فقط آن تنظیم شده باشد.
+- **بررسی‌های HTTP مانیتورها**: مانیتورهای Website، API، صفحه وضعیت خارجی، Custom Code، گواهی SSL، Synthetic و دامنه. مانیتورهای گواهی SSL و Synthetic از `HTTPS_PROXY_URL` استفاده می‌کنند، یا از `HTTP_PROXY_URL` وقتی فقط آن تنظیم شده باشد.
 - **نه بررسی‌های دیگر.** Ping، Port، DNS، SNMP و بررسی‌های دیگری که HTTP نیستند مستقیم وصل می‌شوند.
 
 هر ورودی `NO_PROXY` یک نام میزبان است (`api.internal`)، دامنه‌ای با نقطه یا `*.` در آغاز برای هر نامی زیر آن (`.internal.example.com`)، هر کدام از این‌ها با یک `:port`، یا `*` برای همه چیز. بازه‌های IP خوانده نمی‌شوند: هر نشانی را جداگانه بنویسید. نام‌های با حروف کوچک `http_proxy`، `https_proxy` و `no_proxy`، و همچنین `HTTP_PROXY` و `HTTPS_PROXY` هم کار می‌کنند.
@@ -287,8 +287,8 @@ Docker Engine ۲۷ و نسخه‌های بعدی یک زیرشبکهٔ IPv6 بر
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | مهلت اسکریپت‌های مانیتور Synthetic، به میلی‌ثانیه. |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | روی `true` بگذارید تا Chromium در مانیتورهای Synthetic درون سندباکس خودش اجرا شود. فقط وقتی روشنش کنید که کانتینر پراب با یک پروفایل seccomp اجرا می‌شود که سندباکس را مجاز می‌کند، مانند پروفایل Playwright: بدون آن، Chromium نمی‌تواند شروع شود. تا وقتی خاموش است، پراب هنگام شروع یک هشدار در لاگ می‌نویسد. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | مهلت اسکریپت‌های مانیتور Custom Code، به میلی‌ثانیه. |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | روی `true` بگذارید تا مانیتورهای Website، API، External Status Page و Custom Code روی این پراب بتوانند به نشانی‌های خصوصی برسند. [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access) را ببینید. |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | مانیتورهای SSL Certificate، Website و API روی این پراب، مانند مرورگرها، از صادرکنندهٔ یک گواهی می‌پرسند که آیا آن گواهی را لغو کرده است. برای توقف پرسیدن روی `false` بگذارید، مثلاً روی پرابی بدون دسترسی به اینترنت. صادرکننده‌ای که پراب به آن نمی‌رسد هرگز لغو به حساب نمی‌آید: پراب برای هر پاسخ‌دهنده‌ای که به آن نمی‌رسد چند ثانیه صبر می‌کند، تقریباً هر ۵ دقیقه یک بار. [مانیتور گواهی SSL](/docs/monitor/ssl-certificate-monitor) را ببینید. |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | روی `true` بگذارید تا مانیتورهای Website، API، صفحه وضعیت خارجی و Custom Code روی این پراب بتوانند به نشانی‌های خصوصی برسند. [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access) را ببینید. |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | مانیتورهای گواهی SSL، Website و API روی این پراب، مانند مرورگرها، از صادرکنندهٔ یک گواهی می‌پرسند که آیا آن گواهی را لغو کرده است. برای توقف پرسیدن روی `false` بگذارید، مثلاً روی پرابی بدون دسترسی به اینترنت. صادرکننده‌ای که پراب به آن نمی‌رسد هرگز لغو به حساب نمی‌آید: پراب برای هر پاسخ‌دهنده‌ای که به آن نمی‌رسد چند ثانیه صبر می‌کند، تقریباً هر ۵ دقیقه یک بار. [مانیتور گواهی SSL](/docs/monitor/ssl-certificate-monitor) را ببینید. |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | پراب هم‌زمان چند دستگاه شبکه را پرس‌وجو می‌کند. برای پرابی که دستگاه‌های زیادی را پرس‌وجو می‌کند، آن را بالا ببرید. |
 
 محدودیت‌هایی که یک مانیتور Synthetic در آن‌ها اجرا می‌شود (چندتا هم‌زمان، حافظه و دیسکشان) در صفحهٔ [مانیتور سینتتیک](/docs/monitor/synthetic-monitor) آمده‌اند.

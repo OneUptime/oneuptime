@@ -37,7 +37,7 @@ sequenceDiagram
 
 Gå til **Monitorer**, og klik på **Opret monitor**.
 
-### Vælg Incoming Email
+### Vælg Indgående e-mail
 
 Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Indgående e-mail** under **Indgående overvågning** eller skrive `email` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 

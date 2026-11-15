@@ -10,6 +10,7 @@ import path from "path";
 import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Renders the real dashboard Home (Pages/Home/Layout and Home, with every
@@ -2411,4 +2412,18 @@ test.describe("setup health", () => {
     await expect(page.getByTestId("setup-health-finding")).toHaveCount(0);
     await screenshot(page, "setup-health-nothing");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? HOME : `${HOME}?lang=${language}`;
+  },
 });

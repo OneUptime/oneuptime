@@ -43,7 +43,7 @@ Klikk på **Rediger Bruker**, og endre det du trenger:
 
 - **E-post**: adressen du logger inn med. Endrer du den, bekrefter du den nye adressen på nytt.
 - **Fullt navn**: navnet teamet ditt ser overalt i OneUptime.
-- **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varsler til deg.
+- **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varslinger til deg.
 - **Språk**: språket i dashbordet i alle nettlesere du logger inn i, og i vakttilkallingene dine. Ikke valgt: tilkallingene er på engelsk, og dashbordet følger nettleseren din.
 
 Klikk på **Lagre endringer**.
@@ -137,10 +137,10 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 | Side | Hva den brukes til | Les mer |
 | --- | --- | --- |
 | **Oppsettsjekkliste** | Leder deg gjennom alt nedenfor, og viser hva som gjenstår. | |
-| **Varselmetoder** | E-postene, telefonnumrene, appene og webhookene OneUptime kan nå deg på. E-posten du logger inn med, legges til for deg. | |
+| **Varslingsmetoder** | E-postene, telefonnumrene, appene og webhookene OneUptime kan nå deg på. E-posten du logger inn med, legges til for deg. | |
 | **Slik når man meg** | Hvilken metode som brukes, og etter hvor lang tid, når en vaktpolicy varsler deg. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
-| **Varselinnstillinger** | Hvilke oppdateringer om hendelser, varsler, monitorer og mer du får, og på hvilken kanal. | |
-| **E-postinnstillinger** | Hvor mange e-poster du får: én om gangen, eller samlet. | [Varseloppsummering](/docs/emails/notification-rollup) |
+| **Varslingsinnstillinger** | Hvilke oppdateringer om hendelser, varsler, monitorer og mer du får, og på hvilken kanal. | |
+| **E-postinnstillinger** | Hvor mange e-poster du får: én om gangen, eller samlet. | [Varslingsoppsummering](/docs/emails/notification-rollup) |
 | **Vaktlogger** | Hvert varsel sendt til deg, og hva som skjedde med det. | |
 | **Innkommende telefonnumre** | Nummeret en policy for innkommende anrop ringer deg på. | [Policy for innkommende anrop](/docs/on-call/incoming-call-policy) |
 | **Kalenderfeed** | Vaktene dine i Google Calendar, Apple Calendar eller Outlook. | [Kalenderfeeder](/docs/on-call/calendar-feeds) |

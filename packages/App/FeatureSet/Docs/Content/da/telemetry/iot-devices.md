@@ -276,7 +276,7 @@ OneUptime genkender disse `iot_*`-metriknavne. Send kun dem, der giver mening fo
 
 | Metriknavn | Betydning |
 | --- | --- |
-| `iot_device_up` | Tilgængelighed: `1` er oppe og tilgængelig, `0` er nede. IoT Device-monitoren læser den. |
+| `iot_device_up` | Tilgængelighed: `1` er oppe og tilgængelig, `0` er nede. IoT-enhed-monitoren læser den. |
 | `iot_device_info` | Kun identitet. Den bærer `device.id`, klassen, typen og firmwaren, så en enhed vises i inventaret, før den rapporterer målinger. |
 | `iot_battery_percent` | Batteriniveau, `0` til `100` (%). |
 | `iot_signal_strength_dbm` | Trådløs signalstyrke i dBm, såsom RSSI for Wi-Fi, LoRa eller mobilnet. |
