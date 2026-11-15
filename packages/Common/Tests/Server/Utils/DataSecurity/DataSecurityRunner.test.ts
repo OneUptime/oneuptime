@@ -27,6 +27,17 @@ import {
   emptyContentScanResult,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
 import * as TelemetryDataScanner from "../../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner";
+import {
+  CLAIM_DUE_DATA_STORES_FOR_WORKERS_STATEMENT,
+  DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT,
+  DATA_SECURITY_WORKER_CLAIM_IN_HOURS,
+} from "../../../../Server/Utils/DataSecurity/DataSecurityWorkerClaim";
+import {
+  MAX_TELEMETRY_STORES_NOT_SCANNED,
+  PROJECT_TELEMETRY_SCANNABLE_STATEMENT,
+  TELEMETRY_STORES_NOT_SCANNED_STATEMENT,
+} from "../../../../Server/Utils/DataSecurity/DataSecurityTelemetryScanRule";
+import { SubscriptionStatusUtil } from "../../../../Types/Billing/SubscriptionStatus";
 import * as TelemetryScrubCoverage from "../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
 import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
@@ -46,7 +57,6 @@ import DataSecurityScan from "../../../../Models/DatabaseModels/DataSecurityScan
 import DataSecuritySetting from "../../../../Models/DatabaseModels/DataSecuritySetting";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
-import Includes from "../../../../Types/BaseDatabase/Includes";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
@@ -58,6 +68,7 @@ import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import {
   DataStoreKind,
   DataStoreProvider,
+  TELEMETRY_DATA_STORE_KINDS,
   WORKER_CLAIMED_DATA_STORE_KINDS,
 } from "../../../../Types/DataSecurity/DataStoreKind";
 import { customDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
@@ -106,6 +117,14 @@ let azureReaderSpy: jest.SpyInstance;
 let containersSpy: jest.SpyInstance;
 let querySpy: jest.Mock;
 let errorSpy: jest.SpyInstance;
+// What the workers' rule answers for the store a scan was handed.
+let scannableRows: Array<JSONObject>;
+// What the workers' claim hands out.
+let claimRows: Array<JSONObject>;
+// Whether the project's telemetry may be read: a row when it may.
+let projectTelemetryRows: () => Array<JSONObject>;
+// The project's telemetry stores whose content scanning is off, each time asked.
+let telemetryOffRows: () => Array<JSONObject>;
 
 const SETTINGS: CloudConnectionSettings = {
   provider: CloudProvider.AWS,
@@ -179,7 +198,32 @@ beforeEach(() => {
   settingsSpy = jest
     .spyOn(CloudConnectionService, "getConnectorSettings")
     .mockResolvedValue(SETTINGS);
-  querySpy = jest.fn(async () => {
+  scannableRows = [{ _id: STORE_ID.toString() }];
+  claimRows = [];
+  projectTelemetryRows = (): Array<JSONObject> => {
+    return [{ _id: PROJECT_ID.toString() }];
+  };
+  telemetryOffRows = (): Array<JSONObject> => {
+    return [];
+  };
+  // Each statement answers what its test set; anything else is an account read.
+  querySpy = jest.fn(async (sql: string) => {
+    if (sql === DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT) {
+      return scannableRows;
+    }
+
+    if (sql === CLAIM_DUE_DATA_STORES_FOR_WORKERS_STATEMENT) {
+      return claimRows;
+    }
+
+    if (sql === PROJECT_TELEMETRY_SCANNABLE_STATEMENT) {
+      return projectTelemetryRows();
+    }
+
+    if (sql === TELEMETRY_STORES_NOT_SCANNED_STATEMENT) {
+      return telemetryOffRows();
+    }
+
     return accountRows;
   });
   jest.spyOn(DataStoreService, "getRepository").mockReturnValue({
@@ -524,36 +568,53 @@ describe("getScanSetup", () => {
 });
 
 describe("claimDueStores", () => {
-  test("claims the scannable stores that are due and no probe scans, holding each for an hour first", async () => {
-    const due: DataStore = new DataStore(STORE_ID);
-    due.projectId = PROJECT_ID;
-    const orphan: DataStore = new DataStore(ObjectID.generate());
-    const findSpy: jest.SpyInstance = jest
-      .spyOn(DataStoreService, "findBy")
-      .mockResolvedValue([due, orphan] as never);
-    const holdSpy: jest.SpyInstance = jest
-      .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
-      .mockResolvedValue(undefined as never);
+  test("claims in one statement the stores a worker may scan, holding each for an hour, the longest overdue first", async () => {
+    const other: ObjectID = ObjectID.generate();
+    claimRows = [
+      { _id: STORE_ID.toString(), projectId: PROJECT_ID.toString() },
+      { _id: other.toString(), projectId: PROJECT_ID.toString() },
+      // A row that is not ids is never handed on.
+      { _id: "not-an-id", projectId: PROJECT_ID.toString() },
+    ];
+    const findSpy: jest.SpyInstance = jest.spyOn(DataStoreService, "findBy");
+    const holdSpy: jest.SpyInstance = jest.spyOn(
+      DataStoreService,
+      "updateColumnsByIdWithoutHooks",
+    );
 
     const claimed: Array<{ projectId: ObjectID; dataStoreId: ObjectID }> =
       await DataSecurityRunner.claimDueStores(50);
 
     expect(
-      claimed.map((store: { dataStoreId: ObjectID }) => {
-        return store.dataStoreId.toString();
+      claimed.map((store: { projectId: ObjectID; dataStoreId: ObjectID }) => {
+        return [store.projectId.toString(), store.dataStoreId.toString()];
       }),
-    ).toEqual([STORE_ID.toString()]);
+    ).toEqual([
+      [PROJECT_ID.toString(), STORE_ID.toString()],
+      [PROJECT_ID.toString(), other.toString()],
+    ]);
 
-    const findBy: { query: JSONObject; limit: number; props: JSONObject } =
-      findSpy.mock.calls[0]![0];
+    // The claim is the statement, which holds the stores itself.
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(querySpy.mock.calls[0]![0]).toBe(
+      CLAIM_DUE_DATA_STORES_FOR_WORKERS_STATEMENT,
+    );
+    expect(querySpy.mock.calls[0]![1]).toEqual([
+      NOW,
+      [...WORKER_CLAIMED_DATA_STORE_KINDS],
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+      50,
+      new Date(
+        NOW.getTime() + DATA_SECURITY_WORKER_CLAIM_IN_HOURS * HOUR_IN_MS,
+      ),
+    ]);
+    expect(DATA_SECURITY_WORKER_CLAIM_IN_HOURS).toBe(1);
+    expect(findSpy).not.toHaveBeenCalled();
+    expect(holdSpy).not.toHaveBeenCalled();
+  });
 
-    expect(findBy.limit).toBe(50);
-    expect(findBy.props).toEqual({ isRoot: true });
-    expect(findBy.query["isArchived"]).toBe(false);
-    expect(findBy.query["isContentScanEnabled"]).toBe(true);
-    expect(
-      ((findBy.query["kind"] as Includes).values as Array<string>).sort(),
-    ).toEqual(
+  test("the kinds it claims are the ones a worker samples: SQL Server among them", () => {
+    expect([...WORKER_CLAIMED_DATA_STORE_KINDS].sort()).toEqual(
       [
         DataStoreKind.AwsS3Bucket,
         DataStoreKind.AzureStorageAccount,
@@ -564,26 +625,108 @@ describe("claimDueStores", () => {
         DataStoreKind.SqlServer,
       ].sort(),
     );
-    // The list a store's Overview reads, so it says what the workers claim.
-    expect(
-      ((findBy.query["kind"] as Includes).values as Array<string>).sort(),
-    ).toEqual([...WORKER_CLAIMED_DATA_STORE_KINDS].sort());
+  });
 
-    const nextScan: RawOperator = findBy.query[
-      "nextContentScanAt"
-    ] as unknown as RawOperator;
+  test("nothing due, or nothing asked for: nothing claimed", async () => {
+    claimRows = [];
 
-    expect(nextScan.getSql("next")).toContain("next <=");
-    expect(nextScan.getSql("next")).toContain("IS NULL");
-    expect(Object.values(nextScan.objectLiteralParameters)).toContainEqual(NOW);
-    expect(
-      (findBy.query["scanProbeId"] as unknown as RawOperator).getSql("probe"),
-    ).toContain("IS NULL");
-    expect(holdSpy).toHaveBeenCalledTimes(1);
-    expect(holdSpy).toHaveBeenCalledWith({
-      id: STORE_ID,
-      data: { nextContentScanAt: new Date(NOW.getTime() + HOUR_IN_MS) },
+    expect(await DataSecurityRunner.claimDueStores(50)).toEqual([]);
+    expect(await DataSecurityRunner.claimDueStores(0)).toEqual([]);
+    // A limit of none never reaches the database.
+    expect(querySpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("scanStore: the workers' rule, asked before any content is read (#8325)", () => {
+  test("a store the rule hands out is read: the rule is asked first, for the store, its project, the kinds a worker samples and the served subscriptions", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
     });
+    connectionOf("content");
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(querySpy.mock.calls[0]![0]).toBe(
+      DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT,
+    );
+    expect(querySpy.mock.calls[0]![1]).toEqual([
+      STORE_ID.toString(),
+      PROJECT_ID.toString(),
+      [...WORKER_CLAIMED_DATA_STORE_KINDS],
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+    ]);
+    expect(querySpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      (DataStoreService.findOneBy as unknown as jest.Mock).mock
+        .invocationCallOrder[0]!,
+    );
+    expect(sampleSpy).toHaveBeenCalledTimes(1);
+    expect(recordScanSpy).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The rule is SQL (getWorkerContentScannableSql): what makes it refuse is
+   * read condition by condition in DataStoreContentScanSchedule's test, and
+   * run against Postgres in DataStoreProbeClaimPostgres's. Here, what the
+   * scan does when it refuses: for each of these the statement finds no row.
+   */
+  test.each([
+    ["the store's Scan Content switch turned off after the claim"],
+    ["the project's Scan Content switch turned off after the claim"],
+    ["the project suspended, blocked or deleted after the claim"],
+    ["the store archived, or given a scan probe, after the claim"],
+    ["a scan Scan Now queued for a store no claim hands out"],
+  ])("%s: nothing is read, and nothing written", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
+    });
+    connectionOf("content");
+    scannableRows = [];
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(DataStoreService.findOneBy).not.toHaveBeenCalled();
+    expect(
+      DataSecuritySettingService.getOrCreateForProject,
+    ).not.toHaveBeenCalled();
+    expect(CloudConnectionService.findOneBy).not.toHaveBeenCalled();
+    expect(settingsSpy).not.toHaveBeenCalled();
+    expect(awsReaderSpy).not.toHaveBeenCalled();
+    expect(sampleSpy).not.toHaveBeenCalled();
+    expect(sampleDatabaseSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+    expect(recordFailedSpy).not.toHaveBeenCalled();
+  });
+
+  test("a database the rule refuses is never connected to", async () => {
+    storeOf({
+      kind: DataStoreKind.PostgreSql,
+      connectionString: "postgres://reader:x@db.internal/app",
+    });
+    scannableRows = [];
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(
+      DatabaseConnectionGuard.assertDatabaseConnectionAllowed,
+    ).not.toHaveBeenCalled();
+    expect(sampleDatabaseSpy).not.toHaveBeenCalled();
+  });
+
+  test("the rule failing to answer is a failure of the job, before any content is read", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
+    });
+    connectionOf("content");
+    querySpy.mockRejectedValueOnce(new Error("Postgres went away"));
+
+    await expect(
+      DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID),
+    ).rejects.toThrow("Postgres went away");
+    expect(sampleSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -792,11 +935,26 @@ describe("scanStore: what the cloud connection allows", () => {
     });
   });
 
-  test("a SQL Server database is not sampled: its kind is not one Data Security reads the content of", async () => {
+  test("a SQL Server database is sampled with its connection string, as SQL Server (#8322)", async () => {
     storeOf({
       kind: DataStoreKind.SqlServer,
       connectionString: "mssql://reader:x@sql.internal:1433/app",
     });
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    // It was claimed every hour and skipped: "needs ... a connection string".
+    expect(recordFailedSpy).not.toHaveBeenCalled();
+    expect(sampleDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(sampleDatabaseSpy.mock.calls[0]![0]).toEqual({
+      engine: "sqlserver",
+      connectionString: "mssql://reader:x@sql.internal:1433/app",
+    });
+    expect(scanned()).toEqual(emptyContentScanResult());
+  });
+
+  test("a SQL Server database with no connection string is skipped, and says why", async () => {
+    storeOf({ kind: DataStoreKind.SqlServer });
 
     await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
 
@@ -1431,5 +1589,284 @@ describe("scanTelemetry", () => {
       `DataSecurity: could not read the scrub rules of project ${PROJECT_ID.toString()}:`,
     );
     expect(findSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE TELEMETRY SCAN HONOURS THE SWITCHES THAT TURN IT OFF (#8323, #8325).
+ * It read every service of every project: a store's own Scan Content
+ * switch did nothing, and a suspended project's telemetry was sampled like
+ * any other. What makes the project's statement find no row (a project
+ * not served, telemetry scanning off) is read condition by condition in
+ * DataStoreContentScanSchedule's test and run against Postgres in
+ * DataStoreProbeClaimPostgres's.
+ */
+describe("scanTelemetry: the switches that turn it off", () => {
+  const SERVICE_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  const OTHER_SERVICE_ID: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+  const OTHER_STORE_ID: ObjectID = new ObjectID(
+    "77777777-7777-4777-8777-777777777777",
+  );
+
+  let scanSpy: jest.SpyInstance;
+  let ensureSpy: jest.SpyInstance;
+
+  function resultOf(
+    serviceId: ObjectID,
+    kind: DataStoreKind,
+  ): TelemetryDataScanner.TelemetryStoreScan {
+    return {
+      serviceId: serviceId.toString(),
+      serviceName: "checkout",
+      kind,
+      result: emptyContentScanResult(),
+    };
+  }
+
+  function switchedOff(serviceId: ObjectID, kind: DataStoreKind): JSONObject {
+    return { storeKey: `telemetry:${serviceId.toString()}:${kind}`, kind };
+  }
+
+  function recordedStores(): Array<string> {
+    return recordScanSpy.mock.calls.map((call: Array<unknown>): string => {
+      return String((call[0] as { dataStoreId: ObjectID }).dataStoreId);
+    });
+  }
+
+  beforeEach(() => {
+    scanSpy = jest
+      .spyOn(TelemetryDataScanner, "scanProjectTelemetry")
+      .mockResolvedValue([
+        resultOf(SERVICE_ID, DataStoreKind.TelemetryLogs),
+        resultOf(OTHER_SERVICE_ID, DataStoreKind.TelemetryLogs),
+      ]);
+    ensureSpy = jest
+      .spyOn(DataSecurityDiscovery, "ensureTelemetryStore")
+      .mockImplementation(async (data: { serviceId: ObjectID }) => {
+        return data.serviceId.toString() === SERVICE_ID.toString()
+          ? STORE_ID
+          : OTHER_STORE_ID;
+      });
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] });
+    jest.spyOn(DataStoreFindingService, "findBy").mockResolvedValue([]);
+  });
+
+  test("the normal case: the project is asked about first, then every service is read and written, none left out", async () => {
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    const projectAsks: Array<Array<unknown>> = querySpy.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return call[0] === PROJECT_TELEMETRY_SCANNABLE_STATEMENT;
+      },
+    );
+
+    expect(querySpy.mock.calls[0]![0]).toBe(
+      PROJECT_TELEMETRY_SCANNABLE_STATEMENT,
+    );
+    expect(projectAsks[0]![1]).toEqual([
+      PROJECT_ID.toString(),
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+    ]);
+    // Asked before reading, and again before writing.
+    expect(projectAsks).toHaveLength(2);
+
+    const offAsks: Array<Array<unknown>> = querySpy.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return call[0] === TELEMETRY_STORES_NOT_SCANNED_STATEMENT;
+      },
+    );
+
+    expect(offAsks).toHaveLength(2);
+    expect(offAsks[0]![1]).toEqual([
+      PROJECT_ID.toString(),
+      [...TELEMETRY_DATA_STORE_KINDS],
+      MAX_TELEMETRY_STORES_NOT_SCANNED,
+    ]);
+    expect(
+      (scanSpy.mock.calls[0]![0] as { ownersNotScanned: Map<string, unknown> })
+        .ownersNotScanned.size,
+    ).toBe(0);
+    expect(recordedStores()).toEqual([
+      STORE_ID.toString(),
+      OTHER_STORE_ID.toString(),
+    ]);
+  });
+
+  test("a project that is not served (suspended, blocked, a sample, deleted) or scans no telemetry: nothing is read, nothing made", async () => {
+    projectTelemetryRows = (): Array<JSONObject> => {
+      return [];
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).not.toHaveBeenCalled();
+    expect(
+      DataSecuritySettingService.getOrCreateForProject,
+    ).not.toHaveBeenCalled();
+    expect(ensureSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+
+  test("a project whose telemetry scanning is off: nothing is read, even when the statement is not yet told", async () => {
+    setting.isTelemetryScanEnabled = false;
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+
+  test("a service whose store turned Scan Content off is handed to the read to leave out, by kind", async () => {
+    telemetryOffRows = (): Array<JSONObject> => {
+      return [
+        switchedOff(SERVICE_ID, DataStoreKind.TelemetryLogs),
+        switchedOff(OTHER_SERVICE_ID, DataStoreKind.TelemetrySessionReplays),
+      ];
+    };
+    scanSpy.mockResolvedValue([
+      resultOf(OTHER_SERVICE_ID, DataStoreKind.TelemetryLogs),
+    ]);
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    const notScanned: Map<DataStoreKind, Set<string>> = (
+      scanSpy.mock.calls[0]![0] as {
+        ownersNotScanned: Map<DataStoreKind, Set<string>>;
+      }
+    ).ownersNotScanned;
+
+    expect(
+      Array.from(notScanned.get(DataStoreKind.TelemetryLogs) || []),
+    ).toEqual([SERVICE_ID.toString()]);
+    expect(
+      Array.from(notScanned.get(DataStoreKind.TelemetrySessionReplays) || []),
+    ).toEqual([OTHER_SERVICE_ID.toString()]);
+    expect(notScanned.has(DataStoreKind.TelemetryTraces)).toBe(false);
+    // The other service's logs, whose store scans, are written.
+    expect(recordedStores()).toEqual([OTHER_STORE_ID.toString()]);
+  });
+
+  test("a result for a switched-off store is never written, should a read return one", async () => {
+    telemetryOffRows = (): Array<JSONObject> => {
+      return [switchedOff(SERVICE_ID, DataStoreKind.TelemetryLogs)];
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(ensureSpy).toHaveBeenCalledTimes(1);
+    expect(recordedStores()).toEqual([OTHER_STORE_ID.toString()]);
+  });
+
+  test("only that kind of the service is left out: its other stores are written", async () => {
+    telemetryOffRows = (): Array<JSONObject> => {
+      return [switchedOff(SERVICE_ID, DataStoreKind.TelemetryLogs)];
+    };
+    scanSpy.mockResolvedValue([
+      resultOf(SERVICE_ID, DataStoreKind.TelemetryLogs),
+      resultOf(SERVICE_ID, DataStoreKind.TelemetryTraces),
+    ]);
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(recordScanSpy).toHaveBeenCalledTimes(1);
+    expect(ensureSpy.mock.calls[0]![0]).toMatchObject({
+      kind: DataStoreKind.TelemetryTraces,
+    });
+  });
+
+  test("a store's switch turned off while the scan read: what it read of that service is not written", async () => {
+    let asked: number = 0;
+    telemetryOffRows = (): Array<JSONObject> => {
+      asked++;
+      return asked === 1
+        ? []
+        : [switchedOff(SERVICE_ID, DataStoreKind.TelemetryLogs)];
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(asked).toBe(2);
+    expect(recordedStores()).toEqual([OTHER_STORE_ID.toString()]);
+  });
+
+  test("the project suspended, or its telemetry scanning turned off, while the scan read: nothing is written", async () => {
+    let asked: number = 0;
+    projectTelemetryRows = (): Array<JSONObject> => {
+      asked++;
+      return asked === 1 ? [{ _id: PROJECT_ID.toString() }] : [];
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).toHaveBeenCalledTimes(1);
+    expect(ensureSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+
+  test("which stores turned scanning off cannot be read: nothing is read, rather than one a person turned off", async () => {
+    telemetryOffRows = (): Array<JSONObject> => {
+      throw new Error("Postgres went away");
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not read which telemetry stores of project ${PROJECT_ID.toString()} turned content scanning off; its telemetry is not scanned this time:`,
+    );
+  });
+
+  test("they cannot be read again before writing: nothing is written", async () => {
+    let asked: number = 0;
+    telemetryOffRows = (): Array<JSONObject> => {
+      asked++;
+
+      if (asked > 1) {
+        throw new Error("Postgres went away");
+      }
+
+      return [];
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).toHaveBeenCalledTimes(1);
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+
+  test("more switched-off stores than one read takes: nothing is read, as the scan cannot tell which to leave out", async () => {
+    telemetryOffRows = (): Array<JSONObject> => {
+      return Array.from(
+        { length: MAX_TELEMETRY_STORES_NOT_SCANNED },
+        (): JSONObject => {
+          return switchedOff(ObjectID.generate(), DataStoreKind.TelemetryLogs);
+        },
+      );
+    };
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(scanSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+
+  test("a scan that found nothing asks nothing more and writes nothing", async () => {
+    scanSpy.mockResolvedValue([]);
+
+    await DataSecurityRunner.scanTelemetry(PROJECT_ID);
+
+    expect(
+      querySpy.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] === TELEMETRY_STORES_NOT_SCANNED_STATEMENT;
+      }),
+    ).toHaveLength(1);
+    expect(recordScanSpy).not.toHaveBeenCalled();
   });
 });

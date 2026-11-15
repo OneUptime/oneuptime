@@ -178,7 +178,7 @@ Cada escaneo guarda un registro de lo que leyó, por nombre: los objetos, tablas
 
 ## Escanear una base de datos que gestionas
 
-Seguridad de datos muestrea bases de datos PostgreSQL y MySQL, de una de dos formas. Una base de datos que supervisa el producto de bases de datos, o una con la que hablan tus servicios en el mapa de servicios, ya es un almacén. Una base de datos que ningún escaneo encuentra, añádela tú mismo como almacén.
+Seguridad de datos muestrea bases de datos PostgreSQL, MySQL y SQL Server, de una de dos formas. Una base de datos que supervisa el producto de bases de datos, o una con la que hablan tus servicios en el mapa de servicios, ya es un almacén. Una base de datos que ningún escaneo encuentra, añádela tú mismo como almacén.
 
 - **Desde los workers de OneUptime.** En los **Ajustes** del almacén, pon en **Cadena de conexión** una que solo pueda leer, como `postgresql://reader:password@db.internal:5432/app`. Se cifra en reposo y la API nunca la devuelve. Dale un usuario de base de datos que pueda leer y nada más.
 - **Desde una sonda en tu red.** Elige la sonda en **Escanear desde la sonda**, y escribe en **Variable de conexión de la sonda** el nombre de la variable de entorno de esa sonda que contiene la cadena de conexión. La sonda lee la base de datos desde dentro de tu red y envía solo lo que encontró: la cadena de conexión nunca llega a OneUptime. Consulta [Sondas personalizadas](/docs/probe/custom-probe) para ejecutar una sonda.

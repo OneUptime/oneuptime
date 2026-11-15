@@ -2,7 +2,7 @@
 
 Telemetry holds whatever your code writes: an email address in a log line, a card number in a span attribute, a token in a stack trace, a customer's question in a prompt. Data Security treats each service's logs, traces, exceptions and AI conversations, and each RUM application's sessions, as data stores of their own. It samples them every hour, finds sensitive data in them as it does in a bucket, and **Scrub It** turns a finding into a scrub rule that masks that data at ingest from then on.
 
-There is nothing to set up: each service's telemetry is scanned every hour, unless **Scan Telemetry** is off in the project's settings.
+There is nothing to set up: each service's telemetry is scanned every hour, unless **Scan Telemetry** is off in the project's settings. To leave one service's logs, traces or another of its signals out, turn **Scan Content** off in that store's **Settings**: from the next scan, none of it is read.
 
 :::cards
 - [What is read](#what-is-read): The attributes, bodies, messages and prompts of each signal.

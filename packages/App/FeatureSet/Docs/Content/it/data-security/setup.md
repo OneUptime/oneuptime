@@ -178,7 +178,7 @@ Ogni scansione tiene traccia di ciò che ha letto, per nome: gli oggetti, le tab
 
 ## Scansionare un database che gestisci
 
-Sicurezza dei dati campiona i database PostgreSQL e MySQL, in uno di due modi. Un database monitorato dal prodotto Database, o uno con cui parlano i tuoi servizi sulla mappa dei servizi, è già un archivio. Un database che nessuna scansione trova, aggiungilo tu come archivio.
+Sicurezza dei dati campiona i database PostgreSQL, MySQL e SQL Server, in uno di due modi. Un database monitorato dal prodotto Database, o uno con cui parlano i tuoi servizi sulla mappa dei servizi, è già un archivio. Un database che nessuna scansione trova, aggiungilo tu come archivio.
 
 - **Dai worker di OneUptime.** Nelle **Impostazioni** dell'archivio, imposta **Stringa di connessione** su una che possa solo leggere, come `postgresql://reader:password@db.internal:5432/app`. Viene cifrata a riposo e mai restituita dall'API. Assegnale un utente del database che possa leggere e nient'altro.
 - **Da una sonda nella tua rete.** Scegli la sonda in **Scansiona dalla sonda**, e inserisci in **Variabile di connessione della sonda** il nome della variabile d'ambiente su quella sonda che contiene la stringa di connessione. La sonda legge il database dall'interno della tua rete e rimanda solo ciò che ha trovato: la stringa di connessione non raggiunge mai OneUptime. Vedi [Sonde personalizzate](/docs/probe/custom-probe) per eseguire una sonda.
