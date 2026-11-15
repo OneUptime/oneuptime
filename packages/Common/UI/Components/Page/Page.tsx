@@ -14,7 +14,7 @@ import { getNumberedRecordName } from "../../../Utils/Project/RecordNumber";
 import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
 import PageTrailEndContext from "./PageTrailEnd";
-import { getRecordCrumbName } from "./RecordNameInTrail";
+import { getCrumbTitle, getRecordCrumbName } from "./RecordNameInTrail";
 import { PAGE_RECORD_TITLE_SENTENCE } from "./PageRecordTitle";
 import React, {
   FunctionComponent,
@@ -269,7 +269,8 @@ const Page: FunctionComponent<ComponentProps> = (
                * a numbered record's number before it (Link.recordNumber),
                * so two incidents of one title are two tabs that read
                * differently. A record's name reads as typed
-               * (Link.isRecordName).
+               * (Link.isRecordName), and a title in the reader's words
+               * already as given (Link.isTitleTranslated).
                */
               const recordCrumbName: string | undefined =
                 getRecordCrumbName(link);
@@ -278,9 +279,7 @@ const Page: FunctionComponent<ComponentProps> = (
                 return recordCrumbName;
               }
 
-              return link.isRecordName
-                ? link.title
-                : translateString(link.title);
+              return getCrumbTitle(link, translateString);
             })
             .filter((value: string | undefined): value is string => {
               return Boolean(value);

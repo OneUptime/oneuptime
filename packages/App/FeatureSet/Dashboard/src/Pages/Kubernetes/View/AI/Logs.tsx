@@ -1010,6 +1010,7 @@ const KubernetesClusterAILogs: FunctionComponent<
                   <div>
                     {look ? (
                       <Pill
+                        // Worded here either way: drawn as given (#8067).
                         text={
                           typeof item.exitCode === "number"
                             ? translator.translateTemplate(
@@ -1019,8 +1020,10 @@ const KubernetesClusterAILogs: FunctionComponent<
                                   exitCode: item.exitCode,
                                 },
                               )
-                            : look.label
+                            : translator.translateText(look.label) ||
+                              look.label
                         }
+                        isUserContent={true}
                         color={look.color}
                       />
                     ) : (
