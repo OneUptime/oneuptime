@@ -597,6 +597,44 @@ describe("ReplayTimeline bands", () => {
     expect(paused.className).not.toContain("bg-gray-200");
   });
 
+  /*
+   * Issue #7498: a stretch the page paused recording through is named for
+   * that, not for an idle page, and drawn as every paused band is.
+   */
+  it("names a band the page paused recording through for the page, in the same pattern", () => {
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          bands: [
+            ...bands,
+            {
+              kind: "paused",
+              startMs: 440000,
+              endMs: 560000,
+              label: "2m paused",
+              fidelity: "exact",
+              pauseReason: "page",
+            },
+          ],
+        })}
+      />,
+    );
+
+    const paused: HTMLElement = screen.getByTestId("timeline-paused-band");
+
+    expect(paused).toHaveTextContent("2m paused");
+    expect(paused.getAttribute("aria-label")).toBe(
+      "Recording paused by the page: 2m paused",
+    );
+    expect(paused.getAttribute("aria-label")).not.toContain("idle");
+    expect(paused.getAttribute("title")).toBe(
+      paused.getAttribute("aria-label"),
+    );
+    expect(paused.className).toContain(
+      REPLAY_TRACK_BAND_PAINT.paused.className,
+    );
+  });
+
   it("paints every full-height kind differently, the pause in upright bars", () => {
     /*
      * The patterns are pinned on the table rather than on the rendered
