@@ -638,10 +638,13 @@ then `npm run i18n:validate` from the root.
   product's own ("Google Cloud", "Resend"). A Spanish Health filter read "Con problemas" in its menu
   and "Unhealthy" in its chip; a monitor named "Network" read "Red" in a menu over rows that said
   "Network"; the email provider Resend read "Reenviar". Draw an option through
-  `getDropdownOptionText`. Enforced by
-  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
+  `getDropdownOptionText`. A stored value is offered in the words its rows draw it in, never as it
+  is stored: a runbook run waiting on a manual step read "Esperando" in its pill and
+  "WaitingForManualStep" in the Status filter (#7781). Enforced by
+  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts),
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx)
   and
-  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
+  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx).
 - **A name reads as written, in a badge and in a picker.** A label, a monitor or a state is named by
   its project, and a name is never looked up: in Spanish a label named "Network" read "Red", and a
   state a project named "Open" read "Abrir", the verb. Only the names a new project starts with, such
