@@ -2,7 +2,7 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
-import { isFdbEdge } from "./EndpointNodeUtil";
+import { isEndpointNode, isFdbEdge } from "./EndpointNodeUtil";
 import {
   UNLINKED_BOX_KEY,
   UNLINKED_STRIP_PITCH_X,
@@ -26,7 +26,11 @@ import {
   findTopologyComponents,
 } from "./TopologyGraphUtil";
 import { tierForNode } from "./TopologyLayout";
-import { TopologyComponentBox, TopologyLayoutModel } from "./TopologyModel";
+import {
+  TopologyComponentBox,
+  TopologyLayoutModel,
+  TopologyLeafBlock,
+} from "./TopologyModel";
 import {
   PackInput,
   PackResult,
@@ -857,8 +861,245 @@ export const buildParentChildForest: (
   };
 };
 
+/*
+ * ------------------------------------------------------------------
+ * Leaf blocks (issue #6606)
+ * ------------------------------------------------------------------
+ *
+ * A tidy tree puts every child of a node side by side, which is right for
+ * the network's structure and wrong for its leaves. An access switch with
+ * sixty devices plugged into it and nothing below them drew all sixty in
+ * one row: the map came out sixty devices wide, fit-to-view shrank it until
+ * no name could be read, and zooming in to read one showed a handful of
+ * devices and none of the hierarchy around them.
+ *
+ * So a node with many leaf children - children that have no children of
+ * their own - packs them into a compact grid under it instead: column by
+ * column, managed devices first, then neighbours, then endpoints, each
+ * group by name. Children that DO have children keep their place in the
+ * row, because their own subtrees need the room below them. A node with a
+ * few leaves keeps its plain row: three endpoints under a switch still
+ * read as a tree.
+ *
+ * The grid hangs from its parent by a comb (see TopologyLeafBlock): a
+ * trunk, a bus across the top, a spine down the left of each column and a
+ * stub to each device. Every column is a pitch wide - its widest name plus
+ * a gap - and the spine runs in that gap, so no line crosses a device or
+ * its name.
+ */
+
+/*
+ * A node with at least this many leaf children packs them into a grid.
+ * Fewer read well as a row, and keep the tree its plain shape.
+ */
+export const PARENT_CHILD_LEAF_BLOCK_MIN_LEAVES: number = 6;
+/** Clearance between two columns' widest names: the spine runs in it. */
+export const PARENT_CHILD_LEAF_COLUMN_GAP: number = 22;
+/** Clearance between one row's lowest name and the next row's glyphs. */
+export const PARENT_CHILD_LEAF_ROW_GAP: number = 14;
+/** How far above the first row's glyphs a block's bus runs. */
+export const PARENT_CHILD_LEAF_BUS_CLEARANCE: number = 16;
+/*
+ * The shapes a leaf block may take, as its width over its height. Every
+ * block on one map takes the same one, and the layout keeps whichever lets
+ * the WHOLE map fit its frame largest: three switches side by side want
+ * tall, narrow blocks, one switch with three hundred endpoints a wide one.
+ * Earlier entries win a tie, so the choice is a function of the graph.
+ */
+export const PARENT_CHILD_LEAF_BLOCK_ASPECTS: ReadonlyArray<number> = [
+  0.35, 0.6, 1, 1.6, 2.5, 4,
+];
+
+/** Options for {@link computeParentChildTopologyModel}. */
+export interface ParentChildLayoutOptions {
+  /*
+   * Nodes whose branch the reader folded away. Each is still placed, as a
+   * node with no children; nothing below it is. An id with no children, or
+   * one that is not in the graph, changes nothing.
+   */
+  collapsedNodeIds?: ReadonlySet<string> | undefined;
+}
+
+const NO_CHILDREN: Array<string> = [];
+
+/*
+ * Leaves sort by what they are first - the devices OneUptime monitors, then
+ * discovered neighbours, then endpoints - so the access points of a block
+ * sit together rather than scattered between the endpoints around them.
+ */
+const leafKindRank: (node: NetworkTopologyNode | undefined) => number = (
+  node: NetworkTopologyNode | undefined,
+): number => {
+  if (!node) {
+    return 1;
+  }
+  if (isEndpointNode(node)) {
+    return 2;
+  }
+  return node.isManaged ? 0 : 1;
+};
+
+const nameOf: (node: NetworkTopologyNode | undefined) => string = (
+  node: NetworkTopologyNode | undefined,
+): string => {
+  return node && typeof node.name === "string"
+    ? node.name.trim().toLowerCase()
+    : "";
+};
+
 /**
- * One tree's members with every parent ahead of its own children.
+ * Natural order on two names: "pos-2" before "pos-10", the way a reader
+ * scans a column. Digit runs compare by value, everything else by code
+ * unit, so the order is the same in every browser and every locale - never
+ * localeCompare, whose answer depends on the machine.
+ */
+export const compareNamesNaturally: (a: string, b: string) => number = (
+  a: string,
+  b: string,
+): number => {
+  const chunk: RegExp = /(\d+|\D+)/g;
+  const startsWithDigit: RegExp = /^\d/;
+  const partsA: Array<string> = a.match(chunk) || [];
+  const partsB: Array<string> = b.match(chunk) || [];
+  const length: number = Math.min(partsA.length, partsB.length);
+
+  for (let index: number = 0; index < length; index++) {
+    const partA: string = partsA[index]!;
+    const partB: string = partsB[index]!;
+    const isNumberA: boolean = startsWithDigit.test(partA);
+    const isNumberB: boolean = startsWithDigit.test(partB);
+
+    if (isNumberA && isNumberB) {
+      // By value without parsing: fewer significant digits is smaller.
+      const trimmedA: string = partA.replace(/^0+(?=\d)/, "");
+      const trimmedB: string = partB.replace(/^0+(?=\d)/, "");
+      if (trimmedA.length !== trimmedB.length) {
+        return trimmedA.length - trimmedB.length;
+      }
+      if (trimmedA !== trimmedB) {
+        return trimmedA < trimmedB ? -1 : 1;
+      }
+      continue;
+    }
+
+    if (partA !== partB) {
+      return partA < partB ? -1 : 1;
+    }
+  }
+
+  return partsA.length - partsB.length;
+};
+
+/** How one block's leaves are arranged, in its own band-local space. */
+interface LeafBlockPlan {
+  parentId: string;
+  /** The leaves in the order they fill the grid: down each column. */
+  memberIds: Array<string>;
+  memberIdSet: Set<string>;
+  rows: number;
+  columns: number;
+  /** Centre to centre, between columns and between rows. */
+  pitchX: number;
+  pitchY: number;
+  /** The tallest glyph's half height: where the bus clears the first row. */
+  maxHalfHeight: number;
+  /** From the first column's spine to the last column's widest name. */
+  width: number;
+  /** Where the parent centres: midway between the first and last column. */
+  centre: number;
+}
+
+const planLeafBlock: (
+  parentId: string,
+  leafIds: Array<string>,
+  footprints: Map<string, TopologyNodeFootprint>,
+  nodeById: Map<string, NetworkTopologyNode>,
+  aspect: number,
+) => LeafBlockPlan = (
+  parentId: string,
+  leafIds: Array<string>,
+  footprints: Map<string, TopologyNodeFootprint>,
+  nodeById: Map<string, NetworkTopologyNode>,
+  aspect: number,
+): LeafBlockPlan => {
+  const memberIds: Array<string> = [...leafIds].sort(
+    (a: string, b: string): number => {
+      const nodeA: NetworkTopologyNode | undefined = nodeById.get(a);
+      const nodeB: NetworkTopologyNode | undefined = nodeById.get(b);
+      const byKind: number = leafKindRank(nodeA) - leafKindRank(nodeB);
+      if (byKind !== 0) {
+        return byKind;
+      }
+      const byName: number = compareNamesNaturally(
+        nameOf(nodeA),
+        nameOf(nodeB),
+      );
+      if (byName !== 0) {
+        return byName;
+      }
+      return compareNodeIds(a, b);
+    },
+  );
+
+  /*
+   * One pitch for the whole block, from its widest name and its tallest
+   * glyph-and-label: a grid whose columns wandered with their names would
+   * not line up, and the spines would cross the names they pass.
+   */
+  let maxInkHalfWidth: number = 0;
+  let maxHalfHeight: number = 0;
+  let maxDrop: number = 0;
+  for (const id of memberIds) {
+    const footprint: TopologyNodeFootprint = footprintOrDefault(footprints, id);
+    maxInkHalfWidth = Math.max(maxInkHalfWidth, inkHalfWidthOf(footprints, id));
+    const halfHeight: number = Number.isFinite(footprint.halfHeight)
+      ? Math.max(0, footprint.halfHeight)
+      : DEFAULT_FOOTPRINT.halfHeight;
+    const labelBottom: number = Number.isFinite(footprint.labelBottom)
+      ? Math.max(0, footprint.labelBottom)
+      : DEFAULT_FOOTPRINT.labelBottom;
+    maxHalfHeight = Math.max(maxHalfHeight, halfHeight);
+    maxDrop = Math.max(maxDrop, halfHeight + labelBottom);
+  }
+
+  const pitchX: number = 2 * maxInkHalfWidth + PARENT_CHILD_LEAF_COLUMN_GAP;
+  const pitchY: number = maxDrop + PARENT_CHILD_LEAF_ROW_GAP;
+  const count: number = memberIds.length;
+
+  /*
+   * A grid of c columns is c * pitchX wide and ceil(n / c) * pitchY tall;
+   * solving width / height = aspect for c gives the column count. At least
+   * two rows - one row is just the row this exists to replace - and at
+   * least two columns.
+   */
+  const safeAspect: number = Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
+  const ideal: number = Math.sqrt((safeAspect * count * pitchY) / pitchX);
+  const maxColumns: number = Math.max(2, Math.ceil(count / 2));
+  const wantedColumns: number = Math.min(
+    maxColumns,
+    Math.max(2, Math.round(Number.isFinite(ideal) ? ideal : 2)),
+  );
+  const rows: number = Math.max(1, Math.ceil(count / wantedColumns));
+  // Filling down each column, a column left empty is dropped.
+  const columns: number = Math.max(1, Math.ceil(count / rows));
+
+  return {
+    parentId: parentId,
+    memberIds: memberIds,
+    memberIdSet: new Set<string>(memberIds),
+    rows: rows,
+    columns: columns,
+    pitchX: pitchX,
+    pitchY: pitchY,
+    maxHalfHeight: maxHalfHeight,
+    width: columns * pitchX - PARENT_CHILD_LEAF_COLUMN_GAP / 2,
+    centre: (columns * pitchX) / 2,
+  };
+};
+
+/**
+ * One tree's visible members with every parent ahead of its own children.
+ * Nothing below a collapsed node is visited.
  *
  * Walked with an explicit stack, never recursion: a two-thousand-device
  * chain of switches is a legal topology and a legal tree of depth two
@@ -867,17 +1108,17 @@ export const buildParentChildForest: (
  */
 const orderTreeMembers: (
   rootId: string,
-  forest: ParentChildForest,
+  childrenOf: (nodeId: string) => Array<string>,
 ) => Array<string> = (
   rootId: string,
-  forest: ParentChildForest,
+  childrenOf: (nodeId: string) => Array<string>,
 ): Array<string> => {
   const members: Array<string> = [];
   const stack: Array<string> = [rootId];
   while (stack.length > 0) {
     const current: string = stack.pop()!;
     members.push(current);
-    const children: Array<string> = forest.childrenById.get(current) || [];
+    const children: Array<string> = childrenOf(current);
     // Pushed in reverse so they pop — and therefore draw — left to right.
     for (let index: number = children.length - 1; index >= 0; index--) {
       stack.push(children[index]!);
@@ -894,17 +1135,26 @@ const orderTreeMembers: (
  * here: walked backwards it visits every child before its parent, which is
  * exactly the post-order the band widths need, so neither pass needs
  * recursion or an explicit traversal stack at all.
+ *
+ * A node's children are laid out as slots side by side: one per child that
+ * is placed in the row, then its leaf block, if it has one, as a single
+ * slot as wide as the grid. The grid's own members are placed by the grid
+ * and skipped as nodes of their own.
  */
 const layoutTreeBand: (
   rootId: string,
   memberIds: Array<string>,
-  forest: ParentChildForest,
+  childrenOf: (nodeId: string) => Array<string>,
+  depthById: Map<string, number>,
   footprints: Map<string, TopologyNodeFootprint>,
+  blockPlans: Map<string, LeafBlockPlan>,
 ) => Map<string, TopologyPoint> = (
   rootId: string,
   memberIds: Array<string>,
-  forest: ParentChildForest,
+  childrenOf: (nodeId: string) => Array<string>,
+  depthById: Map<string, number>,
   footprints: Map<string, TopologyNodeFootprint>,
+  blockPlans: Map<string, LeafBlockPlan>,
 ): Map<string, TopologyPoint> => {
   const bandWidthById: Map<string, number> = new Map<string, number>();
   const centreInBandById: Map<string, number> = new Map<string, number>();
@@ -912,6 +1162,31 @@ const layoutTreeBand: (
     string,
     Array<number>
   >();
+  const blockStartInBandById: Map<string, number> = new Map<string, number>();
+
+  const blockMemberIds: Set<string> = new Set<string>();
+  for (const id of memberIds) {
+    const plan: LeafBlockPlan | undefined = blockPlans.get(id);
+    if (plan) {
+      for (const memberId of plan.memberIds) {
+        blockMemberIds.add(memberId);
+      }
+    }
+  }
+
+  // The children placed in the row: every visible child not in the grid.
+  const rowChildrenOf: (id: string) => Array<string> = (
+    id: string,
+  ): Array<string> => {
+    const plan: LeafBlockPlan | undefined = blockPlans.get(id);
+    const children: Array<string> = childrenOf(id);
+    if (!plan) {
+      return children;
+    }
+    return children.filter((childId: string): boolean => {
+      return !plan.memberIdSet.has(childId);
+    });
+  };
 
   /*
    * Pass one, bottom up: how wide is each subtree, and where in its own
@@ -919,10 +1194,14 @@ const layoutTreeBand: (
    */
   for (let index: number = memberIds.length - 1; index >= 0; index--) {
     const id: string = memberIds[index]!;
+    if (blockMemberIds.has(id)) {
+      continue;
+    }
     const inkHalfWidth: number = inkHalfWidthOf(footprints, id);
-    const children: Array<string> = forest.childrenById.get(id) || [];
+    const rowChildren: Array<string> = rowChildrenOf(id);
+    const plan: LeafBlockPlan | undefined = blockPlans.get(id);
 
-    if (children.length === 0) {
+    if (rowChildren.length === 0 && !plan) {
       bandWidthById.set(id, 2 * inkHalfWidth);
       centreInBandById.set(id, inkHalfWidth);
       childBandStartsById.set(id, []);
@@ -931,20 +1210,31 @@ const layoutTreeBand: (
 
     const childStarts: Array<number> = [];
     let cursor: number = 0;
-    let firstChildCentre: number = 0;
-    let lastChildCentre: number = 0;
-    children.forEach((childId: string, childIndex: number): void => {
+    let firstSlotCentre: number | null = null;
+    let lastSlotCentre: number = 0;
+    for (const childId of rowChildren) {
       const childWidth: number = bandWidthById.get(childId) || 0;
       const childCentre: number = cursor + (centreInBandById.get(childId) || 0);
       childStarts.push(cursor);
-      if (childIndex === 0) {
-        firstChildCentre = childCentre;
+      if (firstSlotCentre === null) {
+        firstSlotCentre = childCentre;
       }
-      lastChildCentre = childCentre;
+      lastSlotCentre = childCentre;
       cursor += childWidth + PARENT_CHILD_SIBLING_GAP;
-    });
+    }
+    let blockStart: number = 0;
+    if (plan) {
+      // The grid is the last slot: the row's subtrees first, then the leaves.
+      blockStart = cursor;
+      const blockCentre: number = cursor + plan.centre;
+      if (firstSlotCentre === null) {
+        firstSlotCentre = blockCentre;
+      }
+      lastSlotCentre = blockCentre;
+      cursor += plan.width + PARENT_CHILD_SIBLING_GAP;
+    }
     const childrenExtent: number = cursor - PARENT_CHILD_SIBLING_GAP;
-    const desiredCentre: number = (firstChildCentre + lastChildCentre) / 2;
+    const desiredCentre: number = ((firstSlotCentre ?? 0) + lastSlotCentre) / 2;
 
     /*
      * The band has to cover the parent's own ink as well as its children's,
@@ -971,34 +1261,70 @@ const layoutTreeBand: (
         return start + shift;
       }),
     );
+    if (plan) {
+      blockStartInBandById.set(id, blockStart + shift);
+    }
   }
 
   /*
    * Pass two, top down: turn the band offsets into coordinates. Depth
    * alone fixes y, so a child is always exactly one level gap below its
-   * parent however wide the tree gets.
+   * parent however wide the tree gets; a grid's first row sits on that
+   * level and the rest below it, a row pitch apart.
    */
   const bandStartById: Map<string, number> = new Map<string, number>();
   bandStartById.set(rootId, 0);
   const local: Map<string, TopologyPoint> = new Map<string, TopologyPoint>();
 
   for (const id of memberIds) {
+    if (blockMemberIds.has(id)) {
+      continue;
+    }
     const bandStart: number = bandStartById.get(id) || 0;
-    const depth: number = forest.depthById.get(id) || 0;
+    const depth: number = depthById.get(id) || 0;
+    const y: number = PARENT_CHILD_TOP_MARGIN + depth * PARENT_CHILD_LEVEL_GAP;
     local.set(id, {
       x: bandStart + (centreInBandById.get(id) || 0),
-      y: PARENT_CHILD_TOP_MARGIN + depth * PARENT_CHILD_LEVEL_GAP,
+      y: y,
     });
 
-    const children: Array<string> = forest.childrenById.get(id) || [];
+    const rowChildren: Array<string> = rowChildrenOf(id);
     const childStarts: Array<number> = childBandStartsById.get(id) || [];
-    children.forEach((childId: string, childIndex: number): void => {
+    rowChildren.forEach((childId: string, childIndex: number): void => {
       bandStartById.set(childId, bandStart + (childStarts[childIndex] || 0));
     });
+
+    const plan: LeafBlockPlan | undefined = blockPlans.get(id);
+    if (plan) {
+      const blockStart: number =
+        bandStart + (blockStartInBandById.get(id) || 0);
+      plan.memberIds.forEach((memberId: string, memberIndex: number): void => {
+        const column: number = Math.floor(memberIndex / plan.rows);
+        const row: number = memberIndex % plan.rows;
+        local.set(memberId, {
+          x: blockStart + column * plan.pitchX + plan.pitchX / 2,
+          y: y + PARENT_CHILD_LEVEL_GAP + row * plan.pitchY,
+        });
+      });
+    }
   }
 
   return local;
 };
+
+/** One complete placement of the forest, for one leaf-block shape. */
+interface ParentChildPlacement {
+  positions: Map<string, TopologyPoint>;
+  componentBoxes: Array<TopologyComponentBox>;
+  blockPlans: Map<string, LeafBlockPlan>;
+  contentWidth: number;
+  contentHeight: number;
+  /*
+   * The zoom fit-to-view would draw the whole map at in the frame: higher
+   * is more legible. Only ever compared between shapes of the same map.
+   */
+  fitScale: number;
+}
 
 /**
  * Compute the parent-child topology layout.
@@ -1010,6 +1336,12 @@ const layoutTreeBand: (
  * applied last and win outright — the point of dragging a device is that
  * it stays where you put it — and are still counted in the reported
  * content extent so fit-to-view cannot leave one off screen.
+ *
+ * `options.collapsedNodeIds` folds branches away: a collapsed node is
+ * placed as if it had no children, and nothing below it is placed at all.
+ * The hierarchy itself is always that of the WHOLE graph, so folding a
+ * branch never re-roots or re-parents anything else - it only gives its
+ * room back to its neighbours.
  */
 export const computeParentChildTopologyModel: (
   nodes: Array<NetworkTopologyNode>,
@@ -1017,18 +1349,15 @@ export const computeParentChildTopologyModel: (
   width: number,
   height: number,
   pinned?: ReadonlyMap<string, TopologyPoint> | undefined,
+  options?: ParentChildLayoutOptions | undefined,
 ) => TopologyLayoutModel = (
   nodes: Array<NetworkTopologyNode>,
   edges: Array<NetworkTopologyEdge>,
   width: number,
   height: number,
   pinned?: ReadonlyMap<string, TopologyPoint> | undefined,
+  options?: ParentChildLayoutOptions | undefined,
 ): TopologyLayoutModel => {
-  const positions: Map<string, TopologyPoint> = new Map<
-    string,
-    TopologyPoint
-  >();
-  const componentBoxes: Array<TopologyComponentBox> = [];
   const orderedNodeIds: Array<string> = canonicalNodeOrder(nodes);
 
   const frameWidth: number = Number.isFinite(width) && width > 0 ? width : 1000;
@@ -1037,9 +1366,17 @@ export const computeParentChildTopologyModel: (
 
   if (orderedNodeIds.length === 0) {
     return {
-      positions: positions,
-      componentBoxes: componentBoxes,
+      positions: new Map<string, TopologyPoint>(),
+      componentBoxes: [],
       groups: [],
+      leafBlocks: [],
+      hierarchy: {
+        rootIds: [],
+        parentById: new Map<string, string>(),
+        childrenById: new Map<string, Array<string>>(),
+        depthById: new Map<string, number>(),
+        collapsedNodeIds: new Set<string>(),
+      },
       contentWidth: frameWidth,
       contentHeight: frameHeight,
     };
@@ -1048,6 +1385,42 @@ export const computeParentChildTopologyModel: (
   const adjacency: TopologyAdjacency = buildTopologyAdjacency(nodes, edges);
   const footprints: Map<string, TopologyNodeFootprint> = buildFootprints(nodes);
   const forest: ParentChildForest = buildParentChildForest(nodes, edges);
+
+  const nodeById: Map<string, NetworkTopologyNode> = new Map<
+    string,
+    NetworkTopologyNode
+  >();
+  for (const node of nodes || []) {
+    if (node && typeof node.id === "string" && !nodeById.has(node.id)) {
+      nodeById.set(node.id, node);
+    }
+  }
+
+  /*
+   * Only a node with children can be collapsed: anything else in the set -
+   * a leaf, an id that left the graph - is ignored rather than trusted, so
+   * the hierarchy reports exactly the branches that are folded.
+   */
+  const collapsedNodeIds: Set<string> = new Set<string>();
+  for (const id of options?.collapsedNodeIds || []) {
+    if ((forest.childrenById.get(id) || NO_CHILDREN).length > 0) {
+      collapsedNodeIds.add(id);
+    }
+  }
+
+  const visibleChildrenOf: (nodeId: string) => Array<string> = (
+    nodeId: string,
+  ): Array<string> => {
+    if (collapsedNodeIds.has(nodeId)) {
+      return NO_CHILDREN;
+    }
+    return forest.childrenById.get(nodeId) || NO_CHILDREN;
+  };
+
+  // A leaf has no children in the WHOLE graph: a collapsed switch is not one.
+  const isLeaf: (nodeId: string) => boolean = (nodeId: string): boolean => {
+    return (forest.childrenById.get(nodeId) || NO_CHILDREN).length === 0;
+  };
 
   /*
    * Devices with no links at all get their own strip rather than a place
@@ -1063,7 +1436,7 @@ export const computeParentChildTopologyModel: (
     Array<string>
   >();
   for (const rootId of forest.rootIds) {
-    const members: Array<string> = orderTreeMembers(rootId, forest);
+    const members: Array<string> = orderTreeMembers(rootId, visibleChildrenOf);
     membersByRoot.set(rootId, members);
     const isIsolated: boolean =
       members.length === 1 && (adjacency.degreeById.get(rootId) || 0) === 0;
@@ -1074,180 +1447,301 @@ export const computeParentChildTopologyModel: (
     }
   }
 
-  // Lay each tree out in its own band-local coordinate space.
-  const localPositions: Array<Map<string, TopologyPoint>> = [];
-  const localBoxes: Array<ParentChildInkBox> = [];
+  // Every visible node that would pack its leaves, whatever their shape.
+  const blockParentIds: Array<string> = [];
+  const leafIdsByParent: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
   for (const rootId of linkedRootIds) {
-    const members: Array<string> = membersByRoot.get(rootId) || [];
-    const local: Map<string, TopologyPoint> = layoutTreeBand(
-      rootId,
-      members,
-      forest,
-      footprints,
-    );
-    const box: ParentChildInkBox = inkBoxFor(members, local, footprints) || {
-      minX: 0,
-      minY: 0,
-      maxX: 0,
-      maxY: 0,
-    };
-    localPositions.push(local);
-    localBoxes.push(box);
+    for (const id of membersByRoot.get(rootId) || NO_CHILDREN) {
+      const leafIds: Array<string> = visibleChildrenOf(id).filter(isLeaf);
+      if (leafIds.length >= PARENT_CHILD_LEAF_BLOCK_MIN_LEAVES) {
+        blockParentIds.push(id);
+        leafIdsByParent.set(id, leafIds);
+      }
+    }
   }
 
-  /*
-   * Each tree's band is one box for the shared shelf packer, ordered by
-   * ROOT ID rather than by the packer's usual decreasing height.
-   *
-   * A tidy tree's height is a quantized function of its depth: one newly
-   * discovered POS terminal deepens its tree by a whole level gap, and
-   * under a height-ordered pack that is enough to make two side-by-side
-   * trees trade ends of the map — every node in both of them moving,
-   * sixty seconds after the last poll, because one till came online. The
-   * same goes for width, which steps whenever a switch gains a sibling.
-   * Neither is a fact about the tree's identity, and the reader's mental
-   * map of "the warehouse is on the left" is worth more than the shelf
-   * space decreasing height would save.
-   */
-  const packInputs: Array<PackInput> = linkedRootIds.map(
-    (rootId: string, index: number): PackInput => {
-      const box: ParentChildInkBox = localBoxes[index]!;
-      return {
-        width: box.maxX - box.minX,
-        height: box.maxY - box.minY,
-        key: rootId,
+  const placeForest: (aspect: number) => ParentChildPlacement = (
+    aspect: number,
+  ): ParentChildPlacement => {
+    const positions: Map<string, TopologyPoint> = new Map<
+      string,
+      TopologyPoint
+    >();
+    const componentBoxes: Array<TopologyComponentBox> = [];
+
+    const blockPlans: Map<string, LeafBlockPlan> = new Map<
+      string,
+      LeafBlockPlan
+    >();
+    for (const parentId of blockParentIds) {
+      blockPlans.set(
+        parentId,
+        planLeafBlock(
+          parentId,
+          leafIdsByParent.get(parentId) || NO_CHILDREN,
+          footprints,
+          nodeById,
+          aspect,
+        ),
+      );
+    }
+
+    // Lay each tree out in its own band-local coordinate space.
+    const localPositions: Array<Map<string, TopologyPoint>> = [];
+    const localBoxes: Array<ParentChildInkBox> = [];
+    for (const rootId of linkedRootIds) {
+      const members: Array<string> = membersByRoot.get(rootId) || [];
+      const local: Map<string, TopologyPoint> = layoutTreeBand(
+        rootId,
+        members,
+        visibleChildrenOf,
+        forest.depthById,
+        footprints,
+        blockPlans,
+      );
+      const box: ParentChildInkBox = inkBoxFor(members, local, footprints) || {
+        minX: 0,
+        minY: 0,
+        maxX: 0,
+        maxY: 0,
       };
-    },
-  );
-  const packed: PackResult = packComponentBoxes(
-    packInputs,
-    Math.max(1, frameWidth - 2 * PARENT_CHILD_LAYOUT_MARGIN),
-    PARENT_CHILD_TREE_GAP,
-    "key",
-  );
-
-  linkedRootIds.forEach((rootId: string, index: number): void => {
-    const local: Map<string, TopologyPoint> = localPositions[index]!;
-    const box: ParentChildInkBox = localBoxes[index]!;
-    const slot: PackedBox = packed.placements[index]!;
-    const offsetX: number = slot.x - box.minX;
-    const offsetY: number = slot.y - box.minY;
-    const members: Array<string> = membersByRoot.get(rootId) || [];
-    for (const nodeId of members) {
-      const point: TopologyPoint = local.get(nodeId) || { x: 0, y: 0 };
-      positions.set(nodeId, { x: point.x + offsetX, y: point.y + offsetY });
+      localPositions.push(local);
+      localBoxes.push(box);
     }
-    componentBoxes.push({
-      key: rootId,
-      nodeIds: members.slice(),
-      x: slot.x,
-      y: slot.y,
-      width: slot.width,
-      height: slot.height,
-      nodeCount: members.length,
-      isUnlinked: false,
-    });
-  });
 
-  // The unlinked strip: a wrapped grid under everything else.
-  if (unlinkedIds.length > 0) {
-    const usableWidth: number = Math.max(
-      UNLINKED_STRIP_PITCH_X,
-      Math.max(frameWidth - 2 * PARENT_CHILD_LAYOUT_MARGIN, packed.width),
+    /*
+     * Each tree's band is one box for the shared shelf packer, ordered by
+     * ROOT ID rather than by the packer's usual decreasing height.
+     *
+     * A tidy tree's height is a quantized function of its depth: one newly
+     * discovered POS terminal deepens its tree by a whole level gap, and
+     * under a height-ordered pack that is enough to make two side-by-side
+     * trees trade ends of the map — every node in both of them moving,
+     * sixty seconds after the last poll, because one till came online. The
+     * same goes for width, which steps whenever a switch gains a sibling.
+     * Neither is a fact about the tree's identity, and the reader's mental
+     * map of "the warehouse is on the left" is worth more than the shelf
+     * space decreasing height would save.
+     */
+    const packInputs: Array<PackInput> = linkedRootIds.map(
+      (rootId: string, index: number): PackInput => {
+        const box: ParentChildInkBox = localBoxes[index]!;
+        return {
+          width: box.maxX - box.minX,
+          height: box.maxY - box.minY,
+          key: rootId,
+        };
+      },
     );
-    const perRow: number = Math.max(
-      1,
-      Math.floor(usableWidth / UNLINKED_STRIP_PITCH_X),
+    const packed: PackResult = packComponentBoxes(
+      packInputs,
+      Math.max(1, frameWidth - 2 * PARENT_CHILD_LAYOUT_MARGIN),
+      PARENT_CHILD_TREE_GAP,
+      "key",
     );
-    const rows: number = Math.ceil(unlinkedIds.length / perRow);
-    const stripTop: number =
-      packed.height > 0 ? packed.height + UNLINKED_STRIP_TOP_GAP : 0;
 
-    let stripMaxX: number = 0;
-    unlinkedIds.forEach((nodeId: string, index: number): void => {
-      const row: number = Math.floor(index / perRow);
-      const column: number = index % perRow;
-      const x: number =
-        column * UNLINKED_STRIP_PITCH_X + UNLINKED_STRIP_PITCH_X / 2;
-      const y: number =
-        stripTop + row * UNLINKED_STRIP_PITCH_Y + UNLINKED_STRIP_PITCH_Y / 2;
-      positions.set(nodeId, { x: x, y: y });
-      stripMaxX = Math.max(stripMaxX, x);
+    linkedRootIds.forEach((rootId: string, index: number): void => {
+      const local: Map<string, TopologyPoint> = localPositions[index]!;
+      const box: ParentChildInkBox = localBoxes[index]!;
+      const slot: PackedBox = packed.placements[index]!;
+      const offsetX: number = slot.x - box.minX;
+      const offsetY: number = slot.y - box.minY;
+      const members: Array<string> = membersByRoot.get(rootId) || [];
+      for (const nodeId of members) {
+        const point: TopologyPoint = local.get(nodeId) || { x: 0, y: 0 };
+        positions.set(nodeId, { x: point.x + offsetX, y: point.y + offsetY });
+      }
+      componentBoxes.push({
+        key: rootId,
+        nodeIds: members.slice(),
+        x: slot.x,
+        y: slot.y,
+        width: slot.width,
+        height: slot.height,
+        nodeCount: members.length,
+        isUnlinked: false,
+      });
     });
 
-    const stripBox: ParentChildInkBox = inkBoxFor(
-      unlinkedIds,
+    // The unlinked strip: a wrapped grid under everything else.
+    if (unlinkedIds.length > 0) {
+      const usableWidth: number = Math.max(
+        UNLINKED_STRIP_PITCH_X,
+        Math.max(frameWidth - 2 * PARENT_CHILD_LAYOUT_MARGIN, packed.width),
+      );
+      const perRow: number = Math.max(
+        1,
+        Math.floor(usableWidth / UNLINKED_STRIP_PITCH_X),
+      );
+      const rows: number = Math.ceil(unlinkedIds.length / perRow);
+      const stripTop: number =
+        packed.height > 0 ? packed.height + UNLINKED_STRIP_TOP_GAP : 0;
+
+      let stripMaxX: number = 0;
+      unlinkedIds.forEach((nodeId: string, index: number): void => {
+        const row: number = Math.floor(index / perRow);
+        const column: number = index % perRow;
+        const x: number =
+          column * UNLINKED_STRIP_PITCH_X + UNLINKED_STRIP_PITCH_X / 2;
+        const y: number =
+          stripTop + row * UNLINKED_STRIP_PITCH_Y + UNLINKED_STRIP_PITCH_Y / 2;
+        positions.set(nodeId, { x: x, y: y });
+        stripMaxX = Math.max(stripMaxX, x);
+      });
+
+      const stripBox: ParentChildInkBox = inkBoxFor(
+        unlinkedIds,
+        positions,
+        footprints,
+      ) || {
+        minX: 0,
+        minY: stripTop,
+        maxX: stripMaxX,
+        maxY: stripTop + rows * UNLINKED_STRIP_PITCH_Y,
+      };
+      componentBoxes.push({
+        key: UNLINKED_BOX_KEY,
+        nodeIds: unlinkedIds.slice(),
+        x: stripBox.minX,
+        y: stripBox.minY,
+        width: stripBox.maxX - stripBox.minX,
+        height: stripBox.maxY - stripBox.minY,
+        nodeCount: unlinkedIds.length,
+        isUnlinked: true,
+      });
+    }
+
+    /*
+     * Centre the PAINTED extent, not the box of node centres: glyphs and
+     * labels are a fixed size in viewBox units, so a tree measured by its
+     * centres sits visibly high in its card by half a label height. The
+     * layout is never scaled to fit — the viewport zooms instead, which is
+     * the only way to keep the level gap meaning what it says.
+     */
+    const placedNodeIds: Array<string> = orderedNodeIds.filter(
+      (nodeId: string): boolean => {
+        return positions.has(nodeId);
+      },
+    );
+    const finalBox: ParentChildInkBox = inkBoxFor(
+      placedNodeIds,
       positions,
       footprints,
-    ) || {
-      minX: 0,
-      minY: stripTop,
-      maxX: stripMaxX,
-      maxY: stripTop + rows * UNLINKED_STRIP_PITCH_Y,
+    ) || { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+    const spanX: number = finalBox.maxX - finalBox.minX;
+    const spanY: number = finalBox.maxY - finalBox.minY;
+    const contentWidth: number = Math.max(
+      frameWidth,
+      spanX + 2 * PARENT_CHILD_LAYOUT_MARGIN,
+    );
+    const contentHeight: number = Math.max(
+      frameHeight,
+      spanY + 2 * PARENT_CHILD_LAYOUT_MARGIN,
+    );
+    const originX: number = (contentWidth - spanX) / 2 - finalBox.minX;
+    const originY: number = (contentHeight - spanY) / 2 - finalBox.minY;
+
+    for (const nodeId of placedNodeIds) {
+      const point: TopologyPoint = positions.get(nodeId)!;
+      positions.set(nodeId, { x: point.x + originX, y: point.y + originY });
+    }
+
+    /*
+     * Re-derive each hull from where its members actually ended up rather
+     * than translating the box it had before, so the outline stays snug
+     * against the tree it describes.
+     */
+    for (const box of componentBoxes) {
+      const memberBox: ParentChildInkBox | null = inkBoxFor(
+        box.nodeIds,
+        positions,
+        footprints,
+      );
+      if (!memberBox) {
+        continue;
+      }
+      box.x = memberBox.minX;
+      box.y = memberBox.minY;
+      box.width = memberBox.maxX - memberBox.minX;
+      box.height = memberBox.maxY - memberBox.minY;
+    }
+
+    const paddedSpanX: number = spanX + 2 * PARENT_CHILD_LAYOUT_MARGIN;
+    const paddedSpanY: number = spanY + 2 * PARENT_CHILD_LAYOUT_MARGIN;
+
+    return {
+      positions: positions,
+      componentBoxes: componentBoxes,
+      blockPlans: blockPlans,
+      contentWidth: contentWidth,
+      contentHeight: contentHeight,
+      fitScale: Math.min(
+        paddedSpanX > 0 ? frameWidth / paddedSpanX : 1,
+        paddedSpanY > 0 ? frameHeight / paddedSpanY : 1,
+      ),
     };
-    componentBoxes.push({
-      key: UNLINKED_BOX_KEY,
-      nodeIds: unlinkedIds.slice(),
-      x: stripBox.minX,
-      y: stripBox.minY,
-      width: stripBox.maxX - stripBox.minX,
-      height: stripBox.maxY - stripBox.minY,
-      nodeCount: unlinkedIds.length,
-      isUnlinked: true,
+  };
+
+  /*
+   * Try every block shape and keep the one fit-to-view draws largest. A map
+   * with no block has one shape, so it is placed once - and exactly as it
+   * was before blocks existed.
+   */
+  const aspects: ReadonlyArray<number> =
+    blockParentIds.length > 0
+      ? PARENT_CHILD_LEAF_BLOCK_ASPECTS
+      : PARENT_CHILD_LEAF_BLOCK_ASPECTS.slice(0, 1);
+  let best: ParentChildPlacement | null = null;
+  for (const aspect of aspects) {
+    const placement: ParentChildPlacement = placeForest(aspect);
+    if (!best || placement.fitScale > best.fitScale + 1e-9) {
+      best = placement;
+    }
+  }
+  const placement: ParentChildPlacement = best!;
+  const positions: Map<string, TopologyPoint> = placement.positions;
+
+  /*
+   * Each block's comb, from where its leaves were placed - before any pin
+   * moves one. The comb is the layout's geometry; the renderer decides
+   * which leaves still sit on it (LeafBlockConnectors).
+   *
+   * No hull is reported for a block, unlike the tiered layout's endpoint
+   * groups: the comb's spines already frame each column, and a hull's top
+   * edge ran a few units over the bus as a doubled line.
+   */
+  const leafBlocks: Array<TopologyLeafBlock> = [];
+  for (const parentId of blockParentIds) {
+    const plan: LeafBlockPlan | undefined = placement.blockPlans.get(parentId);
+    if (!plan || plan.memberIds.length === 0) {
+      continue;
+    }
+    const columnByMemberId: Map<string, number> = new Map<string, number>();
+    const spineXs: Array<number> = [];
+    plan.memberIds.forEach((memberId: string, memberIndex: number): void => {
+      const column: number = Math.floor(memberIndex / plan.rows);
+      columnByMemberId.set(memberId, column);
+      if (memberIndex % plan.rows === 0) {
+        const point: TopologyPoint | undefined = positions.get(memberId);
+        spineXs[column] = (point ? point.x : 0) - plan.pitchX / 2;
+      }
     });
-  }
-
-  /*
-   * Centre the PAINTED extent, not the box of node centres: glyphs and
-   * labels are a fixed size in viewBox units, so a tree measured by its
-   * centres sits visibly high in its card by half a label height. The
-   * layout is never scaled to fit — the viewport zooms instead, which is
-   * the only way to keep the level gap meaning what it says.
-   */
-  const finalBox: ParentChildInkBox = inkBoxFor(
-    orderedNodeIds,
-    positions,
-    footprints,
-  ) || { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-  const spanX: number = finalBox.maxX - finalBox.minX;
-  const spanY: number = finalBox.maxY - finalBox.minY;
-  const contentWidth: number = Math.max(
-    frameWidth,
-    spanX + 2 * PARENT_CHILD_LAYOUT_MARGIN,
-  );
-  const contentHeight: number = Math.max(
-    frameHeight,
-    spanY + 2 * PARENT_CHILD_LAYOUT_MARGIN,
-  );
-  const originX: number = (contentWidth - spanX) / 2 - finalBox.minX;
-  const originY: number = (contentHeight - spanY) / 2 - finalBox.minY;
-
-  for (const nodeId of orderedNodeIds) {
-    const point: TopologyPoint | undefined = positions.get(nodeId);
-    if (!point) {
-      continue;
-    }
-    positions.set(nodeId, { x: point.x + originX, y: point.y + originY });
-  }
-
-  /*
-   * Re-derive each hull from where its members actually ended up rather
-   * than translating the box it had before, so the outline stays snug
-   * against the tree it describes.
-   */
-  for (const box of componentBoxes) {
-    const memberBox: ParentChildInkBox | null = inkBoxFor(
-      box.nodeIds,
-      positions,
-      footprints,
+    const firstRow: TopologyPoint | undefined = positions.get(
+      plan.memberIds[0]!,
     );
-    if (!memberBox) {
-      continue;
-    }
-    box.x = memberBox.minX;
-    box.y = memberBox.minY;
-    box.width = memberBox.maxX - memberBox.minX;
-    box.height = memberBox.maxY - memberBox.minY;
+    leafBlocks.push({
+      parentId: parentId,
+      memberIds: plan.memberIds.slice(),
+      columnByMemberId: columnByMemberId,
+      busY:
+        (firstRow ? firstRow.y : 0) -
+        plan.maxHalfHeight -
+        PARENT_CHILD_LEAF_BUS_CLEARANCE,
+      spineXs: spineXs,
+    });
   }
 
   // Pins last, and bit for bit: a dragged device stays where it was dropped.
@@ -1256,7 +1750,13 @@ export const computeParentChildTopologyModel: (
   if (pinned && pinned.size > 0) {
     for (const nodeId of orderedNodeIds) {
       const point: TopologyPoint | undefined = pinned.get(nodeId);
-      if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+      if (
+        !point ||
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y) ||
+        // Nothing inside a collapsed branch is drawn, pinned or not.
+        !positions.has(nodeId)
+      ) {
         continue;
       }
       positions.set(nodeId, { x: point.x, y: point.y });
@@ -1271,13 +1771,27 @@ export const computeParentChildTopologyModel: (
 
   return {
     positions: positions,
-    componentBoxes: componentBoxes,
+    componentBoxes: placement.componentBoxes,
     groups: [],
+    leafBlocks: leafBlocks,
+    hierarchy: {
+      rootIds: forest.rootIds.slice(),
+      parentById: forest.parentById,
+      childrenById: forest.childrenById,
+      depthById: forest.depthById,
+      collapsedNodeIds: collapsedNodeIds,
+    },
     contentWidth: Number.isFinite(pinnedMaxX)
-      ? Math.max(contentWidth, pinnedMaxX + PARENT_CHILD_LAYOUT_MARGIN)
-      : contentWidth,
+      ? Math.max(
+          placement.contentWidth,
+          pinnedMaxX + PARENT_CHILD_LAYOUT_MARGIN,
+        )
+      : placement.contentWidth,
     contentHeight: Number.isFinite(pinnedMaxY)
-      ? Math.max(contentHeight, pinnedMaxY + PARENT_CHILD_LAYOUT_MARGIN)
-      : contentHeight,
+      ? Math.max(
+          placement.contentHeight,
+          pinnedMaxY + PARENT_CHILD_LAYOUT_MARGIN,
+        )
+      : placement.contentHeight,
   };
 };

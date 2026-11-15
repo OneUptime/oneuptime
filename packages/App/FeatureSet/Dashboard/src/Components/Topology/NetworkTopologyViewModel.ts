@@ -46,6 +46,12 @@ import {
   resolveHealthVisibility,
 } from "./TopologyHealthFilter";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
+import {
+  EMPTY_LEAF_BLOCK_CONNECTORS,
+  LeafBlockComb,
+  LeafBlockConnectors,
+  TopologyConnectorSegment,
+} from "./LeafBlockConnectors";
 
 /*
  * Everything the graph needs to draw, computed without react.
@@ -85,6 +91,11 @@ export interface TopologyNodeView {
   isDimmed: boolean;
   isSelected: boolean;
   isPinned: boolean;
+  /*
+   * True for the search match the reader stepped to (issue #6606): the map
+   * rings it so the eye lands on it among the other matches.
+   */
+  isLocated: boolean;
   /** down / degraded / healthy / unknown — what the health chips count. */
   health: TopologyHealthState;
   /*
@@ -120,8 +131,31 @@ export interface TopologyEdgeView {
   strokeDashArray: string | undefined;
   isDimmed: boolean;
   isSelected: boolean;
+  /*
+   * True when the link is drawn as a stub off its leaf block's comb (issue
+   * #6606) rather than as a line between the two node centres: x1/y1 is
+   * then the point on the column's spine.
+   */
+  isOnComb: boolean;
   ariaLabel: string;
   testId: string;
+}
+
+/*
+ * One leaf block's shared wiring - trunk, bus and spines - as drawn (see
+ * LeafBlockConnectors). It belongs to no single link, so it is painted in
+ * what its links have in common: their colour when they all share one,
+ * the healthy neutral otherwise, and dashed only when every one of them
+ * was learned from a forwarding table.
+ */
+export interface TopologyCombView {
+  key: string;
+  parentId: string;
+  segments: Array<TopologyConnectorSegment>;
+  color: string;
+  strokeDashArray: string | undefined;
+  // Dimmed only when every link hanging from it is.
+  isDimmed: boolean;
 }
 
 export interface TopologyViewModelInput {
@@ -142,11 +176,27 @@ export interface TopologyViewModelInput {
   selectedNodeId: string | null;
   selectedEdgeKey: string | null;
   pinnedNodeIds: ReadonlySet<string>;
+  /*
+   * Nodes a search keeps at full strength although they do not match it
+   * (issue #6606): in the parent-child layout, every node on the path from
+   * a match's root down to it, so the reader sees where in the hierarchy
+   * each match sits. Absent or empty, only the matches stay bright.
+   */
+  searchContextNodeIds?: ReadonlySet<string> | undefined;
+  // The search match the reader stepped to, ringed on the map.
+  locatedNodeId?: string | null | undefined;
+  /*
+   * Leaf-block wiring (parent-child layout): the links that hang from a
+   * comb are drawn as their stubs, and the combs come back as views.
+   */
+  connectors?: LeafBlockConnectors | undefined;
 }
 
 export interface TopologyViewModel {
   nodes: Array<TopologyNodeView>;
   edges: Array<TopologyEdgeView>;
+  // Leaf-block combs, painted under the links (parent-child layout only).
+  combs: Array<TopologyCombView>;
   visibleNodeCount: number;
   totalNodeCount: number;
   /** True when the kind filters have hidden everything. */
@@ -160,6 +210,12 @@ export interface TopologyViewModel {
    * filter is what emptied the canvas sends them to the wrong control.
    */
   searchMatchCount: number;
+  /*
+   * The drawn nodes that match the search, in reading order - top to
+   * bottom, then left to right - which is the order the map's "next match"
+   * visits them in. Empty with no search.
+   */
+  searchMatchNodeIds: Array<string>;
   /*
    * How many drawn nodes the health filter actually asked for (the rest
    * of the drawn nodes are dimmed context neighbours). Zero with an
@@ -243,6 +299,75 @@ export const statusNoteForNode: (
   return qualifier ? qualifier.pendingTooltip : undefined;
 };
 
+const NO_NODE_IDS: ReadonlySet<string> = new Set<string>();
+
+// The dash an FDB-learned link is drawn with.
+const LEARNED_LINK_DASH: string = "3 3";
+
+/*
+ * The views of the leaf-block combs whose links are drawn. A comb none of
+ * whose links survived the filters is not drawn: it would be wiring to
+ * nothing.
+ */
+const buildCombViews: (
+  combs: ReadonlyArray<LeafBlockComb>,
+  edgeViews: ReadonlyArray<TopologyEdgeView>,
+) => Array<TopologyCombView> = (
+  combs: ReadonlyArray<LeafBlockComb>,
+  edgeViews: ReadonlyArray<TopologyEdgeView>,
+): Array<TopologyCombView> => {
+  if (combs.length === 0) {
+    return [];
+  }
+  const edgeViewByKey: Map<string, TopologyEdgeView> = new Map<
+    string,
+    TopologyEdgeView
+  >();
+  for (const edgeView of edgeViews) {
+    if (edgeView.isOnComb) {
+      edgeViewByKey.set(edgeView.key, edgeView);
+    }
+  }
+
+  const views: Array<TopologyCombView> = [];
+  for (const comb of combs) {
+    const links: Array<TopologyEdgeView> = [];
+    for (const edgeKey of comb.edgeKeys) {
+      const edgeView: TopologyEdgeView | undefined = edgeViewByKey.get(edgeKey);
+      if (edgeView) {
+        links.push(edgeView);
+      }
+    }
+    if (links.length === 0) {
+      continue;
+    }
+    const firstState: NetworkLinkState = links[0]!.state;
+    const sharesOneState: boolean = links.every(
+      (link: TopologyEdgeView): boolean => {
+        return link.state === firstState;
+      },
+    );
+    const isAllLearned: boolean = links.every(
+      (link: TopologyEdgeView): boolean => {
+        return link.strokeDashArray === LEARNED_LINK_DASH;
+      },
+    );
+    views.push({
+      key: comb.key,
+      parentId: comb.parentId,
+      segments: comb.segments,
+      color: sharesOneState
+        ? LINK_STATE_COLORS[firstState]
+        : LINK_STATE_COLORS.healthy,
+      strokeDashArray: isAllLearned ? LEARNED_LINK_DASH : undefined,
+      isDimmed: links.every((link: TopologyEdgeView): boolean => {
+        return link.isDimmed;
+      }),
+    });
+  }
+  return views;
+};
+
 /**
  * Build the render descriptors for one frame of the graph.
  *
@@ -264,6 +389,10 @@ export const buildTopologyViewModel: (
 ) => TopologyViewModel = (input: TopologyViewModelInput): TopologyViewModel => {
   const searchText: string = (input.searchText || "").trim();
   const hasFocus: boolean = input.focusNodeIds.size > 0;
+  const searchContextNodeIds: ReadonlySet<string> =
+    input.searchContextNodeIds || NO_NODE_IDS;
+  const connectors: LeafBlockConnectors =
+    input.connectors || EMPTY_LEAF_BLOCK_CONNECTORS;
 
   const visibleNodes: Array<NetworkTopologyNode> = [];
   const nodeById: Map<string, NetworkTopologyNode> = new Map<
@@ -302,6 +431,7 @@ export const buildTopologyViewModel: (
 
   const dimmedNodeIds: Set<string> = new Set<string>();
   const nodeViews: Array<TopologyNodeView> = [];
+  const searchMatches: Array<TopologyNodeView> = [];
   let searchMatchCount: number = 0;
   let healthMatchCount: number = 0;
 
@@ -329,8 +459,16 @@ export const buildTopologyViewModel: (
     if (isHealthMatch) {
       healthMatchCount++;
     }
+    /*
+     * A node on the path down to a match is kept bright with the match: the
+     * search answers "where is it", and in a hierarchy that is the path.
+     */
+    const isSearchContext: boolean =
+      !matchesSearch && searchContextNodeIds.has(node.id);
     const isDimmed: boolean =
-      !matchesSearch || !inFocus || (healthFilterIsActive && !isHealthMatch);
+      (!matchesSearch && !isSearchContext) ||
+      !inFocus ||
+      (healthFilterIsActive && !isHealthMatch);
     if (isDimmed) {
       dimmedNodeIds.add(node.id);
     }
@@ -367,6 +505,9 @@ export const buildTopologyViewModel: (
       isDimmed: isDimmed,
       isSelected: input.selectedNodeId === node.id,
       isPinned: input.pinnedNodeIds.has(node.id),
+      isLocated: Boolean(
+        input.locatedNodeId && input.locatedNodeId === node.id,
+      ),
       health: healthVisibility.stateByNodeId.get(node.id) || "unknown",
       isHealthMatch: isHealthMatch,
       ariaLabel: accessibleLabelForNode(node),
@@ -374,7 +515,25 @@ export const buildTopologyViewModel: (
       statusNote: statusNoteForNode(node),
       testId: `network-topology-node-${node.id}`,
     });
+    if (searchText && matchesSearch) {
+      searchMatches.push(nodeViews[nodeViews.length - 1]!);
+    }
   }
+
+  /*
+   * Reading order: top to bottom, then left to right, then id - so "next
+   * match" walks the map the way the eye does, and the same matches always
+   * come in the same order.
+   */
+  searchMatches.sort((a: TopologyNodeView, b: TopologyNodeView): number => {
+    if (a.y !== b.y) {
+      return a.y - b.y;
+    }
+    if (a.x !== b.x) {
+      return a.x - b.x;
+    }
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
 
   const placedNodeIds: Set<string> = new Set<string>(
     nodeViews.map((view: TopologyNodeView): string => {
@@ -397,15 +556,18 @@ export const buildTopologyViewModel: (
     const to: TopologyPoint = input.positions.get(edge.toNodeId)!;
     const state: NetworkLinkState = linkStateForEdge(edge);
     const key: string = edgeKeyForEdge(edge);
+    // A link hanging from a leaf block's comb is drawn as its stub.
+    const stub: TopologyConnectorSegment | undefined =
+      connectors.stubByEdgeKey.get(key);
 
     edgeViews.push({
       key: key,
       fromNodeId: edge.fromNodeId,
       toNodeId: edge.toNodeId,
-      x1: from.x,
-      y1: from.y,
-      x2: to.x,
-      y2: to.y,
+      x1: stub ? stub.x1 : from.x,
+      y1: stub ? stub.y1 : from.y,
+      x2: stub ? stub.x2 : to.x,
+      y2: stub ? stub.y2 : to.y,
       state: state,
       color: LINK_STATE_COLORS[state],
       strokeWidth: edgeStrokeWidthForEdge(edge),
@@ -415,10 +577,15 @@ export const buildTopologyViewModel: (
        * reads as learned rather than cabled.
        */
       strokeDashArray:
-        state === "down" ? "6 4" : isFdbEdge(edge) ? "3 3" : undefined,
+        state === "down"
+          ? "6 4"
+          : isFdbEdge(edge)
+            ? LEARNED_LINK_DASH
+            : undefined,
       isDimmed:
         dimmedNodeIds.has(edge.fromNodeId) || dimmedNodeIds.has(edge.toNodeId),
       isSelected: input.selectedEdgeKey === key,
+      isOnComb: Boolean(stub),
       ariaLabel: accessibleLabelForEdge(
         edge,
         nodeById.get(edge.fromNodeId)?.name,
@@ -432,10 +599,14 @@ export const buildTopologyViewModel: (
   return {
     nodes: nodeViews,
     edges: edgeViews,
+    combs: buildCombViews(connectors.combs, edgeViews),
     visibleNodeCount: nodeViews.length,
     totalNodeCount: totalNodeCount,
     isFilteredEmpty: totalNodeCount > 0 && nodeViews.length === 0,
     searchMatchCount: searchMatchCount,
+    searchMatchNodeIds: searchMatches.map((view: TopologyNodeView): string => {
+      return view.id;
+    }),
     healthMatchCount: healthMatchCount,
     isHealthFilterActive: healthFilterIsActive,
     kindFilteredNodeCount: eligibleNodeIds.size,

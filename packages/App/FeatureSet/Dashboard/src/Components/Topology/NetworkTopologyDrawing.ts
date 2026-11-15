@@ -160,6 +160,16 @@ export function attentionHaloRadiusFor(
   );
 }
 
+/** What a layout is asked for beyond the graph itself. */
+export interface TopologyLayoutOptions {
+  /*
+   * Branches the reader folded away (issue #6606). Only the parent-child
+   * layout draws a hierarchy, so only it honours them; every other mode
+   * ignores the set.
+   */
+  collapsedNodeIds?: ReadonlySet<string> | undefined;
+}
+
 /**
  * The layout one mode draws, for one graph.
  *
@@ -171,10 +181,12 @@ export const computeTopologyLayoutModel: (
   layoutMode: TopologyLayoutMode,
   nodes: Array<NetworkTopologyNode>,
   edges: Array<NetworkTopologyEdge>,
+  options?: TopologyLayoutOptions | undefined,
 ) => TopologyLayoutModel = (
   layoutMode: TopologyLayoutMode,
   nodes: Array<NetworkTopologyNode>,
   edges: Array<NetworkTopologyEdge>,
+  options?: TopologyLayoutOptions | undefined,
 ): TopologyLayoutModel => {
   if (layoutMode === "tiered") {
     return computeTieredTopologyLayoutModel(
@@ -206,6 +218,8 @@ export const computeTopologyLayoutModel: (
       edges,
       TOPOLOGY_VIEW_WIDTH,
       TOPOLOGY_VIEW_HEIGHT,
+      undefined,
+      { collapsedNodeIds: options?.collapsedNodeIds },
     );
   }
   return computeForceTopologyModel(
