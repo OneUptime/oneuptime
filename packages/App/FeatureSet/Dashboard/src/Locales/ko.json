@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "사람들이 알림을 받지 못하게 하는 문제가 {{count}}개 있습니다",
   "{{count}} things in your setup are worth fixing": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
   "{{count}} things in your setup are worth fixing_one": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요.",
+  "Nobody is paged: this project has no on-call policy yet.": "아무도 호출되지 않습니다. 이 프로젝트에는 아직 온콜 정책이 없습니다.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "대체 방법으로 선택됨: 이 심각도에 해당하는 이 사람의 온콜 규칙이 없습니다",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "이 설정에서 사용하던 온콜 정책이 삭제되었으므로 정책을 다시 고르거나 만드세요."
 }

@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "有 {{count}} 個問題會讓相關人員收不到通知",
   "{{count}} things in your setup are worth fixing": "你的設定中有 {{count}} 項值得修正",
   "{{count}} things in your setup are worth fixing_one": "你的設定中有 {{count}} 項值得修正",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐項修正；如果團隊刻意維持現狀，也可以將其隱藏。"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐項修正；如果團隊刻意維持現狀，也可以將其隱藏。",
+  "Nobody is paged: this project has no on-call policy yet.": "不會呼叫任何人：此專案還沒有待命策略。",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "由備援方式選擇：此人沒有涵蓋此嚴重程度的待命規則",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "此設定所用的待命策略已被刪除，請重新選擇或建立一個。"
 }

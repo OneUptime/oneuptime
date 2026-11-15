@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} مشکل مانع خبردار شدن افراد می‌شود",
   "{{count}} things in your setup are worth fixing": "{{count}} مورد در پیکربندی شما ارزش رفع کردن دارد",
   "{{count}} things in your setup are worth fixing_one": "{{count}} مورد در پیکربندی شما ارزش رفع کردن دارد",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "هر کدام را از همین‌جا رفع کنید، یا اگر تیم شما عمداً آن را همین‌طور نگه می‌دارد، پنهانش کنید."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "هر کدام را از همین‌جا رفع کنید، یا اگر تیم شما عمداً آن را همین‌طور نگه می‌دارد، پنهانش کنید.",
+  "Nobody is paged: this project has no on-call policy yet.": "کسی فراخوانده نمی‌شود: این پروژه هنوز سیاست آنکالی ندارد.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "انتخاب‌شده با روش جایگزین: هیچ قاعدهٔ آنکالی از این فرد این شدت را پوشش نمی‌دهد",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "سیاست آنکالی که این راه‌اندازی از آن استفاده می‌کرد حذف شد، پس دوباره یکی را انتخاب کنید یا بسازید."
 }

@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} probleem zou voorkomen dat mensen worden gewaarschuwd",
   "{{count}} things in your setup are worth fixing": "{{count}} punten in je inrichting zijn het oplossen waard",
   "{{count}} things in your setup are worth fixing_one": "{{count}} punt in je inrichting is het oplossen waard",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Los elk punt vanaf hier op, of verberg het als je team het bewust zo laat."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Los elk punt vanaf hier op, of verberg het als je team het bewust zo laat.",
+  "Nobody is paged: this project has no on-call policy yet.": "Niemand wordt opgeroepen: dit project heeft nog geen bereikbaarheidsbeleid.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Gekozen door de terugval: geen bereikbaarheidsregel van deze persoon dekt deze ernst",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Het bereikbaarheidsbeleid dat deze installatie gebruikte, is verwijderd, dus kies of maak er opnieuw een."
 }

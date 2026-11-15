@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problème empêcherait de prévenir les bonnes personnes",
   "{{count}} things in your setup are worth fixing": "{{count}} points de votre configuration sont à corriger",
   "{{count}} things in your setup are worth fixing_one": "{{count}} point de votre configuration est à corriger",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrigez chacun d'ici, ou masquez-le si votre équipe le laisse ainsi volontairement."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrigez chacun d'ici, ou masquez-le si votre équipe le laisse ainsi volontairement.",
+  "Nobody is paged: this project has no on-call policy yet.": "Personne n'est alerté : ce projet n'a pas encore de politique d'astreinte.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Choisi par le repli : aucune règle d'astreinte de cette personne ne couvre cette gravité",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "La politique d'astreinte qu'utilisait cette configuration a été supprimée : choisissez-en une ou créez-en une nouvelle."
 }

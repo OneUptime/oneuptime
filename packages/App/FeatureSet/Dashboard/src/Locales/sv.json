@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problem skulle hindra att folk får veta",
   "{{count}} things in your setup are worth fixing": "{{count}} saker i dina inställningar är värda att åtgärda",
   "{{count}} things in your setup are worth fixing_one": "{{count}} sak i dina inställningar är värd att åtgärda",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Åtgärda var och en härifrån, eller dölj den om ditt team låter den vara så med flit."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Åtgärda var och en härifrån, eller dölj den om ditt team låter den vara så med flit.",
+  "Nobody is paged: this project has no on-call policy yet.": "Ingen larmas: det här projektet har ingen jourpolicy ännu.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Valt av reservlösningen: ingen av personens jourregler täcker den här allvarlighetsgraden",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Jourpolicyn som den här installationen använde har tagits bort, så välj eller skapa en igen."
 }

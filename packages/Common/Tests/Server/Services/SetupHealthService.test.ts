@@ -44,6 +44,10 @@ import OnCallReadinessService, {
   UserReadiness,
 } from "../../../Server/Services/OnCallReadinessService";
 import OnCallTestPageService from "../../../Server/Services/OnCallTestPageService";
+import UserNotificationRuleService, {
+  FallbackRule,
+} from "../../../Server/Services/UserNotificationRuleService";
+import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -612,6 +616,17 @@ function stubWorld(): void {
         : preview(BEN, "Ben Ito", { hasNoRule: true });
     },
   );
+  // Ben has no rule for the severity: what the fallback picks, his push (#7528).
+  spy(
+    "UserNotificationRuleService.getFallbackRules",
+    UserNotificationRuleService,
+    "getFallbackRules",
+    async (): Promise<Array<FallbackRule>> => {
+      const rule: UserNotificationRule = new UserNotificationRule();
+      rule.userPush = { isVerified: true } as never;
+      return [{ channelName: "Push", rule: rule }];
+    },
+  );
   spy(
     "ServerSendingStatus.getStatuses",
     ServerSendingStatus,
@@ -987,6 +1002,8 @@ describe("SetupHealthService", () => {
     // Each policy's first level and each person's rules, once.
     expect(thousand["OnCallTestPageService.readFirstLevel"]).toBe(1);
     expect(thousand["OnCallTestPageService.getPersonPreview"]).toBe(2);
+    // What the fallback picks for the one person with no rule, once (#7528).
+    expect(thousand["UserNotificationRuleService.getFallbackRules"]).toBe(1);
     expect(thousand["MonitorService.findOneById"]).toBe(0);
     // Every responder's verified methods come from the project's Readiness.
     expect(thousand["OnCallReadinessService.getReadinessForUsers"]).toBe(0);

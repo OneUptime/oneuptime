@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problem ville hindre at folk blir varslet",
   "{{count}} things in your setup are worth fixing": "{{count}} ting i oppsettet ditt er verdt å rette",
   "{{count}} things in your setup are worth fixing_one": "{{count}} ting i oppsettet ditt er verdt å rette",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Rett hvert punkt herfra, eller skjul det hvis teamet ditt lar det være slik med vilje."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Rett hvert punkt herfra, eller skjul det hvis teamet ditt lar det være slik med vilje.",
+  "Nobody is paged: this project has no on-call policy yet.": "Ingen varsles: dette prosjektet har ingen vaktpolicy ennå.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Valgt av reserveløsningen: ingen av personens vaktregler dekker denne alvorlighetsgraden",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Vaktpolicyen dette oppsettet brukte, er slettet, så velg eller opprett en på nytt."
 }

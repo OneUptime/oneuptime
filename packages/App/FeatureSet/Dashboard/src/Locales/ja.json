@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "人に知らせることを妨げる問題が {{count}} 件あります",
   "{{count}} things in your setup are worth fixing": "セットアップに修正をおすすめする項目が {{count}} 件あります",
   "{{count}} things in your setup are worth fixing_one": "セットアップに修正をおすすめする項目が {{count}} 件あります",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "ここからそれぞれ修正するか、チームが意図的にそのままにしているものは非表示にしてください。"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "ここからそれぞれ修正するか、チームが意図的にそのままにしているものは非表示にしてください。",
+  "Nobody is paged: this project has no on-call policy yet.": "誰も呼び出されません。このプロジェクトにはまだオンコールポリシーがありません。",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "フォールバックによる選択：この重大度に該当するこの人のオンコールルールはありません",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "このセットアップで使用していたオンコールポリシーが削除されたため、もう一度選択するか作成してください。"
 }

@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problema impedirebbe di avvisare le persone",
   "{{count}} things in your setup are worth fixing": "{{count}} elementi della tua configurazione sono da correggere",
   "{{count}} things in your setup are worth fixing_one": "{{count}} elemento della tua configurazione è da correggere",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Correggi ciascuno da qui, oppure nascondilo se il tuo team lo lascia così di proposito."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Correggi ciascuno da qui, oppure nascondilo se il tuo team lo lascia così di proposito.",
+  "Nobody is paged: this project has no on-call policy yet.": "Nessuno viene avvisato: questo progetto non ha ancora una policy di reperibilità.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Scelto dal ripiego: nessuna regola di reperibilità di questa persona copre questa gravità",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "La policy di reperibilità usata da questa configurazione è stata eliminata, quindi scegline o creane una di nuovo."
 }

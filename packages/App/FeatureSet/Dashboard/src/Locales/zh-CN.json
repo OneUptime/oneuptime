@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "有 {{count}} 个问题会让相关人员收不到通知",
   "{{count}} things in your setup are worth fixing": "你的配置中有 {{count}} 项值得修复",
   "{{count}} things in your setup are worth fixing_one": "你的配置中有 {{count}} 项值得修复",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。",
+  "Nobody is paged: this project has no on-call policy yet.": "不会呼叫任何人：此项目还没有值班策略。",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "由回退方式选择：此人没有涵盖此严重程度的值班规则",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "此设置所用的值班策略已被删除，请重新选择或创建一个。"
 }

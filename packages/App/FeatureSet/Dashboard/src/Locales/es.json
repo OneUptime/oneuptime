@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problema impediría avisar a las personas",
   "{{count}} things in your setup are worth fixing": "Conviene corregir {{count}} cosas de tu configuración",
   "{{count}} things in your setup are worth fixing_one": "Conviene corregir {{count}} cosa de tu configuración",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrige cada una desde aquí, o descártala si tu equipo la deja así a propósito."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrige cada una desde aquí, o descártala si tu equipo la deja así a propósito.",
+  "Nobody is paged: this project has no on-call policy yet.": "No se avisa a nadie: este proyecto aún no tiene ninguna política de guardia.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Elegido por el respaldo: ninguna regla de guardia de esta persona cubre esta gravedad",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Se eliminó la política de guardia que usaba esta configuración, así que elige o crea una de nuevo."
 }

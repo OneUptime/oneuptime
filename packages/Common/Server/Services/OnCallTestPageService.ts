@@ -918,7 +918,9 @@ export class OnCallTestPageService extends BaseService {
     /*
      * Whether a person with no rule is previewed with what the fallback
      * picks. A test's preview reads it; the view of who would be told
-     * (WhoIsToldService) reads every verified method of a person itself.
+     * (WhoIsToldService) reads what the fallback picks itself, through the
+     * same reader, once per person and kind of page rather than once per
+     * severity as it reads these previews (#7528).
      */
     readsFallbackMethods?: boolean | undefined;
   }): Promise<OnCallTestPagePreviewPerson> {

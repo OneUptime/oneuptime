@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} проблема помешает оповестить людей",
   "{{count}} things in your setup are worth fixing": "Пунктов в настройке, которые стоит исправить: {{count}}",
   "{{count}} things in your setup are worth fixing_one": "{{count}} пункт в настройке стоит исправить",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Исправьте каждый пункт отсюда или скройте его, если ваша команда намеренно оставляет его как есть."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Исправьте каждый пункт отсюда или скройте его, если ваша команда намеренно оставляет его как есть.",
+  "Nobody is paged: this project has no on-call policy yet.": "Никого не оповещают: в этом проекте ещё нет политики дежурства.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Выбрано запасным способом: ни одно правило дежурства этого человека не охватывает эту серьёзность",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Политика дежурства, которую использовала эта настройка, удалена, поэтому выберите или создайте другую."
 }

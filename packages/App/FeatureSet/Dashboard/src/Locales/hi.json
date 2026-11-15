@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} समस्या लोगों तक सूचना पहुँचने से रोकेगी",
   "{{count}} things in your setup are worth fixing": "आपके सेटअप में {{count}} चीज़ें ठीक करने लायक हैं",
   "{{count}} things in your setup are worth fixing_one": "आपके सेटअप में {{count}} चीज़ ठीक करने लायक है",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "हर एक को यहीं से ठीक करें, या अगर आपकी टीम उसे जानबूझकर वैसा ही रखती है तो उसे छिपाएं।"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "हर एक को यहीं से ठीक करें, या अगर आपकी टीम उसे जानबूझकर वैसा ही रखती है तो उसे छिपाएं।",
+  "Nobody is paged: this project has no on-call policy yet.": "किसी को पेज नहीं किया जाता: इस प्रोजेक्ट में अभी कोई ऑन-कॉल नीति नहीं है।",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "फ़ॉलबैक द्वारा चुना गया: इस गंभीरता के लिए इनका कोई ऑन-कॉल नियम नहीं है",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "यह सेटअप जिस ऑन-कॉल नीति का उपयोग कर रहा था, वह हटा दी गई है, इसलिए फिर से कोई नीति चुनें या बनाएँ।"
 }

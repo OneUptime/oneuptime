@@ -52411,5 +52411,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} Problem würde verhindern, dass Menschen benachrichtigt werden",
   "{{count}} things in your setup are worth fixing": "{{count}} Punkte in Ihrer Einrichtung sollten behoben werden",
   "{{count}} things in your setup are worth fixing_one": "{{count}} Punkt in Ihrer Einrichtung sollte behoben werden",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Beheben Sie jeden Punkt von hier aus, oder blenden Sie ihn aus, wenn Ihr Team ihn bewusst so lässt."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Beheben Sie jeden Punkt von hier aus, oder blenden Sie ihn aus, wenn Ihr Team ihn bewusst so lässt.",
+  "Nobody is paged: this project has no on-call policy yet.": "Niemand wird alarmiert: Dieses Projekt hat noch keine Bereitschaftsrichtlinie.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Von der Ausweich-Benachrichtigung gewählt: Keine Bereitschaftsregel dieser Person deckt diesen Schweregrad ab",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Die Bereitschaftsrichtlinie, die diese Einrichtung verwendet hat, wurde gelöscht, also wähle oder erstelle erneut eine."
 }
