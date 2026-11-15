@@ -4,6 +4,7 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallSentLine";
 
 /*
  * What a person's on-call timeline says of one notification of a page
@@ -59,9 +60,12 @@ export const SEND_RESULT_MOVES_ON_FROM: ReadonlyArray<UserNotificationStatus> =
 export const PROVIDER_REPORT_MOVES_ON_FROM: ReadonlyArray<UserNotificationStatus> =
   [UserNotificationStatus.Sent, UserNotificationStatus.Sending];
 
-// What a notification the person acknowledged the page from says.
-export const ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE: string =
-  "Notification Acknowledged";
+/*
+ * What a notification the person acknowledged the page from says: kept
+ * with the lines a notification says once it went out (OnCallSentLine),
+ * where the on-call logs read it back (#8434).
+ */
+export { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE };
 
 // What an observer's notification says once they said they have seen it (OnCallObserverPage).
 export const ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE: string =

@@ -155,7 +155,7 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 :::steps
 1. Öffnen Sie **Benutzereinstellungen** > **Richtlinie für eingehende Anrufe** > **Eingehende Telefonnummern**. **Richtlinie für eingehende Anrufe** ist ein Abschnitt des Seitenmenüs, der eingeklappt beginnt.
 2. Klicken Sie in der Karte **Telefonnummern für eingehende Anrufweiterleitung** auf **Telefonnummer für eingehende Anrufweiterleitung hinzufügen** und geben Sie die Nummer mit Ländervorwahl ein, etwa `+15551234567`.
-3. Geben Sie den 6-stelligen Code, den OneUptime per SMS an die Nummer sendet, unter **Verifizierungscode** ein und klicken Sie auf **Verifizieren**. **Send a new code** sendet einen weiteren.
+3. Geben Sie den 6-stelligen Code, den OneUptime per SMS an die Nummer sendet, unter **Verifizierungscode** ein und klicken Sie auf **Verifizieren**. **Neuen Code senden** sendet einen weiteren.
 :::
 
 Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
@@ -275,7 +275,7 @@ Das Konto lässt sich nur ändern, solange die Richtlinie keine Telefonnummern h
 :::
 
 :::details Der Code für die Nummer einer Person kommt nicht an
-SMS muss im Projekt eingeschaltet sein. In OneUptime Cloud bezahlt ein Projekt ohne eigene Standard-Twilio-Konfiguration die SMS von seinem Guthaben, das über 1 USD liegen muss. Codes können eine Minute brauchen; klicken Sie auf **Send a new code**, um einen weiteren zu senden, und **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** zeigt, was mit ihm passiert ist.
+SMS muss im Projekt eingeschaltet sein. In OneUptime Cloud bezahlt ein Projekt ohne eigene Standard-Twilio-Konfiguration die SMS von seinem Guthaben, das über 1 USD liegen muss. Codes können eine Minute brauchen; klicken Sie auf **Neuen Code senden**, um einen weiteren zu senden, und **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** zeigt, was mit ihm passiert ist.
 :::
 
 ## Nächste Schritte

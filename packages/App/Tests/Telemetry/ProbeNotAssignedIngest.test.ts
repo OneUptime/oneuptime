@@ -135,6 +135,9 @@ import { isNonActionableIngestError } from "../../FeatureSet/Telemetry/Utils/Non
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
 import MonitorService from "Common/Server/Services/MonitorService";
+import MonitorTestService, {
+  MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
+} from "Common/Server/Services/MonitorTestService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorCriteriaEvaluator from "Common/Server/Utils/Monitor/MonitorCriteriaEvaluator";
@@ -893,4 +896,123 @@ describe("an SNMP trap queued without the probe that received it (issue #8424)",
       expectNoErrorLogged();
     },
   );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A MONITOR TEST'S RESULT FOR A TEST THE PROBE WAS NOT HANDED (issue #8539).
+ *
+ * MonitorTestService writes a test's result only on a test handed to the
+ * probe that sent it, and still there. When it is not - another probe
+ * claimed the test after this probe's claim went stale, or the test was
+ * deleted - the write lands nowhere, and no attempt changes that. The job
+ * used to fail three times, each with "Error processing telemetry job:" and
+ * a stack after the warning. Now the worker completes it, with the one
+ * warning naming the probe and the test.
+ * ---------------------------------------------------------------------------
+ */
+describe("a monitor test's result for a test the probe was not handed (issue #8539)", () => {
+  const NOT_HANDED: string = "which was not handed to it or no longer exists";
+
+  test("completes the telemetry job, logs one warning naming the probe and the test, and nothing as an error", async () => {
+    const merge: jest.SpyInstance = jest
+      .spyOn(MonitorTestService, "mergeStepProbeResponse")
+      .mockResolvedValue(false);
+    jest.spyOn(MonitorTestService, "findOneById").mockResolvedValue(null);
+
+    await expect(
+      capturedHandler!(probeJob({ jobType: "monitor-test" })),
+    ).resolves.toBeUndefined();
+
+    expect(merge).toHaveBeenCalledTimes(1);
+    const warnings: Array<Array<unknown>> = warningsNaming(NOT_HANDED);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]![0]).toBe(
+      `Probe ${PROBE_ID} sent a result for monitor test ${TEST_ID}, which was not handed to it or no longer exists. Nothing was recorded.`,
+    );
+    expect(warnings[0]![1]).toEqual({
+      probeId: PROBE_ID,
+      monitorTestId: TEST_ID,
+    });
+    expectNoErrorLogged();
+  });
+
+  test("a retry of the same job is refused the same way, and completes too", async () => {
+    jest
+      .spyOn(MonitorTestService, "mergeStepProbeResponse")
+      .mockResolvedValue(false);
+    jest.spyOn(MonitorTestService, "findOneById").mockResolvedValue(null);
+    const job: unknown = probeJob({ jobType: "monitor-test" });
+
+    await expect(capturedHandler!(job)).resolves.toBeUndefined();
+    await expect(capturedHandler!(job)).resolves.toBeUndefined();
+
+    expect(warningsNaming(NOT_HANDED)).toHaveLength(2);
+    expectNoErrorLogged();
+  });
+
+  test("the refusal is ExceptionMessages.MonitorTestNotHandedToProbe, which the worker completes the job on", async () => {
+    jest
+      .spyOn(MonitorTestService, "mergeStepProbeResponse")
+      .mockResolvedValue(false);
+    jest.spyOn(MonitorTestService, "findOneById").mockResolvedValue(null);
+    const { processProbeFromQueue } = jest.requireActual(
+      "../../FeatureSet/Telemetry/Jobs/ProbeIngest/ProcessProbeIngest",
+    ) as {
+      processProbeFromQueue: (jobData: ProbeIngestJobData) => Promise<void>;
+    };
+
+    const refusal: unknown = await processProbeFromQueue(
+      (
+        probeJob({ jobType: "monitor-test" }) as {
+          data: { probeIngest: ProbeIngestJobData };
+        }
+      ).data.probeIngest,
+    ).then(
+      () => {
+        return null;
+      },
+      (refused: unknown) => {
+        return refused;
+      },
+    );
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as Error).message).toBe(
+      ExceptionMessages.MonitorTestNotHandedToProbe,
+    );
+    expect(MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE).toBe(
+      ExceptionMessages.MonitorTestNotHandedToProbe,
+    );
+    expect(isNonActionableIngestError(refusal)).toBe(true);
+  });
+
+  test("a test handed to the probe is written, and nothing is refused", async () => {
+    const merge: jest.SpyInstance = jest
+      .spyOn(MonitorTestService, "mergeStepProbeResponse")
+      .mockResolvedValue(true);
+    jest.spyOn(MonitorTestService, "findOneById").mockResolvedValue(null);
+
+    await expect(
+      capturedHandler!(probeJob({ jobType: "monitor-test" })),
+    ).resolves.toBeUndefined();
+
+    expect(merge).toHaveBeenCalledTimes(1);
+    expect(warningsNaming(NOT_HANDED)).toHaveLength(0);
+    expectNoErrorLogged();
+  });
+
+  test("a database error writing the result still fails the job, for the queue to retry", async () => {
+    jest
+      .spyOn(MonitorTestService, "mergeStepProbeResponse")
+      .mockRejectedValue(new Error("Connection terminated unexpectedly"));
+    jest.spyOn(MonitorTestService, "findOneById").mockResolvedValue(null);
+
+    await expect(
+      capturedHandler!(probeJob({ jobType: "monitor-test" })),
+    ).rejects.toThrow("Connection terminated unexpectedly");
+
+    expect(error).toHaveBeenCalledWith("Error processing telemetry job:");
+    expect(warningsNaming(NOT_HANDED)).toHaveLength(0);
+  });
 });

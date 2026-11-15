@@ -624,6 +624,34 @@ describe("the Checks list at 1280px beside the side menu (#7534)", () => {
     }
   });
 
+  /*
+   * #8345: measured in Chromium at 1100px, the German list still ran 11px
+   * past its card with "Jetzt ausführen" on every row. The row's button
+   * says the verb, and is named by its whole title.
+   */
+  test.each([
+    ["en", "Run"],
+    ["de", "Ausführen"],
+  ])(
+    "in %s, each row's button says %s, named by its whole title",
+    async (inLanguage: string, shown: string) => {
+      await drawChecks(inLanguage);
+
+      for (const check of CHECKS) {
+        const button: HTMLElement = within(rowOf(check.name!)).getByRole(
+          "button",
+          { name: word("Run Now") },
+        );
+
+        expect(withoutIsolateMarks(button.textContent || "").trim()).toBe(
+          shown,
+        );
+      }
+
+      expect(word("Run Now").toLowerCase()).toContain(shown.toLowerCase());
+    },
+  );
+
   test("in English, the list fits: every column is drawn as before, nothing folded", async () => {
     await drawChecks("en");
 
@@ -696,6 +724,18 @@ describe("the Reconciliations list at 1280px beside the side menu (#7534)", () =
       ).toBeInTheDocument();
     },
   );
+
+  test("in German, each row's button says Ausführen, named Jetzt ausführen, as the Checks list's does", async () => {
+    await drawReconciliations("de");
+
+    const button: HTMLElement = within(
+      rowOf("Orders after the migration"),
+    ).getByRole("button", { name: "Jetzt ausführen" });
+
+    expect(withoutIsolateMarks(button.textContent || "").trim()).toBe(
+      "Ausführen",
+    );
+  });
 
   test("on a wide screen, every column is drawn as before", async () => {
     await drawReconciliations("de", WIDE_WINDOW, WIDE_CARD);

@@ -59,7 +59,7 @@ Inserisci un **Nome**, per esempio «Checkout requests», e un **Obiettivo (%)**
 La prima valutazione, entro 5 minuti, conta le richieste delle ultime 6 ore, così lo SLO ha subito dei numeri. Le valutazioni successive contano anche le richieste più vecchie, finché la finestra di conformità non è coperta.
 :::
 
-Per cambiare in seguito cosa misura uno SLO, i suoi servizi o la sua soglia, apri le sue **Impostazioni** e fai clic su **Modifica cosa misura**.
+La pagina **SLOs** di un servizio elenca gli SLO che lo misurano, e il suo **Crea: Service Level Objective** apre lo stesso modulo con il servizio già scelto. Per cambiare in seguito cosa misura uno SLO, i suoi servizi o la sua soglia, apri le sue **Impostazioni** e fai clic su **Modifica cosa misura**.
 
 ## Come si contano le richieste
 
@@ -86,7 +86,7 @@ Uno SLO di richieste riceve le stesse regole **Fast burn**, **Slow burn** e **Sl
 
 ## Risoluzione dei problemi
 
-:::details Lo SLO mostra Waiting for requests
+:::details Lo SLO mostra In attesa di richieste
 Nessuno dei suoi servizi ha ancora servito una richiesta nella finestra. Controlla che i servizi inviino tracce a OneUptime e che i loro span includano span di ingresso: un servizio i cui span sono tutti interni non ha richieste da contare.
 :::
 

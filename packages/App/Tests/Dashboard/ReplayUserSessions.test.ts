@@ -534,7 +534,8 @@ describe("describeReplayUserSession", () => {
       );
 
     expect(described.duration).toBe("4m 12s");
-    expect(described.deviceHint).toBe("Safari · mobile");
+    // The kind of device as the Device filter names it, in the reader's words.
+    expect(described.deviceHint).toBe("Safari · Mobile");
     expect(
       userSessions.describeReplayUserSession(
         item("b", NOW, { browserName: "", deviceType: "" }),

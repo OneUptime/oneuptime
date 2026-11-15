@@ -63,7 +63,7 @@ describe("Dashboard criteria text for true/false filters over time", () => {
         }),
       ),
     ).toBe(
-      `Check if any value of "DNS Is Online" in the past 5 minutes is false `,
+      `Check if any value of "DNS Is Online" in the past 5 minutes is false`,
     );
   });
 
