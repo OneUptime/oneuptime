@@ -96,17 +96,17 @@ describe("WebVitalDefinitions descriptions", () => {
 
 describe("formatWebVitalThreshold", () => {
   test.each([
-    [200, "200 ms"],
-    [500, "500 ms"],
-    [800, "800 ms"],
-    [999, "999 ms"],
-    [1000, "1 s"],
-    [1800, "1.8 s"],
-    [2500, "2.5 s"],
-    [3000, "3 s"],
-    [4000, "4 s"],
-    [1234, "1.23 s"],
-    [0, "0 ms"],
+    [200, "200\u00A0ms"],
+    [500, "500\u00A0ms"],
+    [800, "800\u00A0ms"],
+    [999, "999\u00A0ms"],
+    [1000, "1\u00A0s"],
+    [1800, "1.8\u00A0s"],
+    [2500, "2.5\u00A0s"],
+    [3000, "3\u00A0s"],
+    [4000, "4\u00A0s"],
+    [1234, "1.23\u00A0s"],
+    [0, "0\u00A0ms"],
   ])("%d ms reads as %s", (value: number, expected: string) => {
     expect(formatWebVitalThreshold(value, "ms")).toBe(expected);
   });
@@ -127,19 +127,19 @@ describe("formatWebVitalThreshold", () => {
 describe("describeWebVitalThresholds", () => {
   test("words the published limits for each vital", () => {
     expect(describeWebVitalThresholds(definition("lcp"))).toBe(
-      "Good below 2.5 s; poor at 4 s or more.",
+      "Good below 2.5\u00A0s; poor at 4\u00A0s or more.",
     );
     expect(describeWebVitalThresholds(definition("inp"))).toBe(
-      "Good below 200 ms; poor at 500 ms or more.",
+      "Good below 200\u00A0ms; poor at 500\u00A0ms or more.",
     );
     expect(describeWebVitalThresholds(definition("cls"))).toBe(
       "Good below 0.1; poor at 0.25 or more.",
     );
     expect(describeWebVitalThresholds(definition("fcp"))).toBe(
-      "Good below 1.8 s; poor at 3 s or more.",
+      "Good below 1.8\u00A0s; poor at 3\u00A0s or more.",
     );
     expect(describeWebVitalThresholds(definition("ttfb"))).toBe(
-      "Good below 800 ms; poor at 1.8 s or more.",
+      "Good below 800\u00A0ms; poor at 1.8\u00A0s or more.",
     );
   });
 
@@ -149,7 +149,7 @@ describe("describeWebVitalThresholds", () => {
         unit: "ms",
         thresholds: { warn: 1200, danger: 2600 },
       }),
-    ).toBe("Good below 1.2 s; poor at 2.6 s or more.");
+    ).toBe("Good below 1.2\u00A0s; poor at 2.6\u00A0s or more.");
 
     expect(
       describeWebVitalThresholds({

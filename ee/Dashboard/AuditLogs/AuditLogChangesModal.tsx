@@ -422,7 +422,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       {row.label}
                     </dt>
                     <dd className="text-sm text-gray-900 break-words sm:col-span-2">
-                      {row.value}
+                      {getValueOrQuietDash(row.value)}
                     </dd>
                   </div>
                 );

@@ -70,18 +70,18 @@ describe("formatK8sResourceValue in English, as the tab always wrote it", () => 
     ["cpu", "2", "2 (2 CPU cores)"],
     ["cpu", "1", "1 (1 CPU core)"],
     ["CPU", "4", "4 (4 CPU cores)"],
-    ["memory", "512Mi", "512Mi (512 MB)"],
-    ["memory", "256Mi", "256Mi (256 MB)"],
-    ["memory", "1536Mi", "1536Mi (1.5 GB)"],
-    ["memory", "500Ki", "500Ki (0.49 MB)"],
-    ["memory", "2048Ki", "2048Ki (2.0 MB)"],
-    ["memory", "2Gi", "2Gi (2 GB)"],
-    ["memory", "1Ti", "1Ti (1 TB)"],
-    ["ephemeral-storage", "10G", "10G (10 GB)"],
-    ["ephemeral-storage", "1500M", "1500M (1.5 GB)"],
-    ["ephemeral-storage", "500M", "500M (500 MB)"],
-    ["ephemeral-storage", "500K", "500K (0.50 MB)"],
-    ["ephemeral-storage", "2T", "2T (2 TB)"],
+    ["memory", "512Mi", "512Mi (512\u00A0MB)"],
+    ["memory", "256Mi", "256Mi (256\u00A0MB)"],
+    ["memory", "1536Mi", "1536Mi (1.5\u00A0GB)"],
+    ["memory", "500Ki", "500Ki (0.49\u00A0MB)"],
+    ["memory", "2048Ki", "2048Ki (2.0\u00A0MB)"],
+    ["memory", "2Gi", "2Gi (2\u00A0GB)"],
+    ["memory", "1Ti", "1Ti (1\u00A0TB)"],
+    ["ephemeral-storage", "10G", "10G (10\u00A0GB)"],
+    ["ephemeral-storage", "1500M", "1500M (1.5\u00A0GB)"],
+    ["ephemeral-storage", "500M", "500M (500\u00A0MB)"],
+    ["ephemeral-storage", "500K", "500K (0.50\u00A0MB)"],
+    ["ephemeral-storage", "2T", "2T (2\u00A0TB)"],
   ])("%s %s reads %p", (key: string, value: string, text: string) => {
     expect(english(key, value)).toBe(text);
   });
@@ -114,8 +114,8 @@ describe("formatK8sResourceValue in the reader's language", () => {
     expect(inLanguage("de", "cpu", "250m")).toBe("250m (0,25 CPU-Kerne)");
     expect(inLanguage("de", "cpu", "1")).toBe("1 (1 CPU-Kern)");
     expect(inLanguage("de", "cpu", "2")).toBe("2 (2 CPU-Kerne)");
-    expect(inLanguage("de", "memory", "1536Mi")).toBe("1536Mi (1,5 GB)");
-    expect(inLanguage("de", "memory", "500Ki")).toBe("500Ki (0,49 MB)");
+    expect(inLanguage("de", "memory", "1536Mi")).toBe("1536Mi (1,5\u00A0GB)");
+    expect(inLanguage("de", "memory", "500Ki")).toBe("500Ki (0,49\u00A0MB)");
     expect(inLanguage("de", "cpu", "250m")).not.toContain("CPU cores");
   });
 
@@ -134,8 +134,8 @@ describe("formatK8sResourceValue in the reader's language", () => {
 
     expect(inLanguage("fa", "cpu", "2")).toBe("2 (۲ هستهٔ پردازنده)");
     // A size keeps its unit as written, its figure in Persian digits.
-    expect(inLanguage("fa", "memory", "1536Mi")).toBe("1536Mi (۱٫۵ GB)");
-    expect(inLanguage("fa", "memory", "512Mi")).toBe("512Mi (۵۱۲ MB)");
+    expect(inLanguage("fa", "memory", "1536Mi")).toBe("1536Mi (۱٫۵\u00A0GB)");
+    expect(inLanguage("fa", "memory", "512Mi")).toBe("512Mi (۵۱۲\u00A0MB)");
   });
 
   test("Arabic: Latin digits, its label-and-count form for any count", () => {
@@ -311,9 +311,9 @@ describe("the Containers tab, drawn", () => {
       }),
     ).toEqual([
       "250m (0.25 CPU cores)",
-      "512Mi (512 MB)",
+      "512Mi (512\u00A0MB)",
       "2 (2 CPU cores)",
-      "1536Mi (1.5 GB)",
+      "1536Mi (1.5\u00A0GB)",
     ]);
   });
 
@@ -324,9 +324,9 @@ describe("the Containers tab, drawn", () => {
       }),
     ).toEqual([
       "250m (0,25 CPU-Kerne)",
-      "512Mi (512 MB)",
+      "512Mi (512\u00A0MB)",
       "2 (2 CPU-Kerne)",
-      "1536Mi (1,5 GB)",
+      "1536Mi (1,5\u00A0GB)",
     ]);
   });
 
@@ -343,10 +343,10 @@ describe("the Containers tab, drawn", () => {
 
     // A size keeps its unit after its figure: "۵۱۲ MB", never "MB ۵۱۲".
     expect(values[1]).toEqual({
-      text: "512Mi (۵۱۲ MB)",
+      text: "512Mi (۵۱۲\u00A0MB)",
       quantity: "512Mi",
       quantityDirection: "ltr",
-      meaning: "۵۱۲ MB",
+      meaning: "۵۱۲\u00A0MB",
       meaningDirection: "ltr",
     });
 

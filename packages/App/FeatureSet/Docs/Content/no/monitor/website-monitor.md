@@ -56,7 +56,7 @@ Angi sidens fullstendige adresse under **Nettsted-URL**, inkludert `https://`, s
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser hva sonden fikk tilbake.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva sonden fikk tilbake.
 
 ### Gå gjennom kriteriene
 

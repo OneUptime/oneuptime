@@ -161,6 +161,7 @@
     "slackify-markdown": "^4.4.0",
     "slugify": "^1.6.5",
     "socket.io": "^4.7.4",
+    "socket.io-adapter": "~2.5.8",
     "socket.io-client": "^4.7.5",
     "stripe": "^10.17.0",
     "tailwind-merge": "^2.6.0",

@@ -48,7 +48,7 @@ Indtast det **Domænenavn**, der skal slås op, for eksempel `example.com`, og v
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser de poster, sonden fik tilbage.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser de poster, sonden fik tilbage.
 
 ### Gennemgå kriterierne
 

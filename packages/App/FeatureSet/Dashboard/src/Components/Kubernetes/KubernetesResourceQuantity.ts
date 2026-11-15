@@ -46,7 +46,10 @@ const BINARY_SIZE: RegExp = /^(\d+)(Ki|Mi|Gi|Ti)$/;
 // Ephemeral storage in 1000-based units: "10G".
 const DECIMAL_SIZE: RegExp = /^(\d+)(K|M|G|T)$/;
 
-// A size as the tab names it: the figure in the reader's digits, the unit as written.
+/*
+ * A size as the tab names it: the figure in the reader's digits, the unit as
+ * written, held together by a no-break space (#8457).
+ */
 const size: (data: {
   value: number;
   decimals: number;
@@ -61,7 +64,7 @@ const size: (data: {
   return `${formatReaderFigure(data.value, {
     decimals: data.decimals,
     language: data.language,
-  })} ${data.unit}`;
+  })}\u00A0${data.unit}`;
 };
 
 /*

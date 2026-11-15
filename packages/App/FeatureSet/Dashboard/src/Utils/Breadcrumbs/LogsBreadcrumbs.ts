@@ -9,7 +9,7 @@ export function getLogsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_INSIGHTS, [
       "Project",
       "Logs",
-      "Insights",
+      "Insights (explorer analytics)",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_DOCUMENTATION, [
       "Project",

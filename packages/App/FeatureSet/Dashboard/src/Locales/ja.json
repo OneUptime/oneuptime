@@ -55686,6 +55686,7 @@
   "Yes / No": "はい / いいえ",
   "which led to {{steps}}": "その後 {{steps}} に進みました",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。",
+  "Insights (explorer analytics)": "インサイト",
   "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.": "プロジェクトで WhatsApp がオンになるまで、メンバーは WhatsApp 番号を追加できません。プロジェクト所有者または「請求管理者」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 > 通知 > 通知チャネル」でオンにできます。",
   "{{channels}} notifications also have to be switched on for the project, or nobody will be reached those ways. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "{{channels}} による通知もプロジェクトでオンにする必要があります。プロジェクト所有者または「請求管理者」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 > 通知 > 通知チャネル」でオンにできます。",
   "{{channel}} notifications also have to be switched on for the project, or nobody will be reached this way. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "{{channel}} による通知もプロジェクトでオンにする必要があります。プロジェクト所有者または「請求管理者」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 > 通知 > 通知チャネル」でオンにできます。",

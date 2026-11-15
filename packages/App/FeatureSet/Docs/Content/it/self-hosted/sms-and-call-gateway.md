@@ -112,7 +112,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 
 Una richiesta è considerata consegnata quando il tuo gateway risponde con uno stato 2xx entro 10 secondi. Una richiesta a cui non ha risposto, o a cui ha risposto con 408, 429 o uno stato 5xx, viene inviata di nuovo dopo 1 secondo e dopo altri 4 secondi: tre tentativi in tutto. Con qualsiasi altro stato 4xx non viene inviata di nuovo.
 
-Il registro degli SMS o delle chiamate, e per un avviso di reperibilità il registro di reperibilità della persona, riporta `Sent to the SMS and call gateway (HTTP 200).` o il motivo per cui il messaggio non è stato consegnato, mai l'URL. OneUptime non sa se il messaggio ha raggiunto il telefono, quindi un SMS risulta inviato non appena il tuo gateway lo accetta, e il numero da cui è partito resta vuoto.
+Il log degli SMS o delle chiamate, e per un avviso di reperibilità il log di reperibilità della persona, riporta `Sent to the SMS and call gateway (HTTP 200).` o il motivo per cui il messaggio non è stato consegnato, mai l'URL. OneUptime non sa se il messaggio ha raggiunto il telefono, quindi un SMS risulta inviato non appena il tuo gateway lo accetta, e il numero da cui è partito resta vuoto.
 
 ## Richieste di test
 

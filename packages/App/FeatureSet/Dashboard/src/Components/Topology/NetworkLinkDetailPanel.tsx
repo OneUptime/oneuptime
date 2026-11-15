@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import {
   NetworkTopologyEdge,
@@ -149,7 +150,7 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
                     style={row.color ? { color: row.color } : undefined}
                   >
                     {/* "120 Mbps" and "0/s" keep their order on an Arabic page. */}
-                    <bdi>{row.value}</bdi>
+                    <bdi>{getValueOrQuietDash(row.value)}</bdi>
                   </dd>
                 </div>
               );

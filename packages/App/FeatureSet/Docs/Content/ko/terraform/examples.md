@@ -565,7 +565,7 @@ resource "oneuptime_incident_state" "mitigated" {
 }
 ```
 
-`oneuptime_alert_severity`와 `oneuptime_alert_state`는 알림에 대해 같은 방식으로 작동합니다. 엔드투엔드 테스트 `03-incident-severity`와 `04-incident-state`가 이것들을 적용합니다.
+`oneuptime_alert_severity`와 `oneuptime_alert_state`는 경고에 대해 같은 방식으로 작동합니다. 엔드투엔드 테스트 `03-incident-severity`와 `04-incident-state`가 이것들을 적용합니다.
 
 ### 인시던트 선언하기
 

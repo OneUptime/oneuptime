@@ -1,6 +1,6 @@
 # Splunk Enterprise Security
 
-把 [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) 的关联搜索创建的 notable event 导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 以你创建的 Splunk 用户身份，在你的搜索头上运行一次搜索来读取它们，不会在 Splunk 中更改任何内容。由于这只是一次搜索，它可以导入任何索引或任何已保存搜索的输出，而不仅仅是 notable event。
+把 [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) 的关联搜索创建的 notable event 导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 以你创建的 Splunk 用户身份，在你的搜索头上运行一次搜索来读取它们，不会在 Splunk 中更改任何内容。由于这只是一次搜索，它可以导入任何索引或任何已保存搜索的输出，而不仅仅是 notable event。
 
 :::cards
 - [设置连接](#设置连接): 一个令牌、一个角色，以及连接的表单。

@@ -61,7 +61,7 @@ OneUptime entscheidet das aus dem, was es weiß, nie aus dem, was die Analyse sa
 
 ## Was eine Untersuchung liest
 
-Eine Untersuchung beginnt beim Vorfall oder bei der Warnung und bei der Infrastruktur, mit der sie verknüpft ist: den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Datenbanken und Diensten, die ihre Monitore überwachen. Ein Website-, API- oder synthetischer Monitor überwacht, womit Sie ihn unter **Überwachung → Übersicht → Verknüpfte Ressourcen** verknüpfen. Verknüpfen Sie ihn also mit den Hosts, die das bereitstellen, was er prüft, dann beginnt jede Untersuchung seiner Vorfälle dort. Vor alledem liest sie den [KI-Kontext](/docs/ai/ai-context) des Projekts: was Ihr Team für OneUptime AI über Ihre eigenen Systeme aufgeschrieben hat, mit den Notizen der passenden KI-Regeln.
+Eine Untersuchung beginnt beim Vorfall oder bei der Warnung und bei der Infrastruktur, mit der sie verknüpft ist: den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Datenbanken und Diensten, die ihre Monitore überwachen. Ein Website-, API- oder synthetischer Monitor überwacht, womit Sie ihn unter **Monitor → Übersicht → Verknüpfte Ressourcen** verknüpfen. Verknüpfen Sie ihn also mit den Hosts, die das bereitstellen, was er prüft, dann beginnt jede Untersuchung seiner Vorfälle dort. Vor alledem liest sie den [KI-Kontext](/docs/ai/ai-context) des Projekts: was Ihr Team für OneUptime AI über Ihre eigenen Systeme aufgeschrieben hat, mit den Notizen der passenden KI-Regeln.
 
 - Die Warnungen auf dieser Infrastruktur, die in den 30 Minuten vor dem Vorfall ausgelöst wurden oder noch offen sind, die neuesten zuerst, etwa die Warnung zu hoher CPU-Last des Hosts hinter einer langsamen Website. Private Warnungen werden ausgelassen.
 - Die eigenen Metriken der Infrastruktur, so gelesen, wie Menschen sie lesen. Host-Metriken wie `system.cpu.utilization` und `system.memory.utilization` werden einmal je Zustand gemeldet, und die Zustände ergeben zusammen 100 %, daher sagt ein Durchschnitt über alle nichts aus. OneUptime AI liest sie Zustand für Zustand (belegte CPU ist user plus system) und jede Metrik pro Container, pro Mountpoint oder nach jedem anderen Attribut.
@@ -188,7 +188,7 @@ Solange **Neue Vorfälle automatisch beheben** an ist und keine KI-Regel eingeri
 
 - die Telemetrie, aus der er ausgelöst wurde, den Cluster nennt (ein Metrik-, Log- oder Trace-Monitor auf den Daten des Clusters);
 - sein Monitor ein Kubernetes-Monitor des Clusters ist;
-- sein Monitor unter **Überwachung → Übersicht → Verknüpfte Ressourcen** mit dem Cluster verknüpft ist – so verknüpfen Sie einen Website-, API- oder synthetischen Monitor mit dem Cluster, der das bereitstellt, was er prüft;
+- sein Monitor unter **Monitor → Übersicht → Verknüpfte Ressourcen** mit dem Cluster verknüpft ist – so verknüpfen Sie einen Website-, API- oder synthetischen Monitor mit dem Cluster, der das bereitstellt, was er prüft;
 - KI fragen ihn auf der Seite des Clusters gemeldet oder auf Nachfrage mit dem Cluster verknüpft hat;
 - jemand beim Melden den Cluster unter **Andere betroffene Ressourcen** ausgewählt hat (die Auswahl eines verknüpften Monitors fügt ihn dort für Sie hinzu);
 - jemand den Cluster beim Melden aus [Slack](/docs/workspace-connections/slack) oder [Microsoft Teams](/docs/workspace-connections/microsoft-teams) ausgewählt hat.

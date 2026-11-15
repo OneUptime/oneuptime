@@ -70,7 +70,7 @@ Apri **Sicurezza dei dati**. Gli archivi compaiono in **Archivi dati** man mano 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Database che gestisci | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Registri, Tracce, Eccezioni, Session Replays, Conversazioni IA | Registri, Tracce, Eccezioni, Session Replays, Conversazioni IA |
+| OneUptime | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA |
 
 Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cui contenuto non può essere campionato viene comunque controllato: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga.
 

@@ -1,6 +1,6 @@
 # Fluentd
 
-[Fluentd](https://www.fluentd.org/) raccoglie log da file, container, syslog, applicazioni e [molte altre sorgenti](https://www.fluentd.org/datasources). Il suo [output HTTP](https://docs.fluentd.org/output/http) integrato li invia all'endpoint Fluentd di OneUptime, dove diventano ricercabili in **Prodotti → Registri**.
+[Fluentd](https://www.fluentd.org/) raccoglie log da file, container, syslog, applicazioni e [molte altre sorgenti](https://www.fluentd.org/datasources). Il suo [output HTTP](https://docs.fluentd.org/output/http) integrato li invia all'endpoint Fluentd di OneUptime, dove diventano ricercabili in **Prodotti → Log**.
 
 :::cards
 - [Configurare Fluentd](#configurare-fluentd): Aggiungi un output HTTP che punta a OneUptime.
@@ -114,7 +114,7 @@ Riavvia il servizio Fluentd perché carichi il nuovo output.
 
 ### Verificare che i log arrivino
 
-Pochi secondi dopo lo svuotamento successivo, i log compaiono in **Prodotti → Registri**. Il servizio è elencato in **Prodotti → Servizi**: se non esisteva ancora, OneUptime lo crea.
+Pochi secondi dopo lo svuotamento successivo, i log compaiono in **Prodotti → Log**. Il servizio è elencato in **Prodotti → Servizi**: se non esisteva ancora, OneUptime lo crea.
 :::
 
 ## Esempio completo

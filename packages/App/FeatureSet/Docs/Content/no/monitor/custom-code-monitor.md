@@ -11,7 +11,7 @@ En monitor med egendefinert kode kjører et JavaScript-skript du skriver selv, f
 
 ## Slik fungerer det
 
-Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med overvåkingshemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og målingene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
+Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med monitorhemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og målingene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
 
 ```mermaid title="Én kjøring av en monitor med egendefinert kode"
 sequenceDiagram

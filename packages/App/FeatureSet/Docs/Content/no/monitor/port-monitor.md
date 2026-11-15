@@ -51,7 +51,7 @@ Angi under **Vertsnavn eller IP-adresse** verten porten ligger på, som `db.exam
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
 
 ### Gå gjennom kriteriene
 

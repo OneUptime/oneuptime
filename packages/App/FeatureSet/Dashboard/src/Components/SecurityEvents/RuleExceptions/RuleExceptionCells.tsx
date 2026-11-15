@@ -14,6 +14,7 @@ import {
   getRuleExceptionStatusLine,
 } from "./RuleExceptionsModel";
 import OneUptimeDate from "Common/Types/Date";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   DetectionRuleExceptionShape,
@@ -122,8 +123,16 @@ export const RuleExceptionWindowRange: FunctionComponent<WindowRangeProps> = (
     <TranslatedSentence
       template={TIME_WINDOW_RANGE}
       slots={{
-        from: <span className="whitespace-nowrap">{times.from}</span>,
-        until: <span className="whitespace-nowrap">{times.until}</span>,
+        from: (
+          <span className="whitespace-nowrap">
+            {getValueOrQuietDash(times.from)}
+          </span>
+        ),
+        until: (
+          <span className="whitespace-nowrap">
+            {getValueOrQuietDash(times.until)}
+          </span>
+        ),
       }}
     />
   );

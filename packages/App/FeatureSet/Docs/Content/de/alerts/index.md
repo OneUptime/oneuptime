@@ -82,7 +82,7 @@ Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; bei
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 
-Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wählen Sie unter **Überwachung** den Monitor, um den es geht, und unter **Andere betroffene Ressourcen** alles Weitere, etwa Hosts, Netzwerkgeräte, Kubernetes-Cluster oder Dienste. Wählen Sie unter **Bereitschaftsrichtlinie** die Richtlinien, die beim Erstellen der Warnung laufen sollen.
+Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wählen Sie unter **Monitor** den Monitor, um den es geht, und unter **Andere betroffene Ressourcen** alles Weitere, etwa Hosts, Netzwerkgeräte, Kubernetes-Cluster oder Dienste. Wählen Sie unter **Bereitschaftsrichtlinie** die Richtlinien, die beim Erstellen der Warnung laufen sollen.
 
 ### Sie erstellen
 
