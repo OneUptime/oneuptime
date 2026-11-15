@@ -15,6 +15,7 @@ import {
   listRequestStepStarts,
   planRequestCounting,
 } from "../../../Utils/Slo/SloRequestSli";
+import { SLO_RELEASE_CHECK_VERSION_ATTRIBUTE } from "../../../Utils/Slo/SloReleaseCheck";
 import {
   DbJSONResponse,
   Results,
@@ -113,14 +114,9 @@ export default class SloRequestCounting {
   }
 
   /*
-   * The good and total requests of every step in the range, from the spans:
-   * entry spans of the SLO's services, the same requests the traces list
-   * shows by default. A step with no requests is in the answer with zeros.
-   *
-   * A request is bad when its status is Error (Request Success), or when it
-   * took longer than the threshold (Request Latency). `statusCode = 2` is
-   * false for a span with no status, so an Unset span counts as good, as
-   * OpenTelemetry means it to.
+   * The good and total requests of every step in the range, from the spans
+   * (appendRequestFilters says which, appendBadCount which are bad). A step
+   * with no requests is left out here and filled with zeros by countRange.
    */
   public static buildCountStatement(data: {
     projectId: ObjectID;
@@ -141,22 +137,129 @@ export default class SloRequestCounting {
         count() AS totalCount,
     `;
 
-    if (data.config.sliType === SliType.RequestLatency) {
+    SloRequestCounting.appendBadCount(statement, data.config);
+    SloRequestCounting.appendRequestFilters(statement, {
+      projectId: data.projectId,
+      config: data.config,
+      range: data.range,
+      serviceVersion: null,
+    });
+
+    statement.append(" GROUP BY stepStart");
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: SLO_REQUEST_COUNT_TIME_LIMIT_SECONDS,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * The good and total requests of one range, in one count: what the release
+   * check reads over its last few minutes, from the spans as they are now -
+   * a check during a rollout cannot wait for steps to settle. With a
+   * service version, only the requests of that release: the
+   * `resource.service.version` its spans carry (the canary's).
+   */
+  public static buildRecentCountStatement(data: {
+    projectId: ObjectID;
+    config: SloRequestCountingConfig;
+    range: SloRequestCountingRange;
+    serviceVersion?: string | null | undefined;
+  }): Statement {
+    const statement: Statement = SQL`SELECT count() AS totalCount, `;
+
+    SloRequestCounting.appendBadCount(statement, data.config);
+    SloRequestCounting.appendRequestFilters(statement, {
+      projectId: data.projectId,
+      config: data.config,
+      range: data.range,
+      serviceVersion: data.serviceVersion || null,
+    });
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: SLO_REQUEST_COUNT_TIME_LIMIT_SECONDS,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
+
+  public static async countRecentRequests(data: {
+    projectId: ObjectID;
+    config: SloRequestCountingConfig;
+    range: SloRequestCountingRange;
+    serviceVersion?: string | null | undefined;
+  }): Promise<SloRequestCounts> {
+    const result: Results = await SpanService.executeQuery(
+      SloRequestCounting.buildRecentCountStatement(data),
+    );
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+    const row: JSONObject | undefined = rows[0];
+
+    const totalCount: number = toCount(row?.["totalCount"]);
+    const badCount: number = Math.min(totalCount, toCount(row?.["badCount"]));
+
+    return {
+      goodCount: totalCount - badCount,
+      totalCount: totalCount,
+    };
+  }
+
+  /*
+   * A request is bad when its status is Error (Request Success), or when it
+   * took longer than the threshold (Request Latency). `statusCode = 2` is
+   * false for a span with no status, so an Unset span counts as good, as
+   * OpenTelemetry means it to.
+   */
+  private static appendBadCount(
+    statement: Statement,
+    config: SloRequestCountingConfig,
+  ): void {
+    if (config.sliType === SliType.RequestLatency) {
       statement.append(
         SQL`countIf(durationUnixNano > ${{
           type: TableColumnType.LongNumber,
-          value: SloRequestCounting.getThresholdInNanoseconds(data.config),
+          value: SloRequestCounting.getThresholdInNanoseconds(config),
         }}) AS badCount`,
       );
-    } else {
-      statement.append(
-        SQL`countIf(statusCode = ${{
-          type: TableColumnType.Number,
-          value: SpanStatus.Error,
-        }}) AS badCount`,
-      );
+      return;
     }
 
+    statement.append(
+      SQL`countIf(statusCode = ${{
+        type: TableColumnType.Number,
+        value: SpanStatus.Error,
+      }}) AS badCount`,
+    );
+  }
+
+  /*
+   * Which spans are the SLO's requests: entry spans of its services (the
+   * requests the traces list shows by default), in the range, still within
+   * their retention - and, for a release check, of one version.
+   */
+  private static appendRequestFilters(
+    statement: Statement,
+    data: {
+      projectId: ObjectID;
+      config: SloRequestCountingConfig;
+      range: SloRequestCountingRange;
+      serviceVersion: string | null;
+    },
+  ): void {
     statement.append(
       SQL`
       FROM ${AnalyticsTableName.Span}
@@ -181,19 +284,21 @@ export default class SloRequestCounting {
             }),
           ),
         }})
-        AND retentionDate >= now()
-      GROUP BY stepStart`,
+        AND retentionDate >= now()`,
     );
 
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: SLO_REQUEST_COUNT_TIME_LIMIT_SECONDS,
-        timeoutOverflowMode: "throw",
-        boundScanMemory: true,
-      }),
-    );
-
-    return statement;
+    if (data.serviceVersion) {
+      statement.append(
+        SQL`
+        AND attributes[${{
+          type: TableColumnType.Text,
+          value: SLO_RELEASE_CHECK_VERSION_ATTRIBUTE,
+        }}] = ${{
+          type: TableColumnType.Text,
+          value: data.serviceVersion,
+        }}`,
+      );
+    }
   }
 
   public static async countRange(data: {

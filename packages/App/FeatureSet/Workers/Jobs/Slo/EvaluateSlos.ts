@@ -12,7 +12,6 @@ import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -66,8 +65,6 @@ import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import MonitorService from "Common/Server/Services/MonitorService";
-import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
-import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
@@ -85,6 +82,10 @@ import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
+import {
+  fetchPerMonitorTimelines,
+  getDowntimeStatuses,
+} from "Common/Server/Utils/Slo/SloMonitorTimelines";
 import SloRequestCounting, {
   SloRequestMeasurement,
 } from "Common/Server/Utils/Slo/SloRequestCounting";
@@ -2475,121 +2476,6 @@ async function saveGuardTargetMetric(data: {
     sloName: data.slo.name,
     labels: data.slo.labels,
     targetPercentage: data.slo.targetPercentage,
-  });
-}
-
-/*
- * Timeline overlap fetch, one query per monitor (SloUtil combines monitors
- * with explicit semantics — never feed it a merged multi-monitor array).
- * The overlap predicate is the StatusPageService contract: a row overlaps
- * [start, end] when it started on or before the window end AND it either
- * ended on or after the window start or is still open (endsAt IS NULL).
- * findAllBy pages internally past the 10k LIMIT_MAX for long windows.
- */
-async function fetchPerMonitorTimelines(data: {
-  projectId: ObjectID;
-  monitorIds: Array<ObjectID>;
-  windowStart: Date;
-  windowEnd: Date;
-}): Promise<Array<MonitorTimelineSet>> {
-  const perMonitorTimelines: Array<MonitorTimelineSet> = [];
-
-  for (const monitorId of data.monitorIds) {
-    const timelines: Array<MonitorStatusTimeline> =
-      await MonitorStatusTimelineService.findAllBy({
-        query: {
-          monitorId: monitorId,
-          projectId: data.projectId,
-          startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
-          endsAt: QueryHelper.greaterThanEqualToOrNull(data.windowStart),
-        },
-        select: {
-          _id: true,
-          startsAt: true,
-          endsAt: true,
-          monitorId: true,
-          monitorStatusId: true,
-          /*
-           * The time with the monitor's monitoring off, which SloUtil leaves
-           * out of the SLI: it neither spends the budget nor counts as good
-           * (issue #6480).
-           */
-          isMonitoringOff: true,
-          monitorStatus: {
-            _id: true,
-            priority: true,
-            name: true,
-            color: true,
-            isOperationalState: true,
-          },
-        },
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    perMonitorTimelines.push({
-      monitorId: monitorId,
-      timelines: timelines,
-    });
-  }
-
-  return perMonitorTimelines;
-}
-
-/*
- * Full MonitorStatus rows for the SLO's configured downtime statuses.
- * When the SLO has none configured, fall back to every non-operational
- * status of the project (the StatusPage default).
- */
-async function getDowntimeStatuses(data: {
-  projectId: ObjectID;
-  configuredStatusIds: Array<ObjectID>;
-}): Promise<Array<MonitorStatus>> {
-  if (data.configuredStatusIds.length > 0) {
-    return await MonitorStatusService.findBy({
-      query: {
-        _id: QueryHelper.any(data.configuredStatusIds),
-        projectId: data.projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        color: true,
-        priority: true,
-        isOperationalState: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: {
-        isRoot: true,
-      },
-    });
-  }
-
-  const allStatuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
-    query: {
-      projectId: data.projectId,
-    },
-    select: {
-      _id: true,
-      name: true,
-      color: true,
-      priority: true,
-      isOperationalState: true,
-    },
-    skip: 0,
-    limit: LIMIT_PER_PROJECT,
-    props: {
-      isRoot: true,
-    },
-  });
-
-  return allStatuses.filter((status: MonitorStatus) => {
-    return !status.isOperationalState;
   });
 }
 
