@@ -27,6 +27,12 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { pathWithArrows } from "./DocsPageShape";
+import {
+  defaultCriteriaNamesAsWritten,
+  defaultTitlesAsQuoted,
+  isQuotedIn,
+} from "./DocsDefaultTitles";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getAllIoTAlertTemplates } from "Common/Types/Monitor/IotAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
@@ -105,6 +111,14 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 });
 
 const MONITOR_PAGES: Array<string> = [STORAGE, IOT, VMWARE, OPENSTACK];
+
+// The monitor type each monitor page creates, whose default criteria it names.
+const MONITOR_TYPES: Record<string, MonitorType> = {
+  [STORAGE]: MonitorType.StorageArray,
+  [IOT]: MonitorType.IoTDevice,
+  [VMWARE]: MonitorType.VMware,
+  [OPENSTACK]: MonitorType.OpenStack,
+};
 
 // The If No Data options with no locale key; Trigger has one.
 const UNKEYED_NO_DATA: Array<string> = ["Ignore", "Treat As Zero"];
@@ -1018,23 +1032,37 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("quotes the default criteria and their incident exactly as a new monitor creates them", () => {
-      if (!MONITOR_PAGES.includes(entry.page)) {
+    /*
+     * A new monitor's criteria and incident are written with the reader's
+     * translator, so the page names them in this language's words, with
+     * the monitor's name as an italic placeholder (DocsDefaultTitles,
+     * #8526): "Prüfen, ob _Monitorname_ offline ist", „_Monitorname_ ist
+     * offline“.
+     */
+    it("names the default criteria and quotes their incident as a new monitor in this language creates them", () => {
+      const monitorType: MonitorType | undefined = MONITOR_TYPES[entry.page];
+
+      if (!monitorType) {
         return;
       }
 
       const translated: string = readPage(language, entry.page);
 
-      for (const text of [
-        "Check if _monitor name_ is offline",
-        "Check if _monitor name_ is online",
-        "_monitor name_ is offline",
-      ]) {
-        expect({ text, quoted: translated.includes(text) }).toEqual({
-          text,
+      for (const name of defaultCriteriaNamesAsWritten(monitorType, language)) {
+        expect({ name, named: translated.includes(name) }).toEqual({
+          name,
+          named: true,
+        });
+      }
+
+      for (const title of defaultTitlesAsQuoted(monitorType, language)) {
+        expect({ title, quoted: isQuotedIn(translated, title) }).toEqual({
+          title,
           quoted: true,
         });
       }
+
+      expect(translated).not.toContain("_monitor name_");
     });
 
     it("lists every template under the name the picker shows, with its numbers, severity and category as drawn", () => {

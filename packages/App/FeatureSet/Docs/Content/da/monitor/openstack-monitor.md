@@ -774,8 +774,8 @@ En monitor, du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Passer når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren **Offline** og udløser hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren genopretter. |
-| 2 | Check if _monitor name_ is online | Den første forespørgsel har data | Markerer monitoren **I drift**. |
+| 1 | Tjek, om _monitornavn_ er offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren **Offline** og udløser hændelsen "_monitornavn_ er offline", som løser sig selv, når monitoren genopretter. |
+| 2 | Tjek, om _monitornavn_ er online | Den første forespørgsel har data | Markerer monitoren **I drift**. |
 
 > [!IMPORTANT]
 > En værdi på `0` er data, så en metrik, der ofte er nul, såsom genstarter eller fejl, gør ikke monitoren offline. Hvis du vil advare om en værdi, så start fra en skabelon eller tilføj et kriterium med en tærskel. Når der slet ingen data kommer, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: tavshed er ikke genopretning. Tid, hvor OneUptime selv ikke modtog, er aldrig ingen data: et tjek, hvis vindue rummer den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.

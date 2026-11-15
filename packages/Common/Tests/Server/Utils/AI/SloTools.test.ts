@@ -1740,8 +1740,8 @@ describe("query_slos — a request SLO", () => {
     const slo: ServiceLevelObjective = buildSlo({ monitors: [] });
     slo.sliType = SliType.RequestLatency;
     slo.latencyThresholdInMilliseconds = 300;
-    slo.errorBudgetRemainingSeconds = undefined;
-    slo.errorBudgetTotalSeconds = undefined;
+    slo.errorBudgetRemainingSeconds = undefined as unknown as number;
+    slo.errorBudgetTotalSeconds = undefined as unknown as number;
     // Decimal columns: Postgres hands them over as text.
     slo.goodEventCount = "998800" as unknown as number;
     slo.totalEventCount = "1000000" as unknown as number;

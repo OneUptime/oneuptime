@@ -55,13 +55,13 @@ Use-o quando a forma da linha conta a história: latência, erros, vazão ou tam
 
 ### Valor
 
-Um número grande com um minigráfico: o valor da consulta no intervalo de tempo inteiro, somado para uma soma ou uma contagem, o maior para um máximo, o menor para um mínimo, e a média nos outros casos. Uma seta compara a segunda metade do intervalo com a primeira, cada metade calculada da mesma forma, colorida conforme **Trend Direction**: se um valor maior é melhor ou pior, ou deduzido do nome da métrica. Aponte para a seta para ver o valor de cada metade, e para o minigráfico para ler o valor e a hora de qualquer ponto. **Warning Threshold** deixa o fundo amarelo e **Critical Threshold** vermelho quando o valor os atinge.
+Um número grande com um minigráfico: o valor da consulta no intervalo de tempo inteiro, somado para uma soma ou uma contagem, o maior para um máximo, o menor para um mínimo, e a média nos outros casos. Uma seta compara a segunda metade do intervalo com a primeira, cada metade calculada da mesma forma, colorida conforme **Trend Direction**: se um valor maior é melhor ou pior, ou deduzido do nome da métrica. Aponte para a seta para ver o valor de cada metade, e para o minigráfico para ler o valor e a hora de qualquer ponto. **Limite de aviso** deixa o fundo amarelo e **Limite crítico** vermelho quando o valor os atinge.
 
 Use-o quando um número responde à pergunta: a taxa de erros, a latência P95 ou as requisições atendidas hoje.
 
 ### Medidor
 
-Um mostrador entre um mínimo e um máximo, 0 e 100 se você não os definir, com uma zona amarela a partir de **Warning Threshold** e uma zona vermelha a partir de **Critical Threshold**.
+Um mostrador entre um mínimo e um máximo, 0 e 100 se você não os definir, com uma zona amarela a partir de **Limite de aviso** e uma zona vermelha a partir de **Limite crítico**.
 
 Use-o quando o valor vive numa faixa conhecida: uso de CPU ou de disco em porcentagem, ou a capacidade de uma fila.
 

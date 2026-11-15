@@ -1399,7 +1399,7 @@ describe("a move that fails after its claim", () => {
 
   test("a run read before its first rule - no moment of its own - has none put back", async () => {
     const run: OnCallDutyPolicyExecutionLog = runOn(0);
-    run.lastEscalationRuleExecutedAt = undefined;
+    run.lastEscalationRuleExecutedAt = undefined as unknown as Date;
     startSpy.mockRejectedValue(new Error("Connection is closed.") as never);
 
     await expect(advance(run)).rejects.toThrow("Connection is closed.");
