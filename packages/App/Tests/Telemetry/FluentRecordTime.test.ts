@@ -400,6 +400,65 @@ describe("a record's time", () => {
     );
   });
 
+  /*
+   * The values Fluentd's json parser dropped a line for when it read the
+   * line's time itself (issue #8241). The guide's file no longer has it
+   * read one, so such a line arrives, and its time is read here.
+   */
+  const NOT_TEXT_OR_NUMBER: Array<[string, unknown]> = [
+    ["null", null],
+    ["true", true],
+    ["false", false],
+    ["a list", [1763107202]],
+    ["an empty list", []],
+    ["an object", { s: 1 }],
+    ["an empty object", {}],
+  ];
+
+  test.each(NOT_TEXT_OR_NUMBER)(
+    "a time field that holds %s: the time Fluentd read the line, whichever field it is in",
+    (_label: string, value: unknown) => {
+      for (const field of FLUENT_RECORD_TIME_FIELDS.filter(
+        (name: string): boolean => {
+          return name !== FLUENTD_EVENT_TIME_FIELD;
+        },
+      )) {
+        expect({
+          field,
+          read: readRecord({
+            [field]: value as JSONObject,
+            message: "x",
+            fluentd_time: FLUENTD,
+          }),
+        }).toEqual({
+          field,
+          read: {
+            timeUnixNano: "1794737832834701377",
+            timeDate: new Date("2026-11-15T10:17:12.834Z"),
+            field: FLUENTD_EVENT_TIME_FIELD,
+          },
+        });
+      }
+    },
+  );
+
+  test.each(NOT_TEXT_OR_NUMBER)(
+    "every time field holds %s: the time it arrived",
+    (_label: string, value: unknown) => {
+      const record: JSONObject = { message: "x" };
+
+      for (const field of FLUENT_RECORD_TIME_FIELDS) {
+        record[field] = value as JSONObject;
+      }
+
+      expect(readRecord(record)).toEqual({
+        timeUnixNano: `${ARRIVED_AT.getTime()}000000`,
+        timeDate: ARRIVED_AT,
+        field: null,
+      });
+    },
+  );
+
   test("no time at all: the time it arrived, in milliseconds' nanoseconds", () => {
     for (const record of [
       {},
