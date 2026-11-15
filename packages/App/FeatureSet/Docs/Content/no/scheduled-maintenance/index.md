@@ -46,7 +46,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 - **En tidsplan.** En gjentakende mal oppretter en ny hendelse etter en tidsplan, for eksempel hver uke eller hver måned, uten at noen åpner skjemaet.
 - **Et skjema.** Et skjema der innsendinger oppretter vedlikeholdshendelser, gjør en endringsforespørsel om til en hendelse. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-vedlikeholdshendelse).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-boten i Microsoft Teams, åpner skjemaet i chatverktøyet ditt. Se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
-- **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i en arbeidsflyt.
+- **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Opprett Vedlikeholdshendelse (én post)** i en arbeidsflyt.
 
 ## Hvor vedlikehold ligger i dashbordet
 

@@ -257,7 +257,7 @@ A resposta a uma pergunta de arquivos são os arquivos como foram guardados, cad
 
 ### Workflows
 
-Os formulários têm os componentes de workflow gerados: **On Create Form**, **On Update Form** e assim por diante. Para agir sobre o que um formulário criou, use **On Create Incident** ou **On Create Maintenance Event**.
+Os formulários têm os componentes de workflow gerados: **Ao criar: Formulário**, **Ao atualizar: Formulário** e assim por diante. Para agir sobre o que um formulário criou, use **Ao criar: Incidente** ou **Ao criar: Evento de manutenção**.
 
 ### Os endpoints próprios da página pública
 

@@ -39,7 +39,7 @@ Um bloco roda quando o bloco anterior toma a saída ligada a ele. Ele lê as con
 
 ```mermaid title="Um bloco toma uma das suas saídas"
 flowchart TB
-    trigger["On Create Incident"] -->|"Sucesso"| post["Chamada de API POST (JSON)"]
+    trigger["Ao criar: Incidente"] -->|"Sucesso"| post["Chamada de API POST (JSON)"]
     post -->|"Sucesso: uma resposta 2xx"| slack["Enviar mensagem ao Slack"]
     post -->|"Erro: sem resposta, ou não 2xx"| log["Registro"]
 ```
@@ -223,7 +223,7 @@ Para acionar só quando algo for verdade, coloque [If / Else](#conditions) antes
 
 ```mermaid title="Acionar quem está de plantão, mas só em incidentes críticos"
 flowchart TB
-    trigger["On Create Incident"] -->|"Sucesso"| check["Se / Senão"]
+    trigger["Ao criar: Incidente"] -->|"Sucesso"| check["Se / Senão"]
     check -->|"Sim"| page["Acionar quem está de plantão"]
 ```
 
@@ -411,7 +411,7 @@ Um registro só anda para a frente, e um resolvido não anda mais, então quando
 
 **Gravidade** nomeia uma das suas gravidades pelo nome ou pelo ID, sem diferenciar maiúsculas, ou pela posição entre elas: `most severe`, `middle` ou `least severe`. É assim que os níveis próprios de uma ferramenta se distribuem pelas gravidades que você mesmo nomeou. Deixada vazia, ou sem nomear nenhuma delas, é a sua mais grave, e o registro da execução diz isso. Um incidente novo fica fora das suas páginas de status, e os assinantes delas não são avisados, porque o texto de outra ferramenta é escrito para os usuários dessa ferramenta: ative **Mostrar nas páginas de status** para mostrá-lo.
 
-Em **Mais campos**, **Motivo** é o motivo no histórico do registro quando ele muda de estado, e **Nota** é então adicionada ao lado como nota privada, para uma ferramenta que diz algo ao reconhecer ou resolver. **Campos personalizados** dá a um registro novo mais campos personalizados, como um objeto JSON, **Rótulos** os IDs dos seus rótulos, separados por vírgulas, e **Recursos afetados** os recursos de que ele trata, como em **Create One Incident**. **Nota em vez de resolver** adiciona a nota e deixa o registro para a sua equipe resolver. O bloco devolve **Resumo**, o que ele fez em uma frase, e o registro, então um bloco seguinte lê o ID dele como `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Em **Mais campos**, **Motivo** é o motivo no histórico do registro quando ele muda de estado, e **Nota** é então adicionada ao lado como nota privada, para uma ferramenta que diz algo ao reconhecer ou resolver. **Campos personalizados** dá a um registro novo mais campos personalizados, como um objeto JSON, **Rótulos** os IDs dos seus rótulos, separados por vírgulas, e **Recursos afetados** os recursos de que ele trata, como em **Criar: Incidente (um registro)**. **Nota em vez de resolver** adiciona a nota e deixa o registro para a sua equipe resolver. O bloco devolve **Resumo**, o que ele fez em uma frase, e o registro, então um bloco seguinte lê o ID dele como `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, página
 
 | Componente               | O que faz                                                                      |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Lê um registro que corresponde à consulta.                                     |
-| **Find Many Monitors**   | Lê uma lista de registros que correspondem à consulta.                         |
-| **Create One Monitor**   | Adiciona um registro a partir de um objeto JSON.                               |
-| **Create Many Monitors** | Adiciona vários registros a partir de um array JSON.                           |
-| **Update One Monitor**   | Aplica os dados a gravar a um registro correspondente.                         |
-| **Update Many Monitors** | Aplica os dados a gravar aos registros correspondentes, até **Limite**.         |
-| **Delete One Monitor**   | Exclui um registro correspondente.                                             |
-| **Delete Many Monitors** | Exclui os registros correspondentes, até **Limite**.                            |
+| **Encontrar: Monitor (um registro)**     | Lê um registro que corresponde à consulta.                                     |
+| **Encontrar: Monitores (vários registros)**   | Lê uma lista de registros que correspondem à consulta.                         |
+| **Criar: Monitor (um registro)**   | Adiciona um registro a partir de um objeto JSON.                               |
+| **Criar: Monitores (vários registros)** | Adiciona vários registros a partir de um array JSON.                           |
+| **Atualizar: Monitor (um registro)**   | Aplica os dados a gravar a um registro correspondente.                         |
+| **Atualizar: Monitores (vários registros)** | Aplica os dados a gravar aos registros correspondentes, até **Limite**.         |
+| **Excluir: Monitor (um registro)**   | Exclui um registro correspondente.                                             |
+| **Excluir: Monitores (vários registros)** | Exclui os registros correspondentes, até **Limite**.                            |
 
-O mesmo conjunto dá a você quatro gatilhos — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** e **On Delete Monitor**. Veja [Gatilhos](/docs/workflows/triggers#gatilhos-de-eventos-do-oneuptime).
+O mesmo conjunto dá a você quatro gatilhos — **Ao criar: Monitor**, **Ao atualizar: Monitor**, **Ao criar ou atualizar: Monitor** e **Ao excluir: Monitor**. Veja [Gatilhos](/docs/workflows/triggers#gatilhos-de-eventos-do-oneuptime).
 
-Um tipo só oferece os componentes que o modelo dele permite. Um tipo somente leitura tem os dois componentes Find e nada mais, então, se você não encontra **Delete One Monitor** no painel, esse tipo não permite isso.
+Um tipo só oferece os componentes que o modelo dele permite. Um tipo somente leitura tem os dois componentes Find e nada mais, então, se você não encontra **Excluir: Monitor (um registro)** no painel, esse tipo não permite isso.
 
-É assim que um workflow lê e altera os dados do OneUptime. Por exemplo, um webhook da sua ferramenta de CI pode usar **Create One Incident** para abrir um incidente com os detalhes da falha.
+É assim que um workflow lê e altera os dados do OneUptime. Por exemplo, um webhook da sua ferramenta de CI pode usar **Criar: Incidente (um registro)** para abrir um incidente com os detalhes da falha.
 
 Esses componentes agem como Administrador do projeto no projeto do workflow: o que um Administrador do projeto não pode fazer, ou o que o seu plano não inclui, é recusado, e o log da execução diz por quê. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 
 ### Declarar um incidente a partir de um modelo
 
-**Create One Incident** pode declarar o incidente a partir de um dos seus [modelos de incidente](/docs/incidents/settings#modelos-de-incidentes): escolha-o em **Modelo de incidente**, a primeira configuração do passo. O modelo preenche todos os campos que **Objeto JSON** deixa de fora — o título, a descrição, a gravidade, o estado inicial, os monitores e outros recursos, as políticas de plantão, os rótulos, as páginas de status e os campos personalizados — e os proprietários dele viram os proprietários do incidente. Tudo o que você definir em **Objeto JSON** prevalece sobre o modelo, estado incluído, então, com um modelo escolhido, **Objeto JSON** só precisa do que deve ser diferente e pode ficar vazio.
+**Criar: Incidente (um registro)** pode declarar o incidente a partir de um dos seus [modelos de incidente](/docs/incidents/settings#modelos-de-incidentes): escolha-o em **Modelo de incidente**, a primeira configuração do passo. O modelo preenche todos os campos que **Objeto JSON** deixa de fora — o título, a descrição, a gravidade, o estado inicial, os monitores e outros recursos, as políticas de plantão, os rótulos, as páginas de status e os campos personalizados — e os proprietários dele viram os proprietários do incidente. Tudo o que você definir em **Objeto JSON** prevalece sobre o modelo, estado incluído, então, com um modelo escolhido, **Objeto JSON** só precisa do que deve ser diferente e pode ficar vazio.
 
 O incidente registra o modelo a partir do qual foi declarado em `createdIncidentTemplateId`. Essa coluna é definida pelo OneUptime: um passo que a envia em **Objeto JSON** é recusado, e o log da execução indica **Modelo de incidente**. Um modelo de outro projeto, ou um que foi excluído, faz o passo tomar a saída **Erro**, e em um plano que não inclui modelos de incidente o passo é recusado com o plano necessário. Veja [Como um modelo é aplicado](/docs/incidents/settings#como-um-modelo-é-aplicado).
 
 ### Vincular os recursos de que se trata
 
-**Create One Incident** e **Create One Alert** têm uma configuração **Recursos afetados**: os hosts, dispositivos de rede, clusters, bancos de dados ou serviços de que o registro trata, por nome, endereço ou ID, separados por vírgulas — digitados ou tirados de um passo anterior, como o host que um alerta vindo de outra ferramenta nomeia. Cada entrada é procurada em todos os tipos de recurso que o registro pode conter, como valor inteiro e sem diferenciar maiúsculas de minúsculas: pelo nome, um dispositivo de rede também pelo endereço em que é sondado ou pelo nome DNS, um host pelo nome que o agente dele informa ou por um dos seus endereços IP, e um recurso de nuvem pelo ID do provedor. Cada recurso que corresponde a uma entrada é vinculado, ao lado do que **Objeto JSON** e o modelo já vinculam, até 50 a partir das 25 primeiras entradas.
+**Criar: Incidente (um registro)** e **Criar: Alerta (um registro)** têm uma configuração **Recursos afetados**: os hosts, dispositivos de rede, clusters, bancos de dados ou serviços de que o registro trata, por nome, endereço ou ID, separados por vírgulas — digitados ou tirados de um passo anterior, como o host que um alerta vindo de outra ferramenta nomeia. Cada entrada é procurada em todos os tipos de recurso que o registro pode conter, como valor inteiro e sem diferenciar maiúsculas de minúsculas: pelo nome, um dispositivo de rede também pelo endereço em que é sondado ou pelo nome DNS, um host pelo nome que o agente dele informa ou por um dos seus endereços IP, e um recurso de nuvem pelo ID do provedor. Cada recurso que corresponde a uma entrada é vinculado, ao lado do que **Objeto JSON** e o modelo já vinculam, até 50 a partir das 25 primeiras entradas.
 
 Uma entrada que não corresponde a nada não interrompe o passo: o registro é criado mesmo assim, e o log da execução diz o que cada entrada vinculou e quais não corresponderam a nada. Recursos arquivados não são vinculados. Monitores não são procurados: nomeie-os em **Objeto JSON** (`monitors` em um incidente, `monitorId` em um alerta), porque vincular um monitor a um incidente pausa o monitoramento dele.
 
 ### Quem é dono desde o início
 
-**Create One Incident** e **Create One Alert** têm as configurações **Usuários proprietários** e **Equipes proprietárias**: as pessoas e equipes que são donas do registro desde a criação. Escolha-as, ou pegue-as de um passo anterior: o ID ou endereço de e-mail de um usuário, o ID de uma equipe, vários separados por vírgulas, ou uma lista. Os proprietários do registro ficam sabendo da criação cerca de um minuto depois, todos os que ele tiver até lá: os escolhidos aqui estão sempre entre eles, enquanto os proprietários que um passo posterior adiciona perdem o aviso quando esse passo roda mais de um minuto depois, e os Proprietários do projeto são avisados no lugar deles.
+**Criar: Incidente (um registro)** e **Criar: Alerta (um registro)** têm as configurações **Usuários proprietários** e **Equipes proprietárias**: as pessoas e equipes que são donas do registro desde a criação. Escolha-as, ou pegue-as de um passo anterior: o ID ou endereço de e-mail de um usuário, o ID de uma equipe, vários separados por vírgulas, ou uma lista. Os proprietários do registro ficam sabendo da criação cerca de um minuto depois, todos os que ele tiver até lá: os escolhidos aqui estão sempre entre eles, enquanto os proprietários que um passo posterior adiciona perdem o aviso quando esse passo roda mais de um minuto depois, e os Proprietários do projeto são avisados no lugar deles.
 
 O passo pergunta se pode adicioná-los, como Administrador do projeto no projeto do workflow, antes de o registro ser salvo: proprietários que ele não pode adicionar fazem a criação ser recusada. Quem não é membro do projeto, ou uma equipe que não é do projeto, fica de fora, e o log da execução diz isso: o registro é criado mesmo assim. Os proprietários adicionados assim não são avisados de que foram adicionados: o aviso de que o registro foi criado é o que recebem.
 

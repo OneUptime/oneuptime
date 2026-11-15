@@ -13,8 +13,8 @@ Envie uma mensagem para um chat, grupo ou canal do [Telegram](https://telegram.o
 
 ```mermaid title="De um alerta a uma mensagem do Telegram"
 flowchart TB
-    fired["Alerta disparado"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Alerta disparado"] --> trigger["Ao criar: Alerta"]
+    trigger --> step["Enviar mensagem<br/>ao Telegram"]
     step -->|"Sucesso"| chat["Mensagem no<br/>seu chat"]
     step -->|"Erro"| failed["A execução falha<br/>e diz por quê"]
 ```
@@ -53,11 +53,11 @@ Comece pelo modelo, que monta o workflow inteiro para alertas, ou do zero.
 3. Mantenha o nome **Notify Telegram on new alert** ou mude-o, e clique em **Próximo**.
 4. Cole o token em **Token do bot do Telegram** e o ID em **Telegram Chat ID**, e clique em **Criar fluxo de trabalho**.
 
-O workflow abre no **Construtor** com duas etapas: **On Create Alert** e **Enviar mensagem ao Telegram**, que envia o número, o título, a gravidade e o estado do alerta. O token é salvo como a variável secreta `telegramBotToken` do workflow, e o ID como `telegramChatId`.
+O workflow abre no **Construtor** com duas etapas: **Ao criar: Alerta** e **Enviar mensagem ao Telegram**, que envia o número, o título, a gravidade e o estado do alerta. O token é salvo como a variável secreta `telegramBotToken` do workflow, e o ID como `telegramChatId`.
 @tab Do zero
 1. Salve o token como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Variável do fluxo de trabalho**, dê o nome `TELEGRAM_BOT_TOKEN` e clique em **Próximo**. Cole o token em **Conteúdo**, ative **Segredo** e clique em **Criar: Variável do fluxo de trabalho**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Alert** em **Populares**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Alert Number With Prefix**.
+3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Alerta** em **Populares**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Alert Number With Prefix**.
 4. Clique em **Adicionar componente**, pesquise `telegram` e clique em **Enviar mensagem ao Telegram**. Conecte a saída **Sucesso** do gatilho a ela.
 5. Clique na nova etapa. Em **Token do bot do Telegram**, clique em **{ }** e escolha `TELEGRAM_BOT_TOKEN` em **Global variables**. Informe o ID do chat em **ID do chat**, escreva a mensagem em **Texto da mensagem** e insira os campos do alerta com **{ }**.
 :::
@@ -80,7 +80,7 @@ Para testar sem disparar um alerta, clique em **Executar fluxo de trabalho** e e
 
 - **Texto simples.** A etapa envia o texto como foi digitado, sem a formatação do Telegram, então `*` e `_` aparecem como estão.
 - **Respeitar o limite de 4.096 caracteres.** O Telegram aceita mensagens de até 4.096 caracteres. Uma mais longa é cortada, e termina com "… (truncated — see OneUptime for the full text)", em vez de ser recusada.
-- **Incidentes também.** Monte o mesmo workflow sobre **On Create Incident**, ou sobre **On Update Incident** para mudanças de estado. Para enviar só alguns alertas, coloque um bloco **Se / Senão** antes da etapa.
+- **Incidentes também.** Monte o mesmo workflow sobre **Ao criar: Incidente**, ou sobre **Ao atualizar: Incidente** para mudanças de estado. Para enviar só alguns alertas, coloque um bloco **Se / Senão** antes da etapa.
 - **O formato do token é verificado.** Um token que não tem o formato `123456789:ABCdef…` interrompe a execução antes de qualquer envio, e o token nunca é gravado no log.
 
 ## Solução de problemas

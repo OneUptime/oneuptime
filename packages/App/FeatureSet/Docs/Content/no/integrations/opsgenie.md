@@ -16,9 +16,9 @@ Send OneUptime-hendelser til [Opsgenie](https://www.atlassian.com/software/opsge
 
 ```mermaid title="To arbeidsflyter, ett Opsgenie-varsel"
 flowchart TB
-    declared["Hendelse erklært"] --> create["Arbeidsflyt 1:<br/>On Create Incident"]
+    declared["Hendelse erklært"] --> create["Arbeidsflyt 1:<br/>Ved oppretting:<br/>Hendelse"]
     create -->|"POST /v2/alerts"| og["Opsgenie-varsel"]
-    resolved["Hendelse løst"] --> update["Arbeidsflyt 2:<br/>On Update Incident"]
+    resolved["Hendelse løst"] --> update["Arbeidsflyt 2:<br/>Ved oppdatering:<br/>Hendelse"]
     update -->|"lukk via alias"| og
 ```
 
@@ -49,7 +49,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Incident**. Klikk på triggeren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Ved oppretting: Hendelse**. Klikk på triggeren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
 
 ### Opprett varselet
 
@@ -83,9 +83,9 @@ Opsgenies skjema er ordet `GenieKey`, et mellomrom og deretter nøkkelen. Opsgen
 En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å lukke det, startet når en hendelses tilstand endres.
 
 :::steps
-### Legg til triggeren On Update Incident
+### Legg til triggeren «Ved oppdatering: Hendelse»
 
-Opprett en arbeidsflyt som heter `Close Opsgenie alerts`, og velg **On Update Incident** som trigger. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Felt som sendes videre** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
+Opprett en arbeidsflyt som heter `Close Opsgenie alerts`, og velg **Ved oppdatering: Hendelse** som trigger. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Felt som sendes videre** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

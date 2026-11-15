@@ -306,7 +306,7 @@ Jira Cloud принимает аутентификацию Basic, собранн
 ### Создание задачи Jira для каждого инцидента
 
 :::steps
-1. Создайте с нуля рабочий процесс с именем `Incidents to Jira`. Нажмите на пунктирный блок и добавьте триггер **On Create Incident**. Его **Передаваемые поля** начинаются с поля **Заголовок**: нажмите **Добавить поле** и выберите **Описание** и **Номер инцидента**. ID передаётся всегда. Оставьте его **Identifier** равным `incident-on-create-1`.
+1. Создайте с нуля рабочий процесс с именем `Incidents to Jira`. Нажмите на пунктирный блок и добавьте триггер **При создании: Инцидент**. Его **Передаваемые поля** начинаются с поля **Заголовок**: нажмите **Добавить поле** и выберите **Описание** и **Номер инцидента**. ID передаётся всегда. Оставьте его **Identifier** равным `incident-on-create-1`.
 2. Нажмите **Добавить компонент**, добавьте блок **Вызов API POST (JSON)** и соедините с ним точку **Успешно** триггера. Задайте его **Identifier** значение `create-issue`, его **URL** — `{{global.variables.JIRA_URL}}/rest/api/3/issue`, а в разделе **Дополнительные поля** его **Заголовки запроса** — `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Задайте его **Тело запроса** — саму задачу, заменив `OPS` и `Bug` ключом вашего проекта и типом задачи этого проекта:
 
@@ -390,7 +390,7 @@ curl -u 'you@example.com:your_api_token' \
 Соберите это вторым рабочим процессом, чтобы сбой здесь никогда не мешал открывать задачи.
 
 :::steps
-1. Создайте рабочий процесс с именем `Incident updates to Jira` и триггером **On Update Incident**. В **Отслеживаемые поля** нажмите **Добавить поле** и выберите **Current Incident State**. В **Передаваемые поля** нажмите **Добавить поле**, откройте **Current Incident State** и выберите **Имя**.
+1. Создайте рабочий процесс с именем `Incident updates to Jira` и триггером **При обновлении: Инцидент**. В **Отслеживаемые поля** нажмите **Добавить поле** и выберите **Current Incident State**. В **Передаваемые поля** нажмите **Добавить поле**, откройте **Current Incident State** и выберите **Имя**.
 2. Добавьте блок **Если / Иначе**: **Проверяемое значение** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Сравнение** **равно**, **Сравнить с** `Resolved` или имя вашего состояния устранения.
 3. После его стороны **Да** найдите задачу блоком **Вызов API POST (JSON)** с **Identifier** `find-issue`, который отправляет запрос на `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ ID перехода принадлежит рабочему процессу Jir
 
    Самостоятельно размещённая установка использует собственный хост. Обращайтесь с URL как с паролем: любой, у кого он есть, может запустить рабочий процесс. Если он утёк, нажмите **Сбросить URL** там же, и старый URL сразу перестанет работать.
 
-3. Добавьте от триггера блок **Update One Incident**. Задайте его **Запрос** значение `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, а **Данные (JSON-объект)** — изменение, например новый `currentIncidentStateId`. Блок **Find One Incident State** с запросом `{"name": "Resolved"}` даёт этот ID как `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Добавьте от триггера блок **Обновить: Инцидент (одна запись)**. Задайте его **Запрос** значение `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, а **Данные (JSON-объект)** — изменение, например новый `currentIncidentStateId`. Блок **Найти: Состояние инцидента (одна запись)** с запросом `{"name": "Resolved"}` даёт этот ID как `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Включите его, а затем настройте вызов из Jira — правилом автоматизации или вебхуком:
 
@@ -466,13 +466,13 @@ Send web request вызывает только порты 80, 8080, 443, 6017, 8
 
 | Инцидент | Оповещение |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Нет: у оповещений нет публичных заметок |
+| **При создании: Инцидент** (`incident-on-create-1`) | **При создании: Оповещение** (`alert-on-create-1`) |
+| **При обновлении: Инцидент** (`incident-on-update-1`) | **При обновлении: Оповещение** (`alert-on-update-1`) |
+| **При создании: Внутренняя заметка инцидента** | **При создании: Внутренняя заметка оповещения** |
+| **При создании: Публичная заметка инцидента** | Нет: у оповещений нет публичных заметок |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Найти: Состояние инцидента (одна запись)** | **Найти: Состояние оповещения (одна запись)** |
+| **Обновить: Инцидент (одна запись)** | **Обновить: Оповещение (одна запись)** |
 | Метка `oneuptime-incident-<incident id>` | Метка `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ ID перехода недоступен из текущего статуса з
 :::
 
 :::details Рабочий процесс запускается, но инцидент не меняется
-Блок **Update One Incident** сообщает `Items Updated: 0`, когда его запрос ничего не нашёл, и это успех, а не ошибка. Убедитесь, что ID в запросе действительно принадлежит инциденту OneUptime и что запрос идёт по `_id`.
+Блок **Обновить: Инцидент (одна запись)** сообщает `Items Updated: 0`, когда его запрос ничего не нашёл, и это успех, а не ошибка. Убедитесь, что ID в запросе действительно принадлежит инциденту OneUptime и что запрос идёт по `_id`.
 :::
 
 :::details Ссылка появляется в задаче Jira в записанном виде

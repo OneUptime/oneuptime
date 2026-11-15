@@ -73,9 +73,9 @@ import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Co
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
-  SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 import {
   SetupGuideTranslation,
   SetupGuideTranslations,
@@ -126,6 +126,13 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 const LANGUAGES: ReadonlyArray<string> = ["en", "de", "fr", "ar", "fa"];
 
+/*
+ * The URL the card puts in a guide: this server's own, from its HOST, or the
+ * placeholder where none is set (getConfiguredOneUptimeUrl). CI sets HOST
+ * from config.example.env, so the guides the tests build use the same.
+ */
+const READER_URL: string = getConfiguredOneUptimeUrl();
+
 // Each language's words for each guide, as its chunk holds them.
 const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   Docker: {},
@@ -146,7 +153,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
  */
 function dockerGuide(hostName?: string): SetupGuideContent {
   return getDockerSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "docker-cli",
     hostName: hostName,
@@ -155,7 +162,7 @@ function dockerGuide(hostName?: string): SetupGuideContent {
 
 function dockerSwarmGuide(): SetupGuideContent {
   return getDockerSwarmSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "install-script",
   });
@@ -163,7 +170,7 @@ function dockerSwarmGuide(): SetupGuideContent {
 
 function storageArrayGuide(): SetupGuideContent {
   return getStorageArraySetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     platform: "flasharray",
@@ -172,7 +179,7 @@ function storageArrayGuide(): SetupGuideContent {
 
 function kubernetesGuide(): SetupGuideContent {
   return getKubernetesSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     platform: "standard",
   });
@@ -180,7 +187,7 @@ function kubernetesGuide(): SetupGuideContent {
 
 function iotGuide(): SetupGuideContent {
   return getIoTSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "opentelemetry-sdk",
   });
@@ -188,7 +195,7 @@ function iotGuide(): SetupGuideContent {
 
 function cephGuide(): SetupGuideContent {
   return getCephSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: "install-script",
@@ -205,7 +212,7 @@ function openStackGuide(
   method: OpenStackConnectMethod = "install-script",
 ): SetupGuideContent {
   return getOpenStackSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: method,
@@ -223,7 +230,7 @@ function vmwareGuide(
   vcenterName?: string,
 ): SetupGuideContent {
   return getVMwareSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: method,
@@ -238,7 +245,7 @@ function vmwareGuide(
  */
 function databaseGuide(system: string = "postgresql"): SetupGuideContent {
   return getDatabaseAgentSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     engine: getDatabaseAgentEngine(system)!,
@@ -253,7 +260,7 @@ function databaseGuide(system: string = "postgresql"): SetupGuideContent {
 
 function podmanGuide(): SetupGuideContent {
   return getPodmanSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "podman-cli",
   });

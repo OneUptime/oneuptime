@@ -13,8 +13,8 @@ Skicka ett meddelande till en [Telegram](https://telegram.org)-chatt, -grupp ell
 
 ```mermaid title="Från larm till Telegram-meddelande"
 flowchart TB
-    fired["Larm utlöst"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Larm utlöst"] --> trigger["Vid skapande: Larm"]
+    trigger --> step["Skicka meddelande<br/>till Telegram"]
     step -->|"Framgång"| chat["Meddelande i<br/>din chatt"]
     step -->|"Fel"| failed["Körningen<br/>misslyckas och<br/>säger varför"]
 ```
@@ -53,11 +53,11 @@ Börja från mallen, som bygger hela arbetsflödet för larm, eller från grunde
 3. Behåll namnet **Notify Telegram on new alert** eller ändra det, och klicka på **Nästa**.
 4. Klistra in token i **Telegram-bottoken** och ID:t i **Telegram Chat ID**, och klicka på **Skapa arbetsflöde**.
 
-Arbetsflödet öppnas i **Byggare** med två steg: **On Create Alert** och **Skicka meddelande till Telegram**, som skickar larmets nummer, titel, allvarlighetsgrad och tillstånd. Token sparas som arbetsflödets hemliga variabel `telegramBotToken`, och ID:t som `telegramChatId`.
+Arbetsflödet öppnas i **Byggare** med två steg: **Vid skapande: Larm** och **Skicka meddelande till Telegram**, som skickar larmets nummer, titel, allvarlighetsgrad och tillstånd. Token sparas som arbetsflödets hemliga variabel `telegramBotToken`, och ID:t som `telegramChatId`.
 @tab Från grunden
 1. Spara token som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflödesvariabel**, ge den namnet `TELEGRAM_BOT_TOKEN` och klicka på **Nästa**. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **On Create Alert** under **Populära**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Alert Number With Prefix**.
+3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **Vid skapande: Larm** under **Populära**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Alert Number With Prefix**.
 4. Klicka på **Lägg till komponent**, sök efter `telegram` och klicka på **Skicka meddelande till Telegram**. Anslut utlösarens utgång **Framgång** till det.
 5. Klicka på det nya steget. Klicka på **{ }** i **Telegram-bottoken** och välj `TELEGRAM_BOT_TOKEN` under **Global variables**. Ange chattens ID i **Chatt-ID**, skriv meddelandet i **Meddelandetext** och infoga larmets fält med **{ }**.
 :::
@@ -80,7 +80,7 @@ För att testa utan att utlösa ett larm klickar du på **Kör arbetsflöde** oc
 
 - **Ren text.** Steget skickar texten som den är skriven, utan Telegrams formatering, så `*` och `_` visas som de är.
 - **Tänk på gränsen på 4 096 tecken.** Telegram tar emot meddelanden på upp till 4 096 tecken. Ett längre kortas av och slutar med "… (truncated — see OneUptime for the full text)" i stället för att avvisas.
-- **Även incidenter.** Bygg samma arbetsflöde på **On Create Incident**, eller på **On Update Incident** för tillståndsändringar. För att bara skicka vissa larm sätter du ett block **Om / Annars** före steget.
+- **Även incidenter.** Bygg samma arbetsflöde på **Vid skapande: Incident**, eller på **Vid uppdatering: Incident** för tillståndsändringar. För att bara skicka vissa larm sätter du ett block **Om / Annars** före steget.
 - **Tokens form kontrolleras.** En token som inte har formen `123456789:ABCdef…` stoppar körningen innan något skickas, och token skrivs aldrig till loggen.
 
 ## Felsökning

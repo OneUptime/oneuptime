@@ -257,7 +257,7 @@ Die Antwort auf eine Dateifrage sind die Dateien, wie sie gespeichert wurden, je
 
 ### Workflows
 
-Formulare haben die erzeugten Workflow-Komponenten – **On Create Form**, **On Update Form** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **On Create Incident** oder **On Create Maintenance Event**.
+Formulare haben die erzeugten Workflow-Komponenten – **Bei Erstellung: Formular**, **Bei Aktualisierung: Formular** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **Bei Erstellung: Vorfall** oder **Bei Erstellung: Wartungsereignis**.
 
 ### Die eigenen Endpunkte der öffentlichen Seite
 

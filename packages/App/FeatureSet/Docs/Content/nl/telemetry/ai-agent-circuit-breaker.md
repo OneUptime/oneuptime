@@ -15,7 +15,7 @@ Een AI-agent faalt zelden door te crashen. Hij faalt door door te gaan: hij prob
 flowchart TB
     agent["Je agent stuurt<br/>gen_ai.*-spans"] --> ingest["OneUptime"]
     ingest --> wire{"Struikeldraad: budget-<br/>of luswaarschuwing"}
-    wire -->|"Waarschuwing gemaakt"| workflow["Workflow:<br/>On Create Alert"]
+    wire -->|"Waarschuwing gemaakt"| workflow["Workflow:<br/>Bij aanmaken: Waarschuwing"]
     workflow -->|"API Post (JSON)"| endpoint["Je stop-endpoint"]
     endpoint --> runner["De runner pauzeert<br/>of stopt de agent"]
 ```
@@ -125,7 +125,7 @@ Open **Producten → Workflows** en klik op **Workflow maken**. Klik op **Vanaf 
 
 ### Voeg de trigger toe
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Alert** in het paneel **Trigger toevoegen**. Klik op de trigger: **Velden om door te geven** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Waarschuwing** in het paneel **Trigger toevoegen**. Klik op de trigger: **Velden om door te geven** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
 ### Controleer de titel
 

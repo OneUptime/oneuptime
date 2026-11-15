@@ -39,7 +39,7 @@ Ein Baustein läuft, wenn der Baustein davor den Ausgang nimmt, der mit ihm verb
 
 ```mermaid title="Ein Baustein nimmt einen seiner Ausgänge"
 flowchart TB
-    trigger["On Create Incident"] -->|"Erfolg"| post["API-Aufruf POST (JSON)"]
+    trigger["Bei Erstellung: Vorfall"] -->|"Erfolg"| post["API-Aufruf POST (JSON)"]
     post -->|"Erfolg: eine 2xx-Antwort"| slack["Nachricht an Slack senden"]
     post -->|"Fehler: keine Antwort oder nicht 2xx"| log["Protokoll"]
 ```
@@ -223,7 +223,7 @@ Um nur zu alarmieren, wenn etwas zutrifft, setzen Sie [If / Else](#conditions) v
 
 ```mermaid title="Alarmieren, wer in Bereitschaft ist, aber nur bei kritischen Vorfällen"
 flowchart TB
-    trigger["On Create Incident"] -->|"Erfolg"| check["Wenn / Sonst"]
+    trigger["Bei Erstellung: Vorfall"] -->|"Erfolg"| check["Wenn / Sonst"]
     check -->|"Ja"| page["Bereitschaft alarmieren"]
 ```
 
@@ -411,7 +411,7 @@ Ein Datensatz bewegt sich nur vorwärts und ein gelöster gar nicht mehr, sodass
 
 **Schweregrad** nennt einen Ihrer Schweregrade über seinen Namen oder seine ID, ohne Rücksicht auf Groß- und Kleinschreibung, oder über seine Stellung unter ihnen: `most severe`, `middle` oder `least severe`. So werden die eigenen Stufen eines Tools auf die Schweregrade verteilt, die Sie selbst benannt haben. Bleibt die Einstellung leer oder nennt sie keinen davon, ist es Ihr höchster Schweregrad, und das Protokoll der Ausführung sagt es. Ein neuer Vorfall wird von Ihren Statusseiten ferngehalten, und deren Abonnenten erfahren nichts davon, weil der Text eines anderen Tools für dessen Nutzer geschrieben ist: Schalten Sie **Auf Statusseiten anzeigen** ein, um ihn zu zeigen.
 
-Unter **Weitere Felder** ist **Grund** der Grund im Verlauf des Datensatzes, wenn er sich bewegt, und **Notiz** wird dann daneben als private Notiz hinzugefügt, für ein Tool, das beim Bestätigen oder Lösen etwas mitteilt. **Benutzerdefinierte Felder** gibt einem neuen Datensatz weitere benutzerdefinierte Felder, als JSON-Objekt, **Beschriftungen** die IDs seiner Beschriftungen, durch Kommas getrennt, und **Betroffene Ressourcen** die Ressourcen, um die es geht, wie bei **Create One Incident**. **Notiz statt Beheben** fügt die Notiz hinzu und überlässt das Lösen des Datensatzes Ihren Leuten. Der Baustein gibt **Zusammenfassung** zurück, was er getan hat, in einem Satz, und den Datensatz, sodass ein späterer Baustein seine ID als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}` liest.
+Unter **Weitere Felder** ist **Grund** der Grund im Verlauf des Datensatzes, wenn er sich bewegt, und **Notiz** wird dann daneben als private Notiz hinzugefügt, für ein Tool, das beim Bestätigen oder Lösen etwas mitteilt. **Benutzerdefinierte Felder** gibt einem neuen Datensatz weitere benutzerdefinierte Felder, als JSON-Objekt, **Beschriftungen** die IDs seiner Beschriftungen, durch Kommas getrennt, und **Betroffene Ressourcen** die Ressourcen, um die es geht, wie bei **Vorfall erstellen (einzeln)**. **Notiz statt Beheben** fügt die Notiz hinzu und überlässt das Lösen des Datensatzes Ihren Leuten. Der Baustein gibt **Zusammenfassung** zurück, was er getan hat, in einem Satz, und den Datensatz, sodass ein späterer Baustein seine ID als `{{local.components.incident-from-another-tool-1.returnValues.record._id}}` liest.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnungen, Status
 
 | Komponente               | Was sie tut                                                          |
 | ------------------------ | -------------------------------------------------------------------- |
-| **Find One Monitor**     | Einen Datensatz lesen, der zur Abfrage passt.                        |
-| **Find Many Monitors**   | Eine Liste von Datensätzen lesen, die zur Abfrage passen.            |
-| **Create One Monitor**   | Einen Datensatz aus einem JSON-Objekt anlegen.                       |
-| **Create Many Monitors** | Mehrere Datensätze aus einem JSON-Array anlegen.                     |
-| **Update One Monitor**   | Die Schreibdaten auf einen passenden Datensatz anwenden.             |
-| **Update Many Monitors** | Die Schreibdaten auf passende Datensätze anwenden, bis zu **Höchstzahl**. |
-| **Delete One Monitor**   | Einen passenden Datensatz löschen.                                   |
-| **Delete Many Monitors** | Passende Datensätze löschen, bis zu **Höchstzahl**.                       |
+| **Monitor finden (einzeln)**     | Einen Datensatz lesen, der zur Abfrage passt.                        |
+| **Monitore finden (mehrere)**   | Eine Liste von Datensätzen lesen, die zur Abfrage passen.            |
+| **Monitor erstellen (einzeln)**   | Einen Datensatz aus einem JSON-Objekt anlegen.                       |
+| **Monitore erstellen (mehrere)** | Mehrere Datensätze aus einem JSON-Array anlegen.                     |
+| **Monitor aktualisieren (einzeln)**   | Die Schreibdaten auf einen passenden Datensatz anwenden.             |
+| **Monitore aktualisieren (mehrere)** | Die Schreibdaten auf passende Datensätze anwenden, bis zu **Höchstzahl**. |
+| **Monitor löschen (einzeln)**   | Einen passenden Datensatz löschen.                                   |
+| **Monitore löschen (mehrere)** | Passende Datensätze löschen, bis zu **Höchstzahl**.                       |
 
-Dieselbe Reihe gibt Ihnen vier Trigger – **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** und **On Delete Monitor**. Siehe [Trigger](/docs/workflows/triggers#oneuptime-ereignis-trigger).
+Dieselbe Reihe gibt Ihnen vier Trigger – **Bei Erstellung: Monitor**, **Bei Aktualisierung: Monitor**, **Bei Erstellung oder Aktualisierung: Monitor** und **Bei Löschung: Monitor**. Siehe [Trigger](/docs/workflows/triggers#oneuptime-ereignis-trigger).
 
-Ein Typ bietet nur die Komponenten an, die sein Modell erlaubt. Ein schreibgeschützter Typ hat die beiden Find-Komponenten und sonst nichts; finden Sie **Delete One Monitor** also nicht im Bereich, erlaubt dieser Typ es nicht.
+Ein Typ bietet nur die Komponenten an, die sein Modell erlaubt. Ein schreibgeschützter Typ hat die beiden Find-Komponenten und sonst nichts; finden Sie **Monitor löschen (einzeln)** also nicht im Bereich, erlaubt dieser Typ es nicht.
 
-So liest und ändert ein Workflow OneUptime-Daten. Zum Beispiel kann ein Webhook aus Ihrem CI-Tool mit **Create One Incident** einen Vorfall mit den Details des Fehlers eröffnen.
+So liest und ändert ein Workflow OneUptime-Daten. Zum Beispiel kann ein Webhook aus Ihrem CI-Tool mit **Vorfall erstellen (einzeln)** einen Vorfall mit den Details des Fehlers eröffnen.
 
 Diese Komponenten handeln als Projektadministrator des Projekts des Workflows: Was ein Projektadministrator nicht darf oder Ihr Plan nicht enthält, wird abgelehnt, und das Protokoll der Ausführung sagt, warum. Siehe [Was Workflow-Schritte tun können](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 
 ### Einen Vorfall aus einer Vorlage melden
 
-**Create One Incident** kann den Vorfall aus einer Ihrer [Vorfallsvorlagen](/docs/incidents/settings#vorfall-vorlagen) melden: Wählen Sie sie unter **Vorfallsvorlage**, der ersten Einstellung des Schritts. Die Vorlage füllt jedes Feld aus, das **JSON-Objekt** weglässt – Titel, Beschreibung, Schweregrad, Anfangszustand, Monitore und andere Ressourcen, Bereitschaftsrichtlinien, Beschriftungen, Statusseiten und benutzerdefinierte Felder –, und ihre Eigentümer werden die Eigentümer des Vorfalls. Was Sie in **JSON-Objekt** setzen, gewinnt gegenüber der Vorlage, auch ein Zustand; mit gewählter Vorlage braucht **JSON-Objekt** also nur, was abweichen soll, und kann leer bleiben.
+**Vorfall erstellen (einzeln)** kann den Vorfall aus einer Ihrer [Vorfallsvorlagen](/docs/incidents/settings#vorfall-vorlagen) melden: Wählen Sie sie unter **Vorfallsvorlage**, der ersten Einstellung des Schritts. Die Vorlage füllt jedes Feld aus, das **JSON-Objekt** weglässt – Titel, Beschreibung, Schweregrad, Anfangszustand, Monitore und andere Ressourcen, Bereitschaftsrichtlinien, Beschriftungen, Statusseiten und benutzerdefinierte Felder –, und ihre Eigentümer werden die Eigentümer des Vorfalls. Was Sie in **JSON-Objekt** setzen, gewinnt gegenüber der Vorlage, auch ein Zustand; mit gewählter Vorlage braucht **JSON-Objekt** also nur, was abweichen soll, und kann leer bleiben.
 
 Der Vorfall hält die Vorlage, aus der er gemeldet wurde, in `createdIncidentTemplateId` fest. Diese Spalte setzt OneUptime: Ein Schritt, der sie in **JSON-Objekt** sendet, wird abgelehnt, und sein Protokoll verweist Sie auf **Vorfallsvorlage**. Eine Vorlage aus einem anderen Projekt oder eine gelöschte nimmt den Ausgang **Fehler** des Schritts, und in einem Plan, der keine Vorfallsvorlagen enthält, wird der Schritt mit dem Plan abgelehnt, den er braucht. Siehe [Wie eine Vorlage angewendet wird](/docs/incidents/settings#wie-eine-vorlage-angewendet-wird).
 
 ### Die Ressourcen verknüpfen, um die es geht
 
-**Create One Incident** und **Create One Alert** haben die Einstellung **Betroffene Ressourcen**: die Hosts, Netzwerkgeräte, Cluster, Datenbanken oder Dienste, um die es beim Datensatz geht, über Name, Adresse oder ID, durch Kommas getrennt – eingetippt oder aus einem früheren Schritt übernommen, etwa der Host, den eine Warnung aus einem anderen Tool nennt. Jeder Eintrag wird in jeder Art von Ressource gesucht, die der Datensatz halten kann, als ganzer Wert und ohne Rücksicht auf Groß- und Kleinschreibung: über den Namen, ein Netzwerkgerät auch über die Adresse, unter der es abgefragt wird, oder seinen DNS-Namen, ein Host über den Namen, den sein Agent meldet, oder eine seiner IP-Adressen, und eine Cloud-Ressource über die ID ihres Anbieters. Jede Ressource, auf die ein Eintrag passt, wird verknüpft, neben dem, was **JSON-Objekt** und die Vorlage schon verknüpfen – bis zu 50 aus den ersten 25 Einträgen.
+**Vorfall erstellen (einzeln)** und **Warnung erstellen (einzeln)** haben die Einstellung **Betroffene Ressourcen**: die Hosts, Netzwerkgeräte, Cluster, Datenbanken oder Dienste, um die es beim Datensatz geht, über Name, Adresse oder ID, durch Kommas getrennt – eingetippt oder aus einem früheren Schritt übernommen, etwa der Host, den eine Warnung aus einem anderen Tool nennt. Jeder Eintrag wird in jeder Art von Ressource gesucht, die der Datensatz halten kann, als ganzer Wert und ohne Rücksicht auf Groß- und Kleinschreibung: über den Namen, ein Netzwerkgerät auch über die Adresse, unter der es abgefragt wird, oder seinen DNS-Namen, ein Host über den Namen, den sein Agent meldet, oder eine seiner IP-Adressen, und eine Cloud-Ressource über die ID ihres Anbieters. Jede Ressource, auf die ein Eintrag passt, wird verknüpft, neben dem, was **JSON-Objekt** und die Vorlage schon verknüpfen – bis zu 50 aus den ersten 25 Einträgen.
 
 Ein Eintrag, der auf nichts passt, hält den Schritt nicht auf: Der Datensatz wird trotzdem erstellt, und das Protokoll des Laufs sagt, was jeder Eintrag verknüpft hat und welche auf nichts passten. Archivierte Ressourcen werden nicht verknüpft. Monitore werden nicht nachgeschlagen: Nennen Sie sie in **JSON-Objekt** (`monitors` bei einem Vorfall, `monitorId` bei einer Warnung), denn einen Monitor mit einem Vorfall zu verknüpfen, pausiert seine Überwachung.
 
 ### Wem er von Anfang an gehört
 
-**Create One Incident** und **Create One Alert** haben die Einstellungen **Eigentümer-Benutzer** und **Eigentümer-Teams**: die Personen und Teams, denen der Datensatz ab seiner Erstellung gehört. Wählen Sie sie aus, oder übernehmen Sie sie aus einem früheren Schritt: die ID oder E-Mail-Adresse eines Benutzers, die ID eines Teams, mehrere durch Kommas getrennt oder eine Liste. Die Eigentümer des Datensatzes erfahren etwa eine Minute nach der Erstellung, dass er erstellt wurde, jeder Eigentümer, den er bis dahin hat: Die hier gewählten sind immer dabei, während Eigentümer, die ein späterer Schritt hinzufügt, es verpassen, wenn dieser Schritt mehr als eine Minute später läuft, und stattdessen die Projektinhaber informiert werden.
+**Vorfall erstellen (einzeln)** und **Warnung erstellen (einzeln)** haben die Einstellungen **Eigentümer-Benutzer** und **Eigentümer-Teams**: die Personen und Teams, denen der Datensatz ab seiner Erstellung gehört. Wählen Sie sie aus, oder übernehmen Sie sie aus einem früheren Schritt: die ID oder E-Mail-Adresse eines Benutzers, die ID eines Teams, mehrere durch Kommas getrennt oder eine Liste. Die Eigentümer des Datensatzes erfahren etwa eine Minute nach der Erstellung, dass er erstellt wurde, jeder Eigentümer, den er bis dahin hat: Die hier gewählten sind immer dabei, während Eigentümer, die ein späterer Schritt hinzufügt, es verpassen, wenn dieser Schritt mehr als eine Minute später läuft, und stattdessen die Projektinhaber informiert werden.
 
 Der Schritt fragt als Projektadministrator des Projekts des Workflows, ob er sie hinzufügen darf, bevor der Datensatz gespeichert wird: Eigentümer, die er nicht hinzufügen darf, lassen die Erstellung scheitern. Wer kein Mitglied des Projekts ist, oder ein Team, das nicht zum Projekt gehört, wird weggelassen, und das Protokoll des Laufs sagt es: Der Datensatz wird trotzdem erstellt. So hinzugefügte Eigentümer erfahren nicht, dass sie hinzugefügt wurden: Die Benachrichtigung, dass der Datensatz erstellt wurde, ist die, die sie bekommen.
 

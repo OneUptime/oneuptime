@@ -16,9 +16,9 @@ Envie os incidentes do OneUptime para o [Opsgenie](https://www.atlassian.com/sof
 
 ```mermaid title="Dois workflows, um alerta no Opsgenie"
 flowchart TB
-    declared["Incidente declarado"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> create["Workflow 1:<br/>Ao criar: Incidente"]
     create -->|"POST /v2/alerts"| og["Alerta no Opsgenie"]
-    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>Ao atualizar:<br/>Incidente"]
     update -->|"fechar por alias"| og
 ```
 
@@ -49,7 +49,7 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Incidente**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Criar o alerta
 
@@ -83,9 +83,9 @@ O esquema do Opsgenie é a palavra `GenieKey`, um espaço e depois a chave. O Op
 Um workflow tem um só gatilho, então fechar exige um segundo workflow, iniciado quando o estado de um incidente muda.
 
 :::steps
-### Adicionar o gatilho On Update Incident
+### Adicionar o gatilho "Ao atualizar: Incidente"
 
-Crie um workflow chamado `Close Opsgenie alerts` e escolha **On Update Incident** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
+Crie um workflow chamado `Close Opsgenie alerts` e escolha **Ao atualizar: Incidente** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

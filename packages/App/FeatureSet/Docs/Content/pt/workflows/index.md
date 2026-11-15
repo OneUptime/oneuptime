@@ -107,7 +107,7 @@ Este workflow envia um resumo em JSON de cada novo incidente para uma URL sua �
 
 ```mermaid title="O exemplo pronto"
 flowchart TB
-    trigger["On Create Incident"] -->|"Sucesso"| post["Chamada de API POST (JSON)"]
+    trigger["Ao criar: Incidente"] -->|"Sucesso"| post["Chamada de API POST (JSON)"]
     post -->|"Erro"| log["Registro"]
     post -->|"Sucesso"| done["A execução termina"]
 ```
@@ -124,7 +124,7 @@ O novo workflow abre no **Construtor**, desligado.
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e depois em **On Create Incident**, em **Populares**, no painel **Adicionar gatilho**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e depois em **Ao criar: Incidente**, em **Populares**, no painel **Adicionar gatilho**.
 
 O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-create-1`, é como os blocos seguintes se referem a ele.
 

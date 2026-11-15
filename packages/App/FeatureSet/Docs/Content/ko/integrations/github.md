@@ -15,7 +15,7 @@ OneUptime은 두 가지 방식으로 [GitHub](https://github.com)와 함께 작�
 flowchart TB
     app["GitHub App"] --> repos["가져온 저장소"]
     repos --> pr["OneUptime AI의<br/>수정 pull request"]
-    declared["인시던트 선언"] --> workflow["워크플로:<br/>On Create Incident"]
+    declared["인시던트 선언"] --> workflow["워크플로:<br/>인시던트 생성 시"]
     workflow -->|"POST issues"| issue["GitHub issue"]
 ```
 
@@ -62,7 +62,7 @@ flowchart TB
 
 ### 트리거 추가하기
 
-점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**과 **Incident Number With Prefix**를 고릅니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **인시던트 생성 시**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**과 **Incident Number With Prefix**를 고릅니다.
 
 ### issue 열기
 

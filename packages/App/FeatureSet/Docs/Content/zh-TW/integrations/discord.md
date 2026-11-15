@@ -13,8 +13,8 @@
 
 ```mermaid title="從事件到 Discord 訊息"
 flowchart TB
-    declared["事件已宣佈"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["事件已宣佈"] --> trigger["建立事件時"]
+    trigger --> step["傳送訊息到 Discord"]
     step -->|"成功"| channel["你的頻道中<br/>的訊息"]
     step -->|"錯誤"| failed["執行失敗，<br/>並說明原因"]
 ```
@@ -48,11 +48,11 @@ flowchart TB
 3. 保留名稱 **Notify Discord on new incident** 或更改它，然後點選 **下一步**。
 4. 把 URL 貼上到 **Discord Webhook URL** 中，然後點選 **建立工作流程**。
 
-工作流程會在 **建構器** 中開啟，包含兩個步驟： **On Create Incident**，以及發布事件編號、標題、嚴重程度和狀態的 **傳送訊息到 Discord**。URL 會儲存為工作流程的機密變數 `discordWebhookUrl`。
+工作流程會在 **建構器** 中開啟，包含兩個步驟： **建立事件時**，以及發布事件編號、標題、嚴重程度和狀態的 **傳送訊息到 Discord**。URL 會儲存為工作流程的機密變數 `discordWebhookUrl`。
 @tab 從零開始
 1. 把 URL 儲存為機密的全域變數：前往 **工作流程 → 全域變數**，點選 **建立工作流程變數**，將其命名為 `DISCORD_WEBHOOK_URL`，然後點選 **下一步**。把 URL 貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程變數**。
 2. 前往 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，為工作流程命名，然後點選 **建立工作流程**。
-3. 在 **建構器** 中，點選 **選擇啟動此工作流程的方式**，然後在 **熱門** 下選擇 **On Create Incident**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位**，再選擇訊息要顯示的其他欄位，例如 **Incident Number With Prefix**。
+3. 在 **建構器** 中，點選 **選擇啟動此工作流程的方式**，然後在 **熱門** 下選擇 **建立事件時**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位**，再選擇訊息要顯示的其他欄位，例如 **Incident Number With Prefix**。
 4. 點選 **新增元件**，搜尋 `discord`，然後點選 **傳送訊息到 Discord**。把觸發器的 **成功** 輸出連接到它。
 5. 點選新步驟。在 **Discord 傳入 Webhook URL** 中點選 **{ }**，然後在 **Global variables** 下選擇 `DISCORD_WEBHOOK_URL`。在 **訊息文字** 中寫下訊息，並用 **{ }** 插入事件的欄位。
 :::
@@ -75,7 +75,7 @@ flowchart TB
 
 - **用 Discord 的 Markdown 設定格式。** 文字按輸入的原樣傳送，所以 Discord 的 Markdown 可以在其中使用：用星號包圍一個詞會讓它變成粗體，URL 會顯示為連結。
 - **注意 2,000 個字元的限制。** Discord 接受最多 2,000 個字元的訊息。更長的訊息會被截斷，並以 "… (truncated — see OneUptime for the full text)" 結尾，而不是被拒絕。
-- **不只發布新事件。** 用同一個步驟，基於 **On Update Incident** 建置另一個工作流程來發布狀態變更，或基於 **On Create Alert** 建置工作流程來發布警示。要只發布部分事件，請在該步驟之前放一個 **如果 / 否則** 區塊。
+- **不只發布新事件。** 用同一個步驟，基於 **更新事件時** 建置另一個工作流程來發布狀態變更，或基於 **建立警示時** 建置工作流程來發布警示。要只發布部分事件，請在該步驟之前放一個 **如果 / 否則** 區塊。
 - **只用 Discord 自己的位址。** 該步驟發布到 `discord.com` 或 `discordapp.com` 上的 `https` URL，並且不跟隨重新導向，所以指向其他任何地方的 URL 都會讓執行停止。
 
 ## 疑難排解

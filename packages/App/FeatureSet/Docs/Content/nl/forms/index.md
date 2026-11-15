@@ -257,7 +257,7 @@ Het antwoord op een bestandsvraag zijn de bestanden zoals ze zijn opgeslagen, el
 
 ### Workflows
 
-Formulieren hebben de gegenereerde workflowcomponenten: **On Create Form**, **On Update Form** enzovoort. Gebruik **On Create Incident** of **On Create Maintenance Event** om te reageren op wat een formulier heeft aangemaakt.
+Formulieren hebben de gegenereerde workflowcomponenten: **Bij aanmaken: Formulier**, **Bij bijwerken: Formulier** enzovoort. Gebruik **Bij aanmaken: Incident** of **Bij aanmaken: Onderhoudsgebeurtenis** om te reageren op wat een formulier heeft aangemaakt.
 
 ### De eigen eindpunten van de openbare pagina
 

@@ -76,7 +76,7 @@ En hendelse som er opprettet via et skjema, er en vanlig hendelse med noen få e
 - **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til så snart hendelsens Slack- og Microsoft Teams-kanaler finnes, og får varsling — hendelsens varsling **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til Prosjekteiere.
 - **Et privat notat registrerer innsendingen** — se [Det private notatet](#det-private-notatet).
 
-Alt som kjører for en ny hendelse, kjører også for disse: personvern-, eier-, etikett-, vakt- og runbook-regler, vaktpolicyer og arbeidsflyter med **On Create Incident**. Vaktregler matcher et skjemas hendelser som alle andre — også på tittelen og beskrivelsen, som innsenderen skrev.
+Alt som kjører for en ny hendelse, kjører også for disse: personvern-, eier-, etikett-, vakt- og runbook-regler, vaktpolicyer og arbeidsflyter med **Ved oppretting: Hendelse**. Vaktregler matcher et skjemas hendelser som alle andre — også på tittelen og beskrivelsen, som innsenderen skrev.
 
 :::steps
 #### Les det innsenderen skrev

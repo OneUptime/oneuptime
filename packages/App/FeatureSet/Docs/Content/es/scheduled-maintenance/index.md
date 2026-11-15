@@ -46,7 +46,7 @@ Los anuncios se tratan en [Suscriptores y anuncios](/docs/status-pages/subscribe
 - **Una programación.** Una plantilla recurrente crea un evento nuevo según una programación, por ejemplo cada semana o cada mes, sin que nadie abra el formulario.
 - **Un formulario.** Un formulario cuyos envíos crean eventos de mantenimiento convierte una solicitud de cambio en un evento. Consulta [Lo que crea un envío](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-un-evento-de-mantenimiento).
 - **El chat.** `/oneuptime maintenance` en Slack, o `maintenance` escrito al bot de OneUptime en Microsoft Teams, abre el formulario en tu herramienta de chat. Consulta [Slack](/docs/workspace-connections/slack#crear-incidentes-y-mantenimientos-desde-slack).
-- **El código.** La API en `/api/scheduled-maintenance`, el recurso de Terraform `oneuptime_scheduled_maintenance_event` y el paso **Create One Maintenance Event** de un flujo de trabajo.
+- **El código.** La API en `/api/scheduled-maintenance`, el recurso de Terraform `oneuptime_scheduled_maintenance_event` y el paso **Crear Evento de mantenimiento (individual)** de un flujo de trabajo.
 
 ## Dónde está el mantenimiento en el panel
 

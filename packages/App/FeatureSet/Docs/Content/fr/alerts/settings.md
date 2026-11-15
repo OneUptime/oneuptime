@@ -178,7 +178,7 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevront la procha
 
 ## Flux de travail
 
-Chaque modèle d'alerte a des déclencheurs et des actions de flux de travail, nommés d'après lui : **On Create Alert**, **On Update Alert**, **On Create or Update Alert** et **On Delete Alert**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Create One Alert** et **Update One Alert**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
+Chaque modèle d'alerte a des déclencheurs et des actions de flux de travail, nommés d'après lui : **À la création : Alerte**, **À la mise à jour : Alerte**, **À la création ou à la mise à jour : Alerte** et **À la suppression : Alerte**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Créer : Alerte (un seul)** et **Mettre à jour : Alerte (un seul)**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ## Qui peut les modifier
 

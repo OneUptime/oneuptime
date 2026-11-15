@@ -16,7 +16,7 @@ Open voor elk OneUptime-incident een [GitLab](https://gitlab.com)-issue, zodat h
 
 ```mermaid title="Eén workflow, één GitLab-issue"
 flowchart TB
-    declared["Incident gemeld"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> workflow["Workflow:<br/>Bij aanmaken:<br/>Incident"]
     workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
@@ -47,7 +47,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
 
 ### Het issue openen
 

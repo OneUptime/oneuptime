@@ -269,7 +269,7 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
 ### Ouvrir un dossier pour chaque incident
 
 :::steps
-1. Créez à partir de zéro un flux de travail nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Champs à transmettre** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
+1. Créez à partir de zéro un flux de travail nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **À la création : Incident**. Ses **Champs à transmettre** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
 2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
@@ -323,7 +323,7 @@ Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `p
 Construisez cela dans un second flux de travail, pour qu'un échec ici n'empêche jamais l'ouverture des dossiers.
 
 :::steps
-1. Créez un flux de travail nommé `Close Dynamics 365 cases`, avec le déclencheur **On Update Incident**. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Champs à transmettre**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
+1. Créez un flux de travail nommé `Close Dynamics 365 cases`, avec le déclencheur **À la mise à jour : Incident**. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Champs à transmettre**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
 2. Ajoutez un bloc **Si / Sinon** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparaison** **est vrai**.
 3. Après son côté **Oui**, ajoutez un bloc **Appel d'API GET (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
 
@@ -363,7 +363,7 @@ Construisez d'abord le flux de travail qui reçoit :
    Sur une installation autogérée, l'URL porte votre propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le flux de travail. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
 
 3. Ajoutez un bloc **Si / Sinon** qui vérifie un secret partagé avant toute autre chose : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à**, **Comparer avec** une valeur que vous inventez, gardée dans une variable globale secrète.
-4. Après son côté **Oui**, ajoutez un bloc **Update One Incident**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Données (objet JSON)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Après son côté **Oui**, ajoutez un bloc **Mettre à jour : Incident (un seul)**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Données (objet JSON)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Trouver : État de l'incident (un seul)** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Activez-le, puis faites-le appeler par Dynamics 365 :
 
@@ -389,11 +389,11 @@ Les alertes fonctionnent de la même façon. Changez le type d'enregistrement, e
 
 | Incident | Alerte |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **À la création : Incident** (`incident-on-create-1`) | **À la création : Alerte** (`alert-on-create-1`) |
+| **À la mise à jour : Incident** (`incident-on-update-1`) | **À la mise à jour : Alerte** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Trouver : État de l'incident (un seul)** | **Trouver : État de l'alerte (un seul)** |
+| **Mettre à jour : Incident (un seul)** | **Mettre à jour : Alerte (un seul)** |
 
 Un flux de travail a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur flux de travail. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un flux de travail avec un déclencheur **Manuel**, et démarrez-le depuis les deux avec un bloc **Exécuter un autre flux de travail**.
 
@@ -438,7 +438,7 @@ Envoyez vous-même une requête à l'URL du webhook avec `curl`, et cherchez-la 
 :::
 
 :::details Le flux de travail s'exécute, mais l'incident ne change pas
-Un bloc **Update One Incident** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
+Un bloc **Mettre à jour : Incident (un seul)** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
 :::
 
 ## Étapes suivantes
