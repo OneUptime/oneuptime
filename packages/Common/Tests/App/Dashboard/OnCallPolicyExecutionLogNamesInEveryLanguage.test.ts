@@ -55,6 +55,9 @@ const ON_CALL_POLICY_WORD: Readonly<Record<string, string>> = {
   ar: "سياسة المناوبة",
 };
 
+// The English words of the names, none of which a translation keeps.
+const ENGLISH_WORDS: RegExp = /On-Call|Execution|Timeline/u;
+
 // The languages that kept the names in English until #8320.
 const LEFT_IN_ENGLISH: ReadonlyArray<string> = [
   "da",
@@ -72,7 +75,8 @@ const LEFT_IN_ENGLISH: ReadonlyArray<string> = [
 
 describe("an on-call policy's execution log, named in every Dashboard language (#8320)", () => {
   test("the names are the models' own, as the Dashboard shows them", () => {
-    const log: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const log: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     const timeline: OnCallDutyPolicyExecutionLogTimeline =
       new OnCallDutyPolicyExecutionLogTimeline();
 
@@ -96,22 +100,33 @@ describe("an on-call policy's execution log, named in every Dashboard language (
     test.each(NAMES)("words %s", (name: string) => {
       const text: string | undefined = readDashboardLocale(language)[name];
 
-      expect({ language, name, worded: isWordedInDashboardLocale(name, language) }).toEqual({
+      expect({
+        language,
+        name,
+        worded: isWordedInDashboardLocale(name, language),
+      }).toEqual({
         language,
         name,
         worded: true,
       });
       // Not the English, kept on a same-as-English list or not.
       expect(text).not.toBe(name);
-      expect(text).not.toMatch(/On-Call|Execution|Timeline/u);
+      expect(text).not.toMatch(ENGLISH_WORDS);
     });
 
     test.each(NAMES)(
       "names the on-call policy in %s as its pages do",
       (name: string) => {
-        const text: string = (readDashboardLocale(language)[name] || "").toLocaleLowerCase(language);
+        const text: string = (
+          readDashboardLocale(language)[name] || ""
+        ).toLocaleLowerCase(language);
 
-        expect({ language, name, text, hasWord: text.includes(ON_CALL_POLICY_WORD[language]!) }).toMatchObject({
+        expect({
+          language,
+          name,
+          text,
+          hasWord: text.includes(ON_CALL_POLICY_WORD[language]!),
+        }).toMatchObject({
           language,
           name,
           hasWord: true,
@@ -140,10 +155,18 @@ describe("an on-call policy's execution log, named in every Dashboard language (
     test("the word for an on-call policy is the one its pages use", () => {
       const words: Record<string, string> = readDashboardLocale(language);
       const onCallPolicy: string = (words["On-Call Policy Logs"] || "")
-        .concat(" ", words["On-Call Policy ID"] || "", " ", words["On-Call Policy"] || "")
+        .concat(
+          " ",
+          words["On-Call Policy ID"] || "",
+          " ",
+          words["On-Call Policy"] || "",
+        )
         .toLocaleLowerCase(language);
 
-      expect({ language, used: onCallPolicy.includes(ON_CALL_POLICY_WORD[language]!) }).toEqual({
+      expect({
+        language,
+        used: onCallPolicy.includes(ON_CALL_POLICY_WORD[language]!),
+      }).toEqual({
         language,
         used: true,
       });
@@ -151,30 +174,33 @@ describe("an on-call policy's execution log, named in every Dashboard language (
   });
 
   // The languages #8320 named, each with its words for an execution log.
-  test.each(LEFT_IN_ENGLISH)("%s no longer reads English", (language: string) => {
-    const words: Record<string, string> = readDashboardLocale(language);
+  test.each(LEFT_IN_ENGLISH)(
+    "%s no longer reads English",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
 
-    for (const name of NAMES) {
-      expect({ language, name, english: words[name] === name }).toEqual({
-        language,
-        name,
-        english: false,
-      });
-    }
-  });
+      for (const name of NAMES) {
+        expect({ language, name, english: words[name] === name }).toEqual({
+          language,
+          name,
+          english: false,
+        });
+      }
+    },
+  );
 
   // The checks tell an English placeholder, and a word of another name, apart.
   test("negative control: English, or another word for the policy, is caught", () => {
     expect(
-      "On-Call Policy Execution Log".toLocaleLowerCase("it").includes(
-        ON_CALL_POLICY_WORD["it"]!,
-      ),
+      "On-Call Policy Execution Log"
+        .toLocaleLowerCase("it")
+        .includes(ON_CALL_POLICY_WORD["it"]!),
     ).toBe(false);
     expect(
       "Registro di esecuzione del criterio di reperibilità"
         .toLocaleLowerCase("it")
         .includes(ON_CALL_POLICY_WORD["it"]!),
     ).toBe(false);
-    expect(/On-Call|Execution|Timeline/u.test("On-Call Policy Execution Logs")).toBe(true);
+    expect(ENGLISH_WORDS.test("On-Call Policy Execution Logs")).toBe(true);
   });
 });
