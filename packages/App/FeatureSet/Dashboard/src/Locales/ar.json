@@ -54326,5 +54326,7 @@
   "Active · seen {{time}}": "نشط · آخر ظهور {{time}}",
   "Inactive · seen {{time}}": "غير نشط · آخر ظهور {{time}}",
   "Runs on {{count}} of these": "يعمل على {{count}} منها",
-  "Runs on {{count}} of these_one": "يعمل على {{count}} منها"
+  "Runs on {{count}} of these_one": "يعمل على {{count}} منها",
+  "Fleets and devices, and the attributes that identify and classify them.": "الأساطيل والأجهزة، والسمات التي تعرّفها وتصنّفها.",
+  "How OneUptime models IoT": "كيف يمثّل OneUptime أجهزة IoT"
 }

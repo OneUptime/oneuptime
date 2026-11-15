@@ -54326,5 +54326,7 @@
   "Active · seen {{time}}": "Aktiv · zuletzt gesehen {{time}}",
   "Inactive · seen {{time}}": "Inaktiv · zuletzt gesehen {{time}}",
   "Runs on {{count}} of these": "Läuft auf {{count}} davon",
-  "Runs on {{count}} of these_one": "Läuft auf {{count}} davon"
+  "Runs on {{count}} of these_one": "Läuft auf {{count}} davon",
+  "Fleets and devices, and the attributes that identify and classify them.": "Flotten und Geräte sowie die Attribute, die sie identifizieren und einordnen.",
+  "How OneUptime models IoT": "Wie OneUptime IoT abbildet"
 }
