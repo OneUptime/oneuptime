@@ -145,6 +145,14 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
       value: props.row.columnId,
       label:
         getColumnTitle(props.column) || customFieldName || props.row.columnId,
+      /*
+       * The column's title is the product's words, looked up - unless it is
+       * a custom field's, named by a person; a custom field's name and a
+       * column's id are drawn as written.
+       */
+      isUserContent: getColumnTitle(props.column)
+        ? Boolean(props.column?.customField)
+        : true,
       description: isUnknownColumn
         ? translator.translateText(
             customFieldName !== null

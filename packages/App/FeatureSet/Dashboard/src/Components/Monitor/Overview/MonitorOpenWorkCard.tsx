@@ -18,6 +18,8 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -176,16 +178,34 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
     ];
 
     /*
+     * The severity and the state, each read by its list
+     * (Common/Utils/DefaultRecordNames): the ones a project starts with -
+     * "Critical Incident", "Resolved" - in the reader's words, a project's
+     * own as written.
+     */
+    const isIncident: boolean = row.kind === "Incident";
+    const severityText: string = translateRecordName(
+      translator,
+      isIncident ? StateListType.IncidentSeverity : StateListType.AlertSeverity,
+      row.severityName,
+    );
+    const stateText: string = translateRecordName(
+      translator,
+      isIncident ? StateListType.IncidentState : StateListType.AlertState,
+      row.stateName,
+    );
+
+    /*
      * The severity in words, next to its kind. The dot beside the title is
      * hidden from assistive technology and a colour alone tells nobody who
      * cannot see it, or cannot hover it, which incident is the critical one.
      */
-    if (row.severityName) {
-      metaParts.push(row.severityName);
+    if (severityText) {
+      metaParts.push(severityText);
     }
 
-    if (row.stateName) {
-      metaParts.push(row.stateName);
+    if (stateText) {
+      metaParts.push(stateText);
     }
 
     return (
@@ -193,7 +213,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
         <div className="flex items-start gap-2">
           <span
             className="mt-1.5 inline-flex"
-            title={row.severityName || undefined}
+            title={severityText || undefined}
           >
             <MonitorStatusDot color={row.severityColor} />
           </span>

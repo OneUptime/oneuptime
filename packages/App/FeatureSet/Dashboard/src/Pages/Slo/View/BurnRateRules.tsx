@@ -52,11 +52,13 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
   BurnRateRuleWindowsText,
   formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
+  getSeverityOrNothingPicked,
 } from "../Utils/BurnRateRuleLines";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -582,25 +584,34 @@ const SloBurnRateRules: FunctionComponent<
 
               if (willCreateAlert(item)) {
                 lines.push(
-                  translator.translateTemplate("Alert: {{severity}}", {
-                    severity: getNamesOrNothingPicked(
-                      [item.alertSeverity?.name],
-                      BURN_RATE_RULE_NOTHING_PICKED.severity,
-                      translator,
-                    ),
-                  }),
+                  translator.translateTemplate(
+                    "Alert: {{severity}}",
+                    {
+                      severity: getSeverityOrNothingPicked(
+                        StateListType.AlertSeverity,
+                        item.alertSeverity?.name,
+                        translator,
+                      ),
+                    },
+                    // A Latin name stays in order on a right-to-left page.
+                    { setsValuesApart: true },
+                  ),
                 );
               }
 
               if (willDeclareIncident(item)) {
                 lines.push(
-                  translator.translateTemplate("Incident: {{severity}}", {
-                    severity: getNamesOrNothingPicked(
-                      [item.incidentSeverity?.name],
-                      BURN_RATE_RULE_NOTHING_PICKED.severity,
-                      translator,
-                    ),
-                  }),
+                  translator.translateTemplate(
+                    "Incident: {{severity}}",
+                    {
+                      severity: getSeverityOrNothingPicked(
+                        StateListType.IncidentSeverity,
+                        item.incidentSeverity?.name,
+                        translator,
+                      ),
+                    },
+                    { setsValuesApart: true },
+                  ),
                 );
               }
 

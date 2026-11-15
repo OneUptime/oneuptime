@@ -134,6 +134,7 @@ export const LinkExporterModal: FunctionComponent<{
         label: device.name
           ? `${device.name} (${device.hostname || ""})`
           : device.hostname || "",
+        isUserContent: true,
       };
     },
   );

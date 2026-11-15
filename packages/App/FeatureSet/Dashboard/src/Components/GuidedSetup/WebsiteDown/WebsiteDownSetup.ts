@@ -38,6 +38,8 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   getProbeAgreementRequiredCount,
   getProbeAgreementSentence,
@@ -1018,9 +1020,18 @@ export const getWebsiteDownSummaryRows: (
         /*
          * The severity in brackets: a new project's are named "Critical
          * Incident" and the rest, so "a {{severity}} incident" doubled it.
+         * Its name is read by its list (Common/Utils/DefaultRecordNames):
+         * "Critical Incident" in the reader's words, a project's own as
+         * written, set apart so a right-to-left page keeps it in order.
          */
         "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).",
-        { severity: facts.incidentSeverityName },
+        {
+          severity: recordNameInSentence(
+            StateListType.IncidentSeverity,
+            facts.incidentSeverityName,
+          ),
+        },
+        { setsValuesApart: true },
       )
     : translator.translateText(
         "If it does not answer, or answers with an error, its status changes to Offline.",

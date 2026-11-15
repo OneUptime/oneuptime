@@ -14,7 +14,10 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import {
+  isRecordNameAsWritten,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -191,7 +194,14 @@ const ResourcePartOpenEventsCard: FunctionComponent<ComponentProps> = (
                         {[
                           isIncident ? tx("Incident") : tx("Alert"),
                           record.number,
-                          record.stateName,
+                          // Its state by its list: "Resolved" in the reader's words.
+                          translateRecordName(
+                            translator,
+                            isIncident
+                              ? StateListType.IncidentState
+                              : StateListType.AlertState,
+                            record.stateName,
+                          ),
                           record.createdAt
                             ? formatRelativeTime({
                                 date: record.createdAt,

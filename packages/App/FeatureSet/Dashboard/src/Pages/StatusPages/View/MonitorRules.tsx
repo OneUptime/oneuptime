@@ -134,6 +134,8 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       return {
         value: group._id?.toString() || "",
         label: [...path, group.name || ""].join(" › "),
+        // The groups' names, as the status page names them.
+        isUserContent: true,
       };
     });
   };

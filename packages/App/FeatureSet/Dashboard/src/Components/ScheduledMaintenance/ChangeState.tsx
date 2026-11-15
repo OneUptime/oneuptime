@@ -31,11 +31,11 @@ import PublicNoteSubscriberNotificationDefault, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
-  translatableTerm,
-  TranslatableTerm,
+  TemplateValue,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
 import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import {
@@ -206,7 +206,12 @@ const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
                 <span className="font-medium text-gray-900">{plannedAt}</span>
               ),
             }}
-            values={{ state: translatableTerm(props.nextStateName) }}
+            values={{
+              state: recordNameInSentence(
+                StateListType.ScheduledMaintenanceState,
+                props.nextStateName,
+              ),
+            }}
           />
         </p>
       </div>
@@ -599,13 +604,18 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   /*
    * "Mark as <state>" names the project's own state, so it is one sentence
    * with the name in it - looked up whole, never glued from pieces - in the
-   * buttons and in the dialog they open alike.
+   * buttons and in the dialog they open alike. The name reads by its list
+   * (Common/Utils/DefaultRecordNames): the default "Ongoing" in the reader's
+   * words, a state the project named itself as written.
    */
   type GetMarkAsTextFunction = (stateName: string) => string;
 
   const getMarkAsText: GetMarkAsTextFunction = (stateName: string): string => {
     return translator.translateTemplate("Mark as {{state}}", {
-      state: translatableTerm(stateName),
+      state: recordNameInSentence(
+        StateListType.ScheduledMaintenanceState,
+        stateName,
+      ),
     });
   };
 
@@ -655,8 +665,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         overdueSince={timing.overdueSince}
         nextStateName={
           timing.phase === ScheduledMaintenancePhase.StartOverdue
-            ? ongoingState?.name || "ongoing"
-            : endState?.name || "ended"
+            ? ongoingState?.name || "Ongoing"
+            : endState?.name || "Ended"
         }
       />
     ) : undefined;
@@ -677,7 +687,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
    * The dialog's title and button name the chosen state, in the reader's
    * language (they were glued from English pieces before).
    */
-  const selectedStateName: TranslatableTerm = translatableTerm(
+  const selectedStateName: TemplateValue = recordNameInSentence(
+    StateListType.ScheduledMaintenanceState,
     selectedScheduledMaintenanceState?.name || "",
   );
 

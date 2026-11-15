@@ -3,7 +3,9 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   formatSloNumber,
   formatSloPercent,
@@ -58,6 +60,31 @@ export const getNamesOrNothingPicked: NamesOrWordFunction = (
   }
 
   return translator.translateText(nothingPicked) || nothingPicked;
+};
+
+type SeverityOrWordFunction = (
+  list: StateListType.IncidentSeverity | StateListType.AlertSeverity,
+  severityName: string | undefined | null,
+  translator: Translator,
+) => string;
+
+/*
+ * The severity a rule picked, or the word for the default one, its name
+ * read by its list (Common/Utils/DefaultRecordNames): one a project starts
+ * with - "High", "Critical Incident" - in the reader's words, a severity
+ * the project named itself as written. Put in the line as it reads, as the
+ * word for none is.
+ */
+export const getSeverityOrNothingPicked: SeverityOrWordFunction = (
+  list: StateListType.IncidentSeverity | StateListType.AlertSeverity,
+  severityName: string | undefined | null,
+  translator: Translator,
+): string => {
+  return getNamesOrNothingPicked(
+    [translateRecordName(translator, list, severityName)],
+    BURN_RATE_RULE_NOTHING_PICKED.severity,
+    translator,
+  );
 };
 
 /*

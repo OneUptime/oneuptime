@@ -41,11 +41,14 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  getGlobalTranslator,
   translateTemplate,
   translateText,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 const EM_DASH: string = "—";
 
@@ -135,7 +138,13 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
                   : STATUS_DOT_FALLBACK_COLOR,
               }}
             />
-            {status.name || translateText("Unnamed status")}
+            {status.name
+              ? translateRecordName(
+                  getGlobalTranslator(),
+                  StateListType.MonitorStatus,
+                  status.name,
+                )
+              : translateText("Unnamed status")}
           </li>
         );
       })}

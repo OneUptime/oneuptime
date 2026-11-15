@@ -50659,8 +50659,6 @@
   "Searched the docs": "Dokumentation durchsucht",
   "Searching the docs": "Dokumentation durchsuchen",
   "A rule you can't see": "Eine Regel, die Sie nicht sehen können",
-  "A {{severity}} alert": "Eine Warnung mit Schweregrad {{severity}}",
-  "A {{severity}} incident": "Ein Vorfall mit Schweregrad {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "Eine Bereitschaftsrichtlinie hat keine Eskalationsregeln und alarmiert daher niemanden.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "Eine Bereitschaftsrichtlinie erreicht gerade niemanden: In ihrer ersten Eskalationsregel hat niemand Bereitschaft.",
   "An on-call policy you can't see pages the people on call.": "Eine Bereitschaftsrichtlinie, die Sie nicht sehen können, alarmiert die Bereitschaft.",
@@ -50690,11 +50688,7 @@
   "Nothing stops the chain.": "Nichts unterbricht die Kette.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "Die Bereitschaftsrichtlinie {{policy}} hat keine Eskalationsregeln und alarmiert daher niemanden.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "Die Bereitschaftsrichtlinie {{policy}} erreicht gerade niemanden: In ihrer ersten Eskalationsregel hat niemand Bereitschaft.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime setzt den Status auf {{status}} und öffnet eine Warnung mit Schweregrad {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime setzt den Status auf {{status}} und öffnet einen Vorfall mit Schweregrad {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime setzt den Status auf {{status}}. Es wird kein Vorfall und keine Warnung geöffnet, daher wird niemand alarmiert.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime öffnet eine Warnung mit Schweregrad {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime öffnet einen Vorfall mit Schweregrad {{severity}}.",
   "Open Admin Dashboard": "Admin-Dashboard öffnen",
   "Open Criteria": "Kriterien öffnen",
   "Open On-Call Policy": "Bereitschaftsrichtlinie öffnen",
@@ -52820,5 +52814,11 @@
   "{{status}} SLOs ({{count}})": "SLOs mit Status „{{status}}“ ({{count}})",
   "Log volume by severity, {{start}} – {{end}}": "Protokollvolumen nach Schweregrad, {{start}} – {{end}}",
   "Security event summary {{start}} – {{end}}": "Übersicht der Sicherheitsereignisse {{start}} – {{end}}",
-  "Security event summary {{start}} – {{end}} (based on the most recent {{count}} events — counts are a floor)": "Übersicht der Sicherheitsereignisse {{start}} – {{end}} (anhand der neuesten {{count}} Ereignisse — die Zahlen sind Mindestwerte)"
+  "Security event summary {{start}} – {{end}} (based on the most recent {{count}} events — counts are a floor)": "Übersicht der Sicherheitsereignisse {{start}} – {{end}} (anhand der neuesten {{count}} Ereignisse — die Zahlen sind Mindestwerte)",
+  "An alert ({{severity}})": "Eine Warnung ({{severity}})",
+  "An incident ({{severity}})": "Ein Vorfall ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime setzt den Status auf {{status}} und öffnet eine Warnung ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime setzt den Status auf {{status}} und öffnet einen Vorfall ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime öffnet eine Warnung ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime öffnet einen Vorfall ({{severity}})."
 }

@@ -50659,8 +50659,6 @@
   "Searched the docs": "문서를 검색했습니다",
   "Searching the docs": "문서 검색 중",
   "A rule you can't see": "볼 수 없는 규칙",
-  "A {{severity}} alert": "심각도 {{severity}} 경고",
-  "A {{severity}} incident": "심각도 {{severity}} 인시던트",
   "An on-call policy has no escalation rules, so it pages nobody.": "온콜 정책에 에스컬레이션 규칙이 없어 아무도 호출하지 않습니다.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "온콜 정책의 첫 번째 에스컬레이션 규칙에 온콜 중인 사람이 없어, 지금은 아무에게도 닿지 않습니다.",
   "An on-call policy you can't see pages the people on call.": "볼 수 없는 온콜 정책이 온콜 담당자를 호출합니다.",
@@ -50690,11 +50688,7 @@
   "Nothing stops the chain.": "알림 흐름을 막는 것은 없습니다.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "온콜 정책 {{policy}}에 에스컬레이션 규칙이 없어 아무도 호출하지 않습니다.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "온콜 정책 {{policy}}은(는) 지금 아무에게도 닿지 않습니다. 첫 번째 에스컬레이션 규칙에 온콜인 사람이 없습니다.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime이 상태를 {{status}}(으)로 표시하고 심각도 {{severity}} 경고를 엽니다.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime이 상태를 {{status}}(으)로 표시하고 심각도 {{severity}} 인시던트를 엽니다.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime이 상태를 {{status}}(으)로 표시합니다. 인시던트나 경고를 열지 않으므로 아무도 호출되지 않습니다.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime이 심각도 {{severity}} 경고를 엽니다.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime이 심각도 {{severity}} 인시던트를 엽니다.",
   "Open Admin Dashboard": "관리자 대시보드 열기",
   "Open Criteria": "기준 열기",
   "Open On-Call Policy": "온콜 정책 열기",
@@ -52820,5 +52814,11 @@
   "{{status}} SLOs ({{count}})": "상태가 \"{{status}}\"인 SLO({{count}})",
   "Log volume by severity, {{start}} – {{end}}": "심각도별 로그 양, {{start}} – {{end}}",
   "Security event summary {{start}} – {{end}}": "보안 이벤트 요약 {{start}} – {{end}}",
-  "Security event summary {{start}} – {{end}} (based on the most recent {{count}} events — counts are a floor)": "보안 이벤트 요약 {{start}} – {{end}}(최근 이벤트 {{count}}개 기준 — 수치는 최솟값)"
+  "Security event summary {{start}} – {{end}} (based on the most recent {{count}} events — counts are a floor)": "보안 이벤트 요약 {{start}} – {{end}}(최근 이벤트 {{count}}개 기준 — 수치는 최솟값)",
+  "An alert ({{severity}})": "경고({{severity}})",
+  "An incident ({{severity}})": "인시던트({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime이 상태를 {{status}}(으)로 표시하고 경고({{severity}})를 엽니다.",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime이 상태를 {{status}}(으)로 표시하고 인시던트({{severity}})를 엽니다.",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime이 경고({{severity}})를 엽니다.",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime이 인시던트({{severity}})를 엽니다."
 }

@@ -41,6 +41,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { MonitorRecommendationCreateProgress } from "./MonitorRecommendationCreateRunner";
 import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
 import { ActiveMonitorLimitAlert } from "../Monitor/ActiveMonitorLimitNotice";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
@@ -114,19 +116,31 @@ const selectedOptions: SelectedOptionsFunction = (
   });
 };
 
+type SeverityList =
+  | StateListType.IncidentSeverity
+  | StateListType.AlertSeverity;
+
 type ToDropdownOptionsFunction = (
   options: Array<MonitorRecommendationSeverityOption>,
+  list: SeverityList,
 ) => Array<DropdownOption>;
 
-// Each severity with its colour, as every other severity picker shows it.
+/*
+ * Each severity with its colour, as every other severity picker shows it,
+ * and its name read by its list (Common/Utils/DefaultRecordNames): one a new
+ * project starts with is OneUptime's word, looked up - "High" reads "Alta" -
+ * and a severity the project named itself is drawn as written.
+ */
 export const toSeverityDropdownOptions: ToDropdownOptionsFunction = (
   options: Array<MonitorRecommendationSeverityOption>,
+  list: SeverityList,
 ): Array<DropdownOption> => {
   return options.map(
     (option: MonitorRecommendationSeverityOption): DropdownOption => {
       const dropdownOption: DropdownOption = {
         value: option.id.toString(),
         label: option.name,
+        isUserContent: isRecordNameAsWritten(list, option.name),
       };
 
       if (option.color) {
@@ -254,6 +268,8 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     severity: MonitorRecommendationSeverity;
     count: number;
     options: Array<MonitorRecommendationSeverityOption>;
+    // The list the options are of: an alert's severities, or an incident's.
+    list: SeverityList;
     severityMap: MonitorRecommendationSeverityMap;
     onChange: (severityId: ObjectID) => void;
   }) => ReactElement;
@@ -268,11 +284,13 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     severity: MonitorRecommendationSeverity;
     count: number;
     options: Array<MonitorRecommendationSeverityOption>;
+    list: SeverityList;
     severityMap: MonitorRecommendationSeverityMap;
     onChange: (severityId: ObjectID) => void;
   }): ReactElement => {
     const dropdownOptions: Array<DropdownOption> = toSeverityDropdownOptions(
       data.options,
+      data.list,
     );
     const currentId: ObjectID | undefined = data.severityMap[data.severity];
 
@@ -489,6 +507,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   severity: "Critical",
                   count: criticalCount,
                   options: props.alertSeverityOptions,
+                  list: StateListType.AlertSeverity,
                   severityMap: alertSeverityMap,
                   onChange: (severityId: ObjectID) => {
                     setAlertSeverityMap({
@@ -501,6 +520,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   severity: "Warning",
                   count: warningCount,
                   options: props.alertSeverityOptions,
+                  list: StateListType.AlertSeverity,
                   severityMap: alertSeverityMap,
                   onChange: (severityId: ObjectID) => {
                     setAlertSeverityMap({
@@ -523,6 +543,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   severity: "Critical",
                   count: criticalCount,
                   options: props.incidentSeverityOptions,
+                  list: StateListType.IncidentSeverity,
                   severityMap: incidentSeverityMap,
                   onChange: (severityId: ObjectID) => {
                     setIncidentSeverityMap({
@@ -535,6 +556,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                   severity: "Warning",
                   count: warningCount,
                   options: props.incidentSeverityOptions,
+                  list: StateListType.IncidentSeverity,
                   severityMap: incidentSeverityMap,
                   onChange: (severityId: ObjectID) => {
                     setIncidentSeverityMap({

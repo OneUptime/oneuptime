@@ -478,6 +478,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                   return {
                     value: key.id?.toString() || "",
                     label: getKeyLabel(key),
+                    /*
+                     * The key's name, in a sentence already translated when
+                     * it is refused; "Unnamed Key" in its place is the
+                     * product's word, looked up.
+                     */
+                    isUserContent: Boolean(key.name),
                   };
                 },
               )}
@@ -490,6 +496,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                     return {
                       value: key.id?.toString() || "",
                       label: getKeyLabel(key),
+                      isUserContent: Boolean(key.name),
                     };
                   })[0]
               }
