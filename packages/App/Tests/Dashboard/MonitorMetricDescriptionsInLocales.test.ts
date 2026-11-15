@@ -81,7 +81,7 @@ const MONITOR_TYPES: string = "packages/Common/Types/Monitor";
  * one of a language's adds it here; one that leaves any of them English
  * again fails.
  */
-const WORDED_LANGUAGES: ReadonlyArray<string> = ["fa", "ar"];
+const WORDED_LANGUAGES: ReadonlyArray<string> = ["fa", "ar", "de", "fr", "es"];
 
 const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
