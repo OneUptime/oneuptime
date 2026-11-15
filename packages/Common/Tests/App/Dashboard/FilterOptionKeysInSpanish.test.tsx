@@ -397,6 +397,9 @@ describe("the words the cases below lean on", () => {
     expect(spanish("Column added")).toBe("Columna añadida");
     expect(spanish("Table dropped")).toBe("Tabla eliminada");
     expect(spanish("Microsoft Teams")).toBe("Microsoft Teams");
+    // The schema changes' title is the noun; the bare Change is the verb.
+    expect(spanish("Change (schema change)")).toBe("Cambio");
+    expect(spanish("Change")).toBe("Cambiar");
   });
 
   test("Spanish words an open invoice as a state, and the bare Open as the button's verb", () => {
@@ -457,13 +460,23 @@ describe("Spanish schema changes, filtered to the columns added: a list written 
 
     expect(await screen.findByText("Column email added.")).toBeInTheDocument();
 
-    // The chip: "... es Columna añadida", never "Column added".
-    expect(chipOf(spanish("Change"))).toBe(
-      `${spanish("Change")} es Columna añadida`,
+    /*
+     * The chip: "Cambio es Columna añadida", never "Column added" - and
+     * never the Change buttons' "Cambiar" (#8078).
+     */
+    expect(chipOf(spanish("Change (schema change)"))).toBe(
+      "Cambio es Columna añadida",
     );
+    expect(
+      Array.from(document.querySelectorAll<HTMLElement>(".rounded-full")).some(
+        (element: HTMLElement): boolean => {
+          return (element.textContent || "").startsWith(spanish("Change"));
+        },
+      ),
+    ).toBe(false);
 
     const menu: { picked: Array<string>; options: Array<string> } =
-      await openFilterMenu(spanish("Change"));
+      await openFilterMenu(spanish("Change (schema change)"));
 
     expect(menu.picked).toEqual(["Columna añadida"]);
     expect(menu.options).toEqual(

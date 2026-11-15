@@ -28,6 +28,15 @@ const SCHEMA_EVENTS: Array<DataAssetFeedEventType> = [
   DataAssetFeedEventType.AssetRestored,
 ];
 
+/*
+ * The Change filter's and column's title. "Change" alone is every Change
+ * button's verb ("Cambiar", "Ändern", "Modifier"), so a schema change has
+ * a key of its own, worded as the noun in every language - "Cambio",
+ * "Änderung", "Modification" - that English reads as "Change"
+ * (Common/Types/MeaningKeys).
+ */
+const SCHEMA_CHANGE_TITLE: string = translationKey("Change (schema change)");
+
 // The Change filter's words, keys of the Dashboard's locales.
 const EVENT_LABELS: Record<string, string> = {
   [DataAssetFeedEventType.ColumnAdded]: translationKey("Column added"),
@@ -85,7 +94,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
       filters={[
         {
           field: { dataAssetFeedEventType: true },
-          title: "Change",
+          title: SCHEMA_CHANGE_TITLE,
           type: FieldType.Dropdown,
           filterDropdownOptions: EVENT_OPTIONS,
         },
@@ -150,7 +159,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
         },
         {
           field: { feedInfoInMarkdown: true },
-          title: "Change",
+          title: SCHEMA_CHANGE_TITLE,
           type: FieldType.Element,
           disableSort: true,
           wrapContent: true,

@@ -1,3 +1,7 @@
+import {
+  DATA_ASSET_KIND_OPTIONS,
+  getDataAssetKindText,
+} from "./DataAssetKindWords";
 import { formatRowCount, formatSize } from "./DataObservabilityFormat";
 import FreshnessPill from "./FreshnessPill";
 import OwnersCell from "../ResourceOwners/OwnersCell";
@@ -9,16 +13,13 @@ import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam"
 import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import DataAssetKind, {
-  DATA_ASSET_KINDS,
-} from "Common/Types/DataObservability/DataAssetKind";
+import DataAssetKind from "Common/Types/DataObservability/DataAssetKind";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -28,36 +29,6 @@ export interface ComponentProps {
   // One database's tables only, on that database's own page.
   dataStoreId?: ObjectID | undefined;
 }
-
-/*
- * Each kind in words, keys of the Dashboard's locales: the Kind filter's
- * menu, its chip and the line under a table's name read them alike, in the
- * reader's language.
- */
-const KIND_LABELS: Record<DataAssetKind, string> = {
-  [DataAssetKind.Table]: translationKey("Table"),
-  [DataAssetKind.View]: translationKey("View"),
-  [DataAssetKind.MaterializedView]: translationKey("Materialized View"),
-  [DataAssetKind.PartitionedTable]: translationKey("Partitioned Table"),
-  [DataAssetKind.ForeignTable]: translationKey("Foreign Table"),
-  [DataAssetKind.StoragePath]: translationKey("Storage Path"),
-};
-
-const KIND_OPTIONS: Array<DropdownOption> = DATA_ASSET_KINDS.map(
-  (kind: DataAssetKind): DropdownOption => {
-    return { value: kind, label: KIND_LABELS[kind] };
-  },
-);
-
-// In the reader's language; a kind a newer server added, as it is stored.
-const getKindText: (kind: DataAssetKind, translator: Translator) => string = (
-  kind: DataAssetKind,
-  translator: Translator,
-): string => {
-  const label: string = KIND_LABELS[kind] || kind;
-
-  return translator.translateText(label) || label;
-};
 
 /*
  * The catalog: every table and view of the connected databases, with the
@@ -162,7 +133,8 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
           field: { assetKind: true },
           title: "Kind",
           type: FieldType.Dropdown,
-          filterDropdownOptions: KIND_OPTIONS,
+          // In the words the line under each table's name draws it in.
+          filterDropdownOptions: DATA_ASSET_KIND_OPTIONS,
         },
         {
           field: { lastChangedAt: true },
@@ -188,7 +160,7 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
                 <span className="block truncate text-xs text-gray-500">
                   {asset.dataStoreName}
                   {asset.assetKind && asset.assetKind !== DataAssetKind.Table
-                    ? ` · ${getKindText(asset.assetKind, translator)}`
+                    ? ` · ${getDataAssetKindText(translator, asset.assetKind)}`
                     : ""}
                 </span>
               </div>
