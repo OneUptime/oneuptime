@@ -121,13 +121,29 @@ describe("a date is written on the reader's clock and in their zone", () => {
     ["(usdCents / 100).toLocaleString(getReaderNumberLocale())", 0],
     ["Math.round(value).toLocaleString()", 0],
     ["data.seatsInUse.toLocaleString()", 0],
-    // With options, it is the options' to say (the clock guards, #7651).
+    // With options that name the zone, the clock is the clock guards' (#7651).
     [
       'date.toLocaleTimeString(getReaderDateLocale(), { hour, minute: "2-digit", timeZone })',
       0,
     ],
     [
       'date.toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" })',
+      0,
+    ],
+    // Options spread in, which may carry the zone: the PDF axis's.
+    ['date.toLocaleDateString(locale, { month: "short", ...inZone })', 0],
+    // With options that name no zone, it is still the browser's zone.
+    [
+      'new Date(time).toLocaleDateString(\n  getNumberLocale(language || "en"),\n  { year: "numeric", month: "short", day: "numeric" },\n)',
+      1,
+    ],
+    ["date.toLocaleTimeString(locale, { hour: getHourOption(clock) })", 1],
+    ["date.toLocaleTimeString(locale, options)", 1],
+    ['startedAt.toLocaleString(locale, { month: "short" })', 1],
+    // A number's options are a number's.
+    ['value.toLocaleString("en-US", { minimumFractionDigits: 2 })', 0],
+    [
+      "count.toLocaleString(getReaderNumberLocale(), { maximumFractionDigits: 1 })",
       0,
     ],
     // A date written by OneUptimeDate.

@@ -23,6 +23,7 @@ import {
 } from "../../../UI/Utils/ReaderMoments";
 import { formatHealthDateTime } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Health/HealthTime";
 import MicrosoftTeamsTimezone from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsTimezone";
+import { formatToolImportDate } from "../../../../App/FeatureSet/Dashboard/src/Components/ToolImport/ToolImportText";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
@@ -466,5 +467,32 @@ describe("a Microsoft Teams record's details (MicrosoftTeamsTimezone.formatForAc
     expect(
       MicrosoftTeamsTimezone.formatForActivity(MORNING.toISOString(), activity),
     ).toBe(expected);
+  });
+});
+
+describe("a tool import's dates (formatToolImportDate)", () => {
+  /*
+   * When a layer of a PagerDuty or incident.io schedule starts or ends: an
+   * instant, written by the browser in its own zone, with options but no
+   * timeZone. It is the reader's day now, in the sentence's language.
+   */
+  test.each<[string, Timezone, string]>([
+    ["en", Timezone.AmericaNew_York, "Dec 30, 2026"],
+    ["en", Timezone.AsiaTokyo, "Dec 31, 2026"],
+    ["de", Timezone.AmericaNew_York, "30. Dez. 2026"],
+    ["ko", Timezone.AsiaKathmandu, "2026년 12월 31일"],
+  ])(
+    "in %s, read in %s: %s",
+    (language: string, zone: Timezone, expected: string) => {
+      readAs({ language: "en", zone, use12HourClock: true });
+
+      expect(formatToolImportDate("2026-12-31T02:00:00.000Z", language)).toBe(
+        expected,
+      );
+    },
+  );
+
+  test("what is no date is shown as it came", () => {
+    expect(formatToolImportDate("soon", "en")).toBe("soon");
   });
 });

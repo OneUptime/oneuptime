@@ -245,9 +245,10 @@ export const findNumericHoursOffATwelveHourClock: (
  * and the seconds: "5.11.2026, 05:14:00" on a German page in a US browser
  * whose reader keeps a 12-hour clock and a zone of their own, beside every
  * table's "5. Nov. 2026, 5:14 AM". The guards above read options objects,
- * and these pass none. A component writes a date with OneUptimeDate (or
- * Common/UI/Utils/ReaderMoments), and one that must call Intl itself
- * passes its options, a timeZone among them.
+ * and these pass none. Given options with no timeZone, the zone is still
+ * the browser's: a tool import's dates were. A component writes a date
+ * with OneUptimeDate (or Common/UI/Utils/ReaderMoments), and one that must
+ * call Intl itself passes its options, a timeZone among them.
  *
  * toLocaleString is a number's writer too ("1,234"), so it is refused only
  * for a date: given a date's locale (getReaderDateLocale, getDateLocale),
@@ -259,6 +260,9 @@ const BROWSER_DATE_WRITE: RegExp =
 
 const DATE_LOCALE_ARGUMENT: RegExp =
   /\b(getReaderDateLocale|getDateLocale)\s*\(/;
+
+// Options that say which zone they write: timeZone, or a spread that may.
+const OPTIONS_NAME_A_ZONE: RegExp = /\btimeZone\b|\.\.\./;
 
 const DATE_RECEIVER: RegExp =
   /(^new\s+Date\b|(^|\.)date$|[a-z0-9_$](Date|At)$)/;
@@ -301,8 +305,16 @@ export const findDatesWrittenOffTheReadersClock: (
       match.index! + match[0].length - 1,
     );
 
-    // With options, it is the options' to say (the guards above, #7651).
-    if (!call || call.count > 1) {
+    if (!call || call.count > 2) {
+      continue;
+    }
+
+    /*
+     * With options, the options say the zone: a timeZone in so many words,
+     * or options spread in that may carry one. Their clock is the guards
+     * above's to judge (and #7651's).
+     */
+    if (call.count === 2 && OPTIONS_NAME_A_ZONE.test(call.text)) {
       continue;
     }
 
