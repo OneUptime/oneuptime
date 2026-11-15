@@ -130,11 +130,17 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
             monitorType: monitorType,
             metric: monitorMetricType,
             probes: probes,
+            // Each chart's description, in the reader's language.
+            translator: translator,
           });
         },
       );
     },
-    [props.monitorId, monitorType, probes],
+    /*
+     * The translator is built afresh each render: its language is what
+     * changes what it says, and new configs make every chart fetch again.
+     */
+    [props.monitorId, monitorType, probes, translator.language],
   );
 
   const categories: Array<MonitorMetricCategory> = useMemo(() => {

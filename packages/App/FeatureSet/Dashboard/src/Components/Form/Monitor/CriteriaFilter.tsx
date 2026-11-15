@@ -1077,9 +1077,17 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     });
                   }}
                 />
+                {/*
+                 * What the metric is, in the reader's language: the
+                 * catalog's description is a key, looked up here once
+                 * (#8014).
+                 */}
                 {selectedMetric ? (
-                  <p className="text-xs text-gray-500 mt-2">
-                    {selectedMetric.description}
+                  <p
+                    className="text-xs text-gray-500 mt-2"
+                    data-testid="database-metric-description"
+                  >
+                    {translator.translateText(selectedMetric.description)}
                   </p>
                 ) : (
                   <></>
