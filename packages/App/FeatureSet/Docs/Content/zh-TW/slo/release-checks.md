@@ -42,6 +42,7 @@ sequenceDiagram
 檢查讀取的內容取決於 SLO 的衡量對象：
 
 - [請求 SLO](/docs/slo/request-slos) 依據其服務在時間窗內的請求來評判，這些請求在 span 到達時即從中讀取。加上 `serviceVersion` 即可只評判新版本的請求：OneUptime 會將它與 span 的 `service.version` 資源屬性比對，OpenTelemetry SDK 會從 `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` 設定這個屬性。如此一來，金絲雀版本只依據它自己的請求評判，不會被舊版本的請求稀釋。
+- [基於指標的 SLO](/docs/slo/request-slos#基於指標的-slo) 依據其指標在時間窗內的事件來評判，這些事件以其 SLI 的方式計數，因此 `minimumRequestCount`、`goodRequestCount` 和 `totalRequestCount` 都是事件數。加上 `serviceVersion` 時，只計入 `service.version` 資源屬性為該值的指標資料點：OpenTelemetry SDK 會像在 span 上一樣，在其指標上設定這個屬性。
 - 監測器可用率 SLO 依據其監測器在時間窗內的狀態時間軸來評判。`minimumRequestCount` 不適用於它，帶有 `serviceVersion` 的檢查則會被拒絕：監測器沒有版本。
 
 ## 開始之前
@@ -126,7 +127,7 @@ curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/release-che
 | `deploymentsAllowed` 和 `errorBudgetPolicyTier` | SLO 的錯誤預算策略是否允許部署，以及它所處的級別。 |
 | `checkedAt` | 檢查進行測量的時間。 |
 
-無法測量的 SLO（沒有服務的請求 SLO、沒有臨界值的延遲 SLO、沒有監測器的監測器可用率 SLO）會得到 HTTP 400 回應，並說明要修正什麼，讓推出停在明確的錯誤上，而不是憑猜測繼續。在自行託管的安裝上，請改用它自己的位址，而不是 oneuptime.com。
+無法測量的 SLO（沒有服務的請求 SLO、沒有臨界值的延遲 SLO、沒有可計數指標的基於指標的 SLO、沒有監測器的監測器可用率 SLO）會得到 HTTP 400 回應，並說明要修正什麼，讓推出停在明確的錯誤上，而不是憑猜測繼續。在自行託管的安裝上，請改用它自己的位址，而不是 oneuptime.com。
 
 ## Argo Rollouts
 

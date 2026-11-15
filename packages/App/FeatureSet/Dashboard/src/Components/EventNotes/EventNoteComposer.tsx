@@ -769,6 +769,7 @@ function EventNoteComposer<TNote extends BaseModel>(
       {isDiscardConfirmOpen && (
         <ConfirmModal
           title={tx("Discard this draft?")}
+          isTitleTranslated={true}
           description={tx("The note you started writing will be lost.")}
           submitButtonText={tx("Discard draft")}
           submitButtonType={ButtonStyleType.DANGER}

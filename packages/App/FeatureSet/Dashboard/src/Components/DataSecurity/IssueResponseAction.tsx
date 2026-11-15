@@ -424,6 +424,7 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate(CONFIRM_TITLES[action], {
             store: storeName,
           })}
+          isTitleTranslated={true}
           description={
             <div className="space-y-2">
               <p>

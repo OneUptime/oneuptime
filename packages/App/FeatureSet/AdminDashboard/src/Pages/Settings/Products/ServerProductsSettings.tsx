@@ -212,6 +212,7 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
           ) : (
             <Button
               title={translator.translateText(ServerProductsCopy.apply)}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.NORMAL}
               isLoading={savingPreset === preset}
               disabled={isSaving}
@@ -366,6 +367,7 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
                 ? ServerProductsCopy.hideProducts
                 : ServerProductsCopy.showProducts,
             )}
+            isTitleTranslated={true}
             buttonStyle={ButtonStyleType.NORMAL}
             icon={isOneByOneOpen ? IconProp.ChevronUp : IconProp.ChevronDown}
             ariaExpanded={isOneByOneOpen}

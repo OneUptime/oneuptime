@@ -31,13 +31,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "To keep everything but stop the logs of noisy namespaces, exclude them from `podLogs` only:":
     "For å beholde alt, men stoppe loggene fra støyende namespaces, utelukker du dem bare fra `podLogs`:",
   "- **Scopes:** `podLogs` (container stdout/stderr), `ebpfDiscovery` (eBPF traces and metrics), `metrics` (namespaced metrics) and `traces` (every span).":
-    "- **Omfang:** `podLogs` (containernes stdout/stderr), `ebpfDiscovery` (eBPF-spor og -metrikker), `metrics` (metrikker med namespace) og `traces` (hvert span).",
+    "- **Omfang:** `podLogs` (containernes stdout/stderr), `ebpfDiscovery` (eBPF-spor og -målinger), `metrics` (målinger med namespace) og `traces` (hvert span).",
   "- **Patterns** match the whole namespace name and accept `*`, as in `team-*`. An `exclude` rule always wins over an `include` rule.":
     "- **Mønstre** samsvarer med hele namespace-navnet og godtar `*`, som i `team-*`. En `exclude`-regel vinner alltid over en `include`-regel.",
   "- **Setting the rules replaces the default one**, which excludes `kube-system` from `podLogs` and `ebpfDiscovery`. Keep it in your list, as in the second example, if you still want that.":
     "- **Egne regler erstatter standardregelen**, som utelukker `kube-system` fra `podLogs` og `ebpfDiscovery`. Behold den i listen din, som i det andre eksemplet, hvis du fortsatt vil ha det.",
   "- Node and cluster metrics have no namespace, so they are always kept.":
-    "- Node- og klyngemetrikker har ikke noe namespace, så de beholdes alltid.",
+    "- Node- og klyngemålinger har ikke noe namespace, så de beholdes alltid.",
   "- `--set-json` needs Helm 3.10 or later.":
     "- `--set-json` krever Helm 3.10 eller nyere.",
   "**Only send important lines.** Drop pod log lines below a severity before they leave the cluster:":
@@ -45,7 +45,7 @@ const TRANSLATION: SetupGuideTranslation = {
   'Accepts `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `FATAL`: `WARN` keeps warnings, errors and fatal lines. The severity is read from the log line itself (`[ERROR]`, `level=warn`, `"level":"info"`). Kubernetes events are never dropped by this.':
     'Godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` og `FATAL`: `WARN` beholder advarsler, feil og fatale linjer. Alvorlighetsnivået leses fra selve logglinjen (`[ERROR]`, `level=warn`, `"level":"info"`). Kubernetes-hendelser forkastes aldri av dette.',
   "**Turn pod logs off.** Metrics are not affected — the node collector keeps running for kubelet and cAdvisor metrics, it just stops reading pod logs:":
-    "**Slå av podlogger.** Metrikkene påvirkes ikke: nodeinnsamleren fortsetter å kjøre for kubelet- og cAdvisor-metrikker og slutter bare å lese podlogger:",
+    "**Slå av podlogger.** Målingene påvirkes ikke: nodeinnsamleren fortsetter å kjøre for kubelet- og cAdvisor-målinger og slutter bare å lese podlogger:",
   "**Change how logs are read.** The preset picks this for you; an explicit `logs.mode` always wins over it:":
     "**Endre hvordan logger leses.** Presettet velger dette for deg; en eksplisitt `logs.mode` vinner alltid:",
   "- `logs.mode=daemonset` — reads `/var/log/pods` on every node through hostPath (lowest overhead; needs hostPath).":
@@ -59,9 +59,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "- **The scheduler and the controller manager** serve HTTPS and accept the agent's token, but kubeadm binds them to `127.0.0.1`: give them a `--bind-address` the agent's pod can reach.":
     "- **Scheduleren og controller manageren** leverer HTTPS og godtar agentens token, men kubeadm binder dem til `127.0.0.1`: gi dem en `--bind-address` som agentens pod kan nå.",
   "- **etcd** serves its metrics in plain HTTP on kubeadm's `--listen-metrics-urls` (port 2381, bound to `127.0.0.1` until you add the node's address), as above. Or scrape its HTTPS client port, 2379, with the client certificate it asks for: put `ca.crt`, `tls.crt` and `tls.key` in a Secret in `oneuptime-agent` and name it in `controlPlane.etcd.clientCertSecret`.":
-    "- **etcd** leverer metrikkene sine over vanlig HTTP på kubeadms `--listen-metrics-urls` (port 2381, bundet til `127.0.0.1` til du legger til nodens adresse), som over. Eller les av HTTPS-klientporten, 2379, med klientsertifikatet den ber om: legg `ca.crt`, `tls.crt` og `tls.key` i en Secret i `oneuptime-agent` og oppgi den i `controlPlane.etcd.clientCertSecret`.",
+    "- **etcd** leverer målingene sine over vanlig HTTP på kubeadms `--listen-metrics-urls` (port 2381, bundet til `127.0.0.1` til du legger til nodens adresse), som over. Eller les av HTTPS-klientporten, 2379, med klientsertifikatet den ber om: legg `ca.crt`, `tls.crt` og `tls.key` i en Secret i `oneuptime-agent` og oppgi den i `controlPlane.etcd.clientCertSecret`.",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
-    "Bare for selvadministrerte klynger: administrerte tjenester (EKS, GKE, AKS) eksponerer ikke metrikkene for sitt control plane.",
+    "Bare for selvadministrerte klynger: administrerte tjenester (EKS, GKE, AKS) eksponerer ikke målingene for sitt control plane.",
   "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
     "Det alene er en komplett installasjon: chartet har med open source-motoren OpenCost (pluss den lille Prometheus-en den trenger) og priser nodene og volumene dine etter skyleverandørens offentlige listepriser, uten påloggingsinformasjon. Den legger til to små pods; de første dataene vises etter den første hele timen.",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
@@ -71,7 +71,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":
     "Full veiledning: [Kostnadsovervåking for Kubernetes](/docs/telemetry/kubernetes-cost).",
   "The agent runs [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. It captures HTTP/HTTPS, gRPC and SQL/Redis traffic from Go, .NET, Java, Node.js, Python, Ruby and Rust services — no SDK and no sidecar — and ships traces, request (RED) metrics and service-graph data through the collector.":
-    "Agenten kjører [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) på hver node. Den fanger opp HTTP/HTTPS-, gRPC- og SQL/Redis-trafikk fra tjenester i Go, .NET, Java, Node.js, Python, Ruby og Rust, uten SDK og uten sidecar, og sender spor, forespørselsmetrikker (RED) og tjenestegrafdata gjennom innsamleren.",
+    "Agenten kjører [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) på hver node. Den fanger opp HTTP/HTTPS-, gRPC- og SQL/Redis-trafikk fra tjenester i Go, .NET, Java, Node.js, Python, Ruby og Rust, uten SDK og uten sidecar, og sender spor, forespørselsmålinger (RED) og tjenestegrafdata gjennom innsamleren.",
   "**Requirements:** Linux kernel **5.8+** with BTF (the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL 9+). The eBPF pods run **privileged**, which they need to load eBPF programs.":
     "**Krav:** Linux-kjerne **5.8+** med BTF (standard på Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL 9+). eBPF-podene kjører **privilegert**, noe de trenger for å laste eBPF-programmer.",
   "**Turn it off** if your nodes run an older kernel, if privileged pods are not allowed, or if your services already send traces with OpenTelemetry SDKs and you don't want duplicates:":
@@ -89,7 +89,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `networkMetrics` | on | Pod-to-pod TCP/UDP flow counters |":
     "| `networkMetrics` | på | Tellere for TCP/UDP-flyt fra pod til pod |",
   "| `networkInterZoneMetrics` | off | Inter-zone network metrics (doubles their cardinality) |":
-    "| `networkInterZoneMetrics` | av | Nettverksmetrikker mellom soner (dobler kardinaliteten) |",
+    "| `networkInterZoneMetrics` | av | Nettverksmålinger mellom soner (dobler kardinaliteten) |",
   "| `tcpStats` | on | Node-level TCP RTT, failed-connection and retransmit counters |":
     "| `tcpStats` | på | TCP-RTT og tellere for mislykkede tilkoblinger og retransmisjoner per node |",
   "**Cross-service trace propagation** — linking a request that crosses pod A → pod B into a single trace, on another node too — is **on by default**. It works by rewriting traffic that is already in flight (widening plaintext HTTP requests in the kernel, and appending a TCP option to TLS and raw TCP), and a mistake in that byte accounting desynchronizes the stream — the reported symptom is transfers through an L7 proxy such as nginx hanging once a response passes ~64KB. If you see that, or a service mesh starts failing pods, turn it off with `--set ebpf.contextPropagation=false`; an OpenTelemetry SDK propagates `traceparent` in userspace without any of that.":
@@ -106,11 +106,11 @@ const TRANSLATION: SetupGuideTranslation = {
     "**Avinstaller** agenten og namespacet dens:",
   "| Category | Data |": "| Kategori | Data |",
   "| **Node metrics** | CPU, memory, filesystem and network usage |":
-    "| **Nodemetrikker** | Bruk av CPU, minne, filsystem og nettverk |",
+    "| **Nodemålinger** | Bruk av CPU, minne, filsystem og nettverk |",
   "| **Pod and container metrics** | CPU, memory, network I/O and restarts |":
-    "| **Pod- og containermetrikker** | CPU, minne, nettverks-I/O og omstarter |",
+    "| **Pod- og containermålinger** | CPU, minne, nettverks-I/O og omstarter |",
   "| **Cluster metrics** | Node conditions, allocatable resources, pod and workload counts |":
-    "| **Klyngemetrikker** | Nodetilstander, allokerbare ressurser, antall pods og workloads |",
+    "| **Klyngemålinger** | Nodetilstander, allokerbare ressurser, antall pods og workloads |",
   "| **Kubernetes events** | Warnings, errors and scheduling events |":
     "| **Kubernetes-hendelser** | Advarsler, feil og planleggingshendelser |",
   "| **Pod logs** | stdout/stderr of every container, read from each node |":
@@ -118,7 +118,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Application traces** *(eBPF)* | HTTP, gRPC and SQL/Redis spans from every pod — no SDK or code changes |":
     "| **Applikasjonsspor** *(eBPF)* | HTTP-, gRPC- og SQL/Redis-spans fra hver pod, uten SDK eller kodeendringer |",
   "| **Request metrics and service graph** *(eBPF)* | Request rate, errors and latency per service, and caller → callee edges for the service map |":
-    "| **Forespørselsmetrikker og tjenestegraf** *(eBPF)* | Forespørselsrate, feil og latens per tjeneste, og kanter fra kaller → kalt til tjenestekartet |",
+    "| **Forespørselsmålinger og tjenestegraf** *(eBPF)* | Forespørselsrate, feil og latens per tjeneste, og kanter fra kaller → kalt til tjenestekartet |",
   "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |":
     "| **Nettverksflyt** *(eBPF)* | Tellere for TCP/UDP-byte og -pakker fra pod til pod |",
   "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
@@ -186,11 +186,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "- **`violates PodSecurity`:** the namespace's Pod Security level is stricter than the eBPF pods, which run privileged, need. Label it `pod-security.kubernetes.io/enforce=privileged`, or turn eBPF off with `--set ebpf.enabled=false`.":
     "- **`violates PodSecurity`:** namespacets Pod Security-nivå er strengere enn eBPF-podene, som kjører privilegert, trenger. Gi det etiketten `pod-security.kubernetes.io/enforce=privileged`, eller slå av eBPF med `--set ebpf.enabled=false`.",
   "- **Your cluster admin will not add SCCs:** use the `openshift-restricted` preset. The chart then creates no SCC and every pod runs under `restricted-v2`, so pod logs come through the Kubernetes API, and there are no host metrics, eBPF traces or profiles:":
-    "- **Klyngeadministratoren din vil ikke legge til SCC-er:** bruk presettet `openshift-restricted`. Chartet oppretter da ingen SCC, og alle pods kjører under `restricted-v2`, så podlogger kommer via Kubernetes-API-et, og det er ingen vertsmetrikker, eBPF-spor eller profiler:",
+    "- **Klyngeadministratoren din vil ikke legge til SCC-er:** bruk presettet `openshift-restricted`. Chartet oppretter da ingen SCC, og alle pods kjører under `restricted-v2`, så podlogger kommer via Kubernetes-API-et, og det er ingen vertsmålinger, eBPF-spor eller profiler:",
   "`preset=gke-autopilot` collects pod logs through the Kubernetes API instead of reading them from each node, and leaves out eBPF tracing and profiling, which need privileged pods that GKE Autopilot does not allow.":
     "`preset=gke-autopilot` samler inn podlogger via Kubernetes-API-et i stedet for å lese dem på hver node, og utelater eBPF-sporing og profilering, som krever privilegerte pods som GKE Autopilot ikke tillater.",
   "The collector, the Kubernetes AI agent and the pod log reader, plus one node collector per node for kubelet metrics. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
-    "Innsamleren, Kubernetes-AI-agenten og podloggleseren, pluss én nodeinnsamler per node for kubelet-metrikker. Når de er `Running`, vises klyngen automatisk i delen **Kubernetes**, vanligvis innen et minutt eller to.",
+    "Innsamleren, Kubernetes-AI-agenten og podloggleseren, pluss én nodeinnsamler per node for kubelet-målinger. Når de er `Running`, vises klyngen automatisk i delen **Kubernetes**, vanligvis innen et minutt eller to.",
   "On other clusters the agent runs [OpenTelemetry eBPF Instrumentation](https://opentelemetry.io/docs/zero-code/obi/) on every node to capture HTTP, gRPC and SQL traces with no code changes. Loading eBPF programs needs privileged pods, which this platform does not allow, so the platform's preset leaves it out, and the continuous profiler with it.":
     "På andre klynger kjører agenten [OpenTelemetry eBPF Instrumentation](https://opentelemetry.io/docs/zero-code/obi/) på hver node for å fange opp HTTP-, gRPC- og SQL-spor uten kodeendringer. Å laste eBPF-programmer krever privilegerte pods, som denne plattformen ikke tillater, så plattformens preset utelater det, og den kontinuerlige profilereren med det.",
   "To get traces here, instrument your services with an [OpenTelemetry SDK](/docs/telemetry/open-telemetry) and send them to OneUptime directly.":
@@ -198,7 +198,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Pod logs** | stdout/stderr of every container, read through the Kubernetes API |":
     "| **Podlogger** | stdout/stderr for hver container, lest via Kubernetes-API-et |",
   "Autopilot blocks hostPath, so node metrics that read the host's `/proc` and `/sys` (disk I/O, inodes, NIC errors) are not collected; kubelet and cAdvisor metrics are.":
-    "Autopilot blokkerer hostPath, så nodemetrikker som leser vertens `/proc` og `/sys` (disk-I/O, inoder, NIC-feil), samles ikke inn; kubelet- og cAdvisor-metrikker gjør det.",
+    "Autopilot blokkerer hostPath, så nodemålinger som leser vertens `/proc` og `/sys` (disk-I/O, inoder, NIC-feil), samles ikke inn; kubelet- og cAdvisor-målinger gjør det.",
   "Pod logs are read through the Kubernetes API on this platform.":
     "På denne plattformen leses podlogger via Kubernetes-API-et.",
   "1. Check that the log reader is ready: `kubectl get pods -n oneuptime-agent -l component=log-collector`":
@@ -218,7 +218,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then remove the Fargate profile: `eksctl delete fargateprofile --cluster <cluster-name> --name oneuptime-agent`.":
     "Fjern deretter Fargate-profilen: `eksctl delete fargateprofile --cluster <cluster-name> --name oneuptime-agent`.",
   "Fargate never schedules DaemonSets, so node, pod and container metrics are not available there.":
-    "Fargate planlegger aldri DaemonSets, så node-, pod- og containermetrikker er ikke tilgjengelige der.",
+    "Fargate planlegger aldri DaemonSets, så node-, pod- og containermålinger er ikke tilgjengelige der.",
   "Fargate only schedules pods in namespaces that a Fargate profile selects. Check that one exists for `oneuptime-agent`:":
     "Fargate planlegger bare pods i namespaces som en Fargate-profil velger. Sjekk at det finnes en for `oneuptime-agent`:",
   "If there is none, create it. Fargate is chosen when a pod is created, so pods that were already pending stay pending — restart the agent's Deployments once the profile is active:":

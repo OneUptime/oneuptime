@@ -148,11 +148,14 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
             })
           }
           title={
-            props.confirmTitle ||
-            translator.translateTemplate("Reset {{columnName}}", {
-              columnName: translatableTerm(tableColumnName),
-            })
+            props.confirmTitle
+              ? translator.translateText(props.confirmTitle) ||
+                props.confirmTitle
+              : translator.translateTemplate("Reset {{columnName}}", {
+                  columnName: translatableTerm(tableColumnName),
+                })
           }
+          isTitleTranslated={true}
           onSubmit={async () => {
             await resetKey();
           }}
@@ -195,12 +198,14 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
             )
           }
           title={
-            props.resultTitle ||
-            translateNamedAction(translator, {
-              template: "New {{itemName}}",
-              itemName: tableColumnName,
-            })
+            props.resultTitle
+              ? translator.translateText(props.resultTitle) || props.resultTitle
+              : translateNamedAction(translator, {
+                  template: "New {{itemName}}",
+                  itemName: tableColumnName,
+                })
           }
+          isTitleTranslated={true}
           onSubmit={() => {
             if (props.onUpdateComplete && newId) {
               props.onUpdateComplete(newId);

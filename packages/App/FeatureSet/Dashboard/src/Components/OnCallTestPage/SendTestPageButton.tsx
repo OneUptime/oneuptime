@@ -18,6 +18,8 @@ export interface ComponentProps {
   target: OnCallTestPageTarget;
   // English, translated by the button.
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (Button's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   buttonStyle?: ButtonStyleType | undefined;
   buttonSize?: ButtonSize | undefined;
   icon?: IconProp | undefined;
@@ -55,6 +57,7 @@ const SendTestPageButton: FunctionComponent<ComponentProps> = (
     <>
       <Button
         title={props.title || getDefaultButtonTitle(props.target)}
+        isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
         icon={props.icon || IconProp.Beaker}
         buttonStyle={props.buttonStyle || ButtonStyleType.NORMAL}
         buttonSize={props.buttonSize}

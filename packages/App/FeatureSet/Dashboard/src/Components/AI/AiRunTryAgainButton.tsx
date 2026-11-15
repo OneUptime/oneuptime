@@ -38,6 +38,8 @@ export interface ComponentProps {
   onTryAgain: () => Promise<void>;
   // English, translated by the button. "Try again" unless the card says otherwise.
   label?: string | undefined;
+  // The label is in the reader's words already, drawn as given (Button's isTitleTranslated).
+  isLabelTranslated?: boolean | undefined;
   testId?: string | undefined;
 }
 
@@ -111,6 +113,9 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
     <>
       <Button
         title={isBusy ? "Starting again…" : props.label || "Try again"}
+        isTitleTranslated={
+          !isBusy && Boolean(props.label) && props.isLabelTranslated
+        }
         icon={IconProp.Refresh}
         buttonStyle={ButtonStyleType.OUTLINE}
         buttonSize={ButtonSize.Small}

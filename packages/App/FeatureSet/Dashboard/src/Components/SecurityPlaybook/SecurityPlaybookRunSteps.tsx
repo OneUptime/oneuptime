@@ -374,6 +374,7 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
             translator.translateText(pendingUndo.undo.title) ||
             pendingUndo.undo.title
           }
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             translationKey(
               "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",

@@ -16,6 +16,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   selectMultiple?: boolean | undefined;
   select: Select<TBaseModel>;
   modalTitle: string;
+  // The modalTitle is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isModalTitleTranslated?: boolean | undefined;
   modalDescription: string;
   noItemsMessage: string;
   headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
@@ -31,6 +33,7 @@ const ModelListModal: <TBaseModel extends BaseModel>(
   return (
     <Modal
       title={props.modalTitle}
+      isTitleTranslated={props.isModalTitleTranslated}
       description={props.modalDescription}
       onClose={props.onClose}
       disableSubmitButton={selectedList.length === 0}

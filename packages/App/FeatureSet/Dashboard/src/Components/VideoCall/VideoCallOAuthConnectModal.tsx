@@ -78,6 +78,7 @@ const VideoCallOAuthConnectModal: FunctionComponent<ComponentProps> = (
               provider: definition.title,
             })
       }
+      isTitleTranslated={true}
       description={definition.description}
       modalWidth={ModalWidth.Medium}
       isLoading={isLoading}

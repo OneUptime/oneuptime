@@ -49,7 +49,7 @@ Du trenger en rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator
 
 ### Velg hva SLO-et måler
 
-Under **Hva den måler** beholder du **Monitoroppetid** for å måle andelen av tiden monitorene er tilgjengelige. Velg **Vellykkede forespørsler** eller **Forespørselslatens** for heller å måle forespørslene til tjenester, og velg dem under **Tjenester**: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Klikk på **Neste**.
+Under **Hva den måler** beholder du **Monitoroppetid** for å måle andelen av tiden monitorene er tilgjengelige. Velg **Vellykkede forespørsler** eller **Forespørselslatens** for heller å måle forespørslene til tjenester, og velg dem under **Tjenester**: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Velg **Måling** for å telle de gode hendelsene i en teller eller et histogram som tjenestene dine sender: se [SLO-er ut fra en måling](/docs/slo/request-slos#slo-er-ut-fra-en-måling). Klikk på **Neste**.
 
 ### Gi det et navn og et mål
 
@@ -201,7 +201,7 @@ Siden **Innstillinger** samler hvordan et SLO måler, med ett kort for hver ting
 
 | Kort | Det du endrer | Greit å vite |
 | --- | --- | --- |
-| **Hva den måler** | **Hva den måler**, **Tjenester**, **Latensgrense (ms)** og **Forespørselsfilter**, med **Rediger hva den måler**. | Et forespørsels-SLO teller forespørslene sine på nytt fra starten etter en endring. |
+| **Hva den måler** | **Hva den måler**, **Tjenester**, **Latensgrense (ms)**, **Forespørselsfilter** og **Måling**, med **Rediger hva den måler**. | Et forespørsels-SLO teller forespørslene sine på nytt fra starten etter en endring. |
 | **Mål** | **Mål (%)** og **Risikoterskel (%)**, med **Rediger mål**. | Viser nedetiden målet tillater, for eksempel «43 min, 12 sek nedetid per vindu på 30 dager». |
 | **Samsvarsperiode** | **Vindustype**, **Vindu (dager)** og **Tidssone**, med **Rediger periode**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
 | **Beregning av nedetid** | **Modus for flere monitorer** og **Monitorstatuser for nedetid**, med **Rediger beregning av nedetid**. | Bare SLO-er for monitoroppetid. Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
@@ -265,6 +265,8 @@ Et banner øverst på sidene til SLO-et forteller hva som hindrer det i å måle
 | **Ingen tjenester valgt** | Et forespørsels-SLO har ingen tjenester, så det har ingen forespørsler å telle. | Velg tjenestene under **Innstillinger** → **Hva den måler**. |
 | **Ingen latensgrense** | Et latens-SLO har ingen grense, så ingen forespørsel kan telle som rask nok. | Angi **Latensgrense (ms)** under **Innstillinger** → **Hva den måler**. |
 | **Venter på forespørsler** | Ingen av tjenestene til et forespørsels-SLO har besvart en forespørsel i vinduet ennå. | Sjekk at tjenestene sender spor til OneUptime. Tallene vises etter neste evaluering som teller en forespørsel. |
+| **Ingen måling å telle** | Et målings-SLO har ingen måling det kan telle: ingen er valgt, eller det er ikke angitt hvordan de gode hendelsene skilles fra de andre. | Velg målingen, og betingelsen eller verdien for de gode hendelsene, under **Innstillinger** → **Hva den måler**. |
+| **Venter på målingen** | Ingen av tjenestene til et målings-SLO har sendt en hendelse av målingen i vinduet ennå. | Sjekk at tjenestene sender målingen til OneUptime, under navnet SLO-et teller. Tallene vises etter neste evaluering som teller en hendelse. |
 
 ## Neste steg
 

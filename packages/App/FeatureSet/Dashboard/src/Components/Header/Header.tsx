@@ -918,6 +918,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           description={onCallDutyPolicyFetchError}
           title={t("header.errorTitleOnCallPolicies")}
+          isTitleTranslated={true}
           onSubmit={() => {
             setOnCallDutyPolicyFetchError(null);
           }}

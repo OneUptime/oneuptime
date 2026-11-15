@@ -459,6 +459,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
       title={translator.translateTemplate("Failed jobs · {{queue}} queue", {
         queue: props.queueName,
       })}
+      isTitleTranslated={true}
       description="The latest jobs this queue failed to process, with the reason, stack trace, job body and logs of each."
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}

@@ -205,14 +205,16 @@ const NetworkEventDetails: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title={getNetworkEventTitle(row.name, translator)}
+      isTitleTranslated={true}
       description={
         copy
-          ? copy.description
+          ? translator.translateText(copy.description) || copy.description
           : translator.translateTemplate(
               "An event your project named in a log pipeline: {{name}}.",
               { name: row.name },
             )
       }
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Small}
       {...(props.canCreateAlert

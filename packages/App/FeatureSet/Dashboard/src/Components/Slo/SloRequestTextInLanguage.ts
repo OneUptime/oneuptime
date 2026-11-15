@@ -12,7 +12,7 @@ import {
 } from "Common/Utils/Slo/SloProjection";
 import {
   getRequestCountingWindowFill,
-  isRequestSliType,
+  isEventSliType,
 } from "Common/Utils/Slo/SloRequestSli";
 import SloUtil from "Common/Utils/Slo/SloUtil";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
@@ -35,6 +35,13 @@ const isLatency: (sliType: SliType | string | undefined | null) => boolean = (
   sliType: SliType | string | undefined | null,
 ): boolean => {
   return sliType === SliType.RequestLatency;
+};
+
+// A Metric SLO's events are whatever its metric counts (#8445).
+const isMetric: (sliType: SliType | string | undefined | null) => boolean = (
+  sliType: SliType | string | undefined | null,
+): boolean => {
+  return sliType === SliType.Metric;
 };
 
 export interface SloRequestBudgetData {
@@ -84,6 +91,18 @@ export const getRequestBudgetRemainingOfTotalInLanguage: (
   const roundedRemaining: number = Math.round(remaining) || 0;
 
   if (roundedRemaining < 0) {
+    if (isMetric(data.sliType)) {
+      return translator.translatePlural(
+        {
+          one: "{{count}} bad event over budget",
+          other: "{{count}} bad events over budget",
+        },
+        Math.abs(roundedRemaining),
+        undefined,
+        options,
+      );
+    }
+
     return translator.translatePlural(
       isLatency(data.sliType)
         ? {
@@ -104,6 +123,18 @@ export const getRequestBudgetRemainingOfTotalInLanguage: (
     0,
     Math.round(toFinite(data.totalEvents) ?? 0),
   );
+
+  if (isMetric(data.sliType)) {
+    return translator.translatePlural(
+      {
+        one: "{{remaining}} of {{count}} bad event left",
+        other: "{{remaining}} of {{count}} bad events left",
+      },
+      total,
+      { remaining: translator.formatNumber(roundedRemaining) },
+      options,
+    );
+  }
 
   return translator.translatePlural(
     isLatency(data.sliType)
@@ -145,10 +176,17 @@ export const getSloServiceCountInLanguage: (
  * for a target that leaves no budget.
  */
 export const describeRequestErrorBudgetInLanguage: (
-  data: { targetPercentage: number | undefined | null },
+  data: {
+    targetPercentage: number | undefined | null;
+    // A Metric SLO's are events (#8445); a request SLO's, requests.
+    sliType?: SliType | string | undefined | null;
+  },
   translator?: Translator,
 ) => string | null = (
-  data: { targetPercentage: number | undefined | null },
+  data: {
+    targetPercentage: number | undefined | null;
+    sliType?: SliType | string | undefined | null;
+  },
   translator: Translator = ENGLISH,
 ): string | null => {
   const target: number | null = toFinite(data.targetPercentage);
@@ -159,15 +197,25 @@ export const describeRequestErrorBudgetInLanguage: (
 
   const allowedPercentage: number = 100 - target;
 
+  const values: { share: string; count: string } = {
+    share:
+      formatSloPercent(allowedPercentage, 3, translator) ??
+      `${allowedPercentage}%`,
+    // A count of requests, grouped as the budget tile's are: "1,000".
+    count: translator.formatNumber(Math.round(100 / allowedPercentage)),
+  };
+
+  if (isMetric(data.sliType)) {
+    return translator.translateTemplate(
+      "{{share}} of events: 1 bad event in every {{count}}",
+      values,
+      { setsValuesApart: true },
+    );
+  }
+
   return translator.translateTemplate(
     "{{share}} of requests: 1 bad request in every {{count}}",
-    {
-      share:
-        formatSloPercent(allowedPercentage, 3, translator) ??
-        `${allowedPercentage}%`,
-      // A count of requests, grouped as the budget tile's are: "1,000".
-      count: translator.formatNumber(Math.round(100 / allowedPercentage)),
-    },
+    values,
     { setsValuesApart: true },
   );
 };
@@ -245,7 +293,7 @@ export const getRequestWindowFill: (
 ) => SloRollingWindowFill | null = (
   data: SloRequestCountingData,
 ): SloRollingWindowFill | null => {
-  if (!isRequestSliType(data.sliType)) {
+  if (!isEventSliType(data.sliType)) {
     return null;
   }
 

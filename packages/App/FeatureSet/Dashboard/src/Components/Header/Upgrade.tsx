@@ -13,6 +13,7 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
   return (
     <Button
       title={t("upgrade.upgradePlan")}
+      isTitleTranslated={true}
       onClick={() => {
         Navigation.navigate(
           RouteUtil.populateRouteParams(

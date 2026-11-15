@@ -197,6 +197,7 @@ const ArchivedResourceBanner: <TBaseModel extends BaseModel>(
             template: "Unarchive {{itemName}}",
             itemName: props.copy.singularName,
           })}
+          isTitleTranslated={true}
           description={props.copy.unarchiveConfirmMessage}
           submitButtonText="Unarchive"
           submitButtonType={ButtonStyleType.PRIMARY}

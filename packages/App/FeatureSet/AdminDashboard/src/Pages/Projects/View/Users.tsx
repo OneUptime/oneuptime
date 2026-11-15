@@ -419,6 +419,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
             modelAPI={AdminModelAPI}
             name="Invite New User"
             title={t("pages.projectUsers.inviteUserTitle")}
+            isTitleTranslated={true}
             description={t("pages.projectUsers.inviteUserDescription")}
             onClose={() => {
               setShowInviteUserModal(false);

@@ -98,6 +98,8 @@ export const WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME: string =
 
 export interface ComponentProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   onClose: () => void;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
   onComponentDelete: (component: DashboardBaseComponent) => void;
@@ -299,6 +301,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       /*
        * Under the title, which kind of widget this is and how big: a line
        * of its own. Beside the title they squeezed it into a column a word

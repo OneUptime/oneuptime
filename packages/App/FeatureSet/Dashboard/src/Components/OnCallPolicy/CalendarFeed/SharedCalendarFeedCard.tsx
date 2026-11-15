@@ -416,9 +416,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     } else if (createGate.isAllowed) {
       publishControl = (
         <Button
-          title={
-            translateString("Publish shared link") || "Publish shared link"
-          }
+          title="Publish shared link"
           icon={IconProp.Link}
           buttonStyle={ButtonStyleType.PRIMARY}
           isLoading={isBusy}
@@ -434,9 +432,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     } else if (createGate.disabledReason) {
       publishControl = (
         <Button
-          title={
-            translateString("Publish shared link") || "Publish shared link"
-          }
+          title="Publish shared link"
           icon={IconProp.Link}
           buttonStyle={ButtonStyleType.PRIMARY}
           disabled={true}

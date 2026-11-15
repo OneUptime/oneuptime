@@ -155,6 +155,28 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * evaluates rules with the same file and keeps its own English.
    */
   { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
+  /*
+   * What the compliance page says is wrong with a rule, and why a member
+   * fails one: the server sends what it found, and the page words it here
+   * (#8632). Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Team/TeamComplianceFindings.ts",
+    kind: "keys",
+  },
+  /*
+   * The rest of the Enterprise screens the Dashboard draws (#8634): custom
+   * roles, the audit log export, the IP allowlists, the license pages, and
+   * the status pages' access controls and branding. Every word they draw
+   * goes through the reader's Translator, so each new one reaches the
+   * locales the way the Dashboard's own do.
+   */
+  { directory: "ee/Dashboard/CustomRoles", kind: "ui" },
+  { directory: "ee/Dashboard/AuditLogExport", kind: "ui" },
+  { directory: "ee/Dashboard/IpAllowlists", kind: "ui" },
+  { directory: "ee/Dashboard/License", kind: "ui" },
+  { directory: "ee/Dashboard/StatusPageAccessControls", kind: "ui" },
+  { directory: "ee/Dashboard/StatusPageBranding", kind: "ui" },
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
@@ -612,6 +634,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   // What the SLO forms say of a request filter they cannot read (#8444).
   {
     directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
+    kind: "keys",
+  },
+  // What the SLO forms say of a Metric SLO's metric they cannot count (#8445).
+  {
+    directory: "packages/Common/Utils/Slo/SloMetricSli.ts",
     kind: "keys",
   },
   /*
