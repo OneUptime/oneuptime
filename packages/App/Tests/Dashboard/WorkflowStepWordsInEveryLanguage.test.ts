@@ -24,6 +24,8 @@ import BaseModelComponent from "Common/Types/Workflow/Components/BaseModel";
 import { FROM_ANOTHER_TOOL_KINDS } from "Common/Types/Workflow/Components/FromAnotherTool";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * EVERY WORD OF A BUILT-IN WORKFLOW STEP, IN EVERY LANGUAGE (#8359).
@@ -58,6 +60,21 @@ const CATALOGUE_ROOTS: Array<SourceRoot> = [
 ];
 
 const LETTER: RegExp = /\p{L}/u;
+
+/*
+ * The line a setting's help is drawn in, on the settings form
+ * (ArgumentsForm's REQUIRED_ARGUMENT_HELP and OPTIONAL_ARGUMENT_HELP).
+ */
+const REQUIRED_ARGUMENT_HELP: string = "Required. {{description}}";
+const OPTIONAL_ARGUMENT_HELP: string = "Optional. {{description}}";
+
+const ARGUMENTS_FORM: string = fs.readFileSync(
+  path.resolve(
+    __dirname,
+    "../../../Common/UI/Components/Workflow/ArgumentsForm.tsx",
+  ),
+  "utf8",
+);
 
 const ENGLISH: Record<string, string> = readDashboardLocale("en");
 
@@ -332,6 +349,17 @@ describe("the step catalogue's words are keys", () => {
     }
   });
 
+  test("the settings form draws a setting's help in the lines these check", () => {
+    for (const line of [REQUIRED_ARGUMENT_HELP, OPTIONAL_ARGUMENT_HELP]) {
+      expect(ARGUMENTS_FORM).toContain(`"${line}"`);
+      expect(ENGLISH[line]).toBe(line);
+    }
+
+    expect(ARGUMENTS_FORM).toContain(
+      "{ description: translatableTerm(arg.description) }",
+    );
+  });
+
   test("ids and the references a workflow stores are not keys", () => {
     const ids: Array<string> = CATALOGUE.flatMap(
       (component: ComponentMetadata): Array<string> => {
@@ -379,6 +407,19 @@ describe("what stays as written", () => {
 describe.each(DASHBOARD_LANGUAGES)("%s", (language: string) => {
   test("words every word of the step catalogue", () => {
     expect(unwordedIn(language, CATALOGUE_KEYS.keys())).toEqual([]);
+  });
+
+  /*
+   * A setting's help is drawn inside one of these: a language that words
+   * the help but not the line around it reads the whole line in English.
+   */
+  test("words the line every setting's help is drawn in", () => {
+    expect(
+      unwordedIn(language, [
+        REQUIRED_ARGUMENT_HELP,
+        OPTIONAL_ARGUMENT_HELP,
+      ]),
+    ).toEqual([]);
   });
 
   test("words the step names #8359 found in English its own way", () => {
