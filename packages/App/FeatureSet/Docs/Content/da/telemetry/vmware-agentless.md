@@ -61,6 +61,8 @@ Navnet er som standard vCenters værtsnavn. Klik på **Forbind vCenter** for at 
 
 vCenterens **Oversigt** viser et kort **Dataindsamling**. Det viser **Kontrollerer** indtil den første indsamling, som starter inden for et minut, derefter **Indsamler**, og inventaret fyldes ud.
 
+Hvis ingen sonde kommer efter vCenteren i 20 minutter, fordi den er offline eller for gammel, viser kortet **Indsamler ikke** og siger det, uanset hvad den sidste indsamling fandt. Når ingen sonde må indsamle vCenteren, viser det straks **Indsamler ikke** med årsagen og hvad der skal ændres: der er ikke gemt nogen adgangskode, vCenters adresse eller brugernavn mangler, ingen sonde er sat til at indsamle den, dens sonde må ikke indsamle den (en delt sonde på OneUptime Cloud eller et andet projekts), eller dens sonde er afbrudt. **Næste indsamling** er tidspunktet, hvor en sonde indsamler den næste gang, **Står for tur nu**, mens den venter på en, **Forsinket**, når ingen er kommet i 20 minutter, og **Ikke planlagt**, mens ingen sonde må indsamle den. En arkiveret vCenter indsamles stadig.
+
 ## Certifikater
 
 Sonden springer aldrig certifikatkontrollen over. Hver forbindelse gennemfører et fuldt TLS-handshake, og derefter:

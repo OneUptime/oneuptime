@@ -63,6 +63,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
       modelType={GlobalSSO}
       modelAPI={AdminModelAPI}
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

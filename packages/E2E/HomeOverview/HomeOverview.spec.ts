@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -2327,11 +2328,11 @@ test.describe("setup health", () => {
 
     for (let index: number = 0; index < count; index++) {
       const row: Locator = rows.nth(index);
-      const sentence: { x: number; y: number; height: number } | null =
-        await row.getByTestId("setup-health-sentence").boundingBox();
-      const fix: { x: number; y: number } | null = await row
-        .getByTestId("setup-health-fix")
-        .boundingBox();
+      // Both boxes from one moment: a gap read across two would be off (Frames).
+      const [sentence, fix] = await boxesInOneFrame([
+        row.getByTestId("setup-health-sentence"),
+        row.getByTestId("setup-health-fix"),
+      ]);
 
       expect(sentence).not.toBeNull();
       expect(fix).not.toBeNull();

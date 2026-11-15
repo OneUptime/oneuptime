@@ -24,7 +24,7 @@ flowchart TB
 ## Voordat u begint
 
 - **Binnenkomende metrieken.** Stuur ze met [OpenTelemetry](/docs/telemetry/open-telemetry), of vanuit een agent zoals de [OpenTelemetry-collector voor hosts](/docs/telemetry/host-otel-collector).
-- **Een rol die metrieken mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Metrics. Een rol die tot bepaalde services is beperkt, leest alleen hun metrieken.
+- **Een rol die metrieken mag lezen.** Projecteigenaar, Projectbeheerder, Projectlid, Kijker, Telemetriebeheerder, Telemetrielid of Telemetriekijker, of een aangepaste rol met de machtiging Read Metrics. Een rol die tot bepaalde services is beperkt, leest alleen hun metrieken.
 - **Voor Grafana of een script: een API-sleutel van het project** met een van die rollen of de machtiging Read Metrics. Zie [Een API-sleutel aanmaken](/docs/api-reference/api-reference#een-api-sleutel-aanmaken). In OneUptime Cloud hebben API-sleutels het abonnement **Growth** nodig.
 
 ## Een query schrijven

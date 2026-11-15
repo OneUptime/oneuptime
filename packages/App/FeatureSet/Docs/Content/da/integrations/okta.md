@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - En Okta-administrator, der kan se System Log, til at oprette tokenet. Et token kan det, dets administrator kan, så brug en Read-only Administrator: den læser System Log og ændrer intet. En skrivebeskyttet administrator ser også brugere, grupper, apps og indstillinger, så pas lige så godt på tokenet som på en adgangskode.
 - Helst en tjenestekonto til den administrator. Okta deaktiverer et token, når dets administrator deaktiveres, og når det står ubrugt i 30 dage. Pollingen bruger det hvert par minutter, så det forbliver i brug, så længe forbindelsen er aktiveret.
 - Hvis din organisation kun tager imod API-kald fra en netværkszone, en zone, der indeholder de adresser, OneUptime kalder fra: på OneUptime Cloud dens udgående adresser og på en selvhostet installation den offentlige adresse på dine app- og workerværter.

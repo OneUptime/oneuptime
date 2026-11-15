@@ -17,6 +17,7 @@ import Express, {
   createExpressApp,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import PlainTextJsonBody from "Common/Server/Middleware/PlainTextJsonBody";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -112,6 +113,23 @@ function getRequestBody(req: ExpressRequest): JSONObject | JSONArray {
   return { _raw: String(body) };
 }
 
+/*
+ * Whether OneUptime's answer to a forward is a refusal it would give again:
+ * a 4xx says the request itself is wrong - a project's incoming request
+ * secret missing or not one of its own (401), a body too large (413) - and
+ * sending the same request again cannot change that, it only keeps the probe
+ * busy through every backoff. A timeout (408) and rate limiting (429) are
+ * about the moment, not the request, so they are retried, with every 5xx.
+ */
+export function isRefusalNotWorthRetrying(statusCode: number): boolean {
+  return (
+    statusCode >= 400 &&
+    statusCode < 500 &&
+    statusCode !== 408 &&
+    statusCode !== 429
+  );
+}
+
 async function forwardWithRetry(
   forwardUrl: URL,
   method: HTTPMethod,
@@ -133,6 +151,13 @@ async function forwardWithRetry(
         });
 
       if (result instanceof HTTPErrorResponse) {
+        if (isRefusalNotWorthRetrying(result.statusCode)) {
+          logger.warn(
+            `Probe ingress: OneUptime refused the request forwarded to ${forwardUrl.toString()} with ${result.statusCode}, and would refuse it again, so it is not retried. ${result.message}`,
+          );
+          return;
+        }
+
         throw result;
       }
 
@@ -211,9 +236,10 @@ router.get("/heartbeat/:secretkey", forwardToOneUptime);
 
 /*
  * The listener's own app, on its own port. It reads the bodies OneUptime
- * reads - JSON and forms, up to the same 50 MB - and nothing else, so a
- * request through the probe reaches the monitor as it would have directly:
- * any other body arrives empty, whatever its size. (It used to read
+ * reads - JSON and forms, and JSON sent as text/plain (as Amazon SNS sends
+ * it), up to the same 50 MB - and nothing else, so a request through the
+ * probe reaches the monitor as it would have directly: any other body
+ * arrives empty, whatever its size. (It used to read
  * application/octet-stream bodies too, under express.raw's 100 KB default,
  * which answered a larger one with 413 instead of the promised 200; and
  * OneUptime drops such a body anyway.)
@@ -222,6 +248,7 @@ export function createIngressApp(): ExpressApplication {
   const app: ExpressApplication = createExpressApp();
   app.use(ExpressJson({ limit: INGRESS_BODY_LIMIT }));
   app.use(ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT }));
+  app.use(PlainTextJsonBody.getReader(INGRESS_BODY_LIMIT));
   app.use(router);
   return app;
 }

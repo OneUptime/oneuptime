@@ -239,6 +239,15 @@ export interface SloRollingWindowFill {
   isNotYetFull: boolean;
 }
 
+export type GetRollingWindowFillLabelFunction = (percent: number) => string;
+
+// "Window 23% full", or "Window under 1% full" for a brand-new SLO.
+export const getRollingWindowFillLabel: GetRollingWindowFillLabelFunction = (
+  percent: number,
+): string => {
+  return percent < 1 ? "Window under 1% full" : `Window ${percent}% full`;
+};
+
 export type GetRollingWindowFillFunction = (
   data: SloRollingWindowFillData,
 ) => SloRollingWindowFill | null;
@@ -262,7 +271,7 @@ export const getRollingWindowFill: GetRollingWindowFillFunction = (
   return {
     fraction: fraction,
     percent: percent,
-    label: percent < 1 ? "Window under 1% full" : `Window ${percent}% full`,
+    label: getRollingWindowFillLabel(percent),
     isNotYetFull: isRollingWindowNotYetFull(data),
   };
 };

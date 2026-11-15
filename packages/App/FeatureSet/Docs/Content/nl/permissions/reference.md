@@ -19,7 +19,7 @@ Elke rol en elke machtiging heeft een rij met deze kolommen:
 
 ## Rollen
 
-{{PERMISSION_ROLE_COUNT}} rollen. Vier daarvan gelden voor het hele project: Project Owner, Project Admin, Project Member en Viewer. Elk van de andere dekt één productgebied, zoals incidenten of monitors, op het niveau Admin, Member of Viewer. Deze rollen biedt **Rol toevoegen** aan op de pagina **Machtigingen** van een team en op de pagina van een API-sleutel.
+{{PERMISSION_ROLE_COUNT}} rollen. Vier daarvan gelden voor het hele project: Projecteigenaar, Projectbeheerder, Projectlid en Kijker. Elk van de andere dekt één productgebied, zoals incidenten of monitors, op het niveau Beheerder, Lid of Kijker. Deze rollen biedt **Rol toevoegen** aan op de pagina **Machtigingen** van een team en op de pagina van een API-sleutel.
 
 {{PERMISSION_ROLE_TABLES}}
 

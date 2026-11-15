@@ -1,6 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
 } from "Common/UI/Utils/UseIsBelowWidth";
@@ -16,6 +16,12 @@ import {
   FACET_FILTER_BAR_CLASS_NAME,
   FACET_FILTER_BAR_FOLDED_CLASS_NAME,
 } from "./FilterChipStyles";
+
+// The toggle's name while chips hold a filter: "Filter: 2 applied".
+export const FILTERS_APPLIED: PluralTemplate = {
+  one: "Filter: {{count}} applied",
+  other: "Filter: {{count}} applied",
+};
 
 // "Filter" and how many chips are set, at the start of the row.
 const LABEL_CLASS_NAME: string =
@@ -96,10 +102,13 @@ const FacetFilterBar: FunctionComponent<ComponentProps> = (
       className={TOGGLE_CLASS_NAME}
       aria-expanded={isOpenOnPhone}
       aria-controls={barId}
-      // "Filter 2": its words and its count, not run together.
+      /*
+       * "Filter: 2 applied": its word first, as it reads, and the count in
+       * the plural forms and digits of the reader's language (#8290).
+       */
       aria-label={
         props.activeCount > 0
-          ? `${filterText} ${props.activeCount}`
+          ? translator.translatePlural(FILTERS_APPLIED, props.activeCount)
           : filterText
       }
       onClick={() => {

@@ -295,7 +295,7 @@ Selve niveauerne er en ressource for sig, `/api/service-level-objective-error-bu
 | **Edit SLO Error Budget Policy Tier** | Ændre niveauer og slå dem til eller fra. |
 | **Delete SLO Error Budget Policy Tier** | Fjerne niveauer. |
 
-Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Project Owner og Project Admin har dem alle, og rollerne Project Member og Viewer kan læse niveauer.
+Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Projektejer og Projektadministrator har dem alle, og rollerne Projektmedlem og Seer kan læse niveauer.
 
 ## Endnu ikke tilgængeligt
 

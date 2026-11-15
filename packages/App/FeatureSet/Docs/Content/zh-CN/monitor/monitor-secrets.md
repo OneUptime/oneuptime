@@ -25,7 +25,7 @@ flowchart TB
 ## 开始之前
 
 - **Growth 套餐或更高**，适用于 OneUptime Cloud。自托管安装没有套餐。
-- **可以管理密钥的角色**：Project Owner、Project Admin，或者拥有 Create Monitor Secret 权限的自定义角色。
+- **可以管理密钥的角色**：项目所有者、项目管理员，或者拥有 Create Monitor Secret 权限的自定义角色。
 
 ## 管理密钥
 

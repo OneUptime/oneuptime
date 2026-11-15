@@ -5,6 +5,7 @@ import {
   ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 
 /*
  * A RUN THAT STANDS STILL IS STOPPED, AND TOLD WHAT IT IS.
@@ -42,6 +43,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
     default: {
       findAllBy: jest.fn(),
       updateOneById: jest.fn(),
+      handStartedRunToEscalation: jest.fn(),
     },
   };
 });
@@ -54,10 +56,29 @@ const JOB_NAME: string = "OnCallDutyPolicyExecutionLog:TimeoutStuckExecutions";
 const executionLogService: {
   findAllBy: jest.Mock;
   updateOneById: jest.Mock;
+  handStartedRunToEscalation: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
   findAllBy: jest.Mock;
   updateOneById: jest.Mock;
+  handStartedRunToEscalation: jest.Mock;
 };
+
+// The runs handed to their escalation, and the status each was handed over from.
+function handedOver(): Array<string> {
+  return executionLogService.handStartedRunToEscalation.mock.calls.map(
+    (call: Array<unknown>): string => {
+      const handOver: {
+        executionLogId: ObjectID;
+        fromStatuses: Array<OnCallDutyPolicyStatus>;
+      } = call[0] as {
+        executionLogId: ObjectID;
+        fromStatuses: Array<OnCallDutyPolicyStatus>;
+      };
+
+      return `${handOver.executionLogId.toString()} from ${handOver.fromStatuses.join(", ")}`;
+    },
+  );
+}
 
 function run(isDirectPage: boolean): OnCallDutyPolicyExecutionLog {
   const log: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
@@ -124,6 +145,7 @@ async function tick(): Promise<void> {
 beforeEach(() => {
   jest.clearAllMocks();
   executionLogService.updateOneById.mockResolvedValue(undefined);
+  executionLogService.handStartedRunToEscalation.mockResolvedValue(true);
 });
 
 describe("a run stuck while paging", () => {
@@ -139,16 +161,21 @@ describe("a run stuck while paging", () => {
     });
   });
 
-  test("a policy's run is told what it always was", async () => {
+  /*
+   * A policy's run is handed to its escalation, which pages what its start
+   * did not (issue #8405): it used to be ended in Error, having paged
+   * nobody. A direct page has no escalation, and is ended as it was.
+   */
+  test("REGRESSION: a policy's run is handed to its escalation, not ended in Error", async () => {
     const policyRun: OnCallDutyPolicyExecutionLog = run(false);
     stuck({ started: [policyRun] });
 
     await tick();
 
-    expect(messageGivenTo(policyRun)).toEqual({
-      status: OnCallDutyPolicyStatus.Error,
-      statusMessage: "Policy Execution timed out.",
-    });
+    expect(messageGivenTo(policyRun)).toBeUndefined();
+    expect(handedOver()).toEqual([
+      `${policyRun.id!.toString()} from ${OnCallDutyPolicyStatus.Started}`,
+    ]);
   });
 });
 
@@ -165,16 +192,41 @@ describe("a run that never started", () => {
     });
   });
 
-  test("a policy's run is told what it always was", async () => {
+  test("REGRESSION: a policy's run that never started is handed to its escalation too", async () => {
     const policyRun: OnCallDutyPolicyExecutionLog = run(false);
     stuck({ scheduled: [policyRun] });
 
     await tick();
 
-    expect(messageGivenTo(policyRun)).toEqual({
+    expect(messageGivenTo(policyRun)).toBeUndefined();
+    expect(handedOver()).toEqual([
+      `${policyRun.id!.toString()} from ${OnCallDutyPolicyStatus.Scheduled}`,
+    ]);
+  });
+
+  test("a direct page is never handed to an escalation it does not have", async () => {
+    stuck({ started: [run(true)], scheduled: [run(true)] });
+
+    await tick();
+
+    expect(handedOver()).toEqual([]);
+  });
+
+  /*
+   * A test of a policy's first level must not walk on to its later levels,
+   * which its escalation would: it is stopped, as it always was.
+   */
+  test("a test page of a policy is stopped as Error, not handed over", async () => {
+    const testPage: OnCallDutyPolicyExecutionLog = run(false);
+    testPage.userNotificationEventType = UserNotificationEventType.TestPage;
+    stuck({ started: [testPage] });
+
+    await tick();
+
+    expect(handedOver()).toEqual([]);
+    expect(messageGivenTo(testPage)).toEqual({
       status: OnCallDutyPolicyStatus.Error,
-      statusMessage:
-        "Policy Execution never started (stuck in Scheduled) and was timed out.",
+      statusMessage: "Policy Execution timed out.",
     });
   });
 });
@@ -202,10 +254,13 @@ describe("what the job reads and writes", () => {
     const pageNeverStarted: OnCallDutyPolicyExecutionLog = run(true);
 
     stuck({ started: [page, policyRun], scheduled: [pageNeverStarted] });
+    // A policy's run that cannot be handed over: the job's own words, as it always had.
+    executionLogService.handStartedRunToEscalation.mockResolvedValue(false);
 
     await tick();
 
-    expect(executionLogService.updateOneById).toHaveBeenCalledTimes(3);
+    // The policy's run moved on since it was read: it is left as it is.
+    expect(executionLogService.updateOneById).toHaveBeenCalledTimes(2);
 
     for (const call of executionLogService.updateOneById.mock.calls) {
       expect((call[0] as { props: unknown }).props).toEqual({ isRoot: true });
@@ -214,9 +269,7 @@ describe("what the job reads and writes", () => {
     expect(
       (messageGivenTo(page) as { statusMessage: string }).statusMessage,
     ).toBe("Paging timed out.");
-    expect(
-      (messageGivenTo(policyRun) as { statusMessage: string }).statusMessage,
-    ).toBe("Policy Execution timed out.");
+    expect(messageGivenTo(policyRun)).toBeUndefined();
     expect(
       (messageGivenTo(pageNeverStarted) as { statusMessage: string })
         .statusMessage,

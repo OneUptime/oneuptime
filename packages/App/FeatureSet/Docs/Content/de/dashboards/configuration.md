@@ -15,15 +15,15 @@ Dashboards folgen den [Berechtigungen](/docs/permissions/index) Ihres Projekts. 
 
 | Um | Braucht es |
 | --- | --- |
-| Dashboards zu lesen | `ReadDashboard` oder eine Projektrolle: Project Owner, Project Admin, Project Member, Viewer oder eine Settings-Rolle |
-| Dashboards zu erstellen | `CreateDashboard`, Project Owner oder Project Admin |
-| Ein Dashboard zu ändern: seine Widgets, Variablen, Freigabe, sein Branding, und es zu archivieren | `EditDashboard`, Project Owner oder Project Admin |
-| Ein Dashboard zu löschen | `DeleteDashboard`, Project Owner oder Project Admin |
-| Eigentümer hinzuzufügen und zu entfernen | Die Berechtigungen für Dashboard-Eigentümer, Project Owner, Project Admin oder Project Member |
-| Eigene Domains hinzuzufügen und zu ändern | Die Berechtigungen für Dashboard-Domains, Project Owner, Project Admin, Project Member, Settings Admin oder Settings Member |
-| Eigentümer- und Beschriftungsregeln zu erstellen | Die Berechtigungen für Regeln, Project Owner oder Project Admin |
+| Dashboards zu lesen | `ReadDashboard` oder eine Projektrolle: Projektinhaber, Projektadministrator, Projektmitglied, Betrachter oder eine Settings-Rolle |
+| Dashboards zu erstellen | `CreateDashboard`, Projektinhaber oder Projektadministrator |
+| Ein Dashboard zu ändern: seine Widgets, Variablen, Freigabe, sein Branding, und es zu archivieren | `EditDashboard`, Projektinhaber oder Projektadministrator |
+| Ein Dashboard zu löschen | `DeleteDashboard`, Projektinhaber oder Projektadministrator |
+| Eigentümer hinzuzufügen und zu entfernen | Die Berechtigungen für Dashboard-Eigentümer, Projektinhaber, Projektadministrator oder Projektmitglied |
+| Eigene Domains hinzuzufügen und zu ändern | Die Berechtigungen für Dashboard-Domains, Projektinhaber, Projektadministrator, Projektmitglied, Einstellungs-Administrator oder Einstellungs-Mitglied |
+| Eigentümer- und Beschriftungsregeln zu erstellen | Die Berechtigungen für Regeln, Projektinhaber oder Projektadministrator |
 
-Ein Project Member liest also jedes Dashboard, braucht aber `CreateDashboard` und `EditDashboard`, um welche zu bauen. Lesen, Bearbeiten und Löschen lassen sich jeweils auf die Dashboards beschränken, die einem Team gehören, oder auf Dashboards mit bestimmten Beschriftungen: siehe [Geltungsbereich: wie weit eine Erlaubnis reicht](/docs/permissions/index#geltungsbereich-wie-weit-eine-erlaubt-berechtigung-reicht).
+Ein Projektmitglied liest also jedes Dashboard, braucht aber `CreateDashboard` und `EditDashboard`, um welche zu bauen. Lesen, Bearbeiten und Löschen lassen sich jeweils auf die Dashboards beschränken, die einem Team gehören, oder auf Dashboards mit bestimmten Beschriftungen: siehe [Geltungsbereich: wie weit eine Erlaubnis reicht](/docs/permissions/index#geltungsbereich-wie-weit-eine-erlaubt-berechtigung-reicht).
 
 Vergeben Sie sie auf der Seite **Berechtigungen** eines Teams: Öffnen Sie **Produkte → Teams** und wählen Sie das Team.
 

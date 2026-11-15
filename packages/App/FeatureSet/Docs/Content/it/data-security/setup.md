@@ -176,6 +176,8 @@ Una scansione legge un po' di un archivio, entro i limiti del progetto, e si fer
 
 Ogni scansione tiene traccia di ciò che ha letto, per nome: gli oggetti, le tabelle o i servizi, mai il loro contenuto. Ciò che non ha potuto leggere - una richiesta rifiutata dal cloud, la scadenza, il budget di byte - è un'avvertenza sulla scansione, e la scansione viene contrassegnata come **Riuscito in parte**.
 
+La **Panoramica** di un archivio dice quando il suo contenuto viene scansionato la prossima volta. **Prossima scansione del contenuto** è l'ora in cui qualcosa lo scansiona, **Previsto ora** mentre aspetta il suo turno, e **In ritardo** quando è in attesa da un'ora. Altrimenti dice perché nulla lo scansionerà: **Disattivato** finché **Scansiona contenuto** è disattivato per l'archivio o per il progetto, o finché l'archivio non viene più trovato; **Non scansionato** quando OneUptime non può campionare quel tipo di archivio, o la sua sonda non può scansionarlo; e **In attesa** finché la sua sonda è disconnessa. La telemetria di un servizio viene scansionata **Ogni ora**, con la scansione della telemetria del progetto. **Scansiona ora** è disattivato, con il motivo, per un archivio che nulla scansionerebbe. Una scansione in corso quando la scansione del contenuto viene disattivata, o quando il progetto viene sospeso, non conserva nulla di ciò che ha trovato.
+
 ## Scansionare un database che gestisci
 
 Sicurezza dei dati campiona i database PostgreSQL, MySQL e SQL Server, in uno di due modi. Un database monitorato dal prodotto Database, o uno con cui parlano i tuoi servizi sulla mappa dei servizi, è già un archivio. Un database che nessuna scansione trova, aggiungilo tu come archivio.

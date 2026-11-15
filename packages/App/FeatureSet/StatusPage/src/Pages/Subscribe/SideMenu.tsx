@@ -26,6 +26,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: t("subscribe.menu.email"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
@@ -41,6 +42,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: t("subscribe.menu.sms"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route)
@@ -56,6 +58,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: t("subscribe.menu.slack"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK] as Route)
@@ -71,6 +74,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: t("subscribe.menu.microsoftTeams"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route)
@@ -86,6 +90,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: t("subscribe.menu.webhooks"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS] as Route)

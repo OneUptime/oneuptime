@@ -60,8 +60,8 @@ import UpdateStatusUtil, {
   UpdateState,
   UpdateStatus,
 } from "../../../Types/UpdateCheck/UpdateStatus";
-import { getReaderDateLocale } from "../../../Types/DateLanguage";
 import { getIsolatedLine } from "../IsolatedText/IsolatedLine";
+import { writeReaderDay, writeReaderMoment } from "../../Utils/ReaderMoments";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
 import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 import EmptyValue from "../Detail/EmptyValue";
@@ -658,7 +658,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return endsAt.toLocaleDateString(getReaderDateLocale());
+    // The reader's day, in the zone they picked (issue #8231).
+    return writeReaderDay(endsAt);
   }, [graceEndsAt]);
 
   // Whole days left in the trial or the grace period, rounded up; never negative.
@@ -697,7 +698,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return expiresAt.toLocaleString(getReaderDateLocale());
+    /*
+     * In the reader's zone and on their clock, as a table writes a moment.
+     * Written by the browser it was the browser's zone and the language's
+     * own clock, with seconds (issue #8231).
+     */
+    return writeReaderMoment(expiresAt);
   }, [globalConfig?.enterpriseLicenseExpiresAt]);
 
   /*
@@ -722,7 +728,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return publishedAt.toLocaleDateString(getReaderDateLocale());
+    return writeReaderDay(publishedAt);
   }, [latestVersionPublishedAt]);
 
   const latestVersionCheckedAtText: string | null = useMemo(() => {
@@ -736,7 +742,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return checkedAt.toLocaleString(getReaderDateLocale());
+    return writeReaderMoment(checkedAt);
   }, [latestVersionCheckedAt]);
 
   /*
@@ -1547,7 +1553,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return translator.translateTemplate(
       "Last usage report accepted {{date}}: {{quantity}} user-hours.",
       {
-        date: date.toLocaleString(getReaderDateLocale()),
+        date: writeReaderMoment(date),
         quantity: translator.formatNumber(quantity),
       },
     );

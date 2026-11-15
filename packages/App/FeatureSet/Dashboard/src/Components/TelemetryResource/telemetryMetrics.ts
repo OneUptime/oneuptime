@@ -26,7 +26,6 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   formatBytes,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
 } from "./telemetryFormat";
@@ -39,7 +38,6 @@ import {
 export {
   formatBytes,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
 };

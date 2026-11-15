@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - Elastic Security 8.x eller nyere, på Elastic Cloud eller din egen Elastic-stak, med detektionsregler, der kører i et Kibana-space.
 - Kibana-adgang, der kan se detektionsalarmerne i det space: indeksrettighederne `read` og `view_index_metadata` på `.alerts-security.alerts-<space-id>`, og en Kibana-funktionsrettighed til Security, der lader den læse alarmer dér.
 - Et Kibana, som OneUptime kan nå over HTTPS. OneUptime Cloud forbinder fra internettet, så Kibana skal have en offentlig adresse, som Elastic Cloud-udrulninger har: private adresser afvises. Et selvhostet OneUptime forbinder fra sine app- og workercontainere og kan nå et Kibana på dit private netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`.

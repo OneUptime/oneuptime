@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53450,
-    "untranslated": 4841
+    "keys": 53571,
+    "untranslated": 4816
   },
   "sameAsEnglish": [
     " incidents",
@@ -165,6 +165,7 @@
     "Curaçao",
     "Cursor",
     "Customize → Connectors",
+    "Cyan",
     "Côte d'Ivoire",
     "DB.*maintenance",
     "DE",
@@ -220,6 +221,7 @@
     "France",
     "France (+33)",
     "Frustration",
+    "Fuchsia",
     "GKE Autopilot",
     "Gabon",
     "Ghana",
@@ -274,6 +276,7 @@
     "Incidents",
     "Incidents ({{count}})",
     "Index",
+    "Indigo",
     "Info",
     "Information",
     "Infrastructure",
@@ -511,6 +514,7 @@
     "Top",
     "Top P",
     "Top {{count}}",
+    "Topic",
     "Total",
     "Trace",
     "Trace {{traceId}}",
@@ -551,6 +555,7 @@
     "Version {{version}}",
     "Versions",
     "Vertical Pod Autoscalers",
+    "Violet",
     "Vital",
     "Volts",
     "Volume",
@@ -691,6 +696,7 @@
     "vCenters",
     "vSphere Client",
     "vertical pod autoscaler",
+    "via {{name}}",
     "volume",
     "volumes",
     "writesets",
@@ -778,6 +784,7 @@
     "{{minutes}} min",
     "{{protocol}} port {{port}}",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",
     "{{value}} s"

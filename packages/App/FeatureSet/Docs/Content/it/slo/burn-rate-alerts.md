@@ -212,8 +212,8 @@ Per scrivere i tuoi, usa le variabili del modello nel titolo, nella descrizione 
 | `{{targetPercentage}}` | L'obiettivo dello SLO, in percentuale. | `99.9` |
 | `{{currentSliPercentage}}` | Lo SLI misurato sulla finestra di conformità dello SLO, in percentuale. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Quota del budget di errore ancora disponibile, in percentuale. Negativa quando il budget è superato. | `42.5` |
-| `{{errorBudgetRemaining}}` | Budget di errore ancora disponibile, come durata. Inizia con un segno meno quando il budget è superato. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Budget di errore ancora disponibile, in minuti. | `18.37` |
+| `{{errorBudgetRemaining}}` | Budget di errore ancora disponibile, come durata oppure, per uno SLO di richieste, come numero di richieste fallite o lente che consente ancora. Inizia con un segno meno quando il budget è superato. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Budget di errore ancora disponibile, in minuti. Vuoto per uno SLO di richieste, il cui budget si conta in richieste. | `18.37` |
 | `{{windowDescription}}` | La finestra di conformità dello SLO, a parole. | `rolling 30-day window` |
 | `{{policyTier}}` | Nome del livello della policy del budget di errore in cui si trova lo SLO dopo questa valutazione. "None" quando non è in nessun livello. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Soglia di budget rimanente di quel livello, in percentuale. Vuota quando lo SLO non è in nessun livello. | `25` |

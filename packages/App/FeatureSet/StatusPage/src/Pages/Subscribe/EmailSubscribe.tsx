@@ -258,6 +258,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
   return (
     <Page
       title={t("subscribe.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("nav.overview"),

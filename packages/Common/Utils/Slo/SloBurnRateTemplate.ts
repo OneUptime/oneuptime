@@ -28,9 +28,11 @@ import {
   TemplateVariable,
   TemplateVariableGroups,
 } from "../../Types/Template/TemplateVariable";
+import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import { formatDurationCompact } from "./SloDuration";
 import { readSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
+import { formatRequestBudget } from "./SloRequestSli";
 
 /*
  * Every variable a burn rate template may reference. Values equal the
@@ -156,12 +158,13 @@ export const SLO_BURN_RATE_TEMPLATE_VARIABLES: ReadonlyArray<SloBurnRateTemplate
     {
       key: SloBurnRateTemplateVariable.ErrorBudgetRemaining,
       description:
-        "Error budget still left, as a duration. Starts with a minus sign once the budget is overspent.",
+        "Error budget still left, as a duration, or as the failed or slow requests it still allows for a request SLO. Starts with a minus sign once the budget is overspent.",
       example: "18m 22s",
     },
     {
       key: SloBurnRateTemplateVariable.ErrorBudgetRemainingMinutes,
-      description: "Error budget still left, in minutes.",
+      description:
+        "Error budget still left, in minutes. Empty for a request SLO, whose budget is counted in requests.",
       example: "18.37",
     },
     {
@@ -292,6 +295,42 @@ export const DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE: string =
   'SLO "{{sloName}}" is burning its error budget too fast. Rule "{{ruleName}}": burn rate over the last {{longWindowInMinutes}} minutes is {{longWindowBurnRate}}x and over the last {{shortWindowInMinutes}} minutes is {{shortWindowBurnRate}}x — both at or above the threshold of {{burnRateThreshold}}x. Error budget remaining: {{errorBudgetRemainingPercentage}}% ({{errorBudgetRemainingMinutes}} minutes).';
 
 /*
+ * The same, for a request SLO: its budget is counted in requests, and the
+ * minutes above would read "( minutes)". It names the budget left in the
+ * SLO's own words instead ({{errorBudgetRemaining}}: "1,234 failed
+ * requests").
+ */
+export const DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE: string =
+  'SLO "{{sloName}}" is burning its error budget too fast. Rule "{{ruleName}}": burn rate over the last {{longWindowInMinutes}} minutes is {{longWindowBurnRate}}x and over the last {{shortWindowInMinutes}} minutes is {{shortWindowBurnRate}}x — both at or above the threshold of {{burnRateThreshold}}x. Error budget remaining: {{errorBudgetRemainingPercentage}}% ({{errorBudgetRemaining}}).';
+
+export type GetSloBurnRateDescriptionTemplateFunction = (data: {
+  // The rule's own template, as stored; empty for the built-in text.
+  template: string | undefined | null;
+  isRequestSli: boolean;
+}) => string | undefined;
+
+/*
+ * The description template a burn rate rule's record is rendered with: the
+ * rule's own. A request SLO's rule whose template is still the built-in
+ * text - the rule form fills it in, so most rules store it - follows the
+ * request SLO's built-in text instead, rather than say "( minutes)".
+ */
+export const getSloBurnRateDescriptionTemplate: GetSloBurnRateDescriptionTemplateFunction =
+  (data: {
+    template: string | undefined | null;
+    isRequestSli: boolean;
+  }): string | undefined => {
+    if (
+      data.isRequestSli &&
+      data.template?.trim() === DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE
+    ) {
+      return DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE;
+    }
+
+    return data.template || undefined;
+  };
+
+/*
  * What an alert or incident a policy tier raises says when its templates are
  * blank: which tier the SLO entered, the budget that put it there, and the
  * team's agreement for it. The dashboard prefills a tier's template fields
@@ -319,6 +358,11 @@ export interface SloBurnRateTemplateContext {
   currentSliPercentage: number;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  /*
+   * A request SLO's budget, in the bad requests it still allows: rendered in
+   * place of the seconds above, which it then does not have.
+   */
+  requestBudget?: SloTemplateRequestBudget | null | undefined;
   windowType: SloWindowType | undefined;
   windowDays: number | undefined;
   timezone: string | undefined;
@@ -327,6 +371,13 @@ export interface SloBurnRateTemplateContext {
    * nothing when it is in none (or has no policy).
    */
   policyTier?: SloPolicyTierTemplateValues | null | undefined;
+}
+
+// A request SLO's budget as the templates read it.
+export interface SloTemplateRequestBudget {
+  sliType: SliType | string | undefined | null;
+  // SIGNED: negative once the budget is spent.
+  remainingEvents: number;
 }
 
 // A policy tier as the templates read it.
@@ -393,6 +444,30 @@ const formatBudgetDuration: FormatBudgetDurationFunction = (
   }
 
   return duration;
+};
+
+type FormatTemplateRequestBudgetFunction = (
+  requestBudget: SloTemplateRequestBudget,
+) => string;
+
+/*
+ * "1234 failed requests", signed like the duration: "-12 slow requests" once
+ * the budget is overspent.
+ */
+const formatTemplateRequestBudget: FormatTemplateRequestBudgetFunction = (
+  requestBudget: SloTemplateRequestBudget,
+): string => {
+  const budget: string = formatRequestBudget({
+    sliType: requestBudget.sliType,
+    remainingEvents: requestBudget.remainingEvents,
+  });
+
+  if (!budget) {
+    return "";
+  }
+
+  // Rounded to a whole request first: -0.4 requests is no overspend shown.
+  return Math.round(requestBudget.remainingEvents) < 0 ? `-${budget}` : budget;
 };
 
 type FormatPolicyTierThresholdFunction = (
@@ -467,10 +542,11 @@ export const buildSloBurnRateTemplateVariables: BuildSloBurnRateTemplateVariable
       ),
       [SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]:
         formatTemplateNumber(context.errorBudgetRemainingPercentage),
-      [SloBurnRateTemplateVariable.ErrorBudgetRemaining]: formatBudgetDuration(
-        context.errorBudgetRemainingSeconds,
-      ),
+      [SloBurnRateTemplateVariable.ErrorBudgetRemaining]: context.requestBudget
+        ? formatTemplateRequestBudget(context.requestBudget)
+        : formatBudgetDuration(context.errorBudgetRemainingSeconds),
       [SloBurnRateTemplateVariable.ErrorBudgetRemainingMinutes]:
+        !context.requestBudget &&
         typeof context.errorBudgetRemainingSeconds === "number"
           ? formatTemplateNumber(context.errorBudgetRemainingSeconds / 60)
           : "",

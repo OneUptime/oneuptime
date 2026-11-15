@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import OpenStackProbeCollectionStore from "../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
+import VMwareProbeCollectionStore from "../../../Server/Utils/VMware/VMwareProbeCollectionStore";
 import {
   OpenStackCollectionStop,
   OpenStackCollectionStopFacts,
@@ -37,7 +38,6 @@ function cloud(
 ): OpenStackCollectionStopFacts {
   return {
     projectId: PROJECT_ID,
-    isArchived: false,
     isCredentialSet: true,
     authUrl: "https://keystone.example.com:5000/v3",
     collectionProbeId: PROBE_ID,
@@ -53,7 +53,6 @@ describe("why no probe collects a cloud", () => {
   });
 
   test.each([
-    ["archived", cloud({ isArchived: true }), OpenStackCollectionStop.Archived],
     [
       "no credential saved",
       cloud({ isCredentialSet: false }),
@@ -143,13 +142,39 @@ describe("why no probe collects a cloud", () => {
     ).toBeNull();
   });
 
-  test("archived is said first", () => {
+  /*
+   * OneUptime issue #8324: the claim set an archived cloud aside, while its
+   * Archived page and its column said an archived cloud keeps collecting,
+   * as an archived vCenter does. Archiving only hides it from the lists.
+   */
+  test("an archived cloud is still collected: archiving is not a stop", () => {
+    const archived: OpenStackCollectionStopFacts = {
+      ...cloud(),
+      isArchived: true,
+    } as OpenStackCollectionStopFacts;
+
+    expect(getOpenStackCollectionStop(archived, true)).toBeNull();
+    expect(getOpenStackCollectionStop(archived, false)).toBeNull();
+    expect(Object.values(OpenStackCollectionStop)).not.toContain("Archived");
+  });
+
+  test("the credential is said first, then the address, then the probe", () => {
     expect(
       getOpenStackCollectionStop(
-        cloud({ isArchived: true, isCredentialSet: false, authUrl: null }),
+        cloud({
+          isCredentialSet: false,
+          authUrl: null,
+          collectionProbeId: null,
+        }),
         true,
       ),
-    ).toBe(OpenStackCollectionStop.Archived);
+    ).toBe(OpenStackCollectionStop.NoCredential);
+    expect(
+      getOpenStackCollectionStop(
+        cloud({ authUrl: null, collectionProbeId: null }),
+        true,
+      ),
+    ).toBe(OpenStackCollectionStop.NoAddress);
   });
 });
 
@@ -180,15 +205,6 @@ const CLAUSES: Record<string, ClauseReading> = {
   // The card is drawn only for a cloud a probe collects.
   'c."collectionMethod" = $5': { kind: "not shown" },
   'c."deletedAt" IS NULL': { kind: "not shown" },
-  'c."isArchived" = false': {
-    kind: "row",
-    holds: (row: ClaimRow): boolean => {
-      return row.cloud.isArchived === false;
-    },
-    breaks: (row: ClaimRow): ClaimRow => {
-      return { ...row, cloud: { ...row.cloud, isArchived: true } };
-    },
-  },
   'c."isCredentialSet" = true': {
     kind: "row",
     holds: (row: ClaimRow): boolean => {
@@ -363,6 +379,38 @@ describe("the card's rule is the claim's (OpenStackProbeCollectionStore.getColle
       expect(isClaimable(row)).toBe(!isBillingEnabled);
     });
   }
+
+  test("the claim does not read isArchived: an archived cloud is collected, as an archived vCenter is", () => {
+    expect(
+      CLAIM_CLAUSES.filter((clause: string): boolean => {
+        return clause.includes("isArchived");
+      }),
+    ).toEqual([]);
+    expect(
+      OpenStackProbeCollectionStore.getCollectableSql({
+        collectionMethodParameter: "$5",
+        statusesParameter: "$4",
+        isBillingEnabledParameter: "$7",
+      }),
+    ).not.toContain("isArchived");
+  });
+
+  test("archiving means one thing for both probe-collected products: neither claim reads it", () => {
+    for (const sql of [
+      OpenStackProbeCollectionStore.getCollectableSql({
+        collectionMethodParameter: "$5",
+        statusesParameter: "$4",
+        isBillingEnabledParameter: "$7",
+      }),
+      VMwareProbeCollectionStore.getCollectableSql({
+        collectionMethodParameter: "$5",
+        statusesParameter: "$4",
+        isBillingEnabledParameter: "$7",
+      }),
+    ]) {
+      expect(sql).not.toContain("isArchived");
+    }
+  });
 
   test("no probe named: the claim never reads the cloud, and the card says so", () => {
     const row: ClaimRow = {

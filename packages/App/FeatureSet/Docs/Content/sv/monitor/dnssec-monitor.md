@@ -41,7 +41,7 @@ En signatur med mindre än en dag kvar räknas redan som bruten, så du får vet
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En signerad zon.** Zonen måste vara signerad och dess DS-post publicerad i den överordnade zonen via din registrar.
 - **Utgående DNS från sonden** till upplösarna du anger och, för kontrollen av namnserverkonsekvens, till zonens auktoritativa namnservrar. Projektets standardsonder väljs för varje ny monitor.
 

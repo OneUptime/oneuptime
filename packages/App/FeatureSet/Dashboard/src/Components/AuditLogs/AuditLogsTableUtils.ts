@@ -10,6 +10,7 @@ import {
   getScreenSingularName,
 } from "Common/Utils/ModelApiName";
 import { getNameInitials } from "Common/Utils/NameInitials";
+import { translationKey, Translator } from "Common/Types/Translator";
 import PageMap from "../../Utils/PageMap";
 
 /*
@@ -586,23 +587,66 @@ export interface ActorCredentialInput {
  * Also null for a project API key or a workflow step. Neither entry has a
  * person behind it - the key, or the workflow, IS the actor, and is shown as
  * one - so there is no "via" to add.
+ *
+ * In the reader's language when handed their translator (#8319): one
+ * sentence each, the client's or the key's name drawn as it was recorded.
+ * Without one, English, as the server and a plain-node test read it.
  */
 export const getActorCredentialLabel: (
   entry: ActorCredentialInput,
-) => string | null = (entry: ActorCredentialInput): string | null => {
+  translator?: Translator | undefined,
+) => string | null = (
+  entry: ActorCredentialInput,
+  translator?: Translator | undefined,
+): string | null => {
   if (entry.userType === "API" || entry.userType === "Workflow") {
     return null;
   }
 
   if (entry.mcpClientName) {
-    return `via ${entry.mcpClientName} (MCP client)`;
+    return translator
+      ? translator.translateTemplate("via {{name}} (MCP client)", {
+          name: entry.mcpClientName,
+        })
+      : `via ${entry.mcpClientName} (MCP client)`;
   }
 
   if (entry.apiKeyName) {
-    return `via ${entry.apiKeyName}`;
+    return translator
+      ? translator.translateTemplate("via {{name}}", {
+          name: entry.apiKeyName,
+        })
+      : `via ${entry.apiKeyName}`;
   }
 
   return null;
+};
+
+/*
+ * The words a person's entry says they acted as, under their name, by the
+ * actor type the entry stored (UserType, or "System" for OneUptime acting on
+ * its own): keys of the locales, so the line reads in the reader's language
+ * (#8319). It printed the stored value, "MasterAdmin" among them.
+ */
+export const AUDIT_LOG_ACTOR_TYPE_LABELS: Readonly<Record<string, string>> = {
+  User: translationKey("User"),
+  MasterAdmin: translationKey("Master Admin"),
+  System: translationKey("System"),
+};
+
+/*
+ * What a person's entry says they acted as: the words for its stored actor
+ * type, "User" when it stored none, and a type these do not know as it was
+ * stored.
+ */
+export const getActorTypeLabel: (userType: string | undefined) => string = (
+  userType: string | undefined,
+): string => {
+  if (!userType) {
+    return AUDIT_LOG_ACTOR_TYPE_LABELS["User"]!;
+  }
+
+  return AUDIT_LOG_ACTOR_TYPE_LABELS[userType] || userType;
 };
 
 export interface AuditLogsQueryOptions {

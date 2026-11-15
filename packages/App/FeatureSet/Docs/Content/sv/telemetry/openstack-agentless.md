@@ -93,6 +93,8 @@ Välj de regioner som ska läsas, namnge molnet och klicka på **Anslut moln**. 
 
 Molnets **Översikt** visar ett kort **Datainsamling**. Det visar **Kontrollerar** fram till den första insamlingen, som startar inom en minut, därefter **Samlar in**, och sidorna fylls på. När vissa tjänster lästes och en annan inte gjorde det, anger det vilken. Om ingen sond kommer för molnet på 15 minuter, eftersom den är offline eller för gammal, visas **Samlar inte in** och det anges, oavsett vad den senaste insamlingen fann.
 
+När ingen sond får samla in molnet visar kortet direkt **Samlar inte in**, med orsaken och vad som behöver ändras: inga inloggningsuppgifter är sparade, Keystones adress saknas, ingen sond är vald för att samla in det, dess sond får inte samla in det (en delad sond på OneUptime Cloud, eller ett annat projekts), eller dess sond är frånkopplad. **Nästa insamling** är tiden då en sond samlar in det nästa gång, **På tur nu** medan det väntar på en, **Försenad** när ingen har kommit på 15 minuter, och **Inte schemalagd** så länge ingen sond får samla in det. Ett arkiverat moln samlas fortfarande in.
+
 Kortet **Datainsamling** på molnets sida **Inställningar** innehåller det du anslöt det med:
 
 ![Kortet Datainsamling på ett molns sida Inställningar: dess Keystone-adress, dess sond, den applikationsuppgift det loggar in med, dess regioner, certifikatet det litar på och hur ofta det samlar in](/docs/static/images/OpenStackDataCollection.png)

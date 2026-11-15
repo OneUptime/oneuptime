@@ -212,8 +212,8 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{targetPercentage}}` | SLO 的目標，以百分比表示。 | `99.9` |
 | `{{currentSliPercentage}}` | 在 SLO 合規時間窗上測得的 SLI，以百分比表示。 | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | 仍可用的錯誤預算所占比例，以百分比表示。預算超支時為負數。 | `42.5` |
-| `{{errorBudgetRemaining}}` | 仍可用的錯誤預算，以時長表示。預算超支時以負號開頭。 | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | 仍可用的錯誤預算，以分鐘計。 | `18.37` |
+| `{{errorBudgetRemaining}}` | 仍可用的錯誤預算，以時長表示；對於請求 SLO，則以它仍允許的失敗或緩慢請求數表示。預算超支時以負號開頭。 | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | 仍可用的錯誤預算，以分鐘計。請求 SLO 的預算以請求數計算，此值為空。 | `18.37` |
 | `{{windowDescription}}` | 以文字描述的 SLO 合規時間窗。 | `rolling 30-day window` |
 | `{{policyTier}}` | 本次評估後 SLO 所在的錯誤預算策略級別名稱。不在任何級別時為「None」。 | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | 該級別的剩餘預算臨界值，以百分比表示。SLO 不在任何級別時為空。 | `25` |

@@ -116,6 +116,10 @@ jobs:
       # apart on Postgres (DateComparisonPostgres, #8200). A schema of its
       # own, dropped after.
       RUN_POSTGRES_DATE_COMPARISON_TESTS: "true"
+      # A hook-free write guarded on a timestamp the database stamped with
+      # now() lands, a millisecond off is refused (DatabaseServiceTimestamp
+      # GuardPostgres, #8173). A schema of its own, dropped after.
+      RUN_POSTGRES_TIMESTAMP_GUARD_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

@@ -32,6 +32,7 @@ import {
   removeOpenStackInstanceOriginals,
 } from "./OpenStackInstanceMetricsScan";
 import { getOpenStackFlavorRowExternalId } from "./OpenStackSnapshotScan";
+import { readOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * What OpenStackInstanceMetricsScan needs from outside a batch, around its pure work: the
@@ -246,8 +247,9 @@ export default class OpenStackInstanceMetricsIngest {
             exporterHost: sample.exporterHost,
           }),
         );
+      // The domain's own entry only: see applyOpenStackInstanceMetricSamples.
       const known: string | undefined = sample.domain
-        ? state?.d[sample.domain]
+        ? readOwnValue(state?.d, sample.domain)
         : undefined;
       if (known) {
         ids.add(known);

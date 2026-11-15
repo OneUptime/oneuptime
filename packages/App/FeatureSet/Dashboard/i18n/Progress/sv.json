@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 9029
+    "keys": 53571,
+    "untranslated": 8853
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -61,6 +61,7 @@
     "Container {{id}}",
     "Content Security Policy",
     "CrowdStrike",
+    "Cyan",
     "DE",
     "DES",
     "DHCP",
@@ -135,6 +136,7 @@
     "Incident: {{severity}}",
     "Incident: {{title}}",
     "Index",
+    "Indigo",
     "Info",
     "Information",
     "Integration",
@@ -423,6 +425,7 @@
     "vCenter",
     "vSphere Client",
     "vertical pod autoscaler",
+    "via {{name}}",
     "writesets",
     "x86",
     "z",
@@ -482,6 +485,7 @@
     "{{minutes}} min",
     "{{percent}} full",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

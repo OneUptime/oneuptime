@@ -35,7 +35,7 @@ flowchart TB
 ## 開始之前
 
 - **OneUptime Cloud。** **專案設定**中的**帳單與發票**區段僅存在於 OneUptime Cloud，並且預設收合：點選其標題即可展開。
-- **可以讀取帳單的角色。** Project Owner、擁有 **Manage Billing** 的人以及三個帳單角色可以讀取所有帳單頁面。請參閱[誰可以做什麼](#誰可以做什麼)。
+- **可以讀取帳單的角色。** 專案擁有者、擁有 **Manage Billing** 的人以及三個帳單角色可以讀取所有帳單頁面。請參閱[誰可以做什麼](#誰可以做什麼)。
 
 ## 你的方案和席次
 
@@ -144,13 +144,13 @@ API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM �
 
 | 要做的事 | 需要 |
 | --- | --- |
-| 讀取帳單頁面：方案、發票、用量、餘額和付款方式 | Project Owner、**Manage Billing**、**帳單管理員**、**帳單成員** 或 **帳單檢視者** |
-| 下載發票 | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**帳單管理員** 或 **帳單成員** |
-| 變更帳單地址和發票電子郵件 | Project Owner、**Manage Billing**、**帳單管理員** 或 **帳單成員** |
-| 開啟或關閉簡訊、電話、WhatsApp 或 Telegram | Project Owner、**Manage Billing** 或 **帳單管理員** |
-| 新增付款方式 | Project Owner、**Manage Billing** 或 **Create Payment Method** |
-| 支付發票 | Project Owner、**Manage Billing** 或 **Edit Invoices** |
-| 變更方案、為餘額儲值或變更自動儲值 | Project Owner 或 **Manage Billing** |
+| 讀取帳單頁面：方案、發票、用量、餘額和付款方式 | 專案擁有者、**Manage Billing**、**帳單管理員**、**帳單成員** 或 **帳單檢視者** |
+| 下載發票 | 專案擁有者、專案管理員、**Manage Billing**、**Read Invoices**、**帳單管理員** 或 **帳單成員** |
+| 變更帳單地址和發票電子郵件 | 專案擁有者、**Manage Billing**、**帳單管理員** 或 **帳單成員** |
+| 開啟或關閉簡訊、電話、WhatsApp 或 Telegram | 專案擁有者、**Manage Billing** 或 **帳單管理員** |
+| 新增付款方式 | 專案擁有者、**Manage Billing** 或 **Create Payment Method** |
+| 支付發票 | 專案擁有者、**Manage Billing** 或 **Edit Invoices** |
+| 變更方案、為餘額儲值或變更自動儲值 | 專案擁有者或 **Manage Billing** |
 
 你無權使用的按鈕會顯示為鎖定狀態，並說明誰可以使用。關於帳單角色，請參閱[使用者、團隊與權限](/docs/permissions/index#團隊)。
 

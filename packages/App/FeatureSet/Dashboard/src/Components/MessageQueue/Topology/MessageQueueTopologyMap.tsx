@@ -265,6 +265,7 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
             props.edgeLabel,
             props.model.windowSeconds,
             hoveredEdgeId === edge.id,
+            translator,
           ),
           labelShowBg: true,
           labelStyle: {
@@ -298,6 +299,7 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
     props.selectedEdgeId,
     hoveredEdgeId,
     selectedEdges,
+    translator.language,
   ]);
 
   let drawingHeight: number = 0;

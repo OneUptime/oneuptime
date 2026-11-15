@@ -2027,50 +2027,57 @@ export default class OneUptimeDate {
       .toDate();
   }
 
-  public static getSomeDaysAgo(days: PositiveNumber | number): Date {
+  /*
+   * THE getSomeDays FAMILY STEPS DAYS AS A LENGTH OF TIME: days x 24 hours,
+   * the same in every zone (addRemoveDurationInDays), as getSomeHoursAgo
+   * steps hours. Its callers ask for spans - a status page's last 90 days
+   * of uptime, a session that lasts 30 days, a link that expires in a day,
+   * rows older than 30 days - and stepped on the runtime's own calendar
+   * (moment's add(n, "days")) each was an hour short or long whenever the
+   * runtime's zone changed its clocks inside the span: on a self-hosted
+   * server outside UTC, and in a browser in the zone of the machine, which
+   * is not even the reader's (issue #8236, after #7623). CI runs in UTC,
+   * where every calendar day is 24 hours, so nothing failed there.
+   *
+   * A walk over calendar days - a strip of a bar a day - is not a span. It
+   * steps in the zone its days are in (addRemoveDays with a zone,
+   * addRemoveCalendarUnits), or on the runtime's own calendar with
+   * getSomeDaysAfterDate, as DayUptimeGraphUtil walks a strip with no zone.
+   */
+  private static toDayCount(days: PositiveNumber | number): number {
     if (!(days instanceof PositiveNumber)) {
       days = new PositiveNumber(days);
     }
-    return this.getCurrentMomentDate()
-      .add(-1 * days.toNumber(), "days")
-      .toDate();
+
+    return Number(days.toNumber());
+  }
+
+  public static getSomeDaysAgo(days: PositiveNumber | number): Date {
+    return this.addRemoveDurationInDays(
+      this.getCurrentMomentDate().toDate(),
+      -this.toDayCount(days),
+    );
   }
 
   public static getSomeDaysAgoFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date)
-      .add(-1 * days.toNumber(), "days")
-      .toDate();
+    return this.addRemoveDurationInDays(date, -this.toDayCount(days));
   }
 
   public static getSomeDaysAfterFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date).add(Number(days.toNumber()), "days").toDate();
+    return this.addRemoveDurationInDays(date, this.toDayCount(days));
   }
 
   public static getSomeDaysBeforeFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date)
-      .add(-1 * Number(days.toNumber()), "days")
-      .toDate();
+    return this.addRemoveDurationInDays(date, -this.toDayCount(days));
   }
 
   public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
@@ -2108,12 +2115,12 @@ export default class OneUptimeDate {
     return this.getCurrentMomentDate().add(hours.toNumber(), "hours").toDate();
   }
 
+  // A length of time, as the rest of the family (see getSomeDaysAgo).
   public static getSomeDaysAfter(days: PositiveNumber | number): Date {
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-
-    return this.getCurrentMomentDate().add(days.toNumber(), "days").toDate();
+    return this.addRemoveDurationInDays(
+      this.getCurrentMomentDate().toDate(),
+      this.toDayCount(days),
+    );
   }
 
   public static secondsToFormattedTimeString(seconds: number): string {
@@ -2239,15 +2246,19 @@ export default class OneUptimeDate {
     return duration.asSeconds();
   }
 
+  /*
+   * `days` days on, on the runtime's own calendar: the same wall clock on a
+   * later day, 23 or 25 hours on where its clocks change. Unlike the rest
+   * of the getSomeDays family, which steps lengths of time (getSomeDaysAgo),
+   * this walks calendar days: DayUptimeGraphUtil walks a strip with no zone
+   * a bar a day with it, and 24 hours on from a minute past midnight is the
+   * same day again where the clocks go back.
+   */
   public static getSomeDaysAfterDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-
-    return moment(date).add(days.toNumber(), "days").toDate();
+    return moment(date).add(this.toDayCount(days), "days").toDate();
   }
 
   public static getSomeSecondsAfter(seconds: PositiveNumber | number): Date {

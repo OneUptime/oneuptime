@@ -1,5 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -15,8 +16,10 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import MeasurementBackfillProgress, {
+  isExactTimestampOf,
   MeasurementBackfillCursor,
   MeasurementBackfillProgressWrite,
+  MeasurementBackfillStoredCursor,
 } from "Common/Server/Utils/Measurement/MeasurementBackfillProgress";
 import MeasurementBackfillPage, {
   MeasurementBackfillPageAfter,
@@ -49,7 +52,9 @@ import MeasurementBackfillPage, {
  *      alone, read from inclusively (#8171): when more than a page of
  *      entities shared one - every row one transaction inserts gets the
  *      same now() - each page was the same page, and the walk stalled there
- *      for good, the measurement never finished.
+ *      for good, the measurement never finished. Its createdAt is kept to
+ *      the microsecond, as Postgres keeps the entity's (#8388), so it places
+ *      the next page exactly even once its entity is deleted for good.
  *
  * And one keeps it right when a measurement is edited while it is walked:
  * every write of a walk - each page's cursor and the completion stamp - is
@@ -66,6 +71,14 @@ const PAGE_SIZE: number = 500;
 // Bounds one project's share of a tick so a large project cannot starve others.
 const MAX_PAGES_PER_RUN: number = 10;
 
+// How a walk ended this tick, or a domain's walks.
+enum WalkEnd {
+  // Finished, stopped at the per-run page cap, refused (asked for again) or failed.
+  Done = "Done",
+  // Stopped at the tick's deadline, with what it got to saved (#8172).
+  AtDeadline = "AtDeadline",
+}
+
 interface MeasurementBackfillState {
   _id?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
@@ -78,6 +91,14 @@ interface MeasurementBackfillState {
 interface DomainBackfill {
   domain: string;
   findMeasurements: () => Promise<Array<MeasurementBackfillState>>;
+  /*
+   * The cursors these measurements hold, each createdAt to the microsecond
+   * (MeasurementBackfillProgress.readExactCursors): findMeasurements reads
+   * it through TypeORM, to the millisecond.
+   */
+  readExactCursors: (
+    measurementIds: Array<ObjectID>,
+  ) => Promise<Map<string, MeasurementBackfillStoredCursor>>;
   /*
    * Writes how far a walk got, while the measurement's request is still the
    * one the walk began from: false when it was asked for again (or removed)
@@ -92,12 +113,31 @@ interface DomainBackfill {
   recompute: (entityId: ObjectID) => Promise<void>;
 }
 
+/*
+ * One tick, until its deadline: its time limit, or its lock lost (RunCron,
+ * CronLock). It used to take none (#8172): a tick with many measurements to
+ * work out - after FirstPagedAt or RewriteMeasurementPointsInTheirUnit asked
+ * for every one again - ran far past its five minutes, went on walking after
+ * CronLock gave its lock back, and the next tick walked the same
+ * measurements beside it. Now it stops at the next measurement, page or
+ * entity once the deadline passes, the cursor saved where it got to, and the
+ * next tick carries on from there.
+ */
 RunCron(
   "Measurement:Backfill",
   { schedule: EVERY_FIVE_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     for (const domain of buildDomains()) {
-      await runDomain(domain);
+      if (
+        deadline.hasPassed() ||
+        (await runDomain({ domain: domain, deadline: deadline })) ===
+          WalkEnd.AtDeadline
+      ) {
+        logger.info(
+          `Measurement:Backfill stopped at its deadline (its time limit ran out, or it lost its lock) before it had worked out every measurement asked for; the next run carries on from where each walk got to.`,
+        );
+        return;
+      }
     }
   },
 );
@@ -153,6 +193,14 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
+      readExactCursors: async (
+        measurementIds: Array<ObjectID>,
+      ): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+        return await MeasurementBackfillProgress.readExactCursors({
+          service: IncidentMeasurementService,
+          measurementIds: measurementIds,
+        });
+      },
       saveProgress: async (
         data: MeasurementBackfillProgressWrite,
       ): Promise<boolean> => {
@@ -196,6 +244,14 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           skip: 0,
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
+      },
+      readExactCursors: async (
+        measurementIds: Array<ObjectID>,
+      ): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+        return await MeasurementBackfillProgress.readExactCursors({
+          service: AlertMeasurementService,
+          measurementIds: measurementIds,
+        });
       },
       saveProgress: async (
         data: MeasurementBackfillProgressWrite,
@@ -241,6 +297,14 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
           props: { isRoot: true },
         })) as unknown as Array<MeasurementBackfillState>;
       },
+      readExactCursors: async (
+        measurementIds: Array<ObjectID>,
+      ): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+        return await MeasurementBackfillProgress.readExactCursors({
+          service: ScheduledMaintenanceMeasurementService,
+          measurementIds: measurementIds,
+        });
+      },
       saveProgress: async (
         data: MeasurementBackfillProgressWrite,
       ): Promise<boolean> => {
@@ -269,60 +333,151 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
   ];
 };
 
-type RunDomainFunction = (domain: DomainBackfill) => Promise<void>;
+type RunDomainFunction = (data: {
+  domain: DomainBackfill;
+  deadline: JobDeadline;
+}) => Promise<WalkEnd>;
 
-const runDomain: RunDomainFunction = async (
-  domain: DomainBackfill,
-): Promise<void> => {
+// Walks a domain's measurements still to backfill, one after the other, until the deadline.
+const runDomain: RunDomainFunction = async (data: {
+  domain: DomainBackfill;
+  deadline: JobDeadline;
+}): Promise<WalkEnd> => {
+  const { domain, deadline } = data;
+
   try {
-    const measurements: Array<MeasurementBackfillState> =
-      await domain.findMeasurements();
+    const measurements: Array<MeasurementBackfillState> = (
+      await domain.findMeasurements()
+    ).filter(isStillToWalk);
+
+    const exactCursors: Map<string, MeasurementBackfillStoredCursor> =
+      await readExactCursorsOf({
+        domain: domain,
+        measurements: measurements,
+      });
 
     for (const measurement of measurements) {
-      /*
-       * A row read without its request has nothing to hold the walk's
-       * writes to: written anyway, they could land over an edit's.
-       */
-      if (
-        !measurement._id ||
-        !measurement.projectId ||
-        !measurement.backfillRequestedAt
-      ) {
-        continue;
+      if (deadline.hasPassed()) {
+        return WalkEnd.AtDeadline;
       }
 
-      /*
-       * A definition edited mid-backfill re-stamps backfillRequestedAt and
-       * clears the cursor, so comparing the two is what stops a finished run
-       * from being redone on every tick while still catching a re-request.
-       */
-      if (
-        measurement.backfillCompletedAt &&
-        measurement.backfillRequestedAt &&
-        OneUptimeDate.fromString(measurement.backfillCompletedAt).getTime() >=
-          OneUptimeDate.fromString(measurement.backfillRequestedAt).getTime()
-      ) {
-        continue;
-      }
+      const end: WalkEnd = await runMeasurement({
+        domain: domain,
+        measurement: measurement,
+        // Keyed by the id as Postgres writes a uuid: lowercase.
+        storedCursor: exactCursors.get(
+          measurement._id!.toString().toLowerCase(),
+        ),
+        deadline: deadline,
+      });
 
-      await runMeasurement({ domain: domain, measurement: measurement });
+      if (end === WalkEnd.AtDeadline) {
+        return WalkEnd.AtDeadline;
+      }
     }
   } catch (err) {
     logger.error(`Measurement:Backfill failed for ${domain.domain}`);
     logger.error(err);
+  }
+
+  return WalkEnd.Done;
+};
+
+type IsStillToWalkFunction = (measurement: MeasurementBackfillState) => boolean;
+
+const isStillToWalk: IsStillToWalkFunction = (
+  measurement: MeasurementBackfillState,
+): boolean => {
+  /*
+   * A row read without its request has nothing to hold the walk's writes
+   * to: written anyway, they could land over an edit's.
+   */
+  if (
+    !measurement._id ||
+    !measurement.projectId ||
+    !measurement.backfillRequestedAt
+  ) {
+    return false;
+  }
+
+  /*
+   * A definition edited mid-backfill re-stamps backfillRequestedAt and
+   * clears the cursor, so comparing the two is what stops a finished run
+   * from being redone on every tick while still catching a re-request.
+   */
+  return !(
+    measurement.backfillCompletedAt &&
+    OneUptimeDate.fromString(measurement.backfillCompletedAt).getTime() >=
+      OneUptimeDate.fromString(measurement.backfillRequestedAt).getTime()
+  );
+};
+
+type ReadExactCursorsOfFunction = (data: {
+  domain: DomainBackfill;
+  measurements: Array<MeasurementBackfillState>;
+}) => Promise<Map<string, MeasurementBackfillStoredCursor>>;
+
+/*
+ * The cursors of the measurements to walk, to the microsecond (#8388), in
+ * one read: only those holding a cursor with both its columns. Should the
+ * read fail, each walk goes on from its cursor as findMeasurements read it,
+ * to the millisecond, as it did before: a few records read again at worst,
+ * never a walk left undone.
+ */
+const readExactCursorsOf: ReadExactCursorsOfFunction = async (data: {
+  domain: DomainBackfill;
+  measurements: Array<MeasurementBackfillState>;
+}): Promise<Map<string, MeasurementBackfillStoredCursor>> => {
+  const measurementIds: Array<ObjectID> = data.measurements
+    .filter((measurement: MeasurementBackfillState): boolean => {
+      return Boolean(
+        measurement.backfillCursorCreatedAt && measurement.backfillCursorId,
+      );
+    })
+    .map((measurement: MeasurementBackfillState): ObjectID => {
+      return measurement._id!;
+    });
+
+  if (measurementIds.length === 0) {
+    return new Map<string, MeasurementBackfillStoredCursor>();
+  }
+
+  try {
+    return await data.domain.readExactCursors(measurementIds);
+  } catch (err) {
+    logger.warn(
+      `Measurement:Backfill could not read the ${data.domain.domain} measurements' cursors to the microsecond; their walks go on from the cursors to the millisecond`,
+    );
+    logger.warn(err);
+
+    return new Map<string, MeasurementBackfillStoredCursor>();
   }
 };
 
 type RunMeasurementFunction = (data: {
   domain: DomainBackfill;
   measurement: MeasurementBackfillState;
-}) => Promise<void>;
+  storedCursor?: MeasurementBackfillStoredCursor | undefined;
+  deadline: JobDeadline;
+}) => Promise<WalkEnd>;
 
+/*
+ * One measurement's walk for this tick: page after page, up to the per-run
+ * cap, until its deadline. A deadline that passes between pages stops the
+ * walk before the next page is read; one that passes in the middle of a
+ * page stops it before the next entity, and the walk saves where it got to
+ * - the last entity it worked out, held to the request like every write -
+ * so the next tick goes on right after it, neither working any entity out
+ * again nor passing one over. An entity being worked out when the deadline
+ * passes is finished first: work in flight is not cut off half way.
+ */
 const runMeasurement: RunMeasurementFunction = async (data: {
   domain: DomainBackfill;
   measurement: MeasurementBackfillState;
-}): Promise<void> => {
-  const { domain, measurement } = data;
+  storedCursor?: MeasurementBackfillStoredCursor | undefined;
+  deadline: JobDeadline;
+}): Promise<WalkEnd> => {
+  const { domain, measurement, deadline } = data;
 
   /*
    * The request this walk is for, as it was read. Every write below is held
@@ -340,24 +495,54 @@ const runMeasurement: RunMeasurementFunction = async (data: {
    */
   let cursor: MeasurementBackfillPageAfter | undefined =
     measurement.backfillCursorCreatedAt
-      ? {
+      ? getStartingCursor({
           createdAt: OneUptimeDate.fromString(
             measurement.backfillCursorCreatedAt,
           ),
           id: measurement.backfillCursorId
             ? new ObjectID(measurement.backfillCursorId.toString())
             : undefined,
-        }
+          stored: data.storedCursor,
+        })
       : undefined;
 
   for (let page: number = 0; page < MAX_PAGES_PER_RUN; page++) {
+    // Past the deadline, no page is read: the cursor saved stands.
+    if (deadline.hasPassed()) {
+      return WalkEnd.AtDeadline;
+    }
+
     const entities: Array<MeasurementBackfillCursor> =
       await domain.findEntities({
         projectId: measurement.projectId!,
         after: cursor,
       });
 
+    // The last entity of this page worked out so far.
+    let workedOut: MeasurementBackfillCursor | undefined = undefined;
+
     for (const entity of entities) {
+      if (deadline.hasPassed()) {
+        /*
+         * Where the walk got to in the page, so the next tick goes on right
+         * after it. Nothing worked out on this page yet: the cursor saved
+         * after the page before stands.
+         */
+        if (workedOut) {
+          const isSaved: boolean = await domain.saveProgress({
+            measurementId: measurement._id!,
+            requestedAt: requestedAt,
+            cursor: workedOut,
+          });
+
+          if (!isSaved) {
+            logAskedForAgain({ domain: domain, measurement: measurement });
+          }
+        }
+
+        return WalkEnd.AtDeadline;
+      }
+
       try {
         await domain.recompute(entity.id);
       } catch (err) {
@@ -367,13 +552,18 @@ const runMeasurement: RunMeasurementFunction = async (data: {
          */
         logger.error(err);
       }
+
+      workedOut = entity;
     }
 
     // The last entity of the page: where the next page starts.
     const last: MeasurementBackfillCursor | undefined =
       entities[entities.length - 1];
 
-    // A page short of full is the end of the project.
+    /*
+     * A page short of full is the end of the project: its completion is
+     * written even past the deadline, since the page is worked out.
+     */
     if (!last || entities.length < PAGE_SIZE) {
       const isCompleted: boolean = await domain.saveProgress({
         measurementId: measurement._id!,
@@ -386,7 +576,7 @@ const runMeasurement: RunMeasurementFunction = async (data: {
         logAskedForAgain({ domain: domain, measurement: measurement });
       }
 
-      return;
+      return WalkEnd.Done;
     }
 
     /*
@@ -405,9 +595,45 @@ const runMeasurement: RunMeasurementFunction = async (data: {
 
     if (!isSaved) {
       logAskedForAgain({ domain: domain, measurement: measurement });
-      return;
+      return WalkEnd.Done;
     }
   }
+
+  // The per-run page cap: the next tick goes on from the cursor saved.
+  return WalkEnd.Done;
+};
+
+type GetStartingCursorFunction = (data: {
+  createdAt: Date;
+  id?: ObjectID | undefined;
+  stored?: MeasurementBackfillStoredCursor | undefined;
+}) => MeasurementBackfillPageAfter;
+
+/*
+ * The cursor a walk starts after, as findMeasurements read it, with its
+ * createdAt to the microsecond when the cursor read so (readExactCursors) is
+ * that same cursor: the same entity, the same millisecond. Another - the
+ * cursor moved on or was cleared between the two reads - is not mixed in:
+ * one entity's createdAt with another's id would start the walk in the
+ * wrong place. The walk then goes on from the millisecond, as before #8388.
+ */
+const getStartingCursor: GetStartingCursorFunction = (data: {
+  createdAt: Date;
+  id?: ObjectID | undefined;
+  stored?: MeasurementBackfillStoredCursor | undefined;
+}): MeasurementBackfillPageAfter => {
+  const isSameCursor: boolean = Boolean(
+    data.id &&
+      data.stored &&
+      data.stored.id === data.id.toString().toLowerCase() &&
+      isExactTimestampOf(data.stored.exactCreatedAt, data.createdAt),
+  );
+
+  return {
+    createdAt: data.createdAt,
+    exactCreatedAt: isSameCursor ? data.stored!.exactCreatedAt : undefined,
+    id: data.id,
+  };
 };
 
 type LogAskedForAgainFunction = (data: {

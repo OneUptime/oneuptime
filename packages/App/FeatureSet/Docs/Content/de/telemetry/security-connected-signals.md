@@ -87,7 +87,7 @@ Unter den Datensätzen durchsucht Verbundene Signale Ihre Protokolle und Traces 
 
 ## Wer was sieht
 
-- Verbundene Signale und die Karte **Sicherheit** eines Datensatzes erfordern eine Rolle, die Sicherheitsereignisse lesen darf: Security Admin, Security Member, Security Viewer, Project Owner oder Project Admin. Alle anderen sehen auf keiner Seite Sicherheitsdaten. Siehe [Rollen](/docs/permissions/reference#rollen).
+- Verbundene Signale und die Karte **Sicherheit** eines Datensatzes erfordern eine Rolle, die Sicherheitsereignisse lesen darf: Sicherheits-Administrator, Sicherheits-Mitglied, Sicherheits-Betrachter, Projektinhaber oder Projektadministrator. Alle anderen sehen auf keiner Seite Sicherheitsdaten. Siehe [Rollen](/docs/permissions/reference#rollen).
 - Die Karte **Sicherheit** eines Vorfalls erfordert eine Rolle, die Sicherheitsfälle lesen darf.
 - Jeder Datensatz wird mit Ihrer eigenen Rolle gelesen, und ebenso, was darauf ist: Eine Rolle, die keine Bereitschaftspläne lesen darf, sieht die eines Mitglieds nicht. Eine Art von Datensatz, die Ihre Rolle nicht lesen darf, wird weggelassen, und die Seite sagt das; eine, die gerade nicht gelesen werden konnte, sagt das ebenfalls, mit **Erneut versuchen**.
 - Die Seite eines Datensatzes zeigt ihre Karte **Sicherheit** nur in einem Projekt, das Sicherheitsereignisse nutzt: einem, das in den letzten 7 Tagen ein Sicherheitsereignis erhalten hat.
@@ -123,7 +123,7 @@ Die Karte erscheint für einen Monitor, der einen Host, eine Adresse oder eine U
 :::
 
 :::details Die Seite sagt, dass Ihre Rolle eine Art von Datensatz nicht sehen kann
-Jeder Datensatz wird mit Ihrer eigenen Rolle gelesen. Bitten Sie einen Project Owner oder Project Admin um eine Rolle, die diese Art von Datensatz lesen darf.
+Jeder Datensatz wird mit Ihrer eigenen Rolle gelesen. Bitten Sie einen Projektinhaber oder Projektadministrator um eine Rolle, die diese Art von Datensatz lesen darf.
 :::
 
 ## Nächste Schritte

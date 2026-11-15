@@ -16,7 +16,7 @@ OneUptime AI は、インシデントやアラートを調査・修正する間�
 - プロジェクトで **OneUptime AI がオン** になっていて、使える LLM プロバイダーがあること: [LLM プロバイダー](/docs/ai/llm-provider) を参照してください。
 - **サーバーの MCP アドレス。** Streamable HTTP と、以前からある SSE 付きの HTTP のどちらにも対応しています。サーバーがどちらを話すかは、OneUptime が接続時に判断します。
 - **OneUptime のサインイン方法:** API トークン、サーバー独自のヘッダー、または ID プロバイダーの OAuth クライアント資格情報。
-- **Project Owner または Project Admin** がサーバーを追加・変更・テスト・削除します。Project Members と Viewers は閲覧できます。OneUptime Cloud では、サーバーの追加に Growth プラン以上が必要です。
+- **Project Owner または Project Admin** がサーバーを追加・変更・テスト・削除します。プロジェクトメンバーと閲覧者は閲覧できます。OneUptime Cloud では、サーバーの追加に Growth プラン以上が必要です。
 
 ## サーバーを追加する
 

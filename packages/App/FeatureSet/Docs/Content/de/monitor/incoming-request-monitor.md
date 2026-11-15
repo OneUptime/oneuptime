@@ -14,6 +14,7 @@ Beide verwenden denselben Monitortyp. Was sie unterscheidet, sind die Kriterien,
 - [Einen Heartbeat senden](#einen-heartbeat-senden): Aus curl, Cron, Node.js, Python oder Go.
 - [Alarmieren, wenn Aufrufe ausbleiben](#als-offline-markieren-wenn-10-minuten-kein-heartbeat-kommt-ein-totmannschalter): Den Monitor zu einem Totmannschalter machen.
 - [Warnungen empfangen](#warnungen-aus-einem-anderen-system-empfangen): Ein Vorfall pro Alertmanager- oder Grafana-Warnung.
+- [SNS oder Event Grid abonnieren](#amazon-sns-oder-azure-event-grid-abonnieren): Das Abonnement mit einem Klick bestätigen.
 :::
 
 ## So funktioniert es
@@ -77,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Ersetzen Sie `https://oneuptime.com` durch die URL Ihrer OneUptime-Instanz, wenn Sie selbst hosten.
 
-Senden Sie **GET**- oder **POST**-Anfragen an diese URL. HEAD wird angenommen und wie GET behandelt; PUT, PATCH und DELETE liefern 404. Der geheime Schlüssel im Pfad ist der einzige Berechtigungsnachweis — kein Header und kein Token ist nötig. Query-Strings werden ignoriert: Senden Sie, was Kriterien lesen sollen, im Body oder in den Headern.
+Senden Sie **GET**- oder **POST**-Anfragen an diese URL. HEAD wird angenommen und wie GET behandelt; PUT, PATCH und DELETE liefern 404. Der geheime Schlüssel im Pfad ist der Berechtigungsnachweis: Kein Header und kein Token ist nötig, es sei denn, das Projekt [verlangt bei jeder Anfrage ein Geheimnis](#bei-jeder-anfrage-ein-geheimnis-verlangen). Query-Strings werden ignoriert: Senden Sie, was Kriterien lesen sollen, im Body oder in den Headern.
 
 > [!WARNING]
 > Jeder, der diese URL kennt, kann den Monitor als gesund markieren, behandeln Sie sie also als Geheimnis. Wird sie bekannt, öffnen Sie die Seite **Einstellungen** des Monitors und klicken Sie auf **Geheimen Schlüssel für eingehende Anfragen zurücksetzen**, und aktualisieren Sie dann jeden Absender. Die Übersicht des Monitors zeigt die letzte Anfrage so, wie seine Protokolle sie behalten: mit maskierten Geheimnissen und personenbezogenen Daten, und ohne Header und Body, wenn **Anfrageinhalt behalten** ausgeschaltet ist. Die Maskierung erkennt nur die Namen und Muster, die sie kennt — senden Sie an diesen Endpunkt also keine API-Schlüssel oder Tokens.
 
 > [!IMPORTANT]
-> OneUptime antwortet sofort mit `200` und einem leeren JSON-Objekt (`{}`) und verarbeitet die Anfrage über eine Warteschlange. Diese Antwort wird geschrieben, bevor irgendeine Prüfung stattfindet, ein `200` ist also **keine** Bestätigung, dass die Anfrage angenommen wurde — ein falscher geheimer Schlüssel, ein gelöschter Monitor und ein deaktivierter Monitor liefern ebenfalls `200`. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen.
+> OneUptime antwortet sofort mit `200` und einem leeren JSON-Objekt (`{}`) und verarbeitet die Anfrage über eine Warteschlange. Diese Antwort wird geschrieben, bevor irgendeine Prüfung stattfindet, ein `200` ist also **keine** Bestätigung, dass die Anfrage angenommen wurde — ein falscher geheimer Schlüssel, ein gelöschter Monitor und ein deaktivierter Monitor liefern ebenfalls `200`. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen. Die einzige Ausnahme ist ein Projekt, das bei jeder Anfrage ein Geheimnis verlangt: Eine Anfrage ohne Geheimnis wird mit `401` beantwortet.
 
 ### Einen Anfragetext senden
 
@@ -93,6 +94,7 @@ Wenn Sie Felder im Body ansprechen wollen — `{{requestBody.status}}` in einem 
 | --- | --- |
 | `application/json` | Das geparste JSON. |
 | `application/x-www-form-urlencoded` | Das geparste Formular. Schlüssel in eckigen Klammern werden verschachtelt (`alerts[0][status]=firing`), und jeder Wert ist eine Zeichenkette. |
+| `text/plain` | Das geparste JSON, wenn der Text ein JSON-Objekt oder -Array ist: So sendet Amazon SNS seine Nachrichten. Jeder andere Text ergibt einen leeren Body. |
 | Alles andere oder keiner | Ein leerer Body (`{}`), jeder Verweis auf `requestBody` ergibt also nichts. |
 
 Bodys bis 50 MB werden angenommen; ein größerer wird mit `413` abgelehnt. Komprimieren Sie den Body nicht mit `Content-Encoding: gzip`: Er wird dann nicht als JSON gespeichert, und Pfade darin werden nicht aufgelöst.
@@ -186,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Bei jeder Anfrage ein Geheimnis verlangen
+
+Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder -administrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
+
+:::steps
+### Ein Geheimnis erstellen
+
+Gehen Sie zu **Monitore → Einstellungen → Geheimnisse für eingehende Anfragen** und erstellen Sie ein Geheimnis. Geben Sie ihm einen Namen, OneUptime generiert den Wert; kopieren Sie ihn aus der Liste.
+
+### Es von jedem Absender senden
+
+Senden Sie das Geheimnis im Header `X-OneUptime-Secret` oder als Bearer-Token im Header `Authorization`, je nachdem, was Ihr Absender setzen kann.
+
+### Die Anforderung aktivieren
+
+Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Solange das Projekt kein Geheimnis hat, lässt sich die Anforderung nicht aktivieren, sodass kein Absender versehentlich abgelehnt wird.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime speichert das Geheimnis nie: Es entfernt den Header aus der Anfrage und maskiert ein Bearer-Token, das eines der Geheimnisse des Projekts ist, bevor es etwas speichert.
+
+> [!TIP]
+> Um ein Geheimnis zu ersetzen, ohne jemanden abzulehnen, erstellen Sie ein zweites, stellen Ihre Absender darauf um und löschen das alte, sobald sich sein Wert unter **Zuletzt verwendet** nicht mehr ändert. Jedes Geheimnis des Projekts wird angenommen, und das letzte lässt sich nicht löschen, solange die Anforderung aktiv ist.
 
 ## Überwachungskriterien
 
@@ -345,6 +379,40 @@ Die ganze Nutzlast steht daneben zur Verfügung, ein Vorfalltitel `{{alertname}}
 
 Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Für Grafana siehe [Grafana](/docs/integrations/grafana).
 
+## Amazon SNS oder Azure Event Grid abonnieren
+
+Amazon SNS und Azure Event Grid senden an einen neuen Endpunkt nichts, bis jemand das Abonnement bestätigt, indem er einen Link öffnet, den der Dienst an den Endpunkt sendet. Trifft diese Anfrage ein, zeigt die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors, worauf der Dienst wartet, das Thema und eine Schaltfläche, die den Link in einem neuen Tab öffnet.
+
+| Dienst | Die Anfrage | Schaltfläche | Gültigkeit des Links |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, für ein neues HTTPS-Abonnement | **Abonnement bestätigen** | Zwei Tage |
+| Amazon SNS | `UnsubscribeConfirmation`, wenn das Abonnement gelöscht wird | **Abonnement wiederherstellen** | Zwei Tage |
+| Azure Event Grid | `SubscriptionValidationEvent`, für ein neues Ereignisabonnement mit Webhook | **Abonnement validieren** | 10 Minuten |
+
+Die Schaltfläche bleibt, bis die nächste Anfrage des Monitors eintrifft, auch nachdem Sie den Link geöffnet haben. Ist die Zeit des Links abgelaufen, sagt die Karte stattdessen, wie Sie einen neuen bekommen. Sind seitdem neuere Anfragen eingetroffen, öffnen Sie **Überwachungsprotokolle** und klicken Sie in der Zeile der Anfrage auf **Zusammenfassung anzeigen**.
+
+Der Link und das Token darin bleiben unmaskiert, wo immer die Anfrage gespeichert wird: in ihren Details, ihren Protokollen und den Vorfällen und Warnungen, die sie eröffnet. Der Link kann nichts anderes, als Zustellungen an diesen Monitor zu starten. Nur ein Link auf die eigene Adresse des Dienstes zählt: Jeder andere wird wie üblich maskiert und bekommt keine Schaltfläche.
+
+### Amazon SNS
+
+:::steps
+1. Öffnen Sie in der Konsole von Amazon SNS das Thema und wählen Sie **Create subscription**. Wählen Sie `HTTPS` als Protokoll und fügen Sie die **Heartbeat-URL** des Monitors als Endpunkt ein.
+2. Öffnen Sie die **Übersicht** des Monitors und klicken Sie in der Karte **Monitor-Zusammenfassung** auf **Abonnement bestätigen**. In der SNS-Konsole steht das Abonnement dann nicht mehr auf **Pending confirmation**, sondern ist bestätigt.
+:::
+
+SNS sendet seine Nachrichten als JSON mit der Kennzeichnung `text/plain`, und der Monitor liest sie als JSON, sodass Kriterien, Vorlagen und die Vorfallgruppierung ihre Felder nutzen können, etwa `{{requestBody.Subject}}` und `{{requestBody.Message}}`. Das eigene JSON einer Benachrichtigung, etwa das eines CloudWatch-Alarms, kommt als Text in `Message` an.
+
+Sagt die Karte, dass sich der Link nicht mehr öffnen lässt, markieren Sie das Abonnement in der SNS-Konsole und wählen Sie **Request confirmation**. SNS löscht ein Abonnement, das nicht innerhalb von 48 Stunden bestätigt wird; legen Sie das Abonnement in diesem Fall erneut an.
+
+### Azure Event Grid
+
+:::steps
+1. Öffnen Sie im Azure-Portal die Ressource, deren Ereignisse Sie erhalten wollen, und fügen Sie ein Ereignisabonnement hinzu. Wählen Sie **Event Grid Schema** als Ereignisschema, **Web Hook** als Endpunkttyp und die **Heartbeat-URL** des Monitors als Endpunkt.
+2. Öffnen Sie innerhalb von 10 Minuten die **Übersicht** des Monitors und klicken Sie in der Karte **Monitor-Zusammenfassung** auf **Abonnement validieren**.
+:::
+
+Event Grid validiert einen Endpunkt, der ihm einen Code zurückschickt oder dessen Besitzer den Link öffnet, den Event Grid sendet. OneUptime beantwortet jede Anfrage mit einem leeren `200`, also führt der Weg über den Link. Der Link zeigt auf Event Grid an Port 553, den eine Firewall vor Ihrem Browser zulassen muss. Vergehen vorher 10 Minuten, schlägt das Ereignisabonnement fehl: Legen Sie es neu an.
+
 ## Bewährte Vorgehensweisen
 
 1. **Das Zeitfenster passend setzen** — Läuft Ihr Cronjob alle 5 Minuten, setzen Sie die Schwelle "Nicht empfangen in Minuten" auf 10–15 Minuten, um gelegentliche Verzögerungen aufzufangen, und setzen Sie dieses Kriterium an den Anfang.
@@ -359,16 +427,24 @@ Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alert
 Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht, dass die Anfrage angenommen wurde. Prüfen Sie, ob der geheime Schlüssel in der URL zur **Heartbeat-URL** des Monitors passt und ob der Monitor nicht deaktiviert ist. Sehen Sie dann in der Zeitleiste des Monitors nach, ob Anfragen ankommen.
 :::
 
+:::details Mein Absender bekommt 401
+Das Projekt verlangt bei jeder Anfrage ein Geheimnis, und die Anfrage hat keines gesendet oder eines, das nicht zum Projekt gehört: Die Antwort sagt, was davon zutrifft. Senden Sie eines der Geheimnisse des Projekts im Header `X-OneUptime-Secret` oder als Bearer-Token, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt. Eine abgelehnte Anfrage erreicht den Monitor nie.
+:::
+
 :::details Der Monitor geht nie offline, wenn die Heartbeats ausbleiben
 Nur ein Kriterium **Eingehende Anfrage** (**Nicht empfangen in Minuten**) bemerkt Stille. Fügen Sie eines hinzu, falls keines da ist, und ziehen Sie es über die Standardkriterien: Das Online-Standardkriterium trifft bei jeder Prüfung im Hintergrund auf die letzte Anfrage zu, und das erste Kriterium, das zutrifft, entscheidet.
 :::
 
 :::details Ein Filter Anfragetext trifft nie zu
-Senden Sie `Content-Type: application/json` und schreiben Sie den Wert als kompaktes JSON — `"status":"firing"`, ohne Leerzeichen nach dem Doppelpunkt. Ohne JSON- oder Formular-Content-Type wird der Body nicht geparst.
+Senden Sie `Content-Type: application/json` und schreiben Sie den Wert als kompaktes JSON — `"status":"firing"`, ohne Leerzeichen nach dem Doppelpunkt. Ohne JSON- oder Formular-Content-Type wird der Body nicht geparst, mit Ausnahme von JSON, das als `text/plain` gesendet wird.
 :::
 
 :::details Ein Filter Anfrage-Header trifft nie zu
 Header-Namen und -Werte werden als Ganzes verglichen. Geben Sie den vollständigen Wert an, etwa `application/json; charset=utf-8`, statt eines Teils davon.
+:::
+
+:::details Amazon SNS meldet, dass das Abonnement auf Bestätigung wartet
+Klicken Sie in der Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors auf **Abonnement bestätigen**. Sind seitdem neuere Anfragen eingetroffen, öffnen Sie **Überwachungsprotokolle** und klicken Sie in der Zeile der Bestätigung auf **Zusammenfassung anzeigen**. Ist **Anfrageinhalt behalten** ausgeschaltet, behält der Monitor keinen Body und damit auch keinen Link: Schalten Sie es in den **Einstellungen** des Monitors ein, dann wird die letzte Anfrage wieder mit ihrem Link angezeigt.
 :::
 
 :::details Der Absender bekommt 500

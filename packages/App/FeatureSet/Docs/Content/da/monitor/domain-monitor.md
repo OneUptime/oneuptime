@@ -32,7 +32,7 @@ Internationaliserede domænenavne accepteres i begge former: `münchen.de` konve
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **Udgående adgang fra sonden** til registrene. Dit projekts standardsonder vælges for hver ny monitor; en [brugerdefineret sonde](/docs/probe/custom-probe) skal kunne nå:
 
 | Destination | Protokol | Bruges til |

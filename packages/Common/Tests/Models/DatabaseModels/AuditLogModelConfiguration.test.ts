@@ -49,6 +49,13 @@ const SLO_WORKER_COLUMNS: Array<string> = [
   "errorBudgetRemainingPercentage",
   "errorBudgetRemainingSeconds",
   "errorBudgetTotalSeconds",
+  // A request SLO's counts and budget in requests, and its counting cursors.
+  "goodEventCount",
+  "totalEventCount",
+  "errorBudgetTotalEvents",
+  "errorBudgetRemainingEvents",
+  "firstAccumulatedBucketStartAt",
+  "eventAccumulationFingerprint",
   "currentBurnRate",
   "sloStatus",
   "statusChangeNotificationSentAt",

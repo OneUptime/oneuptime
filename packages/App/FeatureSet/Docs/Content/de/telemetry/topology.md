@@ -28,7 +28,7 @@ flowchart LR
 ## Bevor Sie beginnen
 
 - **Telemetrie, die ankommt.** Die Dienstkarte braucht Traces: siehe [OpenTelemetry](/docs/telemetry/open-telemetry). Die Infrastrukturansicht braucht einen Host oder einen Cluster, der meldet: siehe den [Kubernetes-Agent](/docs/telemetry/kubernetes-agent). Die Netzwerkansicht braucht Netzwerkgeräte: siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor).
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Inventory Item.
+- **Eine Rolle, die Telemetrie lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied oder Telemetrie-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Inventory Item.
 
 ## Die Topologie öffnen
 

@@ -3,7 +3,11 @@ import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import { getSloFormFields, SLO_CREATE_INITIAL_VALUES } from "./SloFormFields";
+import {
+  getSloFormFields,
+  SLO_CREATE_FORM_STEPS,
+  SLO_CREATE_INITIAL_VALUES,
+} from "./SloFormFields";
 import SloStatusPill from "../../Components/Slo/SloStatusPill";
 import SloStatusSummaryCards from "../../Components/Slo/SloStatusSummaryCards";
 import {
@@ -71,7 +75,7 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 const documentationMarkdown: string = `
 ### How SLOs and Error Budgets Work
 
-A **Service Level Objective (SLO)** is a reliability target — for example "99.9% uptime over a rolling 30 days". OneUptime measures the **Service Level Indicator (SLI)** from the status timelines of the monitors the SLO measures, and compares it to your target.
+A **Service Level Objective (SLO)** is a reliability target — for example "99.9% uptime over a rolling 30 days", or "99% of checkout requests served in under 300 ms". OneUptime measures the **Service Level Indicator (SLI)** from the status timelines of the monitors the SLO measures, or from the traces of the services whose requests it measures, and compares it to your target.
 
 - **Error budget** is the amount of downtime your target allows. At 99.9% over 30 days that is about 43 minutes. Every minute of downtime spends budget; when the budget runs out, the SLO is breached.
 - **Burn rate** tells you how fast the budget is being spent. A burn rate of 1 spends the budget exactly over the window; a burn rate of 14 exhausts it in about 2 days on a 30-day window.
@@ -82,7 +86,15 @@ The tiles above the list count your SLOs by status. Click one to filter the list
 
 ### Choosing What an SLO Measures
 
-After you create an SLO, open it to choose its monitors. An SLO with no monitors shows **Misconfigured** until it has at least one.
+The create form asks what the SLO measures first:
+
+- **Monitor uptime** — the share of time its monitors are up. After you create the SLO, open it to choose its monitors. An SLO with no monitors shows **Misconfigured** until it has at least one.
+- **Request success** — the share of its services' requests that do not fail, counted from their traces.
+- **Request latency** — the share of its services' requests served within a latency threshold you set, such as 300 ms.
+
+A request SLO's error budget is counted in requests: at 99.9%, one bad request in every 1,000 is allowed. Change what an SLO measures on its **Settings** page.
+
+For a Monitor uptime SLO:
 
 - **Monitors** — attach monitors by hand from the SLO's **Monitors** page.
 - **Monitor Rules** — attach monitors automatically by label, name or description from the SLO's **Monitor Rules** page. Monitors that match are attached when they are created or changed, and detached when they stop matching. While any rule is enabled, the rules manage the SLO's monitors, so monitors cannot be added by hand.
@@ -534,7 +546,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Service Level Objectives",
           description:
-            "Reliability targets measured from monitor uptime. Each SLO tracks its error budget and alerts you before the budget runs out.",
+            "Reliability targets measured from monitor uptime or from your services' requests. Each SLO tracks its error budget and alerts you before it runs out.",
           titleGlossaryTerm: GlossaryTerm.SLO,
         }}
         /*
@@ -612,10 +624,12 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         /*
-         * One page of three rows - the name, the target and a folded
-         * Advanced section - with no steps (SloFormFields.ts).
+         * Two steps (SloFormFields.ts): what the SLO measures - monitor
+         * uptime, or a request SLO's services and latency threshold - then
+         * its name, target and a folded Advanced section.
          */
         formFields={getSloFormFields()}
+        formSteps={SLO_CREATE_FORM_STEPS}
         /*
          * Seeds for the create modal only. The window and the at-risk
          * threshold are the DB defaults for NOT NULL columns, so without

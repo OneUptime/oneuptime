@@ -24,6 +24,11 @@ import useHistogramRangeSelection, {
 } from "../../Charts/Utils/useHistogramRangeSelection";
 import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
 import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
+import { formatChartCount } from "../../Charts/Utils/ChartCount";
+import {
+  getChartRowValues,
+  getYAxisWidthForValuesInPx,
+} from "../../Charts/Utils/YAxisWidth";
 
 // The chart's header (its title and hints) and its severity legend.
 export const LOGS_HISTOGRAM_HEADER_TEST_ID: string = "logs-histogram-header";
@@ -89,18 +94,6 @@ function formatTickTime(time: string): string {
   });
 }
 
-function formatYAxisTick(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-
-  return value.toString();
-}
-
 const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   props: LogsHistogramProps,
 ): ReactElement => {
@@ -135,6 +128,31 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       return present.has(key);
     });
   }, [props.buckets]);
+
+  /*
+   * The value axis writes a count as the tooltip beside it does, in the
+   * reader's digits ("1,5K", "۱٫۵K"), and is as wide as its widest tick -
+   * the stacked bars' tallest total - never narrower than its 48 px
+   * (#8349).
+   */
+  // One function while the language stays: the axis keeps its bars.
+  const formatYAxisTick: (value: number) => string = useMemo(() => {
+    return (value: number): string => {
+      return formatChartCount(value, translator.language);
+    };
+  }, [translator.language]);
+
+  const yAxisWidth: number = useMemo(() => {
+    return getYAxisWidthForValuesInPx({
+      values: getChartRowValues(pivotedData, activeSeverities, {
+        isStacked: true,
+      }),
+      formatter: (value: number): string => {
+        return formatChartCount(value, translator.language);
+      },
+      minWidthInPx: 48,
+    });
+  }, [pivotedData, activeSeverities, translator.language]);
 
   /*
    * The loader and the empty box below stand where the bars were, and take
@@ -304,7 +322,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
                 }}
                 axisLine={false}
                 tickLine={false}
-                width={48}
+                width={yAxisWidth}
                 allowDecimals={false}
                 tickFormatter={formatYAxisTick}
               />

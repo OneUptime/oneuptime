@@ -130,7 +130,11 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
             monitorType: monitorType,
             metric: monitorMetricType,
             probes: probes,
-            // Each chart's description, in the reader's language.
+            /*
+             * Each chart's title, description and legend, and a series
+             * named by its metric, in the reader's language: looked up
+             * once, there.
+             */
             translator: translator,
           });
         },

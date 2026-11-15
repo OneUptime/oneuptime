@@ -15,6 +15,7 @@ import DataSecurityFindingWriter, {
 import {
   ClaimedDataStore,
   claimDueDataStoresForProbe,
+  isDataStoreContentScannableByProbe,
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import {
   DATA_SECURITY_PROBE_RESULT_ROUTE,
@@ -62,6 +63,9 @@ import {
  * the body, and every read and write is keyed on it: a probe is handed only
  * the stores whose scanProbeId names it - and only stores of its own
  * project, never through a global probe - and is heard only about those.
+ * What it reports is kept only while the claim's rule still holds for the
+ * store (isDataStoreContentScannableByProbe): a switch turned off, or a
+ * project suspended, while it scanned keeps nothing of the scan.
  *
  * The answer names the probe's environment variable that holds a store's
  * connection string, never a connection string: the one a person may have
@@ -79,6 +83,13 @@ export const FAILED_SCAN_RETRY_IN_HOURS: number = 6;
 const MAX_SCAN_AGE_IN_HOURS: number = 24;
 
 const DEFAULT_SCAN_INTERVAL_IN_HOURS: number = 24;
+
+/*
+ * Why a result was not recorded, for the probe's log: the store, or its
+ * project, no longer lets its content be scanned.
+ */
+export const NOT_SCANNABLE_REASON: string =
+  "Content scanning is off for this store or its project, or the project is not active: nothing of this scan was recorded.";
 
 function readBody(req: ProbeExpressRequest): JSONObject {
   return req.body && typeof req.body === "object" && !Array.isArray(req.body)
@@ -394,6 +405,33 @@ router.post(
           res,
           new BadDataException("Data store not found."),
         );
+      }
+
+      /*
+       * The claim's rule again, for this one store (OneUptime issue
+       * #8391): the probe scanned for minutes after its claim, and in that
+       * time someone may have turned the store's Scan Content off, or the
+       * project's, or the project may have been suspended. Then nothing of
+       * the scan is kept - no finding, no masked sample, no failed scan -
+       * and its due time is left as the claim set it: the claim sets the
+       * store aside while it may not be scanned, and turning scanning back
+       * on makes it due at once.
+       */
+      if (
+        !(await isDataStoreContentScannableByProbe({
+          probeId,
+          dataStoreId: store.id,
+        }))
+      ) {
+        logger.debug(
+          `Data Security scan of store ${store.id.toString()} by probe ${probeId.toString()} not recorded: nothing may scan the store's content now.`,
+        );
+
+        return Response.sendJsonObjectResponse(req, res, {
+          accepted: false,
+          findingsWritten: 0,
+          reason: NOT_SCANNABLE_REASON,
+        });
       }
 
       const startedAt: Date = readStartedAt(body["startedAt"]);

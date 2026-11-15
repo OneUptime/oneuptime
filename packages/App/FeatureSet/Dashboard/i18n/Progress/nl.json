@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53451,
-    "untranslated": 8927
+    "keys": 53571,
+    "untranslated": 8884
   },
   "sameAsEnglish": [
     " is",
@@ -167,6 +167,7 @@
     "Flavors",
     "Floating IP",
     "Fluent Bit",
+    "Fuchsia",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -228,6 +229,7 @@
     "Incident: {{title}}",
     "Index",
     "Indicator",
+    "Indigo",
     "Info",
     "Initiator",
     "Interface",
@@ -473,6 +475,7 @@
     "Top",
     "Top P",
     "Top {{count}}",
+    "Topic",
     "Trace",
     "Trace {{traceId}}",
     "Trace {{traceId}} ({{count}} spans)",
@@ -513,6 +516,7 @@
     "VMID {{vmid}}",
     "VMware vCenter",
     "Viewport",
+    "Violet",
     "Vital",
     "Vitals",
     "Volume",
@@ -704,6 +708,7 @@
     "vCenters",
     "vSphere Client",
     "vertical pod autoscaler",
+    "via {{name}}",
     "volume",
     "volumes",
     "workflow",
@@ -834,6 +839,7 @@
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{size}} in {{duration}}",
     "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",

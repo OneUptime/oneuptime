@@ -45,7 +45,7 @@ Die Aufzeichnung einer Sitzungswiedergabe enthält den Text der Seiten, die Mens
 
 Der Prompt eines KI-Aufrufs trägt den ganzen Chat vor der neuesten Nachricht der Person, deshalb werden bis zu 16.384 Zeichen jedes Werts eines KI-Aufrufs gelesen. Enthalten KI-Unterhaltungen sensible Daten, folgen zwei weitere Dinge: Der KI-Anbieter, an den die Aufrufe gingen, ist ein Datenfluss dieser Daten, und [Sensible Daten werden an einen KI-Anbieter gesendet](/docs/data-security/checks-and-issues#ki) schlägt am Datenspeicher fehl.
 
-Die Unterhaltungen eines [KI-Tools des Unternehmens](/docs/telemetry/ai-company-tools) bleiben außen vor. Nur Project Owners und Project Admins dürfen sie lesen, und ein Fund landet dort, wo ihn jeder liest, der Datensicherheit lesen darf. Deshalb werden die Spans dieser Dienste nie gelesen, und ihre KI-Unterhaltungen werden als nicht gelesen gemeldet.
+Die Unterhaltungen eines [KI-Tools des Unternehmens](/docs/telemetry/ai-company-tools) bleiben außen vor. Nur Projektinhaber und Projektadministratoren dürfen sie lesen, und ein Fund landet dort, wo ihn jeder liest, der Datensicherheit lesen darf. Deshalb werden die Spans dieser Dienste nie gelesen, und ihre KI-Unterhaltungen werden als nicht gelesen gemeldet.
 
 ## Wie ein Scan Stichproben nimmt
 
@@ -101,7 +101,7 @@ Manche Funde lassen sich durch keine Regel bereinigen, und **Bereinigen** sagt, 
 - Einer Ihrer eigenen Datentypen: Fügen Sie selbst eine benutzerdefinierte Bereinigungsregel mit seinem Muster hinzu.
 - Die eigenen Details einer Sitzung (`sessions.*`): Die Aufnahme von Sitzungswiedergaben führt keine Bereinigungsregeln aus.
 
-**Bereinigen** erstellt die Regel in Ihrem Namen, mit Ihren eigenen Berechtigungen: Project Owners und Project Admins können darauf klicken, ebenso ein Team, das Bereinigungsregeln für Logs erstellen darf, und für Spans, Ausnahmen und KI-Aufrufe Bereinigungsregeln für Traces.
+**Bereinigen** erstellt die Regel in Ihrem Namen, mit Ihren eigenen Berechtigungen: Projektinhaber und Projektadministratoren können darauf klicken, ebenso ein Team, das Bereinigungsregeln für Logs erstellen darf, und für Spans, Ausnahmen und KI-Aufrufe Bereinigungsregeln für Traces.
 
 ## Was als bereinigt zählt
 

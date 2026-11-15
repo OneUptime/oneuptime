@@ -176,6 +176,13 @@ async function readGroupedQueryMetrics(data: {
             ),
             valueLabel: data.aggregationType,
             link: { type: AIChatCitationTargetType.Metrics },
+            // The days the read was cut in, to be drawn in (issue #8206).
+            bucketTimezone: AggregationIntervalUtil.getCalendarBucketTimezone({
+              startDate: data.startTime,
+              endDate: data.endTime,
+              aggregationInterval: interval,
+              timezone: data.ctx.readerTimezone,
+            }),
           })
         : undefined,
   };
@@ -421,6 +428,14 @@ export const QueryMetricsTool: ObservabilityTool = {
               series: [{ name: seriesName, points: points }],
               valueLabel: aggregationTypeString,
               link: { type: AIChatCitationTargetType.Metrics },
+              // The days the read was cut in, to be drawn in (issue #8206).
+              bucketTimezone: AggregationIntervalUtil.getCalendarBucketTimezone(
+                {
+                  startDate: startTime,
+                  endDate: endTime,
+                  timezone: ctx.readerTimezone,
+                },
+              ),
             })
           : undefined,
     };

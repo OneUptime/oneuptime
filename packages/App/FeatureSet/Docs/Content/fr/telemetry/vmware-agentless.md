@@ -61,6 +61,8 @@ Le nom est par défaut le nom d'hôte de vCenter. Cliquez sur **Connecter vCente
 
 La **Vue d'ensemble** du vCenter affiche une carte **Collecte des données**. Elle indique **Vérification** jusqu'à la première collecte, qui démarre dans la minute, puis **Collecte en cours**, et l'inventaire se remplit.
 
+Si aucune sonde ne vient pour le vCenter pendant 20 minutes, parce qu'elle est hors ligne ou trop ancienne, la carte indique **Pas de collecte** et le précise, quel qu'ait été le résultat de la dernière collecte. Lorsqu'aucune sonde ne peut collecter le vCenter, elle indique tout de suite **Pas de collecte**, avec la raison et ce qu'il faut changer : aucun mot de passe n'est enregistré, l'adresse ou le nom d'utilisateur de vCenter manque, aucune sonde n'est choisie pour le collecter, sa sonde ne peut pas le collecter (une sonde partagée sur OneUptime Cloud, ou celle d'un autre projet), ou sa sonde est déconnectée. **Prochaine collecte** donne l'heure à laquelle une sonde le collecte la prochaine fois, **Prévu maintenant** tant qu'il en attend une, **En retard** dès qu'aucune n'est venue pendant 20 minutes, et **Non planifié** tant qu'aucune sonde ne peut le collecter. Un vCenter archivé est toujours collecté.
+
 ## Certificats
 
 La sonde ne saute jamais la vérification des certificats. Chaque connexion effectue une poignée de main TLS complète, puis :

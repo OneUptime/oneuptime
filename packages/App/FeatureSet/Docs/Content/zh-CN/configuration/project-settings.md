@@ -24,7 +24,7 @@ flowchart LR
 
 ## 开始之前
 
-- **可以更改项目的角色。** 这些设置大多由 Project Owner 和 Project Admin 更改。账单、通知渠道和删除项目需要更多权限，具体见各部分说明。
+- **可以更改项目的角色。** 这些设置大多由项目所有者和项目管理员更改。账单、通知渠道和删除项目需要更多权限，具体见各部分说明。
 - **在 OneUptime Cloud 上：包含该设置的套餐。** 某些设置需要特定套餐：参见[需要套餐的设置](/docs/configuration/billing#需要套餐的设置)。
 
 ## 查找设置
@@ -50,11 +50,11 @@ flowchart LR
 
 **项目详情**显示项目的名称和 ID：
 
-- **项目名称**：点击**编辑项目**可重命名项目。名称至少 2 个字符。重命名需要 Project Owner，或编辑项目或管理账单的权限。
+- **项目名称**：点击**编辑项目**可重命名项目。名称至少 2 个字符。重命名需要项目所有者，或编辑项目或管理账单的权限。
 - **项目 ID**：在 API、CLI 和 Terraform 中使用，或联系支持时复制它。
 - **Data Residency**：在 OneUptime Cloud 上，OneUptime 记录后你的项目数据所存放的位置。只有 OneUptime 会设置它。
 
-**客户支持访问权限**决定在 OneUptime Cloud 上 OneUptime 支持团队能否打开项目。需要帮助时，打开**允许 OneUptime 支持团队访问此项目**：由于支持团队届时可以查看和更改项目中的一切，OneUptime 会先确认，你再点击**允许支持团队进入**。处理完后将其关闭：更改会立即保存。Project Owner 和 Project Admin 可以更改此项。
+**客户支持访问权限**决定在 OneUptime Cloud 上 OneUptime 支持团队能否打开项目。需要帮助时，打开**允许 OneUptime 支持团队访问此项目**：由于支持团队届时可以查看和更改项目中的一切，OneUptime 会先确认，你再点击**允许支持团队进入**。处理完后将其关闭：更改会立即保存。项目所有者和项目管理员可以更改此项。
 
 ## 产品
 
@@ -96,7 +96,7 @@ flowchart LR
 
 **项目设置 → 通知**包含项目发送通知的方式：
 
-- **通知渠道**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由 Project Owner、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面的 **更多设置** 中还包含项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
+- **通知渠道**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由项目所有者、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面的 **更多设置** 中还包含项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
 - **通知日志**：项目发送的每条通知，每个渠道一个选项卡：**电子邮件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**调用**、**推送**和**工作区**。
 - **移动应用**：获取 iOS 和 Android 应用的位置。参见[应用概览](/docs/mobile-desktop-apps/index)。
 
@@ -127,7 +127,7 @@ flowchart LR
 :::
 
 > [!CAUTION]
-> 删除项目无法撤销。这需要 Project Owner，或删除项目的权限。
+> 删除项目无法撤销。这需要项目所有者，或删除项目的权限。
 
 在 OneUptime Cloud 上，删除项目即可取消其套餐：项目删除后计费停止。通过云市场计费的项目会为其用量产生最后一笔费用，而在市场上的购买会一直有效，直到你在那里取消。
 
@@ -138,7 +138,7 @@ flowchart LR
 :::
 
 :::details 编辑项目被锁定
-重命名需要 Project Owner，或编辑项目或管理账单的权限。锁定的按钮会显示你缺少的权限。
+重命名需要项目所有者，或编辑项目或管理账单的权限。锁定的按钮会显示你缺少的权限。
 :::
 
 :::details 对话框中的删除项目一直处于锁定状态

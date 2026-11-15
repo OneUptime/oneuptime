@@ -7,6 +7,7 @@ import EditionLabel, {
 import { LicenseDetailsProps } from "../../../UI/Components/EditionLabel/LicenseDetails";
 import { announceLicenseChanged } from "../../../UI/Components/EditionLabel/LicenseEvents";
 import Navigation from "../../../UI/Utils/Navigation";
+import { writeReaderDay } from "../../../UI/Utils/ReaderMoments";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -314,7 +315,9 @@ describe("EditionLabel - an expired license in its grace period", () => {
       "enterprise-license-grace-notice",
     );
 
-    expect(notice).toHaveTextContent(
+    // The reader's day, as the Dashboard writes one (issue #8231).
+    expect(notice).toHaveTextContent(writeReaderDay(new Date(graceEndsAt)));
+    expect(notice).not.toHaveTextContent(
       new Date(graceEndsAt).toLocaleDateString(),
     );
     expect(notice).toHaveTextContent("5 days left");
@@ -424,7 +427,9 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
 
     expect(notice).toHaveTextContent("Enterprise Edition trial: 10 days left");
     expect(notice).toHaveTextContent("No Enterprise license is installed");
-    expect(notice).toHaveTextContent(
+    // The reader's day, as the Dashboard writes one (issue #8231).
+    expect(notice).toHaveTextContent(writeReaderDay(new Date(graceEndsAt)));
+    expect(notice).not.toHaveTextContent(
       new Date(graceEndsAt).toLocaleDateString(),
     );
     /*

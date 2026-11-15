@@ -98,7 +98,7 @@ När en regel ändrar ett SLO registrerar SLO:ets **Feed** vilka regler som gjor
 | Köra en etikettregel | **Edit SLO Label Rule** och **Edit Service Level Objective** |
 | Köra en ägarregel | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** och **Create SLO Team Owner** |
 
-Behörigheterna finns i en rolls SLO-grupp, och rollerna Project Owner och Project Admin har alla. En körning ändrar varje SLO i projektet, så en behörighet som är begränsad till vissa etiketter, eller till de SLO:er du äger, räcker inte för att köra en regel.
+Behörigheterna finns i en rolls SLO-grupp, och rollerna Projektägare och Projektadministratör har alla. En körning ändrar varje SLO i projektet, så en behörighet som är begränsad till vissa etiketter, eller till de SLO:er du äger, räcker inte för att köra en regel.
 
 ## Nästa steg
 
