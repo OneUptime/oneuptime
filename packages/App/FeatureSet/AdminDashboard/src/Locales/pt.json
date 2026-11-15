@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "O máximo de monitores ativos que este projeto pode ter. Deixe vazio para não ter limite.",
       "noMonitorLimit": "Sem limite",
       "overMonitorLimit": "{{over}} acima do limite",
-      "atMonitorLimit": "No limite"
+      "atMonitorLimit": "No limite",
+      "userLimitCardTitle": "Usuários",
+      "userLimitCardDescription": "Todos no projeto contam, incluindo convites pendentes. No limite ninguém novo pode entrar; quem já está continua. A próxima mudança de nível de um revendedor o substitui. Projetos no plano Free também estão limitados a uma pessoa.",
+      "userLimitEditButton": "Editar limite de usuários",
+      "fieldUsers": "Usuários",
+      "fieldUserLimit": "Limite de usuários",
+      "fieldUserLimitDescription": "O máximo de usuários que este projeto pode ter, incluindo convites pendentes. Deixe vazio para não ter limite.",
+      "noUserLimit": "Sem limite",
+      "overUserLimit": "{{over}} acima do limite",
+      "atUserLimit": "No limite"
     },
     "projectSupport": {
       "title": "Acesso do suporte ao cliente",

@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "Die Höchstzahl aktiver Monitore, die dieses Projekt haben darf. Leer lassen für kein Limit.",
       "noMonitorLimit": "Kein Limit",
       "overMonitorLimit": "{{over}} über dem Limit",
-      "atMonitorLimit": "Am Limit"
+      "atMonitorLimit": "Am Limit",
+      "userLimitCardTitle": "Benutzer",
+      "userLimitCardDescription": "Alle im Projekt zählen, auch offene Einladungen. Am Limit kann niemand Neues beitreten; wer schon dabei ist, bleibt. Die nächste Tarifänderung eines Resellers überschreibt es. Projekte im Free-Tarif sind zudem auf eine Person begrenzt.",
+      "userLimitEditButton": "Benutzerlimit bearbeiten",
+      "fieldUsers": "Benutzer",
+      "fieldUserLimit": "Benutzerlimit",
+      "fieldUserLimitDescription": "Die Höchstzahl an Benutzern, die dieses Projekt haben darf, offene Einladungen eingeschlossen. Leer lassen für kein Limit.",
+      "noUserLimit": "Kein Limit",
+      "overUserLimit": "{{over}} über dem Limit",
+      "atUserLimit": "Am Limit"
     },
     "projectSupport": {
       "title": "Kundensupport-Zugriff",

@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "The most active monitors this project may have. Leave it empty for no limit.",
       "noMonitorLimit": "No limit",
       "overMonitorLimit": "{{over}} over the limit",
-      "atMonitorLimit": "At the limit"
+      "atMonitorLimit": "At the limit",
+      "userLimitCardTitle": "Users",
+      "userLimitCardDescription": "Everyone in the project counts, pending invitations too. At the limit no one new can join; those already in stay. A reseller's next tier change overwrites it. Free plan projects are also limited to one person.",
+      "userLimitEditButton": "Edit User Limit",
+      "fieldUsers": "Users",
+      "fieldUserLimit": "User Limit",
+      "fieldUserLimitDescription": "The most users this project may have, pending invitations included. Leave it empty for no limit.",
+      "noUserLimit": "No limit",
+      "overUserLimit": "{{over}} over the limit",
+      "atUserLimit": "At the limit"
     },
     "projectSupport": {
       "title": "Customer Support Access",
