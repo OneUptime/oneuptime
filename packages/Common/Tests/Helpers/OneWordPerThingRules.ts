@@ -243,6 +243,20 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     // 警告警报, a warning alert, holds 告警 across its two words.
     dropped: /(?<!警)告警/,
   },
+  /*
+   * German says an alert eine Warnung, as 2,000 of its strings and the docs
+   * 3,500 times do; the noun der Alarm goes. The verb alarmieren and its
+   * Alarmierung (paging) stay, and so does a real alarm the English names
+   * (an optic's alarm threshold, the phone's alarm sound, a CloudWatch alarm).
+   */
+  {
+    language: "de",
+    thing: "Alerts",
+    english: /\balerts?\b/i,
+    except: /alertmanager|\balarm/i,
+    word: /Warnung/,
+    dropped: /\bAlarm(?!ier)/,
+  },
   {
     language: "sv",
     thing: "Alerts",
