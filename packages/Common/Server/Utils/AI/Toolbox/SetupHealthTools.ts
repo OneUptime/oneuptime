@@ -50,12 +50,11 @@ export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> =
     [SetupHealthFix.IncidentOnCallRules]: "Incidents > Rules > On-Call Rules",
     [SetupHealthFix.AlertOnCallRules]: "Alerts > Rules > On-Call Rules",
     /*
-     * No menu lists the guided setup (On-Call's side menu has no entry for
-     * it), so it is named by its title and the button that opens it, not
-     * as a path a reader could not follow (OnCallDutyMenuPathsInProductText).
+     * No menu has the guided setup: the finding's own Set Up Paging opens
+     * it (SetupHealthWords), as the monitor's card does.
      */
     [SetupHealthFix.OnCallGuidedSetup]:
-      "the on-call guided setup, \"Page the right person when something breaks\", which the finding's Set Up Paging button opens: it makes the project's first on-call policy with the rules that page it for every new incident and alert",
+      "the on-call guided setup, which the finding's Set Up Paging button on Setup Health opens: it makes the project's first on-call policy with the rules that page it for every new incident and alert",
     [SetupHealthFix.OnCallPolicy]: "the on-call policy's Escalation Rules page",
     [SetupHealthFix.OnCallSchedule]: "the on-call schedule's page",
     [SetupHealthFix.OnCallReadiness]: "On-Call > Readiness",

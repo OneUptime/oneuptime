@@ -4,7 +4,7 @@ An offline harness for how a product explains itself (`Components/ProductOnboard
 a project has nothing in a product yet, the product's first page says what the product does under
 its empty table - a pitch, the steps to a first result with the first as the page's own button, a
 drawn example of the page in use and the product's documentation - and once there is something in
-it, How it works beside the page's title (`ProductAboutButton`) opens the same explanation in a dialog.
+it, the ? (How it works) beside the page's title (`ProductAboutButton`) opens the same explanation in a dialog.
 
 Two lists stand for the two kinds of list:
 

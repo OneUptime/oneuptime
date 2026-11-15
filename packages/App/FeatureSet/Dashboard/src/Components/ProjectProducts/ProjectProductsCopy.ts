@@ -78,29 +78,11 @@ export const HiddenProductsMenuCopy: {
   chooseProducts: translationKey("Choose products"),
 };
 
-export const ProductPinCopy: {
-  pin: string;
-  pinned: string;
-  pinTooltip: string;
-  unpinTooltip: string;
-  limitReached: PluralTemplate;
-} = {
-  pin: translationKey("Pin"),
-  pinned: translationKey("Pinned"),
-  pinTooltip: translationKey("Pin to the top bar, beside Home and Products."),
-  unpinTooltip: translationKey("Unpin from the top bar."),
-  limitReached: {
-    one: "You can pin up to {{count}} product. Unpin one first.",
-    other: "You can pin up to {{count}} products. Unpin one first.",
-  },
-};
-
 // The data-testids, for the components and their suites.
 export const PRODUCTS_SETTINGS_TEST_ID: string = "products-settings";
 export const SHOW_EVERY_PRODUCT_TEST_ID: string = "products-settings-show-all";
 export const HIDDEN_PRODUCTS_WITH_DATA_TEST_ID: string =
   "home-hidden-products-with-data";
-export const PRODUCT_PIN_PAGE_BUTTON_TEST_ID: string = "product-pin-button";
 export const getProductSwitchTestId: (product: string) => string = (
   product: string,
 ): string => {

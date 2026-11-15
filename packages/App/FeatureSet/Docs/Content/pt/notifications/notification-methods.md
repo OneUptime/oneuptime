@@ -36,8 +36,8 @@ Cada aba de **Métodos de notificação** tem um ou mais cartões, um por tipo d
 | **Números de telefone para notificações por chamada** | **Contato direto** | Um número de telefone | Um código lido em uma chamada, ou nenhum para um número verificado para SMS |
 | **Números do WhatsApp para notificações** | **Contato direto** | Um número do WhatsApp | Um código pelo WhatsApp |
 | **Contas do Telegram para Notificações** | **Contato direto** | A sua conta do Telegram | Uma mensagem para o bot do OneUptime |
-| **Slack Account for Notifications** | **Aplicativos do espaço de trabalho** | A sua conta do Slack | Vincular a sua conta ao espaço de trabalho do projeto |
-| **Microsoft Teams Account for Notifications** | **Aplicativos do espaço de trabalho** | A sua conta do Microsoft Teams | Vincular a sua conta ao espaço de trabalho do projeto |
+| **Conta do Slack para notificações** | **Aplicativos do espaço de trabalho** | A sua conta do Slack | Vincular a sua conta ao espaço de trabalho do projeto |
+| **Conta do Microsoft Teams para notificações** | **Aplicativos do espaço de trabalho** | A sua conta do Microsoft Teams | Vincular a sua conta ao espaço de trabalho do projeto |
 | **Conta do Mattermost para notificações** | **Aplicativos do espaço de trabalho** | A sua conta do Mattermost | Vincular a sua conta ao espaço de trabalho do projeto |
 | **Dispositivos de Notificação Push** | **Notificações push** | Um telefone com o app OneUptime On-Call, ou um navegador | Registrar o dispositivo |
 | **Webhooks para notificações** | **Webhooks** | Um endpoint HTTPS seu | Nenhum |
@@ -67,7 +67,7 @@ A linha agora aparece como **Verificado**. Fechou a caixa cedo demais? Clique em
 :::
 
 - Um código vale por 15 minutos. Cinco tentativas erradas o anulam, e você precisa de um novo.
-- **Send a new code**, ou **Call me with a new code** para um número de chamadas, fica na caixa. Você pode pedir um novo um minuto depois do anterior.
+- **Enviar um novo código**, ou **Ligar para mim com um novo código** para um número de chamadas, fica na caixa. Você pode pedir um novo um minuto depois do anterior.
 - Um número que você verificou para SMS também fica verificado para chamadas. Adicioná-lo em **Números de telefone para notificações por chamada** não pede código, e verificar um número de SMS também verifica o número de chamadas que você adicionou para ele.
 - O seu e-mail de login já está lá, verificado, desde o dia em que você entrou no projeto.
 
@@ -80,11 +80,11 @@ Em **Contas do Telegram para Notificações**, clique em **Adicionar: Conta do T
 
 ### Escreva para o bot
 
-Clique em **Verificar** na nova linha. A caixa **Verificar conta do Telegram** oferece três formas de chegar ao bot do OneUptime: escanear o código QR com o seu telefone, clicar em **Open in Telegram**, ou procurar o bot no Telegram e enviar a ele o comando `/start` que a caixa mostra.
+Clique em **Verificar** na nova linha. A caixa **Verificar conta do Telegram** oferece três formas de chegar ao bot do OneUptime: escanear o código QR com o seu telefone, clicar em **Abrir no Telegram**, ou procurar o bot no Telegram e enviar a ele o comando `/start` que a caixa mostra.
 
 ### Confirme
 
-De volta ao OneUptime, clique em **I've sent the message — check**. Assim que o bot recebe a sua mensagem, a conta fica verificada.
+De volta ao OneUptime, clique em **Já enviei a mensagem: verificar**. Assim que o bot recebe a sua mensagem, a conta fica verificada.
 :::
 
 **Rotacionar código** gera um novo código para uma conta que ainda não está verificada. O código QR e o link que você abriu antes param de funcionar. Em um OneUptime auto-hospedado, o administrador do servidor conecta um bot do Telegram antes que alguém possa vincular uma conta.
@@ -92,8 +92,8 @@ De volta ao OneUptime, clique em **I've sent the message — check**. Assim que 
 ## Slack, Microsoft Teams e Mattermost
 
 1. Vincule a sua própria conta ao espaço de trabalho do projeto: **Configurações do usuário → Espaço de trabalho → Slack**, **Microsoft Teams** ou **Mattermost**. Veja [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) e [Mattermost](/docs/workspace-connections/mattermost).
-2. Na aba **Aplicativos do espaço de trabalho**, clique em **Add Slack Account**, **Add Microsoft Teams Account** ou **Adicionar conta do Mattermost**. A conta fica verificada ao ser adicionada.
-3. Clique em **Send Test Message** na linha dela. Os acionamentos chegam como mensagens diretas do app do OneUptime ou, no Mattermost, do bot do projeto.
+2. Na aba **Aplicativos do espaço de trabalho**, clique em **Adicionar conta do Slack**, **Adicionar conta do Microsoft Teams** ou **Adicionar conta do Mattermost**. A conta fica verificada ao ser adicionada.
+3. Clique em **Enviar mensagem de teste** na linha dela. Os acionamentos chegam como mensagens diretas do app do OneUptime ou, no Mattermost, do bot do projeto.
 
 ## Notificações push
 
@@ -186,11 +186,11 @@ Esse canal está desativado neste projeto. O cartão diz quem pode ativá-lo; ve
 :::
 
 :::details O código nunca chegou
-E-mails podem levar alguns minutos, e às vezes caem no spam; SMS podem levar um minuto. Espere um minuto e depois clique em **Send a new code** na caixa. **Configurações do projeto → Notificações → Logs de notificação** mostra o que aconteceu com a mensagem.
+E-mails podem levar alguns minutos, e às vezes caem no spam; SMS podem levar um minuto. Espere um minuto e depois clique em **Enviar um novo código** na caixa. **Configurações do projeto → Notificações → Logs de notificação** mostra o que aconteceu com a mensagem.
 :::
 
 :::details Não consigo adicionar a minha conta do Slack
-Vincule primeiro a sua conta em **Configurações do usuário → Espaço de trabalho → Slack**, e depois clique de novo em **Add Slack Account**. A caixa de erro tem um botão que leva você até lá.
+Vincule primeiro a sua conta em **Configurações do usuário → Espaço de trabalho → Slack**, e depois clique de novo em **Adicionar conta do Slack**. A caixa de erro tem um botão que leva você até lá.
 :::
 
 :::details O meu telefone não recebe notificações push

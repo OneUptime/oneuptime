@@ -193,16 +193,57 @@ describe("the Probes and Network Path cards in every language", () => {
 });
 
 describe("negative control: the checks above see an English word", () => {
-  // A sentence German still has in English, from a card outside this one.
-  const STILL_ENGLISH_IN_GERMAN: string =
-    "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.";
+  /*
+   * One of the network path card's sentences, set back to English in
+   * German for the length of the test. The control used to lean on a
+   * sentence German still had in English, from another card; once it was
+   * translated the control failed although the check still worked. Setting
+   * one back, as the reader would meet it, keeps the control true whatever
+   * the locale files word next.
+   */
+  const SET_BACK_TO_ENGLISH: string = "Route broke at hop {{hop}}.";
 
   test("a key a language has not worded is reported", () => {
-    expect(readDashboardLocale("de")[STILL_ENGLISH_IN_GERMAN]).toBe(
-      STILL_ENGLISH_IN_GERMAN,
-    );
-    expect(notWorded([STILL_ENGLISH_IN_GERMAN])).toContain(
-      `de: ${STILL_ENGLISH_IN_GERMAN}`,
+    const german: Record<string, string> = readDashboardLocale("de");
+    const worded: string | undefined = german[SET_BACK_TO_ENGLISH];
+
+    // German words it, so the check reports nothing for it as shipped.
+    expect(CARD_KEYS).toContain(SET_BACK_TO_ENGLISH);
+    expect(worded).toBeDefined();
+    expect(worded).not.toBe(SET_BACK_TO_ENGLISH);
+    expect(notWorded([SET_BACK_TO_ENGLISH])).toEqual([]);
+
+    try {
+      // Set back to English, it is reported, for German alone.
+      german[SET_BACK_TO_ENGLISH] = SET_BACK_TO_ENGLISH;
+      expect(notWorded([SET_BACK_TO_ENGLISH])).toEqual([
+        `de: ${SET_BACK_TO_ENGLISH}`,
+      ]);
+
+      // Left out of the file, or left empty, it is reported too.
+      delete german[SET_BACK_TO_ENGLISH];
+      expect(notWorded([SET_BACK_TO_ENGLISH])).toEqual([
+        `de: ${SET_BACK_TO_ENGLISH}`,
+      ]);
+      german[SET_BACK_TO_ENGLISH] = " ";
+      expect(notWorded([SET_BACK_TO_ENGLISH])).toEqual([
+        `de: ${SET_BACK_TO_ENGLISH}`,
+      ]);
+    } finally {
+      german[SET_BACK_TO_ENGLISH] = worded as string;
+    }
+
+    expect(notWorded([SET_BACK_TO_ENGLISH])).toEqual([]);
+  });
+
+  test("a key the Dashboard's English file does not have is reported in every language", () => {
+    const missing: string = "A sentence no card of the Dashboard says.";
+
+    expect(ENGLISH[missing]).toBeUndefined();
+    expect(notWorded([missing])).toEqual(
+      DASHBOARD_LANGUAGES.map((language: string): string => {
+        return `${language}: ${missing}`;
+      }),
     );
   });
 
