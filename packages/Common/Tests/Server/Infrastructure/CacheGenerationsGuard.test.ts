@@ -36,8 +36,13 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Utils/OnCall/OnDutyPoliciesCache.ts",
   // What each project uses, for the products menu's "Not set up" (#7465).
   "Server/Utils/ProjectProducts/ProjectUsageCache.ts",
-  // Each ingestion key as it is now, for a connected MQTT session (#8147).
+  /*
+   * Each ingestion key as it is now, for a connected MQTT session (#8147),
+   * and as its secret resolves it for HTTP and gRPC ingest (#8370).
+   */
   "Server/Services/TelemetryIngestionKeyService.ts",
+  // Each IoT device credential, for the MQTT broker's every publish (#8371).
+  "Server/Services/IoTDeviceCredentialService.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.

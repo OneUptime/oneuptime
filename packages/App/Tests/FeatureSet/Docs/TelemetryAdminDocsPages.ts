@@ -120,7 +120,7 @@ export const ADMIN_DASHBOARD_LABELS: Readonly<
 export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   [INGESTION_KEYS]: [
     "The key decides the project.",
-    "Changes reach every server within a minute.",
+    "Changes reach every server within seconds.",
     "A Server key is a password.",
     "A role that manages ingestion keys.",
     "On OneUptime Cloud, a payment method.",

@@ -40,7 +40,10 @@ jest.mock("../../../../Server/Infrastructure/GlobalCache", () => {
   };
 });
 
-import UserPermissionUtil from "../../../../Server/Utils/UserPermission/UserPermission";
+import UserPermissionUtil, {
+  PERMISSION_ROWS_VERSION_FIELD,
+} from "../../../../Server/Utils/UserPermission/UserPermission";
+import { PERMISSION_ROWS_VERSION } from "../../../../Server/Infrastructure/Postgres/PermissionRowMigrations";
 
 const projectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
@@ -216,9 +219,16 @@ describe("UserPermissionUtil.getUserTenantAccessPermissionFromCache", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * The snapshots below are cached from the permission rows as they are now
+   * (PermissionRowMigrations): one cached before the rows changed is never
+   * served at all (PermissionRowsVersionCache.test.ts).
+   */
   test("adds ProjectUser to a snapshot written before the grant existed", async () => {
     mockGetJSONObject.mockResolvedValue(
-      makePermission([Permission.MonitorViewer]) as never,
+      UserPermissionUtil.toCachedTenantAccessPermission(
+        makePermission([Permission.MonitorViewer]),
+      ) as never,
     );
 
     const permission: UserTenantAccessPermission | null =
@@ -234,10 +244,9 @@ describe("UserPermissionUtil.getUserTenantAccessPermissionFromCache", () => {
 
   test("does not duplicate the row on a snapshot that already has it", async () => {
     mockGetJSONObject.mockResolvedValue(
-      makePermission([
-        Permission.MonitorViewer,
-        Permission.ProjectUser,
-      ]) as never,
+      UserPermissionUtil.toCachedTenantAccessPermission(
+        makePermission([Permission.MonitorViewer, Permission.ProjectUser]),
+      ) as never,
     );
 
     const permission: UserTenantAccessPermission | null =
@@ -270,7 +279,10 @@ describe("UserPermissionUtil.getUserTenantAccessPermissionFromCache", () => {
   });
 
   test("survives a stored snapshot with no permissions array", async () => {
-    mockGetJSONObject.mockResolvedValue({ projectId } as never);
+    mockGetJSONObject.mockResolvedValue({
+      projectId,
+      [PERMISSION_ROWS_VERSION_FIELD]: PERMISSION_ROWS_VERSION,
+    } as never);
 
     const permission: UserTenantAccessPermission | null =
       await UserPermissionUtil.getUserTenantAccessPermissionFromCache(

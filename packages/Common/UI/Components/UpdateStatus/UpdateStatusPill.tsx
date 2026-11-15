@@ -125,7 +125,11 @@ const UpdateStatusPill: FunctionComponent<ComponentProps> = (
   const description: string = describeUpdateStatus(status, translator);
 
   return (
-    <Tooltip text={description} isTriggerAlreadyDescribed={true}>
+    <Tooltip
+      text={description}
+      isTextTranslated={true}
+      isTriggerAlreadyDescribed={true}
+    >
       <a
         href={getUpgradeGuideUrl()}
         target="_blank"

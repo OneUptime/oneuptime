@@ -9,10 +9,12 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import StateTimelineDuration from "../../../../UI/Components/StateTimeline/StateTimelineDuration";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
 import OneUptimeDate from "../../../../Types/Date";
+import { QUIET_DASH_TEXT } from "../../../Helpers/QuietDash";
 
 /*
  * A timeline row's Duration cell. The row still in effect counts up every
@@ -191,8 +193,11 @@ describe("StateTimelineDuration", () => {
   test("a row with no start shows a placeholder and arms nothing", () => {
     render(<StateTimelineDuration startDate={undefined} />);
 
-    expect(getDuration()).toHaveTextContent(/^-$/);
-    expect(getDuration()).toHaveClass("text-gray-400");
+    // The quiet dash a missing value is drawn as (58fc3f92383), in its grey.
+    expect(getDuration().textContent).toBe(QUIET_DASH_TEXT);
+    expect(
+      within(getDuration()).getByTestId(TABLE_EMPTY_VALUE_TEST_ID),
+    ).toHaveClass("text-gray-400");
     expect(screen.queryByRole("timer")).toBeNull();
     expect(jest.getTimerCount()).toBe(0);
   });

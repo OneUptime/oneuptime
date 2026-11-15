@@ -20,10 +20,11 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
   const { t } = useTranslation();
   return (
     <SideMenu>
-      <SideMenuSection title={t("sideMenu.basic")}>
+      <SideMenuSection title={t("sideMenu.basic")} isTitleTranslated={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_VIEW] as Route,
               {
@@ -40,6 +41,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <SideMenuItem
           link={{
             title: t("sideMenu.telemetryUsage"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_TELEMETRY_USAGE] as Route,
               {
@@ -56,6 +58,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <SideMenuItem
           link={{
             title: t("sideMenu.ingestionBudgets"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_INGESTION_BUDGETS] as Route,
               {
@@ -67,10 +70,11 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.members")}>
+      <SideMenuSection title={t("sideMenu.members")} isTitleTranslated={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.users"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_USERS] as Route,
               {
@@ -83,6 +87,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <SideMenuItem
           link={{
             title: t("sideMenu.teams"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_TEAMS] as Route,
               {
@@ -103,10 +108,15 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
        * on its own page.
        */}
       {BILLING_ENABLED ? (
-        <SideMenuSection title={t("sideMenu.billing")} defaultCollapsed={true}>
+        <SideMenuSection
+          title={t("sideMenu.billing")}
+          isTitleTranslated={true}
+          defaultCollapsed={true}
+        >
           <SideMenuItem
             link={{
               title: t("sideMenu.subscription"),
+              isTitleTranslated: true,
               to: RouteUtil.populateRouteParams(
                 RouteMap[PageMap.PROJECT_SUBSCRIPTION] as Route,
                 {
@@ -127,10 +137,15 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
        * reason the subscription section above it is.
        */}
       {BILLING_ENABLED ? (
-        <SideMenuSection title={t("sideMenu.support")} defaultCollapsed={true}>
+        <SideMenuSection
+          title={t("sideMenu.support")}
+          isTitleTranslated={true}
+          defaultCollapsed={true}
+        >
           <SideMenuItem
             link={{
               title: t("sideMenu.customerSupportAccess"),
+              isTitleTranslated: true,
               to: RouteUtil.populateRouteParams(
                 RouteMap[PageMap.PROJECT_SUPPORT] as Route,
                 {
@@ -150,10 +165,15 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
        * SideMenuSection does that by itself only for the English title, and
        * this one is already translated, so it is said here.
        */}
-      <SideMenuSection title={t("sideMenu.advanced")} defaultCollapsed={true}>
+      <SideMenuSection
+        title={t("sideMenu.advanced")}
+        isTitleTranslated={true}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.delete"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_DELETE] as Route,
               {

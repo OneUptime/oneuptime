@@ -98,7 +98,11 @@ export const StateSettingsNameCell: FunctionComponent<
          * says is in the tag as well, for a screen reader, which is why the
          * tooltip does not describe the tag a second time.
          */
-        <Tooltip text={builtInTooltip} isTriggerAlreadyDescribed={true}>
+        <Tooltip
+          text={builtInTooltip}
+          isTextTranslated={true}
+          isTriggerAlreadyDescribed={true}
+        >
           <div
             tabIndex={0}
             data-testid="state-settings-built-in"

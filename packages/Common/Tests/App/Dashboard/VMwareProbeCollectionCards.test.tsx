@@ -342,30 +342,39 @@ describe("the Overview's data collection card", () => {
       nextCollectionAt: new Date(Date.now() + 17 * MINUTE_IN_MS),
     };
 
+    /*
+     * The description is what the vCenter is set to, never "Collected by" beside Not
+     * collecting (OneUptime issue #8326), and nothing at all when the probe or the address is
+     * what is missing: the body says so.
+     */
     test.each([
       [
         "with no password",
         { isVCenterPasswordSet: false },
         "No password is saved for this vCenter.",
         "Enter the vCenter user's password in Settings, and test the connection.",
+        "Set to be collected by Datacenter probe from https://vcsa.example.com, every 5 minutes.",
       ],
       [
         "with no address",
         { vcenterUrl: undefined },
         "This vCenter has no address.",
         "Enter vCenter's address in Settings, and test the connection.",
+        null,
       ],
       [
         "with no user name",
         { vcenterUsername: undefined },
         "This vCenter has no user name.",
         "Enter the vCenter user's name in Settings, and test the connection.",
+        "Set to be collected by Datacenter probe from https://vcsa.example.com, every 5 minutes.",
       ],
       [
         "with no probe",
         { collectionProbeId: undefined, collectionProbe: undefined },
         "No probe is set to collect this vCenter.",
         "Pick one of this project's probes in Settings.",
+        null,
       ],
       [
         "on another project's probe",
@@ -378,14 +387,16 @@ describe("the Overview's data collection card", () => {
         },
         "This probe may not collect this vCenter",
         "Pick a probe of this project's own. Shared OneUptime probes never receive vCenter passwords.",
+        "Set to be collected by Datacenter probe from https://vcsa.example.com, every 5 minutes.",
       ],
     ])(
-      "%s: not collecting, why, the fix, and no next collection",
+      "%s: not collecting, why, the fix, no next collection, and no promise of one",
       async (
         _name: string,
         stop: Record<string, unknown>,
         title: string,
         nextStep: string,
+        description: string | null,
       ) => {
         for (const report of [
           { collectionStatus: VMwareCollectionStatus.Succeeded },
@@ -411,6 +422,13 @@ describe("the Overview's data collection card", () => {
           expect(
             screen.getByTestId("vmware-next-collection"),
           ).toHaveTextContent("Not scheduled");
+          expect(screen.queryByText(/^Collected by /)).toBeNull();
+
+          if (description) {
+            expect(screen.getByText(description)).toBeInTheDocument();
+          } else {
+            expect(screen.queryByText(/^Set to be collected by /)).toBeNull();
+          }
 
           cleanup();
         }
@@ -437,6 +455,30 @@ describe("the Overview's data collection card", () => {
           "Nothing collects this vCenter while Datacenter probe is disconnected.",
         ),
       ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Set to be collected by Datacenter probe from https://vcsa.example.com, every 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Collected by /)).toBeNull();
+    });
+
+    test("a probe the reader may not read, on a vCenter with no password: the setting, by 'its probe'", async () => {
+      stored = {
+        ...SET_ASIDE,
+        isVCenterPasswordSet: false,
+        collectionProbe: undefined,
+        collectionIntervalInMinutes: 1,
+      };
+
+      render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+      await flush();
+
+      expect(
+        screen.getByText(
+          "Set to be collected by its probe from https://vcsa.example.com, every 1 minute.",
+        ),
+      ).toBeInTheDocument();
     });
 
     test("an archived vCenter is still collected", async () => {
@@ -449,6 +491,11 @@ describe("the Overview's data collection card", () => {
       expect(screen.getByTestId("vmware-next-collection").textContent).toBe(
         OneUptimeDate.fromNow(SET_ASIDE["nextCollectionAt"] as Date),
       );
+      expect(
+        screen.getByText(
+          "Collected by Datacenter probe from https://vcsa.example.com, every 5 minutes. No agent runs for it.",
+        ),
+      ).toBeInTheDocument();
     });
 
     test("it asks for what decides whether a probe may collect it", async () => {
@@ -503,6 +550,13 @@ describe("the Overview's data collection card", () => {
       expect(screen.getByTestId("vmware-next-collection")).toHaveTextContent(
         "Overdue",
       );
+      // No probe has come for it: what it is set to, not a promise.
+      expect(
+        screen.getByText(
+          "Set to be collected by Datacenter probe from https://vcsa.example.com, every 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Collected by /)).toBeNull();
     });
 
     test("a collection running its full time budget and upload is not that", async () => {
@@ -519,6 +573,12 @@ describe("the Overview's data collection card", () => {
       expect(screen.getByTestId("vmware-next-collection")).toHaveTextContent(
         "Due now",
       );
+      // Due now: a probe is coming, so the promise stands.
+      expect(
+        screen.getByText(
+          "Collected by Datacenter probe from https://vcsa.example.com, every 5 minutes. No agent runs for it.",
+        ),
+      ).toBeInTheDocument();
     });
 
     test("never collected, with a probe able to take it: checking, due now", async () => {

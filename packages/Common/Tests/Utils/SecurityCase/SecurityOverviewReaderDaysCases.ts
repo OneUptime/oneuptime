@@ -19,6 +19,7 @@ import {
   buildDefaultTestPriorities,
   buildDefaultTestStatuses,
 } from "../../Helpers/SecurityCaseValues";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -523,11 +524,7 @@ export default function describeSecurityOverviewReaderDays(
 
     test("findCalendarDay finds the day dayInTimezone names, for every instant, in every zone", () => {
       // A seeded walk over two years: the same instants on every run.
-      let seed: number = 7925;
-      const random: () => number = (): number => {
-        seed = (seed * 1103515245 + 12345) % 2147483648;
-        return seed / 2147483648;
-      };
+      const random: SeededRandom = seededRandom(7925);
 
       for (const reader of READERS) {
         const days: Array<CalendarDay> = calendarDaysBetween(
