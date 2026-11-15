@@ -1742,6 +1742,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     });
     const isSaveAsRunbookShown: boolean =
       saveAsRunbookOffer === SuggestionOffer.Act;
+    // Saved already: the runbook it was saved as, where the button would be.
+    const isSavedAsRunbookShown: boolean =
+      saveAsRunbookOffer === SuggestionOffer.Done &&
+      Boolean(suggestion.savedAsRunbookId);
     const hasButtons: boolean =
       isRoundTryAgainShown ||
       isApproveShown ||
@@ -1876,7 +1880,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           !isReviewToggleShown &&
           !hasButtons &&
           !whoMayAct &&
-          !isActionErrorOnThisFix)
+          !isActionErrorOnThisFix &&
+          !isSavedAsRunbookShown)
       ) {
         return null;
       }
@@ -2018,8 +2023,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
       return (
         <div className="space-y-3">
-          {saveAsRunbookOffer === SuggestionOffer.Done &&
-          suggestion.savedAsRunbookId ? (
+          {isSavedAsRunbookShown && suggestion.savedAsRunbookId ? (
             <p
               className="text-sm leading-6 text-gray-700"
               data-testid="remediation-saved-as-runbook"
