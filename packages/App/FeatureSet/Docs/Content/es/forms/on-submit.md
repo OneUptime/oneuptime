@@ -4,7 +4,7 @@ Cada envío a través de un formulario crea un registro en tu proyecto: un **inc
 
 :::cards
 - [Cómo un envío se convierte en un incidente](#cómo-un-envío-se-convierte-en-un-incidente): Cada campo del incidente nuevo, y de dónde sale su valor.
-- [Cómo un envío se convierte en un evento de mantenimiento programado](#cómo-un-envío-se-convierte-en-un-evento-de-mantenimiento-programado): Lo mismo, para una solicitud de mantenimiento.
+- [Cómo un envío se convierte en un evento de mantenimiento](#cómo-un-envío-se-convierte-en-un-evento-de-mantenimiento): Lo mismo, para una solicitud de mantenimiento.
 - [Los ajustes Al enviar](#los-ajustes-al-enviar): Valores predeterminados, lo que siempre se adjunta, propietarios y publicación.
 - [La nota privada](#la-nota-privada): Quién lo envió, y las respuestas que no guarda ningún campo.
 :::
@@ -92,7 +92,7 @@ Activa **Visible en la página de estado** desde la página **Ajustes** del inci
 Como el incidente se declaró con **Notificar a suscriptores de la página de estado** desactivado, publicarlo no envía la notificación «incidente creado». Para avisar a los suscriptores, publica una nota pública con **Notificar a suscriptores de la página de estado** marcado — consulta [Publicar una nota pública](/docs/incidents/notes-owners-and-feed#publicar-una-nota-pública).
 :::
 
-## Cómo un envío se convierte en un evento de mantenimiento programado
+## Cómo un envío se convierte en un evento de mantenimiento
 
 | Campo | Sale de |
 | --- | --- |

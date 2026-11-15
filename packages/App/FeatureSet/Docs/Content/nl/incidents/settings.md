@@ -183,7 +183,7 @@ De meeste projecten hebben één stap nodig. Voeg er nog een toe wanneer een not
 - **Wijzigingen tellen meteen.** Wie mag goedkeuren, wordt gelezen wanneer iemand beslist, en notities die al wachten volgen je wijzigingen. Voeg je stappen toe, verwijder je ze of zet je ze in een andere volgorde, of verander je wie een stap noemt, dan wordt iedereen die een wachtende notitie nu kan goedkeuren en er nog niet naar gevraagd is, gevraagd via zijn meldingsinstellingen, en zo ook wie lid wordt van een team dat de stap noemt waarop een notitie wacht. Niemand wordt twee keer gevraagd naar dezelfde stap van een notitie. Wie van de stap of uit het team ervan wordt gehaald, kan niet meer over de notitie beslissen, en zijn bericht erover in Slack, Microsoft Teams of Mattermost zegt dat. Een notitie houdt de goedkeuringen die ze heeft.
 - **Niemand keurt zijn eigen notitie goed, of twee stappen van één notitie.** Wie een notitie ter goedkeuring verstuurde, kan haar niet goedkeuren of afwijzen, en wie een van haar stappen goedkeurde, kan geen andere goedkeuren.
 
-Alleen projecteigenaren en -beheerders kunnen deze instellingen wijzigen, en iedereen die de notities leest, ziet wie ze goedkeurt. **Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** is dezelfde pagina voor geplande onderhoudsevenementen, met een eigen schakelaar en eigen stappen. Wat een notitie doet terwijl ze wacht, en hoe goedkeurders beslissen, staat onder [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
+Alleen projecteigenaren en -beheerders kunnen deze instellingen wijzigen, en iedereen die de notities leest, ziet wie ze goedkeurt. **Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** is dezelfde pagina voor onderhoudsgebeurtenissen, met een eigen schakelaar en eigen stappen. Wat een notitie doet terwijl ze wacht, en hoe goedkeurders beslissen, staat onder [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
 
 ## Meldingen aan abonnees
 
@@ -236,7 +236,7 @@ Elke definitie heeft:
 - **Opnemen in meldingen aan abonnees** — onder **Meer velden**. Stuurt het veld en zijn waarde mee naar de abonnees van de statuspagina met de berichten van het incident: de standaardberichten per e-mail, in Slack en in Microsoft Teams en de webhooks, maar niet per sms. Abonnees staan meestal buiten je team, dus zet dit alleen aan voor velden die veilig gedeeld kunnen worden. Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers#incidenten).
 - **Sjabloonvariabele** — de sleutel waarmee een sjabloon het veld bereikt, `{{incident.customFields.<key>}}`, in notitiesjablonen en aangepaste meldingssjablonen voor abonnees. Hij wordt gevormd uit de naam van het veld als het veld wordt aangemaakt — kleine letters, cijfers en underscores, dus `Expected Resolution` wordt `expected_resolution`, met `_2`, `_3` enzovoort erachter als een ander veld de sleutel al heeft — en verandert niet als het veld wordt hernoemd. Niemand stelt hem met de hand in: de API negeert een waarde die ervoor wordt meegestuurd. Sjablonen die zijn geschreven met de oudere `{{customFields.<key>}}` blijven werken. Je hoeft hem nooit op te zoeken: de editors die hem invoegen — de **Notitie** van een notitiesjabloon en de aangepaste meldingssjablonen voor abonnees van een statuspagina voor incidentgebeurtenissen — tonen de variabele van elk veld onder **Sjabloonvariabelen**, bij de naam van het veld. Het formulier **Bewerken** van een veld toont hem ook, alleen-lezen, onderaan **Meer velden**, met een knop die hem kopieert.
 
-**Volgorde**, **Tonen bij aanmaken**, **Verplicht bij aanmaken**, **Opnemen in meldingen aan abonnees** en **Sjabloonvariabele** bestaan alleen bij aangepaste incidentvelden. De aangepaste velden van monitoren, waarschuwingen, gepland-onderhoudsevenementen en de andere middelen hebben ze niet.
+**Volgorde**, **Tonen bij aanmaken**, **Verplicht bij aanmaken**, **Opnemen in meldingen aan abonnees** en **Sjabloonvariabele** bestaan alleen bij aangepaste incidentvelden. De aangepaste velden van monitoren, waarschuwingen, onderhoudsgebeurtenissen en de andere middelen hebben ze niet.
 
 Definities staan in een eigen model; de waarden staan op het incident zelf, in de kolom `customFields`. Op een afzonderlijk incident vul je ze in vanuit **Aangepaste velden** in het zijmenu van het incident (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), waar de velden in hun **Volgorde** staan. Incidentsjablonen houden waarden voor dezelfde velden bij in hun eigen `customFields`.
 
@@ -362,7 +362,7 @@ Als je opslaat, worden een hernoemde optie en een waarde waarvoor je een optie k
 
 Een incident waarvan de waarde niet meer door zijn veld wordt aangeboden, toont de waarde, gemarkeerd als _geen optie meer_, op zijn pagina **Aangepaste velden** en in de incidentenlijst. Zijn andere velden bewerken houdt haar; kies een andere optie om haar te wijzigen.
 
-De aangepaste velden van alle andere middelen werken op dezelfde manier: monitoren, waarschuwingen, gepland-onderhoudsevenementen, statuspagina's, bereikbaarheidsbeleid, teams, teamleden en inventarisitems. Een optie van een monitorveld hernoemen, of er een toevoegen, doet hetzelfde bij de incident-, waarschuwings- en gepland-onderhoudsvelden die het kopiëren (zie [Velden die uit een monitor worden gekopieerd](#velden-die-uit-een-monitor-worden-gekopieerd)), zodat die elke waarde blijven aanbieden die ze kopiëren.
+De aangepaste velden van alle andere middelen werken op dezelfde manier: monitoren, waarschuwingen, onderhoudsgebeurtenissen, statuspagina's, bereikbaarheidsbeleid, teams, teamleden en inventarisitems. Een optie van een monitorveld hernoemen, of er een toevoegen, doet hetzelfde bij de incident-, waarschuwings- en gepland-onderhoudsvelden die het kopiëren (zie [Velden die uit een monitor worden gekopieerd](#velden-die-uit-een-monitor-worden-gekopieerd)), zodat die elke waarde blijven aanbieden die ze kopiëren.
 
 Stuur via de API de nieuwe lijst als `dropdownOptions`, en de hernoemingen in `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Tijd tot postmortem"| postmortem["Het postmortem wordt gepubliceerd"]
 ```
 
-Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde functie, onder **Waarschuwingen → Instellingen → Metingen** en **Geplande onderhoud → Instellingen → Metingen**. Alles hieronder geldt voor alle drie, elk met zijn eigen momenten.
+Waarschuwingen en onderhoudsgebeurtenissen hebben dezelfde functie, onder **Waarschuwingen → Instellingen → Metingen** en **Geplande onderhoud → Instellingen → Metingen**. Alles hieronder geldt voor alle drie, elk met zijn eigen momenten.
 
 ### Kant-en-klare metingen
 
@@ -477,7 +477,7 @@ De pagina van elk incident toont de eigen metingen op een kaart **Metingen**, di
 
 Een meting waarvan je het begin of het einde wijzigt, blijft op elk incident haar oude waarde tonen tot OneUptime haar opnieuw heeft berekend, net als haar grafiek. Direct na een statuswijziging vanuit de kop van het incident toont de kaart de nieuwe waarden zodra OneUptime ze heeft berekend, meestal meteen.
 
-Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde kaart op hun pagina's. Bij een onderhoudsevenement verschijnt **Niet bereikt** zodra het evenement is afgelopen: zodra het in de beëindigde of de voltooide status staat, of in een eigen status na de beëindigde status. Zijn momenten volgen dezelfde plaatsen: **Het onderhoud begint**, **Het onderhoud eindigt** en **Het onderhoud wordt afgerond** zijn de stappen naar een status waarin het evenement loopt, voorbij of voltooid is, vanuit een status waarin het dat niet was — een evenement dat rechtstreeks vanuit de lopende status wordt voltooid, eindigt dus daar, een evenement dat vanuit de beëindigde status rechtstreeks naar een eigen status na de voltooide status gaat, wordt daar voltooid, en vanuit de voltooide status doorgaan naar zo'n status voltooit niets opnieuw. Zie [Geplande onderhoudsgebeurtenissen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen). De kaart wordt weggelaten als geen enkele ingeschakelde meting **Tonen op incidentpagina's** aan heeft staan, en voor iemand die geen metingen mag lezen.
+Waarschuwingen en onderhoudsgebeurtenissen hebben dezelfde kaart op hun pagina's. Bij een onderhoudsevenement verschijnt **Niet bereikt** zodra het evenement is afgelopen: zodra het in de beëindigde of de voltooide status staat, of in een eigen status na de beëindigde status. Zijn momenten volgen dezelfde plaatsen: **Het onderhoud begint**, **Het onderhoud eindigt** en **Het onderhoud wordt afgerond** zijn de stappen naar een status waarin het evenement loopt, voorbij of voltooid is, vanuit een status waarin het dat niet was — een evenement dat rechtstreeks vanuit de lopende status wordt voltooid, eindigt dus daar, een evenement dat vanuit de beëindigde status rechtstreeks naar een eigen status na de voltooide status gaat, wordt daar voltooid, en vanuit de voltooide status doorgaan naar zo'n status voltooit niets opnieuw. Zie [Onderhoudsgebeurtenissen](/docs/status-pages/subscribers#onderhoudsgebeurtenissen). De kaart wordt weggelaten als geen enkele ingeschakelde meting **Tonen op incidentpagina's** aan heeft staan, en voor iemand die geen metingen mag lezen.
 
 ### Begin van de impact, en waarom het leeg is
 
@@ -563,7 +563,7 @@ Het dialoogvenster zegt wat er mis is voordat je opslaat, en de API weigert deze
 
 Project Owners, Project Admins en iedereen met **Edit Project** kunnen de voorvoegsels wijzigen. Alle anderen zien ze met de knop **Bijwerken** vergrendeld.
 
-Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde pagina: **Waarschuwingen → Instellingen → Nummering** voor de nummers van waarschuwingen en waarschuwingsepisodes (`ALT-` en `AE-` in nieuwe projecten), en **Geplande onderhoud → Instellingen → Nummering** voor de nummers van evenementen (`SM-`). Bij alle drie werken de oude adressen van de pagina nog en openen ze **Nummering**: **Meer instellingen** (`…/settings/more`) en **Nummervoorvoegsel** (`…/settings/number-prefix`).
+Waarschuwingen en onderhoudsgebeurtenissen hebben dezelfde pagina: **Waarschuwingen → Instellingen → Nummering** voor de nummers van waarschuwingen en waarschuwingsepisodes (`ALT-` en `AE-` in nieuwe projecten), en **Geplande onderhoud → Instellingen → Nummering** voor de nummers van evenementen (`SM-`). Bij alle drie werken de oude adressen van de pagina nog en openen ze **Nummering**: **Meer instellingen** (`…/settings/more`) en **Nummervoorvoegsel** (`…/settings/number-prefix`).
 
 ## Volgende nummers
 
@@ -589,7 +589,7 @@ Het dialoogvenster zegt wat er mis is voordat je opslaat, en alleen de nummers d
 
 Project Owners, Project Admins en iedereen met **Edit Project** kunnen de volgende nummers wijzigen, net als de voorvoegsels. Alle anderen zien ze met de knop **Bijwerken** vergrendeld.
 
-Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde kaart op hun pagina's **Nummering**: **Volgend waarschuwingsnummer** en **Volgend waarschuwingsepisodenummer**, en **Volgend nummer van gepland onderhoud**. [Importeren uit een andere tool](/docs/moving-to-oneuptime/incident-io) neemt je inrichting over, niet je eerdere incidenten, en laat de nummers dus zoals ze zijn: stel de volgende nummers in voordat in OneUptime het eerste incident wordt gemeld.
+Waarschuwingen en onderhoudsgebeurtenissen hebben dezelfde kaart op hun pagina's **Nummering**: **Volgend waarschuwingsnummer** en **Volgend waarschuwingsepisodenummer**, en **Volgend nummer van gepland onderhoud**. [Importeren uit een andere tool](/docs/moving-to-oneuptime/incident-io) neemt je inrichting over, niet je eerdere incidenten, en laat de nummers dus zoals ze zijn: stel de volgende nummers in voordat in OneUptime het eerste incident wordt gemeld.
 
 ## Schakelaars voor gekoppelde waarschuwingen
 

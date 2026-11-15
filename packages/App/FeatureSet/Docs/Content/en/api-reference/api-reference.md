@@ -206,7 +206,7 @@ The owners of a resource - the user and team owner records of a monitor, an on-c
 
 #### Records a write lists or names
 
-The records a create or a change lists - an incident's monitors and on-call policies, an alert's services, a scheduled maintenance event's status pages, a rule's runbooks - keep to your permission to read that kind of record when you have one, and to a block with labels on reading it either way: one outside them is refused with the same `400`. A change checks only the records it adds to a list, so the ones the list holds already stay.
+The records a create or a change lists - an incident's monitors and on-call policies, an alert's services, a maintenance event's status pages, a rule's runbooks - keep to your permission to read that kind of record when you have one, and to a block with labels on reading it either way: one outside them is refused with the same `400`. A change checks only the records it adds to a list, so the ones the list holds already stay.
 
 The one record a create or a change names in a field of its own - an alert's monitor, the monitor a status page resource shows, a cost budget's service, the incident a runbook run is linked to - keeps to the same rule, under either of its names: one outside your permission to read that kind of record, or carrying a label a block on reading it takes away, is refused with the same `400`. A change checks it only when it names another record than the one the field holds already. OneUptime's global probes and AI agents, which every project can use, stay open to every project. The records a template fills in for you are checked the same way once they are filled in, before anything is saved: the monitors, status pages and on-call policies an incident template adds to an incident declared from it must be ones you may read, as if you had picked them.
 
@@ -246,7 +246,7 @@ Either name is checked the same way. The rules about the record you name hold wh
 
 ### Switches
 
-A field that is on or off - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` and every other `true` or `false` field - takes `true` or `false`. Text and numbers that the database reads as one of them are taken as that value, the same way for the API, Terraform and workflows: `"true"`, `"yes"`, `"on"`, `"1"` and `1` are `true`, and `"false"`, `"no"`, `"off"`, `"0"` and `0` are `false`, in any case. Everything OneUptime does with the record treats it as that value too: a scheduled maintenance event sent with `"isVisibleOnStatusPage": "true"` shows its images on the status page, and `"isEnabled": "false"` switches a resource off below its plan like `false` does. Any other value, such as `"maybe"`, `""` or `2`, is refused with a `400` that names the field:
+A field that is on or off - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` and every other `true` or `false` field - takes `true` or `false`. Text and numbers that the database reads as one of them are taken as that value, the same way for the API, Terraform and workflows: `"true"`, `"yes"`, `"on"`, `"1"` and `1` are `true`, and `"false"`, `"no"`, `"off"`, `"0"` and `0` are `false`, in any case. Everything OneUptime does with the record treats it as that value too: a maintenance event sent with `"isVisibleOnStatusPage": "true"` shows its images on the status page, and `"isEnabled": "false"` switches a resource off below its plan like `false` does. Any other value, such as `"maybe"`, `""` or `2`, is refused with a `400` that names the field:
 
 ```text
 isVisibleOnStatusPage must be true or false.
@@ -276,7 +276,7 @@ An incident, an alert, an incident episode and an alert episode can be created i
 
 ### Changing a record's state
 
-A record's state changes by a row of its state timeline - `POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline` or `/api/scheduled-maintenance-state-timeline` - or by an update that writes its current state (`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, or the relation), which records the same row. Either way one rule holds the move, for an episode as for an incident, an alert or a scheduled maintenance event: a state earlier in your project's order than the record's current one is refused before anything is saved, as is the state it is in already:
+A record's state changes by a row of its state timeline - `POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline` or `/api/scheduled-maintenance-state-timeline` - or by an update that writes its current state (`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, or the relation), which records the same row. Either way one rule holds the move, for an episode as for an incident, an alert or a maintenance event: a state earlier in your project's order than the record's current one is refused before anything is saved, as is the state it is in already:
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.

@@ -818,7 +818,7 @@ describe("the Status Pages Overview: how incidents, maintenance and announcement
 
   it("says incidents come through the monitors, and events and announcements through the pages they name", () => {
     expect(page).toContain(
-      "The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on.",
+      "The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on.",
     );
     // What it used to say: an event on the page's monitors shows on no page that the event does not name.
     expect(page).not.toContain("scheduled maintenance reach it through");
@@ -1157,7 +1157,7 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
     );
 
     expect(page).toContain(
-      "Each item is dated as the page dates it: an incident by when it was declared, an announcement by when it went up, and a scheduled maintenance event by when it starts, its description opening with its window.",
+      "Each item is dated as the page dates it: an incident by when it was declared, an announcement by when it went up, and a maintenance event by when it starts, its description opening with its window.",
     );
   });
 

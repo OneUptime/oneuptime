@@ -186,7 +186,7 @@ Et gjennomsnitt over barn vekter en butikk med to enheter like tungt som et dist
 
 ## Planlagt vedlikehold for nettverkslokasjoner
 
-Knytt lokasjoner til et planlagt vedlikehold under **Andre berørte ressurser**, i hendelsens trinn **Berørte ressurser**, slik du ville gjort med en vert. En lokasjons egen side **Planlagt vedlikehold** viser hendelsene som er knyttet til den, og dens **Opprett vedlikeholdshendelse** åpner skjemaet med lokasjonen allerede valgt.
+Knytt lokasjoner til en vedlikeholdshendelse under **Andre berørte ressurser**, i hendelsens trinn **Berørte ressurser**, slik du ville gjort med en vert. En lokasjons egen side **Planlagt vedlikehold** viser hendelsene som er knyttet til den, og dens **Opprett vedlikeholdshendelse** åpner skjemaet med lokasjonen allerede valgt.
 
 Et vindu på en forelder dekker alt under den: et vindu på en region dekker hvert marked og hver enhet i den, inkludert lokasjoner som er opprettet etter at vinduet ble planlagt, så et regionalt operatørbytte trenger ikke å liste opp fire hundre butikker.
 

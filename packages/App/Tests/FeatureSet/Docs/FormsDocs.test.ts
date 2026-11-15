@@ -1058,7 +1058,7 @@ describe("Forms docs", () => {
         sectionOf(
           readPage(ON_SUBMIT_PAGE),
           2,
-          "How a submission becomes a scheduled maintenance event",
+          "How a submission becomes a maintenance event",
         ),
       ).flatMap((row: Array<string>): Array<string> => {
         return boldNamesIn(row[0] as string);
@@ -1075,7 +1075,7 @@ describe("Forms docs", () => {
         sectionOf(
           readPage(ON_SUBMIT_PAGE),
           2,
-          "How a submission becomes a scheduled maintenance event",
+          "How a submission becomes a maintenance event",
         ),
       );
 
@@ -1587,7 +1587,7 @@ describe("Forms docs", () => {
 
       for (const heading of [
         "How a submission becomes an incident",
-        "How a submission becomes a scheduled maintenance event",
+        "How a submission becomes a maintenance event",
       ]) {
         const row: Array<string> | undefined = firstTable(
           sectionOf(readPage(ON_SUBMIT_PAGE), 2, heading),

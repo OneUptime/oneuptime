@@ -173,7 +173,7 @@ De toegestane regels van een gebruiker tellen op over al zijn teams, maar een bl
 
 ### Een status wijzigen
 
-Een incident, een waarschuwing, een waarschuwings- of incidentepisode en een gepland onderhoud wijzigen hun status, en een monitor zijn status, met een nieuwe rij op hun statustijdlijn. **Bevestigen**, **Oplossen**, **Status wijzigen**, de pagina **Statustijdlijn**, de API en workflows voegen er allemaal een toe. Dat vraagt de aanmaakmachtiging van die tijdlijn, samen met een machtiging om het record te lezen dat ze wijzigt:
+Een incident, een waarschuwing, een waarschuwings- of incidentepisode en een onderhoudsgebeurtenis wijzigen hun status, en een monitor zijn status, met een nieuwe rij op hun statustijdlijn. **Bevestigen**, **Oplossen**, **Status wijzigen**, de pagina **Statustijdlijn**, de API en workflows voegen er allemaal een toe. Dat vraagt de aanmaakmachtiging van die tijdlijn, samen met een machtiging om het record te lezen dat ze wijzigt:
 
 | Om de status te wijzigen van | Is nodig |
 | --- | --- |
@@ -181,7 +181,7 @@ Een incident, een waarschuwing, een waarschuwings- of incidentepisode en een gep
 | Een waarschuwing | **Create Alert State Timeline** |
 | Een waarschuwingsepisode | **Create Alert Episode State Timeline** |
 | Een incidentepisode | **Create Incident Episode State Timeline** |
-| Een gepland onderhoud | **Create Scheduled Maintenance State Timeline** |
+| Een onderhoudsgebeurtenis | **Create Scheduled Maintenance State Timeline** |
 | Een monitor (zijn status) | **Create Monitor Status Timeline** |
 
 Het record krijgt daarna de nieuwe status van OneUptime zelf, met wat erbij hoort, zoals wanneer een episode is opgelost of wanneer een onderhoud zijn abonnees weer herinnert. Een wijziging vraagt dus niet ook een machtiging om het record te bewerken: een aangepaste rol met **Create Incident State Timeline** maar zonder **Edit Incident** wijzigt de status van een incident. Wilt u een team ervan weerhouden statussen te wijzigen, blokkeer dan de aanmaakmachtiging van de tijdlijn; een blokkade op **Edit Incident** laat statuswijzigingen met rust. Labels, eigenaren en privérecords beperken de aanmaakmachtiging van de tijdlijn zoals ze elke andere beperken, via het record waarvan ze de status wijzigt: zie de bereikregels hieronder.
@@ -214,7 +214,7 @@ Sommige rollen zijn per definitie projectbreed en bieden helemaal geen bereik, o
 
 ## Eigenaren
 
-Een eigenaar is een gebruiker of een team dat aan één specifieke resource is gekoppeld. De meeste resources die iets voorstellen wat u beheert — monitors, incidenten, waarschuwingen, geplande onderhouden, piketbeleid, dashboards, diensten, statuspagina's, workflows, runbooks en SLO's — hebben een tabblad **Eigenaren**.
+Een eigenaar is een gebruiker of een team dat aan één specifieke resource is gekoppeld. De meeste resources die iets voorstellen wat u beheert — monitors, incidenten, waarschuwingen, onderhoudsgebeurtenissen, piketbeleid, dashboards, diensten, statuspagina's, workflows, runbooks en SLO's — hebben een tabblad **Eigenaren**.
 
 Eigenaren hebben twee taken:
 

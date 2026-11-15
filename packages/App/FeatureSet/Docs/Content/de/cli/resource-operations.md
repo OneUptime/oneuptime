@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Bestätigen, beheben und Notizen hinzufügen
 
-Vorfälle, Warnungen, ihre Episoden und geplante Wartungsereignisse haben Befehle für das, was die Schaltflächen des Dashboards bei ihnen tun:
+Vorfälle, Warnungen, ihre Episoden und Wartungsereignisse haben Befehle für das, was die Schaltflächen des Dashboards bei ihnen tun:
 
 | Befehl | Was er tut | Ressourcen |
 | --- | --- | --- |
