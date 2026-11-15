@@ -78,6 +78,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
   });
   const duration: string = ScheduleTimelineLayout.formatDuration(
     shift.end.getTime() - shift.start.getTime(),
+    translator,
   );
 
   const label: string = shift.override
@@ -253,6 +254,7 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
   });
   const duration: string = ScheduleTimelineLayout.formatDuration(
     gap.end.getTime() - gap.start.getTime(),
+    translator,
   );
 
   const tooltip: ReactElement = (

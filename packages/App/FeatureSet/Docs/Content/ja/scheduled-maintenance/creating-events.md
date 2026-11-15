@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **イベントの予定作成時** のスイッチです。ほかの二つのタイミングにはそれぞれ専用のフィールドがあります。 |
 | `publishOnStatusPageAt`                               | イベントがステータスページに公開され、購読者に予定されたことが通知される日時です。省略するとすぐに公開されます。 |
 
-コードとしての同じイベントは Terraform リソース `oneuptime_scheduled_maintenance_event` です。 [例](/docs/terraform/examples#予定メンテナンス) を参照してください。ワークフローは **Create One Maintenance Event** ステップでイベントを作成し、 `/oneuptime maintenance` は Slack でフォームを開きます。 [Slack](/docs/workspace-connections/slack#slack-からインシデントとメンテナンスを作成する) を参照してください。
+コードとしての同じイベントは Terraform リソース `oneuptime_scheduled_maintenance_event` です。 [例](/docs/terraform/examples#定期メンテナンス) を参照してください。ワークフローは **Create One Maintenance Event** ステップでイベントを作成し、 `/oneuptime maintenance` は Slack でフォームを開きます。 [Slack](/docs/workspace-connections/slack#slack-からインシデントとメンテナンスを作成する) を参照してください。
 
 ## トラブルシューティング
 
