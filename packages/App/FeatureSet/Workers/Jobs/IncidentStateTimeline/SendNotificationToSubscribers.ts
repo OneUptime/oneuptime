@@ -74,6 +74,7 @@ import FeedMarkdown, {
 } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import SubscriberMessageText from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { StateListType } from "Common/Utils/StateOrder";
 import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
@@ -397,6 +398,7 @@ RunCron(
                */
               textVariables: {
                 incidentState: SubscriberTemplateValues.stateName(
+                  StateListType.IncidentState,
                   incidentStateTimeline.incidentState.name,
                 ),
               },
@@ -852,11 +854,13 @@ RunCron(
                             incidentSeverity: incident.incidentSeverity?.name
                               ? SubscriberMessageText.nameInLanguage(
                                   translator,
+                                  StateListType.IncidentSeverity,
                                   incident.incidentSeverity.name,
                                 )
                               : " - ",
                             incidentState: SubscriberMessageText.nameInLanguage(
                               translator,
+                              StateListType.IncidentState,
                               incidentStateName,
                             ),
                           };

@@ -38,7 +38,7 @@ flowchart TB
 3. Fai clic su **Crea chiave di ingestione** e scegli **Browser** come **Tipo di chiave**.
 4. Nel passaggio **Impostazioni del browser**, elenca le tue origini in **Origini consentite** come array JSON, per esempio `["https://app.example.com"]`, poi crea la chiave. Nel piano gratuito di OneUptime Cloud, un ultimo passaggio **Fatturazione** mostra prima il prezzo della telemetria.
 
-![La pagina delle chiavi di acquisizione della telemetria nelle impostazioni del progetto](/docs/static/images/TelemetryIngestionKeys.png)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
 
 La nuova chiave si apre nella sua pagina. Copia la sua **Chiave segreta**: è il token che l'SDK invia come `x-oneuptime-token`.
 

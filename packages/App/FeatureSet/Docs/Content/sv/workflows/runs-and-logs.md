@@ -3,7 +3,7 @@
 Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som hände — när det kördes, om det lyckades och vad varje block tog emot och returnerade. Den redogörelsen kallas en **körning**. Med körningar bekräftar du att ett arbetsflöde fungerade, felsöker ett som inte gjorde det och ser tillbaka på tidigare aktivitet.
 
 :::cards
-- [Status för en körning](#status-för-en-körning): Vad Schemalagd, Väntar, Executed och de andra statusarna betyder.
+- [Status för en körning](#status-för-en-körning): Vad Schemalagd, Väntar, Utförd och de andra statusarna betyder.
 - [Läs en körning](#läs-en-körning): Följ vägen en körning tog, block för block.
 - [Felsökning](#felsökning): Ett arbetsflöde som inte kördes, ett block som aldrig kördes, ett värde som kom fram tomt.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Schemalagd" as Scheduled
     state "Körs" as Running
     state "Väntar" as Waiting
-    state "Executed" as Executed
+    state "Utförd" as Executed
     state "Fel" as Failed
-    state "Timeout" as TimedOut
+    state "Tidsgränsen överskreds" as TimedOut
     [*] --> Scheduled: utlösaren<br/>aktiveras
     Scheduled --> Running: körmotorn<br/>plockar upp den
     Scheduled --> Failed: inte upplockad<br/>inom 5 minuter
@@ -50,8 +50,8 @@ stateDiagram-v2
 | **Väntar**                          | Körningen står parkerad vid ett **Sleep**-block och fortsätter av sig själv. Den håller ingen worker medan den väntar.                                                                                                                                              |
 | **Utförd**                        | Körningen nådde slutet utan att misslyckas. Det är det lyckade läget: etiketten säger **Utförd**, inte ”Lyckades”.                                                                                                                                                 |
 | **Fel**                             | Ett block stoppade körningen, eller misslyckades utan att något var kopplat till dess utgång **Error**. Används också när en köad körning aldrig plockas upp, när återupptagningen av en sovande körning går förlorad, när ett schemauttryck inte kan lösas upp och när arbetsflödet stängdes av eller arkiverades medan körningen väntade vid ett **Sleep**-block. |
-| **Timeout**                         | Körningen tog längre tid än tillåtet: 2 minuter som standard. Se [Hur länge en körning får ta](/docs/workflows/configuration#hur-länge-en-körning-får-ta).                                                                                                              |
-| **Execution Exceeded Current Plan** | Projektet har förbrukat sina arbetsflödeskörningar för de senaste 30 dagarna, eller så är abonnemanget obetalt. Körningen registreras men utförs inte. Endast OneUptime Cloud.                                                                                      |
+| **Tidsgränsen överskreds**          | Körningen tog längre tid än tillåtet: 2 minuter som standard. Se [Hur länge en körning får ta](/docs/workflows/configuration#hur-länge-en-körning-får-ta).                                                                                                              |
+| **Exekvering överskred aktuell plan** | Projektet har förbrukat sina arbetsflödeskörningar för de senaste 30 dagarna, eller så är abonnemanget obetalt. Körningen registreras men utförs inte. Endast OneUptime Cloud.                                                                                      |
 
 Ett block som tar sin utgång **Error** — ett API-block som fick ett 4xx-svar, till exempel — får bara körningen att misslyckas när inget är kopplat till **Error**. Är block kopplade dit körs de, och körningen kan ändå sluta som **Utförd**. Är inget kopplat körs resten av körningen vidare, sedan slutar den som **Fel**, och den sista raden i dess **Full Log** nämner blocket. Hur som helst ritas själva steget i rött, så att du hittar det.
 
@@ -114,7 +114,7 @@ En nedladdning innehåller inget som du inte redan kunde läsa i körningen. Hem
 3. För en webhook-utlösare bekräftar du att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kontrollera där.
 4. För en schemautlösare bekräftar du att cron-uttrycket stämmer med tiden du förväntar dig. Scheman körs i UTC.
 
-Om körningen syns, med statusen **Execution Exceeded Current Plan**, har projektet förbrukat alla sina arbetsflödeskörningar för de senaste 30 dagarna, eller så är abonnemanget obetalt. Körningens logg nämner antalet och din plans gräns. Det gäller bara OneUptime Cloud.
+Om körningen syns, med statusen **Exekvering överskred aktuell plan**, har projektet förbrukat alla sina arbetsflödeskörningar för de senaste 30 dagarna, eller så är abonnemanget obetalt. Körningens logg nämner antalet och din plans gräns. Det gäller bara OneUptime Cloud.
 :::
 
 :::details Ett senare block kördes aldrig

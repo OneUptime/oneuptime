@@ -37,7 +37,7 @@ flowchart TB
 Het model `ScheduledMaintenanceState` heeft `name`, `description`, `color` en `order`, plus vier vlaggen: `isScheduledState`, `isOngoingState`, `isEndedState` en `isResolvedState`. OneUptime leest de vlaggen en de volgorde, nooit de naam, dus je kunt **Voltooid** hernoemen naar 'Goedgekeurd' zonder dat er iets stukgaat.
 
 > [!TIP]
-> De lijst staat onder **Geplande onderhoud → Instellingen → Onderhoudsstatus**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit.
+> De lijst staat onder **Gepland onderhoud → Instellingen → Onderhoudsstatus**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit.
 
 ## De standaardstatussen
 
@@ -60,7 +60,7 @@ De vier gemarkeerde statussen dragen het label **Ingebouwd** op de instellingenp
 | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **De klok**      | Een taak die elke minuut draait                                                             | Niets: op **Begint op** zet ze een wachtende gebeurtenis op **Lopend**, en op **Eindigt op** een lopende op **Beëindigd**. |
 | **De kop**       | Het **Overzicht** van de gebeurtenis: de knoppen **Markeren als {{state}}**, en **Status wijzigen naar** in het menu **⋯** | Een kort dialoogvenster, **Gepland onderhoud markeren als {{state}}**, met **Statuspagina-abonnees op de hoogte stellen** en een optionele notitie onder **Openbare notitie toevoegen**. |
-| **De tijdlijn**  | **Statustijdlijn** in het zijmenu van de gebeurtenis                                        | Een rij die je met de hand toevoegt, met **Status van geplande onderhoud** en **Begint op**.                    |
+| **De tijdlijn**  | **Statustijdlijn** in het zijmenu van de gebeurtenis                                        | Een rij die je met de hand toevoegt, met **Status van gepland onderhoud** en **Begint op**.                    |
 | **Een rij in de lijst** | Het menu **⋯** op de rij van een gebeurtenis in de lijst met gebeurtenissen: de stappen **Markeren als {{state}}** en **Status wijzigen** | Het dialoogvenster uit de kop, met de naam van de gebeurtenis. Een gebeurtenis die een andere wijziging intussen verder heeft gezet, blijft zoals ze is, en het venster zegt waarom. |
 | **Bulkwijziging** | **Markeren als {{state}}** of **Status wijzigen** op een selectie in de lijst met gebeurtenissen                         | De status, en één openbare notitie die aan elke gebeurtenis wordt toegevoegd. Gebeurtenissen die al op die status of verder staan, worden overgeslagen. |
 | **Chat**         | De knoppen in de Slack- en Microsoft Teams-berichten van de gebeurtenis                     | Dezelfde wijziging, uitgevoerd als jij. Zie [Slack](/docs/workspace-connections/slack#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-slack). |
@@ -106,7 +106,7 @@ Een status die je toevoegt, is een stap die je team doorloopt en die de vier sta
 :::steps
 ### De statuslijst openen
 
-Ga naar **Geplande onderhoud → Instellingen → Onderhoudsstatus**. De kaart **Statussen van gepland onderhoud** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, wat een gebeurtenis erin telt als (kolom **Telt als**) en haar beschrijving.
+Ga naar **Gepland onderhoud → Instellingen → Onderhoudsstatus**. De kaart **Statussen van gepland onderhoud** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, wat een gebeurtenis erin telt als (kolom **Telt als**) en haar beschrijving.
 
 ### De status aanmaken
 
@@ -142,7 +142,7 @@ Archiveer een eigen status die uw team niet meer moet gebruiken, in plaats van d
 
 ## De statustijdlijn
 
-De pagina **Statustijdlijn** van de gebeurtenis is het overzicht van elke status waarin ze heeft gestaan. Haar kaart tekent ze als tijdlijn: een band met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Status van geplande onderhoud**, **Begint op**, **Eindigt op**, **Duur**, of abonnees bericht moesten krijgen en hoe hun melding verliep.
+De pagina **Statustijdlijn** van de gebeurtenis is het overzicht van elke status waarin ze heeft gestaan. Haar kaart tekent ze als tijdlijn: een band met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Status van gepland onderhoud**, **Begint op**, **Eindigt op**, **Duur**, of abonnees bericht moesten krijgen en hoe hun melding verliep.
 
 In het dashboard kunnen rijen worden toegevoegd en verwijderd, maar niet bewerkt, en een gebeurtenis houdt er altijd minstens één. Via de API kan de `startsAt` van een rij worden gecorrigeerd, en elke meting die uit de tijdlijn wordt berekend, volgt die. Als je de nieuwste rij verwijdert, gaat de gebeurtenis terug naar de status van de rij ervoor.
 
@@ -166,7 +166,7 @@ De knoppen van de kop starten en beëindigen de gebeurtenis. Voltooien staat in 
 ## Volgende stappen
 
 :::cards
-- [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index): Waar alles staat, en wat een gebeurtenis beïnvloedt.
+- [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index): Waar alles staat, en wat een gebeurtenis beïnvloedt.
 - [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events): Het formulier, veld voor veld.
 - [Onderhoudsregels en instellingen](/docs/scheduled-maintenance/settings): Eigenaren herinneren tot een gebeurtenis voltooid is.
 - [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities): Dezelfde geordende lijst, voor incidenten.

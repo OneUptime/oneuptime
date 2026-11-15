@@ -1,4 +1,6 @@
 import i18n from "./i18n";
+import { StatusPageNameList } from "Common/Types/StatusPage/DefaultStatusNames";
+import { isDefaultRecordName } from "Common/Utils/DefaultRecordNames";
 
 /*
  * Maps the default English names that OneUptime seeds for every new project
@@ -25,17 +27,35 @@ const DEFAULT_STATUS_NAME_KEYS: Readonly<Record<string, string>> = {
   Completed: "completed",
 };
 
+/*
+ * A state's, a severity's or a status's name as the page's reader reads it.
+ * Whether it is one of OneUptime's default names is decided by its own
+ * list, as the Dashboard decides it (Common/Utils/DefaultRecordNames): an
+ * incident state a project named "Degraded" is the project's, and reads as
+ * written, while the default monitor status Degraded reads in the reader's
+ * language (#8066).
+ */
 export const translateStatusName: (
+  list: StatusPageNameList,
   name: string | undefined | null,
-) => string = (name: string | undefined | null): string => {
+) => string = (
+  list: StatusPageNameList,
+  name: string | undefined | null,
+): string => {
   if (!name) {
     return "";
   }
 
-  const key: string | undefined = DEFAULT_STATUS_NAME_KEYS[name];
+  if (!isDefaultRecordName(list, name)) {
+    return name;
+  }
+
+  const trimmed: string = name.trim();
+  const key: string | undefined = DEFAULT_STATUS_NAME_KEYS[trimmed];
+
   if (!key) {
     return name;
   }
 
-  return i18n.t(`statusNames.${key}`, { defaultValue: name });
+  return i18n.t(`statusNames.${key}`, { defaultValue: trimmed });
 };

@@ -2,14 +2,6 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import {
-  Blue500,
-  Gray500,
-  Green500,
-  Red500,
-  Yellow500,
-} from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -55,8 +47,9 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getRunStatusColor, getRunStatusLabel } from "../RunbookRunStatus";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -858,42 +851,5 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
     </>
   );
 };
-
-// A run's status in a word, for "Last scheduled run".
-export function getRunStatusLabel(status: RunbookExecutionStatus): string {
-  switch (status) {
-    case RunbookExecutionStatus.Completed:
-      return translationKey("Completed");
-    case RunbookExecutionStatus.Failed:
-      return translationKey("Failed");
-    case RunbookExecutionStatus.Running:
-      return translationKey("Running");
-    case RunbookExecutionStatus.WaitingForManualStep:
-      return translationKey("Waiting");
-    case RunbookExecutionStatus.Cancelled:
-      return translationKey("Cancelled");
-    case RunbookExecutionStatus.Scheduled:
-    default:
-      return translationKey("Scheduled");
-  }
-}
-
-// Its pill's colour, as the Executions lists colour it.
-export function getRunStatusColor(status: RunbookExecutionStatus): Color {
-  switch (status) {
-    case RunbookExecutionStatus.Completed:
-      return Green500;
-    case RunbookExecutionStatus.Failed:
-      return Red500;
-    case RunbookExecutionStatus.Running:
-      return Blue500;
-    case RunbookExecutionStatus.WaitingForManualStep:
-      return Yellow500;
-    case RunbookExecutionStatus.Cancelled:
-    case RunbookExecutionStatus.Scheduled:
-    default:
-      return Gray500;
-  }
-}
 
 export default RunbookScheduleCard;

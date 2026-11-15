@@ -67,7 +67,9 @@ import {
   getSendgridConfig,
 } from "../../FeatureSet/Notification/Config";
 import { TransporterPool } from "../../FeatureSet/Notification/Services/MailService";
-import ServerChannelSetup from "Common/Server/Utils/ServerSending/ServerChannelSetup";
+import ServerChannelSetup, {
+  EMAIL_NOT_SET_UP_PROBLEM,
+} from "Common/Server/Utils/ServerSending/ServerChannelSetup";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import Email from "Common/Types/Email";
 import AmazonSesAuthenticationType from "Common/Types/Email/AmazonSesAuthenticationType";
@@ -175,6 +177,18 @@ const NAMED_ROWS: Array<[string, Record<string, unknown>]> = [
     },
   ],
   ["only a username typed", { smtpUsername: "mailer" }],
+  // #7458: what a fresh server was seeded with when SMTP_PORT was not set.
+  [
+    "only port 25, as a fresh server was seeded",
+    {
+      emailServerType: EmailServerType.CustomSMTP,
+      smtpPort: new Port(25),
+      smtpUsername: "",
+      smtpPassword: "",
+      smtpFromName: "",
+      isSMTPSecure: false,
+    },
+  ],
   ["a mail server signing in with OAuth as its mailbox", SMTP_OAUTH_ROW],
   [
     "a mail server signing in with OAuth, no mailbox named",
@@ -256,6 +270,37 @@ describe("the rows a person meets most", () => {
   test("a fresh server cannot send, and both say so", async () => {
     expect(pagesSaySetUp({})).toBe(false);
     expect(await senderWouldSend({})).toBe(false);
+  });
+
+  /*
+   * #7458: a port alone is no mail server, for the sender as for the
+   * pages. The sender found one missing its From Email, and wrote "This
+   * server's email settings are incomplete: Global SMTP From Email not
+   * found" to the log of a server nobody had set anything on; the pages
+   * named the From Email as the one thing missing.
+   */
+  test("a port alone is no mail server for the sender either: none, not one missing its From Email (#7458)", async () => {
+    for (const port of [25, 587]) {
+      storedRow = {
+        emailServerType: EmailServerType.CustomSMTP,
+        smtpPort: new Port(port),
+      };
+
+      await expect(getGlobalSMTPConfig()).resolves.toBeNull();
+      expect(ServerChannelSetup.getEmailSetUpProblem(storedRow)).toBe(
+        EMAIL_NOT_SET_UP_PROBLEM,
+      );
+    }
+
+    // Anything else with it is a mail server left incomplete, as before.
+    storedRow = {
+      smtpPort: new Port(25),
+      smtpHost: new Hostname("smtp.example.com"),
+    };
+
+    await expect(getGlobalSMTPConfig()).rejects.toThrow(
+      "Global SMTP From Email not found",
+    );
   });
 
   test("Amazon SES signing in with this server's IAM role needs no key, and both say so (#7000)", async () => {

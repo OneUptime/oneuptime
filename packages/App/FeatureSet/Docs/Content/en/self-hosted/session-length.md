@@ -51,7 +51,7 @@ flowchart TB
 ```
 
 - The server counts both lengths from the session itself: when it signed in, and when its person was last active. It checks them on every request, every renewal and every live update, and never leaves signing out to the browser.
-- The idle timeout counts from the last click, key press or scroll in any tab of the Dashboard or the Admin Dashboard. A tab left open does not keep a session alive.
+- The idle timeout counts from the last click, key press or scroll in any tab of the Dashboard or the Admin Dashboard. A tab left open does not keep a session alive. Opening OneUptime again does not bring it back either: someone away for longer than the idle timeout, with the browser closed or the computer asleep, signs in again.
 - The mobile app counts as active each time it is used.
 - When a session ends, the browser goes to the sign-in page, which says why. After signing in again, the person is taken back to the page they were on.
 

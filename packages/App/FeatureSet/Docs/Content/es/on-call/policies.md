@@ -90,7 +90,7 @@ Un incidente, una alerta o un episodio ejecuta cada una de sus políticas por se
 
 Algunos avisos siguen después del reconocimiento, hasta que responde alguien a quien avisaron o se resuelve: un nuevo aviso, un aviso a observadores, un aviso que alguien envió a personas desde Slack o Microsoft Teams y una política iniciada a mano.
 
-Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué.
+Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué. Sus notificaciones dicen quién inició qué política e incluyen el mensaje enviado con un aviso desde Slack o Microsoft Teams.
 
 ## Registros de ejecución
 
@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Esperando** | Una regla de guardia configurada como **Solo en horario laboral** hace esperar la ejecución hasta que empieza ese horario: dice cuándo empiezan los avisos, y hasta entonces no avisa a nadie. Termina sin avisar si el incidente o la alerta se reconoce o se resuelve antes. Empieza a avisar en ese momento si el incidente o la alerta cambia y ahora coincide con una regla de guardia que avisa de inmediato. |
 | **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos se detiene como **Error**. |
-| **Executing** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. |
-| **Execution Completed** | Alguien lo reconoció, el incidente o la alerta se resolvió, se usaron todas las reglas y repeticiones, o la política se archivó. |
-| **Execution Completed - No One Notified** | La ejecución recorrió todas las reglas sin avisar a nadie: normalmente una programación sin nadie de guardia, o un nivel sin destinatarios. |
+| **Ejecutándose** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. |
+| **Ejecución completada** | Alguien lo reconoció, el incidente o la alerta se resolvió, se usaron todas las reglas y repeticiones, o la política se archivó. |
+| **Ejecución completada - no se notificó a nadie** | La ejecución recorrió todas las reglas sin avisar a nadie: normalmente una programación sin nadie de guardia, o un nivel sin destinatarios. |
 | **Error** | La ejecución falló. **Ver mensaje de estado** dice por qué. |
 
 Encontrarás registros de ejecución en tres lugares:
@@ -160,7 +160,7 @@ Para crear una política con su primer nivel en una sola petición, consulta [Cr
 ## Solución de problemas
 
 :::details Una política se ejecutó, pero no se avisó a nadie
-Su ejecución dice **Execution Completed - No One Notified**. Abre **Ver cronología**: una fila con **Nadie estaba de guardia** señala una programación con un hueco, y el mensaje de estado de una fila **Omitido** dice por qué, por ejemplo alguien ausente sin nadie que lo cubra. **Guardia → Preparación** muestra a quién no se pudo localizar.
+Su ejecución dice **Ejecución completada - no se notificó a nadie**. Abre **Ver cronología**: una fila con **Nadie estaba de guardia** señala una programación con un hueco, y el mensaje de estado de una fila **Omitido** dice por qué, por ejemplo alguien ausente sin nadie que lo cubra. **Guardia → Preparación** muestra a quién no se pudo localizar.
 :::
 
 :::details El siguiente nivel recibió el aviso un minuto después de su espera

@@ -117,7 +117,7 @@ En regel som larmar en telefon bestämmer hur dess push låter:
 | **Kritiskt larm** | Ringer även när telefonen är på ljudlöst eller i Stör ej, när Critical On-Call Alerts är påslaget i appen OneUptime On-Call. En ny telefonregel börjar här. |
 | **Normal** | Följer telefonens inställningar för ljud, ljudlöst och Stör ej. |
 
-En push-regel, för en telefon eller en webbläsare, kan också skicka sin push igen tills någon bekräftar: **Upprepa inte**, standardvalet, eller **Varje minut**, **Varannan minut**, **Var 3:e minut**, **Var 5:e minut**, **Var 10:e minut**, **Var 15:e minut** eller **Var 30:e minut**. Den upprepas upp till 10 gånger till och stoppar så snart incidenten, larmet eller episoden har bekräftats. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
+En push-regel, för en telefon eller en webbläsare, kan också skicka sin push igen tills någon bekräftar: **Upprepa inte**, standardvalet, eller **Varje minut**, **Varannan minut**, **Var 3:e minut**, **Var 5:e minut**, **Var 10:e minut**, **Var 15:e minut** eller **Var 30:e minut**. Den upprepas upp till 10 gånger till och stoppar så snart incidenten, larmet eller episoden har bekräftats. Ett larm som fortsätter efter en bekräftelse, som ett nytt larm, upprepas tills någon det har larmat svarar eller incidenten, larmet eller episoden är löst: [När flera policyer larmar](/docs/on-call/policies#när-flera-policyer-larmar) räknar upp dem. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
 
 ## När en allvarlighetsgrad saknar regel
 

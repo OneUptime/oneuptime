@@ -97,7 +97,9 @@ import {
 } from "Common/Types/UserSession/SessionSignIn";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
+  LONGEST_INACTIVITY_FIELD,
   readReportedInactivityInSeconds,
+  readReportedLongestInactivity,
   SessionEndReason,
 } from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
@@ -2394,23 +2396,33 @@ router.post(
        * it signed in, or its person has not used OneUptime for the idle
        * timeout - by what the session knows, and while an idle timeout is
        * set, by what the Dashboard says of how long its person has not
-       * clicked, typed or scrolled (inactiveForInSeconds). Decided here,
-       * never left to the browser.
+       * clicked, typed or scrolled (inactiveForInSeconds), and of the
+       * longest time they went without since the last renewal
+       * (longestInactivity): a browser closed or a computer asleep past the
+       * idle timeout does not come back as a session (issue #6789). Decided
+       * here, never left to the browser.
        */
+      const renewalBody: JSONObject | undefined = req.body as
+        | JSONObject
+        | undefined;
+
       const decision: SessionRenewalDecision =
         await UserSessionService.decideRenewal({
           session,
           reportedInactivityInSeconds: readReportedInactivityInSeconds(
-            (req.body as JSONObject | undefined)?.[
-              INACTIVE_FOR_IN_SECONDS_FIELD
-            ],
+            renewalBody?.[INACTIVE_FOR_IN_SECONDS_FIELD],
+          ),
+          reportedLongestInactivity: readReportedLongestInactivity(
+            renewalBody?.[LONGEST_INACTIVITY_FIELD],
           ),
         });
 
       if (decision.hasEnded) {
+        // Recorded with when its person was last active before it ended.
         await UserSessionService.endSessionByLength(
           session.id,
           decision.reason,
+          { lastActiveAt: decision.lastActiveAt },
         );
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(

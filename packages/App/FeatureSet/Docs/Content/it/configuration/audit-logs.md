@@ -120,7 +120,7 @@ Ogni volta che un membro del progetto accede a OneUptime, il registro di audit l
 
 La **Risorsa** di una voce è la sessione, che prende il nome dal dispositivo da cui è stato fatto l'accesso, ad esempio `Chrome 130 on macOS`. Il suo **Attore** è la persona a cui appartiene la sessione, quindi filtrando per **Email utente** si trovano tutti i suoi accessi e tutte le sue sessioni. I suoi dettagli dicono come la persona ha effettuato l'accesso e con quale secondo fattore, l'indirizzo IP e la località, e, per una sessione finita, quando è stato fatto l'accesso, quando è stata usata l'ultima volta e quando è scaduta. Il provider SSO proprio di un progetto viene nominato solo nel registro di audit di quel progetto.
 
-Accessi e sessioni vengono registrati che il progetto memorizzi o no gli eventi di sistema. Una durata della sessione o 30 giorni senza utilizzo vengono registrati entro pochi minuti dalla scadenza. Un tempo di inattività viene registrato quando la scheda aperta della persona o l'app mobile raggiunge di nuovo OneUptime.
+Accessi e sessioni vengono registrati che il progetto memorizzi o no gli eventi di sistema. Una durata della sessione o 30 giorni senza utilizzo vengono registrati entro pochi minuti dalla scadenza. Un tempo di inattività viene registrato quando il browser della persona o l'app mobile raggiunge di nuovo OneUptime: da una scheda rimasta aperta, o quando la persona riapre OneUptime.
 
 ## Per quanto tempo restano le voci
 

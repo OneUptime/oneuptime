@@ -32,7 +32,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 | --- | --- |
 | En hændelse er åben | Hvor mange hændelser der er aktive, med rødt |
 | Ingen hændelse er åben, men der er åbne advarsler, monitorer, der ikke er i drift, eller SLO'er i fare | Hvor mange problemer der kræver opmærksomhed, med ravgult |
-| Intet er galt, og en vedligeholdelse er i gang | Hvor mange vedligeholdelser der er i gang |
+| Intet er galt, og en vedligeholdelse er i gang | Hvor mange vedligeholdelseshændelser der er i gang |
 | Monitorer kører, og intet er åbent | **Alle systemer er i drift** |
 | Projektet har ingen monitorer endnu | **Der overvåges ikke noget endnu** |
 
