@@ -98,7 +98,7 @@ Telkens als een regel een SLO wijzigt, legt de **Feed** van de SLO vast welke re
 | Een labelregel uit te voeren | **Edit SLO Label Rule** en **Edit Service Level Objective** |
 | Een eigenaarsregel uit te voeren | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** en **Create SLO Team Owner** |
 
-Deze machtigingen staan in de SLO-groep van een rol, en de rollen Project Owner en Project Admin hebben ze allemaal. Een uitvoering wijzigt elke SLO in het project, dus een machtiging die beperkt is tot sommige labels, of tot de SLO's waarvan u eigenaar bent, is niet genoeg om een regel uit te voeren.
+Deze machtigingen staan in de SLO-groep van een rol, en de rollen Projecteigenaar en Projectbeheerder hebben ze allemaal. Een uitvoering wijzigt elke SLO in het project, dus een machtiging die beperkt is tot sommige labels, of tot de SLO's waarvan u eigenaar bent, is niet genoeg om een regel uit te voeren.
 
 ## Volgende stappen
 

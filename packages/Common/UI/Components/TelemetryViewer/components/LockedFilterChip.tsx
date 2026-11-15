@@ -30,6 +30,7 @@ import {
   translationKey,
 } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import { LABEL_WITH_COLON } from "../../../Utils/LabelWithColon";
 import DictionaryFilterSentence, {
   formatDictionaryFilterSentence,
 } from "../../Dictionary/DictionaryFilterSentence";
@@ -645,7 +646,9 @@ const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
       ) : (
         <>
           <span className="shrink-0 font-medium text-gray-500">
-            {translator.translateText(props.displayKey)}:
+            {translator.translateTemplate(LABEL_WITH_COLON, {
+              label: translatableTerm(props.displayKey),
+            })}
           </span>
           <span
             className={LOCKED_FILTER_CHIP_VALUE_CLASS_NAME}

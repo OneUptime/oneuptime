@@ -49,7 +49,6 @@ import {
   fetchLogAndExceptionSignals,
   fetchSpanMetrics,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
   LogAndExceptionSignals,
@@ -406,7 +405,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       : meanOf(firstRuntime.series);
     tiles.push({
       title: firstRuntime.def.title,
-      value: formatRuntimeValue(tileValue, firstRuntime.def.unit),
+      value: formatRuntimeValue(tileValue, firstRuntime.def.unit, translator),
       icon: firstRuntime.def.icon,
       iconColor: firstRuntime.def.iconColor,
       loading: metricsLoading,
@@ -469,7 +468,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         yFormatter={(n: number): string => {
-          return formatDurationMs(n);
+          return formatDurationMsInLanguage(n, translator);
         }}
         loading={spanChartsLoading}
         description={SERVICE_METRIC_DESCRIPTIONS.latencyP95Chart}
@@ -537,7 +536,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             syncId={syncId}
             yMax={chart.def.unit === "percent" ? 100 : "auto"}
             yFormatter={(n: number): string => {
-              return formatRuntimeValue(n, chart.def.unit);
+              return formatRuntimeValue(n, chart.def.unit, translator);
             }}
             loading={metricsLoading && chart.series.length === 0}
             description={chart.def.description}

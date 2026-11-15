@@ -124,8 +124,11 @@ export function getOpenStackFitOnHost(data: {
       continue;
     }
 
-    const inventory: OpenStackInventory | undefined =
-      data.inventories[resourceClass];
+    // The host's own inventory of the class: one it does not list is none at all.
+    const inventory: OpenStackInventory | undefined = readOwnValue(
+      data.inventories,
+      resourceClass,
+    );
 
     const count: number =
       inventory && canInventoryTakeAmount(inventory, amount)
@@ -481,15 +484,36 @@ export interface OpenStackFlavorFit {
   byAggregate: Record<string, number>;
 }
 
+/*
+ * A resource class is named by the cloud, and readOpenStackInventories keeps
+ * one named "__proto__" as the host's own: so it is written as this copy's
+ * own key too. Assigned, it became the copy's prototype, and the host was
+ * judged empty without it.
+ */
 function emptyInventoriesOf(host: OpenStackCapacityHost): OpenStackInventories {
   const empty: OpenStackInventories = {};
   for (const resourceClass of Object.keys(host.inventories)) {
-    empty[resourceClass] = {
+    writeOwnValue(empty, resourceClass, {
       ...(host.inventories[resourceClass] as OpenStackInventory),
       used: 0,
-    };
+    });
   }
   return empty;
+}
+
+/*
+ * Adds to a total kept by a name the cloud chose - an availability zone, a
+ * host aggregate, a resource class - as the map's own key. A plain read
+ * answered "constructor" with a function, so its total became the
+ * function's text, and "__proto__" with the prototype, whose total was then
+ * dropped.
+ */
+function addToOwnTotal(
+  totals: Record<string, number>,
+  name: string,
+  amount: number,
+): void {
+  writeOwnValue(totals, name, (readOwnValue(totals, name) || 0) + amount);
 }
 
 // A host's zone as these tables key it: a host nothing has placed in a zone is in "".
@@ -549,11 +573,10 @@ export function getOpenStackFlavorFit(data: {
     }
 
     const zone: string = getOpenStackCapacityZoneKey(host.zone);
-    result.byZone[zone] = (result.byZone[zone] || 0) + onHost.fit;
+    addToOwnTotal(result.byZone, zone, onHost.fit);
 
     for (const aggregate of host.aggregates) {
-      result.byAggregate[aggregate] =
-        (result.byAggregate[aggregate] || 0) + onHost.fit;
+      addToOwnTotal(result.byAggregate, aggregate, onHost.fit);
     }
 
     result.fits += onHost.fit;
@@ -561,7 +584,7 @@ export function getOpenStackFlavorFit(data: {
     if (onHost.fit > 0) {
       result.hostsWithRoom += 1;
     } else if (onHost.limitedBy) {
-      limitedBy[onHost.limitedBy] = (limitedBy[onHost.limitedBy] || 0) + 1;
+      addToOwnTotal(limitedBy, onHost.limitedBy, 1);
     }
 
     for (const resourceClass of classes) {
@@ -1060,11 +1083,10 @@ export function getOpenStackPlacementAnswer(data: {
     }
 
     const zone: string = getOpenStackCapacityZoneKey(host?.zone || null);
-    answer.byZone[zone] = (answer.byZone[zone] || 0) + candidate.fit;
+    addToOwnTotal(answer.byZone, zone, candidate.fit);
 
     for (const aggregate of host?.aggregates || []) {
-      answer.byAggregate[aggregate] =
-        (answer.byAggregate[aggregate] || 0) + candidate.fit;
+      addToOwnTotal(answer.byAggregate, aggregate, candidate.fit);
     }
   }
 

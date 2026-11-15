@@ -275,10 +275,13 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
               }),
             }),
       messages: translator.translateTemplate("{{count}} messages", {
-        count: formatMessageQueueCount(edge.messages),
+        count: formatMessageQueueCount(edge.messages, translator),
       }),
       errorRate: translator.translateTemplate("{{rate}} errors", {
-        rate: formatMessageQueueTopologyPercent(edge.errorRatePercent),
+        rate: formatMessageQueueTopologyPercent(
+          edge.errorRatePercent,
+          translator,
+        ),
       }),
       tone: toneOfEdge(edge),
     };
@@ -334,7 +337,7 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           entry?.status === "loading"
             ? "…"
             : value
-              ? formatMessageQueueHeadlineFull(value)
+              ? formatMessageQueueHeadlineFull(value, translator)
               : "—",
         detail:
           entry?.status === "ready" && !value
@@ -362,21 +365,33 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Published") || "Published",
-        value: formatMessageQueueCount(queue.published),
-        detail: formatMessageQueueTopologyRate(queue.published, windowSeconds),
+        value: formatMessageQueueCount(queue.published, translator),
+        detail: formatMessageQueueTopologyRate(
+          queue.published,
+          windowSeconds,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-published",
       },
       {
         label: translator.translateText("Consumed") || "Consumed",
-        value: formatMessageQueueCount(queue.consumed),
-        detail: formatMessageQueueTopologyRate(queue.consumed, windowSeconds),
+        value: formatMessageQueueCount(queue.consumed, translator),
+        detail: formatMessageQueueTopologyRate(
+          queue.consumed,
+          windowSeconds,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-consumed",
       },
       {
         label: translator.translateText("Errors") || "Errors",
-        value: formatMessageQueueCount(queue.errors),
+        value: formatMessageQueueCount(queue.errors, translator),
         detail: translator.translateTemplate("{{rate}} of its spans", {
-          rate: formatMessageQueueTopologyErrorRate(queue.spans, queue.errors),
+          rate: formatMessageQueueTopologyErrorRate(
+            queue.spans,
+            queue.errors,
+            translator,
+          ),
         }),
         testId: "message-queue-topology-drawer-errors",
         tone: toneOf(queue.spans, queue.errors),
@@ -472,20 +487,22 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Published") || "Published",
-        value: formatMessageQueueCount(node.published.messages),
+        value: formatMessageQueueCount(node.published.messages, translator),
         detail: formatMessageQueueTopologyRate(
           node.published.messages,
           windowSeconds,
+          translator,
         ),
         testId: "message-queue-topology-drawer-published",
         tone: toneOf(node.published.attempts, node.published.errors),
       },
       {
         label: translator.translateText("Consumed") || "Consumed",
-        value: formatMessageQueueCount(node.consumed.messages),
+        value: formatMessageQueueCount(node.consumed.messages, translator),
         detail: formatMessageQueueTopologyRate(
           node.consumed.messages,
           windowSeconds,
+          translator,
         ),
         testId: "message-queue-topology-drawer-consumed",
         tone: toneOf(node.consumed.attempts, node.consumed.errors),
@@ -575,14 +592,21 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Messages") || "Messages",
-        value: formatMessageQueueCount(edge.messages),
-        detail: formatMessageQueueTopologyRate(edge.messages, windowSeconds),
+        value: formatMessageQueueCount(edge.messages, translator),
+        detail: formatMessageQueueTopologyRate(
+          edge.messages,
+          windowSeconds,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-messages",
       },
       {
         label: translator.translateText("Errors") || "Errors",
-        value: formatMessageQueueCount(edge.errors),
-        detail: formatMessageQueueTopologyPercent(edge.errorRatePercent),
+        value: formatMessageQueueCount(edge.errors, translator),
+        detail: formatMessageQueueTopologyPercent(
+          edge.errorRatePercent,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-errors",
         tone: toneOfEdge(edge),
       },

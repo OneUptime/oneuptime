@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een AWS-account met Security Hub ingeschakeld in de regio die je koppelt. Security Hub is regionaal: een verbinding leest de bevindingen die één account in één regio heeft.
 - Om de bevindingen van elk account en elke regio via één verbinding te lezen: het gedelegeerde beheerdersaccount van Security Hub, in zijn thuisregio, met [regio-overschrijdende aggregatie](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) aan. **Security Hub → Settings → Regions** toont de thuisregio.
 - Uitgaand HTTPS van de OneUptime-app en -workers naar `securityhub.<region>.amazonaws.com`, of `securityhub.<region>.amazonaws.com.cn` in China, en een juiste klok op hun hosts: AWS weigert een verzoek dat meer dan 5 minuten ernaast is ondertekend.

@@ -353,11 +353,16 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
    */
   const formatValue: (value: number) => string = (value: number): string => {
     if (spec.definition) {
-      return formatDatabaseMetricAxisValue(value, spec.definition.unit);
+      return formatDatabaseMetricAxisValue(
+        value,
+        spec.definition.unit,
+        translator,
+      );
     }
     return formatDatabaseMetricUnitAxisValue(value, spec.unit, {
       isRate: spec.isRate,
       metricName: spec.metricName,
+      translator: translator,
     });
   };
   // A bare-number rate keeps its "/s" on the axis; anything else says it here.

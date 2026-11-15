@@ -390,7 +390,10 @@ describe("the Overview", () => {
   });
 
   test("Calling services counts every service, not the table's ten", () => {
-    expect(code).toContain("formatDatabaseCount(callingServices.total)");
+    // In the reader's digits (#8283), the whole count.
+    expect(code).toContain(
+      "formatDatabaseCount(callingServices.total, translator)",
+    );
     expect(code).not.toContain("String(callingServices.length)");
     expect(code).toContain("totalServices={callingServices.total}");
   });

@@ -66,10 +66,10 @@ Playlister har deres egne tilladelser, som gives gennem et team ligesom dashboar
 
 | For at | Kræves |
 | --- | --- |
-| Se og afspille playlister | `ReadDashboardPlaylist`, eller en projektrolle: Project Owner, Project Admin, Project Member, Viewer eller en Settings-rolle |
-| Oprette playlister | `CreateDashboardPlaylist`, Project Owner eller Project Admin |
-| Ændre en playliste: dens navn, dashboards og tid | `EditDashboardPlaylist`, Project Owner eller Project Admin |
-| Slette en playliste | `DeleteDashboardPlaylist`, Project Owner eller Project Admin |
+| Se og afspille playlister | `ReadDashboardPlaylist`, eller en projektrolle: Projektejer, Projektadministrator, Projektmedlem, Seer eller en Settings-rolle |
+| Oprette playlister | `CreateDashboardPlaylist`, Projektejer eller Projektadministrator |
+| Ændre en playliste: dens navn, dashboards og tid | `EditDashboardPlaylist`, Projektejer eller Projektadministrator |
+| Slette en playliste | `DeleteDashboardPlaylist`, Projektejer eller Projektadministrator |
 
 En playliste viser aldrig nogen et dashboard, de ikke må læse. Afspilleren afspiller kun de dashboards, som den person, der er logget ind på skærmen, må læse, og som ikke er arkiveret, og springer resten over: et slettet dashboard, et arkiveret eller et, som personens tilladelser holder dem fra. Playlistens side siger, hvorfor den springer hvert af dem over. Når en playliste gemmes, beholder den de dashboards, som redaktøren ikke selv kan se, så intet går tabt, som en anden har lagt i den.
 
@@ -81,7 +81,7 @@ En playliste viser aldrig nogen et dashboard, de ikke må læse. Afspilleren afs
 | En læsning, der mislykkedes | **Playlisten kunne ikke indlæses**, og den prøver igen hvert minut, eller ved **Prøv igen**. |
 
 > [!NOTE]
-> Afspilleren er til en person, der er logget ind på OneUptime. For at køre en playliste på en skærm skal du logge ind på den skærm med en konto, der må læse playlisten og dens dashboards, for eksempel et teammedlem med rollen Viewer.
+> Afspilleren er til en person, der er logget ind på OneUptime. For at køre en playliste på en skærm skal du logge ind på den skærm med en konto, der må læse playlisten og dens dashboards, for eksempel et teammedlem med rollen Seer.
 
 ## Næste trin
 

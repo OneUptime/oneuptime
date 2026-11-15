@@ -217,7 +217,7 @@ Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligge
 
 Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge en anden adresse tilføjer du den og sletter den gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
 
-At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Domain**, eller Project Owner eller Project Admin), og at bekræfte det kræver **Edit Domain**. Uden dem siger dialogen, hvem der kan gøre det.
+At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Domain**, eller Projektejer eller Projektadministrator), og at bekræfte det kræver **Edit Domain**. Uden dem siger dialogen, hvem der kan gøre det.
 
 ### DNS-opsætning og bekræftelse
 
@@ -301,9 +301,9 @@ Se efter en CAA-post på dit domæne, der udelader `letsencrypt.org`, og tjek p�
 
 ### Hvem der kan tjekke og genudstede
 
-**Tjek nu**, bestilling af et domænes certifikat og **Reissue SSL** ændrer domænet, så de kræver tilladelse til at redigere det: **Edit Status Page Domain** eller en rolle, der indeholder den (Project Owner, Project Admin, Project Member, Status Page Admin eller Status Page Member).
+**Tjek nu**, bestilling af et domænes certifikat og **Reissue SSL** ændrer domænet, så de kræver tilladelse til at redigere det: **Edit Status Page Domain** eller en rolle, der indeholder den (Projektejer, Projektadministrator, Projektmedlem, Statussideadministrator eller Statussidemedlem).
 
-Den, der kun kan læse domænet, såsom en Viewer eller en Status Page Viewer, ser stadig kolonnen **Status** og den post, der skal tilføjes, i **DNS-opsætning**. For dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der kræves. OneUptime bliver under alle omstændigheder selv ved med at tjekke hvert domæne og bestille dets certifikat.
+Den, der kun kan læse domænet, såsom en Seer eller en Statussideseer, ser stadig kolonnen **Status** og den post, der skal tilføjes, i **DNS-opsætning**. For dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der kræves. OneUptime bliver under alle omstændigheder selv ved med at tjekke hvert domæne og bestille dets certifikat.
 
 Det samme gælder API-nøgler. En nøgle, der kun kan læse statussidedomæner, kan ikke kalde `verify-cname`, `check-dns`, `order-ssl` eller `reissue-ssl` på `/status-page-domain`. Giv den **Read Status Page Domain** og **Edit Status Page Domain**, hvis den har brug for det. Når posten ikke er fundet, afviser `verify-cname` med, hvad den slog op, og hvad der kom tilbage, med de samme ord, som **DNS-opsætning** viser; `check-dns` svarer for hver post, den slog op, uanset udfaldet.
 

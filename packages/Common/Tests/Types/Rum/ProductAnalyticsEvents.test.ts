@@ -31,6 +31,7 @@ import {
   CAFE_PAGE,
   CAFE_SPELLINGS,
   PAGES_WITH_PERSONAL_DATA,
+  PAGES_WITH_SECRETS,
   PAGE_SPELLINGS,
   PageSpellingCase,
   addressOf,
@@ -516,6 +517,46 @@ describe("personal data in a page", () => {
     },
   );
 
+  /*
+   * #8385: a JSON Web Token, and an address escaped twice, which the
+   * scrubber kept until then: a client that sends one, or the location's
+   * whole address, has it stored scrubbed, and what is kept that names no
+   * one stays as it is.
+   */
+  test.each(
+    PAGES_WITH_SECRETS.map(
+      (row: PageSpellingCase): [string, PageSpellingCase] => {
+        return [row.name, row];
+      },
+    ),
+  )(
+    "stores a token or an address escaped twice scrubbed: %s",
+    (_name: string, row: PageSpellingCase) => {
+      const address: string = addressOf(row);
+
+      expect(
+        pagesOf([
+          { kind: "page", name: row.sent, at: RECEIVED_AT },
+          { kind: "session", page: row.sent, at: RECEIVED_AT },
+          { kind: "page", name: address, at: RECEIVED_AT },
+          { kind: "custom", name: "Signed in", page: address, at: RECEIVED_AT },
+        ]),
+      ).toEqual([
+        ["page", row.page, row.page],
+        ["session", "", row.page],
+        ["page", row.page, row.page],
+        ["custom", "Signed in", row.page],
+      ]);
+
+      expect(toProductAnalyticsPage(row.page)).toBe(row.page);
+      expect(toProductAnalyticsPage(UrlScrubber.scrub(address, []))).toBe(
+        row.page,
+      );
+      expect(row.page).not.toContain("eyJhbGci");
+      expect(row.page).not.toContain("%2540");
+    },
+  );
+
   test.each(
     PAGE_SPELLINGS.map((row: PageSpellingCase): [string, PageSpellingCase] => {
       return [row.name, row];
@@ -699,7 +740,11 @@ describe("personal data in a page", () => {
     ];
     const pages: Array<string> = [];
 
-    for (const row of [...PAGE_SPELLINGS, ...PAGES_WITH_PERSONAL_DATA]) {
+    for (const row of [
+      ...PAGE_SPELLINGS,
+      ...PAGES_WITH_PERSONAL_DATA,
+      ...PAGES_WITH_SECRETS,
+    ]) {
       pages.push(row.sent, addressOf(row), row.page);
     }
 
@@ -759,6 +804,16 @@ describe("a property that is an address", () => {
       "a hashbang route",
       "https://shop.example.com/app/#!/users/someone%40example.com",
       "https://shop.example.com/app/#!/users/[redacted]",
+    ],
+    [
+      "a JSON Web Token in the path (#8385)",
+      "https://shop.example.com/auth/callback/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl?state=abc",
+      "https://shop.example.com/auth/callback/[redacted]",
+    ],
+    [
+      "an email escaped twice, in a route (#8385)",
+      "https://shop.example.com/#/u/someone%2540example.com",
+      "https://shop.example.com/#/u/[redacted]",
     ],
     [
       "a fragment that is no route",

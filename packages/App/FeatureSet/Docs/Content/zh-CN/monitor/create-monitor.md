@@ -3,7 +3,7 @@
 监视器会检查您运行的对象，例如网站、API、主机或 Kubernetes 集群，并在它停止工作时通知您。**创建监视器** 先问要监控什么，再问要检查什么，最后问多久检查一次。除了类型、名称和要检查的对象，其余内容都以适合大多数监视器的默认值开始。
 
 > [!NOTE]
-> 要创建监视器，您需要 Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member 角色，或者拥有 Create Monitor 权限的自定义角色。
+> 要创建监视器，您需要项目所有者、项目管理员、项目成员、监视器管理员或监视器成员角色，或者拥有 Create Monitor 权限的自定义角色。
 
 ## 监视器信息
 

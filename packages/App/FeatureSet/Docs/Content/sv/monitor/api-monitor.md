@@ -34,7 +34,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når API:et.** Projektets standardsonder väljs för varje ny monitor. Om en brandvägg står framför API:et tillåter du [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses). Ett API i ett privat nätverk behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket, som får nå privata adresser: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 - **Inloggningsuppgifter som övervakningshemligheter.** Om API:et behöver en nyckel eller en token sparar du den först som en [övervakningshemlighet](/docs/monitor/monitor-secrets), så att monitorn bara har en referens till den.
 

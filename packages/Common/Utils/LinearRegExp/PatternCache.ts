@@ -101,7 +101,7 @@ export function getLinearRegExp(
    * never kept - its text would be its key, and a request can carry
    * megabytes of it.
    */
-  refusePatternTooLong(source);
+  refusePatternTooLong(source, options?.maxLength);
 
   return getByKey(keyOf(source, flags, options), source, flags, options);
 }
@@ -116,6 +116,7 @@ function keyOf(
     flags,
     options?.captures === true ? "captures" : "",
     options?.maxSteps ?? "",
+    options?.maxLength ?? "",
     source,
   ].join("\u0000");
 }
@@ -199,7 +200,7 @@ export class LinearRegExpHandle {
     flags: string = "",
     options?: LinearRegExpOptions,
   ) {
-    refusePatternTooLong(source);
+    refusePatternTooLong(source, options?.maxLength);
 
     this.source = source;
     this.flags = flags;

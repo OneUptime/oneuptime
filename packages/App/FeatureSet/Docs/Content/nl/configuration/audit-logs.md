@@ -32,7 +32,7 @@ flowchart TB
 
 - **In OneUptime Cloud: het Enterprise-abonnement.** Bij andere abonnementen tonen de pagina's van het auditlogboek wat de functie doet en hoe u die krijgt.
 - **Als u zelf host: de Enterprise Edition**, met een licentie die auditlogboeken omvat. Zie [Enterprise Edition](/docs/self-hosted/enterprise).
-- **Een rol die het auditlogboek mag lezen.** Project Owner, Project Admin, Settings Admin of de machtiging **Read Audit Log**. Auditlogging aanzetten en de instellingen ervan wijzigen vraagt een Project Owner, een Project Admin of de machtiging om het project te bewerken.
+- **Een rol die het auditlogboek mag lezen.** Projecteigenaar, Projectbeheerder, Instellingenbeheerder of de machtiging **Read Audit Log**. Auditlogging aanzetten en de instellingen ervan wijzigen vraagt een Projecteigenaar, een Projectbeheerder of de machtiging om het project te bewerken.
 
 ## Auditlogging aanzetten
 
@@ -120,7 +120,7 @@ Elke keer dat een lid van het project zich bij OneUptime aanmeldt, legt het audi
 
 De **Resource** van een vermelding is de sessie, genoemd naar het apparaat waarop de aanmelding plaatsvond, zoals `Chrome 130 on macOS`. De **Actor** is de persoon van wie de sessie is, dus filteren op **E-mailadres gebruiker** vindt al diens aanmeldingen en sessies. De details vermelden hoe diegene zich aanmeldde en met welke tweede factor, het IP-adres en de plaats, en bij een geëindigde sessie wanneer die werd aangemeld, wanneer die het laatst werd gebruikt en wanneer die verliep. De eigen SSO-provider van een project wordt alleen in het auditlogboek van dat project genoemd.
 
-Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur wordt vastgelegd wanneer de browser van de persoon of de mobiele app de volgende keer contact maakt met OneUptime: vanuit een tabblad dat open is blijven staan, of wanneer de persoon OneUptime opnieuw opent.
+Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur in de browser wordt binnen 35 minuten vastgelegd, of de persoon nu terugkomt of niet. In de mobiele app wordt die vastgelegd wanneer de app de volgende keer contact maakt met OneUptime.
 
 ## Hoe lang vermeldingen blijven
 

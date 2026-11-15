@@ -4,6 +4,7 @@ import {
   Results,
 } from "../../Services/AnalyticsDatabaseService";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
+import { pathSpellingKeySql } from "../AnalyticsDatabase/PathSpelling";
 import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
@@ -38,6 +39,8 @@ import {
   ProductAnalyticsTrendDto,
   readProductAnalyticsPersonKind,
 } from "../../../Types/Rum/ProductAnalytics";
+import { toProductAnalyticsPage } from "../../../Types/Rum/ProductAnalyticsEvents";
+import { productAnalyticsPageOfUrlSql } from "../../../Models/AnalyticsModels/RumProductAnalyticsSession";
 
 /*
  * The reads behind a RUM application's Product Analytics pages (issue
@@ -79,6 +82,26 @@ const PERSON_KEY_SQL: string = `if(paUserKey != '', concat('${PRODUCT_ANALYTICS_
  */
 const KEPT_LABEL_FILTER: string =
   " AND identifiedUserKey != '' AND identifiedUserLabel != '' AND retentionDate >= now()";
+
+/*
+ * A session's pages, each the page its stored URL is (#8194): the pages
+ * column holds the session's routes, whole addresses, and
+ * "https://shop.example.com/#/orders/42" is "/orders/42", as the entry page
+ * and product analytics' events name it. `pages` is a folded column or an
+ * alias this file names, never a request's value.
+ */
+function pagesOfUrlsSql(pages: string): string {
+  return `arrayMap(paUrl -> ${productAnalyticsPageOfUrlSql("paUrl")}, ${pages})`;
+}
+
+/*
+ * A page as an answer names it: in the scrubber's one spelling
+ * ("/caf%c3%a9" is "/caf%C3%A9") and scrubbed as the ingest scrubs a page
+ * now (toProductAnalyticsPage), so a row stored before either names no one.
+ */
+function readPage(row: JSONObject, key: string): string {
+  return toProductAnalyticsPage(readString(row, key));
+}
 
 /* What a dimension reads off a folded session. Page is the pages array, joined out below. */
 const DIMENSION_SQL: Record<ProductAnalyticsDimension, string> = {
@@ -686,6 +709,14 @@ export default class RumProductAnalyticsReadService {
    * PRODUCT_ANALYTICS_BREAKDOWN_LIMIT values. A session that visited three
    * pages counts once on each of them, so the page rows do not add up to the
    * total - which is why the total comes back as well.
+   *
+   * A page, for Entry page and Page alike, is one row in every spelling it
+   * was stored in (#8194): a session recorded before the scrubber wrote one
+   * spelling holds "/caf%c3%a9" or "/cafe%CC%81" where a later one holds
+   * "/caf%C3%A9". Grouped by the page's one spelling in ClickHouse
+   * (pathSpellingKeySql), a row is named by the least of the spellings it
+   * holds, written in the scrubber's (readPage). A session counts once on a
+   * page, however many of its spellings it saw, and so does a person.
    */
   @CaptureSpan()
   public static async getBreakdown(
@@ -693,25 +724,46 @@ export default class RumProductAnalyticsReadService {
   ): Promise<ProductAnalyticsBreakdownDto> {
     const isPage: boolean =
       request.dimension === ProductAnalyticsDimension.Page;
+    const isEntryPage: boolean =
+      request.dimension === ProductAnalyticsDimension.EntryPage;
     const valueSql: string = DIMENSION_SQL[request.dimension];
+    const sessions: Statement = foldedSessions({
+      scope: request,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      columns: [`${valueSql} AS ${isPage ? "paPages" : "paValue"}`],
+    });
 
-    const rows: Statement = SQL`SELECT paValue, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers, toFloat64(count()) AS paSessions FROM (`;
-    rows.append(
-      foldedSessions({
-        scope: request,
-        startTime: request.startTime,
-        endTime: request.endTime,
-        columns: [`${valueSql} AS ${isPage ? "paPages" : "paValue"}`],
-      }),
-    );
-    rows.append(")");
+    let rows: Statement;
 
     if (isPage) {
-      rows.append(" ARRAY JOIN if(empty(paPages), [''], paPages) AS paValue");
+      /*
+       * Each session's pages, joined out, folded to one row per session and
+       * page first: two spellings of a page in one session are one visit.
+       */
+      rows = SQL`SELECT min(paPageName) AS paLabel, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers, toFloat64(count()) AS paSessions FROM (SELECT paSessionId, paStartTime, paPersonKey, `;
+      rows.append(
+        `${pathSpellingKeySql("paPage")} AS paKey, min(paPage) AS paPageName FROM (`,
+      );
+      rows.append(sessions);
+      rows.append(
+        `) ARRAY JOIN ${pagesOfUrlsSql("if(empty(paPages), [''], paPages)")} AS paPage GROUP BY paSessionId, paStartTime, paPersonKey, paKey) GROUP BY paKey`,
+      );
+    } else if (isEntryPage) {
+      rows = SQL`SELECT min(paValue) AS paLabel, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers, toFloat64(count()) AS paSessions FROM (`;
+      rows.append(sessions);
+      rows.append(`) GROUP BY ${pathSpellingKeySql("paValue")}`);
+    } else {
+      rows = SQL`SELECT paValue, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers, toFloat64(count()) AS paSessions FROM (`;
+      rows.append(sessions);
+      rows.append(") GROUP BY paValue");
     }
 
     rows.append(
-      SQL` GROUP BY paValue ORDER BY paUsers DESC, paSessions DESC, paValue ASC LIMIT ${{
+      ` ORDER BY paUsers DESC, paSessions DESC, ${isPage || isEntryPage ? "paLabel" : "paValue"} ASC`,
+    );
+    rows.append(
+      SQL` LIMIT ${{
         type: TableColumnType.Number,
         value: PRODUCT_ANALYTICS_BREAKDOWN_LIMIT + 1,
       }}`,
@@ -739,7 +791,10 @@ export default class RumProductAnalyticsReadService {
         .slice(0, PRODUCT_ANALYTICS_BREAKDOWN_LIMIT)
         .map((row: JSONObject): ProductAnalyticsBreakdownRowDto => {
           return {
-            value: readString(row, "paValue"),
+            value:
+              isPage || isEntryPage
+                ? readPage(row, "paLabel")
+                : readString(row, "paValue"),
             users: readNumber(row, "paUsers"),
             sessions: readNumber(row, "paSessions"),
           };
@@ -1083,7 +1138,7 @@ export default class RumProductAnalyticsReadService {
         "max(durationMs) AS paDurationMs",
         "max(pageCount) AS paPageCount",
         "max(entryPage) AS paEntryPage",
-        "groupUniqArrayArray(pages) AS paPageList",
+        `arrayDistinct(${pagesOfUrlsSql("groupUniqArrayArray(pages)")}) AS paPageList`,
         "max(deviceType) AS paDevice",
         "max(browserName) AS paBrowser",
         "max(osName) AS paOs",
@@ -1143,8 +1198,17 @@ export default class RumProductAnalyticsReadService {
             startedAt: readNumber(row, "paStartedAt"),
             durationMs: readNumber(row, "paDuration"),
             pageCount: readNumber(row, "paPages"),
-            entryPage: readString(row, "paEntryPage"),
-            pages: readStringArray(row, "paPageList").sort(),
+            entryPage: readPage(row, "paEntryPage"),
+            // Each page once, in its one spelling, as the breakdown names it.
+            pages: Array.from(
+              new Set<string>(
+                readStringArray(row, "paPageList").map(
+                  (page: string): string => {
+                    return toProductAnalyticsPage(page);
+                  },
+                ),
+              ),
+            ).sort(),
             deviceType: readString(row, "paDevice"),
             browserName: readString(row, "paBrowser"),
             osName: readString(row, "paOs"),

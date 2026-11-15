@@ -41,7 +41,7 @@ flowchart TB
 
 ## 开始之前
 
-- **能够设置它的角色。** Project Owner、Project Admin 和 Telemetry Admin 可以连接数据库。任何可以编辑数据资产的人都可以添加检查、对账和数据产品；Viewer 可以读取它的发现。请参阅 [权限参考](/docs/permissions/reference)。
+- **能够设置它的角色。** 项目所有者、项目管理员和遥测管理员可以连接数据库。任何可以编辑数据资产的人都可以添加检查、对账和数据产品；查看者可以读取它的发现。请参阅 [权限参考](/docs/permissions/reference)。
 - **每个数据库上的只读登录。** [连接数据库](/docs/data-observability/connect) 列出了每种引擎至少需要的权限。OneUptime 会建议你的追踪、云账户和数据库监控已经知道的数据库。
 
 ## 快速入门

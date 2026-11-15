@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - För inloggningar och riskidentifieringar: Microsoft Entra ID P1 eller P2, som ingår i Microsoft 365 E3, E5 och Business Premium: Microsoft Graph ger dem bara till sådana klientorganisationer, och P2 ger detaljerna för varje riskidentifiering. Katalogändringar läses i alla klientorganisationer.
 - En Entra-roll som kan registrera program, till exempel Programadministratör, och en Global administratör eller Administratör för privilegierade roller för att ge administratörsmedgivande.
 - För Microsoft 365-granskningsloggen: granskning påslagen för klientorganisationen, vilket den är som standard: i [Microsoft Purview-portalen](https://purview.microsoft.com) får **Audit** inte erbjuda **Start recording user and admin activity**.

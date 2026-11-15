@@ -709,6 +709,146 @@ describe("instant selectors", () => {
     ).toContain("names the character class [:constructor:]");
   });
 
+  // An engine over one series per text, and the texts a query's selector finds.
+  const textsFound: (
+    texts: Array<string>,
+  ) => (query: string) => Promise<Array<string>> = (
+    texts: Array<string>,
+  ): ((query: string) => Promise<Array<string>>) => {
+    const textEngine: PromQLEngine = new PromQLEngine(
+      new MemorySource(
+        texts.map((text: string, index: number): TestSeries => {
+          return {
+            labels: { __name__: "v", text },
+            samples: [[600, index + 1]],
+          };
+        }),
+      ),
+    );
+
+    return async (query: string): Promise<Array<string>> => {
+      const result: PromQLQueryResult = await textEngine.instantQuery(
+        query,
+        600_000,
+      );
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      return result.samples.map((sample: PromQLVectorResultSample): string => {
+        return sample.labels["text"] ?? "";
+      });
+    };
+  };
+
+  /*
+   * A character beyond U+FFFF is one character to a label pattern, as RE2
+   * reads UTF-8 (issue #8215): before, "." and [^a] read an emoji as two.
+   * Prometheus answered each.
+   */
+  test("a label pattern reads a character beyond U+FFFF as one, as Prometheus does", async () => {
+    const found: (query: string) => Promise<Array<string>> = textsFound([
+      "\u{1F600}",
+      "\u{1F600}\u{1F600}",
+      "a\u{1F600}b",
+      "ab",
+      "\u{10400}",
+    ]);
+
+    // In the order Prometheus answers them: by code point.
+    expect(await found('v{text=~"."}')).toEqual(["\u{10400}", "\u{1F600}"]);
+    expect(await found('v{text=~".."}')).toEqual(["ab", "\u{1F600}\u{1F600}"]);
+    expect(await found('v{text=~"a.b"}')).toEqual(["a\u{1F600}b"]);
+    expect(await found('v{text=~"[^a]{2}"}')).toEqual(["\u{1F600}\u{1F600}"]);
+    expect(await found('v{text!~"."}')).toEqual([
+      "ab",
+      "a\u{1F600}b",
+      "\u{1F600}\u{1F600}",
+    ]);
+    expect(await found('v{text=~"\\\\x{1F600}+"}')).toEqual([
+      "\u{1F600}",
+      "\u{1F600}\u{1F600}",
+    ]);
+  });
+
+  /*
+   * RE2's Unicode classes (issue #8216), refused before: a label matcher
+   * reads the names Go's tables give them, as Prometheus' does.
+   */
+  test("a label pattern reads RE2's Unicode classes, as Prometheus does", async () => {
+    const found: (query: string) => Promise<Array<string>> = textsFound([
+      "h\u{E9}llo",
+      "\u{3B1}\u{3B2}\u{3B3}",
+      "\u{4E2D}\u{6587}",
+      "abc1",
+      "\u{10400}\u{10428}",
+      "ABC",
+    ]);
+
+    expect(await found('v{text=~"\\\\pL+"}')).toEqual([
+      "ABC",
+      "h\u{E9}llo",
+      "\u{3B1}\u{3B2}\u{3B3}",
+      "\u{4E2D}\u{6587}",
+      "\u{10400}\u{10428}",
+    ]);
+    expect(await found('v{text=~"\\\\p{Greek}+"}')).toEqual([
+      "\u{3B1}\u{3B2}\u{3B3}",
+    ]);
+    expect(await found('v{text=~"\\\\p{Han}+"}')).toEqual(["\u{4E2D}\u{6587}"]);
+    expect(await found('v{text=~"\\\\p{Lu}+"}')).toEqual(["ABC"]);
+    // Under (?i), the letters an upper case letter folds with: Han has none.
+    expect(await found('v{text=~"(?i)\\\\p{Lu}+"}')).toEqual([
+      "ABC",
+      "h\u{E9}llo",
+      "\u{3B1}\u{3B2}\u{3B3}",
+      "\u{10400}\u{10428}",
+    ]);
+    expect(await found('v{text=~"[\\\\pL\\\\d]+", text!~"\\\\pL+"}')).toEqual([
+      "abc1",
+    ]);
+  });
+
+  /*
+   * The pattern a Grafana variable writes for "All": hundreds of values,
+   * refused as too large past about 9,000 characters before (issue #8464).
+   */
+  test("a selector whose pattern lists 1,000 values finds each it lists", async () => {
+    const hosts: Array<string> = [];
+
+    for (let index: number = 0; index < 1000; index++) {
+      hosts.push(`web-server-${String(index).padStart(4, "0")}`);
+    }
+
+    const found: (query: string) => Promise<Array<string>> = textsFound([
+      "web-server-0000",
+      "web-server-0999",
+      "web-server-1000",
+      "db-server-0001",
+    ]);
+
+    expect(await found(`v{text=~"${hosts.join("|")}"}`)).toEqual([
+      "web-server-0000",
+      "web-server-0999",
+    ]);
+    expect(await found(`v{text!~"${hosts.join("|")}"}`)).toEqual([
+      "db-server-0001",
+      "web-server-1000",
+    ]);
+  });
+
+  test("a label matcher refuses a class name only label_replace() reads, saying what to write", async () => {
+    const error: PromQLError = await queryError(() => {
+      return instant('up{job=~"\\\\p{Letter}+"}');
+    });
+
+    expect(error.message).toBe(
+      'The pattern "\\p{Letter}+" for the label "job" uses the Unicode class \\p{Letter}, which Prometheus reads in label_replace() but not in a label matcher, where a class has the name Go\'s Unicode tables give it. Write \\p{L} instead.',
+    );
+    expect(error.errorType).toBe(PromQLErrorType.BadData);
+  });
+
   test("an offset moves the selector back in time", async () => {
     expect(await single('http_requests_total{instance="c"} offset 2m')).toBe(
       800,
@@ -1676,6 +1816,214 @@ describe("other functions", () => {
     ).toEqual(['up{instance="host-1:9100", job="node", port="[]"}']);
   });
 
+  /*
+   * label_replace() writes its replacement as Go's Regexp.Expand does
+   * (issue #8217): a name of Unicode letters, decimal digits and "_", read
+   * as a group's number only when it is ASCII digits with no leading zero
+   * (so $01 and $00 name groups "01" and "00", which few patterns have),
+   * and a "$" that starts no name, or a "{" whose name a "}" does not close
+   * right after it, kept as written. Each row is what Prometheus 3.16.0's
+   * regexp (github.com/grafana/regexp: "^(?s:" + pattern + ")$",
+   * FindStringSubmatchIndex, ExpandString) answered; "" leaves the
+   * destination label out.
+   */
+  const TEMPLATE_ROWS: Array<[string, string, string, string]> = [
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$01", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${01}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$00", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${00}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{E9}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${\u{E9}}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$1", "a"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$1x", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${1}x", "ax"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$n1", "c"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${n1}", "c"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$$", "$"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$", "$"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${1", "${1"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$99999999999", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${99999999999}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$0", "abc"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${0}", "abc"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$4", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${4}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$5", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$3", "c"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${3}", "c"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "x$1y", "x"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$2$1", "ba"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${2}${1}", "ba"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$$1", "$1"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$$$1", "$a"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${}", "${}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${ 1}", "${ 1}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${1 }", "${1 }"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${a-b}", "${a-b}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${n1 $1}", "${n1 a}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${n1}}", "c}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "{$1}", "{a}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$-1", "$-1"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$ 1", "$ 1"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$_", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${_}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$1_", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$n1_", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$N1", ""],
+    // Decimal digits of other scripts are name characters, not numbers.
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{661}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${\u{661}}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$1\u{661}", ""],
+    // Digits that are not decimal (No, Nl) and marks (Mn) end a name.
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{B2}", "$\u{B2}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{2167}", "$\u{2167}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$ab", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{1C5}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{2B0}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{300}", "$\u{300}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$a\u{300}", "\u{300}"],
+    // A letter beyond U+FFFF is one name character; an emoji is none.
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{10400}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${\u{10400}}", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\u{1F600}", "$\u{1F600}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$100000000", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$99999999", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$1000000000", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$0001", ""],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\t", "$\t"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$\n1", "$\n1"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$}", "$}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "${", "${"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "$${1}", "${1}"],
+    ["(a)(b)(?P<n1>c)(d)?", "abc", "\u{20AC}$1\u{20AC}", "\u{20AC}a\u{20AC}"],
+    // Groups named with digits: a leading zero, or 1e8 and more, names one.
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "$01", "a"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "${01}", "a"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "$1", "a"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "${1}", "a"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "$00", "c"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "$0", "abc"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "$2", "b"],
+    ["(?P<01>a)(?P<1>b)(?P<00>c)", "abc", "$3", "c"],
+    ["(?P<1000000000>x)(?P<100000000>y)", "xy", "$1000000000", "x"],
+    ["(?P<1000000000>x)(?P<100000000>y)", "xy", "${1000000000}", "x"],
+    ["(?P<1000000000>x)(?P<100000000>y)", "xy", "$100000000", ""],
+    ["(?P<1000000000>x)(?P<100000000>y)", "xy", "${100000000}", ""],
+    ["(?P<1000000000>x)(?P<100000000>y)", "xy", "$2", "y"],
+    ["(?P<x>a)|(?P<x>b)", "b", "$x", "b"],
+    ["(?P<x>a)|(?P<x>b)", "b", "${x}", "b"],
+    ["(?P<x>a)|(?P<x>b)", "b", "$1", ""],
+    ["(?P<x>a)|(?P<x>b)", "b", "$2", "b"],
+    ["(?P<x>a)?(?P<x>b)", "b", "$x", "b"],
+    ["(?P<x>a)?(?P<x>b)", "b", "${x}", "b"],
+    ["(?P<x>)(?P<x>b)", "b", "[$x]", "[]"],
+    ["(?P<a1>a)", "a", "$a1", "a"],
+    ["(?P<a1>a)", "a", "$a", ""],
+    ["(?P<a1>a)", "a", "${a}1", "1"],
+    ["(.*)", "host-1:9100", "$01", ""],
+    ["(.*)", "host-1:9100", "$1", "host-1:9100"],
+    ["(.*)", "host-1:9100", "$00", ""],
+    ["(.*)", "host-1:9100", "$0", "host-1:9100"],
+    ["(a)", "a", "$1$1$1", "aaa"],
+    ["(a)", "a", "$1$", "a$"],
+    ["(a)", "a", "$1$$", "a$"],
+  ];
+
+  test.each(TEMPLATE_ROWS)(
+    "label_replace with %j on %j writes %j as %j, as Prometheus does",
+    async (
+      pattern: string,
+      value: string,
+      template: string,
+      written: string,
+    ) => {
+      const replacing: PromQLEngine = new PromQLEngine(
+        new MemorySource([
+          { labels: { __name__: "t", v: value }, samples: [[600, 1]] },
+        ]),
+      );
+      const result: PromQLQueryResult = await replacing.instantQuery(
+        `label_replace(t, "x", ${JSON.stringify(template)}, "v", ${JSON.stringify(pattern)})`,
+        600000,
+      );
+
+      expect(
+        result.resultType === PromQLResultType.Vector
+          ? result.samples.map(
+              (sample: PromQLVectorResultSample): string | undefined => {
+                return sample.labels["x"];
+              },
+            )
+          : [],
+      ).toEqual([written === "" ? undefined : written]);
+    },
+  );
+
+  test("label_replace with $01 leaves the label out, as Prometheus does (the issue's case)", async () => {
+    expect(
+      Object.keys(
+        await vector('label_replace(up, "x", "$01", "instance", "(.*)")'),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node"}']);
+    // $1 is the group, as before.
+    expect(
+      Object.keys(
+        await vector('label_replace(up, "x", "$1", "instance", "(.*)")'),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", x="host-1:9100"}']);
+  });
+
+  test("label_replace captures a character beyond U+FFFF whole, and reads the class names Go 1.25 reads", async () => {
+    const replacing: PromQLEngine = new PromQLEngine(
+      new MemorySource([
+        {
+          labels: { __name__: "t", v: "\u{1F600}a\u{10400}" },
+          samples: [[600, 1]],
+        },
+      ]),
+    );
+    const written: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const result: PromQLQueryResult = await replacing.instantQuery(
+        query,
+        600000,
+      );
+
+      return result.resultType === PromQLResultType.Vector
+        ? result.samples.map((sample: PromQLVectorResultSample): string => {
+            return sample.labels["x"] ?? "";
+          })
+        : [];
+    };
+
+    // The first character is the emoji, not half of it (issue #8215).
+    expect(
+      await written('label_replace(t, "x", "$1|$2", "v", "(.)(.*)")'),
+    ).toEqual(["\u{1F600}|a\u{10400}"]);
+    expect(
+      await written('label_replace(t, "x", "$1", "v", "(?:..)(.)")'),
+    ).toEqual(["\u{10400}"]);
+    // label_replace() reads \p{Letter} and \p{letter}, as Go 1.25 does (issue #8216).
+    expect(
+      await written('label_replace(t, "x", "$1", "v", ".(\\\\p{Letter}+)")'),
+    ).toEqual(["a\u{10400}"]);
+    expect(
+      await written(
+        'label_replace(t, "x", "$1", "v", "(\\\\P{letter})\\\\pL+")',
+      ),
+    ).toEqual(["\u{1F600}"]);
+  });
+
+  test("label_replace reads a name of non-ASCII letters whole, as Go does", async () => {
+    // $é names a group "é" no pattern can have: "", and the "-x" after it stays.
+    expect(
+      Object.keys(
+        await vector('label_replace(up, "x", "$\u{E9}-x", "instance", "(.*)")'),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", x="-x"}']);
+  });
+
   test("label_replace repeats what RE2 repeats: the part before a flag group, and a repeat", async () => {
     // (h)(?i)+ is (h)+: the + repeats the group before the flag group.
     expect(
@@ -1729,8 +2077,8 @@ describe("other functions", () => {
       'The pattern "(a)\\1" in label_replace() refers back to what an earlier group matched (\\1 or \\k<name>). Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.',
     ],
     [
-      `label_replace(up, "host", "$1", "instance", "(${".{1000}".repeat(11)})")`,
-      `The pattern "(${".{1000}".repeat(11)})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.`,
+      `label_replace(up, "host", "$1", "instance", "(${".{1000}".repeat(41)})")`,
+      `The pattern "(${".{1000}".repeat(41)})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.`,
     ],
     // Refused as Prometheus refuses them, saying why.
     [
@@ -1970,6 +2318,116 @@ describe("range queries", () => {
     });
 
     expect(error.message).toContain("The step must be longer than zero");
+  });
+
+  /*
+   * Series in the order Prometheus answers them (issue #8177): a range
+   * query's matrix sorted with labels.Compare. Prometheus 3.16.0, asked this
+   * range query over these four series in its TSDB, answered a, ab,
+   * i="x", i="xy"; OneUptime answered ab, a, i="xy", i="x" before.
+   */
+  const TIES: Array<TestSeries> = [
+    { labels: { __name__: "tie", g: "1", i: "xy" }, samples: [[600, 1]] },
+    { labels: { __name__: "tie", ab: "1", g: "1" }, samples: [[600, 2]] },
+    { labels: { __name__: "tie", g: "1", i: "x" }, samples: [[600, 3]] },
+    { labels: { __name__: "tie", a: "1", g: "1" }, samples: [[600, 4]] },
+  ];
+  const TIE_ORDER: Array<string> = [
+    'tie{a="1", g="1"}',
+    'tie{ab="1", g="1"}',
+    'tie{g="1", i="x"}',
+    'tie{g="1", i="xy"}',
+  ];
+
+  // The label sets of a matrix, in the order the engine answered them.
+  const seriesOrder: (result: PromQLQueryResult) => Array<string> = (
+    result: PromQLQueryResult,
+  ): Array<string> => {
+    if (result.resultType !== PromQLResultType.Matrix) {
+      throw new Error(`Expected a matrix, got ${result.resultType}.`);
+    }
+
+    return result.series.map((series: PromQLMatrixResultSeries): string => {
+      return formatPromQLLabels(series.labels);
+    });
+  };
+
+  test("series come in Prometheus' order: a name or value before any it starts", async () => {
+    const ties: PromQLEngine = new PromQLEngine(new MemorySource(TIES));
+
+    expect(
+      seriesOrder(await ties.rangeQuery("tie", 600000, 660000, 60000)),
+    ).toEqual(TIE_ORDER);
+    // Whatever order the source reads them in.
+    expect(
+      seriesOrder(
+        await new PromQLEngine(
+          new MemorySource([...TIES].reverse()),
+        ).rangeQuery("tie", 600000, 660000, 60000),
+      ),
+    ).toEqual(TIE_ORDER);
+  });
+
+  test("an instant query's series and a range vector's come in that order too", async () => {
+    const ties: PromQLEngine = new PromQLEngine(new MemorySource(TIES));
+    const instantResult: PromQLQueryResult = await ties.instantQuery(
+      "tie",
+      600000,
+    );
+
+    expect(
+      instantResult.resultType === PromQLResultType.Vector
+        ? instantResult.samples.map(
+            (sample: PromQLVectorResultSample): string => {
+              return formatPromQLLabels(sample.labels);
+            },
+          )
+        : [],
+    ).toEqual(TIE_ORDER);
+    expect(seriesOrder(await ties.instantQuery("tie[5m]", 600000))).toEqual(
+      TIE_ORDER,
+    );
+  });
+
+  test("series that differ beyond U+FFFF come in code point order, as Go's strings sort", async () => {
+    const astral: PromQLEngine = new PromQLEngine(
+      new MemorySource([
+        { labels: { __name__: "v", t: "a\u{1F600}" }, samples: [[600, 1]] },
+        { labels: { __name__: "v", t: "a\u{FFFF}" }, samples: [[600, 2]] },
+        { labels: { __name__: "v", t: "a~" }, samples: [[600, 3]] },
+      ]),
+    );
+
+    expect(
+      seriesOrder(await astral.rangeQuery("v", 600000, 600000, 60000)),
+    ).toEqual(['v{t="a~"}', 'v{t="a\u{FFFF}"}', 'v{t="a\u{1F600}"}']);
+  });
+
+  test("series an operation renames keep each point under its own labels", async () => {
+    const ties: PromQLEngine = new PromQLEngine(new MemorySource(TIES));
+    const result: PromQLQueryResult = await ties.rangeQuery(
+      "tie * 10",
+      600000,
+      660000,
+      60000,
+    );
+
+    expect(
+      result.resultType === PromQLResultType.Matrix
+        ? result.series.map((series: PromQLMatrixResultSeries): string => {
+            return `${formatPromQLLabels(series.labels)} ${series.points
+              .map((point: { value: number }): number => {
+                return point.value;
+              })
+              .join(",")}`;
+          })
+        : [],
+    ).toEqual([
+      '{a="1", g="1"} 40,40',
+      '{ab="1", g="1"} 20,20',
+      '{g="1", i="x"} 30,30',
+      '{g="1", i="xy"} 10,10',
+    ]);
   });
 });
 

@@ -21,6 +21,7 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import { writeOwnValue } from "Common/Utils/LookupTable";
 
 /** Rows per fan-in submission — same order of magnitude as exceptions. */
 const KUBERNETES_COST_FLUSH_BATCH_SIZE: number = 500;
@@ -83,6 +84,11 @@ export default class KubernetesCostIngestService {
     const labels: Record<string, string> = {};
     let count: number = 0;
 
+    /*
+     * A label is the workload's, named as Kubernetes allows: written as the
+     * map's own key, so one named "__proto__" is stored like any other (an
+     * assignment dropped it, though it still counted toward the cap).
+     */
     for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
       if (count >= MAX_LABELS_PER_ROW) {
         break;
@@ -90,10 +96,13 @@ export default class KubernetesCostIngestService {
       if (!key) {
         continue;
       }
-      labels[key.slice(0, MAX_STRING_LENGTH)] =
+      writeOwnValue(
+        labels,
+        key.slice(0, MAX_STRING_LENGTH),
         typeof raw === "string"
           ? raw.slice(0, MAX_STRING_LENGTH)
-          : String(raw ?? "").slice(0, MAX_STRING_LENGTH);
+          : String(raw ?? "").slice(0, MAX_STRING_LENGTH),
+      );
       count++;
     }
 

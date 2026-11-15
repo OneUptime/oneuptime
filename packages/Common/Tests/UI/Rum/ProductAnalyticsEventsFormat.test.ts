@@ -61,6 +61,10 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  PATH_LEFT_TO_RIGHT_ISOLATE as LEFT_TO_RIGHT_ISOLATE,
+  PATH_POP_DIRECTIONAL_ISOLATE as POP_ISOLATE,
+} from "../../../Utils/Rum/PathInSentence";
 
 /*
  * The words and addresses of the Events, Funnels and Retention pages
@@ -196,6 +200,100 @@ describe("events", () => {
         ),
       );
     }
+  });
+
+  /*
+   * #8196: every product analytics page is stored as the URL parser spells
+   * it ("/caf%C3%A9", "/%D8%A7%D9%84..."), and a page view read "Viewed
+   * /caf%C3%A9" - an Arabic page a run of escapes - where User Flows shows
+   * the same page "/café". It is drawn as User Flows draws it; the event's
+   * own name, what is sent and compared, keeps the stored spelling.
+   */
+  describe("a page view of a page with letters beyond ASCII", () => {
+    const CAFE: ProductAnalyticsEventRef = {
+      kind: ProductAnalyticsEventKind.Page,
+      name: "/caf%C3%A9",
+    };
+    const CART: ProductAnalyticsEventRef = {
+      kind: ProductAnalyticsEventKind.Page,
+      name: "/%D8%A7%D9%84%D8%B3%D9%84%D8%A9",
+    };
+
+    test("reads as the page reads, in English and German", () => {
+      expect(describeProductAnalyticsEvent(CAFE, english)).toBe("Viewed /café");
+      expect(describeProductAnalyticsEvent(CAFE, german)).toBe(
+        "/café aufgerufen",
+      );
+      expect(
+        describeProductAnalyticsEvent(
+          {
+            kind: ProductAnalyticsEventKind.Page,
+            name: "/caf%c3%a9/men%C3%BC",
+          },
+          english,
+        ),
+      ).toBe("Viewed /café/menü");
+    });
+
+    test("in Arabic and Persian, and a page read from the right keeps its slash first", () => {
+      for (const language of ["ar", "fa"]) {
+        const template: string = readDashboardLocale(language)[
+          PAGE_VIEW_TEMPLATE
+        ] as string;
+        const cafe: string = describeProductAnalyticsEvent(
+          CAFE,
+          dashboardTranslator(language),
+        );
+
+        expect(withoutIsolateMarks(cafe)).toBe(
+          template.replace("{{page}}", "/café"),
+        );
+        expect(cafe).toBe(template.replace("{{page}}", isolated("/café")));
+
+        const cart: string = describeProductAnalyticsEvent(
+          CART,
+          dashboardTranslator(language),
+        );
+
+        expect(withoutIsolateMarks(cart)).toBe(
+          template.replace("{{page}}", "/السلة"),
+        );
+        // The path is set apart left to right, its "/" first.
+        expect(cart).toContain(`${LEFT_TO_RIGHT_ISOLATE}/السلة${POP_ISOLATE}`);
+      }
+
+      // In English the Arabic path is set apart too, so it reads "/السلة".
+      expect(describeProductAnalyticsEvent(CART, english)).toContain(
+        `${LEFT_TO_RIGHT_ISOLATE}/السلة${POP_ISOLATE}`,
+      );
+    });
+
+    test("an escape that names another page is drawn as written", () => {
+      expect(
+        describeProductAnalyticsEvent(
+          { kind: ProductAnalyticsEventKind.Page, name: "/a%2Fb" },
+          english,
+        ),
+      ).toBe("Viewed /a%2Fb");
+      expect(
+        describeProductAnalyticsEvent(
+          { kind: ProductAnalyticsEventKind.Page, name: "/100%25/x%20y" },
+          english,
+        ),
+      ).toBe("Viewed /100%25/x%20y");
+    });
+
+    test("is sent, linked and compared in the spelling it was stored in", () => {
+      expect(encodeProductAnalyticsEvent(CAFE)).toBe("page:/caf%C3%A9");
+      expect(decodeProductAnalyticsEvent("page:/caf%C3%A9")).toEqual(CAFE);
+      // An application's own event named like an address is its own name.
+      expect(
+        describeProductAnalyticsEvent(
+          { kind: ProductAnalyticsEventKind.Custom, name: "/caf%C3%A9" },
+          english,
+        ),
+      ).toBe("/caf%C3%A9");
+    });
   });
 
   test("on an Arabic page a session's start and an event of the application's own carry no marks", () => {
@@ -401,6 +499,51 @@ describe("fields", () => {
         translator: german,
       }),
     ).toBe("Desktop");
+  });
+
+  /*
+   * #8196: a page is stored as the browser escapes it ("/caf%C3%A9"), and
+   * a breakdown's row and a segment drew it so, where User Flows draws the
+   * same page "/café".
+   */
+  test("a page reads as User Flows draws it: its words decoded, a path read from the right set apart", () => {
+    expect(
+      describeProductAnalyticsFieldValue({
+        field: ProductAnalyticsEventField.Page,
+        value: "/caf%C3%A9",
+        translator: english,
+      }),
+    ).toBe("/café");
+    expect(
+      describeProductAnalyticsFieldValue({
+        field: ProductAnalyticsEventField.Page,
+        value: "/%D8%A7%D9%84%D8%B3%D9%84%D8%A9",
+        translator: dashboardTranslator("ar"),
+      }),
+    ).toBe(`${LEFT_TO_RIGHT_ISOLATE}/السلة${POP_ISOLATE}`);
+    // An escaped "/" names another page than "/a/b": it stays escaped.
+    expect(
+      describeProductAnalyticsFieldValue({
+        field: ProductAnalyticsEventField.Page,
+        value: "/a%2Fb",
+        translator: english,
+      }),
+    ).toBe("/a%2Fb");
+    expect(
+      describeProductAnalyticsFieldValue({
+        field: ProductAnalyticsEventField.Page,
+        value: "",
+        translator: german,
+      }),
+    ).toBe("Nicht gemeldet");
+    // An address an application sent as a property's value is its own.
+    expect(
+      describeProductAnalyticsFieldValue({
+        field: ProductAnalyticsEventField.Property,
+        value: "/caf%C3%A9",
+        translator: english,
+      }),
+    ).toBe("/caf%C3%A9");
   });
 });
 

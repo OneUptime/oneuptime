@@ -86,6 +86,10 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import GoldenMetricTile, {
   GoldenMetricTileTone,
   tileColorClasses,
@@ -1898,7 +1902,10 @@ const VMwareVCenterOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1934,7 +1941,9 @@ const VMwareVCenterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By");
+          return ValueFormatter.formatValue(value, "By", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1947,7 +1956,10 @@ const VMwareVCenterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
       },
     };

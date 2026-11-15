@@ -24,7 +24,7 @@ flowchart LR
 
 ## 開始之前
 
-- **可以變更專案的角色。** 這些設定大多由 Project Owner 和 Project Admin 變更。帳單、通知管道和刪除專案需要更多權限，具體見各區段說明。
+- **可以變更專案的角色。** 這些設定大多由專案擁有者和專案管理員變更。帳單、通知管道和刪除專案需要更多權限，具體見各區段說明。
 - **在 OneUptime Cloud 上：包含該設定的方案。** 某些設定需要特定方案：請參閱[需要方案的設定](/docs/configuration/billing#需要方案的設定)。
 
 ## 尋找設定
@@ -50,11 +50,11 @@ flowchart LR
 
 **專案詳細資訊**顯示專案的名稱和 ID：
 
-- **專案名稱**：點選**編輯專案**可重新命名專案。名稱至少 2 個字元。重新命名需要 Project Owner，或編輯專案或管理帳單的權限。
+- **專案名稱**：點選**編輯專案**可重新命名專案。名稱至少 2 個字元。重新命名需要專案擁有者，或編輯專案或管理帳單的權限。
 - **專案 ID**：在 API、CLI 和 Terraform 中使用，或聯絡支援時複製它。
 - **Data Residency**：在 OneUptime Cloud 上，OneUptime 記錄後你的專案資料所存放的位置。只有 OneUptime 會設定它。
 
-**客戶支援存取權**決定在 OneUptime Cloud 上 OneUptime 支援團隊能否開啟專案。需要協助時，開啟**允許 OneUptime 支援團隊存取此專案**：由於支援團隊屆時可以檢視和變更專案中的一切，OneUptime 會先確認，你再點選**允許支援團隊進入**。處理完後將其關閉：變更會立即儲存。Project Owner 和 Project Admin 可以變更此項。
+**客戶支援存取權**決定在 OneUptime Cloud 上 OneUptime 支援團隊能否開啟專案。需要協助時，開啟**允許 OneUptime 支援團隊存取此專案**：由於支援團隊屆時可以檢視和變更專案中的一切，OneUptime 會先確認，你再點選**允許支援團隊進入**。處理完後將其關閉：變更會立即儲存。專案擁有者和專案管理員可以變更此項。
 
 ## 產品
 
@@ -96,7 +96,7 @@ flowchart LR
 
 **專案設定 → 通知**包含專案傳送通知的方式：
 
-- **通知管道**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由 Project Owner、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
+- **通知管道**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由專案擁有者、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
 - **通知日誌**：專案傳送的每則通知，每個管道一個分頁：**電子郵件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**呼叫**、**推送**和**工作區**。
 - **行動應用程式**：取得 iOS 和 Android 應用程式的位置。請參閱[應用程式概觀](/docs/mobile-desktop-apps/index)。
 
@@ -127,7 +127,7 @@ flowchart LR
 :::
 
 > [!CAUTION]
-> 刪除專案無法復原。這需要 Project Owner，或刪除專案的權限。
+> 刪除專案無法復原。這需要專案擁有者，或刪除專案的權限。
 
 在 OneUptime Cloud 上，刪除專案即可取消其方案：專案刪除後計費停止。透過雲端市集計費的專案會為其用量產生最後一筆費用，而在市集上的購買會一直有效，直到你在那裡取消。
 
@@ -138,7 +138,7 @@ flowchart LR
 :::
 
 :::details 編輯專案被鎖定
-重新命名需要 Project Owner，或編輯專案或管理帳單的權限。鎖定的按鈕會顯示你缺少的權限。
+重新命名需要專案擁有者，或編輯專案或管理帳單的權限。鎖定的按鈕會顯示你缺少的權限。
 :::
 
 :::details 對話方塊中的刪除專案一直處於鎖定狀態

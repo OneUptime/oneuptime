@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - En Microsoft Entra-lejer med en licens til Microsoft Defender XDR: enhver Defender-arbejdsbelastning, der er tilsluttet Microsoft Defender-portalen, som Defender for Endpoint, for Identity, for Office 365 eller for Cloud Apps.
 - En Entra-rolle, der kan registrere programmer, som Programadministrator, og en Global administrator eller Administrator af privilegerede roller til at give administratorsamtykke.
 - Udgående HTTPS fra OneUptime-appen og -workerne til `login.microsoftonline.com` og `graph.microsoft.com`, eller til `login.microsoftonline.us` og `graph.microsoft.us` for Azure Government.

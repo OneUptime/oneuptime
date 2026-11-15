@@ -217,7 +217,7 @@ statusPage:
 
 域名的完整名称在添加时就固定了，因此 **编辑** 只能更改它的证书。若要使用另一个地址，请添加该地址并删除旧的域名。 仪表板或表单已在使用的名称，无论在哪个项目中，都会被拒绝：一个域名只显示一个状态页、仪表板或表单。
 
-向项目添加域名需要创建项目域名的权限（**Create Domain**，或 Project Owner 或 Project Admin），验证它则需要 **Edit Domain**。没有这些权限时，对话框会说明谁可以执行此操作。
+向项目添加域名需要创建项目域名的权限（**Create Domain**，或项目所有者或项目管理员），验证它则需要 **Edit Domain**。没有这些权限时，对话框会说明谁可以执行此操作。
 
 ### DNS 设置和验证
 
@@ -301,9 +301,9 @@ OneUptime 每 15 分钟检查一次每个未验证域名的 CNAME 记录，一�
 
 ### 谁可以检查和重新签发
 
-**立即检查**、订购域名证书和 **Reissue SSL** 都会更改域名，因此需要编辑该域名的权限：**Edit Status Page Domain**，或包含该权限的角色（Project Owner、Project Admin、Project Member、Status Page Admin 或 Status Page Member）。
+**立即检查**、订购域名证书和 **Reissue SSL** 都会更改域名，因此需要编辑该域名的权限：**Edit Status Page Domain**，或包含该权限的角色（项目所有者、项目管理员、项目成员、状态页管理员或状态页成员）。
 
-只能读取该域名的人，例如 Viewer 或 Status Page Viewer，仍然可以看到 **状态** 列以及 **DNS 设置** 中要添加的记录。对他们来说，**立即检查** 和 **Reissue SSL** 处于锁定状态，并会说明需要哪项权限。无论如何，OneUptime 都会继续自行检查每个域名并订购其证书。
+只能读取该域名的人，例如查看者或状态页查看者，仍然可以看到 **状态** 列以及 **DNS 设置** 中要添加的记录。对他们来说，**立即检查** 和 **Reissue SSL** 处于锁定状态，并会说明需要哪项权限。无论如何，OneUptime 都会继续自行检查每个域名并订购其证书。
 
 API 密钥也是如此。只能读取状态页域名的密钥无法在 `/status-page-domain` 上调用 `verify-cname`、`check-dns`、`order-ssl` 或 `reissue-ssl`。如有需要，请授予它 **Read Status Page Domain** 和 **Edit Status Page Domain**。找不到记录时，`verify-cname` 会拒绝请求，并用 **DNS 设置** 所显示的相同措辞说明它查询了什么、得到了什么；无论哪种情况，`check-dns` 都会答复它查询的每条记录。
 

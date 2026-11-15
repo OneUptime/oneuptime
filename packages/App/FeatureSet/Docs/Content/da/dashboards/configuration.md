@@ -15,15 +15,15 @@ Dashboards følger dit projekts [tilladelser](/docs/permissions/index). Hver han
 
 | For at | Kræves |
 | --- | --- |
-| Læse dashboards | `ReadDashboard`, eller en projektrolle: Project Owner, Project Admin, Project Member, Viewer eller en Settings-rolle |
-| Oprette dashboards | `CreateDashboard`, Project Owner eller Project Admin |
-| Ændre et dashboard: dets widgets, variabler, deling og branding, og arkivere det | `EditDashboard`, Project Owner eller Project Admin |
-| Slette et dashboard | `DeleteDashboard`, Project Owner eller Project Admin |
-| Tilføje og fjerne ejere | Tilladelserne for dashboard-ejere, Project Owner, Project Admin eller Project Member |
-| Tilføje og ændre brugerdefinerede domæner | Tilladelserne for dashboard-domæner, Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member |
-| Oprette ejerregler og etiketregler | Tilladelserne for regler, Project Owner eller Project Admin |
+| Læse dashboards | `ReadDashboard`, eller en projektrolle: Projektejer, Projektadministrator, Projektmedlem, Seer eller en Settings-rolle |
+| Oprette dashboards | `CreateDashboard`, Projektejer eller Projektadministrator |
+| Ændre et dashboard: dets widgets, variabler, deling og branding, og arkivere det | `EditDashboard`, Projektejer eller Projektadministrator |
+| Slette et dashboard | `DeleteDashboard`, Projektejer eller Projektadministrator |
+| Tilføje og fjerne ejere | Tilladelserne for dashboard-ejere, Projektejer, Projektadministrator eller Projektmedlem |
+| Tilføje og ændre brugerdefinerede domæner | Tilladelserne for dashboard-domæner, Projektejer, Projektadministrator, Projektmedlem, Indstillingsadministrator eller Indstillingsmedlem |
+| Oprette ejerregler og etiketregler | Tilladelserne for regler, Projektejer eller Projektadministrator |
 
-Et Project Member læser altså alle dashboards, men skal have `CreateDashboard` og `EditDashboard` for at bygge dem. Læsning, redigering og sletning kan hver især begrænses til de dashboards, et team ejer, eller til dashboards med bestemte etiketter: se [Omfang: hvor langt en tilladt rettighed rækker](/docs/permissions/index#omfang-hvor-langt-en-tilladt-rettighed-rækker).
+Et Projektmedlem læser altså alle dashboards, men skal have `CreateDashboard` og `EditDashboard` for at bygge dem. Læsning, redigering og sletning kan hver især begrænses til de dashboards, et team ejer, eller til dashboards med bestemte etiketter: se [Omfang: hvor langt en tilladt rettighed rækker](/docs/permissions/index#omfang-hvor-langt-en-tilladt-rettighed-rækker).
 
 Tildel dem på et teams side **Tilladelser**: åbn **Produkter → Teams**, og vælg teamet.
 

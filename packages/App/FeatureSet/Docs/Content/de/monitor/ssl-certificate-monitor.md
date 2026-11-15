@@ -30,7 +30,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die den Host und den Port erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Ein Dienst in einem privaten Netzwerk braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk.
 
 ## Einen SSL-Zertifikat-Monitor erstellen

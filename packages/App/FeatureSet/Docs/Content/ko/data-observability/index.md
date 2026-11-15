@@ -41,7 +41,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **설정할 수 있는 역할.** Project Owner, Project Admin, Telemetry Admin은 데이터베이스를 연결합니다. 데이터 자산을 편집할 수 있는 사람은 누구나 검사, 대사, 데이터 제품을 추가하며, Viewer는 찾은 내용을 읽습니다. [권한 레퍼런스](/docs/permissions/reference)를 참고하세요.
+- **설정할 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 텔레메트리 관리자는 데이터베이스를 연결합니다. 데이터 자산을 편집할 수 있는 사람은 누구나 검사, 대사, 데이터 제품을 추가하며, 뷰어는 찾은 내용을 읽습니다. [권한 레퍼런스](/docs/permissions/reference)를 참고하세요.
 - **각 데이터베이스의 읽기 전용 로그인.** [데이터베이스 연결](/docs/data-observability/connect)에 각 엔진에 필요한 최소한의 권한이 나와 있습니다. OneUptime은 트레이스, 클라우드 계정, Database Monitoring이 이미 알고 있는 데이터베이스를 제안합니다.
 
 ## 빠른 시작

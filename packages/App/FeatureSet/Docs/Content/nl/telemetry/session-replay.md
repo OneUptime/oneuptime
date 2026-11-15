@@ -1092,7 +1092,7 @@ Omdat de markering elke service bereikt waar een browserverzoek doorheen ging, v
 
 ## Wie een opname kan bekijken
 
-Een opname bekijken is een andere machtiging dan sessies opvragen, en geen van beide wordt verleend door de Viewer-rol voor het hele project. Projecteigenaren en -beheerders hebben ze allemaal.
+Een opname bekijken is een andere machtiging dan sessies opvragen, en geen van beide wordt verleend door de Kijker-rol voor het hele project. Projecteigenaren en -beheerders hebben ze allemaal.
 
 | Machtiging | Ontgrendelt |
 | --- | --- |

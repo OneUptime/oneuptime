@@ -41,6 +41,7 @@ import {
   resolveDatabaseCallTarget,
 } from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
 import { ExtractedEntity } from "./TelemetryEntity";
+import { readOwnValue } from "../../../Utils/LookupTable";
 
 export { isLoopbackHost, normalizeHost };
 
@@ -861,7 +862,7 @@ function resolveDependencyDatabaseTarget(data: {
     scope: DatabaseEndpointScope;
   } | null = resolveDatabaseCallTarget({
     getAttribute: (key: string): unknown => {
-      return attributes[key];
+      return readOwnValue(attributes, key);
     },
     caller: caller,
   });

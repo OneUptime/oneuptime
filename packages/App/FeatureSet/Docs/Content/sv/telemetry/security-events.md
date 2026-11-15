@@ -67,13 +67,13 @@ flowchart TB
 
 ## Innan du börjar
 
-Säkerhetsdata kan bara läsas av rollerna Project Owner och Project Admin och av de tre Security-rollerna; andra roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministratör och av de tre Security-rollerna; andra roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
 
 | Roll | Vad den kan göra |
 | --- | --- |
-| Security Admin | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
-| Security Member | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
-| Security Viewer | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
+| Säkerhetsadministratör | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
+| Säkerhetsmedlem | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
+| Säkerhetstittare | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
 
 ## Skicka säkerhetshändelser
 
@@ -305,7 +305,7 @@ En hunt är en sökning i dina säkerhetshändelser som sparats med ett namn: s�
 
 Sök och filtrera under **Händelser** tills listan visar det du letar efter, öppna sedan **Hunts** i verktygsfältet och välj **Spara som hunt**. Ge den ett namn, välj om den körs enligt ett schema, så öppnas dess sida. **Händelser → Hunts** listar projektets hunts, var och en med sin sökning, hur ofta den körs, vem den aviserar och vad dess senaste körning hittade; **Skapa Hunt** tar där sökningen som du skulle skriva den under **Händelser**. Ett projekt kan ha upp till 200 hunts. En sökning kan läsa en [bevakningslista](#bevakningslistor), som `user:%vip_users%` gör, och en hunt som läser en lista som projektet inte har avvisas när du sparar den.
 
-En hunts sida är dess sökning, öppnad i händelseutforskaren. Ändra sökningen eller filtren där, så erbjuder huntens rubrik **Spara ändringar** och **Kasta ändringar**. **Redigera** ändrar dess namn, dess sökning, hur långt bakåt den tittar, dess schema och vem den aviserar, och **Ta bort hunt** finns i dess meny. Från Security Member och uppåt kan man spara, ändra och ta bort hunts, och en Security Viewer kan öppna dem.
+En hunts sida är dess sökning, öppnad i händelseutforskaren. Ändra sökningen eller filtren där, så erbjuder huntens rubrik **Spara ändringar** och **Kasta ändringar**. **Redigera** ändrar dess namn, dess sökning, hur långt bakåt den tittar, dess schema och vem den aviserar, och **Ta bort hunt** finns i dess meny. Från Säkerhetsmedlem och uppåt kan man spara, ändra och ta bort hunts, och en Säkerhetstittare kan öppna dem.
 
 En hunt som sparats med filter från sidofältet under Händelser visar dem i **Redigera** under **Filter**, så som Händelser ritar dem, vart och ett med ett x för att ta bort det. Lägg till filter på huntens sida, från sidofältet.
 
@@ -340,7 +340,7 @@ Varje schemalagd körning sparas i 90 dagar. **Körningshistorik**, i slutet av 
 
 Aviseringen **En hunt hittade säkerhetshändelser** nämner hunten och dess sökning, hur många händelser körningen hittade och vilket fönster den läste, och länkar till huntens sida för de händelserna; inga av händelsernas egna ord finns i den. Alla får den via e-post och push och väljer dess kanaler under **Användarinställningar → Aviseringsinställningar**. Liksom andra rutinmejl kan den hållas tillbaka i en [mejlsammanställning](/docs/emails/notification-rollup).
 
-För att posta det hunts hittar i Slack, Microsoft Teams eller Mattermost lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-microsoft-teams-och-mattermost). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Project Owner, Project Admin eller Security Admin.
+För att posta det hunts hittar i Slack, Microsoft Teams eller Mattermost lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-microsoft-teams-och-mattermost). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Projektägare, Projektadministratör eller Säkerhetsadministratör.
 
 ### Spara händelser i ett ärende
 

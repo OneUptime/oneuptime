@@ -32,7 +32,7 @@ Internationaliserade domännamn godtas i båda formerna: `münchen.de` konverter
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **Utgående åtkomst från sonden** till registren. Projektets standardsonder väljs för varje ny monitor; en [anpassad sond](/docs/probe/custom-probe) behöver nå:
 
 | Mål | Protokoll | Används för |

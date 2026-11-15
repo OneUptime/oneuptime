@@ -45,7 +45,7 @@ De opname van een sessieherhaling bevat de tekst van de pagina's die mensen zage
 
 De prompt van een AI-aanroep bevat de hele chat vóór het nieuwste bericht van de persoon, dus van elke waarde van een AI-aanroep worden tot 16.384 tekens gelezen. Bevatten AI-gesprekken gevoelige gegevens, dan volgen er nog twee dingen: de AI-provider waar de aanroepen heen gingen, is een stroom van die gegevens, en [Gevoelige gegevens worden naar een AI-provider gestuurd](/docs/data-security/checks-and-issues#ai) faalt op de opslag.
 
-De gesprekken van een [AI-tool van het bedrijf](/docs/telemetry/ai-company-tools) worden overgeslagen. Alleen Project Owners en Project Admins mogen ze lezen, en een bevinding komt terecht waar iedereen die Gegevensbeveiliging leest haar kan lezen, dus de spans van die services worden nooit gelezen, en hun AI-gesprekken worden als niet gelezen gemeld.
+De gesprekken van een [AI-tool van het bedrijf](/docs/telemetry/ai-company-tools) worden overgeslagen. Alleen Projecteigenaren en Projectbeheerders mogen ze lezen, en een bevinding komt terecht waar iedereen die Gegevensbeveiliging leest haar kan lezen, dus de spans van die services worden nooit gelezen, en hun AI-gesprekken worden als niet gelezen gemeld.
 
 ## Hoe een scan bemonstert
 
@@ -101,7 +101,7 @@ Sommige bevindingen kan geen regel opschonen, en **Opschonen** zegt waarom:
 - Een van je eigen gegevenstypen: voeg zelf een aangepaste opschoonregel met zijn patroon toe.
 - De eigen gegevens van een sessie (`sessions.*`): de inname van sessieherhalingen voert geen opschoonregels uit.
 
-**Opschonen** maakt de regel namens jou, met je eigen machtigingen: Project Owners en Project Admins kunnen erop drukken, en ook een team dat opschoonregels voor logs mag maken, en opschoonregels voor traces voor spans, uitzonderingen en AI-aanroepen.
+**Opschonen** maakt de regel namens jou, met je eigen machtigingen: Projecteigenaren en Projectbeheerders kunnen erop drukken, en ook een team dat opschoonregels voor logs mag maken, en opschoonregels voor traces voor spans, uitzonderingen en AI-aanroepen.
 
 ## Wat telt als opgeschoond
 

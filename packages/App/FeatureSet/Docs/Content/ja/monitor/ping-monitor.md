@@ -32,7 +32,7 @@ flowchart TB
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **ホストに到達できるプローブ**（経路上で ICMP が許可されていること）。新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。ホストの前にファイアウォールがある場合は、[OneUptime Cloud のプローブの IP アドレス](/docs/configuration/ip-addresses) からの ICMP エコー要求を許可します。プライベートネットワーク上のホストには、そのネットワーク内で動く [カスタムプローブ](/docs/probe/custom-probe) が必要です。
 
 ## Ping モニターを作成する
