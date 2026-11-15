@@ -137,7 +137,7 @@ För att fortsätta nå personer i telefonen lägger du till en [anpassad kanal]
 
 Som standard rättar sig en push-avisering efter telefonen: en telefon på ljudlöst förblir tyst, och Stör ej håller tillbaka aviseringen. För den som har jour är det fel standard klockan tre på natten, så mobilappen erbjuder en inställning per enhet – **Settings > Notifications > Critical On-Call Alerts** – som låter *bara jourlarm* spela ett ljud genom båda.
 
-Omfattningen är medvetet snäv. Bara larm som en aviseringsregel för jour skapar kan komma i fråga. Ägarprenumerationer, meddelanden om publicerade anteckningar, uppdateringar om tillståndsändringar och övervakaraviseringar eskaleras aldrig, oavsett vad den här inställningen säger.
+Omfattningen är medvetet snäv. Bara larm som en aviseringsregel för jour skapar kan komma i fråga. Ägarprenumerationer, meddelanden om publicerade anteckningar, uppdateringar om tillståndsändringar och monitoraviseringar eskaleras aldrig, oavsett vad den här inställningen säger.
 
 ```mermaid title="När ett jourlarm ringer igenom tyst läge"
 flowchart TB
