@@ -5100,9 +5100,9 @@ test.describe("a setup plan", () => {
 
 /*
  * The fixture loads its locales as the Dashboard does (#8366). It imported
- * German, Persian and Arabic whole, 23 MB of JSON in every page's scripts, parsed on
- * every page load of every test. English is in the bundle now, and each
- * other language a chunk of its own, loaded only by a page drawn in it
+ * German, Persian and Arabic whole, 23 MB of JSON in every page's scripts,
+ * parsed on every page load of every test. English is in the bundle now, and
+ * each other language a chunk of its own, loaded only by a page drawn in it
  * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
  * (SuiteHelpers/FixtureLocalesBuild.js).
  */

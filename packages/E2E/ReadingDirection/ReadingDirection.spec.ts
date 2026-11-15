@@ -3018,11 +3018,11 @@ test.describe("screens for review", () => {
 
 /*
  * The fixture loads its locales as the Dashboard does (#8366). It imported
- * Arabic, German, Persian and Korean whole, 31 MB of JSON in every page's scripts, parsed on
- * every page load of every test. English is in the bundle now, and each
- * other language a chunk of its own, loaded only by a page drawn in it
- * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
- * (SuiteHelpers/FixtureLocalesBuild.js).
+ * Arabic, German, Persian and Korean whole, 30 MB of JSON in every page's
+ * scripts, parsed on every page load of every test. English is in the bundle
+ * now, and each other language a chunk of its own, loaded only by a page
+ * drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships
+ * it (SuiteHelpers/FixtureLocalesBuild.js).
  */
 test.describe("the page's language, loaded as the Dashboard loads it", () => {
   for (const language of ["en", "ar", "de", "fa", "ko"]) {
