@@ -107,6 +107,7 @@
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SSH",
     "ScheduledMaintenance",
