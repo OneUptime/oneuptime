@@ -22,7 +22,11 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../Types/Permission";
-import { getApiKeyRoleCopyChangeRefusedMessage } from "../../Types/Team/CustomRole";
+import {
+  getApiKeyRoleCopyChangeRefusedMessage,
+  getTenantPermissionProblem,
+  PermissionHolder,
+} from "../../Types/Team/CustomRole";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CacheGenerations from "../Infrastructure/CacheGenerations";
@@ -435,6 +439,35 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * A key is given only what the permission picker offers
+   * (getTenantPermissionProblem), allow or block, by everyone - a project
+   * owner and a master admin too, whom the grant ceiling lets give
+   * anything. The rest are OneUptime's own to give (every key already holds
+   * Logged in User, User and Public), retired, or no permission at all. Only
+   * OneUptime's own writes (root: data migrations) are trusted with what
+   * they write; the copies of a custom role's rows are written without
+   * hooks (CustomRoleSync), and a role holds only what a team may be given.
+   * A row already stored is still deleted as any other.
+   */
+  private assertApiKeyMayBeGiven(
+    permission: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const problem: string | null = getTenantPermissionProblem({
+      permission: permission,
+      holder: PermissionHolder.ApiKey,
+    });
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
   // The projects of these rows, each once.
   private getProjectIdsOf(rows: Array<Model>): Array<ObjectID> {
     const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
@@ -521,6 +554,9 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.data.permission) {
       throw new BadDataException("Permission is required to create permission");
     }
+
+    // Refused before anything is read: whatever the key, it may not hold it.
+    this.assertApiKeyMayBeGiven(createBy.data.permission, createBy.props);
 
     const references: { apiKeyId: ObjectID; projectId: ObjectID } =
       this.normalizeReferencesForCreate(createBy);
@@ -684,8 +720,13 @@ export class Service extends ProjectReferencesService<Model> {
     for (const existingPermission of existingPermissions) {
       const projectId: ObjectID | undefined = existingPermission.projectId;
       const apiKeyId: ObjectID | undefined = existingPermission.apiKeyId;
+      // What the row holds once the change is written, whatever it changes.
       const permission: Permission | undefined =
-        updatedPermission || existingPermission.permission;
+        updatedPermission === undefined
+          ? existingPermission.permission
+          : updatedPermission;
+
+      this.assertApiKeyMayBeGiven(permission, updateBy.props);
 
       if (!projectId || !apiKeyId || !permission) {
         throw new BadDataException("Invalid API Key permission");
