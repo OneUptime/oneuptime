@@ -108,7 +108,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 :::steps
 ### 開始一個新的監測器
 
-前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **資料庫監控** 下選擇 **SQL Query**，或在搜尋方塊中輸入 `query`。輸入 **名稱**，然後點選 **下一步**。
+前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **資料庫監控** 下選擇 **SQL 查詢**，或在搜尋方塊中輸入 `query`。輸入 **名稱**，然後點選 **下一步**。
 
 ### 輸入連線資訊
 
@@ -116,7 +116,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### 輸入查詢
 
-在 **SQL Query** 中輸入一條唯讀陳述式（請參閱[撰寫查詢](#撰寫查詢)）。
+在 **SQL 查詢** 中輸入一條唯讀陳述式（請參閱[撰寫查詢](#撰寫查詢)）。
 
 ### 測試
 
@@ -142,7 +142,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **驗證** | 僅限 Microsoft SQL Server：預設的 **使用者名稱與密碼**，或以執行探測器的帳戶登入的 **Windows Integrated Authentication**。請參閱 [Windows 整合式驗證](#windows-整合式驗證)。 |
 | **使用者名稱** | 唯讀的最小權限資料庫使用者。 |
 | **密碼** | 資料庫密碼。我們強烈建議以 `{{monitorSecrets.name}}` 參照一個 [監控密鑰](/docs/monitor/monitor-secrets)，而不是以純文字輸入密碼（請參閱[為密碼使用監控密鑰](#為密碼使用監控密鑰)）。 |
-| **SQL Query** | 要執行的唯讀查詢（請參閱[撰寫查詢](#撰寫查詢)）。 |
+| **SQL 查詢** | 要執行的唯讀查詢（請參閱[撰寫查詢](#撰寫查詢)）。 |
 | **Use SSL/TLS** | 啟用後透過 TLS 連線。啟用後，如果資料庫使用自我簽署的憑證，你可以關閉 **Verify server certificate**。 |
 
 ### 更多欄位
@@ -216,7 +216,7 @@ WHERE status = 'CANCELLED'
 3. 在監測器的 **密碼** 欄位中輸入 `{{monitorSecrets.dbPassword}}`。
 :::
 
-OneUptime 會在把設定交給探測器之前，於伺服器端解析密鑰。OneUptime 永遠不會替你建立這些密鑰：要不要參照由你決定。**使用者名稱**、**主機**、**資料庫名稱** 和 **SQL Query** 欄位也接受密鑰參照；**連接埠** 則不接受。
+OneUptime 會在把設定交給探測器之前，於伺服器端解析密鑰。OneUptime 永遠不會替你建立這些密鑰：要不要參照由你決定。**使用者名稱**、**主機**、**資料庫名稱** 和 **SQL 查詢** 欄位也接受密鑰參照；**連接埠** 則不接受。
 
 ## 設定條件
 

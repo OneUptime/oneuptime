@@ -108,7 +108,7 @@ Vil du give snævrere rettigheder, så giv brugeren `SELECT` på kun de tabeller
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **SQL Query** under **Databaseovervågning** eller skrive `query` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **SQL-forespørgsel** under **Databaseovervågning** eller skrive `query` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Angiv forbindelsesoplysningerne
 
@@ -116,7 +116,7 @@ Vælg **Database Type** — porten skifter til den motors standard — og udfyld
 
 ### Angiv forespørgslen
 
-Skriv én skrivebeskyttet sætning i **SQL Query** (se [Skriv forespørgslen](#skriv-forespørgslen)).
+Skriv én skrivebeskyttet sætning i **SQL-forespørgsel** (se [Skriv forespørgslen](#skriv-forespørgslen)).
 
 ### Test den
 
@@ -142,7 +142,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på med den konto, sonden kører som. Se [Integreret Windows-godkendelse](#integreret-windows-godkendelse). |
 | **Brugernavn** | En skrivebeskyttet databasebruger med færrest mulige rettigheder. |
 | **Adgangskode** | Databasens adgangskode. Vi anbefaler kraftigt at henvise til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive adgangskoden som ren tekst (se [Brug en monitorhemmelighed til adgangskoden](#brug-en-monitorhemmelighed-til-adgangskoden)). |
-| **SQL Query** | Den skrivebeskyttede forespørgsel, der skal køres (se [Skriv forespørgslen](#skriv-forespørgslen)). |
+| **SQL-forespørgsel** | Den skrivebeskyttede forespørgsel, der skal køres (se [Skriv forespørgslen](#skriv-forespørgslen)). |
 | **Use SSL/TLS** | Slå til for at forbinde over TLS. Når det er slået til, kan du slå **Verify server certificate** fra, hvis databasen bruger et selvsigneret certifikat. |
 
 ### Flere felter
@@ -216,7 +216,7 @@ For at databasens adgangskode aldrig gemmes som ren tekst på monitoren skal du 
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens felt **Adgangskode**.
 :::
 
-OneUptime løser hemmeligheden op på serveren, før konfigurationen gives videre til sonden. OneUptime opretter aldrig disse hemmeligheder for dig — det er dit valg at henvise til en. Felterne **Brugernavn**, **Vært**, **Databasenavn** og **SQL Query** accepterer også henvisninger til hemmeligheder; **Port** gør ikke.
+OneUptime løser hemmeligheden op på serveren, før konfigurationen gives videre til sonden. OneUptime opretter aldrig disse hemmeligheder for dig — det er dit valg at henvise til en. Felterne **Brugernavn**, **Vært**, **Databasenavn** og **SQL-forespørgsel** accepterer også henvisninger til hemmeligheder; **Port** gør ikke.
 
 ## Opsæt kriterier
 

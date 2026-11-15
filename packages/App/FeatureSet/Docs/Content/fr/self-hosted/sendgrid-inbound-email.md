@@ -2,7 +2,7 @@
 
 Le **Incoming Email Monitor** de OneUptime vous permet de créer et de résoudre des alertes à partir d'e-mails envoyés à des adresses uniques, propres à chaque moniteur. C'est utile pour intégrer des systèmes anciens, des outils d'alerte ou tout service capable d'envoyer des e-mails.
 
-La même configuration permet aussi aux workflows de recevoir des e-mails : un workflow doté du déclencheur **Incoming Email** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le workflow. Voir [Déclencheurs](/docs/workflows/triggers#incoming-email).
+La même configuration permet aussi aux workflows de recevoir des e-mails : un workflow doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le workflow. Voir [Déclencheurs](/docs/workflows/triggers#incoming-email).
 
 Ce guide explique comment configurer SendGrid Inbound Parse pour transférer les e-mails entrants vers votre instance OneUptime auto-hébergée. OneUptime Cloud n'en a pas besoin : ses adresses fonctionnent d'emblée.
 
@@ -122,7 +122,7 @@ Appliquez-les ensuite : exécutez `npm run start` sous Docker Compose, ce qui re
 
 [Créez un moniteur Incoming Email](/docs/monitor/incoming-email-monitor#créer-un-moniteur-de-mails-entrants). Sa page **Vue d'ensemble** affiche son adresse, par exemple `monitor-abc123def456@inbound.yourdomain.com`, et ses critères décident quels e-mails créent une alerte et lesquels la résolvent.
 
-Les workflows utilisent le même domaine. Ajoutez le déclencheur **Incoming Email** à un workflow et cliquez dessus : son adresse (`workflow-…@inbound.yourdomain.com`) figure en haut de ses paramètres. Tant que les variables de réception ci-dessus ne sont pas définies, le déclencheur indique que le serveur n'est pas configuré pour recevoir des e-mails.
+Les workflows utilisent le même domaine. Ajoutez le déclencheur **E-mail entrant** à un workflow et cliquez dessus : son adresse (`workflow-…@inbound.yourdomain.com`) figure en haut de ses paramètres. Tant que les variables de réception ci-dessus ne sont pas définies, le déclencheur indique que le serveur n'est pas configuré pour recevoir des e-mails.
 
 ### Envoyer un e-mail de test
 

@@ -108,7 +108,7 @@ För snävare behörigheter kan du ge användaren `SELECT` på bara de tabeller 
 :::steps
 ### Starta en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **SQL Query** under **Databasövervakning**, eller skriver `query` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **SQL-fråga** under **Databasövervakning**, eller skriver `query` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Ange anslutningsuppgifterna
 
@@ -116,7 +116,7 @@ Välj **Database Type** — porten byts till den motorns standard — och fyll s
 
 ### Ange frågan
 
-Skriv en enda skrivskyddad sats i **SQL Query** (se [Skriv frågan](#skriv-frågan)).
+Skriv en enda skrivskyddad sats i **SQL-fråga** (se [Skriv frågan](#skriv-frågan)).
 
 ### Testa den
 
@@ -142,7 +142,7 @@ Välj de **Sonder** som når databasen och ett **Övervakningsintervall**, och k
 | **Autentisering** | Bara Microsoft SQL Server: **Användarnamn och lösenord**, standardvalet, eller **Windows Integrated Authentication**, som loggar in med kontot som sonden körs som. Se [Integrerad Windows-autentisering](#integrerad-windows-autentisering). |
 | **Användarnamn** | En skrivskyddad databasanvändare med minsta möjliga behörighet. |
 | **Lösenord** | Databasens lösenord. Vi rekommenderar starkt att du hänvisar till en [övervakningshemlighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stället för att skriva lösenordet som vanlig text (se [Använd en övervakningshemlighet för lösenordet](#använd-en-övervakningshemlighet-för-lösenordet)). |
-| **SQL Query** | Den skrivskyddade frågan som ska köras (se [Skriv frågan](#skriv-frågan)). |
+| **SQL-fråga** | Den skrivskyddade frågan som ska köras (se [Skriv frågan](#skriv-frågan)). |
 | **Use SSL/TLS** | Aktivera för att ansluta över TLS. När det är aktiverat kan du stänga av **Verify server certificate** om databasen använder ett självsignerat certifikat. |
 
 ### Fler fält
@@ -216,7 +216,7 @@ För att databasens lösenord aldrig ska lagras som vanlig text på monitorn ska
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorns fält **Lösenord**.
 :::
 
-OneUptime löser upp hemligheten på servern innan konfigurationen lämnas över till sonden. OneUptime skapar aldrig de här hemligheterna åt dig — det är ditt val att hänvisa till en. Fälten **Användarnamn**, **Värd**, **Databasnamn** och **SQL Query** tar också emot hänvisningar till hemligheter; **Port** gör det inte.
+OneUptime löser upp hemligheten på servern innan konfigurationen lämnas över till sonden. OneUptime skapar aldrig de här hemligheterna åt dig — det är ditt val att hänvisa till en. Fälten **Användarnamn**, **Värd**, **Databasnamn** och **SQL-fråga** tar också emot hänvisningar till hemligheter; **Port** gör det inte.
 
 ## Ställ in kriterier
 
