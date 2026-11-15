@@ -218,6 +218,7 @@ describe("times", () => {
         ),
       ),
     ).toBe("Fr., 13. Nov., 17:20");
+    // A 24-hour time keeps its zero, as the tables write it (#7649).
     expect(
       plain(
         formatShiftDateTime(
@@ -225,7 +226,7 @@ describe("times", () => {
           clock("Asia/Tokyo", "2026-10-14T15:00:00Z", "ja"),
         ),
       ),
-    ).toBe("11月14日(土) 1:20");
+    ).toBe("11月14日(土) 01:20");
   });
 
   test("two instants are one day by the reader's calendar, not UTC's", () => {

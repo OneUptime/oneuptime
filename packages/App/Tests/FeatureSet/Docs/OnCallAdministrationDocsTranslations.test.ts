@@ -86,9 +86,9 @@ import { describe, expect, it } from "@jest/globals";
  * segment (drawnPath: one bold span joined by " → "; in Persian a bold span
  * per segment joined by " > ", with no "→" left in the prose). Where a
  * language's Dashboard still draws a label in English, the page writes it in
- * English too. The words a page keeps as written - "Level 1", the execution
- * statuses the Dashboard shows in English, the workflow step's name, and
- * role and permission names - stay in English (KEPT_AS_WRITTEN). A new bold
+ * English too. The words a page keeps as written - "Level 1", the workflow
+ * step's name, and permission names - stay in English (KEPT_AS_WRITTEN); a
+ * run's status is a label like any other, drawn as its pill draws it. A new bold
  * word on these English pages fails "know every bold word" until it is a
  * label or listed.
  *
@@ -996,12 +996,16 @@ describe("the helpers, on these pages' shapes", () => {
   it("tell the Dashboard's labels from the words a page keeps", () => {
     // A role's name is drawn, as the role pickers draw it.
     expect(dashboardLabels(ON_CALL_POLICIES)).toContain("Project Admin");
-    // A status the Dashboard shows in English is kept.
+    // The workflow step's name is kept.
     expect(dashboardLabels(ON_CALL_POLICIES)).not.toContain(
+      "Page an On-Call Policy",
+    );
+    // A run's status is drawn, as its pill draws it: every one is a key.
+    expect(dashboardLabels(ON_CALL_POLICIES)).toContain("Scheduled");
+    expect(dashboardLabels(ON_CALL_POLICIES)).toContain("Execution Completed");
+    expect(drawnActionLabel("de", "Execution Completed")).not.toBe(
       "Execution Completed",
     );
-    // A status its locales hold is drawn.
-    expect(dashboardLabels(ON_CALL_POLICIES)).toContain("Scheduled");
     // An add button is drawn from "Add {{itemName}}".
     expect(dashboardLabels(USER_OVERRIDES)).toContain("Add User Override");
     expect(drawnActionLabel("de", "Add User Override")).not.toBe(

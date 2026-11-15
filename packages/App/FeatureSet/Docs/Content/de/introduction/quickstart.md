@@ -52,7 +52,7 @@ Klicken Sie in der Checkliste auf **Ersten Monitor erstellen**. Damit öffnet si
 
 Geben Sie unter **Was sollen wir prüfen?** die vollständige Adresse Ihrer Website in **Adresse der Website oder API** ein, etwa `https://example.com`, und klicken Sie auf **Prüfung starten**. Die Sonden prüfen sie sofort und danach alle 5 Minuten: Antwortet die Website nicht oder mit einem Fehler, wechselt der Monitor zu **Offline** und meldet einen Vorfall. Klicken Sie auf **Weiter**.
 
-Im Free-Tarif von OneUptime Cloud werden Monitore nach Nutzung abgerechnet, daher braucht das Projekt eine Zahlungsmethode, bevor es Ihre Website prüfen kann: Ohne sie bittet der Schritt Sie, [eine Zahlungsmethode hinzuzufügen](/docs/configuration/billing#zahlungsmethoden).
+Im Free-Tarif von OneUptime Cloud werden Monitore nach Nutzung abgerechnet, daher braucht das Projekt eine Zahlungsmethode, bevor es Ihre Website prüfen kann: Ohne sie sagt der Schritt das schon vor **Prüfung starten**, mit **Zahlungsmethode hinzufügen**, um [eine hinzuzufügen](/docs/configuration/billing#zahlungsmethoden).
 
 ### Festlegen, wer informiert wird
 

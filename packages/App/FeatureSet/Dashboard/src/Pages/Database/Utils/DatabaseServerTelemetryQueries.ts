@@ -30,6 +30,7 @@ import { normalizeDatabaseSystem } from "Common/Types/DatabaseServer/DatabaseSys
 import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import Timezone from "Common/Types/Timezone";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -566,24 +567,31 @@ export const DATABASE_QUERY_INGEST_GRACE_MS: number = 30 * 1000;
  * `now`. The window ends now, so its newest bucket is still filling (and
  * its oldest started before the window did): charted as is, every
  * "Queries from applications" line fell at its right edge, as if traffic
- * had halved. The bucket width is the one the aggregate API picks for the
- * window (AggregationIntervalUtil, the server's own rule). A series whose
- * every bucket is partial — a window shorter than one bucket — is kept.
+ * had halved. The bucket is the one the aggregate API picks for the window
+ * (AggregationIntervalUtil, the server's own rule), and it closes where the
+ * next one starts (AggregationIntervalUtil.getBucketEnd, issue #7924): a
+ * month after 28 to 31 days, a year after 365 or 366, and a day or a week
+ * at the next midnight or Monday in the zone the read asked its buckets to
+ * follow - the reader's, which AnalyticsModelAPI.aggregate put on it
+ * (getReaderTimezone of the same window), so a day is 23 or 25 hours long
+ * where their clocks change. A series whose every bucket is partial — a
+ * window shorter than one bucket — is kept.
  */
 export function getCompleteBucketSeries(
   series: ReadonlyArray<DatabaseTimePoint>,
   window: { start: Date; end: Date },
   now: number = Date.now(),
 ): Array<DatabaseTimePoint> {
-  const width: number = AggregationIntervalUtil.getAggregationIntervalMs(
+  const interval: AggregationInterval =
     AggregationIntervalUtil.getAggregationIntervalForWindow({
       startDate: window.start,
       endDate: window.end,
-    }),
-  );
-  if (!Number.isFinite(width) || width <= 0) {
-    return [...series];
-  }
+    });
+  const timezone: Timezone | undefined =
+    AggregationIntervalUtil.getReaderTimezone({
+      startDate: window.start,
+      endDate: window.end,
+    });
   const start: number = window.start.getTime();
   // A past window is unaffected: its buckets closed long before now.
   const end: number = Math.min(
@@ -592,8 +600,16 @@ export function getCompleteBucketSeries(
   );
   const complete: Array<DatabaseTimePoint> = series.filter(
     (point: DatabaseTimePoint): boolean => {
-      const bucketStart: number = point.x.getTime();
-      return bucketStart >= start && bucketStart + width <= end;
+      if (!(point.x.getTime() >= start)) {
+        return false;
+      }
+      return (
+        AggregationIntervalUtil.getBucketEnd({
+          bucketStart: point.x,
+          interval: interval,
+          timezone: timezone,
+        }).getTime() <= end
+      );
     },
   );
   return complete.length > 0 ? complete : [...series];

@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import { getDataAssetKindText } from "./DataAssetKindWords";
 import { formatOverdue } from "./DataObservabilityFormat";
 import {
   LINEAGE_CARD_HEIGHT,
@@ -370,7 +371,7 @@ function getCardIcon(node: DataTableLineageNode): IconProp {
 }
 
 // The line under a card's name: where a table lives and what it is, a pipeline's namespace, a dashboard's tool.
-function getCardSubtitle(
+export function getLineageCardSubtitle(
   node: DataTableLineageNode,
   translator: Translator,
 ): string {
@@ -384,9 +385,7 @@ function getCardSubtitle(
 
   return [
     node.database || "",
-    node.assetKind
-      ? translator.translateText(node.assetKind) || node.assetKind
-      : "",
+    node.assetKind ? getDataAssetKindText(translator, node.assetKind) : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -621,6 +620,7 @@ const CardChips: FunctionComponent<CardChipsProps> = (
           pill: (
             <Pill
               text={translator.translatePlural(OPEN_ALERTS, openAlerts)}
+              isUserContent={true}
               color={Red500}
               size={PillSize.Small}
             />
@@ -634,6 +634,7 @@ const CardChips: FunctionComponent<CardChipsProps> = (
           pill: (
             <Pill
               text={formatOverdue(translator, node.lateBySeconds || 0)}
+              isUserContent={true}
               color={Red500}
               size={PillSize.Small}
             />
@@ -840,7 +841,7 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
     isFocus && place !== LineagePlace.Alert,
   );
   const dashboardUrl: URL | null = getLineageDashboardUrl(node);
-  const subtitle: string = getCardSubtitle(node, translator);
+  const subtitle: string = getLineageCardSubtitle(node, translator);
   const isDropped: boolean = tone === LineageTone.Dropped;
   // The column followed, as this table names it: in place of the line under its name.
   const columns: string = (props.data.columns || []).join(", ");

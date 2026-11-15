@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 在录制器加载之前，请把同样的调用以 `["track", name, properties]` 和 `["metric", name, value, attributes]` 的形式推入 `window.OneUptimeReplayQueue` （参见 [JavaScript API](/docs/telemetry/session-replay#javascript-api) ）。
 
 - **每个会话，无论是否录制** 。回放的抽样和上传策略决定哪些会话被录制，而不是哪些会话被统计。在 Do Not Track 或 Global Privacy Control 下不会发送任何内容，来自应用程序不允许的来源的内容也不会保留。当策略要求同意时，事件会等待 `grantConsent()` ，最多 500 个，而 `revokeConsent()` 会丢弃它们。
-- **像录制一样遮盖** 。在 _Mask all text_ 下，事件属性和指标属性的值会在离开页面之前被遮盖。页面以其路径发送，不带查询字符串和片段。
+- **像录制一样遮盖** 。在 _Mask all text_ 下，事件属性和指标属性的值会在离开页面之前被遮盖，因此按其中某一项拆分的明细显示的是占位符，而不是你的值；事件名称、属性键和指标值按原样发送。在该模式下需要读取的值请放进会话标签（ `setTags()` ），标签从不遮盖，所以不要在其中放个人数据。标签显示在会话上以及会话列表的 `tag:key=value` 搜索中，不会出现在这些页面的明细里。页面以其路径发送，不带查询字符串和片段。
 - **小批量发送** ，每 5 秒一次，以及在标签页被隐藏时。在发生 3 天之后才到达 OneUptime 的事件会被丢弃，一个项目（所有应用程序合计）每分钟最多可发送 60,000 个事件和指标数据点；超过之后，录制器会等待并重新发送。
 
 `metric()` 在事件关闭时不发送任何内容， `getDiagnostics().productAnalytics` 会说明事件是否开启（参见 [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics) ）。
@@ -144,7 +144,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 谁可以查看
 
-读取这些页面所需的权限与读取会话列表相同： `ReadRumSessionReplay` (_List Session Replays_) 或 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，项目所有者和管理员拥有这些权限。要查看已登录用户是谁，以及按姓名搜索人，需要 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 中所述的身份权限。
+读取这些页面所需的权限与读取会话列表相同： `ReadRumSessionReplay` (_List Session Replays_) 或 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，项目所有者和管理员拥有这些权限。要查看已登录用户是谁，以及按姓名搜索人，需要 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，如 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 中所述。
 
 保存、重命名和删除已保存的漏斗和留存表需要与读取这些页面相同的权限，仪表板小部件只会向拥有这些权限的读者显示它们。
 

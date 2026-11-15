@@ -120,7 +120,7 @@ Elke keer dat een lid van het project zich bij OneUptime aanmeldt, legt het audi
 
 De **Resource** van een vermelding is de sessie, genoemd naar het apparaat waarop de aanmelding plaatsvond, zoals `Chrome 130 on macOS`. De **Actor** is de persoon van wie de sessie is, dus filteren op **E-mailadres gebruiker** vindt al diens aanmeldingen en sessies. De details vermelden hoe diegene zich aanmeldde en met welke tweede factor, het IP-adres en de plaats, en bij een geëindigde sessie wanneer die werd aangemeld, wanneer die het laatst werd gebruikt en wanneer die verliep. De eigen SSO-provider van een project wordt alleen in het auditlogboek van dat project genoemd.
 
-Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur wordt vastgelegd wanneer het open tabblad van de persoon of de mobiele app de volgende keer contact maakt met OneUptime.
+Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur wordt vastgelegd wanneer de browser van de persoon of de mobiele app de volgende keer contact maakt met OneUptime: vanuit een tabblad dat open is blijven staan, of wanneer de persoon OneUptime opnieuw opent.
 
 ## Hoe lang vermeldingen blijven
 

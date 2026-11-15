@@ -204,7 +204,7 @@ Um dispositivo mantém o som do sistema até rodar uma versão do app que oferec
 
 ### Repetindo um alerta até a confirmação
 
-Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em **Configurações do usuário > Como me contatar**, defina **Repetir até a confirmação** ao adicionar uma regra de push, ou altere depois na linha da regra: a cada minuto, ou a cada 2, 3, 5, 10, 15 ou 30 minutos. O alerta é enviado de novo nesse intervalo, no máximo mais 10 vezes, e para assim que o incidente, alerta ou episódio é confirmado. Guardado por regra em `UserNotificationRule.repeatEveryMinutes`, onde 0, o padrão, envia o alerta uma única vez.
+Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em **Configurações do usuário > Como me contatar**, defina **Repetir até a confirmação** ao adicionar uma regra de push, ou altere depois na linha da regra: a cada minuto, ou a cada 2, 3, 5, 10, 15 ou 30 minutos. O alerta é enviado de novo nesse intervalo, no máximo mais 10 vezes, e para assim que o incidente, alerta ou episódio é confirmado. Um acionamento que continua depois de uma confirmação, como um novo acionamento, se repete até que alguém que ele acionou responda ou que o incidente, o alerta ou o episódio seja resolvido: [Quando várias políticas acionam](/docs/on-call/policies#quando-várias-políticas-acionam) os lista. Guardado por regra em `UserNotificationRule.repeatEveryMinutes`, onde 0, o padrão, envia o alerta uma única vez.
 
 ## Solução de problemas
 

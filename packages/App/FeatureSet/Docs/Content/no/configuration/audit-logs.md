@@ -120,7 +120,7 @@ Hver gang et medlem av prosjektet logger på OneUptime, registrerer revisjonslog
 
 For en slik oppføring er **Ressurs** økten, navngitt etter enheten den logget på fra, for eksempel `Chrome 130 on macOS`. **Aktør** er personen økten tilhører, så filtrering etter **Bruker-e-post** finner alle påloggingene og øktene deres. Detaljene sier hvordan de logget på og med hvilken andre faktor, IP-adressen og stedet, og for en økt som er avsluttet, når den logget på, når den sist ble brukt og når den utløp. Et prosjekts egen SSO-leverandør nevnes bare i revisjonsloggen til det prosjektet.
 
-Pålogginger og økter registreres enten prosjektet lagrer systemhendelser eller ikke. En utløpt øktlengde eller 30 dager uten bruk registreres innen noen minutter. En utløpt inaktivitetsperiode registreres neste gang personens åpne fane eller mobilappen kontakter OneUptime.
+Pålogginger og økter registreres enten prosjektet lagrer systemhendelser eller ikke. En utløpt øktlengde eller 30 dager uten bruk registreres innen noen minutter. En utløpt inaktivitetsperiode registreres neste gang personens nettleser eller mobilappen kontakter OneUptime: fra en fane som står åpen, eller når personen åpner OneUptime igjen.
 
 ## Hvor lenge oppføringer beholdes
 

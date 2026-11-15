@@ -33,6 +33,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { PRODUCT_ANALYTICS_MAX_RANGE_DAYS } from "../../../Types/Rum/ProductAnalytics";
 import { ProductAnalyticsEventKind } from "../../../Types/Rum/ProductAnalyticsEvents";
 import {
@@ -186,6 +187,30 @@ const PRICING_PAGE: JSONObject = {
   name: "/pricing",
 };
 const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+/* Each route, and the read service call it hands its range to. */
+const RANGE_READERS: Array<[string, string]> = [
+  [PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE, "listEventNames"],
+  [PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, "getEventTrend"],
+  [PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE, "getEventBreakdown"],
+  [PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE, "getEventProperties"],
+  [PRODUCT_ANALYTICS_FUNNEL_ROUTE, "getFunnel"],
+  [PRODUCT_ANALYTICS_RETENTION_ROUTE, "getRetention"],
+];
+
+/*
+ * Ends whose week before holds a clock change, each with the start
+ * 7 x 24 hours before it (issue #7623): Australia/Lord_Howe moves its
+ * clocks by half an hour on 2026-04-05 and 2026-10-04, Europe/London by an
+ * hour on 2026-03-29 and 2026-10-25. RumProductAnalyticsEventsAPIOnLordHowe
+ * runs this file on Lord Howe Island's clock.
+ */
+const WEEKS_ACROSS_A_CLOCK_CHANGE: Array<[string, string]> = [
+  ["2026-04-08T02:00:00.000Z", "2026-04-01T02:00:00.000Z"],
+  ["2026-10-06T23:59:59.999Z", "2026-09-29T23:59:59.999Z"],
+  ["2026-03-31T00:00:00.000Z", "2026-03-24T00:00:00.000Z"],
+  ["2026-10-28T09:15:00.000Z", "2026-10-21T09:15:00.000Z"],
+];
 
 /* The smallest body each route takes, beside rumApplicationId. */
 function minimalBody(uri: string): JSONObject {
@@ -863,6 +888,72 @@ describe("Product analytics event API", () => {
           expect(result.thrownToNext).toBeInstanceOf(BadDataException);
           expect(querySpy).not.toHaveBeenCalled();
         }
+      },
+    );
+
+    test.each(RANGE_READERS)(
+      "%s (%s) reads the last 7 x 24 hours by default, to the millisecond",
+      async (uri: string, method: string) => {
+        const reader: jest.SpyInstance = jest.spyOn(
+          RumProductAnalyticsEventReadService,
+          method as "getFunnel",
+        );
+
+        const before: number = Date.now();
+        const result: CallResult = await callAsOwner(uri, minimalBody(uri));
+        const after: number = Date.now();
+
+        expect(result.thrownToNext).toBeUndefined();
+
+        const argument: Record<string, unknown> = argumentOf(reader);
+        const endTime: Date = argument["endTime"] as Date;
+
+        expect(endTime.getTime()).toBeGreaterThanOrEqual(before);
+        expect(endTime.getTime()).toBeLessThanOrEqual(after);
+        expect(
+          endTime.getTime() - (argument["startTime"] as Date).getTime(),
+        ).toBe(7 * DAY_MS);
+      },
+    );
+
+    /*
+     * Issue #7623: a week with a clock change inside it is still
+     * 7 x 24 hours long, in whatever zone the server runs in.
+     */
+    test.each(
+      RANGE_READERS.flatMap(
+        (reader: [string, string]): Array<[string, string, string, string]> => {
+          return WEEKS_ACROSS_A_CLOCK_CHANGE.map(
+            (week: [string, string]): [string, string, string, string] => {
+              return [reader[0], reader[1], week[0], week[1]];
+            },
+          );
+        },
+      ),
+    )(
+      "%s (%s) reaches back exactly 7 x 24 hours from %s, to %s",
+      async (
+        uri: string,
+        method: string,
+        endTime: string,
+        startTime: string,
+      ) => {
+        const reader: jest.SpyInstance = jest.spyOn(
+          RumProductAnalyticsEventReadService,
+          method as "getFunnel",
+        );
+
+        const result: CallResult = await callAsOwner(uri, {
+          ...minimalBody(uri),
+          endTime: endTime,
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+
+        const argument: Record<string, unknown> = argumentOf(reader);
+
+        expect((argument["startTime"] as Date).toISOString()).toBe(startTime);
+        expect((argument["endTime"] as Date).toISOString()).toBe(endTime);
       },
     );
 
@@ -1562,6 +1653,274 @@ describe("Product analytics event API", () => {
           { start: "2026-03-16", people: 0, returning: [0, null, null] },
         ],
       });
+    });
+  });
+
+  /*
+   * #8017 and #8018: one page can be written several ways ("/caf%c3%a9",
+   * "/caf%C3%A9", "/cafe%CC%81"), and the rows an older or cached recorder
+   * stored hold whichever the browser had, as do the links and saved views
+   * made from them. A read names a page in its one spelling, matches the
+   * rows in every spelling of it, and groups them as one page.
+   */
+  describe("a page in its one spelling", () => {
+    /* The reads' side of UrlScrubber.normalizePathSpelling (PathSpelling). */
+    const SPELLING: (expression: string) => string = (
+      expression: string,
+    ): string => {
+      return `normalizeUTF8NFC(toValidUTF8(decodeURLComponent(replaceRegexpAll(${expression}, '%([0-7][0-9A-Fa-f])', '%EF%BF%BF%\\\\1'))))`;
+    };
+    const HAS_SPELLINGS: (column: string) => string = (
+      column: string,
+    ): string => {
+      return `(position(${column}, '%') > 0 OR length(${column}) != lengthUTF8(${column}))`;
+    };
+    const CAFE: JSONObject = {
+      kind: ProductAnalyticsEventKind.Page,
+      name: "/caf%C3%A9",
+    };
+
+    function statementsWith(text: string): Array<Statement> {
+      return queriesOf(querySpy).filter((statement: Statement): boolean => {
+        return statement.query.includes(text);
+      });
+    }
+
+    test("a page a request names is read in its one spelling, in every read", async () => {
+      const trend: jest.SpyInstance = jest.spyOn(
+        RumProductAnalyticsEventReadService,
+        "getEventTrend",
+      );
+
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, {
+        event: { kind: ProductAnalyticsEventKind.Page, name: "/caf%c3%a9" },
+        filters: [
+          { field: ProductAnalyticsEventField.Page, value: "/menu%CC%88" },
+          {
+            field: ProductAnalyticsEventField.Property,
+            key: "from",
+            value: "/caf%c3%a9",
+          },
+        ],
+      });
+
+      expect(argumentOf(trend)["event"]).toEqual(CAFE);
+      expect(argumentOf(trend)["filters"]).toEqual([
+        {
+          field: ProductAnalyticsEventField.Page,
+          key: "",
+          value: "/men%C3%BC",
+        },
+        // A property is the application's own: kept as it was sent.
+        {
+          field: ProductAnalyticsEventField.Property,
+          key: "from",
+          value: "/caf%c3%a9",
+        },
+      ]);
+
+      const funnel: jest.SpyInstance = jest.spyOn(
+        RumProductAnalyticsEventReadService,
+        "getFunnel",
+      );
+
+      await callAsOwner(PRODUCT_ANALYTICS_FUNNEL_ROUTE, {
+        steps: [
+          { kind: ProductAnalyticsEventKind.Page, name: "/cafe%CC%81" },
+          { kind: ProductAnalyticsEventKind.Page, name: "/café" },
+          SIGNED_UP,
+        ],
+      });
+
+      expect(argumentOf(funnel)["steps"]).toEqual([CAFE, CAFE, SIGNED_UP]);
+
+      const retention: jest.SpyInstance = jest.spyOn(
+        RumProductAnalyticsEventReadService,
+        "getRetention",
+      );
+
+      await callAsOwner(PRODUCT_ANALYTICS_RETENTION_ROUTE, {
+        startEvent: {
+          kind: ProductAnalyticsEventKind.Page,
+          name: "/caf%c3%a9",
+        },
+        returnEvent: SIGNED_UP,
+      });
+
+      expect(argumentOf(retention)["startEvent"]).toEqual(CAFE);
+    });
+
+    test("a page view with an escape is matched in every spelling, bound; one in plain ASCII as written", async () => {
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, { event: CAFE });
+
+      const spelled: Array<Statement> = statementsWith(SPELLING("name"));
+
+      expect(spelled.length).toBeGreaterThan(0);
+
+      for (const statement of spelled) {
+        expect(statement.query).toMatch(
+          new RegExp(
+            escapeRegExp(
+              `(name = {P} OR (${HAS_SPELLINGS("name")} AND ${SPELLING("name")} = ${SPELLING("{P}")}))`,
+            )
+              .split(escapeRegExp("{P}"))
+              .join("\\{p\\d+:String\\}"),
+          ),
+        );
+        expect(statement.query).not.toContain("'/caf%C3%A9'");
+        expect(Object.values(statement.query_params)).toContain("/caf%C3%A9");
+      }
+
+      querySpy.mockClear();
+
+      // A page in plain ASCII has one spelling: matched as written, by the index.
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, {
+        event: PRICING_PAGE,
+      });
+
+      expect(queriesOf(querySpy).length).toBeGreaterThan(0);
+      expect(statementsWith("normalizeUTF8NFC")).toEqual([]);
+
+      querySpy.mockClear();
+
+      // An event of the application's own is matched by the name it sent.
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, {
+        event: { kind: ProductAnalyticsEventKind.Custom, name: "Caf%C3%A9" },
+      });
+
+      expect(queriesOf(querySpy).length).toBeGreaterThan(0);
+      expect(statementsWith("normalizeUTF8NFC")).toEqual([]);
+    });
+
+    test("a page segment with an escape is matched in every spelling of the event's page", async () => {
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, {
+        event: SIGNED_UP,
+        filters: [
+          { field: ProductAnalyticsEventField.Page, value: "/caf%c3%a9" },
+        ],
+      });
+
+      const spelled: Array<Statement> = statementsWith(SPELLING("page"));
+
+      expect(spelled.length).toBeGreaterThan(0);
+      expect(spelled[0]!.query).toContain(
+        `OR (${HAS_SPELLINGS("page")} AND ${SPELLING("page")} = `,
+      );
+      expect(Object.values(spelled[0]!.query_params)).toContain("/caf%C3%A9");
+      expect(statementsWith(SPELLING("name"))).toEqual([]);
+    });
+
+    test("the events list groups a page view's spellings, and names it in the one spelling", async () => {
+      querySpy.mockImplementation(async (statement: unknown) => {
+        if ((statement as Statement).query.includes("paLabel")) {
+          return fakeResultSet([
+            {
+              paKind: ProductAnalyticsEventKind.Page,
+              paLabel: "/cafe%CC%81",
+              paEvents: 4,
+              paUsers: 3,
+              paLastSeenAt: 5,
+            },
+            {
+              paKind: ProductAnalyticsEventKind.Custom,
+              paLabel: "Caf%c3%a9 opened",
+              paEvents: 2,
+              paUsers: 1,
+              paLastSeenAt: 4,
+            },
+          ]);
+        }
+
+        return fakeResultSet([]);
+      });
+
+      const result: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+        {},
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["events"]).toEqual([
+        {
+          kind: ProductAnalyticsEventKind.Page,
+          name: "/caf%C3%A9",
+          events: 4,
+          users: 3,
+          lastSeenAt: 5,
+        },
+        // The application's own name is as it was sent.
+        {
+          kind: ProductAnalyticsEventKind.Custom,
+          name: "Caf%c3%a9 opened",
+          events: 2,
+          users: 1,
+          lastSeenAt: 4,
+        },
+      ]);
+
+      const [names]: Array<Statement> = statementsWith("paLabel");
+
+      expect(names!.query).toContain(
+        `if(kind = 'page', if(${HAS_SPELLINGS("name")}, ${SPELLING("name")}, name), name) AS paRowKey`,
+      );
+      expect(names!.query).toContain("min(name) AS paRowName");
+      expect(names!.query).toContain("GROUP BY sessionId, kind, paRowKey");
+      expect(names!.query).toContain("GROUP BY paKind, paKey");
+      expect(names!.query).toContain("min(paName) AS paLabel");
+    });
+
+    test("a breakdown by page groups a page's spellings, and names each in the one spelling", async () => {
+      querySpy.mockImplementation(async (statement: unknown) => {
+        if ((statement as Statement).query.includes("ARRAY JOIN paS0")) {
+          return fakeResultSet([
+            { paValue: "/caf%c3%a9", paEvents: 3, paUsers: 2 },
+            { paValue: "", paEvents: 1, paUsers: 1 },
+          ]);
+        }
+
+        return fakeResultSet([{ paEvents: 4, paUsers: 3 }]);
+      });
+
+      const result: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+        {
+          event: SIGNED_UP,
+          breakdown: { field: ProductAnalyticsEventField.Page },
+        },
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["rows"]).toEqual([
+        { value: "/caf%C3%A9", events: 3, users: 2 },
+        // An event that carried no page is still "not reported".
+        { value: "", events: 1, users: 1 },
+      ]);
+
+      const [rows]: Array<Statement> = statementsWith("ARRAY JOIN paS0");
+
+      expect(rows!.query).toContain(
+        `groupArrayIf((if(${HAS_SPELLINGS("page")}, ${SPELLING("page")}, page), page), `,
+      );
+      expect(rows!.query).toContain(
+        "ARRAY JOIN paS0 AS paItem GROUP BY tupleElement(paItem, 1)",
+      );
+      expect(rows!.query).toContain("min(tupleElement(paItem, 2)) AS paValue");
+
+      // Any other field is grouped by its value, as it always was.
+      querySpy.mockClear();
+      querySpy.mockResolvedValue(fakeResultSet([]) as never);
+
+      await callAsOwner(PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE, {
+        event: SIGNED_UP,
+        breakdown: { field: ProductAnalyticsEventField.DeviceType },
+      });
+
+      const [devices]: Array<Statement> = statementsWith("ARRAY JOIN paS0");
+
+      expect(devices!.query).toContain(
+        "ARRAY JOIN paS0 AS paValue GROUP BY paValue",
+      );
+      expect(devices!.query).not.toContain("normalizeUTF8NFC");
     });
   });
 });

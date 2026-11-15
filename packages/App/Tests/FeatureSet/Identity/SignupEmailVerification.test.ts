@@ -638,6 +638,22 @@ describe("POST /signup on the hosted service (billing enabled)", () => {
     );
   });
 
+  it("asks, in the welcome's subject and template, for the address to be verified", async () => {
+    /*
+     * OneUptime Cloud keeps its welcome as it was (#7988): the account cannot
+     * sign in until it follows the link.
+     */
+    await invoke("/signup", signupBody());
+
+    const mail: Record<string, any> = welcomeMail();
+
+    expect(mail["subject"]).toBe(
+      "Welcome to OneUptime. Please verify your email.",
+    );
+    expect(mail["templateType"]).toBe("SignupWelcomeEmail.hbs");
+    expect(mail["vars"]["dashboardLink"]).toBeUndefined();
+  });
+
   it("never puts the verification token in the response", async () => {
     await invoke("/signup", signupBody());
 
@@ -749,6 +765,86 @@ describe("POST /signup on a self-hosted install (billing disabled)", () => {
     await invoke("/signup", signupBody());
 
     expect(entityResponse().miscData["emailVerificationToken"]).toBeUndefined();
+  });
+
+  /*
+   * The welcome says what is true here (#7988): the account is ready - sign
+   * up has just taken them to the Dashboard - with a button to open it. It
+   * used to say "To get started, please verify your email address", for a
+   * step nothing asks for.
+   */
+  describe("the welcome email", () => {
+    it("says the account is ready, in its subject and its template", async () => {
+      await invoke("/signup", signupBody());
+
+      const mail: Record<string, any> = welcomeMail();
+
+      expect(mail["toEmail"].toString()).toBe(NEW_USER_EMAIL);
+      expect(mail["subject"]).toBe(
+        "Welcome to OneUptime. Your account is ready.",
+      );
+      expect(mail["subject"]).not.toMatch(/verify/i);
+      expect(mail["templateType"]).toBe("SignupAccountReadyEmail.hbs");
+    });
+
+    it("its button opens the Dashboard, not a verification page", async () => {
+      await invoke("/signup", signupBody());
+
+      const vars: Record<string, any> = welcomeMail()["vars"];
+
+      expect(vars["dashboardLink"]).toBe("https://oneuptime.test/dashboard");
+      expect(vars["homeUrl"]).toBe("https://oneuptime.test/");
+      expect(vars["tokenVerifyUrl"]).toBeUndefined();
+      expect(JSON.stringify(vars)).not.toContain("verify-email");
+    });
+
+    it("makes no verification token: there is nothing to verify", async () => {
+      await invoke("/signup", signupBody());
+
+      expect(createEmailVerificationToken).not.toHaveBeenCalled();
+    });
+
+    it("a new account that is not the server's admin is not shown the Admin Dashboard", async () => {
+      await invoke("/signup", signupBody());
+
+      const vars: Record<string, any> = welcomeMail()["vars"];
+
+      expect(vars["isMasterAdmin"]).toBeUndefined();
+      expect(vars["adminDashboardLink"]).toBeUndefined();
+    });
+
+    it("the server's first account - its master admin - is shown the Admin Dashboard", async () => {
+      userCreateUserOnSignup.mockImplementation(
+        async (data: Record<string, any>): Promise<unknown> => {
+          // The service elects the first account on the server.
+          const user: Record<string, any> = data["user"] as Record<string, any>;
+          user["_id"] = NEW_USER_ID;
+          user["isMasterAdmin"] = true;
+          return user;
+        },
+      );
+
+      await invoke("/signup", signupBody());
+
+      const vars: Record<string, any> = welcomeMail()["vars"];
+
+      expect(vars["isMasterAdmin"]).toBe("true");
+      expect(vars["adminDashboardLink"]).toBe("https://oneuptime.test/admin");
+    });
+
+    it("a master admin asked for in the request body is not believed", async () => {
+      await invoke("/signup", signupBody({ isMasterAdmin: true }));
+
+      expect(welcomeMail()["vars"]["isMasterAdmin"]).toBeUndefined();
+    });
+
+    it("an account that was not made gets no welcome", async () => {
+      userCreateUserOnSignup.mockRejectedValue(new Error("not made"));
+
+      await invoke("/signup", signupBody());
+
+      expect(sendMail).not.toHaveBeenCalled();
+    });
   });
 
   describe("the account in the response body", () => {
@@ -908,6 +1004,78 @@ describe("POST /signup claiming an invitation on the hosted service", () => {
     expectNobodySignedIn();
   });
 });
+
+/*
+ * An invited person who signs up from the invitation has just followed a link
+ * from their mailbox and lands in the Dashboard. On either kind of server the
+ * sign-up sends them nothing: no welcome asking them to verify, no "account
+ * is ready", and - UserService's part (UserServicePasswordChangedEmail, Common
+ * Tests) - no "Password Changed." for their first password (#7472). The
+ * password goes through a hook-running update of the account as it was, with
+ * no password, which is what UserService reads.
+ */
+describe.each([
+  ["the hosted service", true],
+  ["a self-hosted server", false],
+])(
+  "POST /signup claiming an invitation on %s",
+  (_server: string, billing: boolean) => {
+    const INVITED_USER_ID: string = "55555555-5555-4555-8555-555555555555";
+
+    beforeEach(() => {
+      mockBillingEnabled = billing;
+
+      userFindOneBy.mockResolvedValue({
+        _id: INVITED_USER_ID,
+        id: new ObjectID(INVITED_USER_ID),
+        password: undefined,
+      });
+
+      consumeRegistrationToken.mockResolvedValue(true);
+
+      userUpdateOneByIdAndFetch.mockResolvedValue({
+        _id: INVITED_USER_ID,
+        id: new ObjectID(INVITED_USER_ID),
+        email: {
+          toString: (): string => {
+            return "invited@example.com";
+          },
+        },
+        isMasterAdmin: false,
+      });
+    });
+
+    const claim: () => Promise<InvokeResult> = (): Promise<InvokeResult> => {
+      return invoke(
+        "/signup",
+        signupBody(undefined, {
+          registrationToken: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        }),
+      );
+    };
+
+    it("sends the invited person no email at all", async () => {
+      await claim();
+
+      expectSignedIn();
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(createEmailVerificationToken).not.toHaveBeenCalled();
+    });
+
+    it("sets the first password through an update that runs UserService's hooks", async () => {
+      await claim();
+
+      expect(userUpdateOneByIdAndFetch).toHaveBeenCalledTimes(1);
+
+      const update: Record<string, any> = userUpdateOneByIdAndFetch.mock
+        .calls[0]![0] as Record<string, any>;
+
+      expect(update["id"].toString()).toBe(INVITED_USER_ID);
+      expect(update["data"]["password"]).toBeDefined();
+      expect(update["props"]["ignoreHooks"]).toBeUndefined();
+    });
+  },
+);
 
 /*
  * ---------------------------------------------------------------------------

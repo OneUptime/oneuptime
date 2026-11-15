@@ -29,25 +29,25 @@ La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y lo
 
 ## Una sola secuencia para todo
 
-**Ajustes de usuario → Cómo contactarme** se abre con tu secuencia: los pasos que prueba cada aviso, para incidentes, alertas y episodios de cualquier gravedad. Cada paso es uno de tus métodos verificados y cuándo usarlo, por ejemplo un SMS de inmediato y una llamada después de 5 minutos. Los pasos con la misma espera salen juntos, así que la secuencia se lee en el orden en que avisa.
+**Ajustes de usuario → Cómo contactarme** se abre con tu secuencia: pasos numerados que cada aviso prueba uno tras otro, para incidentes, alertas y episodios de cualquier gravedad. Cada paso es un momento, por ejemplo de inmediato o después de 5 minutos, con los métodos verificados que salen juntos en ese momento. Un paso posterior solo sale si nadie ha reconocido el aviso para entonces.
 
 :::steps
 ### Añadir una forma de contactarte
 
-Elige uno de tus métodos verificados en **Añadir una forma de contactarte**. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**.
+Haz clic en **Añadir** en un paso para enviar uno de tus métodos verificados en el momento de ese paso, o en **Añadir paso** para empezar un paso nuevo después del último. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**.
 
 ### Elegir cuándo se usa
 
-Junto a cada paso, elige una espera de **Inmediatamente** a **1 hora**. Un paso de push indica además cómo suena y si se repite: consulta [Reglas push](#reglas-push).
+Haz clic en el momento de un paso, por ejemplo **De inmediato**, y elige otro, hasta una hora: todo el paso se mueve. Un paso de push indica además cómo suena y si se repite: consulta [Reglas push](#reglas-push).
 
 ### Guardar
 
-Haz clic en **Guardar secuencia**. Escribe las mismas reglas en cada tarjeta de cada pestaña: las reglas que añadirías a mano a cada tarjeta.
+Haz clic en **Guardar cambios**, que aparece en cuanto algo ha cambiado. Escribe las mismas reglas en cada tarjeta de cada pestaña: las reglas que añadirías a mano a cada tarjeta.
 :::
 
 **Prueba tus avisos**, al pie de la página, te envía un aviso de prueba a través de ellas.
 
-Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades** abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**, y la secuencia indica qué hace cada una en su lugar. Si tus reglas ya difieren, la página se abre en las tarjetas, con **Usar una sola secuencia para todo**: al guardar, primero nombra las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
+Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades**, debajo de los pasos, abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**, y la secuencia indica qué hace cada una en su lugar. Si tus reglas ya difieren, la página se abre en las tarjetas, con **Usar una sola secuencia para todo**: al guardar, primero nombra las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
 
 Una política de guardia decide a quién se avisa y cuándo llega su siguiente nivel. Cómo se te contacta es esta secuencia, para cada política que te avisa.
 
@@ -117,11 +117,11 @@ Una regla que avisa a un teléfono indica cómo suena su push:
 | **Alerta crítica** | Suena aunque el teléfono esté en silencio o en No molestar, una vez que Critical On-Call Alerts está activado en la app OneUptime On-Call. Una regla nueva para un teléfono empieza aquí. |
 | **Estándar** | Sigue los ajustes de sonido, silencio y No molestar del teléfono. |
 
-Una regla push, para un teléfono o un navegador, también puede reenviar su push hasta que alguien reconozca: **No repetir**, la opción predeterminada, o **Cada minuto**, **Cada 2 minutos**, **Cada 3 minutos**, **Cada 5 minutos**, **Cada 10 minutos**, **Cada 15 minutos** o **Cada 30 minutos**. Se repite hasta 10 veces más, y se detiene en cuanto el incidente, la alerta o el episodio se reconoce. Consulta [Alertas de guardia críticas](/docs/self-hosted/push-notifications#alertas-críticas-de-guardia-anular-el-modo-silencio).
+Una regla push, para un teléfono o un navegador, también puede reenviar su push hasta que alguien reconozca: **No repetir**, la opción predeterminada, o **Cada minuto**, **Cada 2 minutos**, **Cada 3 minutos**, **Cada 5 minutos**, **Cada 10 minutos**, **Cada 15 minutos** o **Cada 30 minutos**. Se repite hasta 10 veces más, y se detiene en cuanto el incidente, la alerta o el episodio se reconoce. Un aviso que sigue después de un reconocimiento, como un nuevo aviso, se repite hasta que responde alguien a quien avisó o se resuelve el incidente, la alerta o el episodio: [Cuando avisan varias políticas](/docs/on-call/policies#cuando-avisan-varias-políticas) los enumera. Consulta [Alertas de guardia críticas](/docs/self-hosted/push-notifications#alertas-críticas-de-guardia-anular-el-modo-silencio).
 
 ## Cuando una gravedad no tiene regla
 
-Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, hechas con lo que ya elegiste en esa pestaña: los mismos métodos, tras los mismos retrasos. Si no tenías reglas en esa pestaña, recibe tu correo verificado, al instante.
+Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, hechas con lo que ya elegiste en esa pestaña: los mismos métodos, tras los mismos retrasos, y un push que suena y se repite igual. Si no tenías reglas en esa pestaña, recibe tu correo verificado, al instante.
 
 Un aviso que aun así no encuentra regla se envía igualmente a tus métodos verificados, y recibes un correo al respecto; consulta [Cuando ninguna regla coincide](/docs/notifications/index#cuando-ninguna-regla-coincide).
 

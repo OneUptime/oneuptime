@@ -532,6 +532,16 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A time of day writes its hour the way its clock does:** no zero on a 12-hour clock ("5:14 AM",
+  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app.
+  A feed and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the
+  mobile app "Nov 5, 05:14 AM" (#7650). An Intl options object asks `getHourOption` for its hour
+  (`Common/Types/DateLanguage`, or the mobile app's own in `src/utils/date`), or
+  `getLocaleClockHourOption` for a language's own clock, and names `"numeric"` or `"2-digit"` only
+  beside the clock it is right on. Enforced by
+  [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
+  and
+  [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
 - **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
   Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
   Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
@@ -605,8 +615,25 @@ then `npm run i18n:validate` from the root.
   and
   [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
-  "Any" is the Match Condition's word. Enforced by
-  [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
+  "Any" is the Match Condition's word. A word that means something else in one place takes a key
+  that names its meaning, the word then what it means in brackets: "View (database object)", a
+  database's view beside the View buttons' verb. A Spanish catalog named a view "Ver" ("see it")
+  and headed its schema changes "Cambiar" ("change it", #8078). List the key in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
+  the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
+  Enforced by
+  [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts),
+  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
+  and
+  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+- **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
+  and a page's title name a thing, and every count, sentence and button on its pages says the same
+  noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
+  called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
+  status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
+  product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
+  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). Enforced by
+  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
@@ -638,22 +665,35 @@ then `npm run i18n:validate` from the root.
   product's own ("Google Cloud", "Resend"). A Spanish Health filter read "Con problemas" in its menu
   and "Unhealthy" in its chip; a monitor named "Network" read "Red" in a menu over rows that said
   "Network"; the email provider Resend read "Reenviar". Draw an option through
-  `getDropdownOptionText`. Enforced by
-  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
+  `getDropdownOptionText`. A stored value is offered in the words its rows draw it in, never as it
+  is stored: a runbook run waiting on a manual step read "Esperando" in its pill and
+  "WaitingForManualStep" in the Status filter (#7781). Enforced by
+  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts),
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx)
   and
-  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
+  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx).
 - **A name reads as written, in a badge and in a picker.** A label, a monitor or a state is named by
   its project, and a name is never looked up: in Spanish a label named "Network" read "Red", and a
   state a project named "Open" read "Abrir", the verb. Only the names a new project starts with, such
   as "Resolved", "Operational" or "Critical Incident", are OneUptime's words, read in the reader's
   language. A badge or an option that draws a record's name takes `isRecordNameAsWritten` or
   `translateRecordName` from `Common/Utils/DefaultRecordNames`, which know those names list by list.
-  Enforced by
+  A status page, an on-call page and a status page's messages decide by the same rule, each handed
+  its record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
+  status page and in its emails, because Degraded is a default monitor status, while the Dashboard
+  drew it as written. A label's description, in its hover tip, reads as written too. And a badge is
+  never handed words already in the reader's language without saying so: a plain English word goes
+  over in English, for the badge to look up once, and a sentence, a plural or a front end's own keyed
+  text the page has worded is marked as written (`isUserContent`, `isTooltipUserContent`), with none
+  of its words left in English. Looked up again, a translation that is itself a key read as another
+  word: Spanish "Red" (Network) read "Rojo" (#8067). Enforced by
+  [StatusPageNamesByTheirList](../../packages/Common/Tests/App/StatusPage/StatusPageNamesByTheirList.test.ts),
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
   [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
-  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx),
+  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx)
   and
-  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx).
+  [BadgeWordsLookedUpOnce](../../packages/Common/Tests/App/Dashboard/BadgeWordsLookedUpOnce.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

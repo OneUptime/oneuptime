@@ -6,10 +6,17 @@ import DataSecurityIssue from "../../Models/DatabaseModels/DataSecurityIssue";
 import { DataSecurityIssueFeedEventType } from "../../Models/DatabaseModels/DataSecurityIssueFeed";
 import User from "../../Models/DatabaseModels/User";
 import AIRun from "../../Models/DatabaseModels/AIRun";
+import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { Purple500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
+import Timezone from "../../Types/Timezone";
+import {
+  CalendarDay,
+  calendarDaysBetween,
+  findCalendarDay,
+} from "../../Utils/SecurityCase/SecurityOverviewMetrics";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -200,10 +207,6 @@ const ISSUE_PERMISSIONS: Array<Permission> = [
 
 const TREND_DAYS: number = 30;
 
-function dayOf(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 export default class DataSecurityAPI extends BaseAPI<
   DataStore,
   DataStoreServiceType
@@ -214,9 +217,17 @@ export default class DataSecurityAPI extends BaseAPI<
     this.post(
       DATA_SECURITY_API_ROUTES.overview,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
         return (await DataSecurityAPI.getOverview(
           projectId,
+          /*
+           * The reader's zone, which the page sends: the issue trend counts
+           * the reader's days (issue #7925). One the list does not name is
+           * dropped, and those days stay UTC's.
+           */
+          AggregationIntervalUtil.readRequestedTimezone(body["timezone"]),
         )) as unknown as JSONObject;
       },
     );
@@ -901,6 +912,8 @@ export default class DataSecurityAPI extends BaseAPI<
 
   public static async getOverview(
     projectId: ObjectID,
+    // The zone the reader's days are in; UTC's days when undefined.
+    timezone?: Timezone | undefined,
   ): Promise<DataSecurityOverview> {
     const stores: Array<DataStore> = await DataStoreService.findBy({
       query: { projectId, isArchived: false },
@@ -988,16 +1001,34 @@ export default class DataSecurityAPI extends BaseAPI<
       [SecuritySeverity.Medium]: 0,
       [SecuritySeverity.Low]: 0,
     };
+    /*
+     * The last TREND_DAYS days of the reader's calendar, today's included
+     * (UTC's when the request named no zone): walked a day at a time in
+     * their zone, so a day the clocks change on is one bar of 23 or 25
+     * hours, never two bars or none (issue #7925).
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const trendDays: Array<CalendarDay> = calendarDaysBetween(
+      OneUptimeDate.addRemoveDays(now, -TREND_DAYS),
+      now,
+      timezone,
+    ).slice(-TREND_DAYS);
     const trend: Map<string, { opened: number; resolved: number }> = new Map();
 
-    for (let day: number = TREND_DAYS - 1; day >= 0; day--) {
-      trend.set(
-        dayOf(
-          OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -day),
-        ),
-        { opened: 0, resolved: 0 },
-      );
+    for (const { day } of trendDays) {
+      trend.set(day, { opened: 0, resolved: 0 });
     }
+
+    // The trend's entry for the day `date` falls on, if it is one of them.
+    const entryOn: (
+      date: Date,
+    ) => { opened: number; resolved: number } | undefined = (
+      date: Date,
+    ): { opened: number; resolved: number } | undefined => {
+      const day: CalendarDay | undefined = findCalendarDay(trendDays, date);
+
+      return day ? trend.get(day.day) : undefined;
+    };
 
     const open: Array<DataSecurityIssue> = [];
 
@@ -1008,8 +1039,9 @@ export default class DataSecurityAPI extends BaseAPI<
       }
 
       if (issue.firstDetectedAt && issue.firstDetectedAt >= since) {
-        const entry: { opened: number; resolved: number } | undefined =
-          trend.get(dayOf(issue.firstDetectedAt));
+        const entry: { opened: number; resolved: number } | undefined = entryOn(
+          issue.firstDetectedAt,
+        );
 
         if (entry) {
           entry.opened++;
@@ -1017,8 +1049,9 @@ export default class DataSecurityAPI extends BaseAPI<
       }
 
       if (issue.resolvedAt && issue.resolvedAt >= since) {
-        const entry: { opened: number; resolved: number } | undefined =
-          trend.get(dayOf(issue.resolvedAt));
+        const entry: { opened: number; resolved: number } | undefined = entryOn(
+          issue.resolvedAt,
+        );
 
         if (entry) {
           entry.resolved++;

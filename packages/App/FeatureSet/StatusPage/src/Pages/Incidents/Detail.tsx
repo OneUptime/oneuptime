@@ -196,6 +196,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       timeline.push({
         state: incidentStateTimeline.incidentState,
         stateDisplayName: translateStatusName(
+          StateListType.IncidentState,
           incidentStateTimeline.incidentState.name,
         ),
         date:
@@ -231,6 +232,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
 
       if (!currentStateStatus) {
         currentStateStatus = translateStatusName(
+          StateListType.IncidentState,
           incidentStateTimeline.incidentState?.name,
         );
         currentStatusColor =
@@ -384,7 +386,10 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     currentStatus: currentStateStatus,
     currentStatusColor: currentStatusColor,
     anotherStatusColor: incident.incidentSeverity?.color || undefined,
-    anotherStatus: translateStatusName(incident.incidentSeverity?.name),
+    anotherStatus: translateStatusName(
+      StateListType.IncidentSeverity,
+      incident.incidentSeverity?.name,
+    ),
     eventSecondDescription: incidentDeclaredAt
       ? i18n.t("incidents.declaredAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
@@ -590,6 +595,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
       timeline.push({
         state: episodeStateTimeline.incidentState,
         stateDisplayName: translateStatusName(
+          StateListType.IncidentState,
           episodeStateTimeline.incidentState.name,
         ),
         date:
@@ -625,6 +631,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
 
       if (!currentStateStatus) {
         currentStateStatus = translateStatusName(
+          StateListType.IncidentState,
           episodeStateTimeline.incidentState?.name,
         );
         currentStatusColor = episodeStateTimeline.incidentState?.color || Green;
@@ -675,7 +682,10 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     currentStatus: currentStateStatus,
     currentStatusColor: currentStatusColor,
     anotherStatusColor: episode.incidentSeverity?.color || undefined,
-    anotherStatus: translateStatusName(episode.incidentSeverity?.name),
+    anotherStatus: translateStatusName(
+      StateListType.IncidentSeverity,
+      episode.incidentSeverity?.name,
+    ),
     eventSecondDescription: episodeDeclaredAt
       ? i18n.t("incidents.declaredAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
@@ -1000,6 +1010,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
         breadcrumbLinks={[
           {
             title: t("nav.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -1008,6 +1019,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("incidents.title"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
@@ -1016,6 +1028,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           },
           {
             title: pageTitle,
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)

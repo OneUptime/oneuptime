@@ -3,6 +3,7 @@ import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import OneUptimeDate, { CalendarUnit } from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
+import TimezoneAlias from "../../Types/TimezoneAlias";
 import ReceivingGapsUtil, { ReceivingGap } from "./ReceivingGaps";
 
 /*
@@ -105,21 +106,6 @@ export const HEARTBEAT_MAX_BACKDATE_MS: number = 2 * 60_000;
  * down when the host stayed silent through minutes OneUptime was listening.
  */
 export const MIN_SILENCE_EVIDENCE_MS: number = 2 * 60_000;
-
-/*
- * The calendar unit of each bucket that is one. The server starts a day,
- * week, month or year bucket at a midnight, a Monday, a 1st or a 1 January
- * in the zone the request named (AggregateBy.timezone), or in UTC when it
- * named none (issue #7277).
- */
-const CALENDAR_UNIT_OF_INTERVAL: Partial<
-  Record<AggregationInterval, CalendarUnit>
-> = {
-  [AggregationInterval.Day]: "day",
-  [AggregationInterval.Week]: "week",
-  [AggregationInterval.Month]: "month",
-  [AggregationInterval.Year]: "year",
-};
 
 // One bucket of the grid: the instant it starts, and the one the next does.
 interface HeartbeatSlot {
@@ -323,8 +309,13 @@ export class HeartbeatAvailabilityUtil {
     timezone: Timezone | undefined;
   }): Array<HeartbeatSlot> {
     const slots: Array<HeartbeatSlot> = [];
+    /*
+     * The server starts a day, week, month or year bucket at a midnight, a
+     * Monday, a 1st or a 1 January in the zone the request named
+     * (AggregateBy.timezone), or in UTC when it named none (issue #7277).
+     */
     const unit: CalendarUnit | undefined =
-      CALENDAR_UNIT_OF_INTERVAL[data.interval];
+      AggregationIntervalUtil.getCalendarUnit(data.interval);
 
     if (unit) {
       /*
@@ -335,7 +326,9 @@ export class HeartbeatAvailabilityUtil {
        * days, which put two slots on one day and the rest a day early, and
        * days a month for months.
        */
-      const timezone: Timezone = data.timezone || Timezone.UTC;
+      const timezone: Timezone = data.timezone
+        ? TimezoneAlias.getCanonicalTimezone(data.timezone)
+        : Timezone.UTC;
       let startMs: number = OneUptimeDate.getStartOfCalendarUnit(
         new Date(data.windowStartMs),
         unit,
@@ -343,16 +336,12 @@ export class HeartbeatAvailabilityUtil {
       ).getTime();
 
       while (startMs <= data.windowEndMs) {
-        /*
-         * The next unit is the one holding the instant a unit and a half
-         * on: no real unit is half a nominal one shorter or longer than it
-         * (a day is 23 to 25 hours, a month 28 to 31 days).
-         */
-        const endMs: number = OneUptimeDate.getStartOfCalendarUnit(
-          new Date(startMs + data.bucketMs * 1.5),
-          unit,
-          timezone,
-        ).getTime();
+        // Where the next one starts, however long this one was.
+        const endMs: number = AggregationIntervalUtil.getBucketEnd({
+          bucketStart: new Date(startMs),
+          interval: data.interval,
+          timezone: timezone,
+        }).getTime();
 
         if (!(endMs > startMs)) {
           break;

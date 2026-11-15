@@ -39,7 +39,7 @@ Gå til **Settings** > **Backup** i Uptime Kuma 1, og velg **Export**. Legg til 
 Gå til **Prosjektinnstillinger** > **Avansert** > **Importer fra et annet verktøy** i OneUptime, og velg **Uptime Kuma**.
 
 ### Les filen
-Velg **Velg fil** under **Sikkerhetskopi- eller metrikkfil fra Uptime Kuma**, velg filen du lagret, og velg **Les filen**. OneUptime leser den med en gang og viser hva det fant.
+Velg **Velg fil** under **Sikkerhetskopi- eller målingsfil fra Uptime Kuma**, velg filen du lagret, og velg **Les filen**. OneUptime leser den med en gang og viser hva det fant.
 
 ### Kryss av for det som skal overføres
 Forhåndsvisningen viser hva som ble funnet, med én del per type. Alt som ville blitt opprettet, er avkrysset fra start, unntatt monitorer som er satt på pause i Uptime Kuma. De overføres på pause hvis du krysser dem av. Under hvert element forteller OneUptime hva som ikke overføres akkurat som det var.

@@ -13,7 +13,8 @@ import {
 /*
  * THE ONE ANSWER THE DASHBOARD READS ABOUT A PROJECT'S PRODUCTS (#6814):
  * GET /api/project-products, for the project in the `tenantid` header and
- * the person asking. Read once per page load and kept (the Dashboard's
+ * the person asking. Read when the page loads, and again as the person
+ * looks at their products once it is a few seconds old (the Dashboard's
  * ProjectProducts store), it holds what the products menu, Home, Search and
  * Project Settings > Products draw:
  *

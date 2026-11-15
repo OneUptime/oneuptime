@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -179,8 +180,10 @@ import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
 import { AIChatToolActionStatus } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import {
   AI_ACTION_TITLES,
   AIActionWords,
@@ -3259,6 +3262,117 @@ describe("InvestigationConversation — in the reader's language", () => {
       { toolCallId: "call-1", approved: true },
     ]);
     expect(decision.data["language"]).toBe("de");
+  });
+
+  /*
+   * A chart the thread draws over more than a week cuts its days at the
+   * reader's midnight (#7922): the question carries the zone they read
+   * the Dashboard's charts in, and so does the approval, whose turn goes
+   * on to read and draw. A zone the list does not name is not sent.
+   */
+  test("a question carries the reader's time zone", async () => {
+    OneUptimeDate.setUserTimezone(Timezone.AsiaKathmandu);
+
+    try {
+      routeResponses({
+        thread: () => {
+          return EMPTY;
+        },
+        send: () => {
+          return { data: { assistantMessageId: ANSWER_ID, aiRunId: RUN_ID } };
+        },
+      });
+
+      renderConversation();
+      await flush();
+
+      fireEvent.change(composer(), {
+        target: { value: "Orders over the past month" },
+      });
+      fireEvent.keyDown(composer(), { key: "Enter" });
+      await flush();
+
+      const sent: PostRequest = requests(
+        "/ai-investigation/conversation/send-message",
+      )[0]!;
+      expect(sent.data["timezone"]).toBe(Timezone.AsiaKathmandu);
+    } finally {
+      OneUptimeDate.setUserTimezone(null);
+    }
+  });
+
+  test("a zone the list does not name is not sent with a question", async () => {
+    const zone: SpyInstance<() => Timezone> = jest
+      .spyOn(OneUptimeDate, "getCurrentTimezone")
+      .mockReturnValue("Mars/Olympus_Mons" as Timezone);
+
+    try {
+      routeResponses({
+        thread: () => {
+          return EMPTY;
+        },
+        send: () => {
+          return { data: { assistantMessageId: ANSWER_ID, aiRunId: RUN_ID } };
+        },
+      });
+
+      renderConversation();
+      await flush();
+
+      fireEvent.change(composer(), {
+        target: { value: "Orders over the past month" },
+      });
+      fireEvent.keyDown(composer(), { key: "Enter" });
+      await flush();
+
+      const sent: PostRequest = requests(
+        "/ai-investigation/conversation/send-message",
+      )[0]!;
+      expect(sent.data).not.toHaveProperty("timezone");
+    } finally {
+      zone.mockRestore();
+    }
+  });
+
+  test("an approval carries the reader's time zone", async () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    try {
+      routeResponses({
+        thread: () => {
+          return threadResponse({
+            isBusy: true,
+            messages: [
+              answer({
+                status: AIChatMessageStatus.WaitingForApproval,
+                userId: PRIYA,
+                name: "Priya Shah",
+                toolActions: [
+                  acknowledgeAction(AIChatToolActionStatus.Pending),
+                ],
+              }),
+            ],
+          });
+        },
+      });
+
+      renderConversation();
+      await flush();
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: GERMAN["Run {{count}} actions_one"]!.replace("{{count}}", "1"),
+        }),
+      );
+      await flush();
+
+      const decision: PostRequest = requests(
+        "/ai-investigation/conversation/respond-to-approval",
+      )[0]!;
+      expect(decision.data["timezone"]).toBe(Timezone.AmericaNew_York);
+    } finally {
+      OneUptimeDate.setUserTimezone(null);
+    }
   });
 
   test("an action saved before its words reads the English it stores", async () => {

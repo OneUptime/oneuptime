@@ -102,7 +102,7 @@ Quando você está de plantão em uma política, o sino no canto superior direit
 ## Solução de problemas
 
 :::details Ninguém foi acionado por um novo incidente
-Abra a página **Execuções de plantão** do incidente. Se estiver vazia, o incidente não tinha nenhuma política de plantão: nenhuma foi escolhida nele e nenhuma regra de plantão correspondeu. Uma execução com **Execution Completed - No One Notified** passou por todas as regras de escalonamento sem encontrar ninguém: em geral um agendamento sem ninguém de plantão. Veja [Registros de execução](/docs/on-call/policies#registros-de-execução). Uma execução **Aguardando** aguarda o horário comercial, por uma regra de plantão definida como **Somente em horário comercial**, e não aciona ninguém até ele começar.
+Abra a página **Execuções de plantão** do incidente. Se estiver vazia, o incidente não tinha nenhuma política de plantão: nenhuma foi escolhida nele e nenhuma regra de plantão correspondeu. Uma execução com **Execução concluída - ninguém foi notificado** passou por todas as regras de escalonamento sem encontrar ninguém: em geral um agendamento sem ninguém de plantão. Veja [Registros de execução](/docs/on-call/policies#registros-de-execução). Uma execução **Aguardando** aguarda o horário comercial, por uma regra de plantão definida como **Somente em horário comercial**, e não aciona ninguém até ele começar.
 :::
 
 :::details Alguém foi acionado pelo canal errado, ou não foi acionado

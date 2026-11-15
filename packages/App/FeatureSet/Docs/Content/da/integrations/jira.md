@@ -296,7 +296,7 @@ Skabelonerne dækker de almindelige tilfælde. For at bygge en retning selv, ell
 
 Jira Cloud tager imod Basic-godkendelse bygget ud fra kontoens e-mail og et API-token, kodet sammen, som i [Hvad skabelonerne beder om](#hvad-skabelonerne-beder-om).
 
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**. Giv den navnet `JIRA_AUTH`, indsæt den kodede værdi i **Indhold**, slå **Hemmelighed** til, og opret den.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**. Giv den navnet `JIRA_AUTH`, indsæt den kodede værdi i **Indhold**, slå **Hemmelighed** til, og opret den.
 2. Opret en anden variabel, `JIRA_URL`, med `https://your-domain.atlassian.net` uden skråstreg til sidst, og lad **Hemmelighed** være slået fra.
 
 Enhver blok kan så sende `Basic {{global.variables.JIRA_AUTH}}` som sin `Authorization`-header, og tokenet vises aldrig i workflowet eller i dets kørsler. Med et token med scopes er `JIRA_URL` i stedet `https://api.atlassian.com/ex/jira/<cloudId>`, og hver sti nedenfor hænger uændret på den.

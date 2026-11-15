@@ -53,6 +53,7 @@ import {
 import GroupedMetricSeries, {
   GroupedMetricRead,
   MetricSeries,
+  describeBucketCalendar,
 } from "./GroupedMetricSeries";
 
 /*
@@ -89,6 +90,8 @@ async function readGroupedQueryMetrics(data: {
     startTime: data.startTime,
     endTime: data.endTime,
     props: data.ctx.props,
+    // Days at the asker's midnight, as the chat draws them (issue #7922).
+    timezone: data.ctx.readerTimezone,
   });
 
   const serialized: SerializedResult = ToolResultSerializer.serializeRows(
@@ -105,7 +108,17 @@ async function readGroupedQueryMetrics(data: {
       interval,
       startTime: data.startTime,
     }),
-  ];
+    // The zone the read asked its buckets to follow, as it asked it.
+    describeBucketCalendar({
+      interval,
+      timezone: AggregationIntervalUtil.getTimezoneForWindow({
+        startDate: data.startTime,
+        endDate: data.endTime,
+        aggregationInterval: interval,
+        timezone: data.ctx.readerTimezone,
+      }),
+    }),
+  ].filter(Boolean);
 
   const window: string = `${data.startTime.toISOString()} – ${data.endTime.toISOString()}`;
   // The keys the series differ in: "state", not "state, cpu.mode".
@@ -296,20 +309,37 @@ export const QueryMetricsTool: ObservabilityTool = {
       });
     }
 
-    const aggregateBy: AggregateBy<Metric> = {
-      aggregateColumnName: "value",
-      aggregationType: aggregationTypeString as AggregationType,
-      aggregationTimestampColumnName: "time",
-      startTimestamp: startTime,
-      endTimestamp: endTime,
-      query: query as never,
-      limit: 200,
-      skip: 0,
-      props: ctx.props,
-    };
+    /*
+     * Past a week the buckets are days (AggregationIntervalUtil): they start
+     * at the asker's midnight, where the chat's chart starts their days,
+     * not at UTC's (issue #7922). Finer buckets are the same in every zone,
+     * and their request stays as it was.
+     */
+    const aggregateBy: AggregateBy<Metric> =
+      AggregationIntervalUtil.withTimezone(
+        {
+          aggregateColumnName: "value",
+          aggregationType: aggregationTypeString as AggregationType,
+          aggregationTimestampColumnName: "time",
+          startTimestamp: startTime,
+          endTimestamp: endTime,
+          query: query as never,
+          limit: 200,
+          skip: 0,
+          props: ctx.props,
+        },
+        ctx.readerTimezone,
+      );
 
     const result: AggregatedResult =
       await MetricService.aggregateBy(aggregateBy);
+    const bucketNote: string = describeBucketCalendar({
+      interval: AggregationIntervalUtil.getAggregationIntervalForWindow({
+        startDate: startTime,
+        endDate: endTime,
+      }),
+      timezone: aggregateBy.timezone,
+    });
 
     const rows: Array<JSONObject> = result.data.map((item: AggregatedModel) => {
       return {
@@ -334,10 +364,10 @@ export const QueryMetricsTool: ObservabilityTool = {
       ? `${aggregationTypeString}(${metricName}) · ${entityId.toString()}`
       : `${aggregationTypeString}(${metricName})`;
 
+    const notes: string = [planNote, bucketNote].filter(Boolean).join("\n");
+
     return {
-      dataForLlm: planNote
-        ? `${serialized.text}\n${planNote}`
-        : serialized.text,
+      dataForLlm: notes ? `${serialized.text}\n${notes}` : serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `${aggregationTypeString}(${metricName}), ${startTime.toISOString()} – ${endTime.toISOString()}`,
       citationTarget: {

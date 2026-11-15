@@ -165,6 +165,7 @@ const ConfirmSubscription: FunctionComponent<ComponentProps> = (
       breadcrumbLinks={[
         {
           title: t("nav.overview"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -173,6 +174,7 @@ const ConfirmSubscription: FunctionComponent<ComponentProps> = (
         },
         {
           title: t("subscribe.confirm.title"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route)

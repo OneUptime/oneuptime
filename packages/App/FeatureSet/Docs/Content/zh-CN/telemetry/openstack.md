@@ -1,6 +1,6 @@
 # OpenStack 代理
 
-OneUptime OpenStack 代理用于监控 OpenStack 云：它的服务和代理、Hypervisor、实例、网络、路由器、卷、存储池、镜像和项目，覆盖每个区域。它使用你选定的凭据读取云的 API，并把发现的内容发送到 OneUptime，云会连同其区域、Hypervisor 和项目一起显示在 OneUptime 中。[OpenStack 监控器](/docs/monitor/openstack-monitor)会针对收到的数据发出警报，也可以使用[探针](/docs/telemetry/openstack-agentless)，无需安装任何东西即可收集一朵云。
+OneUptime OpenStack 代理用于监控 OpenStack 云：它的服务和代理、Hypervisor、实例、网络、路由器、卷、存储池、镜像和项目，覆盖每个区域。它使用你选定的凭据读取云的 API，并把发现的内容发送到 OneUptime，云会连同其区域、Hypervisor 和项目一起显示在 OneUptime 中。[OpenStack 监视器](/docs/monitor/openstack-monitor)会针对收到的数据发出警报，也可以使用[探针](/docs/telemetry/openstack-agentless)，无需安装任何东西即可收集一朵云。
 
 :::cards
 - [探针还是代理？](/docs/telemetry/openstack-agentless#探测器还是代理): 对于两种方式都可用的云，该如何选择。
@@ -445,7 +445,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 
 最后九个是云可能没有运行的服务。当被问及目录中没有的服务时，exporter 会登录 Keystone，记录一行日志（`No suitable endpoint could be found in the service catalog`），然后什么也不返回，这朵云中就不会出现该服务的任何痕迹。每个服务和区域每 5 分钟要登录一次，这就是它们全都是 5 分钟的原因。若只请求你所运行的服务，请设置 `OPENSTACK_AGENT_SERVICES`，例如 `identity|compute|placement|network|volume|image`。
 
-每个服务还会报告 `openstack_<service>_up`，例如 `openstack_nova_up`。[OpenStack 监控器](/docs/monitor/openstack-monitor#收集的指标)列出了每个序列及其含义。每个序列都带有：
+每个服务还会报告 `openstack_<service>_up`，例如 `openstack_nova_up`。[OpenStack 监视器](/docs/monitor/openstack-monitor#收集的指标)列出了每个序列及其含义。每个序列都带有：
 
 | 属性 | 含义 |
 | --- | --- |
@@ -454,7 +454,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 | `openstack.region.name` | 区域，取自 `clouds.yaml` 条目的名称，位于每个数据点上 |
 | `openstack_service` | 该任务的 OpenStack 服务（`compute`、`network` 等），位于每个数据点上 |
 
-监控器的过滤器按相等匹配，所以如果你自定义配置，请保留 `transform/openstack-identity` 处理器，以及 `resource` 处理器中对 `service.name` 和 `service.instance.id` 的两个删除：没有这两个删除，数据会注册为一个幽灵 Service，而不是到达这朵云。
+监视器的过滤器按相等匹配，所以如果你自定义配置，请保留 `transform/openstack-identity` 处理器，以及 `resource` 处理器中对 `service.name` 和 `service.instance.id` 的两个删除：没有这两个删除，数据会注册为一个幽灵 Service，而不是到达这朵云。
 
 ## 它给你的云带来的开销
 
@@ -556,7 +556,7 @@ nova-manage placement audit --verbose
 nova-manage placement audit --verbose --delete
 ```
 
-**警报。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 和 **Reserved Headroom Gone** 读取 OneUptime 根据同一份摘要写入的序列。它们位于[监控器的模板](/docs/monitor/openstack-monitor#预置警报模板)中，也在云的 **Suggest** 页面上。
+**警报。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 和 **Reserved Headroom Gone** 读取 OneUptime 根据同一份摘要写入的序列。它们位于[监视器的模板](/docs/monitor/openstack-monitor#预置警报模板)中，也在云的 **Suggest** 页面上。
 
 **成本。** 代理上没有任何成本。探针会增加上面所述的调用。OneUptime 每两分钟为每个可用区的资源类、外部网络和存储池大约写入 2 个序列，并为人们可以请求的每种规格写入一个，与其他指标一样计费。
 
@@ -649,7 +649,7 @@ Ceilometer 只会报告其 `polling.yaml` 所要求的内容，而它附带的�
 | `memory.resident` | 没有任何内容说明实例在其 Hypervisor 上占用了多少，所以没有 **Hypervisor Memory Pressure** |
 | `disk.device.read.latency`, `disk.device.write.latency` | 没有磁盘延迟，所以没有 **Instance Disk Latency High** |
 
-OneUptime 在它们到达时把两者转换成同一组序列，与原始序列并存：每个实例有 `openstack.instance.*`（以其 UUID 标识），以及 `openstack.hypervisor.instances.*`（表示 Hypervisor 上各实例的总和）。[OpenStack 监控器](/docs/monitor/openstack-monitor#收集的指标)列出了它们。所以无论云使用哪种来源，页面和警报的含义都相同：
+OneUptime 在它们到达时把两者转换成同一组序列，与原始序列并存：每个实例有 `openstack.instance.*`（以其 UUID 标识），以及 `openstack.hypervisor.instances.*`（表示 Hypervisor 上各实例的总和）。[OpenStack 监视器](/docs/monitor/openstack-monitor#收集的指标)列出了它们。所以无论云使用哪种来源，页面和警报的含义都相同：
 
 | 读取内容 | libvirt | Ceilometer |
 | --- | --- | --- |
@@ -705,7 +705,7 @@ OneUptime 在它们到达时把两者转换成同一组序列，与原始序列�
 
 这里的规则是一条带有项目或域 ID 的 **OpenStack 云所有者规则** 或 **OpenStack 云标签规则**，所以它也会出现在云的 **所有者规则** 或 **标签规则** 设置下，你可以在那里的 **一个项目或域** 下手动编写一条。带有任一 ID 的规则不会给云本身添加任何东西。云上的条件仍然适用，由 **域** 创建的规则会指明它的云，因为每朵云都有一个名为 `default` 的域。如果你重命名那朵云，请更新规则的名称条件。
 
-云的某个部分上的警报或事件，会到达该部分上有内容的每个项目，无论有多少个。只有监控器才能说明它会到达哪里，所以这样的规则不会到达由人手动声明的事件。标签在警报打开时添加，所有者紧随其后。
+云的某个部分上的警报或事件，会到达该部分上有内容的每个项目，无论有多少个。只有监视器才能说明它会到达哪里，所以这样的规则不会到达由人手动声明的事件。标签在警报打开时添加，所有者紧随其后。
 
 早先作为一对警报规则和事件规则编写的规则，在描述中匹配 ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` ``，仍然有效，也会列在这里。一条描述最多列出它所到达的 50 个项目，所以这样的一对规则会在那里止步。移除它并重新添加规则即可解除该限制。
 
@@ -748,13 +748,13 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 ### 一步创建状态页面
 
-**创建状态页面** 首先会逐个监控器显示它将创建什么，在你确认之前不会创建任何东西。每个区域是一个组，区域运行的每个服务是一行：计算、网络、块存储、镜像、身份和负载均衡，每一行由说明其是否工作的监控器支撑。云没有运行的服务就没有对应的行。
+**创建状态页面** 首先会逐个监视器显示它将创建什么，在你确认之前不会创建任何东西。每个区域是一个组，区域运行的每个服务是一行：计算、网络、块存储、镜像、身份和负载均衡，每一行由说明其是否工作的监视器支撑。云没有运行的服务就没有对应的行。
 
-已经在监控某一行的监控器会原样使用，所以一次故障仍然只产生一个事件。在有多个区域的云上，你为整朵云创建的监控器不能作为某一个区域的行，因为其他地方的故障会使它变红。该行会获得一个专属的监控器，只说明该行的显示状态，而你的监控器继续负责产生事件。
+已经在监控某一行的监视器会原样使用，所以一次故障仍然只产生一个事件。在有多个区域的云上，你为整朵云创建的监视器不能作为某一个区域的行，因为其他地方的故障会使它变红。该行会获得一个专属的监视器，只说明该行的显示状态，而你的监视器继续负责产生事件。
 
 在你另行指示之前，该页面是私有的。它是一个普通的状态页面：它的组、行以及谁能阅读它，都在它自己的页面上。
 
-**创建目标** 为每一行创建一个目标，位于[服务水平目标](/docs/slo/introduction)中：最近 30 天的 99.9%，依据其监控器的正常运行时间，并且在开启了[从外部检查](#从外部检查云)的地方，也包括该检查的监控器。再次运行它时，它不会改动已经创建的那些。
+**创建目标** 为每一行创建一个目标，位于[服务水平目标](/docs/slo/introduction)中：最近 30 天的 99.9%，依据其监视器的正常运行时间，并且在开启了[从外部检查](#从外部检查云)的地方，也包括该检查的监视器。再次运行它时，它不会改动已经创建的那些。
 
 ### 事件会点名谁
 
@@ -787,7 +787,7 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 在项目的页面上，**创建私有页面** 会为使用该项目的人创建一个私有状态页面：它所使用的每个服务、在其所在的每个区域各有一行。只有当故障波及该项目时，一行才会变红，公告则用与通知相同的措辞说明发生了什么。
 
-在你把人添加到它的 **私人用户** 下之前，没有人能阅读它，而且一个项目页面上的会话读不到任何其他项目的页面。该页面只列出它自己的监控器，任何事件都不会发生在这些监控器上，所以无论通过页面还是通过它的 API，都读不到关于其他项目的任何内容。
+在你把人添加到它的 **私人用户** 下之前，没有人能阅读它，而且一个项目页面上的会话读不到任何其他项目的页面。该页面只列出它自己的监视器，任何事件都不会发生在这些监视器上，所以无论通过页面还是通过它的 API，都读不到关于其他项目的任何内容。
 
 ### Hypervisor 或可用区上的计划工作
 
@@ -795,7 +795,7 @@ exporter 不会说明实例位于哪个网络，也不会说明卷位于哪个�
 
 链接到云但没有指明主机或可用区的事件，针对的是整朵云。
 
-在该主机的事件期间，`openstack compute service set --disable` 是预期之中的，Hypervisor 的页面也会这样说明。在事件之外，没有人说明原因，所以 **Compute Service Disabled** 模板会针对它发出呼叫。如果你想知道有主机被手动禁用，请添加该监控器。它会呼叫你，并且不通知任何项目，因为项目已经在那里运行的内容继续运行。因 libvirt 故障而自行禁用的 `nova-compute` 是一次故障、一个事件：**libvirt Service Down** 会说明这一点，而在它未解决期间，这一项保持安静。
+在该主机的事件期间，`openstack compute service set --disable` 是预期之中的，Hypervisor 的页面也会这样说明。在事件之外，没有人说明原因，所以 **Compute Service Disabled** 模板会针对它发出呼叫。如果你想知道有主机被手动禁用，请添加该监视器。它会呼叫你，并且不通知任何项目，因为项目已经在那里运行的内容继续运行。因 libvirt 故障而自行禁用的 `nova-compute` 是一次故障、一个事件：**libvirt Service Down** 会说明这一点，而在它未解决期间，这一项保持安静。
 
 ## 与 OneUptime 其余部分的联动
 
@@ -870,7 +870,7 @@ exporter 对这些服务的说明比读取它们的 API 要少，而且两个服
 
 Magnum 集群的服务器会在它自己的页面和任何相关警报中指出其集群，Hypervisor 的 **它会连带影响的内容** 会指出每个在其上有服务器的 Magnum 集群。
 
-如果某个服务离开了 Keystone 的目录，那么在 exporter 开始对它什么也不返回约 15 分钟后，它的行会消失，前提是云的其余部分仍在响应。失败的收集，或无人能登录的 Keystone，不会移除任何东西。监控器为它打开的事件会保持打开，直到有人解决，因为沉默绝不会关闭事件。
+如果某个服务离开了 Keystone 的目录，那么在 exporter 开始对它什么也不返回约 15 分钟后，它的行会消失，前提是云的其余部分仍在响应。失败的收集，或无人能登录的 Keystone，不会移除任何东西。监视器为它打开的事件会保持打开，直到有人解决，因为沉默绝不会关闭事件。
 
 ## Manila
 
@@ -1430,7 +1430,7 @@ sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "o
 
 每个服务都可能报告健康，而没有人能启动实例，所以最真实的测试是从用户所在的地方做用户所做的事。探针从云的外部执行，因为在已故障的云内部做的检查什么也说明不了。请在[你自己的探针](/docs/probe/custom-probe)上运行这些检查，该探针应位于能像你的用户一样访问云的公共端点的地方。在 OneUptime Cloud 上，共享探针永远不会收到 OpenStack 凭据。
 
-两者都在云的 **检查** 页面上。[OpenStack 监控器的模板](/docs/monitor/openstack-monitor#从外部检查)会把它们发现的内容转化为事件。
+两者都在云的 **检查** 页面上。[OpenStack 监视器的模板](/docs/monitor/openstack-monitor#从外部检查)会把它们发现的内容转化为事件。
 
 ### API 检查
 
@@ -1805,7 +1805,7 @@ OneUptime 读取的是 oslo.log 自己的格式。更改了 `logging_context_for
 ## 后续步骤
 
 :::cards
-- [OpenStack 监控器](/docs/monitor/openstack-monitor): 针对服务、Hypervisor、实例、网络和存储池发出警报。
+- [OpenStack 监视器](/docs/monitor/openstack-monitor): 针对服务、Hypervisor、实例、网络和存储池发出警报。
 - [不使用代理的 OpenStack](/docs/telemetry/openstack-agentless): 通过探针收集一朵云，无需安装任何东西。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 每个控制器和 Hypervisor 的操作系统层面视图。
 :::

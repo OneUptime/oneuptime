@@ -47,9 +47,15 @@
  *     hold is read once; a "&" or a "]" costs nothing; and a run of an
  *     email address's characters before an "@" costs the run times itself
  *     and the domain after it.
+ *   - for marked, each line of a list item it reads as a line of text: a
+ *     look through half of the item (HOW MARKED READS A LIST ITEM, #7598).
+ *     marked reads an item's text a line at a time, and looks through the
+ *     rest of the item from each for a setext heading's underline: one
+ *     item of 6,000 lines took it 4.4 s.
  *   - its lines: a run may have limits.maxRunLines, and all the runs and
  *     fenced code read as Markdown limits.maxLines together (the dashboard
- *     and Slack only: marked reads lines in linear time).
+ *     and Slack only: marked reads paragraphs, quotes and lists of short
+ *     items in linear time).
  *   - its longest paragraph, list item or heading, in lines
  *     (limits.maxUnitLines) and in characters (limits.maxUnitLength):
  *     Slack only - slackify reads a long list in good time, but not one
@@ -1769,6 +1775,521 @@ const readLineStart: (text: string, start: number, end: number) => LineStart = (
   };
 };
 
+/*
+ * HOW MARKED READS A LIST ITEM (counting.countAsMarked: the emails, #7598).
+ *
+ * marked reads a list item's text with blockTokens(text, top = false), and
+ * there it reads no paragraph whole: each line is a block of its own, and
+ * before each it tries its rule for a setext heading, whose lazy loop reads
+ * on through the lines after it - to the next blank line, or a line that
+ * starts a block - for an underline. So an item of N lines of text costs
+ * marked N looks through the rest of it: 6,000 lines of "aaa bbb" took it
+ * 4.4 s where V8 compiles regular expressions unoptimized, four such items
+ * 16 s, and a loose item's paragraphs as much, each after its blank line.
+ * A paragraph or a block quote of the same lines it reads whole, in 10 ms,
+ * and a list of as many one-line items in 22 ms.
+ *
+ * So each line of a list item that marked reads as a line of text costs a
+ * look through half of the item's lines in its run, the rest of them on
+ * average (MARKED_LIST_LINE_SHARE): measured, such looks cost marked 10 to
+ * 28 ns a character, where a character it looks ahead from is counted at
+ * 39. Its first line, lazy lines and indented ones alike, in a quote or in
+ * another item too, and the lines of a loose item's later paragraphs -
+ * indented at least as far as its text can start (MarkedListContext), each
+ * paragraph a run of its own. An item starts at every line with a list
+ * marker no more than three columns in, whatever the run's units: marked
+ * reads "10) a" at a run's start as a list, and an empty "-" with the
+ * lines after it. A line marked reads whole costs nothing more: one that
+ * starts a quote (">") or a heading ("#"), and fenced code where the item's
+ * text is known to start - one space after its one marker, no tab, and no
+ * line of it read before that column or with a list marker of its own, so
+ * no other item can hold the fence. A line this cannot place for sure is a
+ * line of text: the measure only ever counts more than marked reads.
+ */
+
+/*
+ * What a line of text in a list item costs marked, as a share of a
+ * character it looks ahead from: a look through the rest of the item, half
+ * of it on average.
+ */
+export const MARKED_LIST_LINE_SHARE: number = 2;
+
+// How the lines of a list item read for marked (readMarkedListItemLine).
+interface MarkedListItem {
+  // The quote markers its first line starts with: its other lines are read past as many.
+  quoteMarkers: number;
+  /*
+   * The column its text starts at, past those quote markers: where a fence
+   * opens code in it. Null when that is not known for sure - then each of
+   * its lines that does not start a quote or a heading is a line of text.
+   */
+  textColumn: number | null;
+  // The fence of the code block a line of it opened, while it is open.
+  fence: Fence | null;
+  /*
+   * Its lines of text in the run being read, and the characters of all its
+   * lines there (flushMarkedListItem adds what they cost).
+   */
+  lines: number;
+  length: number;
+}
+
+// Adds what `item`'s lines read since it was last added cost marked.
+const flushMarkedListItem: (
+  item: MarkedListItem | null | undefined,
+  costs: { work: number },
+) => void = (
+  item: MarkedListItem | null | undefined,
+  costs: { work: number },
+): void => {
+  if (item) {
+    costs.work += Math.ceil(
+      (item.lines * item.length) / MARKED_LIST_LINE_SHARE,
+    );
+    item.lines = 0;
+    item.length = 0;
+  }
+};
+
+/*
+ * The list item the lines being read may be in, for marked: the least
+ * column a line must start at to go on with it past a blank line - its
+ * marker's, its own or an outer item's, plus the marker and a space - and
+ * how its lines read. Only an item in no quote goes on past a blank line.
+ */
+interface MarkedListContext {
+  quoteMarkers: number;
+  leastColumn: number;
+  item: MarkedListItem | null;
+}
+
+// Where a line's text starts, read as readMarkedIndentation reads it.
+interface MarkedIndentation {
+  // Past the quote markers and the white space after them.
+  index: number;
+  // The quote markers read, and the columns of white space after them.
+  quoteMarkers: number;
+  columns: number;
+  // Whether a tab is among them: marked reads tabs as columns of its own.
+  hasTab: boolean;
+}
+
+/*
+ * Reads up to `quoteMarkers` quote markers at the start of the line
+ * text[start, end) - each up to three spaces, a ">" and a space or tab
+ * after it - and the white space after them. Infinity reads as many as
+ * there are.
+ */
+const readMarkedIndentation: (
+  text: string,
+  start: number,
+  end: number,
+  quoteMarkers: number,
+) => MarkedIndentation = (
+  text: string,
+  start: number,
+  end: number,
+  quoteMarkers: number,
+): MarkedIndentation => {
+  let index: number = start;
+  let markers: number = 0;
+  let hasTab: boolean = false;
+
+  while (markers < quoteMarkers) {
+    let at: number = index;
+
+    while (at < end && at - index < 3 && text.charCodeAt(at) === SPACE) {
+      at++;
+    }
+
+    if (at >= end || text.charCodeAt(at) !== GREATER_THAN) {
+      break;
+    }
+
+    at++;
+
+    if (at < end && isSpaceOrTab(text.charCodeAt(at))) {
+      hasTab = hasTab || text.charCodeAt(at) === TAB;
+      at++;
+    }
+
+    index = at;
+    markers++;
+  }
+
+  const textStart: number = index;
+
+  while (index < end && isSpaceOrTab(text.charCodeAt(index))) {
+    hasTab = hasTab || text.charCodeAt(index) === TAB;
+    index++;
+  }
+
+  return {
+    index: index,
+    quoteMarkers: markers,
+    columns: index - textStart,
+    hasTab: hasTab,
+  };
+};
+
+/*
+ * The length of the list marker text[index] starts - "-", "*" or "+", or
+ * one to nine digits and "." or ")" - followed by a space, a tab or the
+ * line's end; 0 when it starts none.
+ */
+const getListMarkerLength: (
+  text: string,
+  index: number,
+  end: number,
+) => number = (text: string, index: number, end: number): number => {
+  const code: number = text.charCodeAt(index);
+  let markerEnd: number = index;
+
+  if (code === 0x2d || code === ASTERISK || code === 0x2b) {
+    markerEnd = index + 1;
+  } else {
+    while (
+      markerEnd < end &&
+      markerEnd - index < 9 &&
+      isDigit(text.charCodeAt(markerEnd))
+    ) {
+      markerEnd++;
+    }
+
+    const delimiter: number = text.charCodeAt(markerEnd);
+
+    if (
+      markerEnd === index ||
+      markerEnd >= end ||
+      (delimiter !== 0x2e && delimiter !== 0x29)
+    ) {
+      return 0;
+    }
+
+    markerEnd++;
+  }
+
+  return markerEnd >= end || isSpaceOrTab(text.charCodeAt(markerEnd))
+    ? markerEnd - index
+    : 0;
+};
+
+/*
+ * Whether text[index, end) closes `fence` as marked closes one, from where
+ * a line's text starts: at least as many of its character, then backticks
+ * and tildes, then spaces to the line's end.
+ */
+const isMarkedFenceClosing: (
+  text: string,
+  index: number,
+  end: number,
+  fence: Fence,
+) => boolean = (
+  text: string,
+  index: number,
+  end: number,
+  fence: Fence,
+): boolean => {
+  let at: number = index;
+
+  while (at < end && text.charCodeAt(at) === fence.character) {
+    at++;
+  }
+
+  if (at - index < fence.length) {
+    return false;
+  }
+
+  while (
+    at < end &&
+    (text.charCodeAt(at) === BACKTICK || text.charCodeAt(at) === TILDE)
+  ) {
+    at++;
+  }
+
+  while (at < end && text.charCodeAt(at) === SPACE) {
+    at++;
+  }
+
+  return at >= end;
+};
+
+/*
+ * Whether a line of a list item whose text starts with `code` can start a
+ * block that runs on over the lines after it, a fence's among them: HTML
+ * ("<") or a link reference definition whose title runs on ("["). marked
+ * may then read a fence there as part of it - and where its fences are is
+ * no longer known.
+ */
+const mayHoldAFence: (code: number) => boolean = (code: number): boolean => {
+  return code === LESS_THAN || code === OPEN_BRACKET;
+};
+
+/*
+ * Reads the first line of a list item, text[start, end), for marked: the
+ * item it starts, the least column a line must start at to go on with it
+ * past a blank line, and whether marked reads the line as a line of text.
+ */
+const readMarkedListItemStart: (
+  text: string,
+  start: number,
+  end: number,
+) => { item: MarkedListItem; leastColumn: number; isText: boolean } = (
+  text: string,
+  start: number,
+  end: number,
+): { item: MarkedListItem; leastColumn: number; isText: boolean } => {
+  const before: MarkedIndentation = readMarkedIndentation(
+    text,
+    start,
+    end,
+    Number.POSITIVE_INFINITY,
+  );
+  const markerLength: number = getListMarkerLength(text, before.index, end);
+  const leastColumn: number = before.columns + markerLength + 1;
+  let index: number = before.index + markerLength;
+  let spaces: number = 0;
+  let isPlaced: boolean = !before.hasTab && markerLength > 0;
+
+  while (index < end && isSpaceOrTab(text.charCodeAt(index))) {
+    isPlaced = isPlaced && text.charCodeAt(index) === SPACE;
+    spaces++;
+    index++;
+  }
+
+  /*
+   * Its text starts one space after its marker, and opens no list of its
+   * own: else - an empty item too - where marked reads its other lines is
+   * not worked out here.
+   */
+  isPlaced =
+    isPlaced &&
+    spaces === 1 &&
+    index < end &&
+    getListMarkerLength(text, index, end) === 0;
+
+  const item: MarkedListItem = {
+    quoteMarkers: before.quoteMarkers,
+    textColumn: isPlaced ? leastColumn : null,
+    fence: null,
+    lines: 0,
+    length: 0,
+  };
+
+  if (index >= end) {
+    return { item: item, leastColumn: leastColumn, isText: false };
+  }
+
+  const code: number = text.charCodeAt(index);
+
+  if (mayHoldAFence(code)) {
+    item.textColumn = null;
+  }
+
+  if (code === GREATER_THAN || code === NUMBER_SIGN) {
+    return { item: item, leastColumn: leastColumn, isText: false };
+  }
+
+  if (item.textColumn !== null) {
+    item.fence = getFenceOpening(text, index, end);
+  }
+
+  return {
+    item: item,
+    leastColumn: leastColumn,
+    isText: item.fence === null,
+  };
+};
+
+/*
+ * Reads a line of a list item after its first, text[start, end), for
+ * marked, and returns whether marked reads it as a line of text - one it
+ * looks through the rest of the item from. A line that starts a quote or a
+ * heading it reads whole, and so the lines of fenced code where the item's
+ * text is known to start: from its opening fence to the line that closes
+ * it as marked closes it, up to three columns past the item's text column
+ * - or to a line read before that column, which may end the item, and so
+ * the code. From a line this cannot place on, no line of the item is
+ * fenced code.
+ */
+const readMarkedListItemLine: (
+  text: string,
+  start: number,
+  end: number,
+  item: MarkedListItem,
+) => boolean = (
+  text: string,
+  start: number,
+  end: number,
+  item: MarkedListItem,
+): boolean => {
+  const line: MarkedIndentation = readMarkedIndentation(
+    text,
+    start,
+    end,
+    item.quoteMarkers,
+  );
+
+  if (line.index >= end) {
+    // White space alone - in a quote, a line of ">": no text.
+    return false;
+  }
+
+  const code: number = text.charCodeAt(line.index);
+
+  if (
+    item.textColumn !== null &&
+    (line.hasTab ||
+      line.quoteMarkers !== item.quoteMarkers ||
+      line.columns < item.textColumn ||
+      getListMarkerLength(text, line.index, end) > 0 ||
+      (item.fence === null && mayHoldAFence(code)))
+  ) {
+    /*
+     * A line marked may read in another item, another block, or past where
+     * this one ended: no fence of this item is placed for sure from here on.
+     */
+    item.textColumn = null;
+    item.fence = null;
+  }
+
+  if (item.fence !== null) {
+    if (
+      line.columns <= item.textColumn! + 3 &&
+      isMarkedFenceClosing(text, line.index, end, item.fence)
+    ) {
+      item.fence = null;
+    }
+
+    return false;
+  }
+
+  if (code === GREATER_THAN || code === NUMBER_SIGN) {
+    return false;
+  }
+
+  if (item.textColumn !== null && line.columns <= item.textColumn + 3) {
+    item.fence = getFenceOpening(text, line.index, end);
+
+    if (item.fence !== null) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/*
+ * Reads a line of a run for marked's list items (HOW MARKED READS A LIST
+ * ITEM), adding to `costs` what an item's lines cost marked as each item's
+ * lines in the run end, and returns the list context the next line is in:
+ *
+ *   - a line with a list marker no more than three columns in starts an
+ *     item, in the items its context holds when it is in as many quotes;
+ *   - a heading's line goes on in the item it is indented as far as, with
+ *     where the item's text starts no longer known - else it ends the list;
+ *   - any other line goes on with the item, and the first line of a run -
+ *     past a blank line - only when it is indented as far as an item's
+ *     text can start: else the list has ended.
+ */
+const readMarkedListLine: (data: {
+  text: string;
+  start: number;
+  end: number;
+  startsHeading: boolean;
+  isFirstLine: boolean;
+  context: MarkedListContext | null;
+  costs: { work: number };
+}) => MarkedListContext | null = (data: {
+  text: string;
+  start: number;
+  end: number;
+  startsHeading: boolean;
+  isFirstLine: boolean;
+  context: MarkedListContext | null;
+  costs: { work: number };
+}): MarkedListContext | null => {
+  const context: MarkedListContext | null = data.context;
+  const length: number = data.end - data.start + 1;
+  const marker: MarkedIndentation = readMarkedIndentation(
+    data.text,
+    data.start,
+    data.end,
+    Number.POSITIVE_INFINITY,
+  );
+
+  if (
+    marker.columns <= 3 &&
+    getListMarkerLength(data.text, marker.index, data.end) > 0
+  ) {
+    flushMarkedListItem(context?.item, data.costs);
+
+    const started: {
+      item: MarkedListItem;
+      leastColumn: number;
+      isText: boolean;
+    } = readMarkedListItemStart(data.text, data.start, data.end);
+
+    started.item.lines = started.isText ? 1 : 0;
+    started.item.length = length;
+
+    return {
+      quoteMarkers: started.item.quoteMarkers,
+      leastColumn:
+        context !== null && context.quoteMarkers === started.item.quoteMarkers
+          ? Math.min(context.leastColumn, started.leastColumn)
+          : started.leastColumn,
+      item: started.item,
+    };
+  }
+
+  if (context === null || context.item === null) {
+    return null;
+  }
+
+  if (data.startsHeading || data.isFirstLine) {
+    const line: MarkedIndentation = readMarkedIndentation(
+      data.text,
+      data.start,
+      data.end,
+      context.quoteMarkers,
+    );
+
+    if (
+      line.quoteMarkers !== context.quoteMarkers ||
+      line.columns < context.leastColumn
+    ) {
+      flushMarkedListItem(context.item, data.costs);
+      return null;
+    }
+
+    if (data.startsHeading) {
+      // A heading in an item: the lines after it are the item's text.
+      flushMarkedListItem(context.item, data.costs);
+
+      return {
+        quoteMarkers: context.quoteMarkers,
+        leastColumn: context.leastColumn,
+        item: {
+          quoteMarkers: context.quoteMarkers,
+          textColumn: null,
+          fence: null,
+          lines: 0,
+          length: length,
+        },
+      };
+    }
+  }
+
+  context.item.length += length;
+
+  if (readMarkedListItemLine(data.text, data.start, data.end, context.item)) {
+    context.item.lines++;
+  }
+
+  return context;
+};
+
 // The "|" in text[start, end) that a backslash does not escape.
 const getPipeCount: (text: string, start: number, end: number) => number = (
   text: string,
@@ -1801,15 +2322,23 @@ const getPipeCount: (text: string, start: number, end: number) => number = (
  * the same kind started: elsewhere it can be a paragraph's next line. The
  * punctuation of its words is added to it, line by line
  * (getWordPunctuationWork).
+ *
+ * For marked (counting.countAsMarked), each line of a list item it reads as
+ * a line of text adds a look through half of the item's lines in the run
+ * (HOW MARKED READS A LIST ITEM): `list` holds the item the run's lines may
+ * be in, from the run before it past a blank line, and is left holding the
+ * item the run's last lines are in.
  */
 const measureRun: (
   text: string,
   lineStarts: Array<number>,
   counting: InlineCounting,
+  list: { context: MarkedListContext | null },
 ) => SlowMarkdownRun = (
   text: string,
   lineStarts: Array<number>,
   counting: InlineCounting,
+  list: { context: MarkedListContext | null },
 ): SlowMarkdownRun => {
   let inlineWork: number = 0;
   let longestUnit: number = 0;
@@ -1821,6 +2350,13 @@ const measureRun: (
   let unit: UnitWork = newUnitWork();
   // What started the unit being read, if a marker did.
   let unitKind: string | null = null;
+  // For marked: the list item the line is in, and the items around it.
+  let context: MarkedListContext | null = counting.countAsMarked
+    ? list.context
+    : null;
+  // For marked: what the lines of list items cost it (flushMarkedListItem).
+  const listCosts: { work: number } = { work: 0 };
+  let isFirstLine: boolean = true;
 
   // Adds what the unit read costs: marked's copies of it in their share.
   const addUnit: () => void = (): void => {
@@ -1858,6 +2394,15 @@ const measureRun: (
     unitLines++;
 
     if (counting.countAsMarked) {
+      context = readMarkedListLine({
+        text: text,
+        start: lineStart,
+        end: lineEnd,
+        startsHeading: startsUnit && unitKind === "heading",
+        isFirstLine: isFirstLine,
+        context: context,
+        costs: listCosts,
+      });
       readMarkedLine(text, start.contentStart, lineEnd, counting, unit);
     } else {
       unit.characters += getInlineCharacterCount(
@@ -1874,9 +2419,18 @@ const measureRun: (
       cellsPerLine,
       getPipeCount(text, start.contentStart, lineEnd),
     );
+    isFirstLine = false;
   }
 
   addUnit();
+
+  // A blank line ends what the item's lines look through.
+  flushMarkedListItem(context?.item, listCosts);
+  inlineWork += listCosts.work;
+
+  // An item in a quote ends with the quote, at the blank line.
+  list.context =
+    context !== null && context.quoteMarkers === 0 ? context : null;
 
   const lastLineStart: number = lineStarts[lineStarts.length - 1]!;
 
@@ -1929,12 +2483,17 @@ const readSegments: (
   let htmlBlockEnds: ReadonlyArray<string> | null = null;
   // Whether a fence may still be read as one (see above).
   let isFenceReadable: boolean = true;
+  /*
+   * For marked: the list item a run may go on with past a blank line
+   * (measureRun). Fenced code at a line's start ends every list.
+   */
+  const list: { context: MarkedListContext | null } = { context: null };
 
   const endRun: () => void = (): void => {
     if (runLineStarts.length > 0) {
       segments.push({
         kind: "run",
-        run: measureRun(text, runLineStarts, counting),
+        run: measureRun(text, runLineStarts, counting, list),
       });
       runLineStarts = [];
     }
@@ -1944,6 +2503,7 @@ const readSegments: (
     contentEnd: number,
     end: number,
   ): void => {
+    list.context = null;
     segments.push({
       kind: "code",
       block: {

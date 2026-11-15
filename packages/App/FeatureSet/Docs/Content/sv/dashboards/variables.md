@@ -67,11 +67,11 @@ Välj befintliga projektetiketter att erbjuda som en rullgardinslista på instru
 
 Instrumentpanelen sparar de valda etiketternas id:n och visningsnamn. Filtreringen använder id:na, så att byta namn på en projektetikett bryter inte dess koppling. Visningsnamnen sparas med instrumentpanelen; välj en omdöpt etikett igen i variabelredigeraren för att uppdatera dess visade namn. Offentliga instrumentpaneler visar samma sparade val.
 
-I en widget **Övervakningslista** öppnar du **Filter → Etikettvariabel** och väljer `UNIT`. När du väljer `0660` visas nu övervakarna som har den etiketten. Andra widgetar påverkas inte, om de inte uttryckligen stöder och kopplar variabeln: **SLO-lista** har samma inställning **Etikettvariabel**.
+I en widget **Övervakningslista** öppnar du **Filter → Etikettvariabel** och väljer `UNIT`. När du väljer `0660` visas nu monitorerna som har den etiketten. Andra widgetar påverkas inte, om de inte uttryckligen stöder och kopplar variabeln: **SLO-lista** har samma inställning **Etikettvariabel**.
 
-Fasta widgetfilter fortsätter att gälla. Med en fast etikett `network` och `UNIT` satt till `0660` måste en övervakare till exempel ha båda etiketterna. Flera valda enheter matchar vilken som helst av de valda enheterna. Att välja **Alla** tar bara bort variabelns villkor och behåller de fasta filtren för etikett, status och övervakartyp.
+Fasta widgetfilter fortsätter att gälla. Med en fast etikett `network` och `UNIT` satt till `0660` måste en monitor till exempel ha båda etiketterna. Flera valda enheter matchar vilken som helst av de valda enheterna. Att välja **Alla** tar bara bort variabelns villkor och behåller de fasta filtren för etikett, status och monitortyp.
 
-En saknad variabel eller ett val utanför dess konfigurerade alternativ visar ett fel. En vald etikett utan matchande övervakare visar den tomma listan. Ta uttryckligen bort widgetens koppling när den inte längre behövs.
+En saknad variabel eller ett val utanför dess konfigurerade alternativ visar ett fel. En vald etikett utan matchande monitorer visar den tomma listan. Ta uttryckligen bort widgetens koppling när den inte längre behövs.
 
 ### Custom List och Text Input
 
@@ -93,7 +93,7 @@ Varje källa når widgetarna på sitt eget sätt:
 
 - Variabler av typen **Telemetriattribut** filtrerar widgetar utan att du behöver ställa in något på dem: varje mätvärdesdiagram, värde, mätare och tabell; **Loggdiagram**, **Loggström**, **Spårdiagram** och **Spårtabell**; och infrastrukturlistorna vars resurser har attributet, till exempel `host.name` på värdlistor och `k8s.namespace.name` på Kubernetes-listor. Ett diagram över ett mätvärde utan attributet visar ingen data medan ett värde är valt: välj **Alla** för att se det igen. **Spårlista** och incident- och larmlistorna följer dem inte.
 - Variabler av typen **Projektetiketter** filtrerar en **Övervakningslista** eller en **SLO-lista** vars **Etikettvariabel** namnger dem.
-- **Vilken variabel som helst** kan skrivas in i text som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i frågan till en [extern datakälla](/docs/dashboards/data-sources), och i titeln på en **Övervakningslista** eller en **SLO-lista**. En titel som `{{UNIT}} NETWORK` visar `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styr bara den visade texten; konfigurera **Etikettvariabel** för att filtrera övervakarfrågan.
+- **Vilken variabel som helst** kan skrivas in i text som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i frågan till en [extern datakälla](/docs/dashboards/data-sources), och i titeln på en **Övervakningslista** eller en **SLO-lista**. En titel som `{{UNIT}} NETWORK` visar `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styr bara den visade texten; konfigurera **Etikettvariabel** för att filtrera monitorfrågan.
 
 [SLO-widgeten](/docs/dashboards/widgets#slo) kan följa en Telemetry Attribute-variabel på nyckeln `sloName`, så att tittarna väljer vilket SLO den visar.
 

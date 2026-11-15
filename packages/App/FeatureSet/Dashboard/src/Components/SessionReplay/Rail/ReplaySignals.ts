@@ -12,6 +12,7 @@ import {
   SessionReplayWebVitalRating,
   SessionReplayInteractionType,
   SessionReplayNavigationType,
+  SessionReplayPauseReason,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { ReplayTimelineEvent } from "../ReplayTimelineTypes";
@@ -254,6 +255,14 @@ export type ReplayMarkerSignalDetail = {
   idlePauseEdge: "paused" | "resumed" | null;
   idleForMs: number | null;
   pausedForMs: number | null;
+  /*
+   * idle-pause only: "page" when the page paused recording itself
+   * (OneUptimeReplay.pause(), issue #7498), and null for a pause because
+   * nobody touched the page - and on every other marker. A page's pause
+   * has no idle length: somebody was using the page, on a part of it
+   * that is not recorded.
+   */
+  pauseReason: SessionReplayPauseReason | null;
 };
 
 export type ReplayLogSignalDetail = {
@@ -1154,8 +1163,10 @@ function markerSignal(
   const idlePauseEdge: "paused" | "resumed" | null = isIdlePause
     ? event.idlePauseEdge || "paused"
     : null;
+  const pauseReason: SessionReplayPauseReason | null =
+    isIdlePause && event.pauseReason === "page" ? "page" : null;
   const idleForMs: number | null =
-    idlePauseEdge === "paused"
+    idlePauseEdge === "paused" && pauseReason === null
       ? positiveSpanMs(event.idleSinceUnixMs, event.pausedAtUnixMs)
       : null;
   const pausedForMs: number | null =
@@ -1203,11 +1214,27 @@ function markerSignal(
        */
       markerKind = "idle-pause";
 
+      /*
+       * Whose pause it was decides the words (#7498). The page's own
+       * pause() is "by the page": somebody was using it, on a part that
+       * is not recorded, so "nobody touched the page" and "idle" would be
+       * untrue. A pause because nobody touched the page - and every pause
+       * an older recorder made, which gives no reason - reads as always.
+       */
       if (idlePauseEdge === "resumed") {
-        title =
-          pausedForMs !== null
-            ? `Recording resumed after ${formatReplayDuration(pausedForMs)} idle`
-            : "Recording resumed after an idle pause";
+        if (pauseReason === "page") {
+          title =
+            pausedForMs !== null
+              ? `Recording resumed by the page after ${formatReplayDuration(pausedForMs)}`
+              : "Recording resumed by the page";
+        } else {
+          title =
+            pausedForMs !== null
+              ? `Recording resumed after ${formatReplayDuration(pausedForMs)} idle`
+              : "Recording resumed after an idle pause";
+        }
+      } else if (pauseReason === "page") {
+        title = "Recording paused by the page";
       } else {
         title =
           idleForMs !== null
@@ -1241,6 +1268,7 @@ function markerSignal(
     idlePauseEdge: idlePauseEdge,
     idleForMs: idleForMs,
     pausedForMs: pausedForMs,
+    pauseReason: pauseReason,
   };
 
   signal.detail = detail;

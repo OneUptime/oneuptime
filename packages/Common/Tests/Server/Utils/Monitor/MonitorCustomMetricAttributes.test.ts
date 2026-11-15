@@ -6,7 +6,9 @@ import ServiceService from "../../../../Server/Services/ServiceService";
 import { getJestSpyOn } from "../../../Spy";
 import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import logger from "../../../../Server/Utils/Logger";
-import { MaxCapturedMetricAttributes } from "../../../../Server/Utils/Monitor/CapturedMetricAttributeUtil";
+import CapturedMetricAttributeUtil, {
+  MaxCapturedMetricAttributes,
+} from "../../../../Server/Utils/Monitor/CapturedMetricAttributeUtil";
 import { AllResourceIdentityLabelKeys } from "../../../../Server/Utils/Monitor/SeriesResourceLabels";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 import Dictionary from "../../../../Types/Dictionary";
@@ -15,6 +17,8 @@ import CapturedMetric from "../../../../Types/Monitor/CustomCodeMonitor/Captured
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { readOwnValue } from "../../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import {
   afterEach,
   beforeEach,
@@ -498,6 +502,142 @@ describe("MonitorMetricUtil custom metric attributes (issue #3514)", () => {
 
       expect(attributes["host.name"]).toBeUndefined();
       expect(attributes["page"]).toBe("checkout");
+    });
+  });
+
+  /*
+   * Issue #8136: a captured attribute named toString, valueOf or
+   * hasOwnProperty was dropped without a word, because the guard read the
+   * attributes it had kept so far with a plain read, which finds the method
+   * every object inherits. They are ordinary dimensions: they reach the
+   * metric row, its attributeKeys, and the JSON the insert sends.
+   */
+  describe("attributes named like what every object inherits (issue #8136)", () => {
+    const KEPT: Array<string> = INHERITED_PROPERTY_NAMES.filter(
+      (name: string): boolean => {
+        return !CapturedMetricAttributeUtil.isReservedAttributeKey(name);
+      },
+    );
+
+    // The script's attributes as the sandbox hands them over: JSON.
+    const scriptAttributes: () => JSONObject = (): JSONObject => {
+      const sent: JSONObject = { region: "us-east-1" };
+
+      for (const name of KEPT) {
+        sent[name] = `own ${name}`;
+      }
+
+      return JSON.parse(JSON.stringify(sent)) as JSONObject;
+    };
+
+    const expectKept: (attributes: JSONObject) => void = (
+      attributes: JSONObject,
+    ): void => {
+      for (const name of KEPT) {
+        expect({ name, value: readOwnValue(attributes, name) }).toEqual({
+          name,
+          value: `own ${name}`,
+        });
+      }
+
+      expect(readOwnValue(attributes, "region")).toBe("us-east-1");
+    };
+
+    test("each reaches the metric row and its attributeKeys", async () => {
+      await captureMetrics([
+        {
+          name: CUSTOM_METRIC_NAME,
+          value: 1,
+          attributes: scriptAttributes(),
+        },
+      ]);
+
+      const row: JSONObject = customMetricRow();
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+
+      expectKept(attributes);
+      expect(row["attributeKeys"]).toEqual(Object.keys(attributes).sort());
+      expect(row["attributeKeys"]).toEqual(expect.arrayContaining(KEPT));
+    });
+
+    test("each is in the JSON the insert sends, and in the row read back from it", async () => {
+      await captureMetrics([
+        {
+          name: CUSTOM_METRIC_NAME,
+          value: 1,
+          attributes: scriptAttributes(),
+        },
+      ]);
+
+      // JSONEachRow: the client writes each row with JSON.stringify.
+      const sent: string = JSON.stringify(customMetricRow());
+
+      for (const name of KEPT) {
+        expect(sent).toContain(`"${name}":"own ${name}"`);
+      }
+
+      // ClickHouse's JSON answer, read back with JSON.parse.
+      const readBack: JSONObject = JSON.parse(sent) as JSONObject;
+
+      expectKept(readBack["attributes"] as JSONObject);
+      expect(readBack["attributeKeys"]).toEqual(
+        expect.arrayContaining([...KEPT, "region"]),
+      );
+    });
+
+    test("each is kept beside the monitor's own labels and custom fields", async () => {
+      await captureMetrics(
+        [
+          {
+            name: CUSTOM_METRIC_NAME,
+            value: 1,
+            attributes: scriptAttributes(),
+          },
+        ],
+        {
+          monitorLabels: [makeLabel("product:checkout")],
+          monitorCustomFields: { team: "payments" },
+        },
+      );
+
+      const row: JSONObject = customMetricRow();
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+
+      expectKept(attributes);
+      expect(attributes["oneuptime.label.product"]).toBe("checkout");
+      expect(row["attributeKeys"]).toEqual(Object.keys(attributes).sort());
+    });
+
+    test("only __proto__ and constructor are refused, and the one warning names them", async () => {
+      const warn: jest.SpyInstance<any, any> = getJestSpyOn(
+        logger,
+        "warn",
+      ).mockImplementation((): void => {
+        return undefined;
+      });
+
+      await captureMetrics([
+        {
+          name: CUSTOM_METRIC_NAME,
+          value: 1,
+          attributes: JSON.parse(
+            '{"__proto__":"a","constructor":"b","toString":"c","valueOf":"d"}',
+          ) as JSONObject,
+        },
+      ]);
+
+      const attributes: JSONObject = customMetricAttributes();
+
+      expect(readOwnValue(attributes, "toString")).toBe("c");
+      expect(readOwnValue(attributes, "valueOf")).toBe("d");
+      expect(readOwnValue(attributes, "__proto__")).toBeUndefined();
+      expect(readOwnValue(attributes, "constructor")).toBeUndefined();
+      expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]?.[0])).toContain(
+        "__proto__, constructor",
+      );
     });
   });
 });

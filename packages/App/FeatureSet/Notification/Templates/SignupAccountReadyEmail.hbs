@@ -1,0 +1,40 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title=(concat "Welcome to " (brandName) "!") }}
+
+{{!--
+  The welcome email where a new account is ready the moment it signs up: a
+  self-hosted server (billing off) marks every address verified at sign-up
+  and takes the person straight to the Dashboard (Authentication's /signup).
+  So it asks for nothing, and opens the Dashboard. OneUptime Cloud asks for
+  the address first, with SignupWelcomeEmail (#7988).
+
+  Its help is the server's own, never OneUptime's support address
+  (Partials/SupportBlock): whoever runs this server is who can help with it.
+  The first account on a server is its master admin (isMasterAdmin "true"),
+  who is that person, and is shown where the server's settings are instead.
+--}}
+
+{{> InfoBlock info="Thank you for signing up! Your account is ready, and there is nothing to verify. Open it to create your first project, or to accept an invitation to one."}}
+
+{{> ButtonBlock buttonUrl=dashboardLink buttonText=(concat "Open " (brandName))}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=dashboardLink linkLabel="Or copy and paste this link into your browser:"}}
+
+{{> VerticalSpace this}}
+
+{{#ifCond isMasterAdmin "true"}}
+{{> InfoBlock info="You are this server's admin: its settings, such as email and who can sign up, are in the Admin Dashboard."}}
+
+{{> ButtonBlock buttonUrl=adminDashboardLink buttonText="Open Admin Dashboard" secondary=true}}
+{{else}}
+{{> InfoBlock info="Need help? Ask your server's admin."}}
+{{/ifCond}}
+
+{{> Footer this}}
+
+{{> End this}}

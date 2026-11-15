@@ -16,6 +16,7 @@ import {
 import Response from "../../../Server/Utils/Response";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
+import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
@@ -72,6 +73,8 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The five product analytics routes (issue #6444): who uses a RUM
@@ -169,6 +172,36 @@ const ALL_ROUTES: Array<string> = [
 const USER_KEY: string = "ab".repeat(32);
 const VISITOR_ID: string = "0123456789abcdef0123456789abcdef";
 const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+/* The routes that read a range, and the read service call each hands it to. */
+const RANGE_READERS: Array<[string, string]> = [
+  [PRODUCT_ANALYTICS_SUMMARY_ROUTE, "getSummary"],
+  [PRODUCT_ANALYTICS_TREND_ROUTE, "getTrend"],
+  [PRODUCT_ANALYTICS_BREAKDOWN_ROUTE, "getBreakdown"],
+  [PRODUCT_ANALYTICS_PEOPLE_ROUTE, "listPeople"],
+];
+
+/*
+ * Ends whose week before holds a clock change in one of these zones, each
+ * with the start 7 x 24 hours before it (issue #7623). Europe/London went
+ * to summer time on 2026-03-29 and back on 2026-10-25, America/Los_Angeles
+ * on 2026-03-08 and 2026-11-01, and Australia/Lord_Howe moves its clocks by
+ * half an hour, on 2026-04-05 and 2026-10-04. Each zone's two changes fall
+ * inside two of the weeks, and none of the others' do.
+ */
+const WEEKS_ACROSS_A_CLOCK_CHANGE: Array<[string, string]> = [
+  ["2026-03-31T00:00:00.000Z", "2026-03-24T00:00:00.000Z"],
+  ["2026-10-28T09:15:00.000Z", "2026-10-21T09:15:00.000Z"],
+  ["2026-03-12T18:00:00.000Z", "2026-03-05T18:00:00.000Z"],
+  ["2026-11-04T07:30:00.000Z", "2026-10-28T07:30:00.000Z"],
+  ["2026-04-08T02:00:00.000Z", "2026-04-01T02:00:00.000Z"],
+  ["2026-10-06T23:59:59.999Z", "2026-09-29T23:59:59.999Z"],
+];
+const ZONES_THE_WEEKS_CROSS: Array<string> = [
+  "Europe/London",
+  "America/Los_Angeles",
+  "Australia/Lord_Howe",
+];
 
 /* The smallest body each route takes, beside rumApplicationId. */
 function minimalBody(uri: string): JSONObject {
@@ -790,10 +823,12 @@ describe("Product analytics API", () => {
 
       expect(endTime.getTime()).toBeGreaterThanOrEqual(before);
       expect(endTime.getTime()).toBeLessThanOrEqual(after);
-      /* Seven calendar days: an hour either way across a clock change. */
-      expect(
-        Math.abs(endTime.getTime() - startTime.getTime() - 7 * DAY_MS),
-      ).toBeLessThanOrEqual(60 * 60 * 1000);
+      /*
+       * Seven days of time, to the millisecond, in every zone: not seven
+       * days of the server's calendar, which are an hour short or long
+       * across a clock change (issue #7623).
+       */
+      expect(endTime.getTime() - startTime.getTime()).toBe(7 * DAY_MS);
       expect(argument["projectId"]).toEqual(projectId);
       expect(argument["rumApplicationId"]).toEqual(applicationAId);
     });
@@ -834,6 +869,108 @@ describe("Product analytics API", () => {
       expect((argument["startTime"] as Date).toISOString()).toBe(
         "2026-03-24T00:00:00.000Z",
       );
+    });
+
+    /*
+     * Issue #7623: the week before an end with a clock change inside it is
+     * still 7 x 24 hours long, on every route that reads a range, in
+     * whatever zone the server runs in. See WEEKS_ACROSS_A_CLOCK_CHANGE;
+     * RumProductAnalyticsAPIInLondon runs this file on London's clock, and
+     * CI runs it in UTC, where calendar days were always 24 hours long.
+     */
+    test.each(
+      RANGE_READERS.flatMap(
+        (reader: [string, string]): Array<[string, string, string, string]> => {
+          return WEEKS_ACROSS_A_CLOCK_CHANGE.map(
+            (week: [string, string]): [string, string, string, string] => {
+              return [reader[0], reader[1], week[0], week[1]];
+            },
+          );
+        },
+      ),
+    )(
+      "%s (%s) reaches back exactly 7 x 24 hours from %s, to %s",
+      async (
+        uri: string,
+        method: string,
+        endTime: string,
+        startTime: string,
+      ) => {
+        const reader: jest.SpyInstance = jest.spyOn(
+          RumProductAnalyticsReadService,
+          method as "getSummary",
+        );
+
+        const result: CallResult = await callAsOwner(uri, {
+          ...minimalBody(uri),
+          endTime: endTime,
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+
+        const argument: Record<string, unknown> = argumentOf(reader);
+
+        expect((argument["startTime"] as Date).toISOString()).toBe(startTime);
+        expect((argument["endTime"] as Date).toISOString()).toBe(endTime);
+        expect(
+          (argument["endTime"] as Date).getTime() -
+            (argument["startTime"] as Date).getTime(),
+        ).toBe(7 * DAY_MS);
+      },
+    );
+
+    test("the weeks above cross a clock change in the zone this file runs in, when it has one", () => {
+      /*
+       * Where the zone moves its clocks inside one of the weeks, seven of
+       * its calendar days are not 7 x 24 hours - what the routes used to
+       * step back - so there the test above fails on the old code. In UTC
+       * every calendar week is 7 x 24 hours, and it proves nothing.
+       */
+      const calendarSpansMs: Array<number> = WEEKS_ACROSS_A_CLOCK_CHANGE.map(
+        (week: [string, string]): number => {
+          const end: Date = new Date(week[0]);
+
+          return end.getTime() - OneUptimeDate.addRemoveDays(end, -7).getTime();
+        },
+      );
+      const zone: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      if (ZONES_THE_WEEKS_CROSS.includes(zone)) {
+        expect(
+          calendarSpansMs.filter((spanMs: number): boolean => {
+            return spanMs !== 7 * DAY_MS;
+          }).length,
+        ).toBe(2);
+      } else if (zone === "UTC" || zone === "Etc/UTC") {
+        expect(new Set(calendarSpansMs)).toEqual(new Set([7 * DAY_MS]));
+      } else {
+        // Any other zone: an hour either way at most, where it changes.
+        for (const spanMs of calendarSpansMs) {
+          expect(Math.abs(spanMs - 7 * DAY_MS)).toBeLessThanOrEqual(
+            60 * 60 * 1000,
+          );
+        }
+      }
+    });
+
+    test("no read in TelemetryAPI steps its default range back in the server's calendar", () => {
+      /*
+       * The session list, its users and user flows, and the LLM reads
+       * default to the last 7 days too: each counts them as product
+       * analytics does, as a length of time. A calendar step there would be
+       * the same bug on another page.
+       */
+      const source: string = fs.readFileSync(
+        path.join(__dirname, "../../../Server/API/TelemetryAPI.ts"),
+        "utf8",
+      );
+
+      expect(source).not.toMatch(/addRemoveDays\(/);
+      expect(source).not.toMatch(/getSomeDaysAgo(FromDate)?\(/);
+      expect(source).not.toMatch(/addRemoveWeeks\(/);
+      expect(
+        source.match(/OneUptimeDate\.addRemoveDurationInDays\(/g)?.length,
+      ).toBe(7);
     });
 
     test.each([

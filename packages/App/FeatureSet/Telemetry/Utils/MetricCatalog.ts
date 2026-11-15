@@ -3,6 +3,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import Dictionary from "Common/Types/Dictionary";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
 
 /*
  * One catalog per ingest request. A collector can export the same metric
@@ -34,8 +35,18 @@ export default class MetricCatalog {
       return;
     }
 
-    let metricType: MetricType | undefined =
-      this.metricNameServiceNameMap[data.name];
+    /*
+     * The catalog's own entries only, keyed as its own: a metric's name is
+     * whatever the exporter wrote. A plain read of a metric named
+     * constructor or __proto__ found what every object inherits, so no
+     * entry was made, and the ingest then wrote the metric's counter
+     * semantics onto that - the Object function, or the prototype every
+     * object of the process shares.
+     */
+    let metricType: MetricType | undefined = readOwnValue(
+      this.metricNameServiceNameMap,
+      data.name,
+    );
     if (!metricType) {
       metricType = new MetricType();
       metricType.name = data.name;
@@ -46,7 +57,7 @@ export default class MetricCatalog {
         metricType.unit = data.unit;
       }
       metricType.services = [];
-      this.metricNameServiceNameMap[data.name] = metricType;
+      writeOwnValue(this.metricNameServiceNameMap, data.name, metricType);
     }
 
     /*

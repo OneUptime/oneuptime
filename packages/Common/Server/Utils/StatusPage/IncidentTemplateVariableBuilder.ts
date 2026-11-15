@@ -34,6 +34,7 @@ import { syncIsPublicForMarkdownImages } from "../InlineImageAccessTokenSync";
 import StatusPageResourceUtil from "../StatusPageResource";
 import SubscriberMarkdownTemplateValues from "./SubscriberMarkdownTemplateValues";
 import SubscriberMessageText from "./SubscriberMessageText";
+import { StateListType } from "../../../Utils/StateOrder";
 import SubscriberTemplateValues, {
   SubscriberTemplateValueMap,
 } from "./SubscriberTemplateValues";
@@ -276,6 +277,7 @@ export class IncidentTemplateVariables {
             incidentSeverity: this.incident.incidentSeverity?.name
               ? SubscriberMessageText.nameInLanguage(
                   translator,
+                  StateListType.IncidentSeverity,
                   this.incident.incidentSeverity.name,
                 )
               : " - ",

@@ -451,6 +451,15 @@ const NO_EMAIL_STEP_LABELS: ReadonlyArray<string> = [
   "Send them their invitation link",
   "Done",
 ];
+/*
+ * Where the answer sends a master admin for a new link (#7168): the Users
+ * list, a row's menu and its Get Invitation Link.
+ */
+const NO_EMAIL_ANSWER_LABELS: ReadonlyArray<string> = [
+  "Users",
+  "⋯",
+  "Get Invitation Link",
+];
 const NO_EMAIL_STEP_LINE: number = lastBodyLine(
   englishPage(INVITING_PEOPLE),
   "### Send the invitation",
@@ -808,7 +817,9 @@ describe("the English pages", () => {
     expect(boldSpans(lines[NO_EMAIL_STEP_LINE] as string)).toEqual([
       ...NO_EMAIL_STEP_LABELS,
     ]);
-    expect(boldSpans(lines[NO_EMAIL_ANSWER_LINE] as string)).toEqual([]);
+    expect(boldSpans(lines[NO_EMAIL_ANSWER_LINE] as string)).toEqual([
+      ...NO_EMAIL_ANSWER_LABELS,
+    ]);
     expect(
       numbersIn(
         (lines[NO_EMAIL_ANSWER_LINE] as string).replace(LINK_TARGET, "]"),
@@ -873,10 +884,17 @@ describe.each(LANGUAGES)(
       }
     });
 
-    it("says in the answer for how many days the new link works, and writes nothing there in bold", () => {
+    it("says in the answer for how many days the new link works", () => {
       expect(numbersIn(answer.replace(LINK_TARGET, "]"))).toEqual(["7"]);
       expect(numbersIn(step.replace(LINK_TARGET, "]"))).toEqual([]);
-      expect(boldSpans(answer)).toEqual([]);
+    });
+
+    it("names, in the answer, the Users list, a row's menu and Get Invitation Link as this language's Dashboard draws them", () => {
+      expect(boldSpans(answer)).toEqual(
+        NO_EMAIL_ANSWER_LABELS.map((label: string): string => {
+          return drawnActionLabel(language, label);
+        }),
+      );
     });
   },
 );

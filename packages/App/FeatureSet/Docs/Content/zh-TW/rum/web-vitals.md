@@ -6,7 +6,7 @@ RUM 應用程式概覽上的 **Core Web Vitals** 卡片會顯示 LCP、INP、CLS
 - [傳送指標](#從應用程式傳送指標): 把 web-vitals 程式庫的值以 OpenTelemetry 指標轉送。
 - [OneUptime 讀取的名稱](#oneuptime-辨識的指標名稱): 每項指標可能使用的指標名稱。
 - [單頁應用程式](#單頁應用程式): 每個檢視一個 INP，而不是每次頁面載入一個值。
-- [依指標設定警示](#依指標設定警示): 針對不佳指標的現成監控器。
+- [依指標設定警示](#依指標設定警示): 針對不佳指標的現成監測器。
 :::
 
 ## 運作方式
@@ -18,7 +18,7 @@ flowchart TB
     lib["頁面中的<br/>web-vitals 程式庫"] -->|"每項指標一個值"| hist["名為 web_vital.* 的<br/>OpenTelemetry 直方圖"]
     hist -->|"OTLP 指標"| oneuptime["OneUptime"]
     oneuptime --> card["Core Web Vitals 卡片<br/>和 INP by route"]
-    oneuptime --> monitors["指標頁面<br/>和監控器"]
+    oneuptime --> monitors["指標頁面<br/>和監測器"]
 ```
 
 OpenTelemetry 還沒有 web vitals 命名的最終慣例，因此 OneUptime 會以多個名稱尋找每項指標，並使用第一個有資料的名稱。新的檢測請使用 `web_vital.*` 名稱。
@@ -135,7 +135,7 @@ OneUptime 依此順序嘗試這些名稱，所選時間範圍內第一個有資�
 卡片顯示所選時間範圍內的 **平均值** ，而不是 Google 實地工具回報的第 75 百分位數。這是刻意的：OneUptime 從直方圖的桶讀取百分位數，因此百分位數的精確度取決於桶，而平均值來自直方圖精確的總和與計數。使用 OpenTelemetry 的預設桶（ `0, 5, 10, 25, 50, …` ）時，每個 CLS 值都會落在第一個桶，一個幾乎不位移的頁面，第 75 百分位數也會顯示為 2.5。
 
 > [!TIP]
-> 把卡片當成趨勢來看。若要查看第 75 百分位數，請以上面的桶邊界記錄，然後在 **指標** 頁面上以 **P75** 彙總繪製該指標。指標監控器也提供相同的選項。
+> 把卡片當成趨勢來看。若要查看第 75 百分位數，請以上面的桶邊界記錄，然後在 **指標** 頁面上以 **P75** 彙總繪製該指標。指標監測器也提供相同的選項。
 
 ## 單頁應用程式
 
@@ -269,7 +269,7 @@ useEffect(() => startView(toRoutePattern(pathname)), [pathname]);
 你會得到：
 
 - 概覽上的 **INP by route** ，依 `app.route` 從最慢的開始排列；OneUptime 也會讀取 OpenTelemetry 的 `url.template` 。
-- 用於警示的路由篩選器：在指標監控器中依 `app.route` 篩選 `web_vital.inp` ，即可單獨監看一個流程，例如 `/checkout` 。
+- 用於警示的路由篩選器：在指標監測器中依 `app.route` 篩選 `web_vital.inp` ，即可單獨監看一個流程，例如 `/checkout` 。
 - **Core Web Vitals** 卡片上的全應用程式 INP 照常運作：它仍是同一個指標，只是現在每個檢視一個值，而不是每次頁面載入一個。
 
 Chromium 瀏覽器會回報這項功能所需的互動 ID。Safari 不會回報，這也是 `onINP` 在那裡什麼都不回報的原因。Chrome 的實驗性 Soft Navigations API 目標是原生做到這點，但尚未全面推出；這個輔助函式現在就能使用。
@@ -292,7 +292,7 @@ histogram.record(metric.value, {
 
 ## 依指標設定警示
 
-應用程式的 **建議** 頁面為每項指標提供一個現成的監控器。每個監控器讀取其指標的五分鐘平均值，並在達到 Google 的不佳門檻時觸發：
+應用程式的 **建議** 頁面為每項指標提供一個現成的監測器。每個監測器讀取其指標的五分鐘平均值，並在達到 Google 的不佳門檻時觸發：
 
 | 建議 | 指標 | 觸發值 | 嚴重性 |
 | --- | --- | --- | --- |
@@ -302,7 +302,7 @@ histogram.record(metric.value, {
 | **Slow First Contentful Paint** | `web_vital.fcp` | 3000 毫秒 | **警告** |
 | **Slow Time to First Byte** | `web_vital.ttfb` | 1800 毫秒 | **警告** |
 
-這些監控器只讀取 `web_vital.*` 名稱。如果你的應用程式以其他名稱傳送某項指標，請編輯所建立監控器的指標。若要針對單一路由警示，請為監控器加入 `app.route` 篩選器。你也可以根據這些指標中的任何一個建立自己的監控器：請參閱 [指標監控](/docs/monitor/metrics-monitor) 。
+這些監測器只讀取 `web_vital.*` 名稱。如果你的應用程式以其他名稱傳送某項指標，請編輯所建立監測器的指標。若要針對單一路由警示，請為監測器加入 `app.route` 篩選器。你也可以根據這些指標中的任何一個建立自己的監測器：請參閱 [指標監控](/docs/monitor/metrics-monitor) 。
 
 ## 疑難排解
 

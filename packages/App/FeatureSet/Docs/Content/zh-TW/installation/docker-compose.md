@@ -600,7 +600,7 @@ Admin Dashboard 在 **設定 > 監控 > 全域探針** 下列出該探針。它�
 
 :::cards
 - [完成伺服器設定](/docs/installation/self-hosting-guide#完成伺服器設定): 先是電子郵件，然後是簡訊和電話，每一項都附測試。
-- [快速開始](/docs/introduction/quickstart): 你的第一個監控器、第一個值班政策和第一個狀態頁面。
+- [快速開始](/docs/introduction/quickstart): 你的第一個監測器、第一個值班政策和第一個狀態頁面。
 - [升級 OneUptime](/docs/installation/upgrading): 每個主要版本需要你做的事。
 - [自行託管架構](/docs/self-hosted/architecture): 各元件如何搭配運作。
 :::
