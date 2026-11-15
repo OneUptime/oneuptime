@@ -52328,6 +52328,7 @@
   "Expand all branches": "Alle takken uitvouwen",
   "Expand {{name}}: {{count}} devices below it": "{{name}} uitvouwen: {{count}} apparaten eronder",
   "Expand {{name}}: {{count}} devices below it_one": "{{name}} uitvouwen: {{count}} apparaat eronder",
+  "Get Invitation Link": "Uitnodigingslink ophalen",
   "Narrows the map to this device and the {{count}} devices below it.": "Beperkt de kaart tot dit apparaat en de {{count}} apparaten eronder.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Beperkt de kaart tot dit apparaat en {{count}} apparaat eronder.",
   "Opens the branches they are in.": "Opent de takken waarin ze zich bevinden.",

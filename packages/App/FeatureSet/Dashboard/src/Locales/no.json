@@ -52328,6 +52328,7 @@
   "Expand all branches": "Vis alle grener",
   "Expand {{name}}: {{count}} devices below it": "Vis {{name}}: {{count}} enheter under den",
   "Expand {{name}}: {{count}} devices below it_one": "Vis {{name}}: {{count}} enhet under den",
+  "Get Invitation Link": "Hent invitasjonslenke",
   "Narrows the map to this device and the {{count}} devices below it.": "Begrenser kartet til denne enheten og de {{count}} enhetene under den.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Begrenser kartet til denne enheten og {{count}} enhet under den.",
   "Opens the branches they are in.": "Åpner grenene de ligger i.",

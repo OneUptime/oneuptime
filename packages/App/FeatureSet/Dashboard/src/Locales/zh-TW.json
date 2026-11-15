@@ -52328,6 +52328,7 @@
   "Expand all branches": "展開所有分支",
   "Expand {{name}}: {{count}} devices below it": "展開 {{name}}：其下有 {{count}} 台裝置",
   "Expand {{name}}: {{count}} devices below it_one": "展開 {{name}}：其下有 {{count}} 台裝置",
+  "Get Invitation Link": "取得邀請連結",
   "Narrows the map to this device and the {{count}} devices below it.": "將地圖縮小到此裝置及其下的 {{count}} 台裝置。",
   "Narrows the map to this device and the {{count}} devices below it._one": "將地圖縮小到此裝置及其下的 {{count}} 台裝置。",
   "Opens the branches they are in.": "展開它們所在的分支。",
