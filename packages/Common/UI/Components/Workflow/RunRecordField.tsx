@@ -60,6 +60,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 // How long typing has to pause before the list is asked for again.
 export const RUN_RECORD_SEARCH_DELAY_MS: number = 250;
@@ -780,7 +781,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={`${testId}-failed`}
           >
-            {list.error}
+            <ErrorInSentence message={list.error} showWhereToLook={true} />
           </p>
         ) : null}
       </div>

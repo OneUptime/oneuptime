@@ -98,7 +98,7 @@ For et vertsnavn måler sonden sjekken i to faser:
 | **DNS-oppslag** | Starten av sjekken | Det første TCP-tilkoblingsforsøket |
 | **TCP-tilkobling** | Det første TCP-tilkoblingsforsøket | At tilkoblingen godtas, inkludert tiden brukt på å bytte mellom IPv6- og IPv4-adresser |
 
-**Total Connection Time (DNS + TCP)** går fra starten av sjekken til tilkoblingen godtas. Det er også port-monitorens svartid, så eksisterende kriterier, varsler og diagrammer som bruker svartiden, fortsetter å virke.
+**Total tilkoblingstid (DNS + TCP)** går fra starten av sjekken til tilkoblingen godtas. Det er også port-monitorens svartid, så eksisterende kriterier, varsler og diagrammer som bruker svartiden, fortsetter å virke.
 
 Når målet er en IP-adresse, er det ikke noe DNS-oppslag, så den fasen utelates. Sjekkresultater fra før fasetidene fantes, viser bare den totale tilkoblingstiden.
 

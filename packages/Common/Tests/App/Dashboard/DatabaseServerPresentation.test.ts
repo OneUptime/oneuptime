@@ -9,7 +9,6 @@ import {
   formatDatabaseCount,
   formatDatabaseMetricUnitValue,
   formatDatabaseMetricValue,
-  formatDatabaseRuntimeValue,
   formatDatabaseSeconds,
   getCollectorReceiverTypes,
   getDatabaseDiscoverySourceOptions,
@@ -26,6 +25,7 @@ import {
   hasCollectorReceiver,
   isDatabaseServerLive,
   normalizeEngine,
+  formatDatabaseRuntimeAxisValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import DatabaseServerDiscoverySource, {
@@ -421,12 +421,20 @@ describe("formatting", () => {
     );
   });
 
-  test("runtime values", () => {
-    expect(formatDatabaseRuntimeValue(null, "cores")).toBe("—");
-    expect(formatDatabaseRuntimeValue(0.125, "cores")).toBe("0.125 cores");
-    expect(formatDatabaseRuntimeValue(2.5, "cores")).toBe("2.50 cores");
-    expect(formatDatabaseRuntimeValue(42.123, "percent")).toBe("42.1%");
-    expect(formatDatabaseRuntimeValue(1024 * 1024, "bytes")).toBe("1.0 MiB");
+  /*
+   * formatDatabaseRuntimeValue ("0.25 cores", in English in every
+   * language) is gone: nothing drew it (#8060). The runtime charts write
+   * their figures with formatDatabaseRuntimeAxisValue, in the reader's
+   * digits (DatabaseRuntimeChartsInReadersLanguage.test.tsx).
+   */
+  test("runtime values: the axis figures, in English as they always were", () => {
+    expect(formatDatabaseRuntimeAxisValue(null, "cores")).toBe("");
+    expect(formatDatabaseRuntimeAxisValue(0.125, "cores")).toBe("0.13");
+    expect(formatDatabaseRuntimeAxisValue(2.5, "cores")).toBe("2.5");
+    expect(formatDatabaseRuntimeAxisValue(42.123, "percent")).toBe("42.1%");
+    expect(formatDatabaseRuntimeAxisValue(1024 * 1024, "bytes")).toBe(
+      "1.0 MiB",
+    );
   });
 });
 

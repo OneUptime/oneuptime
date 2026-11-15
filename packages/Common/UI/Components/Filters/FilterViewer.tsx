@@ -4,6 +4,7 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "../Dictionary/DictionaryFilterOperator";
+import DictionaryFilterSentence from "../Dictionary/DictionaryFilterSentence";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
@@ -135,9 +136,9 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     json: Dictionary<string | number | boolean>,
   ): ReactElement => {
     /*
-     * Ignore entries with empty key or empty value, and translate
-     * operator wrappers into their display symbol so chips like
-     * `host.name != prod-1` or `path contains api` render correctly.
+     * Ignore entries with empty key or empty value, and say each operator
+     * wrapper as its sentence in the reader's language, so a chip reads
+     * `host.name != prod-1` or `path enthält api` (DictionaryFilterSentence).
      */
     const isMeaningfulEntry: (key: string, value: unknown) => boolean = (
       key: string,
@@ -166,33 +167,18 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     return (
       <div className="flex space-x-2 -mt-1">
         {visibleKeys.map((key: string, i: number) => {
-          const rawValue: unknown = json[key];
-          const detected: {
-            operator: DictionaryFilterOperator;
-            rawValue: string;
-          } = detectOperatorFromValue(rawValue);
-          const option: DictionaryFilterOperatorOption = getOperatorOption(
-            detected.operator,
-          );
-
-          let jsonText: string = detected.rawValue;
-          if (typeof rawValue === "boolean") {
-            jsonText = rawValue ? "True" : "False";
-          }
-
           return (
             <div
               key={i}
               className="rounded-full h-7 bg-gray-100 text-gray-500 border-2 border-gray-200 p-1 pr-2 pl-2 text-xs"
             >
-              <span className="font-medium">{key}</span>{" "}
-              <span>{option.symbol}</span>
-              {!option.hidesValueInput && (
-                <>
-                  {" "}
-                  <span className="font-medium">{jsonText}</span>
-                </>
-              )}
+              <DictionaryFilterSentence
+                attributeKey={key}
+                value={json[key]}
+                keyClassName="font-medium"
+                valueClassName="font-medium"
+                dataTestId="filter-attribute-chip"
+              />
             </div>
           );
         })}

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9240
+    "keys": 52416,
+    "untranslated": 9123
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -55,6 +55,8 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPU per container",
+    "CPU per pod",
     "Cache",
     "Canada (+1)",
     "Canonical Sunbeam",
@@ -162,6 +164,7 @@
     "Insight",
     "Internet",
     "IoT",
+    "Jitter",
     "Jitter (in ms)",
     "Job",
     "Kelvin",
@@ -201,6 +204,7 @@
     "Namespace",
     "Nav",
     "No",
+    "OID Collection Template",
     "OK",
     "OR",
     "OSD",
@@ -255,6 +259,7 @@
     "Query {{number}}",
     "Quota",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -264,6 +269,7 @@
     "RegionOne",
     "Report",
     "Repository",
+    "Resolver",
     "Resource class",
     "Rollback: {{command}}",
     "Route",
@@ -320,10 +326,12 @@
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
     "Trigger",
+    "Trigger: {{name}}",
     "Tunnel",
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Up · In",

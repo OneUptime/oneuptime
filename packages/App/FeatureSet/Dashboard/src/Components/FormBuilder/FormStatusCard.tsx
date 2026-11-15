@@ -14,6 +14,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Whether the form takes submissions, as one switch: flipping it saves at
@@ -132,7 +133,11 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
         {error ? (
           <Alert
             type={AlertType.DANGER}
-            title={<span>{error}</span>}
+            title={
+              <span>
+                <ErrorInSentence message={error} showWhereToLook={true} />
+              </span>
+            }
             dataTestId="form-status-error"
           />
         ) : (

@@ -57,6 +57,7 @@ import {
   type IncomingCallPolicyPhoneNumbersByPolicyId,
 } from "../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -394,7 +395,13 @@ const IncomingCallPoliciesPage: FunctionComponent<
                 }
 
                 return (
-                  <span className="text-red-600" title={phoneNumbersError}>
+                  <span
+                    className="text-red-600"
+                    title={getErrorInSentenceText({
+                      message: phoneNumbersError,
+                      translator: translator,
+                    })}
+                  >
                     {translator.translateText("Unavailable")}
                   </span>
                 );

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9292
+    "keys": 52416,
+    "untranslated": 9175
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -39,6 +39,8 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPU per container",
+    "CPU per pod",
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",
@@ -119,6 +121,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Kelvin",
     "Keystone",
     "Kilohertz",
@@ -153,6 +156,7 @@
     "Node",
     "Normal",
     "Null",
+    "OID Collection Template",
     "OK",
     "OSD",
     "Object Gateway",
@@ -196,6 +200,7 @@
     "Prompt",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -204,6 +209,7 @@
     "Region",
     "RegionOne",
     "Reserved Instances",
+    "Resolver",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -255,6 +261,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",

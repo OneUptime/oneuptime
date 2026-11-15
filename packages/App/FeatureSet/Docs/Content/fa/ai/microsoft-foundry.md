@@ -211,7 +211,7 @@ extraEnv:
 
 ## نیازمندی‌های شبکه
 
-کارساز OneUptime روی درگاه 443 به نام میزبان منبع، مانند `contoso-ai.openai.azure.com` یا `contoso-ai.services.ai.azure.com`، اتصال HTTPS باز می‌کند. این ترافیک خروجی را در دیوار آتش یا پراکسی خود مجاز کنید.
+کارساز OneUptime روی پورت ۴۴۳ به نام میزبان منبع، مانند `contoso-ai.openai.azure.com` یا `contoso-ai.services.ai.azure.com`، اتصال HTTPS باز می‌کند. این ترافیک خروجی را در دیوار آتش یا پراکسی خود مجاز کنید.
 
 - **OneUptime Cloud** از راه اینترنت به منبع می‌رسد، پس منبع باید ترافیک عمومی را بپذیرد. برای دور نگه داشتن منبع از اینترنت، OneUptime را خودتان میزبانی کنید.
 - **میزبانی شخصی، نقطه پایانی خصوصی**: منبع را پشت یک نقطه پایانی خصوصی در شبکه مجازی‌ای بگذارید که کارساز OneUptime به آن دسترسی دارد، و منطقه‌های DNS خصوصی `privatelink.openai.azure.com`، `privatelink.services.ai.azure.com` و `privatelink.cognitiveservices.azure.com` را به آن پیوند دهید تا نام میزبان معمول منبع به نشانی خصوصی آن تبدیل شود. نشانی پایه تغییر نمی‌کند.

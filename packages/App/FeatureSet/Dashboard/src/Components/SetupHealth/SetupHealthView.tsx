@@ -39,7 +39,9 @@ import {
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { IconColorClasses } from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Link from "Common/UI/Components/Link/Link";
@@ -821,7 +823,7 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
 
         {actionError ? (
           <p className="text-sm text-red-700" role="alert">
-            {actionError}
+            <ErrorInSentence message={actionError} showWhereToLook={true} />
           </p>
         ) : (
           <></>

@@ -2522,6 +2522,149 @@ test("a Persian reader reads every tab's number, opening and counts in Persian d
 });
 
 /*
+ * #7318: around the tab switcher the player still drew "0:01 / 0:30",
+ * "0:00.7", "10s", "1x", "1200x760 -> 43%", "13:47:53", the rail's
+ * "0:03.0" and the timeline's hover time in Latin digits on a Persian
+ * page. Every figure the player writes is in Persian digits now, and each
+ * clock pair still reads left to right: the playhead before the length.
+ */
+const PERSIAN_DIGIT: RegExp = /[\u{06F0}-\u{06F9}]/u;
+const ARABIC_INDIC_DIGIT: RegExp = /[\u{0660}-\u{0669}]/u;
+// What a reader sees or hears of every figure the player draws itself.
+const playerFigures: (page: Page) => Promise<Array<string>> = async (
+  page: Page,
+): Promise<Array<string>> => {
+  const track: Locator = page.getByTestId("timeline-track");
+  const box: { x: number; y: number; width: number; height: number } | null =
+    await track.boundingBox();
+
+  expect(box).not.toBeNull();
+  await page.mouse.move(
+    (box?.x || 0) + (box?.width || 0) / 2,
+    (box?.y || 0) + (box?.height || 0) / 2,
+  );
+  await expect(page.getByTestId("timeline-hover-time")).toBeVisible();
+
+  return page.evaluate((): Array<string> => {
+    const ids: Array<string> = [
+      "replay-time",
+      "replay-seek-back",
+      "replay-seek-forward",
+      "replay-speed",
+      "replay-header-wall-clock",
+      "replay-header-offset",
+      "replay-viewport-chip",
+      "timeline-track",
+      "timeline-hover-time",
+      "rail-row-time",
+      "rail-now-divider",
+    ];
+    const texts: Array<string> = [];
+
+    for (const id of ids) {
+      for (const element of Array.from(
+        document.querySelectorAll<HTMLElement>(`[data-testid="${id}"]`),
+      )) {
+        for (const text of [
+          element.textContent || "",
+          element.getAttribute("aria-label") || "",
+          element.getAttribute("aria-valuetext") || "",
+        ]) {
+          if (text) {
+            texts.push(`${id}: ${text.replace(/[⁦-⁩]/g, "")}`);
+          }
+        }
+      }
+    }
+
+    return texts;
+  });
+};
+
+test("a Persian reader reads the player's clocks, buttons, chip, rail and timeline in Persian digits", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openPlayerIn(page, "?lang=fa");
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-stage")).toHaveAttribute(
+    "data-replay-phase",
+    "paused",
+  );
+
+  const figures: Array<string> = await playerFigures(page);
+
+  for (const id of [
+    "replay-time",
+    "replay-seek-back",
+    "replay-speed",
+    "replay-header-offset",
+    "timeline-hover-time",
+    "rail-row-time",
+  ]) {
+    expect({
+      id,
+      drawn: figures.some((text: string): boolean => {
+        return text.startsWith(`${id}: `);
+      }),
+    }).toEqual({ id, drawn: true });
+  }
+
+  expect(
+    figures.filter((text: string): boolean => {
+      return LATIN_DIGIT.test(text);
+    }),
+  ).toEqual([]);
+  await expect(page.getByTestId("replay-seek-back")).toContainText("۱۰ ثانیه");
+  await expect(page.getByTestId("replay-speed")).toContainText("۱x");
+  // Paused: the clock carries its tenth, after Persian's decimal sign.
+  await expect(page.getByTestId("replay-time")).toContainText(
+    /^[۰-۹]+(:[۰-۹]{2})+٫[۰-۹] \/ [۰-۹]+(:[۰-۹]{2})+$/,
+  );
+
+  // On a page read from the right, the playhead still comes first.
+  const clock: Locator = page.getByTestId("replay-time");
+  const halves: Array<number> = await clock.evaluate(
+    (element: HTMLElement): Array<number> => {
+      return Array.from(element.children).map((child: Element): number => {
+        return child.getBoundingClientRect().left;
+      });
+    },
+  );
+
+  expect(
+    await page.evaluate((): string => {
+      return document.dir;
+    }),
+  ).toBe("rtl");
+  expect(halves).toHaveLength(2);
+  expect(halves[0] as number).toBeLessThan(halves[1] as number);
+  await screenshot(page, "session-replay-player-fa-digits");
+});
+
+test("an Arabic reader reads the player's figures in Latin digits", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openPlayerIn(page, "?lang=ar");
+  await page.getByTestId("replay-play-pause").click();
+
+  const figures: Array<string> = await playerFigures(page);
+
+  expect(figures.length).toBeGreaterThan(6);
+  expect(
+    figures.filter((text: string): boolean => {
+      return PERSIAN_DIGIT.test(text) || ARABIC_INDIC_DIGIT.test(text);
+    }),
+  ).toEqual([]);
+  await expect(page.getByTestId("replay-seek-back")).toContainText("10 ث");
+});
+
+/*
  * #7096: where the player says the end user's identity is hidden, it said
  * it "needs the identity permission" - a permission no roles screen lists.
  * The header's tooltip and the session details' End user row now name

@@ -11,7 +11,7 @@
 
 ## 工作原理
 
-Docker Compose 把 OneUptime 的每个部分作为容器运行在你的服务器上。所有流量都从 `ingress` 容器进入，再由它路由到 `app`。应用把数据保存在 PostgreSQL、ClickHouse 和 Valkey 中。内置的探针执行监视器的检查，并通过 ingress 回报结果。
+Docker Compose 把 OneUptime 的每个部分作为容器运行在你的服务器上。所有流量都从 `ingress` 容器进入，再由它路由到 `app`。应用把数据保存在 PostgreSQL、ClickHouse 和 Valkey 中。内置的探测器执行监视器的检查，并通过 ingress 回报结果。
 
 ```mermaid title="Docker Compose 部署"
 flowchart TB
@@ -48,7 +48,7 @@ flowchart TB
 | --- | --- | --- |
 | `ingress` | `oneuptime/nginx` | 接收端口 80 和 443 上的所有流量，并路由到应用。当 OneUptime 管理证书时提供 HTTPS。 |
 | `app` | `oneuptime/app` | 仪表板、API、状态页面、遥测数据接收和后台任务进程。 |
-| `probe-1` | `oneuptime/probe` | 执行监视器检查的全局探针。它使用主机网络。 |
+| `probe-1` | `oneuptime/probe` | 执行监视器检查的全局探测器。它使用主机网络。 |
 | `global-runner` | `oneuptime/runner` | 内置的全局 Runner，为所有项目运行运行手册的 JavaScript 步骤和 OneUptime AI 的代码修复。 |
 | `postgres` | `postgres:15` | 配置和状态：监视器、事件、用户。保存在 `postgres` 卷中。 |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
@@ -85,7 +85,7 @@ flowchart TB
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 仪表板、API、遥测数据接收和 Let's Encrypt 验证。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | 当 OneUptime 管理证书时为实例提供 HTTPS，并为自定义域名上的状态页面和仪表板提供 HTTPS。 |
 | 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | 让 `npm run backup` 和 `restore.sh` 从服务器本机访问 PostgreSQL。它只发布在 `127.0.0.1` 上。 |
-| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探针自身的服务器。服务器之外不需要访问它。 |
+| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探测器自身的服务器。服务器之外不需要访问它。 |
 
 另有一个安装过程的 [视频演示](https://youtu.be/j1SWmMW2oL4)。
 
@@ -157,8 +157,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 | `ONEUPTIME_SECRET` | OneUptime 自身服务之间的调用。 |
 | `ENCRYPTION_SECRET` | OneUptime 存储的密钥（如集成令牌和 SMTP 密码），以及它签发的登录令牌。 |
 | `DATABASE_PASSWORD`、`CLICKHOUSE_PASSWORD`、`VALKEY_PASSWORD` | 三个数据存储。 |
-| `REGISTER_PROBE_KEY` | 向你的实例注册探针。 |
-| `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose 可以运行的全局探针（默认运行 `probe-1`）。 |
+| `REGISTER_PROBE_KEY` | 向你的实例注册探测器。 |
+| `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose 可以运行的全局探测器（默认运行 `probe-1`）。 |
 | `GLOBAL_RUNNER_KEY` | 内置的全局 Runner，运行所有项目的 JavaScript 步骤和 AI 代码修复。 |
 
 > [!IMPORTANT]
@@ -234,7 +234,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-探针使用主机网络，通过 `http://localhost` 访问 OneUptime。`npm start` 会把它改到 ingress 的新端口 `http://localhost:8080`，并加以说明。
+探测器使用主机网络，通过 `http://localhost` 访问 OneUptime。`npm start` 会把它改到 ingress 的新端口 `http://localhost:8080`，并加以说明。
 
 #### 告诉 OneUptime 它位于代理之后
 
@@ -518,7 +518,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 npm run doctor
 ```
 
-它会列出出错的地方，最严重的排在最前，每行都附有确切的修复方法，最后显示 **Everything looks right.** 或需要修复的问题数量。它会检查每个容器，并显示未运行容器日志的最后几行，还会检查 `config.env`、`HOST` 能否到达这台服务器、`PROVISION_SSL` 开启时的证书以及可用磁盘空间。它还会询问 OneUptime 对自身的了解：PostgreSQL、ClickHouse 和 Valkey、迁移、队列、版本，以及服务器的设置步骤，例如电子邮件和探针。`npm start` 结束时也会做同样的检查，只列出需要处理的问题。
+它会列出出错的地方，最严重的排在最前，每行都附有确切的修复方法，最后显示 **Everything looks right.** 或需要修复的问题数量。它会检查每个容器，并显示未运行容器日志的最后几行，还会检查 `config.env`、`HOST` 能否到达这台服务器、`PROVISION_SSL` 开启时的证书以及可用磁盘空间。它还会询问 OneUptime 对自身的了解：PostgreSQL、ClickHouse 和 Valkey、迁移、队列、版本，以及服务器的设置步骤，例如电子邮件和探测器。`npm start` 结束时也会做同样的检查，只列出需要处理的问题。
 
 如需同时查看每个服务最近的错误（每条都标明服务名称）：
 
@@ -592,8 +592,8 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
-:::details 移动 ingress 端口后，内置探针显示已断开
-Admin Dashboard 在 **设置 > 监控 > 全局探针** 下列出该探针。它通过 `GLOBAL_PROBE_1_ONEUPTIME_URL` 访问 OneUptime，默认值为 `http://localhost`（端口 80）。只要它指向 `localhost`，`npm start` 就会把它改到 ingress 的端口。如果你把它设成了其他地址，或者是用 Docker CLI 启动的 OneUptime，请把它设为 ingress 的新端口，例如 `http://localhost:8080`，然后重启 OneUptime。
+:::details 移动 ingress 端口后，内置探测器显示已断开
+Admin Dashboard 在 **设置 > 监控 > 全局探测器** 下列出该探测器。它通过 `GLOBAL_PROBE_1_ONEUPTIME_URL` 访问 OneUptime，默认值为 `http://localhost`（端口 80）。只要它指向 `localhost`，`npm start` 就会把它改到 ingress 的端口。如果你把它设成了其他地址，或者是用 Docker CLI 启动的 OneUptime，请把它设为 ingress 的新端口，例如 `http://localhost:8080`，然后重启 OneUptime。
 :::
 
 ## 后续步骤

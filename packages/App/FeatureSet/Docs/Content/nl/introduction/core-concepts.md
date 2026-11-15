@@ -46,7 +46,7 @@ De **criteria** van een monitor bepalen wat elk resultaat betekent. Ze worden op
 
 :::cards
 - [Een monitor maken](/docs/monitor/create-monitor): Een type kiezen, zeggen wat er gecontroleerd wordt en hoe vaak.
-- [Aangepaste probes](/docs/probe/custom-probe): Controleren wat alleen uw eigen netwerk bereikt.
+- [Aangepaste sondes](/docs/probe/custom-probe): Controleren wat alleen uw eigen netwerk bereikt.
 :::
 
 ## Wat u bewaakt

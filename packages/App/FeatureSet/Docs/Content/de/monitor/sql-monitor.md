@@ -250,7 +250,7 @@ Hängen Sie eine Bereitschaftsrichtlinie an das Kriterium, damit die richtigen P
 
 - Die Abfrage läuft bei jeder Prüfung, halten Sie sie also günstig. Verwenden Sie Indizes und schmale Zeitfenster, und verlassen Sie sich auf das Statement-Timeout als Absicherung.
 - Gemeldet werden nur die Zeilenzahl, die erste Zelle (Skalar) und die erste Zeile — gestalten Sie Ihre Abfrage so, dass der Wert, auf den Sie alarmieren wollen, in der ersten Spalte steht.
-- Wird das Ergebnis gekürzt, weil es Max. Zeilen überschritt, zeigt die Zusammenfassung der Prüfung **Zeilen gekürzt**: "Yes (result capped)". Erhöhen Sie Max. Zeilen nur, wenn Sie es brauchen; größere Ergebnismengen kosten mehr Speicher auf der Sonde.
+- Wird das Ergebnis gekürzt, weil es Max. Zeilen überschritt, zeigt die Zusammenfassung der Prüfung **Zeilen gekürzt**: "Ja (Ergebnis begrenzt)". Erhöhen Sie Max. Zeilen nur, wenn Sie es brauchen; größere Ergebnismengen kosten mehr Speicher auf der Sonde.
 - Schreibvorgänge und DDL werden immer abgelehnt. Wenn Sie einen Schreibpfad testen müssen, ist das nicht die Aufgabe dieses Monitors.
 - Ziehen Sie ein Monitor-Geheimnis einem Klartextpasswort vor, damit die Zugangsdaten verschlüsselt gespeichert bleiben.
 - Schlägt die Abfrage einer Prüfung fehl, wird sie eine Sekunde später erneut versucht, bis zu dreimal, bevor die Prüfung den Fehler meldet, sodass ein kurzer Verbindungsabbruch den Monitor nicht offline nimmt. Auf einer selbst gehosteten Sonde legt `PROBE_MONITOR_RETRY_LIMIT` fest, wie oft.

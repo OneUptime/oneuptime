@@ -20,7 +20,10 @@ export interface ComponentProps {
  * An incident's or an alert's root cause on its Root Cause page, as a
  * detail card shows Markdown - with what a monitor wrote in it in the
  * reader's language as far as it goes (MonitorRootCauseWording), as the
- * overview's What happened card shows it.
+ * overview's What happened card shows it. Each value it keeps as stored is
+ * set apart from the label worded before it, so on an Arabic or Persian
+ * page "**نام معیار**: Website is down" reads from the right, as its label
+ * does, with the English value whole inside it.
  */
 const MonitorRootCauseValue: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -51,6 +54,7 @@ const MonitorRootCauseValue: FunctionComponent<ComponentProps> = (
           translator: translator,
           findings: evaluationDetails?.filters,
           options: EVALUATION_TEXT_OPTIONS,
+          setsValuesApart: true,
         })}
       />
     </div>

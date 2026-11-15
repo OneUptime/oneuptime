@@ -1447,14 +1447,15 @@ describe("the page's own pause in the reader's language", () => {
     cleanup();
     renderDetail(pageSignal("resumed"));
 
+    // The length in German too, not the English "23m" (#7318).
     expect(shown(screen.getByTestId("rail-detail"))).toContain(
-      worded(DE, PAGE_PAUSE_KEYS[1] as string, { duration: "23m" }),
+      worded(DE, PAGE_PAUSE_KEYS[1] as string, { duration: "23 Min." }),
     );
     expect(shown(screen.getByTestId("rail-detail"))).not.toContain(
       worded(
         DE,
         "Input came back after {{duration}} and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
-        { duration: "23m" },
+        { duration: "23 Min." },
       ),
     );
   });
@@ -1480,6 +1481,6 @@ describe("the page's own pause in the reader's language", () => {
         },
         translatorFor(DE, "de"),
       ),
-    ).toBe(worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1m" }));
+    ).toBe(worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1 Min." }));
   });
 });

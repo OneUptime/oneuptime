@@ -17,6 +17,7 @@ import React, {
 import { VideoCallTestResult } from "./VideoCallApi";
 import { getOpenableJoinUrl } from "./VideoCallJoinLink";
 import VideoCallProviderLogo from "./VideoCallProviderLogo";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Starts a real test meeting with a connection's settings - the one check
@@ -161,7 +162,7 @@ const VideoCallTestPanel: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <p className="mt-1 whitespace-pre-wrap break-words text-sm text-red-700">
-            {state.message}
+            <ErrorInSentence message={state.message} showWhereToLook={true} />
           </p>
         </div>
       )}

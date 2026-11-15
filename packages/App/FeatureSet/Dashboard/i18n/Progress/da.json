@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9252
+    "keys": 52416,
+    "untranslated": 9135
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -164,6 +164,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Job",
     "Kelvin",
     "Keystone",
@@ -212,6 +213,7 @@
     "Normal",
     "Note",
     "Null",
+    "OID Collection Template",
     "OK",
     "OSD",
     "Object Gateway",
@@ -268,6 +270,7 @@
     "Pull requests",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -278,6 +281,7 @@
     "RegionOne",
     "Relation",
     "Reserved Instances",
+    "Resolver",
     "Revision",
     "Revision {{revision}}",
     "Rollbacks",
@@ -345,12 +349,14 @@
     "Total",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
     "Trigger",
+    "Trigger: {{name}}",
     "Tunnel",
     "Type",
     "Type: {{type}}",
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",

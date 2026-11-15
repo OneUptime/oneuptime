@@ -34,6 +34,13 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
+  getTemplateAround,
+  TemplateAround,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
   WorkflowTemplate,
   WorkflowTemplateVariable,
   WorkflowTemplateWhoToPage,
@@ -122,10 +129,32 @@ const WorkflowTemplateDetails: FunctionComponent<
     return getWorkflowTemplatePreview(props.template);
   }, [props.template.id]);
   const tx: TranslateFunction = props.tx;
+  const translator: Translator = useTranslator();
 
   if (!preview) {
     return <></>;
   }
+
+  /*
+   * What a screen reader hears around a chip's or a setting's own name: one
+   * sentence each, cut around the name, so a language puts its words where
+   * its grammar does - never "Trigger" and ": " joined in English's order
+   * (#8076). The halves are drawn as text beside the name, not boxes.
+   */
+  const triggerWords: TemplateAround = getTemplateAround(
+    translator,
+    translationKey("Trigger: {{name}}"),
+    "name",
+    {},
+    { setsSlotApart: false },
+  );
+  const secretWords: TemplateAround = getTemplateAround(
+    translator,
+    translationKey("{{name}}, Secret"),
+    "name",
+    {},
+    { setsSlotApart: false },
+  );
 
   // Template text is shown as it is written, like its name and description.
   const setUpInBuilder: string = (preview.template.setUpInBuilder || "").trim();
@@ -146,7 +175,8 @@ const WorkflowTemplateDetails: FunctionComponent<
               icon={preview.trigger.icon}
               label={preview.trigger.title}
               isAccent={true}
-              screenReaderPrefix={`${tx("Trigger")}: `}
+              screenReaderPrefix={triggerWords.before}
+              screenReaderSuffix={triggerWords.after}
               dataTestId="workflow-template-details-trigger"
             />
             <Icon
@@ -197,9 +227,14 @@ const WorkflowTemplateDetails: FunctionComponent<
                       <></>
                     )}
                     <span className="min-w-0">
+                      {variable.isSecret && secretWords.before ? (
+                        <span className="sr-only">{secretWords.before}</span>
+                      ) : (
+                        <></>
+                      )}
                       {variable.title}
-                      {variable.isSecret ? (
-                        <span className="sr-only">{`, ${tx("Secret")}`}</span>
+                      {variable.isSecret && secretWords.after ? (
+                        <span className="sr-only">{secretWords.after}</span>
                       ) : (
                         <></>
                       )}

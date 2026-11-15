@@ -54,6 +54,7 @@ import {
   PAGE_START_ALIGN_CLASS_NAME,
 } from "./TitleDirection";
 import { useAiChat, UseAiChat } from "./useAiChat";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * ASK AI, BESIDE THE PAGE.
@@ -475,7 +476,9 @@ const AskAiPanelSurface: FunctionComponent<PanelProps> = (
       <div className="flex h-5 flex-shrink-0 items-center">
         <Icon icon={IconProp.Error} className="h-3.5 w-3.5 text-rose-500" />
       </div>
-      <span className="min-w-0 flex-1 break-words">{chat.error}</span>
+      <span className="min-w-0 flex-1 break-words">
+        <ErrorInSentence message={chat.error} showWhereToLook={true} />
+      </span>
       <button
         type="button"
         title={translator.translateText("Dismiss")}

@@ -20,6 +20,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   /**
@@ -427,7 +428,7 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
             role="alert"
             className="border-b border-red-200 bg-red-50 px-5 py-3 text-sm text-red-700 md:px-6"
           >
-            {actionError}
+            <ErrorInSentence message={actionError} showWhereToLook={true} />
           </div>
         ) : (
           <></>

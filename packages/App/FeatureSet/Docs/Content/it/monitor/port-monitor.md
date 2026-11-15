@@ -98,7 +98,7 @@ Per un nome host, la sonda misura il controllo in due fasi:
 | **Risoluzione DNS** | L'inizio del controllo | Il primo tentativo di connessione TCP |
 | **Connessione TCP** | Il primo tentativo di connessione TCP | L'accettazione della connessione, compreso il tempo trascorso a passare tra indirizzi IPv6 e IPv4 |
 
-**Total Connection Time (DNS + TCP)** va dall'inizio del controllo fino all'accettazione della connessione. È anche il tempo di risposta del monitor porta, quindi i criteri, gli avvisi e i grafici esistenti che usano il tempo di risposta continuano a funzionare.
+**Tempo di connessione totale (DNS + TCP)** va dall'inizio del controllo fino all'accettazione della connessione. È anche il tempo di risposta del monitor porta, quindi i criteri, gli avvisi e i grafici esistenti che usano il tempo di risposta continuano a funzionare.
 
 Quando la destinazione è un indirizzo IP, non c'è risoluzione DNS, quindi quella fase viene omessa. I risultati dei controlli precedenti alla misurazione per fasi mostrano solo il tempo di connessione totale.
 

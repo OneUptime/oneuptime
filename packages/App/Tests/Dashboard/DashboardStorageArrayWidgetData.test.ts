@@ -13,10 +13,14 @@ import {
   VOLUME_LATENCY_SLOW_USEC,
   formatIops,
   formatLatencyUsec,
+  formatReadWriteIops,
+  formatReadWriteLatencyUsec,
   formatStorageBytes,
+  formatUsedOfProvisioned,
   getHardwareDetail,
   getHardwareKindLabel,
   getHardwareStatusState,
+  getHardwareStatusText,
   getHardwareTypeName,
   getHardwareTypeText,
   getTotalIops,
@@ -42,6 +46,11 @@ import {
   isWordedInDashboardLocale,
   readDashboardLocale,
 } from "Common/Tests/Helpers/DashboardLocales";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
+import { getKnownStorageArrayStatusKey } from "../../FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth";
 
 /*
  * What the Storage Array volume and hardware dashboard widgets show: how a
@@ -50,6 +59,10 @@ import {
  * one red cell, so the bands have to agree with the alert templates and
  * with the Storage Arrays pages the cell links to.
  */
+
+// An English letter, and a Latin digit: what a Persian figure never holds.
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
+const LATIN_DIGIT: RegExp = /[0-9]/;
 
 describe("toFiniteNumber", () => {
   test("reads numbers and numeric strings, and nothing else", () => {
@@ -557,5 +570,348 @@ describe("the hardware list's words, in the reader's language", () => {
         wordless,
       ),
     ).toBe("Primary");
+  });
+});
+
+/*
+ * #7521: the hardware list's Status column and a tile's Reported Status
+ * drew the array's status as it came, "Degraded" and "Not Installed" in a
+ * Persian column whose header, types and details were Persian.
+ */
+describe("a component's status, in the reader's language", () => {
+  const german: Translator = dashboardTranslator("de");
+  const persian: Translator = dashboardTranslator("fa");
+  const arabic: Translator = dashboardTranslator("ar");
+
+  // Every status the Storage Arrays pages word, as the array writes it, and its key.
+  const KNOWN_STATUSES: ReadonlyArray<[string, string]> = [
+    ["ok", "OK"],
+    ["healthy", "Healthy"],
+    ["ready", "Ready"],
+    ["enabled", "Enabled"],
+    ["online", "Online"],
+    ["critical", "Critical"],
+    ["failed", "Failed"],
+    ["missing", "Missing"],
+    ["unhealthy", "Unhealthy"],
+    ["degraded", "Degraded"],
+    ["unknown", "Unknown"],
+    ["unrecognized", "Unrecognized"],
+    ["not ready", "Not Ready"],
+    ["not_installed", "Not Installed"],
+    ["device_off", "Device Off"],
+    ["identifying", "Identifying"],
+    ["empty", "Empty"],
+    ["unused", "Unused"],
+    ["disabled", "Disabled"],
+  ];
+
+  test("each status the widget bands is one the pages word: its critical, warning and healthy lists", () => {
+    for (const status of [
+      ...STORAGE_ARRAY_CRITICAL_COMPONENT_STATUSES,
+      ...STORAGE_ARRAY_WARNING_COMPONENT_STATUSES,
+      ...STORAGE_ARRAY_HEALTHY_COMPONENT_STATUSES.filter(
+        (healthy: string): boolean => {
+          // A replica link's word, drawn as the array writes it on the pages too.
+          return healthy !== "replicating";
+        },
+      ),
+    ]) {
+      expect({ status, known: getKnownStorageArrayStatusKey(status) }).toEqual({
+        status,
+        known: expect.any(String),
+      });
+    }
+
+    expect(
+      KNOWN_STATUSES.map(([status]: [string, string]): string | undefined => {
+        return getKnownStorageArrayStatusKey(status);
+      }),
+    ).toEqual(
+      KNOWN_STATUSES.map(([, key]: [string, string]): string => {
+        return key;
+      }),
+    );
+  });
+
+  test("with no translator, or an English one, each reads exactly as the array's word did", () => {
+    const english: Translator = createTranslator(undefined, "en");
+
+    for (const [status] of KNOWN_STATUSES) {
+      expect({ status, text: getHardwareStatusText(status) }).toEqual({
+        status,
+        text: humanizeArrayValue(status),
+      });
+      expect({
+        status,
+        text: getHardwareStatusText(status, english),
+      }).toEqual({ status, text: humanizeArrayValue(status) });
+    }
+  });
+
+  test.each([["de"], ["fa"], ["ar"], ["ja"], ["fr"]])(
+    "on a %s board each known status is the locale's word",
+    (language: string) => {
+      const reader: Translator = dashboardTranslator(language);
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const [status, key] of KNOWN_STATUSES) {
+        // "OK" is written so in every language.
+        expect({
+          language,
+          key,
+          worded: key === "OK" || isWordedInDashboardLocale(key, language),
+        }).toEqual({ language, key, worded: true });
+        expect({
+          language,
+          status,
+          text: getHardwareStatusText(status, reader),
+        }).toEqual({ language, status, text: words[key] });
+      }
+    },
+  );
+
+  test("each known status is worded in every Dashboard language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      for (const [, key] of KNOWN_STATUSES) {
+        expect({
+          language,
+          key,
+          worded: key === "OK" || isWordedInDashboardLocale(key, language),
+        }).toEqual({ language, key, worded: true });
+      }
+    }
+  });
+
+  test("the words a German, a Persian and an Arabic reader see for a part that needs them", () => {
+    expect(getHardwareStatusText("degraded", german)).toBe("Beeinträchtigt");
+    expect(getHardwareStatusText("critical", german)).toBe("Kritisch");
+    expect(getHardwareStatusText("not_installed", german)).toBe(
+      "Nicht installiert",
+    );
+    expect(getHardwareStatusText("degraded", persian)).toBe("کاهش کارایی");
+    expect(getHardwareStatusText("not_installed", persian)).toBe("نصب‌نشده");
+    expect(getHardwareStatusText("failed", arabic)).toBe("فشل");
+
+    // Not one English letter left in a Persian status the widget knows.
+    for (const [status, key] of KNOWN_STATUSES) {
+      if (key === "OK") {
+        continue;
+      }
+
+      expect({
+        status,
+        latin: LATIN_LETTER.test(getHardwareStatusText(status, persian)),
+      }).toEqual({ status, latin: false });
+    }
+  });
+
+  test("a status is read however the array cases or pads it", () => {
+    for (const reported of ["degraded", "DEGRADED", " Degraded ", "Degraded"]) {
+      expect(getHardwareStatusText(reported, german)).toBe("Beeinträchtigt");
+    }
+
+    expect(getHardwareStatusText("NOT READY", german)).toBe("Nicht bereit");
+  });
+
+  test("a status it does not know is the array's own word, as reported, in every language", () => {
+    for (const translator of [german, persian, arabic, undefined]) {
+      expect(getHardwareStatusText("flux_capacitor", translator)).toBe(
+        "Flux Capacitor",
+      );
+      expect(getHardwareStatusText("Rebuilding", translator)).toBe(
+        "Rebuilding",
+      );
+      // A replica link's word: the pages draw it as written too.
+      expect(getHardwareStatusText("replicating", translator)).toBe(
+        "Replicating",
+      );
+      expect(getHardwareStatusText(undefined, translator)).toBe("—");
+      expect(getHardwareStatusText("   ", translator)).toBe("—");
+      expect(getHardwareStatusText(42, translator)).toBe("—");
+    }
+  });
+
+  test("a word the object holding the list has is no status it knows", () => {
+    for (const reported of [
+      "constructor",
+      "toString",
+      "__proto__",
+      "hasOwnProperty",
+    ]) {
+      expect(getKnownStorageArrayStatusKey(reported)).toBeUndefined();
+      expect(getHardwareStatusText(reported, german)).toBe(
+        humanizeArrayValue(reported),
+      );
+    }
+
+    expect(getKnownStorageArrayStatusKey(undefined)).toBeUndefined();
+    expect(getKnownStorageArrayStatusKey(7)).toBeUndefined();
+  });
+});
+
+/*
+ * #7521: the volume list wrote Used and Provisioned, the latencies and the
+ * IOPS in Latin digits with a decimal point on every board, beside a
+ * drive's "۳٫۵ TiB" one widget over.
+ */
+describe("a volume's figures, in the reader's digits", () => {
+  const german: Translator = dashboardTranslator("de");
+  const persian: Translator = dashboardTranslator("fa");
+  const arabic: Translator = dashboardTranslator("ar");
+  const english: Translator = createTranslator(undefined, "en");
+
+  const TIB: number = 1024 ** 4;
+
+  const apart: (text: string) => string = (text: string): string => {
+    return `${FIRST_STRONG_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`;
+  };
+
+  test("latency: the reader's digits and decimal sign, the unit as every language writes it", () => {
+    expect(formatLatencyUsec(420, german)).toBe("420 µs");
+    expect(formatLatencyUsec(2345, german)).toBe("2,35 ms");
+    expect(formatLatencyUsec(1_234_567, german)).toBe("1.234,57 ms");
+    expect(formatLatencyUsec(420, persian)).toBe("۴۲۰ µs");
+    expect(formatLatencyUsec(2345, persian)).toBe("۲٫۳۵ ms");
+    expect(formatLatencyUsec(420.4, persian)).toBe("۴۲۰ µs");
+    // Arabic writes Latin digits.
+    expect(formatLatencyUsec(2345, arabic)).toBe("2.35 ms");
+    expect(formatLatencyUsec(undefined, persian)).toBe("—");
+    expect(formatLatencyUsec("not a number", german)).toBe("—");
+  });
+
+  test("IOPS: the reader's digits and decimal sign, the K and M kept", () => {
+    expect(formatIops(1500, german)).toBe("1,5K");
+    expect(formatIops(2_400_000, german)).toBe("2,4M");
+    expect(formatIops(1500, persian)).toBe("۱٫۵K");
+    expect(formatIops(842.6, persian)).toBe("۸۴۳");
+    expect(formatIops(2_400_000, persian)).toBe("۲٫۴M");
+    expect(formatIops(0, persian)).toBe("۰");
+    expect(formatIops(1500, arabic)).toBe("1.5K");
+    expect(formatIops(undefined, german)).toBe("—");
+  });
+
+  test("with no translator, or an English one, every figure is byte-identical to before", () => {
+    for (const translator of [undefined, english]) {
+      expect(formatLatencyUsec(420, translator)).toBe("420 µs");
+      expect(formatLatencyUsec(999.4, translator)).toBe("999 µs");
+      expect(formatLatencyUsec(1000, translator)).toBe("1.00 ms");
+      expect(formatLatencyUsec(2345, translator)).toBe("2.35 ms");
+      expect(formatLatencyUsec(1_234_567, translator)).toBe("1234.57 ms");
+      expect(formatIops(0, translator)).toBe("0");
+      expect(formatIops(842.6, translator)).toBe("843");
+      expect(formatIops(1500, translator)).toBe("1.5K");
+      expect(formatIops(2_400_000, translator)).toBe("2.4M");
+      expect(formatStorageBytes(3.5 * TIB, translator)).toBe("3.5 TiB");
+      expect(formatReadWriteLatencyUsec(420, 2345, translator)).toBe(
+        "420 µs / 2.35 ms",
+      );
+      expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, translator)).toBe(
+        "3.5 TiB of 10.0 TiB",
+      );
+      expect(formatReadWriteIops(1234, 300, translator)).toBe(
+        "Read 1.2K · Write 300",
+      );
+    }
+  });
+
+  test("used of provisioned: the sentence and its sizes in German, Persian and Arabic", () => {
+    expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, german)).toBe(
+      "3,5 TiB von 10,0 TiB",
+    );
+    expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, persian)).toBe(
+      "۳٫۵ TiB از ۱۰٫۰ TiB",
+    );
+    expect(formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, arabic)).toBe(
+      "3.5 TiB من 10.0 TiB",
+    );
+    expect(formatUsedOfProvisioned(undefined, 10 * TIB, german)).toBe(
+      "— von 10,0 TiB",
+    );
+  });
+
+  /*
+   * A size is written in its sentence's digits: while a language has no
+   * wording of the sentence, the English sentence holds English figures,
+   * never "۳٫۵ TiB of ۱۰٫۰ TiB".
+   */
+  test("an English sentence, where the reader's language has none of its own, holds English figures", () => {
+    const persianWords: Record<string, string> = readDashboardLocale("fa");
+    const persianWithoutTheSentence: Translator = createTranslator(
+      (text: string): string | undefined => {
+        if (
+          text === "{{used}} of {{provisioned}}" ||
+          text === "Read {{read}} · Write {{write}}"
+        ) {
+          return undefined;
+        }
+
+        return persianWords[text];
+      },
+      "fa",
+    );
+
+    expect(
+      formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, persianWithoutTheSentence),
+    ).toBe("3.5 TiB of 10.0 TiB");
+    // Persian's separator, whose zero is a dot (getInlineSeparator).
+    expect(formatReadWriteIops(1234, 300, persianWithoutTheSentence)).toBe(
+      `Read 1.2K${getInlineSeparator("fa")}Write 300`,
+    );
+    expect(
+      formatUsedOfProvisioned(
+        3.5 * TIB,
+        10 * TIB,
+        createTranslator(undefined, "de"),
+      ),
+    ).toBe("3.5 TiB of 10.0 TiB");
+  });
+
+  test("read and write IOPS under the pointer, in the reader's sentence and digits", () => {
+    expect(formatReadWriteIops(1234, 300, german)).toBe(
+      "Lesen 1,2K · Schreiben 300",
+    );
+    expect(formatReadWriteIops(1234, 300, persian)).toBe(
+      `خواندن ۱٫۲K${getInlineSeparator("fa")}نوشتن ۳۰۰`,
+    );
+  });
+
+  /*
+   * In a cell read from the right, the write latency's figure after the
+   * read latency's Latin "µs" joined one left-to-right run with it: "µs /
+   * ۲٫۳۵ ms ۴۲۰". Each latency is set apart, so the cell reads read then
+   * write from the right, each whole.
+   */
+  test("read and write latency: each set apart on a page read from the right, as before on one read from the left", () => {
+    expect(formatReadWriteLatencyUsec(420, 2345, persian)).toBe(
+      `${apart("۴۲۰ µs")} / ${apart("۲٫۳۵ ms")}`,
+    );
+    expect(formatReadWriteLatencyUsec(420, 2345, arabic)).toBe(
+      `${apart("420 µs")} / ${apart("2.35 ms")}`,
+    );
+    expect(formatReadWriteLatencyUsec(420, 2345, german)).toBe(
+      "420 µs / 2,35 ms",
+    );
+    // A latency the array did not report is the dash, which moves nothing.
+    expect(formatReadWriteLatencyUsec(undefined, undefined, persian)).toBe(
+      "— / —",
+    );
+    expect(formatReadWriteLatencyUsec(undefined, 2345, persian)).toBe(
+      `— / ${apart("۲٫۳۵ ms")}`,
+    );
+  });
+
+  test("no Latin digit is left in a Persian volume's figures", () => {
+    for (const text of [
+      formatUsedOfProvisioned(3.5 * TIB, 10 * TIB, persian),
+      formatReadWriteLatencyUsec(420, 2345, persian),
+      formatReadWriteIops(1234, 300, persian),
+      formatIops(1_500_000, persian),
+    ]) {
+      expect({ text, latin: LATIN_DIGIT.test(text) }).toEqual({
+        text,
+        latin: false,
+      });
+    }
   });
 });

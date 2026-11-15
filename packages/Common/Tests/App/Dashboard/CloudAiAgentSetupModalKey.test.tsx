@@ -31,6 +31,9 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import API from "../../../UI/Utils/API/API";
+import { getErrorInSentenceText } from "../../../UI/Utils/ErrorInSentence";
+import { SERVER_DOWN_MESSAGE } from "../../../Types/Exception/UnexplainedError";
+import { createTranslator } from "../../../Types/Translator";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
@@ -337,10 +340,21 @@ describe("the key the setup command holds", () => {
       ];
       openDialog();
 
-      // Said as every failed request is (a gateway's in words of its own).
+      /*
+       * Said as every failed request is: a gateway's 502 in words of its
+       * own, why and what to do next, never SERVER_DOWN_MESSAGE (#7537).
+       */
       expect(
         await screen.findByTestId("cloud-ai-agent-setup-problem"),
-      ).toHaveTextContent(API.getFriendlyMessage(failure));
+      ).toHaveTextContent(
+        getErrorInSentenceText({
+          message: API.getFriendlyMessage(failure),
+          translator: createTranslator(undefined, "en"),
+        }),
+      );
+      expect(
+        screen.getByTestId("cloud-ai-agent-setup-problem"),
+      ).not.toHaveTextContent(SERVER_DOWN_MESSAGE);
       expect(screen.queryByTestId("cloud-ai-agent-setup-command")).toBeNull();
 
       fireEvent.click(screen.getByTestId("cloud-ai-agent-setup-key-try-again"));

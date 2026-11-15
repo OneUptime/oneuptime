@@ -46,6 +46,7 @@ import React, {
   useId,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   run: SecurityPlaybookRun;
@@ -362,11 +363,19 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : <></>}
+          {error ? (
+            <p className="mt-3 text-sm text-red-700">
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       ) : error ? (
         // A decision or a cancel that failed says so, steps shown or not.
-        <p className="px-4 pb-3 text-sm text-red-700">{error}</p>
+        <p className="px-4 pb-3 text-sm text-red-700">
+          <ErrorInSentence message={error} showWhereToLook={true} />
+        </p>
       ) : (
         <></>
       )}

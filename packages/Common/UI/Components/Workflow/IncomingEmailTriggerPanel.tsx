@@ -20,6 +20,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
  * Every sentence the panel shows, in English. Each is looked up whole in the
@@ -328,7 +329,7 @@ const IncomingEmailTriggerPanel: FunctionComponent<ComponentProps> = (
         </div>
         {saveError ? (
           <p className="mt-2 text-sm text-red-600" role="alert">
-            {saveError}
+            <ErrorInSentence message={saveError} showWhereToLook={true} />
           </p>
         ) : (
           <></>

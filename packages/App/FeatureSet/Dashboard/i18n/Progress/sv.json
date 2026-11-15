@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9278
+    "keys": 52416,
+    "untranslated": 9161
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -44,6 +44,8 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPU per container",
+    "CPU per pod",
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
@@ -136,6 +138,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Kelvin",
     "Keystone",
     "Kilohertz",
@@ -170,6 +173,7 @@
     "Nav",
     "Normal",
     "Null",
+    "OID Collection Template",
     "OK",
     "OSD",
     "Object Gateway",
@@ -220,6 +224,7 @@
     "Pull requests",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -230,6 +235,7 @@
     "RegionOne",
     "Relation",
     "Reserved Instances",
+    "Resolver",
     "Revision",
     "Revision {{revision}}",
     "Risk",
@@ -286,6 +292,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "VIP",

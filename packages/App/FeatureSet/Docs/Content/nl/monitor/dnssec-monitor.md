@@ -130,11 +130,11 @@ De standaardcriteria houden het verlopen van handtekeningen en de consistentie v
 ## Problemen oplossen
 
 :::details De keten wordt als gebroken gemeld, maar de zone valideert met `dig`
-Een van de resolvers bij **Resolvers** gaf de AD-vlag niet terug: hij was vanaf de sonde niet bereikbaar, of hij valideert DNSSEC niet. De tabel **Resolver Checks**, in **Testresultaat van monitor** en in de samenvatting van elke controle, toont het antwoord en de fout van elke resolver. Verwijder resolvers die de sonde niet kan bereiken, en geef alleen validerende op.
+Een van de resolvers bij **Resolvers** gaf de AD-vlag niet terug: hij was vanaf de sonde niet bereikbaar, of hij valideert DNSSEC niet. De tabel **Resolvercontroles**, in **Testresultaat van monitor** en in de samenvatting van elke controle, toont het antwoord en de fout van elke resolver. Verwijder resolvers die de sonde niet kan bereiken, en geef alleen validerende op.
 :::
 
 :::details Naamservers worden direct na een wijziging als inconsistent gemeld
-Secundaire servers kunnen na een wijziging van de zone een tijdje achterlopen op de primaire. De tabel **Nameserver Consistency** in de samenvatting van de controle toont het SOA-serienummer van elke naamserver. Blijft er een achter, dan ontvangt die secundaire server geen overdrachten meer. Toont elke naamserver een fout, dan wordt de sonde mogelijk verhinderd ze rechtstreeks te vragen: zet **Consistentie van naamservers controleren** uit.
+Secundaire servers kunnen na een wijziging van de zone een tijdje achterlopen op de primaire. De tabel **Consistentie van de nameservers** in de samenvatting van de controle toont het SOA-serienummer van elke naamserver. Blijft er een achter, dan ontvangt die secundaire server geen overdrachten meer. Toont elke naamserver een fout, dan wordt de sonde mogelijk verhinderd ze rechtstreeks te vragen: zet **Consistentie van naamservers controleren** uit.
 :::
 
 :::details De controle meldt een time-out

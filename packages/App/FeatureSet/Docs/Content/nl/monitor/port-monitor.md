@@ -98,7 +98,7 @@ Voor een hostnaam meet de sonde de controle in twee fasen:
 | **DNS-opzoeking** | Het begin van de controle | De eerste TCP-verbindingspoging |
 | **TCP-verbinding** | De eerste TCP-verbindingspoging | Het accepteren van de verbinding, inclusief de tijd die nodig is om tussen IPv6- en IPv4-adressen te wisselen |
 
-**Total Connection Time (DNS + TCP)** loopt van het begin van de controle tot de verbinding wordt geaccepteerd. Het is ook de reactietijd van de poortmonitor, zodat bestaande criteria, waarschuwingen en grafieken die de reactietijd gebruiken blijven werken.
+**Totale verbindingstijd (DNS + TCP)** loopt van het begin van de controle tot de verbinding wordt geaccepteerd. Het is ook de reactietijd van de poortmonitor, zodat bestaande criteria, waarschuwingen en grafieken die de reactietijd gebruiken blijven werken.
 
 Wanneer het doel een IP-adres is, is er geen DNS-opzoeking, dus die fase valt weg. Controleresultaten van vóór de fasetijden tonen alleen de totale verbindingstijd.
 
@@ -181,5 +181,5 @@ Poortmonitoren openen alleen TCP-verbindingen. Gebruik voor een DNS-server een [
 - [Ping-monitor](/docs/monitor/ping-monitor): Controleren of de host zelf bereikbaar is.
 - [SSL-certificaat-monitor](/docs/monitor/ssl-certificate-monitor): Het certificaat op een TLS-poort controleren.
 - [Databasegezondheid-monitor](/docs/monitor/database-health-monitor): Verder kijken dan een open poort en de gezondheid van een database bewaken.
-- [Aangepaste probes](/docs/probe/custom-probe): Poorten in uw eigen netwerk controleren.
+- [Aangepaste sondes](/docs/probe/custom-probe): Poorten in uw eigen netwerk controleren.
 :::

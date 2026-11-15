@@ -188,12 +188,12 @@ const DockerHostContainerDetail: FunctionComponent<
     const cpuQuery: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "container_cpu",
-        title: "CPU Utilization",
+        title: translator.translateText("CPU Utilization"),
         description: translator.translateTemplate(
           "CPU utilization for {{containerName}}",
           { containerName: containerName },
         ),
-        legend: "CPU %",
+        legend: translator.translateText("CPU %"),
         legendUnit: "%",
       },
       metricQueryData: {
@@ -209,12 +209,12 @@ const DockerHostContainerDetail: FunctionComponent<
     const memPctQuery: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "container_memory_percent",
-        title: "Memory Usage",
+        title: translator.translateText("Memory Usage"),
         description: translator.translateTemplate(
           "Memory usage percentage for {{containerName}}",
           { containerName: containerName },
         ),
-        legend: "Memory %",
+        legend: translator.translateText("Memory %"),
         legendUnit: "%",
       },
       metricQueryData: {

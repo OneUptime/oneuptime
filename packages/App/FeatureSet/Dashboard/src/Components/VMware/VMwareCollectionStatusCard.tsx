@@ -40,6 +40,7 @@ import {
   getVMwareProductLine,
   isProbeCollected,
 } from "./VMwareProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * How a vCenter a probe collects is doing, at the top of its overview: is
@@ -284,7 +285,7 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
 
         {trustError ? (
           <p className="text-red-700" role="alert">
-            {trustError}
+            <ErrorInSentence message={trustError} showWhereToLook={true} />
           </p>
         ) : (
           <></>

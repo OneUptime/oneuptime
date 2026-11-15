@@ -18,20 +18,33 @@ import { parseInlineImageDataUri } from "../../../Utils/Markdown/InlineImageData
  * other data: URL, an SVG - is left to the default, as before.
  *
  * In safe mode the viewer draws no image at all, whatever its URL.
+ *
+ * No address holds the marks that set a value apart from the words round
+ * it (LRI, RLI, FSI, PDI: U+2066-U+2069, as written or percent-encoded).
+ * A text drawn on an Arabic or Persian page sets a value in Latin letters
+ * apart in an isolate (Translator's setsValuesApart, an incident's root
+ * cause: "- مقصد: FSI https://shop.example.com/health PDI"), and a bare
+ * address takes every character up to a space into its link: the PDI
+ * after it made the link go to ".../health%E2%81%A9". The marks are never
+ * part of where a link goes; the address without them is.
  */
+const ISOLATE_MARKS_IN_ADDRESS: RegExp = /[⁦-⁩]|%E2%81%A[6-9]/gi;
+
 export const markdownUrlTransform: UrlTransform = (
   url: string,
   key: string,
   node: Parameters<UrlTransform>[2],
 ): string | null | undefined => {
+  const address: string = url.replace(ISOLATE_MARKS_IN_ADDRESS, "");
+
   if (key === "src" && node.tagName === "img") {
     const inlineImageDataUri: string | undefined =
-      parseInlineImageDataUri(url)?.dataUri;
+      parseInlineImageDataUri(address)?.dataUri;
 
     if (inlineImageDataUri) {
       return inlineImageDataUri;
     }
   }
 
-  return defaultUrlTransform(url);
+  return defaultUrlTransform(address);
 };
